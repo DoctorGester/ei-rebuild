@@ -19,7 +19,6 @@
 #include "vectors.h"
 
 #include "../../src/game/ai_map.h"
-#include "../../src/game/game_data.h"
 
 #include <cstdint>
 #include <cstring>

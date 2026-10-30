@@ -2,7 +2,7 @@
 // Every import of game.exe (its import address table): {its member of lib/import_table.h's ImportTable,
 // DLL, function (nullptr: by ordinal), ordinal, reached}, in the directory's order. The image resolves
 // the reached ones (a call of our code or the harness goes through the slot: gen_iat.py's reached())
-// into the image's storage and leaves the rest traps (src/standalone/image_imports.cpp, S18f, S22).
+// into its own table and leaves the rest traps (src/standalone/image_imports.cpp, S18f, S22).
 {offsetof(ei::ImportTable, BinkGoto), "binkw32.dll", "_BinkGoto@12", 0, true},
 {offsetof(ei::ImportTable, BinkDoFrame), "binkw32.dll", "_BinkDoFrame@4", 0, true},
 {offsetof(ei::ImportTable, BinkDDSurfaceType), "binkw32.dll", "_BinkDDSurfaceType@4", 0, false},

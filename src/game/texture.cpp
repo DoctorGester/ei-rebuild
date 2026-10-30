@@ -1,7 +1,6 @@
 #include "texture.h"
 
 #include "app.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/file_io.h"

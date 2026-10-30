@@ -5,7 +5,6 @@
 #include "vectors.h"
 
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <cstring>
 #include <memory>

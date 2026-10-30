@@ -152,7 +152,6 @@ add_executable(ei-rebuild
     src/hook/standalone.cpp
     src/standalone/host.cpp
     src/standalone/host.rc
-    src/standalone/image_data.cpp
     src/standalone/image_imports.cpp
     src/standalone/standalone_main.cpp
     src/standalone/startup.cpp

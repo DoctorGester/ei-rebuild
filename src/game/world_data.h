@@ -9,7 +9,6 @@
 
 #include "engine_object.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 class CLight;

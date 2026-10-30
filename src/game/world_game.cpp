@@ -6,7 +6,6 @@
 #include "core_maths.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "game_data.h"
 #include "game_flow_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"

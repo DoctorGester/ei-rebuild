@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"
-#include "game_data.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 

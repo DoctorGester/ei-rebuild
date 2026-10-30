@@ -5,7 +5,6 @@
 
 #include "game/ai_motion.h"
 #include "game/combat.h"
-#include "game/game_data.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"
 #include "game/party.h"
@@ -61,7 +60,7 @@ std::uint32_t ModeId(const std::unique_ptr<AIMode>& mode) { return ModeId(mode.g
 std::uint32_t MissileVtable(const SpellEffect* e) {
     std::uint32_t vtable;
     std::memcpy(&vtable, static_cast<const void*>(e), 4);
-    return static_cast<std::uint32_t>(ei::OriginalAddress(vtable));
+    return vtable;
 }
 
 bool IsSpellEffect(const SpellEffect* e) { return typeid(*e) == typeid(SpellEffect); }

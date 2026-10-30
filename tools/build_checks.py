@@ -18,8 +18,8 @@ def checks(out):
         py + [tool('check_cleanup.py')],
         # Addresses and ticket ids in comments may only go down per file (docs/comment-guide.md).
         py + [tool('comments.py'), 'check'],
-        # Game data by address only through the data seam (src/game/game_data.h): sealed sections none raw, the rest
-        # per file no more than config/data_seam.csv allows.
+        # Game data by address only through the data seam (src/game/game_data.h, the harness's OriginalGameData):
+        # no raw use.
         py + [tool('data_seam.py'), '--check'],
         # game.exe's side of the harness reads game.exe's objects through its own views, ours only through
         # tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files).

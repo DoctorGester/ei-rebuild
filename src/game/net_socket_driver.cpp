@@ -9,7 +9,6 @@
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstdio>

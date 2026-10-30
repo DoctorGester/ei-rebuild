@@ -5,7 +5,6 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <cstdio>
 #include <cstring>

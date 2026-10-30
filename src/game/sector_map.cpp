@@ -2,7 +2,6 @@
 #include "sector_map.h"
 
 #include "ei/rebirth.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 

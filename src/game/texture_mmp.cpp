@@ -13,7 +13,6 @@
 #include "surface.h"
 
 #include "../hook/log.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 #include <format>

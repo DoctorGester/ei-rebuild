@@ -2,7 +2,6 @@
 // point, alarms and the game result. See world.h.
 #include "combat.h"
 #include "core_maths.h"
-#include "game_data.h"
 #include "map_object.h"
 #include "model.h"
 #include "net_link.h"   // netlink::DriverSession (SetGameResult)

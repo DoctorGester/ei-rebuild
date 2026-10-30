@@ -1,42 +1,36 @@
 """The data seam (S18): every use of game.exe's data by its original address goes through
-ei::GameAddress / GameData / GamePointer (src/game/game_data.h), so the standalone image can keep a
-section somewhere else than game.exe's address (docs/notes/standalone.md, "Own data").
+ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's OriginalGameData, so that
+ei_vectors.exe's replay can hand a stand-in and no code of the image reads game.exe's data by a raw cast
+(docs/notes/standalone.md, "Own data").
 
 A literal of the exe's data range (0073B000-007D7000: the import address table, .rdata, .data, its
 zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:
-  seam       the address argument of GameAddress / GameData<T> / GamePointer<T> / DataId
+  seam       the address argument of GameData<T> / GamePointer<T> / DataId / OriginalGameData<T>
   helper     the address argument of a function whose every definition hands that parameter to the
              seam (per-file helpers such as GameFloat(std::uintptr_t)); found from the definitions
   id         the value of a constant (constexpr std::uintptr_t kName = 0x...) whose every use is the
              address argument of the seam or a helper, or the whole value of an alias constant whose every use is
   raw        anything else: read at game.exe's address whatever the image does
-A section is sealed (config/data_seam.csv) once its raw count is 0; the check keeps it there and holds
-every other file's raw count per section to the baseline (it may only go down).
+Every section is sealed (S18c, S18g): the check fails on any raw use.
 
-usage: python tools/data_seam.py [--check | --update | --list SECTION [--all] | --apply SECTION... [--files F...]]
+usage: python tools/data_seam.py [--check | --list SECTION [--all]]
   (no option)      counts per section
-  --check          exit 1 when a sealed section has a raw use or a file has more raw uses than its baseline
-  --update         rewrite the baseline in config/data_seam.csv from the current counts (sealed lines kept)
+  --check          exit 1 when there is a raw use
   --list SECTION   the raw uses of one section (--all: every use, with its kind)
-  --apply SECTION  rewrites the casts of that section's literals (reinterpret_cast<T*>(0x...) and
-                   *reinterpret_cast<T*>(0x...)) and the raw casts in the helpers called with them to the
-                   seam, adding the include; 'all' for every section
 """
-import argparse, collections, csv, os, re, sys
+import argparse, collections, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG = os.path.join(ROOT, 'config', 'data_seam.csv')
 TOPS = ('src', 'tests', 'include')
 
 # game.exe 1.06's data sections (tools/pe.py): .rdata 0073B000 (its first 0x820 bytes the import
 # address table), .data 00783000 with its zero-filled tail from 0079C000, .rsrc 007CD000; SizeOfImage
-# ends at 007D7000. The standalone image moves "data" and "bss" together (game_data.h's kMovedBegin-kMovedEnd,
-# S18d); they are split at 0079BF70 (the key bindings' action table, 0x200 bytes, the object that runs across the
-# file's 0079C000) as S18b moved "bss" alone. Both are sealed.
+# ends at 007D7000. "data" and "bss" are split at 0079BF70 (the key bindings' action table, 0x200 bytes, the object
+# that runs across the file's 0079C000), as S18b moved "bss" alone.
 SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), ('data', 0x00783000, 0x0079BF70),
             ('bss', 0x0079BF70, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
 # OriginalGameData: the harness's read of game.exe's own copy of a named object in its --no-hooks runs (tests/verify/harness_original.h).
-OPENERS = {'GameAddress', 'GameData', 'GamePointer', 'DataId', 'OriginalGameData'}
+OPENERS = {'GameData', 'GamePointer', 'DataId', 'OriginalGameData'}
 
 LITERAL = re.compile(r'(?<![\w.])0[xX]([0-9A-Fa-f]{1,8})[uUlL]*(?![\w.])')
 _TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|R"([^(\s]*)\(.*?\)\1"|"(?:\\.|[^"\\\n])*"'
@@ -383,58 +377,27 @@ class Scan:
         return raw, kinds
 
 
-def load_config():
-    sealed, baseline = set(), {}
-    if os.path.exists(CONFIG):
-        with open(CONFIG, newline='') as f:
-            for r in csv.DictReader(line for line in f if not line.startswith('#')):
-                if r['file'] == '*sealed*':
-                    sealed.add(r['section'])
-                else:
-                    baseline[(r['file'], r['section'])] = int(r['raw'])
-    return sealed, baseline
-
-
-def write_config(sealed, raw):
-    with open(CONFIG, 'w', newline='') as f:
-        f.write('# The data seam (tools/data_seam.py, S18): raw uses of game.exe\'s data per file and section, which\n'
-                '# may only go down; a "*sealed*" line marks a section that must have none.\n')
-        w = csv.writer(f, lineterminator='\n')
-        w.writerow(['file', 'section', 'raw'])
-        for s in sorted(sealed):
-            w.writerow(['*sealed*', s, 0])
-        for (path, sec), n in sorted(raw.items()):
-            if n:
-                w.writerow([path, sec, n])
-
-
 def report(scan):
-    raw, kinds = scan.counts()
-    sealed, _ = load_config()
+    _, kinds = scan.counts()
     print(f'{"section":8} {"uses":>6} {"seam":>6} {"helper":>6} {"id":>5} {"raw":>5} {"addresses":>9} {"raw addr":>8}')
     for name, _, _ in SECTIONS:
         k = kinds[name]
         addrs = {u[2] for u in scan.uses if u[3] == name}
         raw_addrs = {u[2] for u in scan.uses if u[3] == name and u[4] == 'raw'}
         print(f'{name:8} {sum(k.values()):6} {k["seam"]:6} {k["helper"]:6} {k["id"]:5} {k["raw"]:5} '
-              f'{len(addrs):9} {len(raw_addrs):8}{"  sealed" if name in sealed else ""}')
+              f'{len(addrs):9} {len(raw_addrs):8}')
 
 
 def check(scan):
     raw, _ = scan.counts()
-    sealed, baseline = load_config()
-    problems = []
-    for (path, sec), n in sorted(raw.items()):
-        if sec in sealed:
-            problems.append(f'{path}: {n} raw use(s) of the sealed section {sec} (python tools/data_seam.py --list {sec})')
-        elif n > baseline.get((path, sec), 0):
-            problems.append(f'{path}: {n} raw use(s) of {sec}, the baseline allows {baseline.get((path, sec), 0)}: '
-                            f'use ei::GameData / GamePointer / GameAddress (src/game/game_data.h)')
+    problems = [f'{path}: {n} raw use(s) of {sec} (python tools/data_seam.py --list {sec}): use ei::GameData / '
+                f'GamePointer (src/game/game_data.h) or OriginalGameData (tests/verify/harness_original.h)'
+                for (path, sec), n in sorted(raw.items()) if n]
     for p in problems:
         print('data_seam:', p)
     if problems:
         return 1
-    print(f'data_seam: OK ({sum(raw.values())} raw uses left; sealed: {", ".join(sorted(sealed)) or "none"})')
+    print('data_seam: OK (no raw uses)')
     return 0
 
 
@@ -450,166 +413,15 @@ def list_uses(scan, section, every):
                 print(f'  id {name} used outside the seam at {path}:{scan.line(path, offset)}')
 
 
-# ---- --apply ------------------------------------------------------------------------------------
-
-def match_angle(text, lt):
-    depth = 0
-    for i in range(lt, len(text)):
-        if text[i] == '<':
-            depth += 1
-        elif text[i] == '>':
-            depth -= 1
-            if depth == 0:
-                return i
-        elif text[i] in ';{}':
-            return None
-    return None
-
-
-def rewrite_casts(raw_text, code, wanted):
-    """Rewrites reinterpret_cast<TYPE>(ARG) where ARG (optionally in std::uintptr_t(...)) is `wanted`(arg)
-    true. Returns the new text and the count."""
-    out, pos, n = [], 0, 0
-    for m in re.finditer(r'reinterpret_cast\s*<', code):
-        if m.start() < pos:
-            continue
-        gt = match_angle(code, m.end() - 1)
-        if gt is None:
-            continue
-        type_text = raw_text[m.end():gt].strip()
-        k = gt + 1
-        while k < len(code) and code[k] in ' \t':
-            k += 1
-        if k >= len(code) or code[k] != '(':
-            continue
-        am = re.match(r'\(\s*(?:std::uintptr_t\s*\(\s*([^()]*?)\s*\)|([^()]*?))\s*\)', code[k:])
-        if not am:
-            continue
-        arg = (am.group(1) if am.group(1) is not None else am.group(2)).strip()
-        if not wanted(arg, m.start()):
-            continue
-        arg_text = raw_text[k:k + am.end()]
-        arg_text = re.match(r'\(\s*(?:std::uintptr_t\s*\(\s*(.*?)\s*\)|(.*?))\s*\)$', arg_text, re.S)
-        arg_raw = (arg_text.group(1) if arg_text.group(1) is not None else arg_text.group(2)).strip()
-        end = k + am.end()
-        start = m.start()
-        j = skip_back_ws(code, start - 1)
-        # A unary '*' (not a multiplication: nothing that ends an operand before it) on the cast itself
-        # (no postfix operator after it, which would bind first).
-        k2 = end
-        while k2 < len(code) and code[k2] in ' \t':
-            k2 += 1
-        postfix = code.startswith(('[', '->', '(', '.'), k2)
-        j2 = skip_back_ws(code, j - 1)
-        operand = j2 >= 0 and (code[j2].isalnum() or code[j2] in '_)]') and not re.search(
-            r'\b(?:return|case|else|const|auto)$', code[:j2 + 1])
-        deref = j >= 0 and code[j] == '*' and not postfix and not operand
-        if type_text.endswith('*'):
-            pointee = type_text[:-1].rstrip()
-            if deref:
-                # unary '*' only: a '*' after an operand would be a multiplication by a pointer (invalid)
-                start = j
-                new = f'ei::GameData<{pointee}>({arg_raw})'
-            else:
-                new = f'ei::GamePointer<{pointee}>({arg_raw})'
-        else:
-            new = f'reinterpret_cast<{type_text}>(ei::GameAddress({arg_raw}))'
-        out.append(raw_text[pos:start])
-        out.append(new)
-        pos = end
-        n += 1
-    out.append(raw_text[pos:])
-    return ''.join(out), n
-
-
-def add_include(text, path):
-    if re.search(r'#include\s+"(?:game/)?game_data\.h"', text) or path == 'src/game/game_data.h':
-        return text
-    includes = list(re.finditer(r'^#include[^\n]*\n', text, re.M))
-    line = '#include "game/game_data.h"\n'
-    if path.startswith('src/game/'):
-        line = '#include "game_data.h"\n'
-    if not includes:
-        pragma = re.search(r'^#pragma once[^\n]*\n', text, re.M)
-        at = pragma.end() if pragma else 0
-        return text[:at] + ('\n' if pragma else '') + line + text[at:]
-    quoted = [m for m in includes if '"' in m.group(0)]
-    at = (quoted or includes)[-1].end()
-    return text[:at] + line + text[at:]
-
-
-def apply(scan, sections, only):
-    wanted_sections = {s for s, _, _ in SECTIONS} if 'all' in sections else set(sections)
-    # helpers called with a literal of the sections: their raw casts of the parameter
-    called = set()
-    for path, offset, value, sec, kind, detail in scan.uses:
-        if sec not in wanted_sections:
-            continue
-        owner = argument_owner(scan.code[path], offset)
-        if owner and owner[0]:
-            called.add((last(owner[0]), owner[1]))
-    helper_params = collections.defaultdict(list)   # path -> [((body start, end), param)]
-    for (name, index), defs in scan.helper_defs.items():
-        if (name, index) in called:
-            for path, span, routed, param in defs:
-                if not routed:
-                    helper_params[path].append((span, param))
-    total = 0
-    for path in scan.paths:
-        if only and path not in only:
-            continue
-        text = read(path)
-        code = scan.code[path]
-
-        def literal_wanted(arg):
-            m = LITERAL.fullmatch(arg)
-            return bool(m) and section_of(int(m.group(1), 16)) in wanted_sections
-
-        spans = helper_params.get(path, [])
-
-        def param_wanted(arg, at):
-            # the helper's own parameter, inside that helper's body only
-            return any(lo <= at < hi and arg == p for (lo, hi), p in spans)
-
-        # Constants of the sections (ids) used outside the seam: their casts too.
-        ids = {name for name, bad in scan.id_failures.items() if any(b[0] == path for b in bad)
-               and any(u[5] == name and u[3] in wanted_sections for u in scan.uses)}
-
-        def id_wanted(arg):
-            m = re.match(r'(?:\w+::)*(\w+)\b', arg)
-            return bool(m) and m.group(1) in ids
-
-        new, n = rewrite_casts(text, code, lambda a, at: literal_wanted(a) or param_wanted(a, at) or id_wanted(a))
-        if n:
-            new = add_include(new, path)
-            with open(os.path.join(ROOT, path), 'w', encoding='utf-8', newline='') as f:
-                f.write(new)
-            total += n
-            print(f'{path}: {n}')
-    print(f'{total} cast(s) rewritten')
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
-    ap.add_argument('--update', action='store_true')
     ap.add_argument('--list')
     ap.add_argument('--all', action='store_true')
-    ap.add_argument('--apply', nargs='+')
-    ap.add_argument('--files', nargs='+')
     a = ap.parse_args()
     scan = Scan()
-    if a.apply:
-        apply(scan, a.apply, set(a.files or []))
-        return 0
     if a.list:
         list_uses(scan, a.list, a.all)
-        return 0
-    if a.update:
-        sealed, _ = load_config()
-        raw, _ = scan.counts()
-        write_config(sealed, raw)
-        report(scan)
         return 0
     if a.check:
         return check(scan)

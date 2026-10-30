@@ -31,7 +31,6 @@
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/win_user.h"
 

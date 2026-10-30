@@ -19,7 +19,6 @@
 #include <vector>
 #include <windows.h>
 #include "ui_cursor.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "world.h"

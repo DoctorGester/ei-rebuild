@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "game_data.h"
 
 #include <cstring>
 #include <format>

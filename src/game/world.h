@@ -6,7 +6,6 @@
 #include "core_refcount.h"
 #include "effects.h"   // RainSnow
 #include "engine_object.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "ground_print.h"
 #include "maths.h"

@@ -27,7 +27,7 @@ void OutputPath(const char* name, char* out) {
     std::snprintf(out + used, MAX_PATH - used, "\\%s", name);
 }
 
-// ei-rebuild.log in the output folder. Set on first use: static constructors (the harness, the image's data mover) log
+// ei-rebuild.log in the output folder. Set on first use: static constructors (the harness, the image's import table) log
 // first.
 static void InitLogPath() { OutputPath("ei-rebuild.log", g_logPath); }
 

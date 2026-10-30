@@ -6,7 +6,6 @@
 #include "camera.h"
 #include "effects.h"
 #include "figure_manager.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "ground_print.h"
 #include "lightning.h"

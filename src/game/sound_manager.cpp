@@ -9,7 +9,6 @@
 // thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
 // operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach Miles.
-#include "game_data.h"
 #include "game_strings.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"

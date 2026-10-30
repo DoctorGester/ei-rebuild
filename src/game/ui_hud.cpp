@@ -34,7 +34,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <vector>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
 

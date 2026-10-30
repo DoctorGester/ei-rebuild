@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"

@@ -1,7 +1,6 @@
-// game.exe's imports resolved into the image's storage, from image_data.cpp's mover. See
-// docs/notes/standalone.md, "The image's source files".
+// game.exe's imports resolved into the image's own table, before every other static constructor
+// (init_seg(compiler)). See docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
-#include "game/game_data.h"
 #include "game/system_text.h"
 #include "hook/log.h"
 #include "lib/import_table.h"
@@ -14,10 +13,14 @@
 #include <cstring>
 #include <string>
 
+#pragma warning(disable : 4074)   // initialisers put in the compiler's initialisation area: the point
+#pragma init_seg(compiler)
+
 namespace ei {
 
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 void ReportImageFailure(const char* what);
+void EnterGameFolder();   // standalone_main.cpp
 
 namespace {
 
@@ -32,14 +35,16 @@ constexpr Import kImports[] = {
 #include "image_imports.inc"
 };
 
-constexpr std::size_t kSlots = (kImportsEnd - kImportsBegin) / 4;
+ImportTable g_table;
+
+constexpr std::size_t kSlots = sizeof(ImportTable) / 4;
 // One INT3 per slot for our table's unresolved slots.
 unsigned char* g_traps;
-int g_missing = -1;   // imports that did not resolve (-1: not the image)
+int g_missing;   // imports that did not resolve
 
-const Import* ImportAt(std::uintptr_t slot) {
+const Import* ImportAt(std::size_t offset) {
     for (const Import& i : kImports)
-        if (kImportsBegin + i.offset == slot) return &i;
+        if (i.offset == offset) return &i;
     return nullptr;
 }
 
@@ -55,13 +60,11 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
     const auto traps = reinterpret_cast<std::uintptr_t>(g_traps);
     if (r->ExceptionCode != EXCEPTION_BREAKPOINT || !g_traps || at - traps >= kSlots) return EXCEPTION_CONTINUE_SEARCH;
-    const std::uintptr_t slot = kImportsBegin + 4 * (at - traps);
     char import[160], caller[160], what[480];
-    const Import* i = ImportAt(slot);
+    const Import* i = ImportAt(4 * (at - traps));
     Describe(i, import, sizeof(import));
     DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
-    std::snprintf(what, sizeof(what), "a call of game.exe's import %s (slot %08X), which %s, by %s", import,
-                  static_cast<unsigned>(slot),
+    std::snprintf(what, sizeof(what), "a call of game.exe's import %s, which %s, by %s", import,
                   i && !i->reached ? "no code was found to call (rerun python tools/gen_iat.py)" : "did not resolve",
                   caller);
     std::fprintf(stderr, "ei-rebuild: %s\n", what);
@@ -89,10 +92,8 @@ void Fail(const char* what) {
     Log("standalone: %s", what);
 }
 
-} // namespace
-
-void ResolveImageImports() {
-    if (!Standalone()) return;   // game.exe
+// Fills the table: each reached slot with its export (or the image's route of it), every other one with a trap.
+void ResolveImports() {
     g_traps = static_cast<unsigned char*>(VirtualAlloc(nullptr, kSlots, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     if (g_traps) {
         std::memset(g_traps, 0xCC, kSlots);
@@ -101,13 +102,12 @@ void ResolveImageImports() {
         AddVectoredExceptionHandler(1, OnTrap);
     }
     int resolved = 0, routed = 0, traps = 0, loaded = 0;
-    g_missing = 0;
     HMODULE module = nullptr;
     const char* moduleName = nullptr;
     char what[320];
     for (const Import& i : kImports) {
         const std::size_t index = i.offset / 4;
-        auto& ours = reinterpret_cast<const void**>(&Imports())[index];
+        auto& ours = reinterpret_cast<const void**>(&g_table)[index];
         ours = g_traps ? g_traps + index : nullptr;
         if (!i.reached) {   // a DLL none of whose slots is reached does not load
             ++traps;
@@ -139,14 +139,22 @@ void ResolveImageImports() {
         ++resolved;
         routed += route != nullptr;
     }
-    Log("standalone: game.exe's %d import slots in the image's table at %08X: %d resolved (%d routed), %d missing, "
-        "%d traps (no call reaches them); %d DLLs loaded; game.exe's own table guarded",
-        static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), static_cast<unsigned>(GameAddress(kImportsBegin)),
-        resolved, routed, g_missing, traps, loaded);
+    Log("standalone: game.exe's %d imports in the image's table: %d resolved (%d routed), %d missing, %d traps (no "
+        "call reaches them); %d DLLs loaded",
+        static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), resolved, routed, g_missing, traps, loaded);
 }
 
-int ImageImportsMissing() { return g_missing; }
+struct ImportResolver {
+    ImportResolver() {
+        EnterGameFolder();   // the imports' DLLs are the game folder's
+        ResolveImports();
+    }
+} g_importResolver;
 
-void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size) { Describe(ImportAt(slot), out, size); }
+} // namespace
+
+ImportTable& Imports() { return g_table; }
+
+int ImageImportsMissing() { return g_missing; }
 
 } // namespace ei

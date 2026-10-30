@@ -159,7 +159,7 @@ class Tree:
                     read = lm.group(1) if lm else None
                 if read not in ('float', 'double'):
                     continue
-                if re.search(r'GameData|GamePointer|GameAddress', body) is None:
+                if re.search(r'GameData|GamePointer', body) is None:
                     continue
                 name, ret = m.group(4), m.group(2)
                 start = m.start()
