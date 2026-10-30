@@ -24,7 +24,6 @@ namespace mapspec {
 
 namespace {
 
-
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     b = std::bit_cast<std::uint32_t>(f);
@@ -42,7 +41,6 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 } // namespace
 
 // ---- The base record ---------------------------------------------------------------
-
 
 Spec::Spec() : Chunk(nullptr) {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -321,18 +319,6 @@ void LeverSpec::OnChunk() {
 // ---- Rotating a vector ---------------------------------------------------------------------------
 
 } // namespace mapspec
-
-// `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
-Vector3 Quaternion::Rotate(const Vector3& v) const {
-    float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v.x, v.y, v.z);   // 2(q . v): doubling is exact
-    float ax = dot * x, ay = dot * y, az = dot * z;
-    float w2 = w + w;
-    float bx = (y * v.z - z * v.y) * w2;
-    float by = (z * v.x - x * v.z) * w2;
-    float bz = (x * v.y - y * v.x) * w2;
-    float m = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
-    return {(m * v.x + bx) + ax, (m * v.y + by) + ay, (m * v.z + bz) + az};
-}
 
 namespace mapspec {
 

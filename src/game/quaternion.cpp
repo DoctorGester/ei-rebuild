@@ -56,3 +56,25 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     z = weightA * from.z + weightB * c.z;
     w = weightA * from.w + weightB * c.w;
 }
+
+// `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
+Vector3 Quaternion::Rotate(const Vector3& v) const {
+    float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v.x, v.y, v.z);   // 2(q . v): doubling is exact
+    float ax = dot * x, ay = dot * y, az = dot * z;
+    float w2 = w + w;
+    float bx = (y * v.z - z * v.y) * w2;
+    float by = (z * v.x - x * v.z) * w2;
+    float bz = (x * v.y - y * v.x) * w2;
+    float m = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
+    return {(m * v.x + bx) + ax, (m * v.y + by) + ay, (m * v.z + bz) + az};
+}
+
+// FSIN / FCOS of the half angle: the sine divided by the length in one rounding, the cosine stored (lib/pc24.h).
+void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
+    float half = angle * 0.5f;
+    float s = pc24::Div(pc24::Sin(half), std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(axis)));
+    w = pc24::Round(pc24::Cos(half));
+    x = s * axis.x;
+    y = s * axis.y;
+    z = s * axis.z;
+}

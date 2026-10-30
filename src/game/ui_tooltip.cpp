@@ -171,3 +171,12 @@ void UiTooltip::OnMouseMove(int x, int y) {
         return;
     }
 }
+
+void UiTooltip::Draw(SceneRenderer* pass) {
+    if (!Shown()) return;
+    DrawBase(pass);
+}
+
+void UiTooltip::Redraw() {
+    if (Shown()) UiWindow::Redraw();
+}

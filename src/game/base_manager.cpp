@@ -5,6 +5,7 @@
 #include "hash_tables_400.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include <list>
 #include <type_traits>
@@ -372,4 +373,20 @@ EngineObject* ObjectListIterator::First(BaseManager* list) {
 EngineObject* ObjectListIterator::Next() {
     if (!manager || position == manager->objectList.end()) return nullptr;
     return *position++;
+}
+
+FigureAnimation* BaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
+    AnimationDatabase* database;
+    {
+        std::string file = figure;
+        file += ".adb";
+        database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
+    }
+    if (!database) {
+        game::DebugLog("Can't find animation database file for \"%s\".\n", figure);
+        return nullptr;
+    }
+    for (int i = 0; i < static_cast<int>(database->count); ++i)
+        if (text::CompareIgnoringCase(database->animations[i].name, name) == 0) return &database->animations[i];
+    return nullptr;
 }

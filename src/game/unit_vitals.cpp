@@ -79,7 +79,6 @@ float LevelValueOf(const UnitStats* stats, int skill) {
     return record->Value();
 }
 
-
 MapEffect EffectAt(const Unit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
     float value;
@@ -521,3 +520,16 @@ bool UnitStats::RaiseIntelligence(int amount, Unit* unit) {
 
 float UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }
 
+void UnitVitals::Reset() {
+    hitPoints = 0.0f;
+    maxHitPoints = 0.0f;
+    hitPointRegen = 0.0f;
+    mana = 0.0f;
+    maxMana = 0.0f;
+    manaRegen = 0.0f;
+    regenTicks = 0;
+    for (UnitStatPair& pair : protection) {
+        pair.current = 0.0f;
+        pair.base = 0.0f;
+    }
+}

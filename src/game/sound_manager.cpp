@@ -4,7 +4,7 @@
 //
 // Float maths, built for SSE2. Two results reach game state: a 3D sound's level (UpdatePositional: Play3D gives a
 // silent one-shot no voice) and the ambient emitters' intervals (Tick: an emitter's Play2D takes a voice). With
-// every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_speech). Both are
+// every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_effects). Both are
 // basic operations on floats and small integers in the original's order, which the original ran on the main
 // thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
 // operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's

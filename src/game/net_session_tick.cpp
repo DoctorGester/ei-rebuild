@@ -16,7 +16,6 @@ namespace net {
 
 namespace {
 
-
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(const char* text, const char* address) { console::EndLine(*g_netLog << text << address); }
 
@@ -159,20 +158,6 @@ void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::net
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
-GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
-    std::memcpy(cur, from, size);
-    cur += size;
-    return this;
-}
-
-unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
-    if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
-    flags |= 1;
-    std::memcpy(cur, from, size);
-    cur += size;
-    return size;
-}
-
 namespace net {
 
 int g_remoteRate = /*00783E34*/ 2500;
@@ -207,7 +192,6 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
 }
 
 } // namespace net
-
 
 namespace net {
 

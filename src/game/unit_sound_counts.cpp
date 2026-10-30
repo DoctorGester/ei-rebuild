@@ -1,6 +1,6 @@
 // UnitDatabase::CountSoundFiles: how many sound files each unit model's sound names have, counted once the
 // sound system is up (client world creation, the resource switch and the database rebuild). The client
-// picks a random file of the counted ones (ActionSound, unit_client_sounds.cpp). See unit_db.h.
+// picks a random file of the counted ones (ActionSound, unit_client_effects.cpp). See unit_db.h.
 #include "sound.h"
 #include "unit_db.h"
 

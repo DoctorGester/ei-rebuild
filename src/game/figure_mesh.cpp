@@ -16,6 +16,7 @@
 #include <vector>
 
 namespace {
+constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 
 template <typename T>
 T Read(char*& p) {
@@ -449,3 +450,12 @@ void FigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
 }
 
 void FigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
+
+void FigureMesh::LoadFromMemory(char** cursor) {
+    if (flags & FigureMeshFlag::Loaded) return;
+    std::uint32_t magic;
+    lib::LoadBytes(magic, *cursor);
+    if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor);
+    else LoadOld(cursor);
+    flags |= FigureMeshFlag::Loaded;
+}

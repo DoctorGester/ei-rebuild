@@ -156,3 +156,8 @@ void UiContainer::Wheel(int modifiers, int delta, int x, int y) {
         }
     }
 }
+
+void UiContainer::AddChild(UiWindow* child) {
+    if (!child) return;
+    children.push_back(child);
+}

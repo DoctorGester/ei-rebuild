@@ -216,3 +216,15 @@ bool MapDatabase::LoadAll() {
 
 // The map database (a plain global: the C++ runtime builds it empty and destroys it).
 MapDatabase g_mapDatabase;
+
+MapRecord* MapDatabase::FindMap(std::string_view name) {
+    for (MapRecord& map : maps)
+        if (text::CompareIgnoringCase(map.name, name) == 0) return &map;
+    return nullptr;
+}
+
+AllodRecord* MapDatabase::FindAllod(std::string_view name) {
+    for (AllodRecord& allod : allods)
+        if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
+    return nullptr;
+}

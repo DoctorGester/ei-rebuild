@@ -8,6 +8,7 @@
 #include "lib/rounding.h"
 
 namespace {
+constexpr int kScrollbarSprites = 4;
 
 
 // The thumb sits slightly in front of the track (0.1) and 5 to the right of the track's left edge.
@@ -139,4 +140,15 @@ void UiSlider::MouseMove(int, int x, int y) {
         SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
     }
     handled = true;
+}
+
+void UiScrollbar::SetMaximum(int maximum) {
+    if (maximum < 0) maximum = 0;
+    maxPosition = maximum;
+    moved = true;
+    int visible = maximum != 0 ? 1 : 0;
+    for (int i = 0; i < kScrollbarSprites; ++i) SceneMesh(i)->visible = visible;
+    int currentPosition = position;
+    position = currentPosition - 1;
+    SetPosition(currentPosition);
 }

@@ -21,13 +21,3 @@ float Dot(const Vector3& a, const Vector3& b) {
 float Vector3::Length() const {
     return std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(*this));
 }
-
-// FSIN / FCOS of the half angle: the sine divided by the length in one rounding, the cosine stored (lib/pc24.h).
-void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
-    float half = angle * 0.5f;
-    float s = pc24::Div(pc24::Sin(half), std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(axis)));
-    w = pc24::Round(pc24::Cos(half));
-    x = s * axis.x;
-    y = s * axis.y;
-    z = s * axis.z;
-}

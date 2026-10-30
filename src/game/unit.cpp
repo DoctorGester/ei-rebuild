@@ -387,8 +387,6 @@ float Unit::AnimationRatio() {
     return AnimationFactor(scale.z) / denominator;
 }
 
-float UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }
-
 // --- Map object state ------------------------------------------------------------------------
 
 bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(lib::RoundEven(vitals.hitPoints)) <= 0; }
@@ -418,7 +416,6 @@ void Unit::SetMotionSpeeds(float speed, float turnRate) {
 bool Unit::HasPlayer() const { return player != nullptr; }
 
 float Unit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
-
 
 ItemArmor* Unit::WornItem(int slot) const { return armor[slot]; }
 

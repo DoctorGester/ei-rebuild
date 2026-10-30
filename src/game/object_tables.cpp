@@ -26,18 +26,6 @@ bool IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000;
 }
 
-MapRecord* MapDatabase::FindMap(std::string_view name) {
-    for (MapRecord& map : maps)
-        if (text::CompareIgnoringCase(map.name, name) == 0) return &map;
-    return nullptr;
-}
-
-AllodRecord* MapDatabase::FindAllod(std::string_view name) {
-    for (AllodRecord& allod : allods)
-        if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
-    return nullptr;
-}
-
 float NamedFloatTable::Get(std::string_view name) {
     const_iterator node;
     {

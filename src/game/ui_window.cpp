@@ -284,16 +284,6 @@ void UiWindow::Show(bool show) {
     }
 }
 
-void UiSurface::Show() {
-    shown = true;
-    if (kept) SwapContents(true);
-}
-
-void UiSurface::Hide(bool release) {
-    shown = false;
-    if (release) SwapContents(false);
-}
-
 UiRegion* UiWindow::AddRegion() {
     auto* region = new UiRegion(ui);
     regions.push_back(region);
@@ -386,11 +376,6 @@ const char* UiWindow::ClassName() { return kClassName; }
 ClassId UiWindow::GetClassId() { return ClassId::UiWindow; }
 
 // --- UiContainer::AddChild ------------------------------------------------------------------------
-
-void UiContainer::AddChild(UiWindow* child) {
-    if (!child) return;
-    children.push_back(child);
-}
 
 // --- The destructor ---------------------------------------------------------------------------------
 

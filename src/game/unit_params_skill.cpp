@@ -69,3 +69,4 @@ float UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon)
     return 0.0f;
 }
 
+float UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }

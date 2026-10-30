@@ -373,12 +373,3 @@ void UiScrollbar::LeftUp(int, int, int) {
 }
 
 // --- Tooltip -----------------------------------------------------------------------------------
-
-void UiTooltip::Draw(SceneRenderer* pass) {
-    if (!Shown()) return;
-    DrawBase(pass);
-}
-
-void UiTooltip::Redraw() {
-    if (Shown()) UiWindow::Redraw();
-}

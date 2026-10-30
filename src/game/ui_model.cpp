@@ -97,3 +97,18 @@ void UiModel::Load(const char* name, const char* from, const char* to) {
     newObject->RestartPose();
     specific->SetSkins(from, to);
 }
+
+void UiModel::SetScreenPosition(float x, float y, float depth) {
+    // (1/400), (1), (0.75): layout coordinates to the view
+    // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
+    constexpr float kLayoutScale = 0x1.47ae14p-9f;
+    constexpr float kViewScale = 0x1.ed21e6p-2f;
+    float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
+    float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
+    Vector3& position = object->localPosition;
+    float value = px;
+    position.x = value;
+    value = py;
+    position.y = value;
+    position.z = depth;
+}

@@ -65,3 +65,9 @@ FigureModel::FigureModel() {
     bones = new MMIOResource();
     animations = new MMIOResource();
 }
+
+void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
+    if (mod) mesh->OpenFromMemory(mod);
+    if (bon) bones->OpenFromMemory(bon);
+    if (anm) animations->OpenFromMemory(anm);
+}

@@ -85,3 +85,9 @@ void Party::Clear(int clearVariables, int keepSpells) {
     entrance = 0;
     money = 0;
 }
+
+PartyUnitRecord* Party::Find(int unitId) {
+    for (int i = 0; i < std::ssize(members); ++i)
+        if (members[i].unitId == static_cast<std::uint32_t>(unitId)) return &members[i];
+    return nullptr;
+}

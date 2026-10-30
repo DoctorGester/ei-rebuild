@@ -42,7 +42,6 @@ constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow 
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
 constexpr int kJustified = 2;
 constexpr int kMaxStretch = 3;               // a justified line's gaps at most this many normal gaps
-constexpr int kScrollbarSprites = 4;
 // The layout measures fonts 0-2; a format token may name any digit. The original reads its other
 // stack memory (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
@@ -337,20 +336,7 @@ void UiScrollText::Layout() {
 
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
-
-void UiScrollbar::SetMaximum(int maximum) {
-    if (maximum < 0) maximum = 0;
-    maxPosition = maximum;
-    moved = true;
-    int visible = maximum != 0 ? 1 : 0;
-    for (int i = 0; i < kScrollbarSprites; ++i) SceneMesh(i)->visible = visible;
-    int currentPosition = position;
-    position = currentPosition - 1;
-    SetPosition(currentPosition);
-}
-
 // --- The tokens' destructors ---------------------------------------------------------------------
-
 
 UiFormatToken::UiFormatToken(int newFont) : UiTextToken(kFormatType), newline(false), font(newFont), colour(kConstructedColour) {}
 

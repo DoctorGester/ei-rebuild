@@ -130,3 +130,17 @@ void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     bits = 0;
     bytePtr = nullptr;
 }
+
+GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
+    std::memcpy(cur, from, size);
+    cur += size;
+    return this;
+}
+
+unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
+    if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
+    flags |= 1;
+    std::memcpy(cur, from, size);
+    cur += size;
+    return size;
+}

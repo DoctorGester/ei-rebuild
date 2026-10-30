@@ -37,20 +37,6 @@ void ResetLayerKeepingSpareAbsorb(UnitStatLayer& layer) {
 
 // --- UnitVitals ------------------------------------------------------------------------------
 
-void UnitVitals::Reset() {
-    hitPoints = 0.0f;
-    maxHitPoints = 0.0f;
-    hitPointRegen = 0.0f;
-    mana = 0.0f;
-    maxMana = 0.0f;
-    manaRegen = 0.0f;
-    regenTicks = 0;
-    for (UnitStatPair& pair : protection) {
-        pair.current = 0.0f;
-        pair.base = 0.0f;
-    }
-}
-
 void UnitVitals::Pack(UnitVitalsPacked* out) {
     out->hitPoints = static_cast<std::int16_t>(RoundStored(hitPoints));
     out->maxHitPoints = static_cast<std::int16_t>(RoundStored(maxHitPoints));

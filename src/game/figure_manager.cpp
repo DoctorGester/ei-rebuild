@@ -16,11 +16,8 @@
 #include <string>
 #include "lib/str.h"
 
-
-
 namespace {
 
-constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 constexpr const char* kFiguresArchive = "figures.res";
 constexpr const char* kMenusArchive = "menus.res";
 
@@ -32,12 +29,6 @@ char* Append(char* end, const char* text) {
 }
 
 } // namespace
-
-void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
-    if (mod) mesh->OpenFromMemory(mod);
-    if (bon) bones->OpenFromMemory(bon);
-    if (anm) animations->OpenFromMemory(anm);
-}
 
 void FigureManager::Create() {
     BaseManager::Create();
@@ -89,15 +80,6 @@ int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator,
     auto* cursor = static_cast<std::uint8_t*>(data);
     animator->LoadKeyFrames(&cursor);
     return 1;
-}
-
-void FigureMesh::LoadFromMemory(char** cursor) {
-    if (flags & FigureMeshFlag::Loaded) return;
-    std::uint32_t magic;
-    lib::LoadBytes(magic, *cursor);
-    if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor);
-    else LoadOld(cursor);
-    flags |= FigureMeshFlag::Loaded;
 }
 
 // --- Class name and id ------------------------------------------------------------------------------

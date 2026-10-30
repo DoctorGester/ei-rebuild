@@ -27,7 +27,6 @@ constexpr std::uint32_t kUntameable = 0x32;
 
 constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
 
-
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
 // `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
 void QueueUse(UnitServer* self, MapObject* target, UseSource source, int spot, int run, AckKind shout) {
@@ -151,20 +150,4 @@ bool UnitServer::HasMainArmour() {
     for (int slot = 0; slot < 3; ++slot)
         if (unit->armor[slot]) return true;
     return false;
-}
-
-FigureAnimation* BaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
-    AnimationDatabase* database;
-    {
-        std::string file = figure;
-        file += ".adb";
-        database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
-    }
-    if (!database) {
-        game::DebugLog("Can't find animation database file for \"%s\".\n", figure);
-        return nullptr;
-    }
-    for (int i = 0; i < static_cast<int>(database->count); ++i)
-        if (text::CompareIgnoringCase(database->animations[i].name, name) == 0) return &database->animations[i];
-    return nullptr;
 }

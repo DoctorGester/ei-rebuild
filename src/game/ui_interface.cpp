@@ -123,40 +123,6 @@ void Interface3D::SetPendingValue(std::uint32_t value) {
 
 // --- UiSurface ------------------------------------------------------------------------------
 
-void UiSurface::SetRect(int left, int top, int right, int bottom) {
-    rect.left = left;
-    rect.top = top;
-    rect.right = right;
-    rect.bottom = bottom;
-    ui->ScaleRectToScreenEntry(&rect);
-}
-
-void UiSurface::MoveTo(int x, int y) {
-    Point point{x, y};
-    ui->ScalePointToScreenEntry(&point);
-    int rectWidth = rect.right - rect.left;
-    int rectHeight = rect.bottom - rect.top;
-    rect.left = point.x;
-    rect.top = point.y;
-    rect.right = rectWidth + point.x;
-    rect.bottom = rectHeight + point.y;
-}
-
 // --- UiModel --------------------------------------------------------------------------------
-
-void UiModel::SetScreenPosition(float x, float y, float depth) {
-    // (1/400), (1), (0.75): layout coordinates to the view
-    // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
-    constexpr float kLayoutScale = 0x1.47ae14p-9f;
-    constexpr float kViewScale = 0x1.ed21e6p-2f;
-    float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
-    float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
-    Vector3& position = object->localPosition;
-    float value = px;
-    position.x = value;
-    value = py;
-    position.y = value;
-    position.z = depth;
-}
 
 // --- Record lookups --------------------------------------------------------------------------

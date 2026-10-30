@@ -45,3 +45,32 @@ UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bot
 
 UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
     : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
+
+void UiSurface::SetRect(int left, int top, int right, int bottom) {
+    rect.left = left;
+    rect.top = top;
+    rect.right = right;
+    rect.bottom = bottom;
+    ui->ScaleRectToScreenEntry(&rect);
+}
+
+void UiSurface::MoveTo(int x, int y) {
+    Point point{x, y};
+    ui->ScalePointToScreenEntry(&point);
+    int rectWidth = rect.right - rect.left;
+    int rectHeight = rect.bottom - rect.top;
+    rect.left = point.x;
+    rect.top = point.y;
+    rect.right = rectWidth + point.x;
+    rect.bottom = rectHeight + point.y;
+}
+
+void UiSurface::Show() {
+    shown = true;
+    if (kept) SwapContents(true);
+}
+
+void UiSurface::Hide(bool release) {
+    shown = false;
+    if (release) SwapContents(false);
+}

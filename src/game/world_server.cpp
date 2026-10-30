@@ -49,11 +49,6 @@ void EraseId(Map& map, unsigned id) {
 
 // ---- Id maps -------------------------------------------------------------------------------------
 
-void ObjectIdMap::Set(const unsigned& key, EngineObject* const& value) {
-    if (static_cast<int>(key) > maxId) maxId = static_cast<int>(key);
-    map[key] = value;
-}
-
 // ---- Lookups -------------------------------------------------------------------------------------
 
 MapObject* WorldServer::FindObject(unsigned objectId) {

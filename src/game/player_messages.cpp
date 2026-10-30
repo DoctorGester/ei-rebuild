@@ -241,22 +241,6 @@ void PlayerServer::SetPartyDeployed(std::uint8_t value) { partyDeployed = value;
 
 // --- Party records -------------------------------------------------------------------------------
 
-PartyUnitRecord* Party::Find(int unitId) {
-    for (int i = 0; i < std::ssize(members); ++i)
-        if (members[i].unitId == static_cast<std::uint32_t>(unitId)) return &members[i];
-    return nullptr;
-}
-
-void Player::Tick() {
-    for (std::size_t i = 0; i < recharging.size();) {
-        int objectId = static_cast<int>(recharging[i]);
-        EngineObject* object = GetParty()->ItemFactory()->FindObject(objectId);
-        if (object == nullptr || !object->RunTick()) recharging.erase(recharging.begin() + i);
-        else ++i;
-    }
-    connection->TickDone();
-}
-
 // --- The server's Create ---------------------------------------------------------------
 
 void PlayerServer::ClearServerState() {

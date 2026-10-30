@@ -24,7 +24,7 @@
 
 // ClipBounds::flags. A figure part's bounds (FootprintPart) also say how the part stands in the AI map: bits 3-5
 // its OccluderKind (BoundsOccluderKind), bits 6-9 its transparency; the part's name sets them
-// (object3d_figure_setup.cpp).
+// (map_object_figures.cpp).
 enum class BoundsFlag : std::uint32_t {
     Sphere = 0x1,          // the centre and radius are valid
     Box = 0x2,             // the box is valid
