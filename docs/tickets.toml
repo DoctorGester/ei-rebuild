@@ -6937,7 +6937,7 @@ title = "macos-port: take the non-macOS parts into main per MAC2's plan, align t
 group = "port"
 model = "opus"
 depends = ["MAC3a", "MAC3b", "MAC3c", "MAC3d", "MAC3e", "MAC3f", "MAC3g", "MAC3h", "MAC3i", "MAC3j", "MAC3k"]
-note = "Per MAC2's plan: one ticket (MAC3a, MAC3b, ...) per part main can test on Windows; each lands on main cleaned up and green, then main is merged into macos-port so the branch keeps only macOS-specific changes."
+note = "User 2026-10-30: take only what main needs and simplify while taking: no helper, wrapper or option just because the branch has it; prefer deleting code over abstracting it, and report what was left out. Per MAC2's plan: one ticket (MAC3a, MAC3b, ...) per part main can test on Windows; each lands on main cleaned up and green, then main is merged into macos-port so the branch keeps only macOS-specific changes."
 
 [[ticket]]
 id = "MAC3a"
