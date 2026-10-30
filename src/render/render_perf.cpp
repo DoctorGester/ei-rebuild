@@ -209,36 +209,8 @@ bool g_pixelsChanged = false;
 long long g_lastText = 0;
 std::vector<std::string> g_lines;
 
-struct OverlayVs {
-    float rect[4];
-    float target[4];
-};
-struct OverlayFs {
-    float origin[4];
-};
-
 bool MakePipeline() {
-    sg_shader_desc s{};
-    SetBytecode(s, kPerfOverlayShader);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(OverlayVs);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(OverlayFs);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    // The image is read with Load; sokol wants each texture in a pair.
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-perf-overlay";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(perf_overlay_shader_desc(sg_query_backend()));
     sg_pipeline_desc p{};
     p.shader = g_shader;
     p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;   // the game window's back buffer (render_window.cpp)
@@ -408,12 +380,11 @@ void Draw(int width, int height, const Rect& placed) {
     b.views[0] = g_view;
     b.samplers[0] = g_sampler;
     sg_apply_bindings(&b);
-    OverlayVs vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
-    OverlayFs fs{{left, top, static_cast<float>(scale), 0.0f}};
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(1, &fr);
+    const rect_params_t vs{{left, top, right, bottom},
+                           {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    sg_apply_uniforms(UB_rect_params, SG_RANGE(vs));
+    const perf_overlay_params_t fs{{left, top, static_cast<float>(scale), 0.0f}};
+    sg_apply_uniforms(UB_perf_overlay_params, SG_RANGE(fs));
     sg_draw(0, 6, 1);
 }
 

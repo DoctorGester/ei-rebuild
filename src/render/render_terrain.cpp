@@ -396,15 +396,6 @@ GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-struct Params {
-    Matrix4 matrix;
-    float fog[4];
-    float flags[4];
-    Matrix4 light;
-    ShadowParams shadow;
-};
-static_assert(sizeof(Params) == 224);
-
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
 
@@ -585,44 +576,7 @@ bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
 namespace detail {
 
 bool CreateTerrainShader() {
-    sg_shader_desc s{};
-    SetBytecode(s, kTerrainShader);
-    const char* const semantics[6] = {"POSITION", "COLOR", "COLOR", "TEXCOORD", "NORMAL", "TEXCOORD"};
-    const std::uint8_t indices[6] = {0, 0, 1, 0, 0, 1};
-    for (int i = 0; i < 6; ++i) {
-        s.attrs[i].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[i].hlsl_sem_name = semantics[i];
-        s.attrs[i].hlsl_sem_index = indices[i];
-    }
-    // The same constant buffer in both stages (register b0 of each): uniform slots 0 and 1.
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(Params);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(Params);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    // The scene's light (shaders/scene_lighting.hlsli): register b1 of the fragment stage.
-    s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[2].size = sizeof(LightParams);
-    s.uniform_blocks[2].hlsl_register_b_n = 1;
-    // The point shadows (shaders/point_shadow.hlsli): register b2.
-    s.uniform_blocks[3].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[3].size = sizeof(PointShadowParams);
-    s.uniform_blocks[3].hlsl_register_b_n = 2;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    DescribeShadowMap(s, 1, 1);
-    DescribePointShadows(s, 3, 3);
-    s.label = "ei-terrain";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(terrain_shader_desc(sg_query_backend()));
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
     if (!ok) ei::Log("render: the terrain shader could not be created (see the sokol messages above)");
     return ok;
@@ -671,35 +625,33 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
         }
     }
 #endif
-    BindShadowMap(b, 1, 1);
-    BindPointShadows(b, 3, 3);
+    BindShadowMap(b);
+    BindPointShadows(b);
     sg_apply_bindings(&b);
     CountBindings(b);
-    Params params{};
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    params.light = receives ? f.shadow.lights[0] : f.matrices[static_cast<std::size_t>(batch.matrix)];
-    ShadowUniforms(f, receives, &params.shadow);
-    params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    params.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
-    params.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
-    params.fog[2] = (f.fogColour & 0xFF) / 255.0f;
-    params.flags[0] = mode;
-    params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-    params.flags[2] = f.pixelShift[0];
-    params.flags[3] = f.pixelShift[1];
-    sg_range u{&params, sizeof(params)};
-    sg_apply_uniforms(0, &u);
-    sg_apply_uniforms(1, &u);
-    LightParams light;
+    const shadow_params_t& shadow = ShadowUniforms(f, receives);
+    terrain_vs_params_t vs{};
+    vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
+    vs.light = receives ? f.shadow.lights[0] : vs.matrix;
+    vs.shift[0] = f.pixelShift[0];
+    vs.shift[1] = f.pixelShift[1];
+    vs.normalOffset[0] = ShadowNormalOffset(shadow);
+    terrain_fs_params_t fs{};
+    fs.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
+    fs.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
+    fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
+    fs.flags[0] = mode;
+    fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    scene_light_params_t light;
     LightUniforms(&light);
-    sg_range lu{&light, sizeof(light)};
-    sg_apply_uniforms(2, &lu);
-    PointShadowParams point;
-    PointShadowUniforms(f, &point);
-    sg_range pr{&point, sizeof(point)};
-    sg_apply_uniforms(3, &pr);
-    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light) + sizeof(point);
+    sg_apply_uniforms(UB_terrain_vs_params, SG_RANGE(vs));
+    sg_apply_uniforms(UB_terrain_fs_params, SG_RANGE(fs));
+    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
+    sg_apply_uniforms(UB_scene_light_params, SG_RANGE(light));
+    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
+    std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;

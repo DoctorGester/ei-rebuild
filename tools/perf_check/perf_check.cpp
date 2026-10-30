@@ -294,10 +294,11 @@ void CheckTime() {
 }
 
 bool StartDevice(bool hardware) {
-    const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+    const D3D_FEATURE_LEVEL level = D3D_FEATURE_LEVEL_11_0;   // the shaders are shader model 5
     D3D_FEATURE_LEVEL got{};
-    HRESULT hr = D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
-                                   D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, 3, D3D11_SDK_VERSION, &g_device, &got, &g_context);
+    HRESULT hr =
+        D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
+                          D3D11_CREATE_DEVICE_BGRA_SUPPORT, &level, 1, D3D11_SDK_VERSION, &g_device, &got, &g_context);
     if (FAILED(hr)) {
         std::printf("D3D11CreateDevice (%s) failed: %08lX\n", hardware ? "hardware" : "WARP", static_cast<unsigned long>(hr));
         return false;

@@ -63,6 +63,10 @@ concurrency:
 permissions:
   contents: read
 
+# The sokol-shdc shader compiler on the runner (cmake/shaders.cmake; build.cmd sets the same by default).
+env:
+  EI_SHDC: E:\bin\sokol-shdc\sokol-shdc.exe
+
 jobs:
   suites:
     if: ${{ (!inputs.record || inputs.record == 'no') && !inputs.diff_base }}

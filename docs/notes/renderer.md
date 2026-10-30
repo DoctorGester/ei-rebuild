@@ -22,15 +22,48 @@ hit points), the weather (after its builders draw) and the movies (also the play
 menu's and the save game's screen copy comes from the new frame. The game has no DirectDraw or Direct3D 7 device and no
 texture or surface holder of it is a DirectDraw object (section 9).
 
-Shaders (SV10b): written in `src/render/shaders/*.hlsl` (`shadow_receiver.hlsli` is included by the terrain's and
-the meshes'), compiled to bytecode at build time by the Windows SDK's fxc (CMakeLists.txt's `ei_shader`,
-`shaders/compile.cmake`: column-major matrices, `/O3`, the flags sokol would give d3dcompiler; fxc's warnings fail
-the build) into headers that `render_shaders.cpp` turns into `ShaderBytecode` (render_internal.h); the shader
-descriptions take it with `SetBytecode`. No compiler runs at start (it took 0.35 s of every run's start-up); the
-bytecode is what d3dcompiler_47 made at run time to the byte but the recorded compile flags and the checksum. A new
-shader: its `.hlsl`, an `ei_shader` line per function, its arrays in render_shaders.cpp. The Direct3D 11 device is
+The shaders are described in "Shader authoring" below. The Direct3D 11 device is
 made on a thread of its own from the image's start (`render::PrepareDevice`, called by standalone.cpp before
 WinMain; not with "removable") and taken at the renderer's first use.
+
+### Shader authoring
+
+The shaders are GLSL 4.5 in sokol-shdc's annotated form, `src/render/shaders/*.glsl`. `shaders.glsl` includes the
+rest, and `cmake/shaders.cmake` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
+is compiled: hlsl5 for Direct3D 11 (to bytecode, so no compiler runs at start) and metal_macos for the macOS port.
+The compiler is `EI_SHDC`. build.cmd and play.cmd default it to `E:\bin\sokol-shdc\sokol-shdc.exe`, and the
+suites workflow sets the same.
+
+The header gives:
+- each program `<program>_shader_desc(sg_query_backend())`, which `sg_make_shader` takes at its use;
+- each uniform block a `<block>_t` struct and a `UB_<block>` slot;
+- each texture and sampler a `VIEW_` / `SMP_` slot, and each vertex input an `ATTR_<program>_<name>` slot.
+
+`render_shaders.cpp` compiles the descriptions once (`SOKOL_SHDC_IMPL`), and `render_internal.h` includes the header.
+
+Rules (sokol-shdc's, or the shaders'):
+- **Bindings.** Every block, texture and sampler has `layout(binding = n)`. On Direct3D 11 that is its register.
+  A name used by several programs keeps one binding:
+  - the rectangle's vertex block `rect_params` is 0 (`rect.glsl`'s `rect_vs`, set by `ApplyRect`);
+  - a program's own fragment block is 1;
+  - the receivers' shared blocks are `shadow_params` 2, `scene_light_params` / `mesh_light_params` 3 and
+    `point_shadow_params` 4;
+  - their maps are `shadow_map` 3, `shadow_range` 4 and `point_shadow_map` 5 (`BindShadowMap`, `BindPointShadows`).
+  - the cursor thread's own present (render_cursor.cpp) binds its cbuffers at the registers `present_shader_desc`
+    gives.
+- **Block members.** Members are `vec4`, `ivec4`, `mat4` or arrays of them, never structs. An unsigned value goes in
+  an `int`, bit for bit.
+- **Indexing.** No variable index into a component of a uniform vector: copy the vector into a local first.
+- **Matrices.** `mat4` is `Matrix4` (`@ctype`), uploaded as it is in memory. A mat4's column k is the matrix's row k.
+- **Sample types.** A texture read with `texelFetch` / `textureGather` that is not filterable, and its sampler, are
+  named in `shaders.glsl`'s `@image_sample_type` / `@sampler_type` lines.
+- **Shared code.** Code shared between programs goes in an `@block` taken with `@include_block`. The rectangle
+  programs use `rect_vs` and the full-screen passes use `fullscreen_vs`.
+- **Device.** The device is feature level 11_0 (shader model 5; render.cpp asks for nothing lower). One
+  `texture2DMS` shader copies the depth at any sample count.
+
+A new shader is its `.glsl` file, an `@include` line in `shaders.glsl`, and `<program>_shader_desc` at its use.
+The build finds the file by itself. `tools/comments.py` reads the `.glsl` comments like the C++ ones.
 
 ## 1. Always on in the image (no DirectDraw fallback)
 
@@ -271,8 +304,8 @@ averages; the original's: at most 22 per channel, a cleared one 145+).
 **Screen copies on the GPU (R28a).** A surface the screen is copied into (CaptureScreen 005FD3D0: the escape menu's
 and the camp's backdrops 005F5320, the global map's pick picture 00630670, the quick save's copy 006570E0) keeps its
 pixels in its interface canvas only (`render_ui.cpp`, docs/notes/ui-native.md section 3; since P8 every window surface
-does): the copy is the canvas's `ps_copy` from the frame
-target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ps_grey` (the
+does): the copy is the canvas's `ui_copy_fs` from the frame
+target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ui_grey_fs` (the
 format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Copy 005FD440 draws the canvas into an
 R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
 channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row copy): the escape menu's 256x192
@@ -366,7 +399,7 @@ pixels, where a group's first pixel has alpha 0 and is not 0 that word instead c
 (2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
 decodes an image to RGBA8 once (shared by name while a texture holds it: `DecodeComposeImage`), and draws into a
 Direct3D 11 texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
-black, each image a rectangle drawn texel for texel (shader texture_compose.hlsl) with premultiplied blending (ONE,
+black, each image a rectangle drawn texel for texel (shader texture_compose.glsl) with premultiplied blending (ONE,
 INV_SRC_ALPHA, alpha too), then `GenerateMips`; the texture's view starts at level `mip` (the texture quality option),
 so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
 once from the game's load (not inside a frame pass), with the present's lock held against the cursor thread
@@ -394,9 +427,9 @@ save window keeps the copy (`SaveLoadWindow::newPicture`) and writes shot.sav fr
 before. The clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
 a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
 random numbers are drawn as before), and `render::DrawClouds` each frame draws the texture from two frames, the blend
-and the 256-entry alpha ramp (texture_clouds.hlsl `ps_clouds`: white, alpha ramp[(to x blend + from x (256 - blend))
+and the 256-entry alpha ramp (texture_clouds.glsl `texture_clouds_fs`: white, alpha ramp[(to x blend + from x (256 - blend))
 >> 8], 8-bit alpha now instead of the ramp's top 4 bits). A frame's 256 x 256 grey levels are built once by the GPU
-from its words (`ps_frame`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
+from its words (`texture_clouds_frame_fs`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
 the 3 x 3 smoothing in the 1024 cells' order, the octaves' bilinear sums and the byte store, integer for integer as
 the CPU code did. The step joins the texture's recipe (it covers the whole texture, so it replaces the last), so a new
 device draws the clouds again. Frames against the memory textures (4K, at one frozen moment): ui_saveload's `save` /
@@ -439,7 +472,7 @@ Shared helpers (render_internal.h): every read-back of a texture (the frame, the
 harness build's upload / ramp / cursor checks, also the cursor thread's) goes through `StagingCopy`
 (render_staging.cpp: a staging texture kept and grown, copied into and mapped; no sokol state touched, so a main-thread
 read resets sokol's state cache after it); `D3DTexture` is a sokol image's texture, `Channel` a pixel format's channel
-(its 8-bit value: `Widen`), `RectParams` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
+(its 8-bit value: `Widen`), `rect_params_t` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
 Images kept across frames (`render_blit.cpp`). The cursor (R32): each cursor picture (all its frames side by side)
@@ -454,7 +487,7 @@ picture's first frame. A movie keeps one dynamic image per player, updated with 
 was already blitted or updated in this frame (sokol allows one update per image and frame, and the blits are drawn
 at the end of the frame; then a new one replaces it after the present).
 `render::Fill` (the movie player's black) is a solid rectangle command, drawn with the depth clear's shader
-(`solid.hlsl`) through a pipeline that writes the colour only (R30c).
+(`solid.glsl`) through a pipeline that writes the colour only (R30c).
 Harness build: counts per purpose in ei-rebuild.log (`render: images ...`, every 300 frames and at exit) and every
 in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference;
 sampled like the gamma ramp check: the first 64 of each kind, then every 16th, all with `checkall`).
@@ -678,7 +711,7 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
   in mode 2) before the present lock, in both threads.
 - render::Cursor keeps the cursor aside (`Frame::cursor`); the frame target never holds it. The present shader
-  (`present.hlsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
+  (`present.glsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
   with alpha of a half or more replace the frame's pixel; where the cursor touches the bilinear footprint the filter
   is done by hand over the composed pixels, so a scaled window filters the cursor with the frame as before). The cursor
   thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
@@ -1272,7 +1305,7 @@ across runs; the goldens check the game state.
    (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame
    1.2 / 1.4 ms.
 9. **R16i GPU lighting (done; no option: the GPU path is the only one).** `render_lighting.cpp`,
-   `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`. The light objects stay the game's (the
+   `shaders/scene_lighting.glsl`, `render_terrain.cpp`, `shaders/mesh.glsl`. The light objects stay the game's (the
    sun, its colour and the ambient, the torches and point lights with their positions, colours and ranges); what
    they light is done per pixel.
    - **The ground.** The world's draw hands over the frame's light (`render::SceneLighting`: the sun, the ambient,
@@ -1305,7 +1338,7 @@ across runs; the goldens check the game state.
      matrix (the world stack's top with the scene's camera taken off, `worlddata::SceneCamera`: a static part
      already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient colour `SceneRenderer::SetColour` set last (`AmbientColour`), the
      material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
-     and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
+     and corner words; `mesh.glsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
      colour arrays hold white with the material's alpha (`Material::GpuLitColour`); a mesh kept on the GPU
      (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
    - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light
@@ -1349,7 +1382,7 @@ across runs; the goldens check the game state.
      light the inside of the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel
      shows a bright spot where the vertices smeared it (the hero's light on stone floors); creatures are lit per
      pixel (N.L across a face, not per vertex).
-   - **Point-light shadows (R16i1).** `render_point_shadows.cpp`, `shaders/point_shadow.hlsli`. Once a frame
+   - **Point-light shadows (R16i1).** `render_point_shadows.cpp`, `shaders/point_shadow.glsl`. Once a frame
      (PreparePointShadows, from PrepareShadows; drawn from DrawShadowMap, so its CPU time, draws and GPU time count
      as the shadow map's in render_stats) the kept scene lights (render::SceneLighting's nearest 16) but an object's
      own light whose reach is in the camera's view are taken strongest first (brightest channel x range), at most `kMostPointShadows`
@@ -1371,7 +1404,7 @@ across runs; the goldens check the game state.
      = not Off over, and PreparePointShadows takes no light without it (`SceneLightCastsShadows`). Everything
      else keeps its point shadows: the torches (TorchObjectClientSpec: the fires, the lamps), the map's
      lights and the spell effects' (EffectPointLight, Off only at a negative range). Receivers, only what
-     is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `LightParams::shadowSlots`;
+     is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `scene_light_params_t::shadowSlots`;
      looked up moved 1.5 texels of its distance along the vertex normal; the ground casts none) and the figure
      parts' (`figure_light`: the mesh's light list carries the scene light's index from the hand-over,
      `SceneLightIndex`, mapped to its slot at the draw; the point in the landscape's space from the mesh's model
@@ -1425,12 +1458,12 @@ across runs; the goldens check the game state.
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
-    after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`shaders/shadow_receiver.hlsli`:
+    after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`shaders/shadow_receiver.glsl`:
     soft edges below, receiver-plane depth bias; a receiver's own object shadows only its faces turned to
     the sun, any other object every face: R22 below) and darken by up to half (the old decal's alpha 0x80) before fog.
     **Soft edges (R16j2; the user: the map's shadows were much harder than the old ones, the town gate's).** PCSS,
     contact-hardening: after the casters two small passes make the map's depth range per 16 x 16-texel cell
-    (`shaders/shadow_reduce.hlsl`: nearest and farthest texel, Gather, shader model 4.1; `shadow_dilate.hlsl`: the same over the cells
+    (`shaders/shadow_reduce.glsl`: nearest and farthest texel, Gather; `shadow_dilate.glsl`: the same over the cells
     within the widest filter's reach and one cell more, 4 cells at 56-72 units, plus the cell's own nearest; one
     256 x 256 RGBA32F image, read filtered: R25 below). A receiver nearer than every depth around is lit, farther than every one shadowed (most pixels end
     there); near an edge the nearest depth around bounds the radius, and when that bound is wider than half a cell a
@@ -1522,7 +1555,7 @@ across runs; the goldens check the game state.
     edges crawl over the screen: the squares came and went from frame to frame. The texel snapping, the
     extent (72 units there, steps of 8) and the depth range (nearest caster) were steady; they were not the
     cause. Which radius regime a pixel is in depends on the extent, hence the zoom. Fix
-    (`shadow_receiver.hlsli`): the range is sampled with a bilinear sampler (`RangeSampler`, clamp) between
+    (`shadow_receiver.glsl`): the range is sampled with a bilinear sampler (`RangeSampler`, clamp) between
     the four cells around the pixel, and the dilation reaches one cell more (`g_cellsAround`), so each of
     those four cells' bounds holds for all the pixel's taps and their weighted mean is still a bound; the
     search taps read the cells' own nearest filtered too; the searched radius is blended in from the bound
@@ -1780,7 +1813,7 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   the frame are not in it) and of it `SHADOW` the shadow map's fitting and pass; `DRAWS` the frame's draws by pass
   (FrameStats' draws and shadow draws counted at each change of pass; `WORLD` terrain + objects + other, `UI` with
   the present's). `GPU -` until timestamps come back (or when the device has none).
-- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): `BeginGpuFrame` at the first DrawPending begins the
+- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.glsl`): `BeginGpuFrame` at the first DrawPending begins the
   frame in UI, `Enter(pass)` marks each change (DrawPending: uploads, the shadow map, each pass's begin and the
   multisampled pass's end; DrawCommands: each command's pass; DrawShadowMap: the point faces; EndFrame: the present),
   `EndGpuFrame` after DrawToWindow. Each change is a timestamp (at most 64 a frame; past them the last stamped pass
@@ -1919,9 +1952,9 @@ Point-light shadows (docs/notes/renderer.md section 13, item 9). The sun's map (
 alone; here the few strongest point lights in view (the campfire, the lamps; an object's own light, the one a
 party unit carries at night, casts none: ScenePointLight::shadows) get a cube of six depth faces
 each, drawn from the same casters (the objects the game shadows, by their meshes drawn this frame), and the
-receivers lit on the GPU take each such light away where it is hidden: the ground (shaders/scene_lighting.hlsli's
-point loop) and the figure parts (shaders/mesh.hlsl's figure_light). The receivers' rules follow the sun's
-(shaders/point_shadow.hlsli):
+receivers lit on the GPU take each such light away where it is hidden: the ground (shaders/scene_lighting.glsl's
+point loop) and the figure parts (shaders/mesh.glsl's figure_light). The receivers' rules follow the sun's
+(shaders/point_shadow.glsl):
 - an object never shadows itself from a light inside it or just beside it (the campfire's spit, a lamp's
   post): an object with a mesh whose bounding sphere, grown by kHoldMargin, holds the
   light casts nothing for it;
@@ -2035,19 +2068,19 @@ check read the frame target, so none of them holds it. Off unless the settings f
 and a few signs, drawn into a one-channel image (0 the box, else the text's brightness) and scaled up by whole
 pixels with the game's height (Scale).
 
-### shaders/mesh.hlsl: figure_light
+### shaders/mesh.glsl: figure_light
 
 A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with
 the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's lit colour times
 the cosine to it and each light's lit colour times its cosine and falloff, plus the emissive colour, at most 1. The
 crown: pulled towards its average colour, taken as the average over every direction a normal can face (the mean of
-max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1). The shadow map darkens it after (ps_main), as
-it darkened the CPU-lit colours before. A light with a point shadow (point_shadow.hlsli) adds only what reaches
+max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1). The shadow map darkens it after (mesh_fs), as
+it darkened the CPU-lit colours before. A light with a point shadow (point_shadow.glsl) adds only what reaches
 `land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
 compares from the unit's nearest distance to the light, on every face; any other only on faces turned to the light
 (by `face`: the smoothed normals lean far from their faces), looked up moved along `face`.
 
-### shaders/scene_lighting.hlsli: ground_light
+### shaders/scene_lighting.glsl: ground_light
 
 The landscape lit as the game's vertex lighting lit each vertex (ShadeSun 006C36B0, then LightVertex 006C31C0; not
 ported), at a point `p` (the landscape's space) with the unit normal `n`: `m` the material colour the sun and ambient
@@ -2063,10 +2096,10 @@ no acne). The point lights (each material + its light, at most 1 per channel, by
 under the water by the light's vertical part) take the largest per channel, darkened by the same shade (the towns'
 lamps light the ground by day too: the units' shadows would vanish under them; the point lights cast no shadow of
 their own), the specular ones (shaded alike) apart (`spec`, added after the texture as the specular word was). A
-light with a point shadow (`shadows`: point_shadow.hlsli) adds only what reaches the point; the ground casts none,
+light with a point shadow (`shadows`: point_shadow.glsl) adds only what reaches the point; the ground casts none,
 so the point is looked up moved along its own normal. The colour word's light is returned.
 
-### shaders/shadow_receiver.hlsli: the receivers and the soft edges
+### shaders/shadow_receiver.glsl: the receivers and the soft edges
 
 The shadow map's receivers' part (render_shadows.cpp; included in the terrain and mesh shaders): how much of the
 sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, on.y, or take the sun's light

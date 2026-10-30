@@ -71,51 +71,8 @@ bool g_checkRamp = false;     // verify build: compare the next presented frame 
 WindowPresentInfo g_info;
 Rect g_lastCursor{0, 0, 0, 0};   // verify build: where the last present drew the cursor (the ramp check leaves it out)
 
-// The present shader's fragment uniforms (shaders/present.hlsl, cursor_params): the cursor's rectangle in the
-// frame (right <= left: none), the frame's size and the cursor texels per frame pixel, the size and the top left
-// corner of the cursor's part of its picture.
-struct CursorParams {
-    float to[4];
-    float frame[4];
-    float size[4];
-};
-
 bool CreatePipeline() {
-    sg_shader_desc s{};
-    SetBytecode(s, kPresentShader);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = 16;
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(CursorParams);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.views[1].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[1].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[1].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[1].texture.hlsl_register_t_n = 1;
-    s.views[2].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[2].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[2].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[2].texture.hlsl_register_t_n = 2;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    // The ramp is read with Load; sokol wants every texture in a pair all the same.
-    s.texture_sampler_pairs[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[1].view_slot = 1;
-    s.texture_sampler_pairs[1].sampler_slot = 0;
-    s.texture_sampler_pairs[2].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[2].view_slot = 2;
-    s.texture_sampler_pairs[2].sampler_slot = 0;
-    s.label = "ei-present";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(present_shader_desc(sg_query_backend()));
     sg_pipeline_desc p{};
     p.shader = g_shader;
     p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;
@@ -402,7 +359,7 @@ bool DrawToWindow(const BlitBatch* cursor) {
     sg_apply_viewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, true);
     sg_apply_pipeline(g_pipeline);
     // The cursor texture's slot holds the ramp's when there is no cursor (the rectangle is empty then).
-    CursorParams cp{};
+    cursor_params_t cp{};
     sg_view cursorView = g_rampView;
     g_lastCursor = Rect{0, 0, 0, 0};
     if (cursor && cursor->texture.id) {
@@ -411,12 +368,13 @@ bool DrawToWindow(const BlitBatch* cursor) {
         int sw = cursor->source.right - cursor->source.left, sh = cursor->source.bottom - cursor->source.top;
         if (dw > 0 && dh > 0 && sw > 0 && sh > 0) {
             cursorView = cursor->texture;
-            cp = CursorParams{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
-                               static_cast<float>(to.bottom)},
-                              {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
-                               static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
-                              {static_cast<float>(sw), static_cast<float>(sh), static_cast<float>(cursor->source.left),
-                               static_cast<float>(cursor->source.top)}};
+            cp = cursor_params_t{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
+                                  static_cast<float>(to.bottom)},
+                                 {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
+                                  static_cast<float>(sw) / static_cast<float>(dw),
+                                  static_cast<float>(sh) / static_cast<float>(dh)},
+                                 {static_cast<float>(sw), static_cast<float>(sh),
+                                  static_cast<float>(cursor->source.left), static_cast<float>(cursor->source.top)}};
             g_lastCursor = to;
         }
     }
@@ -426,11 +384,9 @@ bool DrawToWindow(const BlitBatch* cursor) {
     b.views[2] = cursorView;
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
-    float uniforms[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-    sg_range range{uniforms, sizeof(uniforms)};
-    sg_apply_uniforms(0, &range);
-    sg_range cursorRange{&cp, sizeof(cp)};
-    sg_apply_uniforms(1, &cursorRange);
+    const present_params_t whole{{0.0f, 0.0f, 1.0f, 1.0f}};
+    sg_apply_uniforms(UB_present_params, SG_RANGE(whole));
+    sg_apply_uniforms(UB_cursor_params, SG_RANGE(cp));
     sg_draw(0, 3, 1);
     perf::Draw(clientWidth, clientHeight, placed);   // over the frame and the cursor, off unless switched on
     sg_end_pass();
