@@ -8,8 +8,8 @@ and the threads in the builds without the harness; in the harness's builds those
 and game.exe's import slots, which the harness drives ("SDL3 and the harness" below). Windows (`src/platform/win32/`)
 has the rest; it is the only place of the game's code that includes `<windows.h>` or calls game.exe's imports
 (`gameapi::X`). The renderer (`src/render`) reaches its device and the window's drawable through
-`src/platform/graphics.h` ("Graphics" below); four of its files still call Direct3D themselves until their transfers
-and the cursor thread's present move behind it. A port replaces the Windows remainder; game code does not change.
+`src/platform/graphics.h` ("Graphics" below); three of its files still call Direct3D themselves until their
+transfers move behind it. A port replaces the Windows remainder; game code does not change.
 
 ## Files
 
@@ -68,7 +68,8 @@ key held them too.)
   (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9; the sound and movie files (PL6b), the sound
   files' reads (PL7b) and lib/win_types.h (PL7a) left it: 5, the win32 entry (below) and the import layer's headers.
   The rule took in src/render with graphics.h (MAC3f): 9, render_buffers, render_compose and render_ui (their
-  transfers, MAC3g) and render_cursor (the cursor thread's present, MAC3h) still call Direct3D.
+  transfers, MAC3g) and render_cursor (the cursor thread's present) still calling Direct3D; the present moved behind
+  graphics.h (MAC3h): 8.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
   call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h (windef.h's types)
   was the last such header: 113 game files used its RECT, POINT, SIZE, DWORD, COLORREF, LONG and UINT. They use our
@@ -421,6 +422,12 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
   tearing, docs/notes/renderer.md section 15a), `EndDrawable` presents it after `sg_commit`. The window's size in
   pixels is platform.h's `WindowPixelSize` (SDL: `SDL_GetWindowSizeInPixels`, false while minimised; Windows: the
   client rectangle).
+- Presenting again from another thread (the cursor between frames, docs/notes/renderer.md R9c2): the cursor thread
+  never calls sokol. The main thread hands the backend the present's sokol objects after each present (`KeepPresent`:
+  `PresentParts`, the backend's own references), and the cursor thread asks it to draw them again with its uniforms
+  and show them (`PresentAgain`; `PresentReads` the harness build's read-back before the present). The renderer's
+  present lock keeps the calls apart. Direct3D 11: a deferred context run on the immediate one with its state put back,
+  multithread protection on (`Start`). Metal: a command buffer of its own and the layer's next drawable.
 - Diagnostics: `Readback` (a region of an image or of the drawable, mapped until the next read; the backend's
   `Staging` behind it) and `GpuTimer` (timestamps read frames later without waiting; the backend's `Queries` behind
   it). Both are typed pimpls: render code holds no backend object.
@@ -429,8 +436,8 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 - What only Direct3D has is in `win32/graphics_win32.h`, never included by game code: the vertical blank rules
   tools/perf_check checks on real chains (`TearingSupported`, `ChainFlagsFor`, `SyncIntervalFor`, `PresentFlagsFor`),
   the harness build's removable device (`MakeRemovable`, `RequestRemoval`: the harness's `removable` render word and
-  `removedevice` step, docs/notes/renderer.md R9c5), and the device, context, textures and swap chain for the four
-  render files that still call Direct3D (render_buffers, render_compose, render_ui: MAC3g; render_cursor: MAC3h).
+  `removedevice` step, docs/notes/renderer.md R9c5), and the device, context and textures for the three render
+  files that still call Direct3D (render_buffers, render_compose, render_ui: MAC3g).
 
 ## Left for the next areas
 

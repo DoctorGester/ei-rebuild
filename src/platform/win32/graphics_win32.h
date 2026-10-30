@@ -2,20 +2,16 @@
 
 // The Direct3D 11 backend's own part (graphics_win32.cpp) beyond graphics.h: the vertical blank switch's rules that
 // tools/perf_check checks on real swap chains, the harness build's removable device, and the Direct3D objects of the
-// render files that still call Direct3D themselves (render_buffers, render_compose, render_ui: their transfers;
-// render_cursor: the cursor thread's present between frames).
+// render files that still call Direct3D themselves (render_buffers, render_compose, render_ui: their transfers).
 
 #include "platform/graphics.h"
 
-#include <cstddef>
 #include <cstdint>
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
-struct ID3D11RenderTargetView;
 struct ID3D11Texture2D;
 struct IDXGIFactory2;
-struct IDXGISwapChain1;
 
 namespace platform::graphics {
 
@@ -44,31 +40,5 @@ ID3D11Device* Device();
 ID3D11DeviceContext* Context();
 // The texture of a sokol image (no reference taken); null for none.
 ID3D11Texture2D* Texture(sg_image image);
-
-// The swap chain BeginDrawable made, its back buffer's view and how its presents are made; false without one.
-struct Chain {
-    IDXGISwapChain1* chain;
-    ID3D11RenderTargetView* view;
-    std::uint32_t syncInterval;
-    std::uint32_t presentFlags;
-};
-bool CurrentChain(Chain* chain);
-
-// Readback's copy: a texture's region copied into a CPU-readable staging texture of its format and mapped. It touches
-// nothing of sokol's (the cursor thread reads with it). Release, as Readback's: no destructor.
-class Staging {
-public:
-    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region);
-    const std::uint8_t* Row(int y) const { return data + static_cast<std::size_t>(y) * pitch; }
-    void Unmap();
-    void Release();
-
-private:
-    ID3D11Texture2D* texture = nullptr;
-    unsigned width = 0, height = 0, format = 0;
-    ID3D11DeviceContext* mappedOn = nullptr;   // while mapped
-    const std::uint8_t* data = nullptr;
-    std::size_t pitch = 0;
-};
 
 } // namespace platform::graphics

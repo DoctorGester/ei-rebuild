@@ -2,8 +2,8 @@
 
 // The renderer's device and window (docs/notes/platform.md, "Graphics"). sokol_gfx draws everything, and every pass,
 // pipeline, buffer and image is the renderer's (src/render). A backend makes the device sokol draws on, gives it the
-// window's drawable each frame and presents it, says when the device is lost, and reads images back and times the GPU
-// for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's implementation).
+// window's drawable each frame and presents it, presents the last frame again from another thread (the cursor between
+// frames), says when the device is lost, and reads images back and times the GPU for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's implementation).
 // No backend type crosses this header.
 
 #include "platform/platform.h"
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace platform::graphics {
@@ -46,6 +47,43 @@ bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode
 // After the frame's sg_commit: the drawable shown. False when it was not (a failure is logged; a lost device is seen
 // by Lost).
 bool EndDrawable();
+
+// ---- Presenting again from another thread -------------------------------------------------------------------------
+
+// The cursor between frames (docs/notes/renderer.md, section 9): during a long load the game's cursor thread shows
+// the last frame again with the cursor moved. sokol is the main thread's alone, so that thread never calls it: the
+// main thread hands the backend the objects of the window's last present (KeepPresent) and the backend draws them
+// again with its own calls (PresentAgain). The caller keeps the three apart from each other and from the main thread's draws into
+// the kept views and its work on the window's drawable (the renderer's present lock).
+
+// A present's draw: `pipeline` of `shader` with `views` and `sampler` (bindings 0..2 and 0), three vertices into
+// `viewport` of the drawable cleared black.
+struct PresentParts {
+    const sg_shader_desc* shaderDesc;   // the shader's description: its uniform blocks' stages and slots
+    sg_shader shader;
+    sg_pipeline pipeline;
+    sg_view views[3];
+    sg_sampler sampler;
+    Rect viewport;
+};
+// Main thread: the parts kept (the backend's own references, which outlive sokol's objects), in place of those kept
+// before. False, nothing kept, when one of them is gone or the device cannot draw from another thread.
+bool KeepPresent(const PresentParts& parts);
+// Main thread: the kept parts let go (before the device goes).
+void DropPresent();
+
+// The harness build's check of a present made again: before it is shown, the region (0, 0)-(width, height) of the
+// drawable and of views[0], and `cursor` of views[2], read back, 4 bytes a texel in their formats (the drawable B, G, R,
+// A), rows packed. Empty when they could not be read.
+struct PresentReads {
+    int width = 0, height = 0;
+    Rect cursor{0, 0, 0, 0};
+    std::vector<std::uint8_t> drawable, frame, cursorTexels;
+};
+// Any thread: the kept present drawn again with `uniforms` (the shader's uniform blocks in order) and shown, with
+// `reads` (may be null) read first. False when nothing was presented: nothing kept, or a failure (logged; a lost device
+// is found at the main thread's next present).
+bool PresentAgain(std::span<const sg_range> uniforms, PresentReads* reads);
 
 // ---- Diagnostics --------------------------------------------------------------------------------------------------
 

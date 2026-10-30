@@ -8,14 +8,16 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include <d3d11.h>
+#include <d3d11_4.h>
 #include <dxgi1_5.h>
 #if defined(EI_RENDER_VALIDATION)
 #include <d3d11on12.h>
 #include <d3d12.h>
 #endif
 
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 
 // sokol_gfx (third_party/sokol, unmodified; SOKOL_D3D11 from CMakeLists.txt): its implementation, after its
 // declarations came through graphics.h. Its own warnings are not ours to fix.
@@ -29,6 +31,23 @@
 #pragma warning(pop)
 
 namespace platform::graphics {
+
+// Readback's copy: a texture's region copied into a CPU-readable staging texture of its format and mapped. It touches
+// nothing of sokol's (PresentAgain reads with it on the cursor thread). Release, as Readback's: no destructor.
+class Staging {
+public:
+    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region);
+    const std::uint8_t* Row(int y) const { return data + static_cast<std::size_t>(y) * pitch; }
+    void Unmap();
+    void Release();
+
+private:
+    ID3D11Texture2D* texture = nullptr;
+    unsigned width = 0, height = 0, format = 0;
+    ID3D11DeviceContext* mappedOn = nullptr;   // while mapped
+    const std::uint8_t* data = nullptr;
+    std::size_t pitch = 0;
+};
 
 namespace {
 
@@ -288,6 +307,81 @@ bool EnsureChain(HWND window, int width, int height) {
     return CreateChain(window, width, height) || NoChain("the swap chain cannot be made again");
 }
 
+// ---- Presenting again from another thread -------------------------------------------------------------------------
+
+// PresentAgain records its draw on a deferred context and runs it on the immediate one with the immediate one's state
+// put back (ExecuteCommandList's RestoreContextState), so sokol's state cache stays right; the device's multithread
+// protection lets the two threads share the immediate context. Raw pointers, no destructors: the cursor thread may
+// still present while globals are destroyed at exit.
+ID3D11DeviceContext* g_deferred = nullptr;
+
+template <typename T>
+T* Referenced(const void* object) {
+    auto* typed = static_cast<T*>(const_cast<void*>(object));
+    if (typed) typed->AddRef();
+    return typed;
+}
+
+template <typename T>
+void Release(T*& object) {
+    if (object) object->Release();
+    object = nullptr;
+}
+
+// KeepPresent's references to the raw objects of sokol's.
+struct Kept {
+    bool valid = false;
+    const sg_shader_desc* shaderDesc = nullptr;
+    ID3D11VertexShader* vs = nullptr;
+    ID3D11PixelShader* ps = nullptr;
+    ID3D11InputLayout* layout = nullptr;   // null for a shader without vertex inputs
+    ID3D11RasterizerState* rasterizer = nullptr;
+    ID3D11BlendState* blend = nullptr;
+    ID3D11DepthStencilState* depth = nullptr;
+    ID3D11ShaderResourceView* views[3] = {};
+    ID3D11SamplerState* sampler = nullptr;
+    Rect viewport{0, 0, 0, 0};
+} g_kept;
+
+Staging g_reads[3];   // PresentAgain's: the drawable, views[0] and views[2]
+
+ID3D11Buffer* ConstantBuffer(const sg_range& data) {
+    D3D11_BUFFER_DESC desc{};
+    desc.ByteWidth = static_cast<UINT>(data.size);
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    D3D11_SUBRESOURCE_DATA init{data.ptr, 0, 0};
+    ID3D11Buffer* buffer = nullptr;
+    if (FAILED(g_device->CreateBuffer(&desc, &init, &buffer))) return nullptr;
+    return buffer;
+}
+
+// The texture under `view`, referenced; null for none.
+ID3D11Texture2D* TextureOf(ID3D11View* view) {
+    ID3D11Resource* resource = nullptr;
+    view->GetResource(&resource);
+    ID3D11Texture2D* texture = nullptr;
+    if (resource) {
+        if (FAILED(resource->QueryInterface(IID_PPV_ARGS(&texture)))) texture = nullptr;
+        resource->Release();
+    }
+    return texture;
+}
+
+// `region` of `source` (its reference let go) read through `staging` into `texels`, 4 bytes a texel, rows packed;
+// empty when it cannot be read.
+void ReadInto(Staging& staging, ID3D11Texture2D* source, const Rect& region, std::vector<std::uint8_t>* texels) {
+    texels->clear();
+    if (source && staging.Map(g_context, source, region)) {
+        const auto row = static_cast<std::size_t>(region.right - region.left) * 4;
+        texels->resize(row * static_cast<std::size_t>(region.bottom - region.top));
+        for (int y = 0; y < region.bottom - region.top; ++y)
+            std::memcpy(texels->data() + row * static_cast<std::size_t>(y), staging.Row(y), row);
+    }
+    staging.Unmap();
+    if (source) source->Release();
+}
+
 } // namespace
 
 // ---- graphics.h ---------------------------------------------------------------------------------------------------
@@ -317,6 +411,14 @@ bool Start(sg_environment* environment) {
     }
     environment->d3d11.device = g_device;
     environment->d3d11.device_context = g_context;
+    ID3D11Multithread* multithread = nullptr;
+    if (SUCCEEDED(g_context->QueryInterface(IID_PPV_ARGS(&multithread)))) {
+        multithread->SetMultithreadProtected(TRUE);
+        multithread->Release();
+        if (FAILED(g_device->CreateDeferredContext(0, &g_deferred))) g_deferred = nullptr;
+    }
+    if (!g_deferred)
+        ei::Log("render: no multithread protection or deferred context; the cursor does not move between frames");
 #if defined(EI_RENDER_VALIDATION)
     if (g_d3d12)
         ei::Log("render: Direct3D 11 device ready (feature level %X), through D3D11On12 on a Direct3D 12 device: "
@@ -329,6 +431,9 @@ bool Start(sg_environment* environment) {
 }
 
 void Stop() {
+    DropPresent();
+    Release(g_deferred);
+    for (Staging& reads : g_reads) reads.Release();
     ReleaseChain();
     g_recreated = false;
     if (g_context) {
@@ -398,6 +503,106 @@ bool EndDrawable() {
     if (FAILED(hr) && g_presentFailures++ < 10)
         ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
     return SUCCEEDED(hr);
+}
+
+bool KeepPresent(const PresentParts& parts) {
+    DropPresent();
+    if (!g_deferred) return false;
+    const sg_d3d11_shader_info shader = sg_d3d11_query_shader_info(parts.shader);
+    const sg_d3d11_pipeline_info pipeline = sg_d3d11_query_pipeline_info(parts.pipeline);
+    g_kept.shaderDesc = parts.shaderDesc;
+    g_kept.vs = Referenced<ID3D11VertexShader>(shader.vs);
+    g_kept.ps = Referenced<ID3D11PixelShader>(shader.fs);
+    g_kept.layout = Referenced<ID3D11InputLayout>(pipeline.il);
+    g_kept.rasterizer = Referenced<ID3D11RasterizerState>(pipeline.rs);
+    g_kept.blend = Referenced<ID3D11BlendState>(pipeline.bs);
+    g_kept.depth = Referenced<ID3D11DepthStencilState>(pipeline.dss);
+    bool views = true;
+    for (int i = 0; i < 3; ++i) {
+        g_kept.views[i] = Referenced<ID3D11ShaderResourceView>(sg_d3d11_query_view_info(parts.views[i]).srv);
+        views = views && g_kept.views[i];
+    }
+    g_kept.sampler = Referenced<ID3D11SamplerState>(sg_d3d11_query_sampler_info(parts.sampler).smp);
+    g_kept.viewport = parts.viewport;
+    g_kept.valid = parts.shaderDesc && g_kept.vs && g_kept.ps && g_kept.rasterizer && g_kept.blend && g_kept.depth &&
+                   views && g_kept.sampler;
+    if (!g_kept.valid) DropPresent();
+    return g_kept.valid;
+}
+
+void DropPresent() {
+    Release(g_kept.vs);
+    Release(g_kept.ps);
+    Release(g_kept.layout);
+    Release(g_kept.rasterizer);
+    Release(g_kept.blend);
+    Release(g_kept.depth);
+    for (ID3D11ShaderResourceView*& view : g_kept.views) Release(view);
+    Release(g_kept.sampler);
+    g_kept = Kept{};
+}
+
+bool PresentAgain(std::span<const sg_range> uniforms, PresentReads* reads) {
+    if (reads) {
+        reads->drawable.clear();
+        reads->frame.clear();
+        reads->cursorTexels.clear();
+    }
+    if (!g_kept.valid || !g_chain || !g_view || uniforms.size() > SG_MAX_UNIFORMBLOCK_BINDSLOTS) return false;
+    ID3D11DeviceContext* dc = g_deferred;
+    ID3D11Buffer* buffers[SG_MAX_UNIFORMBLOCK_BINDSLOTS] = {};
+    bool ok = true;
+    for (std::size_t i = 0; i < uniforms.size() && ok; ++i) {
+        const sg_shader_uniform_block& block = g_kept.shaderDesc->uniform_blocks[i];
+        buffers[i] = ConstantBuffer(uniforms[i]);
+        ok = buffers[i] != nullptr;
+        if (ok && block.stage == SG_SHADERSTAGE_VERTEX) dc->VSSetConstantBuffers(block.hlsl_register_b_n, 1, &buffers[i]);
+        if (ok && block.stage == SG_SHADERSTAGE_FRAGMENT) dc->PSSetConstantBuffers(block.hlsl_register_b_n, 1, &buffers[i]);
+    }
+    if (ok) {
+        const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+        dc->OMSetRenderTargets(1, &g_view, nullptr);
+        dc->ClearRenderTargetView(g_view, black);
+        const Rect& v = g_kept.viewport;
+        const D3D11_VIEWPORT viewport{static_cast<float>(v.left),           static_cast<float>(v.top),
+                                      static_cast<float>(v.right - v.left), static_cast<float>(v.bottom - v.top),
+                                      0.0f,                                 1.0f};
+        const D3D11_RECT whole{0, 0, g_chainWidth, g_chainHeight};
+        dc->RSSetViewports(1, &viewport);
+        dc->RSSetScissorRects(1, &whole);
+        dc->IASetInputLayout(g_kept.layout);
+        dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        dc->VSSetShader(g_kept.vs, nullptr, 0);
+        dc->PSSetShader(g_kept.ps, nullptr, 0);
+        dc->RSSetState(g_kept.rasterizer);
+        dc->OMSetBlendState(g_kept.blend, nullptr, 0xFFFFFFFFu);
+        dc->OMSetDepthStencilState(g_kept.depth, 0);
+        dc->PSSetShaderResources(0, 3, g_kept.views);
+        dc->PSSetSamplers(0, 1, &g_kept.sampler);
+        dc->Draw(3, 0);
+    }
+    // Finished also after a failure: the deferred context would keep what was recorded for the next present.
+    ID3D11CommandList* list = nullptr;
+    ok = SUCCEEDED(dc->FinishCommandList(FALSE, &list)) && ok;
+    if (ok) g_context->ExecuteCommandList(list, TRUE);
+    Release(list);
+    for (ID3D11Buffer*& buffer : buffers) Release(buffer);
+    if (!ok) return false;
+    if (reads) {
+        const Rect whole{0, 0, reads->width, reads->height};
+        ID3D11Texture2D* back = nullptr;
+        if (FAILED(g_chain->GetBuffer(0, IID_PPV_ARGS(&back)))) back = nullptr;
+        ReadInto(g_reads[0], back, whole, &reads->drawable);
+        ReadInto(g_reads[1], TextureOf(g_kept.views[0]), whole, &reads->frame);
+        ReadInto(g_reads[2], TextureOf(g_kept.views[2]), reads->cursor, &reads->cursorTexels);
+    }
+    const HRESULT hr = g_chain->Present(SyncIntervalFor(g_mode.vsync), PresentFlagsFor(g_mode.vsync, g_chainFlags));
+    if (FAILED(hr)) {
+        static int failures = 0;
+        if (failures++ < 10) ei::Log("render: the cursor thread's Present failed (%08lX)", static_cast<unsigned long>(hr));
+        return false;
+    }
+    return true;
 }
 
 Readback::Readback() = default;
@@ -550,12 +755,6 @@ ID3D11DeviceContext* Context() {
 
 ID3D11Texture2D* Texture(sg_image image) {
     return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
-}
-
-bool CurrentChain(Chain* chain) {
-    if (!g_chain || !g_view) return false;
-    *chain = Chain{g_chain, g_view, SyncIntervalFor(g_mode.vsync), PresentFlagsFor(g_mode.vsync, g_chainFlags)};
-    return true;
 }
 
 bool Staging::Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region) {

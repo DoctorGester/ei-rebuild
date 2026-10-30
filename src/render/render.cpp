@@ -126,7 +126,6 @@ bool CreateDevice() {
         return false;
     }
     g_deviceSamples = platform::graphics::MaxSamples(kSmoothSamples);
-    ProtectDevice();
     return true;
 }
 

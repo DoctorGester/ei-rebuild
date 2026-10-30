@@ -359,7 +359,8 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
 // The software cursor between frames (renderer.md section 9): from the cursor thread, the cursor's lock
 // held, the last presented frame is presented again with the cursor at `to` (Cursor must have drawn the
 // image before). Only when the renderer presents itself and nothing was presented for 40 ms; false when
-// nothing was presented. Thread-safe: recorded on a deferred context.
+// nothing was presented. Thread-safe: drawn by the graphics backend (platform::graphics::PresentAgain), never
+// through sokol.
 bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 // The cursor thread's presents and, in the verify build, the checks of the frame it presented.
 struct CursorPresentInfo {
