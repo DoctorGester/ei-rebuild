@@ -7,6 +7,7 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/cursor.h"
 #include "platform/clock.h"
 #include <cstdint>
 #include <memory>
@@ -179,7 +180,9 @@ bool Cursor::UpdatePosition() {
     if (held) {
         point = heldPosition;
     } else {
-        gameapi::GetCursorPos(&point);
+        platform::Point at{};
+        platform::CursorPosition(&at);
+        point = POINT{at.x, at.y};
         heldPosition = point;
     }
     if (point.x < 0) point.x = 0;

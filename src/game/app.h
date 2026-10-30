@@ -12,6 +12,9 @@
 #include <string>
 
 class DirectInputMouse;
+namespace platform {
+struct Event;
+}
 namespace app {
 
 // The application's globals: what the command line gave, the folder of the movie frames
@@ -42,11 +45,12 @@ extern std::uint8_t g_recordingFrames;
 extern int g_showClientSpeed;
 extern const char* g_loadingMovieName;
 
-// The game window's procedure (also called directly by the pump and the dispatcher).
-LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
-// Sends keyboard and mouse messages to the interface and returns 1; anything else goes to WindowProc.
-LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam);
-// Removes every waiting message and passes it to WindowProc (no DispatchMessage).
+// The game window's events: what the window does with them (the window class's handler, also called directly by the
+// loop, the pump and the dispatcher). Returns what the window procedure returns.
+std::intptr_t HandleWindowEvent(const platform::Event& event);
+// Sends keyboard and mouse events to the interface and returns 1; anything else goes to HandleWindowEvent.
+std::intptr_t DispatchInput(const platform::Event& event);
+// Takes every waiting event and passes it to HandleWindowEvent (untranslated, not dispatched).
 void PumpMessages();
 // Without a map on the command line opens the main menu; otherwise loads the map into the
 // world server and runs the command line's script file. Returns 1, or FatalError's result.

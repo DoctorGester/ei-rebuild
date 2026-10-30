@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "platform/clock.h"
+#include "platform/window.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -123,22 +124,19 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     DWORD start = platform::Milliseconds() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
-    MSG msg;
+    platform::Event event;
     for (;;) {
-        if (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_KEYDOWN) {
-                if (msg.wParam != VK_ESCAPE && msg.wParam != VK_SPACE) continue;
+        if (platform::TakeEvent(&event)) {
+            if (event.type == platform::EventType::KeyDown) {
+                if (event.key != VK_ESCAPE && event.key != VK_SPACE) continue;
                 if (keysEnd) {
-                    if (msg.wParam == VK_ESCAPE) escaped = true;
+                    if (event.key == VK_ESCAPE) escaped = true;
                     break;
                 }
                 if (!spaceSkips) continue;
                 start = platform::Milliseconds() - frameTime * 2;
             }
-            if (msg.message == WM_PAINT) {
-                gameapi::TranslateMessage(&msg);
-                gameapi::DispatchMessageA(&msg);
-            }
+            if (event.type == platform::EventType::Paint) platform::DispatchEvent(event);
             continue;
         }
         DWORD now = platform::Milliseconds();

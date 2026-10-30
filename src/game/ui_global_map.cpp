@@ -24,7 +24,7 @@
 
 #include "render/render_state.h"
 
-#include "lib/gameapi.h"
+#include "platform/cursor.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
@@ -365,8 +365,8 @@ void GlobalMap::CreateScreen() {
 void GlobalMap::Update() {
     UiContainer::Update();
     if (dragging && turning == 0) {
-        POINT cursor;
-        gameapi::GetCursorPos(&cursor);
+        platform::Point cursor{};
+        platform::CursorPosition(&cursor);
         Input()->MouseMove(0, cursor.x, cursor.y);
     }
     MapBuilder builder(this);

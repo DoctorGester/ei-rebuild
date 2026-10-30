@@ -6,7 +6,7 @@
 #include "console.h"
 
 #include "lib/file_io.h"
-#include "lib/gameapi.h"
+#include "platform/keyboard.h"
 #include <cstring>
 #include <string>
 #include "lib/text_case.h"
@@ -56,7 +56,7 @@ constexpr int kActionCount = 60;
 void LoadKeyBindings() {
     for (int i = 0; i < kKeyCount; ++i) {
         UiKeyName& k = g_keyNames[i];
-        if (!gameapi::GetKeyNameTextA(k.scan << 16, k.name, 0x1F)) k.name[0] = 0;
+        if (!platform::KeyName(k.scan, k.name, 0x1F)) k.name[0] = 0;
     }
     std::string line;
     std::vector<std::string> words;

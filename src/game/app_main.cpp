@@ -30,7 +30,11 @@
 #include "lib/file_io.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
+#include "platform/cursor.h"
+#include "platform/files.h"
+#include "platform/message_box.h"
+#include "platform/window.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -50,7 +54,6 @@
 #include <cstdio>
 #include <io.h>
 #include <format>
-#include <windows.h>
 
 using options::GameOptions;
 
@@ -72,11 +75,6 @@ namespace {
 
 // ---- The application's globals ---------------------------------------------------------------------
 
-// The window: its class atom, class name and title (0x100 bytes each, set by RegisterWindowClass), the
-// instance and the window.
-std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
-char g_windowClassName[256] = /*0079BA24*/ {""};
-constexpr int kTextSize = 0x100;
 // The window's title and class name: strings 101 and 102 of the game's string table.
 constexpr const char* kWindowTitle = "Evil Islands";
 constexpr const char* kWindowClassName = "EIGAME";
@@ -85,7 +83,7 @@ constexpr const char* kWindowClassName = "EIGAME";
 // The loop's clock: the time of the last pass (a function-local static), the time not yet run by the server and by
 // the client (milliseconds), and the client's speed.
 std::uint8_t g_lastTimeGuard = /*0079B9FC*/ {};
-DWORD g_lastTime = /*0079B9F8*/ {};
+std::uint32_t g_lastTime = /*0079B9F8*/ {};
 std::uint32_t g_serverBacklog = /*0079BC64*/ {};
 std::uint32_t g_clientBacklog = /*0079BC68*/ {};
 float g_clientSpeed = /*00784758*/ 1.0f;
@@ -93,7 +91,6 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 // ---- Start-up --------------------------------------------------------------------------------------
 
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
-constexpr UINT kWarningBox = 0x31;      // MB_OKCANCEL | MB_ICONEXCLAMATION
 // The lines of sysmsg.txt: line 0 was the "requires DX7" text of the DirectX version check (gone: the game needs
 // no DirectDraw), kept so the other lines keep their places.
 enum MessageLine { kUnusedDirectX7, kLittleDiskSpace, kInsertDisc };
@@ -173,39 +170,18 @@ void ReadCommandLine(const char* commandLine) {
     }
 }
 
-// The window class registered; a game that runs already is brought to the front instead and this one exits.
+// The window class registered (no icon: its resource is not shipped); a game that runs already is brought to the
+// front instead and this one exits.
 void RegisterWindowClass(HINSTANCE instance) {
-    gameapi::lstrcpynA(g_windowTitle, kWindowTitle, kTextSize);
-    gameapi::lstrcpynA(g_windowClassName, kWindowClassName, kTextSize);
-    WNDCLASSEXA windowClass;
-    windowClass.cbSize = sizeof(windowClass);
-    windowClass.style = CS_DBLCLKS;
-    windowClass.lpfnWndProc = WindowProc;
-    windowClass.cbClsExtra = 0;
-    windowClass.cbWndExtra = 0;
-    windowClass.hInstance = instance;
-    windowClass.hIcon = nullptr;     // the icon resource is not shipped
-    windowClass.hIconSm = nullptr;
-    windowClass.hCursor = nullptr;
-    windowClass.hbrBackground = nullptr;
-    windowClass.lpszMenuName = nullptr;
-    windowClass.lpszClassName = g_windowClassName;
-    g_windowClassAtom = gameapi::RegisterClassExA(&windowClass);
+    std::snprintf(g_windowTitle, sizeof(g_windowTitle), "%s", kWindowTitle);
+    platform::RegisterWindowClass(instance, kWindowClassName, HandleWindowEvent);
 
-    HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle);
+    platform::NativeWindow other = platform::FindClassWindow(g_windowTitle);
     if (!other) return;
-    DWORD otherProcess = 0;
-    gameapi::GetWindowThreadProcessId(other, &otherProcess);
     ei::Log("app: another game window exists (window %p of process %lu, class and title \"%s\" the same): the one-instance "
-            "check ends this game with exit code -1", static_cast<void*>(other), otherProcess, g_windowTitle);
-    const DWORD foregroundThread = gameapi::GetWindowThreadProcessId(gameapi::GetForegroundWindow(), nullptr);
-    const DWORD otherThread = gameapi::GetWindowThreadProcessId(other, nullptr);
-    if (otherThread != foregroundThread || gameapi::IsIconic(other)) {
-        HWND popup = gameapi::GetLastActivePopup(other);
-        if (gameapi::IsIconic(popup)) gameapi::ShowWindow(popup, SW_RESTORE);
-        gameapi::BringWindowToTop(popup);
-        gameapi::SetForegroundWindow(popup);
-    }
+            "check ends this game with exit code -1", other, static_cast<unsigned long>(platform::WindowProcess(other)),
+            g_windowTitle);
+    platform::BringToFront(other);
     std::exit(-1);
 }
 
@@ -223,24 +199,17 @@ void DriveRoot(const char* path, PathParts& parts) {
     std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 
-// The free bytes on the drive of `folder` through GetDiskFreeSpaceExA where kernel32 has it, else
-// from the cluster counts (double maths: start-up runs before the device, at 53 bits). False when the call fails.
-bool FreeDiskSpace(const char* folder, double* freeBytes) {
+// The free bytes on the drive of `folder`; 0 when unknown.
+double FreeDiskSpace(const char* folder) {
     PathParts parts;
     DriveRoot(folder, parts);
-    using FreeSpaceEx = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
-    auto* extended = reinterpret_cast<FreeSpaceEx>(
-        gameapi::GetProcAddress(gameapi::GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA"));
-    if (extended) {
-        ULARGE_INTEGER available, total, totalFree;
-        const BOOL ok = extended(parts.drive, &available, &total, &totalFree);
-        *freeBytes = static_cast<double>(static_cast<std::int64_t>(available.QuadPart));
-        return ok != 0;
-    }
-    DWORD sectorsPerCluster, bytesPerSector, freeClusters, clusters;
-    const BOOL ok = gameapi::GetDiskFreeSpaceA(parts.drive, &sectorsPerCluster, &bytesPerSector, &freeClusters, &clusters);
-    *freeBytes = static_cast<double>(sectorsPerCluster) * bytesPerSector * freeClusters;
-    return ok != 0;
+    return platform::FreeDiskSpace(parts.drive);
+}
+
+// The player's answer to a warning: false when cancelled.
+bool WarningAccepted(const std::string& text) {
+    return platform::ShowMessageBox(nullptr, text.c_str(), "Warning", platform::MessageButtons::OkCancel,
+                                    platform::MessageIcon::Warning) != platform::MessageAnswer::Cancel;
 }
 
 // Warns when the data folder's drive has under 300 MB free, and asks for the second disc while the
@@ -249,18 +218,13 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = g_discFolder;
     std::string dataFolder = g_dataFolder;
-    double freeBytes;
-    if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 && freeBytes < 314572800.0) {
-        if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
-    }
+    const double freeBytes = FreeDiskSpace(dataFolder.c_str());
+    if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
-        char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
-        gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (str::Compare(options::g_options.cdLabels[1], volume) != 0) {
-            if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
-            gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
+        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(parts.drive)) != 0) {
+            if (!WarningAccepted(messages[kInsertDisc])) return false;
         }
     }
     return true;
@@ -280,11 +244,11 @@ void CreateMouse() {
 
 void CreateFolders(std::string& path) {
     path = std::format("{}saves\\", g_dataFolder);
-    gameapi::CreateDirectoryA(path.c_str(), nullptr);
+    platform::CreateFolder(path.c_str());
     path = std::format("{}mp\\", g_dataFolder);
-    gameapi::CreateDirectoryA(path.c_str(), nullptr);
+    platform::CreateFolder(path.c_str());
     path = std::format("{}textures\\", g_dataFolder);
-    gameapi::CreateDirectoryA(path.c_str(), nullptr);
+    platform::CreateFolder(path.c_str());
 }
 
 // The renderer created on the window, its gamma set from the options.
@@ -379,10 +343,10 @@ void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
         g_sceneRenderer.flags |= 1;
-        gameapi::SetCursor(nullptr);
+        platform::SetCursor(nullptr);
     } else {
         g_sceneRenderer.flags &= ~1u;
-        gameapi::InvalidateRect(nullptr, nullptr, TRUE);
+        platform::RepaintDesktop();
     }
     g_activationChanged = 0;
 }
@@ -390,12 +354,12 @@ void TakeActivationChange() {
 std::uint32_t TimeSinceLastPass() {
     if (!(g_lastTimeGuard & 1)) {
         g_lastTimeGuard |= 1;
-        g_lastTime = gameapi::timeGetTime();
+        g_lastTime = platform::Milliseconds();
     }
-    DWORD now;
+    std::uint32_t now;
     {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
-        now = gameapi::timeGetTime();
+        now = platform::Milliseconds();
     }
     const std::uint32_t elapsed = now - g_lastTime;
     g_lastTime += elapsed;
@@ -516,25 +480,24 @@ bool RunPass() {
     return true;
 }
 
-bool MessageWaits(MSG* message, ei::mainloop::Site where) {
+bool EventWaits(ei::mainloop::Site where) {
     ei::mainloop::InSite site(where);
-    return gameapi::PeekMessageA(message, nullptr, 0, 0, PM_NOREMOVE) != 0;
+    return platform::EventWaits();
 }
 
-// The loop: passes while no message waits, then the message handled. Returns the quit message's
-// wParam. `interfaceInput` says whether the interface takes the input (see GameMain).
+// The loop: passes while no event waits, then the event handled. Returns the quit request's code.
+// `interfaceInput` says whether the interface takes the input (see GameMain).
 int RunMainLoop(bool interfaceInput) {
-    MSG message;
+    platform::Event event;
     for (;;) {
-        bool waits = MessageWaits(&message, ei::mainloop::Site::PeekBeforeFrame);
+        bool waits = EventWaits(ei::mainloop::Site::PeekBeforeFrame);
         while (!waits) {
             interfaceInput = RunPass();
-            waits = MessageWaits(&message, ei::mainloop::Site::PeekAfterFrame);
+            waits = EventWaits(ei::mainloop::Site::PeekAfterFrame);
         }
-        if (!gameapi::GetMessageA(&message, nullptr, 0, 0)) return static_cast<int>(message.wParam);
-        gameapi::TranslateMessage(&message);
-        if (interfaceInput) DispatchInput(message.message, message.wParam, message.lParam);
-        else WindowProc(g_mainWindow, message.message, message.wParam, message.lParam);
+        if (!platform::NextEvent(&event)) return event.quitCode;
+        if (interfaceInput) DispatchInput(event);
+        else HandleWindowEvent(event);
     }
 }
 
@@ -617,12 +580,11 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::string folder;
     CreateFolders(folder);
     g_instance = instance;
-    g_mainWindow = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
-                                            options->resolutionX, options->resolutionY, nullptr, nullptr, instance, nullptr);
+    g_mainWindow = static_cast<HWND>(
+        platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY));
     if (!g_mainWindow) return 0;
-    gameapi::ShowWindow(g_mainWindow, show);
-    gameapi::UpdateWindow(g_mainWindow);
-    gameapi::SetCursor(nullptr);
+    platform::ShowGameWindow(g_mainWindow, show);
+    platform::SetCursor(nullptr);
 
     // "The interface takes the input" is carried in one byte and set after every pass. Before
     // the first pass it holds the top byte of stack memory that start-up used last for the disc

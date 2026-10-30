@@ -64,8 +64,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 
 - 00455A90 `app::DiskFreeSpace` (path in ECX, a double in ST0): GetDiskFreeSpaceExA looked up in kernel32 on every call
   (GetModuleHandleA + GetProcAddress), its free-bytes-for-the-caller as a signed 64-bit value; without it
-  sectors x bytes x free clusters (each zero-extended, `x87::FromUnsigned`); 0 when the call fails. Side by side; a
-  difference is compared with a second run of the original (the free space can change). Save and load screens.
+  sectors x bytes x free clusters; 0 when the call fails. Now `platform::FreeDiskSpace` (the save and load screens and
+  WinMain's warning): GetDiskFreeSpaceExW, which every Windows has, so the cluster count path is gone.
 - 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
   else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
 - 00455B50 `DelayedProtectionCheck` (PlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
@@ -117,7 +117,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   data folder's and a volume without the CD2 label, it starts where the image (the target's behaviour) asks; the
   harness's registry gives the two folders the same text, so no other run differs. No scenario: the second
   instance (FindWindowA finds a game window: brought forward, exit -1 before any scenario step), the DirectX 7
-  check, the low-disk-space box (GetDiskFreeSpaceExA through GetProcAddress); a vector test does not fit WinMain.
+  check, the low-disk-space box (platform::FreeDiskSpace); a vector test does not fit WinMain.
 - The harness told the loop's calls apart by return address (the two `PeekMessageA` calls that take posted
   input, the frame's `timeGetTime`). The rewrite names the call it makes in `ei::mainloop::g_site`
   (`include/ei/main_loop.h`), which the harness accepts beside the addresses, and makes the frame's last

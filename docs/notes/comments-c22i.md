@@ -135,7 +135,7 @@ The game takes its mouse positions as screen coordinates of a window at 0, 0 the
 resolution: GetCursorPos (the cursor, the global map) and SetCursorPos without
 converting, WM_MOUSEMOVE and the buttons as client coordinates, WM_MOUSEWHEEL as screen
 coordinates. With the frame scaled into a larger window (render::FrameInWindow) these are mapped
-to frame pixels: the game's two imports by replacing their slots, the messages in the input
+to frame pixels: the cursor calls through platform::MapCursorPoints, the events in the input
 dispatcher (app.cpp). Outside the switch-over, and when the frame fills the window at
 0, 0 one to one, nothing changes.
 

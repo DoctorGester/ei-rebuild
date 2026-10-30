@@ -6,16 +6,14 @@
 #include "model.h"
 
 #include "../hook/log.h"
-#include "lib/gameapi.h"
+#include "platform/cursor.h"
+#include "platform/window.h"
 #include "render/render.h"
-
-#include <cstdint>
-#include <windows.h>
 
 namespace present_window {
 namespace {
 
-HWND Window() {
+platform::NativeWindow Window() {
     TextureDevice* device = g_sceneRenderer.device;
     return device ? device->window : nullptr;
 }
@@ -28,96 +26,48 @@ bool Scaled() {
     return placed.left != 0 || placed.top != 0 || placed.right != fw || placed.bottom != fh;
 }
 
-// The window's client point as a frame pixel.
-POINT ClientToFrame(POINT p) {
-    int x = p.x, y = p.y;
-    render::WindowToFrame(&x, &y);
-    return POINT{x, y};
+// The cursor's screen position as a point of the frame (the game's screen).
+void ScreenToGame(platform::Point* point) {
+    platform::NativeWindow window = Window();
+    if (!window || !Scaled()) return;
+    platform::ScreenToClient(window, point);
+    render::WindowToFrame(&point->x, &point->y);
 }
 
-decltype(&::GetCursorPos) g_getCursorPos = nullptr;
-decltype(&::SetCursorPos) g_setCursorPos = nullptr;
-
-// The game's GetCursorPos: the cursor's screen position as a point of the frame (the game's screen).
-BOOL WINAPI FrameCursorPos(LPPOINT point) {
-    if (!g_getCursorPos(point)) return FALSE;
-    HWND window = Window();
-    if (!window || !Scaled()) return TRUE;
-    POINT p = *point;
-    ScreenToClient(window, &p);
-    *point = ClientToFrame(p);
-    return TRUE;
-}
-
-// The game's SetCursorPos: a point of the frame to the screen.
-BOOL WINAPI FrameSetCursorPos(int x, int y) {
-    HWND window = Window();
-    if (window && Scaled()) {
-        render::FrameToWindow(&x, &y);
-        POINT p{x, y};
-        ClientToScreen(window, &p);
-        x = p.x;
-        y = p.y;
-    }
-    return g_setCursorPos(x, y);
-}
-
-template <typename F>
-void ReplaceImport(F& slot, F hook, F* previous) {
-    DWORD old = 0;
-    VirtualProtect(&slot, sizeof(F), PAGE_READWRITE, &old);
-    *previous = slot;
-    slot = hook;
-    VirtualProtect(&slot, sizeof(F), old, &old);
-}
-
-void MapCursorImports() {
-    static bool done = false;
-    if (done) return;
-    done = true;
-    // Whatever the slots hold now (the harness's own cursor in its runs) stays underneath.
-    ReplaceImport(gameapi::GetCursorPos, &FrameCursorPos, &g_getCursorPos);
-    ReplaceImport(gameapi::SetCursorPos, &FrameSetCursorPos, &g_setCursorPos);
-}
-
-// Full screen: the window over its monitor (the frame is scaled into it, aspect kept).
-void CoverMonitor(HWND window) {
-    if (IsIconic(window)) return;
-    MONITORINFO info{};
-    info.cbSize = sizeof(info);
-    if (!GetMonitorInfoA(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &info)) return;
-    RECT now{};
-    if (!GetWindowRect(window, &now) || EqualRect(&now, &info.rcMonitor)) return;
-    const RECT& m = info.rcMonitor;
-    ei::Log("present: full screen without a display mode change: the window (%ld,%ld)-(%ld,%ld) covers the monitor "
-            "(%ld,%ld)-(%ld,%ld)",
-            now.left, now.top, now.right, now.bottom, m.left, m.top, m.right, m.bottom);
-    SetWindowPos(window, nullptr, m.left, m.top, m.right - m.left, m.bottom - m.top,
-                 SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+// A point of the frame as the screen's.
+void GameToScreen(platform::Point* point) {
+    platform::NativeWindow window = Window();
+    if (!window || !Scaled()) return;
+    render::FrameToWindow(&point->x, &point->y);
+    platform::ClientToScreen(window, point);
 }
 
 } // namespace
 
 void Update(TextureDevice* device) {
     if (!device) return;
-    MapCursorImports();
-    if (device->fullScreen && device->window) CoverMonitor(device->window);
+    platform::MapCursorPoints(ScreenToGame, GameToScreen);
+    platform::Rect was{}, monitor{};
+    if (device->fullScreen && device->window && platform::CoverMonitor(device->window, &was, &monitor)) {
+        ei::Log("present: full screen without a display mode change: the window (%d,%d)-(%d,%d) covers the monitor "
+                "(%d,%d)-(%d,%d)",
+                was.left, was.top, was.right, was.bottom, monitor.left, monitor.top, monitor.right, monitor.bottom);
+    }
 }
 
-LPARAM MouseToGame(UINT message, LPARAM lParam) {
-    bool client = message >= WM_MOUSEMOVE && message <= WM_MBUTTONDBLCLK;
-    if (!(client || message == WM_MOUSEWHEEL) || !Scaled()) return lParam;
-    POINT p{static_cast<short>(LOWORD(lParam)), static_cast<short>(HIWORD(lParam))};
-    if (message == WM_MOUSEWHEEL) {
-        HWND window = Window();
-        if (!window) return lParam;
-        ScreenToClient(window, &p);
-        POINT f = ClientToFrame(p);
-        // Back to "screen" coordinates of a window at 0, 0: the frame's.
-        return MAKELPARAM(static_cast<WORD>(f.x), static_cast<WORD>(f.y));
+void MouseToGame(platform::Event* event) {
+    using platform::EventType;
+    const bool client = event->type >= EventType::MouseMove && event->type <= EventType::RightDouble;
+    if (!(client || event->type == EventType::Wheel) || !Scaled()) return;
+    platform::Point p{event->x, event->y};
+    if (event->type == EventType::Wheel) {
+        platform::NativeWindow window = Window();
+        if (!window) return;
+        platform::ScreenToClient(window, &p);
     }
-    POINT f = ClientToFrame(p);
-    return MAKELPARAM(static_cast<WORD>(f.x), static_cast<WORD>(f.y));
+    render::WindowToFrame(&p.x, &p.y);
+    event->x = p.x;
+    event->y = p.y;
 }
 
 } // namespace present_window

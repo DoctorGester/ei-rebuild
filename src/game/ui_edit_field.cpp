@@ -14,7 +14,7 @@
 #include <cstddef>
 #include <cstring>
 #include <new>
-#include <windows.h>
+#include "lib/win_user.h"
 
 namespace {
 constexpr int kKeyBackspace = 0x08;

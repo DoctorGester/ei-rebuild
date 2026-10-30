@@ -3,10 +3,8 @@
 
 #include "system_text.h"
 
-#include "lib/gameapi.h"
+#include "platform/system.h"
 #include "render/render_text.h"
-
-#include <windows.h>
 
 namespace {
 constexpr int kDotsPerInch = 96;
@@ -16,9 +14,8 @@ UiFont PointFont(int tenths, const char* face) { return UiFont{face, render::tex
 
 render::text::TextFont* TextFontOf(const UiFont& font) {
     if (!font) return nullptr;
-    BOOL smoothing = FALSE;
-    if (!font.unsmoothed && !gameapi::SystemParametersInfoA(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) smoothing = TRUE;
-    return render::text::GetTextFont(font.face, font.pixels, smoothing != FALSE);
+    const bool smoothing = !font.unsmoothed && platform::FontSmoothing();
+    return render::text::GetTextFont(font.face, font.pixels, smoothing);
 }
 
 SIZE TextExtent(const UiFont& font, std::string_view text) {

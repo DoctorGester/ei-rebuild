@@ -12,7 +12,7 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/gameapi.h"
+#include "platform/cursor.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -64,7 +64,7 @@ void GlobalMap::Deactivate() {
     g_cursor.motion.y = 0;
     g_cursor.motion.x = 0;
     g_cursor.SetHeld(0);
-    gameapi::SetCursorPos(x, y);
+    platform::SetCursorPosition({x, y});
 }
 
 void GlobalMap::RightDown(int, int x, int y) {

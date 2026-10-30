@@ -139,11 +139,7 @@ address,size,name,file
 0079B928,8,kSelectTimeout,src/game/net_socket_driver.cpp
 0079B9F8,4,g_lastTime,src/game/app_main.cpp
 0079B9FC,1,g_lastTimeGuard,src/game/app_main.cpp
-0079BA00,4,g_autoPlayMessage,src/game/app.cpp
-0079BA04,1,g_autoPlayGuard,src/game/app.cpp
 0079BA08,4,g_mouse,src/game/app_main.cpp
-0079BA20,2,g_windowClassAtom,src/game/app_main.cpp
-0079BA24,256,g_windowClassName,src/game/app_main.cpp
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
 0079BC24,4,g_instance,src/game/app_main.cpp
 0079BC28,4,g_mainWindow,src/game/app_main.cpp

@@ -559,10 +559,10 @@ no stand-in for any of them (R27c):
   from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
   scales the frame the same way; a resolution below the desktop's shows in the window.
-- The game's mouse coordinates when the frame does not fill the window one to one: GetCursorPos / SetCursorPos (the
+- The game's mouse coordinates when the frame does not fill the window one to one: the cursor's position (the
   cursor 005E52E0, the global map 0062F050 take screen coordinates as a window at 0, 0 the resolution's size) through
-  replaced import slots; WM_MOUSEMOVE .. WM_MBUTTONDBLCLK (client) and WM_MOUSEWHEEL (screen) mapped at the top of the
-  input dispatcher (00457970, app.cpp). The game's own wheel message (0xCC54) carries no position.
+  platform::MapCursorPoints; the mouse events (client positions) and the wheel's (screen) mapped at the top of the
+  input dispatcher (00457970, app.cpp).
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
   deactivates the cursor, the mouse, the sound and the network and minimises (004EEC60's RestoreDisplayMode is gone);
   active restores, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).

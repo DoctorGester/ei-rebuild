@@ -14,7 +14,7 @@
 #include "ei/rebirth.h"
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/keyboard.h"
 #include "platform/clock.h"
 #include <string>
 #include "game_singletons.h"
@@ -41,40 +41,9 @@ bool MakeFont(UiFont& font, int size) {
     return false;
 }
 
-// The language the keyboard starts in (the option, a Windows language id) and English.
-DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options.keyboardLayout); }
-constexpr DWORD kEnglish = 0x409;
-constexpr int kMaxLayouts = 16;
+// The keyboard's language when the option's (a Windows language id) has no layout: English.
+constexpr std::uint32_t kEnglish = 0x409;
 
-// Activates the layout of the wanted language, else the English one, else the one in use. Every
-// layout is activated on the way: its name (the language id in hex) can only be asked of the
-// active one.
-void ChooseKeyboardLayout() {
-    const DWORD wanted = KeyboardLanguage();
-    HKL layouts[kMaxLayouts];
-    const int count = gameapi::GetKeyboardLayoutList(kMaxLayouts, layouts);
-    int english = -1;
-    int found = -1;
-    HKL chosen = gameapi::GetKeyboardLayout(0);
-    for (int i = 0; i < count; ++i) {
-        gameapi::ActivateKeyboardLayout(layouts[i], 0);
-        char name[12];
-        if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
-        unsigned id = 0;
-        sscanf_s(name, "%x", &id);
-        id &= 0xFFFF;
-        if (id == wanted) {
-            found = i;
-            break;
-        }
-        if (id == kEnglish) english = i;
-    }
-    if (found >= 0)
-        chosen = layouts[found];
-    else if (english >= 0)
-        chosen = layouts[english];
-    gameapi::ActivateKeyboardLayout(chosen, 0);
-}
 } // namespace
 
 void Interface3D::Create(TextureDevice* device) {
@@ -90,7 +59,7 @@ void Interface3D::Create(TextureDevice* device) {
         if (!MakeFont(fonts[i], static_cast<int>(size))) return;
     }
 
-    ChooseKeyboardLayout();
+    platform::ActivateKeyboardLayout(static_cast<std::uint32_t>(options::g_options.keyboardLayout), kEnglish);
     keybind::LoadKeyBindings();
     console = new console::ConsoleWindow(this);
     root = new ChatOverlay(this);

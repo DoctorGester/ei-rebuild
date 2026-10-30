@@ -14,9 +14,11 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "lib/gameapi.h"
+#include "lib/win_user.h"
+#include "platform/cursor.h"
 #include "platform/message_box.h"
 #include "platform/paths.h"
+#include "platform/window.h"
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
@@ -30,37 +32,33 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <windows.h>
 
 
 namespace app {
 namespace {
 
+using platform::EventType;
 
-
-
-
-LRESULT OnActivate(WPARAM wParam) {
-    if ((wParam >> 16) != 0) {   // minimised
+std::intptr_t OnActivate(platform::Activation activation, bool minimized) {
+    if (minimized) {
         g_activationChanged = 1;
         g_active = 0;
         return 1;
     }
     auto* sounds = g_clientWorld.sounds;
-    unsigned state = wParam & 0xFFFF;
-    if (state == 0) {   // WA_INACTIVE
+    if (activation == platform::Activation::Inactive) {
         g_active = 0;
         g_activationChanged = 1;
         g_cursor.ShowImage(0);
         if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
         if (sounds) sounds->PauseAll();
-        gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
+        platform::Minimize(g_mainWindow);
         return 1;
     }
-    if (state > 2) return 1;
+    if (activation == platform::Activation::Unknown) return 1;
     g_active = 1;
     g_activationChanged = 1;
-    gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
+    platform::Restore(g_mainWindow);
     if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
     TextureDevice* device = g_sceneRenderer.device;
     if (device && device->fullScreen) {
@@ -77,43 +75,29 @@ LRESULT OnActivate(WPARAM wParam) {
     return 1;
 }
 
-LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
-    unsigned command = wParam & 0xFFF0;
-    if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
+std::intptr_t OnSystemCommand(const platform::Event& event) {
+    if (event.command == platform::SystemCommand::TaskSwitch) {
         console::PrintLine("switch task");
-    } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
+    } else if (event.command == platform::SystemCommand::ScreenSaver) {
         return 0;
     }
-    return gameapi::DefWindowProcA(window, WM_SYSCOMMAND, wParam, lParam);
+    return platform::DefaultHandling(event);
 }
 
-// The "QueryCancelAutoPlay" message id, registered on first use (a function-local static).
-std::uint8_t g_autoPlayGuard = /*0079BA04*/ {};
-std::uint32_t g_autoPlayMessage = /*0079BA00*/ {};
-UINT AutoPlayMessage() {
-    if (!(g_autoPlayGuard & 1)) {
-        g_autoPlayGuard |= 1;
-        g_autoPlayMessage = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
-    }
-    return g_autoPlayMessage;
-}
-
-LRESULT Handled() {
+std::intptr_t Handled() {
     g_interface.CloseAllPending();
     return 1;
 }
 
-int Low(LPARAM v) { return static_cast<int>(v & 0xFFFF); }
-int HighSigned(LPARAM v) { return static_cast<int>(v) >> 16; }              // keyboard
-int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >> 16); }   // mouse
+// The interface takes an event's position and wheel turn as the 16-bit halves of Windows' message data, unsigned (a
+// turn towards the player as 65536 less its size).
+int Unsigned16(int value) { return value & 0xFFFF; }
 
-bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
-
-// The window is a Unicode one, so WM_CHAR carries a UTF-16 unit, and a character
+// The window is a Unicode one, so a typed character comes as a UTF-16 unit, and a character
 // past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
 // half of a pair waits for the second (a half that comes alone is dropped).
 unsigned g_highSurrogate = 0;
-int TypedCharacter(WPARAM unit) {
+int TypedCharacter(int unit) {
     const unsigned u = static_cast<unsigned>(unit & 0xFFFF);
     const unsigned high = g_highSurrogate;
     g_highSurrogate = 0;
@@ -129,112 +113,106 @@ int TypedCharacter(WPARAM unit) {
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
-// The game's own wheel message (a fixed number in the registered messages' range; nothing here sends it): wParam is
-// the delta.
-constexpr UINT kGameWheelMessage = 0xCC54;
 int g_fatalErrorCount = /*007A9B9C*/ {};
 
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
 } // namespace
 
-LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-    case WM_PAINT: {
-        RECT rect;
-        if (!gameapi::GetUpdateRect(window, &rect, FALSE)) return 1;
-        PAINTSTRUCT paint;
-        gameapi::BeginPaint(window, &paint);
-        gameapi::EndPaint(window, &paint);
+std::intptr_t HandleWindowEvent(const platform::Event& event) {
+    switch (event.type) {
+    case EventType::Paint:
+        platform::MarkPainted(event.native.window);
         return 1;
+    case EventType::Destroy:
+        if (g_quitAllowed != 0) platform::PostQuit(0);
+        return 1;
+    case EventType::Activate:
+        return OnActivate(event.activation, event.minimized);
+    case EventType::SetCursor:
+        platform::SetCursor(nullptr);
+        return 1;
+    case EventType::SystemCommand:
+        return OnSystemCommand(event);
+    case EventType::AutoPlay:
+        return 1;
+    default:
+        return platform::DefaultHandling(event);
     }
-    case WM_DESTROY:
-        if (g_quitAllowed != 0) gameapi::PostQuitMessage(0);
-        return 1;
-    case WM_ACTIVATE:
-        return OnActivate(wParam);
-    case WM_SETCURSOR:
-        gameapi::SetCursor(nullptr);
-        return 1;
-    case WM_SYSCOMMAND:
-        return OnSysCommand(window, wParam, lParam);
-    }
-    UINT autoPlay = AutoPlayMessage();
-    if (message != 0 && message == autoPlay) return 1;
-    return gameapi::DefWindowProcA(window, message, wParam, lParam);
 }
 
-LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
+std::intptr_t DispatchInput(const platform::Event& received) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
-    // (present_window.h; unchanged otherwise). The game's own wheel message (kGameWheelMessage) is not mapped.
-    lParam = present_window::MouseToGame(message, lParam);
+    // (present_window.h; unchanged otherwise).
+    platform::Event event = received;
+    present_window::MouseToGame(&event);
     Interface3D* input = &g_interface;
     input->CloseAllPending();
-    int w = static_cast<int>(wParam);
-    switch (message) {
-    case WM_KEYDOWN:
-        input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
+    const int x = Unsigned16(event.x);
+    const int y = Unsigned16(event.y);
+    switch (event.type) {
+    case EventType::KeyDown:
+        input->OnKeyDown(event.key, event.repeat, event.keyFlags);
         return Handled();
-    case WM_KEYUP:
-        input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
+    case EventType::KeyUp:
+        input->OnKeyUp(event.key, event.repeat, event.keyFlags);
         return Handled();
-    case WM_CHAR:
-        w = TypedCharacter(wParam);
-        if (w < 0) return Handled();
-        input->OnChar(w, Low(lParam), HighSigned(lParam));
-        return Handled();
-    case WM_SYSKEYDOWN:
-        if (wParam == VK_F4 && AltDown(lParam)) {
-            if (g_quitAllowed != 0) gameapi::PostQuitMessage(0);
-            return Handled();
-        }
-        input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
-        return Handled();
-    case WM_SYSKEYUP:
-        console::EndLine(console::g_consoleOut << static_cast<unsigned>(w) << ':' << static_cast<long>(lParam));
-        if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
-            HWND window = g_mainWindow;
-            BOOL iconic = gameapi::IsIconic(window);
-            WindowProc(g_mainWindow, WM_ACTIVATE, static_cast<WPARAM>(iconic) << 16, 0);
-            return Handled();
-        }
-        input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
-        return Handled();
-    case WM_MOUSEMOVE:
-        input->OnMouseMove(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_LBUTTONDOWN:
-        input->OnLeftDown(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_LBUTTONUP:
-        input->OnLeftUp(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_LBUTTONDBLCLK:
-        input->OnLeftDouble(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_RBUTTONDOWN:
-        input->OnRightDown(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_RBUTTONUP:
-        input->OnRightUp(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_RBUTTONDBLCLK:
-        input->OnRightDouble(w, Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case WM_MOUSEWHEEL:
-        input->OnWheel(Low(static_cast<LPARAM>(wParam)), HighUnsigned(static_cast<LPARAM>(wParam)), Low(lParam), HighUnsigned(lParam));
-        return Handled();
-    case kGameWheelMessage:
-        input->OnWheel(0, w, Low(lParam), HighUnsigned(lParam));
+    case EventType::Character: {
+        const int character = TypedCharacter(event.key);
+        if (character < 0) return Handled();
+        input->OnChar(character, event.repeat, event.keyFlags);
         return Handled();
     }
-    return WindowProc(g_mainWindow, message, wParam, lParam);
+    case EventType::SystemKeyDown:
+        if (event.key == VK_F4 && (event.keyFlags & platform::kKeyAltDown)) {
+            if (g_quitAllowed != 0) platform::PostQuit(0);
+            return Handled();
+        }
+        input->OnKeyDown(event.key, event.repeat, event.keyFlags);
+        return Handled();
+    case EventType::SystemKeyUp:
+        // The key and its message data (the flags over the repeat count), as the original printed them.
+        console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
+                                               << static_cast<long>((static_cast<unsigned>(event.keyFlags) << 16) |
+                                                                    static_cast<unsigned>(event.repeat)));
+        if (event.key == VK_TAB && (event.keyFlags & platform::kKeyAltDown)) {   // Alt+Tab: as if the window was deactivated
+            OnActivate(platform::Activation::Inactive, platform::IsMinimized(g_mainWindow));
+            return Handled();
+        }
+        input->OnKeyUp(event.key, event.repeat, event.keyFlags);
+        return Handled();
+    case EventType::MouseMove:
+        input->OnMouseMove(event.buttons, x, y);
+        return Handled();
+    case EventType::LeftDown:
+        input->OnLeftDown(event.buttons, x, y);
+        return Handled();
+    case EventType::LeftUp:
+        input->OnLeftUp(event.buttons, x, y);
+        return Handled();
+    case EventType::LeftDouble:
+        input->OnLeftDouble(event.buttons, x, y);
+        return Handled();
+    case EventType::RightDown:
+        input->OnRightDown(event.buttons, x, y);
+        return Handled();
+    case EventType::RightUp:
+        input->OnRightUp(event.buttons, x, y);
+        return Handled();
+    case EventType::RightDouble:
+        input->OnRightDouble(event.buttons, x, y);
+        return Handled();
+    case EventType::Wheel:
+        input->OnWheel(event.buttons, Unsigned16(event.wheelDelta), x, y);
+        return Handled();
+    default:
+        return HandleWindowEvent(event);
+    }
 }
 
 void PumpMessages() {
-    MSG msg;
-    while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
-        WindowProc(g_mainWindow, msg.message, msg.wParam, msg.lParam);
+    platform::Event event;
+    while (platform::TakeEvent(&event)) HandleWindowEvent(event);
 }
 
 int StartFirstMap() {
@@ -275,9 +253,9 @@ int StartFirstMap() {
 // ---- FatalError ---------------------------------------------------------------------
 
 void ShowMessageBox(const char* text) {
-    HCURSOR cursor = gameapi::GetCursor();
+    platform::CursorShape cursor = platform::CurrentCursor();
     platform::ShowMessageBox(g_mainWindow, text, g_windowTitle, platform::MessageButtons::Ok, platform::MessageIcon::Error);
-    gameapi::SetCursor(cursor);
+    platform::SetCursor(cursor);
 }
 
 void ShowLibraryMessageBox(const char* text) {
@@ -287,14 +265,14 @@ void ShowLibraryMessageBox(const char* text) {
 
 } // namespace app
 
-// Formats the error (wvsprintfA, 1 KB), shows it in a message box and exits the
+// Formats the error (1 KB), shows it in a message box and exits the
 // game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
 // with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
 int game::FatalError(const char* format, ...) {
     char text[0x400];
     va_list args;
     va_start(args, format);
-    gameapi::wvsprintfA(text, format, args);
+    std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) app::ShowMessageBox(text);
@@ -309,7 +287,7 @@ namespace app {
 int FatalErrorCodeV(long result, const char* format, va_list args) {
     char text[0x400];
     char report[0x400];
-    gameapi::wvsprintfA(text, format, args);
+    std::vsnprintf(text, sizeof(text), format, args);
     std::snprintf(report, sizeof(report), CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report);
     if (++g_fatalErrorCount >= 1) std::exit(-1);
