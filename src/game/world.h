@@ -19,6 +19,7 @@
 
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -659,7 +660,7 @@ public:
 struct ScreenEntry {
     ClassId classId;
     unsigned objectId;                    // the object, in the map object manager
-    tagRECT rect;                         // on the screen
+    Rect rect;                            // on the screen
 };
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
@@ -669,9 +670,9 @@ int QueueScreenEntry(CMapObject* object, std::vector<ScreenEntry>* queued);
 // `entries` whose rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual
 // (CollectBounds) or 24 (CollectParts) for the point.
 struct HitCollector {
-    HitCollector* CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, long x, long y,
+    HitCollector* CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x, std::int32_t y,
                                 CMapObjectManager* manager);
-    HitCollector* CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, long x, long y,
+    HitCollector* CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x, std::int32_t y,
                                CMapObjectManager* manager);
     std::vector<ScreenEntry>* hits;
 };
@@ -897,17 +898,17 @@ public:
     // The object at screen point `point`: the screen entries that contain it and whose object answers CollectBounds
     // or CollectParts go to hits, sorted front to back; the first entry whose object still exists wins (hitCursor
     // is left on it). Null if none.
-    CMapObject* PickAt(const struct tagPOINT* point);
-    CMapObject* PickAt2(const struct tagPOINT* point);
+    CMapObject* PickAt(const Point* point);
+    CMapObject* PickAt2(const Point* point);
     // The unit at screen point `point`: from PickAt2's object on, the first unit among the sorted hits
     // (hitCursor moves past the others and those whose object is gone); failing that the same from
     // PickAt's. Null if none.
-    CUnit* UnitAt(const struct tagPOINT* point);
+    CUnit* UnitAt(const Point* point);
     // The same from PickAt2's object only (no second pick).
-    CUnit* UnitAt2(const struct tagPOINT* point);
+    CUnit* UnitAt2(const Point* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect`.
-    std::vector<CMapObject*> UnitsInBox(const tagRECT* rect);
+    std::vector<CMapObject*> UnitsInBox(const Rect* rect);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.

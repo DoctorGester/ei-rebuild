@@ -29,15 +29,16 @@ implementation folder; game code does not change.
   and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
   `gameapi::` only; widened to the other system headers (PL2a) it counted 12 more files (win_types.h, win_user.h,
   dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
-  (below) took 31 off: 26. The last game-side users (PL7) took 17 off, the sound files' reads (PL7b) one more: 6 are left, all meant to stay for now:
-  the import layer's headers (import_prototypes.h, import_table.h), the win32 entry (below, 3 files) and lib/win_types.h.
+  (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9; the sound and movie files (PL6b), the sound
+  files' reads (PL7b) and lib/win_types.h (PL7a) left it: 5, the win32 entry (below) and the import layer's headers.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
-  call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h is the one such header
-  left: windef.h's types only (RECT, POINT, SIZE, DWORD, COLORREF, HWND, HANDLE, CRITICAL_SECTION), which 113 game
-  files use (RECT in 83); our own types in their place are PL7a.
-- A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
-  shared header holds one (`HWND` comes from lib/win_types.h, not `<windows.h>`). app.h's `g_mainWindow` and
-  texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
+  call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h (windef.h's types)
+  was the last such header: 113 game files used its RECT, POINT, SIZE, DWORD, COLORREF, LONG and UINT. They use our
+  own `Rect`, `Point`, `Size` (lib/rect.h: global structs of Windows' RECT, POINT and SIZE layout; the win32 side
+  static_asserts the sizes where it hands one to the system) and `std::uint32_t` / `std::int32_t` (DWORD, COLORREF,
+  UINT, LONG). The header is src/platform/win32/win_types.h now, for lib/win_api.h (the gameapi:: declarations) only.
+- A native window crosses the layer as `void*` (`platform::NativeWindow`); game code holds no `HWND`. app.h's
+  `g_mainWindow` and texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
 
 ## Areas
 
@@ -294,9 +295,8 @@ every backend.
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
-- The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is the
-  last user of win_types.h's `CRITICAL_SECTION`.
-- lib/win_types.h: the game's RECT / POINT / SIZE / DWORD / COLORREF / HWND / HANDLE as our own types (PL7a).
+- The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is a
+  `std::recursive_mutex` (a critical section re-enters).
 - The import layer's own files (lib/import_table.h, import_prototypes.h, gameapi.h / .cpp, win_api.h) stay in
   src/lib while the harness's reference key holds them.
 

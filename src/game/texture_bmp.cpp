@@ -61,7 +61,7 @@ int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* 
     }
     colour.Read(&file);
     file.Close();
-    SIZE size;
+    Size size;
     colour.Size(&size);
     const int bmpWidth = size.cx, bmpHeight = size.cy;
     bool withAlpha = false;

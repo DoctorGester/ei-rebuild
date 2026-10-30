@@ -8,7 +8,6 @@
 
 #include "lib/crt.h"
 #include "lib/pc24.h"
-#include "lib/win_types.h"
 
 #include <cmath>
 #include <cstring>
@@ -168,7 +167,7 @@ int TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* pro
     return where;
 }
 
-Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect) {
+Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
     float halfWidth = static_cast<float>((rect->right - rect->left) >> 1);
     float halfHeight = static_cast<float>((rect->bottom - rect->top) >> 1);
     std::memset(out, 0, sizeof(Matrix4));

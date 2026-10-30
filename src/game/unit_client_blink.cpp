@@ -58,7 +58,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 // The game blitted `from` of `source` to the rectangle of its size at `at` of `target`, then on each next level of
 // both mip chains with each of the eight edges halved (SAR), until either had no further level. Ours hands the
 // first level's rectangles to the renderer, which shows them over the skin in its shader on every level.
-void BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
+void BlitMipChain(CTexture* target, const int* at, CTexture* source, const Rect* from) {
     const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
     render::TexturePatch(target->surface, to, source->surface, rectangle);
@@ -74,7 +74,7 @@ void UnitClientSpecific::BlinkClose(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    RECT closed = {0, Truncate(frame.offset), Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
+    Rect closed = {0, Truncate(frame.offset), Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
                    Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
@@ -90,7 +90,7 @@ void UnitClientSpecific::BlinkOpen(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    RECT open = {0, Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
+    Rect open = {0, Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
                  Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
                  Truncate(pc24::Add(static_cast<double>(eyeHeight + eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &open);

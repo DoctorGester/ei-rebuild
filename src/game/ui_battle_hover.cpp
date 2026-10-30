@@ -49,7 +49,7 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
-        POINT point = {x, y};
+        Point point = {x, y};
         return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
     };
     auto unitPosition = [](CUnit* u) {

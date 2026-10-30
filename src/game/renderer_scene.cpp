@@ -105,12 +105,12 @@ int SceneRenderer::SetTexture(int stage, CTexture* texture) {
 
 void SceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
 
-int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, tagRECT* screen) {
+int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, Rect* screen) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
-int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<CLight*>* lights, Material* material, int alpha, tagRECT* screen,
+int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* screen,
                                   CTexture* textureA, CTexture* textureB) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);

@@ -36,8 +36,8 @@ constexpr const char* kGameTimeFormat = "%s  %d,  %d:%02d";
 constexpr float kMinutesPerHour = 60.0f;
 
 constexpr int kFont = 1;
-constexpr COLORREF kTextColour = 0xA7D7E4;
-constexpr COLORREF kCaretColour = 0x31B3FF;
+constexpr std::uint32_t kTextColour = 0xA7D7E4;
+constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kRowHeight = 24;
 constexpr int kFirstRowY = 120;          // the marker's layout y for the first row
 constexpr int kRowsEndY = 504;           // sixteen rows
@@ -63,8 +63,8 @@ void SaveLoadWindow::RefreshListVanilla() {
 
     // The rows from the scroll position: the title (the typed name for the selected row of a save
     // window) and, but for a save window's new save, the date.
-    RECT titleRect{12, 11, 190, 32};
-    RECT dateRect{190, 11, 265, 32};
+    Rect titleRect{12, 11, 190, 32};
+    Rect dateRect{190, 11, 265, 32};
     int y = kFirstRowY;
     for (unsigned index = static_cast<unsigned>(firstVisible); index < static_cast<unsigned>(EntryCount()); ++index) {
         const SaveEntry& entry = entries[index];
@@ -76,8 +76,8 @@ void SaveLoadWindow::RefreshListVanilla() {
                 !SameFolder(entry.folder, kAutoFolderB)) {
                 const int width = ui->TextExtent(str::Left(currentName, cursor), kFont).cx;
                 if (width < titleRect.right - titleRect.left) {
-                    POINT top{titleRect.left + width, titleRect.top};
-                    POINT bottom{titleRect.left + width, titleRect.bottom - 3};
+                    Point top{titleRect.left + width, titleRect.top};
+                    Point bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
                     ui->CallScalePointToScreenNoMargin(&top);
                     ui->CallScalePointToScreenNoMargin(&bottom);
@@ -106,7 +106,7 @@ void SaveLoadWindow::RefreshListVanilla() {
         return;
     }
     const SaveEntry& entry = entries[selected];
-    RECT detailRect{340, 260, 590, 284};
+    Rect detailRect{340, 260, 590, 284};
     std::string line = str::Format(kPlainFormat, entry.AllodTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     rects::Offset(&detailRect, 0, kRowHeight);
@@ -123,6 +123,6 @@ void SaveLoadWindow::RefreshListVanilla() {
     line = str::Format(kGameTimeFormat, dayText, day + 1, hour, minute);
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 
-    RECT folderRect{340, 360, 580, 385};
+    Rect folderRect{340, 360, 580, 385};
     surface->DrawTextIn(entry.folder, &folderRect, kFont, kTextColour, render::text::kRight, 1);
 }

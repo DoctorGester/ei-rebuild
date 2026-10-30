@@ -57,7 +57,7 @@ void SetShade(UiMesh* mesh, float shade) {
 }
 
 // A white centred line on a surface (Rebirth-patched).
-void DrawLine(UiSurface* surface, std::string_view text, const RECT& rect) {
+void DrawLine(UiSurface* surface, std::string_view text, const Rect& rect) {
     surface->DrawTextIn(text, &rect, 1, 0xFFFFFF, 1, 1);
 }
 
@@ -246,7 +246,7 @@ void CampPages::ShowPage(int newPage) {
         trade->SelectHero(hero);
         UiSurface* title = surfaces[1];
         title->Clear();
-        DrawLine(title, pageTitles[page], RECT{0, 10, 200, 30});
+        DrawLine(title, pageTitles[page], Rect{0, 10, 200, 30});
     }
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
@@ -516,16 +516,16 @@ void CampPages::UpdateAction() {
     draw->Clear();
     if (action.size() != 0) {
         text = texts->GetString(action);
-        DrawLine(draw, text, RECT{0, 30, 200, 50});
+        DrawLine(draw, text, Rect{0, 30, 200, 50});
         if (cost != 0)
             text = std::format("{:+}", -cost);
         else
             text = "0";
-        DrawLine(draw, text, RECT{0, 50, 200, 70});
+        DrawLine(draw, text, Rect{0, 50, 200, 70});
     }
     text = texts->GetString(label);
     line = std::format("{} {}", text, amount);
-    DrawLine(draw, line, RECT{0, 10, 200, 30});
+    DrawLine(draw, line, Rect{0, 10, 200, 30});
 
     SetShade(SceneMesh(0), actionEnabled ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown ? 1.0f : 0.5f);

@@ -32,7 +32,7 @@ bool IsFile(const std::string& path) {
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-WholeFile ReadWholeFile(const std::string& path, std::string* bytes, unsigned long* error) {
+WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error) {
     const std::wstring wide = win32::Utf16(path);
     HANDLE handle = CreateFileW(wide.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                                 nullptr, OPEN_EXISTING, 0, nullptr);
@@ -52,7 +52,7 @@ WholeFile ReadWholeFile(const std::string& path, std::string* bytes, unsigned lo
     return ok ? WholeFile::read : WholeFile::failed;
 }
 
-bool WriteWholeFile(const std::string& path, const std::string& bytes, unsigned long* error) {
+bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error) {
     const std::wstring file = win32::Utf16(path);
     const std::wstring temporary = file + L".tmp";
     CreateDirectoryW(file.substr(0, file.find_last_of(L'\\')).c_str(), nullptr);

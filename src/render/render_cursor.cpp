@@ -13,6 +13,7 @@
 #include <dxgi1_2.h>
 
 #include <cstdint>
+#include <mutex>
 #include <vector>
 
 namespace render {
@@ -25,29 +26,9 @@ using namespace detail;
 // presented for this long (its own period is 41 ms).
 constexpr ULONGLONG kBetweenFrames = 40;
 
-class Lock {
-public:
-    Lock() { InitializeCriticalSection(&section); }
-    ~Lock() { DeleteCriticalSection(&section); }
-    Lock(const Lock&) = delete;
-    Lock& operator=(const Lock&) = delete;
-    void Enter() { EnterCriticalSection(&section); }
-    void Leave() { LeaveCriticalSection(&section); }
-
-private:
-    CRITICAL_SECTION section;
-};
-
-class Hold {
-public:
-    explicit Hold(Lock& newLock) : lock(newLock) { lock.Enter(); }
-    ~Hold() { lock.Leave(); }
-    Hold(const Hold&) = delete;
-    Hold& operator=(const Hold&) = delete;
-
-private:
-    Lock& lock;
-};
+// Re-entered as a critical section was: a locked call may reach another that locks it again.
+using Lock = std::recursive_mutex;
+using Hold = std::lock_guard<Lock>;
 
 template <typename T>
 void Release(T*& object) {
@@ -343,7 +324,7 @@ void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context) {
 }
 
 void BeginWindowPresent() {
-    g_presentLock.Enter();
+    g_presentLock.lock();
     // The back buffer's view is not held while the swap chain may be resized.
     DropKit();
 }
@@ -371,7 +352,7 @@ void EndWindowPresent(bool presented) {
         g_kit.valid = pipelines && g_kit.device && g_kit.context && g_kit.frame && g_kit.ramp && g_kit.linear;
         if (!g_kit.valid) DropKit();
     }
-    g_presentLock.Leave();
+    g_presentLock.unlock();
 }
 
 void DropCursorPresents() {

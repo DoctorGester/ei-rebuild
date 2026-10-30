@@ -57,7 +57,7 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 void UnitPickInput::LeftDown(int, int x, int y) {
     WorldClient* world = &g_clientWorld;
-    const POINT point = {x, y};
+    const Point point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {
         if (unit) {

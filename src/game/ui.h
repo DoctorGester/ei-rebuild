@@ -14,7 +14,7 @@
 
 #include "lib/containers.h"
 #include "lib/str.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -53,7 +53,7 @@ struct ScreenFade {
     float rate = 0.0f;               // alpha per millisecond
     float alpha = 0.0f;              // 0..255
     bool active = false;             // fading
-    DWORD lastTime = 0;              // timeGetTime of the last step
+    std::uint32_t lastTime = 0;              // timeGetTime of the last step
     bool letterbox = false;          // the bars are shown
 };
 
@@ -65,24 +65,24 @@ extern char g_pauseMessageKey[12];
 class Interface3D {
 public:
     // Layout (800x600) to screen and back; the Copy is identical.
-    void ScaleRectToScreen(RECT* rect) const;
-    void ScalePointToScreen(POINT* point) const;
-    void ScaleRectFromScreen(RECT* rect) const;
-    void ScalePointFromScreen(POINT* point) const;
-    void ScalePointFromScreenCopy(POINT* point) const;
+    void ScaleRectToScreen(Rect* rect) const;
+    void ScalePointToScreen(Point* point) const;
+    void ScaleRectFromScreen(Rect* rect) const;
+    void ScalePointFromScreen(Point* point) const;
+    void ScalePointFromScreenCopy(Point* point) const;
 
     // The scaling where Rebirth's WideScreen (widescreen::Active) leaves out the margin: the text surfaces'
     // draw, edit field, connection list, save / load list, chat line, tooltip.
-    void CallScaleRectToScreenNoMargin(RECT* rect) const;
-    void CallScalePointToScreenNoMargin(POINT* point) const;
-    void CallScalePointFromScreenNoMargin(POINT* point) const;
+    void CallScaleRectToScreenNoMargin(Rect* rect) const;
+    void CallScalePointToScreenNoMargin(Point* point) const;
+    void CallScalePointFromScreenNoMargin(Point* point) const;
 
     // The scaling as reached with a null interface (WideScreen's callers): then without the margin.
-    void ScaleRectToScreenEntry(RECT* rect) const;
-    void ScalePointToScreenEntry(POINT* point) const;
-    void ScaleRectFromScreenEntry(RECT* rect) const;
-    void ScalePointFromScreenEntry(POINT* point) const;
-    void ScalePointFromScreenCopyEntry(POINT* point) const;
+    void ScaleRectToScreenEntry(Rect* rect) const;
+    void ScalePointToScreenEntry(Point* point) const;
+    void ScaleRectFromScreenEntry(Rect* rect) const;
+    void ScalePointFromScreenEntry(Point* point) const;
+    void ScalePointFromScreenCopyEntry(Point* point) const;
 
     // Once per frame: pending closes, the queued window, the mouse, the top window and the root.
     void Update();
@@ -135,13 +135,13 @@ public:
     void ChatKeyBackspace();
     // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout (cx * 800 /
     // width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
-    SIZE TextExtent(std::string_view text, int font) const;
+    Size TextExtent(std::string_view text, int font) const;
     // `text` word-wrapped to `width` layout units in `font` (UiSurface::DrawWrappedText's lines: breaks at
     // spaces and '\n', a line keeps the space after its last word).
     std::vector<std::string> WrapText(std::string_view text, int width, int font) const;
     // When there is a console window.
     void ConsoleAddText(std::string_view text);
-    void SetConsoleRect(const RECT* rect);
+    void SetConsoleRect(const Rect* rect);
     void SetConsoleHistory(int lines);
     // The console's "fps": a surface for the frame rate at (730, 10)-(800, 28) unless there is one; off
     // frees it.
@@ -209,7 +209,7 @@ public:
     ChatOverlay* root = nullptr;    // the chat overlay; updated after the top window every frame
     UiSurface* fpsSurface = nullptr;
     int fpsSpare = 0;                // 0 from Create with the frame rate fields; nothing reads it
-    DWORD fpsTime = 0;
+    std::uint32_t fpsTime = 0;
     int fpsFrames = 0;
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing = false;
@@ -296,11 +296,11 @@ public:
     // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
     void SetTip(int textId, int command = 0);
     void SetTipString(std::string_view text, int command = 0);
-    void SetRectFrom(RECT rect);
+    void SetRectFrom(Rect rect);
 
     Interface3D* ui;
     std::vector<UiPoint> points;    // polygon vertices
-    RECT bounds;
+    Rect bounds;
     bool rectOnly;
     bool enabled;
     int offsetX;                     // subtracted from tested points
@@ -322,7 +322,7 @@ public:
     // holder's canvas made black.
     UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
-    UiSurface(Interface3D* ui, const RECT* rect, SurfaceBlend blend);
+    UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend);
     // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~UiSurface();
@@ -335,16 +335,16 @@ public:
     void MoveTo(int x, int y);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
-    int DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour, UINT format,
+    int DrawWrappedText(std::string_view text, const Rect* rect, int maxLines, int font, std::uint32_t colour, std::uint32_t format,
                         bool shadow);
     // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
     // Returns the drawn height in layout units, 0 without a surface.
-    int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, bool shadow);
+    int DrawTextIn(std::string_view text, const Rect* rect, int font, std::uint32_t colour, std::uint32_t format, bool shadow);
     // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
     // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
     // (the height laid out, pixels); 0 without a surface or font.
-    int DrawTextPixels(const UiFont& font, std::string_view text, const RECT& rect, UINT format, COLORREF colour,
+    int DrawTextPixels(const UiFont& font, std::string_view text, const Rect& rect, std::uint32_t format, std::uint32_t colour,
                        bool shadow);
     // Show: shown, contents put aside put back into a holder. Hide: not shown; with `release` the contents are
     // put aside in memory and the holder released.
@@ -362,16 +362,16 @@ public:
 
     // With a surface: a one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
     // surface).
-    void FrameRect(const RECT* rect, COLORREF colour);
+    void FrameRect(const Rect* rect, std::uint32_t colour);
     // The whole surface; Clear fills with background.
-    void Fill(COLORREF colour);
+    void Fill(std::uint32_t colour);
     void Clear();
     // In surface pixels, with a surface: `rect` filled (CDC::FillSolidRect); a solid pen's line of `width`
     // pixels from (x0, y0) to (x1, y1) (MoveTo, LineTo: the game's 1 and 2 pixel pens, render_ui.h's Line); one
     // pixel (SetPixel).
-    void FillRect(const RECT& rect, COLORREF colour);
-    void Line(int x0, int y0, int x1, int y1, int width, COLORREF colour);
-    void Dot(int x, int y, COLORREF colour);
+    void FillRect(const Rect& rect, std::uint32_t colour);
+    void Line(int x0, int y0, int x1, int y1, int width, std::uint32_t colour);
+    void Dot(int x, int y, std::uint32_t colour);
     // The holder's canvas, black, of the surface's size in the screen's format.
     void MakeCanvas();
 
@@ -382,8 +382,8 @@ public:
     int width = 0;
     int height = 0;
     bool kept = false;               // while swapped out: the canvas is kept under the surface's address
-    RECT rect;                       // screen coordinates
-    COLORREF background = 0;         // the colour Clear fills with
+    Rect rect;                       // screen coordinates
+    std::uint32_t background = 0;         // the colour Clear fills with
 };
 
 // A 3D model shown in a window (an inventory item, a portrait).
@@ -551,7 +551,7 @@ public:
     UiMesh* AddSceneObject(FigureMesh* object);   // AddSprite's shared end: listed, black material, texture 0
     UiMesh* SceneMesh(int index) const;   // defined after UiMesh
 
-    RECT rect = {};                           // layout coordinates
+    Rect rect = {};                           // layout coordinates
     bool enabled = true;
     EngineObject* blackMaterial = nullptr;   // given to every sprite (AddSprite)
     EngineObject* whiteMaterial = nullptr;
@@ -632,7 +632,7 @@ class UiScrollText;
 
 // The depth buffer set to `z` over `count` screen rectangles (at most 8); all of it without rectangles
 // (ui_container_draws.cpp).
-void ClearUiDepth(float z, const RECT* rects = nullptr, int count = 0);
+void ClearUiDepth(float z, const Rect* rects = nullptr, int count = 0);
 
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class HudWeaponBar : public UiWindow {
@@ -1325,7 +1325,7 @@ public:
     bool boxSelecting;               // a selection box is being dragged
     int pressX;                      // where the button went down on the view (screen)
     int pressY;
-    RECT selectionBox;               // the box
+    Rect selectionBox;               // the box
     std::vector<std::uint32_t> heroes;             // ids of the heroes shown (saved with the game)
     std::map<int, std::string> personTexts;       // the "pers" texts by person
     int questSound;                  // the quest sound to play (1 quest, 2 part done, 3 done)
@@ -1347,7 +1347,7 @@ public:
     // The position, the moved flag cleared unread.
     int TakePosition();
     // `speed` in lines per second; position 0.
-    UiScrollbar(Interface3D* ui, RECT rect, float depth, int maximum, float speed);
+    UiScrollbar(Interface3D* ui, Rect rect, float depth, int maximum, float speed);
     ~UiScrollbar() override;
     // Scrolls while an arrow is held: whole steps of the accumulated amount move the position.
     void Update() override;
@@ -1361,15 +1361,15 @@ public:
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
     // so it counts as a change).
-    virtual void SetRect(const RECT* rect);
+    virtual void SetRect(const Rect* rect);
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
     int maxPosition;
     float speed;                     // lines per second while an arrow is held (/16)
     int position;
     // Layout coordinates (the options slider: left + 26 .. right - 26 over the bottom 10 pixels).
-    RECT track;
-    RECT thumb;                      // layout coordinates
+    Rect track;
+    Rect thumb;                      // layout coordinates
     int grabX;                       // mouse offset from the thumb centre while dragging
     int grabY;
     float depth;                     // the sprites' depth
@@ -1382,13 +1382,13 @@ public:
 // arrow, 1 the right arrow, 2 the track.
 class UiSlider : public UiScrollbar {
 public:
-    UiSlider(Interface3D* ui, RECT rect, float depth, int maximum, float speed)
+    UiSlider(Interface3D* ui, Rect rect, float depth, int maximum, float speed)
         : UiScrollbar(ui, rect, depth, maximum, speed) {}
     // Along the track's width; the thumb 28 wide and 10 high.
     void SetPosition(int position) override;
     // The scroll bar's drag along x.
     void MouseMove(int buttons, int x, int y) override;
-    void SetRect(const RECT* rect) override;
+    void SetRect(const Rect* rect) override;
 };
 
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
@@ -1409,7 +1409,7 @@ struct UiFormatToken : UiTextToken {
 
     bool newline;                    // a newline token, or a font change after the first token
     int font;                        // interface font
-    COLORREF colour;
+    std::uint32_t colour;
 };
 struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width(0) {}
@@ -1432,13 +1432,13 @@ struct UiTextLine {
 class UiScrollText : public UiScrollbar {
 public:
     // 20 lines per second, justified (align 2).
-    UiScrollText(Interface3D* ui, const char* text, RECT rect, float depth);
+    UiScrollText(Interface3D* ui, const char* text, Rect rect, float depth);
     ~UiScrollText() override;
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.
     void SetText(std::string_view text);
-    void SetRect(const RECT* rect) override;
+    void SetRect(const Rect* rect) override;
     // Draws the lines again when the position moved.
     void Draw(SceneRenderer* pass) override;
     // The lines stay until the next layout.
@@ -1456,14 +1456,14 @@ public:
     // a newline, and of two or more tokens.
     void DrawLines(int scroll);
 
-    RECT textRect;                   // the text's rectangle (surface coordinates)
+    Rect textRect;                   // the text's rectangle (surface coordinates)
     std::vector<UiTextToken*> tokens;
     std::vector<UiTextLine*> lines; // the laid out lines
     int align;                       // 1: left aligned (else justified)
 
 private:
     // The tail of SetRect (the text 14 pixels narrower for the bar).
-    void PlaceText(const RECT& rect);
+    void PlaceText(const Rect& rect);
     void DeleteTokens();
 };
 
@@ -1471,7 +1471,7 @@ private:
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class UiSpin : public UiWindow {
 public:
-    UiSpin(Interface3D* ui, RECT rect, const char* text);
+    UiSpin(Interface3D* ui, Rect rect, const char* text);
     ~UiSpin() override;
     void AddText(std::string_view text);
     int Value() const { return value; }
@@ -1488,7 +1488,7 @@ public:
     std::vector<std::string> texts;
     int value;
     bool changed;
-    RECT layout;                     // the constructor's rectangle
+    Rect layout;                     // the constructor's rectangle
 };
 
 // A saved game in the save/load list; the fields after the folder come from the save's info.sav.
@@ -1819,23 +1819,23 @@ public:
     void DrawContentsVanilla();
     // Every character class, font 1, at most 50 characters; focused. caret, editing and changed are left
     // as they are.
-    UiEditField(Interface3D* ui, RECT rect);
+    UiEditField(Interface3D* ui, Rect rect);
     ~UiEditField() override;
     // While focused and without Ctrl, a character of an allowed class: the first one starts editing from an
     // empty text; inserted while shorter than maxLength and narrower than area.
     void Char(int key, int repeat, int flags) override;
     // SetText: not editing, changed, the caret at its end.
-    void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour, COLORREF caretColour);
+    void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, std::uint32_t colour, std::uint32_t caretColour);
     void SetText(std::string_view text);
     void SetFocused(bool focused);
 
-    RECT area;                       // the surface's layout rectangle
+    Rect area;                       // the surface's layout rectangle
     std::uint32_t charClasses;       // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
     std::uint8_t centred;            // SetLook's mode
     int font;                        // interface font
     int maxLength;
-    COLORREF colour;                 // the text's colour
-    COLORREF caretColour;            // SetLook's last argument (0xFF from the constructor)
+    std::uint32_t colour;                 // the text's colour
+    std::uint32_t caretColour;            // SetLook's last argument (0xFF from the constructor)
     std::string text;
     int caret;                       // caret position in text (bytes, at a character's start: U4)
     bool editing;                    // an edit key was pressed (the first one sets it)

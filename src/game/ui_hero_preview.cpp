@@ -19,10 +19,10 @@ namespace {
 
 constexpr float kTilt = /*007C7D24*/ 1.5707964f;   // a static initialiser: pi * 0.5
 // The wide preview's six rectangles cleared to the far plane (800 x 600 layout), one table per edge.
-constexpr LONG kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};
-constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
-constexpr LONG kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
-constexpr LONG kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
+constexpr std::int32_t kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};
+constexpr std::int32_t kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
+constexpr std::int32_t kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
+constexpr std::int32_t kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
 // The game's vector helpers as the original calls them (dot; scale; cross; sum).
 float DotCall(const Vector3& a, const Vector3& b) { return DotZYX(a, b); }
@@ -61,16 +61,16 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
 
     // The whole depth buffer to the near plane, then the preview's rectangles to the far plane.
     ClearUiDepth(0.0f);
-    RECT rects[6];
+    Rect rects[6];
     if (wide) {
         for (int i = 0; i < 6; ++i) {
-            RECT r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
+            Rect r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
             ui->ScaleRectToScreenEntry(&r);
             rects[i] = r;
         }
         ClearUiDepth(1.0f, rects, 6);
     } else {
-        RECT r;
+        Rect r;
         if (depth > 400.0f)
             r = {410, 100, 700, 500};
         else

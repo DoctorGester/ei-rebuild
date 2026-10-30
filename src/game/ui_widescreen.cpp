@@ -8,7 +8,7 @@
 #include "ei/rebirth.h"
 #include "hook/log.h"
 #include "settings_file.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <cmath>
 #include <cstdint>
@@ -28,8 +28,8 @@ constexpr const char* kGeneralSettings = "Software\\Gipat.ru\\EI_Starter\\EvilIs
 
 // Settings\WideScreen: a DWORD, 1 when the key or the value is missing (addon's default).
 bool WideScreenSetting() {
-    DWORD value = 1;
-    DWORD read = 0, size = sizeof(read), type = 0;
+    std::uint32_t value = 1;
+    std::uint32_t read = 0, size = sizeof(read), type = 0;
     if (settings_file::ReadValue(kStarterSettings, "WideScreen", &type, &read, &size) == settings_file::kSuccess && type == settings_file::kTypeDword)
         value = read;
     return value != 0;
@@ -40,7 +40,7 @@ void Resolution(int* width, int* height) {
     *width = 0;
     *height = 0;
     char text[64] = {};
-    DWORD size = sizeof(text) - 1, type = 0;
+    std::uint32_t size = sizeof(text) - 1, type = 0;
     if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == settings_file::kSuccess && type == settings_file::kTypeString) {
         // addon: its own CRT's sscanf; ours is the host CRT's.
         sscanf_s(text, "%dx%d", width, height);
@@ -135,7 +135,7 @@ void LeavePanel() {
 
 // addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (with `margin`), y by
 // the mode's height.
-void RectToScreen(RECT* rect, bool margin) {
+void RectToScreen(Rect* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
     rect->left = MulDiv64(l.width43, rect->left, kLayoutWidth) + shift;
@@ -145,14 +145,14 @@ void RectToScreen(RECT* rect, bool margin) {
 }
 
 // addon's scaling of points and rectangles.
-void PointToScreen(POINT* point, bool margin) {
+void PointToScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
     point->y = MulDiv64(l.height, point->y, kLayoutHeight);
 }
 
 // addon's code for the screen-to-layout scaling: left, right, top, bottom in that order.
-void RectFromScreen(RECT* rect, bool margin) {
+void RectFromScreen(Rect* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
     rect->left = MulDiv64(rect->left - shift, kLayoutWidth, l.width43);
@@ -162,16 +162,16 @@ void RectFromScreen(RECT* rect, bool margin) {
 }
 
 // addon's code for the screen-to-layout scaling of a point (two entries, one jumping to the other).
-void PointFromScreen(POINT* point, bool margin) {
+void PointFromScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
     point->y = MulDiv64(kLayoutHeight, point->y, l.height);
 }
 
 // addon's text extent code.
-SIZE TextExtentToLayout(SIZE pixels) {
+Size TextExtentToLayout(Size pixels) {
     const Layout& l = Get();
-    return SIZE{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
+    return Size{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
 }
 
 float AxisScale() { return Active() ? Get().axisScale : 1.0f; }

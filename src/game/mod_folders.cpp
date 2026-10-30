@@ -50,7 +50,7 @@ private:
 std::string StarterValue(const char* key, const char* name, const char* fallback) {
     std::string value = fallback;
     char text[kPathBytes * 2];
-    unsigned long size = sizeof(text) - 1, type = 0;
+    std::uint32_t size = sizeof(text) - 1, type = 0;
     if (settings_file::ReadValue(key, name, &type, text, &size) == settings_file::kSuccess && (type == settings_file::kTypeString || type == settings_file::kTypeExpandString)) {
         text[size] = '\0';
         value = text;

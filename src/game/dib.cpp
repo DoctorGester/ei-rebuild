@@ -70,7 +70,7 @@ void Dib::Empty() {
     maskBytes = 0;
 }
 
-SIZE* Dib::Size(SIZE* out) const {
+::Size* Dib::Size(::Size* out) const {
     if (!header) {
         out->cx = 0;
         out->cy = 0;

@@ -34,11 +34,11 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
         grid->owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count);
         if (pieces > 1) {
-            RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
+            Rect r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
         if (!grid->exchange) {
-            RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
+            Rect r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->DrawTextIn(std::format("{}", grid->owner->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
         }
     }
@@ -48,9 +48,9 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
 
 void TradeGrid::Draw(SceneRenderer* pass) {
     Interface3D* currentUi = ui;
-    RECT grid{200, 100, 600, 500};
+    Rect grid{200, 100, 600, 500};
     currentUi->ScaleRectToScreenEntry(&grid);
-    RECT screen{0, 0, currentUi->width, currentUi->height};
+    Rect screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
     DrawBase(pass);

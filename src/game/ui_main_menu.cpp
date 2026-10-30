@@ -79,7 +79,7 @@ void Interface3D::ResetSavedState() {
 
 // --- A region's SetRect from a RECT ---------------------------------------------------
 
-void UiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void UiRegion::SetRectFrom(Rect rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // --- The version line --------------------------------------------------------------
 
@@ -87,7 +87,7 @@ void MainMenu::AddVersionLine() {
     UiSurface* surface = new UiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
     std::string text = g_clientWorld.texts->TextManager::GetString(kVersionKey);
-    RECT area = {0, 0, 675, 120};
+    Rect area = {0, 0, 675, 120};
     surface->DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
     AddSurface(surface);
 }
@@ -100,11 +100,11 @@ void MainMenu::CreateScreen() {
     UiInputSide* inert = new UiInertInput(ui);
     AddInput(inert);
     hovered = -1;
-    rect = RECT{0, 0, 800, 600};
+    rect = Rect{0, 0, 800, 600};
     AddVersionLine();
     for (int i = 0; i < 6; ++i) {
         UiRegion* region = AddRegion();
-        RECT area;
+        Rect area;
         rects::Copy(&area, &g_menuRects[i]);
         region->SetRectFrom(area);
     }

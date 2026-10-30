@@ -56,7 +56,7 @@ const VertexPacket* MovedPositionsOf(FigureMesh* mesh) {
 // Arguments 2-4 are not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
 // (empty when off screen). Returns 1.
 int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
-                                   RECT* rect) {
+                                   Rect* rect) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     int drawFlags = 0;
     mesh->flags &= ~FigureMeshFlag::Drawn;
@@ -94,7 +94,7 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
                                         m->textureOffsetV, alpha, drawFlags);
     render::SetMeshSource(nullptr);
     if (rect) {
-        RECT* own = &screen;
+        Rect* own = &screen;
         if (result == 2) {
             rects::SetEmpty(own);
             rects::SetEmpty(rect);

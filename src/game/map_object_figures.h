@@ -15,7 +15,7 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
-#include "lib/win_types.h"   // RECT (dirtyRect)
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,7 +30,6 @@ class SceneRenderer;
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class LinkMesh;
-struct tagRECT;
 
 // FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the
 // keys the units ask for (docs/notes/combat.md, "Animation keys"):
@@ -237,17 +236,17 @@ public:
     // The figure's extra scale (the base's: 1, 1, 1).
     virtual void GetScale(float* x, float* y, float* z);
     // The client draws the parts / their shadow; the base returns 0.
-    virtual int DrawParts(SceneRenderer* context, tagRECT* dirty);
+    virtual int DrawParts(SceneRenderer* context, Rect* dirty);
     virtual int DrawPartsShadow(SceneRenderer* context);
     // After LoadFigures: the client gives the parts the world's materials, then the skin texture. The base does
     // nothing.
     virtual void ApplyMaterials() {}
     // Screen picking: whether the point (x, y) is in the object's dirtyRect (PickAt).
-    virtual int BoundsContainPoint(const long* point);
+    virtual int BoundsContainPoint(const std::int32_t* point);
     // Whether the screen rectangle (a RECT) meets a drawn part's rectangle.
-    virtual int PartsIntersectRect(const tagRECT* rect);
+    virtual int PartsIntersectRect(const Rect* rect);
     // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
-    virtual int PartsContainPoint(const long* point);
+    virtual int PartsContainPoint(const std::int32_t* point);
     virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
@@ -554,7 +553,7 @@ public:
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<LinkMesh> figure;
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
-    tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
+    Rect dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.

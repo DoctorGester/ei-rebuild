@@ -142,7 +142,7 @@ void BattleScreen::CreateScreen() {
     movePanel->Build();
 
     // The message log.
-    messageLog = new UiScrollText(ui, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    messageLog = new UiScrollText(ui, game::kEmptyText, Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f);
     AddChild(messageLog);
     messageLog->align = 1;
 

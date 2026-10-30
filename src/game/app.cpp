@@ -237,7 +237,7 @@ int StartFirstMap() {
     g_serverWorld.sessionKind = 7;
     if (cmdScript.size() == 0) return 1;
     Script* script = TheMissionScript();
-    BOOL loaded;
+    bool loaded;
     {
         std::string root = g_dataFolder;
         std::string dir = root + "Scripts\\";

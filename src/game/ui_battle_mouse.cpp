@@ -49,7 +49,7 @@ void BattleScreen::MouseMove(int buttons, int x, int y) {
         if (handled) return;
     }
     // The (x, y) pair is read back through its address.
-    POINT point = {x, y};
+    Point point = {x, y};
     CUnit* unit = g_clientWorld.UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }

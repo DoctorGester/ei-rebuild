@@ -34,7 +34,7 @@ constexpr int kLayers = 3;
 
 // --- A labelled value ----------------------------------------------------------------------------
 
-void HeroStatsPanel::DrawRow(const RECT& area, std::string_view label, int value, int maximum) {
+void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value, int maximum) {
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string key = kPerkPrefix;
     key += label;
@@ -66,7 +66,7 @@ float HeroStatsPanel::PartArmour(int part) {
     return largest;
 }
 
-void HeroStatsPanel::DrawPart(const RECT& area, std::string_view name, int part) {
+void HeroStatsPanel::DrawPart(const Rect& area, std::string_view name, int part) {
     std::string key = kPartPrefix;
     key += name;
     std::string label = g_clientWorld.texts->TextManager::GetString(key);

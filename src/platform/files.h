@@ -3,6 +3,7 @@
 // Folders, drives and whole files (docs/notes/platform.md; the file objects are platform/file.h). Paths are UTF-8, with
 // backslashes between folders as the game writes them.
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -25,10 +26,10 @@ bool RemoveFolder(const char* path);
 // files, which the system reads directly and not through the game's slots. `missing` only when the file or its folder
 // does not exist; a file of 16 MB or more fails. `error` is the system's error code of a failure.
 enum class WholeFile { read, missing, failed };
-WholeFile ReadWholeFile(const std::string& path, std::string* bytes, unsigned long* error);
+WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error);
 // `bytes` written whole to `path`: to a file beside it, which is then moved over it (the path's folder made when it
 // is missing). False when that failed, with the system's error code in `error`.
-bool WriteWholeFile(const std::string& path, const std::string& bytes, unsigned long* error);
+bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error);
 
 // Whether `path` names a file or a folder, asked of the system directly (the standalone's start-up looks at the exe's
 // folder beside the game's slots).

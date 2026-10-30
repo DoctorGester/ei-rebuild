@@ -262,7 +262,7 @@ void LinkMesh::SetMorph(float s, float t, float u) {
 void LinkMesh::UpdateScreenRect() {
     rects::Set(&screenRect, kNoRect, kNoRect, -kNoRect, -kNoRect);
     for (const auto& [part_name, header] : headers) {
-        const RECT& part = header.screen;
+        const Rect& part = header.screen;
         if (rects::IsEmpty(&part)) continue;
         if (part.left < screenRect.left) screenRect.left = part.left;
         if (screenRect.right < part.right) screenRect.right = part.right;

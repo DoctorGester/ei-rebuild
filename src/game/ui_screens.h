@@ -452,7 +452,7 @@ class UiScrollingSurface : public UiSurface {
 public:
     // A surface of format 5 over the layout rectangle (keyed on white); no text, the offsets and the speed 0
     // (startTime is left as it was).
-    UiScrollingSurface(Interface3D* ui, const RECT* rect);
+    UiScrollingSurface(Interface3D* ui, const Rect* rect);
     virtual ~UiScrollingSurface();
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(MappedResource* archive, const char* name);

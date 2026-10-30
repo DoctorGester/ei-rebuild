@@ -347,7 +347,7 @@ void UiScrollbar::Update() {
 }
 
 void UiScrollbar::LeftDown(int, int x, int y) {
-    POINT point{x, y};
+    Point point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     if (rects::Contains(&thumb, point)) {
         CaptureMouse();

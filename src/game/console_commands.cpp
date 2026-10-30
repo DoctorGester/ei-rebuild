@@ -48,7 +48,7 @@ CPlayer* LocalPlayer() {
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7 & RefCounted::kDetached); }
 
 void SetConsoleRect(int left, int top, int right, int bottom) {
-    RECT rect = {left, top, right, bottom};
+    Rect rect = {left, top, right, bottom};
     g_interface.SetConsoleRect(&rect);
 }
 

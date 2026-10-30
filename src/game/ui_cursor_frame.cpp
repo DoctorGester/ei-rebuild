@@ -15,12 +15,12 @@
 
 namespace {
 
-constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
+constexpr std::uint32_t kThreadPeriod = 41;                  // ms between the thread's redraws
 
 // The renderer object; its flags' bit 0 is the software cursor display option.
 bool SoftwareCursor() { return (g_sceneRenderer.flags & 1) != 0; }
 
-render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
+render::Rect ToRender(const Rect& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
 // The cursor thread's step: under the cursor's lock, the position updated and,
 // when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
@@ -44,7 +44,7 @@ void CursorDrawFrame(Cursor* self) {
     if (!SoftwareCursor()) return;
     if (!self->enabled) return;
     self->UpdatePosition();
-    RECT* rect = &self->rect;
+    Rect* rect = &self->rect;
     if (rect->left >= rect->right || rect->top >= rect->bottom) return;
     if (!self->imageShown) return;
     CursorImage* image = self->image;
@@ -62,9 +62,9 @@ void CursorThread(Cursor* self) {
     self->UpdatePosition();
     self->drawn = self->rect;
     self->lock.unlock();
-    DWORD last = platform::Milliseconds();
+    std::uint32_t last = platform::Milliseconds();
     while (!self->stop) {
-        DWORD now = platform::Milliseconds();
+        std::uint32_t now = platform::Milliseconds();
         if (now - last < kThreadPeriod) {
             platform::Sleep(kThreadPeriod - (now - last));
             continue;

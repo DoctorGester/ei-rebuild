@@ -42,7 +42,7 @@ video::Movie* OpenMovie(const char* name) {
 }
 
 // The loading screen's movie: where it is drawn on the screen and the movie (null until it is opened).
-RECT g_loadingScreen = /*007C5520*/ {};
+Rect g_loadingScreen = /*007C5520*/ {};
 video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 
 // Cleared while a timed movie plays.
@@ -55,7 +55,7 @@ void CopyFrame(const video::Movie* movie, std::vector<std::uint8_t>* frame) {
     video::CopyFrame(movie, frame->data(), width * 4);
 }
 
-render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
+render::Rect ToRender(const Rect& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
@@ -103,11 +103,11 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = video::Width(movie), height = video::Height(movie);
-    RECT screen;
+    Rect screen;
     rects::Copy(&screen, &g_sceneRenderer.device->screen);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
-    RECT to;
+    Rect to;
     if (options::g_options.video == 2) {
         int screenWidth = screen.right - screen.left;
         int shown = screenWidth * height / width;
@@ -122,7 +122,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         to.bottom = height + to.top;
     }
     if (frameTime) SetQuitAllowed(0);
-    DWORD start = platform::Milliseconds() - frameTime;
+    std::uint32_t start = platform::Milliseconds() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
     platform::Event event;
@@ -140,7 +140,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
             if (event.type == platform::EventType::Paint) platform::DispatchEvent(event);
             continue;
         }
-        DWORD now = platform::Milliseconds();
+        std::uint32_t now = platform::Milliseconds();
         if (Ended(movie)) {
             if (frameTime == 0 || now - start >= frameTime) break;
             continue;
@@ -223,12 +223,12 @@ char BinkVideo::Open(const char* name, char loadingStep) {
     }
     g_cursor.ShowImage(0);
     int width = video::Width(movie), height = video::Height(movie);
-    RECT screen;
+    Rect screen;
     rects::Copy(&screen, &g_sceneRenderer.device->screen);
     if (options::g_options.video == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;
-        to = RECT{x, y, width + x, height + y};
+        to = Rect{x, y, width + x, height + y};
     } else {
         int screenWidth = screen.right - screen.left;
         int shown = screenWidth * height / width;

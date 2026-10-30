@@ -51,7 +51,7 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
 }
 
 UiScrollbar* NewScrollbar(Interface3D* ui, int left, int top, int right, int bottom) {
-    return new UiScrollbar(ui, RECT{left, top, right, bottom}, 3.0f, 0, 1.0f);
+    return new UiScrollbar(ui, Rect{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
 
 void Frame(UiWindow* window, float depth, float left, float top, float right, float bottom) {
@@ -101,7 +101,7 @@ struct TitlesTokenizer : TextTokenizer {
 // --- Save/load window -------------------------------------------------------------
 
 void SaveLoadWindow::CreateScreen() {
-    rect = RECT{0, 0, 800, 600};
+    rect = Rect{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     // The selected save's picture (5:6:5).
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
@@ -169,7 +169,7 @@ void SaveLoadWindow::CreateScreen() {
 // --- Options window ------------------------------------------------------------------
 
 void OptionsWindow::CreateScreen() {
-    rect = RECT{0, 0, 800, 600};
+    rect = Rect{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
@@ -226,7 +226,7 @@ void OptionsWindow::CreateScreen() {
 // --- Esc menu ------------------------------------------------------------------------
 
 void EscMenu::CreateScreen() {
-    rect = RECT{0, 0, 800, 600};
+    rect = Rect{0, 0, 800, 600};
     UiModel* model = AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
@@ -237,10 +237,10 @@ void EscMenu::CreateScreen() {
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through SetRect with a RECT by value.
-    const RECT* rects = g_menuRects + kMainMenuRects;
-    for (const RECT* source = rects; source < rects + 5; ++source) {
+    const Rect* rects = g_menuRects + kMainMenuRects;
+    for (const Rect* source = rects; source < rects + 5; ++source) {
         UiRegion* region = AddRegion();
-        RECT area;
+        Rect area;
         rects::Copy(&area, source);
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }
@@ -353,9 +353,9 @@ void MessageWindow::CreateScreen() {
     AddSurface(surface);
     int font = result != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
-    RECT area = {15, 0, 385, 200};
+    Rect area = {15, 0, 385, 200};
     int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
-    area = RECT{15, 0, 385, 400};
+    area = Rect{15, 0, 385, 400};
     int textHeight = surface->DrawTextIn(text, &area, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
     if (flags & 4)
@@ -363,15 +363,15 @@ void MessageWindow::CreateScreen() {
             ui->TextExtent("A", font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    area = RECT{15, top - 35, 385, 450};
+    area = Rect{15, top - 35, 385, 450};
     surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
     if (flags & 4) {
-        edit = new UiEditField(ui, RECT{215, top + titleHeight + 30, 585, height + top + 30});
+        edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
         edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
     } else {
-        area = RECT{15, top + titleHeight - 20, 385, 450};
+        area = Rect{15, top + titleHeight - 20, 385, 450};
         surface->DrawTextIn(text, &area, font, 0xA7D7E4, static_cast<int>(format | 0x10), 1);
     }
 
@@ -405,21 +405,21 @@ void DifficultyBox::CreateScreen() {
     UiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
     AddSurface(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
-    RECT area = {15, 0, 385, 200};
+    Rect area = {15, 0, 385, 200};
     int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts->Open("tip option_difficulty") != 0) {
         explanation = g_clientWorld.texts->ReadToHash();
         str::TrimRight(explanation, "\r\n");
-        area = RECT{15, 0, 385, 300};
+        area = Rect{15, 0, 385, 300};
         textHeight = surface->DrawTextIn(explanation, &area, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    area = RECT{15, top - 0x55, 385, 450};
+    area = Rect{15, top - 0x55, 385, 450};
     surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
-    area = RECT{15, titleHeight + top - 7, 385, 450};
+    area = Rect{15, titleHeight + top - 7, 385, 450};
     surface->DrawTextIn(explanation, &area, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
@@ -427,13 +427,13 @@ void DifficultyBox::CreateScreen() {
     std::string hard;
     newEasy = g_clientWorld.texts->GetString("difficulty_easy");
     hard = g_clientWorld.texts->GetString("difficulty_hard");
-    SIZE easySize = ui->TextExtent(newEasy, 2);
-    SIZE hardSize = ui->TextExtent(hard, 2);
+    Size easySize = ui->TextExtent(newEasy, 2);
+    Size hardSize = ui->TextExtent(hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
-    area = RECT{0xE6 - half, row - 100, 385, 450};
+    area = Rect{0xE6 - half, row - 100, 385, 450};
     surface->DrawTextIn(newEasy, &area, 2, 0xA7D7E4, 0, 1);
-    area = RECT{0xE6 - half, row - 0x4C, 385, 450};
+    area = Rect{0xE6 - half, row - 0x4C, 385, 450};
     surface->DrawTextIn(hard, &area, 2, 0xA7D7E4, 0, 1);
     easy = 0;
 
@@ -514,13 +514,13 @@ void CreditsScreen::CreateScreen() {
 
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
-        RECT area = {10, 0x96, 0x316, 0x1C2};
+        Rect area = {10, 0x96, 0x316, 0x1C2};
         textSurface = new UiScrollingSurface(currentUi, &area);
         AddSurface(textSurface);
         textSurface->Hide(false);
     }
     {
-        RECT area = {10, 0x6E, 0x316, 0x8C};
+        Rect area = {10, 0x6E, 0x316, 0x8C};
         headerSurface = AddSurface(new UiSurface(currentUi, &area, SurfaceBlend::Keyed));
         headerSurface->Hide(false);
     }

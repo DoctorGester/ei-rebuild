@@ -30,15 +30,15 @@ constexpr float kLetterboxShare = 0.217f;
 
 constexpr float kOpaque = 255.0f;
 
-RECT ScreenOf(const SceneRenderer* renderer) {
-    RECT screen;
+Rect ScreenOf(const SceneRenderer* renderer) {
+    Rect screen;
     rects::Copy(&screen, &renderer->device->screen);
     return screen;
 }
 
 // --- The overlays ---
 
-constexpr DWORD kFpsPeriod = 400;
+constexpr std::uint32_t kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
 
@@ -57,7 +57,7 @@ void MakeBackdrop(Interface3D* ui) {
 } // namespace
 
 void ScreenFade::Draw(SceneRenderer* renderer) {
-    RECT screen = ScreenOf(renderer);
+    Rect screen = ScreenOf(renderer);
     if (letterbox) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
@@ -71,7 +71,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
     EI_NAN_AUDIT(alpha, rate);
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
-        const DWORD now = platform::Milliseconds();
+        const std::uint32_t now = platform::Milliseconds();
         alpha = (now - lastTime) * rate + alpha;
         lastTime = platform::Milliseconds();
     }
@@ -128,8 +128,8 @@ void Interface3D::DrawOverlays() {
     if (IsMultiplayerClient() && std::ssize(stack) == 1) root->Redraw();
 
     ++fpsFrames;
-    const DWORD now = platform::Milliseconds();
-    const DWORD elapsed = now - fpsTime;
+    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t elapsed = now - fpsTime;
     if (elapsed > kFpsPeriod) {
         if (fpsSurface) {
             std::string rate;
@@ -137,9 +137,9 @@ void Interface3D::DrawOverlays() {
                 fpsFrames * 1000.0f / static_cast<int>(elapsed);
             rate = str::Format("%.1f", perSecond);
             fpsSurface->Clear();
-            RECT rect{0, 0, 60, 18};
+            Rect rect{0, 0, 60, 18};
             fpsSurface->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
-            rect = RECT{0, 0, 60, 18};
+            rect = Rect{0, 0, 60, 18};
             fpsSurface->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
         }
         fpsTime = now;

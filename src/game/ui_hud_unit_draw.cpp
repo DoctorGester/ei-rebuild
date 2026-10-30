@@ -95,14 +95,14 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):
             // the depth buffer goes to 0 there, so the model is drawn inside the panel only.
-            RECT right = {180 - offset, 0, 400 - offset, 220};
-            RECT strip = {0, 0, 20 - offset, 220};
-            RECT below = {0, 220, 400 - offset, 300};
+            Rect right = {180 - offset, 0, 400 - offset, 220};
+            Rect strip = {0, 0, 20 - offset, 220};
+            Rect below = {0, 220, 400 - offset, 300};
             // WideScreen: without the margin.
             ui->CallScaleRectToScreenNoMargin(&right);
             ui->CallScaleRectToScreenNoMargin(&strip);
             ui->CallScaleRectToScreenNoMargin(&below);
-            RECT rects[3] = {right, below, strip};
+            Rect rects[3] = {right, below, strip};
             ClearUiDepth(0.0f, rects, 3);
 
             savedPosition = model->localPosition;
@@ -146,7 +146,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             ClearUiDepth(1.0f, rects, 3);
         }
 
-        RECT nameRect = {5, 5, 155, 20};
+        Rect nameRect = {5, 5, 155, 20};
         surfaces[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, render::text::kCenter | render::text::kWordBreak, 1);
 
         switch (bodyPart) {

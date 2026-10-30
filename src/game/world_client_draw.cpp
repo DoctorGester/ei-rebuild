@@ -78,8 +78,8 @@ void PopMatrix(MatrixStack& stack) {
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as addon turns it
 // into the float it patches in: (float)(unsigned)value, read once (addon reads its settings when it loads).
 float StarterDrawRadius(const char* name) {
-    DWORD value = 100;
-    DWORD data = 0, size = sizeof(data), type = 0;
+    std::uint32_t value = 100;
+    std::uint32_t data = 0, size = sizeof(data), type = 0;
     if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", name, &type, &data, &size) == 0 && type == settings_file::kTypeDword)
         value = data;
     float radius = static_cast<float>(static_cast<double>(value));

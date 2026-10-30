@@ -161,7 +161,7 @@ each step green on the goldens and removing a measured tie:
   table is resolved, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
   of ~140 objects); the other 57 are `using ::X;`, the Windows function through the exe's own imports
   (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/lib/win_api.h, as the SDK
-  declares them (C linkage, dllimport, WINAPI) over lib/win_types.h with the structures they point to by tag
+  declares them (C linkage, dllimport, WINAPI) over platform/win32/win_types.h with the structures they point to by tag
   (tagMSG, _SYSTEM_INFO, ...); gen_iat.py stops on a called one it lacks. gameapi.cpp includes import_table.h
   (windows.h, mmsystem, shellapi, objbase, dsound) too, so a declaration that differs from the SDK's or a copied
   prototype from import_prototypes.h's does not compile (C2733, C4273). So a file that calls only gameapi:: needs no

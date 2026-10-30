@@ -24,14 +24,14 @@ namespace {
 
 // Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
 // the scroll marks).
-constexpr COLORREF kBackground = 0x282828;
-constexpr COLORREF kSelection = 0x505050;
-constexpr COLORREF kLineText = 0xB4B4B4;
-constexpr COLORREF kInputText = 0xFFFFFF;
+constexpr std::uint32_t kBackground = 0x282828;
+constexpr std::uint32_t kSelection = 0x505050;
+constexpr std::uint32_t kLineText = 0xB4B4B4;
+constexpr std::uint32_t kInputText = 0xFFFFFF;
 constexpr int kLineHeight = 15;
 constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
-constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
-constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
+constexpr std::uint32_t kDrawLine = 0x800;      // DT_NOPREFIX
+constexpr std::uint32_t kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
 int Clamp(int value, int high) {
     if (value > high) value = high;
@@ -47,8 +47,8 @@ int PromptWidth(const UiFont& font, const std::string& input, int count) {
 constexpr int kHistoryDepth = 30;
 
 // CDC::FillSolidRect of `width` x `height` at (x, y).
-void FillArea(UiSurface* surface, int x, int y, int width, int height, COLORREF colour) {
-    surface->FillRect(RECT{x, y, x + width, y + height}, colour);
+void FillArea(UiSurface* surface, int x, int y, int width, int height, std::uint32_t colour) {
+    surface->FillRect(Rect{x, y, x + width, y + height}, colour);
 }
 
 } // namespace
@@ -264,18 +264,18 @@ void ConsoleWindow::DrawLines() {
     FillArea(currentSurface, 0, 0, width, height - kInputHeight, kBackground);
     int line = lineCount - scroll - 1;
     for (int i = 0, y = 0; i < visibleLines && line >= 0; ++i, y += kLineHeight, --line) {
-        RECT area{8, height - y - 0x2E, width - 0x12, height - y - 0x1A};
+        Rect area{8, height - y - 0x2E, width - 0x12, height - y - 0x1A};
         const std::string& text = lines[line];
         currentSurface->DrawTextPixels(font, text, area, kDrawLine, kLineText, false);
     }
     if (scroll > 0) {
         std::string mark = game::consoletexts::More();
-        RECT area{width - 0x12, height - 0x2E, width - 8, height - kInputHeight};
+        Rect area{width - 0x12, height - 0x2E, width - 8, height - kInputHeight};
         currentSurface->DrawTextPixels(font, mark, area, kDrawMark, kLineText, false);
     }
     if (scroll < lineCount - visibleLines) {
         std::string mark = game::consoletexts::More();
-        RECT area{width - 0x12, 8, width - 8, 0x17};
+        Rect area{width - 0x12, 8, width - 8, 0x17};
         currentSurface->DrawTextPixels(font, mark, area, kDrawMark, kLineText, false);
     }
 }
@@ -297,7 +297,7 @@ void ConsoleWindow::DrawInput() {
         if (high > width - 0x10) high = width - 0x10;
         if (low < high) FillArea(currentSurface, low + 8, height - 0x17, high - low, 0xF, kSelection);
     }
-    RECT area{8, height - 0x17, width - 8, height - 3};
+    Rect area{8, height - 0x17, width - 8, height - 3};
     std::string text = std::string(game::consoletexts::Prompt()) + input;
     currentSurface->DrawTextPixels(font, text, area, kDrawLine, kInputText, false);
     if (caretX < width - 0x10) currentSurface->Line(caretX + 8, height - 0x17, caretX + 8, height - 8, 2, kInputText);

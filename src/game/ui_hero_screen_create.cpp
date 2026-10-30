@@ -178,7 +178,7 @@ void MpHeroScreen::CreateScreen() {
     tradePanel->AddObject(texture(kPanelTexture));
     tradePanel->Build();
 
-    heroScroll = new UiScrollbar(ui, RECT{110, 250, 384, 490}, 3.0f, 0, 1.0f);
+    heroScroll = new UiScrollbar(ui, Rect{110, 250, 384, 490}, 3.0f, 0, 1.0f);
     AddChild(heroScroll);
 
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
@@ -252,17 +252,17 @@ void MpHeroScreen::CreateScreen() {
     figureStrip(1, women, false);
 
     // The edit windows: a listed hero's new name, and the new hero's name.
-    renameEdit = new UiEditField(ui, RECT{558, 110, 695, 126});
+    renameEdit = new UiEditField(ui, Rect{558, 110, 695, 126});
     AddChild(renameEdit);
     renameEdit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
-    nameEdit = new UiEditField(ui, RECT{0, 127, 200, 143});
+    nameEdit = new UiEditField(ui, Rect{0, 127, 200, 143});
     AddChild(nameEdit);
     nameEdit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
     nameEdit->SetEnabled(false);
     nameEdit->SetFocused(false);
-    voiceScroll = new UiScrollbar(ui, RECT{10, 325, 190, 490}, 3.0f, 0, 1.0f);
+    voiceScroll = new UiScrollbar(ui, Rect{10, 325, 190, 490}, 3.0f, 0, 1.0f);
     AddChild(voiceScroll);
     voiceScroll->SetEnabled(false);
     voiceSound = -1;
@@ -291,7 +291,7 @@ void MpHeroScreen::CreateScreen() {
     int top = 16;
     for (const char* key : commandKeys) {
         line = texts->GetString(key);
-        RECT area{0, top, 290, top + 20};
+        Rect area{0, top, 290, top + 20};
         commands->DrawTextIn(line, &area, 1, kWhite, kTextFormat, 1);
         top += 24;
     }

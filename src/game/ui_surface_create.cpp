@@ -43,5 +43,5 @@ UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bot
     MakeCanvas();
 }
 
-UiSurface::UiSurface(Interface3D* ui, const RECT* rect, SurfaceBlend blend)
+UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
     : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}

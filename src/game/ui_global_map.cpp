@@ -314,9 +314,9 @@ void GlobalMap::CreateScreen() {
     {
         UiSurface* text = new UiSurface(ui, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
         AddSurface(text);
-        RECT line1 = {0, 5, 150, 25};
+        Rect line1 = {0, 5, 150, 25};
         text->DrawTextIn(allodTitle, &line1, 2, 0xA7D7E4, 0x25, 1);
-        RECT line2 = {0, 25, 150, 45};
+        Rect line2 = {0, 25, 150, 45};
         text->DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
     }
 

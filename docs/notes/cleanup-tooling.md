@@ -36,8 +36,9 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   of ~1%. Time the affected objects instead: each object's cl.exe process times (one process: the front and back
   ends are DLLs in it), the trees in turn, the median of 9 (H33d's scratch `per_file.py`). A job object started
   after the process (`AssignProcessToJobObject` on a running cl) can miss children and gives low outliers.
-- Header diet: a header that only holds or passes RECT / POINT / SIZE / HWND / HANDLE / CRITICAL_SECTION includes
-  `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
+- Header diet: a header that only holds or passes a rectangle, point or size includes `lib/rect.h` (our own `Rect`,
+  `Point`, `Size`); the declarations of Windows functions (`lib/win_api.h`) include platform/win32/win_types.h
+  (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
   file that calls Windows includes `<windows.h>`. `lib/gameapi.h` names only the imports our code calls, declared
   over win_types.h (`lib/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
   `gameapi::` gets no SDK header. The key codes are platform/keys.h's, the text format bits render/text_format.h's

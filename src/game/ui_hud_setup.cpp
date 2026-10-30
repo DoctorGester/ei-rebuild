@@ -65,7 +65,7 @@ void SetHand(UiMesh* sprite) {
 void HudClock::Setup(bool newFast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
-    rect = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
+    rect = Rect{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
     AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddBlankSprite());
     for (int i = 0; i < 4; ++i) {
@@ -113,7 +113,7 @@ void HudClock::Setup(bool newFast) {
 void HudMovePanel::Build() {
     widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
     const int shift = widescreen::EdgeShift();
-    rect = RECT{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
+    rect = Rect{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
     // The flag button: the quarter disc in the corner.
     UiRegion* middle = AddRegion();
     middle->AddPoint(0, kLayoutBottom);

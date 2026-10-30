@@ -30,7 +30,7 @@ constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // Text into the panel's first surface (Rebirth-patched).
-void DrawPanelText(UiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, UINT format, int shadow) {
+void DrawPanelText(UiWindow* window, std::string_view text, Rect rect, std::uint32_t colour, std::uint32_t format, int shadow) {
     window->surfaces[0]->DrawTextIn(text, &rect, 0, colour, format, shadow);
 }
 
@@ -70,7 +70,7 @@ void HudUnitPanel::ShowHealth(CUnit* unit) {
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
     std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
+    DrawPanelText(this, health, Rect{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
         if (owner->party[i] != unit) continue;
@@ -78,7 +78,7 @@ void HudUnitPanel::ShowHealth(CUnit* unit) {
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
-        DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
+        DrawPanelText(this, mana, Rect{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }
 }
@@ -111,7 +111,7 @@ void HudUnitPanel::ShowParts(CUnit* unit) {
                 break;
             }
         }
-        DrawPanelText(this, name, RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
+        DrawPanelText(this, name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
                       part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }
@@ -158,7 +158,7 @@ void HudUnitPanel::ShowEffects(CUnit* unit) {
     int icons[kPlaces], places[kPlaces];
     bool taken[kPlaces] = {};
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
-    RECT line{40, 35, 155, 50};
+    Rect line{40, 35, 155, 50};
 
     if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible = true;
     // The unit's effects are the map object's records.
@@ -309,7 +309,7 @@ void HudTopPanel::Layout() {
     SceneMesh(3)->Place(200.0f, 10.0f - slideOffset, 10.0f);
     SceneMesh(4)->Place(230.0f, 10.0f - slideOffset, 10.0f);
     SceneMesh(5)->Place(400.0f, 47.5f - slideOffset, 18.0f);
-    RECT area{190, 25 - offset, 610, 89 - offset};
+    Rect area{190, 25 - offset, 610, 89 - offset};
     owner->messageLog->SetRect(&area);
     for (int i = 1; i < std::ssize(regions); ++i) {
         regions[i]->offsetX = 0;

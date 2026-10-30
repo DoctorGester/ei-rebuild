@@ -460,7 +460,7 @@ void MpConnectScreen::RebuildList() {
 }
 
 void MpConnectScreen::CreateScreen() {
-    rect = RECT{0, 0, 800, 600};
+    rect = Rect{0, 0, 800, 600};
     LoadTexture(kSaveLoadTexture, TextureKind::Interface);
     LoadTexture(kScrollbarTexture, TextureKind::Interface);
     UiModel* model = AddModel();
@@ -542,7 +542,7 @@ void MpConnectScreen::CreateScreen() {
 
     AddSurface(NewSurface(ui, 100, 100, 700, 500));
     {
-        scroll = new UiScrollbar(ui, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f);
+        scroll = new UiScrollbar(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f);
         AddChild(scroll);
     }
     {
@@ -554,15 +554,15 @@ void MpConnectScreen::CreateScreen() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = extended ? kExtendedFieldRight : 650;
-        playersSlider = new UiSlider(ui, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
+        playersSlider = new UiSlider(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
         AddChild(playersSlider);
-        RECT area{450, 196, right, 206};
+        Rect area{450, 196, right, 206};
         playersSlider->SetRect(&area);
         playersSlider->SetPosition(position);
         maxPlayers = 6;
     }
     {
-        nameEdit = new UiEditField(ui, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
+        nameEdit = new UiEditField(ui, Rect{450, 144, extended ? kExtendedFieldRight : 650, 160});
         AddChild(nameEdit);
         // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
         // below still stops at 10).
@@ -619,7 +619,7 @@ void MpConnectScreen::CreateScreen() {
     refreshTimer = 0.0f;
     UiSurface* note = AddSurface(NewSurface(ui, 0, 0, 300, 20));
     note->Clear();
-    RECT area{0, 0, 300, 20};
+    Rect area{0, 0, 300, 20};
     note->DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
 }
 

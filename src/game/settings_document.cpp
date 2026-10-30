@@ -2,7 +2,6 @@
 // DefaultDocument. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings_file.h"
 #include "lib/bytes.h"
-#include "lib/win_types.h"
 
 #include <bit>
 #include <string>
@@ -241,7 +240,7 @@ Value* Document::FindValue(Key& key, const std::string& name) {
     return nullptr;
 }
 
-void Document::Set(const std::string& path, const std::string& name, unsigned long type, std::string data) {
+void Document::Set(const std::string& path, const std::string& name, std::uint32_t type, std::string data) {
     Key& key = AddKey(path);
     if (Value* value = FindValue(key, name)) {
         value->type = type;

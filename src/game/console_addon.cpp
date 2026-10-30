@@ -180,7 +180,7 @@ const std::vector<std::string>& AutoExecLines() {
         std::vector<std::string> result;
         // The lines as the game holds its text (UTF-8; settings_file.h's bytes).
         constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-        DWORD type = 0, size = 0;
+        std::uint32_t type = 0, size = 0;
         if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, nullptr, &size) == 0 && size != 0) {
             std::string data(size, '\0');
             if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, data.data(), &size) == 0 &&

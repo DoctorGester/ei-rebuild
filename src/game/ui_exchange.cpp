@@ -185,7 +185,7 @@ void ExchangeScreen::CreateScreen() {
     grid->mode = kGridMode;
 
     // The money offered.
-    moneyField = new UiEditField(ui, RECT{0, 0x15E, 200, 0x16E});
+    moneyField = new UiEditField(ui, Rect{0, 0x15E, 200, 0x16E});
     AddChild(moneyField);
     moneyField->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField->SetText("");
@@ -222,17 +222,17 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     surface->Clear();
     text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money);
-    RECT area{0, 0, 200, 0x14};
+    Rect area{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &area, kAlignLeft, kWhite, 1, 1);
     text = texts->GetString("xch_accept");
-    area = RECT{0, 0x14, 200, 0x28};
+    area = Rect{0, 0x14, 200, 0x28};
     surface->DrawTextIn(text, &area, kAlignLeft, kWhite, 1, 1);
 
     // Surface 1: the money offer's caption.
     surface = surfaces[1];
     surface->Clear();
     text = texts->GetString("xch_money_offer");
-    area = RECT{0x14, 0, 0xB4, 0x14};
+    area = Rect{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
 
     // Surface 2: the partner's money, while its offer pairs with ours.
@@ -241,10 +241,10 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     net::PartyMessage* partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_money_remote");
-        area = RECT{0x14, 0, 0xB4, 0x14};
+        area = Rect{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
         line = std::format("{}", partnerOffer->money);
-        area = RECT{0, 0x28, 200, 0x3C};
+        area = Rect{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(line, &area, kAlignLeft, kWhite, 1, 1);
     }
 
@@ -254,11 +254,11 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_remote_header");
-        area = RECT{0x14, 0, 0xB4, 0x14};
+        area = Rect{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
         text = texts->GetString(net::ClientFindParty(client)->accepted ? "xch_remote_ok"
                                                               : "xch_remote_cancel");
-        area = RECT{0, 0x28, 200, 0x3C};
+        area = Rect{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(text, &area, kAlignLeft, kGrey, 1, 1);
     }
 

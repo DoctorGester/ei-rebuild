@@ -5,7 +5,7 @@
 #include <cstddef>
 
 #include "lib/containers.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 #include "platform/mouse.h"
 #include "platform/thread.h"
 #include "platform/window.h"
@@ -17,8 +17,8 @@
 class TextureDevice;
 
 // The cursor's size in pixels: 32, or 16 for the small cursors (static initialisers set 32).
-inline LONG g_cursorWidth = /*007C7C90*/ 32;
-inline LONG g_cursorHeight = /*007C7C94*/ 32;
+inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
+inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
 
 unsigned __stdcall CursorThreadEntry(void* cursor);
@@ -59,8 +59,8 @@ struct CursorImage {
     CursorImage& operator=(const CursorImage&) = delete;
 
     Surface* holder;
-    LONG width;                      // a frame's width
-    LONG height;
+    std::int32_t width;                      // a frame's width
+    std::int32_t height;
     int frames;                      // frames side by side (the picture's width / height)
     int frame;                       // the frame shown (stepped every 125 ms)
     int hotX;                        // the hot spot, scaled to the cursor's size
@@ -110,17 +110,17 @@ public:
     std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
     int shape = 0;                   // the shape SetShape selected
     platform::Signal stopped;         // set when the cursor thread ends
-    RECT drawn = {};                 // the rectangle drawn last
-    RECT rect = {};                  // the cursor's screen rectangle
-    RECT from = {};                  // the part of the image shown
-    RECT bounds = {};
+    Rect drawn = {};                 // the rectangle drawn last
+    Rect rect = {};                  // the cursor's screen rectangle
+    Rect from = {};                  // the part of the image shown
+    Rect bounds = {};
     std::vector<CursorImage*> images;    // the shapes (AddShape)
-    POINT position = {};             // the position drawn last
-    POINT heldPosition = {};         // the position kept while held
-    POINT motion = {};               // the mouse motion summed
+    Point position = {};             // the position drawn last
+    Point heldPosition = {};         // the position kept while held
+    Point motion = {};               // the mouse motion summed
     bool held = false;               // the cursor stays at heldPosition
     bool enabled = false;            // the cursor exists (created)
-    DWORD frameTime = 0;             // when the image's frame last stepped
+    std::uint32_t frameTime = 0;             // when the image's frame last stepped
     platform::Thread thread;         // the drawing thread, when started
     int stop = 0;                    // asks the cursor thread to end
     std::recursive_mutex lock;

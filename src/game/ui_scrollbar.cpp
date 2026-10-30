@@ -32,7 +32,7 @@ constexpr float kWheelStep = 0.008333334f;
 
 // The virtuals of the scroll bar and of the slider (the slider's create / update virtuals and the drag along
 // x are its own).
-UiScrollbar::UiScrollbar(Interface3D* ui, RECT rect, float newDepth, int maximum, float newSpeed) : UiWindow(ui) {
+UiScrollbar::UiScrollbar(Interface3D* ui, Rect rect, float newDepth, int maximum, float newSpeed) : UiWindow(ui) {
     maxPosition = maximum;
     speed = newSpeed;
     depth = newDepth;
@@ -68,7 +68,7 @@ void UiScrollbar::SetPosition(int newPosition) {
     thumb.bottom = centre + 14;
 }
 
-void UiScrollbar::SetRect(const RECT* newRect) {
+void UiScrollbar::SetRect(const Rect* newRect) {
     rect = *newRect;
     track.left = newRect->right - 10;
     track.right = newRect->right;
@@ -99,7 +99,7 @@ void UiScrollbar::SetRect(const RECT* newRect) {
 
 void UiScrollbar::MouseMove(int, int x, int y) {
     if (state == kDragging) {
-        POINT point{x, y};
+        Point point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.y - grabY;
         SetPosition(Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
@@ -135,7 +135,7 @@ void UiSlider::SetPosition(int newPosition) {
 
 void UiSlider::MouseMove(int, int x, int y) {
     if (state == kDragging) {
-        POINT point{x, y};
+        Point point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.x - grabX;
         SetPosition(Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));

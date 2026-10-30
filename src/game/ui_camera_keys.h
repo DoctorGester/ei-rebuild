@@ -4,7 +4,7 @@
 
 #include "options.h"
 #include "ui.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 // A camera motion's speed with the keys: its keyboard power times its speed.
 inline float KeyboardSpeed(const options::CameraMotionOptions& motion) { return motion.powerKeyboard * motion.speed; }
@@ -43,8 +43,8 @@ public:
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
     void Wheel(int flags, int delta, int x, int y) override;
 
-    POINT pressScreen;               // where the right button went down (screen)
-    POINT pressLayout;               // the same in layout coordinates
+    Point pressScreen;               // where the right button went down (screen)
+    Point pressLayout;               // the same in layout coordinates
     bool turning = false;            // the right button is held
     float x = 0.0f;                  // right (+1) / left (-1)
     float y = 0.0f;                  // forward / back

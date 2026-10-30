@@ -80,18 +80,18 @@ void RemoveHeld(List& list, CMapObject* object) {
 }
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
-using HitTest = int (Object3DSpecific::*)(const long* point);
+using HitTest = int (Object3DSpecific::*)(const std::int32_t* point);
 
 // The screen entries whose rectangle holds (x, y) and whose object still exists and answers `test` go
 // to `hits`.
-HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, LONG x,
-                          LONG y, CMapObjectManager* manager, HitTest test) {
+HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x,
+                          std::int32_t y, CMapObjectManager* manager, HitTest test) {
     for (const ScreenEntry& entry : entries) {
-        POINT pt = {x, y};
+        Point pt = {x, y};
         if (!rects::Contains(&entry.rect, pt)) continue;
         CMapObject* object = manager->FindMapObject(entry.objectId);
         if (!object) continue;
-        LONG point[2] = {x, y};
+        std::int32_t point[2] = {x, y};
         Object3DSpecific* half = object->Object3D()->attached;
         if (!(half->*test)(point)) continue;
         hits->push_back(entry);
@@ -110,8 +110,8 @@ std::vector<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) 
     return &grid.rows[y][x];
 }
 
-using Collect = HitCollector* (HitCollector::*)(const std::vector<ScreenEntry>&, std::vector<ScreenEntry>*, long, long, CMapObjectManager*);
-CMapObject* Pick(WorldClient* client, const POINT* point, Collect collect) {
+using Collect = HitCollector* (HitCollector::*)(const std::vector<ScreenEntry>&, std::vector<ScreenEntry>*, std::int32_t, std::int32_t, CMapObjectManager*);
+CMapObject* Pick(WorldClient* client, const Point* point, Collect collect) {
     std::vector<ScreenEntry>& hits = client->hits;
     hits.clear();
     CMapObjectManager* manager = client->MapObjectManager();
@@ -256,12 +256,12 @@ void SectorGrid::Move(CMapObject* object, const float* position) {
     if (newX < width && newY < height) rows[newY][newX].emplace_back(object);
 }
 
-HitCollector* HitCollector::CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, LONG x, LONG y,
+HitCollector* HitCollector::CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, std::int32_t x, std::int32_t y,
                                           CMapObjectManager* manager) {
     return CollectHits(this, entries, found, x, y, manager, &Object3DSpecific::BoundsContainPoint);
 }
 
-HitCollector* HitCollector::CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, LONG x, LONG y,
+HitCollector* HitCollector::CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, std::int32_t x, std::int32_t y,
                                          CMapObjectManager* manager) {
     return CollectHits(this, entries, found, x, y, manager, &Object3DSpecific::PartsContainPoint);
 }
@@ -446,10 +446,10 @@ void WorldClient::ClearMaps() {
     specificManager->FreeSpares();
 }
 
-CMapObject* WorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-CMapObject* WorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
+CMapObject* WorldClient::PickAt(const Point* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CMapObject* WorldClient::PickAt2(const Point* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
-CUnit* WorldClient::UnitAt(const POINT* point) {
+CUnit* WorldClient::UnitAt(const Point* point) {
     if (CMapObject* picked = PickAt2(point)) {
         if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
@@ -457,12 +457,12 @@ CUnit* WorldClient::UnitAt(const POINT* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CUnit* WorldClient::UnitAt2(const POINT* point) {
+CUnit* WorldClient::UnitAt2(const Point* point) {
     CMapObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-std::vector<CMapObject*> WorldClient::UnitsInBox(const tagRECT* rect) {
+std::vector<CMapObject*> WorldClient::UnitsInBox(const Rect* rect) {
     std::vector<CMapObject*> inside;
     for (auto& node : screenEntries) {
         CMapObject* object = objectManager->FindMapObject(node.objectId);

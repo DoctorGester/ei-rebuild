@@ -4,7 +4,7 @@
 // into the executable (render_text.h: Liberation Serif for Times New Roman, Liberation Mono for Courier New). See
 // docs/notes/ui-native.md, "P8 done".
 
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <string>
 #include <string_view>
@@ -30,4 +30,4 @@ UiFont PointFont(int tenths, const char* face);
 render::text::TextFont* TextFontOf(const UiFont& font);
 
 // GetTextExtentPoint32: the width of `text` (its advances summed, no kerning) and the font's height, in pixels.
-SIZE TextExtent(const UiFont& font, std::string_view text);
+Size TextExtent(const UiFont& font, std::string_view text);

@@ -85,14 +85,14 @@ void MpHeroScreen::DrawExperience() {
     std::string line;
     surface->Clear();
     levelText = g_clientWorld.texts->GetString(kLevelUpKey);
-    RECT title = {0, 130, 200, 150};
+    Rect title = {0, 130, 200, 150};
     surface->DrawTextIn(levelText, &title, kTextFormat, kWhite, 1, 1);
     levelText = str::Format(kSignedFormat, -tradePanel->PurchaseCost());
-    RECT cost = {0, 150, 200, 170};
+    Rect cost = {0, 150, 200, 170};
     surface->DrawTextIn(levelText, &cost, kTextFormat, kWhite, 1, 1);
     levelText = g_clientWorld.texts->GetString(kCurrentExpKey);
     line = str::Format(kLabelFormat, levelText, tradePanel->Experience());
-    RECT current = {0, 110, 200, 130};
+    Rect current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
 }
 
@@ -183,7 +183,7 @@ void MpHeroScreen::DrawHeroList() {
     surface->Clear();
     UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
-    RECT area = {12, 13, 265, 33};
+    Rect area = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
     std::uint32_t index = static_cast<std::uint32_t>(heroTop);
     for (int y = 262; y < 502; y += 24, ++index) {
@@ -205,7 +205,7 @@ void MpHeroScreen::DrawVoices() {
     UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
     std::string title;
-    RECT area = {10, 5, 190, 20};
+    Rect area = {10, 5, 190, 20};
     title = g_clientWorld.texts->GetString(kVoicesKey);
     surface->DrawTextIn(title, &area, 0, kWhite, 1, 1);
     area = {20, 25, 175, 40};

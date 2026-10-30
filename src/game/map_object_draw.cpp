@@ -64,7 +64,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[15] = std::bit_cast<float>(kOne);
 }
 
-int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
+int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     if (object->flags & MapObjectFlag::NotDrawn) return 1;
     bool anyDrawn = false;
     TransformPipeline* pipeline = context->pipeline;
@@ -120,7 +120,7 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
     // The parts of both sets.
     bool allLit = true;
     const bool wasStatic = lib::Has(object->flags, MapObjectFlag::Static);
-    RECT partRect;
+    Rect partRect;
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set) continue;
@@ -154,7 +154,7 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
                 }
                 anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
                 if (dirty && !rects::IsEmpty(&partRect) && (part->flags & FigureMeshFlag::Drawn)) {
-                    RECT* total = &drawnRect;
+                    Rect* total = &drawnRect;
                     rects::Union(total, total, &partRect);
                 }
                 if (pushed) pipeline->PopMatrix(kStackObject);

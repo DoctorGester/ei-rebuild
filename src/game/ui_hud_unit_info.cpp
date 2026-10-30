@@ -50,7 +50,7 @@ double ShownSpeed(CUnit* unit, bool outsideGroup) {
 struct Panel {
     UiSurface* surface;
     const std::string* labels;
-    RECT rect;
+    Rect rect;
     std::string text;
 
     // Draws `text` and moves down a line.

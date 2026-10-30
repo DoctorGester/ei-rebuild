@@ -73,7 +73,7 @@ public:
     void Down() { rects::Offset(&rect, 0, 15); }
     void Text(std::string_view text) { draw->DrawTextIn(text, &rect, 0, kText, 0, 1); }
     void Value(std::string_view text) {
-        RECT shifted = rect;
+        Rect shifted = rect;
         rects::Offset(&shifted, -10, 0);
         draw->DrawTextIn(text, &shifted, 0, kText, 2, 1);
     }
@@ -124,7 +124,7 @@ private:
     ItemInfoPanel* panel;
 
 public:
-    RECT rect;
+    Rect rect;
 };
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0: returns the

@@ -70,11 +70,11 @@ bool Object3DClientSpecific::ShadowInView() {
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // Nothing is drawn; 0.
-int Object3DSpecific::DrawParts(SceneRenderer* /*context*/, tagRECT* /*dirty*/) { return 0; }
+int Object3DSpecific::DrawParts(SceneRenderer* /*context*/, Rect* /*dirty*/) { return 0; }
 int Object3DSpecific::DrawPartsShadow(SceneRenderer*) { return 0; }
-int Object3DSpecific::BoundsContainPoint(const long*) { return 0; }
-int Object3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
-int Object3DSpecific::PartsContainPoint(const long*) { return 0; }
+int Object3DSpecific::BoundsContainPoint(const std::int32_t*) { return 0; }
+int Object3DSpecific::PartsIntersectRect(const Rect*) { return 0; }
+int Object3DSpecific::PartsContainPoint(const std::int32_t*) { return 0; }
 
 // --- The server half ---------------------------------------------------------------------------------
 
@@ -127,40 +127,40 @@ namespace {
 // "Object3DClientSpecific".
 const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
-POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
-const RECT* PartRect(const FigureMesh* part) { return &part->drawer->screen; }
+Point AsPoint(const std::int32_t* point) { return Point{point[0], point[1]}; }
+const Rect* PartRect(const FigureMesh* part) { return &part->drawer->screen; }
 
 constexpr float kNoScale = 1.0f;
 
 } // namespace
 
-int Object3DClientSpecific::BoundsContainPoint(const long* point) {
-    if (!(object->flags & MapObjectFlag::Shown)) return FALSE;
+int Object3DClientSpecific::BoundsContainPoint(const std::int32_t* point) {
+    if (!(object->flags & MapObjectFlag::Shown)) return 0;
     return rects::Contains(&object->dirtyRect, AsPoint(point));
 }
 
-int Object3DClientSpecific::PartsContainPoint(const long* point) {
+int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
     CObject3D* target = object;
-    if (!(target->flags & MapObjectFlag::Shown)) return FALSE;
+    if (!(target->flags & MapObjectFlag::Shown)) return 0;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        if (rects::Contains(PartRect(part), AsPoint(point))) return TRUE;
+        if (rects::Contains(PartRect(part), AsPoint(point))) return 1;
     }
-    return FALSE;
+    return 0;
 }
 
-int Object3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
+int Object3DClientSpecific::PartRectsMeet(const Rect* rect) {
     CObject3D* target = object;
-    if (!(target->flags & MapObjectFlag::Shown)) return FALSE;
+    if (!(target->flags & MapObjectFlag::Shown)) return 0;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        RECT common;
+        Rect common;
         rects::Intersect(&common, PartRect(part), rect);
-        if (!rects::IsEmpty(&common)) return TRUE;
+        if (!rects::IsEmpty(&common)) return 1;
     }
-    return FALSE;
+    return 0;
 }
 
 FigureMesh* Object3DClientSpecific::FindPart(std::string_view name) { return object->FindPart(name); }

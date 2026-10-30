@@ -5,7 +5,7 @@
 
 #include "ui_font.h"
 #include "lib/str.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -106,7 +106,7 @@ public:
     ~ConsoleWindow();
     ConsoleWindow(const ConsoleWindow&) = delete;
     ConsoleWindow& operator=(const ConsoleWindow&) = delete;
-    void SetRect(const RECT* rect);   // 800x600 coordinates
+    void SetRect(const Rect* rect);   // 800x600 coordinates
     void SetHistory(int lines);
     void AddText(std::string_view text);  // continues the last line; '\n' starts a new one
     // Drawing and input:
@@ -131,8 +131,8 @@ public:
     int anchor;                      // other end of the selection (== caret: none)
     int width;                       // pixels, at least 76
     int height;                      // pixels, at least 69
-    RECT rect;                       // the window in 800x600 coordinates (after clamping)
-    RECT screenRect;                 // the window in pixels
+    Rect rect;                       // the window in 800x600 coordinates (after clamping)
+    Rect screenRect;                 // the window in pixels
     std::vector<std::string> lines;
     int history;                     // lines kept
     int visibleLines;

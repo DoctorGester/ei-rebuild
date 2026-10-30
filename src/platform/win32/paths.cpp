@@ -47,7 +47,7 @@ std::string ProgramPath() {
     return win32::Utf8(path);
 }
 
-bool SetCurrentFolder(const std::string& path, unsigned long* error) {
+bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (SetCurrentDirectoryW(win32::Utf16(path).c_str())) return true;
     *error = GetLastError();
     return false;

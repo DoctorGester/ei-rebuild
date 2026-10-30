@@ -6,7 +6,7 @@
 // on either side. With the flag off, or a mode addon would refuse, everything is the original's. The list of what moves
 // is in docs/notes/rebirth.md, "WideScreen module overview".
 
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 class UiWindow;
 
@@ -58,14 +58,14 @@ void LeavePanel();
 // coordinate stored (y, or the bottom of a rectangle). `margin`: addon adds / takes off the margin only when
 // its interface argument is set; its two entries in front of the screen-to-layout scaling pass none, and the
 // text surfaces' draw calls the layout-to-screen scaling without one.
-void RectToScreen(RECT* rect, bool margin);
-void PointToScreen(POINT* point, bool margin);
-void RectFromScreen(RECT* rect, bool margin);
-void PointFromScreen(POINT* point, bool margin);
+void RectToScreen(Rect* rect, bool margin);
+void PointToScreen(Point* point, bool margin);
+void RectFromScreen(Rect* rect, bool margin);
+void PointFromScreen(Point* point, bool margin);
 
 // The interface's text extent (addon's replacement): GetTextExtentPoint32's pixels to layout units, the width
 // by the 4:3 part's width (not the screen's) and the height by the mode's height (64-bit products).
-SIZE TextExtentToLayout(SIZE pixels);
+Size TextExtentToLayout(Size pixels);
 
 // The projection's x scale on the axis swap's diagonal: axisScale while Active(), else 1.
 float AxisScale();

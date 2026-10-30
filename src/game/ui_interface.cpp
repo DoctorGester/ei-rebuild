@@ -24,11 +24,11 @@ const Interface3D* WithoutMargin(const Interface3D* ui) { return widescreen::Act
 
 // The same three with the interface given: none for Rebirth's WideScreen sites (ui.h).
 
-void Interface3D::CallScaleRectToScreenNoMargin(RECT* rect) const { WithoutMargin(this)->ScaleRectToScreenEntry(rect); }
-void Interface3D::CallScalePointToScreenNoMargin(POINT* point) const {
+void Interface3D::CallScaleRectToScreenNoMargin(Rect* rect) const { WithoutMargin(this)->ScaleRectToScreenEntry(rect); }
+void Interface3D::CallScalePointToScreenNoMargin(Point* point) const {
     WithoutMargin(this)->ScalePointToScreenEntry(point);
 }
-void Interface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
+void Interface3D::CallScalePointFromScreenNoMargin(Point* point) const {
     WithoutMargin(this)->ScalePointFromScreenEntry(point);
 }
 
@@ -36,7 +36,7 @@ void Interface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
 // versions, which skip the margin when called without an interface (addon's code calls them so; the entries
 // below handle that).
 
-void Interface3D::ScaleRectToScreen(RECT* rect) const {
+void Interface3D::ScaleRectToScreen(Rect* rect) const {
     if (widescreen::Active()) {
         widescreen::RectToScreen(rect, true);
         return;
@@ -49,7 +49,7 @@ void Interface3D::ScaleRectToScreen(RECT* rect) const {
 
 // An identical copy of this function exists in the game that nothing calls; addon points it at the same code
 // as this one.
-void Interface3D::ScalePointToScreen(POINT* point) const {
+void Interface3D::ScalePointToScreen(Point* point) const {
     if (widescreen::Active()) {
         widescreen::PointToScreen(point, true);
         return;
@@ -58,7 +58,7 @@ void Interface3D::ScalePointToScreen(POINT* point) const {
     point->y = Mul(height, point->y) / kLayoutHeight;
 }
 
-void Interface3D::ScaleRectFromScreen(RECT* rect) const {
+void Interface3D::ScaleRectFromScreen(Rect* rect) const {
     if (widescreen::Active()) {
         widescreen::RectFromScreen(rect, true);
         return;
@@ -69,7 +69,7 @@ void Interface3D::ScaleRectFromScreen(RECT* rect) const {
     rect->bottom = Mul(rect->bottom, kLayoutHeight) / height;
 }
 
-void Interface3D::ScalePointFromScreen(POINT* point) const {
+void Interface3D::ScalePointFromScreen(Point* point) const {
     if (widescreen::Active()) {
         widescreen::PointFromScreen(point, true);
         return;
@@ -78,34 +78,34 @@ void Interface3D::ScalePointFromScreen(POINT* point) const {
     point->y = Mul(point->y, kLayoutHeight) / height;
 }
 
-void Interface3D::ScalePointFromScreenCopy(POINT* point) const { ScalePointFromScreen(point); }
+void Interface3D::ScalePointFromScreenCopy(Point* point) const { ScalePointFromScreen(point); }
 
 // With Rebirth's code in place these are also reached without an interface (addon's entries;
 // ui_widescreen.h).
-void Interface3D::ScaleRectToScreenEntry(RECT* rect) const {
+void Interface3D::ScaleRectToScreenEntry(Rect* rect) const {
     if (!this && widescreen::Active())
         widescreen::RectToScreen(rect, false);
     else
         ScaleRectToScreen(rect);
 }
 
-void Interface3D::ScalePointToScreenEntry(POINT* point) const {
+void Interface3D::ScalePointToScreenEntry(Point* point) const {
     if (!this && widescreen::Active())
         widescreen::PointToScreen(point, false);
     else
         ScalePointToScreen(point);
 }
 
-void Interface3D::ScalePointFromScreenCopyEntry(POINT* point) const { ScalePointFromScreenEntry(point); }
+void Interface3D::ScalePointFromScreenCopyEntry(Point* point) const { ScalePointFromScreenEntry(point); }
 
-void Interface3D::ScaleRectFromScreenEntry(RECT* rect) const {
+void Interface3D::ScaleRectFromScreenEntry(Rect* rect) const {
     if (!this && widescreen::Active())
         widescreen::RectFromScreen(rect, false);
     else
         ScaleRectFromScreen(rect);
 }
 
-void Interface3D::ScalePointFromScreenEntry(POINT* point) const {
+void Interface3D::ScalePointFromScreenEntry(Point* point) const {
     if (!this && widescreen::Active())
         widescreen::PointFromScreen(point, false);
     else
@@ -132,7 +132,7 @@ void UiSurface::SetRect(int left, int top, int right, int bottom) {
 }
 
 void UiSurface::MoveTo(int x, int y) {
-    POINT point{x, y};
+    Point point{x, y};
     ui->ScalePointToScreenEntry(&point);
     int rectWidth = rect.right - rect.left;
     int rectHeight = rect.bottom - rect.top;

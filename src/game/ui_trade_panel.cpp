@@ -41,7 +41,7 @@ std::string PerkBaseName(const SkillLevelRecord* record) {
     return text;
 }
 
-void Down(RECT* rect) { rects::Offset(rect, 0, 15); }
+void Down(Rect* rect) { rects::Offset(rect, 0, 15); }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
@@ -49,15 +49,15 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 
 // The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
 // the row's height lower by 100 (the panel's layout offset).
-void PriceSprite(TradePanel* panel, const RECT& row, float left, float right) {
+void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
     UiMesh* sprite = panel->AddBlankSprite();
     sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
-void DrawSchool(TradePanel* panel, UiSurface* draw, RECT* row, const TradeRow& school) {
+void DrawSchool(TradePanel* panel, UiSurface* draw, Rect* row, const TradeRow& school) {
     draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
-    RECT levelRect = *row;
+    Rect levelRect = *row;
     rects::Offset(&levelRect, -40, 0);
     draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
@@ -149,14 +149,14 @@ void TradePanel::DrawLists() {
     draw->Clear();
     while (lib::Count(sceneObjects) > 4) RemoveSceneObjectAt(lib::Count(sceneObjects) - 1);
 
-    RECT title = {0, 10, 200, 25};
+    Rect title = {0, 10, 200, 25};
     draw->DrawTextIn(texts[0], &title, 0, 0xFFFFFF, 1, 1);
     title = {0, 205, 200, 220};
     draw->DrawTextIn(texts[1], &title, 0, 0xFFFFFF, 1, 1);
     title = {200, 10, 400, 25};
     draw->DrawTextIn(texts[2], &title, 0, 0xFFFFFF, 1, 1);
 
-    RECT row = {15, 35, 180, 50};
+    Rect row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
         if (i == 2) {
             Down(&row);
@@ -199,14 +199,14 @@ void TradePanel::DrawLists() {
 }
 
 void TradePanel::Build() {
-    rect = RECT{200, 100, 600, 500};
+    rect = Rect{200, 100, 600, 500};
     AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 
     AddRegion()->SetRect(360, 320, 380, 330);
     AddRegion()->SetRect(360, 480, 380, 490);
     AddRegion()->SetRect(560, 125, 580, 135);
     AddRegion()->SetRect(560, 480, 580, 490);
-    RECT row = {215, 135, 385, 150};
+    Rect row = {215, 135, 385, 150};
     for (int i = 0; i < 2; ++i) {
         AddRegion()->SetRectFrom(row);
         Down(&row);

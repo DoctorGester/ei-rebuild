@@ -240,10 +240,10 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
         // addon's handler (over the fields' stores): the panel offset, and its own
         // rectangle and slide state.
         widescreen::EnterLeftPanel();
-        rect = RECT{kWideUnitLeft, 0, kWideUnitRight, 225};
+        rect = Rect{kWideUnitLeft, 0, kWideUnitRight, 225};
         sliding = false;
     } else {
-        rect = RECT{0, 0, 185, 225};
+        rect = Rect{0, 0, 185, 225};
         sliding = true;
     }
     travel = kUnitTravel;
@@ -340,7 +340,7 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
 void HudMap::Setup(float newZoom, bool slid) {
     widescreen::EnterRightPanel();   // addon's 10023344
     const int shift = widescreen::EdgeShift();
-    rect = RECT{615 + shift, 0, 800 + shift, 165};    // WideScreen
+    rect = Rect{615 + shift, 0, 800 + shift, 165};    // WideScreen
     halfSide = 80.0f;
 
     // The world's extent and the map's picture (referenced object 1), from the zone's record.

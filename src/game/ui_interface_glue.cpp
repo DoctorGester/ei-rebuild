@@ -43,7 +43,7 @@ void Interface3D::ConsoleAddText(std::string_view text) {
     if (console) console->AddText(text);
 }
 
-void Interface3D::SetConsoleRect(const RECT* rect) {
+void Interface3D::SetConsoleRect(const Rect* rect) {
     if (console) console->SetRect(rect);
 }
 
@@ -114,7 +114,7 @@ void Interface3D::SaveWindowState() {
 void Interface3D::ShowStatusText(std::string_view text) {
     statusSurface = new UiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->Clear();
-    RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
+    Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     statusSurface->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);    // Rebirth-patched
     app::FrameStep(true, true);
     if (statusSurface) {

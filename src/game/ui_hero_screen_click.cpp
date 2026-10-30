@@ -63,7 +63,7 @@ std::string& MpHeroName(int index) {
 }
 
 // The rename's title on surface 3: 130 x 16 pixels.
-constexpr RECT kRenameTitle = {0, 0, 0x82, 0x10};
+constexpr Rect kRenameTitle = {0, 0, 0x82, 0x10};
 constexpr std::uint32_t kBright = 0xA7D7E4;
 
 constexpr std::uint32_t kVoiceFlags = 0x2282;
@@ -356,7 +356,7 @@ void MpHeroScreen::Rename() {
     auto* surface = surfaces[3];
     surface->Show();
     surface->Clear();
-    RECT area = kRenameTitle;
+    Rect area = kRenameTitle;
     surface->DrawTextIn(name + kRenameSeparator, &area, 1, kBright, 2, 1);
 }
 

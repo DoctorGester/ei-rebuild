@@ -21,6 +21,7 @@
 // committed registry snapshot, read only (or writable, to check the options save), every read of a value it lacks
 // reported.
 
+#include <cstdint>
 #include <deque>
 #include <string>
 #include <vector>
@@ -31,7 +32,7 @@ inline constexpr const char* kFileName = "ei_settings.ini";
 
 // A value's type: the registry's numbers, which the game and Rebirth read (a type not named here round-trips in the
 // file as hex(<type>)).
-enum ValueType : unsigned long {
+enum ValueType : std::uint32_t {
     kTypeString = 1,         // REG_SZ: text with its terminator
     kTypeExpandString = 2,   // REG_EXPAND_SZ
     kTypeBinary = 3,         // REG_BINARY (SettingsKey's floats: 4 bytes)
@@ -51,7 +52,7 @@ enum Status : long {
 // terminator).
 struct Value {
     std::string name;
-    unsigned long type = 0;
+    std::uint32_t type = 0;
     std::string data;
 };
 
@@ -66,7 +67,7 @@ public:
     Key* FindKey(const std::string& path);
     Key& AddKey(const std::string& path);   // the key, made when missing
     static Value* FindValue(Key& key, const std::string& name);
-    void Set(const std::string& path, const std::string& name, unsigned long type, std::string data);
+    void Set(const std::string& path, const std::string& name, std::uint32_t type, std::string data);
 
     std::string Text() const;
     // Reads `text` into the document; each line not understood is skipped and described in `problems`.
@@ -102,18 +103,19 @@ void* CreateKey(const char* path);
 // RegQueryValueEx of the value `name` of `sub` below `key` (a CreateKey handle, or null: below
 // HKEY_CURRENT_USER): 0, ERROR_MORE_DATA (the size needed in *size) or ERROR_FILE_NOT_FOUND (key or value
 // missing).
-long Query(const void* key, const char* sub, const char* name, unsigned long* type, void* data, unsigned long* size);
+long Query(const void* key, const char* sub, const char* name, std::uint32_t* type, void* data, std::uint32_t* size);
 // RegSetValueEx of `name` of `sub` below `key` (made when missing): 0. Kept until Flush.
-long Set(const void* key, const char* sub, const char* name, unsigned long type, const void* data, unsigned long size);
+long Set(const void* key, const char* sub, const char* name, std::uint32_t type, const void* data, std::uint32_t size);
 // Writes the file when a value changed (not in a session on the defaults in memory).
 void Flush();
 
 // RegQueryValueEx of the value `name` of HKEY_CURRENT_USER\<path>, for the readers that open, query and close
 // a key directly: the settings file's.
-long ReadValue(const char* path, const char* name, unsigned long* type, void* data, unsigned long* size);
+long ReadValue(const char* path, const char* name, std::uint32_t* type, void* data, std::uint32_t* size);
 
 // A change of each value read (the harness's and the start-up's redirects of the game paths, standalone_main.cpp):
-// called in the order added with the value's name, type and bytes, which it may change.
+// called in the order added with the value's name, type and bytes, which it may change. The type is `unsigned long`
+// as the harness image side declares it (tests/verify/image/image_side.h).
 using ReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
 void AddReadFilter(ReadFilter filter);
 
