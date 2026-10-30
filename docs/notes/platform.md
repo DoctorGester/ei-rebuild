@@ -247,7 +247,10 @@ every backend.
   scanned rate and channels and `DecodeMp3File` gives the whole frames' size; voices of each kind mixed at full volume
   have the source's length (twice the frames at 22.05 kHz, twice with two loops) and peak, the 44.1 kHz ones sample
   for sample; pan 0 / 127 leaves the other side at 0, volume 64 gives 64/127 of the peak; two Stream\*.mp3 queued in
-  halves as the stream thread does come out sample for sample as dr_mp3 decodes them.
+  halves as the stream thread does come out sample for sample as dr_mp3 decodes them. A windowed run of the release
+  exe (a run folder of junctions, Work path / CD-ROM Path `.\`, 45 s to the menu, closed with WM_CLOSE) logged the
+  WASAPI device, the first voice and sound, and 206 voices at the close; a `sound` scenario run with a DebugView-style
+  listener showed no device and no audio session opened. Goldens: 122 + 24 (Rebirth) the same.
 
 ### The null video backend
 
