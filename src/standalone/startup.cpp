@@ -66,9 +66,6 @@ StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) 
 
 void RunStartupActions() {
     LoadRebirthSettings();
-    unsigned short cw;
-    __asm fnstcw cw
-    Log("FPU control word at WinMain: %04X", cw);
     for (StartupAction* action = g_startupActions; action; action = action->next) {
         Log("startup action %s", action->name);
         action->run();

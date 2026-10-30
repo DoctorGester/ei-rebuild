@@ -82,27 +82,22 @@ PATTERNS = {
     'unknown field': re.compile(r'^[ \t]*(?!return\b)(?:const\s+|volatile\s+|mutable\s+)?[\w:]+(?:\s*<[^;()\n]*>)?'
                                 r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
     # A float, a Vector3 or a Quaternion copied or cleared through memcpy / memset (C43): a float is
-    # `a = b` or `f = 0.0f`, a vector `a = b`, a float and its bits `std::bit_cast`, and a float that
-    # arrives from a file or a message and must keep a signalling NaN's bits `x87::CopyBits`. The
-    # byte reads of streams and buffers (a size that is a variable) are not this.
+    # `a = b` or `f = 0.0f` (an SSE2 copy keeps a signalling NaN's bits), a vector `a = b`, a float and its bits
+    # `std::bit_cast`. The byte reads of streams and buffers (a size that is a variable) are not this.
     'raw float / vector copy (memcpy, memset)': re.compile(
         r'\b(?:std::)?mem(?:cpy|set)\s*\([^;]*?,\s*(?:4u?|sizeof\s*\(\s*(?:float|Vector3|Quaternion)\s*\))\s*\)'),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
 }
-# Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its unrounded
-# 2D / Vector3 sums with precise semantics off on purpose: they must stay in ST0 like the original's
-# written-out sums (C12 checked: without the pragma 39 objects compile differently).
+# Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over std::vector; ObjectIdMap and UnitSet
 # (and MapObjectIdMap, its shape with CMapObject* values) are records whose members are hash maps; RegionMap is a
 # block grid; PlatformSet is the engine's CBridgeManager around a list.
 NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
-# src/lib/crt_x87.cpp holds the CRT's register-argument x87 entries (_ftol, _CIpow, ...): naked by necessity.
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
-          'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',
-          '__asm block': 'src/lib/crt_x87.cpp'}
+          'hand-written vector maths': 'src/lib/vecmath.h'}
 
 
 def strip_comments(text):

@@ -33,12 +33,10 @@ option(EI_HARNESS "Build the harness: linked into ei-rebuild.exe, and ei_harness
 set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
 add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 
-# x87 floating point where the original's rounding still needs it: SSE rounds differently there.
-# /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
-# an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs
-# at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so the x87 code uses x87::.
-# The targets with EI_SSE2 set (the renderer and the game code but the x87 list, ei_sse2 below) build for SSE2.
-add_compile_options("$<IF:$<BOOL:$<TARGET_PROPERTY:EI_SSE2>>,/arch:SSE2,/arch:IA32>" /fp:precise /W4 /permissive- /utf-8)
+# SSE2 floating point everywhere: the original's x87 maths at the main thread's 24-bit precision is float maths in
+# its order, with src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
+# /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by an ulp (SV7d1).
+add_compile_options(/arch:SSE2 /fp:precise /W4 /permissive- /utf-8)
 
 # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
 # instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside the
@@ -50,24 +48,13 @@ if(EI_ASAN)
     file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-i386.dll" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
-# The game code (src/game, src/lib) builds for SSE2 but the files listed here (C30a, C30e; docs/notes/cleanup-tooling.md
-# "SSE2 build", the plan and why each group is still x87). Their floating point reaches game state or the goldens
-# through maths that rounds at the main thread's 24-bit precision in ways plain float maths does not give yet: double
-# registers (D(), double locals), double constants wider than a float, transcendentals (x87::fsin / fexp, the game
-# CRT's pow / acos), the terrain's chop rounding.
-# Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
-set(EI_X87_GAME_SOURCES
-    # C30e15: the main loop and the game CRT
-    game/app_main lib/crt_x87)
-list(TRANSFORM EI_X87_GAME_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/\\1.cpp")
-file(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
-list(REMOVE_ITEM EI_SSE2_GAME_SOURCES ${EI_X87_GAME_SOURCES})
+# The game code.
+file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
 # The harness build turns on sokol's validation layer (messages go to ei-rebuild.log).
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
-set_target_properties(ei_render PROPERTIES EI_SSE2 ON)
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
@@ -157,8 +144,7 @@ add_executable(ei-rebuild
     src/standalone/standalone_main.cpp
     src/standalone/startup.cpp
     src/standalone/static_exit.cpp
-    src/standalone/static_init.cpp
-    ${EI_X87_GAME_SOURCES})
+    src/standalone/static_init.cpp)
 set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
 target_include_directories(ei-rebuild PRIVATE include src)
 target_link_libraries(ei-rebuild PRIVATE ei_render)
@@ -220,16 +206,13 @@ if(EI_HARNESS)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
 endif()
-# The game code built for SSE2 (EI_SSE2_GAME_SOURCES above): a library, whole (every object, as if listed),
-# whose objects the linker takes after all of the exe's own. An inline function that files of both kinds keep out of
-# line is taken from the first object that defines it, so the x87 code always gets its x87 copy.
-add_library(ei_sse2 STATIC ${EI_SSE2_GAME_SOURCES})
-set_target_properties(ei_sse2 PROPERTIES EI_SSE2 ON)
-target_include_directories(ei_sse2 PRIVATE include src)
-target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_sse2>")
+# The game code: a library, whole (every object, as if listed: the static objects' initialisers too).
+add_library(ei_game STATIC ${EI_GAME_SOURCES})
+target_include_directories(ei_game PRIVATE include src)
+target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
 target_compile_definitions(ei-rebuild PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
-target_compile_definitions(ei_sse2 PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
+target_compile_definitions(ei_game PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
 # gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
 # them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
@@ -263,9 +246,7 @@ endif()
 add_executable(ei_launch tools/launcher/launch.cpp)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
-# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it. The game files are built as
-# the game builds them: those of EI_X87_GAME_SOURCES in the executable for x87, the others for SSE2 in a library
-# linked whole after its objects (as ei_sse2, so the x87 code keeps its x87 copies of the inline functions).
+# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.
 file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 set(EI_VECTORS_GAME_SOURCES
     src/game/ai_block_search.cpp
@@ -308,7 +289,7 @@ set(EI_VECTORS_GAME_SOURCES
     src/game/unit_stats.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
-    src/lib/crt_x87.cpp
+    src/lib/crt_maths.cpp
     src/lib/file_io.cpp
     src/lib/gameapi.cpp
     src/lib/hash_map.cpp
@@ -317,19 +298,10 @@ set(EI_VECTORS_GAME_SOURCES
     src/lib/str.cpp
     src/lib/text_case.cpp)
 list(TRANSFORM EI_VECTORS_GAME_SOURCES PREPEND "${CMAKE_SOURCE_DIR}/")
-set(EI_VECTORS_SSE2_SOURCES ${EI_VECTORS_GAME_SOURCES})
-list(REMOVE_ITEM EI_VECTORS_SSE2_SOURCES ${EI_X87_GAME_SOURCES})
-set(EI_VECTORS_X87_SOURCES ${EI_VECTORS_GAME_SOURCES})
-list(REMOVE_ITEM EI_VECTORS_X87_SOURCES ${EI_VECTORS_SSE2_SOURCES})
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
-add_library(ei_vectors_sse2 STATIC ${EI_VECTORS_SSE2_SOURCES})
-set_target_properties(ei_vectors_sse2 PROPERTIES EI_SSE2 ON)
-target_include_directories(ei_vectors_sse2 PRIVATE include src)
-target_compile_definitions(ei_vectors_sse2 PRIVATE EI_VECTORS_REPLAY)
-add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_X87_SOURCES})
+add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_GAME_SOURCES})
 target_include_directories(ei_vectors PRIVATE include src)
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
-target_link_libraries(ei_vectors PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_vectors_sse2>")
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

@@ -27,6 +27,8 @@ constexpr DD kHalfPi{0x1.921fb54442d18p+0, 0x1.1a62633145c07p-54};
 constexpr DD kLn2x87{0x1.62e42fefa39efp-1, 0x1.ac00000000000p-56};
 constexpr DD kLg2x87{0x1.34413509f79ffp-2, -0x1.9c00000000000p-59};
 constexpr DD kL2Ex87{0x1.71547652b82fep+0, 0x1.7800000000000p-56};
+// 1 / ln 2.
+constexpr DD kLog2E{0x1.71547652b82fep+0, 0x1.777d0ffda0d24p-56};
 // FLDLN2 / ln 2 and FLDLG2 / ln 2: ln m to FYL2X's ln 2 * log2 m and log10 2 * log2 m.
 constexpr DD kLnScale{0x1.0000000000000p+0, 0x1.384291b5ee917p-66};
 constexpr DD kLgScale{0x1.bcb7b1526e50ep-2, 0x1.95d79bcb584bcp-57};
@@ -208,6 +210,12 @@ double Round24(DD v) {
 // float can be a tie the next operation breaks to even.
 DD Round64(DD v) {
     if (v.hi == 0.0 || !std::isfinite(v.hi)) return v;
+    // Near the bottom of the double range the unit would not be a double: rounded 2^128 higher (pow's y log2 x for a
+    // tiny y; a float argument is far above).
+    if (std::fabs(v.hi) < 0x1p-900) {
+        const DD up = Round64({v.hi * 0x1p128, v.lo * 0x1p128});
+        return {up.hi * 0x1p-128, up.lo * 0x1p-128};
+    }
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(v.hi);
     double unit = std::bit_cast<double>(((bits >> 52 & 0x7FF) - 63) << 52);   // hi's ulp / 2^11
     // A power of two with lo toward zero: the value is in the binade below.
@@ -338,6 +346,12 @@ DD AtanUnit(DD t) {
     return AddDD(kAtanTable[j], AddDD(u, MulDD(MulDD(u, z), Series(z, kAtanHead, kAtanTail))));
 }
 
+// ln m for sqrt(1/2) <= m < sqrt(2): 2s + 2s z L(z), s = (m - 1) / (m + 1).
+DD LnNearOne(DD s) {
+    const DD z = MulDD(s, s);
+    return MulDD(AddDD(s, MulDD(MulDD(s, z), Series(z, kLogHead, kLogTail))), 2.0);
+}
+
 // ln x scaled: e * intScale + ln m * mScale, x = m 2^e with sqrt(1/2) <= m < sqrt(2).
 Unrounded LogScaled(float x, DD intScale, DD mScale) {
     if (std::isnan(x)) return static_cast<double>(x);
@@ -358,14 +372,15 @@ Unrounded LogScaled(float x, DD intScale, DD mScale) {
         m *= 0.5;
         ++e;
     }
-    const DD s = DivDD(m - 1.0, m + 1.0);
-    const DD z = MulDD(s, s);
-    const DD lnM = MulDD(AddDD(s, MulDD(MulDD(s, z), Series(z, kLogHead, kLogTail))), 2.0);
+    const DD lnM = LnNearOne(DivDD(m - 1.0, m + 1.0));
     return Round64(AddDD(MulDD(static_cast<double>(e), intScale), MulDD(lnM, mScale)));
 }
 
 // e^w - 1, |w| <= 0.35.
 DD ExpMinusOne(DD w) { return AddDD(w, MulDD(MulDD(w, w), Series(w, kExpHead, kExpTail))); }
+
+// F2XM1 of a fraction f (|f| <= 1/2), then FLD1, FADDP at PC24: 2^f rounded to 24 bits.
+double TwoToFraction(double f) { return Round24(AddDD(1.0, Round64(ExpMinusOne(MulDD(f, kLn2))))); }
 
 // g * 2^n for an integer n (FSCALE), in steps that stay exact while the result is a normal double.
 double Scale(double g, double n) {
@@ -403,10 +418,31 @@ float Exp(float x) {
     // FRNDINT (ties to even; from 2^51 up t is an integer), FSUB: the fraction, exact.
     const double n = std::fabs(t) < 0x1p51 ? (t + 0x1.8p52) - 0x1.8p52 : t;
     const double f = t - n;
-    // F2XM1, FLD1, FADDP: 2^f rounded at PC24.
-    const double g = Round24(AddDD(1.0, Round64(ExpMinusOne(MulDD(f, kLn2)))));
-    // FSCALE, then the store.
-    return static_cast<float>(Scale(g, n));
+    // F2XM1, FLD1, FADDP: 2^f rounded at PC24; FSCALE, then the store.
+    return static_cast<float>(Scale(TwoToFraction(f), n));
+}
+
+Unrounded Log2Times(double y, double x) {
+    // x = m 2^e, sqrt(1/2) <= m < sqrt(2) (frexp is exact, a denormal's too): log2 x = e + ln m / ln 2.
+    int e = 0;
+    double m = std::frexp(x, &e);
+    if (m < 0x1.6a09e667f3bcdp-1) {
+        m *= 2.0;
+        --e;
+    }
+    const DD log2x = AddDD(static_cast<double>(e), MulDD(LnNearOne(DivDD(m - 1.0, TwoSum(m, 1.0))), kLog2E));
+    // Far beyond the pow's range the plain product says enough (and the splitting would overflow).
+    const double plain = log2x.hi * y;
+    if (!(std::fabs(plain) < 0x1p60)) return plain;
+    return Round64(MulDD(log2x, y));
+}
+
+PowerOfTwo TwoToThe(Unrounded t) {
+    // FRNDINT (ties to even, of the whole 64-bit value), then FSUBR, FCHS: t - n rounded at PC24.
+    double n = (t.hi + 0x1.8p52) - 0x1.8p52;
+    if (std::fabs(t.hi - n) == 0.5 && t.lo != 0.0) n = t.hi + (t.lo > 0.0 ? 0.5 : -0.5);
+    const double f = Round24(AddDD(t, -n));
+    return {static_cast<float>(TwoToFraction(f)), static_cast<int>(n)};
 }
 
 float Round(Unrounded value) { return StoreRegister(value); }

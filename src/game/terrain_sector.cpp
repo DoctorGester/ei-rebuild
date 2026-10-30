@@ -383,7 +383,7 @@ void SectorData::Build() {
     }
     for (int i = 0; i < std::ssize(records); ++i) {
         if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
-        records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
+        records[i].specular = PackArgb(owner->EdgeFadeDown(vertices[i]), 0, 0, 0);
     }
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU
 }

@@ -7,7 +7,6 @@
 
 #include "../hook/log.h"
 #include "ei/hook.h"
-#include "ei/x87.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -912,10 +911,12 @@ void Fatal(const char* format, ...) {
 
 // The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
 // drivers are not expected to change it, but the control word is put back after every call into them anyway
-// (loaded only when it changed).
-FpuGuard::FpuGuard() : saved(x87::ControlWord()) {}
+// (set only when it changed).
+FpuGuard::FpuGuard() { __control87_2(0, 0, &saved, nullptr); }
 FpuGuard::~FpuGuard() {
-    if (x87::ControlWord() != saved) x87::SetControlWord(saved);
+    unsigned int now = 0;
+    __control87_2(0, 0, &now, nullptr);
+    if (now != saved) __control87_2(saved, _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC, &now, nullptr);
 }
 
 Frame g_frame;

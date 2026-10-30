@@ -90,8 +90,10 @@ public:
     void SetWaterLevel(int material, float level);
 
     // With LandscapeFlag::EdgeFade: 255, less 255 * depth / fade for a point `depth` inside the fade band
-    // (MapEdgeFade, plus one cell) of the map's borders, corners by the distance.
+    // (MapEdgeFade, plus one cell) of the map's borders, corners by the distance; that product rounded to nearest
+    // (ties to even), or down (EdgeFadeDown: the sector build, which the original ran under chop rounding).
     std::uint8_t EdgeFade(const Vector3& point);
+    std::uint8_t EdgeFadeDown(const Vector3& point);
 
     // Texture class (sound / prints material): the water tile's when the point is under water, 8 outside the
     // map.

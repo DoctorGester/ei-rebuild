@@ -13,17 +13,14 @@
 // Evaluation. The build is /fp:precise (/fp:fast regrouped an inlined sum with the caller's
 // expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ..., verify_vecmath.cpp caught it), so the
 // grouping written here is kept. Each helper's float results are rounded to float when
-// returned (as a store to a float would round them). On the game's main thread (x87 at 24-bit precision)
-// every operation already rounds to a float significand, so this gives the game's bits; on 53-bit threads it
-// is plain float maths, not the game's (code there stays written out, docs/notes/vector-math.md). Square
-// roots use std::sqrt (the square root at the precision control on this x87 target; cast a float argument to double
-// first: std::sqrt(float) is sqrtf). Transcendentals (Atan2, libcrt::CiAcos / CiAsin) return the x87 result
-// unrounded as `double`, like FPATAN and the game's CRT; where the game stores the result to a float, round it
-// with static_cast<float> (ticket X3: an unrounded angle flipped a quaternion's sign).
-
-#include "ei/x87.h"
+// returned. The original's main thread ran its x87 at 24-bit precision, where every operation rounds to a float
+// significand: float maths gives the game's bits (code of its 53-bit threads stays written out,
+// docs/notes/vector-math.md). Square roots use std::sqrt (of a float: sqrtf). The game CRT's arc cosine and sine
+// (libcrt::CiAcos / CiAsin) return a double; where the game stores the result to a float, round it with
+// static_cast<float> (an unrounded angle flipped a quaternion's sign).
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 
 // ---- Constants -----------------------------------------------------------------------------------
@@ -114,12 +111,6 @@ static_assert(sizeof(Matrix4) == 64);
 // The grouping of a 3-term sum (see the top of this file).
 enum class Sum3 { XYZ, ZYX, ZXY };
 
-// ---- Transcendentals (the results stay unrounded) ------------------------------------------------
-
-// atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control). acos / asin are the game
-// CRT's, libcrt::CiAcos / CiAsin (crt.h), unrounded too.
-__forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
-
 // ---- Arithmetic (the grouping written here is kept) ----------------------------------------------
 
 // Vector2: per component; each component is one operation.
@@ -167,16 +158,6 @@ __forceinline Vector3 Cross(const Vector3& a, const Vector3& b) {
 // Linear interpolation: (b - a) * t + a.
 __forceinline float Lerp(float a, float b, float t) { return (b - a) * t + a; }
 __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
-
-// A product of float operands left to right, ((a * b) * c) * ..., as a chain of FMULs:
-// /fp:fast regroups a product with a repeated factor (`a * b * d * d` became
-// `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
-// unrounded (as `double`): round it with static_cast<float> where the game
-// stores it; an intermediate store would also lose an underflowing product (a denormal factor).
-template <typename... Rest>
-__forceinline double Product(float first, Rest... rest) {
-    return (static_cast<double>(first) * ... * rest);
-}
 
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
 // template named Dot would make `&Dot`, the registered function's address, ambiguous); the named
@@ -308,16 +289,11 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
             (q.w * q.w - ((q.x * q.x + q.y * q.y) + q.z * q.z)) + q.z * q.z * 2.0f};
 }
 
-// ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
-// The game keeps many 2D differences and sums on the FPU stack and compares or uses the unrounded value
-// (the AI's target scoring returns it). The precise helpers above round their result through memory; these do not:
-// compiled without precise semantics, an inlined body is the same code as the expression written out in the
-// caller (no store and reload of the differences or the sum). T is the type the site computes in: `double` where
-// the source keeps the x87 value (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only
-// 2-term sums (one result in every order) are used, so the caller's expression may regroup around them as
-// /fp:fast does with written-out code: use them for a sum that is compared, stored or passed on as a whole. Kept:
-// removing this pragma changes the code of 39 objects (the sums get rounded through memory).
-#pragma float_control(precise, off, push)
+// ---- Register forms ----------------------------------------------------------------------------
+// The 2D differences and sums, and the 3- and 4-term dots, the game kept on its FPU stack and compared or used as they
+// were (the AI's target scoring returns one): at its 24-bit precision each operation rounded to a float significand,
+// so they are float maths in the grouping written here, T the type the site computes in. ("Unrounded": on the x87
+// build a helper above rounded its result through memory and these, compiled without precise semantics, did not.)
 
 template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
@@ -351,9 +327,7 @@ __forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
 template <Sum3 O, typename T>
 __forceinline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
 
-// The Vector3 forms (V3d; LengthSquaredUnrounded<Sum3::XYZ, double>(v)). `double` gives a precise
-// region's unrounded product: a float-typed one there rounds the result on return. T defaults to
-// float for /fp:fast callers (V3e).
+// The Vector3 forms (V3d), in float unless the site names T.
 template <Sum3 O, typename T = float>
 __forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
 
@@ -367,8 +341,8 @@ __forceinline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
            static_cast<T>(a.x) * b.x;
 }
 
-// A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the
-// copies of Quaternion::AxisX that keep them on the FPU).
+// A rotated axis of a quaternion with its components in T (AxisXUnrounded: the copies of Quaternion::AxisX that
+// kept them on the FPU).
 template <typename T>
 struct AxisUnrounded {
     T x, y, z;
@@ -387,4 +361,3 @@ __forceinline AxisUnrounded<T> AxisXUnrounded(const Quaternion& q) {
     return {ax, ay, az};
 }
 
-#pragma float_control(pop)

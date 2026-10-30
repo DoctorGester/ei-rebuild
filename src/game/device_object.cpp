@@ -65,7 +65,10 @@ TextureDevice::TextureDevice(HWND newWindow, bool newFullScreen, int width, int 
     }
 
     // The game's Direct3D 7 device set the calling thread's x87 precision to 24 bits (the game asked for
-    // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
+    // DDSCL_FPUSETUP). The game code is SSE2 code, but the precision still counts: MSVC's 32-bit code gets a float
+    // result back on the x87 register stack and may do the next operations there (a product plus one, a dot's sums),
+    // which give float maths' result only at 24 bits; and the DLLs with x87 code (Miles, Bink) compute as they did
+    // in the original (docs/notes/cleanup-tooling.md, "The control word").
     unsigned int x87 = 0;
     __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
 }

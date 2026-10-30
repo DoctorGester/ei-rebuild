@@ -25,8 +25,8 @@
 
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/pc24.h"
 #include "lib/file_io.h"
 #include "lib/text_case.h"
 #include "text_split.h"
@@ -68,14 +68,6 @@ constinit DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
 namespace {
 
-
-// Constants of the exe, read when they are used (a literal could be folded at another precision).
-// A step of a float expression kept apart from the next: the value passes through a double, which
-// holds any result at the precisions the game runs at (53 bits before the device object is made, 24 after).
-double Step(double value) {
-    volatile double kept = value;
-    return kept;
-}
 
 // ---- The application's globals ---------------------------------------------------------------------
 
@@ -231,7 +223,7 @@ void DriveRoot(const char* path, PathParts& parts) {
 }
 
 // The free bytes on the drive of `folder` through GetDiskFreeSpaceExA where kernel32 has it, else
-// from the cluster counts. False when the call fails.
+// from the cluster counts (double maths: start-up runs before the device, at 53 bits). False when the call fails.
 bool FreeDiskSpace(const char* folder, double* freeBytes) {
     PathParts parts;
     DriveRoot(folder, parts);
@@ -241,12 +233,12 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
     if (extended) {
         ULARGE_INTEGER available, total, totalFree;
         const BOOL ok = extended(parts.drive, &available, &total, &totalFree);
-        *freeBytes = Step(static_cast<double>(static_cast<std::int64_t>(available.QuadPart)));
+        *freeBytes = static_cast<double>(static_cast<std::int64_t>(available.QuadPart));
         return ok != 0;
     }
     DWORD sectorsPerCluster, bytesPerSector, freeClusters, clusters;
     const BOOL ok = gameapi::GetDiskFreeSpaceA(parts.drive, &sectorsPerCluster, &bytesPerSector, &freeClusters, &clusters);
-    *freeBytes = Step(x87::FromUnsigned(sectorsPerCluster) * x87::FromUnsigned(bytesPerSector)) * x87::FromUnsigned(freeClusters);
+    *freeBytes = static_cast<double>(sectorsPerCluster) * bytesPerSector * freeClusters;
     return ok != 0;
 }
 
@@ -358,11 +350,9 @@ constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;
 constexpr int kLongestPassTicks = 5;
 
-// The world tick's length in milliseconds and the factor from milliseconds to the camera's time (1 / 55).
+// The world tick's length in milliseconds, and milliseconds in the camera's time: times 1 / 55, one 24-bit rounding.
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
-float CameraSeconds(std::uint32_t milliseconds) {
-    return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f);
-}
+float CameraSeconds(std::uint32_t milliseconds) { return pc24::Mul(static_cast<double>(milliseconds), 0.018181818f); }
 
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
@@ -441,17 +431,16 @@ bool RunWorlds() {
 // The client's speed for the next pass from how far it is behind the server: `balance` is the
 // number of waiting server updates less the part of a tick the client has left. Behind (negative),
 // it is e^(balance / 10); up to one update ahead, 1; further ahead, 1 + (sqrt(balance) - 1) / 10
-// (x87 order of operations: the goldens depend on it). Kept within 0.1 .. 10.
-float SpeedForBalance(double balance, float rounded) {
-    double speed;
+// (float maths in the original's order: the goldens depend on it; e^x is VC6's inline exp). Kept within 0.1 .. 10.
+float SpeedForBalance(float balance) {
+    float result;
     if (balance < 0.0f) {
-        speed = x87::fexp(Step(rounded * 0.1f));
-    } else if (rounded > 1.0f) {
-        speed = Step(Step(std::sqrt(rounded) * 0.1f) + 1.0f) - 0.1f;
+        result = pc24::Exp(balance * kOneTenth);
+    } else if (balance > 1.0f) {
+        result = (std::sqrt(balance) * kOneTenth + 1.0f) - kOneTenth;
     } else {
-        speed = 1.0f;   // also NaN
+        result = 1.0f;   // also NaN
     }
-    float result = static_cast<float>(speed);
     result = result >= kSlowest ? result : kSlowest;
     if (kFastest < result) result = kFastest;
     return result;
@@ -481,23 +470,25 @@ bool RunPass() {
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(1000.0f / static_cast<double>(options::g_options.movieCapturingFps));
-        elapsed = libcrt::Ftol(std::ceil(frame));
+        const float frame = pc24::Div(1000.0, static_cast<double>(options::g_options.movieCapturingFps));
+        elapsed = static_cast<std::uint32_t>(static_cast<std::int64_t>(std::ceil(frame)));
     }
     g_serverBacklog += elapsed;
     if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;
-    g_clientBacklog =
-        libcrt::Ftol(Step(x87::FromUnsigned(elapsed) * g_clientSpeed) + static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
+    // The elapsed time at the client's speed plus the backlog (an int), each a 24-bit rounding, truncated as _ftol does.
+    const float backlog = pc24::Add(pc24::Mul(static_cast<double>(elapsed), g_clientSpeed),
+                                    static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
+    g_clientBacklog = static_cast<std::uint32_t>(static_cast<std::int64_t>(backlog));
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
         g_gameFlow.ProcessRequest();
-        const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
+        const float fraction =
+            pc24::Div(static_cast<double>(g_clientBacklog), static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused) client->tickFraction = fraction;
-        const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
-        const float roundedBalance = static_cast<float>(balance);
-        g_clientSpeed = SpeedForBalance(balance, roundedBalance);
-        if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, roundedBalance);
+        const float balance = pc24::Sub(static_cast<double>(client->PumpIncomingCount()), fraction);
+        g_clientSpeed = SpeedForBalance(balance);
+        if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, balance);
 
         // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
         // step over the part of the next tick the client has had (camera::DrawnView).
@@ -512,9 +503,9 @@ bool RunPass() {
         FrameCameraUpdate(camera, CameraSeconds(elapsed));
         if (!client->paused) {
             if (camera->flags & Camera::kRecording)
-                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction)));
+                camera->RecordFrame(std::bit_cast<std::uint32_t>(pc24::Add(static_cast<double>(client->tick), client->tickFraction)));
             if (camera->flags & Camera::kPlaying)
-                camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction));
+                camera->PlaybackStep(pc24::Add(static_cast<double>(client->tick), client->tickFraction));
         }
     }
     g_interface.Update();

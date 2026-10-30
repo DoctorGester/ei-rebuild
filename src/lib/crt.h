@@ -15,9 +15,6 @@
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
 namespace libcrt {
 
-// The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
-// truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
-inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
@@ -44,16 +41,17 @@ unsigned& RandState();
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.
 std::string Format(const char* format, va_list args);
 
-// The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
-// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of the domain: the
-// x87 indefinite. CiAcos and CiAsin are also acos asin themselves (the stack-argument entries).
+// The maths as the CRT computes it on the game's main thread (x87 at 24-bit precision, rounding to nearest;
+// crt_maths.cpp, in SSE2 code): acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 /
+// FSCALE. Out of the domain: the x87 indefinite. CiAcos and CiAsin are also acos asin themselves (the stack-argument
+// entries).
 double CiAcos(double x);
 double CiAsin(double x);
 double CiPow(double x, double y);
 // _hypot (the camera, the strips, the client maps): the larger size m of |x| and |y| times the root of
 // (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double, as _hypothlp computes it under its
-// control word 133F (to nearest) whatever the caller's; an overflow as the caller's rounding direction has
-// it, a NaN argument as x87 addition propagates it, an infinity otherwise +infinity.
+// control word 133F (to nearest); an overflow +infinity, a NaN argument as x87 addition propagates it, an
+// infinity otherwise +infinity.
 double Hypot(double x, double y);
 
 } // namespace libcrt
