@@ -563,6 +563,20 @@ void PinnedMissing(const char* path, const char* name) {
 enum class Mode { ReadOnly, Writable, Defaults };
 Mode g_mode = Mode::ReadOnly;
 
+// The scenario's "treeresolution game|starter <W>x<H>": the VideoResolution of the game's option tree, or of Rebirth's
+// starter tree, in the image's file in place of the starter lines' answer (so the two trees differ).
+constexpr const char* kTreePrefix[2] = {"software\\nival interactive\\evilislands\\", "software\\gipat.ru\\ei_starter\\evilislands\\"};
+std::string g_treeResolution[2];
+
+const std::string* TreeResolution(const std::string& path, const std::string& name) {
+    if (_stricmp(name.c_str(), "VideoResolution") != 0) return nullptr;
+    const std::string lower = Lower(path + "\\");
+    for (int tree = 0; tree < 2; ++tree)
+        if (!g_treeResolution[tree].empty() && lower.compare(0, std::strlen(kTreePrefix[tree]), kTreePrefix[tree]) == 0)
+            return &g_treeResolution[tree];
+    return nullptr;
+}
+
 // Values of every kind in a key of the game's tree (so the game keeps them as it keeps what it does not know), for
 // the save to carry as they are.
 void AddProbeKey(std::vector<image::SettingsValue>& document) {
@@ -595,7 +609,9 @@ void PinSettingsFile() {
         for (const auto& [lowerName, value] : key.values) {
             unsigned long type, size, dword;
             const unsigned char* data;
-            if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
+            if (const std::string* tree = TreeResolution(path, value.name)) {
+                document.push_back({path, true, value.name, REG_SZ, *tree + std::string(1, '\0')});
+            } else if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
                 document.push_back({path, true, value.name, type, std::string(reinterpret_cast<const char*>(data), size)});
             } else if (!value.absent) {
                 document.push_back({path, true, value.name, value.type, std::string(value.data.begin(), value.data.end())});
@@ -632,6 +648,17 @@ void PinSettingsFile() {
 } // namespace
 
 bool ParseStep(const std::string& verb, const std::string& argument) {
+    if (verb == "treeresolution") {
+        const std::size_t space = argument.find(' ');
+        const std::string tree = argument.substr(0, space);
+        const std::string size = space == std::string::npos ? std::string() : argument.substr(space + 1);
+        int w = 0, h = 0;
+        if ((tree != "game" && tree != "starter") || sscanf_s(size.c_str(), "%dx%d", &w, &h) != 2)
+            Problem("treeresolution needs game|starter and WxH");
+        else
+            g_treeResolution[tree == "game" ? 0 : 1] = size;
+        return true;
+    }
     if (verb != "settingsfile") return false;
     if (argument == "writable") g_mode = Mode::Writable;
     else if (argument == "defaults") g_mode = Mode::Defaults;

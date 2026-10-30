@@ -280,7 +280,8 @@ CalcGroup's has 7 stolen bytes); the rest ours only with state checks.
 ### WideScreen
 
 addon computes its layout once, when it applies its patches (before WinMain), from the starter's registry settings, not from the game's
-screen: `Settings\WideScreen` (DWORD, 1 when absent) and `EvilIslands\General Settings\VIDEORESOLUTION` (`"%dx%d"`). For a mode that
+screen: `Settings\WideScreen` (DWORD, 1 when absent) and `EvilIslands\General Settings\VIDEORESOLUTION` (`"%dx%d"`; the rebuild
+takes the resolution the game loaded instead, the same value). For a mode that
 passes its checks (at least 800x600, wider than 4:3) the 4:3 part `width43 = H * 800 / 600` keeps the 800x600 layout in the middle, the
 margins `(W - width43) / 2` pixels on either side, `extra = ceil((float)(margin * 800.0 / width43))` layout units (at WinMain's 53-bit FPU
 precision). It writes `800 + extra` to 00742B08 and `695 + extra` to 007428AC, scales layout to screen with the margin added and screen to
@@ -425,8 +426,10 @@ absent) and the starter's EvilIslands\General Settings\VIDEORESOLUTION ("WxH") a
 addon widens the 800x600 interface layout: the 4:3 part of the screen keeps the 800x600 layout in the middle
 (width43 = H * 800 / 600 pixels) and the margins left and right of it (margin pixels each) add `extra`
 layout units on either side. addon computes these once, when it applies its patches before WinMain, from
-the registry (not from the game's screen), and so does this module (Startup, before the hooks are
-installed). Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
+the registry (not from the game's screen). This module computes them once as well (widescreen::Configure, in
+GameMain right after the options load), from the resolution the game loaded: the same value addon reads on Rebirth's
+data (both read the starter's tree), and on the original's data the game's own tree (tests/scenarios/ui_widescreen_trees.txt).
+Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
 scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
 them without it; every one is without the margin when called with ECX 0), UiRegion::SetRect / AddPoint and
 the sprites' Place (x + the panel offset); the sprite shapes (x moved by the panel offset), the text extent
