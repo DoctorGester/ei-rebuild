@@ -4,6 +4,7 @@
 #include "game/settings.h"
 #include "hook/log.h"
 #include "hook/rebirth_hook.h"
+#include "lib/text_case.h"
 #include "platform/platform.h"
 
 #include <cstring>
@@ -48,9 +49,11 @@ void ApplyPatchSetting(const ::settings::Document::Line& line) {
     rebirth::Patch patch;
     int number = 0;
     bool on = false;
-    if (_stricmp(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value.c_str());
-    else if (_stricmp(name, "NPlayers") == 0 && ::settings::ParseInt(value, &number)) rebirth::SetPluginNPlayers(number);
-    else if (_stricmp(name, "Pause") == 0 && ::settings::ParseInt(value, &number)) rebirth::SetPluginPause(number);
+    if (text::CompareIgnoringCase(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value);
+    else if (text::CompareIgnoringCase(name, "NPlayers") == 0 && ::settings::ParseInt(value, &number))
+        rebirth::SetPluginNPlayers(number);
+    else if (text::CompareIgnoringCase(name, "Pause") == 0 && ::settings::ParseInt(value, &number))
+        rebirth::SetPluginPause(number);
     else if (rebirth::FromName(name, &patch) && ::settings::ParseBool(value, &on)) rebirth::Set(patch, on);
     else Log("Rebirth: [%s] %s = %s is not understood: left out", ::settings::kPatches, name, value.c_str());
 }
@@ -83,8 +86,8 @@ void LoadRebirthSettings() {
     const std::vector<::settings::Document::Line> lines = ::settings::GetLines(::settings::kPatches);
     for (const ::settings::Document::Line& line : lines) ApplyPatchSetting(line);
     if (!lines.empty()) rebirth::ApplyOverrides();
-    if (const char* master = rebirth::PluginSecondMaster(); master[0])
-        Log("Rebirth: NewMaster's second master server: %s", master);
+    if (const std::string& master = rebirth::PluginSecondMaster(); !master.empty())
+        Log("Rebirth: NewMaster's second master server: %s", master.c_str());
     rebirth_hook::LogFlags();
 }
 

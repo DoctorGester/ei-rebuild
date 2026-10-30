@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <new>
 #include <string>
@@ -105,7 +106,8 @@ ResConfig ReadResConfig() {
                                               "materials.res", "outro.res", "redress.res", "sfx.res",
                                               "speech.res", "texts.res", "textsLmp.res", "textures.res"};
     for (const char* name : kOverridden) {
-        const std::string key = Lower(_stricmp("speech.res", name) == 0 ? cd + "Res\\" + name : resources + name);
+        const std::string key =
+            Lower(text::CompareIgnoringCase("speech.res", name) == 0 ? cd + "Res\\" + name : resources + name);
         std::vector<std::string> paths;
         for (const std::string& value : ResValues(registry, name)) {
             if (!value.empty() && value[0] == '-')
@@ -236,7 +238,7 @@ void OnOpenResource(MappedResource* res, const std::string& path) {
     LoadModArchives();
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
     char lower[kPathBytes];
-    strncpy_s(lower, path.c_str(), _TRUNCATE);
+    std::snprintf(lower, sizeof(lower), "%s", path.c_str());
     text::LowerInPlace(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
@@ -294,7 +296,7 @@ void SelectMaps(std::string_view name, MapsSite site) {
     // 1001B2AC: _stricmp against every name.
     g_mapsInMod = false;
     for (const std::string& listed : maps.names) {
-        if (listed.size() == name.size() && _strnicmp(listed.data(), name.data(), name.size()) == 0) {
+        if (listed.size() == name.size() && text::CompareIgnoringCase(listed.data(), name.data(), name.size()) == 0) {
             g_mapsInMod = true;
             return;
         }

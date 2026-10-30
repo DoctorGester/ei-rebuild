@@ -25,7 +25,6 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <unknwn.h>
 #include <vector>
 
 namespace app {

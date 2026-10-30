@@ -153,8 +153,6 @@ void RegionMap::AttachSearches() {
 // rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
 // docs/notes/ai.md.
 
-extern "C" int _purecall();
-
 // ---- Constructors ---------------------------------------------------------------------------------
 
 LocalSearch::LocalSearch() {

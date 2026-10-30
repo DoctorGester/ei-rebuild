@@ -4,6 +4,8 @@
 #include "model.h"
 #include "ui.h"
 
+#include <cstdlib>
+
 // --- Construction and destruction --------------------------------------------------------------
 
 UiContainer::~UiContainer() {
@@ -12,11 +14,9 @@ UiContainer::~UiContainer() {
     children.clear();
 }
 
-extern "C" int _purecall();
-
 // Pure: a screen that does not override CreateScreen never gets on the screen.
-void UiContainer::CreateScreen() { _purecall(); }
-void UiContainer::CloseScreen() { _purecall(); }
+void UiContainer::CreateScreen() { std::abort(); }
+void UiContainer::CloseScreen() { std::abort(); }
 
 void UiContainer::AddInput(UiInputSide* input) {
     if (input) inputs.push_back(input);

@@ -1374,7 +1374,7 @@ void SoundManager::StreamThread() {
 }
 
 // The stream thread's procedure: the manager's StreamThread, then 0.
-unsigned __stdcall StreamThreadEntry(void* manager) {
+unsigned StreamThreadEntry(void* manager) {
     auto* self = static_cast<SoundManager*>(manager);
     self->StreamThread();
     self->streamStopped.Set();

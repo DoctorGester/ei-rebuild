@@ -45,6 +45,9 @@ struct DateTime {
 };
 // The local date and time now.
 DateTime LocalTime();
+// strftime of the local time of `seconds` since 1970 UTC (a save's date) in at most 127 characters; empty when it has
+// no local time or does not fit.
+std::string FormatLocalTime(std::int32_t seconds, const char* format);
 
 // ==== Output for a developer =========================================================================================
 
@@ -257,8 +260,6 @@ public:
     // The low dword of the size.
     unsigned long GetLength() const;
     bool IsDirectory() const;
-    bool IsHidden() const;
-    bool IsSystem() const;
     // "." or "..".
     bool IsDots() const;
 
@@ -300,7 +301,7 @@ int IniInt(const char* section, const char* key, int defaultValue, const char* p
 // Worker threads and events. A lock is a std::recursive_mutex (a critical section is
 // recursive); a thread's end is waited for with a Signal, whose calls stay on the import slots the harness traces.
 
-using ThreadProcedure = unsigned(__stdcall*)(void* parameter);
+using ThreadProcedure = unsigned (*)(void* parameter);
 
 // A thread made as MFC's AfxBeginThread did: created suspended, the priority set (SetThreadPriority's values: 2 is
 // the highest), then running. It ends when the procedure returns. Closing it (or destroying the object) lets go of

@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -53,6 +54,23 @@ std::string Utf8(std::wstring_view wide) {
 } // namespace
 
 } // namespace platform::win32
+
+// ==== Clocks =========================================================================================================
+
+// The C library's local time (the clocks themselves are the window layer's: platform_sdl.cpp,
+// platform_win32_window.cpp).
+
+namespace platform {
+
+std::string FormatLocalTime(std::int32_t seconds, const char* format) {
+    char text[128];
+    std::tm local{};
+    const std::time_t time = seconds;
+    if (localtime_s(&local, &time) != 0 || std::strftime(text, sizeof(text), format, &local) == 0) text[0] = '\0';
+    return text;
+}
+
+} // namespace platform
 
 // ==== Output for a developer =========================================================================================
 
@@ -489,8 +507,6 @@ std::string FileFind::GetTitle() const {
 unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
 
 bool FileFind::IsDirectory() const { return hasFound && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0; }
-bool FileFind::IsHidden() const { return hasFound && (attributes & FILE_ATTRIBUTE_HIDDEN) != 0; }
-bool FileFind::IsSystem() const { return hasFound && (attributes & FILE_ATTRIBUTE_SYSTEM) != 0; }
 
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 

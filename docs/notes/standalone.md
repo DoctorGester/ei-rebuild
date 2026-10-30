@@ -408,7 +408,7 @@ kinds given.
     `__lc_category` 00797888 with the static "C" 00797778, getqloc's tables 00798914-00798BE8, `__rgcode_page_info`
     00797680-00797778, `_ctype` / `_pctype` / `_pwctype` 00797DD8-00797FE0 and the rest of the locale and multibyte
     state (C26: setlocale / _setmbcp are the host's), `__lc_time_curr` 00797A58 and
-    `__lc_time_c` 00797A60 (strftime / the time functions are the host's, lib/calendar.cpp), printf's "(null)" 0079804C /
+    `__lc_time_c` 00797A60 (strftime / the time functions are the host's, lib/calendar.cpp, platform::FormatLocalTime), printf's "(null)" 0079804C /
     00798050 (literals in crt_format.cpp), `_iob` 00798060 (its two cells to `_bufin`), getqloc's locale info table
     00798470 (27 rows of 0x2C, 54 cells; 006F5231 is its GetLocaleInfoA stand-in off NT, ours calls GetLocaleInfoA),
     the run-time error messages 0079AC30-0079ACBC (`_NMSG_WRITE`, not ported), `_tzname` 0079AD4C / 0079AD50 ("PST",
@@ -1083,8 +1083,8 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
 
 - **Locale** (C26, C34, C35b): the host CRT's "C" locale, never changed. The original's text manager Create 004DED20
   called setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
-  `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
-  the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's Format takes the C
+  `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5) and calls no multibyte function of
+  the host's (MAC3a: `_splitpath`, the last, is lib/path.h). Nothing reads the locale state: crt_format.cpp's Format takes the C
   locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
   resource strings are copied as bytes. ei_vectors checks the game's recorded point and class words against that
   ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
@@ -1100,8 +1100,8 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   also of _tcschr's sign-extended char) and ASCII's white space (a negative char has none). Checked old against new
   (C35i, the scratch mbs_equiv.cpp, not checked in: the host's _mbs* under the standalone's _MB_CP_SBCS and the byte
   functions side by side) on every char against texts of every byte and 2M random texts, sets and needles of ASCII
-  and high bytes: 4M answers, all the same. memmove, memcpy, memset, wcslen, atoi, _itoa and _splitpath (the last
-  user of the start-up's _MB_CP_SBCS) are the host's, called by their own names. Both suites goldens the same,
+  and high bytes: 4M answers, all the same. memmove, memcpy, memset, wcslen, atoi and _itoa are the host's, called by
+  their own names; _splitpath is lib::SplitPath (MAC3a). Both suites goldens the same,
   though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
   ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII,
@@ -1260,8 +1260,8 @@ ReadFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h
   them, only game.exe's static initialisers and exit functions built and destroyed them (gen_static_init.py's
   UNUSED_INITIALISERS). The harness's crash report reads a CArchiveException only in game.exe's runs. The game code's
   own message boxes of MFC's kind are app::ShowLibraryMessageBox.
-- **Replacements**: CTime is lib/calendar.h (VC6's time() from GetLocalTime through the import, `_mktime32`,
-  `_localtime32_s` / strftime); the GDI classes and handle maps are lib/gdi.h's gdi::Font / Pen / Brush (PointFont =
+- **Replacements**: CTime is lib/calendar.h (VC6's time() from GetLocalTime through the import, mktime in
+  `_mktime32`'s range) and platform::FormatLocalTime (the C library's local time and strftime); the GDI classes and handle maps are lib/gdi.h's gdi::Font / Pen / Brush (PointFont =
   CreatePointFont, FillSolidRect); the threads are platform::Thread (`_beginthreadex` suspended, the priority
   set, resumed, as AfxBeginThread); the new handler is libcrt::OperatorNew, which throws the CMemoryException itself.
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
@@ -1484,8 +1484,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   `tolower` / `toupper` change ASCII only, and `isalpha`, `isdigit`, `isspace`, `isprint`, `_ismbcdigit` and
   `_ismbcspace` give a byte past ASCII no class (code page 1252's `isspace(0xA0)`, the trail of "Р", would split
   words). There are no double-byte lead bytes (`_ismbblead`, `isleadbyte`, `_mbsinc`, `_mbclen`; `_mbscmp` and
-  `_mbsncmp` are byte compares; the standalone's start-up sets the host's `_MB_CP_SBCS` for `_splitpath` and the
-  other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
+  `_mbsncmp` are byte compares; `_splitpath` is lib::SplitPath), whatever the system's ANSI code page. The "Font CharSet" option is not used:
   `TextManager::Create` (004DED20) leaves LC_CTYPE "C". The game's `CharUpperA` / `CharLowerA` calls are the table's `UpperInPlace` / `LowerInPlace`. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
   names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call

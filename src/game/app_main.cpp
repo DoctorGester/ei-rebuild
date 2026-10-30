@@ -28,6 +28,7 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "lib/path.h"
 #include "lib/pc24.h"
 #include "platform/platform.h"
 #include "lib/text_case.h"
@@ -175,26 +176,11 @@ void RegisterWindowClass(platform::NativeInstance instance) {
     std::exit(-1);
 }
 
-struct PathParts {
-    char drive[0x80];
-    char directory[0x400];
-    char name[0x80];
-    char extension[0x80];
-};
-
 // "<drive>\." of `path`: the root the volume calls take.
-void DriveRoot(const char* path, PathParts& parts) {
-#pragma warning(suppress : 4996)
-    _splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
-    std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
-}
+std::string DriveRoot(const char* path) { return lib::SplitPath(path).drive + "\\."; }
 
 // The free bytes on the drive of `folder`; 0 when unknown.
-double FreeDiskSpace(const char* folder) {
-    PathParts parts;
-    DriveRoot(folder, parts);
-    return platform::FreeDiskSpace(parts.drive);
-}
+double FreeDiskSpace(const char* folder) { return platform::FreeDiskSpace(DriveRoot(folder).c_str()); }
 
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
@@ -211,9 +197,8 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     const double freeBytes = FreeDiskSpace(dataFolder.c_str());
     if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
-        PathParts parts;
-        DriveRoot(discFolder.c_str(), parts);
-        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(parts.drive)) != 0) {
+        const std::string root = DriveRoot(discFolder.c_str());
+        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(root.c_str())) != 0) {
             if (!WarningAccepted(messages[kInsertDisc])) return false;
         }
     }

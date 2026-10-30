@@ -11,18 +11,13 @@
 #include <string>
 
 #include "lib/crt.h"
+#include "lib/path.h"
 #include "platform/platform.h"
 
 #include <cstdlib>
 #include <new>
 
 namespace {
-
-// CRT and library routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) {
-#pragma warning(suppress : 4996)
-    _splitpath(path, drive, dir, name, ext);
-}
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -108,15 +103,15 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
         std::memcpy(name, names + entry.nameOffset, entry.nameLength);
         name[entry.nameLength] = '\0';
         if (pattern != nullptr) {
-            char nameDrive[4], patternDrive[4];
-            char nameDir[0x100], patternDir[0x100];
-            char nameBase[0x100], patternBase[0x100];
-            char nameExt[0x100], patternExt[0x100];
-            SplitPath(name, nameDrive, nameDir, nameBase, nameExt);
-            SplitPath(pattern, patternDrive, patternDir, patternBase, patternExt);
-            if (!PartMatches(nameDrive, patternDrive) || !PartMatches(nameDir, patternDir)) continue;
+            const lib::PathParts nameParts = lib::SplitPath(name);
+            const lib::PathParts patternParts = lib::SplitPath(pattern);
+            if (!PartMatches(nameParts.drive.c_str(), patternParts.drive.c_str()) ||
+                !PartMatches(nameParts.directory.c_str(), patternParts.directory.c_str()))
+                continue;
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
-            if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
+            if (WildcardMatch(nameParts.name.c_str(), patternParts.name.c_str(), 0) == 0 ||
+                WildcardMatch(nameParts.extension.c_str(), patternParts.extension.c_str(), 1) == 0)
+                continue;
         }
         fileNames.push_back(name);
     }

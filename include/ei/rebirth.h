@@ -28,6 +28,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 namespace ei::rebirth {
 
@@ -64,8 +66,8 @@ void SetPluginPause(int mode);
 // hat.gipath.org:28004): "host[:port]" (port 28004 when left out), from the settings file's [patches]
 // SecondMaster or a spec's "SecondMaster=<address>". Empty (the default, and every harness run that
 // does not name one): no second master at all, the game's own code (net_second_master.h).
-const char* PluginSecondMaster();
-void SetPluginSecondMaster(const char* address);
+const std::string& PluginSecondMaster();
+void SetPluginSecondMaster(std::string_view address);
 
 const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);

@@ -11,10 +11,10 @@
 #include "world_glue.h"
 
 #include "ei/rebirth.h"
-#include "lib/calendar.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
+#include "platform/platform.h"
 #include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -91,7 +91,7 @@ void SaveLoadWindow::RefreshListVanilla() {
             surface->DrawTextIn(entry.title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
         }
         if (!isSave || index != 0) {
-            const std::string date = lib::FormatTime(entry.savedAt, kDateFormat);
+            const std::string date = platform::FormatLocalTime(entry.savedAt, kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, render::text::kRight, 1);
         }
         rects::Offset(&titleRect, 0, kRowHeight);

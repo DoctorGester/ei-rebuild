@@ -16,20 +16,14 @@ std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int se
     at.tm_mon = month - 1;
     at.tm_year = year - 1900;
     at.tm_isdst = -1;
-    return static_cast<std::int32_t>(_mktime32(&at));
+    // _mktime32's range: -1 before 1970 and after 2038.
+    const std::time_t time = std::mktime(&at);
+    return time < 0 || time > INT32_MAX ? -1 : static_cast<std::int32_t>(time);
 }
 
 std::int32_t CurrentTime() {
     const platform::DateTime local = platform::LocalTime();
     return MakeTime(local.year, local.month, local.day, local.hour, local.minute, local.second);
-}
-
-std::string FormatTime(std::int32_t time, const char* format) {
-    char buffer[128];
-    std::tm at;
-    const __time32_t value = time;
-    if (_localtime32_s(&at, &value) != 0 || !std::strftime(buffer, sizeof(buffer), format, &at)) buffer[0] = '\0';
-    return buffer;
 }
 
 } // namespace lib
