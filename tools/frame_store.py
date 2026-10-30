@@ -180,8 +180,9 @@ def main():
     if args[0] == 'unpack':
         for p in args[1:]:
             plain = p[:-len(SUFFIX)] if p.endswith(SUFFIX) else p
+            data = read_frame(plain)        # before the open below creates the plain file read_frame looks for first
             with open(plain, 'wb') as f:
-                f.write(read_frame(plain))
+                f.write(data)
         return 0
     jobs = 4
     if args[1] == '--jobs':

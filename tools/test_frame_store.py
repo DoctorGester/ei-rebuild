@@ -53,6 +53,19 @@ class FrameStoreTest(unittest.TestCase):
         self.assertEqual(frame_store.read_frame(self.path('frames', 'a.bmp')), a)
         self.assertEqual(frame_store.pack_folder(self.path('frames')), (0, 0))      # nothing left to pack
 
+    def test_unpack_command(self):
+        data = bmp(120, 40)
+        with open(self.path('a.bmp.z'), 'wb') as f:
+            f.write(frame_store.pack(data))
+        argv = sys.argv
+        sys.argv = ['frame_store.py', 'unpack', self.path('a.bmp.z')]
+        try:
+            self.assertEqual(frame_store.main(), 0)
+        finally:
+            sys.argv = argv
+        with open(self.path('a.bmp'), 'rb') as f:
+            self.assertEqual(f.read(), data)
+
     def test_pack_run_in_its_own_process(self):
         os.makedirs(self.path('run', 'frames'))
         self.assertEqual(frame_store.pack_run(self.path('run')), (0, 0))         # nothing to pack: no process
