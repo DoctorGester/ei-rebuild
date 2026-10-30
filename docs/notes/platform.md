@@ -161,9 +161,10 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
 Miles (mss32.dll) and Bink (binkw32.dll) are gone from both builds (user 2026-10-30): no slot of theirs (nor
 DSOUND's `DirectSoundEnumerateA`) is reached, so neither DLL loads, nor the `*.asi` providers Miles loaded (mp3dec.asi;
 Rebirth's EI_Plugin.asi, which the image kept out anyway: its features are Rebirth flags of our code). Game code calls
-`platform/audio.h` and `platform/video.h`; today both are the null backends in `src/platform/null`, which A1
-(miniaudio) and A2 (our Bink 1 decoder) replace. `src/platform/audio_formats.cpp` (wave headers, the length rule, the
-MP3 frame scan) is shared by every backend.
+`platform/audio.h`, implemented on miniaudio (`src/platform/miniaudio`, third_party/miniaudio: its device and its
+dr_wav / dr_mp3 decoders), and `platform/video.h`, today the null backend in `src/platform/null`, which A2 (our Bink 1
+decoder) replaces. `src/platform/audio_formats.cpp` (wave headers, the length rule, the MP3 frame scan) is shared by
+every backend.
 
 ### What the game reads back
 
@@ -197,40 +198,70 @@ MP3 frame scan) is shared by every backend.
 - **Decoded MP3 voices** (`DecodeMp3File`, the briefing voices, `compressed` in LoadSample): a 16-bit PCM wave with a
   44-byte header at the file's rate and channels and every whole frame's samples (1152 for MPEG-1, 576 for MPEG-2 /
   2.5). That is what Miles' mp3dec.asi gave (mono stayed mono although the game asked for stereo), so the length and
-  the cache's size stay the same. A1's decoder (dr_mp3) pads or cuts to that count.
-- **The stream** (`ReadyHalf` / `QueueHalf`): a half is free again once its bytes have played at the stream's format;
-  the null backend plays them on `platform::Milliseconds` from the stream thread (the harness's other-threads clock, a
-  real-time one). `MinimumHalfBytes` is 87 ms rounded up to 512 bytes (15360 for the game's 44.1 kHz stereo, what
-  Miles gave through the wave mapper; through DirectSound it varied run to run).
+  the cache's size stay the same. dr_mp3 gives fewer frames on 3968 of the installs' 9908 MP3 voices (2880..4031
+  fewer: it drops the LAME / Xing info frame and the encoder's delay and padding) and the same on the rest; the
+  backend pads with silence at the end. `DecodeMp3` (the music) keeps to the same count.
+- **The stream** (`ReadyHalf` / `QueueHalf`): a half is free again once its frames have played. With a device the
+  mixer frees it when it takes the half's last frame (no drift from the device's clock); without one (or once the
+  device stopped by itself) the frames advance on `platform::Milliseconds` from the stream thread (the harness's
+  other-threads clock, a real-time one), counted to the frame: the game's 7680-frame halves free 175, 349, 523 ms after
+  the first was queued (the null backend's whole-ms rule gave 174, 348, 522). `MinimumHalfBytes` is 87 ms rounded up
+  to 512 bytes (15360 for the game's 44.1 kHz stereo, what Miles gave through the wave mapper; through DirectSound it
+  varied run to run).
 - **Movies** pace on a real-time clock (std::chrono::steady_clock): the blocking player's loop reads the game's
   clock, which the harness holds while no frame runs. `Advance` after the last frame goes back to the first (the
   titles' movie loops under the text); `GoToFrame` stops at the last.
 
-### The null backends
+### The audio backend (miniaudio)
 
-- Audio: the output always opens; voices keep their wave, loop count, volume, pan and position and end on time;
-  the stream's halves free as they would play; the MP3 decoders count the frames (`ScanMp3`) and give silence of the
-  file's decoded length. So the game runs its full sound logic (enabled, 15 voices, the stream thread) silently, on
-  both builds: the x64-only "Miles not loaded" path (A3a) is gone.
-- Video: a Bink 1 file opens with its size, frame count and rate from its header ("BIK", frames at +8, width +20,
+- The device: miniaudio's default playback device (WASAPI first on Windows), 32-bit float stereo at the game's rate
+  (44100; miniaudio converts to the device's own). A device that cannot open leaves the game running as without one
+  (silently, `OpenOutput` still true), so the game's logic never depends on the machine's sound hardware. Its name, the
+  first voice and the first sound heard, and at the close the voices started and the mix's peak go to the debugger's
+  output (`platform::DebugOutput`; DebugView shows them).
+- Voices: `SetWave` decodes the whole wave with dr_wav (PCM 8 / 16 bits, IMA ADPCM) into 16-bit samples the voice
+  keeps, cut to WaveInfo's count (dr_wav decodes IMA ADPCM's last block whole, past the fact chunk's count). The mixer
+  plays them from the position (`SetPosition`'s bytes as frames: PCM by the block align, IMA ADPCM by its blocks) with
+  the loop count, at the output's rate by straight-line interpolation (the waves at 44.1 kHz come out sample for
+  sample). Volume 0..127 is linear; pan 0..127 is a balance (64 both sides full, the far side down to nothing at 0 /
+  127). Volume and pan changes ramp over one device period. The end the game sees stays the clock's (above): the
+  device's own end only stops the mixing.
+- The stream: the halves are mixed straight from the caller's buffers (it writes a half only once ReadyHalf gave it)
+  at each half's format (`SetStreamFormat` applies to the halves queued after it), 16 bits signed or 8 unsigned, any
+  rate. More than one stream can play (A2's movie sound can take one of its own).
+- MP3: `OpenMp3` reads the whole file and decodes it with dr_mp3 (`DecodeMp3` in whole frames; `RewindMp3` seeks to
+  the start); `DecodeMp3File` as above. Both run in every build, the harness's runs included.
+- All the mixer's state (voices' sounds, streams) is under one lock; the device's thread takes it once a period. The
+  voices' clock fields (ends, positions) are the main thread's, as the game calls them.
+- **Harness runs open no device**: tests/verify/image/harness_audio_image.cpp calls `UseNoDevice` before main when
+  EI_HARNESS is set (the harness's own trigger), so a run is silent and the same on every machine; the voices' ends and
+  the stream run on the harness's clocks exactly as with a device. game.exe's runs mute Miles as before (harness.cpp's
+  `MutedWaveOutOpen`). The play, release and x64 builds, and the verify build started without a scenario, make sound.
+- The goldens did not move with the null backends (122 the same, 2026-10-30), nor with this one. One difference from
+  the harness's timers in game.exe's runs: they keep a voice's loop count across `AIL_init_sample`, where Miles resets
+  it to 1, so there a one-shot sound on a voice that once looped never ends; `ResetVoice` resets it as Miles did. No
+  golden depends on it today.
+- How it was checked (no ear): an offline tool that includes the backend and calls its mixer as the device would
+  (scratch; it decodes the archives' entries): every wave of the vanilla, Rebirth and LostInAstral sfx / speech
+  archives (9085) decodes to its header's frames, rate and channels; every MP3 voice (9908) opens in dr_mp3 with the
+  scanned rate and channels and `DecodeMp3File` gives the whole frames' size; voices of each kind mixed at full volume
+  have the source's length (twice the frames at 22.05 kHz, twice with two loops) and peak, the 44.1 kHz ones sample
+  for sample; pan 0 / 127 leaves the other side at 0, volume 64 gives 64/127 of the peak; two Stream\*.mp3 queued in
+  halves as the stream thread does come out sample for sample as dr_mp3 decodes them.
+
+### The null video backend
+
+- A Bink 1 file opens with its size, frame count and rate from its header ("BIK", frames at +8, width +20,
   height +24, rate +28 / +32); frames come black at the movie's rate. Movies play as long as with pictures
   (Esc skips them) and the script's PlayMovie still stops the sounds first, as with Bink.
-- The goldens did not move with the null backends (122 the same, 2026-10-30). One difference from the harness's
-  timers in game.exe's runs: they keep a voice's loop count across `AIL_init_sample`, where Miles resets it to 1, so
-  there a one-shot sound on a voice that once looped never ends; `ResetVoice` resets it as Miles did. No golden
-  depends on it today.
 
-### For A1 and A2
+### For A2
 
-- A1 implements audio.h on miniaudio in a backend of its own (src/platform/miniaudio/, replacing null/audio.cpp in
-  CMake's list): mix the voices' waves (PCM and IMA ADPCM through dr_wav's decoders) at their volume (0..127) and pan
-  (0 left .. 127 right), loops, Stop / Resume / End; the stream's halves in order; `DecodeMp3` / `DecodeMp3File` with
-  dr_mp3. Keep the timing rules above: ends from `WaveMilliseconds` on `platform::Milliseconds` and `DeliverEnds`
-  (not the device's end), `DecodeMp3File`'s sample count, and the stream's halves freeing as the device plays them.
-  Reverb (`SetReverb`) has no effect today either way.
 - A2 implements video.h with our Bink 1 decoder (src/platform/bink/): the same header and frame numbering, frames as
   R, G, B, X into `CopyFrame`'s buffer, `Waiting` from the movie's rate on a real-time clock, the sound track (when
-  `Open`'s `sound`) through A1's output, `SetVolume` 0..32768.
+  `Open`'s `sound`) through the audio output: a `Stream` of its own (`CreateStream`, `SetStreamFormat` at the track's
+  rate and channels, 16 bits, halves queued as `ReadyHalf` frees them; the mixer resamples), `SetVolume` 0..32768
+  mapped to the stream's 0..127.
 
 ## Left for the next areas
 

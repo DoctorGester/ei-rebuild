@@ -75,10 +75,12 @@ endif()
 
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system by area (src/platform/*.h),
 # implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>; the
-# parts every system shares in src/platform; the silent audio and the movies without pictures in src/platform/null.
-file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/null/*.cpp)
+# parts every system shares in src/platform; the sound on miniaudio (third_party/miniaudio) in src/platform/miniaudio;
+# the movies without pictures in src/platform/null.
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/miniaudio/*.cpp
+     src/platform/null/*.cpp)
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
-target_include_directories(ei_platform PRIVATE include src)
+target_include_directories(ei_platform PRIVATE include src third_party)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
 # SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
 # render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
@@ -139,7 +141,8 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
-foreach(part fonts/README.txt fonts/LICENSE sokol/README.txt sokol/LICENSE stb/README.txt)
+foreach(part fonts/README.txt fonts/LICENSE miniaudio/README.txt miniaudio/LICENSE sokol/README.txt sokol/LICENSE
+             stb/README.txt)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
