@@ -2,7 +2,6 @@
 # (clang-format -i, or --lines=a:b for the part you changed). Comments are never reflowed; trailing comments keep
 # three spaces before them and align in a block, so a whole-file run also rewrites the aligned comments next to the
 # ones you touched: run it on the lines you changed (tools/format_changed.py).
-Language: Cpp
 BasedOnStyle: LLVM
 IndentWidth: 4
 ContinuationIndentWidth: 4
