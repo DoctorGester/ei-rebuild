@@ -31,6 +31,3 @@ render::text::TextFont* TextFontOf(const UiFont& font);
 
 // GetTextExtentPoint32: the width of `text` (its advances summed, no kerning) and the font's height, in pixels.
 SIZE TextExtent(const UiFont& font, std::string_view text);
-
-// `text` (UTF-8, else ANSI-code-page bytes, as the game's strings are: system_text.h) as code points.
-std::u32string CodePoints(std::string_view text);

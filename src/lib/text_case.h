@@ -5,7 +5,7 @@
 // code page 1252) and the multibyte table of the system's ANSI code page, one byte at a time. On UTF-8 that
 // corrupts text (tolower of the lead byte 0xD0 is 0xF0) and still misses Cyrillic. Ours, in place of the CRT's case
 // functions (_stricmp, _strnicmp, _memicmp, _mbsicmp, _mbslwr and so str::MakeLower, tolower / toupper, the character
-// classes) and of CharUpperA / CharLowerA (system_text.h), use this table, whatever the locale:
+// classes) and of CharUpperA / CharLowerA (platform/win32/system_text.h), use this table, whatever the locale:
 //   - ASCII A-Z / a-z;
 //   - Latin-1 U+00C0-U+00DE / U+00E0-U+00FE (not U+00D7 / U+00F7) and the other letters of code page 1252
 //     (Œ œ, Š š, Ž ž, Ÿ ÿ);

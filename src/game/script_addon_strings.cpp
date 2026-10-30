@@ -11,7 +11,8 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "random.h"
-#include "system_text.h"
+#include "asset_text.h"
+#include "lib/text_case.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -40,12 +41,12 @@ std::string Joined(Call* call) {
 // std::string's c_str() assigned to the result (the text up to its first NUL).
 void Assign(Call* call, const std::string& text) { *call->result.text = text.c_str(); }
 
-// A NUL-terminated copy changed in place by CharLowerA / CharUpperA (the user's code page).
+// A NUL-terminated copy changed in place by lib/text_case.h's case (Rebirth's CharLowerA / CharUpperA).
 std::string CaseConverted(std::string_view text, bool upper) {
     std::vector<char> buffer(text.begin(), text.end());
     buffer.push_back(0);
-    if (upper) text::utf8::CharUpperA(buffer.data());
-    else text::utf8::CharLowerA(buffer.data());
+    if (upper) text::UpperInPlace(buffer.data());
+    else text::LowerInPlace(buffer.data());
     return std::string(buffer.data());
 }
 

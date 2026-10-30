@@ -53,7 +53,6 @@ inline const char* LightsTableText() { return "LightsGipat.ini"; }
 inline const char* GipathText() { return "gipath"; }
 inline const char* TextsFileText() { return "texts.res"; }
 inline const char* TextsLmpFileText() { return "textsLmp.res"; }
-inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
 inline int ShadowSetting() { return static_cast<const volatile int&>(options::g_options.shadowQuality); }

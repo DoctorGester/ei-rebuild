@@ -742,7 +742,7 @@ public:
     ~WorldClient() override;
 
     // Sets the client world up: the managers, the lights table (LightsGipat.ini), the terrain, the session,
-    // the rain and snow layer, the platforms, the cursor and both sector grids. Returns 1.
+    // the rain and snow layer, the platforms and both sector grids. Returns 1.
     void Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
@@ -1026,7 +1026,6 @@ public:
     RainSnow rainSnow;
     std::vector<int> selectedIds;            // the selected objects' ids
     int worldValue;                       // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
-    void* cursor;                         // HCURSOR wincurs\Df0000.cur
     // The window's names, set by the constructor and freed by the destructor only: "EvilIslands",
     // "EvilIslandsClass", "EvilIslands", "EvilIslands Paused".
     std::string appName;

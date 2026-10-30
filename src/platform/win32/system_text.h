@@ -10,7 +10,7 @@
 //     takes those slots after, as it does the ANSI exports' (its redirects work on the bytes).
 //   - the direct calls of our own code: text::utf8 by name.
 // Text going in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI call took it (8-bit text
-// that has not crossed text::FromAssetText). Text coming out is UTF-8.
+// that has not crossed text::FromAssetText, game/asset_text.h). Text coming out is UTF-8.
 // The windows are Unicode ones: RegisterClassExA registers the class wide, and DefWindowProcA,
 // GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed
 // character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h, "Typing").
@@ -23,7 +23,6 @@
 #include <string_view>
 #include <vector>
 
-#include "asset_text.h"
 #include "lib/win_api.h"
 
 namespace text {

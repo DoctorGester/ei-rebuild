@@ -6679,3 +6679,17 @@ title = "Platform layer: sound_manager's locks and stream thread, bink_video's k
 group = "port"
 model = "sonnet"
 note = "Also: bink_video.cpp's two gameapi::CopyRect calls to rects::Copy (lib/rect.h, H33h), then CopyRect leaves gameapi.h and win_api.h (the last USER32 rectangle import). Left by PL4 / PL6 (they ran side by side). sound.h's nameLock / streamLock (CRITICAL_SECTION) to std::recursive_mutex, streamThread and lib::StartThread to platform::Thread / Signal (src/platform/thread.h), then delete lib/thread.h's StartThread shim and CRITICAL_SECTION from lib/win_types.h if nothing else needs it (render_cursor.cpp: the renderer's own, may keep its own include); bink_video.cpp's VK_ESCAPE / VK_SPACE to platform::kKeyEscape / kKeySpace. check_platform --update. Goldens unchanged."
+
+[[ticket]]
+id = "PL7"
+title = "Platform layer: the last game-side Windows users"
+group = "port"
+model = "opus"
+note = "The 26 files of config/platform_files.txt: move app_main, asset_text (code pages), core_memory_stream, dib.h (own structs), dx_errors / script_parse / app's wvsprintfA (CRT formatting), mod_folders, random, settings_document, settings_file, system_text (to src/platform/win32), ui_scrolling_surface, ui_widescreen, win_registry (no registry uses), lib/crt.cpp, lib/rebirth.cpp, win_user.h / win_types.h onto src/platform or plain C++. Stay as the win32 entry: standalone host.cpp, image_imports.cpp, standalone_main.cpp, lib/import_table.h / import_prototypes.h (harness key). Leave sound_manager / resource_stream (A1) and bink_video (A2). check_platform --update; goldens unchanged."
+
+[[ticket]]
+id = "PL7a"
+title = "Platform layer: the game's own RECT / POINT / SIZE / DWORD types, then lib/win_types.h goes"
+group = "port"
+model = "sonnet"
+note = "Left by PL7: lib/win_types.h (windef.h, minwinbase.h) is the last game-side file on config/platform_files.txt but the win32 entry and A1 / A2's files. 113 game files use its types (RECT 83, POINT 31, DWORD 17, COLORREF 14, SIZE 13, LONG 9, HANDLE 7, UINT 7, HWND 3, BOOL 3, CRITICAL_SECTION 3 in sound.h until A1). Our own types (lib/rect.h already has the USER32 rules over RECT / POINT): a scripted whole-tree retype, the render boundary converting where it hands a rectangle to render::Rect; HWND / HANDLE as platform::NativeWindow / void*. Then win_types.h leaves the list. Goldens unchanged."

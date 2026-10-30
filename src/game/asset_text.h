@@ -19,16 +19,20 @@ namespace text {
 
 inline constexpr unsigned kAssetCodePage = EI_ASSET_CODEPAGE;
 
-// `bytes`, text in `codepage`, as UTF-8.
-std::string FromAssetText(std::string_view bytes, unsigned codepage = kAssetCodePage);
+// `bytes`, text in the asset code page, as UTF-8.
+std::string FromAssetText(std::string_view bytes);
 // A string just read from an asset, a save or the network, converted in place.
-void FromAssetText(std::string* text, unsigned codepage = kAssetCodePage);
+void FromAssetText(std::string* text);
 // The other way, for looking up an asset by a text name (one text database key holds Cyrillic): true with `*out`
 // set when `text` is valid UTF-8 and not plain ASCII.
-bool ToAssetText(std::string_view text, std::string* out, unsigned codepage = kAssetCodePage);
-// `text` as the save files and the network carry it: in `codepage`, a character the code page has no byte for as
+bool ToAssetText(std::string_view text, std::string* out);
+// `text` as the save files and the network carry it: in the asset code page, a character the code page has no byte for as
 // '?' (never a look-alike); text that is not valid UTF-8 as it is.
-std::string ToAssetText(std::string_view text, unsigned codepage = kAssetCodePage);
+std::string ToAssetText(std::string_view text);
+
+// The code points of `text` for drawing and measuring it: UTF-8's, or for text that is not valid UTF-8 (8-bit text
+// that has not crossed FromAssetText) the asset code page's characters of its bytes.
+std::u32string CodePoints(std::string_view text);
 
 // The length the game measures `text` by where a length means time (a briefing phrase lasts 0.05 s a
 // character) or a limit: its characters, what the original's bytes in the asset code page counted. A colour

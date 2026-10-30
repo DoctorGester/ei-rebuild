@@ -1,7 +1,7 @@
 // game.exe's imports resolved into the image's own table, before every other static constructor
 // (init_seg(compiler)). See docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
-#include "game/system_text.h"
+#include "platform/win32/system_text.h"
 #include "hook/log.h"
 #include "lib/import_table.h"
 

@@ -6,7 +6,7 @@
 #include "registry.h"
 #include "resource.h"
 #include "settings_file.h"
-#include "system_text.h"
+#include "lib/text_case.h"
 
 #include "platform/files.h"
 
@@ -21,12 +21,13 @@
 #include <mutex>
 #include <set>
 
-#include <winerror.h>
 
 namespace modfolders {
 namespace {
 
 using ei::rebirth::Patch;
+
+constexpr std::size_t kPathBytes = 260;   // addon's path buffers (MAX_PATH)
 
 // addon guards its archive tables with one critical section (100BD5F8), held while it calls the
 // archives; the layer's maps state shares it.
@@ -48,9 +49,9 @@ private:
 // `fallback`. addon reads them with RegQueryValueExW.
 std::string StarterValue(const char* key, const char* name, const char* fallback) {
     std::string value = fallback;
-    char text[MAX_PATH * 2];
-    DWORD size = sizeof(text) - 1, type = 0;
-    if (settings_file::ReadValue(key, name, &type, text, &size) == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ)) {
+    char text[kPathBytes * 2];
+    unsigned long size = sizeof(text) - 1, type = 0;
+    if (settings_file::ReadValue(key, name, &type, text, &size) == settings_file::kSuccess && (type == settings_file::kTypeString || type == settings_file::kTypeExpandString)) {
         text[size] = '\0';
         value = text;
     }
@@ -65,7 +66,7 @@ std::string WithSlash(std::string path) {
 
 // addon's 10025B50: the archive table's key, CharLowerA's lower case of the path.
 std::string Lower(std::string text) {
-    if (!text.empty()) text::utf8::CharLowerA(text.data());
+    if (!text.empty()) text::LowerInPlace(text.data());
     return text;
 }
 
@@ -249,9 +250,9 @@ void OnOpenResource(MappedResource* res, const std::string& path) {
     Lock lock;
     LoadModArchives();
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
-    char lower[MAX_PATH];
+    char lower[kPathBytes];
     strncpy_s(lower, path.c_str(), _TRUNCATE);
-    text::utf8::CharLowerA(lower);
+    text::LowerInPlace(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
     if (config.ignored.count(lower) != 0) tables.ignored.insert(res);

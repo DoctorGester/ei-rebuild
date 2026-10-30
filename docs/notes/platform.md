@@ -14,7 +14,7 @@ implementation folder; game code does not change.
 - The win32 implementation calls game.exe's imports as `gameapi::X`, as the game code did, never as `::X`, unless the
   call never went through an import slot. Many slots hold something else than the export: the harness's routes (the
   virtual and held clocks on `timeGetTime`, `GetTickCount`, `Sleep`, `WaitForSingleObject`; the fixed date on
-  `GetLocalTime` / `GetSystemTime`; the message hooks) and the image's UTF-8 routes (`src/game/system_text.cpp`'s
+  `GetLocalTime` / `GetSystemTime`; the message hooks) and the image's UTF-8 routes (`src/platform/win32/system_text.cpp`'s
   `TEXT_ROUTE` list: paths, files, `MessageBoxA`, window text). tools/gen_iat.py's `routed()` lists them; the goldens
   depend on them. Keeping every `gameapi::X` call (moved, not removed) also keeps gameapi.h, which is in the harness's
   reference key, unchanged.
@@ -29,7 +29,13 @@ implementation folder; game code does not change.
   and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
   `gameapi::` only; widened to the other system headers (PL2a) it counted 12 more files (win_types.h, win_user.h,
   dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
-  (below) took 31 off: 26.
+  (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9, all meant to stay for now: the win32 entry
+  (below, 5 files), the sound and movie files A1 / A2 replace (sound_manager.cpp, resource_stream.cpp, bink_video.cpp)
+  and lib/win_types.h.
+- The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
+  call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h is the one such header
+  left: windef.h's types only (RECT, POINT, SIZE, DWORD, COLORREF, HWND, HANDLE, CRITICAL_SECTION), which 113 game
+  files use (RECT in 83); our own types in their place are PL7a.
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
   shared header holds one (`HWND` comes from lib/win_types.h, not `<windows.h>`). app.h's `g_mainWindow` and
   texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
@@ -48,7 +54,7 @@ implementation folder; game code does not change.
 | `ini.h` | `IniSectionEntries`, `IniString`; `IniInt` | the GetPrivateProfileSectionA / StringA slots (not routed: the config\*.ini names are ASCII); `IniInt` direct |
 | `window.h` | the window class, `ProgramInstance()`, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | the window and message slots (the harness hooks CreateWindowExA, ShowWindow, PeekMessageA, FindWindowA); the screen mapping, monitor calls and `ProgramInstance` direct |
 | `cursor.h` | the cursor's shape, its position in game points (`MapCursorPoints` for the scaled frame) | the GetCursor / SetCursor / GetCursorPos / SetCursorPos slots (the harness's own mouse) |
-| `keyboard.h` | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)` | the GetKeyNameTextA (UTF-8 route) and keyboard layout slots |
+| `keyboard.h` | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field) | the GetKeyNameTextA (UTF-8 route) and keyboard layout slots; IsCharAlphaW direct |
 | `clipboard.h` | `CopyText`, `ClipboardText` (Rebirth's console) | direct |
 | `thread.h` | `Thread` (created suspended, priority set, resumed), `Signal` (an auto-reset event: `Create`, `Set`, `Wait`, `Close`); locks are `std::recursive_mutex` | the SetThreadPriority / ResumeThread / CreateEventA / SetEvent / WaitForSingleObject (the harness's clocks) / CloseHandle slots; `_beginthreadex` direct |
 | `keys.h` | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
@@ -81,7 +87,7 @@ A few callers never went through the game's slots and must not start to (the har
 see in verify runs). Each has its own platform function that calls the system directly:
 
 - Rebirth's file look-ups (mod_folders, console_addon, script_addon_commands: addon.dll called its own imports):
-  `platform::IsFile`, `platform::FolderEntries` (the UTF-8 versions in game/system_text.cpp, called by name).
+  `platform::IsFile`, `platform::FolderEntries` (the UTF-8 versions in platform/win32/system_text.cpp, called by name).
 - The settings file (settings_file.cpp: next to the exe or in the user's data folder, whatever a harness run
   redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
   its lock is a `std::mutex`.
@@ -89,10 +95,12 @@ see in verify runs). Each has its own platform function that calls the system di
   `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt`, `ProgramInstance` and `EndProcess`
   (TerminateProcess, then `Sleep(INFINITE)` as the old code, so the call never returns). `app::GameMain` takes
   `platform::NativeInstance`.
-- standalone_main.cpp, host.cpp and image_imports.cpp stay on the list as the win32 entry: they are the loader (the
+- The win32 entry stays on the list: standalone_main.cpp, host.cpp and image_imports.cpp are the loader (the
   vectored and unhandled exception handlers, `VirtualProtect` on another module's import table, `GetModuleHandleA` /
-  `GetProcAddress` of the DLLs the slots resolve to, the DPI call, the process id for the log). A port has its own
-  entry; nothing of the game's code is in them.
+  `GetProcAddress` of the DLLs the slots resolve to, the DPI call, the process id for the log; image_imports.cpp also
+  puts the UTF-8 routes in the slots); lib/import_table.h and lib/import_prototypes.h are game.exe's import table as a
+  struct, which the harness's reference key holds (game.exe's runs read the same slots: hook/original_data.cpp). A port
+  has its own entry; nothing of the game's code is in them.
 
 ## Window and events
 
@@ -237,16 +245,46 @@ MP3 frame scan) is shared by every backend.
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
-- The key codes in bink_video.cpp (`VK_ESCAPE`, `VK_SPACE`): PL6b.
 - Threads (PL6b): sound_manager.cpp's critical sections (`std::recursive_mutex`), events and music thread
   (`platform::Thread`, `platform::Signal`; lib/thread.h's `StartThread` wraps `Thread` until then) and sound.h's
   `CRITICAL_SECTION` / `HANDLE` members, which keep win_types.h's `CRITICAL_SECTION`. The renderer's own threads and
   lock (render.cpp, render_cursor.cpp) stay its own.
-- `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) goes to the CRT's formatting.
-- system_text.cpp, the UTF-8 routes themselves, is Windows code that belongs under src/platform/win32 once the
-  file and window areas no longer call through the A slots.
+- sound_manager.cpp, resource_stream.cpp (A1: miniaudio) and bink_video.cpp (A2: our Bink decoder).
+- lib/win_types.h: the game's RECT / POINT / SIZE / DWORD / COLORREF / HWND / HANDLE as our own types (PL7a).
 - The import layer's own files (lib/import_table.h, import_prototypes.h, gameapi.h / .cpp, win_api.h) stay in
   src/lib while the harness's reference key holds them.
+
+## Plain C++ in place of the system
+
+What needed no system at all became standard C++ (PL7), each checked equal to the call it replaced:
+
+- **Asset text** (asset_text.cpp): the code page's upper half as a table (1250, 1251 and 1252, taken from
+  MultiByteToWideChar: every byte one character, the undefined ones the C1 control of their number) and a strict UTF-8
+  decoder (MB_ERR_INVALID_CHARS's rules: shortest form, no surrogates, nothing past U+10FFFF, nothing cut short); a
+  character the code page lacks becomes '?', one past U+FFFF "??" (WideCharToMultiByte's two units). A scratch sweep
+  against the old MultiByteToWideChar / WideCharToMultiByte code (every 1-3 byte string, every code point, 3 million
+  random strings with colour escapes: 10.2 million cases) found no difference. `text::CodePoints` (the interface's
+  drawing and measuring) decodes UTF-8 the same way; text that is not UTF-8 is taken in the asset code page (before:
+  the system's ANSI code page, the same on the machines the data is made for).
+- **Formatting**: the script errors and DXException's texts are `std::vsnprintf` into the same 1 KB buffer (wvsprintfA
+  before; the formats use only %s and %d).
+- **The titles' twips** (ui_scrolling_surface.cpp): MulDiv's rounding (half away from zero, -1 for a zero divisor or
+  an overflow) on 64 bits; equal to USER32's on 20 million cases but a divisor of INT_MIN, which USER32 mishandles (the
+  divisor is a positive DPI).
+- **The settings file's codes** (settings_file.h): `ValueType` (kTypeString, kTypeDword, ... the registry's numbers,
+  which the file keeps) and `Status` (kSuccess, kNotFound, kMoreData, ...) in place of REG_* / ERROR_*. Nothing reads or
+  writes the registry: the options' key object is `SettingsKey` (settings_key.h, the game's CWinRegistry) on the file.
+- **Bitmaps** (dib.h): `DibFileHeader`, `DibHeader`, `DibColour` with the .bmp layout (14, 40 and 4 bytes) in place of
+  wingdi.h's structs.
+- **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
+- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_memory_stream.cpp): lib/return_address.h
+  declares the two compiler intrinsics without <intrin.h>.
+- **Rebirth's flags** (lib/rebirth.cpp, also in ei_harness.dll): ei_rebirth.ini's [Rebirth] read by its own reader as
+  GetPrivateProfileInt / String read it (the first section of the name, case ignored, trimmed keys and values, ';'
+  lines, outer quotes off, an empty value the default, a sign then 0x hex (lowercase x) or decimal digits, 32-bit
+  wrap); EI_REBIRTH with `getenv_s`; the file's presence with std::filesystem. Equal to the profile calls on 24000
+  reads of random files (scratch sweep).
+- The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.
 
 ## Rectangles
 

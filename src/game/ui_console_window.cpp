@@ -4,7 +4,7 @@
 #include "console.h"
 #include "game_strings.h"
 #include "ui.h"
-#include "system_text.h"
+#include "asset_text.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

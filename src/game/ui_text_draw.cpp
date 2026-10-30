@@ -4,13 +4,13 @@
 // by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h). See docs/notes/ui.md,
 // section 3, and docs/notes/ui-native.md, "P8 done".
 #include "ui.h"
+#include "asset_text.h"
 #include "ui_widescreen.h"
 
 #include "hook/log.h"
 #include "lib/rect.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
-#include "lib/win_user.h"
 
 namespace {
 constexpr COLORREF kShadowColour = 0x080808;
@@ -27,7 +27,7 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
     render::text::TextLayout layout;
     if (!render::text::Layout(font, text, render::Rect{rect.left, rect.top, rect.right, rect.bottom}, format, layout))
         return 0;
-    if (!(format & DT_CALCRECT)) render::ui::GlyphRun(holder, font, layout, colour);
+    if (!(format & render::text::kCalcRect)) render::ui::GlyphRun(holder, font, layout, colour);
     return layout.result;
 }
 } // namespace
@@ -63,7 +63,7 @@ int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const R
         logged = true;
         format &= render::text::kSupportedFormats;
     }
-    const std::u32string points = CodePoints(text);
+    const std::u32string points = ::text::CodePoints(text);
     if (shadow) {
         RECT shifted = area;
         rects::Offset(&shifted, 1, 1);
