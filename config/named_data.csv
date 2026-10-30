@@ -199,7 +199,7 @@ address,size,name,file
 007C53F0,4,g_freeEvents,src/game/ai_grids.cpp
 007C5520,16,g_loadingScreen,src/game/bink_video.cpp
 007C554C,1,g_loadingMovieOff,src/game/bink_video.cpp
-007C5550,4,g_loadingBink,src/game/bink_video.cpp
+007C5550,4,g_loadingMovie,src/game/bink_video.cpp
 007C7B64,1,g_cheatEnabled,src/game/console.h
 007C7B68,4,g_filterMask,src/game/console.h
 007C7C90,4,g_cursorWidth,src/game/ui_cursor.h

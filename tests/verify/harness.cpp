@@ -4032,10 +4032,11 @@ struct Harness {
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
         client_effects::Install();   // the original's terrain sectors lit from Build on (harness_client_effects.h, R34a)
-        PatchImport(&ImportTable::AIL_waveOutOpen, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
+        PatchOriginalImport(&ImportTable::AIL_waveOutOpen, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen),
+                            g_ailWaveOutOpen);
         PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
         PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);
-        PatchImport(&ImportTable::AIL_startup, &TracedAilStartup, g_ailStartup);
+        PatchOriginalImport(&ImportTable::AIL_startup, &TracedAilStartup, g_ailStartup);
         if (ei::Standalone()) image::ObserveConsoleLines(&OnConsoleLine);
         else
             PatchSlot(reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const SyncFn>(0x00740034) + kConsoleStreambufSyncSlot),

@@ -74,8 +74,9 @@ if(EI_HARNESS)
 endif()
 
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system by area (src/platform/*.h),
-# implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>.
-file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/win32/*.cpp)
+# implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>; the
+# parts every system shares in src/platform; the silent audio and the movies without pictures in src/platform/null.
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/null/*.cpp)
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows

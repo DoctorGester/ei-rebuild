@@ -84,66 +84,6 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// ---- game.exe's module, as the image's code sees it ------------------------------------------------
-// The game's module is the host's: WinMain's hInstance and GetModuleHandleA(NULL) are ei-rebuild.exe, which
-// has none of game.exe's resources (the strings are literals in our code), so DirectInput and the window class
-// take the handle as it is, and GetModuleFileNameA(NULL) names the host. WinMain gets the game's arguments; no
-// code of the image asks for GetCommandLineA.
-
-// Points `base`'s import slots of `dll`!`function` at `replacement` (another module's import table: Miles's).
-// Slots are matched by what they hold (the export the loader resolved), so a module without an import name
-// table works too.
-bool RouteImport(std::uintptr_t base, const char* dll, const char* function, const void* replacement) {
-    HMODULE exporter = GetModuleHandleA(dll);
-    const FARPROC current = exporter ? GetProcAddress(exporter, function) : nullptr;
-    if (!current) return false;
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
-    const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    if (!dir.VirtualAddress) return false;
-    bool routed = false;
-    for (auto* d = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base + dir.VirtualAddress); d->Name; ++d) {
-        if (_stricmp(reinterpret_cast<const char*>(base + d->Name), dll) != 0) continue;
-        for (auto* slot = reinterpret_cast<IMAGE_THUNK_DATA*>(base + d->FirstThunk); slot->u1.Function; ++slot) {
-            if (slot->u1.Function != reinterpret_cast<ULONG_PTR>(current)) continue;
-            DWORD old;
-            VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-            slot->u1.Function = reinterpret_cast<ULONG_PTR>(replacement);
-            VirtualProtect(slot, sizeof(*slot), old, &old);
-            routed = true;
-        }
-    }
-    return routed;
-}
-
-// Miles (mss32.dll) loads every *.asi it finds as a sound provider. EI_Plugin.asi (Rebirth) patches
-// game.exe's code, which the image does not have: it stays out (its features are Rebirth
-// flags of our code, from ei_rebirth.ini). mp3dec.asi, the MP3 decoder, loads.
-HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
-    const char* slash = name ? std::strrchr(name, '\\') : nullptr;
-    const char* file = slash ? slash + 1 : name;
-    if (file && _stricmp(file, "EI_Plugin.asi") == 0) {
-        Log("standalone: Miles asked for %s: not loaded into the image", name);
-        SetLastError(ERROR_MOD_NOT_FOUND);
-        return nullptr;
-    }
-    return LoadLibraryA(name);
-}
-
-// Routes Miles's LoadLibraryA (MilesLoadLibrary). False when mss32.dll is loaded and its import is not found.
-bool RouteMilesLoads() {
-    HMODULE miles = GetModuleHandleA("mss32.dll");
-    if (!miles || RouteImport(reinterpret_cast<std::uintptr_t>(miles), "KERNEL32.dll", "LoadLibraryA",
-                              reinterpret_cast<const void*>(&MilesLoadLibrary)))
-        return true;
-    Log("standalone: mss32.dll's LoadLibraryA not found: EI_Plugin.asi would load");
-    return false;
-}
-
-} // namespace
-
-namespace {
-
 char g_gameRoot[MAX_PATH];   // EI_GAME_ROOT with a trailing backslash
 
 // The settings file's game paths (Work path, CD-ROM Path) read as EI_GAME_ROOT.
@@ -194,10 +134,9 @@ int StandaloneMain(bool run, const char* arguments) {
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     RunStartupActions();
-    const bool routed = RouteMilesLoads();
-    Log("standalone: Miles's loads%s routed; arguments: '%s'", routed ? "" : " not", g_arguments.c_str());
+    Log("standalone: arguments: '%s'", g_arguments.c_str());
     const int missingImports = ImageImportsMissing();
-    if (!run) return routed && missingImports == 0 ? 0 : 1;
+    if (!run) return missingImports == 0 ? 0 : 1;
     if (missingImports != 0) {   // as the system loader: no start without every import (ei-rebuild.log names them)
         ReportImageFailure("game.exe's imports did not all resolve");
         return 1;

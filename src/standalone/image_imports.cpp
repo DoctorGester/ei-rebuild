@@ -77,25 +77,14 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
 
 bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
-// An import of game.exe: from the working directory, the game folder (mss32.dll, binkw32.dll in its root), else
-// System32. game.exe's own folder is not looked in (the image needs no game.exe).
+// An import of game.exe: from the working directory (the game folder) when it has the DLL, else System32. game.exe's
+// own folder is not looked in (the image needs no game.exe).
 HMODULE LoadImport(const char* name) {
     char cwd[MAX_PATH];
     GetCurrentDirectoryA(MAX_PATH, cwd);
     const std::string path = std::string(cwd) + "\\" + name;
     if (Exists(path)) return LoadLibraryA(path.c_str());
     return LoadLibraryExA(name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-}
-
-// Miles (mss32.dll) and Bink (binkw32.dll) are 32-bit DLLs: the x64 image loads neither. Their slots stay traps and
-// the game runs without sound and movies (sound_manager.cpp and bink_video.cpp check that the DLL is loaded).
-bool LoadsHere(const char* dll) {
-#if defined(_M_X64)
-    return _stricmp(dll, "mss32.dll") != 0 && _stricmp(dll, "binkw32.dll") != 0;
-#else
-    (void)dll;
-    return true;
-#endif
 }
 
 void Fail(const char* what) {
@@ -121,7 +110,7 @@ void ResolveImports() {
         const std::size_t index = i.offset / sizeof(void*);
         auto& ours = reinterpret_cast<const void**>(&g_table)[index];
         ours = g_traps ? g_traps + index : nullptr;
-        if (!i.reached || !LoadsHere(i.dll)) {   // a DLL none of whose slots is reached does not load
+        if (!i.reached) {   // a DLL none of whose slots is reached does not load
             ++traps;
             continue;
         }
@@ -154,7 +143,6 @@ void ResolveImports() {
     Log("standalone: game.exe's %d imports in the image's table: %d resolved (%d routed), %d missing, %d traps (no "
         "call reaches them); %d DLLs loaded",
         static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), resolved, routed, g_missing, traps, loaded);
-    if (!LoadsHere("mss32.dll")) Log("standalone: x64: Miles and Bink (32-bit DLLs) not loaded: no sound, no movies");
 }
 
 struct ImportResolver {

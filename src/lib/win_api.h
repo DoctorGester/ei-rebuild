@@ -144,9 +144,4 @@ __declspec(dllimport) LONG WINAPI mmioRead(HMMIO file, char* buffer, LONG size);
 __declspec(dllimport) LONG WINAPI mmioSeek(HMMIO file, LONG offset, int origin);
 __declspec(dllimport) UINT WINAPI mmioClose(HMMIO file, UINT flags);
 
-// DSOUND.dll (not imported in the SDK's declaration: the call goes through dsound.lib's stub).
-HRESULT WINAPI DirectSoundEnumerateA(BOOL(CALLBACK* callback)(_GUID* guid, LPCSTR description, LPCSTR module,
-                                                               LPVOID context),
-                                     LPVOID context);
-
 } // extern "C"
