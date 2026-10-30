@@ -1,6 +1,6 @@
 # Rebirth's bug fixes reached through the battle screen (docs/notes/rebirth.md, "One test profile"), on the vanilla
-# data; the golden comes from the original with addon.dll's fixes. Each part differs from the plain original
-# (EI_ADDON_FLAGS=0):
+# data; the golden came from the original with addon.dll's fixes (until H40). Each part differs from the plain
+# original (addon.dll's fixes off):
 # - FixLeversActivate (LockKey::Opens 00522A80): zone1's gate lever gets a lock of mask 1 and level -1
 #   (SetScience); the hero's science (the action column's science button, mode 8, then a click on the lever:
 #   UseSkill 0 builds the key {1, 0, skill}) opens it with the signed compare; the plain original's unsigned

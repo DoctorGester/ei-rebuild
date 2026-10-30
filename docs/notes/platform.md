@@ -24,9 +24,9 @@ remainder; game code does not change.
 | `src/platform/audio_sdl.cpp` | the sound: the wave and MP3 frame rules every backend keeps, our mixer on an SDL3 audio stream, the decoders (dr_wav, dr_mp3: third_party/dr_libs) |
 | `src/platform/bink/` | the movies: our Bink 1 decoder (a codec, in its own files; "Movies" below) |
 
-lib/import_table.h and lib/import_prototypes.h (game.exe's import table as a struct) stay in src/lib: the harness's
-reference key holds them (hook/paths.cpp, hook/original_data.cpp and tests/verify/harness_imports.h include them), so
-moving them replays every game.exe run; move them only with tools/check_harness_key.py's list and a `--no-hooks` run.
+lib/import_table.h and lib/import_prototypes.h (game.exe's import table as a struct) stay in src/lib: the image's
+import slots and the harness's routes (tests/verify/harness_imports.h) use them. (Until H40 the harness's reference
+key held them too.)
 
 - CMakeLists.txt's ei_platform builds src/platform/*.cpp, src/platform/win32/*.cpp and src/platform/bink/*.cpp, and
   either src/platform/sdl/*.cpp or (EI_HARNESS) platform_win32_window.cpp. platform.h carries no backend's type:
@@ -148,7 +148,7 @@ see in verify runs). Each has its own platform function that calls the system di
   vectored and unhandled exception handlers, `VirtualProtect` on another module's import table, `GetModuleHandleA` /
   `GetProcAddress` of the DLLs the slots resolve to, the DPI call, the process id for the log; image_imports.cpp also
   puts the UTF-8 routes in the slots); lib/import_table.h and lib/import_prototypes.h are game.exe's import table as a
-  struct, which the harness's reference key holds (game.exe's runs read the same slots: hook/original_data.cpp). A port
+  struct. A port
   has its own entry; nothing of the game's code is in them.
 
 ## Window and events
@@ -167,9 +167,9 @@ swap chain on the window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the Nativ
 - **The harness keeps the window procedure.** The harness drives the game's input as posted window messages, runs its
   frame steps inside the game's PeekMessageA slot, subclasses the window procedure (the focus steps), answers the
   cursor, FindWindowA and MessageBoxA slots and drives the clocks on timeGetTime / GetTickCount / Sleep /
-  WaitForSingleObject; the same code drives game.exe's runs (the goldens' references). So the builds with the harness
-  (verify, verify-x64, asan) take platform_win32_window.cpp for SDL's areas: their runs go through the same slots as
-  game.exe's, the harness key does not move and the goldens stay. Injecting through `SDL_PushEvent` would have needed
+  WaitForSingleObject (the same code drove game.exe's runs, the goldens' references, until H40). So the builds with
+  the harness (verify, verify-x64, asan) take platform_win32_window.cpp for SDL's areas: their runs go through the
+  same slots as before and the goldens stay. Injecting through `SDL_PushEvent` would have needed
   a second input path in the harness and moved every event a pump later (SDL takes the messages in its own
   PeekMessageW, outside the slot). What the goldens do not cover: SDL's translation into `platform::Event` (below);
   the game from the Event on is the same code.
@@ -434,7 +434,7 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
 - **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): lib/return_address.h
   declares the two compiler intrinsics without <intrin.h>.
-- **Rebirth's flags** (lib/rebirth.cpp, also in ei_harness.dll): plain data and specs; EI_REBIRTH with `getenv_s`. The
+- **Rebirth's flags** (lib/rebirth.cpp): plain data and specs; EI_REBIRTH with `getenv_s`. The
   settings file's [patches] is read by the start-up through settings.h (C66a), no reader of its own.
 - The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.
 

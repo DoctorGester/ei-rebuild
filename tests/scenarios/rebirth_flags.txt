@@ -1,6 +1,6 @@
 # Rebirth's bug fixes in the rewritten code (include/ei/rebirth.h, docs/notes/rebirth.md), flags on.
-# Vanilla data: the flags on data the original never ran them with. The original cannot run it (no
-# --no-hooks run, no golden); on the standalone image it is a crash smoke test (user 2026-10-16,
+# Vanilla data: the flags on data the original never ran them with. The original could not run it
+# (it never had a golden from game.exe); on the standalone image it is a crash smoke test (user 2026-10-16,
 # S21a): the game must go through the changed code without a failure (hooked, the rewrites that
 # reproduce a fix and whose wrappers compare with the original run without them: ei-rebuild.log
 # "UNVERIFIED ... the original does not have it"): the loading movie (FixProgressNames), spell effects added to the hero and a

@@ -13,7 +13,7 @@
 // today's (game.exe's time(), save times).
 //
 // Clock trace ("clocktrace"): every clock read and wait the game makes through its import table,
-// and those of the DLLs in the game's folder (Miles, Bink, dgVoodoo, Rebirth), counted by function,
+// and those of the DLLs in the game's folder (Miles, Bink), counted by function,
 // caller and thread; new combinations are logged as they appear and the busiest ones every second
 // (ei-rebuild.log, "clocktrace:").
 
@@ -44,9 +44,8 @@ bool Frozen();
 // The clock the harness's waits use: virtual time in deterministic mode, else GetTickCount.
 DWORD Now();
 
-// The trace (install after the clock it wraps). DLLs loaded later (dgVoodoo's ddraw.dll comes with
-// the renderer) are picked up by the trace's own thread, which logs the busiest call sites every
-// second.
+// The trace (install after the clock it wraps). DLLs loaded later are picked up by the trace's own thread, which
+// logs the busiest call sites every second.
 void InstallTrace();
 void DumpTrace(const char* why);
 

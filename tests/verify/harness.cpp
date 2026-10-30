@@ -2102,12 +2102,11 @@ void* HotPatch(const char* name, void* replacement, bool /*wantOriginal*/) {
 #endif
 
 // No window of a harness game takes the foreground (SV1c). The game's own calls are kept from it
-// by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but
-// dgVoodoo's ddraw.dll, loaded into the process, activates the game window at SetCooperativeLevel
-// with its own calls, and a game that had the foreground and lost it to a starting game is
-// minimised by dgVoodoo (RestoreAfterMinimise): the device restores that follow draw random numbers
-// and shifted a golden. So the user32 functions themselves are patched, for every caller in the
-// process: the activating calls do nothing, and windows are made and shown without being activated.
+// by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but a DLL
+// loaded into the process makes its own calls (dgVoodoo's ddraw.dll in the original's runs until H40
+// activated the game window at SetCooperativeLevel and minimised a game that lost the foreground,
+// RestoreAfterMinimise, whose device restores drew random numbers and shifted a golden). So the user32
+// functions themselves are patched, for every caller in the process: the activating calls do nothing, and windows are made and shown without being activated.
 // A window that cannot be activated is not given the foreground when the one in front closes.
 namespace noforeground {
 BOOL WINAPI SetForeground(HWND) { return TRUE; }
@@ -2148,13 +2147,10 @@ BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT fla
 }
 bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD); }
 
-// WB12, WB12a: in every harness run (the image's and the original's) the game's windows are out of
-// sight as well. Each top-level window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
+// WB12, WB12a: in every harness run the game's windows are out of sight as well. Each top-level window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
 // but nothing of it reaches the screen) and made a tool window (no taskbar button, not in Alt+Tab).
 // Its position, size, visibility and messages stay as they were, so the game, the harness's posted
 // input and the frames (read from the renderer's target, harness_capture.cpp) do not change.
-// The original (game.exe on dgVoodoo, windowed) presents through dgVoodoo's swap chain into its cloaked
-// window the same way, and its frames are read from the emulated render target, not the window (WB12a).
 // EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run).
 bool g_conceal = false;
 decltype(&::DwmSetWindowAttribute) g_dwmSet;
@@ -3389,18 +3385,13 @@ void TraceFpu(const char* where) {
 // front, so the harness keeps every game active: it subclasses the window and drops the
 // deactivation (and minimise) messages.
 WNDPROC g_gameWindowProc;
-// (Harness games no longer take the foreground, noforeground:: above, so this is now only the focus off
-// step's minimise.) A game that Windows gave the foreground (when the window in front closed) and that
-// then lost it to a starting game was minimised by dgVoodoo, in the middle of a pass, and its surfaces are lost:
-// the pass's BeginScene failed with DDERR_SURFACELOST ("Can't begin scene") and the run ended on the
-// game's error box. The game itself restores its surfaces only when it is activated again (the main
-// loop's RestoreAllSurfaces, 00457140), which the harness's always-active window never sees. So the
-// harness notes the minimise (WM_SIZE, sent from inside a PeekMessageA while dgVoodoo handles the
-// deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
-// without activating it and restores the surfaces as that code does (under the device lock, the
-// result in the device's lastLoadResult), after every peek for the next 50 (surfaces still lost
-// right after the minimise were seen to fail the next BeginScene even so). Seen so far, though, the
-// minimise always came twice within ~100 ms, and the second took the exclusive mode as well.
+// (Harness games no longer take the foreground, noforeground:: above, so only the focus off step minimises a
+// game.) The game restores its surfaces only when it is activated again (the main loop's RestoreAllSurfaces),
+// which the harness's always-active window never sees. So the harness notes the minimise (WM_SIZE) and, once the
+// PeekMessageA that sent it has returned, puts the window back without activating it and has the device restore
+// its surfaces, after every peek for the next 50. The image's device holds a token (nothing to restore); the
+// restore was made for the original under dgVoodoo (until H40), whose minimise lost the surfaces in the middle of
+// a pass, and twice within ~100 ms the second time took the exclusive mode as well.
 HWND g_minimised;
 int g_restoresLeft;
 // The render device's surfaces restored (false without a device): the image's device object holds a token

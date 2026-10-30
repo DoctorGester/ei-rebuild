@@ -105,9 +105,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 
 ## A-E2: WinMain, the static initialisers, the last Rebirth-patched functions, MFC TRY / CATCH
 
-- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). It can be hooked: ei_harness.dll installs its hooks
-  from a stub at WinMain's first instruction (hook.cpp), so a replacement of 00456440 itself takes effect when
-  the stub jumps back. Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
+- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). Until H40 ei_harness.dll installed its hooks in
+  game.exe from a stub at WinMain's first instruction (hook.cpp). Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
   rewrite runs in the vanilla launch only. Every callee is called through its address, so their hooks and
   wrappers keep running. Ours only (`verify_app_main.cpp`: no window at entry, the mouse object released at the
   end); every vanilla scenario runs on it from start to exit.

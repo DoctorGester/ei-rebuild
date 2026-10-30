@@ -75,8 +75,8 @@ class GoldenTest(unittest.TestCase):
         self.assertEqual(d.state['random'][1]['crt.rand'], '0x00000002')
 
     def test_countdown_compared_since_sv1b(self):
-        # SV1b's repeatable heap takes the countdown from the id on both sides, so it is compared; runs with
-        # `--clock virtual,lfheap` keep the game's and leave it out with --ignore.
+        # SV1b's repeatable heap takes the countdown from the id on both sides, so it is compared; --ignore leaves it
+        # out (the lfheap runs did until H40).
         a, b = self.compact_of(digest(), 'a'), self.compact_of(digest(countdown='150'), 'b')
         self.assertEqual(self.diff_lines(a, b)[0], 1)
         a, b = (self.compact_of(digest(), 'a2', ignore=r' updateCountdown$'),

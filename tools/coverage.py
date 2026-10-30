@@ -11,11 +11,13 @@ replacements' first bytes); `collect --add` keeps them until their scenarios run
 the original code in H40, so reach.txt stays as it was collected; collecting again needs a checkout of the tag
 original-oracle (its run_all still has --no-hooks and --fresh).
 
+In a checkout of the tag original-oracle:
     python tools\\coverage.py addresses build\\cover.txt       (the watch list: reach.txt's addresses)
     set EI_COVER=<full path of that file>
     python tools\\work.py test <ID> [scenarios] --no-hooks --vanilla-only --fresh
     python tools\\coverage.py collect build\\verify\\runs --add  (reach.txt: these runs' scenarios replaced)
 
+Here:
     python tools\\coverage.py list                          (writes tests/coverage/coverage.csv from
                                                             reach.txt, the sources, goldens and vectors)
     python tools\\coverage.py who <address or name>          (the scenarios that reach a function)

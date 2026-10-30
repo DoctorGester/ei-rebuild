@@ -60,8 +60,7 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 
 ```
 build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
-build.cmd verify         the game with the test harness linked in, and ei_harness.dll (the harness for the original
-                         game.exe), into build\verify (what the tests run)
+build.cmd verify         the game with the test harness linked in, into build\verify (what the tests run)
 ```
 
 The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
@@ -107,8 +106,8 @@ repeats exactly, and compares the world state with its goldens (`tests/golden/`)
 stopped running the original game, H40, were the same as its runs). How to write scenarios and what a run does:
 `docs/notes/harness.md`; how changes are checked: `docs/notes/standalone-verification.md`.
 
-The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`), and need
-`tools\setup_vanilla_run.cmd` once for the original's runs.
+The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`). The tools that read
+game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` once.
 
 ## Layout
 
@@ -116,7 +115,7 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
-- `src/hook/` logging and the Rebirth options (both homes), and the harness's game.exe side (ei_harness.dll).
+- `src/hook/` the image's start-up support: logging, the profiler, failure reports and the Rebirth options.
 - `tests/verify/` the harness; `tests/vectors/` function-level comparisons with the original; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one

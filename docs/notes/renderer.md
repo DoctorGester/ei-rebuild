@@ -1,9 +1,8 @@
 # Renderer: the sidecar renderer, the hand-over from the game, and the switch-over
 
 The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by a new renderer in a sidecar module, and only the
-standalone image runs it (`ei-rebuild.exe`, docs/notes/standalone.md). game.exe runs the original
-code only, on dgVoodoo: its runs are the reference (goldens, function vectors, widescreen frames), never our
-renderer's.
+standalone image runs it (`ei-rebuild.exe`, docs/notes/standalone.md). Until H40 game.exe ran the original code on
+dgVoodoo for the harness's references (goldens, function vectors, widescreen frames); nothing runs it now.
 
 1. Game code that called the renderer is rewritten and hands its data to a **new renderer in a sidecar
    module** (`src/render/`, static library `ei_render` linked into ei-rebuild.exe): camera and matrices, object
@@ -723,24 +722,10 @@ then the recorder for a few frozen frames. A save's picture: `checksave <slot> <
 
 User's decision (2026-10-15): test runs of our code draw with our renderer, mainly because dgVoodoo runs that set a
 resolution must have the machine to themselves and serialised the suites.
-- The default suite is the standalone image's (`our_code()` in tools/run_all.py: installs `standalone` and
-  `standalone-rebirth`), always `EI_RENDER=new,present`. dgVoodoo draws only the original code (`--no-hooks`,
-  `--widescreen --record`'s rebirth-nohooks). A run of the original code never gets EI_RENDER (run_once drops it).
-- Alone (`runs_alone`): only a dgVoodoo run that sets the display mode (`sets_display_mode`: a `resolution` step for a size
-  other than `desktop`, or WideScreen on through Rebirth's addon.dll: `widescreen 1` on the rebirth installs, the
-  `--widescreen --record` runs among them). `resolution desktop` is the snapshot's own mode: such a run (net_pair_*,
-  render_pick_edges) shares the machine (H31a). Plans never hold a run that would switch the real
-  display (main's `switches_display`: `resolution WxH` with `fullscreen 1`): such a scenario runs only on our renderer
-  (a `# no original: <install>` line leaves its `--no-hooks` runs out).
-- Reference cache (`reference_key`, `store_reference`, `reference_from_cache`): a passed run of the original code is
-  kept in `<main checkout>/build/reference/<scenario>-<install>/<key>/` (the run folder without harness_saves, plus
-  cached.json with run()'s results), the key being the scenario's last commit (`work.scenario_revs`), the install's
-  files (run/<install>: names, sizes, times; dgVoodoo.conf by content), the tools of its `# prepare:` lines, the clock
-  override and the game's EI_* settings. A scenario with uncommitted edits is never cached. `run()` copies a cached run
-  into the run folder (a note "reference cache: <key> ..."; no time recorded); work.py test gives such a run alone = 0
-  and expected 1 s. Three keys kept per scenario and install. `--fresh` (run_all, compare.py; compare.py always with
-  `--runs` > 1) plays it again. Not in the key: the harness itself (the harness build): after a harness change that
-  alters what a reference run captures, `--fresh`.
+- The suite is the standalone image's (installs `standalone` and `standalone-rebirth`), always on our renderer, so
+  no run needs the machine to itself. Until H40 dgVoodoo drew the original code's runs (`--no-hooks`, `--widescreen
+  --record`), which run_all ran alone when they set the display mode and kept in a reference cache by scenario commit
+  and install (`--fresh` played them again); the tag original-oracle has that run_all.
 - `run_all --widescreen` compares the image's frames with addon's recorded ones (docs/notes/rebirth.md).
   compare_frames.py runs 8 at once (`COMPARE_JOBS`); the widescreen scenarios' 4K captures take 45-60 s beside other
   games (`timeout 90` in ui_widescreen_hud / _more / _screens).
@@ -846,7 +831,7 @@ Behaviour differences (one path for every sprite):
   the shipped sampler (limit 0.3%), 2.9% / 3.5% through point mips (at least 1%, so the check sees seams); Rebirth's
   wide view, further and steeper: 0.96% / 0.66% (limit 1.6%; a triangle's level still jumps where its slopes do, as
   under dgVoodoo's 16x) against 3.8% / 3.7% (at least 2.4%): only four times apart at this size (ten at 3840x2160).
-  The original's run captures its frames and skips both steps.
+  The original's runs (until H40) captured their frames and skipped both steps.
 
 - Check (R12b, same scenario): `mmplevels <most>` (`render::CheckMmpLevels`, verify build): every held .mmp texture's
   levels, decoded as drawn (a DXT texture's read back from the GPU: `ReadImageLevel`, render_compose.cpp), against its level 0, both box-filtered to 4 x 4: the largest mean difference per
@@ -916,9 +901,8 @@ Behaviour differences (one path for every sprite):
 
 Harness. `capture <name>` skips two presented frames and writes the next to `frames\<name>.bmp` (24-bit). In the image
 it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp and the software cursor, which the present draws). In a run of
-the original (`--no-hooks`, dgVoodoo) it is the old render target at the present point (after scene and interface,
-before the software cursor and the flip; a read-only Lock of the render target, GetDC as fallback: a GDI capture of
-the window comes back black with dgVoodoo). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
+the original (until H40: `--no-hooks`, dgVoodoo) it was the old render target at the present point (after scene and
+interface, before the software cursor and the flip). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
 (Camera::Update at 00457595 runs once per frame even with dt 0 and moves a fixed fraction per call); the main loop
 then runs no world, client or camera update. `samecapture <a> <b> [tolerance] [fraction]` fails the run when two
 captures differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...]
@@ -1305,8 +1289,8 @@ across runs; the goldens check the game state.
      no relight countdowns (SetSun only keeps the sun and the ambient) and the LightingFreq option is read by nothing.
      The original dropped a sector's lighting on its countdowns and skipped the tick's tile and wave animation then;
      its animated tiles drew from the game's ISAAC, so that changed the game's draws. Now the terrain's draws (and
-     every other client effect's) come from `g_clientRandom` (random.h) in both builds, and the harness keeps the
-     original's sectors lit from Build on (harness_client_effects.h, standalone-verification.md section 5).
+     every other client effect's) come from `g_clientRandom` (random.h) in both builds, and the harness kept the
+     original's sectors lit from Build on until H40 (harness_client_effects.h, standalone-verification.md section 5).
      Behaviour that differs from the original (R34; the goldens the same): nothing loads or touches sectors for the
      lighting (the ray march loaded the sectors it crossed; the light areas and relights looked sectors up), so the
      sector cache's order and evictions could differ; a specular light whose square reached a vertex outside its

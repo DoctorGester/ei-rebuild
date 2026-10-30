@@ -26,14 +26,14 @@ and the two mss32.dll versions, checked against `addon.log`.
 
 `starter\Engine\dinput.dll` ("Addon Loader", a proxy) reads `HKCU\Software\Gipat.Ru\EI_Starter` (`path`, `Settings\AddonPath`), loads
 `starter\addon.dll`, which writes a CALL at 006EC301 (the CRT's call of WinMain). Before WinMain addon makes .text / .rdata writable,
-applies the patch tables and calls WinMain; `ei_harness.dll` installs its hooks when WinMain starts and so sees all of addon's patches.
+applies the patch tables and calls WinMain (until H40 the harness in game.exe, ei_harness.dll, installed its hooks when WinMain started and so saw all of addon's patches).
 WinMain creates the sound manager (006B6040), whose `AIL_startup` makes Miles load every `*.asi` in the working directory (mp3dec.asi,
 EI_Plugin.asi); EI_Plugin writes CALL 10001BD0 at 006B6272 (right after `AIL_startup`), which applies its features and calls the original
 006B73E0. (More exactly: dinput.dll's DllMain points game.exe's entry 006EC226 at its loader, which loads addon.dll on the main
 thread; addon's DllMain, AddonInit at addon+FFDE, opens `starter\addon.log` (appended to on every launch) and sets its crash
 handler, which writes minidumps to `starter\Dumps\`. In harness runs both land in the run's overlay: standalone-verification.md,
 "No run writes into an install".) The installer knows the plugin's sites and active features (from `EI_Plugin.ini` and the mode word) and keeps the original where
-a hook would silently drop the plugin's change (0045C560 was one). dgVoodoo is the same in our vanilla runs.
+a hook would silently drop the plugin's change (0045C560 was one).
 
 addon reads `HKCU\Software\Gipat.Ru\EI_Starter\Settings` (`WideScreen`, `ObjectsDrawRadius` / `LandscapeDrawRadius` [100; 5376 here], `AddonPath` =
 `starter\MODS\Standard`, ...), `...\General Settings\VIDEORESOLUTION`, `2utoexec.cfg` and the mod's `config.reg`. The Standard mod sets only title
@@ -123,8 +123,7 @@ not inventoried.
 
 ### Resources and paths (5 of 12 applied; single player; implemented: the five mod-folder patches in the standalone image)
 
-NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
-original in hooked runs because the harness keys on its return addresses; every registry read goes through that root; dropped in the
+NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; every registry read goes through that root; dropped in the
 standalone image, which keeps one settings file, ei_settings.ini, for both installs: docs/notes/standalone.md "Settings file"); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
@@ -234,7 +233,7 @@ the second argument in `include/ei/rebirth_patches.inc` and the `standalone` col
 - **dropped** (9): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
   EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs); the flags stay, nothing implements them.
 
-**Recording "original + fixes"** (`tests/verify/harness_addon.{h,cpp}`): addon.dll has no switch per patch (its main table applies every entry; apply functions
+**Recording "original + fixes"** (until H40, the goldens' source then; `tests/verify/harness_addon.{h,cpp}`, the tag original-oracle): addon.dll has no switch per patch (its main table applies every entry; apply functions
 only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_harness.dll) into every
 harness run of game.exe on the vanilla data (not with `EI_VECTORS=1`, not with `EI_ADDON_FLAGS=0`) and sets `EI_ADDON_FLAGS=1`. When WinMain is entered the
 harness keeps addon's sites of the patches whose flag is on in the run (`tests/verify/addon_sites.inc`, `tools/rebirth/make_addon_sites.py` from the CSV) and
@@ -261,7 +260,7 @@ movie choice is not in a golden), FixProcessLogin (multiplayer join; the age it 
 Fixes cannot be recorded through addon.dll (above).
 
 **Rebirth's data is a smoke set** (`run_all --rebirth`, before releases; `config/rebirth_scenarios.csv` plus every scenario with a step for
-one install, rebirthflags, addonpath or widescreen): the default suite and `--no-hooks` run the vanilla data only. `--all-rebirth`
+one install, rebirthflags, addonpath or widescreen): the default suite runs the vanilla data only. `--all-rebirth`
 still runs and compares every Rebirth golden.
 
 ### Installing and verifying flagged rewrites
@@ -400,11 +399,10 @@ NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and
 game's and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's
 stub slots, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`); every other read of the game's and the
 starter's keys comes from `config/harness/registry.reg` (`tests/verify/harness_settings.h`, WB16). The widescreen scenarios use `desktop` (3840x2160 here):
-addon's references are recorded at it, and another mode makes dgVoodoo switch the display (the image's runs without a
-`resolution` line play at 1280x720 in a window, H31). Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the widescreen scenarios
+addon's references were recorded at it (the image's runs without a `resolution` line play in a window, H31, W12). Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the widescreen scenarios
 (`ui_widescreen`, `ui_widescreen_more`, `ui_widescreen_hud`, `ui_widescreen_screens`, `ui_widescreen_dialogue`) on the standalone image (Rebirth install) and compares
-its frames with addon's, recorded once (`--widescreen --record`; docs/notes/standalone-verification.md, "WideScreen references"). Before that it ran them under Rebirth with
-our hooks (`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compares the frames; the scenarios run on the virtual
+its frames with addon's, recorded until H40 (`--widescreen --record`; docs/notes/standalone-verification.md, "WideScreen references"). Before that it ran them under Rebirth with
+our hooks (`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compared the frames; the scenarios run on the virtual
 clock, and frames with a `_later` twin are compared without what moved between the two (the hero, his portrait, the menu's creatures); a
 pausing window's frame (the Save window) leaves out what moved in `<f>_moving` / `<f>_moving_later`, captured before it opened. The default
 tolerance is met by every frame (at most 0.065% of the pixels differ; the menu's swaying trees once reached 0.135%). Not compared: the

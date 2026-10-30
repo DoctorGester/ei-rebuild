@@ -10,8 +10,8 @@ Suites workflow).
 
 `README.md` covers it. In short, this is a readable C++ rebuild of Evil Islands' `game.exe` 1.06 that behaves the
 same, not one that matches it byte for byte. The product is `ei-rebuild.exe`, one exe in x86 and x64 builds that is
-dropped into a GOG or Rebirth install. The original `game.exe` is only the harness's reference, and H40 is about to
-retire it.
+dropped into a GOG or Rebirth install. Nothing runs or reads the original `game.exe` any more (H40): the goldens are
+the image's own, and the tag `original-oracle` (b06141b) has the last build that ran it.
 
 The tests are scenario runs (`tests/scenarios/*.txt`) checked against goldens (`tests/golden/<scenario>/<install>/`).
 A golden is game state: digests of the world, saves and console. Goldens never hold frames.
@@ -149,12 +149,10 @@ Recently done:
 - The release workflow: Actions > Release with a version, which publishes the x86 and x64 exes. v0.1.0 is out.
 
 Next, in rough order:
-1. **H40**: own goldens; the harness stops running `game.exe`. Done: the tag `original-oracle` (b06141b), the
-   workflow's `record` input, every golden recorded from the image, step 3a (no Python tool runs game.exe: no
-   `--no-hooks`, reference cache, harness key or `# no original` lines) and the first part of 3b (no
-   ei_harness.dll; ei_launch starts only the image). Left: 3b's rest, the harness's game.exe branches in
-   tests/verify (`Standalone()` checks, `PatchOriginalImport` routes, harness_original.h, the addon undo,
-   config/harness/registry.reg), and step 4 (docs and rules that exist only because of game.exe).
+1. **H40** is done: the goldens are the image's own (recorded by the workflow's `record` input from two agreeing
+   runs), and the harness, launcher, tools and build have no game.exe side left (no `--no-hooks`, reference cache,
+   harness key, `# no original` lines, ei_harness.dll, hook framework, vector recorders, coverage breakpoints or
+   heap jitter). The recorded vectors and their replay stay. The tag `original-oracle` has everything removed.
 2. **W12** is merged (a32e6b8): one layout for every window. Vanilla image runs play at 960x720, Rebirth's at
    1280x720 with the wide layout; a scenario's `vanilla` / `rebirth` prefix on a window step picks one install.
 3. **C68**: Rebirth's bug fixes always on, plus the harmless options. Waits for W12.
