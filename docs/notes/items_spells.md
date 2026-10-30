@@ -573,7 +573,7 @@ obvious.
   briefings + index). 0068E640 `MaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of
   the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 /
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
-- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `HudClock::LeftUp`
+- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_frame.cpp; the code is the description): 00648D70 `HudClock::LeftUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
   objectives; O, no scenario clicks the clock); 00649910 `HudMovePanel::ShowMode` (+0x14C `mode`; S); 00642930 /
   00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
@@ -619,14 +619,14 @@ obvious.
   already checked on that thread). The original leaves its "from the beginning again" local unwritten when neither a loop
   point nor a switch point lies in the buffer and reads it in one such case (a mode 1 switch whose file ends in this buffer:
   stack garbage decides between the switch and a restart); ours switches, which is what the mode asks for.
-- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `HudUnitPanel::Draw`: Rebirth replaces the
+- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_info.cpp`, `HudUnitPanel::Draw`: Rebirth replaces the
   whole function, so vanilla launch only; ours only, every map frame). Between the panel's background and the unit's figure,
   and again after the figure, it clears three screen rectangles' depth (the original: IDirect3DDevice7::Clear under the render
   lock 007AEE78; ours `ClearUiDepth`, the new renderer's depth); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state
   0x12) set to 1 and put back (vtable +0x90 / +0x94). 006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md.
 
 Shared: resource_local.h (`LocalResource`, `FillStream`; the lightning, lever and party loads too), database_file.h (`LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
-unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
+unit_db.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
 `GameClientPaused` / `GameSendFlag10` in world_glue.h. The tables' vector serialisers are called through their
 addresses so that their wrappers run. The folder-only loads (quests, prints, acks) open "database.res" but report
 "databases.res" when that fails; the serialisers' unused third argument is whatever the original's stack held (null in ours);
@@ -641,7 +641,7 @@ precision control reaches FADD / FSUB / FMUL / FDIV / FSQRT only, FCOS and FSIN 
 sin(pi / 2) x 34 = 33.99999.. rounds to 34 and the vertex is the whole radius (35, 80, 34; in doubles one less), and
 cos(pi / 3) x 34 = 16.9999991 rounds to 17. X33: the port rounded the cosine to float first, which gives 0.49999997 x 34 =
 16.999998 and 16, so the clock's middle region had its third arc point at (784, 571) where the original has (783, 571).
-`OnArc` in ui_hud_setup.cpp rounds each product with RoundToFloat, so it does not depend on the precision control. The map's
+`OnArc` in ui_hud_frame.cpp rounds each product with RoundToFloat, so it does not depend on the precision control. The map's
 outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 + 80))` the same way: its point under the centre is (635, 80), where
 doubles give (635, 79). The setups' wrappers name the region or sprite field that differs and both values
 (`DescribeRegionDifference` / `DescribeSpriteDifference`, `tests/verify/ui_panel_shot.h`, which also holds the setups' record

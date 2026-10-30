@@ -35,7 +35,7 @@ struct PartyManager;
 extern GameFlow g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
-extern Interface3D g_interface;   // ui_interface_glue.cpp
+extern Interface3D g_interface;   // ui_interface_input.cpp
 
 extern WorldClient g_clientWorld;   // world_construct.cpp
 
@@ -45,7 +45,7 @@ extern WorldServer g_serverWorld;   // world_construct.cpp
 extern SceneRenderer g_sceneRenderer;   // renderer_scene.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
-extern Cursor g_cursor;   // ui_cursor_setup.cpp
+extern Cursor g_cursor;   // ui_cursor.cpp
 extern MapDatabase g_mapDatabase;   // map_database.cpp
 Script* TheMissionScript();
 extern Camera g_camera;   // camera_object.cpp

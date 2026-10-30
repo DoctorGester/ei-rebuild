@@ -861,7 +861,7 @@ public:
     // The first layout point is position, the other two relative to it in units of `scale`.
     void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                             float v0, float u1, float v1, float u2, float v2);
-    // The shape builders (ui_mesh_build.cpp; docs/notes/ui.md, "Sprite shapes"): each fills the sprite from
+    // The shape builders (ui_mesh.cpp; docs/notes/ui.md, "Sprite shapes"): each fills the sprite from
     // scratch (quad positions in the sprite's own units, layout pixels / scale, the vertex records, the
     // triangle indices, texels / 256 nudged by half a texel, the placement) and hands the arrays to the renderer.
     // A framed rectangle: an outer quad (left, top)-(right, bottom) and an inner one `border` pixels in,

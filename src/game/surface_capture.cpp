@@ -1,4 +1,4 @@
-// Reading the screen back into a bitmap (dib.h): the screenshots (Scroll Lock, ui_interface_keys.cpp) and the movie
+// Reading the screen back into a bitmap (dib.h): the screenshots (Scroll Lock, ui_interface.cpp) and the movie
 // recorder's frames (app_frame.cpp). The rows come from the new renderer's last frame, copied from the last to the
 // first, as a .bmp keeps them.
 #include "dib.h"

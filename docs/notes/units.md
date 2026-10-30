@@ -180,13 +180,13 @@ A-U9 (render / animation block 0x500000-0x50E000) is listed in `map_objects.md` 
 unit skeleton rewind), with that block's next candidates under "Skipped and why". Every rewritten function carries its
 address in its source comment (grep the address); the per-function table that used to be here is gone. Files:
 - `unit.cpp` (Unit setters, getters, item slots, speeds; `Unit::MarkChanged` / `HasEffect` are MapObject methods kept on
-  Unit: forwarders from MapObject), `unit_stats.cpp`, `unit_vitals.cpp` (regeneration, levelling, Raise*), `unit_stats_pack.cpp`
-  / `unit_stats_io.cpp`, `unit_hits.cpp`, `unit_update.cpp` (virtual slots), `unit_items.cpp` / `unit_item_lists.cpp`,
+  Unit: forwarders from MapObject), `unit_stats.cpp`, `unit_vitals.cpp` (regeneration, levelling, Raise*), `unit_stats.cpp`
+  / `unit_stats.cpp`, `unit_hits.cpp`, `unit_update.cpp` (virtual slots), `unit_items.cpp` / `unit_items.cpp`,
   `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
-  `unit_equipment.cpp`, `unit_db*.cpp` / `unit_sound_counts.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
-  `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_size_class.cpp` / `unit_hit_location.cpp` / `unit_steal.cpp` /
-  `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_update.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
-  `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
+  `unit_equipment.cpp`, `unit_db*.cpp` / `unit_db.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
+  `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_update.cpp` / `unit_stats.cpp` / `unit_items.cpp` /
+  `unit_figure_queries.cpp` / `unit_update.cpp` / `unit_client_update.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
+  `unit_update.cpp`, `unit_update.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
   `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
   `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
 - Facts about specific groups: `Unit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
@@ -316,7 +316,7 @@ address in its source comment (grep the address); the per-function table that us
 After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wrapper: the head comments of
 `verify_unit_small_a12.cpp` and `verify_unit_db_load.cpp`.
 
-- **Statistics and database lookups** (`unit_stat_small.cpp`): UnitStats::StrengthRatio / DexterityRatio (00523CB0,
+- **Statistics and database lookups** (`unit_db.cpp`): UnitStats::StrengthRatio / DexterityRatio (00523CB0,
   00523CC0), the packed vitals / params field wrappers (00523700-00523730), ExcessDamage 00522AE0 (only AX is a result:
   its caller 005CF9A0 masks every use), MaxDamage 00522B20, SchoolPrice 00527FF0, AttackParams::ScaleForDifficulty
   0052E0D0, SkillDatabase::SkillAt / LevelAt (00526FF0, 00524FA0), UnitModelAt 00539280, UnitPrototypeAt 0053AD30. All
@@ -331,7 +331,7 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
   0052E290), MotionSegmentConstruct 0052E230, Unit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
   00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
   brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.
-- **The databases' loads** (`unit_db_load.cpp`; Rebirth patches both, at their file lookup, so these are the vanilla
+- **The databases' loads** (`unit_db.cpp`; Rebirth patches both, at their file lookup, so these are the vanilla
   functions and install in the vanilla launch only): UnitDatabase::Load 0053A200 and SkillDatabase::Load 00520220, with
   the model / level tables' FindByName copies 0053D240 / 0053D650 (operator[] on the name index: an unknown name gets a
   null entry). `UnitDatabase` (unit_db.h) is now four typed tables (prototypes +0x00, NPCs +0x20, models +0x40, level
@@ -371,7 +371,7 @@ stream and the resource are closed in the original's order. Side by side on the 
 loads, the records are copied by content, ours loads again (records emptied and read anew, index entries of
 the same names overwritten) and both contents are compared; every record must be found under its name.
 Reached once at each start of the game from the application's start-up (00456440, in the exe).
-`resource_local.h` holds the stack archive and stream the two A-E1 loaders share (unit_db_load.cpp keeps its
+`resource_local.h` holds the stack archive and stream the two A-E1 loaders share (unit_db.cpp keeps its
 own copies).
 
 **PF1a, part-name tests without a CRT call per byte.** `Object3D::SetUpAnimatedFigure` (per bone) and `LoadPart` test each

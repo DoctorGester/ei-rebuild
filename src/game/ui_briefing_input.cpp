@@ -2,23 +2,28 @@
 // the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
-#include "combat.h"
-#include "ui_briefing.h"
 
-#include "text_manager.h"
+#include "camera.h"
+#include "combat.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "map_object.h"
 #include "maths.h"
+#include "text_manager.h"
+#include "text_split.h"
+#include "ui_briefing.h"
+#include "ui_cursor.h"
 #include "unit.h"
 #include "unit_ai.h"
-
-#include "ui_cursor.h"
 #include "world.h"
-
+#include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
-#include "game_singletons.h"
 #include "lib/text_case.h"
+#include "platform/keys.h"
 
+#include <bit>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -70,7 +75,6 @@ bool CanTalk(EngineObject* person) {
            controller->action2.kind == UnitOrderKind::None;
 }
 
-
 bool IsPerson(MapObject* object) { return object && object->IsDead() == 0; }
 
 } // namespace
@@ -83,7 +87,6 @@ static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     if (!unit || (unit->flags & MapObjectFlag::Blocked)) return;
     unit->ServerController()->brain.Walk(point, run);
 }
-
 
 void BriefingScreen::LeftDown(int buttons, int x, int y) {
     if (chatActive) {
@@ -127,7 +130,6 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
         return;
     }
 }
-
 
 void BriefingScreen::MouseMove(int buttons, int x, int y) {
     if (chatActive) {
@@ -186,7 +188,6 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     if (visited != 1.0f) g_cursor.SetShape(kCursorExit);
 }
 
-
 void BriefingScreen::LeftDouble(int buttons, int x, int y) {
     if (chatActive) return;
     UiContainer::LeftDouble(buttons, x, y);
@@ -205,7 +206,6 @@ void BriefingScreen::LeftDouble(int buttons, int x, int y) {
     }
     if (!noWalk) WalkLeaderTo(this, x, y, true);
 }
-
 
 void BriefingScreen::OpenTopics(EngineObject* speaker) {
     FindTopics(speaker->id);
@@ -229,7 +229,6 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
     state = 1;
 }
 
-
 void BriefingScreen::DrawTopics() {
     std::string prefix = g_clientWorld.texts->GetString(kTopicPrefixKey);
     UiSurface* surface = surfaces[0];
@@ -243,5 +242,123 @@ void BriefingScreen::DrawTopics() {
         line += kTopicSeparator;
         line += TopicTitle(topics[row]);
         surface->DrawTextIn(line, &area, kTextFormat, colour, 0, 1);
+    }
+}
+
+// --- Ui briefing keys --------------------------------------------------------------------------------
+
+// The briefing / base screen's key handler (BriefingScreen::KeyDown). See
+// docs/notes/ui.md, "Briefing / base screen".
+
+namespace {
+
+constexpr const char* kQuickSaveName = "saveq";
+constexpr const char* kQuestPrefix = "q.";
+
+constexpr int kScanCodeMask = 0x1FF;
+constexpr int kActionObjectives = 4;
+constexpr int kActionLeader = 0xB;
+constexpr int kActionQuickSave = '5';
+constexpr int kActionQuickLoad = '6';
+constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
+constexpr int kQuestNameParts = 3;               // "q", zone, quest
+
+// Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
+// active.
+void OpenObjectives(Interface3D* ui) {
+    MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
+    if (!zone) return;
+    std::vector<std::string> parts;
+    NamedFloatTable quests;
+    PlayerZeroVariables(kQuestPrefix, &quests);
+    for (auto& node : quests) {
+        parts = text::Split(node.first, '.');
+        if (parts.size() != kQuestNameParts || std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
+        MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
+        if (!questZone) continue;
+        if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
+        auto* window = new ObjectivesWindow(ui);
+        window->Setup(LocalPlayerZone(), nullptr, false, true);
+        ui->PushWindow(window, true, true);
+        break;
+    }
+}
+
+} // namespace
+
+void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
+    if (chatActive) {
+        if (key == platform::kKeyEscape) chatActive = 0;
+        return;
+    }
+    UiContainer::KeyDown(key, repeat, modifiers);
+    switch (key) {
+    case platform::kKeyBack:
+        if (IsMultiplayerClient()) {
+            ui->ChatKeyBackspace();
+            handled = true;
+            return;
+        }
+        break;
+    case platform::kKeyReturn:
+        if (IsMultiplayerClient()) {
+            ui->ChatKeyEnter();
+        } else if (state == 3) {
+            ui->PlayInterfaceSound(kClickSound);
+            while (state == 3) NextPhrase(true);
+        } else if (state == 4) {
+            ui->PlayInterfaceSound(kClickSound);
+            FinishDialogue();
+        }
+        handled = true;
+        return;
+    case platform::kKeyEscape:
+        if (state == 0) {
+            ui->PushWindow(new EscMenu(ui), true, true);
+        } else if (state == 3) {
+            ui->PlayInterfaceSound(kClickSound);
+            while (state == 3) NextPhrase(true);
+        } else if (state == 4) {
+            ui->PlayInterfaceSound(kClickSound);
+            FinishDialogue();
+        } else if (state == 2) {
+            StartDialogue(true, false);
+        } else if (state == 1) {
+            state = 0;
+        }
+        handled = true;
+        return;
+    case platform::kKeySpace:
+        if (state == 3) {
+            ui->PlayInterfaceSound(kClickSound);
+            NextPhrase(false);
+        } else if (state == 4) {
+            ui->PlayInterfaceSound(kClickSound);
+            FinishDialogue();
+        } else if (state == 2) {
+            StartDialogue(true, false);
+        }
+        handled = true;
+        return;
+    default:
+        break;
+    }
+    if (state != 0) return;
+    switch (g_keyActions[modifiers & kScanCodeMask]) {
+    case kActionObjectives:
+        OpenObjectives(ui);
+        break;
+    case kActionLeader:
+        if (leader) g_camera.SetTarget(leader);
+        handled = true;
+        break;
+    case kActionQuickSave:
+        ::QuickSave(kQuickSaveName, false);
+        break;
+    case kActionQuickLoad:
+        QuickLoad(kQuickSaveName);
+        break;
+    default:
+        break;
     }
 }

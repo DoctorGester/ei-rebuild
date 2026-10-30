@@ -1,23 +1,30 @@
 // The camp's trade panel (the level-up page): its layout, its lists of schools and perks and their drawing.
 // See docs/notes/ui.md ("Camp, global map, hero screens").
 #include "text_manager.h"
-#include "world.h"
-#include "ui_camp.h"
-#include "party.h"
-#include "unit.h"
-
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/rect.h"
-#include <cstdint>
-#include <string>
 
 #include "core_maths.h"
+#include "game_singletons.h"
+#include "item.h"
+#include "party.h"
+#include "texture.h"
+#include "ui.h"
+#include "ui_camp.h"
+#include "ui_item_info.h"
+#include "ui_screens.h"
+#include "unit.h"
 #include "unit_db.h"
+#include "world.h"
 #include "world_glue.h"
+#include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/rect.h"
 #include "lib/str.h"
+#include "render/render.h"
+
+#include <cstdint>
 #include <format>
+#include <string>
 
 namespace {
 
@@ -335,4 +342,184 @@ std::string TradePanel::FormatPrice(int price) {
     else if (price < 10000000) return str::Format("%.1fm", price * kMillionth);
     else if (price < 1000000000) return std::format("{}m", price / 1000000);
     return str::Format("%.1fg", price * kBillionth);
+}
+
+// --- Input -------------------------------------------------------------------------------------------
+
+// The trade panel's scroll clamp, its left button and its update:
+// scrolling the perk lists and buying school levels, science and perks with experience, a school
+// or science level again every frame from 750 ms of holding on while the button stays down (whole
+// milliseconds). See docs/notes/ui.md, section 5.
+
+namespace {
+
+const char* const kPerkSound = "buttons\\camp\\perk.wav";
+
+constexpr int kHeldRows = 10;
+constexpr int kLearnableRows = 23;
+constexpr int kHeldUp = 0, kHeldDown = 1, kLearnableUp = 2, kLearnableDown = 3;
+constexpr int kFirstSchool = 4;
+constexpr int kScience = 10;
+constexpr int kFirstLearnable = 11;
+constexpr int kFirstHeld = 34;
+constexpr int kMaxLevel = 100;
+constexpr int kFirstHoldTicks = -500;    // milliseconds: the first repeat waits 750 ms
+constexpr int kRepeatTicks = 250;        // then a level every frame
+
+} // namespace
+
+// --- The scroll positions clamped ----------------------------------------------------------------------
+
+void TradePanel::ClampScroll() {
+    if (perkTop > static_cast<int>(perks.size()) - kHeldRows) perkTop = static_cast<int>(perks.size()) - kHeldRows;
+    if (perkTop < 0) perkTop = 0;
+    if (learnableTop > static_cast<int>(learnable.size()) - kLearnableRows) learnableTop = static_cast<int>(learnable.size()) - kLearnableRows;
+    if (learnableTop < 0) learnableTop = 0;
+    SceneMesh(0)->visible = perkTop > 0;
+    SceneMesh(1)->visible = perkTop < static_cast<int>(perks.size()) - kHeldRows;
+    SceneMesh(2)->visible = learnableTop > 0;
+    SceneMesh(3)->visible = learnableTop < static_cast<int>(learnable.size()) - kLearnableRows;
+    DrawLists();
+}
+
+// --- The left button (input click) ---------------------------------------------------------------------
+
+void TradePanel::LeftDown(int, int x, int y) {
+    int region = RegionAt(x, y);
+    switch (region) {
+    case kHeldUp: --perkTop; ClampScroll(); return;
+    case kHeldDown: ++perkTop; ClampScroll(); return;
+    case kLearnableUp: --learnableTop; ClampScroll(); return;
+    case kLearnableDown: ++learnableTop; ClampScroll(); return;
+    default: break;
+    }
+    if (region >= kFirstSchool) ui->PlayInterfaceSound(kPerkSound);
+    UnitStats* stats = &owner->HeroRecord()->stats;
+    TradeStatsRecord& record = records[recordIndex];
+
+    const TradeRow* row = nullptr;
+    bool hold = false;
+    if (region >= kFirstSchool && region < kScience) {
+        row = &schools[region - kFirstSchool];
+        if (row->level >= kMaxLevel || row->price > experience) return;
+        ++stats->skills[region - kFirstSchool];
+        hold = true;
+    } else if (region == kScience) {
+        row = &science[0];
+        if (row->level >= kMaxLevel || row->price > experience) return;
+        ++stats->attributes[0];
+        hold = true;
+    } else if (region >= kFirstLearnable && region < kFirstHeld) {
+        std::uint32_t index = static_cast<std::uint32_t>(learnableTop + region - kFirstLearnable);
+        if (index >= learnable.size()) return;
+        row = &learnable[index];
+        if (row->price > experience || !row->learnable) return;
+        stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->key));
+    } else {
+        // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
+        std::uint32_t index = static_cast<std::uint32_t>(perkTop + region - kFirstHeld);
+        if (index >= perks.size()) return;
+        row = &perks[index];
+        if (row->price > experience || row->nextKey.empty()) return;
+        stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->nextKey));
+    }
+    stats->spentExperience = row->price + stats->spentExperience;
+    record.bought = true;
+    BuildLists();
+    if (hold) {
+        heldRegion = region;
+        holdTicks = kFirstHoldTicks;
+        CaptureMouse();
+    }
+}
+
+// --- The left button released (input release) -----------------------------------------------------------
+
+void TradePanel::LeftUp(int, int, int) {
+    ui->mouseCapture = nullptr;
+    heldRegion = -1;
+    holdTicks = 0;
+}
+
+// --- The held school / science button (update) ---------------------------------------------------------
+
+void TradePanel::Update() {
+    if (heldRegion < 0) return;
+    holdTicks += UiContainer::FrameTicks();
+    if (holdTicks < kRepeatTicks) return;
+    int region = heldRegion;
+    UnitStats* stats = &owner->HeroRecord()->stats;
+    const TradeRow* row;
+    std::uint8_t* level;
+    if (region >= kFirstSchool && region < kScience) {
+        row = &schools[region - kFirstSchool];
+        level = &stats->skills[region - kFirstSchool];
+    } else if (region == kScience) {
+        row = &science[0];
+        level = &stats->attributes[0];
+    } else {
+        return;
+    }
+    if (row->level < kMaxLevel && row->price <= experience) {
+        ++*level;
+        stats->spentExperience = row->price + stats->spentExperience;
+        BuildLists();
+        return;
+    }
+    ui->mouseCapture = nullptr;
+    heldRegion = -1;
+}
+
+// --- Ui trade grid draw ------------------------------------------------------------------------------
+
+// The camp trade grid's draw (TradeGrid). The depth buffer is cleared to 0 over the screen and to 1 over the
+// grid (200..600 x 100..500 in layout coordinates), so the cells' item models draw only there; then the
+// window's sprites and models, and on its surface: every bought item and sold item in its cell of a 4 x 4
+// layout (100 pixels apart; the item's model is drawn there), its count when more than one, and except on
+// the exchange window its price (the owner's price virtual with the kind). Last the depth buffer is cleared
+// to 1 again. The new renderer (src/render) gets the depth clears. See docs/notes/ui.md ("Camp") and
+// docs/notes/renderer.md.
+
+namespace {
+
+constexpr std::uint32_t kTextColour = 0xA7D7E4;
+
+// One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
+// bought (upper) and sold (lower) lists, as do the text rows.
+void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, UiSurface* surface,
+               float yOffset, float bigSize, float smallSize, int countTop, int priceTop, int kind) {
+    for (int i = 0; i < std::ssize(list); ++i) {
+        int x = (i % 4) * 100;
+        int y = (i / 4) * 100;
+        ItemCell cell{list[i], x + 250.0f, y + yOffset,
+                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode};
+        grid->owner->DrawItem(pass, cell);
+        int pieces = static_cast<int>(cell.item->count);
+        if (pieces > 1) {
+            Rect r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
+            surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
+        }
+        if (!grid->exchange) {
+            Rect r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
+            surface->DrawTextIn(std::format("{}", grid->owner->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
+        }
+    }
+}
+
+} // namespace
+
+void TradeGrid::Draw(SceneRenderer* pass) {
+    Interface3D* currentUi = ui;
+    Rect grid{200, 100, 600, 500};
+    currentUi->ScaleRectToScreenEntry(&grid);
+    Rect screen{0, 0, currentUi->width, currentUi->height};
+    ClearUiDepth(0.0f, &screen, 1);
+    ClearUiDepth(1.0f, &grid, 1);
+    DrawBase(pass);
+
+    UiSurface* surface = surfaces[0];
+    surface->Clear();
+    DrawItems(this, pass, *bought, surface, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind);
+    DrawItems(this, pass, *sold, surface, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind);
+    ClearUiDepth(1.0f, &screen, 1);
 }

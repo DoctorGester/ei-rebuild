@@ -16,8 +16,8 @@ address,size,name,file
 00740328,24,kWideClearRight,src/game/ui_hero_preview.cpp
 00740340,24,kWideClearBottom,src/game/ui_hero_preview.cpp
 00740358,128,kSchoolGlow,src/game/ui_item_view.cpp
-0074111C,28,kSlotXs,src/game/ui_briefing_people.cpp
-00741138,28,kSlotYs,src/game/ui_briefing_people.cpp
+0074111C,28,kSlotXs,src/game/ui_briefing.cpp
+00741138,28,kSlotYs,src/game/ui_briefing.cpp
 00741EC4,28,kBodySlotX,src/game/ui_camp.h
 00741EE0,28,kBodySlotY,src/game/ui_camp.h
 00742434,24,kPartX,src/game/ui_hud_slide.cpp
@@ -108,7 +108,7 @@ address,size,name,file
 00791744,16,kTransparency,src/game/ai_map.cpp
 00791978,36,kDirectionSteps,src/game/ai_map.h
 00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
-007930EC,12,g_pauseMessageKey,src/game/ui_interface_save.cpp
+007930EC,12,g_pauseMessageKey,src/game/ui_interface.cpp
 00793378,8,kVoiceFolders,src/game/ui_briefing_phrases.cpp
 00793AD8,4,g_connectTextColour,src/game/ui_screens.h
 00793BD4,28,kNames,src/game/ui_camp.h
@@ -203,10 +203,10 @@ address,size,name,file
 007C7B68,4,g_filterMask,src/game/console.h
 007C7C90,4,g_cursorWidth,src/game/ui_cursor.h
 007C7C94,4,g_cursorHeight,src/game/ui_cursor.h
-007C7CD8,16,kIdentityOrientation,src/game/ui_mesh_draw.cpp
+007C7CD8,16,kIdentityOrientation,src/game/ui_mesh.cpp
 007C7D20,4,kFullTurn,src/game/ui_item_view.cpp
 007C7D24,4,kTilt,src/game/ui_hero_preview.cpp
-007C7E24,4,g_shotCounter,src/game/ui_interface_keys.cpp
+007C7E24,4,g_shotCounter,src/game/ui_interface.cpp
 007C7E58,16,kIdentityRotation,src/game/ui_window.cpp
 007C7EE8,4,kCampFullTurn,src/game/ui_camp.cpp
 007C7F10,4,kFullTurn,src/game/ui_hero_screen.cpp

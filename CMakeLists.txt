@@ -295,11 +295,9 @@ set(EI_VECTORS_GAME_SOURCES
     src/game/script_vars.cpp
     src/game/sector_spiral.cpp
     src/game/settings_document.cpp
-    src/game/unit_hit_location.cpp
-    src/game/unit_params_protection.cpp
-    src/game/unit_params_skill.cpp
-    src/game/unit_skill_price.cpp
     src/game/unit_stats.cpp
+    src/game/unit_params.cpp
+    src/game/unit_skill_price.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
     src/lib/crt_maths.cpp

@@ -1,6 +1,6 @@
 #pragma once
 
-// The battle camera's input (ui_camera_keys.cpp, ui_camera_input.cpp).
+// The battle camera's input (ui_camera_input.cpp, ui_camera_input.cpp).
 
 #include "options.h"
 #include "ui.h"

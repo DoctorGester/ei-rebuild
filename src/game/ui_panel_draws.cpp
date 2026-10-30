@@ -1,6 +1,6 @@
 // Draw virtuals of the camp's and the hero screen's panels: the quick strip, the repair grid, the
 // constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
-// ui_trade_grid_draw.cpp.
+// ui_trade_panel.cpp.
 #include "ui.h"
 #include "texture.h"
 #include "ui_camp.h"

@@ -807,8 +807,8 @@ UNUSED_INITIALISERS = {
     0x006ADF10: "the quest database 007C87A8 (exit function 006ADF30): database_globals.cpp's g_questDatabase",
     0x006D7080: "the speeches database 007C8A60 (exit function 006D70A0): database_globals.cpp's g_ackDatabase",
     # C54g: the cursor and the interface manager are plain globals of ours.
-    0x005E4DD0: "the cursor 007C7BD8 (exit function 005E4DF0): ui_cursor_setup.cpp's g_cursor",
-    0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_interface_glue.cpp's g_interface",
+    0x005E4DD0: "the cursor 007C7BD8 (exit function 005E4DF0): ui_cursor.cpp's g_cursor",
+    0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_interface_input.cpp's g_interface",
     # C50a: plain globals of ours (constructed and destroyed by the C++ runtime) in place of the static objects.
     0x005B31C0: "the unit shape cache 007C2F70 (exit function 005B31E0): ai_movement.cpp's g_unitShapes",
     0x005BF810: "the sector spiral's offsets 007C2FF8 (exit function 005BF830): sector_spiral.cpp's g_spiralOffsets",

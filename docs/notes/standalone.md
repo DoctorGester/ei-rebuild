@@ -583,8 +583,8 @@ kinds given.
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
-        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor_setup.cpp) and Interface3D 007C7D50
-        (ui_interface_glue.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
+        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor.cpp) and Interface3D 007C7D50
+        (ui_interface_input.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (Cursor::position /
         motion: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares

@@ -1,6 +1,6 @@
 // The quest database's load from database.res, once at startup (called from WinMain). Rebirth patches the
 // load (it redirects the file lookup to a mod folder's copy): this is the vanilla function and installs in
-// the vanilla launch only (rule 9). As unit_db_load.cpp; see docs/notes/items_spells.md.
+// the vanilla launch only (rule 9). As unit_db.cpp; see docs/notes/items_spells.md.
 #include "quest_records.h"
 
 #include "database_file.h"

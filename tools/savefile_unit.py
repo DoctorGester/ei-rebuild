@@ -125,7 +125,7 @@ def read_stat_slot(r, name):
 
 
 def read_stats(r, name, text_key):
-    """UnitStats::SaveTo (00528800, unit_stats_io.cpp): the whole 0x704-byte block (unit.h) raw."""
+    """UnitStats::SaveTo (00528800, unit_stats.cpp): the whole 0x704-byte block (unit.h) raw."""
     with r.scope(name):
         r.x32('builtFlags')
         r.f32('experience')

@@ -99,11 +99,11 @@ plus a master server link at +0x180; `MpAddressEntry` is 0x34 bytes; 0062EDA0 is
 
 ### Window stack, screen construction, window base methods (O unless noted)
 
-`OnKeyDown` / `OnChar` / `OnKeyUp` (`ui_interface_keys.cpp`: char goes to the console, a client's open chat line, then
+`OnKeyDown` / `OnChar` / `OnKeyUp` (`ui_interface.cpp`: char goes to the console, a client's open chat line, then
 the top window); mouse input (`ui_interface_input.cpp`: to the capture, else the top window; +0x7F double click, +0x80
 right button; S on stand-in vtables). `UiWindow::CopyImage` (005FFFB0, S), `SaveState`/`LoadState` (005F85C0 S through
 a stream recorder, every save), `MessageText` (S), `OpenHelp` (005F86F0), the battle camera's key input
-(`ui_camera_keys.cpp`, S). `UiContainer::Redraw` / `RedrawTips` do nothing unless the interface is drawing (`drawing`).
+(`ui_camera_input.cpp`, S). `UiContainer::Redraw` / `RedrawTips` do nothing unless the interface is drawing (`drawing`).
 
 ### Container input dispatch (`ui_container.cpp`; scenario `ui_container_input`)
 
@@ -134,7 +134,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   `caret` +0x154). `UiItemPanel` (+0x148 `mode`, +0x14C `owner`) is the base of the description panel, hero
   equipment, quick strip, trade / repair grids, constructor pages and the blank panel 00741B58. The hero stats panel has
   its own deleting destructors 0060E340 / 00613DD0.
-- Glue (`ui_interface_glue.cpp`): `PlayInterfaceSound` (Play2D, priority 1000, volume 100; the sound system gets the game's own
+- Glue (`ui_interface_input.cpp`): `PlayInterfaceSound` (Play2D, priority 1000, volume 100; the sound system gets the game's own
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText), news for the top window
   (slots 28-32, 36, 37 as `UiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).
@@ -246,7 +246,7 @@ grid with an item in it (only a worn item is offered, and no script command or k
 too), so scenarios end on the map.
 
 Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F050), titles (the original's `AllodTitle`,
-`ZoneTitle`, `QuestTitle`: ours `PlaceTitle` in `ui_global_map_places.cpp`), positions (`ZonePosition`, `QuestPosition`:
+`ZoneTitle`, `QuestTitle`: ours `PlaceTitle` in `ui_global_map_paths.cpp`), positions (`ZonePosition`, `QuestPosition`:
 ours `MapPosition`, (0, 0, 0) for a missing entry where the original kept uninitialised locals), `SelectZone` (RET 8, flag
 is a byte). `SetWeather` (S) applied an 18-int table one index at a time from Create, every index of a group writing the
 same colour: ours gives the three layers, the display colour and the clouds' ramp their final values once (the layers'
@@ -266,7 +266,7 @@ operator+ instead of two, a "spell container" through 00613820 instead of the in
 `TakeOff`, `TakeItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
 `TopicClicked` (44). Constructor slots `SpellMakerPage::ItemAt` / `ConstructorPage::ItemAt` (`ui_hero_panels.cpp`; pages 3 and 5).
 
-Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
+Hero panels, trade panel, strips (`ui_camp_input.cpp`, `ui_stats.cpp`, `ui_stats.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
 - `HeroStatsPanel::SetHero` stores +0x170 = height * 100 truncated (an edge height may differ at another precision).
   The panel's page 10 -/+ regions 6-13: a hold starts at -500 ms with the capture, a step every frame from 250 ms
@@ -279,7 +279,7 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
   pages 3, 5, 6). Lists are `UiItemList` = `std::vector<CItem*>`.
 - Trade panel (`ui_trade_panel.cpp`; ui_trade_restore): `SnapshotRecord` copies floats as dwords, `Settle` (the all-branch
   tests the low byte of `keep`), `RestoreRecord` (HealSlots by old hp / old max * new max - Reduce(new max), the maxima
-  stored as float). `LeftDown` (`ui_trade_panel_input.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in
+  stored as float). `LeftDown` (`ui_trade_panel.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in
   the Rebirth run): regions 0-3 scroll, 4-9 a school level, 10 science, 11-33 a learnable perk, 34 up a held perk.
   A held school or science row repeats as the stats panel's -/+ (from -500 ms, every frame from 250 ms, whole ticks).
   `FormatPrice` is "%d" / "%.1fk" / "%dk" / "%.1fm" / "%dm" / "%.1fg", negative as 0x7FFFFFFF.
@@ -290,11 +290,11 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
   floor of the snapped position keeps every pixel's answer; only a pixel exactly on a cell edge can differ (the
   original's 0.01f is a little under 0.01, so at PC24 (x87) and in double (SSE2) such a pixel fell either way).
   `FigureStrip::SetupFigures` (the name list; was the union with `filter`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
-  `FigureStrip::LeftDown` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
+  `FigureStrip::LeftDown` (`ui_item_strip.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
   the item predicates `Is*` (ui_screens.h; 005EE050-005EE130, P), `ItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;
   `ui_item_screen.cpp`), `ScrollToItem` (RET 4).
 
-Multiplayer hero screen (`MpHeroScreen`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`; O unless marked). Modes: 9 hero list
+Multiplayer hero screen (`MpHeroScreen`, `ui_hero_screen*.cpp`, `ui_hero_preview.cpp`; O unless marked). Modes: 9 hero list
 (rows 9-18; 1 continue 006183B0, 5 new hero, 6 rename, 7 delete "lmp_deletepers", 8 the hero's inventory = the camp screen
 built inline with `fromHeroScreen` 1), 10 new hero (1 create 006186F0, rows 9-19 the voice), 11 equipment (1 next 00617A50).
 Scenarios ui_hero_screen, ui_hero_stats (RefreshStats), ui_hero_delete (AddNewHero, DeleteHero, record life cycle; unconfirmed).
@@ -349,7 +349,7 @@ Hazards and facts:
   keys are the record's +4 name without trailing "123" plus "0"; held perks are a level byte per group of three skill records
   (007AF268, 0x44 bytes). **The hero screen's rotation state is window +0x1E4 (the turn +0x1E0), not +0x150.**
 
-The trade grid draw 00627390 is in `ui_trade_grid_draw.cpp` (renderer.md); exchange Create / Draw and the connection
+The trade grid draw 00627390 is in `ui_trade_panel.cpp` (renderer.md); exchange Create / Draw and the connection
 screen are in section 3.
 
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`)
@@ -361,8 +361,8 @@ person can talk when its server controller's command is 0 or 0xB and the next on
 
 Behaviour worth knowing: `MessageResult` has the load window inline; `ShowBriefing` (34) is "briefing <name>"; `SaveState`
 (40) writes one zero dword; `OpenTopics` makes five rows 210..570 x 440.. with "goodbye" appended; the mouse move sets cursors
-0xD / 0xE / 0xF; `KeyDown` (`ui_briefing_keys.cpp`): action 4 opens the objectives window when a "q.<zone>.<quest>" = 1 lies
-in this allod, 0xB the camera to the leader, '5' / '6' "saveq". `FindTopics` (S, `ui_briefing_topics.cpp`): "b.<person>.<topic>"
+0xD / 0xE / 0xF; `KeyDown` (`ui_briefing_input.cpp`): action 4 opens the objectives window when a "q.<zone>.<quest>" = 1 lies
+in this allod, 0xB the camera to the leader, '5' / '6' "saveq". `FindTopics` (S, `ui_briefing.cpp`): "b.<person>.<topic>"
 = 1 by bit compare; a network client sorts them; the last "constr..." topic last; `TopicTitle` maps "constr..." to "briefing
 constr". `StartDialogue(immediate, remember)`, `StartPhrases` (camera saved to +0x1F8, look-at +0x204, 0066F840(3, 0) to the
 server), `PlaySpeakerAnimation` (the controller's +0x978 callback 006023F0), `ViewSpeaker` (message 0x0F), `ViewPreset`
@@ -388,7 +388,7 @@ ids, the unused party searches (00578BA0) in HideSpeaker / FinishDialogue, OnUni
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
-Files `ui_battle_*.cpp`, `ui_hud.cpp`, `ui_hud_pick.cpp`, `ui_hud_tips.cpp`, `ui_hud_highlight.cpp`, `ui_spell_column.cpp`;
+Files `ui_battle_*.cpp`, `ui_hud.cpp`, `ui_hud_pick.cpp`, `ui_hud_pick.cpp`, `ui_hud_pick.cpp`, `ui_spell_column.cpp`;
 scenarios `ui_hud`, `ui_battle_commands`, `ui_battle_spells`, `ui_order_move`, `ui_quick_items`, `ui_quest_notice`. The key
 handler 0063A560 is Rebirth-patched (the action table 0079BF70: 1 pause, 2 / 3 game speed, 4 objectives, 0x17-0x1A movement
 modes, ...; Esc cancels a targeting mode (+0x17C) or opens the Esc menu). The Rebirth-patched callees 005E70E0, 005E7680,
@@ -459,9 +459,9 @@ sectors 35..80), top panel 180..620 x 0..100 (sling 385..415 x 0..20, page butto
 Panel classes and their pieces (all in `ui_hud_*.cpp`; mouse handlers S where the code says so): `HudWeaponBar`,
 `HudQuickItems` (Draw 0063CDC0 = 0063F190, 0063FD50 of the columns), `HudSpellColumn`, `HudActionColumn`, `HudPortraits`
 (Rebuild 006407E0 every newgame, AddPortrait 00640060 RET 0x10 through its address, ShowFace 00640670: spells_cast low
-mana, hits; `ui_hud_portrait_setup.cpp`), `HudMap`, `HudUnitPanel` (ShowHealth, ShowParts 4 ULPs; `ui_hud_panels.cpp`;
+mana, hits; `ui_hud_portraits.cpp`), `HudMap`, `HudUnitPanel` (ShowHealth, ShowParts 4 ULPs; `ui_hud_panels.cpp`;
 `DrawUnitInfo` 00647040 from 006462A0, Rebirth-patched), `HudClock`, `HudMovePanel` (`ToggleFlag` 00649810: orders through
-the local view 0066AF30), `HudTopPanel` (`ui_hud_top_panel.cpp`: `ShowPage` S, `Layout` S, `Build` 00649AF0 disabled in
+the local view 0066AF30), `HudTopPanel` (`ui_hud_frame.cpp`: `ShowPage` S, `Layout` S, `Build` 00649AF0 disabled in
 tests/verify/disabled.txt (X17), `AddPickedUp`, `AddMoney` (no scenario), `ShowItems` 0064A7A0 with `this` the top panel in
 ECX, which Ghidra mislabels). Per frame (S, state put back): `HudMap::BuildMarkers` 00643DC0, `UpdateView` 00642E80,
 `HudPortraits::Update`, `HudClock::Update`, `HudTopPanel::Update`. The panels' destructors are the implicit ones;
@@ -583,10 +583,10 @@ record, modifier descriptions reached by none): `DescribeStats` (005F1590, 4.9 K
 `DescribeCarriedSpell`, `DescribeMaterial`, `DescribeSpellRecord`, `DescribeQuickItem`, `DescribeModifierRecord`, `ShowHelp`,
 `Draw`, `Describe`, `KeyDown` / `KeyUp` (`key ctrl`), `Build` (O); `ItemDamageLists` 005F13A0 (EI_Plugin patches a JMP at
 +0x61: ours runs in vanilla only; S); `ItemScreen::DrawItem` 005ECA10 (S; drawn twice per frame in the verify build);
-`UiMesh` `Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` (`ui_mesh_build.cpp`; Commit's +0xC4 compared as
+`UiMesh` `Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` (`ui_mesh.cpp`; Commit's +0xC4 compared as
 "points at the current indices"; S with arrays poisoned 0xCD; every scenario); surface helpers `CaptureScreen`, `Rgb565Copy`
-(the save picture), `Greyscale` ((2r + 4g + b) / 16), `SwapContents` (O), `PixelAt` (`ui_surface_pixels.cpp`; S; ui_screens),
-constructors / destructor body (`ui_surface_create.cpp`; O; the picture window is dead); `DrawHeroFace` 005ED7B0 (EI_Plugin's
+(the save picture), `Greyscale` ((2r + 4g + b) / 16), `SwapContents` (O), `PixelAt` (`ui_surface.cpp`; S; ui_screens),
+constructors / destructor body (`ui_surface.cpp`; O; the picture window is dead); `DrawHeroFace` 005ED7B0 (EI_Plugin's
 fix at +0xD9 keeps the original under the plugin), `ItemFigureTexture` (256x256 from "<name>.mmp"; the original
 unpacked it via converter 007AF06C slot 5 and packed 1:5:5:5 under the device lock; R28: drawn on the GPU,
 `render::DrawIntoTexture`, as CopyImage is), `UiWindow::DrawHeroPreview` 005EC300 (O) (`ui_item_view.cpp`;
@@ -698,7 +698,7 @@ called.
 
 ## MpHeroScreen::ChooseFigure
 
-ui_hero_figure.cpp. The new hero takes figure (unit prototype) `prototype`: the local player's first record
+ui_hero_preview.cpp. The new hero takes figure (unit prototype) `prototype`: the local player's first record
 handed to the client world and its strength, dexterity and intelligence and height kept (25, 25, 25, 0.7
 without one); the party cleared and given a "Hero" of that prototype with its starting equipment; the
 attributes (base and current) reset to 25 and the height to 0.7 on the hero list (mode 9), else the kept
@@ -719,7 +719,7 @@ the list's scroll range, the list drawn, mode 9.
 
 ## MpHeroScreen::SetMode
 
-ui_hero_screen_mode.cpp (Rebirth-patched, reproducing WideScreen, so hooked in both launches). The screen
+ui_hero_screen.cpp (Rebirth-patched, reproducing WideScreen, so hooked in both launches). The screen
 laid out for `mode`. First everything off: the menu model's parts, the nine child windows, every sprite and
 surface, the regions after the ninth removed and the others' tips emptied. 9, the hero list: the model's
 "but03" and "button03_multiplayer", the list's scroll bar, all sprites but 7-9, the four frame quarters
