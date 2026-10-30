@@ -6,11 +6,6 @@
 
 #include "../hook/log.h"
 
-#include "platform/win32/graphics_win32.h"
-
-#include <windows.h>
-#include <d3d11.h>
-
 #include <algorithm>
 
 namespace render::detail {
@@ -111,39 +106,27 @@ void GeometryStream::Destroy() {
 // --- Pools -------------------------------------------------------------------------------------------------
 
 bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
-    D3D11_BUFFER_DESC d{};
-    d.ByteWidth = static_cast<UINT>(bytes);
-    d.Usage = D3D11_USAGE_DEFAULT;
-    d.BindFlags = index ? D3D11_BIND_INDEX_BUFFER : D3D11_BIND_VERTEX_BUFFER;
-    ID3D11Buffer* made = nullptr;
-    if (FAILED(platform::graphics::Device()->CreateBuffer(&d, nullptr, &made)) || !made) return false;
-    sg_buffer_desc s{};
-    s.size = bytes;
-    s.usage.vertex_buffer = !index;
-    s.usage.index_buffer = index;
-    s.d3d11_buffer = made;
-    s.label = label;
-    buffer = sg_make_buffer(&s);
-    made->Release();   // sokol holds the reference
-    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
+    sg_buffer_desc d{};
+    d.size = bytes;
+    d.usage.vertex_buffer = !index;
+    d.usage.index_buffer = index;
+    d.usage.write_unsealed = true;   // made without data, written in parts (Write)
+    d.label = label;
+    buffer = sg_make_buffer(&d);
+    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_UNSEALED) {
         if (buffer.id) sg_destroy_buffer(buffer);
         buffer = sg_buffer{};
         return false;
     }
-    d3d = made;
+    sg_seal_buffer(buffer);
     return true;
 }
 
 void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
-    if (!bytes || !d3d) return;
-    D3D11_BOX box{static_cast<UINT>(offset), 0, 0, static_cast<UINT>(offset + bytes), 1, 1};
-    platform::graphics::Context()->UpdateSubresource(d3d, 0, &box, data, 0, 0);
+    if (buffer.id) platform::graphics::UpdateBuffer(buffer, offset, data, bytes);
 }
 
-void GpuPool::Buffer::Drop() {
-    Retire(buffer);
-    d3d = nullptr;
-}
+void GpuPool::Buffer::Drop() { Retire(buffer); }
 
 bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t indexCount, bool* anew) {
     *anew = false;

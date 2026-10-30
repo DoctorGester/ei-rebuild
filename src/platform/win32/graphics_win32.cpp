@@ -87,6 +87,11 @@ bool TakePreparedDevice(HRESULT* result, D3D_FEATURE_LEVEL* got) {
     return true;
 }
 
+// The texture of a sokol image (no reference taken); null for none.
+ID3D11Texture2D* Texture(sg_image image) {
+    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
+}
+
 #if defined(EI_RENDER_VALIDATION)
 // ---- The harness build's removable device -------------------------------------------------------------------------
 
@@ -400,6 +405,13 @@ bool EndDrawable() {
     return SUCCEEDED(hr);
 }
 
+void UpdateBuffer(sg_buffer buffer, std::size_t offset, const void* data, std::size_t bytes) {
+    auto* native = static_cast<ID3D11Buffer*>(const_cast<void*>(sg_d3d11_query_buffer_info(buffer).buf));
+    if (!native || !bytes) return;
+    const D3D11_BOX box{static_cast<UINT>(offset), 0, 0, static_cast<UINT>(offset + bytes), 1, 1};
+    Context()->UpdateSubresource(native, 0, &box, data, 0, 0);
+}
+
 Readback::Readback() = default;
 Readback::~Readback() = default;
 
@@ -546,10 +558,6 @@ ID3D11Device* Device() { return static_cast<ID3D11Device*>(const_cast<void*>(sg_
 
 ID3D11DeviceContext* Context() {
     return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
-}
-
-ID3D11Texture2D* Texture(sg_image image) {
-    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
 }
 
 bool CurrentChain(Chain* chain) {

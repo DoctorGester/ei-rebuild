@@ -67,8 +67,9 @@ key held them too.)
   dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
   (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9; the sound and movie files (PL6b), the sound
   files' reads (PL7b) and lib/win_types.h (PL7a) left it: 5, the win32 entry (below) and the import layer's headers.
-  The rule took in src/render with graphics.h (MAC3f): 9, render_buffers, render_compose and render_ui (their
-  transfers, MAC3g) and render_cursor (the cursor thread's present, MAC3h) still call Direct3D.
+  The rule took in src/render with graphics.h (MAC3f): 9; the transfers drawn with sokol (MAC3g) took
+  render_buffers, render_compose and render_ui off: 6. render_cursor (the cursor thread's present, MAC3h) still
+  calls Direct3D.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
   call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h (windef.h's types)
   was the last such header: 113 game files used its RECT, POINT, SIZE, DWORD, COLORREF, LONG and UINT. They use our
@@ -421,6 +422,11 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
   tearing, docs/notes/renderer.md section 15a), `EndDrawable` presents it after `sg_commit`. The window's size in
   pixels is platform.h's `WindowPixelSize` (SDL: `SDL_GetWindowSizeInPixels`, false while minimised; Windows: the
   client rectangle).
+- Buffers: `UpdateBuffer` writes a range of a buffer and keeps the rest (render_buffers.cpp's `GpuPool`: terrain
+  pages and meshes kept on the GPU, only their changed ranges sent). It is the one transfer sokol cannot do (it writes
+  a buffer only whole, once a frame); the buffer is a sokol one, made with `usage.write_unsealed` and sealed at once.
+  Every other transfer is sokol's own or a draw: an image's pixels go in as an image of their own drawn texel for
+  texel, a copy is a draw, the levels below are drawn one from the other (docs/notes/renderer.md section 7).
 - Diagnostics: `Readback` (a region of an image or of the drawable, mapped until the next read; the backend's
   `Staging` behind it) and `GpuTimer` (timestamps read frames later without waiting; the backend's `Queries` behind
   it). Both are typed pimpls: render code holds no backend object.
@@ -429,8 +435,8 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 - What only Direct3D has is in `win32/graphics_win32.h`, never included by game code: the vertical blank rules
   tools/perf_check checks on real chains (`TearingSupported`, `ChainFlagsFor`, `SyncIntervalFor`, `PresentFlagsFor`),
   the harness build's removable device (`MakeRemovable`, `RequestRemoval`: the harness's `removable` render word and
-  `removedevice` step, docs/notes/renderer.md R9c5), and the device, context, textures and swap chain for the four
-  render files that still call Direct3D (render_buffers, render_compose, render_ui: MAC3g; render_cursor: MAC3h).
+  `removedevice` step, docs/notes/renderer.md R9c5), and the device, context and swap chain for render_cursor, the
+  one render file that still calls Direct3D (MAC3h).
 
 ## Left for the next areas
 
