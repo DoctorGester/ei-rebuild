@@ -6138,6 +6138,13 @@ model = "sonnet"
 note = "From C59b: tools/test_resolve_crash.py RealRun.test_disk_full_stack fails on main too (different error per build): it asserts symbol names along the resolved stack that move with code layout (C59b's tree resolves _main -> StandaloneMain -> atexit destructor instead of ending at CxxThrowException). The scenario itself passes. Make the assertion layout-independent (e.g. a frame inside the disk-full path anywhere on the stack) and check it on the current build."
 
 [[ticket]]
+id = "H40"
+title = "Own goldens: the harness stops running game.exe"
+group = "harness"
+model = "opus"
+note = "User 2026-10-30: switch to our own goldens fully and stop testing game.exe. Today 122 of 122 comparable vanilla goldens and 24 Rebirth ones are the same as game.exe's, so re-recording every golden from our build loses nothing now; W12's 5 vanilla 16:9 scenarios get ours with the wide layout. Steps: (1) tag the last commit that still runs the original (git tag original-oracle) and note it in docs/notes; (2) golden.py records from the image (standalone, standalone-rebirth) instead of --no-hooks runs; re-record all, check that only W12's 5 change; (3) remove the game.exe side: --no-hooks and the reference cache, ei_harness.dll and its hooks (advapi registry snapshot, the addon undo in harness_addon, dgVoodoo setup, the import-slot routing), config/harness/registry.reg once nothing reads it, the harness key (check_harness_key) and every '# no original' line, run_all's install kinds vanilla/rebirth/rebirth-nohooks, the --widescreen --record addon references; (4) docs and memory rules that exist only because of game.exe (harness-key, original-suite-only-for-harness). Unblocks PL12 (the harness on the SDL path), C68 and W12 without the original's constraint. Several green commits; goldens the same as before step 2 except W12's."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
