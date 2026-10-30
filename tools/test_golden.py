@@ -144,9 +144,15 @@ class GoldenTest(unittest.TestCase):
             with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
                 meta = json.load(f)
             self.assertEqual((meta['digest_period'], meta['source'], meta['repeated_in']), (20, 'image', 4))
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                before = f.read()
+            args.reason = 'another reason'
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
-            self.assertIn('(the same as before)', out.getvalue())
+            self.assertIn('the same as its golden, kept', out.getvalue())
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                self.assertEqual(f.read(), before)                   # golden.json untouched
+            self.assertFalse(os.path.exists(target + '.new'))
             golden_folder = golden.golden_folder
             golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
             try:

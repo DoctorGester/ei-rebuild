@@ -34,6 +34,10 @@ on:
         description: "record: why (golden.json's reason)"
         required: false
         default: "H40: our own goldens, recorded from the image"
+      diff_base:
+        description: "Instead of the suites: play the scenarios on this ref's build and on ref's, and print where each run's state first differs (golden.py diff)"
+        required: false
+        default: ""
 
 concurrency:
   group: ei-game
@@ -44,7 +48,7 @@ permissions:
 
 jobs:
   suites:
-    if: ${{ !inputs.record || inputs.record == 'no' }}
+    if: ${{ (!inputs.record || inputs.record == 'no') && !inputs.diff_base }}
     runs-on: [self-hosted, ei-game]
     timeout-minutes: 120
     defaults:
@@ -108,7 +112,7 @@ jobs:
           ! grep -q "GOLDENS DIFFER" suite_*.txt
 
   record:
-    if: ${{ inputs.record && inputs.record != 'no' }}
+    if: ${{ inputs.record && inputs.record != 'no' && !inputs.diff_base }}
     runs-on: [self-hosted, ei-game]
     timeout-minutes: 180
     permissions:
@@ -171,7 +175,7 @@ jobs:
             echo "### record"
             echo '```'
             grep -E "not recorded|\(new\)|\(changed|^[0-9]+ of [0-9]+ recorded" record.txt | head -200 || true
-            echo "$(grep -c "(the same as before)" record.txt || true) recorded the same as before (only golden.json changed)"
+            echo "$(grep -c "the same as its golden, kept" record.txt || true) the same as their goldens (left as they were)"
             echo '```'
             echo "### what changed (golden.json left out)"
             echo '```'
@@ -197,3 +201,65 @@ jobs:
             record.txt
             build_verify.log
           if-no-files-found: ignore
+
+  # By hand with diff_base: the scenarios (default every one) on the vanilla data with the base ref's verify build (a
+  # worktree in build/base, kept between runs and never deleted: run folders can hold junctions into the installs)
+  # and with ref's, and for each run where its digest first differs, field by field (golden.py diff of the full
+  # digests, which a golden's hashes cannot show), its console's first lines that differ and its failures.
+  diff:
+    if: ${{ inputs.diff_base }}
+    runs-on: [self-hosted, ei-game]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
+    env:
+      WORK_DB: E:\workspace\ei\build\live\work.db
+      EI_RUN_DIR: E:\workspace\ei\run
+      REF: ${{ inputs.ref != 'main' && inputs.ref || github.ref_name }}
+      BASE: ${{ inputs.diff_base }}
+      SCENARIOS: ${{ inputs.scenarios }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+          clean: false
+
+      - name: Build both
+        run: |
+          rm -f diff_*.txt build_*.log
+          git clean -ffdq -e build/
+          git fetch -q --depth=1 origin "$BASE"
+          [ -e build/base/.git ] || git worktree add -q --detach build/base FETCH_HEAD
+          git -C build/base checkout -q --force --detach FETCH_HEAD
+          git -C build/base clean -ffdq -e build/
+          echo "base $BASE: $(git -C build/base log -1 --format='%h %s')"
+          echo "head $REF: $(git log -1 --format='%h %s')"
+          cmd //c ".\\build.cmd verify > build_verify.log 2>&1" || { echo "::error::build verify failed"; tail -40 build_verify.log; exit 1; }
+          (cd build/base && cmd //c ".\\build.cmd verify > ..\\..\\build_base.log 2>&1") || { echo "::error::the base's build failed"; tail -40 build_base.log; exit 1; }
+
+      - name: Play both
+        run: |
+          python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1 || true
+          (cd build/base && python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
+          for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
+
+      - name: Where they part
+        run: |
+          names="$SCENARIOS"
+          [ -n "$names" ] || names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//')
+          for s in $names; do
+            for side in "" peer; do
+              a=build/base/build/verify/runs/$s-standalone${side:+/$side}
+              b=build/verify/runs/$s-standalone${side:+/$side}
+              [ -e "$a/digest.txt" ] && [ -e "$b/digest.txt" ] || continue
+              out=$(python tools/golden.py diff "$a" "$b" --records 1 --fields 30 --labels "base,head" 2>&1 || true)
+              con=$(diff <(sed -n '/^console output:/,$p' "$a/harness_report.txt") <(sed -n '/^console output:/,$p' "$b/harness_report.txt") | head -12 || true)
+              case "$out" in *"records, the same"*) [ -z "$con" ] && continue;; esac
+              echo "==== $s${side:+ ($side)}   base = $BASE, head = $REF (console: < base, > head)"
+              echo "$out"
+              [ -z "$con" ] || { echo "console:"; echo "$con"; }
+              grep -h "^FAILED" "$a/harness_report.txt" | sed 's/^/base /' || true
+              grep -h "^FAILED" "$b/harness_report.txt" | sed 's/^/head /' || true
+            done
+          done
