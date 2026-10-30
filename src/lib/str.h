@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace str {
 
@@ -69,6 +70,10 @@ void TrimRight(std::string& s, char target);
 void TrimRight(std::string& s, const char* targets);
 void TrimLeft(std::string& s);
 void TrimLeft(std::string& s, char target);
+
+// The lines of a text file's bytes as a text-mode read gave them: cut at each '\n', a '\r' before it dropped; a
+// final '\n' starts no empty last line.
+std::vector<std::string> Lines(std::string_view text);
 
 // Room for at least `minLength` characters (the text kept); the characters to write into.
 // The text up to its first zero byte (after writing into Buffer).

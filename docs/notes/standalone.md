@@ -811,7 +811,7 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   thread, GDI, DC, handle-map and state classes (CWinApp, CWnd, CCmdTarget, CDC, CGdiObject, CHandleMap, _AFX_*_STATE,
   ...), the old iostream classes, 0073B98C, 0073BFAC, 0073D860 / 0073D888, 0074019C and 00740244 (small bases and
   locals of game.exe's inlined code) and the dead code's tables. Our code does the same work with other classes: the
-  game's files are `platform::File`, `platform::TextFile` and `platform::FileFind` (src/platform/platform.h; a failed call throws
+  game's files are `platform::File`, `platform::ReadFile` and `platform::FileFind` (src/platform/platform.h; a failed call throws
   `platform::FileError`), its fonts, pens and brushes `lib/gdi.h`'s, its threads `lib::StartThread`. 0073B984's ~140 readers
   compare a hash table's prime pointer with the end of `__stl_prime_list` (0073B914 + 28 dwords), the same address: no
   read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable field points at it;
@@ -1181,11 +1181,9 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   characters before it; %B (no conversion) writes nothing where VC6 wrote the previous conversion's text again.
   atof and sscanf are the host CRT's (C26: goldens and the atof vectors the same); callers use std::atof / sscanf_s.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
-  install redirection and a mod's hooks apply. `platform::OpenFile` (src/platform/platform.h; fopen's r / w / a, +, b / t) opens
-  with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
-  the callers (sysmsg.txt, BufferedFile, platform::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
-  it. The game's CFile, CStdioFile and CFileFind uses are platform/platform.h's `platform::File` (a Win32 handle from CreateFileA,
-  MFC's open flags), `platform::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `platform::FileFind`
+  install redirection and a mod's hooks apply. The game's CFile, CStdioFile and CFileFind uses are platform/platform.h's
+  `platform::File` (a Win32 handle from CreateFileA; text lines written with `WriteLine`), `platform::ReadFile` (a
+  whole file, which the text readers cut with `str::Lines`) and `platform::FileFind`
   (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
   pattern's folder through GetFullPathNameA, as CFileFind's root).
   The res archives (MappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
@@ -1262,7 +1260,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller). Our
 code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files platform::File /
-TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads platform/platform.h.
+ReadFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads platform/platform.h.
 - **CString**: the static initialisers of CString's four fixed allocators (00700718 .. 007007AB, 007C8B80 ..
   007C8B08) and of the temporary DCs' and GDI objects' CFixedAlloc (007C8D18 / 007C8CF0) are gen_static_init.py's
   UNUSED_INITIALISERS. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the real MakeUpper,
@@ -1758,8 +1756,8 @@ harness takes import slots in its own.
 ### platform/platform.h
 
 The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
-redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a
-host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths), `OpenFile` (fopen) and
-`FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
+redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags; text lines with
+`WriteLine`), `ReadFile` (a whole file), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths)
+and `FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
 the game's MFC threw a CFileException*: what the game caught (Dib's reads and writes, the script reader) catches it,
 the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).

@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -148,11 +147,11 @@ std::string VolumeLabel(const char* root);
 // Paths are UTF-8. The Windows implementation goes through the game's import slots
 // (CreateFileA, FindFirstFileA, GetFileAttributesA, ...): a mod's hook in the import table and the harness's save /
 // install redirection apply to every file the game opens or lists.
-//   - File: a binary file on a system handle (the game's CFile uses);
-//   - TextFile: a text file read and written by lines on a host CRT stream (its CStdioFile uses);
+//   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
+//   - ReadFile: a whole file at once (the text files, split into lines with str::Lines);
 //   - FileMapping: a File's contents mapped into memory (its CMappedFile);
 //   - FileFind: a folder search (its CFileFind uses);
-//   - OpenFile / FileExists: fopen and _access.
+//   - FileExists: _access.
 // A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
 // catches; an uncaught one ends the game as before (a write to a full disk).
 
@@ -207,6 +206,8 @@ public:
         static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
         Write(&value, sizeof(T));
     }
+    // `line` and "\r\n" (a text file's line end on disk).
+    void WriteLine(std::string_view line);
     // `from` begin, current or end; the new position.
     long Seek(long offset, unsigned from);
     unsigned long GetPosition() const;
@@ -222,31 +223,6 @@ private:
     friend class FileMapping;
     void* handle = nullptr;   // the system's file handle
     std::string path;         // as opened (for FileError)
-};
-
-// A text file: lines with "\r\n" on disk, "\n" in memory. Closed by the destructor.
-class TextFile {
-public:
-    TextFile() = default;
-    ~TextFile();
-    TextFile(const TextFile&) = delete;
-    TextFile& operator=(const TextFile&) = delete;
-
-    // `mode` "r" (reading) or "w" (created or truncated): OpenFile's text modes.
-    bool Open(std::string_view path, const char* mode);
-    void Close();
-
-    // The next line without its '\n' into `line`; false at the end of the file (also when the last piece read
-    // nothing after a line of exactly 128 characters, as MFC's ReadString(CString&)). The line ends at a zero byte
-    // of each 128-character piece.
-    bool ReadLine(std::string& line);
-    // fgets: a line with its '\n' into `buffer` (at most size - 1 characters); null at the end of the file.
-    char* ReadString(char* buffer, unsigned size);
-    void WriteString(std::string_view text);
-
-private:
-    std::FILE* stream = nullptr;
-    std::string path;
 };
 
 // A File's contents mapped into memory: a mapping of the whole file, then a view of all of it. Closed by the
@@ -316,10 +292,9 @@ private:
     std::string root;
 };
 
-// fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened
-// through the system's slot, shared for reading and writing, then becomes a host stream; null when
-// either fails.
-std::FILE* OpenFile(const std::string& path, const char* mode);
+// The whole file `path` into `bytes`, shared with other readers and writers; false (and `bytes` empty) when it does not
+// open or a read fails.
+bool ReadFile(const std::string& path, std::string* bytes);
 
 // Whether `path` names a file or folder (the original's _access with mode 0 or 4).
 bool FileExists(const std::string& path);

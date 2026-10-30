@@ -61,12 +61,10 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
     (g_gameFlow.*Request)(map.c_str(), &party);
 }
 
-void WriteSpeech(platform::TextFile* file, std::string& line, const SpeechRecord& speech) {
+void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
-    line = std::format("#say {}\n", speech.name.data());
-    file->WriteString(line);
-    line = std::format("{}\n", speech.text.data());
-    file->WriteString(line);
+    file->WriteLine(std::format("#say {}", speech.name.data()));
+    file->WriteLine(speech.text.data());
 }
 
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
@@ -191,11 +189,10 @@ void ListVar(std::vector<std::string>* args) {
         player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
 
-    std::string line;
-    platform::TextFile file;
+    platform::File file;
     bool writing = false;
     if (args->size() > 1) {
-        writing = file.Open((*args)[1], "w");
+        writing = file.Open((*args)[1], platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone);
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
@@ -203,10 +200,7 @@ void ListVar(std::vector<std::string>* args) {
     for (auto& node : variables) {
         const std::string& name = node.first;
         EndLine(g_consoleOut << name << " = " << node.second);
-        if (writing) {
-            line = str::Format("%s %g\n", name, static_cast<double>(node.second));
-            file.WriteString(line);
-        }
+        if (writing) file.WriteLine(str::Format("%s %g", name, static_cast<double>(node.second)));
     }
     if (writing) file.Close();
 }
@@ -219,14 +213,13 @@ void LoadVar(std::vector<std::string>* args) {
     PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
 
-    std::string line;
     std::vector<std::string> parts;
-    platform::TextFile file;
-    if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
+    std::string bytes;
+    if (!platform::ReadFile((*args)[1], &bytes)) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for reading");
         return;
     }
-    while (file.ReadLine(line)) {
+    for (const std::string& line : str::Lines(bytes)) {
         parts = text::Split(line, ' ');
         if (parts.size() > 1) {
             const std::string& name = parts[0];
@@ -234,7 +227,6 @@ void LoadVar(std::vector<std::string>* args) {
             state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
     }
-    file.Close();
 }
 
 // "Current FPS: " 1000 / last frame time (printed as float).
@@ -249,18 +241,16 @@ void LastFps(std::vector<std::string>*) {
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
 void Exec(std::vector<std::string>* args) {
-    std::string line;
     if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
     std::string name = (*args)[0];
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
-    platform::TextFile file;
-    if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
+    std::string bytes;
+    if (!platform::ReadFile(name, &bytes)) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[0] << " for reading");
         return;
     }
-    while (file.ReadLine(line)) console::Execute(line);
-    file.Close();
+    for (const std::string& line : str::Lines(bytes)) console::Execute(line);
 }
 
 // Give <player> money <n> | exp <n> (shared by the party) | assortment.
@@ -349,30 +339,25 @@ void Net(std::vector<std::string>* args) {
 }
 
 // Every speech of the list that has a text, as two lines: "#say <name>" and
-// the text. The lines go through the file's WriteString slot.
+// the text.
 
-void WriteSpeechLines(platform::TextFile* file, const acks::Speeches* list) {
+void WriteSpeechLines(platform::File* file, const acks::Speeches* list) {
     if (!list) return;
-    std::string line;
-    for (const SpeechRecord& speech : list->records) WriteSpeech(file, line, speech);
+    for (const SpeechRecord& speech : list->records) WriteSpeech(file, speech);
 }
 
-void WriteEnvironmentSpeechLines(platform::TextFile* file, const acks::EnvironmentSpeeches* list) {
+void WriteEnvironmentSpeechLines(platform::File* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
-    std::string line;
-    for (const acks::EnvironmentSpeech& entry : list->entries) WriteSpeech(file, line, entry.speech);
+    for (const acks::EnvironmentSpeech& entry : list->entries) WriteSpeech(file, entry.speech);
 }
 
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
 void GenerateAcks(std::vector<std::string>*) {
-    platform::TextFile file;
-    {
-        std::string path = g_dataFolder + "scenack.txt";
-        if (!file.Open(path, "w")) return;
-    }
-    platform::TextFile* out = &file;
+    platform::File file;
+    if (!file.Open(g_dataFolder + "scenack.txt", platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone)) return;
+    platform::File* out = &file;
     acks::AckDatabase& database = g_ackDatabase;
     for (acks::UnitAcks& record : database.units.records) {
         for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);

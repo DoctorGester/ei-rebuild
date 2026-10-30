@@ -131,6 +131,12 @@ void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     bytePtr = nullptr;
 }
 
+std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
+    flags |= kFlagWritten;
+    if (cur + static_cast<std::uint32_t>(size) > end) ReserveWrite(size);
+    return cur;
+}
+
 GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     std::memcpy(cur, from, size);
     cur += size;

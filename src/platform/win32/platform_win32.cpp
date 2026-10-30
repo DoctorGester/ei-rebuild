@@ -13,13 +13,9 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fcntl.h>
-#include <io.h>
 #include <string>
 #include <utility>
 
@@ -212,7 +208,7 @@ WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32
     if (ok) {
         bytes->resize(static_cast<std::size_t>(size.QuadPart));
         DWORD read = 0;
-        ok = ReadFile(handle, bytes->data(), static_cast<DWORD>(bytes->size()), &read, nullptr) && read == bytes->size();
+        ok = ::ReadFile(handle, bytes->data(), static_cast<DWORD>(bytes->size()), &read, nullptr) && read == bytes->size();
     }
     *error = ok ? 0 : GetLastError();
     CloseHandle(handle);
@@ -277,8 +273,6 @@ std::string ErrorText(unsigned long osError, std::string_view path) {
 }
 
 [[noreturn]] void ThrowLastError(std::string_view path) { throw FileError(gameapi::GetLastError(), path); }
-// The host CRT's Win32 error of its last failed call.
-[[noreturn]] void ThrowCrtError(std::string_view path) { throw FileError(static_cast<unsigned long>(_doserrno), path); }
 
 // A closed file's calls fail as on INVALID_HANDLE_VALUE (MFC's hFileNull).
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
@@ -361,6 +355,12 @@ unsigned long File::GetLength() const {
     return size;
 }
 
+void File::WriteLine(std::string_view line) {
+    std::string text(line);
+    text += "\r\n";
+    Write(text.data(), static_cast<unsigned>(text.size()));
+}
+
 bool File::ReadAt(long offset, void* buffer, unsigned count) {
     DWORD read = 0;
     return gameapi::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
@@ -420,58 +420,6 @@ bool SectorsFitPages(const std::string& path) {
     SYSTEM_INFO info;
     gameapi::GetSystemInfo(&info);
     return info.dwPageSize >= bytesPerSector && info.dwPageSize % bytesPerSector == 0;
-}
-
-// ---- TextFile -------------------------------------------------------------------------------------
-
-TextFile::~TextFile() { Close(); }
-
-bool TextFile::Open(std::string_view filePath, const char* mode) {
-    Close();
-    path = filePath;
-    stream = OpenFile(path, mode);
-    return stream != nullptr;
-}
-
-void TextFile::Close() {
-    if (stream) std::fclose(stream);
-    stream = nullptr;
-}
-
-// Read 128 characters at a time (fgets is given 129, as MFC's ReadString read into the string's buffer).
-bool TextFile::ReadLine(std::string& line) {
-    constexpr int kPiece = 128;
-    char piece[kPiece + 1];
-    line.clear();
-    char* result;
-    for (;;) {
-        result = std::fgets(piece, kPiece + 1, stream);
-        if (!result) {
-            if (!std::feof(stream)) {
-                std::clearerr(stream);
-                ThrowCrtError(path);
-            }
-            break;
-        }
-        const std::size_t length = std::strlen(piece);
-        line.append(piece, length);
-        if (length < kPiece || piece[length - 1] == '\n') break;
-    }
-    if (!line.empty() && line.back() == '\n') line.pop_back();
-    return result != nullptr;
-}
-
-char* TextFile::ReadString(char* buffer, unsigned size) {
-    char* result = std::fgets(buffer, static_cast<int>(size), stream);
-    if (!result && !std::feof(stream)) {
-        std::clearerr(stream);
-        ThrowCrtError(path);
-    }
-    return result;
-}
-
-void TextFile::WriteString(std::string_view text) {
-    if (std::fwrite(text.data(), 1, text.size(), stream) != text.size()) ThrowCrtError(path);
 }
 
 // ---- FileFind -------------------------------------------------------------------------------------
@@ -543,28 +491,16 @@ bool FileFind::IsSystem() const { return hasFound && (attributes & FILE_ATTRIBUT
 
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 
-// ---- fopen / _access ------------------------------------------------------------------------------
+// ---- Whole files and _access ---------------------------------------------------------------------
 
-std::FILE* OpenFile(const std::string& path, const char* mode) {
-    const char kind = mode[0];
-    if (kind != 'r' && kind != 'w' && kind != 'a') return nullptr;
-    const bool update = std::strchr(mode + 1, '+') != nullptr;
-    const bool binary = std::strchr(mode + 1, 'b') != nullptr;
-    const DWORD access = update ? GENERIC_READ | GENERIC_WRITE : kind == 'r' ? GENERIC_READ : GENERIC_WRITE;
-    const DWORD disposition = kind == 'r' ? OPEN_EXISTING : kind == 'w' ? CREATE_ALWAYS : OPEN_ALWAYS;
-    const HANDLE handle = gameapi::CreateFileA(path.c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, disposition,
-                                               FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) return nullptr;
-    // The descriptor takes the translation mode and the append flag, the stream the direction.
-    const int fd = _open_osfhandle(reinterpret_cast<std::intptr_t>(handle), (binary ? 0 : _O_TEXT) | (kind == 'a' ? _O_APPEND : 0));
-    if (fd == -1) {
-        CloseHandle(handle);
-        return nullptr;
-    }
-    const char streamMode[3] = {kind, update ? '+' : '\0', '\0'};
-    std::FILE* file = _fdopen(fd, streamMode);
-    if (!file) _close(fd);
-    return file;
+bool ReadFile(const std::string& path, std::string* bytes) {
+    bytes->clear();
+    File file;
+    if (!file.Open(path, File::modeRead | File::shareDenyNone)) return false;
+    bytes->resize(file.GetLength());
+    if (file.ReadAt(0, bytes->data(), static_cast<unsigned>(bytes->size()))) return true;
+    bytes->clear();
+    return false;
 }
 
 bool FileExists(const std::string& path) { return gameapi::GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }

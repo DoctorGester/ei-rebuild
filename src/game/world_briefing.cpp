@@ -1,7 +1,6 @@
 // The briefing variables of the client: which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
-#include "buffered_file.h"
 #include "console.h"
 #include "game_flow_data.h"
 #include "game_singletons.h"
@@ -44,9 +43,6 @@ bool IsEmpty(const std::string& s) {
 
 
 constexpr const char* kQuestFileSuffix = ".mq";
-constexpr const char* kReadBinary = "rb";
-// BufferedFile::Open's flags for a file that is only read.
-constexpr std::uint32_t kReadOnlyFlags = 2;
 
 // Whether a game server runs (bit 31 of its count word marks one shut down).
 bool ServerRuns() {
@@ -54,22 +50,20 @@ bool ServerRuns() {
     return server && !(server->flags7 & RefCounted::kDetached);
 }
 
-// The game server lists the file at `path` under `name` for its clients: the whole file, read
-// into a buffer through a buffered file.
+// The game server lists the file at `path` under `name` for its clients: the whole file (none of it when it does not
+// open) in a buffer.
 void ShareQuestFile(const std::string& path, const std::string& name) {
-    GrowingBuffer local;
-    GameBuffer* data = &local;
-    BufferedFile source;   // constructed and destroyed in place
-    source.Open(path, kReadBinary, kReadOnlyFlags);
-    net::BufferUpdateHigh(&source);
-    const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
-    data->Seek(0);
-    std::uint8_t* to = data->BeginWrite(size);
-    source.ReadBytes(to, static_cast<unsigned>(size));
-    data->cur = to + size;
-    data->Commit();
+    std::string bytes;
+    platform::ReadFile(path, &bytes);
+    GrowingBuffer data;
+    const auto size = static_cast<std::int32_t>(bytes.size());
+    data.Seek(0);
+    std::uint8_t* to = data.BeginWrite(size);
+    std::memcpy(to, bytes.data(), bytes.size());
+    data.cur = to + size;
+    data.Commit();
     std::string listed = name;
-    net::g_gameServer->ShareFile(&listed, data);
+    net::g_gameServer->ShareFile(&listed, &data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).

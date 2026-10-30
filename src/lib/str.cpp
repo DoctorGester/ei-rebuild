@@ -145,6 +145,18 @@ void TrimLeft(std::string& s, char target) {
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 
+std::vector<std::string> Lines(std::string_view text) {
+    std::vector<std::string> lines;
+    while (!text.empty()) {
+        const std::size_t end = text.find('\n');
+        std::string_view line = text.substr(0, end);
+        if (end != std::string_view::npos && line.ends_with('\r')) line.remove_suffix(1);
+        lines.emplace_back(line);
+        text.remove_prefix(end == std::string_view::npos ? text.size() : end + 1);
+    }
+    return lines;
+}
+
 void CutAtNull(std::string& s) { s.resize(std::strlen(s.c_str())); }
 
 char* SetLength(std::string& s, int length) {

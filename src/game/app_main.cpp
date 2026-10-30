@@ -3,6 +3,7 @@
 #include "engine_object.h"
 #include "app.h"
 #include "acks_db.h"
+#include "asset_text.h"
 #include "app_helpers.h"
 #include "camera.h"
 #include "class_templates.h"
@@ -97,20 +98,12 @@ void AppendDefaultMessages(std::vector<std::string>& messages) {
     messages.push_back("Please, insert EI disc 2 in the CD-ROM and press OK");
 }
 
-// The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
+// The lines of .\res\sysmsg.txt (in the asset code page), or the built-in three when the file is missing or shorter.
 void LoadSystemMessages(std::vector<std::string>& messages) {
-    std::FILE* file = platform::OpenFile(".\\res\\sysmsg.txt", "rt");
-    if (!file) {
-        AppendDefaultMessages(messages);
-        return;
-    }
-    std::fseek(file, 0, SEEK_END);
-    const std::size_t length = static_cast<std::size_t>(std::ftell(file));
-    std::fseek(file, 0, SEEK_SET);
-    std::vector<char> text(length + 1);   // the text mode's reads give less when lines end in CR LF; a zero after
-    std::fread(text.data(), 1, length, file);
-    std::fclose(file);
-    messages = text::Split(text.data(), '\n');
+    messages.clear();
+    std::string bytes;
+    if (platform::ReadFile(".\\res\\sysmsg.txt", &bytes))
+        for (const std::string& line : str::Lines(bytes)) messages.push_back(text::FromAssetText(line));
     if (messages.size() < kMessageLines) {
         messages.clear();
         AppendDefaultMessages(messages);
