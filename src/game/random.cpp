@@ -1,12 +1,12 @@
 #include "random.h"
 
+#include "platform/platform.h"
+
 #include "lib/crt.h"
 #include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>
 #include <random>
-
-#include "lib/return_address.h"
 
 // The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
@@ -58,7 +58,7 @@ std::uint32_t IsaacRandom::Next() {
         count = 255;
     }
     const std::uint32_t value = results[count];
-    if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
+    if (g_drawObserver) g_drawObserver(*this, value, EI_RETURN_ADDRESS());
     return value;
 }
 

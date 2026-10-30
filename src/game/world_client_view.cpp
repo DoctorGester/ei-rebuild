@@ -58,7 +58,7 @@ Object3DClientSpecific* ModelOf(MapObject* object) {
 }
 
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
-__forceinline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
+inline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>

@@ -87,7 +87,7 @@ Hooked out-of-line originals (none is Rebirth-patched; all stay hooked):
 
 ## 5. vecmath.h helpers (V2)
 
-All `__forceinline`, by value:
+All `inline`, by value:
 
 | helper | evaluation |
 |---|---|

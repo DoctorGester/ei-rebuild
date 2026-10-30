@@ -220,7 +220,7 @@ constexpr float kQuarter = 0.25f;
 
 // A vertex's height in world units: the altitude times the map's highest point times the altitude unit, in that
 // order.
-__forceinline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
+inline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
     return static_cast<float>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
 

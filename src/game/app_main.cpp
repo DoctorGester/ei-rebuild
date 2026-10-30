@@ -181,9 +181,6 @@ std::string DriveRoot(std::string_view path) {
     return std::string(path.size() >= 2 && path[1] == ':' ? path.substr(0, 2) : "") + "\\.";
 }
 
-// The free bytes on the drive of `folder`; 0 when unknown.
-double FreeDiskSpace(const char* folder) { return platform::FreeDiskSpace(DriveRoot(folder).c_str()); }
-
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
     return platform::ShowMessageBox(nullptr, text.c_str(), "Warning", platform::MessageButtons::OkCancel,
@@ -196,7 +193,7 @@ bool WarningAccepted(const std::string& text) {
 bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = g_discFolder;
     std::string dataFolder = g_dataFolder;
-    const double freeBytes = FreeDiskSpace(dataFolder.c_str());
+    const double freeBytes = platform::FreeDiskSpace(dataFolder.c_str());
     if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
         const std::string root = DriveRoot(discFolder.c_str());
@@ -239,9 +236,8 @@ void CreateRenderer() {
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 }
 
-// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
-// the disc folder's text pointer (see the caller).
-std::uintptr_t OpenSound() {
+// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes.
+void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
@@ -267,7 +263,6 @@ std::uintptr_t OpenSound() {
     g_clientWorld.sounds->SetSpeechVolume(options->audioSpeech);
     g_clientWorld.sounds->SetMusicVolume(options->audioStreaming);
     g_clientWorld.sounds->panDirect = options->reverseStereo != 0;
-    return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
@@ -464,10 +459,11 @@ bool EventWaits(ei::mainloop::Site where) {
     return platform::EventWaits();
 }
 
-// The loop: passes while no event waits, then the event handled. Returns the quit request's code.
-// `interfaceInput` says whether the interface takes the input (see GameMain).
-int RunMainLoop(bool interfaceInput) {
+// The loop: passes while no event waits, then the event handled. Returns the quit request's code. Whether the
+// interface takes the input is what the last pass said; before the first pass it does.
+int RunMainLoop() {
     platform::Event event;
+    bool interfaceInput = true;
     for (;;) {
         bool waits = EventWaits(ei::mainloop::Site::PeekBeforeFrame);
         while (!waits) {
@@ -564,13 +560,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);
 
-    // "The interface takes the input" is carried in one byte and set after every pass. Before
-    // the first pass it holds the top byte of stack memory that start-up used last for the disc
-    // folder's text (with sound) or for the free non-local video memory (without; dgVoodoo's 256 MB,
-    // whose top byte is not zero): a message that waits before the first pass goes to the interface
-    // when that byte is not zero.
     CreateRenderer();
-    const bool interfaceTakesInput = options->audio ? (OpenSound() >> 24) != 0 : true;
+    if (options->audio) OpenSound();
 
     PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
@@ -585,7 +576,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     StartFirstMap();
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 
-    const int result = RunMainLoop(interfaceTakesInput);
+    const int result = RunMainLoop();
     ShutDown();
     return result;
 }

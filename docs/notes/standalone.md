@@ -1210,7 +1210,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   - _ftol 006E853C: `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value past int's range can
     arrive (money, damage, the clock's elapsed milliseconds): the low 32 bits of the 64-bit truncation, as _ftol, 0
     for NaN / infinity / |x| >= 2^63; MSVC's int cast gives 0x80000000 there.
-- **FISTP for std::lrint (SV10j)**: `lib::RoundEven` (lib/rounding.h, CVTSS2SI under MXCSR's default rounding: the
+- **FISTP for std::lrint (SV10j)**: `lib::RoundEven` (lib/rounding.h, float maths that round as CVTSS2SI under MXCSR's default rounding: the
   original's FISTP at round to nearest, e.g. 004BD339 and 00553420) in the 25 places that called std::lrint (the AI's
   cells, the scripts' FX and particle
   ids and delays, combat and armour slots, the tornado, money and level). The UCRT's lrintf / lrint read the x87 and

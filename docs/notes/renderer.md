@@ -511,7 +511,7 @@ no stand-in for any of them (R27c):
   released ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
-  free non-local video memory without sound, is 1 there (`GameMain`).
+  free non-local video memory without sound, is always 1 (`RunMainLoop`; app.md).
 - No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which
   the renderer draws with), the interface's depth clears go to `render::ClearDepth`
@@ -1090,7 +1090,7 @@ across runs; the goldens check the game state.
    `terrain_water_waves` (`waterwaves 1` before newgame; the digest's `water` group, a scenario's `digest water`
    line: per cached sector hashes of the water layer's positions and speculars, every record) and its golden of the
    original, the same before and after.
-   **R16c4 FISTP inlined (done; now `lib::RoundEven`, CVTSS2SI, since the SSE2 build).** `x87::fistp` / `RoundToInt` were `__forceinline` functions
+   **R16c4 FISTP inlined (done; now `lib::RoundEven`, plain float maths, since the SSE2 build).** `x87::fistp` / `RoundToInt` were `__forceinline` functions
    with an `__asm` FLD / FISTP instead of naked calls (the same instructions and control word; every one of the ~220
    sites inlines it: no call relocation to them is left in any object), and Animate's helpers `Sine`, `Byte`,
    `SignClear` are `inline` (the build's `/Ob1` inlines only functions marked so). Measured A/B/C in one run
