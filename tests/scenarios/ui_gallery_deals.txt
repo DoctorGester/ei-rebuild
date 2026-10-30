@@ -12,8 +12,7 @@
 # global map with zones gz1g and gz2g open, "z.<zone>" = 2, and the mouse on a zone: its tip) and map_ways
 # (the zone clicked: FindPaths, MayTravel and the objectives window with the ways there). Layout
 # coordinates are the 800x600 ones of ui_gallery_camp and ui_camp_make; the zone point (140, 277) is
-# where the map, as Create turns it, draws gz2g's area (on Rebirth's widescreen layout, the 800x600 interface centred in a
-# 16:9 window, the harness's x, scaled to the whole window, is 400 + (x - 400) * 0.75 = 205: "rebirth" lines). The map's camp button cannot follow: with the map
+# where the map, as Create turns it, draws gz2g's area (the "layout" lines place it in the window's centred 4:3 part, so any window shape gets the same point). The map's camp button cannot follow: with the map
 # opened by the "screen" step the server refuses the camp request ("Serv error during parsing command
 # prevID=ff curID=4", the original too), so the map comes last.
 reject Script error
@@ -150,14 +149,12 @@ waitfor 10 IsGreater(HP(GetLeader()),0)
 
 screen 4
 waitwindow 15 map
-vanilla move 140 277
-rebirth move 205 277
+layout move 140 277
 frames 5
 freeze
 capture map_zone_tip
 unfreeze
-vanilla click 140 277
-rebirth click 205 277
+layout click 140 277
 waitwindow 10 objectives
 move 400 20
 frames 5

@@ -1572,8 +1572,9 @@ across runs; the goldens check the game state.
     shows the shadow alone (white lit, black at full strength), `shadowshift <n>` moves the map's origin by n
     x n/2 whole texels (the same texels on the world, other cells). Check: scenario render_shadows_shimmer
     (the user's save in tests/saves/shadow_corrupt; flora shadows on): frozen, the shadow view against the
-    same with `shadowshift 7`, more than 64 of 255 apart on at most 0.03% (Rebirth 0.013%, vanilla 0.006%;
-    with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
+    same with `shadowshift 7`, more than 64 of 255 apart on at most 0.04% (Rebirth 0.013%, vanilla 0.006% at 960x720 and 0.033%
+    at 1280x720, whose 16:9 view holds more foliage and soft edge; with the per-cell reads 0.051% and 0.016%: the check
+    catches the old reads on Rebirth's data only),
     and four frames at 8 ms for the eye.
 
 11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_mesh.cpp`,

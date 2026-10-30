@@ -193,6 +193,9 @@
 //   clocktrace, randtrace     log every clock read and wait (ei-rebuild.log), every random draw
 //                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
+//   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
+//                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
+//                             their points over the whole window): the same place at any resolution
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
@@ -1478,6 +1481,17 @@ std::string WindowTitleStep() {
     return {};
 }
 
+// The layout point (x, y) of the 800x600 interface as the mouse steps' share of a window of width x height: the layout
+// fills the window's 4:3 part, the largest one, centred (src/game/ui_widescreen.h).
+void LayoutToWindowShare(int width, int height, int* x, int* y) {
+    const double part43Width = width * 3 < height * 4 ? width : height * 4.0 / 3.0;
+    const double part43Height = height * 4 < width * 3 ? height : width * 3.0 / 4.0;
+    const double pixelX = (width - part43Width) / 2 + *x * part43Width / 800;
+    const double pixelY = (height - part43Height) / 2 + *y * part43Height / 600;
+    *x = static_cast<int>(pixelX * 800 / width + 0.5);
+    *y = static_cast<int>(pixelY * 600 / height + 0.5);
+}
+
 void PostMouse(const std::string& verb, int x, int y) {
     RECT client = GameClient();
     POINT window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
@@ -2663,6 +2677,23 @@ void RunSteps() {
             std::size_t space = s.argument.find(' ');
             s.verb = s.argument.substr(0, space);
             s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
+        }
+        // "layout <mouse step> <x> <y> ...": the point is in the 800x600 layout, which sits in the window's 4:3 part
+        // (W12), so the same step aims at the same interface place in a window of any shape.
+        if (s.verb == "layout") {
+            const std::size_t space = s.argument.find(' ');
+            const std::string verb = s.argument.substr(0, space);
+            int x = 0, y = 0, used = 0;
+            if (space != std::string::npos && IsInputStep(verb) &&
+                sscanf_s(s.argument.c_str() + space + 1, "%d %d%n", &x, &y, &used) >= 2) {
+                const RECT client = GameClient();
+                LayoutToWindowShare(client.right - client.left, client.bottom - client.top, &x, &y);
+                s.argument = std::to_string(x) + " " + std::to_string(y) + s.argument.substr(space + 1 + used);
+                s.verb = verb;
+            } else {
+                g_failures.push_back("layout needs <mouse step> <x> <y>: " + s.argument);
+                continue;
+            }
         }
         if (!g_inputLoop && IsInputStep(s.verb)) {
             --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)
