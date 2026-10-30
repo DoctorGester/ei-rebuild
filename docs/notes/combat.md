@@ -141,7 +141,7 @@ naked stub in verify_combat.cpp.
 
 ### Declarations (C6 cleanup)
 
-combat_*, magic_trap, unit_skins, unit_lever, unit_client_path, unit_points, unit_client_models, unit_motion_tick and
+combat_*, magic_trap, unit_skins, unit_lever, unit_client_update, unit_points, unit_client_models, unit_motion_tick and
 net_state have no offsets / VCalls left (the __asm / float_control blocks, magic_trap's vtable constants and unit_skins'
 Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
 userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); UnitController slots 21-50 (ShowWeapon

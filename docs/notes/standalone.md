@@ -1530,7 +1530,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   sites and the files' own `WriteText` helpers), every text it reads through `ByteStream::ReadString` / `ReadInto`
   (to UTF-8) or `ReadText` (to UTF-8, cut to its buffer at a character's end). Chunk's `WriteString` /
   `WriteStringArray` convert as its `ReadString` does. So a save written by the image is byte-identical to
-  vanilla's (the top panel's text, `ui_battle_setup.cpp`, and the save's title were the two that differed under the
+  vanilla's (the top panel's text, `ui_battle.cpp`, and the save's title were the two that differed under the
   old switch), and a Cyrillic title typed outside 1251 comes back with '?' for those characters. What a stream
   writes as fixed-size bytes (`EffectSound`'s 256-byte name) stays bytes: those are ASCII file names.
 - **Network**: the same streams carry the world's messages (the deltas' `WriteStringBoth` / `ReadString`, the

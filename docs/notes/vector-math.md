@@ -23,7 +23,7 @@ section 5; the counts are gone, the kinds are what matters): sums of squares (le
 3-term ZYX `(z+y)+x`, XYZ `(x+y)+z`, ZXY `(z+x)+y`), 3D and 2D dot products (ZYX most), sqrt calls (`std::sqrt`),
 normalise (divide by the length, or times 1/length), cross products, quaternion products, quaternion rotated axes
 (`w*w - (..) + 2zz`), rotate vector by quaternion, matrix x point / normal, matrix x matrix (004D9880, 004D9B80), lerps
-(`(b-a)*t + a`; `(1-t)*a + t*b` in unit_client_path.cpp and Slerp's linear branch), atan2 (FPATAN), acos / asin (`_CIacos`),
+(`(b-a)*t + a`; `(1-t)*a + t*b` in unit_client_update.cpp and Slerp's linear branch), atan2 (FPATAN), acos / asin (`_CIacos`),
 sin / cos (particle_callbacks.cpp most), `float a[3]` / `[4]` / `[16]` / `[12]` / `[2]` members and locals, rounding-store helpers
 (`Store`, `StoreFloat`, `RoundToFloat`; all `static_cast<float>` since SV7d1a1), local `D(float)` helpers and naked `Fpatan` /
 `CIacos` / `CIasin` copies. Orders in source were written from the disassembly by the porting workers; VC6's inliner and

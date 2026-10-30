@@ -374,7 +374,7 @@ lines, the typed line); the fill, the selection and the caret are identical.
 | Family | Surface (file) |
 |---|---|
 | `unitpanel` | the unit panel's surface (`HudUnitPanel`'s setup, ui_hud_slide.cpp): the name (006462A0's `DrawWrappedText`), health and mana numbers, the info page's lines, the effects' names and times; redrawn every frame |
-| `messagelog` | the battle screen's message log, a `UiScrollText` adopted by `BattleScreen` right after it is made (ui_battle_setup.cpp; the scroll text draws nothing before its first Draw); the top panel's pages are this log's text |
+| `messagelog` | the battle screen's message log, a `UiScrollText` adopted by `BattleScreen` right after it is made (ui_battle.cpp; the scroll text draws nothing before its first Draw); the top panel's pages are this log's text |
 | `tooltip` | every `UiTooltip`'s surface (ui_tooltip.cpp): the HUD's, and the menus', hero list's and global map's tips too (one class); Fill, FrameRect and text all recorded already |
 | `hudmap` | the HUD map's dot (`HudMap`'s setup, ui_hud_slide.cpp): its one SetPixel also recorded (`ui_native::Pixel`, new: `render::ui::Pixel`) |
 

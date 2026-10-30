@@ -12,10 +12,10 @@ screen pieces are in `ui.md` (sections 7 and 8); players and their message handl
 | Item rules | item | items |
 | Item construction and names | item_manager, item_names | items, ui_camp |
 | Item texts | text_manager | items |
-| Spell rules, construction | spell, spell_cast, spell_text | spells |
-| Spell effects | spell_effect, spell_effect_start, spell_effect_update | spells, spells_cast |
+| Spell rules, construction | spell, spell_manager | spells |
+| Spell effects | spell_effect, spell_effect_update | spells, spells_cast |
 | Quest database | quest_database, quest_records | any new game in zone1 |
-| Textures (mmp, composed) | texture_mmp, texture_compose | all (skins at zone load) |
+| Textures (mmp, composed) | texture_load | all (skins at zone load) |
 | Registry, ini | registry, ini_file, settings_key | all |
 | Trader stock | item_stock | trader_stock |
 | Party, party records, item lists | party_items, party_lifetime, party_save, party_members, party_file | ui_camp, trader_stock, party_records, items |
@@ -111,7 +111,7 @@ their record fields (the quest item takes the head's +0x6C).
 `WeaponModelParts`, `AppendWeaponModelParts` (S into scratch), `Item::AttachSpell`/`SetSpell` (O), `ItemConstructor`
 (006A5B20-006A5D30: destructor body, Reset, Detach, SetManager, SetItem, Begin/EndCreateItem, Cancel, SetMaterial /
 SetPrototype / SetSpellObject, Build; O), the per-class `ModelName / FirstListName / FigureName / PictureName` (slots 17-20;
-S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `SpellManager::CreateSpellFromText` 00689030 (spell_text.cpp, O),
+S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `SpellManager::CreateSpellFromText` 00689030 (spell_manager.cpp, O),
 `ItemManager::MakeItem` 006AD000 (item_manager.cpp; ItemManager derives ResourceManager, context slot 16 on
 ManagerContext; O).
 
@@ -226,7 +226,7 @@ files from MappedResource::GetFile (reference counts only grow, twice as fast in
   `ClearModifiers`/`CopyTo` S, `Clone` O; `GetDamage` S into a scratch DamageInfo; constructors S on scratch copies, destructors
   O; `CodeIndexedTable::FindByCode` 0068C820 / 0068C920 (the index's operator[], unknown codes filed with null; S: ours, then
   the original finds the same entry, skipped when its resize would rehash); `LoadSpell`/`SaveSpell` (0068B860 / 0068B920) and
-  `MapEffect::Load/Save` (spell_save; +0x1C..+0x2F is a MapEffect, `Spell::Effect()`) S (saves captured, loads replayed into
+  `MapEffect::Load/Save` (spell; +0x1C..+0x2F is a MapEffect, `Spell::Effect()`) S (saves captured, loads replayed into
   the object's old copy; ui_saveload, world_load); `Light::GetIntensityAt` 0068D730 (the original starts with a 4-byte CMP +
   JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly) P and `SetLitColors` S;
   `SpellContainer` Reset/Shutdown/NameField/AddModifier/AllowsModifier/Build (Build S on bytes +0x48..+0x8C and the code
@@ -240,7 +240,7 @@ manager slot 23, class 0x3003); AddModifier per modifier (at most 8 in CreateSpe
 (prototype flag bytes +0x78 r, +0x79 t, +0x7A a, +0x7B e, +0x7C d; other letters always), after which the spell is rebuilt;
 EndConstruct rebuilds once more; Spell::Clone makes the result; SetManager(null). **Build (0068BF60)** recomputes the
 container's spell from scratch each time (offset mapping and modifier letters a, e, m, r, d, t, fe/ff/fg/fh/fl/fo, ic/it in
-`spell_cast.cpp`); the code string is sorted (insertion sort here, introsort in the original: same bytes). SpellEffect +0x54
+`spell_manager.cpp`); the code string is sorted (insertion sort here, introsort in the original: same bytes). SpellEffect +0x54
 is this spell's duration (named `targetCount`; for attack spells it may be a target count), +0x58 effect (`damage`), +0x5C
 radius. Build's `d` / `t` truncation and the area sqrt are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV
 [00743A7C] / FSQRT); its double verify run is safe because it empties the code string first.
@@ -304,7 +304,7 @@ UpdateLasting (3.8 KB) are O (states, parameters +0x4C..+0x60 unchanged); the vi
 (0x4A / 0x5A), `CreateLightning` (0x4D, with a target), `CreateSound`, `CreateSoundSequence` (class 99, max(count, 1)
 names), `CreatePointLight` (0x4B, flags 0x840), ReleaseVisual / Sound / Light.
 
-`SpellEffect::Load` / `Save` 0067E7D0 / 0067E960 (spell_effect_save; Save S into capture streams, Load O: the original Save
+`SpellEffect::Load` / `Save` 0067E7D0 / 0067E960 (spell_effect; Save S into capture streams, Load O: the original Save
 writes back what ours read; no scenario saves during a cast). Load takes the world from 007C84EC, the three objects from its
 timed object manager, and stamps the footprint; the packed id and object ids are read through stack slots holding the stream
 and `this`. Every sequence with more than one FP operation before a store is a naked helper in `spell_effect_internal.h`.
@@ -340,12 +340,12 @@ In archives: `QuestRecord::Serialize` 006AD7D0 (0x38 bytes; places through vecto
 database's archive 006AE3A0 is Rebirth-patched). Records read twice (ours, then the original) and compared; saving and the
 vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 
-## Textures: mmp and composed (texture_mmp, texture_compose)
+## Textures: mmp and composed (texture_load)
 
 Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset` P; `TextureManager::Compose` 00693180 (RET 0x1C) O;
 `FillSurface` 0068FA10 (O: result = FilledBytes over the chain), `CopyToSurface`, `ConvertToSurface` (8888 to 16 bits),
 `UnpackToSurface` (DXT through the converter's slot 10): S (the original fills, levels read back and overwritten, ours fills,
-compared; texture_fill); `TextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
+compared; texture_load); `TextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
 block's `AlignedArray<uint8_t>::SetSize` 00694300 S on a copy; `SetDevice` 006913A0 (texture.cpp; quality 0079BCDC to the mip
 level, the 512 limit off (the device's 4096-pixel textures; R27c: constant), the cache limit a tenth of 256 MB (`kCacheLimit`); world_client_setup calls it by address; S with
 references undone between the runs); `ForgetComposedTextures` (the original's DeleteComposedTextures 006916F0 deleted
@@ -354,7 +354,7 @@ every <data path>textures\*.mmp; the image keeps no such file);
 
 ### Composed textures
 
-TextureManager::Compose (texture_compose.cpp): a party unit's skins ("mo<n>p" / "prot<n>p" 256 square and "mo<n>s" /
+TextureManager::Compose (texture_load.cpp): a party unit's skins ("mo<n>p" / "prot<n>p" 256 square and "mo<n>s" /
 "prot<n>s" 128, 1:5:5:5, three levels) and its wounds texture ("mo<n>w", the wounded parts' "<unit><part>w<level>.mmp"
 overlays, 128 for a hero and 64 for others, 4:4:4:4, three levels) are drawn from layer textures on the GPU
 (render::ComposeTexture, R28; renderer.md section 7). The texture manager keeps what each one is made of under its name,
@@ -375,7 +375,7 @@ render_device_lost (made again on a new device: RemakeComposed) and ui_gallery_c
 
 00693970 and 0068F860 (a texture
 from a surface description; its one caller 00691D50 is dead) are dead. `FindTypedTexture` 00692D30 and `FreeCache` 00692F00
-(texture_cache.cpp, O). Not rewritten: Rebirth-patched slot 2 00691500. The fills keep a reference on every attached level
+(texture.cpp, O). Not rewritten: Rebirth-patched slot 2 00691500. The fills keep a reference on every attached level
 they move to (never released; the wrappers drop their second run's); a DXT file / surface pair without a decode mode passes the
 mip level as the mode.
 

@@ -36,11 +36,11 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
 - C5 (folded): `UnitStream` and the unit_ai `AIStream` are `ByteStream` (members `reading` / `version`; the verify capture, recording and replay
-  streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `MemoryStream` at 007AFDF8;
+  streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle.cpp` / `ui_global_map.cpp` are `MemoryStream` at 007AFDF8;
   `verify_magic_trap`'s `ReadRecorder` is `unitverify::ReadRecorder`; the 101 per-file string helpers (`Text`, `GameText`, `GameString`,
   `TextAt`, `Letter`, and `console::GameText` / `device::Text` / script_parse's / spell_effect_internal's) are `game::Text` (`game_strings.h`).
 - Left: `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`), `hash_tables_400`'s raw view of the registry,
-  the per-file accessors of the save stream 007AFDF8 (`SaveGameStream` in `ui_battle_setup.cpp` / `ui_briefing.cpp`, `SaveStream` in
+  the per-file accessors of the save stream 007AFDF8 (`SaveGameStream` in `ui_battle.cpp` / `ui_briefing.cpp`, `SaveStream` in
   `ui_briefing_create.cpp`, the same in tests/verify) and the identical `SaveRecorder` / `RecordingStream` test classes.
 - Duplicate forwarders: `config/forwarder_duplicates.txt` and docs/originals-report.md. 007AF738 is the terrain in this layer
   but `LightManager()` elsewhere.

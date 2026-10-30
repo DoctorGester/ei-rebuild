@@ -94,7 +94,7 @@ STATUS = {
  'FixAddMapObject': 'implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world_units.cpp)',
  'NewStringEvents': 'implemented: new rewrite CInterface3D::OnStringEvent 005F8070 (src/game/ui_interface_frame.cpp)',
  'ImproveConsole': 'implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp)',
- 'AddNewConsoleCommands': 'implemented: Execute 005DC620 (src/game/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui_battle_setup.cpp); commands in src/game/console_addon.cpp',
+ 'AddNewConsoleCommands': 'implemented: Execute 005DC620 (src/game/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui_battle.cpp); commands in src/game/console_addon.cpp',
  'AutoExec': 'implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp',
  'PersistentGlobalVars': 'implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon\'s container order in src/game/persistent_globals.cpp',
  'NivalRegistry': 'implemented: GameMain (src/game/app_main.cpp; S19): the image runs it, hooked Rebirth runs keep the original WinMain',

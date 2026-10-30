@@ -398,7 +398,7 @@ and so are the rewritten ones with wrappers (00637DC0, 006379E0, 00637190, 00637
 
 Entry points: `BattleScreen::Update` (00638280, every frame, O) and `RefreshSelection` (00637DC0); the panels' `SetUnit`s
 (S); `MouseMove` (00639D60 S), `UnitName` (0063B920, RET 8), `LeftUp` / `LeftDown` (O; ui_hud, world_client,
-ui_describe); the message slots in `ui_battle_setup.cpp` (`SaveState` 40 S through a recorder, `CloseScreen` 26,
+ui_describe); the message slots in `ui_battle.cpp` (`SaveState` 40 S through a recorder, `CloseScreen` 26,
 `ReadyToStopPolling` 35 AL, `ItemsPicked` 28, `UnitLeft` 30, `UnitJoined` 29: placed by the local player's record order, selected by the record's
 +0x778, `MessageResult` 27, `GameOver` 31; 27 / 28 / 30 / 31 not reached by a scenario); orders `OrderAt` (RET 0x14),
 `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8), `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14); `Speech` (32),
@@ -568,7 +568,7 @@ Shared forwarders: 006EAF20 `_access`, 00578D00 (ServerFlagOriginal), 00458010 (
 game code). Not rewritten: RefreshList 006567A0 (Rebirth-patched), 00654490 (3 bytes, too short).
 
 Cleanup leftovers (DR-C5): ui.h has `GameDeviceLock()` (007AEE78) while about twenty files keep a local `DeviceLock()`;
-`kUnitPtrArrayVtable` (007402AC) is still spelled out in ui_battle_commands.cpp, ui_camp.cpp, ui_create_screen.cpp,
+`kUnitPtrArrayVtable` (007402AC) is still spelled out in ui_battle_input.cpp, ui_camp.cpp, ui_create_screen.cpp,
 ui_hero_screen_click.cpp, ui_item_screen.cpp and player_server_handlers.cpp; ui_hud.cpp's portrait server command calls
 `net::GameClient()->SendCommand` (0041D260) directly, so its wrapper does not see those calls.
 
@@ -929,7 +929,7 @@ Long header comments of ui.h, ui_camp.h and the other UI headers, moved here by 
 
 ### BattleScreen::LeftUp
 
-Input side `this` is the window (ui_battle_update.cpp). The left button released: nothing while a portrait
+Input side `this` is the window (ui_battle.cpp). The left button released: nothing while a portrait
 click picks a player; without a press on the view the container's handler; a press without a drag, or on a
 network client, is a click on the unit under the point (units with flag 0x400000 only) through SelectUnit; a
 drag selects the party units inside the box : the world's selection cleared, the box marks and portraits'
@@ -938,7 +938,7 @@ kHudQuarterTurn / 7), then the speech event with the first one's id; then Refres
 
 ### BattleScreen::MouseMove
 
-Input side `this` is the window (ui_battle_mouse.cpp). The mouse moved (also every frame from Draw, at the
+Input side `this` is the window (ui_battle_input.cpp). The mouse moved (also every frame from Draw, at the
 current position): while a portrait click picks a player the cursor shape 0xD and the portraits' own mouse
 move; otherwise shape 0, then with a press on the view, a positive BoxSelectThreshold and not a network
 client: a move farther than the threshold from the press point in x or y starts the selection box, which
@@ -948,7 +948,7 @@ under the point (any flags) goes to HoverUnit.
 
 ### BattleScreen::KeyDown
 
-A key pressed (ui_battle_keys.cpp; Rebirth's MPSpeedControl reproduced behind its flag; input side `this` is
+A key pressed (ui_battle_input.cpp; Rebirth's MPSpeedControl reproduced behind its flag; input side `this` is
 the window). While a portrait click picks a player, Esc ends that and nothing else happens. On a network
 client Enter / Backspace go to the chat line and the key is used. Otherwise the container's handler first; a
 key nobody used and not repeating: Esc drops the pending action with every panel's highlight, or without one

@@ -41,7 +41,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
 - `ui_hero_preview.cpp`: the model's slots 22 / 25 and its light at +0x94 through `VirtualCall` / `Get` (the model class's vtable is not known up
   to those slots). `ui_create_screen.cpp`: screens 8 / 9 and the escape menu built inline with `SetDword` (their classes are not declared);
   `ui_item_screen.cpp`: screen 9's destructor (CString vector at +0x1AC) and the display's +0x14 / +0x8. `ui_window.cpp` Construct,
-  `ui_item_view.cpp`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`, `ui_camp.cpp`, `ui_camp_deals.cpp`, `ui_battle_setup.cpp` (player +0x30),
+  `ui_item_view.cpp`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`, `ui_camp.cpp`, `ui_camp_deals.cpp`, `ui_battle.cpp` (player +0x30),
   `ui_trade_panel.cpp` (stats +0x700): byte locals. Item fields are read with `Read<>(item, offset)` in ui_camp.cpp, ui_hero_panels.cpp and
   ui_item_info.cpp until the item classes are declared.
 - Declarations: `CCampScreen` (ui_screens.h) repeats `CampPages`; `HudQuickItems::entries` is a raw array (the HUD panels' `labels` are `std::vector<std::string>`s); `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;

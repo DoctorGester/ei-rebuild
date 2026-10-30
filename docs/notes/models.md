@@ -312,7 +312,7 @@ row is not a multiple of four bytes was written from past the block's end and it
 EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new Dib in the surface's depth with its
 channel masks, the rows copied from the last to the first (16, 24 and 32 bits only), Unlock; a failed DirectDraw call is
 reported and the capture goes on. They read the DirectDraw surface as before: a holder without one (the renderer's
-switch-over) is not handled, as in the original. texture_bmp.cpp, app_frame.cpp and ui_interface_keys.cpp now use `Dib`
+switch-over) is not handled, as in the original. texture_load.cpp, app_frame.cpp and ui_interface_keys.cpp now use `Dib`
 and the shared capture forwarders instead of their own.
 
 A-H26: 006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` are ported as their vanilla bodies

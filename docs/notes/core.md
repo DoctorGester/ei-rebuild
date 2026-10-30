@@ -265,7 +265,7 @@ Not hooked: 0040ECD0 (camera file load, Rebirth-patched, `CameraPatch`), 0040C7E
 006FDA6D is `CString::Right(nCount)`: it clamps a negative count to 0, returns a copy when the count reaches the
 length, else `AllocCopy(dest, nCount, len - nCount, 0)`. 006FD9B4 is `Mid(nFirst)`: it calls `Mid(nFirst, len - nFirst)`
 (006FD9D7). Call sites passing `len - k` (scene_loader, scene_material, script_parse, item_manager, options,
-spell_text, world_game) therefore use `Right`; camera_object's `title.Right(4)` is 0040E9A0 calling 006FDA6D with 4.
+spell_manager, world_game) therefore use `Right`; camera_object's `title.Right(4)` is 0040E9A0 calling 006FDA6D with 4.
 Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/library.csv has them in this order.
 
 ## Shared containers

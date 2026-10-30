@@ -167,7 +167,7 @@ TIMED = {0x48: read_sound, 0x49: read_ambient_sound, 0x4A: read_particle, 0x4B: 
          0x5E: read_show_visibility, 99: read_sound_seq, 100: lambda r: None, 0x65: read_tornado}
 
 
-# ---- spells (spell_save.cpp) ------------------------------------------------------------------------------
+# ---- spells (spell.cpp) ------------------------------------------------------------------------------
 
 def read_spell(r):
     """CSpell::SaveSpell (0068B920): the effect record (MapEffect::Save 006885A0 on +0x1C), the parameters,
@@ -247,7 +247,7 @@ def read_managed(r, manager, kind):
         read_item_of(r, kind)
 
 
-# ---- the missiles (spell_effect_save.cpp) -----------------------------------------------------------------
+# ---- the missiles (spell_effect.cpp) -----------------------------------------------------------------
 
 def read_projectile(r):
     """CSpellEffect::Save (0067E960, the world's missile list): position, caster and target (AIRef::Save

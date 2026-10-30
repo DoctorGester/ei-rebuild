@@ -214,7 +214,7 @@ DWORD OtherThreadsNow() {
 // ---- Sound ends on the virtual clock -------------------------------------------------------------
 // The game learns that a voice's sample has ended from Miles' end-of-sample callback (006B75E0, on
 // Miles' timer thread: the slot's `finished`), and that feeds game state: a unit talks (server flag
-// kFlagTalking, unit_client_speech.cpp) until its speech sample ends, scripts wait on that (zone1's
+// kFlagTalking, unit_client_effects.cpp) until its speech sample ends, scripts wait on that (zone1's
 // intro), and FindPlaying frees voices. Played in real time, that made runs part. On the virtual
 // clock the harness keeps the callback from Miles and calls it itself, from the main loop's frame
 // time, once the sample's length (Miles' own ms position and loop count at the start) has passed

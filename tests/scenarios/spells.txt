@@ -1,4 +1,4 @@
-# Spells (src/game/spell_cast.cpp, src/game/spell_effect.cpp): every CastSpellUnit /
+# Spells (src/game/spell_manager.cpp, src/game/spell_effect.cpp): every CastSpellUnit /
 # CastSpellPoint builds its spell through CSpellConstructor (SetManager, BeginConstruct,
 # AddModifier per modifier -> CSpellContainer::AllowsModifier / AddModifier / Build,
 # EndConstruct, CSpell::Clone -> CopyTo); the effects then deliver damage through

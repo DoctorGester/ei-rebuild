@@ -118,7 +118,7 @@ here is gone. Facts a worker needs:
   sound per type; stench timer 0, feeble mind handle toggles), CreateLight 00511830, ShowLight 00511950, HideLight 005119B0, ApplyLightMode 00511A00
   (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it; new light class 0x31 with the radius at
   +0xE0), DestroyClientCompanion 005107B0 (slot 3), InvisiblePulse / StunnedPulse 0051CC20 / 0051CCD0, ResetPartAlpha / ClearPartTints
-  0051CCA0 / 0051CD60, ShowWounds 0051C3D0 (unit_client_wounds.cpp: the wounds texture (kind 6) found / made, reloaded unless its
+  0051CCA0 / 0051CD60, ShowWounds 0051C3D0 (object3d_client.cpp: the wounds texture (kind 6) found / made, reloaded unless its
   .mmp extra block is unchanged; the material WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds
   texture), picking slots 22-24 (0051C130, 0051C160, 0051C1D0: dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect +
   IsRectEmpty), part lookups 16 / 17 (Object3D::FindPart / FindPartOfType: type, parts then pending).
@@ -235,7 +235,7 @@ view) is LoadPart (004F30D0 -> 004F7480); Object3D::LoadPart calls it (F4c). Pla
 After this ticket nothing in 0x00500000-0x00520000 is unported. Every rewrite has a wrapper; the scenario that reaches
 each one is in the head comment of its verify file.
 
-- **The 3D object's halves** (`object3d_client_parts.cpp`, `object3d_halves.cpp`; `verify_object3d_client_parts.cpp`):
+- **The 3D object's halves** (`object3d_client.cpp`; `verify_object3d_client_parts.cpp`):
   the client half's part sets, lifetime, skins, lit and shadow state (0051A370, 0051AAA0, 0051AB00, 0051AD70, 0051AD90,
   0051AEC0, 0051AF70, 0051B050, 0051B160, 0051B210, 0051B2F0, 0051B470, 0051B5B0, 0051B630, 0051C250, 0051C9D0,
   0051C9E0, 0051C9F0, 0051CB30, 0051C110, 0051E1C0, 0051E200, 0051E280, 0051E300), the base half's empty slots

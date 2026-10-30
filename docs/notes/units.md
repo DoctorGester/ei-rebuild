@@ -132,7 +132,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   void (UnitServer::ApproachTarget reads it; returning nothing crashed combat, sound and units scenarios); a missing
   animation entry logs "Can't find animation entry index"; it falls back to the position where size class 3 cannot stand
   (005BA790). `UnitPredictPosition` (0052FCC0, RET 8) samples the motion for client units following a path order (kind 2).
-- **Client path placement** (`ClientPlaceOnPath` 00535850, RET 8; from slot 41 and 00535B30; `unit_client_path.cpp`): the
+- **Client path placement** (`ClientPlaceOnPath` 00535850, RET 8; from slot 41 and 00535B30; `unit_client_update.cpp`): the
   two heading angles must go through a float store (`Store`) as the original's FSTP (unrounded, the quaternion's sign flips
   near +-pi).
 - Size class and figure queries: `UpdateSizeClass` (00530570) relies on controller slot 45 (server's UpdateMoveFactors;
@@ -185,10 +185,9 @@ address in its source comment (grep the address); the per-function table that us
   `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
   `unit_equipment.cpp`, `unit_db*.cpp` / `unit_sound_counts.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
   `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_size_class.cpp` / `unit_hit_location.cpp` / `unit_steal.cpp` /
-  `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_path.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
-  `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, equipment, sounds,
-  animation, effects, lifetime, blink, speech, wounds), `object3d_figure_setup.cpp` / `object3d_animations.cpp` /
-  `object3d_halves.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
+  `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_update.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
+  `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
+  `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
   `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
 - Facts about specific groups: `Unit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
   returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
@@ -328,7 +327,7 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
   hookable), the client controller's path, class name and id (00533DF0, 00533E00, 00533E10),
   UnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
   FiguresLoaded; the rest ours only.
-- **The unit** (`unit.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
+- **The unit** (`unit.cpp`, `unit_client_update.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
   0052E290), MotionSegmentConstruct 0052E230, Unit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
   00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
   brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.
@@ -382,7 +381,7 @@ the CRT's tolower went with the CRT's case functions). Profiling (EI_PLAIN=1 EI_
 models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and `FindEntry`; the gain is about 10 ms of a 625 ms
 zone load. Skipped as not hot: `MappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
 (net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways
-("object3d_figure_setup part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.
+("map_object_figures part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.
 ## CUnitClientModels per-tick update
 
 Virtual slot 6, the per-tick update on the client: the motion order's times

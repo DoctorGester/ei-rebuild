@@ -80,8 +80,8 @@ address,size,name,file
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
-0078F974,28,kHeroParts,src/game/unit_client_wounds.cpp
-0078F990,28,kParts,src/game/unit_client_wounds.cpp
+0078F974,28,kHeroParts,src/game/unit_client_models.cpp
+0078F990,28,kParts,src/game/unit_client_models.cpp
 0078FF34,4,g_updatePeriod,src/game/world_data.h
 0078FF38,4,g_lastLitHour,src/game/world_data.h
 00790260,4,kSaveVersion,src/game/world.h
@@ -184,7 +184,7 @@ address,size,name,file
 007AF230,12,kDefaultLight,src/game/map_object_shadow.cpp
 007AF280,4,kFactorStatRange,src/game/unit_stats.cpp
 007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
-007AF330,4,kFullTurn,src/game/unit_client_path.cpp
+007AF330,4,kFullTurn,src/game/unit_client_update.cpp
 007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
 007AFECC,4,g_guardKey,src/game/world_guard.cpp

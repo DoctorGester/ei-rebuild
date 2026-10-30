@@ -1,4 +1,4 @@
-# Spell casting (src/game/spell_effect_start.cpp): CSpellEffect::Start for the spell types that
+# Spell casting (src/game/spell_effect.cpp): CSpellEffect::Start for the spell types that
 # spells.txt does not cast, through the create helpers (particle, sound, sound sequence, point
 # light, lightning, SetVisual) and UpdateFootprint (the light wall). The spell names are the ones
 # the game's maps use (inv_lit, acid_column, litnwall, clairvoyence, vision_fog). Script casts have

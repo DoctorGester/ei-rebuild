@@ -207,7 +207,7 @@ glue, textures and surfaces, the music and the unit sound names), C30e moved the
 - **What C30a kept x87 and why** (moved by C30e12, C30e13 and C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
-  choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
+  choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_input, ui_view_screen, ui_global_map*, the
   camera keys and mouse), the briefing (camera moves, phrase timing), device_object (sets the 24-bit precision),
   the terrain's heights, sectors and loading (moved in C30e14). C30e moved renderer_init, device_object, device_shadow, ui_briefing,
   ui_briefing_keys, ui_briefing_topics and ui_hud_pick: their objects do no float arithmetic (the picking maths they
@@ -229,7 +229,7 @@ glue, textures and surfaces, the music and the unit sound names), C30e moved the
   integers: the original's 24-bit (PC24) x87 results, which float maths reproduces exactly (docs/notes/sound.md,
   "Floating point"). This is the way to move such a file: show that each decision is +, -, *, /, sqrt and compares
   on floats in the original's order, then round with FISTP's ties to even (`_mm_cvtss_si32`, not `std::lround`). The
-  callers' maths (positions, radii, ambience volumes: terrain_ambience, unit_client_sounds) is on SSE2: it can move a
+  callers' maths (positions, radii, ambience volumes: terrain_ambience, unit_client_effects) is on SSE2: it can move a
   3D sound's level across 0 only at an exact boundary, and only matters when all 15 voices are taken. Sample lengths
   (`WaveLength`) are kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual
   clock; no save holds music state.
@@ -416,7 +416,7 @@ colour 0xFF323232, registry's `FloatToInt` through int64. Goldens unchanged (ver
 **C30e3 (items, spells, world objects; 17 files).** Float maths on floats as they were (prices, conditions, charges,
 the stock's material and spell draws, lights, map specs, levers, torches, traps). Through the helpers: the random
 spreads (hoover_loot's gold, `ItemWeapon::RollDamage`, now a float: the spread times the ISAAC word, then 2^-32), the
-item price's material units, spell_cast's `ScaleTruncate` (then through int64, as `_ftol`), the lever's end tick
+item price's material units, spell_manager's `ScaleTruncate` (then through int64, as `_ftol`), the lever's end tick
 minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (item, map_spec_effect),
 `x87::fistp` -> `lib::RoundEven` (gold minimum, spell budget, material alpha). Equivalence test: C30e3's `eq/`
 (each old expression at PC24 against the new one, the light's constants, the wall spell's normal).
@@ -470,7 +470,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e1 network, sessions, settings | 30 | 7,647 | net_connection_tick's `D()` (24) and timers, player_server_handlers' doubles (16), player_client's `std::pow`, options' `Ftol` |
 | C30e2 scripts | 10 | 4,031 | `Ftol` 72 (script_exec 43, script_eval 15: a script argument can be a NaN), script_addon_math's CRT sin / cos / pow |
 | C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
-| C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
+| C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect / _update), exit_area's sin / cos; the helpers and their tests |
 | C30e5 (done) server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
 | C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 (done) combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
@@ -478,7 +478,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e9 (done) unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
-| C30e12 (done) client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
+| C30e12 (done) client units and world | 13 | 3,928 | unit_client_update's `fexp`, world_client_maps' `Hypot`, the view (picking) |
 | C30e13, C30e13a (done) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
 | C30e14 (done) terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 (done) main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
@@ -617,7 +617,7 @@ signs were the `>=` selects MSVC compiles to MAXSS / MINSS (AIViewer::Refresh's 
 KeepLower, Score's penalty, IsNearPath's clamp): exact through float_select's helpers since (below, "Selects on
 `>=` / `<=`").
 
-**C30e12 (client units and world; 13 files).** The double locals were PC24 registers: unit_client_path's blend
+**C30e12 (client units and world; 13 files).** The double locals were PC24 registers: unit_client_update's blend
 (`(1 - w) target + w current`) and animation speed, the client world's light reach test, ObjectsInRange's reach and
 distance, the sun table's steps, the pick ray (`PickPoint`'s determinant and line): float maths in the original's
 order. Through pc24: the heading blend's `fexp` (`pc24::Exp`), its FPATAN / FCOS / FSIN (`Round(Atan2)`,
@@ -769,7 +769,7 @@ branch (NaNs come out right: MSVC orders the operands for them). The strict form
   overloads make an int or double pair a compile error (ints stay plain: they have no signed zero).
 - **Routed by script** (C30e17's scratch folder: `route_selects.py` for the ternaries, `route_ifs.py` for the one-line
   ifs, the int sites kept with `--skip` from the build's C2280 list): 107 ternaries in 49 files, 7 if-selects
-  (item, spell_cast, terrain_sector, ui_stats_rows, particle_callbacks), and the two `Bits(...)` selects (combat_sight's
+  (item, spell_manager, terrain_sector, ui_stats_rows, particle_callbacks), and the two `Bits(...)` selects (combat_sight's
   OutOfSightRange, world_effect_visual's ground clamp; MSVC made MAXSS of those too).
 - **The object scan** (`scan_minmax.py EXE` lists the linked image's MAXSS / MINSS by function; `scan_lines.py` recompiles
   the SSE2 objects that have one with /FAs and gives each its source line): 436 at 179 places before, 134 at 56 after,
@@ -810,7 +810,7 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
 | `fsin` / `fcos` (159) | `std::sin` / `cos` | same | the CRT's 53-bit results against FSIN / FCOS's 64; equal after the float store over 800k float arguments; not bit-exact in principle (converted, C16, separate commit) |
 | `fpatan` (27) | `std::atan2` | same | as fsin (converted, separate commit) |
 | `flog` / `flog10` (16) | `std::log` / `log10` | same | FYL2X ignores the precision control (converted, separate commit) |
-| `fexp` (7) | `std::exp` | **97 differ** | VC6's inline exp rounds its FMUL / FSUB / FADD at PC24 (about 24 bits accurate): 64% of float arguments give another float, up to 3.6e-7 relative. One site does it all: `unit_client_path`'s heading weight `x87::fexp(rate * kDecay)` (checked alone: the same 43 records as the whole family); cunit702's `rot.w` 0.112546213 / 0.112546332 at world update 45 in gz1g, then its place |
+| `fexp` (7) | `std::exp` | **97 differ** | VC6's inline exp rounds its FMUL / FSUB / FADD at PC24 (about 24 bits accurate): 64% of float arguments give another float, up to 3.6e-7 relative. One site does it all: `unit_client_update`'s heading weight `x87::fexp(rate * kDecay)` (checked alone: the same 43 records as the whole family); cunit702's `rot.w` 0.112546213 / 0.112546332 at world update 45 in gz1g, then its place |
 | `FromUnsigned` (85) | `static_cast<double>` | not run | rejected by check_x87 on IA32 (the FADD 2^32 rounds at PC24); exact under SSE2 (check_x87 would need an SSE2 mode: SSE2 code also loads 2^32) |
 | `CopyFloat` / `LoadStoreBits` (57) | the bits as they are (`memcpy` / `bit_cast`) | same | no signalling NaN is copied in the suite (converted, C16b, the helpers are gone; C43: plain assignments, `x87::CopyBits` where the bits come from outside). Behaviour change: a signalling NaN float copied at those sites keeps its bits, where the original's FLD / FSTP set the quiet bit (0x00400000); only a NaN with a clear quiet bit read from a file or a message is affected |
 | `IsNaN` / `CompareStatus` (116) | `IsNaN` false (the plain comparison) | same | no NaN reaches those sites in the suite (converted, C16c: the NaN audit below) |
@@ -865,7 +865,7 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `!(scale >= 1)` (the NaN step of the free-cell search occurs in the suite and must scale both components),
   `UnitStats::HealSlots`'s `!(magnitude > kMinHeal)` (the audit fired in every run: `LearnSkill` passes a NaN heal while a
   new unit's stats are set up), `unit_skill_price`'s below-4 branch (a price of 0 gives 0 / 0; written as `if (leading >= 4) return ...` first),
-  `unit_client_path`'s turn loop (C16c) and addon's `Max` / `Min`.
+  `unit_client_update`'s turn loop (C16c) and addon's `Max` / `Min`.
 - **The engine, network, terrain, device and render files (C16g; about 75 float sites, 42 files).** Exact plain forms
   where they read naturally: selects for the clamps and folds (`ClampUnit`, `SpeedForBalance`, the acos clamps
   `dot >= -1 ? dot : -1` in core_transform_math / terrain_ambience / view_matrices, `Extend`, `ClampToZero`, `EffectValue`,
