@@ -180,12 +180,13 @@ DD Series(DD z, const DD (&head)[Heads], const double (&tail)[Tails]) {
     return sum;
 }
 
-// An x87 operation with a NaN: the NaN, quiet; of two, the larger significand.
+// An x87 operation with a NaN: the NaN, quiet; of two, the larger significand, of equal ones the positive.
 double NaNOf(double a, double b) {
     if (!std::isnan(a)) return b;
     if (!std::isnan(b)) return a;
     const std::uint64_t ma = std::bit_cast<std::uint64_t>(a) & 0x000FFFFFFFFFFFFFull;
     const std::uint64_t mb = std::bit_cast<std::uint64_t>(b) & 0x000FFFFFFFFFFFFFull;
+    if (ma == mb) return std::signbit(a) ? b : a;
     return mb > ma ? b : a;
 }
 
@@ -230,6 +231,8 @@ float StoreRegister(DD v) {
 float Store(DD exact, double plain, DD a, DD b) {
     if (std::isnan(a.hi) && std::isnan(b.hi)) return static_cast<float>(NaNOf(a.hi, b.hi));
     if (!std::isfinite(plain)) return static_cast<float>(plain);
+    // A double operand above about 2^996 overflows the splitting: such a result is beyond a float's range.
+    if (!std::isfinite(exact.hi)) return static_cast<float>(plain);
     if (exact.hi == 0.0) return static_cast<float>(plain == 0.0 ? plain : 0.0);
     return static_cast<float>(Round24(exact));
 }
