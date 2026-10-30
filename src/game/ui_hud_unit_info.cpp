@@ -133,9 +133,8 @@ void HudUnitPanel::DrawUnitInfo(Unit* unit) {
     panel.text = str::Format(kValue, panel.labels[15], static_cast<int>(params->rate));
     panel.DrawLine();
 
-    float description[7];
-    params->ProtectionBlock(&unit->packedVitals, description, static_cast<unsigned char>(IsTextKey(unit->id)));
-    const DamageLists lines = ItemDamageLists(description, true);
+    auto description = params->ProtectionBlock(&unit->packedVitals, static_cast<unsigned char>(IsTextKey(unit->id)));
+    const DamageLists lines = ItemDamageLists(description.data(), true);
     panel.DrawLabelled(10, lines.threshold);
     if (outside) {
         if (!lines.above.empty()) panel.DrawLabelled(11, lines.above);

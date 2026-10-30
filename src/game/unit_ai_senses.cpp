@@ -411,8 +411,9 @@ void AIMemory::SeeCorpse(Unit* self, Unit* corpse) {
     if (g_serverWorld.diplomacy.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
 
-void AIMemory::MeasureExposure(UnitServer* self, float* out) {
-    for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
+std::array<float, 5> AIMemory::MeasureExposure(UnitServer* self) {
+    std::array<float, 5> out;
+    out.fill(kMaxExposure);
     Unit* unit = self->unit;
     Vector3 eye = unit->EyePoint();
     for (auto& node : nearby) {
@@ -436,4 +437,5 @@ void AIMemory::MeasureExposure(UnitServer* self, float* out) {
         KeepLower(out[2], Exposure(distance, theirs->moveFactors[1] * self->moveFactors[0] *
                                                  theirs->stats.perception[3].current * self->stats.conspicuity[3].current));
     }
+    return out;
 }

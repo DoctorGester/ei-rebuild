@@ -88,8 +88,7 @@ int Unit::RemoveCarried(int index) {
 }
 
 void Unit::SendEquipment() {
-    std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
-    GetEquipmentIds(ids);
+    auto ids = GetEquipmentIds();   // 4 weapons, then 7 armour pieces (-1 for none)
     Controller()->SetArmourModels(&ids[4]);
     Controller()->SetWeaponModels(&ids[0]);
 }

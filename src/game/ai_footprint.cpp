@@ -75,7 +75,8 @@ void FootprintCellSet::AddBottom(int x, int y, int height, OccluderKind kind, st
     AppendCell(this, cell);
 }
 
-void FootprintCellSet::GetBounds(int* bounds) const {
+std::array<int, 4> FootprintCellSet::GetBounds() const {
+    std::array<int, 4> bounds;
     bounds[0] = 100000;
     bounds[2] = 100000;
     bounds[3] = 0;
@@ -87,6 +88,7 @@ void FootprintCellSet::GetBounds(int* bounds) const {
         if (!(bounds[1] > x)) bounds[1] = x;
         if (!(bounds[3] > y)) bounds[3] = y;
     }
+    return bounds;
 }
 
 // --- Footprints ----------------------------------------------------------------------------------
@@ -235,9 +237,8 @@ bool AIMap::MarkFootprint(MapObject* object, bool remove) {
     if (CollectFootprint(object, &footprint, &bridges)) ApplyBridgeDecks(&bridges, remove);
     bool fits = ApplyFootprint(&footprint, remove);
 
-    int a[4] = {10000, 0, 10000, 0}, b[4] = {10000, 0, 10000, 0};
-    footprint.GetBounds(a);
-    bridges.GetBounds(b);
+    auto a = footprint.GetBounds();
+    auto b = bridges.GetBounds();
     int minX = a[0] < b[0] ? a[0] : b[0];
     int maxX = a[1] > b[1] ? a[1] : b[1];
     int minY = a[2] < b[2] ? a[2] : b[2];
@@ -268,8 +269,7 @@ bool AIMap::StampFootprint(int tick, FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool fits = ApplyFootprint(set, false);
-    int r[4] = {10000, 0, 10000, 0};
-    set->GetBounds(r);
+    auto r = set->GetBounds();
     QueueRefresh(r[0] - 3, r[1] + 3, r[2] - 3, r[3] + 3);
     footprintTick = tick;
     refreshUnits = savedRefreshUnits;
@@ -280,8 +280,7 @@ bool AIMap::ClearFootprint(FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool cleared = ApplyFootprint(set, true);
-    int r[4] = {10000, 0, 10000, 0};
-    set->GetBounds(r);
+    auto r = set->GetBounds();
     QueueRefresh(r[0] - 3, r[1] + 3, r[2] - 3, r[3] + 3);
     refreshUnits = savedRefreshUnits;
     return cleared;

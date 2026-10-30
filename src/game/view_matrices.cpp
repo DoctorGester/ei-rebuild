@@ -10,7 +10,9 @@
 
 namespace view {
 
-void ViewMatrix(float* out, const Vector3& position, const Quaternion& q) {
+Matrix4 ViewMatrix(const Vector3& position, const Quaternion& q) {
+    Matrix4 result = {};
+    float* out = result.m;
     Vector3 axisX = q.AxisX();
     Vector3 axisY = RotatedAxisY(q);   // inlined copies, the same orders
     Vector3 axisZ = RotatedAxisZ(q);
@@ -31,6 +33,7 @@ void ViewMatrix(float* out, const Vector3& position, const Quaternion& q) {
     out[13] = 0.0f;
     out[12] = 0.0f;
     out[15] = 1.0f;
+    return result;
 }
 
 } // namespace view

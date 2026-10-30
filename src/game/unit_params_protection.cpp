@@ -15,8 +15,9 @@ constexpr int kSlotKindWorn = 1;   // a slot counts when its kind is above this
 inline const float* DifficultyFactors() { return g_logicSettings.absorption; }
 } // namespace
 
-void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std::uint8_t keyed) {
-    for (int k = 0; k < kDamageTypes; ++k) out[k] = 0.0f;
+std::array<float, 7> UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, std::uint8_t keyed) {
+    static_assert(kDamageTypes == 7);
+    std::array<float, kDamageTypes> out{};
     float scale = 0.0f;
     if (keyed) {
         float total = 0.0f;
@@ -32,5 +33,5 @@ void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std
     float factor = keyed ? 1.0f : DifficultyFactors()[options::g_options.difficulty];
     for (int k = 0; k < kDamageTypes; ++k)
         out[k] = (scale * out[k] + static_cast<std::uint16_t>(vitals->protection[k])) * factor;
-
+    return out;
 }

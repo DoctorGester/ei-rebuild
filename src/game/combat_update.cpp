@@ -121,7 +121,7 @@ bool UnitServer::RunTick() {
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
-            brain.memory.MeasureExposure(this, unit->exposure);
+            unit->exposure = brain.memory.MeasureExposure(this);
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;

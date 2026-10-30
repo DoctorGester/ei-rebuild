@@ -81,8 +81,9 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
 
 // The world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
 // position).
-void TransformObject::WorldMatrix(float* m) const {
-    std::memset(m, 0, 16 * sizeof(float));
+Matrix4 TransformObject::WorldMatrix() const {
+    Matrix4 result = {};
+    float* m = result.m;
     m[15] = 1.0f;
     m[10] = 1.0f;
     m[5] = 1.0f;
@@ -112,6 +113,7 @@ void TransformObject::WorldMatrix(float* m) const {
     m[12] = worldPosition.x;
     m[13] = worldPosition.y;
     m[14] = worldPosition.z;
+    return result;
 }
 
 // Turns the local rotation a tenth of the way from its down axis (minus the rotated Y

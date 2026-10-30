@@ -83,8 +83,7 @@ void Unit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(5)) {
-        std::uint32_t ids[11];
-        unit->GetEquipmentIds(ids);
+        auto ids = unit->GetEquipmentIds();
         for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
         PutWord(field, (unit->flags & MapObjectFlag::HelmetHidden) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
@@ -135,7 +134,7 @@ void Unit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(12)) {
-        field->WriteDelta(unit->exposure, 0x14);
+        field->WriteDelta(unit->exposure.data(), 0x14);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {
@@ -339,7 +338,7 @@ std::uint32_t Unit::ReadNetState(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(12)) {
-        field->ReadDelta(unit->exposure, 0x14);
+        field->ReadDelta(unit->exposure.data(), 0x14);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {

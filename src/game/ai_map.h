@@ -8,6 +8,7 @@
 #include "unit.h"
 
 #include "lib/containers.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -109,7 +110,7 @@ struct FootprintCellSet {
     void AddBottom(int x, int y, int height, OccluderKind kind, std::int8_t transparency);
 
     // Bounding box of the cells: {minX, maxX, minY, maxY}; {100000, 0, 100000, 0} if empty.
-    void GetBounds(int* bounds) const;
+    std::array<int, 4> GetBounds() const;
 
     std::vector<FootprintCell> cells;
     // first index per (x + y) & 15, -1 when empty; zero until the first footprint empties them

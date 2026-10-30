@@ -262,7 +262,7 @@ int PlayerServer::SendPartyState() {
     Player* currentPlayer = player;
     const float low = kLowLevel;
     for (auto node = currentPlayer->units.begin(); node != currentPlayer->units.end() && node->second; ++node) {
-        const float* levels = node->second->exposure;
+        const float* levels = node->second->exposure.data();
         EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
         if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
             danger = PartyDanger::EnemyNear;

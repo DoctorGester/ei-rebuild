@@ -165,13 +165,15 @@ std::uint32_t Unit::SetStunned(int on) {
 
 // --- Equipment -------------------------------------------------------------------------------
 
-void Unit::GetEquipmentIds(std::uint32_t* out) {
+std::array<std::uint32_t, 11> Unit::GetEquipmentIds() {
+    std::array<std::uint32_t, 11> out;
     for (int i = 0; i < 4; ++i) {
         out[i] = weapons[i] ? weapons[i]->prototypeId : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
         out[4 + i] = armor[i] ? armor[i]->prototypeId : 0xFFFFFFFFu;
     }
+    return out;
 }
 
 int Unit::AddWeapon(Item* item) {
