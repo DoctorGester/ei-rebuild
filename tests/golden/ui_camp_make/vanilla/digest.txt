@@ -2333,7 +2333,7 @@ client ticksRun 552
 @ 29 update 600 frame 119 tick 42 zone gz1g hash 16473F6F n 790
 world updates 600
 client ticksRun 572
-@ 30 update 620 frame 123 tick 57 zone gz1g hash 6A58D900 n 791
+@ 30 update 620 frame 123 tick 57 zone gz1g hash 60BFFBAB n 791
 world tick 57
 world updates 620
 world paused 0
@@ -2346,6 +2346,8 @@ player0 sessionKind 1
 player0 lastTick 43
 player0 units 1
 player0 objects 8
+player0 money 86123
+player0 partyItems 5
 obj699 #ai 0F79C16E
 obj699 #unit 2F1EAF08
 obj702 #ai 0F79C16E

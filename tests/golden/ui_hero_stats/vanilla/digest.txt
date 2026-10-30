@@ -378,18 +378,20 @@ cunit1000011214 #vitals A7CF3098
 @ 5 update 120 frame 23 tick 20 zone - hash 1D7ECE7D n 69
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 27 tick 20 zone - hash F574B96A n 69
+@ 6 update 140 frame 27 tick 20 zone - hash 7B052F74 n 69
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash E548A447 n 69
+cunit1000011214 #vitals 22BBBFDB
+@ 7 update 160 frame 31 tick 20 zone - hash 6B393259 n 69
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash E492FB51 n 69
+@ 8 update 180 frame 35 tick 20 zone - hash 6AE36D4F n 69
 world updates 180
 client ticksRun 177
 @ 9 update 200 frame 39 tick 20 zone - hash 7290576D n 69
 world updates 200
 client ticksRun 197
+cunit1000011214 #vitals A7CF3098
 @ 10 update 220 frame 43 tick 20 zone - hash D1ADC599 n 69
 world updates 220
 client ticksRun 217

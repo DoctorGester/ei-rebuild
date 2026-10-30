@@ -2576,7 +2576,7 @@ client ticksRun 1292
 @ 66 update 1340 frame 267 tick 157 zone gz1g hash 4896101E n 790
 world updates 1340
 client ticksRun 1312
-@ 67 update 1360 frame 271 tick 162 zone gz1g hash 99843024 n 791
+@ 67 update 1360 frame 271 tick 162 zone gz1g hash D17B9FC8 n 791
 world tick 162
 world updates 1360
 world paused 0
@@ -2594,6 +2594,7 @@ player0 sessionKind 1
 player0 lastTick 158
 player0 units 1
 player0 objects 8
+player0 partyItems 3
 obj699 #unit 2F1EAF08
 obj699 #vitals 377E0717
 obj702 #ai C269B926
@@ -2633,7 +2634,7 @@ cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 38F612F9
 cunit1000011214 #vitals 7D2D89BA
 - cunit1100011214
-@ 68 update 1380 frame 275 tick 182 zone gz1g hash EEAA0998 n 791
+@ 68 update 1380 frame 275 tick 182 zone gz1g hash A655A674 n 791
 world tick 182
 world updates 1380
 random isaac.count 106

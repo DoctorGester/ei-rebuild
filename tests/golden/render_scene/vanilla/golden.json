@@ -2,12 +2,12 @@
   "scenario": "render_scene",
   "install": "vanilla",
   "recorded": "2026-10-30",
-  "commit": "61fd869",
+  "commit": "b6204b4",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "W12: the interface layout follows the window; vanilla runs play in a 960x720 window (the 4:3 layout), Rebirth's at 1280x720",
+  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }

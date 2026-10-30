@@ -393,21 +393,21 @@ client ticksRun 197
 @ 10 update 220 frame 43 tick 20 zone - hash F0BD35B4 n 69
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash F45258F1 n 69
+@ 11 update 240 frame 47 tick 20 zone - hash 40F32CE0 n 69
 world updates 240
 client ticksRun 237
-+ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy 0"
++ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy 1"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 4CC398A7
 cunit1000011214 #vitals A7CF3098
-@ 12 update 260 frame 51 tick 20 zone - hash C33C322E n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 501C008B n 69
 world updates 260
 client ticksRun 257
-+ cunit1000011214 80 unhufe "Human Mercenary Thief 2"
++ cunit1000011214 80 unhufe "Human Mercenary Thief 1"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 78ED15B1
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash A5183369 n 69
+@ 13 update 280 frame 55 tick 20 zone - hash 429F35D9 n 69
 world updates 280
 client ticksRun 277
 cunit1000011214 #unit 81197FD2
