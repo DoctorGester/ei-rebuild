@@ -25,6 +25,8 @@ jobs:
   release:
     runs-on: windows-2022
     steps:
+      # The generated-file checks compare bytes, so keep the repository's LF line endings.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
@@ -43,6 +45,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install capstone==5.0.7
 
       - name: Find Visual Studio
         shell: pwsh
