@@ -155,7 +155,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
 6. **Number trailers that repeat the literal.** `#define EI_TEN 10.0f /*0073CB98*/ // 10.0`,
    `return 220.0f; } // 220`. A trailer that decodes bits stays (`0x3D23D70A); // 0.04f`). The rdata
    literal tags `0.5f /*0073B86C*/` are gone (C41); the named-data tags after an `=` stay.
-7. **File pointers.** `class ByteStream;   // core_streams.h`, "(lever_table_load.cpp)", "unit_lever.cpp:
+7. **File pointers.** `class ByteStream;   // core_streams.h`, "(lever_table.cpp)", "unit_lever.cpp:
    SetState, UseSpots; lever_object.cpp the rest". Grep finds them. The file header keeps its one
    pointer to docs/notes.
 8. **Rulers** that are bare (`// -----`, `// --- ------`) or titled with the one function that follows
@@ -202,7 +202,7 @@ class ByteStream;   // core_streams.h
 ...
     LeverRecord* begin;             // +0x00
 ...
-    // (lever_table_load.cpp). The constructor: no records, an empty index of 193
+    // (lever_table.cpp). The constructor: no records, an empty index of 193
     // buckets (the prime after 100). It runs from a static initialiser on the table,
     // before the hooks are installed, so the hook on it never fires. Returns this.
     LeverRecordTable* Construct();

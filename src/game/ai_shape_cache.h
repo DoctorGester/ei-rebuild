@@ -1,7 +1,7 @@
 #pragma once
 
 // The cache of unit occupancy shapes (a global): one shape per standing height, made on demand and shared
-// through reference-counted handles. See ai_shape_cache.cpp, and AIMap::ShapeForHeight in ai_movement.cpp for its
+// through reference-counted handles. See ai_unit_shape.cpp, and AIMap::ShapeForHeight in ai_movement.cpp for its
 // user.
 #include "core_refcount.h"
 

@@ -2,28 +2,30 @@
 // The constructors of screens 1, 2, 3 and 7 are inlined here (the container base, their members' constructors
 // and vtables); the others' constructors are called as functions.
 #include "app.h"
+
 #include "bink_video.h"
+#include "console.h"
+#include "game_singletons.h"
 #include "options.h"
-#include "world.h"
-#include "ui_camp.h"
+#include "text_manager.h"
+#include "ui.h"
 #include "ui_briefing.h"
+#include "ui_camp.h"
+#include "ui_cursor.h"
 #include "ui_screens.h"
 #include "ui_view_screen.h"
-
-#include "ui.h"
-#include "ui_cursor.h"
-
-#include "render/render_state.h"
-#include "lib/crt.h"
-#include <cstdint>
-#include <string>
+#include "world.h"
 #include "world_glue.h"
-#include "game_singletons.h"
+#include "lib/crt.h"
+#include "render/render_state.h"
 
+#include <cstdint>
 #include <cstring>
-#include <iterator>
 #include <deque>
+#include <iterator>
 #include <memory>
+#include <new>
+#include <string>
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
 BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}
@@ -69,7 +71,6 @@ void Interface3D::CreateScreen(int id) {
 // --- PushWindow ----------------------------------------------------------------------------------
 
 namespace {
-
 
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
@@ -191,3 +192,43 @@ ExchangeScreen::ExchangeScreen(Interface3D* ui) : ItemScreen(ui) {}
 
 CreditsScreen::CreditsScreen(Interface3D* ui, bool newFromGame, const char* newName)
     : UiContainer(ui), name(newName), fromGame(newFromGame) {}
+
+// --- Ui screen constructors --------------------------------------------------------------------------
+
+// Constructors of interface windows: the message box, the objectives window
+// and the battle screen's portraits panel. Their Create / Build
+// does the rest. See ui.h and docs/notes/ui.md.
+
+namespace {
+
+constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
+
+} // namespace
+
+// --- The message box ----------------------------------------------------------------------------------
+
+MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t newResult,
+                         std::uint32_t newFlags, std::uint32_t newFormat)
+    : UiContainer(ui), result(newResult), flags(newFlags), format(newFormat) {
+    std::string line;
+    TextManager* texts = g_clientWorld.texts;
+    line = texts->GetString(titleKey);
+    title = line;
+    if (flags & kEditField) {
+        editText = const_cast<char*>(textKey);    // the caller's buffer: OK copies the answer into it
+    } else {
+        editText = nullptr;
+        line = texts->GetString(textKey);
+        text = line;
+    }
+}
+
+// --- The objectives window ----------------------------------------------------------------------------
+
+// --- The portraits panel ------------------------------------------------------------------------------
+
+HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+    rect = Rect{250, 440, 550, 600};
+    count = 0;
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
+}

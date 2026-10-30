@@ -5,8 +5,8 @@ Startup, the frame step, registries, option and device records, key bindings, sm
 every scenario.
 
 - `app_frame.cpp`: WinMain's frame step `FrameStep` 00458010 (see "Frame capture"), intro movies 00458270 (list from the .ini, each
-  played, the screen cleared by a Blt colour fill). `app_registry.cpp`: type registration with a factory (vtable <-> id <-> factory) and
-  COM releases (00458570, 00458540, 00458550, 004586E0). `app_device_list.cpp`:
+  played, the screen cleared by a Blt colour fill). `app_frame.cpp`: type registration with a factory (vtable <-> id <-> factory) and
+  COM releases (00458570, 00458540, 00458550, 004586E0). `app_frame.cpp`:
   device record list archiving (00463030-00465BC0).
 - `map_spec_unit.cpp`: waypoint lists and behaviour records read / written as stream chunks (0045DE30 is a stream reader, not a
   CArray::SetSize; 0045DFB0, 0045D610, 0045D760). `zone_records.cpp`: zone exit destructors and the map database's zone record destructor
@@ -149,6 +149,6 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - 004560D0 `ShowMessageBox` (full screen: DirectDraw flips to the GDI surface first; the cursor is put back).
   Ours only. 006462A0, the unit panel's draw: items_spells.md.
 - **The game's caught file errors**: the game's MFC threw a `CFileException*` from a failed file call, and
-  004D5880 (the script loader's text file reader, `script_text_file.cpp`) and `Dib::Read` 006D5910 / `Write`
-  006D5AC0 (`dib_file.cpp`) caught it. Ours catch `platform::FileError`, which platform::File / TextFile throw by value
+  004D5880 (the script loader's text file reader, `script_exec_helpers.cpp`) and `Dib::Read` 006D5910 / `Write`
+  006D5AC0 (`dib.cpp`) caught it. Ours catch `platform::FileError`, which platform::File / TextFile throw by value
   (no MFC exception class is left since C14zi).

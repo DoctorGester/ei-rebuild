@@ -85,7 +85,7 @@ public:
     // 1) applied to the kind and the name.
     std::string FormatItemName(Item* item);
 
-    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor.
+    // The line reader (text_manager.cpp): finds a text in the resource archives and walks its lines with cursor.
     // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF
     // (CR also ends the line's content); a line whose first word starts with "##" is a comment.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its

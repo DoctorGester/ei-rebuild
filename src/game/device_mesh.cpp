@@ -2,14 +2,17 @@
 // the pipeline for the visibility verdict and the screen rectangle picking reads. The new
 // renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
 #include "device_buffers.h"
+
+#include "device_material.h"
 #include "figure_mesh.h"
 #include "model.h"
-#include "render/render.h"
+#include "settings_file.h"
 #include "texture.h"
-
 #include "lib/nan_audit.h"
+#include "render/render.h"
 
 #include <cstdint>
+#include <float.h>
 
 namespace {
 
@@ -167,4 +170,143 @@ int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture
                words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);
+}
+
+// --- Device object -----------------------------------------------------------------------------------
+
+// The device object (TextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
+// object: the constructor starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
+
+namespace {
+
+// The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
+// Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
+bool PerfOverlaySetting() {
+    if (!render::PerfOverlaySupported()) return false;
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
+    return settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay", &type, &value,
+                                    &size) == 0 &&
+           type == settings_file::kTypeDword && value != 0;
+}
+
+// The vertical blank's switch (docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
+// absent: on) of the same key. Read only in the product, as above.
+bool VsyncSetting() {
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
+    return !(settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", &type, &value, &size) == 0 &&
+             type == settings_file::kTypeDword && value == 0);
+}
+
+// The render quality (docs/notes/renderer.md section 11, "Render quality"): "Msaa" (the world view's samples: 1 off,
+// 2, 4 or 8) and "Anisotropy" (its models' anisotropic sampling: 1 off .. 16), DWORDs of the same key. A value missing
+// (or not a DWORD) is written with its default, the look the user's dgVoodoo setup gave, so the file shows both. Read
+// only in the product, as above (render::QualitySettingsSupported).
+constexpr std::uint32_t kDefaultMsaa = 8;
+constexpr std::uint32_t kDefaultAnisotropy = 16;
+
+std::uint32_t QualitySetting(const char* name, std::uint32_t fallback) {
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
+    if (settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", name, &type, &value, &size) == 0 &&
+        type == settings_file::kTypeDword)
+        return value;
+    settings_file::Set(nullptr, "Software\\Nival Interactive\\EvilIslands\\Standalone", name, settings_file::kTypeDword, &fallback,
+                       sizeof(fallback));
+    return fallback;
+}
+
+} // namespace
+
+TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScreen, int width, int height, int newBitsPerPixel)
+    : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow), bitsPerPixel(newBitsPerPixel) {
+    // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
+    // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
+    render::StartPresenting();
+    render::SetPerfOverlay(PerfOverlaySetting());
+    if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
+    if (render::QualitySettingsSupported()) {
+        render::SetMsaa(static_cast<int>(QualitySetting("Msaa", kDefaultMsaa)));
+        render::SetAnisotropy(static_cast<int>(QualitySetting("Anisotropy", kDefaultAnisotropy)));
+        settings_file::Flush();
+    }
+
+    // The game's Direct3D 7 device set the calling thread's x87 precision to 24 bits (the game asked for
+    // DDSCL_FPUSETUP). The game code is SSE2 code, but the precision still counts: MSVC's 32-bit code gets a float
+    // result back on the x87 register stack and may do the next operations there (a product plus one, a dot's sums),
+    // which give float maths' result only at 24 bits; and the DLLs with x87 code (Miles, Bink) compute as they did
+    // in the original (docs/notes/cleanup-tooling.md, "The control word"). x64 code has no x87 maths and no
+    // precision control: SSE float maths is 24-bit already.
+#if defined(_M_IX86)
+    unsigned int x87 = 0;
+    __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
+#endif
+}
+
+TextureDevice::~TextureDevice() {
+    if (pipeline) pipeline->Release();
+    if (material) material->Release();
+}
+
+// --- Device shadow -----------------------------------------------------------------------------------
+
+// The device's draw of flat-coloured textured geometry, used for object shadows: the positions are projected by
+// the pipeline (the visibility verdict); the renderer gets one colour / specular pair, each vertex's texture
+// coordinate and a z scale, and clips what crosses the screen edges. See docs/notes/models.md ("Mesh draws").
+
+namespace {
+
+using devicebuffers::g_outcodes;
+using devicebuffers::g_projected;
+
+// The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
+
+// The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
+// (kScreenStack); each pass the indexed draw then makes hands over the device's state.
+void HandOver(TextureDevice* device, const VertexPacket* positions, const void* uvs, int count,
+              const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, bool clipped) {
+    render::MeshDraw m{};
+    m.positions = &positions->block[0][0];
+    m.positionCount = count;
+    m.colours = &colours[0];
+    m.speculars = &colours[1];
+    m.uvs = static_cast<const float*>(uvs);
+    m.corners = nullptr;
+    m.cornerCount = count;
+    m.indices = indices;
+    m.indexCount = indexCount;
+    m.matrix = device->pipeline->Top(kScreenStack);
+    m.screenMatrix = true;
+    m.clipped = clipped;
+    m.distanceFog = false;   // no fog pass here
+    m.zScale = 1.0f;   // multiplies z (1: none)
+    render::BeginMesh(device, m);
+}
+
+int DrawFlat(TextureDevice* device, const VertexPacket* positions, const void* uvs, int blocks,
+             const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular) {
+    TransformPipeline* pipeline = device->pipeline;
+    int count = blocks * 4;
+    std::uint32_t colours[2] = {colour, specular};
+    g_projected.resize(count);
+    g_outcodes.resize(count);
+    // The verdict: 0 on screen, 1 crossing, 2 outside.
+    int visibility = pipeline->ProjectBlocks(positions, g_projected.data(), g_outcodes.data(), blocks, nullptr);
+    if (visibility == 2) return 2;
+    HandOver(device, positions, uvs, count, indices, indexCount, colours, visibility == 1);
+    device->DrawIndexed();
+    return 0;
+}
+
+} // namespace
+
+// `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
+// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex. Returns 2 when
+// nothing is visible, else 0.
+int TextureDevice::DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks,
+                                   const std::uint16_t* indices, int indexCount, std::uint32_t fillColour,
+                                   std::uint32_t specular) {
+    render::BeginFlatDrawTime(blocks * 4);
+    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, fillColour, specular);
+    render::EndMesh();
+    render::EndFlatDrawTime();
+    return result;
 }

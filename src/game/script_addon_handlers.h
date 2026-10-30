@@ -50,7 +50,7 @@ bool Ceil(Call* call);
 bool Floor(Call* call);
 bool Random(Call* call);
 
-// script_addon_strings.cpp
+// script_addon_math.cpp
 bool GetObjectStringID(Call* call);
 bool FloatToStr(Call* call);
 bool StrToFloat(Call* call);

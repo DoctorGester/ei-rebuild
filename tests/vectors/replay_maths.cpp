@@ -1,4 +1,4 @@
-// Replay of the "maths" family (maths_vectors.h) against src/game/maths.cpp and core_maths.cpp.
+// Replay of the "maths" family (maths_vectors.h) against src/game/core_maths.cpp and core_maths.cpp.
 // Bitwise, as the verify wrappers compare them.
 #include "maths_vectors.h"
 #include "vectors.h"

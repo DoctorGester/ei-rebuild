@@ -14,18 +14,18 @@ The frame order is this. `Interface3D::Draw` 005F5220 (inside BeginScene..EndSce
 
 | Primitive | Functions (file) | Users | Path |
 |---|---|---|---|
-| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `UiSurface::Blit` (`ui_surface_blit.cpp`) → `render::ui::DrawCanvas` | every surface | the canvas drawn into the frame |
-| Text | 005FDE20 `UiSurface::DrawTextIn` / `DrawTextPixels` (`ui_text_draw.cpp`; with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`); extents 005F8340 by `TextExtent` (`ui_font.h`) | every window with text, the console | glyph runs on the canvas, our fonts (P2, P2a, P8) |
-| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`: `Fill`, `Clear`, `FillRect`, `FrameRect`) | Clear everywhere; Fill and FrameRect in the tooltip; FillRect in the console | canvas commands |
+| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `UiSurface::Blit` (`ui_surface.cpp`) → `render::ui::DrawCanvas` | every surface | the canvas drawn into the frame |
+| Text | 005FDE20 `UiSurface::DrawTextIn` / `DrawTextPixels` (`ui_text.cpp`; with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`); extents 005F8340 by `TextExtent` (`ui_font.h`) | every window with text, the console | glyph runs on the canvas, our fonts (P2, P2a, P8) |
+| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface.cpp`: `Fill`, `Clear`, `FillRect`, `FrameRect`) | Clear everywhere; Fill and FrameRect in the tooltip; FillRect in the console | canvas commands |
 | Lines and carets | `UiSurface::Line` (the pen's rule, end point left out) | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save / load list 006567A0 | canvas commands (P5) |
 | Single pixel | `UiSurface::Dot` | the HUD map's marker (`HudMap::Setup` 00641F20) | canvas command |
-| Screen copy into a surface | 005FD3D0 `CaptureScreen` (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`) | GPU copy (`ps_copy`, R28a) |
+| Screen copy into a surface | 005FD3D0 `CaptureScreen` (`ui_surface.cpp`) | escape-menu backdrop (`ui_interface_input.cpp`), global-map pick picture (`ui_global_map_paths.cpp`) | GPU copy (`ps_copy`, R28a) |
 | Greyscale, (2r+4g+b)/16 | 005FE440 | escape-menu backdrop | GPU (`ps_grey`) |
 | Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
 | Pixel read | 005FD240 `PixelAt` → `render::ui::ReadPixel` | global-map click (`ui_global_map_input.cpp`) and FindPaths (`ui_global_map_paths.cpp`): zone = (pixel>>4)&0xF − 1 | GPU read back of one pixel |
 | Swap / freeze | 005FD7A0 `SwapContents` → `render::ui::MoveCanvas`, 005FD760 `UiSurface::Show` / `Hide` | camp, menus, backdrop modes 3 / 4, every window's `UiWindow::Show` 006002C0 | the canvas moved aside and back |
 | Titles' RTF text | 0065F020 `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | titles / credits | glyph runs (P8a) |
-| Sprites, shapes, minimap, portraits | `UiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU meshes |
+| Sprites, shapes, minimap, portraits | `UiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh.cpp` | every panel | GPU meshes |
 | 3D previews and models | `UiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
 | Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `ScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
 | Cursor | 005E54A0 → `render::Cursor`; between frames `render_cursor.cpp` (renderer.md, R9c2) | — | drawn by the present |
@@ -42,11 +42,11 @@ built into the executable), laid out by `render::text` (render_text.cpp; the Dra
 drawn as glyph runs on the canvases; no GDI. The user's call (2026-10-14): not pixel-exact against GDI, but wrapping
 and drawing use one set of metrics. What follows is the original's behaviour that the layout follows.
 
-**Fonts.** `Interface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts[0..2]` as the original's
+**Fonts.** `Interface3D::Create` 005F4990 (`ui_interface.cpp`) makes `fonts[0..2]` as the original's
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
 width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
-- The console has its own point font (`console_window_create.cpp`).
+- The console has its own point font (`console_window.cpp`).
 - The original's text was GDI's, with the system's ClearType / smoothing setting; ours is smoothed or not by
   SPI_GETFONTSMOOTHING (P8b).
 - The credits switched font smoothing off for the session (the original; ours does not, P8b: "Font smoothing" in
@@ -256,7 +256,7 @@ ui_quicksave's 29 frames under `uinative` equal the `uiboth` ones exactly.
 
 ### P2 done (2026-10-29): text through the glyph atlas, `ui_native::Text`
 
-**What is drawn natively.** `UiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawWrappedText`
+**What is drawn natively.** `UiSurface::DrawTextIn` 005FDE20 (`ui_text.cpp`; `DrawWrappedText`
 005FDFA0 reaches it) asks `ui_native::Text` first. On a native surface (any surface `Adopt` gave a canvas, and the screen
 copies) the text is laid out by `render::text::Layout` (DrawText's rules, section 2) in `TextFontOf(font)` and drawn
 with `GlyphRun`: the shadow in 0x080808 at +1,+1 first, then the colour. No GDI draws it. Surfaces that are not native
@@ -673,7 +673,7 @@ render_device_lost compares the frames before and after a loss.
 ## Overview of the surface canvases
 
 Every interface window surface's pixels are its holder's canvas on the GPU (P8): made black with the surface
-(`UiSurface::MakeCanvas`, ui_surface_create.cpp; again in the surface format after SwapContents brings a surface
+(`UiSurface::MakeCanvas`, ui_surface.cpp; again in the surface format after SwapContents brings a surface
 back without one), drawn into by the surface functions (`Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` for the
 carets and the connect list's rule, `Dot` for the minimap marker, `DrawTextIn` / `DrawTextPixels` as glyph runs,
 `CaptureScreen`, `Greyscale`; the titles' text as glyph runs too) and blitted by `UiSurface::Blit` (`DrawCanvas`). The readers

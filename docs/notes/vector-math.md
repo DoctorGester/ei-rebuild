@@ -78,7 +78,7 @@ Hooked out-of-line originals (none is Rebirth-patched; all stay hooked):
 | 0049E870 / 0049E950 / 0049ED20 | PreMultiplyConjugate / MultiplyByConjugate / Slerp | |
 | 0046A4B0 | QuaternionRotate (map_spec.cpp) | dot ZXY-class `(x+z)+y`; `(m*v + b) + a` |
 | 0040CB80 | CombineRotation (core_transform.cpp) | |
-| 004D9880 / 004D9B80 | MatrixMultiply / PushMatrix | per-element sum orders differ (tables in matrix_math.cpp) |
+| 004D9880 / 004D9B80 | MatrixMultiply / PushMatrix | per-element sum orders differ (tables in projection.cpp) |
 | 004D9AA0, 00401570 | Quaternion::ToMatrix, TransformObject::WorldMatrix | |
 | 00560E10 | MatrixRows::Transform | `(m2*z + m1*y) + x*m0` per row (M * v) |
 | 004F1370 / 004F13F0 / 004F0E80 | Viewport / Shear / Projection matrix | |

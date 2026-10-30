@@ -75,7 +75,7 @@ public:
     ClassId GetClassId() override;
 
     void DrawGlow(SceneRenderer* device, const Vector3& position, float size);
-    // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
+    // Draws the bolt (render device virtuals, glow sprites); lightning.cpp.
     int Draw(SceneRenderer* device);
     // Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
@@ -86,7 +86,7 @@ public:
     // New end points: main segment, then the branches (spread along the main segment, or random
     // parallel bolts when power is 0); animates when power is negative.
     void SetEndpoints(const Vector3& from, const Vector3& to);
-    // A new bolt (lightning_start.cpp): power, sway, the main segment and six branches (or six parallel
+    // A new bolt (lightning.cpp): power, sway, the main segment and six branches (or six parallel
     // bolts for power 0) with fresh noise, animated once, its bounds, and the textures ("Lightning" /
     // "SmtgLight", or the "Demon" pair).
     void Start(const Vector3& from, const Vector3& to, float power, bool demon);
@@ -108,7 +108,7 @@ public:
 constexpr int kLightningNoiseRows = 32;
 constexpr int kLightningNoiseRowLength = 400;
 inline float g_lightningNoise[kLightningNoiseRows][kLightningNoiseRowLength] = /*0079CE78*/ {};
-// (lightning_load.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
+// (lightning.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
 int LoadLightningNoise();
 

@@ -19,7 +19,7 @@ function is reached by every scenario (startup databases, new game, save / load,
 
 ## Maths and transforms
 
-File: `core_maths.cpp`, `core_transform.cpp`, `core_transform_math.cpp`, `quaternion.cpp`,
+File: `core_maths.cpp`, `core_transform.cpp`, `core_transform.cpp`, `core_maths.cpp`,
 `random.cpp`. Verify: `verify_core_maths`, `verify_core_transform`, `verify_quaternion`,
 `verify_random_init`.
 
@@ -195,7 +195,7 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
   `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.
 - Not rewritten: 0042D260 (RootChunk::File). The memory stream's own slots, Resize / SetSize, the bit
-  helpers and the sized / header helpers (004A4D40-004A5650) are in `core_memory_stream.cpp` (script.md,
+  helpers and the sized / header helpers (004A4D40-004A5650) are in `core_streams.cpp` (script.md,
   "Leftovers").
 
 ## Triangle clipping (0x0042D910-0x0042E6A0)
@@ -207,7 +207,7 @@ section 10, "R31a"). 0042E700 / 0042F4C0 / 0042F890 are dead polygon-clipping va
 
 ## Camera (0x0040C8B0-0x004114F0)
 
-File `camera.cpp`, `camera_motion.cpp`, `camera_object.cpp`, header `camera.h`. Verify
+File `camera.cpp`, `camera_object.cpp`, `camera_object.cpp`, header `camera.h`. Verify
 `verify_camera*.cpp`, scenario `camera.txt` (walks the hero, pans with arrows, F9-F12, the two script
 camera commands, then PlayCamera on `camera\bz3g.cam` until IsCameraPlaying is 0). The camera object
 is at 0079B2A8 (flags at 0079B2B0; 007AF7C8 points to it for the camera-file player). The per-frame
@@ -231,7 +231,7 @@ destructors, class name / id, Create / Destroy, Init, GetRange, Anchor in 0040C8
 existing camera.cam renamed first) / RecordFrame 0040EB60 / CloseFile 0040ECB0, LoadState / SaveState 00410AB0 / 00410C10 (slots 0073BA04 /
 08; recording only with camera recording on), the recorded-path array allocation 00412120 (36-byte records, 32-byte aligned).
 
-Float notes: `camera.cpp` and `camera_motion.cpp` use `float_control(precise, on)`; constants the
+Float notes: `camera.cpp` and `camera_object.cpp` use `float_control(precise, on)`; constants the
 original multiplies at run time (pi, 1/180, 90, 1.05, the 0 of `StopMotion`) are read from the exe
 through volatile reads; `TerrainOwner::SurfaceHeight` (00564070) and `Vector3::Length` (00401E20) are
 called through `double`-returning forwarders (ST0 unrounded); the shake's `exp` is the original's
@@ -403,7 +403,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   ones in walk order. UnitSet's figured groups are `HashMap<prototype, HashMultimap<scale key, FiguredUnitRecord>>`, the
   dressed records `HashMultimap<prototype, DressedUnitRecord>`; Add reaches the group twice (`figured[prototype]` before
   the search and before the insert), as the game's find_or_insert did: each grows the groups for one more entry, and the
-  bucket count is the walk order. A new party goes through `PartyAt` (party_records.cpp): a new party, a copy for the
+  bucket count is the walk order. A new party goes through `PartyAt` (party_manager.cpp): a new party, a copy for the
   pair, a copy of that in the map, as the game's operator[] did.
 - Where the original read the count after the insert (the saved numbers), the slot is taken first, then the count read.
   A hash_map's operator[] builds its value in place, so a value holding a std::vector (RenderPresetRecord) is
@@ -513,7 +513,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
   their last reference); the map must end empty.
-- A-E1: `Camera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
+- A-E1: `Camera::LoadPath` (0040ECD0, RET 8, camera_object.cpp; Rebirth-patched at its file open
   0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a platform::File (0 when that fails),
   the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units

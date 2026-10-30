@@ -2,7 +2,7 @@
 
 // An AI unit's alarm state (16 bytes in the unit controller; the "voice"): a level raised by the unit's AI
 // (AIAlarm::Raise) is taken up by the step (AIAlarm::Step), which makes the unit speak and passes it to the
-// allied members of its group. ai_alarm.cpp; docs/notes/ai.md.
+// allied members of its group. ai_events.cpp; docs/notes/ai.md.
 
 #include <cstdint>
 

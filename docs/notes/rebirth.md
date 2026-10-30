@@ -324,7 +324,7 @@ player game (the overlay's root is drawn only for network clients): the harness'
 **Battle screen panels (W3)**: the map 00641F20 (setup) / 00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel
 006456E0 / 00645F80 / 006462A0 (draw) / 00647FB0, the weapon bar 0063BAB0 / 0063BCC0 / 0063C050, the quick items 0063C800 / 0063CAE0, the
 spell column 0063E2A0 / 0063E4B0, the action column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520
-(ui_hud_slide.cpp, ui_hud_build.cpp, ui_hud_setup.cpp, ui_hud_unit_draw.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its
+(ui_hud_slide.cpp, ui_hud_build.cpp, ui_hud_frame.cpp, ui_hud_unit_info.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its
 panel offset at a builder's entry (`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call
 `widescreen::EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra
 while Active, else 0) added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the
@@ -341,12 +341,12 @@ layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at
 
 **The remaining 18 sites (W4)**; the layout's `axisScale` and `fontScale` are computed with the others in `widescreen::Compute`, as addon
 computes the floats it writes into the code:
-- The axis swap 004F1330+2A (device_helpers.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
+- The axis swap 004F1330+2A (renderer_scene.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
   width keeps 4:3 proportions; `widescreen::AxisScale`.
-- The fonts 005F4990+BF (ui_interface_create.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in place of
+- The fonts 005F4990+BF (ui_interface.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in place of
   0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result is one ulp off at
   3840x2160); `widescreen::FontScale`.
-- The backdrop 005F5320 (+14A .. +251, ui_interface_draw.cpp): the full-size backdrop surface at the mode's size, flag 0 (addon's
+- The backdrop 005F5320 (+14A .. +251, ui_interface_input.cpp): the full-size backdrop surface at the mode's size, flag 0 (addon's
   Construct(..., 0, 0, width, height, 4, 0) in place of (..., 800, 600, 4, 1)); these are the backdrop's rectangles, not the cursor's.
 - The drags: the camera's mouse move 005EB210+39 and the global map's 00630010+7C call the no-margin entry
   (`CallScalePointFromScreenNoMargin`); the map's pick picture is read at `x / 2 - margin / 2` (addon's 9 bytes at 005FD237, which its
@@ -354,7 +354,7 @@ computes the floats it writes into the code:
 - The camp 0060C870 (ui_camp_create.cpp) and the multiplayer hero screen 00613EA0 (ui_hero_screen_create.cpp): addon's handlers (100234AB,
   100235BA) run after the original and add two sprites, the curtains over the margins: SetRectangle(2.0, 100.0, -margin, 0, 0, 600, ...) and
   (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the
-  camp, hidden on the hero screen; `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen_mode.cpp, addon's 100236C3
+  camp, hidden on the hero screen; `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen.cpp, addon's 100236C3
   after it) shows them in every mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
 - The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message` set) named `"<text>:<page>"` in addon's two lists
   move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0, zt4:1, zt7:0,

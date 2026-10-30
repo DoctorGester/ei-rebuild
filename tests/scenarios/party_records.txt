@@ -1,8 +1,8 @@
-# Party records (src/game/party_records.cpp) through the script commands: CreateParty (004A5E90),
+# Party records (src/game/party_manager.cpp) through the script commands: CreateParty (004A5E90),
 # AddLoot / CopyLoot (004A5E10 for both names; an unknown name finds the unnamed record),
 # RemoveParty (004A5FA0, including its skip after an erase: of two adjacent "zxA" records one is
 # left). A new game also runs the reset (004A5BD0) and the class templates (004A7630 / 004A7080).
-# The player's own records (party_members.cpp): AddUnitToParty (006628D0 -> 006621F0, 00664950),
+# The player's own records (party.cpp): AddUnitToParty (006628D0 -> 006621F0, 00664950),
 # CopyItems from the hero (00660500), RemoveUnitFromParty (006620F0, then again for a missing key).
 reject Script error
 waitmenu

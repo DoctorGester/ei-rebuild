@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <cstring>
 
-// "Hoover" (class id 0x1F): no fields of its own seen. object.cpp.
+// "Hoover" (class id 0x1F): no fields of its own seen. hoover_loot.cpp.
 class World;
 class Hoover final : public EngineObject {
 public:

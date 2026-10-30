@@ -2,7 +2,11 @@
 // the caches' trimming, the base Create and the icon window's
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
+
 #include "core_streams.h"
+#include "engine_object.h"
+#include "figure_manager.h"
+#include "figure_mesh.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "model.h"
@@ -153,3 +157,53 @@ float ItemScreen::Weight() { return 0.0f; }
 int ItemScreen::Price(Item*, int) { return 0; }
 
 void ItemTurn::OnShutdown() {}
+
+// --- Ui item model -----------------------------------------------------------------------------------
+
+// An item's model for the item screens' model view (ui_item_view.cpp caches it). See
+// docs/notes/ui.md, section 9.
+
+namespace {
+// The stand-in for a model the manager does not have: a 100 x 100 sprite (layout 0..100 x 100..0
+// at depth 10, scale 70) over texels 0..128.
+constexpr float kDepth = 10.0f;
+constexpr float kScale = 70.0f;
+constexpr float kSize = 100.0f;
+constexpr int kTexels = 0x80;
+} // namespace
+
+// The model manager's object `name`, else a new interface sprite standing in for it; one reference
+// taken for the caller. A failed sprite is not checked (neither is it in the original).
+UiMesh* ItemModel(std::string_view name) {
+    FigureManager* manager = g_clientWorld.figureManager;
+    // The interface's model manager makes class 0x43 objects: interface sprites.
+    UiMesh* model = AsUiMesh(manager->NewFigure(name));
+    if (!model) {
+        model = AsUiMesh(manager->NewBlankFigure());
+        model->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
+        model->FitVertexBounds();
+    }
+    model->AddRef();
+    return model;
+}
+
+// --- Ui item panel input -----------------------------------------------------------------------------
+
+// The item panels' shared left-button handler (of the description panel, the hero equipment, the quick
+// strip, the trade and repair grids, both constructor pages and the blank panel). See docs/notes/ui.md,
+// section 5.
+
+void UiItemPanel::LeftDown(int, int x, int y) {
+    // The address of the x argument is the topic out-parameter, like the original.
+    int topic = x;
+    if (Item* item = ItemAt(x, y, &topic)) {
+        owner->TakeItem(item, mode);
+        return;
+    }
+    if (topic) owner->TopicClicked(topic);
+}
+
+Item* UiItemPanel::ItemAt(int, int, int* topic) {
+    *topic = 0;
+    return nullptr;
+}

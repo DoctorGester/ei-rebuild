@@ -583,8 +583,8 @@ kinds given.
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
-        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor_setup.cpp) and Interface3D 007C7D50
-        (ui_interface_glue.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
+        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor.cpp) and Interface3D 007C7D50
+        (ui_interface_input.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (Cursor::position /
         motion: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
@@ -600,7 +600,7 @@ kinds given.
       - An unread object whose initialiser also registers a `free` exit function (an aligned array nothing else
         touches: its block is never allocated, the exit function does nothing) has its stores, its atexit and the exit
         function left out (UNREAD_EXITS: 007A9CA8, 007AEDF0).
-      - C18k named the device's mesh work arrays (device_buffers.cpp, 007AEDE0-007AEE30), link_mesh_draw's moved
+      - C18k named the device's mesh work arrays (device_draw.cpp, 007AEDE0-007AEE30), link_mesh_draw's moved
         packets 007AEED0, renderer_lines' line vertices and projected points (007A9CE0, 007A9CB8), the quest files
         and folders (world_briefing.cpp, 007AFDD0 / 007AFDC0) and the zone table (world_game.cpp, 007AFDE0), the
         stock generation's scratch vectors (item_stock.cpp, 007C8640-007C8680), the command line's CStrings and the
@@ -664,7 +664,7 @@ kinds given.
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
       read through the object (`g_clientWorld.figureManager`); the accessors that need world.h are out of line in
-      world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
+      world_create.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
       `named_data.py --refs` and against the logic settings (007C53F8) and the options (0079BC70) first.
@@ -698,7 +698,7 @@ kinds given.
       session Refs' release) still finds them. Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
       exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
       order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed).
-      **The worlds** (g_serverWorld, g_clientWorld, world_construct.cpp; plain since C50b1, initialisers 00560620 /
+      **The worlds** (g_serverWorld, g_clientWorld, world_create.cpp; plain since C50b1, initialisers 00560620 /
       00589BE0 unused): their Destroy disconnects the players and releases the sessions, managers and textures, so
       they are emptied in the game's exit order, not by their destructors: GameMain registers `EmptyWorlds` (both
       Destroys, ShutDown's last step too) with atexit before it creates them, so it runs before every exit function of
@@ -726,7 +726,7 @@ kinds given.
     - **Addon sites**: named_data.py's NAMED_ADDON_SITES lets a named range hold the site of a Rebirth patch disabled
       here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
       it for the harness in game.exe.
-    - **The console's streams and command maps (C18s, 121 -> 90; plain since C50d1)**: console_streams.cpp's eight
+    - **The console's streams and command maps (C18s, 121 -> 90; plain since C50d1)**: console.cpp's eight
       streambufs (game.exe's 007C5868..007C76D0) are plain globals with their filters, the eight streams
       (`console::Stream`, game.exe's ostreams 007C55A8..007C5810) `constinit` on them; none has an address. Their 16
       initialisers (005DC1E0-005DC3F0, 005DC420-005DC5E0) are UNUSED_INITIALISERS (rows stay in
@@ -1289,8 +1289,8 @@ camera view stack that nothing ever pushed to is deleted.
 ### Compiler-written helpers of game types (S3b, S3c, S7a, S13, S13a, S13b)
 
 The global constructors only static initialisers called (SavedParties; the worlds' are their classes' own,
-world_construct.cpp, since C50b1; the databases' since C50c), the exit callees (the worlds'
-and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
+world_create.cpp, since C50b1; the databases' since C50c), the exit callees (the worlds'
+and Terrain / Sector / particle manager destructors in world_create.cpp), record destructors / copies /
 assignments (record_lifetime.h, gone with C14n) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
 through the library's address or inlined from lib/, never registered on the game side. Quirks kept: the link queue's
 stream copy 00479410 reads the new block's uninitialised bytes into the source; 004CC0C0 copies a command's float
@@ -1610,7 +1610,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   platform/video.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
 - **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
   layout (net_coder.h's buffers, ScriptKeyword), the PC24 control word
-  (device_object.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
+  (device_mesh.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
   MXCSR's control bits on x64 in place of the x87 control word. ImportTable's slots are pointer-sized (gen_iat.py);
   the exception handlers read the return address through Rsp (standalone_main.cpp ReturnAddress), the profiler
   Rsp / Rip.

@@ -1,6 +1,6 @@
 # Cleanup phase 1: script and console files (ticket C2sc)
 
-How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_blocks.cpp`, `script_parse_load.cpp`, `script_addon*.cpp`,
+How the mission script runtime (`script_blocks.cpp`, `script_save.cpp`, `script_blocks.cpp`, `script_parse_load.cpp`, `script_addon*.cpp`,
 `script_exec_helpers.cpp`, `script_group.cpp`, `script_vars.cpp`) and the developer console (`console.cpp`, `console_commands.cpp`,
 `console_addon.cpp`, `console_window.cpp`) read their objects after the cleanup. The engines themselves are in `script.md` and `console.md`.
 

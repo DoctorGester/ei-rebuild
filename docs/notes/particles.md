@@ -1,9 +1,9 @@
 # Particle sources (0x00484710-0x004A0350)
 
-Code: `particle_tick.cpp` (Tick, AddParticle, pool), `particle_emitters.cpp` (EmitModifier, EmitLightning and a few
-more), `particle_render.cpp` (Draw), `particle_create.cpp` (`Create` 00485540 as a per-type setup switch, Reset, Clear,
-factory, destructor), `particle_draw.cpp` (draw-all and its depth sort), `particle_callbacks.cpp` (every other per-type
-callback), `particle_manager.cpp` (the manager's own members), `effects.cpp` (the callbacks and source setters listed in `effects.md`), `quaternion.cpp`, `random.cpp`;
+Code: `particle_manager.cpp` (Tick, AddParticle, pool), `particle_emitters.cpp` (EmitModifier, EmitLightning and a few
+more), `particle_manager.cpp` (Draw), `particle_create.cpp` (`Create` 00485540 as a per-type setup switch, Reset, Clear,
+factory, destructor), `particle_manager.cpp` (draw-all and its depth sort), `particle_callbacks.cpp` (every other per-type
+callback), `particle_manager.cpp` (the manager's own members), `effects.cpp` (the callbacks and source setters listed in `effects.md`), `core_maths.cpp`, `random.cpp`;
 layouts in `effects.h` (ParticleSource, Particle, ParticleManager, the render arrays), shared helpers in
 `particle_common.h`. Verify: `tests/verify/verify_particle_*.cpp` with the shared wrappers in `particle_verify.h`
 (`RunBoth` / `RunBothEmit` / `RunBothElement` / `RunBothSetup`: capture source, particle, element array and generator,

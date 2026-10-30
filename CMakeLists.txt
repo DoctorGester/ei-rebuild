@@ -263,43 +263,32 @@ if(NOT EI_X64)
 file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 set(EI_VECTORS_GAME_SOURCES
     src/game/ai_block_search.cpp
-    src/game/ai_grids.cpp
-    src/game/ai_join.cpp
-    src/game/ai_local_search.cpp
     src/game/ai_map.cpp
+    src/game/ai_local_search.cpp
     src/game/ai_motion.cpp
     src/game/ai_movement.cpp
     src/game/ai_path.cpp
-    src/game/ai_path_cells.cpp
     src/game/ai_path_smooth.cpp
-    src/game/ai_plan.cpp
     src/game/ai_region_reach.cpp
     src/game/core_maths.cpp
     src/game/core_refcount.cpp
     src/game/game_buffer.cpp
-    src/game/maths.cpp
-    src/game/matrix_math.cpp
+    src/game/projection.cpp
     src/game/net_coder.cpp
-    src/game/quaternion.cpp
     src/game/random.cpp
     src/game/script_blocks.cpp
-    src/game/script_construct.cpp
     src/game/script_group.cpp
     src/game/script_load.cpp
     src/game/script_parse.cpp
     src/game/script_parse_load.cpp
-    src/game/script_reset.cpp
-    src/game/script_runtime_helpers.cpp
     src/game/unit_db_globals.cpp
     src/game/options_construct.cpp
     src/game/script_vars.cpp
     src/game/sector_spiral.cpp
     src/game/settings_document.cpp
-    src/game/unit_hit_location.cpp
-    src/game/unit_params_protection.cpp
-    src/game/unit_params_skill.cpp
-    src/game/unit_skill_price.cpp
     src/game/unit_stats.cpp
+    src/game/unit_params.cpp
+    src/game/unit_skill_price.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
     src/lib/crt_maths.cpp

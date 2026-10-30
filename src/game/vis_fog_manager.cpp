@@ -1,7 +1,7 @@
 // The visibility fog's manager (CVisFogManager: ClientArrayManager in world.h). It owns the "VisionFog"
 // texture and a list of the fog objects (VisibilityFog, effects.h; one a player whose sight is drawn). Its
 // factory, Create / Destroy, the tick, the new fog and the draw, which binds the texture and has every fog
-// draw itself (the fog's own draw through the scene renderer: effects_weather_draw.cpp). Main thread. See
+// draw itself (the fog's own draw through the scene renderer: effects_weather.cpp). Main thread. See
 // docs/notes/script.md.
 #include "effects.h"
 #include "model.h"     // SceneRenderer

@@ -2,7 +2,7 @@
 
 Code: `src/game/model.h/.cpp` (3D library side of figures), `model_db.cpp` (databases, water level changes),
 `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `device_mesh.cpp`, `device_draw.cpp`,
-`device_shadow.cpp`, `figure_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `resource*.cpp`. Algorithms are described in each
+`device_mesh.cpp`, `figure_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `resource*.cpp`. Algorithms are described in each
 file's header comment. Verify: `tests/verify/verify_models.cpp` and one `verify_<file>.cpp` per file. Scenario:
 `tests/scenarios/models.txt` (the draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
 
@@ -134,7 +134,7 @@ prints.db / acks.db loaders themselves (Rebirth-patched), STLport instantiations
 ## Terrain sectors, lighting, prints (006BE3A0-006CFEA0)
 
 Code: `terrain_sector.h/.cpp` (`terrain::SectorData`; the sector file format and its sizes are named in terrain_sector.h),
-`terrain.cpp` (PlaneHeight, VertexAt, HeightAt, SurfaceHeight, SurfaceClass), `terrain_passes.cpp` (the passes and
+`terrain.cpp` (PlaneHeight, VertexAt, HeightAt, SurfaceHeight, SurfaceClass), `terrain.cpp` (the passes and
 `SectorData::DrawPage`, which hands the page to src/render). Reached by every scenario (zone1 loads several sectors, water sectors only where the map has water; the
 terrain pass draws every visible page each frame). Sound parts of the range are in `sound.md`.
 
@@ -195,11 +195,11 @@ Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006
 +0x1F8, frame +0x218), the `AlignedArray<uint32>` SetSize / SetAtGrow copies 006CD5C0, 006CE890 / 006CDD50, 006CDE90,
 `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
 entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
-006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain_animation.cpp), `SetSun`
+006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain.cpp), `SetSun`
 006C8ED0 (the sun and the ambient colour only: its ray steps are not ported, R34, nor its relight countdowns, R34a),
 `SectorData::Animate` 006C3E80 (animated tiles, water waves; the tiles draw from `g_clientRandom`), `SectorData::Clear` /
 `ResetFields` 006C3C80, 006C3D70 (`ScheduleRelight` / `RelightTick` 006C3E30 / 006C3E50 are gone, R34a), `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
-(terrain_ambience.cpp), `WorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain_decal.cpp;
+(terrain_ambience.cpp), `WorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain.cpp;
 triangles through the unhooked original 004D8490).
 
 acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
@@ -260,7 +260,7 @@ first `count` tiles: the original leaves the rest as its reused stack record hel
 Create / Destroy call them through their addresses. terrain.h now declares `archive` (+0x15C, MMIOResource) and
 `vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
 
-The decal projector 0056C750 is `WorldClient::ProjectDecal` (world_client_decals.cpp; S: the original into private copies of
+The decal projector 0056C750 is `WorldClient::ProjectDecal` (world_client_lights.cpp; S: the original into private copies of
 the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers call it directly).
 The original's statics: the builder 007AF488 and the part points (Vector4 array 007AF478), guard 007AF504, exit
 handlers 0056CE30 / 0056CE10; ours are plain globals (C50b). The platform pass walks the platform faces (an object with several faces
@@ -271,14 +271,14 @@ adds its parts once per face, kept), pushes the object's and each part's matrix 
 which FigurePart's declaration contradicts (C9).
 
 ProjectDecal's pushes on stack 14 are inlined in the original and multiply through 004D9880 (`MatrixMultiply`), not PushMatrix
-004D9B80 whose terms sum in another order (`PushDecalMatrix` in world_client_decals.cpp; X29). The builder leaves the texture
+004D9B80 whose terms sum in another order (`PushDecalMatrix` in world_client_lights.cpp; X29). The builder leaves the texture
 coordinate array at its reserved size (Reserve: triangles * 3 + vertices; Finish never trims it): its size is not one per vertex,
 and the elements past the last written vertex (and the last packet's padding vertices) keep whatever the buffer held, so a
 comparison looks only at the vertices the indices use.
 
 ### Landscape passes, light tests, Dib (A-X6)
 
-Code: `terrain_passes.cpp`, `terrain_shadow.cpp`, `terrain_landscape.cpp` (tail), `dib.h/.cpp`, `surface_capture.cpp`,
+Code: `terrain.cpp`, `terrain.cpp`, `terrain_landscape.cpp` (tail), `dib.h/.cpp`, `surface.cpp`,
 `acks_db.cpp`. Every scenario
 that shows the world reaches the passes and light tests each frame; `terrain_water_load` (new: a save made while a script
 water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock screenshot) reaches the Dib part marked *.
@@ -290,7 +290,7 @@ the sun shadow ray over the vertex grid, is not ported, R34), `EdgeFade` 006CB02
 006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetWaterLevel` 006CC7F0,
 `BuildTileUv` 006C7940; `Dib` Create / ConstructSized / Construct / CreateObject (006D4BA0, 006D4B30, 006D4AA0, 006D49E0),
 AllocateBits 006D6AB0, MakePalette 006D54D0, Empty / Destruct / Delete (slot 1) / Serialize (slot 2), Size 006D4D10,
-GetRuntimeClass 006D4A60 (slot 0), `CaptureSurfaceRect` 006D6D40 (surface_capture.cpp), `CaptureSurface` 006D6FC0 (the whole
+GetRuntimeClass 006D4A60 (slot 0), `CaptureSurfaceRect` 006D6D40 (surface.cpp), `CaptureSurface` 006D6FC0 (the whole
 surface, through 006D6D40), `acks::AckTable<ExtraAcks>::RecordAt` 006D8E30 (from the loader at startup). The Dib functions and
 the captures are reached by `camera` (Scroll Lock screenshot).
 
@@ -312,11 +312,11 @@ row is not a multiple of four bytes was written from past the block's end and it
 EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new Dib in the surface's depth with its
 channel masks, the rows copied from the last to the first (16, 24 and 32 bits only), Unlock; a failed DirectDraw call is
 reported and the capture goes on. They read the DirectDraw surface as before: a holder without one (the renderer's
-switch-over) is not handled, as in the original. texture_load.cpp, app_frame.cpp and ui_interface_keys.cpp now use `Dib`
+switch-over) is not handled, as in the original. texture_load.cpp, app_frame.cpp and ui_interface.cpp now use `Dib`
 and the shared capture forwarders instead of their own.
 
 A-H26: 006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` are ported as their vanilla bodies
-(model_db_open.cpp; hooked in the vanilla launch only, rule 9; wrappers ours only in verify_database_open.cpp, reached at
+(model_db.cpp; hooked in the vanilla launch only, rule 9; wrappers ours only in verify_database_open.cpp, reached at
 every start): `folder` + "database.res" opened through 00671730 (a failure is reported as "databases.res"), the file copied
 into a memory stream, each table read through a ChunkArchive of its own (prints chunks 1 blood, 2 footprints, 3 scorch;
 acks chunks 1 units, 2 models, 3 extras) and filed under its records' names (`PrintsDatabase` gained `scorchByName` at
@@ -352,7 +352,7 @@ Float note (rule 7): the quotients and products are rounded to float where the o
 textures load twice per zone in the verify build. Scenario: every one that enters a zone.
 
 `Dib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH frames around the file calls) are ported
-(`dib_file.cpp`, A-E2; side by side at start-up: app.md "MFC TRY / CATCH"; 004F0B90 has the same frames). Dead (config/dead_code.csv): 006C67E0,
+(`dib.cpp`, A-E2; side by side at start-up: app.md "MFC TRY / CATCH"; 004F0B90 has the same frames). Dead (config/dead_code.csv): 006C67E0,
 006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
 aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the
 range has no other unported game code.

@@ -1,6 +1,6 @@
 #pragma once
 
-// The maps folder and its files (world_map_files.cpp). All four are patched by Rebirth (the mod's own maps
+// The maps folder and its files (world_map.cpp). All four are patched by Rebirth (the mod's own maps
 // folder), so these install in the vanilla launch only and callers keep calling the fixed addresses.
 
 #include "ei/hook.h"

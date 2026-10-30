@@ -1,7 +1,7 @@
 # World server, world client and game flow (0x00560000-0x005A9000)
 
 Files: `world.h` (layouts), `world_*.cpp` (server, client, tick, zone / map, save, sync, units, game flow in `world_game.cpp`,
-quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_records.cpp`, `class_templates.cpp`.
+quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`, `class_templates.cpp`.
 Verify: `tests/verify/verify_world*.cpp`, `verify_figure_mesh.cpp`, `verify_class_templates.cpp`, `verify_party_records.cpp`.
 Scenarios: `world`, `world_client`, `world_load` (new game, eight `AddUnitToServer` wolves, one name added twice, three
 `RemoveObjectFromServer`, `load savea`, one more spawn), `party_records`, `sandbox_*`.
@@ -211,7 +211,7 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
 
 ## Party records and class templates (0x004A5BD0-0x004A7E90)
 
-`party_records.cpp`, `class_templates.cpp`; scenario `party_records.txt`; every new game reaches both (004A88A0 / 004A88C0:
+`party_manager.cpp`, `class_templates.cpp`; scenario `party_records.txt`; every new game reaches both (004A88A0 / 004A88C0:
 parties reset, then the templates). The object at 007AA5A0 (the party manager, script.md) holds at +0x24 the party records
 (STLport vector of counted pointers to 0x7C-byte records: vtable 0073C360, count at +4, a party at +8 built by 00661050, name
 CString at +0x78), two CStrings (+0x30 / +0x34) and at +0x38 the class templates (counted pointers to 0x28C-byte templates,
@@ -246,14 +246,14 @@ vtable 0073D0C4).
 ## Rewritten
 
 Every rewritten function carries its address in its source comment (grep the address); the per-function tables that used to
-be here are gone. Where things live: `world_server.cpp` (lookups, setters, object-map iterators), `world_server_life.cpp`
-(server Setup / Teardown, slots 2 / 3; `hoover` +0x140 is a Hoover), `world_update.cpp` (Tick, Update, AcceptNewPlayers),
+be here are gone. Where things live: `world_server.cpp` (lookups, setters, object-map iterators), `world_server.cpp`
+(server Setup / Teardown, slots 2 / 3; `hoover` +0x140 is a Hoover), `world_server.cpp` (Tick, Update, AcceptNewPlayers),
 `world_save.cpp` / `world_map.cpp` / `world_create.cpp` (zone load and save, NewZone, EnsureZone, FindUnit),
-`world_quests.cpp`, `world_party.cpp`, `party_items.cpp`, `world_time.cpp`, `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
-`world_map_files.cpp`, `world_savefile.cpp`, `world_sessions.cpp`, `world_deleting_destructors.cpp`,
+`world_quests.cpp`, `world_party.cpp`, `party.cpp`, `world_time.cpp`, `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
+`world_map.cpp`, `world_savefile.cpp`, `world_create.cpp`, `world_deleting_destructors.cpp`,
 `world_client*.cpp` (frame, maps, setup, lights, draw, view, session), `figure_mesh*.cpp`,
-`figure_manager.cpp`, `figure_drawer.cpp`, the AI grids in `ai_grids.cpp` / `ai_unit_shape.cpp` / `ai_map_load.cpp` /
-`ai_path_smooth.cpp` / `ai_shape_cache.cpp` / `ai_fog_grid.cpp` / `ai_path_save.cpp` / `sector_map.cpp`, `buffered_file.cpp`,
+`figure_manager.cpp`, `figure_part_draw.cpp`, the AI grids in `ai_block_search.cpp` / `ai_unit_shape.cpp` / `ai_map_load.cpp` /
+`ai_path_smooth.cpp` / `ai_unit_shape.cpp` / `ai_fog_grid.cpp` / `ai_path_save.cpp` / `sector_map.cpp`, `buffered_file.cpp`,
 `bink_video.cpp`, `console_commands.cpp` (`generateacks`), `logic_settings.h`, `cursor_setup.cpp`.
 
 Facts a worker needs that the code comments do not say:
@@ -315,7 +315,7 @@ Facts a worker needs that the code comments do not say:
   (+0x1C) / connection (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
   0073F530. script_exec's callees are call-only `...Calls` facades.
 - Left: world_game.cpp's `At<int>(World(), 0x5C)` (World::worldHandle: on the server the pending connection source
-  world_update.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;
+  world_server.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;
   ClientSetPlayer 00566CE0, declared with an int, passes it to 004782E0 as a link): needs a class and the forwarder retyped
   (app.cpp shares it); its two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, the literal-address accessors (GameMode, Campaign,
   ...) that belong in game_flow_data.h; world_quests' GameFtol `__asm`; world_client_draw.cpp's six x87 `__asm` helpers;

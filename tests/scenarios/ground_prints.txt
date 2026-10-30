@@ -1,4 +1,4 @@
-# Ground prints (src/game/ground_print.cpp, world_client_decals.cpp; docs/notes/models.md "Ground
+# Ground prints (src/game/ground_print.cpp, world_client_lights.cpp; docs/notes/models.md "Ground
 # prints"): the hero walks (footprints, AddFootprint 0056D150, laid on the ground by ProjectDecal
 # 0056C750 on their first draw), two wolves bleed (a hit and a death: AddBloodPrint 0056CE90), the
 # hero walks through the dead wolf's blood (bloody footprints), then the game is saved (the prints'

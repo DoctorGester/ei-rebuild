@@ -306,7 +306,7 @@ struct FigureBone : EngineObject {
     // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
     // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets.
     void Place(const Vector3& origin);
-    // The bone's cage (map_object_cage.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
+    // The bone's cage (figure_bones.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
     // the next 8 points of *stream (0x60 bytes, consumed; edges 0-1 and 2-3 at morphS, between them at morphT;
     // edges 4-5 and 6-7 likewise; then between the two at morphU) or in the prism of the next 6 (0x48 bytes; edge
     // 0-1 at morphS, towards point 2 at morphT; edge 3-4 likewise towards point 5; then between the two at morphU).

@@ -4,19 +4,22 @@
 // exp, money, six string lists); each record is added unless its name is already there. See
 // docs/notes/items_spells.md ("Quest database").
 #include "console.h"
-#include "quest_records.h"
-#include "game_strings.h"
-#include "registry.h"
 
-#include <string>
-#include "lib/str.h"
+#include "database_file.h"
+#include "game_strings.h"
+#include "quest_records.h"
+#include "registry.h"
+#include "script.h"
 #include "text_split.h"
+#include "lib/crt.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -168,3 +171,63 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     for (QuestBriefingRecord& r : records) index[r.name] = &r;
     return true;
 }
+
+// --- Quest db open -----------------------------------------------------------------------------------
+
+// The quest database's load from database.res, once at startup (called from WinMain). Rebirth patches the
+// load (it redirects the file lookup to a mod folder's copy): this is the vanilla function and installs in
+// the vanilla launch only (rule 9). As unit_db.cpp; see docs/notes/items_spells.md.
+
+namespace {
+
+using dbfile::LoadTable;
+
+// The chunks of quests.qdb.
+constexpr int kQuestsChunk = 1;
+constexpr int kBriefingsChunk = 2;
+
+} // namespace
+
+int QuestDatabase::Load(const std::string& folder) {
+    std::string base = folder;
+    LocalResource resource;
+    if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
+    std::uint32_t size;
+    void* data = resource.Get()->MappedResource::GetFile("quests.qdb", &size);
+    if (!data) return game::FatalError("Can't open quests database\n");
+
+    MemoryStream local;
+    MemoryStream* stream = &local;
+    FillStream(*stream, data, size);
+
+    LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
+        for (QuestRecord& record : quests) questsByName[record.name] = &record;
+    });
+    LoadTable(stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, [this] {
+        for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
+    });
+
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
+    return 1;
+}
+
+// --- Script quest ------------------------------------------------------------------------------------
+
+// The quest under construction: QStart names it and drops the old objectives, the QObj* commands
+// add objectives, QFinish (script_exec_helpers.cpp) turns them into a script. See script.h
+// and docs/notes/script.md.
+
+// QStart: the old objectives dropped, the quest named.
+void ScriptQuestStart(const char* name) {
+    g_scriptQuestObjectives.clear();
+    g_scriptQuestName = name;
+}
+
+// The QObj* commands (type, text, with the value on the stack). Appends {type, text, value}.
+void ScriptQuestAddObjective(int type, const std::string& text, float value) {
+    g_scriptQuestObjectives.push_back({type, text, value});
+}
+
+// operator[]: an unknown name is filed with null.
+QuestRecord* QuestDatabase::FindQuest(std::string_view name) { return questsByName[std::string(name)]; }

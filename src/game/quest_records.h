@@ -75,7 +75,7 @@ struct QuestDatabase {
     // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
     // registry.
     bool LoadRegistry(const void* image);
-    // script_quest.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
+    // quest_database.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
     // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
     // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
     QuestRecord* FindQuest(std::string_view name);

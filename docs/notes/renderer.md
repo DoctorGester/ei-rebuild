@@ -9,7 +9,7 @@ renderer's.
    module** (`src/render/`, static library `ei_render` linked into ei-rebuild.exe): camera and matrices, object
    transforms, figure meshes, terrain sectors, particles, textures, the interface windows' CPU surfaces
    (uploaded as textures), movie frames. Game code makes no Direct3D 7 or DirectDraw call and includes no DirectDraw /
-   Direct3D 7 header (R27c; section 9); only the gamma ramp's DDGAMMARAMP is left (renderer_gamma.cpp, R27d).
+   Direct3D 7 header (R27c; section 9); only the gamma ramp's DDGAMMARAMP is left (renderer_marker.cpp, R27d).
 2. No Direct3D 7 emulation and no x87 or compatibility shims in the new renderer. Neither library DLL is loaded:
    2DintMMX's uses went in R28, and 3DfpFPU's projections are plain C++ in game code (`projection.cpp`, R31, section
    10). Results only need to be close (captures are compared with a tolerance); full determinism is out of scope.
@@ -77,7 +77,7 @@ DirectDraw surface (no holder has one).
 
 Per main-loop iteration (00458010): 00503F40 BeginScene; 005F5220 the interface draws window by window; 005040A0
 EndScene; the escape menu (005F5320, Rebirth-patched); the software cursor (display option only); **present**
-004EF610 (rewritten, `device_present.cpp`: ends the sidecar frame, `render::Present`). The battle screen's
+004EF610 (rewritten, `device_draw.cpp`: ends the sidecar frame, `render::Present`). The battle screen's
 world view is 00569E40:
 - view setup 00566360 (view matrix from the camera 0079B2A8 through 004F0EF0 pushed on the transform pipeline's
   stacks; fog range), visible sector range 006CA260 (100 units);
@@ -115,7 +115,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
   picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected vertices (004E8900 / 004E86B0 into
   the device's +0x15C, copied by 005A7A70 into node and figure pieces; `WorldClient::UnitAt` / `PickAt2` test the
-  parts' rectangles only). Whatever draws the objects must still produce them. The rule (`device_bounds.cpp`
+  parts' rectangles only). Whatever draws the objects must still produce them. The rule (`device_draw.cpp`
   `BoundsOfProjected`, one path for every mesh): the bounds of the projected positions, clamped to the screen. The
   projection leaves screen positions when the whole mesh is on screen and clip-space ones when it crosses the view's
   edges; those count when inside the depth range (nothing behind the camera or past the far plane), mapped as
@@ -142,18 +142,18 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Data | Where in the game | Hand-over point | Status |
 |---|---|---|---|
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
-| Terrain sectors | SectorData (`terrain_sector.h`): `vertices` (33x33 per layer, water after ground), `records` (SectorVertex: normal, material colour and byte, the specular word: edge fade, on the water the crests), tile lists per quarter and page `tiles`, edge flags `tileFlags`, quarter verdicts `quarterMode`, `detail`, `seamBefore` / `seamAfter`, `owner`; page textures `Terrain::pageTextures`; the lights `Terrain::lights` | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain_passes.cpp) -> `render::TerrainPage`; `HandOverSceneLights` (world_client_shadow_casters.cpp) -> `render::SceneLighting` | drawn |
+| Terrain sectors | SectorData (`terrain_sector.h`): `vertices` (33x33 per layer, water after ground), `records` (SectorVertex: normal, material colour and byte, the specular word: edge fade, on the water the crests), tile lists per quarter and page `tiles`, edge flags `tileFlags`, quarter verdicts `quarterMode`, `detail`, `seamBefore` / `seamAfter`, `owner`; page textures `Terrain::pageTextures`; the lights `Terrain::lights` | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain.cpp) -> `render::TerrainPage`; `HandOverSceneLights` (world_client_shadow_casters.cpp) -> `render::SceneLighting` | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (TextureDevice::stageSurfaces) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are not ported (R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`TextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
-| Interface surfaces | UiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
-| Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
-| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
+| Interface surfaces | UiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface.cpp`) -> `render::SurfaceBlit` | drawn |
+| Rectangle fills | renderer slot 19 (005041F0) | `renderer_marker.cpp` -> `render::ScreenDraw` | drawn |
+| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
 | Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; BinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
-| Present | 004EF610 | `device_present.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
+| Present | 004EF610 | `device_draw.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
 | Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
 
 Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
@@ -202,11 +202,11 @@ keeps its state list: `ApplyPass(0)` sets the combiners of its first `stages` st
 the next stage off; pass n > 0 sets that state's blend factors (device_draw.cpp's multi-pass draw puts the blend
 back afterwards).
 
-Rewritten state setters: 00501C60 (renderer slot 10, `device_states.cpp` `SetBlend`: the two blend factors; known
+Rewritten state setters: 00501C60 (renderer slot 10, `device_draw.cpp` `SetBlend`: the two blend factors; known
 caller the particle draw 00498940); 0049B4B0 (`renderer_lines.cpp`: the strip of the renderer's line lists, 0049B780
 from slot 15 00501CE0: bounds boxes 005A7290, line lists 00569D60; stage 0's colour / alpha ops off and back to
 MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached by scenarios; 005041F0
-(`renderer_rect.cpp`). 0049B140 only appends a line-list point; 0050434F and 00504341 are not functions (inside
+(`renderer_marker.cpp`). 0049B140 only appends a line-list point; 0050434F and 00504341 are not functions (inside
 005041F0; a false vtable entry 00747E2C in config/vtables.csv).
 
 ## 6. Interface windows and holders
@@ -496,7 +496,7 @@ come first, then what holds for the present path (the subsection names are cited
 
 The game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device, and
 no stand-in for any of them (R27c):
-- `TextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
+- `TextureDevice` (texture.h, device_mesh.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
   object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
   depth, the transform pipeline, the stages' bound holders and the draws' state. Its constructor (R28: no MMX check
   and no 2DintMMX.dll any more, its last uses gone) starts the new renderer (`render::StartPresenting`: the Direct3D 11
@@ -505,7 +505,7 @@ no stand-in for any of them (R27c):
   video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7). Where the game read the primary's
   or the render target's size (`GameTargetSize`, the cursor's bounds, the interface's size, the sprites' clip and the
   hit points' screen) it reads `screen` (R27f); the screenshot and the movie recorder copy the renderer's last frame
-  at the screen's size and depth (`CaptureScreen`, surface_capture.cpp).
+  at the screen's size and depth (`CaptureScreen`, surface.cpp).
 - What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
   the material presets take every stage of their states (`RenderHelper::Record`: eight stages, every texture
   operation); the texture manager loads textures up to their size (`limitTo512` 0: 4096-pixel textures) and caches
@@ -546,7 +546,7 @@ no stand-in for any of them (R27c):
   "ei-present") into the client area with its aspect kept, centred, black bars (`render::FrameInWindow`,
   `WindowToFrame`, `FrameToWindow`). A failed `ResizeBuffers` (other than a lost device) makes the swap chain again
   once. A lost device is logged with `GetDeviceRemovedReason` and handled by R9c1.
-- Gamma as a shader step: 00504A60 (`renderer_gamma.cpp` SetGamma) keeps the three values, builds the ramp as before
+- Gamma as a shader step: 00504A60 (`renderer_marker.cpp` SetGamma) keeps the three values, builds the ramp as before
   (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the present shader reads
   per channel (each entry v*255/65280, rounded). Result true, as with a primary that has DDCAPS2_PRIMARYGAMMA. The ramp
   applies only to what is presented, not to the frame (captures, ReadFrame), as the hardware ramp did not change
@@ -556,7 +556,7 @@ no stand-in for any of them (R27c):
   `ReadBackDue`): the first 64 of each kind (cursor / fill uploads, movie uploads, ramps), then every 16th; the
   render_* scenarios (not render_stats, which measures) say `checkall` in their `render` line for every one.
 - Full screen (device flags bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
-  from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
+  from each present in device_draw.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
   scales the frame the same way; a resolution below the desktop's shows in the window.
 - The game's mouse coordinates when the frame does not fill the window one to one: the cursor's position (the
@@ -704,7 +704,7 @@ after a movie or a load the cursor thread's clock stands still until the main th
 
 ### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 
-`surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
+`surface.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
 gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
 before the gamma ramp and the present's cursor): a Dib of the rectangle's size in the holder's depth with the channel
 masks `device::ScreenFormat` gives, rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged
@@ -861,7 +861,7 @@ Behaviour differences (one path for every sprite):
     "Msaa"=dword:00000008          1 (off), 2, 4 or 8
     "Anisotropy"=dword:00000010    1 (off) .. 16
     ```
-    Read once the renderer starts (`QualitySetting`, device_object.cpp, after `render::StartPresenting`); a value
+    Read once the renderer starts (`QualitySetting`, device_mesh.cpp, after `render::StartPresenting`); a value
     missing or not a DWORD is written with its default (8 and 16: the look play.cmd's `smooth` gave before R33), so
     the file always shows both (a new file has them already, with "VSync" 1: settings_file::DefaultDocument, S24). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
     target takes at most the device's samples; `render::SetAnisotropy` clamps to 1..16 (`kMostAnisotropy`). Both from
@@ -923,7 +923,7 @@ captures differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]]
 regions. Limits: what moves by itself between frames without the game's clocks (other threads) is not held; the
 harness's own waits use real time.
 
-### A-E1: line lists (line_batch.cpp)
+### A-E1: line lists (renderer_lines.cpp)
 
 `LineBatch` (renderer_lines.h, 0x20 bytes): points four to a packet (x[4], y[4], z[4], w[4]) in an aligned array, a
 count and a colour. `AddPoint` (0049B140) appends a point with w 1 and repeats it through the rest of its packet,
@@ -947,19 +947,19 @@ static initialisers and what only they reach, one MFC TRY/CATCH, a few renderer-
 of 004EDD70); 0049F7B1 is the tail of `IsaacRandom::Seed`.
 
 File map of the device layer (all in `src/game`; the files' headers name the addresses):
-- `device_binds.cpp` (texture binds 004EB300 / 004EBAF0 / 004EB1D0: SetTexture when the stage's holder changes, the
-  batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `device_object.cpp` (the
+- `device_draw.cpp` (texture binds 004EB300 / 004EBAF0 / 004EB1D0: SetTexture when the stage's holder changes, the
+  batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `device_mesh.cpp` (the
   device object: the DirectDraw base 004EDD70 / destructor body 004EE330 and the device's constructor 004E5E50 /
   destructor body 004E68A0 as one class (the four stage-0 state blocks at 007AEDD0..DC are section 5's constants);
   004EECF0 / 004EEC60 (cooperative level, display mode restore), the driver list 004EE4A0 / 004ED610 / 004EE5D0,
   004EEA90, 004EEBC0, 004EEE30, the depth buffer 004E6C30 / 004E6BC0, the device callback 004ED820 and the format
   table 004E6EE0 are not ported; `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819);
   `surface.cpp` (the holder 004EF7B0 / 004EFC60 / 004F0060 / 004EFD20, the channel split 004EDAA0 / 004EDC00 /
-  004EDC70); `texture.cpp` (the texture formats in place of the lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
+  004EDC70); `texture.cpp` (the texture formats in place of the lookups 004E7DA0 / 004E7C40); `renderer_scene.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
   axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`RenderHelper`'s
   built-in presets); `projection.cpp` (the transform pipeline's projections, R31, section 10); `link_mesh_draw.cpp` (LinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
-  004E4240 and snow 004E4C80); `effects_weather_draw.cpp` (visibility fog draw 004E1EB0, rain / snow buffers 004E3C20);
-  `device_bounds.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`LinkFigureLoader` constructor
+  004E4240 and snow 004E4C80); `effects_weather.cpp` (visibility fog draw 004E1EB0, rain / snow buffers 004E3C20);
+  `device_draw.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`LinkFigureLoader` constructor
   004F68C0, vanilla launch only: ResOverride patches it).
 - Weather: 81 x 81 cells around the point the wind carries a particle to the camera from; a cell's hash and the
   world's time give the particle's cycle, fall and texture frame; corners in packets through `ProjectClipped` (stack
@@ -1554,7 +1554,7 @@ across runs; the goldens check the game state.
     with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
     and four frames at 8 ms for the eye.
 
-11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_shadow.cpp`,
+11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_mesh.cpp`,
     `device_draw.cpp`. The mesh draws 004E9010 / 004E9A50 and the flat draw 004EA4A0 project (the visibility verdict),
     override the colours (flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking:
     BoundsOfProjected of the screen or clip-space positions, section 3) and hand every pass to the device (`DrawIndexed()` / `DrawTwoTextures(first, second)`: the pass state the new renderer reads).
@@ -1684,9 +1684,9 @@ from boot tick 20. A second variant drew between the poses of the last two ticks
   turn in a tick, took a fast spin for a cut: see "Spinning".)
 - **Where it is read:** `WorldClient::Render` takes the frame's pose once at its start (`camera::TakeFrameView`);
   what the world's draw places by the camera reads `camera::FrameView()`: the view matrix (`view::ViewMatrix`), the
-  sky dome, particle billboards (particle_draw.cpp), lightning's glow (lightning_draw.cpp), rain and snow's band
+  sky dome, particle billboards (particle_manager.cpp), lightning's glow (lightning.cpp), rain and snow's band
   (weather_particles.cpp), the lighting's eye (`HandOverSceneLights`) and the old shadows' axis. The terrain's
-  visible sectors (`SetVisibleSectors`) and their level of detail (terrain_passes.cpp `ChooseDetail`) keep the
+  visible sectors (`SetVisibleSectors`) and their level of detail (terrain.cpp `ChooseDetail`) keep the
   camera's own position (within a sector of the drawn one; keeping them on the camera is one less thing that could
   reach the game state). The listener stays with the camera. Picking reads the last drawn frame's matrices (the
   view stack `Render` pushes, and the objects' `dirtyRect`s drawn by them), so a click picks what the screen shows.
@@ -1747,7 +1747,7 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   [Software\Nival Interactive\EvilIslands\Standalone]
   "PerfOverlay"=dword:00000001
   ```
-  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, device_object.cpp, after
+  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, device_mesh.cpp, after
   `render::StartPresenting`) into `render::SetPerfOverlay`. **Never in a harness run**: the harness build
   (EI_RENDER_VALIDATION) has `render::PerfOverlaySupported()` false, so the value is not even read (the pinned
   settings file lacks it, and a read of a missing value fails a run) and SetPerfOverlay keeps it off.
@@ -1810,7 +1810,7 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   "VSync"=dword:00000000
   ```
   On when absent or any value but 0 (the default: `Present(1, 0)`); 0 turns it off. Read once the renderer starts
-  (`VsyncSetting`, device_object.cpp, after `render::StartPresenting` and before the first present) into
+  (`VsyncSetting`, device_mesh.cpp, after `render::StartPresenting` and before the first present) into
   `render::SetVsync`. **Never in a harness run**: `render::VsyncSwitchSupported()` is false in the harness build
   (EI_RENDER_VALIDATION), so the value is not read (the pinned settings file lacks it) and SetVsync does nothing; the
   harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
@@ -1839,7 +1839,7 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
 
 The rain and snow draws of the world's rain / snow layer: two functions,
 thiscall with the scene renderer, returning 1; the layer's draw
-(weather_draw.cpp) calls the one of the mode after the fade's step and the texture's bind.
+(effects_weather.cpp) calls the one of the mode after the fade's step and the texture's bind.
 Both walk the 81 x 81 cells (half a unit apart) around the point the wind carries a particle to
 the camera from. A cell's place gives a 16-bit number; with the world's time it gives the cycle
 the cell's particle is in (a rain drop falls for 200 ticks, a snowflake for 1000) and how far it
@@ -1999,7 +1999,7 @@ renderstats, the caster orders by EI_R37E1_ORDER), timing.sh, summ.py, the scena
 ### render_terrain.cpp: the terrain
 
 The terrain in the new renderer. The game's terrain passes (ground pages, water pages) call DrawSectorPage
-(SectorData::DrawPage, src/game/terrain_passes.cpp) for every visible sector page; it hands the page here. The page's tiles are turned into
+(SectorData::DrawPage, src/game/terrain.cpp) for every visible sector page; it hands the page here. The page's tiles are turned into
 world-space triangles at the sector's level of detail (the same tile entries and index patterns as the old path),
 with the vertex colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
 and the page's texture; the clip matrix is the one the old path transforms the same vertices with (the pipeline's

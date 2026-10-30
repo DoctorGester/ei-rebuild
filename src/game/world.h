@@ -126,7 +126,7 @@ public:
 
     World* ThisWorld() override { return this; }
     BaseManager* TimedObjectManager() override { return timedObjectManager; }
-    BaseManager* GetFigureManager() override;   // figureManager (world_managers.cpp: FigureManager is complete there)
+    BaseManager* GetFigureManager() override;   // figureManager (world_create.cpp: FigureManager is complete there)
     ItemConstructor* GetItemConstructor() override { return itemConstructor; }
     SpellConstructor* GetSpellConstructor() override { return spellConstructor; }
     ItemManager* ItemFactory() override { return itemManager; }

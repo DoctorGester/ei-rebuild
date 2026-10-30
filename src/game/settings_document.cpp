@@ -374,7 +374,7 @@ Document DefaultDocument(int width, int height) {
         document.Set(game, "DefaultStreamingSound", kTypeString, Terminated("melody.mp3"));
         document.Set(JoinPath(tree, "Network Settings"), "Master Server Name", kTypeString, Terminated("a3master.nival.com"));
     }
-    // The renderer's (device_object.cpp).
+    // The renderer's (device_mesh.cpp).
     constexpr const char* kStandalone = "Software\\Nival Interactive\\EvilIslands\\Standalone";
     document.Set(kStandalone, "VSync", kTypeDword, Dword(1));
     document.Set(kStandalone, "Msaa", kTypeDword, Dword(8));

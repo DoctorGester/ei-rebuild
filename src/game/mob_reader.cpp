@@ -5,19 +5,23 @@
 // zero-initialised data; a byte search finds its address only in the test), so the branch never runs and is
 // not reproduced: see docs/notes/script.md.
 #include "bink_video.h"
+
 #include "combat.h"
 #include "game_singletons.h"
 #include "map_spec.h"
+#include "mob_script_decoder.h"
 #include "object_diplomacy.h"
 #include "options.h"
 #include "script.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-
+#include "lib/bytes.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
 
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <new>
 #include <string>
@@ -172,3 +176,26 @@ bool MobFile::Load(int keepIds) {
 }
 
 } // namespace mapspec
+
+// --- Mob script decoder ------------------------------------------------------------------------------
+
+// The .mob script text decoder. See mob_script_decoder.h.
+
+std::string MobScriptDecoder::Decode() {
+    const char zero = 0;
+    const char* coded = input.data();
+    const auto length = static_cast<unsigned>(input.size()) - 4;
+    text.resize(length, zero);
+    std::memcpy(text.data(), coded + 4, length);
+    std::uint32_t x;
+    lib::LoadBytes(x, coded);
+    for (auto& p : text) {
+        x = x * 0x343FDu + 0x269EC3u;
+        p = static_cast<char>(p ^ static_cast<char>(x >> 16));
+    }
+    const int size = static_cast<int>(text.size());
+    std::string out;
+    std::memmove(str::SetLength(out, size), text.data(), static_cast<std::size_t>(size));
+    str::CutAtNull(out);
+    return out;
+}

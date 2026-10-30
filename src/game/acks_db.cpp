@@ -1,5 +1,5 @@
 // Unit acknowledgements from acks.db: which speech a unit says for an ack kind.
-// The database's loading is in model_db_open.cpp and the vector serialisers in model_db.cpp;
+// The database's loading is in model_db.cpp and the vector serialisers in model_db.cpp;
 // the records' Serialize functions are at the end.
 #include "acks_db.h"
 
@@ -78,7 +78,7 @@ template <typename Record>
 Record* AckTable<Record>::RecordAt(std::uint32_t index) {
     return index < records.size() ? &records[index] : nullptr;
 }
-// model_db_open.cpp's AckDatabase::Load reads the extra acks by index.
+// model_db.cpp's AckDatabase::Load reads the extra acks by index.
 template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 
 // Counts the eligible entries and takes the chosen one by index: the same speech and the same

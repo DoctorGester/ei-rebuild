@@ -32,7 +32,7 @@ void PrepareDevice();
 // The render quality (renderer.md section 11, "Render quality"), each from the next frame: the world view
 // multisampled with `samples` (1: off; 2, 4 or 8, fewer when the device draws fewer) and its models sampled
 // anisotropically at `level` (1: off, as their stage says; up to 16). Both off unless set: the product sets
-// them from the settings file (device_object.cpp), a harness run by its steps "msaa" and "anisotropy".
+// them from the settings file (device_mesh.cpp), a harness run by its steps "msaa" and "anisotropy".
 void SetMsaa(int samples);
 int Msaa();
 void SetAnisotropy(int level);

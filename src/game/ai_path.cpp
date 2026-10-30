@@ -2,18 +2,21 @@
 // planned cells to the unit's steering.
 #include "ai_map.h"
 
-#include "lib/rounding.h"
-#include <bit>
-#include <cstdint>
-#include <cstring>
-#include "lib/nan_audit.h"
-#include "lib/pc24.h"
-#include "lib/vecmath.h"
+#include "ai_motion.h"
+#include "core_maths.h"
 #include "game_singletons.h"
+#include "map_object.h"
 #include "sector_map.h"
 #include "world.h"
 #include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
+#include "lib/vecmath.h"
 
+#include <bit>
+#include <cstdint>
+#include <cstring>
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -280,4 +283,139 @@ bool AIMap::ContinuePath(Unit* unit, AIPath* path) {
     AdvancePath(unit, path);
     if (path->failed) path->reached = false;
     return !wasReached;
+}
+
+// --- Cells -------------------------------------------------------------------------------------------
+
+// Path cell operations used by the path search: dropping repeated cells, stepping a cell in one of the eight
+// directions, a path as a motion order. See ai_map.h and docs/notes/ai.md.
+
+PathCell* PathCell::Step(PathCell* out, int direction) const {
+    switch (direction) {
+    case 1: out->x = x; out->y = static_cast<std::int16_t>(y - 1); break;
+    case 2: out->x = static_cast<std::int16_t>(x - 1); out->y = static_cast<std::int16_t>(y - 1); break;
+    case 3: out->x = static_cast<std::int16_t>(x - 1); out->y = y; break;
+    case 4: out->x = static_cast<std::int16_t>(x - 1); out->y = static_cast<std::int16_t>(y + 1); break;
+    case 5: out->x = x; out->y = static_cast<std::int16_t>(y + 1); break;
+    case 6: out->x = static_cast<std::int16_t>(x + 1); out->y = static_cast<std::int16_t>(y + 1); break;
+    case 7: out->x = static_cast<std::int16_t>(x + 1); out->y = y; break;
+    case 8: out->x = static_cast<std::int16_t>(x + 1); out->y = static_cast<std::int16_t>(y - 1); break;
+    default: *out = *this; break;
+    }
+    return out;
+}
+
+void PathCellsRemoveRepeats(PathCells* list) {
+    std::int16_t lastX = -1, lastY = -1;
+    auto kept = list->begin();
+    for (const PathCell& cell : *list) {
+        bool repeat = cell.x == lastX && cell.y == lastY;
+        lastX = cell.x;
+        lastY = cell.y;
+        if (!repeat) *kept++ = cell;
+    }
+    list->erase(kept, list->end());
+}
+
+void AIPath::ToMotionOrder(PathOrder* out) const {
+    constexpr int kFollowSteps = 2;
+    std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
+    out->steps = steps;
+    if (out->motionOrder.kind != kFollowSteps) return;
+    out->steps.insert(out->steps.end(), cells.begin(), cells.end());
+    PathCellsRemoveRepeats(&out->steps);
+    out->SetStepSpeeds(0x200);
+    out->SetTarget(targetX, targetY);
+}
+
+void AIMap::ClearMarksAround(const PathCells* chain) {
+    constexpr int kBlock = 8;
+    constexpr int kMargin = 4 * kBlock;
+    if (chain->empty()) return;
+    auto node = chain->begin();
+    int minX = node->x, maxX = minX;
+    int minY = node->y, maxY = minY;
+    for (; node != chain->end(); ++node) {
+        int x = node->x, y = node->y;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+    }
+    int x0 = minX * kBlock - kMargin, x1 = maxX * kBlock + kBlock + kMargin;
+    int y0 = minY * kBlock - kMargin, y1 = maxY * kBlock + kBlock + kMargin;
+    if (x0 < 0) x0 = 0;
+    if (cells.width < x1) x1 = cells.width;
+    if (y0 < 0) y0 = 0;
+    if (cells.height < y1) y1 = cells.height;
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) marks[y][x] = 0;
+}
+
+// --- Stand -------------------------------------------------------------------------------------------
+
+// A unit's path told to stand where the unit is (four variants): the remaining cells are dropped, the order
+// reset, the target becomes the unit's cell (position * cell scale) with the flags {reached, -, -, 1}, the
+// excluded regions emptied, and the order starts at the unit's position facing the direction its orientation
+// quaternion gives, negated (computed on the FPU in the original's order). Then the variants add a turn, a
+// tracked object or a turn with an end; one starts at the order's own start time. See ai_map.h (AIPath) and
+// docs/notes/ai.md.
+
+namespace {
+
+// The facing direction from the quaternion {w, x, y, z} of the unit: x = -2(yx - zw) (rounded once), y =
+// -((ww - ((zz + xx) + yy)) + 2yy) and z = -2(yz + xw), the last two rounded to floats before the negation, as
+// the original.
+void FacingFromQuaternion(const float* q, float* out) {
+    const float w = q[0], x = q[1], y = q[2], z = q[3];
+    const float across = y * x - z * w;
+    const float squares = LengthSquaredUnrounded<Sum3::ZXY>(x, y, z);
+    const float up = (w * w - squares) + (y * y + y * y);
+    const float along = Dot2DUnrounded(z, x, y, w);
+    const float forward = along + along;
+    out[0] = -(across + across);
+    out[1] = -up;
+    out[2] = -forward;
+}
+
+// The common part; `time` is read after the reset (one variant passes the path's own start time).
+void StandAt(AIPath* path, const int* time, const MapObject* object) {
+    path->cells.clear();
+    path->Reset();
+    path->targetX = 0.0f;
+    path->targetY = 0.0f;
+    path->reached = true;
+    path->failed = false;
+    path->mayExcludeRegions = false;
+    path->firstSearch = true;
+    path->excludedBlocks.clear();
+    path->smoothing = 0;
+    path->reached = true;
+    float scale = 1.0f / 0.5f;
+    path->targetX = scale * object->localPosition.x;
+    path->targetY = scale * object->localPosition.y;
+    Vector3 facing;
+    FacingFromQuaternion(&object->localRotation.w, &facing.x);
+    path->Start(object->localPosition, facing, *time);
+}
+
+} // namespace
+
+void AIPath::StandAndTurn(int time, const MapObject* unit, const Vector3& direction, std::uint32_t rateBits) {
+    StandAt(this, &time, unit);
+    SetTurn(direction, rateBits);
+}
+
+void AIPath::StandAndTrack(int time, const MapObject* unit, int id, int from, int to) {
+    StandAt(this, &time, unit);
+    SetTrack(id, from, to);
+}
+
+void AIPath::StandAndTurnUntil(int time, const MapObject* unit, const Vector3& direction, int fromTime, int toTime) {
+    StandAt(this, &time, unit);
+    SetTurnUntil(direction, fromTime, toTime);
+}
+
+void AIPath::StandStill(const MapObject* unit) {
+    StandAt(this, &motionOrder.startTime, unit);
 }

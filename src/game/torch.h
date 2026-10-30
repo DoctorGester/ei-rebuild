@@ -3,7 +3,7 @@
 // Torches (ClassName "TorchObject", class id 0x57): a map
 // object holding its light / flame description, a TorchObjectSpec (server_specific_manager.h,
 // type 0x4B),. Names provisional; torch_object.cpp; Create is in
-// map_object_create.cpp. A real virtual class: the compiler makes its vtable.
+// map_object.cpp. A real virtual class: the compiler makes its vtable.
 
 #include "map_object.h"
 
@@ -19,7 +19,7 @@ public:
     ~TorchObject() override;
 
     // The map object's Create, the spec released and cleared, 5 network fields (SetSize inlined), then
-    // DeltaState::Reset (map_object_create.cpp).
+    // DeltaState::Reset (map_object.cpp).
     void Create() override;
     void Destroy() override { DestroyTorch(); }
     bool RunTick() override { return true; }   // no map object update
@@ -32,7 +32,7 @@ public:
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
 
-    // map_object_create.cpp.
+    // map_object.cpp.
     // Destroy. The spec released and cleared, the network state reset
     // then the map object's Destroy.
     void DestroyTorch();

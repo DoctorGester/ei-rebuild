@@ -2,21 +2,23 @@
 // lights (CreatePointLight, MovePointLight, DeletePointLight). See script.h and
 // docs/notes/script.md.
 #include "script.h"
-#include "game_strings.h"
+
 #include "base_manager.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "script_parse.h"
 #include "world.h"
 #include "world_effect.h"
-
 #include "lib/rounding.h"
-#include "game_singletons.h"
 #include "lib/str.h"
+#include "platform/file.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <memory>
 #include <string>
-#include <format>
 
 namespace {
 
@@ -33,9 +35,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
 
-
 } // namespace
-
 
 void ScriptArea::AddRect(float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
@@ -196,3 +196,30 @@ void ScriptQuestFinish(Script* script) {
 
 std::vector<ScriptQuestObjective> g_scriptQuestObjectives;
 std::string g_scriptQuestName;
+
+// --- Script text file --------------------------------------------------------------------------------
+
+// The script loader's text file reader: a file read in lines of at most 2 KB into one text. A file that does not
+// open or a failed read (the game catches the file error) ends with a result of 0 and what was read so far in the
+// text.
+
+namespace scriptparse {
+
+namespace {
+constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
+} // namespace
+
+int ReadTextFile(const std::string& path, std::string* text) {
+    text->clear();
+    platform::TextFile file;
+    if (!file.Open(path, "r")) return 0;
+    char line[kLineSize];
+    try {
+        while (file.ReadString(line, kLineSize)) *text += line;
+    } catch (const platform::FileError&) {
+        return 0;
+    }
+    return 1;
+}
+
+} // namespace scriptparse

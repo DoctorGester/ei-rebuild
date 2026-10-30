@@ -230,7 +230,7 @@ float RecordEvaluate(EvaluateFn original, const CubicSegment* self, float t) {
 float __fastcall EvaluateRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluate, self, t); }
 float __fastcall EvaluateCopyRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluateCopy, self, t); }
 
-// 004D9880 (matrix_math.cpp)
+// 004D9880 (projection.cpp)
 Recorded<MatrixMultiplyCall> g_multiply("MatrixMultiply");
 void(__fastcall* s_multiply)(float*, void*, const float*, const float*);
 void __fastcall MultiplyRecord(float* out, void*, const float* a, const float* b) {
@@ -257,7 +257,7 @@ void __fastcall ToMatrixRecord(const Quaternion* self, void*, float* out) {
     g_toMatrix.sampler.Offer(v, cw);
 }
 
-// 004D9B80 (matrix_math.cpp)
+// 004D9B80 (projection.cpp)
 Recorded<PushMatrixCall> g_push("CTransformPipeline::PushMatrix");
 void(__fastcall* s_push)(TransformPipeline*, void*, const float*, int);
 void __fastcall PushRecord(TransformPipeline* self, void*, const float* m, int index) {

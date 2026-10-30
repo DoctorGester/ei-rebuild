@@ -1,4 +1,4 @@
-// The rain and snow draws of the world's rain / snow layer (weather_draw.cpp calls the one of the mode): both walk the 81 x 81
+// The rain and snow draws of the world's rain / snow layer (effects_weather.cpp calls the one of the mode): both walk the 81 x 81
 // cells (half a unit apart) around the point the wind carries a particle to the camera from; a cell's place and the
 // world's time give its particle's cycle and fall, `density` of 64 cycles show one. See docs/notes/renderer.md, section 12.
 // Kept as the game has it: the vertices' colour and specular are never written (what the buffer held stays, the distance

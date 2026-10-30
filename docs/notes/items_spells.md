@@ -162,14 +162,14 @@ emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (Party +0x2C, MFC 
 `Serialize` (MFC's CArray::Serialize: a vtable slot only, no caller; gone with CArchive), Party
 destructor / Create / Destroy / Clear (RET 8) and `SpellManager::Construct` (an empty map of
 193 buckets at +0xBC) are O. Record Load / Save, `LoadParty` / `SaveParty` (RET 8; the flag covers the variables; SaveParty
-draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party_save.cpp`): saves S into a scratch
-memory stream; record Load round-trips through Save; the rest O. `party_members.cpp` (O; party_records, ui_hero_screen
+draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party.cpp`): saves S into a scratch
+memory stream; record Load round-trips through Save; the rest O. `party.cpp` (O; party_records, ui_hero_screen
 (00616AC0)): `AddMember`, `FillFromPrototype` (takes the lists straight from the prototype instead of through 005143E0's
 CStringArrays: same names, same order), `Assign` (shallow: item list pointers copied), `CopyItemsFrom` (party slot 24 copies),
 `RemoveMember`, `EquipFromPrototype` (a new multiplayer hero: spells / weapons released, then the NPC record's start spells,
 quick items, weapons, money (+0x58), experience (+0x54)), the spell list's Add, `AlignedArray::RemoveRange` (only caller
 006625B0), `OpenEdgeExits` (on an edge zone (kind 1) the exits' kind-0 targets get "z.<name>" = 1 when 0 / NaN; newgame login).
-`party_file.cpp` (O; ui_hero_delete; SaveAll when the hero screen closes with heroes): `MpHeroRecord::WriteFile / ReadFile`
+`party.cpp` (O; ui_hero_delete; SaveAll when the hero screen closes with heroes): `MpHeroRecord::WriteFile / ReadFile`
 (0x74-byte hero records `<folder><n>.mp`, magic 0x114: a name that is not digits before its last '.' is deleted instead; the
 old file is moved to temp.mp around the write), `SavedParties::SaveAll` (folder emptied by ClearSaveFolder, every record
 written), `SavedParties::Destruct` (static destructor of 007C82A0 at exit).
@@ -192,7 +192,7 @@ belong to a 3DS material chunk reader (004A0BA0, 004A09E0), not item code.
 **CTextManager** (`*(CTextManager**)0x007AF788`): `+0x1C` STLport list of text archives (node: next, prev, `+0x08`
 STLport string name, `+0x14` CMappedResource*), `+0x20` read cursor, `+0x24` start of the current text (null: none), `+0x28`
 its size. A lookup asks every archive's GetFile (slot 5) in turn; the first hit becomes the current text. The line reader
-(004DF8D0, 004DFB80) is `text_reader.cpp` (script.md).
+(004DF8D0, 004DFB80) is `text_manager.cpp` (script.md).
 
 **Text keys** (record name with ' ' replaced by '_' (004DC400), upper-cased; material = material record +0x00, others =
 record +0x04): 0x3004 `weapon NAME MATERIAL` (kind text item_weapon), 0x3005 `armor NAME MATERIAL` (item_armor_upper for type
@@ -482,7 +482,7 @@ NewMaterial returns null on a failed creation (the original faults).
 
 **Small slots and copies (A-H24).** The name / id slots (11 / 12) of Party, the twelve Effect* classes
 (world_effect.cpp), Spell, Texture, the six CItem* classes and ItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
-manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party.cpp, O):
+manager's folder, 0067E150 the effect manager's Create (world_create.cpp, O). Party containers (party.cpp, O):
 `CArray<PartyUnitRecord>` destructor body / slot 0, DestructElements, the record's deleting destructor; ui_hero_screen_click.cpp:
 MpHeroRecord's deleting destructor, copy() of hero records (Assign each). Byte-identical copies registered beside their
 rewrites: 00664910 / 00671240 AllocateDwords, 0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes):
@@ -568,12 +568,12 @@ obvious.
   database (0057CB50)): 00684550 `SpellDatabase::Load` ("spells.sdb": spells, modifiers, three lists) and 006A67A0
   `ItemDatabase::Load` ("items.idb": materials, weapons, armors, then quick items, quest items, loot) in spell_db.cpp /
   item_db.cpp;
-  006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` (model_db_open.cpp; models.md); 006AE3A0
-  `QuestDatabase::Load` (quest_db_open.cpp; the database at 007C87A8 is `QuestDatabase` in quest_records.h: quests + index,
+  006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` (model_db.cpp; models.md); 006AE3A0
+  `QuestDatabase::Load` (quest_database.cpp; the database at 007C87A8 is `QuestDatabase` in quest_records.h: quests + index,
   briefings + index). 0068E640 `MaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of
   the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 /
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
-- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `HudClock::LeftUp`
+- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_frame.cpp; the code is the description): 00648D70 `HudClock::LeftUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
   objectives; O, no scenario clicks the clock); 00649910 `HudMovePanel::ShowMode` (+0x14C `mode`; S); 00642930 /
   00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
@@ -619,14 +619,14 @@ obvious.
   already checked on that thread). The original leaves its "from the beginning again" local unwritten when neither a loop
   point nor a switch point lies in the buffer and reads it in one such case (a mode 1 switch whose file ends in this buffer:
   stack garbage decides between the switch and a restart); ours switches, which is what the mode asks for.
-- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `HudUnitPanel::Draw`: Rebirth replaces the
+- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_info.cpp`, `HudUnitPanel::Draw`: Rebirth replaces the
   whole function, so vanilla launch only; ours only, every map frame). Between the panel's background and the unit's figure,
   and again after the figure, it clears three screen rectangles' depth (the original: IDirect3DDevice7::Clear under the render
   lock 007AEE78; ours `ClearUiDepth`, the new renderer's depth); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state
   0x12) set to 1 and put back (vtable +0x90 / +0x94). 006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md.
 
 Shared: resource_local.h (`LocalResource`, `FillStream`; the lightning, lever and party loads too), database_file.h (`LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
-unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
+unit_db.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
 `GameClientPaused` / `GameSendFlag10` in world_glue.h. The tables' vector serialisers are called through their
 addresses so that their wrappers run. The folder-only loads (quests, prints, acks) open "database.res" but report
 "databases.res" when that fails; the serialisers' unused third argument is whatever the original's stack held (null in ours);
@@ -641,7 +641,7 @@ precision control reaches FADD / FSUB / FMUL / FDIV / FSQRT only, FCOS and FSIN 
 sin(pi / 2) x 34 = 33.99999.. rounds to 34 and the vertex is the whole radius (35, 80, 34; in doubles one less), and
 cos(pi / 3) x 34 = 16.9999991 rounds to 17. X33: the port rounded the cosine to float first, which gives 0.49999997 x 34 =
 16.999998 and 16, so the clock's middle region had its third arc point at (784, 571) where the original has (783, 571).
-`OnArc` in ui_hud_setup.cpp rounds each product with RoundToFloat, so it does not depend on the precision control. The map's
+`OnArc` in ui_hud_frame.cpp rounds each product with RoundToFloat, so it does not depend on the precision control. The map's
 outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 + 80))` the same way: its point under the centre is (635, 80), where
 doubles give (635, 79). The setups' wrappers name the region or sprite field that differs and both values
 (`DescribeRegionDifference` / `DescribeSpriteDifference`, `tests/verify/ui_panel_shot.h`, which also holds the setups' record
@@ -652,7 +652,7 @@ ui_layouts.cpp.
 
 - 006BFB00 / 006BFB20 / 006BFB80 `SectorData::IsDrawn` (+0x60 is 0 or 1), `ClipTest` (the box's verdict at +0x60, -1 stored as
   2; unless culled the four quarters' in `quarterMode`), `FindSeams` (the two seam flags from the lit neighbours' level of
-  detail; lookups without create) in `terrain_passes.cpp`: S, every map frame (DrawPages calls the three through their
+  detail; lookups without create) in `terrain.cpp`: S, every map frame (DrawPages calls the three through their
   addresses; RunTick calls IsDrawn directly).
 - 0066D730 `PlayerServer::SendValue12` (`player_messages.cpp`): message 0x12, a byte and the value; S with the stream restored,
   the unwritten byte left out (the script command SendEvent through PlayerManager::SendValueToAll calls it by address). The

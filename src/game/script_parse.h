@@ -24,7 +24,7 @@ inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 // returns 0. (Script::Error is the same.)
 int ScriptErrorV(Script* script, int line, int code, const char* format, char* args);
 
-// script_text_file.cpp: a text file's lines joined into
+// script_exec_helpers.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read.
 int ReadTextFile(const std::string& path, std::string* text);
 

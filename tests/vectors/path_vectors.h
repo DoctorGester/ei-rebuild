@@ -28,7 +28,7 @@ namespace ei::vectors::path {
 
 constexpr const char* kFamily = "path";
 
-// Game data the searches read (ai_map.h, ai_map.cpp, ai_plan.cpp), as plain ranges: game.exe's address and size
+// Game data the searches read (ai_map.h, ai_map.cpp, ai_movement.cpp), as plain ranges: game.exe's address and size
 // (record_path.cpp's OfferTables lists them; the replay copies each to the stand-in at its address, where the
 // tables our code now names, kDirectionDx / kDirectionDy / kSizeClassHeights, are no longer read).
 struct Range {

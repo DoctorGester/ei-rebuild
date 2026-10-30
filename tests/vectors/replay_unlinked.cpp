@@ -34,10 +34,10 @@ namespace {
 // The script effects' drop (script_effects.cpp needs the world).
 void ScriptDropEffect(EngineObject*) EI_UNLINKED("ScriptDropEffect")
 
-// script_runtime_helpers.cpp's AI map and console helpers (SectorMap::Add and Remove: replay_path.cpp).
+// ai_map.cpp's AI map and console helpers (SectorMap::Add and Remove: replay_path.cpp).
 std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
-// ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
+// ai_movement.cpp's shape cache and passability marks (ai_unit_shape.cpp, ai_refresh.cpp).
 RefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
 RefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle*) EI_UNLINKED("UnitShapeCache::CreateShape")
 std::uint32_t AIMap::CellMark(CellMarkState*, int, int, int, int) EI_UNLINKED("CAIMap::CellMark")
@@ -56,7 +56,7 @@ void ScriptFxSource::Load(ByteStream*) EI_UNLINKED("ScriptFxSource::Load")
 // The game CRT's port that no replay reaches (crt.cpp reads the game CRT's data): srand (random.cpp).
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 
-// world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
+// world_create.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it). A constructed WorldServer would pull in
 // its class's vtable and with it the whole world, so the linker resolves the name to zero bytes of its size instead.
 extern "C" {

@@ -1,6 +1,6 @@
 # R9c3: the Scroll Lock screenshot and the frame recorder from the new renderer's frame
 # (docs/notes/renderer.md, section 9). With "present" the render target and the primary are
-# holders without a DirectDraw surface, and the surface capture (006D6D40, surface_capture.cpp)
+# holders without a DirectDraw surface, and the surface capture (006D6D40, surface.cpp)
 # reads render::ReadFrame instead: the game's own file names (shot0000.bmp, in the saves overlay
 # here), formats (a bottom-up .bmp in the screen's depth, 16 or 32 bits with channel masks) and
 # moments (the key handler 005F78C0, the recorder after each present in 00458010).
