@@ -1,6 +1,6 @@
 # Evil Islands (Проклятые Земли) rebuild
 
-Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern MSVC (x86). The goal is
+Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern MSVC (x86 and x64). The goal is
 identical game behaviour, not identical bytes: the same world, saves and network play as the original, with a new
 renderer and the Rebirth edition's fixes on top.
 
@@ -10,27 +10,41 @@ test harness, as the reference our code is compared with.
 
 ## Status
 
-| Area | State | Notes |
-|---|---|---|
-| Game code | Done | 6,032 of 6,177 game functions rewritten (99.5% of game code by size); the rest is dead or library code |
-| Standalone game | Done | Runs without `game.exe`; the build reads no `game.exe` either |
-| Behaviour vs the original | Checked | 145 harness scenarios; 121 with goldens match the original's world state and saves exactly |
-| Saves | Done | Same format as the original; decoded and compared field by field in the tests |
-| Multiplayer | Works | Hosting and joining over UDP; tested with two of our games in lockstep |
-| Rebirth edition fixes | Done | Rebirth's bug fixes and options built in, each behind a flag (`docs/notes/rebirth.md`) |
-| Widescreen | Done | Rebirth's widescreen layout in our own code |
-| Renderer | Done, improving | Direct3D 11 (sokol_gfx); per-pixel lighting on the GPU, soft sun and moon shadow maps, smooth camera, vsync option, performance overlay. The old Direct3D 7 / DirectDraw layer is gone (R27), a renderer that fails to start stops the game, and skins, wounds and item pictures are composed on the GPU (R28; 2DintMMX.dll no longer loaded). Next: the remaining CPU-built textures (R28a-c), point-light shadows, water, ambient occlusion |
-| UTF-8 | Done | Every string inside the game in UTF-8; saves and the network stay cp1251, as the original's |
-| Native interface | In progress | Interface drawn by the new renderer directly (text atlas, menus, HUD): surfaces and GPU-built textures done (P1, P7), the rest in tickets P2-P8 |
-| Code cleanup | Style phase | Porting artifacts done: real C++ classes (C28), no MFC or STLport left (C14), no game addresses or registrations (C20), the custom CRT cut down to what behaviour needs (C35). Now readability: comments, literals, raw byte copies, shared enums and constants (C41-C46 done); next small mechanical cleanups (C47), `enum class` everywhere and names for the remaining magic numbers (C45c, C45d) |
-| Lua mission scripts | Planned | `docs/notes/lua-scripting.md` |
+The whole game runs on the rebuilt code and is playable in single player and over the network. Every scenario in the
+test suite plays out exactly as on the original: the same world state and the same save files.
 
-The work queue is `docs/tickets.md` (generated from `docs/tickets.toml` by `tools/tickets.py`).
+## What you get
+
+- **One exe, no installer.** Drop `ei-rebuild.exe` into a GOG or Rebirth install and start it. It needs no
+  `game.exe`, no `binkw32.dll`, no `mss32.dll` and no registry entries.
+- **Your saves and multiplayer still work.** Saves are in the original's format, so your old saves load. Hosting and joining
+  network games work as before.
+- **A 64-bit build** next to the classic 32-bit one, with the same behaviour.
+- **A new renderer** on Direct3D 11: per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
+  a smooth camera, vsync, and an optional performance overlay.
+- **Widescreen** at any resolution, with the interface scaled to the window.
+- **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
+- **A new interface layer** drawn by the renderer, with sharp text at any size.
+- **New sound and video code:** sound plays through miniaudio, caves get their reverb back, and the game's Bink movies
+  play through its own decoder.
+- **Unicode throughout.** Names and text are UTF-8 inside the game; saves and the network stay in the original's
+  encoding.
+
+## Differences from the original
+
+- Settings live in `ei_settings.ini` beside the exe, not in the registry.
+- Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
+- Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
+- Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
+- Rebirth's bug fixes and widescreen are on by default, even on GOG data; `ei_rebirth.ini` turns them off.
+
+The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
+Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets.md`.
 
 ## Requirements
 
 - Windows 10 or later.
-- The VS 2022 Build Tools with MSVC 14.43 for x86, and CMake and Ninja from the same install. `build.cmd` looks in
+- The VS 2022 Build Tools with MSVC 14.43 for x86 and x64, and CMake and Ninja from the same install. `build.cmd` looks in
   `E:\bin\vs\buildtools`; set `EI_VSROOT` to your Build Tools folder if it is elsewhere.
 - Python 3 (the build runs checks written in Python).
 - An installed copy of the game for its data:
@@ -76,8 +90,7 @@ setting at its best; the registry is never read). The render quality (MSAA sampl
 anisotropy), the performance overlay and vsync are set there (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
 `run\play\ei-rebuild.log`.
-`play.cmd x64` does the same in `run\play-x64` (its own settings and log) with the 64-bit build: sound plays, movies
-stay black until the video backend (A2).
+`play.cmd x64` does the same in `run\play-x64` (its own settings and log) with the 64-bit build.
 
 ## Test
 
