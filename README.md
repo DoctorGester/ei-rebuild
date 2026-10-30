@@ -68,6 +68,11 @@ build.cmd verify         the game with the test harness linked in, and ei_harnes
                          game.exe), into build\verify (what the tests run)
 ```
 
+Shaders require the official [sokol-shdc compiler](https://github.com/floooh/sokol-tools-bin), pinned to
+`b975d5642093d62e76a1e088bdae945d6d8b8ff2`. Put the host binary on PATH or in `build/tools/`
+(`sokol-shdc.exe` on Windows); CMake also accepts `-DEI_SHDC=/path/to/sokol-shdc`. Shader sources are
+annotated GLSL, compiled directly for every backend; see [shader authoring](docs/notes/renderer.md#shader-authoring).
+
 The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
 
 ## Play

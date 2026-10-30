@@ -30,43 +30,9 @@ auto& g_ramp = g_rampTable.entries;
 std::uint8_t g_uploaded[256 * 4]{};
 Rect g_lastCursor{};
 WindowPresentInfo g_info;
-struct CursorParams {
-    float to[4], frame[4], size[4];
-};
+using CursorParams = cursor_params_t;
 bool CreatePipeline() {
-    sg_shader_desc s{};
-    s = ShaderDescription(kPresentShader);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = 16;
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(CursorParams);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.views[1].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[1].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[1].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[1].texture.hlsl_register_t_n = 1;
-    s.views[2].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[2].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[2].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[2].texture.hlsl_register_t_n = 2;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    // The ramp is read with Load; sokol wants every texture in a pair all the same.
-    s.texture_sampler_pairs[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[1].view_slot = 1;
-    s.texture_sampler_pairs[1].sampler_slot = 0;
-    s.texture_sampler_pairs[2].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[2].view_slot = 2;
-    s.texture_sampler_pairs[2].sampler_slot = 0;
+    sg_shader_desc s = ShaderDescription(kPresentShader);
     s.label = "ei-present";
     g_shader = sg_make_shader(&s);
     sg_pipeline_desc p{};
@@ -245,16 +211,16 @@ bool DrawToWindow(const BlitBatch* cursor, bool overlay) {
         }
     }
     sg_bindings b{};
-    b.views[0] = FrameTexture();
-    b.views[1] = g_rampView;
-    b.views[2] = cursorView;
-    b.samplers[0] = LinearSampler();
+    b.views[VIEW_tex] = FrameTexture();
+    b.views[VIEW_ramp] = g_rampView;
+    b.views[VIEW_cursorTex] = cursorView;
+    b.samplers[SMP_smp] = LinearSampler();
     sg_apply_bindings(&b);
     float uniforms[4] = {0.0f, 0.0f, 1.0f, 1.0f};
     sg_range range{uniforms, sizeof(uniforms)};
-    sg_apply_uniforms(0, &range);
+    sg_apply_uniforms(UB_present_params, &range);
     sg_range cursorRange{&cp, sizeof(cp)};
-    sg_apply_uniforms(1, &cursorRange);
+    sg_apply_uniforms(UB_cursor_params, &cursorRange);
     sg_draw(0, 3, 1);
     if (overlay)
         perf::Draw(clientWidth, clientHeight, placed);   // over the frame and the cursor, off unless switched on

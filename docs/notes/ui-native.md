@@ -130,7 +130,7 @@ pass (`DrawPending`). The commands are in surface pixels after the game's own sc
 scale functions (W1 / W2) stay upstream. What is (P8): "Overview of the surface canvases" below; the tickets' own
 facts follow.
 
-### N1 done (2026-10-21): `src/render/render_ui.{h,cpp}`, `shaders/ui_canvas.hlsl`, `tools/ui_check`
+### N1 done (2026-10-21): `src/render/render_ui.{h,cpp}`, `shaders/ui_canvas.glsl`, `tools/ui_check`
 
 **What exists** (namespace `render::ui`, no GDI, nothing calls it yet):
 - `Canvas(holder, w, h, format)` makes an RGBA8 render target, black. The same size and format again keeps it; another one makes it

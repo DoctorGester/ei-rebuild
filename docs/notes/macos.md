@@ -10,7 +10,7 @@ Install Xcode's command-line tools and the shader tools, then obtain the officia
 following pins the compiler revision used for this port; the binary and all generated shaders stay in `build/`.
 
 ```sh
-brew install cmake ninja glslang spirv-cross
+brew install cmake ninja
 mkdir -p build/tools
 curl -L https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/osx_arm64/sokol-shdc -o build/tools/sokol-shdc
 chmod +x build/tools/sokol-shdc
@@ -71,10 +71,11 @@ launcher while testing, so the installed data is left untouched.
 - The POSIX backend implements files, mappings, INI reads/writes, sockets, process locking and user-data paths.
   File lookup normalizes backslashes and folds case a component at a time, so `res\\database.res` opens
   `Res/database.res` on a case-sensitive volume. Exact spelling wins; ambiguous folded matches sort consistently.
-- HLSL remains the shader source. `tools/port_shaders.py` runs glslang to SPIR-V, SPIRV-Cross to Vulkan GLSL, then
-  sokol-shdc to Metal and GL 4.3. All 24 programs compile for both outputs. `--bytecode` additionally runs Apple's
-  Metal compiler; all 24 were checked that way too. Generated uniform blocks retain the CPU byte layout in a single
-  integer-vector array so they fit sokol's GL reflection limits.
+- Shader sources are annotated GLSL in `src/render/shaders`, collected by `shaders.glsl`. A shared CMake rule
+  invokes sokol-shdc directly for HLSL5, Metal and GL 4.3, producing `shaders/shaders.h` in the build tree.
+  There are 22 programs; multisample depth uses one shader at every sample count. Generated descriptors own
+  bindings and reflection, and generated C++ structs supply the uniform layouts. No external glslang,
+  SPIRV-Cross or fxc tool is needed. See docs/notes/renderer.md, "Shader authoring".
 - All render sources are shared across backends, including presentation, cursors, readback and shader selection.
   Native operations live in `platform/graphics.h` with one implementation per backend (`graphics_metal.mm` or
   `win32/graphics_win32.cpp`). Texture copies, readback and mip generation use the native API where this sokol
@@ -89,8 +90,11 @@ launcher while testing, so the installed data is left untouched.
   overlap, batching, stream overflow and 555/565/888 destinations. It also checks partial uploads, region copies and
   readback bounds. All pass, with zero differing glyph pixels. Configure with `-DEI_RENDER_CHECKS=ON` to include
   diagnostic readback checks, verify generated mips, simulate device loss, restore canvas history, and repeat the
-  glyph oracle after recovery (66 checks). Readback also follows sokol's active dynamic-image slot across commits.
-  Normal builds leave these diagnostic checks off.
+  glyph oracle after recovery. Readback also follows sokol's active dynamic-image slot across commits.
+  The renderer checks also compile all 22 Metal programs, compare cloud pixels against saved HLSL hashes,
+  and verify canvas images, copies, greyscale, RGB565 packing and MSAA colour/depth copies at each supported
+  sample count. On this Mac the diagnostic run has 110 checks (2x and 4x MSAA). Normal builds leave the
+  diagnostic readbacks off.
 
 ## Remaining verification and features
 

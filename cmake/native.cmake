@@ -19,18 +19,7 @@ if(EI_RENDER_CHECKS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-find_program(EI_SHDC sokol-shdc HINTS ${CMAKE_SOURCE_DIR}/build/tools REQUIRED)
-find_program(EI_GLSLANG glslangValidator REQUIRED)
-find_program(EI_SPIRV_CROSS spirv-cross REQUIRED)
-file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
-set(shader_header ${CMAKE_BINARY_DIR}/native_shaders/all_shaders.h)
-add_custom_command(OUTPUT ${shader_header}
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/port_shaders.py
-            --out-dir ${CMAKE_BINARY_DIR}/native_shaders --shdc ${EI_SHDC} --glslang ${EI_GLSLANG} --spirv-cross ${EI_SPIRV_CROSS}
-    DEPENDS ${EI_SHADER_SOURCES} ${CMAKE_SOURCE_DIR}/tools/port_shaders.py
-    COMMENT "Cross-compiling shaders to Metal and GL with sokol-shdc" VERBATIM)
-target_sources(ei_render PRIVATE ${shader_header})
+include(cmake/shaders.cmake)
 
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
 # as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).

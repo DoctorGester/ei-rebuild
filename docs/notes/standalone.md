@@ -1574,7 +1574,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 from there, started from anywhere, with no ei_launch, no DLL of ours and no file of ours beside it.
 - **What a play needs** (release build): the exe alone. From the game folder, as game.exe used them: the data (res,
   maps, camera, movies, stream, ...); no DLL of the game's (no Miles, Bink or `*.asi`: platform/platform.h and video.h,
-  PL6). Built in: the shaders (fxc bytecode headers, CMakeLists.txt), the interface fonts
+  PL6). Built in: the shaders (sokol-shdc headers, cmake/shaders.cmake), the interface fonts
   (render_fonts.cpp), game.exe's import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
   (defaults, "Settings file"; the per-user fallback when the folder is not writable). Its `[patches]` holds the

@@ -19,7 +19,7 @@ using namespace detail;
 constexpr int kFaces = 6;
 constexpr int kAtlasWidth = kFaces * kPointFaceTexels;
 constexpr int kAtlasHeight = kMostPointShadows * kPointFaceTexels;
-// The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.hlsl).
+// The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.glsl).
 constexpr float kNear = 0.05f;
 // A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength (units
 // fading in) cast none, as for the sun.
@@ -30,7 +30,7 @@ constexpr float kLeastStrength = 0.5f;
 constexpr float kHoldMargin = 0.5f;
 
 // The cube's faces: the axis a face looks along and the two across it (its clip x and y). The
-// receivers pick the face and its coordinates the same way (shaders/point_shadow.hlsli, point_seen).
+// receivers pick the face and its coordinates the same way (shaders/point_shadow.glsl, point_seen).
 struct CubeFace {
     Vector3 forward, right, up;
 };
@@ -236,12 +236,8 @@ struct RedrawnFace {
     std::size_t from, to;
 };
 std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
-// A face cleared alone (shaders/solid.hlsl: a rectangle at a depth, written whatever is there).
-struct ClearVs {
-    float rect[4];
-    float target[4];
-    float colour[4];
-};
+// A face cleared alone (shaders/solid.glsl: a rectangle at a depth, written whatever is there).
+using ClearVs = solid_params_t;
 sg_shader g_clearShader{};
 sg_pipeline g_clearPipeline{};
 sg_image g_atlas{};
@@ -251,11 +247,7 @@ bool MakePipelines() {
     if (g_clearPipeline.id) return sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
     bool ok = true;
     {
-        sg_shader_desc s{};
-        s = ShaderDescription(kSolidShader);
-        s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-        s.uniform_blocks[0].size = sizeof(ClearVs);
-        s.uniform_blocks[0].hlsl_register_b_n = 0;
+        sg_shader_desc s = ShaderDescription(kSolidShader);
         s.label = "ei-point-shadow-clear";
         g_clearShader = sg_make_shader(&s);
         sg_pipeline_desc p{};
@@ -616,7 +608,7 @@ void DrawPointShadows(Frame& f) {
         const auto side = static_cast<float>(kPointFaceTexels);
         ClearVs vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
         sg_range vr{&vs, sizeof(vs)};
-        sg_apply_uniforms(0, &vr);
+        sg_apply_uniforms(UB_solid_params, &vr);
         sg_draw(0, 6, 1);
     }
     if (haveDraws)
@@ -639,19 +631,6 @@ void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot) {
     const bool on = g_atlasTexture.id && g_frame.shadow.point.params.on[0] > 0.5f;
     b.views[viewSlot] = on ? g_atlasTexture : NoShadowTexture();
     b.samplers[samplerSlot] = ShadowCompareSampler();
-}
-
-void DescribePointShadows(sg_shader_desc& s, int viewSlot, int samplerSlot) {
-    s.views[viewSlot].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[viewSlot].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[viewSlot].texture.sample_type = SG_IMAGESAMPLETYPE_DEPTH;
-    s.views[viewSlot].texture.hlsl_register_t_n = static_cast<std::uint8_t>(viewSlot);
-    s.samplers[samplerSlot].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[samplerSlot].sampler_type = SG_SAMPLERTYPE_COMPARISON;
-    s.samplers[samplerSlot].hlsl_register_s_n = static_cast<std::uint8_t>(samplerSlot);
-    s.texture_sampler_pairs[viewSlot].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[viewSlot].view_slot = static_cast<std::uint8_t>(viewSlot);
-    s.texture_sampler_pairs[viewSlot].sampler_slot = static_cast<std::uint8_t>(samplerSlot);
 }
 
 void DestroyPointShadows() {
