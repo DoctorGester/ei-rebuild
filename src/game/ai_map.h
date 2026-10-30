@@ -210,7 +210,7 @@ struct PathOrder {
     // Sets the speed word of every step. Returns 0.
     int SetStepSpeeds(std::uint16_t speed);
     // Where the order leads, in world units.
-    Vector3* Destination(Vector3* out);
+    Vector3 Destination();
     // The order (kind byte, the steps' count as two bytes, start x / y, the angle within the
     // order angle range, the time and three arguments) on the field's delta channels, then each step as a 16-bit
     // header (x and y codes: one less, the same, one more than the previous step, or written out after it;
@@ -250,7 +250,7 @@ struct AIPath : PathOrder {
     // target set.
     void ToMotionOrder(PathOrder* out) const;
     // The search's target cell (targetX, targetY) in world units, z 0.
-    Vector3* TargetPoint(Vector3* out) const;
+    Vector3 TargetPoint() const;
 
     PathCells cells;         // the rest of the path
     float targetX, targetY;     // in half-cells

@@ -69,8 +69,8 @@ struct AIOrder {
     void MakeUse(MapObject* object, UseSource what);
     // `source` read as a use order's skill (kind Use).
     UseSource Skill() const { return static_cast<UseSource>(source); }
-    // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
-    Vector3* AimPoint(Vector3* out) const;
+    // Where the order aims: the object's AimPoint, or `point` without an object.
+    Vector3 AimPoint() const;
 
     UnitOrderKind kind = UnitOrderKind::None;
     std::uint32_t source = 0;       // the body part of an attack (kAttackAllParts), the spell of a cast, the UseSource of a use

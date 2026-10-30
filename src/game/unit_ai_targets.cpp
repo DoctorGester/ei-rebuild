@@ -119,13 +119,9 @@ void AIOrder::MakeUse(MapObject* object, UseSource use) {
     source = static_cast<std::uint32_t>(use);
 }
 
-Vector3* AIOrder::AimPoint(Vector3* out) const {
-    if (target == nullptr) {
-        *out = point;
-        return out;
-    }
-    target->AimPoint(out);
-    return out;
+Vector3 AIOrder::AimPoint() const {
+    if (target == nullptr) return point;
+    return target->AimPoint();
 }
 
 bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {

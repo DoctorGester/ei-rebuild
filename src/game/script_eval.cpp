@@ -226,9 +226,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             *result = 0.0f;
             return;
         }
-        Vector3 buffer;
-        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld.tick, f[0]));
-        *result = *(function == ScriptFunction::GetFutureX ? &position->x : &position->y);
+        Vector3 position = ObjectSlots(o)->PositionAt(RoundTimeOffset(g_serverWorld.tick, f[0]));
+        *result = function == ScriptFunction::GetFutureX ? position.x : position.y;
         return;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position

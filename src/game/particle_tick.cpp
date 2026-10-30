@@ -73,11 +73,10 @@ struct TickSteps {
     // position alone); the emission point moves there.
     void Follow() {
         if (s->attachedTo) {
-            Vector3 point;
-            const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = a->x + s->localPosition.x;
-            float wy = a->y + s->localPosition.y;
-            float wz = a->z + s->localPosition.z;
+            Vector3 a = s->AttachmentPoint(s->attachedTo);
+            float wx = a.x + s->localPosition.x;
+            float wy = a.y + s->localPosition.y;
+            float wz = a.z + s->localPosition.z;
             s->motion.x = wx - s->origin.x;
             s->motion.y = wy - s->origin.y;
             s->motion.z = wz - s->origin.z;

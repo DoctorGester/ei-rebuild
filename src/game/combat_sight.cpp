@@ -114,11 +114,10 @@ bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const float* point,
         ++node;
         if (other == order->target) continue;
         if (other->IsDead() != 0) continue;
-        Vector3 scratch;
-        const Vector3* p = other->PositionAt(&scratch, time);
-        float a = p->x - unit->localPosition.x;
-        float b = p->y - unit->localPosition.y;
-        float c = p->z - unit->localPosition.z;
+        Vector3 p = other->PositionAt(time);
+        float a = p.x - unit->localPosition.x;
+        float b = p.y - unit->localPosition.y;
+        float c = p.z - unit->localPosition.z;
         float along = c * uz + b * uy + a * ux;
         float across = c * vz + b * vy + a * vx;
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
@@ -294,9 +293,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     Unit* targetUnit = nullptr;
     int castDelay = 0;
 
-    Vector3 aim;
-    if (order->target) order->target->AimPoint(&aim);
-    else aim = order->point;
+    Vector3 aim = order->target ? order->target->AimPoint() : order->point;
     Vector3 delta;
     delta.x = aim.x - origin.x;
     delta.y = aim.y - origin.y;
@@ -352,9 +349,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     float best = std::bit_cast<float>(kBestStartBits);
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
-            Vector3 scratch;
-            const Vector3* p = order->target->PositionAt(&scratch, tick + castDelay + duration + now);
-            aim = *p;
+            aim = order->target->PositionAt(tick + castDelay + duration + now);
             delta.x = aim.x - origin.x;
             delta.y = aim.y - origin.y;
             delta.z = aim.z - origin.z;

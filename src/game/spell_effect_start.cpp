@@ -45,8 +45,7 @@ Next StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
     e->CreateSound("magic\\lightning\\start.wav", e->position, kZeroVector, kVolume, kHearing);
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    Vector3 scratch;
-    e->CreatePointLight(*EyePointOf(e->target, &scratch), color, range, kZeroVector);   // no null check
+    e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);   // no null check
     DamageInfo hit;
     e->GetDamage(&hit);
     if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
@@ -249,8 +248,7 @@ Next StartClairvoyance(SpellEffect* e) {
 // Possession (only the sound here).
 Next StartPossession(SpellEffect* e) {
     if (!e->target) return Next::Done;
-    Vector3 scratch;
-    e->CreateSound("magic\\Possession\\start.wav", *EyePointOf(e->target, &scratch), kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Possession\\start.wav", e->target->EyePoint(), kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -263,8 +261,7 @@ Next StartVisionFog(SpellEffect* e) {
     shown->SetUnits(casterId, targetId);
     SetPosition(shown, kZeroVector);
     e->SetVisual(shown);
-    Vector3 scratch;
-    e->CreateSound("magic\\VisionFog\\start.wav", *EyePointOf(e->target, &scratch), kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\VisionFog\\start.wav", e->target->EyePoint(), kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -299,17 +296,15 @@ Next StartLink(SpellEffect* e) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkImpossible);
         return Next::Done;
     }
-    Vector3 scratch;
-    const Vector3* casterAt = EyePointOf(e->caster, &scratch);
-    Vector3 from = *casterAt;
-    e->position = *casterAt;
+    Vector3 from = e->caster->EyePoint();
+    e->position = from;
     e->CreateParticle(1, static_cast<int>(ParticleType::Link), from, 1.0f, 1.0f, kZeroVector, nullptr);
     if (e->visual) {
-        const Vector3* to = EyePointOf(e->target, &scratch);
+        Vector3 to = e->target->EyePoint();
         Vector3 direction;
-        direction.x = to->x - from.x;
-        direction.y = to->y - from.y;
-        direction.z = to->z - from.z;
+        direction.x = to.x - from.x;
+        direction.y = to.y - from.y;
+        direction.z = to.z - from.z;
         e->Visual<EffectWall>()->SetDirection(direction);
     }
     e->CreateSoundSequence(from, kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1);
@@ -368,8 +363,7 @@ void SpellEffect::Start(SpellType type) {
     flags &= ~1u;
     Vector3 from;
     if (caster) {
-        Vector3 scratch;
-        from = *EyePointOf(caster, &scratch);
+        from = caster->EyePoint();
     } else {
         from = position;
     }

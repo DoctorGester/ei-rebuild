@@ -62,11 +62,10 @@ __forceinline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>
-Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
+Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     TransformPipeline* device = g_sceneRenderer.pipeline;
     if (device->stacks[TransformPipeline::kViewStack].count == 0) {
-        std::memcpy(out, &worlddata::kOrigin, 12);
-        return out;
+        return worlddata::kOrigin;
     }
     PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
     const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);
@@ -129,10 +128,7 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
         }
     }
     device->PopMatrix(TransformPipeline::kPickStack);
-    out->x = outX;
-    out->y = outY;
-    out->z = pz;
-    return out;
+    return {outX, outY, pz};
 }
 
 } // namespace
@@ -228,14 +224,14 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
 
 // ---- Cursor picking ------------------------------------------------------------------------------
 
-Vector3* WorldClient::PickGround(Vector3* out, int x, int y) {
-    return PickPoint(this, out, x, y, [this](float px, float py) {
+Vector3 WorldClient::PickGround(int x, int y) {
+    return PickPoint(this, x, y, [this](float px, float py) {
         return terrain->HeightAt(px, py, terrain::Layer::Ground);
     });
 }
 
-Vector3* WorldClient::PickSurface(Vector3* out, int x, int y) {
-    return PickPoint(this, out, x, y, [this](float px, float py) {
+Vector3 WorldClient::PickSurface(int x, int y) {
+    return PickPoint(this, x, y, [this](float px, float py) {
         return GroundHeightAt(px, py);
     });
 }

@@ -281,8 +281,7 @@ void Lightning::Animate() {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
         Vector3 length = main.step * static_cast<float>(std::ssize(main.points));
-        Vector3 end;
-        AddVectors(&end, main.start, length);
+        Vector3 end = AddVectors(main.start, length);
         const float* frequency = kBranchFrequencies;
         for (int i = 0; i < 6; ++i) {
             LightningSegment& branch = branches[i];

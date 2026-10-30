@@ -190,19 +190,11 @@ int PathOrder::SetStepSpeeds(std::uint16_t speed) {
     return 0;
 }
 
-Vector3* PathOrder::Destination(Vector3* out) {
+Vector3 PathOrder::Destination() {
     const MotionOrder* order = OrderOf(this);
     float scale = 0.5f;     // half a cell
-    if (order->kind != 2) {
-        out->x = scale * order->x;
-        out->z = 0.0f;
-        out->y = scale * order->y;
-    } else {
-        out->x = scale * AsFloat(order->arg5);
-        out->z = 0.0f;
-        out->y = scale * AsFloat(order->arg6);
-    }
-    return out;
+    if (order->kind != 2) return {scale * order->x, scale * order->y, 0.0f};
+    return {scale * AsFloat(order->arg5), scale * AsFloat(order->arg6), 0.0f};
 }
 
 void AIPath::Clear() {
@@ -283,12 +275,7 @@ bool UnitMotion::Sample(World* world, MotionOrder* order, float time, bool* turn
             return true;
         }
         int from = static_cast<int>(order->arg6);
-        Vector3 buffer;
-        const Vector3* where;
-        if (static_cast<double>(from) >= time) where = object->PositionAt(&buffer, from);
-        else where = object->AimPoint(&buffer);
-        Vector3 target;
-        target = *where;
+        Vector3 target = static_cast<double>(from) >= time ? object->PositionAt(from) : object->AimPoint();
         float tx = kHalfCellScale * target.x;
         float ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);

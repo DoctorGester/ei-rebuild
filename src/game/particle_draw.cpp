@@ -33,20 +33,15 @@ bool AttachedToHiddenUnit(const ParticleSource* s) {
 } // namespace
 
 // The attachment point plus the local position, or the local position alone.
-Vector3* ParticleSource::WorldPosition(Vector3* out) {
+Vector3 ParticleSource::WorldPosition() {
     if (attachedTo) {
-        Vector3 point;
-        const Vector3* a = AttachmentPoint(&point, attachedTo);
-        float z = a->z + localPosition.z;
-        float y = a->y + localPosition.y;
-        float x = a->x + localPosition.x;
-        out->x = x;
-        out->y = y;
-        out->z = z;
-        return out;
+        Vector3 a = AttachmentPoint(attachedTo);
+        float z = a.z + localPosition.z;
+        float y = a.y + localPosition.y;
+        float x = a.x + localPosition.x;
+        return {x, y, z};
     }
-    *out = localPosition;
-    return out;
+    return localPosition;
 }
 
 // Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
@@ -65,11 +60,10 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ParticleSource* source = node != objectList.end() ? sourceOf(*node) : nullptr;
     while (source) {
         ++node;
-        Vector3 scratch;
-        const Vector3* p = source->WorldPosition(&scratch);
+        Vector3 p = source->WorldPosition();
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = DotUnrounded<Sum3::ZYX>(axis, *p);
+        entry.depth = DotUnrounded<Sum3::ZYX>(axis, p);
         lib::SetAtGrow(order, lib::Count(order), entry);
         source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }

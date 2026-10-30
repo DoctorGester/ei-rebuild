@@ -122,14 +122,10 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     Vector3 along;
     along.Construct(x, y, z);
     float w = rotation.w;
-    Vector3 cross, turned, scaled, sum, rotated;
-    CrossProduct(&cross, v, *p);
-    ScaleVector(&turned, cross, w + w);
+    Vector3 turned = ScaleVector(Cross(v, *p), w + w);
     float ww = w * w;
     float k = ww - Dot(v, v);
-    ScaleVector(&scaled, *p, k);
-    AddVectors(&sum, scaled, turned);
-    AddVectors(&rotated, sum, along);
+    Vector3 rotated = AddVectors(AddVectors(ScaleVector(*p, k), turned), along);
     float* moved = &worldPosition.x;
     float mx = rotated.x + offset.x;
     float my = rotated.y + offset.y;

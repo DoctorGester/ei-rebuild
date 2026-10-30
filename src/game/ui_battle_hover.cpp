@@ -42,11 +42,7 @@ bool IsZero(float value) {
 
 void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
     auto unitDead = [](Unit* u) { return u->IsDead(); };
-    auto pick = [x, y]() {
-        Vector3 out;
-        Vector3* p = g_clientWorld.PickSurface(&out, x, y);
-        return Vector3{p->x, p->y, p->z};
-    };
+    auto pick = [x, y]() { return g_clientWorld.PickSurface(x, y); };
     auto objectAt = [x, y]() {
         Point point = {x, y};
         return static_cast<Unit*>(g_clientWorld.PickAt2(&point));

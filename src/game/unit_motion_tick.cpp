@@ -208,10 +208,8 @@ void MotionOver(UnitServer* c, WorldServer* world) {
         std::uint8_t wasFlag = c->motion.failed == 1;
         c->motion.Clear();
         int time = c->OwningWorld()->tick;
-        Vector3 axis, back;
-        axis = c->unit->localRotation.AxisY();
-        Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
+        Vector3 axis = c->unit->localRotation.AxisY();
+        if (c->motion.Start(c->unit->localPosition, NegateVector(axis), time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = wasFlag;
@@ -220,10 +218,8 @@ void MotionOver(UnitServer* c, WorldServer* world) {
     if (!world->aiMap.ContinuePath(unit, &c->motion)) {
         c->motion.Clear();
         int time = c->OwningWorld()->tick;
-        Vector3 axis, back;
-        axis = c->unit->localRotation.AxisY();
-        Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
+        Vector3 axis = c->unit->localRotation.AxisY();
+        if (c->motion.Start(c->unit->localPosition, NegateVector(axis), time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = 0;

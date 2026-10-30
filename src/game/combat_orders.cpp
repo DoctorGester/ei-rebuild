@@ -91,8 +91,7 @@ void UnitServer::FinishCast() {
     if (!action.target) {
         at = action.point;
     } else {
-        Vector3 point;
-        at = *action.target->AimPoint(&point);
+        at = action.target->AimPoint();
     }
     if (carrier) {
         float cost = spell->manaCost;
@@ -228,8 +227,7 @@ void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run
 }
 
 void UnitServer::OrderCast(std::uint32_t source, MapObject* target, int run) {
-    Vector3 aim;
-    target->AimPoint(&aim);    // result unused (sic)
+    target->AimPoint();    // result unused (sic)
     if (source & kQuickItemSource) {
         Item* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == QuickItemCategory::Potion) {

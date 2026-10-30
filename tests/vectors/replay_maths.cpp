@@ -56,38 +56,26 @@ bool CheckFromAxisAngle(const FromAxisAngleCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("Quaternion::FromAxisAngle", FromAxisAngleCall, CheckFromAxisAngle);
 
+// The vectors include the calls whose output was one of the inputs (the original reads its inputs before it
+// writes); a value return has no such case.
 bool CheckAdd(const BinaryCall& v, char* d, std::size_t n) {
-    Vector3 a = v.a, b = v.b, out{};
-    const Vector3* pa = &a;
-    const Vector3* pb = &b;
-    Vector3* po = &out;
-    if (v.alias == 3)
-        pb = po = &a;   // out, a and b one vector
-    else if (v.alias & 1)
-        po = &a;
-    else if (v.alias & 2)
-        po = &b;
-    Vector3* ret = AddVectors(po, *pa, *pb);
-    if (ret == po && Same(*po, v.out)) return true;
-    return Fail(d, n, "(%g, %g, %g) + (%g, %g, %g) alias %u: ours (%.9g, %.9g, %.9g)", V3(v.a), V3(v.b), v.alias, V3(*po));
+    Vector3 out = AddVectors(v.a, v.b);
+    if (Same(out, v.out)) return true;
+    return Fail(d, n, "(%g, %g, %g) + (%g, %g, %g): ours (%.9g, %.9g, %.9g)", V3(v.a), V3(v.b), V3(out));
 }
 EI_VECTOR_CHECK("AddVectors", BinaryCall, CheckAdd);
 
 bool CheckNegate(const UnaryCall& v, char* d, std::size_t n) {
-    Vector3 in = v.v, out{};
-    Vector3* po = v.alias & 1 ? &in : &out;
-    Vector3* ret = NegateVector(po, in);
-    if (ret == po && Same(*po, v.out)) return true;
-    return Fail(d, n, "-(%g, %g, %g) alias %u: ours (%.9g, %.9g, %.9g)", V3(v.v), v.alias, V3(*po));
+    Vector3 out = NegateVector(v.v);
+    if (Same(out, v.out)) return true;
+    return Fail(d, n, "-(%g, %g, %g): ours (%.9g, %.9g, %.9g)", V3(v.v), V3(out));
 }
 EI_VECTOR_CHECK("NegateVector", UnaryCall, CheckNegate);
 
 bool CheckScale(const ScaleCall& v, char* d, std::size_t n) {
-    Vector3 in = v.v, out{};
-    Vector3* po = v.alias & 1 ? &in : &out;
-    Vector3* ret = ScaleVector(po, in, v.s);
-    if (ret == po && Same(*po, v.out)) return true;
-    return Fail(d, n, "(%g, %g, %g) * %.9g alias %u: ours (%.9g, %.9g, %.9g)", V3(v.v), v.s, v.alias, V3(*po));
+    Vector3 out = ScaleVector(v.v, v.s);
+    if (Same(out, v.out)) return true;
+    return Fail(d, n, "(%g, %g, %g) * %.9g: ours (%.9g, %.9g, %.9g)", V3(v.v), v.s, V3(out));
 }
 EI_VECTOR_CHECK("ScaleVector", ScaleCall, CheckScale);
 

@@ -363,8 +363,7 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     float x = unit->localPosition.x;
     float y = unit->localPosition.y;
     float z = unit->localPosition.z;
-    Vector3 aim;
-    target->AimPoint(&aim);
+    Vector3 aim = target->AimPoint();
     float dz = z - aim.z;
     float dy = y - aim.y;
     float dx = x - aim.x;

@@ -43,21 +43,7 @@ constexpr float kSphereScale = 1.6f;
 static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
-
-
 } // namespace
-
-// --- Free helpers -------------------------------------------------------------------------------
-
-Vector3* DivideVector(Vector3* out, const Vector3& v, float d) {
-    float z = v.z / d;
-    float y = v.y / d;
-    float x = v.x / d;
-    out->x = x;
-    out->y = y;
-    out->z = z;
-    return out;
-}
 
 // --- Source setters -----------------------------------------------------------------------------
 
@@ -248,7 +234,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         t = MaxKeepB(t, 0.0f);
         Vector3 along;
         along.Construct(t * n.x, t * n.y, t * n.z);
-        SubtractVectors(&offset, p->velocity, along);
+        offset = p->velocity - along;
     } else {
         offset = p->velocity;
     }

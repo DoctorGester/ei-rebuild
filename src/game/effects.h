@@ -486,7 +486,7 @@ public:
     void TickStartTrans(ParticleElement* e);
 
     // The emission point in the world (attachment point plus the local position).
-    Vector3* WorldPosition(Vector3* out);
+    Vector3 WorldPosition();
 
     int EmitCasting(Particle* p, int index);        // 0x2027-0x202A
     int UpdateCasting(Particle* p);
@@ -583,7 +583,7 @@ public:
 
     // Offset (0, 0, the bounds centre's z) and radius of the object followed (its bounds recomputed); (0, 0, 0)
     // and 0.1 when there is none.
-    Vector3* AttachmentOffset(Vector3* out, float* radius);
+    Vector3 AttachmentOffset(float* radius);
 
     // --- per-element callbacks ---
     void TickNuke(ParticleElement* e);
@@ -604,10 +604,10 @@ public:
     // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
     // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
     // position.
-    Vector3* AttachmentPoint(Vector3* out, Object3D* object);
+    Vector3 AttachmentPoint(Object3D* object);
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
     // raised by the bounds' upper z extent.
-    Vector3* PartPoint(Vector3* out, Object3D* object, const char* prefix);
+    Vector3 PartPoint(Object3D* object, const char* prefix);
     // Every particle back to the pool, emission off (Emitting and KeepAlive cleared), detached.
     void StopAndClear();
     void ReleaseAllParticles();
@@ -661,9 +661,6 @@ public:
 
 // The class factory's creator; the register arguments are unused.
 ParticleSource* NewParticleSource(int type);
-
-// `out` = v / d, all three quotients computed before the first store; returns out.
-Vector3* DivideVector(Vector3* out, const Vector3& v, float d);
 
 // The particle renderer's shared arrays. One vertex (position and size,
 // interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.

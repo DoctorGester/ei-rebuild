@@ -579,11 +579,7 @@ void HudTopPanel::Wheel(int, int, int x, int y) {
 void BattleScreen::SelectUnit(Unit* unit, int x, int y) {
     const bool ctrl = ui->doubleClick;
     auto unitDead = [](Unit* u) { return u->IsDead(); };
-    auto pick = [x, y]() {
-        Vector3 out;
-        Vector3* p = g_clientWorld.PickSurface(&out, x, y);
-        return Vector3{p->x, p->y, p->z};
-    };
+    auto pick = [x, y]() { return g_clientWorld.PickSurface(x, y); };
     auto unitPosition = [](Unit* u) { return u->localPosition; };
     auto objectAt = [x, y]() {
         Point point = {x, y};

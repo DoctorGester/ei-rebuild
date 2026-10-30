@@ -220,12 +220,12 @@ public:
     ClassId GetClassId() override;
     bool IsSynchronised() override;
     void ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster) override;
-    Vector3* EyePoint(Vector3* out) override;
+    Vector3 EyePoint() override;
     std::uint32_t ReadNetState(int first) override;
     void WriteNetState() override;
     // The position predicted along the path at world time `time`, the point the animation acts on.
-    Vector3* PositionAt(Vector3* out, int time) override;
-    Vector3* AimPoint(Vector3* out) override;
+    Vector3 PositionAt(int time) override;
+    Vector3 AimPoint() override;
     bool IsLargeUnit() override;
     bool IsDead() override;
     // The controller's ForgetObject; nothing reads the result (0).
@@ -435,7 +435,7 @@ public:
     // "rh3"), another unit's weapon point (the controller's) turned by the orientation, or else its position
     // plus the bounding box centre. The server and a hero without the part rotate uninitialised stack (see
     // the notes).
-    Vector3* EffectPoint(Vector3* out);
+    Vector3 EffectPoint();
 
     // Sets the hostile mask (relationsA), tells the controller, sets flags 0x80000 and marks part 11 changed.
     void SetHostileMask(std::uint32_t mask);

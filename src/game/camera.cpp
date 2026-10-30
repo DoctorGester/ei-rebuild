@@ -274,9 +274,7 @@ void Camera::StopMotion() {
     up.x = zero * up.x;
     up.y = up.y * zero;
     up.z = 0.0f;
-    Vector3 sum;
-    AddVectors(&sum, right, up);
-    panTarget = sum;
+    panTarget = AddVectors(right, up);
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate, turnRate);
@@ -386,13 +384,11 @@ void Camera::Update(float dt) {
     Vector3& velocity = panVelocity;
     const Vector3& wanted = panTarget;
     Vector3 change = {wanted.x - velocity.x, wanted.y - velocity.y, wanted.z - velocity.z};
-    Vector3 accel;
-    ScaleVector(&accel, change, panResponse);
+    Vector3 accel = ScaleVector(change, panResponse);
     bool snap = true;
     if (accel.Length() >= 0.001) {   // the double constant (exact as a compare)
         float before = static_cast<float>(Dot(velocity, velocity));
-        Vector3 step;
-        ScaleVector(&step, accel, dt);
+        Vector3 step = ScaleVector(accel, dt);
         velocity.AddInPlace(step);
         float after = static_cast<float>(Dot(velocity, velocity));
         float goal = static_cast<float>(Dot(wanted, wanted));

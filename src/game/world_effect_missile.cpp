@@ -173,8 +173,7 @@ int EffectArrow::Unpack(int update, DeltaField* field) {
     if (fromCaster != 0) {
         auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
-            Vector3 point;
-            position = *caster->EffectPoint(&point);
+            position = caster->EffectPoint();
         }
     }
     localPosition = position;
@@ -312,8 +311,7 @@ int EffectArrowFigure::Unpack(int update, DeltaField* field) {
     if (fromCaster != 0) {
         auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
-            Vector3 point;
-            position = *caster->EffectPoint(&point);
+            position = caster->EffectPoint();
         }
     }
     localPosition = position;

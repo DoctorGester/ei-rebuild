@@ -103,8 +103,7 @@ void SetupExplosion(ParticleSource* s) {
         float length = std::sqrt(lengthSquared);
         Vector3 v;
         v.Construct(x, y, z);
-        Vector3 direction;
-        DivideVector(&direction, v, length);
+        Vector3 direction = v / length;
         float speed = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
         float vx = direction.x * speed;
         float vy = speed * direction.y;

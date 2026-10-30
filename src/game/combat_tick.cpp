@@ -608,8 +608,7 @@ void UnitServer::ApproachTarget() {
     }
 
     float reach = ActionDistance(&action);
-    Vector3 aim;
-    target->AimPoint(&aim);
+    Vector3 aim = target->AimPoint();
     if (!target->IsLargeUnit()) {
         if (reach * reach >= DistanceSquaredXYUnrounded<float>(aim, unit->localPosition) &&
             CanActFrom(&action, &aim.x, now)) {
@@ -622,12 +621,11 @@ void UnitServer::ApproachTarget() {
         int lead = nextAttackTime - now + kAttackLead;
         if (lead > 0) {
             // A moving target that comes into reach before the next attack: wait for it.
-            Vector3 scratch;
-            const float* p = &target->PositionAt(&scratch, lead + now)->x;
+            Vector3 p = target->PositionAt(lead + now);
             Vector3 offset;
-            offset.x = p[0] - unit->localPosition.x;
-            offset.y = p[1] - unit->localPosition.y;
-            offset.z = p[2] - unit->localPosition.z;
+            offset.x = p.x - unit->localPosition.x;
+            offset.y = p.y - unit->localPosition.y;
+            offset.z = p.z - unit->localPosition.z;
             float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // Unit::MoveSpeed: a float
             if (closing > 0.0f) {
                 float distance = LengthXYZ(offset);
@@ -655,12 +653,11 @@ void UnitServer::ApproachTarget() {
             followedLeader.Reset();
         }
     }
-    Vector3 scratch;
-    const float* where = &chased->AimPoint(&scratch)->x;
+    Vector3 where = chased->AimPoint();
     Vector3 offset;
-    offset.x = where[0] - unit->localPosition.x;
-    offset.y = where[1] - unit->localPosition.y;
-    offset.z = where[2] - unit->localPosition.z;
+    offset.x = where.x - unit->localPosition.x;
+    offset.y = where.y - unit->localPosition.y;
+    offset.z = where.z - unit->localPosition.z;
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
     float closing;
@@ -692,9 +689,7 @@ void UnitServer::ApproachTarget() {
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
     int when = ticks + now;
-    const float* future = &chased->PositionAt(&scratch, when)->x;
-    Vector3 goal;
-    lib::LoadBytes(goal, future);
+    Vector3 goal = chased->PositionAt(when);
 
     if (state == UnitState::Idle) {
         float close = (distance + 1.0f) * kPointOne;

@@ -1176,8 +1176,7 @@ void AIBrain::UpdateFollow() {
     // The leader walks: where it will be in a moment.
     Vector3 goal = self->localPosition;
     owner->GetMovePoint(&goal.x);
-    Vector3 soon;
-    leader->PositionAt(&soon, now + kLeaderAhead);
+    Vector3 soon = leader->PositionAt(now + kLeaderAhead);
     float sx = self->localPosition.x - soon.x;
     float sy = self->localPosition.y - soon.y;
     float soonSq = LengthSquared2DUnrounded(sx, sy);
@@ -1196,8 +1195,7 @@ void AIBrain::UpdateFollow() {
     // step aside of its way.
     float best = soonSq;
     for (int ahead = kLeaderFirstStep;; ) {
-        Vector3 later;
-        leader->PositionAt(&later, now + ahead);
+        Vector3 later = leader->PositionAt(now + ahead);
         float lx = self->localPosition.x - later.x;
         float ly = self->localPosition.y - later.y;
         float laterSq = LengthSquared2DUnrounded(lx, ly);
@@ -1208,8 +1206,7 @@ void AIBrain::UpdateFollow() {
         if (++ahead >= kLeaderLastStep) return;
     }
 
-    Vector3 passing;
-    leader->PositionAt(&passing, now + kLeaderSide);
+    Vector3 passing = leader->PositionAt(now + kLeaderSide);
     float along = passing.y - leader->localPosition.y;
     float across = passing.x - leader->localPosition.x;
     Vector3 side{-along, across, 0.0f};

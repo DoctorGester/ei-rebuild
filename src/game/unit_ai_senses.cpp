@@ -109,8 +109,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
             if (lib::Contains(memory->visible, other)) continue;
         }
         if (!ready) Prepare(self);
-        Vector3 theirEye;
-        other->EyePoint(&theirEye);
+        Vector3 theirEye = other->EyePoint();
         Vector3 d = theirEye - eye;
         UnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
@@ -219,8 +218,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
 void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid) {
     Vector3 axis = seer->localRotation.AxisY();
     Vector3 look{-axis.x, -axis.y, -axis.z};
-    Vector3 eye;
-    seer->EyePoint(&eye);
+    Vector3 eye = seer->EyePoint();
     grid->x0 = kNoGridOrigin;
     grid->y0 = kNoGridOrigin;
     grid->cells.Resize(1, 1);
@@ -416,8 +414,7 @@ void AIMemory::SeeCorpse(Unit* self, Unit* corpse) {
 void AIMemory::MeasureExposure(UnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     Unit* unit = self->unit;
-    Vector3 eye;
-    unit->EyePoint(&eye);
+    Vector3 eye = unit->EyePoint();
     for (auto& node : nearby) {
         Unit* other = node;
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
@@ -430,8 +427,7 @@ void AIMemory::MeasureExposure(UnitServer* self, float* out) {
                       self->stats.conspicuity[0].current;
         EI_NAN_AUDIT(distance, sight);
         if (distance < sight) {
-            Vector3 theirEye;
-            Vector3 to = *other->EyePoint(&theirEye);
+            Vector3 to = other->EyePoint();
             float range = g_serverWorld.aiMap.LineOfSight(eye, to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }

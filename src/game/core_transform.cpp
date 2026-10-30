@@ -48,9 +48,7 @@ void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
 #define EI_SCALE (q.w * q.w - LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz))
     Vector3 scaled = {static_cast<float>(EI_SCALE * l.x), static_cast<float>(EI_SCALE * l.y), static_cast<float>(EI_SCALE * l.z)};
 #undef EI_SCALE
-    Vector3 sum1, sum2;
-    AddVectors(&sum1, scaled, around);
-    AddVectors(&sum2, sum1, along);
+    Vector3 sum2 = AddVectors(AddVectors(scaled, around), along);
     float x = sum2.x + p.x;
     float y = sum2.y + p.y;
     float z = sum2.z + p.z;

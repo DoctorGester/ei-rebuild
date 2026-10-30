@@ -162,7 +162,7 @@ void CampTakeItem(void* camp, void* item, int mode) {
     static_cast<CampPages*>(static_cast<UiWindow*>(camp))->TakeItem(static_cast<Item*>(item), mode);
 }
 void PickSurface(void* world, float* out, int x, int y) {
-    static_cast<WorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
+    *reinterpret_cast<Vector3*>(out) = static_cast<WorldClient*>(world)->PickSurface(x, y);
 }
 void LoadUnitFaces(void* world) { static_cast<WorldClient*>(world)->LoadUnitFaces(); }
 void BlinkOpen(void* half) { static_cast<UnitClientSpecific*>(half)->BlinkOpen(true); }

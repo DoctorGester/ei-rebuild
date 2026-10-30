@@ -224,9 +224,7 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     }
     if (angle > kPiDouble) {
         angle = pc24::Sub(kPiDouble + kPiDouble, angle);   // the double 2 pi minus the float, one rounding
-        Vector3 opposite;
-        NegateVector(&opposite, axis);
-        axis = opposite;
+        axis = NegateVector(axis);
     }
     if (reduced) angle = angle * kHalfTurn;
     Rotate(axis, angle);
