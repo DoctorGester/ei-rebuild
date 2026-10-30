@@ -51,6 +51,8 @@ def main():
     total = 0
     for f in files:
         path = ROOT / f
+        if not path.is_file():
+            continue
         text = path.read_bytes().decode('utf-8')
         ranges = changed_ranges(f, base)
         inc = include_range(text.splitlines())

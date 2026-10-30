@@ -9,7 +9,6 @@
 // in src/platform/bink.
 
 #include "lib/bytes.h"
-#include "lib/compiler.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -47,6 +46,8 @@ struct DateTime {
 };
 // The local date and time now.
 DateTime LocalTime();
+// strftime of a saved timestamp's local time, up to 127 characters; empty when unavailable or too long.
+std::string FormatLocalTime(std::int32_t seconds, const char* format);
 
 // ==== Output for a developer =========================================================================================
 
@@ -88,8 +89,11 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 std::uint32_t PageSize();
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
-// Fresh seed material from the operating system's entropy source.
-void RandomWords(std::span<std::uint32_t> words);
+// Seed material for a 256-word generator, using the host's entropy source.
+void RandomWords(std::span<std::uint32_t, 256> words);
+// A complete decimal float in the C locale, including inf/nan; no leading plus, whitespace or hex syntax.
+// Leaves `value` untouched on failure.
+bool ParseFloat(std::string_view text, float* value);
 // The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness), straight from the
 // system, not the slots the harness fixes; both stay as they are when it cannot tell.
 void PrimaryDesktopSize(int* width, int* height);
@@ -304,7 +308,7 @@ int IniInt(const char* section, const char* key, int defaultValue, const char* p
 // Worker threads and events. A lock is a std::recursive_mutex (a critical section is
 // recursive); a thread's end is waited for with a Signal, whose calls stay on the import slots the harness traces.
 
-using ThreadProcedure = unsigned(EI_THREAD_CALL*)(void* parameter);
+using ThreadProcedure = unsigned (*)(void* parameter);
 
 // A thread made as MFC's AfxBeginThread did: created suspended, the priority set (SetThreadPriority's values: 2 is
 // the highest), then running. It ends when the procedure returns. Closing it (or destroying the object) lets go of

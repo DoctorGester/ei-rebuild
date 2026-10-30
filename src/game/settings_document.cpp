@@ -1,17 +1,12 @@
 // The settings file's text, its values' text and its defaults (no file, no game): Document, the Parse / Text
 // functions of the values, Defaults. See settings.h; tests/vectors/replay_settings.cpp checks them without the game.
+#include "platform/platform.h"
 #include "settings.h"
 
 #include "lib/text_case.h"
 
 #include <array>
-#if defined(__APPLE__)
-#include <cerrno>
-#include <cstdlib>
-#include <xlocale.h>
-#endif
 #include <charconv>
-#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -192,26 +187,7 @@ bool ParseInt(std::string_view text, int* value) {
 
 bool ParseFloat(std::string_view text, float* value) {
     if (!text.empty() && text.front() == '+') text.remove_prefix(1);
-#if defined(__APPLE__)
-    if (text.empty() || text::IsSpace(static_cast<unsigned char>(text.front()))) return false;
-    const std::size_t sign = text.front() == '-' ? 1 : 0;
-    if (text.size() > sign + 1 && text[sign] == '0' && (text[sign + 1] == 'x' || text[sign + 1] == 'X')) return false;
-    static locale_t locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
-    const std::string terminated(text);
-    char* end = nullptr;
-    errno = 0;
-    const float number = strtof_l(terminated.c_str(), &end, locale);
-    // strtof reports ERANGE for representable subnormals too; from_chars accepts those.
-    if ((errno == ERANGE && (number == 0.0f || !std::isfinite(number))) ||
-        end != terminated.c_str() + terminated.size())
-        return false;
-#else
-    float number = 0;
-    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
-    if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size()) return false;
-#endif
-    *value = number;
-    return true;
+    return platform::ParseFloat(text, value);
 }
 
 bool ParseBool(std::string_view text, bool* value) {

@@ -95,6 +95,10 @@ void Floats() {
     CHECK(settings::ParseFloat("3", &value) && value == 3.0f);
     CHECK(settings::ParseFloat("+0.5", &value) && value == 0.5f);
     CHECK(!settings::ParseFloat("", &value) && !settings::ParseFloat("1.5x", &value) && !settings::ParseFloat("true", &value));
+    for (const char* bad : {"++1", " 1", "\t1", "1 ", "0x1p0", "-0x1p0", "1e100", "1e-1000"}) {
+        value = 7.0f;
+        CHECK_MSG(!settings::ParseFloat(bad, &value) && value == 7.0f, bad);
+    }
 }
 
 // Text values, quoted when spaces or a quote at an end would be lost.

@@ -22,7 +22,6 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/compiler.h"
 #include "lib/crt.h"
 #include "lib/intro_sort.h"
 #include "lib/str.h"
@@ -123,10 +122,8 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
     return surface;
 }
 
-// A write the way the box's constructor inlines it: in place (marking the buffer written) when it
-// fits before `end`, otherwise through the buffer's virtual call. Not inlined, so it is called through the
-// buffer's own vtable.
-EI_NOINLINE void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
+// Writes in place when there is room; otherwise asks the buffer to grow.
+void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
     if (buffer->cur + size > buffer->end) {
         buffer->WriteMore(from, size);
         return;

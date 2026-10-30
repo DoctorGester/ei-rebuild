@@ -12,7 +12,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "lib/compiler.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -136,7 +135,7 @@ void CursorThread(Cursor* self) {
 }
 
 // The procedure platform::Thread starts (the cursor as its parameter): CursorThread, then exit code 0.
-unsigned EI_THREAD_CALL CursorThreadEntry(void* cursor) {
+unsigned CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<Cursor*>(cursor));
     return 0;
 }

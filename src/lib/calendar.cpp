@@ -25,17 +25,4 @@ std::int32_t CurrentTime() {
     return MakeTime(local.year, local.month, local.day, local.hour, local.minute, local.second);
 }
 
-std::string FormatTime(std::int32_t time, const char* format) {
-    char buffer[128];
-    std::tm at;
-    const std::time_t value = time;
-#if defined(_WIN32)
-    const bool valid = localtime_s(&at, &value) == 0;
-#else
-    const bool valid = localtime_r(&value, &at) != nullptr;
-#endif
-    if (!valid || !std::strftime(buffer, sizeof(buffer), format, &at)) buffer[0] = '\0';
-    return buffer;
-}
-
 } // namespace lib

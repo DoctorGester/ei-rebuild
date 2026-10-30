@@ -11,7 +11,6 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "lib/compiler.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -59,7 +58,7 @@ Object3DClientSpecific* ModelOf(MapObject* object) {
 }
 
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
-EI_FORCE_INLINE float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
+inline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>

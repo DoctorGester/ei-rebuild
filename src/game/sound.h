@@ -8,7 +8,6 @@
 #include "registry.h"
 #include "resource_stream.h"
 
-#include "lib/compiler.h"
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
@@ -91,7 +90,7 @@ struct SoundEmitter {
 };
 
 struct SoundSequence;
-unsigned EI_THREAD_CALL StreamThreadEntry(void* manager);
+unsigned StreamThreadEntry(void* manager);
 
 // The bit of a sequence chooser's result that loops the sound (bit 30).
 inline constexpr int kSequenceLoop = 0x40000000;

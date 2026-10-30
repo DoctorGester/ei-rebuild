@@ -19,8 +19,6 @@
 // (libcrt::CiAcos / CiAsin) return a double; where the game stores the result to a float, round it with
 // static_cast<float> (an unrounded angle flipped a quaternion's sign).
 
-#include "lib/compiler.h"
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -116,76 +114,76 @@ enum class Sum3 { XYZ, ZYX, ZXY };
 // ---- Arithmetic (the grouping written here is kept) ----------------------------------------------
 
 // Vector2: per component; each component is one operation.
-EI_FORCE_INLINE Vector2 operator+(const Vector2& a, const Vector2& b) { return {a.x + b.x, a.y + b.y}; }
-EI_FORCE_INLINE Vector2 operator-(const Vector2& a, const Vector2& b) { return {a.x - b.x, a.y - b.y}; }
-EI_FORCE_INLINE Vector2 operator-(const Vector2& a) { return {-a.x, -a.y}; }
-EI_FORCE_INLINE Vector2 operator*(const Vector2& a, float s) { return {a.x * s, a.y * s}; }
-EI_FORCE_INLINE Vector2 operator*(float s, const Vector2& a) { return {s * a.x, s * a.y}; }
-EI_FORCE_INLINE Vector2 operator/(const Vector2& a, float s) { return {a.x / s, a.y / s}; }
-EI_FORCE_INLINE Vector2& operator+=(Vector2& a, const Vector2& b) {
+inline Vector2 operator+(const Vector2& a, const Vector2& b) { return {a.x + b.x, a.y + b.y}; }
+inline Vector2 operator-(const Vector2& a, const Vector2& b) { return {a.x - b.x, a.y - b.y}; }
+inline Vector2 operator-(const Vector2& a) { return {-a.x, -a.y}; }
+inline Vector2 operator*(const Vector2& a, float s) { return {a.x * s, a.y * s}; }
+inline Vector2 operator*(float s, const Vector2& a) { return {s * a.x, s * a.y}; }
+inline Vector2 operator/(const Vector2& a, float s) { return {a.x / s, a.y / s}; }
+inline Vector2& operator+=(Vector2& a, const Vector2& b) {
     a = a + b;
     return a;
 }
-EI_FORCE_INLINE Vector2& operator-=(Vector2& a, const Vector2& b) {
+inline Vector2& operator-=(Vector2& a, const Vector2& b) {
     a = a - b;
     return a;
 }
-EI_FORCE_INLINE Vector2& operator*=(Vector2& a, float s) {
+inline Vector2& operator*=(Vector2& a, float s) {
     a = a * s;
     return a;
 }
-EI_FORCE_INLINE Vector2& operator/=(Vector2& a, float s) {
+inline Vector2& operator/=(Vector2& a, float s) {
     a = a / s;
     return a;
 }
 
 // 2-term sums have one result whatever the order.
-EI_FORCE_INLINE float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }
-EI_FORCE_INLINE float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
-EI_FORCE_INLINE float Length2D(const Vector2& v) {
+inline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }
+inline float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
+inline float Length2D(const Vector2& v) {
     return static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2D(v))));
 }
-EI_FORCE_INLINE float DistanceSquared2D(const Vector2& a, const Vector2& b) { return LengthSquared2D(a - b); }
+inline float DistanceSquared2D(const Vector2& a, const Vector2& b) { return LengthSquared2D(a - b); }
 
 // Vector3: per component; each component is one operation (`/ s` divides, no reciprocal).
-EI_FORCE_INLINE Vector3 operator+(const Vector3& a, const Vector3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
-EI_FORCE_INLINE Vector3 operator-(const Vector3& a, const Vector3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
-EI_FORCE_INLINE Vector3 operator-(const Vector3& a) { return {-a.x, -a.y, -a.z}; }
-EI_FORCE_INLINE Vector3 operator*(const Vector3& a, float s) { return {a.x * s, a.y * s, a.z * s}; }
-EI_FORCE_INLINE Vector3 operator*(float s, const Vector3& a) { return {s * a.x, s * a.y, s * a.z}; }
-EI_FORCE_INLINE Vector3 operator/(const Vector3& a, float s) { return {a.x / s, a.y / s, a.z / s}; }
-EI_FORCE_INLINE Vector3& operator+=(Vector3& a, const Vector3& b) {
+inline Vector3 operator+(const Vector3& a, const Vector3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
+inline Vector3 operator-(const Vector3& a, const Vector3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
+inline Vector3 operator-(const Vector3& a) { return {-a.x, -a.y, -a.z}; }
+inline Vector3 operator*(const Vector3& a, float s) { return {a.x * s, a.y * s, a.z * s}; }
+inline Vector3 operator*(float s, const Vector3& a) { return {s * a.x, s * a.y, s * a.z}; }
+inline Vector3 operator/(const Vector3& a, float s) { return {a.x / s, a.y / s, a.z / s}; }
+inline Vector3& operator+=(Vector3& a, const Vector3& b) {
     a = a + b;
     return a;
 }
-EI_FORCE_INLINE Vector3& operator-=(Vector3& a, const Vector3& b) {
+inline Vector3& operator-=(Vector3& a, const Vector3& b) {
     a = a - b;
     return a;
 }
-EI_FORCE_INLINE Vector3& operator*=(Vector3& a, float s) {
+inline Vector3& operator*=(Vector3& a, float s) {
     a = a * s;
     return a;
 }
-EI_FORCE_INLINE Vector3& operator/=(Vector3& a, float s) {
+inline Vector3& operator/=(Vector3& a, float s) {
     a = a / s;
     return a;
 }
 
 // The 2D part (x, y) of 3D positions.
-EI_FORCE_INLINE float DistanceSquaredXY(const Vector3& a, const Vector3& b) {
+inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) {
     float dx = a.x - b.x;
     float dy = a.y - b.y;
     return dx * dx + dy * dy;
 }
 
 // Cross product; each component is a * b - c * d (the products commute).
-EI_FORCE_INLINE Vector3 Cross(const Vector3& a, const Vector3& b) {
+inline Vector3 Cross(const Vector3& a, const Vector3& b) {
     return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
 // Linear interpolation: (b - a) * t + a.
-EI_FORCE_INLINE float Lerp(float a, float b, float t) { return (b - a) * t + a; }
-EI_FORCE_INLINE Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
+inline float Lerp(float a, float b, float t) { return (b - a) * t + a; }
+inline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
 
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
 // template named Dot would make `&Dot`, the registered function's address, ambiguous); the named
@@ -195,45 +193,45 @@ namespace vecmath {
 // The grouped sum x * x' + y * y' + z * z' of six float operands. Callers pass loaded floats, never
 // computed values (precise semantics would round each computed argument to memory).
 template <Sum3 O>
-EI_FORCE_INLINE float SumOfProducts(float x, float y, float z, float x2, float y2, float z2) {
+inline float SumOfProducts(float x, float y, float z, float x2, float y2, float z2) {
     if constexpr (O == Sum3::XYZ) return (x * x2 + y * y2) + z * z2;
     else if constexpr (O == Sum3::ZYX) return (z * z2 + y * y2) + x * x2;
     else return (z * z2 + x * x2) + y * y2;
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE float Dot(const Vector3& a, const Vector3& b) {
+inline float Dot(const Vector3& a, const Vector3& b) {
     return SumOfProducts<O>(a.x, a.y, a.z, b.x, b.y, b.z);
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE float LengthSquared(const Vector3& v) {
+inline float LengthSquared(const Vector3& v) {
     return SumOfProducts<O>(v.x, v.y, v.z, v.x, v.y, v.z);
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE float Length(const Vector3& v) {
+inline float Length(const Vector3& v) {
     return static_cast<float>(std::sqrt(LengthSquared<O>(v)));
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE float DistanceSquared(const Vector3& a, const Vector3& b) {
+inline float DistanceSquared(const Vector3& a, const Vector3& b) {
     return LengthSquared<O>(a - b);
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE float Distance(const Vector3& a, const Vector3& b) {
+inline float Distance(const Vector3& a, const Vector3& b) {
     return Length<O>(a - b);
 }
 
 // v / |v| (three divisions) and v * (1 / |v|).
 template <Sum3 O>
-EI_FORCE_INLINE Vector3 Normalised(const Vector3& v) {
+inline Vector3 Normalised(const Vector3& v) {
     return v / Length<O>(v);
 }
 
 template <Sum3 O>
-EI_FORCE_INLINE Vector3 NormalisedReciprocal(const Vector3& v) {
+inline Vector3 NormalisedReciprocal(const Vector3& v) {
     return v * (1.0f / Length<O>(v));
 }
 
@@ -241,14 +239,14 @@ EI_FORCE_INLINE Vector3 NormalisedReciprocal(const Vector3& v) {
 // z * m[8 + i], then + m[12 + i] for a point. The transforms take one grouping per component
 // (OX, OY, OZ; each defaults to the one before) where the game sums the rows differently.
 template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY>
-EI_FORCE_INLINE Vector3 TransformRowNormal(const Matrix4& m, const Vector3& v) {
+inline Vector3 TransformRowNormal(const Matrix4& m, const Vector3& v) {
     const float* c = m.m;
     return {SumOfProducts<OX>(v.x, v.y, v.z, c[0], c[4], c[8]), SumOfProducts<OY>(v.x, v.y, v.z, c[1], c[5], c[9]),
             SumOfProducts<OZ>(v.x, v.y, v.z, c[2], c[6], c[10])};
 }
 
 template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY>
-EI_FORCE_INLINE Vector3 TransformRow(const Matrix4& m, const Vector3& v) {
+inline Vector3 TransformRow(const Matrix4& m, const Vector3& v) {
     const float* c = m.m;
     return {SumOfProducts<OX>(v.x, v.y, v.z, c[0], c[4], c[8]) + c[12],
             SumOfProducts<OY>(v.x, v.y, v.z, c[1], c[5], c[9]) + c[13],
@@ -258,14 +256,14 @@ EI_FORCE_INLINE Vector3 TransformRow(const Matrix4& m, const Vector3& v) {
 // Matrix times column vector (M * v): component i is the grouped sum of m[4i] * x, m[4i + 1] * y,
 // m[4i + 2] * z, then + m[4i + 3] for a point. Takes Matrix4 or MatrixRows.
 template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY, typename M>
-EI_FORCE_INLINE Vector3 TransformColumnNormal(const M& m, const Vector3& v) {
+inline Vector3 TransformColumnNormal(const M& m, const Vector3& v) {
     const float* r = m.m;
     return {SumOfProducts<OX>(r[0], r[1], r[2], v.x, v.y, v.z), SumOfProducts<OY>(r[4], r[5], r[6], v.x, v.y, v.z),
             SumOfProducts<OZ>(r[8], r[9], r[10], v.x, v.y, v.z)};
 }
 
 template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY, typename M>
-EI_FORCE_INLINE Vector3 TransformColumn(const M& m, const Vector3& v) {
+inline Vector3 TransformColumn(const M& m, const Vector3& v) {
     const float* r = m.m;
     return {SumOfProducts<OX>(r[0], r[1], r[2], v.x, v.y, v.z) + r[3],
             SumOfProducts<OY>(r[4], r[5], r[6], v.x, v.y, v.z) + r[7],
@@ -274,7 +272,7 @@ EI_FORCE_INLINE Vector3 TransformColumn(const M& m, const Vector3& v) {
 
 // The homogeneous w of M * (v, 1): the grouped sum of m[12] * x, m[13] * y, m[14] * z, + m[15].
 template <Sum3 O>
-EI_FORCE_INLINE float TransformColumnW(const Matrix4& m, const Vector3& v) {
+inline float TransformColumnW(const Matrix4& m, const Vector3& v) {
     const float* r = m.m;
     return SumOfProducts<O>(r[12], r[13], r[14], v.x, v.y, v.z) + r[15];
 }
@@ -294,20 +292,18 @@ using vecmath::TransformRow;
 using vecmath::TransformRowNormal;
 
 // Named variants.
-EI_FORCE_INLINE float DotXYZ(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::XYZ>(a, b); }
-EI_FORCE_INLINE float DotZYX(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::ZYX>(a, b); }
-EI_FORCE_INLINE float DotZXY(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::ZXY>(a, b); }
-EI_FORCE_INLINE float LengthSquaredXYZ(const Vector3& v) { return LengthSquared<Sum3::XYZ>(v); }
-EI_FORCE_INLINE float LengthSquaredZYX(const Vector3& v) { return LengthSquared<Sum3::ZYX>(v); }
-EI_FORCE_INLINE float LengthSquaredZXY(const Vector3& v) { return LengthSquared<Sum3::ZXY>(v); }
-EI_FORCE_INLINE float LengthXYZ(const Vector3& v) { return Length<Sum3::XYZ>(v); }
-EI_FORCE_INLINE float LengthZYX(const Vector3& v) { return Length<Sum3::ZYX>(v); }
-EI_FORCE_INLINE float LengthZXY(const Vector3& v) { return Length<Sum3::ZXY>(v); }
-EI_FORCE_INLINE float DistanceSquaredZYX(const Vector3& a, const Vector3& b) {
-    return DistanceSquared<Sum3::ZYX>(a, b);
-}
-EI_FORCE_INLINE float DistanceZYX(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZYX>(a, b); }
-EI_FORCE_INLINE float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
+inline float DotXYZ(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::XYZ>(a, b); }
+inline float DotZYX(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::ZYX>(a, b); }
+inline float DotZXY(const Vector3& a, const Vector3& b) { return vecmath::Dot<Sum3::ZXY>(a, b); }
+inline float LengthSquaredXYZ(const Vector3& v) { return LengthSquared<Sum3::XYZ>(v); }
+inline float LengthSquaredZYX(const Vector3& v) { return LengthSquared<Sum3::ZYX>(v); }
+inline float LengthSquaredZXY(const Vector3& v) { return LengthSquared<Sum3::ZXY>(v); }
+inline float LengthXYZ(const Vector3& v) { return Length<Sum3::XYZ>(v); }
+inline float LengthZYX(const Vector3& v) { return Length<Sum3::ZYX>(v); }
+inline float LengthZXY(const Vector3& v) { return Length<Sum3::ZXY>(v); }
+inline float DistanceSquaredZYX(const Vector3& a, const Vector3& b) { return DistanceSquared<Sum3::ZYX>(a, b); }
+inline float DistanceZYX(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZYX>(a, b); }
+inline float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
 
 // The rotated Y axis of q as Quaternion::AxisY and the game's copies of it compute it: (2(yx - wz), (w^2
 // - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition, each component
@@ -315,7 +311,7 @@ EI_FORCE_INLINE float DistanceZXY(const Vector3& a, const Vector3& b) { return D
 // these ports' written-out 2(yz + wx) into (2wx + yz) + yz (a second rounding) and one copy's
 // -2(yx - wz) into (wz - yx) + (wz - yx) (+0 where the original's negation gives -0; V3c). No float locals: a precise body rounds them through memory, which
 // the game does not (V3e).
-EI_FORCE_INLINE Vector3 RotatedAxisY(const Quaternion& q) {
+inline Vector3 RotatedAxisY(const Quaternion& q) {
     return {(q.y * q.x - q.w * q.z) * 2.0f, (q.w * q.w - ((q.x * q.x + q.z * q.z) + q.y * q.y)) + q.y * q.y * 2.0f,
             (q.y * q.z + q.w * q.x) * 2.0f};
 }
@@ -323,12 +319,12 @@ EI_FORCE_INLINE Vector3 RotatedAxisY(const Quaternion& q) {
 // The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component rounded to float as those store
 // it (V3e). Precise for the same reason: inlined into /fp:fast code, `(z * x + y * w) * 2` was regrouped into
 // (2zx + yw) + yw. By reference: a precise inlined body spills scalar arguments to memory.
-EI_FORCE_INLINE Vector3 RotatedAxisX(const Quaternion& q) {
+inline Vector3 RotatedAxisX(const Quaternion& q) {
     float xx = q.x * q.x;   // a float temporary
     return {(q.w * q.w - ((q.z * q.z + q.y * q.y) + xx)) + xx * 2.0f, (q.y * q.x + q.w * q.z) * 2.0f,
             (q.x * q.z - q.y * q.w) * 2.0f};
 }
-EI_FORCE_INLINE Vector3 RotatedAxisZ(const Quaternion& q) {
+inline Vector3 RotatedAxisZ(const Quaternion& q) {
     return {(q.z * q.x + q.y * q.w) * 2.0f, (q.z * q.y - q.w * q.x) * 2.0f,
             (q.w * q.w - ((q.x * q.x + q.y * q.y) + q.z * q.z)) + q.z * q.z * 2.0f};
 }
@@ -340,59 +336,59 @@ EI_FORCE_INLINE Vector3 RotatedAxisZ(const Quaternion& q) {
 // original used without storing it, which at 24 bits is the float.)
 
 template <typename T>
-EI_FORCE_INLINE T LengthSquared2DUnrounded(T x, T y) {
+inline T LengthSquared2DUnrounded(T x, T y) {
     return x * x + y * y;
 }
 
 // dx * dx + dy * dy of dx = a.x - b.x, dy = a.y - b.y, the differences computed in T, dy first (the
 // order VC6 loads them in the AI's target scoring).
 template <typename T>
-EI_FORCE_INLINE T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
+inline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     T dy = static_cast<T>(a.y) - b.y;
     T dx = static_cast<T>(a.x) - b.x;
     return dx * dx + dy * dy;
 }
 
 template <typename T>
-EI_FORCE_INLINE T Dot2DUnrounded(T x, T y, T x2, T y2) {
+inline T Dot2DUnrounded(T x, T y, T x2, T y2) {
     return x * x2 + y * y2;
 }
 
 // d + x * x2 + y * y2 with the offset added first, (d + x * x2) + y * y2: a plane's value at a point
 // (PlaneHeight, d + nx * x + ny * y; V3f). Not the same as d + Dot2DUnrounded(...).
 template <typename T>
-EI_FORCE_INLINE T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) {
+inline T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) {
     return (d + x * x2) + y * y2;
 }
 
 // The 3-term sums on the caller's scalars (V3c), grouped as named (Sum3), in T. Like the 2D forms
 // they are the written-out expression: they replace one only where the object code stays the same.
 template <Sum3 O, typename T>
-EI_FORCE_INLINE T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
+inline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
     if constexpr (O == Sum3::XYZ) return (x * x2 + y * y2) + z * z2;
     else if constexpr (O == Sum3::ZYX) return (z * z2 + y * y2) + x * x2;
     else return (z * z2 + x * x2) + y * y2;
 }
 
 template <Sum3 O, typename T>
-EI_FORCE_INLINE T LengthSquaredUnrounded(T x, T y, T z) {
+inline T LengthSquaredUnrounded(T x, T y, T z) {
     return DotUnrounded<O, T>(x, y, z, x, y, z);
 }
 
 // The Vector3 forms (V3d), in float unless the site names T.
 template <Sum3 O, typename T = float>
-EI_FORCE_INLINE T DotUnrounded(const Vector3& a, const Vector3& b) {
+inline T DotUnrounded(const Vector3& a, const Vector3& b) {
     return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z);
 }
 
 template <Sum3 O, typename T = float>
-EI_FORCE_INLINE T LengthSquaredUnrounded(const Vector3& v) {
+inline T LengthSquaredUnrounded(const Vector3& v) {
     return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z);
 }
 
 // The 4-term quaternion dot ((w * w' + z * z') + y * y') + x * x' in T (Slerp 's order; V3e).
 template <typename T>
-EI_FORCE_INLINE T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
+inline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
     return ((static_cast<T>(a.w) * b.w + static_cast<T>(a.z) * b.z) + static_cast<T>(a.y) * b.y) +
            static_cast<T>(a.x) * b.x;
 }
@@ -406,7 +402,7 @@ struct AxisUnrounded {
 
 // The X axis: (w^2 - ((y^2 + z^2) + x^2) + 2x^2, 2(wz + xy), 2(xz - wy)), each doubling an addition.
 template <typename T>
-EI_FORCE_INLINE AxisUnrounded<T> AxisXUnrounded(const Quaternion& q) {
+inline AxisUnrounded<T> AxisXUnrounded(const Quaternion& q) {
     T w = q.w, x = q.x, y = q.y, z = q.z;
     T xx = x * x;
     T ax = (w * w - ((y * y + z * z) + xx)) + (xx + xx);

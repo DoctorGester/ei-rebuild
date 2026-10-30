@@ -10,11 +10,22 @@ has the rest; it is the only place of the game's code that includes `<windows.h>
 (`gameapi::X`). The renderer's Direct3D backend (`src/render`) keeps its own Windows calls. A port replaces the Windows
 remainder; game code does not change.
 
+Game and library sources use no OS/compiler conditionals or compiler annotations. Thread procedures are ordinary
+C++ function pointers; the backend adapts them to the host ABI. `platform::ParseFloat` owns the C-locale parsing
+differences, `FormatLocalTime` owns local calendar conversion, and `RandomWords` supplies a 256-word seed (the
+legacy file/rand sequence on Windows, system entropy on POSIX). Trace observers use `platform/callers.h` for caller
+capture; its compiler intrinsics stay inline within that header so they do not add a frame to the trace.
+`tools/check_platform.py` enforces this boundary as well as the Windows API rule.
+
 ## Files
 
 | File | What |
 |---|---|
 | `src/platform/platform.h` | the layer: every area below, in that order |
+| `src/platform/callers.h` | compiler-specific caller capture for the harness's diagnostic observers |
+| `src/platform/parsing.cpp`, `calendar.cpp` | C-locale float parsing and local timestamp formatting |
+| `src/platform/posix/` | POSIX files, paths, INI files, sockets, process locking and seed entropy |
+| `src/platform/win32/platform_win32_random.cpp` | Windows file-based seed material and its rand mixing |
 | `src/platform/sdl/platform_sdl.cpp` | SDL3's areas (builds without the harness: release, debug, play, x64): the clocks, the message box, the threads, the window and its events, the cursor, the mouse, the clipboard |
 | `src/platform/win32/platform_win32_window.cpp` | the same areas on Windows' window procedure and game.exe's slots (the harness's builds: verify, verify-x64, asan); CMakeLists.txt takes one of the two |
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: output for a developer, paths, the machine, folders and files, the .ini files, the other game window (the one-instance check), the keyboard's names and layouts, sockets; then the UTF-8 routes (`text::utf8`, `TEXT_ROUTE`) |

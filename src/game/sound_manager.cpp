@@ -16,7 +16,6 @@
 #include "sound.h"
 
 #include "lib/bytes.h"
-#include "lib/compiler.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -1376,7 +1375,7 @@ void SoundManager::StreamThread() {
 }
 
 // The stream thread's procedure: the manager's StreamThread, then 0.
-unsigned EI_THREAD_CALL StreamThreadEntry(void* manager) {
+unsigned StreamThreadEntry(void* manager) {
     auto* self = static_cast<SoundManager*>(manager);
     self->StreamThread();
     self->streamStopped.Set();

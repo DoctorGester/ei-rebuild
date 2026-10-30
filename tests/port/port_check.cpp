@@ -1,4 +1,5 @@
 // Native platform checks with synthetic files only. No installed game files are changed.
+#include "platform/callers.h"
 #include "platform/platform.h"
 
 #include "lib/float_select.h"
@@ -28,6 +29,18 @@ void Check(bool ok, const char* message) {
 }
 int main() {
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
+    bool observed = false;
+    platform::ObserveCallers(
+        [&](const void* expected, void* const* callers) {
+            Check(expected && callers[0] == expected, "observer captures its caller without a platform frame");
+            for (int i = 1; i < 64; ++i) Check(callers[i] == nullptr, "unused caller words are zero");
+            observed = true;
+        },
+        platform::ReturnAddress());
+    Check(observed, "caller observer invoked");
+    Check(platform::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
+    const std::string tooLong(128, 'x');
+    Check(platform::FormatLocalTime(0, tooLong.c_str()).empty(), "reject oversized saved timestamp text");
     namespace fs = std::filesystem;
     const fs::path old = fs::current_path();
     std::string temp = (fs::temp_directory_path() / "ei-port-XXXXXX").string();
@@ -113,6 +126,24 @@ int main() {
     Close(receiver);
     Close(sender);
     Stop();
+    struct Worker {
+        platform::Signal finished;
+        int value = 0;
+    } worker;
+    worker.finished.Create();
+    platform::Thread thread;
+    Check(thread.Start(
+              [](void* parameter) -> unsigned {
+                  auto& worker = *static_cast<Worker*>(parameter);
+                  worker.value = 42;
+                  worker.finished.Set();
+                  return 0;
+              },
+              &worker, 0),
+          "start ordinary C++ thread callback");
+    worker.finished.Wait();
+    Check(worker.value == 42, "thread callback receives its parameter and signals completion");
+    thread.Close();
     fs::current_path(old);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);

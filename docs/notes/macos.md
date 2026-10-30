@@ -65,8 +65,9 @@ launcher while testing, so the installed data is left untouched.
 
 ## Implementation and checks
 
-- All 383 game/library translation units compile as native ARM64 C++20. Compiler helpers replace MSVC spelling;
-  portable math keeps integer-conversion sentinels and disables multiply/add contraction.
+- All 383 game/library translation units compile as native ARM64 C++20. Game code uses ordinary C++ functions,
+  inline helpers and thread callbacks; compiler/OS selection stays in `src/platform`. Portable math keeps
+  integer-conversion sentinels and disables multiply/add contraction.
 - The POSIX backend implements files, mappings, INI reads/writes, sockets, process locking and user-data paths.
   File lookup normalizes backslashes and folds case a component at a time, so `res\\database.res` opens
   `Res/database.res` on a case-sensitive volume. Exact spelling wins; ambiguous folded matches sort consistently.
@@ -81,7 +82,8 @@ launcher while testing, so the installed data is left untouched.
   rasterization use backing pixels. A 1280x800-point window was verified at 2560x1600 pixels, including menu and
   tutorial clicks. Saved resolution retains points, avoiding size doubling after a restart.
 - `port_platform` covers path folding, file/mapping behavior, INI updates, single-instance exclusion, UDP,
-  math edge cases and the existing 20,381 settings checks. `port_render` runs the same 29 glyph cases as the
+  math edge cases, thread callbacks, caller capture and the existing 20,000+ settings checks. `port_render` runs
+  the same 29 glyph cases as the
   Windows canvas checker, against its CPU pixel oracle: Cyrillic, shadows, clipping, overlap, batching, stream
   overflow and 555/565/888 destinations. All pass, with zero differing glyph pixels.
 

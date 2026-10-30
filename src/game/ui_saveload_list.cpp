@@ -3,26 +3,26 @@
 // window's first surface. Rebirth's WideScreen patches it (the caret's points scaled without the margin),
 // which this reproduces behind the flag. Rebirth-patched callees: the surface's text, the text extent, the
 // point scaling and the sprite's Place. See ui.h (SaveLoadWindow) and docs/notes/items_spells.md.
-#include "ui.h"
-
-#include "text_manager.h"       // TextManager
 #include "game_singletons.h"
+#include "platform/platform.h"
+#include "render/text_format.h"
+#include "text_manager.h"   // TextManager
+#include "ui.h"
 #include "world.h"
 #include "world_glue.h"
 
-#include "ei/rebirth.h"
-#include "lib/calendar.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "render/text_format.h"
+
+#include "ei/rebirth.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -91,7 +91,7 @@ void SaveLoadWindow::RefreshListVanilla() {
             surface->DrawTextIn(entry.title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
         }
         if (!isSave || index != 0) {
-            const std::string date = lib::FormatTime(entry.savedAt, kDateFormat);
+            const std::string date = platform::FormatLocalTime(entry.savedAt, kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, render::text::kRight, 1);
         }
         rects::Offset(&titleRect, 0, kRowHeight);

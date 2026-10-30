@@ -4,7 +4,6 @@
 
 #include "platform/platform.h"
 
-#include "lib/compiler.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 
@@ -20,7 +19,7 @@ inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
 inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
 
-unsigned EI_THREAD_CALL CursorThreadEntry(void* cursor);
+unsigned CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class DirectInputMouse final {

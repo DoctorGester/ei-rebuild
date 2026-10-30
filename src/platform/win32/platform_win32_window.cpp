@@ -59,11 +59,26 @@ MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption,
 
 namespace platform {
 
+namespace {
+struct ThreadStart {
+    ThreadProcedure procedure;
+    void* parameter;
+};
+
+unsigned __stdcall RunThread(void* data) {
+    const ThreadStart start = *static_cast<ThreadStart*>(data);
+    delete static_cast<ThreadStart*>(data);
+    return start.procedure(start.parameter);
+}
+}
+
 bool Thread::Start(ThreadProcedure procedure, void* parameter, int priority) {
     Close();
+    auto start = std::make_unique<ThreadStart>(ThreadStart{procedure, parameter});
     unsigned id = 0;
-    HANDLE thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, procedure, parameter, CREATE_SUSPENDED, &id));
+    HANDLE thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, RunThread, start.get(), CREATE_SUSPENDED, &id));
     if (!thread) return false;
+    start.release();   // the suspended thread takes ownership before it runs
     gameapi::SetThreadPriority(thread, priority);
     gameapi::ResumeThread(thread);
     handle = thread;

@@ -8,6 +8,8 @@ implementation (platform/win32/: its own declarations, game.exe's imports) or ca
 comments left out), and fails when one is not in
 config/platform_files.txt: a file may leave the list, not join it. Run with --update after a move onto the platform
 layer to drop the files that no longer need to be listed (it never adds one).
+Compiler/OS conditionals and compiler annotations are also forbidden in src/game and src/lib, apart from the
+generated PE import prototypes' Windows calling conventions.
 
 usage: python tools/check_platform.py [--update]
 """
@@ -26,6 +28,12 @@ WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + 
 WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/win32/', re.M)
 IMPORT_CALL = re.compile(r'\bgameapi::\w')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
+# Compiler and OS selection belongs to the platform implementation, not portable game/library code.
+PLATFORM_CONDITION = re.compile(
+    r'^\s*#\s*(?:if|elif|ifdef|ifndef|define|undef)\b[^\n]*\b(?:_WIN32|_WIN64|_MSC_VER|__APPLE__|__linux__|__unix__|'
+    r'__GNUC__|__clang__|__aarch64__|__x86_64__)\b', re.M)
+COMPILER_ANNOTATION = re.compile(r'\b(?:EI_FORCE_INLINE|EI_NOINLINE|EI_THREAD_CALL|EI_RETURN_ADDRESS|'
+                                 r'__forceinline|__declspec|__attribute__|__stdcall|_ReturnAddress|_AddressOfReturnAddress)\b')
 
 
 def counted(path):
@@ -49,6 +57,20 @@ def windows_files():
     return sorted(out)
 
 
+def portability_problems():
+    problems = []
+    for folder in ('src/game', 'src/lib'):
+        for path in glob.glob(os.path.join(ROOT, folder, '**', '*.*'), recursive=True):
+            rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
+            if not rel.endswith(('.cpp', '.h', '.inc')): continue
+            code = COMMENT.sub('', open(path, encoding='utf-8', errors='replace').read())
+            # The old PE import declarations describe Windows ABI types, not portable game code.
+            annotations = rel != 'src/lib/import_prototypes.h'
+            if PLATFORM_CONDITION.search(code) or (annotations and COMPILER_ANNOTATION.search(code)):
+                problems.append(rel)
+    return sorted(problems)
+
+
 def main(argv):
     now = windows_files()
     listed = []
@@ -64,8 +86,12 @@ def main(argv):
     problems = [p for p in now if p not in listed]
     for p in problems:
         print(f'{p}: includes a Windows header or calls gameapi::; go through platform/platform.h (docs/notes/platform.md)')
-    print(f'platform: {len(now)} files outside src/platform and src/render call Windows; {len(problems)} problem(s)')
-    return 1 if problems else 0
+    portability = portability_problems()
+    for p in portability:
+        print(f'{p}: compiler/OS conditions or annotations belong in src/platform')
+    total = len(problems) + len(portability)
+    print(f'platform: {len(now)} files outside src/platform and src/render call Windows; {total} problem(s)')
+    return 1 if total else 0
 
 
 if __name__ == '__main__':
