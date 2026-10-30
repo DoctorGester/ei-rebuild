@@ -10,6 +10,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -529,18 +530,29 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
         DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
 }
 
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height) {
+NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, 0);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, 0);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
-    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, true);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;
+    SDL_Rect work{};
+    if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
+        int top = 0, left = 0, bottom = 0, right = 0;   // the borders and the title bar (none where SDL cannot tell)
+        SDL_GetWindowBordersSize(g_window, &top, &left, &bottom, &right);
+        width = std::min(width, work.w - left - right);
+        height = std::min(height, work.h - top - bottom);
+        SDL_SetWindowSize(g_window, width, height);
+        SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - width) / 2,
+                              work.y + top + (work.h - top - bottom - height) / 2);
+    }
     g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
     SDL_StartTextInput(g_window);
     return g_native;

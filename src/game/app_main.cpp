@@ -541,6 +541,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
         g_logicSettings.Load(settings);
     }
     options->Load();
+    // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
+    // smaller client area (a work area too small for it), and the renderer scales the frame into it.
     widescreen::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
@@ -556,7 +558,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     std::string folder;
     CreateFolders(folder);
     g_instance = instance;
-    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY);
+    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY,
+                                              options->fullScreen != 0);
     if (!g_mainWindow) return 0;
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);

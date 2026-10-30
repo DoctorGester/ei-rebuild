@@ -1,7 +1,7 @@
 #pragma once
 
 // The game window the renderer presents on (render::StartPresenting): full screen without a
-// display mode change, and the game's mouse coordinates when the frame does not fill the window one to one.
+// display mode change, and the game's mouse coordinates as frame pixels wherever the window is and whatever its size.
 // docs/notes/renderer.md, section 9.
 // More: docs/notes/comments-c22i.md, "present_window.h".
 
@@ -17,8 +17,8 @@ namespace present_window {
 // the cursor's points are mapped (platform::MapCursorPoints).
 void Update(TextureDevice* device);
 
-// A mouse event's position (client coordinates; the wheel's screen coordinates) as frame pixels. Other events, and
-// everything outside the switch-over, unchanged.
+// A mouse event's position (client coordinates; the wheel's screen coordinates) as frame pixels. Other events
+// unchanged.
 void MouseToGame(platform::Event* event);
 
 } // namespace present_window

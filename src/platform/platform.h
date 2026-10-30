@@ -443,9 +443,12 @@ NativeWindow FindClassWindow(const char* className, const char* title);
 std::uint32_t WindowProcess(NativeWindow window);
 // Brings another program's window to the front, restored from the task bar, unless it is in front already.
 void BringToFront(NativeWindow window);
-// The game window: a popup of the registered class at the screen's top left, `width` x `height`; null when it could
-// not be made.
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height);
+// The game window of the registered class, its client area `width` x `height` (the configured resolution, which the
+// game keeps whatever the window gets). Full screen: a borderless window at the screen's top left (CoverMonitor puts it
+// over its monitor). Windowed: a decorated window the player can move and resize, centred in the primary monitor's
+// work area; a client area that would not fit there is made smaller, so no row is off-screen (the renderer scales the
+// frame into it). Null when it could not be made.
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height, bool fullScreen);
 // Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
 void ShowGameWindow(NativeWindow window, int show);
 bool IsMinimized(NativeWindow window);

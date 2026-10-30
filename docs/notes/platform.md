@@ -180,8 +180,11 @@ swap chain on the window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the Nativ
 
 What SDL's backend does (platform_sdl.cpp):
 
-- **The window**: a borderless SDL window at the screen's top left, the game's size, hidden until ShowGameWindow;
-  `CoverMonitor` moves and sizes it over its display (no display mode change, no SDL full screen). Hints: Alt+F4 is the
+- **The window**: hidden until ShowGameWindow, its client area the game's size. Full screen a borderless SDL window
+  at the screen's top left, which `CoverMonitor` moves and sizes over its display (no display mode change, no SDL full
+  screen). Windowed a decorated, resizable window centred in the primary display's usable bounds, its client area made
+  smaller when it and the borders would not fit there (the same as platform_win32_window.cpp's window, which the
+  harness's runs see). Hints: Alt+F4 is the
   game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE`
   0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows gave them). SDL makes the process
   per-monitor DPI aware (its default, as the loader does): its coordinates are pixels.

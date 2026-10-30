@@ -7026,3 +7026,10 @@ group = "port"
 model = "opus"
 depends = ["MAC3f"]
 note = "Scope: glyph cases as `tests/render/glyph_cases.{h,cpp}`; perf_check through the exported `TearingSupported`; format_changed `.mm`. Check: ui_check, perf_check, `format_changed.py --check`. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3j1"
+title = "Windowed mode: no minimise on focus loss (user decision)"
+group = "port"
+depends = ["MAC3j"]
+note = "MAC3j made the windowed mode a decorated, movable window. The game still minimises its window whenever it is deactivated (app.cpp OnActivate, Inactive: platform::Minimize), the full-screen behaviour of the original: in a window, clicking another program hides the game. Ask the user whether the windowed mode should only pause (cursor, mouse, sound as now) and stay visible; if so, minimise only when full screen. Also try the release build (SDL window) windowed at the desktop's size by hand: MAC3j checked the harness's window only (it cannot run the release exe without touching an install)."
