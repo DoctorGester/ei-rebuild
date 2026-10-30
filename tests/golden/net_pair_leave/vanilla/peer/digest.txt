@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -344,7 +343,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 31A0D417 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash 6401FD94 n 69
 world updates 40
 world paused 1
 client tick 21
@@ -362,43 +361,43 @@ cunit187 #place B7CE4832
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 579D9694
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 55BE1B35 n 69
+@ 2 update 60 frame 11 tick 20 zone - hash DAE1B83B n 69
 world updates 60
 client ticksRun 57
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 43C7B81C
 cunit1000011214 #vitals A7CF3098
-@ 3 update 80 frame 15 tick 20 zone - hash 9ECD5528 n 69
+@ 3 update 80 frame 15 tick 20 zone - hash 6E401366 n 69
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 78818C42 n 69
+@ 4 update 100 frame 19 tick 20 zone - hash 915E677A n 69
 world updates 100
 client ticksRun 97
 cunit1000011214 #unit FCC615C0
-@ 5 update 120 frame 23 tick 20 zone - hash E9FC08B5 n 69
+@ 5 update 120 frame 23 tick 20 zone - hash 49A554C1 n 69
 world updates 120
 client ticksRun 117
 cunit1000011214 #unit 05327FA3
-@ 6 update 140 frame 27 tick 20 zone - hash 01F67FA2 n 69
+@ 6 update 140 frame 27 tick 20 zone - hash 8854CDE8 n 69
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 11CA628F n 69
+@ 7 update 160 frame 31 tick 20 zone - hash CE26B77F n 69
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 10103D99 n 69
+@ 8 update 180 frame 35 tick 20 zone - hash 72D86763 n 69
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 39 tick 20 zone - hash 861291A5 n 69
+@ 9 update 200 frame 39 tick 20 zone - hash 23797E59 n 69
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 43 tick 20 zone - hash 252F0351 n 69
+@ 10 update 220 frame 43 tick 20 zone - hash ACE30C58 n 69
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash 8A5AA0B8 n 69
+@ 11 update 240 frame 47 tick 20 zone - hash D24B1CC1 n 69
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash 0AF2E99A n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 94BFB7FE n 69
 world updates 260
 random isaac.count 158
 client ticksRun 257
@@ -406,35 +405,35 @@ client ticksRun 257
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit F5BA127E
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash E386055A n 69
+@ 13 update 280 frame 55 tick 20 zone - hash B5A5E3FA n 69
 world updates 280
 client ticksRun 277
-@ 14 update 300 frame 59 tick 20 zone - hash 6A34FE6F n 69
+@ 14 update 300 frame 59 tick 20 zone - hash EA8B76F9 n 69
 world updates 300
 random isaac.count 157
 client ticksRun 297
-@ 15 update 320 frame 63 tick 20 zone - hash EBCF3E15 n 69
+@ 15 update 320 frame 63 tick 20 zone - hash 6106F494 n 69
 world updates 320
 client ticksRun 317
-@ 16 update 340 frame 67 tick 20 zone - hash 35E677E7 n 69
+@ 16 update 340 frame 67 tick 20 zone - hash 90AAAE35 n 69
 world updates 340
 client ticksRun 337
-@ 17 update 360 frame 71 tick 20 zone - hash B2FF8CCE n 69
+@ 17 update 360 frame 71 tick 20 zone - hash 142546BF n 69
 world updates 360
 client ticksRun 357
-@ 18 update 380 frame 75 tick 20 zone - hash 27BF9729 n 69
+@ 18 update 380 frame 75 tick 20 zone - hash CA9C7A65 n 69
 world updates 380
 client ticksRun 377
-@ 19 update 400 frame 79 tick 20 zone - hash 0FD848D5 n 69
+@ 19 update 400 frame 79 tick 20 zone - hash D22145EF n 69
 world updates 400
 client ticksRun 397
-@ 20 update 420 frame 83 tick 20 zone - hash BFFD22EA n 69
+@ 20 update 420 frame 83 tick 20 zone - hash 62366C68 n 69
 world updates 420
 client ticksRun 417
-@ 21 update 440 frame 87 tick 20 zone - hash 3172BC51 n 69
+@ 21 update 440 frame 87 tick 20 zone - hash F0CE96AC n 69
 world updates 440
 client ticksRun 437
-@ 22 update 460 frame 91 tick 20 zone - hash ABED3F6D n 69
+@ 22 update 460 frame 91 tick 20 zone - hash 58E2EC9A n 69
 world updates 460
 random isaac.count 156
 random crt.rand 0xB9D0D6B5
@@ -447,7 +446,6 @@ world timeBase -0.0222222228
 world nightLevel 0x3F800000
 world exits 1
 world gameResult 1
-world scriptsActive 1
 world sessionKind 3
 world objects 359
 world mapObjects 23
@@ -7916,7 +7914,7 @@ cunit1000000013 #vitals 68C46754
 cunit1000000014 #place 12120D98
 cunit1000000014 #unit 0EC8D815
 cunit1000000014 #vitals 68C46754
-@ 109 update 2200 frame 439 tick 1757 zone - hash 62D22948 n 994
+@ 109 update 2200 frame 439 tick 1757 zone - hash C9989B28 n 994
 world tick 1757
 world updates 2200
 aievents tick 1757
@@ -7933,11 +7931,12 @@ cunit4768 #place BE409663
 cunit4895 #place 61186AC5
 cunit4895 #unit 12E3D32D
 cunit4896 #place D2C4976C
+cunit1000324 #place 2C2409DD
 cunit1000000013 #place 776A86B1
 cunit1000000013 #unit A254D132
 cunit1000000014 #place 719C873E
 cunit1000000014 #unit DB184969
-@ 110 update 2220 frame 443 tick 1777 zone - hash AA80FE4A n 994
+@ 110 update 2220 frame 443 tick 1777 zone - hash E3DAADA4 n 994
 world tick 1777
 world updates 2220
 aievents tick 1777
@@ -7948,9 +7947,10 @@ cunit4518 #place 0E524D0A
 cunit4518 #unit F9BC1BDA
 cunit4767 #place 8BC92812
 cunit4895 #place 21EC00BC
+cunit1000324 #place 378DC63C
 cunit1000000013 #place FCC5B9F3
 cunit1000000014 #place FA33B87C
-@ 111 update 2240 frame 447 tick 1797 zone - hash 4DAB1234 n 993
+@ 111 update 2240 frame 447 tick 1797 zone - hash 04F141DA n 993
 world tick 1797
 world updates 2240
 aievents tick 1797
@@ -7965,7 +7965,7 @@ cunit4767 #place 239A5D8A
 - cunit4768
 cunit4895 #place 65E45F19
 cunit4895 #unit AC0AA0FD
-@ 112 update 2260 frame 451 tick 1817 zone - hash CFFD684C n 993
+@ 112 update 2260 frame 451 tick 1817 zone - hash 86A73BA2 n 993
 world tick 1817
 world updates 2260
 aievents tick 1817
@@ -7975,7 +7975,7 @@ cunit4517 #place 773E1B1D
 cunit4518 #place 5C082843
 cunit4767 #place 8EEF5080
 cunit4895 #place B2063A11
-@ 113 update 2280 frame 455 tick 1837 zone - hash D56F6B56 n 993
+@ 113 update 2280 frame 455 tick 1837 zone - hash 9C3538B8 n 993
 world tick 1837
 world updates 2280
 aievents tick 1837
@@ -7985,7 +7985,7 @@ cunit4518 #place FA5CDD46
 cunit4767 #place 7DC2F9A1
 cunit4895 #place 3DB43C28
 cunit4896 #place 6CD7982E
-@ 114 update 2300 frame 459 tick 1857 zone - hash F4734149 n 993
+@ 114 update 2300 frame 459 tick 1857 zone - hash BD2912A7 n 993
 world tick 1857
 world updates 2300
 aievents tick 1857
@@ -7994,7 +7994,7 @@ client ticksRun 137
 cunit4767 #place 6D4ABECF
 cunit4767 #unit 78492ED3
 cunit4896 #place 95F41F42
-@ 115 update 2320 frame 463 tick 1877 zone - hash 05F2606E n 993
+@ 115 update 2320 frame 463 tick 1877 zone - hash 4CA83380 n 993
 world tick 1877
 world updates 2320
 aievents tick 1877
@@ -8005,7 +8005,7 @@ cunit4651 #unit 40C83EE8
 cunit4767 #place 42F185CC
 cunit4895 #place F76D6842
 cunit4896 #place 92873FE8
-@ 116 update 2340 frame 467 tick 1897 zone - hash 9C9F78F8 n 994
+@ 116 update 2340 frame 467 tick 1897 zone - hash D5C52B16 n 994
 world tick 1897
 world updates 2340
 aievents tick 1897
@@ -8024,7 +8024,7 @@ cunit4768 #unit 4105703F
 cunit4768 #vitals 2FDB08B6
 cunit4895 #place 01940BAD
 cunit4896 #place BCBEF5EF
-@ 117 update 2360 frame 471 tick 1917 zone - hash 68C5C999 n 994
+@ 117 update 2360 frame 471 tick 1917 zone - hash 219F9A77 n 994
 world tick 1917
 world updates 2360
 aievents tick 1917
@@ -8039,7 +8039,7 @@ cunit4768 #place 9BEC0A8D
 cunit4768 #unit BAFE9AFE
 cunit4895 #place 513E802B
 cunit4896 #place 9DFACB06
-@ 118 update 2380 frame 475 tick 1937 zone - hash D6D0A2C0 n 994
+@ 118 update 2380 frame 475 tick 1937 zone - hash 9F8AF12E n 994
 world tick 1937
 world updates 2380
 aievents tick 1937
@@ -8053,7 +8053,7 @@ cunit4768 #place 938CF71D
 cunit4895 #place 599B4D3F
 cunit4896 #place 99C539FB
 cunit4896 #unit 7678B468
-@ 119 update 2400 frame 479 tick 1957 zone - hash BA7D7247 n 994
+@ 119 update 2400 frame 479 tick 1957 zone - hash F32721A9 n 994
 world tick 1957
 world updates 2400
 aievents tick 1957
@@ -8067,7 +8067,7 @@ cunit4651 #unit 8D9C3ABB
 cunit4768 #place 932E9686
 cunit4895 #place A26973F9
 cunit4896 #place C891D78A
-@ 120 update 2420 frame 483 tick 1977 zone - hash E668060E n 994
+@ 120 update 2420 frame 483 tick 1977 zone - hash AF3255E0 n 994
 world tick 1977
 world updates 2420
 aievents tick 1977
@@ -8078,7 +8078,7 @@ cunit4895 #place 7B478813
 cunit4896 #place AC0B8582
 cunit1000000013 #place E735D34A
 cunit1000000014 #place E1C3D2C5
-@ 121 update 2440 frame 487 tick 1997 zone - hash EA62916E n 994
+@ 121 update 2440 frame 487 tick 1997 zone - hash A338C280 n 994
 world tick 1997
 world updates 2440
 aievents tick 1997
@@ -8086,7 +8086,7 @@ client tickFraction 17.8545456
 cunit4651 #place 378A49DA
 cunit4895 #place 53C3A7C8
 cunit4896 #place 74875BD3
-@ 122 update 2460 frame 491 tick 2017 zone - hash 45ADE925 n 994
+@ 122 update 2460 frame 491 tick 2017 zone - hash 0CF7BACB n 994
 world tick 2017
 world updates 2460
 aievents tick 2017
@@ -8094,7 +8094,7 @@ client tickFraction 20.818182
 cunit4651 #place CBFC22D5
 cunit4895 #place CBC65CF5
 cunit4896 #place FBDB6BC3
-@ 123 update 2480 frame 495 tick 2037 zone - hash 3A29075D n 994
+@ 123 update 2480 frame 495 tick 2037 zone - hash 737354B3 n 994
 world tick 2037
 world updates 2480
 aievents tick 2037
@@ -8103,7 +8103,7 @@ cunit4651 #place 68E314F1
 cunit4651 #unit 399F4132
 cunit4895 #place ED154881
 cunit4896 #place F68CE5DA
-@ 124 update 2500 frame 499 tick 2057 zone - hash 052E90C6 n 994
+@ 124 update 2500 frame 499 tick 2057 zone - hash 4C74C328 n 994
 world tick 2057
 world updates 2500
 aievents tick 2057
@@ -8112,7 +8112,7 @@ cunit4651 #place 0155A2AA
 cunit4651 #unit 8D9C3ABB
 cunit4895 #place 45E6CA98
 cunit4896 #place D9242139
-@ 125 update 2520 frame 503 tick 2077 zone - hash C47433CB n 994
+@ 125 update 2520 frame 503 tick 2077 zone - hash 8D2E6025 n 994
 world tick 2077
 world updates 2520
 aievents tick 2077
@@ -8121,7 +8121,7 @@ cunit4651 #place 39807411
 cunit4895 #place 5881DE9F
 cunit4896 #place 202F2CD1
 cunit4896 #unit C27BCFE1
-@ 126 update 2540 frame 507 tick 2097 zone - hash 1C01FB42 n 994
+@ 126 update 2540 frame 507 tick 2097 zone - hash 555BA8AC n 994
 world tick 2097
 world updates 2540
 aievents tick 2097
@@ -8129,7 +8129,7 @@ client tickFraction 28.9636364
 cunit4651 #place 25B2A63F
 cunit4895 #place 15CC9F7D
 cunit4896 #place B68B21A7
-@ 127 update 2560 frame 511 tick 2117 zone - hash 8373D09F n 994
+@ 127 update 2560 frame 511 tick 2117 zone - hash CA298371 n 994
 world tick 2117
 world updates 2560
 aievents tick 2117
@@ -8138,7 +8138,7 @@ cunit4651 #place 090D567B
 cunit4895 #place BB2655DB
 cunit4896 #place D0C974E7
 cunit4896 #unit 7678B468
-@ 128 update 2580 frame 515 tick 2137 zone - hash B5DFDE0A n 994
+@ 128 update 2580 frame 515 tick 2137 zone - hash FC858DE4 n 994
 world tick 2137
 world updates 2580
 aievents tick 2137
@@ -8148,7 +8148,7 @@ cunit4651 #unit 399F4132
 cunit4895 #place 8B2B127C
 cunit4896 #place 1E3E8F45
 cunit4896 #unit C27BCFE1
-@ 129 update 2600 frame 519 tick 2157 zone - hash BB3BDA3E n 994
+@ 129 update 2600 frame 519 tick 2157 zone - hash F26189D0 n 994
 world tick 2157
 world updates 2600
 aievents tick 2157
@@ -8157,7 +8157,7 @@ cunit4651 #place 71421B73
 cunit4895 #place 13EDD480
 cunit4896 #place E7737B8C
 cunit4896 #unit 7678B468
-@ 130 update 2620 frame 523 tick 2177 zone - hash 62F39130 n 994
+@ 130 update 2620 frame 523 tick 2177 zone - hash 2BA9C2DE n 994
 world tick 2177
 world updates 2620
 aievents tick 2177
@@ -8166,7 +8166,7 @@ cunit4651 #place 62CFAC57
 cunit4651 #unit 5A4AAF63
 cunit4895 #place 9233FDC8
 cunit4896 #place EC8B441D
-@ 131 update 2640 frame 527 tick 2197 zone - hash 263307C4 n 994
+@ 131 update 2640 frame 527 tick 2197 zone - hash 6F69542A n 994
 world tick 2197
 world updates 2640
 aievents tick 2197
@@ -8174,7 +8174,7 @@ client tickFraction 38.7818184
 cunit4651 #place 073A53DF
 cunit4895 #place 09698D31
 cunit4896 #place 01916F64
-@ 132 update 2660 frame 531 tick 2217 zone - hash 3EBB6D31 n 994
+@ 132 update 2660 frame 531 tick 2217 zone - hash 77E13EDF n 994
 world tick 2217
 world updates 2660
 aievents tick 2217
@@ -8182,7 +8182,7 @@ client tickFraction 40.7454529
 cunit4651 #place 4DD1CA06
 cunit4896 #place CFFEE094
 cunit4896 #unit C27BCFE1
-@ 133 update 2680 frame 535 tick 2237 zone - hash 4DFFB361 n 994
+@ 133 update 2680 frame 535 tick 2237 zone - hash 04A5E08F n 994
 world tick 2237
 world updates 2680
 aievents tick 2237
@@ -8190,7 +8190,7 @@ client tickFraction 42.7090912
 cunit4651 #place 7E7397DB
 cunit4896 #place 04D88561
 cunit4896 #unit 7678B468
-@ 134 update 2700 frame 539 tick 2257 zone - hash 1B3C0165 n 994
+@ 134 update 2700 frame 539 tick 2257 zone - hash 5266528B n 994
 world tick 2257
 world updates 2700
 aievents tick 2257
@@ -8198,7 +8198,7 @@ client tickFraction 44.6727257
 cunit4651 #place 13EF18FA
 cunit4896 #place 4B06AF04
 cunit4896 #unit C27BCFE1
-@ 135 update 2720 frame 543 tick 2277 zone - hash 07588FE9 n 994
+@ 135 update 2720 frame 543 tick 2277 zone - hash 4E02DC07 n 994
 world tick 2277
 world updates 2720
 aievents tick 2277
@@ -8206,7 +8206,7 @@ client tickFraction 46.636364
 cunit4651 #place 5C8B1D2B
 cunit4896 #place 23182BEF
 cunit4896 #unit 7678B468
-@ 136 update 2740 frame 547 tick 2297 zone - hash 869C1ADC n 994
+@ 136 update 2740 frame 547 tick 2297 zone - hash CFC64932 n 994
 world tick 2297
 world updates 2740
 aievents tick 2297
@@ -8214,7 +8214,7 @@ client tickFraction 48.5999985
 cunit4651 #place EC4723EE
 cunit4896 #place B42973B2
 cunit4896 #unit C27BCFE1
-@ 137 update 2760 frame 551 tick 2317 zone - hash 301A5F62 n 994
+@ 137 update 2760 frame 551 tick 2317 zone - hash 79400C8C n 994
 world tick 2317
 world updates 2760
 aievents tick 2317
@@ -8222,14 +8222,14 @@ client tickFraction 50.5636368
 cunit4651 #place A9369242
 cunit4896 #place 44794AE6
 cunit4896 #unit 7678B468
-@ 138 update 2780 frame 555 tick 2337 zone - hash 02E5F03B n 994
+@ 138 update 2780 frame 555 tick 2337 zone - hash 4BBFA3D5 n 994
 world tick 2337
 world updates 2780
 aievents tick 2337
 client tickFraction 52.5272713
 cunit4651 #place 35C3E796
 cunit4896 #place 6468C959
-@ 139 update 2800 frame 559 tick 2357 zone - hash 46500F62 n 994
+@ 139 update 2800 frame 559 tick 2357 zone - hash 0F0A5C8C n 994
 world tick 2357
 world updates 2800
 aievents tick 2357
@@ -8237,14 +8237,14 @@ client tickFraction 54.4909096
 cunit4651 #place 15B93A92
 cunit4896 #place 606E3C6E
 cunit4896 #unit C27BCFE1
-@ 140 update 2820 frame 563 tick 2377 zone - hash 2E592C79 n 994
+@ 140 update 2820 frame 563 tick 2377 zone - hash 67037F97 n 994
 world tick 2377
 world updates 2820
 aievents tick 2377
 client tickFraction 56.4545441
 cunit4651 #place 5B4B2B62
 cunit4896 #place 76E55C43
-@ 141 update 2840 frame 567 tick 2397 zone - hash 6ABA0587 n 994
+@ 141 update 2840 frame 567 tick 2397 zone - hash 23E05669 n 994
 world tick 2397
 world updates 2840
 aievents tick 2397
@@ -8252,184 +8252,184 @@ client tickFraction 58.4181824
 cunit4651 #place B2551ED9
 cunit4896 #place 5AD982A8
 cunit4896 #unit 7678B468
-@ 142 update 2860 frame 571 tick 2417 zone - hash 04F95C4B n 994
+@ 142 update 2860 frame 571 tick 2417 zone - hash 4DA30FA5 n 994
 world tick 2417
 world updates 2860
 aievents tick 2417
 client tickFraction 60.3818169
 cunit4896 #place D0270AD7
-@ 143 update 2880 frame 575 tick 2437 zone - hash 46F6C4AF n 994
+@ 143 update 2880 frame 575 tick 2437 zone - hash 0FAC9741 n 994
 world tick 2437
 world updates 2880
 aievents tick 2437
 client tickFraction 62.3454552
 cunit4896 #place ECD754F3
 cunit4896 #unit A1AE21B0
-@ 144 update 2900 frame 579 tick 2457 zone - hash FD8957F6 n 994
+@ 144 update 2900 frame 579 tick 2457 zone - hash B4D30418 n 994
 world tick 2457
 world updates 2900
 aievents tick 2457
 client tickFraction 64.3090897
 cunit4896 #place 2BB7E063
-@ 145 update 2920 frame 583 tick 2477 zone - hash EF7FD601 n 994
+@ 145 update 2920 frame 583 tick 2477 zone - hash A62585EF n 994
 world tick 2477
 world updates 2920
 aievents tick 2477
 client tickFraction 66.272728
 cunit4896 #place 5EC60949
-@ 146 update 2940 frame 587 tick 2497 zone - hash D848E7CB n 994
+@ 146 update 2940 frame 587 tick 2497 zone - hash 9112B425 n 994
 world tick 2497
 world updates 2940
 aievents tick 2497
 client tickFraction 68.2363663
 cunit4896 #place EB33CBCA
-@ 147 update 2960 frame 591 tick 2517 zone - hash 9B6ED5B0 n 994
+@ 147 update 2960 frame 591 tick 2517 zone - hash D234865E n 994
 world tick 2517
 world updates 2960
 aievents tick 2517
 client tickFraction 70.1999969
 cunit4896 #place 808D8B5A
-@ 148 update 2980 frame 595 tick 2537 zone - hash 46B5FB93 n 994
+@ 148 update 2980 frame 595 tick 2537 zone - hash 0FEFA87D n 994
 world tick 2537
 world updates 2980
 aievents tick 2537
 client tickFraction 72.1636353
-@ 149 update 3000 frame 599 tick 2557 zone - hash 61051B04 n 994
+@ 149 update 3000 frame 599 tick 2557 zone - hash 285F48EA n 994
 world tick 2557
 world updates 3000
 aievents tick 2557
 client tickFraction 74.1272736
-@ 150 update 3020 frame 603 tick 2577 zone - hash FB0380C1 n 994
+@ 150 update 3020 frame 603 tick 2577 zone - hash B259D32F n 994
 world tick 2577
 world updates 3020
 aievents tick 2577
 client tickFraction 76.0909119
-@ 151 update 3040 frame 607 tick 2597 zone - hash 0CEE8B57 n 994
+@ 151 update 3040 frame 607 tick 2597 zone - hash 45B4D8B9 n 994
 world tick 2597
 world updates 3040
 aievents tick 2597
 client tickFraction 78.0545425
-@ 152 update 3060 frame 611 tick 2617 zone - hash 4E818132 n 994
+@ 152 update 3060 frame 611 tick 2617 zone - hash 07DBD2DC n 994
 world tick 2617
 world updates 3060
 aievents tick 2617
 client tickFraction 80.0181808
-@ 153 update 3080 frame 615 tick 2637 zone - hash 7DC70EB6 n 994
+@ 153 update 3080 frame 615 tick 2637 zone - hash 349D5D58 n 994
 world tick 2637
 world updates 3080
 aievents tick 2637
 client tickFraction 81.9818192
-@ 154 update 3100 frame 619 tick 2657 zone - hash FE8CF5E4 n 994
+@ 154 update 3100 frame 619 tick 2657 zone - hash B7D6A60A n 994
 world tick 2657
 world updates 3100
 aievents tick 2657
 client tickFraction 83.9454575
-@ 155 update 3120 frame 623 tick 2677 zone - hash EA36816D n 994
+@ 155 update 3120 frame 623 tick 2677 zone - hash A36CD283 n 994
 world tick 2677
 world updates 3120
 aievents tick 2677
 client tickFraction 85.9090881
-@ 156 update 3140 frame 627 tick 2697 zone - hash 50801E0A n 994
+@ 156 update 3140 frame 627 tick 2697 zone - hash 19DA4DE4 n 994
 world tick 2697
 world updates 3140
 aievents tick 2697
 client tickFraction 87.8727264
-@ 157 update 3160 frame 631 tick 2717 zone - hash 3DD69A14 n 994
+@ 157 update 3160 frame 631 tick 2717 zone - hash 748CC9FA n 994
 world tick 2717
 world updates 3160
 aievents tick 2717
 client tickFraction 89.8363647
-@ 158 update 3180 frame 635 tick 2737 zone - hash F18C80F5 n 994
+@ 158 update 3180 frame 635 tick 2737 zone - hash B8D6D31B n 994
 world tick 2737
 world updates 3180
 aievents tick 2737
 client tickFraction 91.8000031
-@ 159 update 3200 frame 639 tick 2757 zone - hash 6A573908 n 994
+@ 159 update 3200 frame 639 tick 2757 zone - hash 230D6AE6 n 994
 world tick 2757
 world updates 3200
 aievents tick 2757
 client tickFraction 93.7636337
-@ 160 update 3220 frame 643 tick 2777 zone - hash DF2D0C32 n 994
+@ 160 update 3220 frame 643 tick 2777 zone - hash 96775FDC n 994
 world tick 2777
 world updates 3220
 aievents tick 2777
 client tickFraction 95.727272
-@ 161 update 3240 frame 647 tick 2797 zone - hash F9B149D4 n 994
+@ 161 update 3240 frame 647 tick 2797 zone - hash B0EB1A3A n 994
 world tick 2797
 world updates 3240
 aievents tick 2797
 client tickFraction 97.6909103
-@ 162 update 3260 frame 651 tick 2817 zone - hash A4DA3A39 n 994
+@ 162 update 3260 frame 651 tick 2817 zone - hash ED8069D7 n 994
 world tick 2817
 world updates 3260
 aievents tick 2817
 client tickFraction 99.6545486
-@ 163 update 3280 frame 655 tick 2837 zone - hash E6BC6D51 n 994
+@ 163 update 3280 frame 655 tick 2837 zone - hash AFE63EBF n 994
 world tick 2837
 world updates 3280
 aievents tick 2837
 client tickFraction 101.618179
-@ 164 update 3300 frame 659 tick 2857 zone - hash CCC2AF20 n 994
+@ 164 update 3300 frame 659 tick 2857 zone - hash 8598FCCE n 994
 world tick 2857
 world updates 3300
 aievents tick 2857
 client tickFraction 103.581818
-@ 165 update 3320 frame 663 tick 2877 zone - hash 0DCB55DD n 994
+@ 165 update 3320 frame 663 tick 2877 zone - hash 44910633 n 994
 world tick 2877
 world updates 3320
 aievents tick 2877
 client tickFraction 105.545456
-@ 166 update 3340 frame 667 tick 2897 zone - hash 97C74245 n 994
+@ 166 update 3340 frame 667 tick 2897 zone - hash DE9D11AB n 994
 world tick 2897
 world updates 3340
 aievents tick 2897
 client tickFraction 107.509094
-@ 167 update 3360 frame 671 tick 2917 zone - hash 38A7333C n 994
+@ 167 update 3360 frame 671 tick 2917 zone - hash 71FD60D2 n 994
 world tick 2917
 world updates 3360
 aievents tick 2917
 client tickFraction 109.472725
-@ 168 update 3380 frame 675 tick 2937 zone - hash B9D477BB n 994
+@ 168 update 3380 frame 675 tick 2937 zone - hash F08E2455 n 994
 world tick 2937
 world updates 3380
 aievents tick 2937
 client tickFraction 111.436363
-@ 169 update 3400 frame 679 tick 2957 zone - hash 227FC345 n 994
+@ 169 update 3400 frame 679 tick 2957 zone - hash 6B2590AB n 994
 world tick 2957
 world updates 3400
 aievents tick 2957
 client tickFraction 113.400002
-@ 170 update 3420 frame 683 tick 2977 zone - hash 21EE848F n 994
+@ 170 update 3420 frame 683 tick 2977 zone - hash 68B4D761 n 994
 world tick 2977
 world updates 3420
 aievents tick 2977
 client tickFraction 115.36364
-@ 171 update 3440 frame 687 tick 2997 zone - hash 7529A452 n 994
+@ 171 update 3440 frame 687 tick 2997 zone - hash 3C73F7BC n 994
 world tick 2997
 world updates 3440
 aievents tick 2997
 client tickFraction 117.327271
-@ 172 update 3460 frame 691 tick 3017 zone - hash 78AEE9E4 n 994
+@ 172 update 3460 frame 691 tick 3017 zone - hash 31F4BA0A n 994
 world tick 3017
 world updates 3460
 aievents tick 3017
 client tickFraction 119.290909
-@ 173 update 3480 frame 695 tick 3037 zone - hash 9AD2D43A n 994
+@ 173 update 3480 frame 695 tick 3037 zone - hash D38887D4 n 994
 world tick 3037
 world updates 3480
 aievents tick 3037
 client tickFraction 121.254547
-@ 174 update 3500 frame 699 tick 3057 zone - hash 64B11A60 n 994
+@ 174 update 3500 frame 699 tick 3057 zone - hash 2DEB498E n 994
 world tick 3057
 world updates 3500
 aievents tick 3057
 client tickFraction 123.218185
-@ 175 update 3520 frame 703 tick 3077 zone - hash A934932C n 994
+@ 175 update 3520 frame 703 tick 3077 zone - hash E06EC0C2 n 994
 world tick 3077
 world updates 3520
 aievents tick 3077
 client tickFraction 125.181816
-@ 176 update 3540 frame 707 tick 3097 zone - hash 1B372F27 n 68
+@ 176 update 3540 frame 707 tick 3097 zone - hash C43F6958 n 68
 world tick 3097
 world updates 3540
 world timeBase 8.5755558
@@ -8438,6 +8438,7 @@ world wind.y 1.0
 world windStrength 0x00000000
 world gameResult 4
 world zoneLoaded 1
+world scriptsActive 1
 world sessionKind 2
 world objects 51
 world mapObjects 5
@@ -9576,8 +9577,6 @@ script #files 982697DF
 script #globals 33E544A3
 script #gobject DFB99406
 script #loaded B7FE1BB6
-script #run D19ED846
-script #runs 8F0E1077
 client tick 3097
 client ticksRun 12
 client tickFraction 121.654549

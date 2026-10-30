@@ -41,12 +41,9 @@ struct Call {
     ScriptRun* run;
 };
 
-// Patch::AddNewScriptCommands.
-bool Enabled();
-
-// The extended keyword table, built once like addon builds it: the game's entries, the eight
-// replaced ones with addon's signature, then the new ones (ids 300 + record index), then the
-// terminator.
+// The extended keyword table, built once like addon builds it: the game's entries (ConsoleString, Add, Mul and
+// Random with addon's longer signature, their handlers leaving the game's argument counts to the game's code;
+// IsAlive, IsDead and ResetTarget the game's own), then the new ones (ids 300 + record index), then the terminator.
 const ScriptKeyword* Table();
 
 // The handler of `call->cmd->id` when it is one of addon's, run; false when there is none or the

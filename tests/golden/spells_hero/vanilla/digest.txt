@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -354,7 +353,6 @@ world windStrength 0x3E4CCCCD
 world nightLevel 0x3F800000
 world exits 2
 world gameResult 1
-world scriptsActive 1
 world sessionKind 1
 world objects 778
 world mapObjects 55
@@ -2157,8 +2155,6 @@ script #globals A5413D6F
 script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
-script #runs F80920E1
-script #run -
 client tick 40
 client ticksRun 12
 client objects 731
@@ -2288,7 +2284,7 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 102 zone gz1g hash 4857AFBC n 790
+@ 5 update 120 frame 23 tick 102 zone gz1g hash 268EAC0F n 790
 world tick 102
 world updates 120
 world paused 1
@@ -2340,9 +2336,9 @@ cunit1804 #place 0CFA23C5
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 5EB35962
+cunit1100011214 #unit 97AC51DD
 cunit1100011214 #vitals 7657285F
-@ 6 update 140 frame 27 tick 102 zone gz1g hash 96D529BB n 790
+@ 6 update 140 frame 27 tick 102 zone gz1g hash F80C2A08 n 790
 world updates 140
 client ticksRun 112
 @ 7 update 160 frame 31 tick 122 zone gz1g hash CE2EEF7E n 791

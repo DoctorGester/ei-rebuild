@@ -121,6 +121,21 @@ class GoldenTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('obj2 (84 stbr1) pos.x: 3.0 in A, 4.0 in B', out[1])
 
+    def test_skip_passes_an_early_difference(self):
+        # The hero stands elsewhere at record 0 only; a later difference is shown once record 0 is skipped, and the
+        # first record compared looks at every entity (the stone, untouched since record 0, is the same).
+        a = self.write('a.txt', digest())
+        b = self.write('b.txt', digest(wolf_x='9.0', later=['obj1 hp 19.0']))
+        code, out = self.diff_lines(a, b)
+        self.assertIn('record 0', out[0])
+        out = []
+        self.assertEqual(golden.diff(a, b, 'A', 'B', out=out.append, skip=1), 1)
+        self.assertIn('record 2', out[0])
+        self.assertIn('obj1 (80 unhuma "") hp: 20.0 in A, 19.0 in B', out[1])
+        b = self.write('c.txt', digest(wolf_x='9.0'))
+        out = []
+        self.assertEqual(golden.diff(a, b, 'A', 'B', out=out.append, skip=1), 0, out)
+
     def test_record_and_compare(self):
         # H40: goldens are the image's runs (<scenario>-standalone), IMAGE_RUNS of them that agree.
         runs = [os.path.dirname(self.run_folder(f'{d}/levers-standalone', digest(hooks='on')))

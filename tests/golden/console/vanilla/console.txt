@@ -29,6 +29,8 @@
     execute text file with console commands
   QUIT, EXIT
     exit game
+  ADDON [command]
+  addon-specific commands
   Unknown command
   AI: off
   AI: on

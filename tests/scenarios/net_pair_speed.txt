@@ -1,0 +1,103 @@
+# Rebirth's MPSpeedControl (ui_battle_input.cpp, ui_hud.cpp; always since C68): the game speed keys work for a
+# network client too. The flow of net_pair_zone (the exchange on the base, both games into the zone, peer/
+# net_pair_speed.txt the joiner); in the zone this game (the host) presses keypad + and the peer then does, each
+# checking its update period (27 ms fast, 55 normal); both games keep signalling each other to the end. On the host the period is
+# the server's (it runs the world everyone plays); on the peer it is its own client's only.
+rebirth resolution desktop
+timeout 240
+peer net_pair_speed
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+# The peer offers an exchange; this game answers it (the peer's face is the left one), offers its item (the
+# first of the strip) and accepts; the peer accepts.
+peerwait 90 joined
+frames 20
+peerwait 60 offered
+frames 10
+vanilla click 715 25
+rebirth click 635 36
+frames 30
+peersignal accepted
+frames 60
+vanilla click 100 558
+rebirth click 175 550
+frames 30
+vanilla click 31 467
+rebirth click 123 469
+frames 30
+peersignal hostok
+peerwait 60 peerok
+frames 30
+
+# The sheriff's second topic (z3q2_1: four phrases, then the end).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+
+# Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+peersignal entered
+peerwait 120 peerin
+frames 20
+
+# The speed keys in the shared zone (Rebirth's MPSpeedControl): this game (the host, a client of its own
+# server) goes fast, then the peer; both keep playing, then this game goes back to normal.
+key plus
+frames 10
+checktick 27
+peersignal hostfast
+peerwait 60 peerfast
+frames 200
+key minus
+frames 10
+checktick 55
+frames 50
+peersignal done
+frames 100
+report
+quit

@@ -85,7 +85,8 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
   screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
   are why rule 9 of the rewrite guide exists.
 - **ObjectsDrawRadius** (the 100.0 at 0073BAB0 in 0056AFE0 becomes the setting) and **LandscapeDrawRadius** (`PUSH 100.0` in 00569E40), both
-  implemented (read once; flag off: margin 0073BAB0, distance 100.0). BinkPatch: *disabled here*.
+  implemented as the rebuilt code's own since C68: the object pass takes every sector and the terrain every sector (Rebirth's 5376 is
+  past any map's size), the views' clip tests choose what is drawn; no flag or setting. BinkPatch: *disabled here*.
 
 ### Scripting and console (8 applied; implemented)
 
@@ -228,13 +229,17 @@ are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on)
 
 User 2026-10-20: Rebirth's obvious bug fixes are the standalone's defaults; scripting / console additions stay flags, off, decided later. The kind of each patch is
 the second argument in `include/ei/rebirth_patches.inc` and the `standalone` column of the CSV:
-- **always** (15; the fixes `on` until C68): the ten single-player bug fixes, FixProcessLogin (a multiplayer repair ours always had) and four additions
-  that only add what nothing used before (ImproveConsole, NewStringEvents, AutoExec, PersistentGlobalVars). Unconditional code since C68 (user
-  2026-10-30), with no flag: not in `rebirth_patches.inc`.
-- **flag** (21, off): the draw radii (rendering), the scripting / console patches that change what existing scripts or the console do
-  (AllowScriptArgsInLoops, AllowScriptsInMainMenu, AddNewConsoleCommands, AddNewScriptCommands: each moved a golden when on, C68), the mod-folder patches, the multiplayer features (ExtendedServerName,
-  MQClient, MPSpeedControl, PlayerNumbers), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and EI_Plugin's active features
-  (NPlayers, Pause, NewMaster, Briefings, Fixes).
+- **always** (24; the fixes `on` until C68): the ten single-player bug fixes, the draw radii (the whole map, world.md), FixProcessLogin (a multiplayer repair ours always had), the
+  scripting and console additions (ImproveConsole, NewStringEvents, AutoExec, PersistentGlobalVars, AllowScriptArgsInLoops,
+  AllowScriptsInMainMenu, AddNewConsoleCommands, AddNewScriptCommands) and three multiplayer ones (ExtendedServerName, PlayerNumbers,
+  MPSpeedControl). Unconditional code since C68 (user 2026-10-30), with no flag: not in `rebirth_patches.inc`. AddNewScriptCommands as
+  additions only: of its seven commands that share a game command's name, IsAlive, IsDead and ResetTarget stay the game's (ResetTarget on a unit
+  without behaviour records applies nothing: the game's read past the list and crashed; addon's
+  answered for units only and reset otherwise, which changed what zone1's own script did), and ConsoleString, Add, Mul and Random leave
+  the game's argument counts to the game's code. The main menu's script queue holds one run of the zone's start block, which runs and
+  ends; nothing else in the world changes.
+- **flag** (12, off): the mod-folder patches, MQClient, DisableExitOnCrashReport (the game goes on after FatalError:
+  not a fix) and EI_Plugin's active features (NPlayers, Pause, NewMaster, Briefings, Fixes).
 - **dropped** (10): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
   EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs) and WideScreen (the layout follows the window, W12). No flag
   since C68.

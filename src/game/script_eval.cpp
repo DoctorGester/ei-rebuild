@@ -108,15 +108,8 @@ void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCal
         call->cmd->CalcFloat(script, vars, &floatArgs[call->argIndex]);
         return;
     case kScriptString: {
-        // Rebirth's AddNewScriptCommands calls SSCCmd::CalcString, which
-        // runs addon's string functions.
-        if (scriptaddon::Enabled()) {
-            scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
-            return;
-        }
-        // No function returns a string: the arguments are still evaluated before the error.
-        call->cmd->PrepareArguments(script, vars);
-        game::FatalError("Function does not return string at SSCCmd::CalcFunction");
+        // Rebirth's AddNewScriptCommands' string functions (the game's had none: a fatal error).
+        scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
         return;
     }
     case kScriptObject:
@@ -132,8 +125,8 @@ void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCal
 
 void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
-    if (scriptaddon::Enabled()) {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+    {
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
         if (scriptaddon::Dispatch(&call)) return;
     }
     const float* f = floatArgs.data();
@@ -490,8 +483,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
 void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
     *result = script->NewTempObject();
-    if (scriptaddon::Enabled()) {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+    {
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
         if (scriptaddon::Dispatch(&call)) return;
     }
     const ScriptFunction function = static_cast<ScriptFunction>(id);
@@ -555,11 +548,8 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     PrepareArguments(script, vars);
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
-    bool done = false;
-    if (scriptaddon::Enabled()) {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};
-        done = scriptaddon::Dispatch(&call);
-    }
+    scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
+    const bool done = scriptaddon::Dispatch(&call);
     switch (done ? ScriptFunction::None : static_cast<ScriptFunction>(id)) {
     case ScriptFunction::None:
         break;

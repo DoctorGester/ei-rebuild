@@ -176,6 +176,7 @@
 //                             the camera's motion frame by frame and its checks (harness_camera.h, R18, R35a)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
+//   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
@@ -2951,6 +2952,12 @@ void RunSteps() {
             else clock::SetFrameTime(std::strtoul(s.argument.c_str(), nullptr, 10));
         } else if (camera_trace::UsedBy(s.verb)) {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
+        } else if (s.verb == "checktick") {
+            const unsigned want = std::strtoul(s.argument.c_str(), nullptr, 10);
+            Log("harness: checktick: the update period is %u ms (wanted %u)", TickLength(), want);
+            if (TickLength() != want)
+                g_failures.push_back("checktick: the update period is " + std::to_string(TickLength()) + " ms, not " +
+                                     std::to_string(want));
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) TickLength() = g_heldTickLength;

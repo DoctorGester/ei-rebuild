@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -344,7 +343,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 98647C99 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash CDC5551A n 69
 world updates 40
 world paused 1
 client tick 21
@@ -362,13 +361,13 @@ cunit187 #place B7CE4832
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 0C1CB055
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash ADC90A32 n 69
+@ 2 update 60 frame 11 tick 20 zone - hash 2296A93C n 69
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 66BA442F n 69
+@ 3 update 80 frame 15 tick 20 zone - hash 96370261 n 69
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 30 zone - hash 53203928 n 68
+@ 4 update 100 frame 19 tick 30 zone - hash 7F0865C6 n 68
 world tick 30
 world updates 100
 world paused 0
@@ -406,7 +405,6 @@ world windStrength 0x3E4CCCCD
 world nightLevel 0x3F800000
 world exits 2
 world gameResult 1
-world scriptsActive 1
 world sessionKind 1
 world objects 778
 world mapObjects 55
@@ -2209,8 +2207,6 @@ script #globals A5413D6F
 script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
-script #runs F80920E1
-script #run -
 client tick 50
 client ticksRun 12
 client objects 731

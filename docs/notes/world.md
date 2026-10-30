@@ -139,9 +139,10 @@ same, `world_sync.cpp` added / kept / removed).
 
 ## World client frame
 
-Draw path `Render` 00569E40 -> `DrawPass` 0056AFE0 (rewritten with Rebirth's LandscapeDrawRadius / ObjectsDrawRadius behind
-flags; slot 6 `Segment` 005641F0 with DisableExitOnCrashReport). `Render`: the camera's view matrix (004F0EF0 of 0079B2A8)
-replaces the view stack's top, then sky (flag 0x1000), terrain first pass (0x100, draw distance 100.0), `DrawPass`, terrain
+Draw path `Render` 00569E40 -> `DrawPass` 0056AFE0 (rewritten over the whole map since C68, as Rebirth's LandscapeDrawRadius /
+ObjectsDrawRadius 5376 drew it: every terrain sector and every object sector, the clip tests choose; the game took 100 units
+around the camera; slot 6 `Segment` 005641F0 with DisableExitOnCrashReport). `Render`: the camera's view matrix (004F0EF0 of 0079B2A8)
+replaces the view stack's top, then sky (flag 0x1000), terrain first pass (0x100; the game's draw distance 100.0), `DrawPass`, terrain
 second pass, effects / particles / lightning / ribbons (0x400), pops, flying hit points (0x2000). `DrawPass` clears eleven
 global `vector<CEngineObject*>` (`FrameObjects(list)`, 007AF508 + 0x10 * list: 007AF508 objects whose model stays loaded;
 visible lists 007AF568 (class 0x52), 578 (units 0x50), 588 (0x5D), 598 (other), 5A8 (0x54); shadow lists 007AF518 .. 558),

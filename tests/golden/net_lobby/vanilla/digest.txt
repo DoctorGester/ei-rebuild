@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -344,7 +343,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone - hash 7F4A2ACF n 51
+@ 1 update 40 frame 7 tick 40 zone - hash EA8B447B n 51
 world tick 40
 world updates 40
 world gameResult 0
@@ -374,9 +373,7 @@ aievents tick 40
 script #files EF21A749
 script #globals AAEC1519
 script #loaded C0F92B20
-script #runs F80920E1
 script #gobject -
-script #run -
 client tick 40
 client ticksRun 37
 client objects 0
@@ -386,13 +383,13 @@ client synchronised 0
 - cunit129
 - cunit148
 - cunit187
-@ 2 update 60 frame 11 tick 60 zone - hash A80312F9 n 51
+@ 2 update 60 frame 11 tick 60 zone - hash 0621E4E0 n 51
 world tick 60
 world updates 60
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 80 zone - hash 3A19B065 n 51
+@ 3 update 80 frame 15 tick 80 zone - hash 0F6B3501 n 51
 world tick 80
 world updates 80
 aievents tick 80

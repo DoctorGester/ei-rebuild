@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -344,7 +343,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone - hash CB58177E n 68
+@ 1 update 40 frame 7 tick 40 zone - hash 66B14105 n 68
 world tick 40
 world updates 40
 random isaac.count 123
@@ -367,7 +366,7 @@ cunit129 #unit E07B8DDB
 cunit148 #place 53E9528F
 cunit148 #unit 37ED9B5D
 cunit187 #place 8FD72F05
-@ 2 update 60 frame 11 tick 60 zone - hash 6B8D0C1F n 68
+@ 2 update 60 frame 11 tick 60 zone - hash 7AE6FBE4 n 68
 world tick 60
 world updates 60
 random isaac.count 83
@@ -387,7 +386,7 @@ client ticksRun 57
 cunit129 #place 175CD9D1
 cunit148 #place 610441E8
 cunit148 #unit 609431A0
-@ 3 update 80 frame 15 tick 80 zone - hash 65D82ADD n 68
+@ 3 update 80 frame 15 tick 80 zone - hash CBEE0EFF n 68
 world tick 80
 world updates 80
 random isaac.count 43
@@ -408,7 +407,7 @@ cunit129 #place 091087E2
 cunit129 #unit 81590308
 cunit148 #place 32A684C2
 cunit148 #unit 68E7CB98
-@ 4 update 100 frame 19 tick 100 zone - hash 41DED997 n 68
+@ 4 update 100 frame 19 tick 100 zone - hash 9FDC1FF1 n 68
 world tick 100
 world updates 100
 random isaac.count 3
@@ -428,7 +427,7 @@ client ticksRun 97
 cunit129 #place 329990BD
 cunit148 #place 8F1E0EB7
 cunit148 #unit 29178A0E
-@ 5 update 120 frame 35 tick 120 zone - hash 56C3F016 n 68
+@ 5 update 120 frame 35 tick 120 zone - hash 9E2F3D21 n 68
 world tick 120
 world updates 120
 random isaac.count 219

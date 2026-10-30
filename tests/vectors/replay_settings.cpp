@@ -219,8 +219,7 @@ void Defaults() {
     is("renderer", "Anisotropy", "16");
     is("renderer", "PerfOverlay", "false");
     CHECK(!document.Find("rebirth", "WideScreen"));   // no switch: the layout follows the window
-    is("rebirth", "ObjectsDrawRadius", "5376");
-    is("rebirth", "LandscapeDrawRadius", "5376");
+    CHECK(!document.Find("rebirth", "ObjectsDrawRadius") && !document.Find("rebirth", "LandscapeDrawRadius"));   // the whole map
     // Left out: the game's and Rebirth's own defaults.
     CHECK(!document.Find("paths", "Work path") && !document.Find("game", "ShowTutorial") && !document.Find("rebirth", "AddonPath"));
     // Rebirth's patches: a comment only, each patch the game folder's profile.

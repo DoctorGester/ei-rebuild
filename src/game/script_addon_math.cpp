@@ -70,7 +70,9 @@ bool DistancePointPoint(Call* call) {
     return true;
 }
 
+// Add / Mul of more than two: the sum / product in addon's order; of two, the game's own (false).
 bool Add(Call* call) {
+    if (FloatCount(call) == 2) return false;
     float sum = 0.0f;
     const float* f = Floats(call);
     for (int i = 0, n = FloatCount(call); i < n; ++i) sum = f[i] + sum;
@@ -79,6 +81,7 @@ bool Add(Call* call) {
 }
 
 bool Mul(Call* call) {
+    if (FloatCount(call) == 2) return false;
     float product = 1.0f;
     const float* f = Floats(call);
     for (int i = 0, n = FloatCount(call); i < n; ++i) product = f[i] * product;
@@ -315,9 +318,10 @@ bool Say(Call* call) {
     return true;
 }
 
-// ConsoleString(text, ...) (replaces the game's one-argument command): the joined texts, "\n",
-// flush.
+// ConsoleString(text, ...) (extends the game's one-argument command): the joined texts, "\n", flush. One text: the
+// game's own (false).
 bool ConsoleString(Call* call) {
+    if (call->cmd->stringArgs.size() == 1) return false;
     std::string text = Joined(call);
     (console::g_consoleOut << text << "\n").Flush();
     return true;

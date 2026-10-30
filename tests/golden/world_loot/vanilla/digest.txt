@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -354,7 +353,6 @@ world windStrength 0x3E4CCCCD
 world nightLevel 0x3F800000
 world exits 2
 world gameResult 1
-world scriptsActive 1
 world sessionKind 1
 world objects 778
 world mapObjects 55
@@ -2157,8 +2155,6 @@ script #globals A5413D6F
 script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
-script #runs F80920E1
-script #run -
 client tick 40
 client ticksRun 12
 client objects 731
@@ -2465,7 +2461,7 @@ aievents tick 180
 client tick 180
 client ticksRun 152
 cunit1000011214 #unit 5DDB5359
-@ 9 update 200 frame 39 tick 197 zone gz1g hash AE7F0CB5 n 788
+@ 9 update 200 frame 39 tick 197 zone gz1g hash B6AC00E2 n 788
 world tick 197
 world updates 200
 world paused 1
@@ -2513,16 +2509,16 @@ client ticksRun 172
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit D709D688
+cunit1100011214 #unit EFCCDB9D
 cunit1100011214 #vitals 54F14E8E
-@ 10 update 220 frame 43 tick 197 zone gz1g hash 0BB16A21 n 788
+@ 10 update 220 frame 43 tick 197 zone gz1g hash 0327D570 n 788
 world updates 220
 client ticksRun 192
-cunit1100011214 #unit 2EFDBCEB
-@ 11 update 240 frame 47 tick 197 zone gz1g hash 7233780B n 788
+cunit1100011214 #unit 1638B1FE
+@ 11 update 240 frame 47 tick 197 zone gz1g hash 7AA5C75A n 788
 world updates 240
 client ticksRun 212
-@ 12 update 260 frame 51 tick 197 zone gz1g hash 9A6FB7DA n 788
+@ 12 update 260 frame 51 tick 197 zone gz1g hash 92F9088B n 788
 world updates 260
 client ticksRun 232
 @ 13 update 280 frame 55 tick 217 zone gz1g hash 5AE6832B n 789

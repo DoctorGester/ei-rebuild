@@ -31,7 +31,6 @@
 #include "world.h"
 #include "world_data.h"
 #include "world_glue.h"
-#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -199,9 +198,8 @@ void BattleScreen::Draw(SceneRenderer* pass) {
     Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
     // The depth buffer is cleared before the panels draw.
     ClearUiDepth(1.0f);
-    // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the
-    // panels.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
+    // "nogui" shows or hides the panels (Rebirth's AddNewConsoleCommands).
+    console::ApplyAddonGuiVisibility(this);
     UiContainer::Draw(pass);
 }
 
