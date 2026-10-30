@@ -213,6 +213,7 @@ using ::SetFileTime;  // KERNEL32.dll
 using ::SystemTimeToFileTime;  // KERNEL32.dll
 using ::GetFileInformationByHandle;  // KERNEL32.dll
 extern decltype(&::GetSystemTime)& GetSystemTime;  // KERNEL32.dll, through the slot
+using ::GetModuleHandleA;  // KERNEL32.dll
 using ::LeaveCriticalSection;  // KERNEL32.dll
 extern decltype(&::GetPrivateProfileSectionA)& GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetPrivateProfileStringA)& GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
