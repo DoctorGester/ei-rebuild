@@ -74,8 +74,8 @@ recorded from the original before that (the tag original-oracle has the harness 
    declare it there). src has no `EI_ORIGINAL` (C29; `check_cleanup` keeps it at 0). Where the harness
    needs to change what our code does, it sets a named seam our code exposes (the fixed ISAAC seed:
    `IsaacRandom::SetSeedHook`; the traced draws: `IsaacRandom::SetDrawObserver`,
-   `libcrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
-   recorders call game.exe's code by address (`tests/verify/harness_original.h`).
+   `libcrt::SetRandObserver`), never an address. Nothing calls game.exe's code (H40 removed the harness's
+   game.exe side and the vector recorders).
 6. **Memory and CRT:** `new T(...)` / `delete p` (the host's heap): a class built by hand on a raw block
    gets its constructor and destructor; an owned array is a `std::vector<T>` (`std::unique_ptr<T[]>` where its
    address is handed out and must not move, the sound voices), not `new T[n]` / `delete[]`; a block of a byte count

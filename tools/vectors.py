@@ -1,10 +1,9 @@
 """Function vectors (tests/vectors/vectors.h): merge recorded runs into tests/vectors/data, show files.
 
-Record mode: run scenarios on the original game.exe with EI_VECTORS=1 in the environment (the verify
-build; e.g. `set EI_VECTORS=1` then `python tools/work.py test <ID> units sandbox_actions --no-hooks
---vanilla-only`; the recorders are game.exe's only hooks). Each run writes <run folder>/vectors/<family>/<function>.vec.
-The harness stopped running game.exe in H40: recording needs a checkout of the tag original-oracle; the recorded
-data and the replay (ei_vectors.exe) stay.
+Recording (until H40; a checkout of the tag original-oracle has it): scenarios on the original game.exe with
+EI_VECTORS=1 in the environment, the recorders game.exe's only hooks (`python tools/work.py test <ID> units
+sandbox_actions --no-hooks --vanilla-only` there). Each run wrote <run folder>/vectors/<family>/<function>.vec, which
+`merge` takes. The recorded data and the replay (ei_vectors.exe) stay.
 
 usage:
   python tools/vectors.py merge <run folder>... [--out tests/vectors/data] [--add] [--cap N]

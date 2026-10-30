@@ -1,6 +1,6 @@
 # Rebirth's bug fixes reached through script commands (docs/notes/rebirth.md, "One test profile"), on the vanilla
-# data; the golden comes from the original with addon.dll's fixes. Each part differs from the plain original
-# (EI_ADDON_FLAGS=0):
+# data; the golden came from the original with addon.dll's fixes (until H40). Each part differs from the plain
+# original (addon.dll's fixes off):
 # - FixCreateItem (CItemManager::CreateItem 006AC970): GiveItem of an unknown name gives nothing; the plain
 #   original stops with "Can't find prototype for item" (FatalError: a message box, then exit).
 # - FixMoveObject (CSectorMap::Move 005C11D0): SetCPFast to x -0.5 is refused (the hero stays); the plain

@@ -2,7 +2,8 @@
 # installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to main and claude/** branches (cloud
 # sessions; docs/cloud-handoff.md) and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
-# local work; the install copies are the main checkout's run folder (EI_RUN_DIR), so no junction sits in this checkout.
+# local work; EI_RUN_DIR names the main checkout's run folder (game.exe copies for the tools that read its file), so no
+# junction sits in this checkout.
 # By hand with "record" set, it re-records the goldens from the image instead (H40; tools/golden.py record) and pushes
 # them to the branch as a commit of its own; that push starts no run, so check the branch with another run after it.
 name: Suites

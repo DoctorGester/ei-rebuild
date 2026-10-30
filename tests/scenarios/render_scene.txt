@@ -1,9 +1,8 @@
 # The new renderer's whole frame (src/render, docs/notes/renderer.md): terrain, the world's meshes
 # (figures, objects, the sky) and the interface (window surfaces, sprites, 3D previews) on zone1 at
 # one frozen moment, captured twice: world / world_again must match, and the golden checks the game
-# state. A run of the original code (dgVoodoo) captures its own frame the same way. (render_terrain,
-# this scenario's first half, went with S21a; the old path's oldterrain / oldobjects / oldinterface
-# steps beside the new frame went with R11.) R16c: the image's frame with its terrain pages kept on the
+# state. (render_terrain, this scenario's first half, went with S21a; the old path's oldterrain / oldobjects /
+# oldinterface steps beside the new frame went with R11.) R16c: the image's frame with its terrain pages kept on the
 # GPU must match the frame with every page built and uploaded again (world_fresh), and no kept page
 # checked against a fresh build may have been stale. R16d: the same for its figure meshes kept on the
 # GPU (world_meshfresh: every mesh built into the frame's stream).

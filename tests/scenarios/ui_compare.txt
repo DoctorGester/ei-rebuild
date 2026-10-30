@@ -2,7 +2,7 @@
 # The options window, and the help over it (backdrop mode 3: the options' greyed backdrop put away by
 # SwapContents after the frame blitted it, a new one copied from that frame), each opened twice with the mouse
 # at the same place: the frames must be the same both times (a backdrop or text left over from the first
-# opening, or a copy of the wrong frame, differs). The original's run captures dgVoodoo's frames.
+# opening, or a copy of the wrong frame, differs).
 reject Script error
 waitmenu
 

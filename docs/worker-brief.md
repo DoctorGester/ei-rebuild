@@ -40,8 +40,8 @@ Rules:
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`).
   A change that should not alter behaviour keeps every golden the same; an intended change re-records the affected
-  goldens (docs/notes/standalone-verification.md, section 2) and says why in the commit. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
-  E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
+  goldens (docs/notes/standalone-verification.md, section 2) and says why in the commit. Never leave a game running. The games read the installs under F:\games; your worktree needs
+  no run\ folder (the tools that read game.exe's file find the main checkout's run\).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
   reaches it, or which function vectors replay it.

@@ -2,7 +2,7 @@
 
 The harness logs fatal exceptions with the code addresses found on the stack: game.exe addresses
 as is ("stack 006936BE (game.exe)"), ours as <module>+offset: ei-rebuild+offset in the image (the game and the
-harness linked into ei-rebuild.exe), ei_harness+offset in game.exe (ei_harness.dll). This names each with the
+harness linked into ei-rebuild.exe; ei_harness+offset in the original's runs' logs before H40). This names each with the
 module's .map symbol (undecorated) or the game function list (tests/coverage/coverage.csv names the
 rewritten functions, config/functions.csv the rest).
 

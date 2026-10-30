@@ -12,9 +12,9 @@
 // 005E52E0 through 0065ECB0: the motion it sums at 007C7C60 turns the camera on a right-button drag).
 // The harness answers GetCursorPos with its own mouse (harness.cpp HarnessCursorPos) and posts its
 // own messages, but the user's real mouse still came in by the other two. The original's window under
-// dgVoodoo covers the desktop (client area at 0,0, 3840x2160 here) and is not cloaked, so wherever the
-// real cursor rests, the topmost game window gets WM_MOUSEMOVE with its coordinates: when the cursor
-// moves, and when a starting game's window appears under it (seen: (0, 1823), the screen's left edge,
+// dgVoodoo (until H40) covered the desktop (client area at 0,0, 3840x2160 here) and was not cloaked, so wherever the
+// real cursor rested, the topmost game window got WM_MOUSEMOVE with its coordinates: when the cursor
+// moved, and when a starting game's window appeared under it (seen: (0, 1823), the screen's left edge,
 // which also scrolls the camera). A background DirectInput device reads the hardware whatever window is
 // in front. Either one moved what the game saw under the cursor and the camera: the original's runs
 // stopped repeating (S21c1: client units' model flags, the camera in the saves, then the particles'
