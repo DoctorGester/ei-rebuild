@@ -21,6 +21,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "asset_text.h"
 #include "lib/win_api.h"
@@ -84,5 +85,18 @@ LPSTR WINAPI CharUpperA(LPSTR text);
 LPSTR WINAPI CharLowerA(LPSTR text);
 
 } // namespace utf8
+
+// addon.dll's own file lookups (Rebirth's code: mod_folders, console_addon, script_addon_commands), through the
+// UTF-8 calls above directly: addon called its own imports, not the game's slots, so the harness's read redirection
+// of the game's slots does not apply to them.
+// Whether `path` names a file, not a folder (addon's 1001B9B3: GetFileAttributes).
+bool IsFile(const std::string& path);
+// One entry of a folder search.
+struct FoundEntry {
+    std::string name;
+    bool folder;
+};
+// The entries `pattern` matches, in FindFirstFile / FindNextFile's order (none when it matches nothing).
+std::vector<FoundEntry> FindAll(const std::string& pattern);
 
 } // namespace text

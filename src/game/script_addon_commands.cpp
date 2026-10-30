@@ -27,7 +27,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <windows.h>
 
 namespace scriptaddon {
 
@@ -195,8 +194,7 @@ bool IsFileExists(Call* call) {
                      EndsWith(name, "/..");
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
-    DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
-    *call->result.number = attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f;
+    *call->result.number = text::IsFile(path) ? 1.0f : 0.0f;
     return true;
 }
 

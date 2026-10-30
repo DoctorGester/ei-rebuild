@@ -15,6 +15,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "lib/file_io.h"
+
 
 #pragma pack(push, 1)
 struct ResHeader {
@@ -39,18 +41,16 @@ static_assert(sizeof(ResEntry) == 22);
 
 constexpr std::uint32_t kResMagic = 0x019CE23C;
 
-// A file mapped into memory with CreateFileMapping/MapViewOfFile. 16 bytes.
+// A file mapped into memory (unbuffered when its volume's sectors fit the pages, else for random access).
 class MappedFile {
 public:
-    MappedFile();
     ~MappedFile() { Close(); }
     void Close();                                     // an identical copy of Close's body
     bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
 
-    void* file;                   // HANDLE, INVALID_HANDLE_VALUE when closed
-    void* mapping = nullptr;      // HANDLE
-    void* view = nullptr;         // mapped base address
+    lib::File file;
+    lib::FileMapping mapping;     // its View() is the mapped base address
     std::uint32_t size = 0;
 };
 
@@ -109,7 +109,7 @@ public:
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
 
-    void* handle;                // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
+    lib::File archive;           // the archive's file
     char* image;                 // archive image when opened with OpenFromMemory
     std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries and names point into them)
     std::vector<char> nameTable;

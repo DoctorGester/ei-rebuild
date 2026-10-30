@@ -23,7 +23,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 namespace console {
 
@@ -195,8 +194,7 @@ const std::vector<std::string>& AutoExecLines() {
                 }
             }
         }
-        DWORD attributes = text::utf8::GetFileAttributesA("2utoexec.cfg");
-        if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        if (text::IsFile("2utoexec.cfg")) {
             std::ifstream file("2utoexec.cfg");
             std::string line;
             while (std::getline(file, line)) result.push_back(line);

@@ -45,17 +45,25 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   REG_* / ERROR_* codes come from win_types.h (winnt.h) and `<winerror.h>`. Release objects reaching windows.h
   (directly or through a project header; ninja's deps drop the SDK's own headers, so count by the project files
   that include it): 199 -> 160 (H33d: ui.h's `PlaySound` member renamed, ui_item_info.h without gameapi.h) -> 67
-  (H33f), mmsystem 93 -> 5, objbase / shellapi / dsound 86 -> 3. Per object (median of 7 cl.exe CPU times, base
+  (H33f) -> 58 (H33g: the game's file users on lib/file_io), mmsystem 93 -> 5, objbase / shellapi / dsound 86 -> 3. Per object (median of 7 cl.exe CPU times, base
   -> after): ui_spin 1.14 -> 1.00, calendar 0.53 -> 0.31, ui_window 1.72 -> 1.56, net_session 1.23 -> 1.02,
   ui_item_screen 1.25 -> 1.06, ui_main_menu (win_user.h) 1.34 -> 1.16, model 0.86 -> 0.70, app (keeps windows.h)
   1.25 -> 1.25: ~0.17 s each, ~15 s of a clean build's ~1,300 s. What still includes windows.h calls Windows: the
   window, messages and input (app, app_main, present_window, bink_video, ui_console_window's clipboard,
-  ui_edit_field, ui_font), files and mappings (file_io, resource, resource_stream, random, camera_object,
-  world_game, net_link, mod_folders, console_addon, script_addon_commands, settings_file), threads and waits
+  ui_edit_field, ui_font), files and mappings (file_io, resource_stream's mmio, settings_file), threads and waits
   (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, system_text), sockets
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
   (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
   import_prototypes.h (the harness key: game.exe's side).
+- Files go through `lib/file_io.h` (no SDK header): File (Seek's `File::begin` / `current` / `end`; ReadAt / WriteAt,
+  a seek and an exact read or write that return false instead of throwing, as the archive and the seed file
+  checked SetFilePointer and ReadFile; the osNoBuffer / osRandomAccess open flags), FileMapping (the mapped
+  archives) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
+  `text::IsFile` / `text::FindAll` (system_text.h), the UTF-8 calls directly: addon.dll called its own imports,
+  which the harness's read redirection (the game's slots only) leaves alone, so they must not move onto File /
+  FileFind. A member type change (MappedFile, held by FileRegistry, held by WorldServer and SoundManager) moves
+  their members: a per-function `dumpbin` comparison then differs in displacements, so compare with hex
+  immediates masked (H33g's scratch `objdiff_norm.py`).
 - gameapi.h's slot imports are `extern` references bound once in the generated gameapi.cpp (init_seg(lib)), not
   `inline auto&` references whose dynamic initialiser every including object compiled: 0-0.07 s per object (thread,
   calendar, random), a few s of a clean build; the call code is the same.

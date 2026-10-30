@@ -78,7 +78,7 @@ bool GetDwordArray(FileRegistry* registry, const char* section, const char* key,
 bool FileRegistry::Open(const std::string& path) {
     if (!file.Open(path, 0)) return false;
     attached = 0;
-    data = static_cast<const std::uint8_t*>(file.view);
+    data = static_cast<const std::uint8_t*>(file.mapping.View());
     if (U32(data) == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
     if (!attached) file.Close();

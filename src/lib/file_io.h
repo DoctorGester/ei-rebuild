@@ -4,6 +4,7 @@
 // import table and the harness's save / install redirection apply to every file the game opens or lists.
 //   - File: a binary file on a Win32 handle (the game's CFile uses);
 //   - TextFile: a text file read and written by lines on a host CRT stream (its CStdioFile uses);
+//   - FileMapping: a File's contents mapped into memory (its CMappedFile);
 //   - FileFind: a folder search (its CFileFind uses);
 //   - OpenFile / FileExists: fopen and _access.
 // A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
@@ -29,14 +30,17 @@ public:
 
 // A binary file. Open's flags are MFC's CFile open flags, which the callers pass on (the save code's and the chunk
 // readers' numbers): access in bits 0-1, sharing in bits 4-6, create (truncating unless noTruncate); the type bits
-// are ignored. Closed by the destructor.
+// are ignored; later MFC's osNoBuffer and osRandomAccess (FILE_FLAG_NO_BUFFERING, FILE_FLAG_RANDOM_ACCESS: the
+// archive readers' opens). Closed by the destructor.
 class File {
 public:
     enum Flags : unsigned {
         modeRead = 0x0000, modeWrite = 0x0001, modeReadWrite = 0x0002, shareExclusive = 0x0010, shareDenyWrite = 0x0020,
         shareDenyRead = 0x0030, shareDenyNone = 0x0040, modeCreate = 0x1000, modeNoTruncate = 0x2000,
-        typeText = 0x4000, typeBinary = 0x8000
+        typeText = 0x4000, typeBinary = 0x8000, osNoBuffer = 0x10000, osRandomAccess = 0x40000
     };
+    // Seek's origins (FILE_BEGIN, FILE_CURRENT, FILE_END).
+    enum SeekPosition : unsigned { begin = 0, current = 1, end = 2 };
 
     File() = default;
     // Opens `path`; a FileError when it cannot.
@@ -67,10 +71,16 @@ public:
         static_assert(std::is_trivially_copyable_v<T>, "a file value is plain bytes");
         Write(&value, sizeof(T));
     }
-    // `from` FILE_BEGIN, FILE_CURRENT or FILE_END; the new position.
+    // `from` begin, current or end; the new position.
     long Seek(long offset, unsigned from);
     unsigned long GetPosition() const;
     unsigned long GetLength() const;
+    // `count` bytes at `offset` from the start: a seek, then a read or write; false when either fails or fewer bytes
+    // were moved (nothing throws).
+    bool ReadAt(long offset, void* buffer, unsigned count);
+    bool WriteAt(long offset, const void* buffer, unsigned count);
+    // The last-write time set to the current time.
+    void SetWriteTimeNow();
 
 private:
     void* handle = nullptr;
@@ -101,6 +111,35 @@ private:
     std::FILE* stream = nullptr;
     std::string path;
 };
+
+// A File's contents mapped into memory: a mapping of the whole file, then a view of all of it. Closed by the
+// destructor.
+class FileMapping {
+public:
+    FileMapping() = default;
+    ~FileMapping();
+    FileMapping(const FileMapping&) = delete;
+    FileMapping& operator=(const FileMapping&) = delete;
+
+    // The mapping of `file`, read-only or read-write; false when CreateFileMappingA fails. A mapping still open is
+    // closed first.
+    bool Create(const File& file, bool writable);
+    // The view of the whole mapping; null when MapViewOfFile fails (GetLastError tells why).
+    void* MapView(bool writable);
+    // The view's changes written to the file.
+    void Flush();
+    // The view unmapped and the mapping closed.
+    void Close();
+    void* View() const { return view; }
+
+private:
+    void* mapping = nullptr;   // the mapping's handle
+    void* view = nullptr;
+};
+
+// Whether the sector size of `path`'s volume (its drive for an "X:\" path, else the current one's) divides the
+// page size, so that an unbuffered file can be mapped; false when the volume does not tell.
+bool SectorsFitPages(const std::string& path);
 
 // A folder search as MFC's CFileFind: FindFile starts it, then each FindNext moves to the next entry and returns
 // false when that entry is the last one (it is still there to read). The paths are the search pattern's folder made

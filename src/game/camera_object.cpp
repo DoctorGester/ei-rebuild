@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <windows.h>
 
 namespace {
 
@@ -164,7 +163,7 @@ int Camera::RecordFrame(std::uint32_t time) {
     lib::File file;
     if (!(flags & Camera::kRecording)) return 0;
     if (!file.Open(fileName, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;    // (an existing file only)
-    file.Seek(0, FILE_END);
+    file.Seek(0, lib::File::end);
     record.time = std::bit_cast<float>(time);
     record.reserved = 0;
     record.position = localPosition;
