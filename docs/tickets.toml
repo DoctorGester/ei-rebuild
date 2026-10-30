@@ -6936,5 +6936,93 @@ id = "MAC3"
 title = "macos-port: take the non-macOS parts into main per MAC2's plan, align the branch"
 group = "port"
 model = "opus"
-depends = ["MAC2"]
+depends = ["MAC3a", "MAC3b", "MAC3c", "MAC3d", "MAC3e", "MAC3f", "MAC3g", "MAC3h", "MAC3i", "MAC3j", "MAC3k"]
 note = "Per MAC2's plan: one ticket (MAC3a, MAC3b, ...) per part main can test on Windows; each lands on main cleaned up and green, then main is merged into macos-port so the branch keeps only macOS-specific changes."
+
+[[ticket]]
+id = "MAC3a"
+title = "macos-port: Portable CRT and compiler calls in game/lib code"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: settings.cpp, settings_document.cpp, mod_folders.cpp, rebirth.cpp, net_second_master.cpp, rebirth_hook.cpp, startup.cpp, resource_stream.cpp, app_main.cpp (`DriveRoot` via `lib::SplitPath`), lib/path.h, ui_container.cpp, calendar.{h,cpp} -> `platform::FormatLocalTime`, sound.h / ui_cursor.h thread entries without `__stdcall` plus the `RunThread` adapter, `<unknwn.h>` removals, FileFind `IsHidden/IsSystem` removal. Cleanup: `g_queued` / `g_secondMaster` become `std::string` (no `abort`). `ParseFloat` stays `std::from_chars` in settings_document.cpp. No include re-sorting of untouched lines. Check: goldens (main 152/4, Rebirth 32/0, x64 152/4), ei_vectors (replay_settings with the new bad-float cases). From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3b"
+title = "macos-port: Caller capture as a macro"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: platform.h `EI_RETURN_ADDRESS()` / `EI_CALLER_FRAME()` (MSVC intrinsics / builtins), random.cpp, crt.cpp, core_streams.cpp; delete lib/return_address.h. Check: the debug build's traced draws name the caller (a draw-trace scenario compared release vs debug); goldens. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3c"
+title = "macos-port: Portable float helpers"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: rounding.h (magic-constant RoundEven, no CRT call), float_select.h (bit-mask select), vecmath.h and the three game files' `__forceinline` -> `inline` (no reflow of the one-liners). Check: ei_vectors, goldens, `check_x87.py`, perf_check and the release profile scenes against main (no regression above noise). A `src/platform` inline macro only if a hot function regresses. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3d"
+title = "macos-port: Shared behaviour changes, one commit each"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: app_main.cpp first-pass input byte (documented in app.md as dropped on purpose), FreeDiskSpace on the folder. Check: goldens; the notes' \"kept\" lists updated. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3e"
+title = "macos-port: sokol-shdc GLSL shaders on D3D11"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: src/render/shaders/*.glsl, cmake/shaders.cmake (all slangs, so the file is the same on both branches), render_shaders.cpp and the generated-struct uniforms in every render_*.cpp, comments.py `.glsl`, README/renderer.md \"Shader authoring\" (one copy). Cleanup: delete `ShaderProgram` and its aliases (call the generated `*_shader_desc`), shared uniform blocks for shadow / light / point shadows (no per-site copy loops), drop feature levels 10_x or justify them, `EI_SHDC` on the Suites runner. Check: `run_all` frame captures against main's (tolerance), ui_check (29 glyph cases), perf_check, the cloud hashes, the MSAA 2/4/8 depth copy, build time. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3f"
+title = "macos-port: platform::graphics with the D3D11 backend, clean interface"
+group = "port"
+model = "opus"
+depends = ["MAC3e"]
+note = "Scope: graphics.h as in 3.3, win32/graphics_win32.{h,cpp} (one anonymous namespace, removable device in a harness-only part), render.cpp / render_window.cpp / render_perf.cpp / render_staging.cpp without windows.h or d3d11.h, check_platform's `src/render` rule, `platform::FloatingPointGuard`, `WindowPixelSize`, Timestamps with a typed pimpl, `kMsPerTick` once. Check: the removable-device scenario (`render new,present,removable` + `removedevice`) in verify, perf_check's vsync rules on real chains, `run_all` captures, the staging and ramp checks (`checkall`). From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3g"
+title = "macos-port: Shared transfers instead of native ones"
+group = "port"
+model = "opus"
+depends = ["MAC3f"]
+note = "Scope: blit-based `WriteImage` / `CopyImage`, the downsample-pass mips, `UpdateBuffer` for GpuPool (no CPU shadow copies), StagingCopy renamed and its staging texture kept across reads. Check: perf_check, the R16 profile (pool uploads in bytes per frame no higher than main), ui_check, `run_all` captures (mip levels compared with tolerance), verify's upload read-back checks. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3h"
+title = "macos-port: Cursor presents under one GPU rule"
+group = "port"
+model = "opus"
+depends = ["MAC3f"]
+note = "Scope: render_cursor.cpp, render.cpp's guards, a `GpuLock` with a verify-build `Held()` assertion at the sokol entry points (or keep the cursor thread off sokol, 3.4). Check: the cursor-present counters and `CheckPresented` in verify, a long-load scenario with the cursor moving under `build.cmd asan`, the frame captures. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3i"
+title = "macos-port: Portable log and render clocks"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: hook/log.cpp with `std::mutex` (no `_lock_file`), steady-clock timers, `EI_RENDER` through `platform::EnvironmentVariable`; then delete standalone/posix/runtime.cpp on the branch. Check: build, a run's ei-rebuild.log format unchanged (log readers in tools/). From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3j"
+title = "macos-port: Window creation (user decision first)"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: `CreateGameWindow(title, w, h, fullScreen)` without out-parameters; the decorated, centred windowed mode on Windows only if the user wants it, with the borderless at 0,0 behaviour otherwise; `widescreen::Configure` placement plus its comment; options.h without `windowWidth/Height`. Check: manual Windows run windowed and full screen at desktop size, PL9a's SDL-vs-wndproc check, goldens. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+
+[[ticket]]
+id = "MAC3k"
+title = "macos-port: Test tools"
+group = "port"
+model = "opus"
+depends = ["MAC3f"]
+note = "Scope: glyph cases as `tests/render/glyph_cases.{h,cpp}`; perf_check through the exported `TearingSupported`; format_changed `.mm`. Check: ui_check, perf_check, `format_changed.py --check`. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."

@@ -420,7 +420,8 @@ L7	later			2026-10-15T08:55:41+02:00	tickets.toml
 L8	later			2026-10-15T08:55:41+02:00	tickets.toml
 L9	later			2026-10-15T08:55:41+02:00	tickets.toml
 MAC1	done	2026-10-30	2026-10-30	2026-10-30T19:30:51+01:00	coordinator
-MAC2	running	2026-10-30		2026-10-30T19:30:51+01:00	coordinator
+MAC2	done	2026-10-30	2026-10-30	2026-10-30T19:43:02+01:00	coordinator
+MAC3j	later			2026-10-30T19:43:18+01:00	coordinator
 N0	done	2026-10-14	2026-10-14	2026-10-15T08:55:41+02:00	tickets.toml
 N0a	done	2026-10-14	2026-10-14	2026-10-15T08:55:41+02:00	tickets.toml
 N0b	done	2026-10-14	2026-10-14	2026-10-15T08:55:41+02:00	tickets.toml
