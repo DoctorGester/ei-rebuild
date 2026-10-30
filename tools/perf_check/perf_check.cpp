@@ -11,6 +11,7 @@
 //           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
 // Any sokol error or warning and any ei::Log line but the switch's fails the check. Exit code 0 when all pass.
 #define NOMINMAX
+#include "platform/win32/graphics_win32.h"
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 

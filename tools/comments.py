@@ -31,10 +31,11 @@ ADDR_RX = re.compile(r'\b' + ADDR + r'\b')
 
 def ticket_ids():
     """Ticket ids from docs/tickets.toml, longest first. Two-character ids are left out: they are also
-    common names in comments (P1 a point, T2 a time, C0 / C2 byte values, R8 a register)."""
+    common names in comments (P1 a point, T2 a time, C0 / C2 byte values, R8 a register); so is MP3 (the audio
+    format)."""
     with open(os.path.join(ROOT, 'docs', 'tickets.toml'), 'rb') as f:
         ids = {t['id'] for t in tomllib.load(f).get('ticket', []) if 'id' in t}
-    ids = {i for i in ids if len(i) > 2}
+    ids = {i for i in ids if len(i) > 2 and i != 'MP3'}
     return sorted(ids, key=len, reverse=True)
 
 
@@ -167,7 +168,7 @@ def sources(paths):
             continue
         for dirpath, _, names in os.walk(root):
             for name in sorted(names):
-                if name.endswith(('.cpp', '.h', '.inc', '.hlsl', '.hlsli', '.glsl')):
+                if name.endswith(('.cpp', '.h', '.inc', '.glsl')):
                     yield os.path.join(dirpath, name)
 
 

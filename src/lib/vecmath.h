@@ -120,29 +120,15 @@ inline Vector2 operator-(const Vector2& a) { return {-a.x, -a.y}; }
 inline Vector2 operator*(const Vector2& a, float s) { return {a.x * s, a.y * s}; }
 inline Vector2 operator*(float s, const Vector2& a) { return {s * a.x, s * a.y}; }
 inline Vector2 operator/(const Vector2& a, float s) { return {a.x / s, a.y / s}; }
-inline Vector2& operator+=(Vector2& a, const Vector2& b) {
-    a = a + b;
-    return a;
-}
-inline Vector2& operator-=(Vector2& a, const Vector2& b) {
-    a = a - b;
-    return a;
-}
-inline Vector2& operator*=(Vector2& a, float s) {
-    a = a * s;
-    return a;
-}
-inline Vector2& operator/=(Vector2& a, float s) {
-    a = a / s;
-    return a;
-}
+inline Vector2& operator+=(Vector2& a, const Vector2& b) { a = a + b; return a; }
+inline Vector2& operator-=(Vector2& a, const Vector2& b) { a = a - b; return a; }
+inline Vector2& operator*=(Vector2& a, float s) { a = a * s; return a; }
+inline Vector2& operator/=(Vector2& a, float s) { a = a / s; return a; }
 
 // 2-term sums have one result whatever the order.
 inline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }
 inline float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
-inline float Length2D(const Vector2& v) {
-    return static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2D(v))));
-}
+inline float Length2D(const Vector2& v) { return static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2D(v)))); }
 inline float DistanceSquared2D(const Vector2& a, const Vector2& b) { return LengthSquared2D(a - b); }
 
 // Vector3: per component; each component is one operation (`/ s` divides, no reciprocal).
@@ -152,22 +138,10 @@ inline Vector3 operator-(const Vector3& a) { return {-a.x, -a.y, -a.z}; }
 inline Vector3 operator*(const Vector3& a, float s) { return {a.x * s, a.y * s, a.z * s}; }
 inline Vector3 operator*(float s, const Vector3& a) { return {s * a.x, s * a.y, s * a.z}; }
 inline Vector3 operator/(const Vector3& a, float s) { return {a.x / s, a.y / s, a.z / s}; }
-inline Vector3& operator+=(Vector3& a, const Vector3& b) {
-    a = a + b;
-    return a;
-}
-inline Vector3& operator-=(Vector3& a, const Vector3& b) {
-    a = a - b;
-    return a;
-}
-inline Vector3& operator*=(Vector3& a, float s) {
-    a = a * s;
-    return a;
-}
-inline Vector3& operator/=(Vector3& a, float s) {
-    a = a / s;
-    return a;
-}
+inline Vector3& operator+=(Vector3& a, const Vector3& b) { a = a + b; return a; }
+inline Vector3& operator-=(Vector3& a, const Vector3& b) { a = a - b; return a; }
+inline Vector3& operator*=(Vector3& a, float s) { a = a * s; return a; }
+inline Vector3& operator/=(Vector3& a, float s) { a = a / s; return a; }
 
 // The 2D part (x, y) of 3D positions.
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) {
@@ -200,40 +174,26 @@ inline float SumOfProducts(float x, float y, float z, float x2, float y2, float 
 }
 
 template <Sum3 O>
-inline float Dot(const Vector3& a, const Vector3& b) {
-    return SumOfProducts<O>(a.x, a.y, a.z, b.x, b.y, b.z);
-}
+inline float Dot(const Vector3& a, const Vector3& b) { return SumOfProducts<O>(a.x, a.y, a.z, b.x, b.y, b.z); }
 
 template <Sum3 O>
-inline float LengthSquared(const Vector3& v) {
-    return SumOfProducts<O>(v.x, v.y, v.z, v.x, v.y, v.z);
-}
+inline float LengthSquared(const Vector3& v) { return SumOfProducts<O>(v.x, v.y, v.z, v.x, v.y, v.z); }
 
 template <Sum3 O>
-inline float Length(const Vector3& v) {
-    return static_cast<float>(std::sqrt(LengthSquared<O>(v)));
-}
+inline float Length(const Vector3& v) { return static_cast<float>(std::sqrt(LengthSquared<O>(v))); }
 
 template <Sum3 O>
-inline float DistanceSquared(const Vector3& a, const Vector3& b) {
-    return LengthSquared<O>(a - b);
-}
+inline float DistanceSquared(const Vector3& a, const Vector3& b) { return LengthSquared<O>(a - b); }
 
 template <Sum3 O>
-inline float Distance(const Vector3& a, const Vector3& b) {
-    return Length<O>(a - b);
-}
+inline float Distance(const Vector3& a, const Vector3& b) { return Length<O>(a - b); }
 
 // v / |v| (three divisions) and v * (1 / |v|).
 template <Sum3 O>
-inline Vector3 Normalised(const Vector3& v) {
-    return v / Length<O>(v);
-}
+inline Vector3 Normalised(const Vector3& v) { return v / Length<O>(v); }
 
 template <Sum3 O>
-inline Vector3 NormalisedReciprocal(const Vector3& v) {
-    return v * (1.0f / Length<O>(v));
-}
+inline Vector3 NormalisedReciprocal(const Vector3& v) { return v * (1.0f / Length<O>(v)); }
 
 // Row vector times matrix (v * M): component i is the grouped sum of x * m[i], y * m[4 + i],
 // z * m[8 + i], then + m[12 + i] for a point. The transforms take one grouping per component
@@ -336,9 +296,7 @@ inline Vector3 RotatedAxisZ(const Quaternion& q) {
 // original used without storing it, which at 24 bits is the float.)
 
 template <typename T>
-inline T LengthSquared2DUnrounded(T x, T y) {
-    return x * x + y * y;
-}
+inline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
 
 // dx * dx + dy * dy of dx = a.x - b.x, dy = a.y - b.y, the differences computed in T, dy first (the
 // order VC6 loads them in the AI's target scoring).
@@ -350,16 +308,12 @@ inline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
 }
 
 template <typename T>
-inline T Dot2DUnrounded(T x, T y, T x2, T y2) {
-    return x * x2 + y * y2;
-}
+inline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 
 // d + x * x2 + y * y2 with the offset added first, (d + x * x2) + y * y2: a plane's value at a point
 // (PlaneHeight, d + nx * x + ny * y; V3f). Not the same as d + Dot2DUnrounded(...).
 template <typename T>
-inline T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) {
-    return (d + x * x2) + y * y2;
-}
+inline T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) { return (d + x * x2) + y * y2; }
 
 // The 3-term sums on the caller's scalars (V3c), grouped as named (Sum3), in T. Like the 2D forms
 // they are the written-out expression: they replace one only where the object code stays the same.
@@ -371,20 +325,14 @@ inline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
 }
 
 template <Sum3 O, typename T>
-inline T LengthSquaredUnrounded(T x, T y, T z) {
-    return DotUnrounded<O, T>(x, y, z, x, y, z);
-}
+inline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
 
 // The Vector3 forms (V3d), in float unless the site names T.
 template <Sum3 O, typename T = float>
-inline T DotUnrounded(const Vector3& a, const Vector3& b) {
-    return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z);
-}
+inline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
 
 template <Sum3 O, typename T = float>
-inline T LengthSquaredUnrounded(const Vector3& v) {
-    return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z);
-}
+inline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
 
 // The 4-term quaternion dot ((w * w' + z * z') + y * y') + x * x' in T (Slerp 's order; V3e).
 template <typename T>
@@ -412,3 +360,4 @@ inline AxisUnrounded<T> AxisXUnrounded(const Quaternion& q) {
     az = az + az;
     return {ax, ay, az};
 }
+

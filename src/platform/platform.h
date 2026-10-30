@@ -262,8 +262,6 @@ public:
     // The low dword of the size.
     unsigned long GetLength() const;
     bool IsDirectory() const;
-    bool IsHidden() const;
-    bool IsSystem() const;
     // "." or "..".
     bool IsDots() const;
 

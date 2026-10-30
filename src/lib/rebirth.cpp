@@ -2,6 +2,7 @@
 #include "ei/rebirth.h"
 
 #include "lib/text_case.h"
+#include "platform/platform.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -32,12 +33,6 @@ void SetAll(bool on) {
 }
 
 void SetDefaults() { SetAll(false); }
-
-// The environment variable `name`; empty when it is not set or too long.
-std::string Environment(const char* name) {
-    const char* value = std::getenv(name);
-    return value && std::strlen(value) < 1024 ? value : "";
-}
 }   // namespace
 
 void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
@@ -114,7 +109,7 @@ void Reset(const char* profile) {
 }
 
 void ApplyOverrides() {
-    const std::string environment = Environment("EI_REBIRTH");
+    const std::string environment = platform::EnvironmentVariable("EI_REBIRTH");
     if (!environment.empty()) ApplySpec(environment.c_str());
     ApplySpec(g_queued);
 }

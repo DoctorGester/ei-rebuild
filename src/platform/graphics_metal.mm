@@ -219,7 +219,4 @@ void Timestamps::Release() {}
 std::uint32_t SaveFloatingPointState() { return 0; }
 void RestoreFloatingPointState(std::uint32_t) {}
 void ReleaseReadbacks() {}
-std::uint32_t ChainFlagsFor(bool, bool) { return 0; }
-std::uint32_t SyncIntervalFor(bool vsync) { return vsync ? 1 : 0; }
-std::uint32_t PresentFlagsFor(bool, std::uint32_t) { return 0; }
 }

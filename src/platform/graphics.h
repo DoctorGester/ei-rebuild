@@ -32,9 +32,6 @@ bool AcquireDrawable(void* window, bool vsync, bool allowTearing, sg_swapchain* 
 bool PresentDrawable(bool vsync);
 void DropWindow();
 bool CanPresentOnWorker();
-std::uint32_t ChainFlagsFor(bool allowTearing, bool tearingSupported);
-std::uint32_t SyncIntervalFor(bool vsync);
-std::uint32_t PresentFlagsFor(bool vsync, std::uint32_t chainFlags);
 bool ReadDrawable(unsigned x, unsigned y, unsigned width, unsigned height, std::vector<std::uint8_t>* bytes,
                   std::size_t* pitch);
 
@@ -44,7 +41,7 @@ void GenerateMipmaps(sg_image image);
 bool ReadImage(sg_image image, unsigned x, unsigned y, unsigned width, unsigned height,
                std::vector<std::uint8_t>* bytes, std::size_t* pitch);
 void ReleaseReadbacks();
-// D3D11 needs a mip-generation flag at image creation; other backends use the same sokol image directly.
+// An image whose mip levels GenerateMipmaps can fill.
 sg_image MakeMipmappedImage(const sg_image_desc& desc);
 
 std::uint32_t SaveFloatingPointState();

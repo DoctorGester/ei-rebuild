@@ -16,6 +16,7 @@
 
 #include "hook/log.h"
 #include "platform/graphics.h"
+#include "platform/win32/graphics_win32.h"
 
 #include <cstdio>
 #include <cstring>

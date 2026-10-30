@@ -62,20 +62,4 @@ void Log(const char* fmt, ...) {
     _unlock_file(f);
 }
 
-void LogLines(const char* lines) {
-    FILE* f = LogFile();
-    if (!f || !*lines) return;
-    _lock_file(f);
-    for (const char* at = lines; *at;) {
-        const char* end = std::strchr(at, '\n');
-        if (!end) end = at + std::strlen(at);
-        WriteStamp(f);
-        std::fwrite(at, 1, static_cast<std::size_t>(end - at), f);
-        std::fputc('\n', f);
-        at = *end ? end + 1 : end;
-    }
-    std::fflush(f);
-    _unlock_file(f);
-}
-
 } // namespace ei

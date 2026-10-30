@@ -493,8 +493,6 @@ std::string FileFind::GetTitle() const {
 unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
 
 bool FileFind::IsDirectory() const { return hasFound && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0; }
-bool FileFind::IsHidden() const { return hasFound && (attributes & FILE_ATTRIBUTE_HIDDEN) != 0; }
-bool FileFind::IsSystem() const { return hasFound && (attributes & FILE_ATTRIBUTE_SYSTEM) != 0; }
 
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 

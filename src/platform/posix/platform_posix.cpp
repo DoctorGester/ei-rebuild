@@ -365,7 +365,6 @@ bool FileFind::FindNext() {
     name = entry.path().filename().string();
     std::error_code e;
     attributes = entry.is_directory(e) ? 0x10 : 0;
-    if (!name.empty() && name.front() == '.') attributes |= 2;
     size = attributes & 0x10 ? 0 : static_cast<std::uint32_t>(entry.file_size(e));
     hasFound = true;
     return search->next < search->entries.size();
@@ -375,8 +374,6 @@ std::string FileFind::GetFilePath() const { return root + "\\" + GetFileName(); 
 std::string FileFind::GetTitle() const { return fs::path(GetFileName()).stem().string(); }
 unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
 bool FileFind::IsDirectory() const { return hasFound && (attributes & 0x10); }
-bool FileFind::IsHidden() const { return hasFound && (attributes & 2); }
-bool FileFind::IsSystem() const { return false; }
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
     FileFind find;
