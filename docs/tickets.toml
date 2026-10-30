@@ -6700,3 +6700,10 @@ title = "Platform layer: the game's own RECT / POINT / SIZE / DWORD types, then 
 group = "port"
 model = "sonnet"
 note = "Left by PL7: lib/win_types.h (windef.h, minwinbase.h) is the last game-side file on config/platform_files.txt but the win32 entry and A1 / A2's files. 113 game files use its types (RECT 83, POINT 31, DWORD 17, COLORREF 14, SIZE 13, LONG 9, HANDLE 7, UINT 7, HWND 3, BOOL 3, CRITICAL_SECTION 3 in sound.h until A1). Our own types (lib/rect.h already has the USER32 rules over RECT / POINT): a scripted whole-tree retype, the render boundary converting where it hands a rectangle to render::Rect; HWND / HANDLE as platform::NativeWindow / void*. Then win_types.h leaves the list. Goldens unchanged."
+
+[[ticket]]
+id = "PL7b"
+title = "Platform layer: resource_stream's sound file reads"
+group = "port"
+model = "sonnet"
+note = "The last game file calling Windows outside win_types.h (config/platform_files.txt): resource_stream.cpp opens sound files with mmioOpenA / mmioRead / mmioSeek / mmioClose and takes the size from FindFirstFileA. Move it to platform::File (src/platform/file.h) or std streams if the harness doesn't route those slots (check gameapi routes first); then mmio* and FindFirstFileA may leave gameapi.h (gen_iat.py). Goldens unchanged."

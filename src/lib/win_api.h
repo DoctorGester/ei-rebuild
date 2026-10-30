@@ -89,9 +89,6 @@ __declspec(dllimport) HANDLE WINAPI CreateEventA(LPSECURITY_ATTRIBUTES security,
 __declspec(dllimport) BOOL WINAPI SetEvent(HANDLE event);
 __declspec(dllimport) DWORD WINAPI WaitForSingleObject(HANDLE object, DWORD milliseconds);
 
-// USER32.dll: rectangles.
-__declspec(dllimport) BOOL WINAPI CopyRect(LPRECT to, const RECT* from);
-
 // USER32.dll: the window, its messages, the cursor, the keyboard layouts, text.
 __declspec(dllimport) ATOM WINAPI RegisterClassExA(const tagWNDCLASSEXA* windowClass);
 __declspec(dllimport) HWND WINAPI CreateWindowExA(DWORD exStyle, LPCSTR className, LPCSTR title, DWORD style, int x,

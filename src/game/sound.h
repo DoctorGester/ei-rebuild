@@ -12,11 +12,13 @@
 #include "lib/vecmath.h"
 #include "lib/win_types.h"
 #include "platform/audio.h"
+#include "platform/thread.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -168,12 +170,13 @@ struct SoundManager : EngineObject {
     std::string nextName;              // requested
     std::vector<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
     std::vector<std::int32_t> markers2;
-    CRITICAL_SECTION nameLock;          // guarding streamName
+    std::recursive_mutex nameLock;      // guarding streamName
     std::int32_t switchMode;            // RequestStream's mode
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
-    CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
-    HANDLE streamThread;                // when the MP3 stream opened (lib::StartThread)
+    std::recursive_mutex streamLock;    // guarding the stream and musicFader
+    platform::Thread streamThread;      // started when the MP3 stream opened
+    platform::Signal streamStopped;     // set when the stream thread ends
     volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)

@@ -279,11 +279,10 @@ every backend.
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
-- Threads (PL6b): sound_manager.cpp's critical sections (`std::recursive_mutex`), events and music thread
-  (`platform::Thread`, `platform::Signal`; lib/thread.h's `StartThread` wraps `Thread` until then) and sound.h's
-  `CRITICAL_SECTION` / `HANDLE` members, which keep win_types.h's `CRITICAL_SECTION`. The renderer's own threads and
-  lock (render.cpp, render_cursor.cpp) stay its own.
-- sound_manager.cpp, resource_stream.cpp (A1: miniaudio) and bink_video.cpp (A2: our Bink decoder).
+- The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is the
+  last user of win_types.h's `CRITICAL_SECTION`.
+- resource_stream.cpp: the sound files' reads (mmioOpenA and friends, FindFirstFileA for the size) still go straight
+  to Windows (PL7b).
 - lib/win_types.h: the game's RECT / POINT / SIZE / DWORD / COLORREF / HWND / HANDLE as our own types (PL7a).
 - The import layer's own files (lib/import_table.h, import_prototypes.h, gameapi.h / .cpp, win_api.h) stay in
   src/lib while the harness's reference key holds them.
@@ -327,8 +326,8 @@ code over `RECT` / `POINT` with USER32's rules, so the UI and figure files no lo
 IntersectRect ... (not an area of the layer: no system call is left). An empty rectangle has right <= left or
 bottom <= top; `Intersect` and `Union` write the all-zero rectangle when nothing is left and return false (`Union`
 ignores an empty operand); `Contains` excludes the right and bottom edges; `Set`, `Offset` and `Copy` do not
-normalise. The harness routes none of the eight slots. bink_video.cpp's `CopyRect` stays `gameapi::CopyRect` until
-PL6 moves the file (the one rectangle import left in gameapi.h). The edge rules were compared with USER32 on 56
+normalise. The harness routes none of the eight slots. bink_video.cpp's two copies are `rects::Copy` too, so
+gameapi.h has no rectangle import left. The edge rules were compared with USER32 on 56
 million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written `(std::min)` in the
 header because windows.h defines the macros.
 

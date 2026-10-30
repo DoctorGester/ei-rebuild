@@ -17,10 +17,10 @@
 #include "lib/gameapi.h"
 #include "platform/audio.h"
 #include "platform/clock.h"
+#include "platform/thread.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "lib/thread.h"
 #include "lib/vecmath.h"
 #include "mod_folders.h"
 #include "random.h"
@@ -28,13 +28,13 @@
 
 #include <bit>
 #include <cmath>
+#include <mutex>
 #include <concepts>
 #include <cstring>
 #include <memory>
 #include <new>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 namespace {
 
@@ -753,8 +753,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamSample == nullptr) return 0;
-    CRITICAL_SECTION* lock = &streamLock;
-    gameapi::EnterCriticalSection(lock);
+    std::lock_guard<std::recursive_mutex> guard(streamLock);
     int m = 4;
     if (streamState != 0) {
         m = mode;
@@ -769,7 +768,6 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
                 musicFader.step = FloatBits(FadeStepBits());
                 musicFader.holdUntil = 0;
             }
-            gameapi::LeaveCriticalSection(lock);
             return 1;
         }
     }
@@ -777,7 +775,6 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
         str::Compare(nextName,
                         name) == 0 &&
         switchMode >= m) {
-        gameapi::LeaveCriticalSection(lock);
         return 1;
     }
     std::int32_t at;
@@ -811,7 +808,6 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
         }
         if (!found) at = markers[0];
         if (at == -1) {
-            gameapi::LeaveCriticalSection(lock);
             return 1;
         }
         break;
@@ -819,7 +815,6 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
     case 4:
         at = streamPosition + streamBufferFrames;
         if (at == -1) {
-            gameapi::LeaveCriticalSection(lock);
             return 1;
         }
         break;
@@ -827,14 +822,12 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
         at = 0x7FFFFFFF;
         break;
     default:
-        gameapi::LeaveCriticalSection(lock);
         return 1;
     }
     streamState = 2;
     switchMode = m;
     nextName = name;
     streamSwitchAt = at;
-    gameapi::LeaveCriticalSection(lock);
     return 1;
 }
 
@@ -842,8 +835,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
 // other modes request silence ("") the RequestStream way.
 void SoundManager::StopStream(int mode) {
     if (enabled == 0) return;
-    CRITICAL_SECTION* lock = &streamLock;
-    gameapi::EnterCriticalSection(lock);
+    std::lock_guard<std::recursive_mutex> guard(streamLock);
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
@@ -863,7 +855,6 @@ void SoundManager::StopStream(int mode) {
             RequestStream(game::kEmptyText, mode);
         }
     }
-    gameapi::LeaveCriticalSection(lock);
 }
 
 // --- Stopping everything, wave lengths -------------------------------------------------------
@@ -1140,13 +1131,6 @@ constexpr int kStreamBits = 16;
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 
-// The thread waited for and its handle closed.
-void EndThread(HANDLE& thread) {
-    gameapi::WaitForSingleObject(thread, INFINITE);
-    gameapi::CloseHandle(thread);
-    thread = nullptr;
-}
-
 constexpr std::uint32_t kSwitchHoldMs = 4000;
 constexpr int kNoLoop = 0x7FFFFFFF;
 constexpr int kNeverSwitch = -1;
@@ -1186,15 +1170,17 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     if (m->streamFile == nullptr) {
         Silence(m, to, bytes);
         m->streamState = 0;
-        gameapi::EnterCriticalSection(&m->nameLock);
-        m->streamName = game::kEmptyText;
-        gameapi::LeaveCriticalSection(&m->nameLock);
+        {
+            std::lock_guard<std::recursive_mutex> guard(m->nameLock);
+            m->streamName = game::kEmptyText;
+        }
         return;
     }
     m->streamState = 1;
-    gameapi::EnterCriticalSection(&m->nameLock);
-    m->streamName = m->nextName;
-    gameapi::LeaveCriticalSection(&m->nameLock);
+    {
+        std::lock_guard<std::recursive_mutex> guard(m->nameLock);
+        m->streamName = m->nextName;
+    }
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
     m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
@@ -1283,11 +1269,10 @@ int SoundManager::SetPath(std::string_view folder, const std::string& registryPa
 }
 
 std::string SoundManager::CurrentStreamName() {
-    gameapi::EnterCriticalSection(&nameLock);
+    std::lock_guard<std::recursive_mutex> guard(nameLock);
     std::string name;
     if (streamState == 1 || streamState == 2) name = streamName;
     else name = game::kEmptyText;
-    gameapi::LeaveCriticalSection(&nameLock);
     return name;
 }
 
@@ -1311,8 +1296,6 @@ SoundManager::SoundManager() {
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
-    gameapi::InitializeCriticalSection(&nameLock);
-    gameapi::InitializeCriticalSection(&streamLock);
     Reset();
 }
 
@@ -1320,8 +1303,6 @@ SoundManager::SoundManager() {
 SoundManager::~SoundManager() {
     Close();
     cacheList.clear();
-    gameapi::DeleteCriticalSection(&streamLock);
-    gameapi::DeleteCriticalSection(&nameLock);
     waveSources.clear();
 }
 
@@ -1384,7 +1365,7 @@ void SoundManager::StreamThread() {
         last = now;
         if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
 
-        gameapi::EnterCriticalSection(&streamLock);
+        streamLock.lock();
         musicFader.Update();
         platform::audio::SetStreamVolume(streamSample, musicFader.level);
         for (;;) {
@@ -1399,13 +1380,15 @@ void SoundManager::StreamThread() {
             platform::audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
             ReadStreamVanilla();
         }
-        gameapi::LeaveCriticalSection(&streamLock);
+        streamLock.unlock();
     }
 }
 
 // The stream thread's procedure: the manager's StreamThread, then 0.
 unsigned __stdcall StreamThreadEntry(void* manager) {
-    static_cast<SoundManager*>(manager)->StreamThread();
+    auto* self = static_cast<SoundManager*>(manager);
+    self->StreamThread();
+    self->streamStopped.Set();
     return 0;
 }
 
@@ -1479,8 +1462,10 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
         game::DebugLog("%s\n", error.c_str());
         return 0;
     }
-    if (OpenStream() != 0)
-        streamThread = lib::StartThread(StreamThreadEntry, this, kStreamThreadPriority);
+    if (OpenStream() != 0) {
+        streamStopped.Create();
+        streamThread.Start(StreamThreadEntry, this, kStreamThreadPriority);
+    }
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);
     for (int i = 0; i < kVoiceCount; ++i) {
         SoundSlot& slot = slots[i];
@@ -1501,9 +1486,11 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
 }
 
 void SoundManager::Close() {
-    if (streamThread != nullptr) {
+    if (streamThread.Started()) {
         threadsQuit = 1;
-        EndThread(streamThread);
+        streamStopped.Wait();
+        streamThread.Close();
+        streamStopped.Close();
     }
     CloseStream();
     if (slots != nullptr) {
@@ -1525,7 +1512,7 @@ void SoundManager::Close() {
 
 void SoundManager::Reset() {
     ResetStream();
-    streamThread = nullptr;
+    streamThread.Close();
     threadsQuit = 0;
     slots = nullptr;
     cacheBytes = 0;

@@ -84,11 +84,8 @@ extern decltype(&::timeGetTime)& timeGetTime;  // WINMM.dll, through the slot
 extern decltype(&::Sleep)& Sleep;  // KERNEL32.dll, through the slot
 using ::OutputDebugStringA;  // KERNEL32.dll
 extern decltype(&::GetVolumeInformationA)& GetVolumeInformationA;  // KERNEL32.dll, through the slot
-using ::EnterCriticalSection;  // KERNEL32.dll
 extern decltype(&::CreateDirectoryA)& CreateDirectoryA;  // KERNEL32.dll, through the slot
 using ::GetSystemInfo;  // KERNEL32.dll
-using ::InitializeCriticalSection;  // KERNEL32.dll
-using ::DeleteCriticalSection;  // KERNEL32.dll
 extern decltype(&::CopyFileA)& CopyFileA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetLocalTime)& GetLocalTime;  // KERNEL32.dll, through the slot
 using ::SetEvent;  // KERNEL32.dll
@@ -109,7 +106,6 @@ using ::SetFileTime;  // KERNEL32.dll
 using ::SystemTimeToFileTime;  // KERNEL32.dll
 using ::GetFileInformationByHandle;  // KERNEL32.dll
 extern decltype(&::GetSystemTime)& GetSystemTime;  // KERNEL32.dll, through the slot
-using ::LeaveCriticalSection;  // KERNEL32.dll
 extern decltype(&::GetPrivateProfileSectionA)& GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetPrivateProfileStringA)& GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
 using ::ReadFile;  // KERNEL32.dll
@@ -143,7 +139,6 @@ using ::EndPaint;  // USER32.dll
 using ::BeginPaint;  // USER32.dll
 using ::GetUpdateRect;  // USER32.dll
 extern decltype(&::GetKeyNameTextA)& GetKeyNameTextA;  // USER32.dll, through the slot
-using ::CopyRect;  // USER32.dll
 extern decltype(&::DispatchMessageA)& DispatchMessageA;  // USER32.dll, through the slot
 extern decltype(&::GetCursorPos)& GetCursorPos;  // USER32.dll, through the slot
 extern decltype(&::SetCursorPos)& SetCursorPos;  // USER32.dll, through the slot

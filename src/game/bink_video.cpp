@@ -11,8 +11,9 @@
 #include "texture.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
+#include "platform/keys.h"
 #include "platform/video.h"
 #include "platform/window.h"
 #include "render/render.h"
@@ -20,7 +21,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <windows.h>
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "options.h"
@@ -104,7 +104,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     // frames fill the screen themselves, render::Fill below.)
     int width = video::Width(movie), height = video::Height(movie);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
+    rects::Copy(&screen, &g_sceneRenderer.device->screen);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
@@ -129,9 +129,9 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     for (;;) {
         if (platform::TakeEvent(&event)) {
             if (event.type == platform::EventType::KeyDown) {
-                if (event.key != VK_ESCAPE && event.key != VK_SPACE) continue;
+                if (event.key != platform::kKeyEscape && event.key != platform::kKeySpace) continue;
                 if (keysEnd) {
-                    if (event.key == VK_ESCAPE) escaped = true;
+                    if (event.key == platform::kKeyEscape) escaped = true;
                     break;
                 }
                 if (!spaceSkips) continue;
@@ -224,7 +224,7 @@ char BinkVideo::Open(const char* name, char loadingStep) {
     g_cursor.ShowImage(0);
     int width = video::Width(movie), height = video::Height(movie);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
+    rects::Copy(&screen, &g_sceneRenderer.device->screen);
     if (options::g_options.video == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;
