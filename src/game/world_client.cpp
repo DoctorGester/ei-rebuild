@@ -29,11 +29,12 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <cmath>
 #include <cstring>
@@ -59,7 +60,8 @@ float WorldClient::ClampedGroundHeight(float x, float y) {
 double WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
 const char* WorldClient::AmbienceTimeOfDay() const {
-    float hour = static_cast<float>(std::fmod(static_cast<double>(tick) * secondsPerTick + timeBase, 24.0));
+    float time = pc24::Mul(static_cast<double>(tick), secondsPerTick) + timeBase;
+    float hour = static_cast<float>(std::fmod(static_cast<double>(time), 24.0));   // exact
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
     return hour < 6.0f ? "morning" : "evening";
@@ -236,8 +238,8 @@ void WorldClient::CreateExitMarkers() {
         source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
-        source->turnCos = static_cast<float>(x87::fcos(static_cast<double>(exit.angle)));
-        source->turnSin = static_cast<float>(x87::fsin(static_cast<double>(exit.angle)));
+        source->turnCos = pc24::Round(pc24::Cos(exit.angle));
+        source->turnSin = pc24::Round(pc24::Sin(exit.angle));
         for (int warmUpTick = 0; warmUpTick < kExitWarmUpTicks; ++warmUpTick) source->RunTick();
     }
     UpdateExitMarkers();
@@ -416,11 +418,9 @@ bool WorldClient::RunTick() {
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags & LightFlag::Hidden)) continue;
                         float nodeX = effect.position.x, nodeY = effect.position.y;
-                        double dy = static_cast<double>(light->localPosition.y) - nodeY;
-                        double dx = static_cast<double>(light->localPosition.x) - nodeX;
-                        double squared = LengthSquared2DUnrounded(dx, dy);
-                        double radius = light->rangeSquared;
-                        if (squared > radius) continue;
+                        float dy = light->localPosition.y - nodeY;
+                        float dx = light->localPosition.x - nodeX;
+                        if (LengthSquared2DUnrounded(dx, dy) > light->rangeSquared) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
                         point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
                         float intensity = light->GetIntensityAt(point);
@@ -429,7 +429,7 @@ bool WorldClient::RunTick() {
                     float clamped = SelectLess(1.0f, level, 1.0f, level);
                     float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
                     float scaled = floor * worlddata::kColourScale;
-                    std::uint32_t grey = static_cast<std::uint32_t>(x87::fistp(scaled));
+                    std::uint32_t grey = static_cast<std::uint32_t>(lib::RoundEven(scaled));
                     std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
                     effect.colour = colour;
                     EndWalk(lights);

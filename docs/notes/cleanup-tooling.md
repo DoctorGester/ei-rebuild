@@ -181,7 +181,7 @@ the two cannot be stacked per file.
   precision (the D3D7 device's), as before, and leaves MXCSR alone.
 - `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
   their 2^32 is SSE arithmetic, not a FADD at the precision control).
-- **What C30a kept x87 and why** (now groups C30e12 and C30e13 of `EI_X87_GAME_SOURCES`; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
+- **What C30a kept x87 and why** (now group C30e13 of `EI_X87_GAME_SOURCES`; C30e10 moved the figure and link mesh draws, C30e12 the client world's view and draw): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
@@ -310,7 +310,7 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
 - **transcendentals and wide operands: `lib/pc24.h`** (C30e4). FSIN, FCOS, FPATAN, FYL2X and F2XM1 ignore the
   precision control and give a 64-bit result that the next operation rounds; a double constant keeps its 53 bits.
   `pc24::Sin / Cos / Atan2 / Log / Log10` return an `Unrounded` (a double-double: the function to about 100 bits,
-  then rounded to 64 as the FPU does), and `pc24::Round` (FSTP dword), `Add / Sub / Mul / Div` (one PC24 operation
+  then rounded to 64 as the FPU does; Sin, Cos and Atan2 take doubles, which floats convert to exactly), and `pc24::Round` (FSTP dword), `Add / Sub / Mul / Div` (one PC24 operation
   on two register values, a float or a double converting) give the original's float: `x87::fcos(a) * r + x` ->
   `pc24::Mul(pc24::Cos(a), r) + x`, `x * 0.001` (double) -> `pc24::Mul(x, 0.001)`. `pc24::Exp` is VC6's inline exp
   step by step. No x87 code: double-double arithmetic (two-sum, Veltkamp two-product), FSIN / FCOS's argument
@@ -333,10 +333,17 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   | a float and a double: x * c, x + c, x - c, c - x, x / c, c / x | 200 M each | 0 | 15.8 M .. 49.7 M (c as a float) |
   | sin, cos of a double stored, sin times a float: CiAcos of every float in [0, 1) and -0 | 1,065 M each | 0 | - |
   | sin, cos of a double: stored, sin times / cos plus a float; 2^-60 .. 2^62, near k pi / 2 | 400 M each | 0 | - |
+  | atan2 of two doubles stored, minus a float: doubles in [-1, 1]; 2^-60 .. 2^62 | 100 M each | 0 | - |
+  | atan2 of FSIN's and FCOS's doubles stored, every float angle | 2^32 | 0 | - |
+  | ai_motion's turn: FPATAN of FSIN's and FCOS's doubles minus a float, every float angle | 2^32 | 414 | - |
 
   The double forms (C30e10a) reduce the 53-bit argument by the same 66-bit pi (the 128-bit integers hold it exactly);
   the float forms go through them, rerun on every float (0 differ). Their test: C30e10a's `eq/` (C30e4's plus the
-  double, Slerp and combat modes). The 9: FPATAN of a tiny ratio y / x is the quotient, and this CPU's FPATAN does
+  double, Slerp and combat modes) and C30e8a's (`turn`, `atan2d`, `turncause`). The 414 are all angles within pi:
+  atan2(sin a, cos a) of a float a lies within a few 64-bit ulps of a itself, so the turn's difference with a float is
+  often a 24-bit tie that the 64-bit result decides, and there this CPU's FSIN / FCOS (28 of 240 on 0 .. pi: their
+  doubles differ from the correctly rounded ones) or FPATAN (212: the same doubles, its 64 bits one off near a
+  64-bit tie) are not correctly rounded. About 2 in 10^7 kind-4 turn orders; accepted as the 9 below. The 9: FPATAN of a tiny ratio y / x is the quotient, and this CPU's FPATAN does
   not round it correctly where it sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
   of few significant bits (the test's half integers) the product with f can lie that near a float rounding boundary.
   Accepted. NaNs: of two NaN
@@ -446,11 +453,11 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e5 (done) server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
 | C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 (done) combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
-| C30e8 (done; ai_motion: C30e8a) AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
+| C30e8 (done; ai_motion: C30e8a, done) AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
 | C30e9 (done) unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
-| C30e12 client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
+| C30e12 (done) client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
 | C30e13 camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
 | C30e14 terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
@@ -506,9 +513,10 @@ as it is: `PathOrder::Start` compares the stored angle with the unrounded result
 kept through the second FPATAN call as a double (`Sub(a1.hi + a1.lo, a2)`: the sum is the 53-bit rounding). The
 damping scale ln 0.6 is FYL2X of the double 0.6, a constant: `-0x1.058afp-1f`. `x87::fistp` -> `lib::RoundEven` (49),
 the event grid's `Ftol` -> int64 truncation, `CopyBits` -> `=`. `MotionCubic::Value / Slope` and
-`AIMap::LargestStepAlong` return float (their x87 doubles were PC24 floats). **Kept:** ai_motion (C30e8a):
-`Build`'s turn order (kind 4) takes FPATAN of FSIN's and FCOS's results stored as doubles, which `pc24::Atan2`
-(floats) does not take; the rest of the file is converted and its x87 object calls pc24. Equivalence test (C30e8's
+`AIMap::LargestStepAlong` return float (their x87 doubles were PC24 floats). ai_motion followed in C30e8a:
+`Build`'s turn order (kind 4) takes FPATAN of FSIN's and FCOS's results stored as doubles, `pc24::Sub(pc24::Atan2(s,
+c), startAngle)` with `s` and `c` the `hi + lo` of `pc24::Sin` / `Cos` (the 53-bit rounding); `pc24::Atan2` takes
+doubles since (its test above). Equivalence test (C30e8's
 `eq/`: HEAD's forms built /arch:IA32 at PC24 against the new ones): Start, SetTurn, Sample (kinds 0 to 4, paths of 2 to
 6 points sampled three times), Build's turn and tail, SubdivideSegment, LimitSpeeds, the climb tables (75,000 scales,
 every step), land and water heights, the octant, the z step, Damp, Occlude / Refresh, LargestStepAlong, the
@@ -590,6 +598,30 @@ the second operand on a tie: where +0 meets -0 the result's zero sign differs fr
 hearing, only with a negative stat; the test's 2,229), FearMode::Evaluate's distance (only a -0 distance from a
 save), KeepLower's exposures (a -0 exposure needs a negative range), Score's penalty and IsNearPath's clamp (no
 decision changes); `a < b ? a : b` forms map exactly. C30e17 makes the selects exact.
+
+**C30e12 (client units and world; 13 files).** The double locals were PC24 registers: unit_client_path's blend
+(`(1 - w) target + w current`) and animation speed, the client world's light reach test, ObjectsInRange's reach and
+distance, the sun table's steps, the pick ray (`PickPoint`'s determinant and line): float maths in the original's
+order. Through pc24: the heading blend's `fexp` (`pc24::Exp`), its FPATAN / FCOS / FSIN (`Round(Atan2)`,
+`Round(Cos)`, `Round(Sin)`), the zone exits' FCOS / FSIN, the double ground heights plus a float (`GroundHeight` plus
+`heightOffset`, ObjectsInRange's `Hypot` plus the radius, the pick's height plus half the range), the ints the FPU
+loads exactly (`RestartAnimation`'s start tick, the client time's tick, the eye rectangle's texture sizes and data
+bytes, the sun table's file ints times 1/255, the day hour's tick times seconds per tick), and `Level`, whose first
+logarithm the x87 code kept through the second `flog` call as a double: `Div(numerator.hi + numerator.lo,
+Log(base))`. Kept as they were: `std::fmod` on doubles (exact; the pulse and the day hour), the `0.01` and the
+footprints' `Hypot` compares (exact), `Passed`'s uint frame as a double, AddRounded / SubRounded (one double
+operation, then the float: the float operation). An explicit `static_cast<float>` of an int is rounded in the x87
+code too (`static_cast<float>(tick) + tickFraction`, the blood print's offset): plain float conversions.
+`x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `libcrt::Ftol` -> int64 truncation; `static_cast<int>` of a double
+in x87 code is `__ftol2_sse` (CVTTSD2SI: 0x80000000 for NaN), so the attack sums stay `static_cast<int>` of the float.
+In the SSE2 objects: the attack's weapon bonus plus the skill bonus is one FADD on ST0 (a float returned in ST0), the
+double operations are uint conversions, single operations rounded to float and compares. The client code runs on the
+main thread (the other threads: the MP3 stream, the cursor, the master server lookup). Equivalence test (C30e12's
+`eq/`, HEAD's forms built /arch:IA32 at PC24 against the new ones, 24 M cases each with game operands and 24 M wide):
+Level, the heading blend, the animation speed, the eye rectangles, RestartAnimation, the pulse, the sun table's colour
+and steps, the day hour, the client time, the blood print offset, ObjectsInRange's test: 0 differ with game operands;
+wide ones differ only where a value leaves a float's normal range (the exponent range: Level's quotient, the blend's
+weight below 2^-126 at a rate above 291, overflowing speeds and hours, denormal steps), never in game ranges.
 
 ### The whole image on SSE2 (C16 experiment)
 

@@ -15,7 +15,6 @@
 #include "lib/pc24.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
 
 #include <bit>
 #include <concepts>
@@ -449,18 +448,19 @@ void UnitMotion::Build(PathOrder* path) {
         return;
     }
     case 4: {
-        // FPATAN of FSIN's and FCOS's results stored as doubles, which pc24::Atan2 (floats) does not take: this
-        // keeps the file on x87 (CMakeLists.txt's list).
+        // FPATAN of FSIN's and FCOS's results stored as doubles (hi + lo: the 53-bit rounding).
         float angle = AsFloat(order->arg5);
-        double s = x87::fsin(angle);
-        double c = x87::fcos(angle);
+        pc24::Unrounded sine = pc24::Sin(angle);
+        pc24::Unrounded cosine = pc24::Cos(angle);
+        double s = sine.hi + sine.lo;
+        double c = cosine.hi + cosine.lo;
         EI_NAN_AUDIT(c, s);
         if (c == 0.0 && s == 0.0) {
             turn = 0.0f;
             return;
         }
         turnRate = baseTurnRate;
-        NormalizeTurn(this, static_cast<float>(x87::fpatan(s, c) - startAngle));
+        NormalizeTurn(this, pc24::Sub(pc24::Atan2(s, c), startAngle));
         return;
     }
     default:

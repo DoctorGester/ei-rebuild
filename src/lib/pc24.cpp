@@ -378,12 +378,10 @@ double Scale(double g, double n) {
 
 } // namespace
 
-Unrounded Sin(float x) { return SinCos(x, false); }
-Unrounded Cos(float x) { return SinCos(x, true); }
 Unrounded Sin(double x) { return SinCos(x, false); }
 Unrounded Cos(double x) { return SinCos(x, true); }
 
-Unrounded Atan2(float y, float x) {
+Unrounded Atan2(double y, double x) {
     if (std::isnan(y) || std::isnan(x)) return NaNOf(y, x);
     const double ay = std::fabs(y), ax = std::fabs(x);
     DD angle;

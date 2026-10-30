@@ -57,12 +57,6 @@ endif()
 # CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
 # Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
 set(EI_X87_GAME_SOURCES
-    # C30e8a: UnitMotion::Build's FPATAN of FSIN's and FCOS's results stored as doubles
-    game/ai_motion
-    # C30e12: client units and world
-    game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
-    game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client
-    game/world_client_draw game/world_client_maps game/world_client_setup game/world_client_view
     # C30e13: camera, picking and the briefing
     game/camera game/camera_motion game/camera_path_load game/device_bounds game/device_mesh game/ui_battle_commands
     game/ui_battle_hover game/ui_briefing_create game/ui_briefing_dialogue game/ui_briefing_input

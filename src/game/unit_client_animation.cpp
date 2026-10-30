@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 #include <cmath>
 
@@ -37,9 +38,9 @@ constexpr float kPulseBase = 0.2f;
 float Pulse(float& clock, float frames) {
     float now = frames + clock;   // stored as a float, and to the clock
     clock = now;
-    double phase = std::fmod(static_cast<double>(now), kPulsePeriod);
+    float phase = static_cast<float>(std::fmod(static_cast<double>(now), kPulsePeriod));   // exact
     if (phase > kPulseFold) phase = kPulseFull - phase;
-    float value = static_cast<float>(phase * kPulseScale * 0.5f + kPulseBase);
+    float value = phase * kPulseScale * 0.5f + kPulseBase;
     return value;
 }
 } // namespace
@@ -66,8 +67,7 @@ void UnitClientSpecific::AdvanceTime(float time) {
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
-        position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
-                                        unit->heightOffset);
+        position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
         World()->MoveObject(unit, &position.x);
         return;
     }
@@ -104,12 +104,12 @@ void UnitClientSpecific::RestartAnimation(float time) {
             else unit->Object3D()->animation->Queue(second);
         }
     }
-    double start = unit->animationStart;
-    float stored = static_cast<float>((time + 1.0f) - start);   // stored as a float
+    int start = unit->animationStart;
+    float stored = pc24::Sub(time + 1.0f, static_cast<double>(start));   // stored as a float
     float step = stored;
     state = unit->Object3D()->animation;
     if (step > 0.0f && state) {
-        lastTime = static_cast<float>(start + step);
+        lastTime = pc24::Add(static_cast<double>(start), step);
         state->Advance(step);
         state = unit->Object3D()->animation;
         lastAnimationTime = state->time;

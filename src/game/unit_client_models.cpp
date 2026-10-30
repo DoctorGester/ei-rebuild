@@ -4,7 +4,6 @@
 
 #include "ai_map.h"
 #include "effects.h"
-#include "ei/x87.h"
 #include "figure_manager.h"
 #include "game_singletons.h"
 #include "item.h"
@@ -72,7 +71,7 @@ EngineObject* BowArrow(UnitClientSpecific* self) {
 
 // Whether `frame` was passed between the last update and now.
 bool Passed(std::uint32_t frame, float last, float now) {
-    double at = x87::FromUnsigned(frame);
+    double at = static_cast<double>(frame);
     EI_NAN_AUDIT(now);
     return at > last && at <= now;
 }

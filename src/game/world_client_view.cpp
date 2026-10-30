@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 #include "world_data.h"
 
@@ -69,11 +70,11 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
     PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
     const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);
 
-    // The values kept on the FPU stack are doubles here (no rounding to float).
-    double sx = screenX;
-    double sy = screenY;
+    // The screen point: ints, exact as floats.
+    float sx = static_cast<float>(screenX);
+    float sy = static_cast<float>(screenY);
     float outX = 0.0f, outY = 0.0f, pz = 0.0f;
-    double det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
+    float det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
     // Skipped when zero.
     EI_NAN_AUDIT(det);
     if (det != 0.0) {
@@ -91,7 +92,7 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
         float half = static_cast<float>(world->terrain->heightRange * 0.5f);
         float x = NonNegative(static_cast<float>(a * half + b));
         float y = NonNegative(static_cast<float>(c * half + d));
-        pz = static_cast<float>((height(x, y) + half) * 0.5f);
+        pz = pc24::Add(height(x, y), half) * 0.5f;
 
         // Fixed-point iteration on the height (up to 100 steps)...
         float previous;

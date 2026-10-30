@@ -17,7 +17,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <cstring>
 #include <string>
@@ -41,7 +41,7 @@ constexpr float kDecalScale = 0.3f;
 constexpr float kSpreadUnits = 100.0f;
 constexpr float kSpreadStep = 0.02f;
 constexpr float kDecalLength = 3.0f;
-constexpr double kDeathDecalScale = 0.75;
+constexpr float kDeathDecalScale = 0.75f;
 constexpr int kDeathVariantBase = 2;
 constexpr int kSparks = static_cast<int>(ParticleType::Sparks);
 constexpr float kSparkAlpha = 10.0f;
@@ -172,10 +172,10 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     unit->PartWorldPosition(&at.x, part);
     float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
-    int offset = ClientRandBelow(x87::fistp(spread));
-    at.x = static_cast<float>(offset * kSpreadStep - reach + at.x);
-    offset = ClientRandBelow(x87::fistp(spread));
-    at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
+    int offset = ClientRandBelow(lib::RoundEven(spread));
+    at.x = static_cast<float>(offset) * kSpreadStep - reach + at.x;
+    offset = ClientRandBelow(lib::RoundEven(spread));
+    at.y = static_cast<float>(offset) * kSpreadStep - reach + at.y;
     std::uint32_t variant = DecalVariant();
     g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
@@ -203,7 +203,7 @@ void UnitClientSpecific::Died() {
         size = stored;
         unit->PartWorldPosition(&at.x, body);
     } else {
-        float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
+        float stored = SmallerExtent(unit) * kDeathDecalScale;
         size = stored;
         at.x = unit->localPosition.x;
         at.y = unit->localPosition.y;
