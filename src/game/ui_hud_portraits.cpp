@@ -271,9 +271,8 @@ void HudPortraits::Update() {
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
         if (g_camera.targetId == unit->id) {
             SceneMesh(0)->visible = true;
-            float x, y, depth;
-            AsUiMesh(object(4))->GetPlacement(&x, &y, &depth);
-            SceneMesh(0)->Place(x, y - kMarkerRise, kMarkerDepth);
+            const UiMesh::Placement placed = AsUiMesh(object(4))->GetPlacement();
+            SceneMesh(0)->Place(placed.x, placed.y - kMarkerRise, kMarkerDepth);
         }
     }
 }

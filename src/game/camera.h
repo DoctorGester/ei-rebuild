@@ -56,8 +56,12 @@ static_assert(sizeof(CameraKey) == 0x24);
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more).
-void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
-                   float* maximum);
+struct TerrainSample {
+    float average;
+    float minimum;
+    float maximum;
+};
+TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY);
 
 // The camera ("Camera"). flags: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
 // camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.

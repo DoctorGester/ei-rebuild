@@ -679,8 +679,7 @@ void UnitServer::ApproachTarget() {
             vy = vy / length;
             vz = vz / length;
         }
-        Vector3 axis;
-        other->localRotation.AxisY(&axis);
+        Vector3 axis = other->localRotation.AxisY();
         float along = DotUnrounded<Sum3::ZYX>(axis.x, axis.y, axis.z, vx, vy, vz);
         closing = static_cast<float>(other->MoveSpeed()) * along + mySpeed;
     } else {
@@ -734,8 +733,7 @@ void UnitServer::ApproachTarget() {
         AIPath* path = &motion;
         path->Clear();
         int time = World()->tick;
-        Vector3 axis;
-        unit->localRotation.AxisY(&axis);
+        Vector3 axis = unit->localRotation.AxisY();
         Vector3 back;
         back.x = -axis.x;
         back.y = -axis.y;

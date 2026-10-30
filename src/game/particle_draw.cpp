@@ -57,8 +57,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     lib::FreeStorage(order);
-    Vector3 axis;
-    CameraRotation().AxisZ(&axis);
+    Vector3 axis = CameraRotation().AxisZ();
 
     // The manager's objects are its sources.
     auto sourceOf = [](EngineObject* object) { return static_cast<ParticleSource*>(object); };

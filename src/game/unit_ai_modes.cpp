@@ -178,7 +178,7 @@ void PatrolMode::Load(ByteStream* stream) {
     points.resize(count);
     for (PatrolPoint& point : points) {
         stream->ReadValue(point.position);
-        LoadLooks(&point.looks, stream);
+        point.looks = LoadLooks(stream);
     }
     stream->ReadValue(current);
 }

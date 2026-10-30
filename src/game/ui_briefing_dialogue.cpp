@@ -155,8 +155,7 @@ void BriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float
         y = places[kPersonPlace].x - places[kLeaderPlace].x;
     } else {
         Vector3 place{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
-        Vector3 axis;
-        unit->localRotation.AxisY(&axis);
+        Vector3 axis = unit->localRotation.AxisY();
         Vector3 facing{-axis.x, -axis.y, -axis.z};
         int index = -1;
         if (unit == leader)

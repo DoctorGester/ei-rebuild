@@ -101,12 +101,11 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
         }
         float phase = scale.z;
         float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;
-        Vector3 axis;
-        facing.AxisX(&axis);
+        Vector3 axis = facing.AxisX();
         at.x = axis.x * along * distance + at.x;
         at.y = axis.y * along * distance + at.y;
         at.z = axis.z * along * distance + at.z;
-        facing.AxisY(&axis);
+        axis = facing.AxisY();
         at.x = axis.x * across * distance + at.x;
         at.y = axis.y * across * distance + at.y;
         at.z = axis.z * across * distance + at.z;

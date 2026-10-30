@@ -51,11 +51,13 @@ bool CWorld::IsNight() {
     return true;   // also NaN
 }
 
-void CWorld::GetTime(float* hours, float* speed) {
-    *hours = TimeOfDay();
+CWorld::Clock CWorld::GetTime() {
+    Clock clock;
+    clock.hours = TimeOfDay();
     // 1 / (seconds per tick * 15), the product formed first.
     volatile float perSecond = secondsPerTick * 15.0f;
-    *speed = 1.0f / perSecond;
+    clock.speed = 1.0f / perSecond;
+    return clock;
 }
 
 void CWorld::SetWind(const Vector3& direction, float strength) {

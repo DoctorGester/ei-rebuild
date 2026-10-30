@@ -95,8 +95,6 @@ constexpr float kRangeSteps = 65535.0f;
 constexpr float kRangeStep = 0.000015259022f;      // (1 / 65535)
 static_assert(std::bit_cast<std::uint32_t>(kRangeStep) == 0x37800080u);
 
-void StoreBits(float* out, std::uint32_t bits) { *out = std::bit_cast<float>(bits); }
-
 // One channel's header: the mask, then the channel's output of every field in it.
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
     MemoryStream& header = state->header[channel];
@@ -378,9 +376,10 @@ std::uint16_t DeltaField::ReadWord() {
     return q;
 }
 
-void DeltaField::ReadPosition(Vector3* position) {
-    position->x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
-    position->y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
+Vector3 DeltaField::ReadPosition() {
+    Vector3 position;
+    position.x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
+    position.y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
     // z goes through ReadDiff.
     std::uint32_t at = delta::g_readSnapshot->Position();
     MemoryStream* reader = delta::g_received;
@@ -390,12 +389,15 @@ void DeltaField::ReadPosition(Vector3* position) {
         snapshot[1].WriteValue(q);
     }
     delta::g_readSnapshot->Seek(at + 2);
-    position->z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
+    position.z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
+    return position;
 }
 
-void DeltaField::ReadPosition2D(float* position) {
-    position[0] = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
-    position[1] = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+Vector2 DeltaField::ReadPosition2D() {
+    Vector2 position;
+    position.x = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+    position.y = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+    return position;
 }
 
 // Ranged values.
@@ -405,10 +407,10 @@ void DeltaField::WriteRanged(float value, float min, float max) {
     WriteDelta(&q, 2);
 }
 
-void DeltaField::ReadRanged(float* value, float min, float max) {
+float DeltaField::ReadRanged(float min, float max) {
     float step = (max - min) * kRangeStep;
     std::uint16_t q = ReadWord();
-    *value = static_cast<float>(static_cast<int>(q)) * step + min;
+    return static_cast<float>(static_cast<int>(q)) * step + min;
 }
 
 // --- 16-bit floats -----------------------------------------------------------------------------
@@ -450,7 +452,7 @@ void DeltaField::WriteFloat16(std::uint32_t floatBits) {
 }
 
 // The result is never a NaN (the exponent is at most 0xBF), so storing it is a plain copy.
-void DeltaField::ReadFloat16(float* value) { StoreBits(value, delta::UnpackFloat16(ReadWord())); }
+float DeltaField::ReadFloat16() { return std::bit_cast<float>(delta::UnpackFloat16(ReadWord())); }
 
 void DeltaField::WriteFloat16x3(const float* values) {
     for (int i = 0; i < 3; ++i) {
@@ -459,8 +461,12 @@ void DeltaField::WriteFloat16x3(const float* values) {
     }
 }
 
-void DeltaField::ReadFloat16x3(float* values) {
-    for (int i = 0; i < 3; ++i) StoreBits(&values[i], delta::UnpackFloat16(ReadWord()));
+Vector3 DeltaField::ReadFloat16x3() {
+    Vector3 values;
+    values.x = ReadFloat16();
+    values.y = ReadFloat16();
+    values.z = ReadFloat16();
+    return values;
 }
 
 void DeltaState::Reset() {

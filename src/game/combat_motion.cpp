@@ -56,8 +56,7 @@ void ShowHead(UnitServer* self) {
 void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
     int now = self->World()->tick;
-    Vector3 axis;
-    self->unit->localRotation.AxisY(&axis);
+    Vector3 axis = self->unit->localRotation.AxisY();
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
     if (self->motion.Start(self->unit->localPosition, *direction, now)) self->unit->RefreshMotion();
@@ -107,8 +106,7 @@ void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
     ShowHead(self);
     self->motion.Clear();
     int now = self->World()->tick;
-    Vector3 axis;
-    self->unit->localRotation.AxisY(&axis);
+    Vector3 axis = self->unit->localRotation.AxisY();
     Vector3 back = -axis;
     if (self->motion.Start(self->unit->localPosition, back, now)) self->unit->RefreshMotion();
     WorldServer* world = self->ServerWorld();
@@ -538,8 +536,7 @@ void UnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode2, unit->moveMode2);
     motion.Clear();
     int now = World()->tick;
-    Vector3 axis;
-    unit->localRotation.AxisY(&axis);
+    Vector3 axis = unit->localRotation.AxisY();
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
     if (motion.Start(unit->localPosition, *direction, now)) unit->RefreshMotion();

@@ -64,12 +64,14 @@ int CEffect::Receive(int update, MemoryStream* reader) {
 
 void CEffect::Reset() { ClearBase(this); }
 
-void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream) {
+std::vector<std::string> ReadSavedStrings(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
+    std::vector<std::string> array;
     for (int i = 0; i < count; ++i) {
-        array->push_back(stream->ReadString());
+        array.push_back(stream->ReadString());
     }
+    return array;
 }
 
 void CEffect::MarkChanged() {
@@ -129,12 +131,12 @@ void EffectSound::Start(int update) {
 
 int EffectSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
+    position = field->ReadPosition();
     field->ReadDelta(&looping, 4);
     field->ReadText(name, 0xFF);
-    field->ReadFloat16(&volume);
-    field->ReadFloat16(&radius);
-    field->ReadFloat16x3(&velocity.x);
+    volume = field->ReadFloat16();
+    radius = field->ReadFloat16();
+    velocity = field->ReadFloat16x3();
     field->ReadDelta(&noFade, 1);
     moving = IsMoving(velocity);
     if (!SnapshotReadToEnd()) return 0;
@@ -218,7 +220,7 @@ void EffectSoundSeq::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(velocity);
     name = stream->ReadString();
-    ReadSavedStrings(&names, stream);
+    names = ReadSavedStrings(stream);
     stream->ReadValue(volume);
     stream->ReadValue(radius);
     moving = IsMoving(velocity);
@@ -263,13 +265,13 @@ void EffectAmbientSound::Start(int update) {
 
 int EffectAmbientSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
+    position = field->ReadPosition();
     std::uint8_t count = 0;   // (ReadDelta writes it either way)
     field->ReadDelta(&count, 1);
     names.resize(count);
     for (std::string& name : names) name = field->ReadString();
-    field->ReadFloat16(&volume);
-    field->ReadFloat16(&radius);
+    volume = field->ReadFloat16();
+    radius = field->ReadFloat16();
     field->ReadDelta(&minInterval, 4);
     field->ReadDelta(&maxInterval, 4);
     if (!SnapshotReadToEnd()) return 0;
@@ -294,7 +296,7 @@ void EffectAmbientSound::Pack(DeltaField* field) {
 
 void EffectAmbientSound::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
-    ReadSavedStrings(&names, stream);
+    names = ReadSavedStrings(stream);
     stream->ReadValue(volume);
     stream->ReadValue(radius);
     stream->ReadValue(minInterval);

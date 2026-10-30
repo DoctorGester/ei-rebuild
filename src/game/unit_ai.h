@@ -91,7 +91,7 @@ struct AILook {
 
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
 // flag.
-void LoadLooks(std::vector<AILook>* looks, ByteStream* stream);
+std::vector<AILook> LoadLooks(ByteStream* stream);
 void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream);
 
 // A move the modes prepare on the stack: where to go and what to look at there.
@@ -526,7 +526,7 @@ struct AIAttackOption {
 };
 
 // The count, the array sized to it, then each option.
-void LoadAttackOptions(std::vector<AIAttackOption>* options, ByteStream* stream);
+std::vector<AIAttackOption> LoadAttackOptions(ByteStream* stream);
 
 // The brain's attention: the unit's attack options (AIBrain::Choose picks a target with them).
 struct AIAttention {

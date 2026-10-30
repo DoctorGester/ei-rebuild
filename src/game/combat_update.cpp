@@ -467,8 +467,7 @@ void UnitServer::TickAction() {
     }
     motion.Clear();
     int time = World()->tick;
-    Vector3 axis;
-    unit->localRotation.AxisY(&axis);
+    Vector3 axis = unit->localRotation.AxisY();
     Vector3 backwards = -axis;
     if (motion.Start(unit->localPosition, backwards, time)) unit->RefreshMotion();
     ClearStanding();

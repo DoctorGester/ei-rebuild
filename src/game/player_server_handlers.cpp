@@ -413,7 +413,7 @@ int PlayerServer::OnNewParty() {
     party->LoadParty(&g_receivedMessages, 1);
     if (std::ssize(party->members) != 1) return 0;
     int* key = &player->partyId;
-    PartyNextId(key);
+    *key = PartyNextId();
     int& next = g_nextRecordObjectId;
     while (g_serverWorld.FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members[0].unitId = static_cast<std::uint32_t>(next);

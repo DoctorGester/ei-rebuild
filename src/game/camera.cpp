@@ -174,12 +174,9 @@ void camera::TakeFrameView(const Camera* camera) { g_frameView = DrawnView(camer
 
 const camera::ViewPose& camera::FrameView() { return g_frameView; }
 
-void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
-                   float* maximum) {
+TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY) {
     const float centre = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(p.x, p.y));
-    *minimum = centre;
-    *maximum = centre;
-    *average = centre;
+    TerrainSample sample{centre, centre, centre};
     int count = 1;
     float x = p.x - halfX;
     while (x <= halfX + p.x) {
@@ -188,19 +185,20 @@ void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float
             while (y <= halfY + p.y) {
                 if (y >= 0.0f && g_clientWorld.terrain->height > y) {
                     float h = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y));
-                    float low = *minimum;
-                    *minimum = MinKeepA(h, low);
-                    float high = *maximum;
-                    *maximum = MaxKeepB(high, h);
+                    float low = sample.minimum;
+                    sample.minimum = MinKeepA(h, low);
+                    float high = sample.maximum;
+                    sample.maximum = MaxKeepB(high, h);
                     ++count;
-                    *average = h + *average;
+                    sample.average = h + sample.average;
                 }
                 y = y + step;
             }
         }
         x = x + step;
     }
-    *average = *average / static_cast<float>(count);   // a grid's point count: exact as a float
+    sample.average = sample.average / static_cast<float>(count);   // a grid's point count: exact as a float
+    return sample;
 }
 
 int Camera::PlaybackStart() {
@@ -248,8 +246,7 @@ int Camera::PlaybackStep(float time) {
 }
 
 void Camera::Pan(const Vector3& direction) {
-    Vector3 right;
-    localRotation.AxisX(&right);
+    Vector3 right = localRotation.AxisX();
     const Quaternion& r = localRotation;
     Vector3 up;
     up.z = Dot2DUnrounded<float>(r.w, r.y, r.x, r.z) * 2.0f;
@@ -267,9 +264,8 @@ void Camera::Pan(const Vector3& direction) {
 }
 
 void Camera::StopMotion() {
-    Vector3 right, up;
-    localRotation.AxisX(&right);
-    localRotation.AxisY(&up);
+    Vector3 right = localRotation.AxisX();
+    Vector3 up = localRotation.AxisY();
     // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
     right.x = zero * right.x;
@@ -294,21 +290,18 @@ void Camera::StopMotion() {
 void Camera::SetFocus(const Vector3& p) {
     camera::ForgetViewStep();
     focus = p;
-    float average, low, high;
-    SampleTerrain(p, options::g_options.cameraTerrainArea * 0.5f, options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea, &average,
-                  &low, &high);
-    focus.z = average + focusHeight;
+    const TerrainSample ground = SampleTerrain(p, options::g_options.cameraTerrainArea * 0.5f,
+                                               options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea);
+    focus.z = ground.average + focusHeight;
 }
 
 void Camera::ApplyView() {
     localRotation = viewRotation;
-    Vector3 right;
-    localRotation.AxisX(&right);
+    Vector3 right = localRotation.AxisX();
     Quaternion tilt;
     tilt.SetAngleAxis(-(CAM_RIGHT_ANGLE + pitch), right);
     localRotation.PreMultiply(tilt);
-    Vector3 forward;
-    localRotation.AxisZ(&forward);
+    Vector3 forward = localRotation.AxisZ();
     const float d = distance;
     float ox = forward.x * d;
     float oy = forward.y * d;
@@ -352,8 +345,7 @@ void Camera::Update(float dt) {
         listener = focus;
         if (g_clientWorld.terrain) listener.z = pc24::Add(g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y), focusHeight);
     }
-    Vector3 forward;
-    localRotation.AxisZ(&forward);
+    Vector3 forward = localRotation.AxisZ();
     g_clientWorld.sounds->SetListener(&listener.x, &forward.x);
     if (flags & kPlaced) return;
 
@@ -367,8 +359,7 @@ void Camera::Update(float dt) {
             localPosition.x = t->localPosition.x;
             localPosition.y = t->localPosition.y;
             localPosition.z = lift + t->localPosition.z;
-            Vector3 side;
-            t->localRotation.AxisY(&side);
+            Vector3 side = t->localRotation.AxisY();
             float nx = -side.x;
             Vector3 dir;
             dir.y = -side.y;
@@ -442,11 +433,10 @@ void Camera::Update(float dt) {
     }
 
     // The focus height follows the target's or the ground's, a tenth of the way per call.
-    float average, low, high;
-    SampleTerrain(focus, options::g_options.cameraTerrainArea * 0.5f, options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea,
-                  &average, &low, &high);
+    const TerrainSample terrain = SampleTerrain(focus, options::g_options.cameraTerrainArea * 0.5f,
+                                                options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea);
     const CObject3D* body = target;
-    float ground = target ? body->localPosition.z : average;
+    float ground = target ? body->localPosition.z : terrain.average;
     focus.z = ((ground + focusHeight) - focus.z) * kHeightLag + focus.z;
 
     // Tilt (pitch in degrees, clamped to the settings' range).

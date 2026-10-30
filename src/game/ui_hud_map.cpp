@@ -176,11 +176,9 @@ void PutArrow(VertexPacket& packet, const CUnit* unit, float x, float y) {
     const Quaternion* rotation = &unit->localRotation;
     // The rotated Y axis is computed twice, x taken from the first, y from the second (the function is
     // pure).
-    Vector3 first;
-    rotation->AxisY(&first);
+    Vector3 first = rotation->AxisY();
     float dirX = -first.x;
-    Vector3 second;
-    rotation->AxisY(&second);
+    Vector3 second = rotation->AxisY();
     float dirY = second.y;
 
     float length2 = LengthSquared2DUnrounded(dirY, dirX);
@@ -360,10 +358,9 @@ void HudMap::UpdateView() {
     if (const TransformObject* camera = g_clientWorld.camera) {
         centreX = g_camera.focus.x;
         centreY = g_camera.focus.y;
-        Vector3 axis;
-        camera->localRotation.AxisZ(&axis);
+        Vector3 axis = camera->localRotation.AxisZ();
         facingX = axis.x;
-        camera->localRotation.AxisZ(&axis);
+        axis = camera->localRotation.AxisZ();
         facingY = axis.y;
     }
     float length2 = LengthSquared2DUnrounded(facingX, facingY);

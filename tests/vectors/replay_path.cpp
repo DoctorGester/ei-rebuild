@@ -64,10 +64,7 @@ CUnit* MakeUnit(const UnitState& s) {
 } // namespace
 
 // unit.cpp is not linked: the speeds recorded with the call.
-void CUnit::GetMoveSpeeds(float* forward, float* backward) {
-    *forward = g_unitState.forwardSpeed;
-    *backward = g_unitState.backwardSpeed;
-}
+CUnit::MoveSpeeds CUnit::GetMoveSpeeds() { return {g_unitState.forwardSpeed, g_unitState.backwardSpeed}; }
 
 // sector_map.cpp is not linked: FindPath's map was recorded with the unit taken out, and putting it
 // back changes nothing the search reads (IsPassableWithoutSelf, linked with ai_map.cpp, calls these).

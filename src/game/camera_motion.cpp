@@ -73,9 +73,8 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
 // quarter about +Z); nothing below one degree. Then lifts the camera over nearby objects.
 void Camera::AlignToTarget() {
     Quaternion& q = localRotation;
-    Vector3 zAxis, xAxis;
-    q.AxisZ(&zAxis);
-    q.AxisX(&xAxis);
+    const Vector3 zAxis = q.AxisZ();
+    const Vector3 xAxis = q.AxisX();
     float hy = -zAxis.x;
     float hz = 0.0f;
     float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
@@ -119,8 +118,7 @@ void Camera::AlignToTarget() {
 // (raised over the highest terrain by at most settings->cameraMaxHeight) plus settings->cameraMinHeight.
 void Camera::ClampAboveObjects() {
     Vector3* p = &localPosition;
-    float average, lowest, highest;
-    SampleTerrain(*p, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
+    const float highest = SampleTerrain(*p, 1.0f, 2.0f, 2.0f).maximum;
     std::vector<CObject3D*> list = g_clientWorld.ObjectsInRange(*p, 16.0f);
     float best = 0.0f;
     for (auto& node : list) {

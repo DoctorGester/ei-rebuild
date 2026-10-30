@@ -843,7 +843,10 @@ public:
     // The sprite fills the figure mesh's arrays itself: vertices (a quad is one VertexPacket, its four
     // corners x, y, z, w), corners (MeshCorner per vertex), texCoords, indices.
     // Where Place put the sprite (the layout point and the depth; each stored as float).
-    void GetPlacement(float* x, float* y, float* depth) const;
+    struct Placement {
+        float x, y, depth;
+    };
+    Placement GetPlacement() const;
     // The shapes, Rebirth-patched: with Rebirth's WideScreen every shape's layout x is moved
     // by the panel offset. A rectangle: texels (u0, v0)-(u1, v1), v upwards, both u one less when u0 > u1,
     // half a texel inwards; position the layout centre at `depth`.

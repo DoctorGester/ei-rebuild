@@ -110,8 +110,8 @@ void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, in
 
 // A link marker's region: 40 x 35 round the marker's place on the screen.
 void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
-    float x, y, depth;
-    sprite->GetPlacement(&x, &y, &depth);
+    const UiMesh::Placement placed = sprite->GetPlacement();
+    const float x = placed.x, y = placed.y;
     int bottom = Truncate(y + 10.0f);
     int right = Truncate(x + 20.0f);
     int top = Truncate(y - 25.0f);

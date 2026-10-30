@@ -79,21 +79,21 @@ struct DeltaField {
     void WritePosition(const Vector3& position);
     // Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
     // A changed value is also stored in snapshot[1].
-    void ReadPosition(Vector3* position);
+    Vector3 ReadPosition();
     // The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
     void WritePosition2D(const float* position);
-    void ReadPosition2D(float* position);
+    Vector2 ReadPosition2D();
     // A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
     // rounded through a float, then to nearest; read back as q * float((max - min) / 65535) + min.
     void WriteRanged(float value, float min, float max);
-    void ReadRanged(float* value, float min, float max);
+    float ReadRanged(float min, float max);
     // A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see
     // PackFloat16). The writer takes the float's bits (a stack argument).
     void WriteFloat16(std::uint32_t floatBits);
-    void ReadFloat16(float* value);
+    float ReadFloat16();
     // Three of them (each float is first copied through the FPU).
     void WriteFloat16x3(const float* values);
-    void ReadFloat16x3(float* values);
+    Vector3 ReadFloat16x3();
     // The 16-bit read of the readers above (inline in the original; ReadDiff of 2 bytes, which
     // some of them call instead, does the same).
     std::uint16_t ReadWord();

@@ -148,8 +148,7 @@ void BattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
     for (int i : SelectedIndexes()) {
         CUnit* member = party[i];
         if (member == unit) {
-            Vector3 axis;
-            unit->localRotation.AxisY(&axis);
+            Vector3 axis = unit->localRotation.AxisY();
             const float k = 0.1f;
             point.x = point.x + -axis.x * k;
             point.y = point.y + -axis.y * k;

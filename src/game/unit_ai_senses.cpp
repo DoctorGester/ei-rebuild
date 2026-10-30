@@ -217,8 +217,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
 }
 
 void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
-    Vector3 axis;
-    seer->localRotation.AxisY(&axis);
+    Vector3 axis = seer->localRotation.AxisY();
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
     seer->EyePoint(&eye);

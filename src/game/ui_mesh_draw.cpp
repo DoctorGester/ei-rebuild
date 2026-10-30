@@ -39,10 +39,12 @@ void Pop(MatrixStack& stack) {
 
 } // namespace
 
-void UiMesh::GetPlacement(float* x, float* y, float* depth) const {
-    *x = (localPosition.x / localPosition.z / 0.48157462f + 1.0f) * 400.0f;
-    *y = localPosition.y / localPosition.z / 0.48157462f * 400.0f + 300.0f;
-    *depth = localPosition.z;
+UiMesh::Placement UiMesh::GetPlacement() const {
+    Placement placement;
+    placement.x = (localPosition.x / localPosition.z / 0.48157462f + 1.0f) * 400.0f;
+    placement.y = localPosition.y / localPosition.z / 0.48157462f * 400.0f + 300.0f;
+    placement.depth = localPosition.z;
+    return placement;
 }
 
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's

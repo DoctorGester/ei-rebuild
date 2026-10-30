@@ -51,20 +51,11 @@ void Quaternion::PreMultiply(const Quaternion& r) {
 }
 
 // The rotated axes: vecmath.h's RotatedAxisX / Y / Z hold these functions' orders.
-Vector3* Quaternion::AxisX(Vector3* out) const {
-    *out = RotatedAxisX(*this);
-    return out;
-}
+Vector3 Quaternion::AxisX() const { return RotatedAxisX(*this); }
 
-Vector3* Quaternion::AxisY(Vector3* out) const {
-    *out = RotatedAxisY(*this);
-    return out;
-}
+Vector3 Quaternion::AxisY() const { return RotatedAxisY(*this); }
 
-Vector3* Quaternion::AxisZ(Vector3* out) const {
-    *out = RotatedAxisZ(*this);
-    return out;
-}
+Vector3 Quaternion::AxisZ() const { return RotatedAxisZ(*this); }
 
 void CubicSegment::SetBSpline(float p0, float p1, float p2, float p3) {
     c[0] = ((p1 * 4.0f + p0) + p2) * 0.16666667f;

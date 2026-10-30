@@ -170,7 +170,11 @@ public:
     // Whether the hour of the day is before 6 or from 22 on (a NaN counts as night).
     bool IsNight();
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
-    void GetTime(float* hours, float* speed);
+    struct Clock {
+        float hours;
+        float speed;
+    };
+    Clock GetTime();
     void SetWind(const Vector3& direction, float strength);
     CUnit* FindUnit(int id);
     // How dark the time of day is: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by midnight.
@@ -447,9 +451,9 @@ public:
     // zoneLoaded) its records without a unit are dropped and the rest stored (StoreParty).
     void CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements);
 
-    // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
-    // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item*>* list);
+    // Takes quest items (class 0x14) out of `items` and returns them: in single player only those whose
+    // description names this zone or whose id an object of the zone asks for; otherwise all.
+    std::vector<Item*> TakeZoneQuestItems(std::vector<Item*>* items);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);
@@ -566,9 +570,13 @@ public:
     float SurfaceHeight(const Vector3& point, float height);
     // Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
-    // The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its z and *normal its
-    // normal; 0 and (0, 0, 1) when there is none.
-    void SurfacePlane(float x, float y, Vector3* normal, float* height);
+    // The highest platform surface above 0 at (x, y) (with a 0.5 margin): its z and its normal; 0 and
+    // (0, 0, 1) when there is none.
+    struct SurfacePlaneResult {
+        Vector3 normal;
+        float height;
+    };
+    SurfacePlaneResult SurfacePlane(float x, float y);
     // Adds the face with corner `a`, edges to `b` and `c` and `normal` when normal.z >= 0.8: origin a,
     // unit axes (b - a) / |b - a| and (c - a) / |c - a|, the two lengths, the normal; *out = the new
     // record (its id, centre and radius are the caller's), null when the face is too steep. Returns 1
@@ -607,8 +615,8 @@ struct UnitSet {
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
 // of names; then a count and per dressed record the prototype, the two arrays, the byte and a dword.
-// Both vectors are resized to the counts.
-void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
+// Both vectors have the counts' sizes.
+UnitLooks ReadUnitLooks(ByteStream* stream);
 
 struct SectorGrid {
     // Nothing adds to a cell while it is walked (CollectVisible files one object; a first pass only appends

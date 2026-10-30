@@ -56,7 +56,7 @@ public:
     int changeStamp;           // the global when last changed, -1 after Reset
 };
 // Reads a count and that many strings from a save stream, each appended to `array`.
-void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream);
+std::vector<std::string> ReadSavedStrings(ByteStream* stream);
 
 // A positional sound (class id 0x48).
 class EffectSound final : public CEffect {

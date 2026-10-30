@@ -412,8 +412,7 @@ int WorldClient::DrawPass() {
         matrix.m[10] = 1.0f;
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
-        Vector3 sun;
-        camera::FrameView().rotation.AxisZ(&sun);
+        Vector3 sun = camera::FrameView().rotation.AxisZ();
         const float scale = kShadowLength;
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -457,9 +456,8 @@ int WorldClient::DrawPass() {
                     point.z = Reload(object->localPosition.z);
                 }
                 const Quaternion* orientation = &object->localRotation;
-                Vector3 axisY, axisX;
-                orientation->AxisY(&axisY);
-                orientation->AxisX(&axisX);
+                const Vector3 axisY = orientation->AxisY();
+                const Vector3 axisX = orientation->AxisX();
                 g_sceneRenderer.DrawSelectionMarker(point, 0.5f, axisX, axisY);
                 return false;
             }

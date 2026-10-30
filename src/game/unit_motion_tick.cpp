@@ -209,7 +209,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
         c->motion.Clear();
         int time = c->World()->tick;
         Vector3 axis, back;
-        c->unit->localRotation.AxisY(&axis);
+        axis = c->unit->localRotation.AxisY();
         Vector3* facing = NegateVector(&back, axis);
         if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
@@ -221,7 +221,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
         c->motion.Clear();
         int time = c->World()->tick;
         Vector3 axis, back;
-        c->unit->localRotation.AxisY(&axis);
+        axis = c->unit->localRotation.AxisY();
         Vector3* facing = NegateVector(&back, axis);
         if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();

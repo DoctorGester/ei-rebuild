@@ -114,8 +114,7 @@ void StepWalking(BriefingMover* node) {
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
 void StepTurning(BriefingMover* node) {
     const CUnit* person = node->person;
-    Vector3 axis;
-    person->localRotation.AxisY(&axis);
+    Vector3 axis = person->localRotation.AxisY();
     float facingX = static_cast<float>(-axis.x);
     float facingY = -axis.y;
     Vector3 direction = NormalisedUnlessZero(node->direction);

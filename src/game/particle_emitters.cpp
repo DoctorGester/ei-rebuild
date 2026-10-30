@@ -203,8 +203,7 @@ Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
     case 5:
     case 6:
     case 7: {
-        Vector3 y;
-        s->attachedTo->localRotation.AxisY(&y);
+        Vector3 y = s->attachedTo->localRotation.AxisY();
         axis = y;
         break;
     }
@@ -446,7 +445,9 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
 void ParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
-        g_clientWorld.platforms.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
+        const PlatformSet::SurfacePlaneResult surface = g_clientWorld.platforms.SurfacePlane(origin.x, origin.y);
+        plane.normal = surface.normal;
+        plane.height = surface.height;
         if (plane.normal.z != 0.0f) plane.normal.z = EI_ONE / plane.normal.z;   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags &= ~ParticleSourceFlag::Emitting;

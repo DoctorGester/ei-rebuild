@@ -161,13 +161,13 @@ int EffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId, 4);
     field->ReadDelta(&casterId, 4);
     soundName = field->ReadString();
-    field->ReadFloat16x3(&lightColor.x);
-    field->ReadFloat16(&lightRange);
+    lightColor = field->ReadFloat16x3();
+    lightRange = field->ReadFloat16();
     field->ReadDelta(&particleType, 4);
-    field->ReadFloat16(&particleSize);
+    particleSize = field->ReadFloat16();
     Vector3 position;
-    field->ReadPosition(&position);
-    field->ReadFloat16x3(&velocity.x);
+    position = field->ReadPosition();
+    velocity = field->ReadFloat16x3();
     field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster != 0) {
@@ -305,8 +305,8 @@ int EffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId, 4);
     field->ReadDelta(&casterId, 4);
     Vector3 position;
-    field->ReadPosition(&position);
-    field->ReadFloat16x3(&velocity.x);
+    position = field->ReadPosition();
+    velocity = field->ReadFloat16x3();
     field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster != 0) {

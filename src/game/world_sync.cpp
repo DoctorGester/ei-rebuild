@@ -150,10 +150,8 @@ int WorldServer::SyncPlayer(CPlayer* player) {
             if (!state->SendState70(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty & PlayerDirty::Time) {
-            float time;
-            float speed;
-            GetTime(&time, &speed);
-            if (!state->SendState71(std::bit_cast<std::uint32_t>(time), std::bit_cast<std::uint32_t>(speed))) return 0;
+            const Clock clock = GetTime();
+            if (!state->SendState71(std::bit_cast<std::uint32_t>(clock.hours), std::bit_cast<std::uint32_t>(clock.speed))) return 0;
         }
         if (player->dirty & PlayerDirty::Wind) {
             Vector3 direction;

@@ -125,11 +125,10 @@ bool CheckPreMultiply(const PreMultiplyCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("Quaternion::PreMultiply", PreMultiplyCall, CheckPreMultiply);
 
-template <Vector3* (Quaternion::*Fn)(Vector3*) const>
+template <Vector3 (Quaternion::*Fn)() const>
 bool CheckAxis(const AxisCall& v, char* d, std::size_t n) {
-    Vector3 out{};
-    Vector3* ret = (v.q.*Fn)(&out);
-    if (ret == &out && Same(out, v.out)) return true;
+    const Vector3 out = (v.q.*Fn)();
+    if (Same(out, v.out)) return true;
     return Fail(d, n, "(%g %g %g %g): ours (%.9g, %.9g, %.9g), original (%.9g, %.9g, %.9g)", Q4(v.q), V3(out), V3(v.out));
 }
 EI_VECTOR_CHECK("Quaternion::AxisX", AxisCall, CheckAxis<&Quaternion::AxisX>);
