@@ -6124,6 +6124,12 @@ group = "cleanup"
 note = "User 2026-10-30 asked about five dashboard rows. (1) Fn(T* self, void*) shims 2: app_main.cpp's UpdateServer / RunClientSegment keep the harness hook types' __fastcall (this, edx) shape from when the hooks were game.exe CALL targets; game.exe runs only the original now (S21), so HarnessHooks (include/ei/main_loop.h, tests/verify/harness_hooks.h) take plain function types and the shims go. (2) Struct names defined in several files 16: real duplicates to merge: LocalResource and FillStream (resource_local.h and database_file.h, the same type twice, stale 'Rebirth patches' comments), MapHeader / MapMaterial (ai_map_load.cpp and terrain_landscape.cpp both read the .mp header: one header), LocalMotionOrder (combat_motion.cpp and combat_planning.cpp), FsParams (four render files: one per shader is fine if named per shader); the rest (Cell, Channel, Item, Layout, Loader, Lock, Record, Rect, Value, Waypoint, miles) are different types sharing a short name: rename the ones at namespace scope in headers (render.h / render_text.h Rect, item.h Item, sound.h miles), leave file-local ones and make the metric count only those that can clash (not anonymous-namespace). (3) float_control 2: vecmath.h's precise-off region for the unrounded 2D forms exists for the x87 stack; once C30e15 has no x87 build it has no reason: remove it and the Unrounded 2D forms' x87 wording, goldens decide. (4) __asm 1 counted (crt_x87.cpp's AddOnX87) plus startup.cpp's fnstcw and tests' fnstcw / fldcw: go with C30e15. (5) Game data addresses 5: game_data.h / image_data.cpp's section bounds, which go with C20t. Do (1) and (2) now; (3) and (4) after C30e15."
 
 [[ticket]]
+id = "C20u"
+title = "Delete the moved image block: storage, shift, guard and section bounds"
+group = "cleanup"
+note = "After C20t (pointer cells 0, the block all zero) and H33f (the import slots out of the block's start). Delete image_data.cpp's storage and guard (PlaceData, OnOldData), game_data.h's kMovedBegin / kMovedEnd and the other section bounds (the dashboard's 5 game data addresses), g_dataShift and GameAddress's range check, data_seam.py's sections if nothing is left for them; gate harness_heap.cpp's GameData<HANDLE>(0x007CAF08) read (_crtheap) to game.exe's runs. Goldens are the check."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
