@@ -1615,6 +1615,13 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   Rsp / Rip.
 - **Counts**: a container's size meets the game's int counts and indices through `lib::Count` (lib/containers.h), not
   `std::ssize` (64-bit on x64; the conversion warnings, C4244 / C4267).
+- **Playing it** (A3e): `play.cmd x64` (also `play.cmd vanilla x64`) builds `build.cmd play-x64` (the x64 release into
+  build\play-x64) and copies ei-rebuild.exe to `run\play-x64` (its own ei_settings.ini, ei_rebirth.ini and ei-rebuild.log,
+  apart from run\play's). No x64 ei_launch in the release build: play.cmd sets EI_GAME_ROOT to the data folder (EI_GAME_REBIRTH /
+  EI_GAME_VANILLA) and starts the exe from run\play-x64, which is all ei_launch --standalone does for a play start. So the
+  paths are the 32-bit play's: the settings file's Work path and CD-ROM Path read as the data folder, and the saves, the
+  cache and the mods are that install's, as with `play.cmd`; the settings and the log stay in run\play-x64. To keep an
+  install clean, point EI_GAME_VANILLA / EI_GAME_REBIRTH at a copy made like the folder below.
 - **Running it** (no harness, no ei_launch): the exe in a folder made like the game folder (each folder a junction
   to the install's but `saves` and `cache`, real folders; each file a copy but game.exe) with an ei_settings.ini
   whose Work path and CD-ROM Path are `.\`: an absolute path there sends the game's writes (saves\current) to the

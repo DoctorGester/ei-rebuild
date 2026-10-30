@@ -54,6 +54,7 @@ The build also runs the source checks (`tools/check_*.py`, the generated files' 
 ```
 play.cmd            builds the UTF-8 release and plays it on the Rebirth install's data, every option on
 play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes and widescreen
+play.cmd x64        the 64-bit build (build\play-x64, run\play-x64) on the same data; `play.cmd vanilla x64` too
 launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
 ```
 
@@ -75,6 +76,8 @@ setting at its best; the registry is never read). The render quality (MSAA sampl
 anisotropy), the performance overlay and vsync are set there (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
 `run\play\ei-rebuild.log`.
+`play.cmd x64` does the same in `run\play-x64` (its own settings and log) with the 64-bit build: sound plays, movies
+stay black until the video backend (A2).
 
 ## Test
 

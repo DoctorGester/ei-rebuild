@@ -1,7 +1,7 @@
 @echo off
 rem Builds the standalone image (ei-rebuild.exe, with ei_harness.dll in the verify build), ei_launch.exe and the tools (32-bit) with
 rem the VS 2022 Build Tools.
-rem usage: build.cmd [release|verify|debug|play|asan|x64|verify-x64]
+rem usage: build.cmd [release|verify|debug|play|asan|x64|verify-x64|play-x64]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
 rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
@@ -14,6 +14,7 @@ rem   x64      the release build for 64-bit Windows, into build\x64: the image a
 rem            the function vectors are 32-bit only; docs/notes/standalone.md, "The x64 build")
 rem   verify-x64  the verify build's image for 64-bit Windows, into build\verify-x64: ei-rebuild.exe with the harness's
 rem            image side linked in and an x64 ei_launch that starts it, for run_all.py --x64 (the image's runs only)
+rem   play-x64  the x64 release build into build\play-x64, apart from build\x64 (play.cmd x64)
 rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.
@@ -25,6 +26,7 @@ set VCVARS=vcvars32
 set X64=
 if /i "%CFG%"=="x64" set X64=1
 if /i "%CFG%"=="verify-x64" set X64=1
+if /i "%CFG%"=="play-x64" set X64=1
 if defined X64 set VCVARS=vcvars64
 call "%VSROOT%\VC\Auxiliary\Build\%VCVARS%.bat" >nul || exit /b 1
 set PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%

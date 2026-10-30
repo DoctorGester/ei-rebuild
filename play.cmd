@@ -1,11 +1,16 @@
 @echo off
 rem Builds the product with every option on and starts it to play.
-rem usage: play.cmd [rebirth|vanilla]
+rem usage: play.cmd [rebirth|vanilla] [x64]
 rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:\games\Evil Islands (Rebirth)) with the Rebirth profile
 rem                      (config\ei_rebirth_standalone.ini: widescreen, draw radii, console and script additions,
 rem                      the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the default flags (the bug fixes)
 rem                      and widescreen
+rem   x64                the 64-bit build (build.cmd play-x64, into build\play-x64) in place of the 32-bit one, in its own
+rem                      folder run\play-x64 (its own ei_settings.ini and log), on the same data and the same profile; the
+rem                      combination is free (play.cmd vanilla x64). No ei_launch (it is 32-bit): the exe is started
+rem                      here with EI_GAME_ROOT set to the data folder, as ei_launch does (docs/notes/standalone.md "The
+rem                      x64 build"). Sound plays (miniaudio); movies stay black until A2.
 rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults
@@ -21,20 +26,33 @@ rem Vsync (docs/notes/renderer.md section 15a): on by default; to run unlocked (
 rem   "VSync"=dword:00000000
 rem A harness game open does not end it (ST1b: harness windows have their own title).
 setlocal
-set MODE=%~1
-if "%MODE%"=="" set MODE=rebirth
+set MODE=rebirth
+set ARCH=
+for %%a in (%*) do (
+    if /i "%%~a"=="x64" (set ARCH=x64) else if /i "%%~a"=="vanilla" (set MODE=vanilla) else if /i "%%~a"=="rebirth" (set MODE=rebirth) else (
+        echo play: unknown argument %%a ^(usage: play.cmd [rebirth^|vanilla] [x64]^)
+        exit /b 2
+    )
+)
 set _MSPDBSRV_ENDPOINT_=play
-echo play: building the release (build\play)...
-call "%~dp0build.cmd" play > "%~dp0build\play_build.log" 2>&1
+set CFG=play
+set PLAY=%~dp0run\play
+set FILES=ei_launch.exe ei_launch.pdb ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt
+if defined ARCH (
+    set CFG=play-x64
+    set PLAY=%~dp0run\play-x64
+    set FILES=ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt
+)
+echo play: building the release (build\%CFG%)...
+call "%~dp0build.cmd" %CFG% > "%~dp0build\%CFG%_build.log" 2>&1
 if errorlevel 1 (
-    echo play: the build failed, see build\play_build.log
+    echo play: the build failed, see build\%CFG%_build.log
     pause
     exit /b 1
 )
-set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
-for %%f in (ei_launch.exe ei_launch.pdb ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt) do (
-    copy /y "%~dp0build\play\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
+for %%f in (%FILES%) do (
+    copy /y "%~dp0build\%CFG%\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
 )
 rem The Rebirth flags: ei_rebirth.ini next to the exe (docs/notes/rebirth.md).
 if not defined EI_GAME_REBIRTH set "EI_GAME_REBIRTH=F:\games\Evil Islands (Rebirth)"
@@ -47,5 +65,11 @@ if /i "%MODE%"=="vanilla" (
     copy /y "%~dp0config\ei_rebirth_standalone.ini" "%PLAY%\ei_rebirth.ini" >nul
 )
 cd /d "%PLAY%"
+if defined ARCH (
+    rem The data folder as the 32-bit path's ei_launch names it; the exe's settings, flags and log are run\play-x64's.
+    set "EI_GAME_ROOT=%GAME%"
+    start "" /wait "%PLAY%\ei-rebuild.exe"
+    exit /b
+)
 rem No --exe: ei_launch starts the ei-rebuild.exe next to it, so the settings file is run\play's too.
 "%PLAY%\ei_launch.exe" --game "%GAME%" --standalone
