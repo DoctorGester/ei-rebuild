@@ -14,7 +14,7 @@
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -395,7 +395,7 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     if (joinState == kAsking && SameAddress(address, &host)) return;
     host = *address;
     std::uint32_t id = static_cast<std::uint32_t>(libcrt::Rand()) << 16;
-    id |= gameapi::GetTickCount() & 0xFFFF;
+    id |= platform::TickCount() & 0xFFFF;
     joinId = id;
     joinState = kAsking;
     retryTimer = 0.0f;

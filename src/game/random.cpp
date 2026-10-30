@@ -3,6 +3,7 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>
@@ -168,7 +169,7 @@ void IsaacRandom::Seed() {
         return;
     }
     char path[kPathBuffer];
-    libcrt::Srand(gameapi::timeGetTime());
+    libcrt::Srand(platform::Milliseconds());
     int ok = 0;
     while (!ok) {
         int counter = 0;
@@ -181,7 +182,7 @@ void IsaacRandom::Seed() {
         ok = 1;
         lib::File file;
         if (file.Open(path, kOpenReadShared)) {
-            libcrt::Srand(gameapi::timeGetTime());
+            libcrt::Srand(platform::Milliseconds());
             long offset = kSeedBytes - RandomBelow512();
             DWORD read = 0;
             if (gameapi::SetFilePointer(file.Handle(), offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
@@ -199,7 +200,7 @@ void IsaacRandom::Seed() {
             }
         if (zero) {
             ok = 0;
-            gameapi::Sleep(10);
+            platform::Sleep(10);
         }
         for (std::uint32_t& word : results) word ^= static_cast<std::uint32_t>(libcrt::Rand());
     }

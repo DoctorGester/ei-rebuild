@@ -23,7 +23,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -66,7 +66,7 @@ CParty* NewItemList() {
 }
 
 // The time in animation frames: milliseconds / 1024 * 15 (a double: the milliseconds since the system started).
-double FramesNow() { return gameapi::timeGetTime() * (15.0 / 1024.0); }
+double FramesNow() { return platform::Milliseconds() * (15.0 / 1024.0); }
 
 } // namespace
 

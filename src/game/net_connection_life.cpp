@@ -5,7 +5,7 @@
 
 #include "core_streams.h"
 #include "lib/bytes.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 
 #include <cstring>
 #include <memory>
@@ -46,7 +46,7 @@ void DestroyForReset(Connection* c) {
 Connection::Connection(std::uint32_t newId) {
     address = NetAddress{};
     for (IdPool& pool : idPools) pool.next = 0;
-    std::uint32_t tick = gameapi::GetTickCount();
+    std::uint32_t tick = platform::TickCount();
     id = 0;
     SessionBase* session = g_currentSession;
     if (session) {

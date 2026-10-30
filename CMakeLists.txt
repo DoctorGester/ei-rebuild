@@ -73,6 +73,13 @@ target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
+
+# The platform layer (docs/notes/platform.md): the game's calls of the operating system by area (src/platform/*.h),
+# implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>.
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/win32/*.cpp)
+add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
+set_target_properties(ei_platform PROPERTIES EI_SSE2 ON)
+target_include_directories(ei_platform PRIVATE include src)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
 # SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
 # render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
@@ -160,7 +167,7 @@ add_executable(ei-rebuild
     ${EI_X87_GAME_SOURCES})
 set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
 target_include_directories(ei-rebuild PRIVATE include src)
-target_link_libraries(ei-rebuild PRIVATE ei_render)
+target_link_libraries(ei-rebuild PRIVATE ei_render ei_platform)
 target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
 if(EI_ASAN)
     # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
@@ -313,7 +320,7 @@ target_compile_definitions(ei_vectors_sse2 PRIVATE EI_VECTORS_REPLAY)
 add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_X87_SOURCES})
 target_include_directories(ei_vectors PRIVATE include src)
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
-target_link_libraries(ei_vectors PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_vectors_sse2>")
+target_link_libraries(ei_vectors PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_vectors_sse2>" ei_platform)
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

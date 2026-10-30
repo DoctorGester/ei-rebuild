@@ -35,7 +35,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
@@ -295,7 +295,7 @@ int WorldClient::DrawPass() {
     terrain::Terrain* currentTerrain = terrain;
     if (!currentTerrain || !currentTerrain->mapLoaded) return 0;
     TransformPipeline* device = g_sceneRenderer.pipeline;
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
     static const FrameList kCleared[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,

@@ -8,6 +8,7 @@
 #include "game_singletons.h"
 
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -62,11 +63,11 @@ void CursorThread(Cursor* self) {
     self->UpdatePosition();
     self->drawn = self->rect;
     gameapi::LeaveCriticalSection(&self->lock);
-    DWORD last = gameapi::timeGetTime();
+    DWORD last = platform::Milliseconds();
     while (!self->stop) {
-        DWORD now = gameapi::timeGetTime();
+        DWORD now = platform::Milliseconds();
         if (now - last < kThreadPeriod) {
-            gameapi::Sleep(kThreadPeriod - (now - last));
+            platform::Sleep(kThreadPeriod - (now - last));
             continue;
         }
         last = now;

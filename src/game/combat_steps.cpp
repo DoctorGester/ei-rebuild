@@ -9,7 +9,7 @@
 #include "unit.h"
 
 #include "lib/float_select.h"
-#include "lib/gameapi.h"
+#include "platform/debug.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -251,7 +251,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
     if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == UnitOrderKind::Attack) {
         animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {
-            gameapi::OutputDebugStringA(kNoAnimationMessage);
+            platform::DebugOutput(kNoAnimationMessage);
             animation = unit->AnimationEntry(0);
         }
     }

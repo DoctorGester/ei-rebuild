@@ -15,6 +15,8 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/gameapi.h"
+#include "platform/message_box.h"
+#include "platform/paths.h"
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
@@ -127,7 +129,6 @@ int TypedCharacter(WPARAM unit) {
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
-constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 // The game's own wheel message (a fixed number in the registered messages' range; nothing here sends it): wParam is
 // the delta.
 constexpr UINT kGameWheelMessage = 0xCC54;
@@ -273,18 +274,15 @@ int StartFirstMap() {
 
 // ---- FatalError ---------------------------------------------------------------------
 
-int ShowMessageBox(const char* text, int flags) {
+void ShowMessageBox(const char* text) {
     HCURSOR cursor = gameapi::GetCursor();
-    // The image's MessageBoxA takes UTF-8.
-    int answer = gameapi::MessageBoxA(g_mainWindow, text, g_windowTitle, static_cast<UINT>(flags));
+    platform::ShowMessageBox(g_mainWindow, text, g_windowTitle, platform::MessageButtons::Ok, platform::MessageIcon::Error);
     gameapi::SetCursor(cursor);
-    return answer;
 }
 
-int ShowLibraryMessageBox(const char* text) {
-    char title[MAX_PATH];
-    gameapi::GetModuleFileNameA(nullptr, title, MAX_PATH);
-    return gameapi::MessageBoxA(nullptr, text, title, MB_OK | MB_ICONEXCLAMATION);
+void ShowLibraryMessageBox(const char* text) {
+    platform::ShowMessageBox(nullptr, text, platform::ExePath().c_str(), platform::MessageButtons::Ok,
+                             platform::MessageIcon::Warning);
 }
 
 } // namespace app
@@ -299,7 +297,7 @@ int game::FatalError(const char* format, ...) {
     gameapi::wvsprintfA(text, format, args);
     va_end(args);
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
-    if (!carryOn) app::ShowMessageBox(text, app::kErrorBoxFlags);
+    if (!carryOn) app::ShowMessageBox(text);
     if (++app::g_fatalErrorCount >= 1 && !carryOn) std::exit(-1);
     return 0;
 }
@@ -313,7 +311,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     char report[0x400];
     gameapi::wvsprintfA(text, format, args);
     std::snprintf(report, sizeof(report), CodeReportFormat(), text, result, DirectXErrorText(result));
-    ShowMessageBox(report, kErrorBoxFlags);
+    ShowMessageBox(report);
     if (++g_fatalErrorCount >= 1) std::exit(-1);
     return 0;
 }

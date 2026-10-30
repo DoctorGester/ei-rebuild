@@ -7,6 +7,7 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -166,7 +167,7 @@ void Cursor::Shutdown() {
 
 bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
-    const DWORD steps = (gameapi::timeGetTime() - frameTime) / kFramePeriod;
+    const DWORD steps = (platform::Milliseconds() - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;

@@ -8,7 +8,7 @@
 
 #include "lib/vecmath.h"
 #include "render/render_state.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "render/render.h"
 #include "game_singletons.h"
 
@@ -92,7 +92,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     model->flags |= MapObjectFlag::NoEdgeFade;
     {
         // In animation frames: milliseconds / 1024 * 15 (a double: the milliseconds since the system started).
-        model->AdvanceTime(static_cast<float>(gameapi::timeGetTime() * (15.0 / 1024.0)));
+        model->AdvanceTime(static_cast<float>(platform::Milliseconds() * (15.0 / 1024.0)));
     }
 
     // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:

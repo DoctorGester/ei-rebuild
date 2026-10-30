@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -184,7 +185,7 @@ constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached aft
 void UseCached(SoundManager* m, SoundSlot* slot, const std::string& name, std::list<WaveRecord>::iterator node) {
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
-    record.lastUsed = gameapi::GetTickCount();
+    record.lastUsed = platform::TickCount();
     record.uses = record.uses + 1;
     slot->length = m->WaveLength(record.data);
     gameapi::AIL_set_named_sample_file(slot->sample, name.c_str(), record.data, record.size, 0);
@@ -479,7 +480,7 @@ int SoundManager::AddEmitter(const std::vector<std::string>* names, const float*
     e->active = 1;
     e->names = *names;
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
-    e->lastPlayed = gameapi::GetTickCount();
+    e->lastPlayed = platform::TickCount();
     return i;
 }
 
@@ -686,7 +687,7 @@ void SoundManager::Tick() {
         }
     }
 
-    std::uint32_t now = gameapi::GetTickCount();
+    std::uint32_t now = platform::TickCount();
     if (now - emitterTick < 100) return;
     emitterTick = now;
     IsaacRandom& random = g_clientRandom;
@@ -861,7 +862,7 @@ void SoundManager::StopStream(int mode) {
             musicFader.step = step;
             EI_NAN_AUDIT(step);
             if (step == 0.0f) musicFader.step = FloatBits(FadeStepBits());
-            musicFader.SetHold(gameapi::timeGetTime() + 2000);
+            musicFader.SetHold(platform::Milliseconds() + 2000);
         } else {
             RequestStream(game::kEmptyText, mode);
         }
@@ -934,7 +935,7 @@ void SoundFader::Recalc() {
 
 // One step of the fade (the stream thread, every 100 ms, under the stream lock).
 void SoundFader::Update() {
-    if (holdUntil != 0 && gameapi::timeGetTime() >= holdUntil) {
+    if (holdUntil != 0 && platform::Milliseconds() >= holdUntil) {
         SetHold(0);
         return;
     }
@@ -1091,7 +1092,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
             if (data != nullptr) break;
         }
         int size = static_cast<int>(fileSize);
-        std::uint32_t now = gameapi::GetTickCount();
+        std::uint32_t now = platform::TickCount();
         if (compressed != 0) {
             void* decoded = nullptr;
             int decodedSize = 0;
@@ -1464,12 +1465,12 @@ int SoundManager::OpenStream(miles::DigitalDriver* driver) {
 }
 
 void SoundManager::StreamThread() {
-    std::uint32_t last = gameapi::timeGetTime();
+    std::uint32_t last = platform::Milliseconds();
     while (threadsQuit == 0) {
-        std::uint32_t now = gameapi::timeGetTime();
+        std::uint32_t now = platform::Milliseconds();
         std::uint32_t elapsed = now - last;
         last = now;
-        if (elapsed < kStreamPeriodMs) gameapi::Sleep(kStreamPeriodMs - elapsed);
+        if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
 
         gameapi::EnterCriticalSection(&streamLock);
         musicFader.Update();
@@ -1525,7 +1526,7 @@ void SoundManager::ReadStreamVanilla() {
     if (state == kStateSwitching && switchMode == kSwitchAfterFade && musicFader.finished != 0) {
         current = 0;
         rest = frames;
-        musicFader.SetHold(gameapi::timeGetTime() + kSwitchHoldMs);
+        musicFader.SetHold(platform::Milliseconds() + kSwitchHoldMs);
     } else if ((state == 1 || (state == kStateSwitching && streamSwitchAt > streamLoopAt)) && streamLoopAt >= streamPosition &&
                streamLoopAt < streamPosition + frames) {
         again = true;

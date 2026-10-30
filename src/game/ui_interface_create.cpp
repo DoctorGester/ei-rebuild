@@ -15,6 +15,7 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <string>
 #include "game_singletons.h"
 #include "options.h"
@@ -136,7 +137,7 @@ void Interface3D::Create(TextureDevice* device) {
     messageFlag = 0;
     fpsSurface = nullptr;
     fpsSpare = 0;
-    fpsTime = gameapi::timeGetTime();
+    fpsTime = platform::Milliseconds();
     fpsFrames = 0;
     disconnected = false;
 }

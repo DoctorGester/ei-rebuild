@@ -46,6 +46,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "platform/clock.h"
 
 #include "ei/rebirth.h"
 
@@ -943,10 +944,9 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     if (mode == kModeMainMenu) {
         g_serverWorld.NewZone(kMenuMap, kMenuMob, std::nullopt);
         // The menu shows the local time of day.
-        SYSTEMTIME now;
-        gameapi::GetLocalTime(&now);
-        int minute = now.wMinute;
-        int hour = now.wHour;
+        const platform::DateTime now = platform::LocalTime();
+        int minute = now.minute;
+        int hour = now.hour;
         g_serverWorld.SetTime(static_cast<float>(minute) * 0.016666668f + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu: the first script command queue runs in the menu too.

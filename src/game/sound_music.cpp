@@ -13,7 +13,7 @@
 #include "world_data.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -30,7 +30,7 @@ constexpr const char* kMp3 = /*00744094*/ ".mp3";
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
     std::uint32_t r = g_clientRandom.Next() % 60001;
-    return gameapi::timeGetTime() + r + 120000;
+    return platform::Milliseconds() + r + 120000;
 }
 
 // One name of a theme list: the only one, or one at random.
@@ -43,7 +43,7 @@ const std::string& PickName(const std::vector<std::string>& names) {
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
 // that file.
 void WaitAndEndAfter(SoundManager* snd) {
-    while (snd->streamState == 2) gameapi::Sleep(0);
+    while (snd->streamState == 2) platform::Sleep(0);
     snd->StopStream(1);
 }
 
@@ -199,9 +199,9 @@ void MusicSystem::UpdateMusic() {
         combatTrack = game::kEmptyText;
         if (calmDue == 0) {
             std::uint32_t r = g_clientRandom.Next();
-            calmDue = gameapi::timeGetTime() + r % 60001 + 120000;
+            calmDue = platform::Milliseconds() + r % 60001 + 120000;
         }
-        if (gameapi::timeGetTime() >= calmDue) {
+        if (platform::Milliseconds() >= calmDue) {
             calmDue = 0;
             const MusicTheme& t = themes[theme];
             if (!t.calm.empty()) {

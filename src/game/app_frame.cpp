@@ -10,7 +10,7 @@
 #include "ei/main_loop.h"
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <string>
 #include "ui.h"
@@ -45,7 +45,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 void FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
     if (!g_interface.GetActiveWindow()) {
-        gameapi::Sleep(50);
+        platform::Sleep(50);
         return;
     }
     if (!g_sceneRenderer.BeginScene()) return;

@@ -906,7 +906,7 @@ void Fatal(const char* format, ...) {
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
     ei::Log("render: fatal: %s", text);
-    app::ShowMessageBox(text, MB_ICONHAND);
+    app::ShowMessageBox(text);
     std::exit(-1);
 }
 

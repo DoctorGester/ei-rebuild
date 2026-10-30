@@ -1319,7 +1319,7 @@ scenario (tests/coverage/coverage.csv).
 
 The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: file_io.h,
 gdi.h, thread.h, calendar.h, hash_map.h, intro_sort.h, str.h); linking real MFC would tie the build to Windows
-(platform-layer.md).
+(platform.md).
 
 What must survive:
 - **Hash map order**: iteration follows STLport's bucket counts and insertion rule (`lib::HashMap`). A loop that feeds

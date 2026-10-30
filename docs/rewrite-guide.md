@@ -45,6 +45,10 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   ones the harness or the image routes go through the image's import slots; declared by `win_api.h` over
   `win_types.h`, so no windows.h), `win_user.h` (VK_* / DT_* without windows.h). Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
+- `src/platform/`: the game's calls of the operating system by area (clock, message box, paths, ...), no SDK types;
+  `src/platform/win32/` implements them and is the only game-side place that includes windows.h or calls
+  `gameapi::` (docs/notes/platform.md; tools/check_platform.py fails on a new file that does). A new system call
+  goes there, not into a game file.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (EngineObject virtual interface),
   `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum

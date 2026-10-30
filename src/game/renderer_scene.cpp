@@ -4,7 +4,7 @@
 #include "figure_mesh.h"   // FigureMesh
 #include "game_singletons.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"     // SceneRenderer
 #include "renderer_lines.h"
@@ -19,7 +19,7 @@
 
 int SceneRenderer::BeginScene() {
     if (!(flags & 1)) return 0;
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     frameStart = now;
     frameTime = now - lastFrameStart;
     return 1;

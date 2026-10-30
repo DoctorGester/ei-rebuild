@@ -256,6 +256,7 @@ function render(data) {
     stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('reinterpret_casts')) +
     stat('Game data addresses', fmt(t.data_addresses || 0), `${fmt(t.named_ranges || 0)} ranges named so far`) +
     stat('Hook shims', fmt(t.fastcall_shims || 0), 'Fn(T* self, void*)') +
+    stat('Files calling Windows', fmt(t.platform_files || 0), 'outside src/platform and src/render') +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
     stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in tests/scenarios');
   const peakRows = (group, rows) => rows.map(([name, key]) => {
@@ -272,7 +273,8 @@ function render(data) {
     ['Fn(T* self, void*) shims', 'fastcall_shims'],
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
     ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
-    ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
+    ['Anonymous namespaces', 'anonymous_namespaces'],
+    ['Files calling Windows outside src/platform and src/render', 'platform_files']]) + peakRows('cleanup', [
     ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
     ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control'],
     ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts'], ['x87:: helper calls', 'x87_helpers'],
@@ -302,6 +304,8 @@ function render(data) {
     lineChart(h, [{ name: 'Fn(T* self, void*) shims', color: accent, get: tr('fastcall_shims') },
                   { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
       { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11) and duplicated layouts.' }),
+    lineChart(h, [{ name: 'Files calling Windows', color: accent, get: tr('platform_files') }],
+      { title: 'Platform layer', note: "Files of src/ (src/platform, src/render and src/hook aside) that include windows.h or call game.exe's imports (gameapi::); the platform layer (src/platform) takes their calls area by area." }),
     lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],
       { title: 'Game data addresses', note: "Distinct literal addresses of game.exe's .rdata and .data in src/; C18 turns them into named globals." }),
     lineChart(h, [{ name: 'Named data ranges', color: accent, get: tr('named_ranges') },

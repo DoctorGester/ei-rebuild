@@ -12,6 +12,7 @@
 #include <new>
 #include <string>
 #include "lib/text_case.h"
+#include "platform/system.h"
 
 #include <cstdio>
 #include <windows.h>
@@ -261,9 +262,8 @@ bool MappedFile::Open(const std::string& path, bool writable) {
     const char* rootPath = root;
     if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
     gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
-    SYSTEM_INFO info;
-    gameapi::GetSystemInfo(&info);
-    DWORD flags = (info.dwPageSize < bytesPerSector || info.dwPageSize % bytesPerSector != 0)
+    const std::uint32_t pageSize = platform::PageSize();
+    DWORD flags = (pageSize < bytesPerSector || pageSize % bytesPerSector != 0)
                       ? FILE_FLAG_RANDOM_ACCESS | FILE_ATTRIBUTE_NORMAL
                       : FILE_FLAG_NO_BUFFERING | FILE_ATTRIBUTE_NORMAL;
 

@@ -12,6 +12,7 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -119,7 +120,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         to.bottom = height + to.top;
     }
     if (frameTime) SetQuitAllowed(0);
-    DWORD start = gameapi::timeGetTime() - frameTime;
+    DWORD start = platform::Milliseconds() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
     MSG msg;
@@ -132,7 +133,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
                     break;
                 }
                 if (!spaceSkips) continue;
-                start = gameapi::timeGetTime() - frameTime * 2;
+                start = platform::Milliseconds() - frameTime * 2;
             }
             if (msg.message == WM_PAINT) {
                 gameapi::TranslateMessage(&msg);
@@ -140,7 +141,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
             }
             continue;
         }
-        DWORD now = gameapi::timeGetTime();
+        DWORD now = platform::Milliseconds();
         if (static_cast<int>(bink->lastFrame) >= static_cast<int>(bink->frames)) {
             if (frameTime == 0 || now - start >= frameTime) break;
             continue;

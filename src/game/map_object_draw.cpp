@@ -13,6 +13,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 
 #include "lib/vecmath.h"
 
@@ -175,7 +176,7 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
     if (allLit) {
         object->flags |= MapObjectFlag::Static;
         if (!wasStatic) {
-            touchTime = gameapi::timeGetTime();
+            touchTime = platform::Milliseconds();
             flags |= kRedrawStatic;
         }
     } else {

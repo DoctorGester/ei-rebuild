@@ -9,7 +9,7 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <string>
 #include "game_singletons.h"
@@ -30,7 +30,7 @@ void ShowFigurePart(FigureMesh* part, int show) {
 // unsigned qword.
 float InterfaceClock() {
     constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728
-    return static_cast<float>(static_cast<double>(gameapi::timeGetTime()) * kRate);
+    return static_cast<float>(static_cast<double>(platform::Milliseconds()) * kRate);
 }
 
 // The preview's map object: class 0x33 under a fixed id; MapObjectFlag::Preview on it.
