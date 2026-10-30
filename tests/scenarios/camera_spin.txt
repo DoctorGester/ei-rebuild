@@ -8,7 +8,6 @@
 # (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps, and along the arc: its
 # distance from the focus (reach) changes only as the camera's own does (spread along the chord, it pulled in and out
 # at every tick: 144.6 units of change against the camera's 6.0, R35c).
-# no original: vanilla rebirth (the drawn view is our renderer's; the original draws the camera's own pose)
 timeout 120
 reject Script error
 waitmenu

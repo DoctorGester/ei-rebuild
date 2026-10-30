@@ -9,7 +9,6 @@
 # the glyph). The text audit (U5): "utf8text" checks Cyrillic case-insensitive compares and case changes by the
 # UTF-8 case table and the player name filter; "chatwrap" adds a long Cyrillic chat line (a word wider than a
 # line among them) to the chat overlay and requires valid UTF-8 lines that join back to it.
-# no original: vanilla rebirth (game.exe's text is in the ANSI code page)
 waitmenu
 utf8files
 utf8text

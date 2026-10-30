@@ -3,8 +3,8 @@
 How to run scenarios, the scenario steps and what a run does. How changes are
 checked against the original (goldens, vectors, WideScreen references) is in `standalone-verification.md`.
 
-`harness.cmd <scenario>` runs a scenario on the image with the vanilla install's data (`--no-hooks`: on game.exe
-with the original code) and exits with 0 when it passes. It writes the report (`build\verify\harness_report.txt`):
+`harness.cmd <scenario>` runs a scenario on the image with the vanilla install's data and exits with 0 when it
+passes. It writes the report (`build\verify\harness_report.txt`):
 everything the game console printed, and any failed checks. Scenarios live in `tests/scenarios/`; the steps are
 listed at the top of `tests/verify/harness.cpp`. The main ones:
 
@@ -73,14 +73,12 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - Harness runs use a virtual clock (`tests/verify/harness_clock.h`): each main-loop frame is five
   world updates, the main thread's sleeps and timed waits take no real time, sample ends come on
   virtual time, the date and the random seeds are fixed, and frames present without waiting for
-  vsync. A scenario that repeats takes the same course on every run, so
-  `python tools\compare.py <scenarios> --runs 3` can diff the console output of the original code and
-  the image (those that do not repeat yet are listed in `docs/open-questions.md`). The harness's waits
+  vsync. A scenario that repeats takes the same course on every run (those that did not repeat are listed in
+  `docs/open-questions.md`; a golden is recorded only from runs that agree). The harness's waits
   (`wait`, `waitfor`, `frames`, ...) count virtual time, each with a real-time safety limit. A
-  `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py` /
-  `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
+  `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
   by function, caller and thread, in `ei-rebuild.log`) and `randtrace` (every random draw with its frame
-  and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
+  and caller, in `randtrace.txt`; `tools/randtrace.py` finds where two runs part).
   On the virtual clock the CRT heap also gives the same addresses every run, and the harness makes
   the original's address- and leftover-dependent behaviour canonical (`lfheap` keeps the game's own
   heap). `EI_HEAP_JITTER=<seed>[,fill]` moves the heap's blocks (game.exe's and the image's) without
@@ -108,14 +106,12 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `record` input; docs/notes/standalone-verification.md, section 2). The suite checks them with
   `python tools\work.py test <ID> --golden` (any run_all arguments): every run that has a golden is compared with it,
   its saves too, decoded field by field (`python tools\savefile.py show|diff|rules`).
-- Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
-  each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
-  to the run's `vectors/` folder (`set EI_VECTORS=1` then `python tools\work.py test <ID> <scenarios> --no-hooks
-  --vanilla-only`: the original code with the recorders as the only hooks); `python tools\vectors.py merge <run folders>` keeps them in
-  `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
-  game (docs/notes/standalone-verification.md, section 3).
+- Function vectors (`tests/vectors/vectors.h`): until H40 runs of the original (`EI_VECTORS=1` with `--no-hooks`)
+  wrote a sample of the calls of each function that has a recorder (`tests/vectors/record_<family>.cpp`);
+  `tests/vectors/data` keeps them and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
+  game (docs/notes/standalone-verification.md, section 3). Recording again needs the tag original-oracle.
 - Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each rewrite in
-  runs of the original with EI_COVER (`coverage.py addresses` / `collect`); `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
+  runs of the original with EI_COVER, collected until H40 (`coverage.py addresses` / `collect`); `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
   only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps.
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
@@ -126,8 +122,7 @@ Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt`
 <run folder>`: time per function between harness steps; the image's own code shows as `ours:`, S21f), and `EI_BUILD_DIR` points
 run_all at another verify build.
 
-`--no-hooks` (harness.cmd, run_all, `ei_launch`) runs the same scenario on the original code only, as a baseline. Add
-`--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
+Add `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`), and a scenario can ask with `rebirthflags <names>`. A harness
 run of the image never takes a game folder's profile: ei_launch sets `EI_REBIRTH=defaults` when the caller set none,
 and the run's settings file names no patch. A scenario's `resolution <WxH|desktop>`
@@ -170,22 +165,16 @@ end the process: a thread stuck in a driver call). `tests\scenarios\watchdog_*.t
     harness.cmd tests\scenarios\sandbox_actions.txt
 
 `python tools\run_all.py` runs every scenario on both installs' data, several games at once (`--jobs N`,
-default 16; the whole suite takes about 2 minutes). These are runs of the standalone image (below);
-`--no-hooks` runs game.exe with the original code (but on the installs a scenario's `# no original: vanilla
-rebirth` line names: checks only our renderer passes, Rebirth's flags on the vanilla data). Nothing runs our code
-inside game.exe (docs/notes/standalone.md section 5). Each run writes to its own folder,
+default 16; the whole suite takes about 2 minutes). These are runs of the standalone image (below); game.exe is no
+longer run (H40: `--no-hooks`, its reference cache in `build\reference` and `--fresh` are gone; the tag
+original-oracle has them). Each run writes to its own folder,
 `build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei-rebuild.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
 shared reading. The image draws with our renderer (no display mode change, so none of its runs
-needs the machine to itself; EI_RENDER reaches no run, a scenario's `render` step sets its options); dgVoodoo draws the original code (`--no-hooks`,
-`--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
-`build\reference` by scenario commit, install and the harness's sources (run_all.py `harness_files`: tests/verify,
-src/hook and what they include; game.exe's side runs no game code of ours and reads game.exe's objects through its
-own views, tests/verify/exe_objects.h, so no game header is in it: docs/notes/standalone-verification.md), so they
-play again only when the harness changes (`--fresh`: always).
-The standalone runs (the default, or `--standalone`) start `ei-rebuild.exe` instead of game.exe (install
+needs the machine to itself; EI_RENDER reaches no run, a scenario's `render` step sets its options).
+The runs (the default, or `--standalone`) start `ei-rebuild.exe` (install
 `standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone` with `--game` the install, no game.exe: the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
 the Rebirth data and
 goldens, the patches of `config/rebirth_profile.ini` as `EI_REBIRTH`; only on demand: `--rebirth` adds the smoke set of
@@ -194,9 +183,8 @@ config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--r
 A scenario with a line `# drop-in: <why>` (dropin_boot, dropin_profile) runs on both of the image's installs by
 default, as a drop-in run: ei_launch sees the line (as `--drop-in`), copies the build's exe into `<run folder>\dropin`,
 a folder made like the install, and starts it from the run folder with no EI_GAME_ROOT (docs/notes/standalone.md,
-"The drop-in exe"); not with `--no-hooks`; goldens of their own since H40. The line is read by ei_launch, not run_all, so the
+"The drop-in exe"); goldens of their own since H40. The line is read by ei_launch, not run_all, so the
 scheduler's run_all (main's) runs a worktree's drop-in scenarios with the worktree's ei_launch.
-The vanilla runs of the original carry Rebirth's bug fixes, the standalone's defaults (docs/notes/rebirth.md, "One test profile").
 Harness games never take the foreground (harness.cpp, `noforeground::`), and every run (the image's and the
 original's) keeps every window out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
 them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary check it

@@ -6,7 +6,6 @@
 # compares the file after the exit with settings/settings_defaults.ini (the defaults are the same on both installs:
 # the run is the original's data only). The registry is never read. The unit-style checks of the defaults are in tests/vectors/replay_settings.cpp.
 # To change the expected file: copy the run's ei_settings.ini over it after reading the difference.
-# no original: vanilla rebirth game.exe keeps its settings in the registry (the settings file is the image's)
 # settings-file: settings/settings_defaults.ini
 timeout 40
 settingsfile defaults

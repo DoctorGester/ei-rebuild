@@ -12,12 +12,12 @@ collides:
 - batches smallest remaining work first, less the time they have waited (batch_priority, WB9): a batch
   takes every free slot until all its runs have started (its --jobs is ignored: run_all needs it to share
   the machine, the scheduler shares it already); the others only fill the slots it cannot use (backfill);
-- within a batch the longest expected first; its display-mode runs (alone) last, and only once it is
-  the earliest batch with runs left: a later batch's alone run never stops the backfill;
+- within a batch the longest expected first; an alone run (none since H40: they were game.exe's display-mode runs)
+  last, and only once it is the earliest batch with runs left: a later batch's alone run never stops the backfill;
 - an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
   stay where run_all puts them), retried as run_all.run_with_retries() does; its slots go back as soon as its game
-  ends (frame packing and the reference copy run without them, SV10h) and a retry's game takes slots again before
+  ends (frame packing runs without them, SV10h) and a retry's game takes slots again before
   anything new starts;
 - results go into the run rows, the summary and exit code into the batch row;
 - every finished game adds a row to the timing table (expected times: work.expected_times, WB6);
@@ -37,7 +37,7 @@ TICK = 0.5           # seconds between scheduling passes at most (a finished gam
 CHECK_EVERY = 5      # seconds between heartbeats and submitter checks
 CODE_FILES = ('work_sched.py', 'run_all.py', 'work.py')    # in the main checkout's tools: a change restarts the scheduler
 UNKNOWN_SECONDS = 1000   # expected time of a run run_times.json does not have (as run_all: new ones first)
-AFTER_GAME_MAX = 16      # runs past their game (packing frames, copying a reference) before no new game starts
+AFTER_GAME_MAX = 16      # runs past their game (packing frames) before no new game starts
 
 
 def live_dir():
@@ -214,7 +214,7 @@ def batch_env(batch):
 
 class GameSlots:
     """A run's game slots, between its thread and the scheduler's loop (SV10h): the run gives them back as soon as its
-    game has ended (release), so its frame packing and reference copy run without them, and a retry's game asks for
+    game has ended (release), so its frame packing runs without them, and a retry's game asks for
     them again (acquire) and waits until the loop has taken them. keep: an alone run keeps every slot to its end."""
 
     def __init__(self, post, run_id, keep=False):
@@ -235,27 +235,24 @@ class GameSlots:
 
 def real_runner(batch, run, retries, on_attempt, slots=None):
     """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold (slots: a
-    GameSlots, given back while no game of the run plays). A row of our code in game.exe (a submission from a checkout
-    from before S21c) fails without a game."""
-    install = run_all.launch_install(run['install'])
-    if bool(run['hooks']) != run_all.our_code(install):
+    GameSlots, given back while no game of the run plays). A row of game.exe (hooks off: a submission from a checkout
+    from before H40) fails without a game."""
+    if not run['hooks']:
         on_attempt(0)
-        return ('FAIL', 0.0, [f'{run["install"]} with hooks {"on" if run["hooks"] else "off"}: our code runs only in the '
-                              'standalone image since S21c (merge main)'], {}, [])
+        return ('FAIL', 0.0, [f'{run["install"]}: game.exe is no longer run since H40 (merge main)'], {}, [])
     attempts = iter(range(retries + 1))
     env = batch_env(batch)
     try:
-        args = parse_batch_args(batch['args'])     # --clock (WB8) and --fresh (R10), as run_all passes them
-        clock, fresh = args.clock, args.fresh
+        clock = parse_batch_args(batch['args']).clock     # --clock (WB8), as run_all passes it
     except (KeyError, IndexError, ValueError):
-        clock, fresh = None, False
+        clock = None
 
     def one(name, install, folder):
         on_attempt(next(attempts))
         return run_all.run(name, install, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           clock=clock, game_env=env, fresh=fresh, held=run['slots_held'] if 'slots_held' in run.keys() else 1,
+                           clock=clock, game_env=env, held=run['slots_held'] if 'slots_held' in run.keys() else 1,
                            slots=slots)
-    return run_all.run_with_retries(run['scenario'], install, retries, os.path.basename(run['folder']), runner=one,
+    return run_all.run_with_retries(run['scenario'], run['install'], retries, os.path.basename(run['folder']), runner=one,
                                     keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
 
@@ -376,7 +373,7 @@ class Scheduler:
                 self.db.execute("UPDATE run SET state = 'finished', seconds = ?, result = ?, failures = ?, counts = ?, notes = ? "
                                 "WHERE id = ?", (seconds, result, json.dumps(failures),
                                                  json.dumps({fn: list(c) for fn, c in counts.items()}), json.dumps(notes), run_id))
-            if result not in ('ERROR', 'NO REPORT', 'TIMEOUT') and not run_all.is_cached(notes):
+            if result not in ('ERROR', 'NO REPORT', 'TIMEOUT'):
                 try:
                     work.record_time(self.db, game['scenario'], game['install'], game['root'], seconds, game['batch'])
                 except Exception:
@@ -664,9 +661,9 @@ def cmd_test(db, args):
         # scheduler gets run_all's arguments without --golden.
         env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
         argv = [a for a in argv if a != '--golden']
-    # --widescreen's frames are compared (or with --record kept as references) here too, after the batch: its runs
-    # are plain runs of the image on the Rebirth install (or of addon's code: the original, hooks off in the run rows)
-    argv = [a for a in argv if a not in ('--widescreen', '--record')]
+    # --widescreen's frames are compared here too, after the batch: its runs are plain runs of the image on the
+    # Rebirth install
+    argv = [a for a in argv if a != '--widescreen']
     # --x64 is the batch's build folder (its runs take the build from the batch row)
     argv = [a for a in argv if a != '--x64']
     runs = []
@@ -674,13 +671,8 @@ def cmd_test(db, args):
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
         if not os.path.exists(scenario):
             sys.exit(f'work.py: no scenario {name} ({scenario})')
-        launch = run_all.launch_install(install)
-        # R10: only dgVoodoo runs that set a resolution are alone; a run of the original code the reference cache
-        # holds plays no game (it is copied in a moment) and is expected to take no time
-        cached = not ra.fresh and run_all.cached_reference(name, launch, root, ra.clock, env)
-        runs.append({'scenario': name, 'install': install, 'hooks': run_all.our_code(launch),
-                     'alone': not cached and run_all.runs_alone(scenario, launch),
-                     'expected': 1 if cached else expected[(name, install)],
+        runs.append({'scenario': name, 'install': install, 'hooks': True, 'alone': False,
+                     'expected': expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
@@ -690,7 +682,7 @@ def cmd_test(db, args):
     sys.stdout.flush()
     code = wait(db, batch, root, build)
     if ra.widescreen and code != 130:
-        ok = run_all.widescreen_check(jobs, ra.record, root=root, build=build)
+        ok = run_all.widescreen_check(jobs, root=root, build=build)
         code = code or (0 if ok else 1)
     if ra.golden and code != 130:
         ok = run_all.golden_check(jobs, root=root, build=build)

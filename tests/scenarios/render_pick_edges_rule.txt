@@ -7,7 +7,6 @@
 # image's (a regression test of the rule). The image's 4:3 window on either install, the view the ogre's place was
 # chosen in (at the desktop size, the pose and pixels of the original's run; W12's wide layout at 16:9 shows more
 # ground at the sides).
-# no original: vanilla rebirth (the image's picking rule, an accepted difference from the original; renderer.md section 3)
 reject Script error
 resolution 960x720
 timeout 120

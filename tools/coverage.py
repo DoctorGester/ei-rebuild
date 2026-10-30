@@ -7,7 +7,9 @@ writes reach.txt's: the rewritten functions as the function-to-original map had 
 names) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei-rebuild.log names each one the
 run executed (a call the original inlined is not seen, so "reached" is a lower bound for small functions).
 Scenarios collected before S21c came from game.exe with our hooks (EI_COVER=hooks: the hook addresses and our
-replacements' first bytes); `collect --add` keeps them until their scenarios run again.
+replacements' first bytes); `collect --add` keeps them until their scenarios run again. The harness stopped running
+the original code in H40, so reach.txt stays as it was collected; collecting again needs a checkout of the tag
+original-oracle (its run_all still has --no-hooks and --fresh).
 
     python tools\\coverage.py addresses build\\cover.txt       (the watch list: reach.txt's addresses)
     set EI_COVER=<full path of that file>

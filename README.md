@@ -5,8 +5,8 @@ identical game behaviour, not identical bytes: the same world, saves and network
 renderer and the Rebirth edition's fixes on top.
 
 The product is the standalone game: `ei-rebuild.exe`, one exe that holds all of the game's code. Dropped into an
-installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` is used only by the
-test harness, as the reference our code is compared with.
+installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` was the test
+harness's reference until the goldens became our own (H40, git tag `original-oracle`).
 
 ## Status
 
@@ -100,12 +100,11 @@ anisotropy), the performance overlay and vsync are set in its `[renderer]` secti
 ```
 harness.cmd tests\scenarios\smoke.txt     one scenario on our game, exit code 0 when it passes
 python tools\run_all.py --golden          every scenario, 16 games at once, compared with the goldens
-python tools\run_all.py --no-hooks        the same scenarios on the original game.exe
 ```
 
 Scenarios are text files in `tests/scenarios/`. The harness runs the game hidden on a virtual clock, so a scenario
-repeats exactly, and compares the world state with goldens recorded from the original (`tests/golden/`). The
-original's runs are cached and play again only when the harness changes. How to write scenarios and what a run does:
+repeats exactly, and compares the world state with its goldens (`tests/golden/`): our game's own runs (those that existed when the harness
+stopped running the original game, H40, were the same as its runs). How to write scenarios and what a run does:
 `docs/notes/harness.md`; how changes are checked: `docs/notes/standalone-verification.md`.
 
 The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`), and need

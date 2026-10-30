@@ -50,7 +50,7 @@ class Run(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
 
             with mock.patch.object(subprocess, 'run', fake):
-                return run_all.run_once('x', 'vanilla', None, root, build, False, None, None)
+                return run_all.run_once('x', 'standalone', None, root, build, False, None, None)
 
     def test_ei_launch_ended_the_game(self):
         result, _, failures, _, notes = self.run_scenario(
@@ -98,7 +98,7 @@ class Retries(unittest.TestCase):
 
     def test_failed_attempt_is_kept(self):
         with tempfile.TemporaryDirectory() as build:
-            folder = os.path.join(build, 'runs', 'x-vanilla')
+            folder = os.path.join(build, 'runs', 'x-standalone')
             os.makedirs(folder)
             calls = []
 
@@ -113,27 +113,27 @@ class Retries(unittest.TestCase):
                 return 'PASS', 1.0, [], {}, []
 
             keep = lambda name, attempt: run_all.keep_attempt(name, attempt, build=build)
-            result, _, failures, _, _ = run_all.run_with_retries('x', 'vanilla', 1, 'x-vanilla', runner, keep)
+            result, _, failures, _, _ = run_all.run_with_retries('x', 'standalone', 1, 'x-standalone', runner, keep)
             self.assertEqual(result, 'PASS*')
-            self.assertIn('x-vanilla-attempt1', failures[0])
-            with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei-rebuild.log')) as f:
+            self.assertIn('x-standalone-attempt1', failures[0])
+            with open(os.path.join(build, 'runs', 'x-standalone-attempt1', 'ei-rebuild.log')) as f:
                 self.assertEqual(f.read(), 'first attempt\n')
             self.assertFalse(os.path.exists(os.path.join(folder, 'ei-rebuild.log')))
 
 
     def test_whole_attempt_is_kept(self):
         with tempfile.TemporaryDirectory() as build:
-            folder = os.path.join(build, 'runs', 'x-vanilla')
+            folder = os.path.join(build, 'runs', 'x-standalone')
             os.makedirs(os.path.join(folder, 'harness_saves'))
             for name in ('ei-rebuild.log', 'digest.txt', os.path.join('harness_saves', 'a.mmp')):
                 with open(os.path.join(folder, name), 'w') as f:
                     f.write(name)
-            self.assertEqual(run_all.keep_attempt('x-vanilla', 1, build=build), 'x-vanilla-attempt1')
-            kept = os.path.join(build, 'runs', 'x-vanilla-attempt1')
+            self.assertEqual(run_all.keep_attempt('x-standalone', 1, build=build), 'x-standalone-attempt1')
+            kept = os.path.join(build, 'runs', 'x-standalone-attempt1')
             self.assertTrue(os.path.exists(os.path.join(kept, 'digest.txt')))
             self.assertTrue(os.path.exists(os.path.join(kept, 'harness_saves', 'a.mmp')))
             self.assertFalse(os.path.exists(folder))
-            self.assertIsNone(run_all.keep_attempt('x-vanilla', 2, build=build))
+            self.assertIsNone(run_all.keep_attempt('x-standalone', 2, build=build))
 
 
 class LowDisk(unittest.TestCase):

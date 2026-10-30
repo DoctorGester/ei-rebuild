@@ -6,7 +6,6 @@
 # movies through the disc folder, and plays the new game's start.
 # The vanilla install's game.exe jumps over the check (EB for the target's 74 at 00456BB5, docs/notes/core.md),
 # so its original never asks; the image follows the target (starter\Engine\game.exe, Rebirth's install).
-# no original: vanilla (its game.exe has the disc check jumped over at 00456BB5)
 discprompt 2
 reject Script error
 waitmenu

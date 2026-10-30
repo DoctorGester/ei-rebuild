@@ -1,8 +1,8 @@
 # Verifying the standalone image
 
-The image has no original code to compare with at run time, so every check is recorded from the original game
-beforehand: whole-run goldens, function vectors for what scenarios reach rarely, and frame references for Rebirth's
-WideScreen. This file says how that works, what the harness does to make runs repeat, and the rules that came from
+The image has no original code to compare with at run time, so every check was recorded beforehand: whole-run
+goldens (from the original game until H40, our own since, all the same as the original's then), function vectors for
+what scenarios reach rarely, and frame references for Rebirth's WideScreen (both from the original game). This file says how that works, what the harness does to make runs repeat, and the rules that came from
 real differences. Per-ticket history: `git log --grep=<ID>`.
 
 ## 1. How verification works now
@@ -22,17 +22,15 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
 - **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap (the image's
   malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in every run): a golden must hold
   under every seed. Goldens are recorded from runs that agree plain and under jitter.
-- **Function vectors**: `set EI_VECTORS=1` then `python tools/work.py test <ID> <scenarios> --no-hooks
-  --vanilla-only`: the original code with the recorders as its only hooks (refused under addon.dll); `vectors.py
-  merge`, replayed by `ei_vectors.exe` in build.cmd (section 3).
-- **WideScreen references**: `run_all --widescreen --record` keeps addon's frames once (`<main checkout>\build\
+- **Function vectors**: recorded until H40 by runs of the original code with the recorders as its only hooks
+  (`EI_VECTORS=1` with `--no-hooks`; the tag original-oracle has them); `vectors.py merge`, replayed by
+  `ei_vectors.exe` in build.cmd (section 3).
+- **WideScreen references**: addon's frames, recorded from game.exe until H40 (`<main checkout>\build\
   widescreen\<scenario>\<steps key>\`); `run_all --widescreen` compares the image's frames on the Rebirth install with
   them (docs/notes/rebirth.md; S21b in git for the tolerance study). Rebirth install only.
 - **Out of sight and on loopback** (section 6): harness games never take the foreground, the image's windows are
   cloaked, every game binds and sends on 127.0.0.1 only. The report's `WINDOW:` and `NET:` lines and run_all's
   summary lines check it.
-- **Repeat a run of the original with `--fresh`**: passed runs of the original are cached in `build\reference` by
-  scenario commit and install, not by harness. After a harness or digest change, record and compare against fresh runs.
 
 ## 2. Goldens
 
@@ -95,19 +93,17 @@ render_cursor_present, render_present_shot, render_device_lost, render_device_re
 render_present_fullscreen) already had the image's goldens. Their digests do not follow the renderer: the world moves
 only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
-**WideScreen references** (S21b; tools/run_all.py `record_widescreen`, `compare_widescreen`): `run_all --widescreen
---record [names]` plays each scenario as `<scenario>-rebirth-nohooks` (game.exe with addon.dll, dgVoodoo at the
-desktop's mode, alone) and keeps its frames in `<main checkout>\build\widescreen\<scenario>\<steps key>\` (shared by
-the worktrees; the key hashes the scenario's lines without comments, so a comment edit keeps the references; 3 keys
-kept): `frames\<frame>.bmp.z`, `skip\<frame>.bmp.z` (what moved in addon's run between the frame and its `_later` /
+**WideScreen references** (S21b; tools/run_all.py `compare_widescreen`): until H40 `run_all --widescreen --record
+[names]` played each scenario on game.exe with addon.dll (dgVoodoo at the desktop's mode, alone) and kept its frames in
+`<main checkout>\build\widescreen\<scenario>\<steps key>\` (shared by the worktrees; the key hashes the scenario's
+lines without comments, so a comment edit keeps the references): `frames\<frame>.bmp.z`, `skip\<frame>.bmp.z` (what moved in addon's run between the frame and its `_later` /
 `_moving` twins, grown by 8) and `recorded.json`. Not in git (4K frames). `run_all --widescreen [names]` runs
 `<scenario>-standalone-rebirth` and compares each frame with `WIDESCREEN_COMPARE` (`--tolerance 8 --shift 1
 --max-fraction 0.006 --block 64 --max-block 0.25`: `--shift 1` absorbs the renderers' sub-texel sampling and edges,
 `--max-block` catches a moved element), leaving out the skip mask, what moved between the image's own twins and
 `WIDESCREEN_AREAS` (the Save window's picture). Through
-`work.py test` the comparison runs after the batch, like `--golden`. A missing recording, other steps or another frame
-size fail with the command that records them; if a harness change moves what addon's frames show, every frame of a
-scenario fails the same way: record again with `--fresh`. Vanilla data cannot be compared (its textures differ from
+`work.py test` the comparison runs after the batch, like `--golden`. A missing recording (other steps) or another frame
+size fails the comparison; no new recording can be made since H40. Vanilla data cannot be compared (its textures differ from
 Rebirth's); `--widescreen --vanilla-only` is refused. A one-layout-unit shift of the right panels (2.7 pixels) fails.
 
 **No golden by rule**: the three watchdogs (meant to time out). The first recording from the image (H40, 2026-10-30)
@@ -375,7 +371,6 @@ happen (the harness logs "share id" if one does).
   [,from,to]` (one dword's reads and writes), `EI_STACK_SCRUB`, `EI_SPIN_US` (tests/verify/harness_watch.h).
 - `EI_SAVETRACE=1` (every memory stream write up to each saved file, savetrace.txt) with `tools/save_trace.py plain |
   diff A B` (the writers of differing save bytes).
-- `tools/compare.py <scenarios> --runs N`: the original's and the image's consoles side by side.
 
 ## 8. Rules from real differences
 
@@ -410,23 +405,10 @@ happen (the harness logs "share id" if one does).
   canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
   so a golden that changes with the allocation order is a missing canonicalisation: check with the jitter passes.
 - **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
-- **The reference cache** keys on the scenario commit, the install and the harness (H30, H30b; run_all.py
-  `harness_files`: tests/verify (not tests/verify/image), src/hook but the image's start-up (`HARNESS_IMAGE_ONLY`,
-  hook/standalone_main.cpp), the launcher, config/harness, `HARNESS_SHARED` (rebirth.cpp), the vector
-  recorders only in `EI_VECTORS=1` runs, and every header they include). In game.exe the harness runs no game code of
-  ours: it calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`; a call both sides make is
-  `ei::Standalone() ? image::X(...) : OriginalCode<F>(address)(...)`, C20h) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member
-  names at game.exe's offsets, frozen when H30b split them off; `OriginalGameData` for globals). Our classes it reaches
-  only in the image, through tests/verify/image (image_side.h declares functions that name no class of ours; the .cpp
-  files there include our headers), chosen by `ei::Standalone()`. A shared step reads no byte offset or virtual slot
-  of an object in either run (clickunit's screen list and pick, campputon's camp, the zone steps' connection,
-  hudstate): each read is a view member on game.exe's side and an image_side.h function on the image's. Reading code both sides share is a template or an
-  .inc compiled once per side (harness_digest_read.inc, harness_hud_read.inc, harness_netstate_read.h). So a cleanup
-  may reorder, retype or rename our members without playing the original's runs again; tools/check_harness_key.py
-  (build.cmd) fails when a header of src/game, src/render or src/lib other than game_data.h, import_table.h,
-  import_prototypes.h and intro_sort.h comes back into the key. A src/ static initialiser builds host state only (it runs in
-  game.exe too). A new call from game.exe's side into a src .cpp goes into `HARNESS_SHARED`, or the cache misses its
-  changes.
+- **The reference cache** (H30, H30b; gone with H40, as game.exe's runs): it kept game.exe's runs by scenario commit,
+  install and the harness's sources, and so the harness's game.exe side called only game.exe's code
+  (tests/verify/harness_original.h) and read game.exe's objects through its own views (tests/verify/exe_objects.h),
+  reaching our classes only in the image through tests/verify/image. That side goes in H40's step 3b.
 
 ## 9. Open
 
