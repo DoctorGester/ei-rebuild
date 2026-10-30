@@ -1258,6 +1258,13 @@ size = 1
 model = "opus"
 note = "User 2026-10-22, playing play.cmd (Rebirth data, Rebirth profile with WideScreen=1, the starter's WideScreen 1, 2703x1777 window, UTF-8 build): the dialogue window shows an outer frame and an inner frame offset from it (inner starts further right and lower), text drawn from the outer one. Likely WideScreen (Rebirth's patch folded in, or ui_widescreen) moving or scaling one of the dialogue's panels twice or not at all. Reproduce in a harness scenario (dialogue on the Rebirth install with widescreen), compare with addon's drawing (run_all --widescreen) and fix. Cause: CBriefingScreen::Update (00604130) showed every mesh in the phrases / rewards states; the original shows meshes 2 onwards, so the topics' frame (mesh 1, 195..605 x 425..575) was drawn inside the text's frame. Not WideScreen: every resolution and canvas (main's ui_gallery_base base_phrase showed it at 16:9 without the flag). Fixed in ui_briefing_create.cpp; ui_widescreen_dialogue compares the phrase with addon's recorded frame (fixed: 0 px differ; unfixed: fails), Rebirth golden."
 
+[[ticket]]
+id = "W12"
+title = "One interface layout for every aspect ratio: no WideScreen flag branches"
+group = "widescreen"
+model = "opus"
+note = "User 2026-10-30: drop Rebirth's widescreen fix as a branch; the code should work for any aspect ratio as is. Today: the WideScreen Rebirth flag (include/ei/rebirth_patches.inc) gates widescreen::Layout (ui_widescreen.h/.cpp: width43, margin, extra, axis and font scales); 21 widescreen::Active() checks in 8 files (ui_interface 9, ui_mesh 5, ui_window 2, ui_help_page, ui_hud_slide, ui_interface_input, ui_text, ui_tooltip), plus the helpers they guard (EdgeShift 18 uses, Enter/LeavePanel, PanelOffset, curtains, PickShift, Rect/Point To/FromScreen, FontScale, AxisScale). Step 1 (investigate, report first): does the wide path degenerate to the plain one at exactly 4:3 (margin 0, extra 0)? List each Active() branch and whether its wide side equals its plain side at extra 0; anything that differs (panel moves, curtains, picking shifts, font scale) is a real layout change. Also screens narrower than 4:3 (5:4, portrait windows): margin < 0 has no rule today; pick one (pillar or letterbox the 4:3 part) consistent with P8c's titles scaling by window. Step 2: make the layout always computed from the window (no flag, no setting), remove the Active() branches, the WideScreen flag and its settings entry. Goldens: vanilla runs are 4:3 so they should stay the same; if a branch differs at 4:3, the goldens decide (re-record only with the user's OK). Keep ui_widescreen_* scenarios and the 16:9 captures passing."
+
 # ---------------------------------------------------------------- unknown fields
 
 [[ticket]]
