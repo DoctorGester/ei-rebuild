@@ -14,6 +14,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <string>
 #include "render/render_state.h"
@@ -70,9 +71,9 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
     EI_NAN_AUDIT(alpha, rate);
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
-        const DWORD now = gameapi::timeGetTime();
+        const DWORD now = platform::Milliseconds();
         alpha = (now - lastTime) * rate + alpha;
-        lastTime = gameapi::timeGetTime();
+        lastTime = platform::Milliseconds();
     }
     EI_NAN_AUDIT(alpha);
     if (alpha > kOpaque) {
@@ -90,7 +91,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
 void ScreenFade::Start(int ms) {
     rate = kOpaque / ms;
     alpha = ms > 0 ? 0.0f : kOpaque;
-    lastTime = gameapi::timeGetTime();
+    lastTime = platform::Milliseconds();
     active = true;
 }
 
@@ -127,7 +128,7 @@ void Interface3D::DrawOverlays() {
     if (IsMultiplayerClient() && std::ssize(stack) == 1) root->Redraw();
 
     ++fpsFrames;
-    const DWORD now = gameapi::timeGetTime();
+    const DWORD now = platform::Milliseconds();
     const DWORD elapsed = now - fpsTime;
     if (elapsed > kFpsPeriod) {
         if (fpsSurface) {

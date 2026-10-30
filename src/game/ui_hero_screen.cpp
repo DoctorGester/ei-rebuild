@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <string>
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "party.h"
 #include "game_singletons.h"
 #include "ui_cursor.h"
@@ -240,14 +241,14 @@ void MpHeroScreen::MakePreview(bool allArmour) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
             std::uint32_t random = g_clientRandom.Next();
-            double frames = gameapi::timeGetTime() * kFramesPerMillisecond;
+            double frames = platform::Milliseconds() * kFramesPerMillisecond;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         UnitController* controller = unit->Controller();
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
-        controller->RestartAnimation(static_cast<float>(gameapi::timeGetTime() * kFramesPerMillisecond - 1.0));
+        controller->RestartAnimation(static_cast<float>(platform::Milliseconds() * kFramesPerMillisecond - 1.0));
         unit->SetFromStats(&player->members.data()->stats);
         unit->Controller()->RefreshWounds();
     }

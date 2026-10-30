@@ -22,10 +22,10 @@
 #include <string>
 #include <vector>
 
-#include "lib/gameapi.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
+#include "platform/paths.h"
 
 int FinishQuestMap(const char* name) {
     net::ServerSession* server = net::g_gameServer;
@@ -37,7 +37,6 @@ int FinishQuestMap(const char* name) {
 namespace {
 Script* CommandScript() { return g_serverWorld.SecondScript(); }
 
-constexpr unsigned kFolderBufferSize = 0x400;
 
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
@@ -75,10 +74,7 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
 }
 
 void StoreStartFolder() {
-    char folder[kFolderBufferSize];
-    gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
-    std::string text = folder;
-    g_startFolder = text + '\\';
+    g_startFolder = platform::CurrentFolder() + '\\';
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------

@@ -14,7 +14,7 @@
 #include "unit.h"
 #include "world_data.h"
 
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>
@@ -94,7 +94,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
 
 void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
-    std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
+    std::uint32_t time = (flags & kDelayed) ? platform::Milliseconds() + kDelay : platform::Milliseconds();
     points.push_back(FlyingHitPoint{target, amount, flags, time});
 }
 
@@ -102,7 +102,7 @@ void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 
 void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::string text;
-    DWORD now = gameapi::timeGetTime();
+    DWORD now = platform::Milliseconds();
     const RECT& screen = renderer->device->screen;
     if (!texture) return;
     if (!renderer->SetTexture(0, texture)) {

@@ -17,6 +17,7 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
+#include "platform/clock.h"
 #include <cstdint>
 #include <string>
 #include "world_glue.h"
@@ -132,7 +133,7 @@ void MainMenu::Update() {
         else if (serverHour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
     }
     if (!daylight && rain && serverHour < kLightningBeforeHour && (g_sceneRenderer.flags & 1) != 0) {
-        std::uint32_t now = gameapi::GetTickCount();
+        std::uint32_t now = platform::TickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;
             if (g_clientRandom.Next() % 41 == 4) {

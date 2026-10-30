@@ -17,7 +17,7 @@
 #include "maths.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "render/render.h"
 #include "render/render_state.h"
 #include <cstdint>
@@ -50,12 +50,12 @@ template <typename Object>
 Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Object* (*make)(std::string_view)) {
     auto node = cache->map.find(std::string(name));
     if (node != cache->map.end()) {
-        node->second.lastUse = gameapi::timeGetTime();
+        node->second.lastUse = platform::Milliseconds();
         return node->second.object;
     }
     Object* object = make(name);
     if (!object) return nullptr;
-    std::uint32_t time = gameapi::timeGetTime();
+    std::uint32_t time = platform::Milliseconds();
     {
         std::string key(name);
         ItemCacheEntry<Object>& value = cache->map[key];

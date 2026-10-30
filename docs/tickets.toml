@@ -6213,6 +6213,14 @@ model = "opus"
 note = "User 2026-10-30: Miles and Bink are dropped entirely, not kept as backends; our own backends replace them. So the seams carry no Miles or Bink backend: the 32-bit build moves to the new backends too (null until A1 / A2 land, then miniaudio and our Bink decoder), mss32.dll / binkw32.dll are no longer loaded and their imports leave gen_iat's reached list. Check what game logic reads back from audio (end-of-sample callbacks, sample positions, speech length timing) and video (frame count, end of video): those must keep their timing or the goldens move; name any that do. Miles also loaded Rebirth's *.asi providers (standalone_main.cpp MilesLoadLibrary): check what still depends on that. After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders; sokol_audio is output only, so miniaudio stays the choice) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
 
 [[ticket]]
+id = "PL1a"
+title = "Platform layer: app_main.cpp's and the standalone start-up's clock, message box and path calls"
+group = "port"
+model = "sonnet"
+depends = ["C30e15"]
+note = "From PL1: the calls PL1 left because C30e15 was editing these files. app_main.cpp: the main loop's timeGetTime (two calls; the harness finds main-loop time by ei::mainloop::g_site, not the caller, so platform::Milliseconds keeps it), the two MessageBoxA warnings (platform::ShowMessageBox with OkCancel / Warning, answer Cancel), GetModuleHandleA / GetProcAddress for GetDiskFreeSpaceExA (with app_helpers.cpp's copy; or PL3's disk space call). src/standalone/startup.cpp and standalone_main.cpp: GetModuleFileNameA / SetCurrentDirectoryA / Sleep(INFINITE) are direct calls (not the slots, before or beside the import table): a platform function that calls the system directly (not ExePath, which goes through the UTF-8 route slot), or leave them as the win32 entry. Then python tools/check_platform.py --update. Goldens unchanged."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"

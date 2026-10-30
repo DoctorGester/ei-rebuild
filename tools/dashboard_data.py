@@ -8,7 +8,8 @@ commit's own files:
     (game data addresses, uses of the exe's MFC / STLport / CRT / imports)
     and the single-byte text sites a UTF-8 switch has to visit;
   - the cleanup track (tools/progress.py's counts over all of src/, so both tools agree): casts,
-    __fastcall shims, game data addresses, struct names defined twice; and from the
+    __fastcall shims, game data addresses, struct names defined twice, the files that call Windows outside the
+    platform layer (tools/check_platform.py); and from the
     generated tables, game.exe's code cells by group, its pointer cells, the named data ranges (C18)
     and the retired vtables (C19).
 
@@ -24,6 +25,7 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import check_cleanup  # noqa: E402  (the cleanup ratchet's patterns, so both count the same things)
+import check_platform  # noqa: E402  (the platform layer's rule, so the dashboard and the build check agree)
 import progress  # noqa: E402  (the cleanup track's counts, so the dashboard and progress.py agree)
 import srcscan  # noqa: E402
 
@@ -184,6 +186,7 @@ def file_stats(path, text):
             track['fastcall_shims'] = progress.fastcall_shims([source])[0]
             data_all = {a for a in (int(m, 16) for m in DATA_LITERAL.findall(source.code)) if a in DATA_RANGE}
             structs = progress.defined_struct_names(source.code)
+            track['platform_files'] = int(check_platform.counted(path) and check_platform.calls_windows(text))
             if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
@@ -274,7 +277,7 @@ def metrics_version():
     """Hash of the code that decides the numbers; a cache made by other code is not reused. Comments,
     blank lines and indentation-only changes do not count, so editing an explanation keeps the cache."""
     h = hashlib.sha1()
-    for name in ('dashboard_data.py', 'check_cleanup.py', 'progress.py', 'srcscan.py'):
+    for name in ('dashboard_data.py', 'check_cleanup.py', 'check_platform.py', 'progress.py', 'srcscan.py'):
         with open(os.path.join(ROOT, 'tools', name), 'rb') as f:
             for tok in tokenize.tokenize(f.readline):
                 if tok.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,

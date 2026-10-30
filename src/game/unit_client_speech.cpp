@@ -6,7 +6,7 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 
 #include "game_singletons.h"
 
@@ -103,7 +103,7 @@ void UnitClientSpecific::StopSpeech() {
 }
 
 bool UnitClientSpecific::Speak(ClientSpeech* said) {
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
     said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;

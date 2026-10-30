@@ -22,7 +22,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/intro_sort.h"
 #include <cmath>
 #include <cstdint>
@@ -603,7 +603,7 @@ void MpConnectScreen::CreateScreen() {
         file.Close();
         if (queries.extra == 0) {
             const std::uint32_t random = g_random.Next();
-            queries.extra = gameapi::GetTickCount() ^ random;
+            queries.extra = platform::TickCount() ^ random;
         }
         net::g_gameClient->SetQueries(&queries);
     }

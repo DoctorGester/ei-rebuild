@@ -2,7 +2,7 @@
 #include "net_session.h"
 #include "world.h"
 
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "game_singletons.h"
 
 #include <cstdlib>
@@ -48,7 +48,7 @@ GrowingBuffer g_receiveBuffer;
 GrowingBuffer g_sendBuffer;
 
 void Pump() {
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     std::uint32_t elapsed = now - g_lastPumpTime;
     if (elapsed > 5000) elapsed = 1000;   // after a long stall, pretend one second passed
     g_lastPumpTime = now;

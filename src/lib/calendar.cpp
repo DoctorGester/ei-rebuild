@@ -1,7 +1,7 @@
 // The game's dates (calendar.h).
 #include "calendar.h"
 
-#include "gameapi.h"
+#include "platform/clock.h"
 
 #include <ctime>
 
@@ -20,9 +20,8 @@ std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int se
 }
 
 std::int32_t CurrentTime() {
-    SYSTEMTIME local;
-    gameapi::GetLocalTime(&local);
-    return MakeTime(local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond);
+    const platform::DateTime local = platform::LocalTime();
+    return MakeTime(local.year, local.month, local.day, local.hour, local.minute, local.second);
 }
 
 std::string FormatTime(std::int32_t time, const char* format) {

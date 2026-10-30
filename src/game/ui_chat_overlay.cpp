@@ -9,7 +9,7 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/str.h"
 #include "lib/win_user.h"
 
@@ -130,7 +130,7 @@ void ChatOverlay::AddLine(const char* text) {
     // The oldest lines go.
     lines.erase(lines.begin(), lines.begin() + std::clamp(count + before - kMaxLines, 0, before));
 
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     COLORREF colour = kWhite;
     for (int i = 0; i < count; ++i) {
         ChatLine& added = lines.emplace_back();
@@ -267,7 +267,7 @@ ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
 }
 
 void ChatOverlay::Update() {
-    std::uint32_t now = gameapi::timeGetTime();
+    std::uint32_t now = platform::Milliseconds();
     std::erase_if(lines, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 

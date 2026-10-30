@@ -14,7 +14,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/clock.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -172,7 +172,7 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
 
     frameTime = 0;
     flags |= 2;
-    lastFrameStart = gameapi::timeGetTime();
+    lastFrameStart = platform::Milliseconds();
     AddDefaultLight(this);
 
     // The ambient colour: grey 50, opaque.
