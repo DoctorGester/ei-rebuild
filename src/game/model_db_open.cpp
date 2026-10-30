@@ -14,9 +14,7 @@
 
 namespace {
 
-using dbfile::FillStream;
 using dbfile::LoadTable;
-using dbfile::LocalResource;
 using dbfile::OpenDatabase;
 using dbfile::ReportNoDatabase;
 

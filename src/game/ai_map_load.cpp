@@ -2,6 +2,7 @@
 // map archive".
 #include "ai_map.h"
 #include "console.h"
+#include "map_file.h"
 #include "registry.h"
 #include "resource.h"
 #include "sector_map.h"
@@ -33,27 +34,13 @@ namespace {
 
 constexpr const char* kMapExtension = /*0073FD1C*/ ".MP";
 constexpr const char* kSectorExtension = /*0073FD20*/ ".SEC";
-constexpr std::uint32_t kMapMagic = 0xCE4AF672;
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 
+using terrain::kMapMagic;
+using terrain::MapHeader;
+using terrain::MapMaterial;   // the AI map only asks whether it is water
+
 #pragma pack(push, 1)
-// The .mp file's header (0x26 bytes).
-struct MapHeader {
-    std::uint32_t magic;                // kMapMagic
-    float maxZ;                         // the highest point: a vertex's altitude is a fraction of it
-    std::int32_t sectorsX, sectorsY;
-    std::uint32_t textureCount;         // tile textures of 64 tiles each
-    std::uint32_t textureSize;
-    std::uint32_t tileCount;            // the tile type words
-    std::uint32_t tileSize;
-    std::uint16_t materialCount;
-    std::uint32_t animatedTileCount;
-};
-// A material of the map (0x2C bytes); the AI map only asks whether it is water.
-struct MapMaterial {
-    std::int32_t kind;                  // 2 and 3: water
-    std::uint8_t rest[0x28];
-};
 // A sector file's header, and a vertex.
 struct SectorHeader {
     std::uint32_t magic;                // kSectorMagic
@@ -65,8 +52,7 @@ struct SectorFileVertex {
     std::uint32_t normal;
 };
 #pragma pack(pop)
-static_assert(sizeof(MapHeader) == 0x26 && offsetof(MapHeader, materialCount) == 0x20);
-static_assert(sizeof(MapMaterial) == 0x2C && sizeof(SectorHeader) == 5 && sizeof(SectorFileVertex) == 8);
+static_assert(sizeof(SectorHeader) == 5 && sizeof(SectorFileVertex) == 8);
 
 constexpr int kSquares = 32;                        // terrain squares along a sector's side
 constexpr int kVertexRow = kSquares + 1;            // vertices along it
@@ -119,15 +105,15 @@ int ReadDescription(Archive& archive, const std::string& path, const std::string
     if (size < sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
     const MapHeader& header = map.header;
-    const std::uint32_t words = header.animatedTileCount + header.materialCount * (sizeof(MapMaterial) / 4) + header.tileCount;
+    const std::uint32_t words = header.animated + header.materials * (sizeof(MapMaterial) / 4) + header.textures;
     if (header.magic != kMapMagic || size != words * 4 + sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
 
     const auto* materials = static_cast<const std::uint8_t*>(file) + sizeof(MapHeader);
-    const std::size_t materialBytes = header.materialCount * sizeof(MapMaterial);
-    map.materials.resize(header.materialCount);
+    const std::size_t materialBytes = header.materials * sizeof(MapMaterial);
+    map.materials.resize(header.materials);
     std::memcpy(map.materials.data(), materials, materialBytes);
-    map.tileTypes.resize(static_cast<int>(header.tileCount));
-    std::memcpy(map.tileTypes.data(), materials + materialBytes, header.tileCount * sizeof(std::uint32_t));
+    map.tileTypes.resize(header.textures);
+    std::memcpy(map.tileTypes.data(), materials + materialBytes, header.textures * sizeof(std::uint32_t));
     archive.Close(file);
     return 1;
 }
@@ -290,8 +276,9 @@ int HeightUnits(float height, float scale) { return lib::RoundEven(height * scal
 // The terrain type of a tile word: the type word of its tile, 0xF outside the textures.
 std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {
     const std::uint32_t index = tile & kTileIndexMask;
+    const std::uint32_t tiles = static_cast<std::uint32_t>(map.header.pages) * kTilesPerTexture;
     const std::uint8_t type =
-        index < map.header.textureCount * kTilesPerTexture ? static_cast<std::uint8_t>(map.tileTypes[static_cast<int>(index)]) : kUnknownTileType;
+        index < tiles ? static_cast<std::uint8_t>(map.tileTypes[static_cast<int>(index)]) : kUnknownTileType;
     return occluder::Type(type);
 }
 
@@ -315,7 +302,7 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
     const bool hasWaterTiles = (header->layers & 3) != 0;
     const auto* ground = reinterpret_cast<const SectorFileVertex*>(header + 1);
     const SectorFileVertex* water = ground + kVertexRow * kVertexRow;
-    const float maxZ = description.header.maxZ;
+    const float maxZ = description.header.heightRange;
     const float scale = map.heightScale;
 
     for (int row = 0; row < kSquares; ++row) {
@@ -394,7 +381,7 @@ int AIMap::LoadTerrain(const char* path) {
 
     MapDescription description;
     if (const int result = ReadDescription(archive, full, name, description); result != 1) return result;
-    heightScale = kHeightLevels / description.header.maxZ;
+    heightScale = kHeightLevels / description.header.heightRange;
     BuildClimbTables(*this);
     if (const int result = ReadTerrainTypes(*this); result != 1) return result;
 

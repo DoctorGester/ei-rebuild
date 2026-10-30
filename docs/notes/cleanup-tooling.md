@@ -69,7 +69,7 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
 Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): naked functions, files with
 `#pragma float_control`, unknown_XXX fields,
 `At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
-`0x0073xxxx`-`0x008Fxxxx`), `Fn(T* self, void*)` shims (the old thiscall shape, with or without `__fastcall`; src has two left, the harness hooks' stand-ins), struct names defined in several files, and the rest listed in its output.
+`0x0073xxxx`-`0x008Fxxxx`), `Fn(T* self, void*)` shims (the old thiscall shape, with or without `__fastcall`; none left since C64: the harness's entries for game.exe's CALLs are in tests/verify), struct names defined in several files (outside anonymous namespaces, the name as written: `miles::Sample`), and the rest listed in its output.
 
 ## Redundant pointer casts (`cast_scan.py`, C21)
 
@@ -190,7 +190,7 @@ the two cannot be stacked per file.
   precision (the D3D7 device's), as before, and leaves MXCSR alone.
 - `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
   their 2^32 is SSE arithmetic, not a FADD at the precision control).
-- **What C30a kept x87 and why** (moved by C30e12 and C30e13 but camera.cpp, C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
+- **What C30a kept x87 and why** (moved by C30e12, C30e13 and C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
@@ -468,7 +468,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
 | C30e12 (done) client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
-| C30e13 (done; camera.cpp: C30e13a) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
+| C30e13, C30e13a (done) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
 | C30e14 (done) terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
@@ -633,7 +633,7 @@ and steps, the day hour, the client time, the blood print offset, ObjectsInRange
 wide ones differ only where a value leaves a float's normal range (the exponent range: Level's quotient, the blend's
 weight below 2^-126 at a rate above 291, overflowing speeds and hours, denormal steps), never in game ranges.
 
-**C30e13 (camera, picking, briefing; 21 of 22 files moved).** The camera's update, pan, limits, saved views and
+**C30e13 (camera, picking, briefing; 21 of 22 files moved, camera.cpp by C30e13a).** The camera's update, pan, limits, saved views and
 recorded paths, the aim along a direction, the turn upright and the lift over objects (camera_motion), the minimap's
 markers, clipping and texture coordinates (ui_hud_map), the speakers' views and the briefing's look-at point, the
 global map's centre and turns, the camera keys' speeds: their `D()` registers and double locals held floats at PC24,
@@ -651,9 +651,14 @@ picking). The `_ftol` truncations go through int64 (the global map's marker regi
 clock and camp flag; the paths' zone state; the briefing's experience and money lines): screen places and script
 variables are not bounded, and MSVC's x87 `static_cast<int>` (`__ftol2_sse`, CVTTSD2SI) gave 0x80000000 for a NaN or
 out of range where VC6's `_ftol` gives the low half, now as the original. The compares with double constants (0.001,
-1e-6, 1e-18, 0.1, the shake's 20 against `_hypot`'s double) stay double compares (exact). **Kept:** camera.cpp on x87
-(C30e13a): `ApplyView`'s FPATAN of a float and `_hypot`'s double, which the float `pc24::Atan2` does not take; the rest
-of the file is converted and its x87 object calls pc24. x87 code MSVC leaves in the SSE2 objects (reviewed): one
+1e-6, 1e-18, 0.1, the shake's 20 against `_hypot`'s double) stay double compares (exact). **C30e13a:** camera.cpp
+followed once `pc24::Atan2` took doubles (C30e8a): `ApplyView`'s aim back down after the lift is
+`-pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, Hypot(...)))` (the original at 0040F9DA: FPATAN's result stays in ST0 for
+the FADD of the PC24 product pi * 1/180 * 90, FCHS, FSTP dword). Its test (C30e13a's `eq/`, `eq 2000`, 123 s): 1,000 M
+cases in game ranges (dz 0..60 over 120 x 120, and 0..4 over 2 x 2) 0 differ; 1,000 M with wide operands (2^-30 .. 2^30,
+either sign, zeros) 8 differ, all dz negative and |dz| / across above 2^20 (the camera straight below its focus, the
+arc tangent next to -pi/2 cancelling against the right angle: the FPU's 64-bit result decides a near-tie of the 24-bit
+sum), never in the game, where the lifted camera is above its focus. x87 code MSVC leaves in the SSE2 objects (reviewed): one
 float operation on `FrameTime()`'s ST0 result, stored (the briefing's timers), `MouseSpeed`'s product times a float
 (main thread, PC24), out-of-line copies not called (`MarkerWriter::MapX`, `vecmath::Dot`, `DotXYZ`); the hash tables'
 load factors. Equivalence test (C30e13's `eq/`, the x87 sequences at PC24 against the new forms, `eq all 300` 112 s):

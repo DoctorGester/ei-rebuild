@@ -8,6 +8,7 @@
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words:
 // "removable" and "checkall".
 
+#include "render_rect.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -336,11 +337,6 @@ enum class Primitive { LineStrip, TriangleList };
 // `indices`. A draw it refuses is lost (logged).
 void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive);
-
-// A rectangle of the frame or of a surface, in pixels.
-struct Rect {
-    int left, top, right, bottom;
-};
 
 // A pixel format (the screen's, a texture's, an interface canvas's): 16 or 32 bits a pixel with the channels at their
 // masks (`alphaMask` 0: no alpha). All zero: no format (a compressed texture's).

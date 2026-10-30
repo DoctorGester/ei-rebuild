@@ -368,22 +368,18 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
 void FrameCameraUpdate(Camera* camera, float seconds) {
-    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, nullptr, seconds);
+    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, seconds);
     else camera->Update(seconds);
 }
-// Stand-ins in the hook types' convention (__fastcall, include/ei/main_loop.h): in game.exe the harness's hooks are CALL targets.
-int __fastcall UpdateServer(void* server, void*) {
-    static_cast<WorldServer*>(server)->Update();
-    return 1;
+// False when the update stops the frame.
+bool UpdateServer() {
+    if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook(&g_serverWorld) != 0;
+    g_serverWorld.Update();
+    return true;
 }
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
-ei::mainloop::HarnessHooks::WorldUpdate ServerUpdate() {
-    if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
-    return &UpdateServer;
-}
-ei::mainloop::HarnessHooks::WorldUpdate ClientSegment() {
-    if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook;
-    return &RunClientSegment;
+bool RunClientSegment() {
+    if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook(&g_clientWorld) != 0;
+    return g_clientWorld.RunTick();
 }
 
 // A change of the window's activation taken up: active again, every surface is restored (when the renderer
@@ -424,12 +420,12 @@ bool RunWorlds() {
         bool settled = true;
         if (g_serverBacklog >= TickLength()) {
             settled = false;
-            if (!ServerUpdate()(&g_serverWorld, nullptr)) return false;
+            if (!UpdateServer()) return false;
             g_serverBacklog -= TickLength();
             net::Pump();
         }
         if (g_clientBacklog >= TickLength() && (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewMode2())) {
-            if (!ClientSegment()(&g_clientWorld, nullptr)) return false;
+            if (!RunClientSegment()) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
             camera::NoteViewBeforeTick(&g_camera);

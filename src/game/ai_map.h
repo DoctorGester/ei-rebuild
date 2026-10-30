@@ -227,6 +227,14 @@ struct PathOrder {
     PathCells steps;         // the next cells to walk (at most 32)
 };
 
+// A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
+// is zeroed (the original leaves it uninitialised until it is filled).
+struct LocalMotionOrder : PathOrder {
+    LocalMotionOrder() { motionOrder = {}; }
+    LocalMotionOrder(const LocalMotionOrder&) = delete;
+    LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
+};
+
 // A unit's path: its order and next steps (PathOrder), the rest of the cells and the search's state.
 struct AIPath : PathOrder {
     AIPath() { Clear(); }

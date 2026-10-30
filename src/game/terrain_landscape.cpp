@@ -3,6 +3,7 @@
 // queries in terrain.cpp.
 #include "terrain.h"
 #include "terrain_sector.h"
+#include "map_file.h"
 #include "console.h"
 #include "sound.h"
 #include "spell.h"
@@ -29,24 +30,6 @@
 #include <vector>
 
 namespace terrain {
-
-// The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
-// texture, then the animated textures.
-#pragma pack(push, 1)
-struct MapHeader {
-    std::uint32_t magic;
-    float heightRange;
-    std::int32_t sectorsX;
-    std::int32_t sectorsY;
-    std::int32_t pages;
-    std::int32_t pageSize;
-    std::int32_t textures;
-    std::int32_t tileSize;
-    std::uint16_t materials;
-    std::uint32_t animated;
-};
-#pragma pack(pop)
-static_assert(sizeof(MapHeader) == 0x26);
 
 namespace {
 
@@ -80,24 +63,12 @@ constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
 constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
 
-// The map file's material and animated texture entries.
-struct MapMaterial {
-    int kind;
-    Vector3 colour;
-    float opacity;
-    float light;                    // scales the colour
-    float priority;
-    float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
-    std::uint8_t unused_20[0xC];    // not read
-};
-static_assert(sizeof(MapMaterial) == 0x2C);
-
+// The map file's animated texture entries.
 struct MapAnimatedTexture {
     std::uint16_t texture;
     std::uint16_t frames;
 };
 
-constexpr std::uint32_t kMapMagic = 0xCE4AF672;
 constexpr int kExtraTextures = kExtraPages * kExtraPageTextures;   // after the map's own
 constexpr int kExtraClass = 0xF;
 constexpr float kMarginPixels = 8.0f;

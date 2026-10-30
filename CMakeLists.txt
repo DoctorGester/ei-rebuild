@@ -54,11 +54,9 @@ endif()
 # "SSE2 build", the plan and why each group is still x87). Their floating point reaches game state or the goldens
 # through maths that rounds at the main thread's 24-bit precision in ways plain float maths does not give yet: double
 # registers (D(), double locals), double constants wider than a float, transcendentals (x87::fsin / fexp, the game
-# CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
+# CRT's pow / acos), the terrain's chop rounding.
 # Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
 set(EI_X87_GAME_SOURCES
-    # C30e13a: Camera::ApplyView's FPATAN of a float and _hypot's double
-    game/camera
     # C30e15: the main loop and the game CRT
     game/app_main lib/crt_x87)
 list(TRANSFORM EI_X87_GAME_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/\\1.cpp")

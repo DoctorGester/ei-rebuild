@@ -272,8 +272,8 @@ void Capture() {
     g_state = State::Done;
 }
 
-// Replaces the call of 005E65F0 at 004580D7 (ECX = the cursor object, preserved for it).
-void __fastcall CaptureThenCursorLock(void* cursor) {
+// The frame step's lock of the cursor, after a capture when one is due.
+void CaptureThenCursorLock(void* cursor) {
     g_frames = g_frames + 1;
     if (g_state == State::Pending) {
         if (g_skip > 0) --g_skip;
@@ -282,6 +282,8 @@ void __fastcall CaptureThenCursorLock(void* cursor) {
     if (ei::Standalone()) ei::verify::image::CursorLock(cursor);
     else ei::verify::OriginalCode<void(__fastcall*)(void*)>(kCursorLock)(cursor);
 }
+// game.exe's call of 005E65F0 at 004580D7, redirected here (ECX = the cursor object).
+void __fastcall CaptureThenCursorLockCall(void* cursor) { CaptureThenCursorLock(cursor); }
 
 } // namespace
 
@@ -302,7 +304,8 @@ bool Install() {
         installed = 0;
         return false;
     }
-    rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(&CaptureThenCursorLock) - (kCursorLockCall + 5));
+    const auto entry = reinterpret_cast<std::uintptr_t>(&CaptureThenCursorLockCall);
+    rel = static_cast<std::int32_t>(entry - (kCursorLockCall + 5));
     ei::NoteHarnessPatch(kCursorLockCall, 5, "the frame capture's CALL");
     DWORD old;
     VirtualProtect(p + 1, 4, PAGE_EXECUTE_READWRITE, &old);

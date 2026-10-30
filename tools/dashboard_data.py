@@ -35,7 +35,6 @@ TRACK = {
 }
 TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.HOOK_ERA_COUNTS
                   for key, name in TRACK.items() if label == name}
-STRUCT_DEFINITION = re.compile(r'^(?:struct|class)\s+(?:__declspec\(\w+\)\s+)?(\w+)(?:\s+final)?\s*(?::[^{;]*)?\{', re.M)
 CELL = re.compile(r'^\{DataId\(', re.M)
 
 # check_cleanup's columns that the CLEANUP dict below does not already cover, by data.json key.
@@ -184,7 +183,7 @@ def file_stats(path, text):
             track = {key: len(rx.findall(source.code)) for key, rx in TRACK_PATTERNS.items()}
             track['fastcall_shims'] = progress.fastcall_shims([source])[0]
             data_all = {a for a in (int(m, 16) for m in DATA_LITERAL.findall(source.code)) if a in DATA_RANGE}
-            structs = set(STRUCT_DEFINITION.findall(source.code))
+            structs = progress.defined_struct_names(source.code)
             if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))

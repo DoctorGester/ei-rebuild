@@ -130,7 +130,7 @@ std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
-struct FsParams {
+struct UiParams {
     float colour[4];
     std::uint32_t bits[4];
     std::int32_t source[4];
@@ -138,7 +138,7 @@ struct FsParams {
     float scale[4];
     std::uint32_t key[4];
 };
-static_assert(sizeof(FsParams) == 96);
+static_assert(sizeof(UiParams) == 96);
 
 bool g_pipelinesTried = false, g_pipelinesMade = false;
 sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
@@ -182,7 +182,7 @@ sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex,
     s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(FsParams);
+    s.uniform_blocks[1].size = sizeof(UiParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
     for (int t = 0; t < textures; ++t) {
         s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
@@ -333,14 +333,14 @@ void BeginCanvasPass(sg_view attachment, bool clear, const char* label) {
     sg_begin_pass(&pass);
 }
 
-FsParams CanvasParams(const CanvasState& canvas) {
-    FsParams fs{};
+UiParams CanvasParams(const CanvasState& canvas) {
+    UiParams fs{};
     for (int i = 0; i < 3; ++i) fs.bits[i] = canvas.bits[i];
     fs.bits[3] = canvas.greyMode;
     return fs;
 }
 
-void ApplyFs(const FsParams& fs) {
+void ApplyFs(const UiParams& fs) {
     sg_range range{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &range);
 }
@@ -376,7 +376,7 @@ void DrawSolids(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (std::size_t k = from; k < to; ++k) {
         const Op& op = g_queue[k];
         ApplyRect(op.rect, canvas.width, canvas.height);
-        FsParams fs = CanvasParams(canvas);
+        UiParams fs = CanvasParams(canvas);
         fs.colour[0] = ((op.colour >> 16) & 0xFF) / 255.0f;
         fs.colour[1] = ((op.colour >> 8) & 0xFF) / 255.0f;
         fs.colour[2] = (op.colour & 0xFF) / 255.0f;
@@ -466,7 +466,7 @@ void DrawGlyphs(const CanvasState& canvas, const Op& op) {
     c.samplers[0] = g_nearest;
     sg_apply_bindings(&c);
     ApplyRect(op.rect, canvas.width, canvas.height);
-    FsParams fs = CanvasParams(canvas);
+    UiParams fs = CanvasParams(canvas);
     fs.colour[0] = static_cast<float>(op.colour & 0xFF);
     fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
     fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
@@ -488,7 +488,7 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-    FsParams fs = CanvasParams(canvas);
+    UiParams fs = CanvasParams(canvas);
     fs.source[0] = r.left;
     fs.source[1] = r.top;
     fs.source[2] = r.right - r.left;
@@ -748,7 +748,7 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     };
     for (const text::GlyphQuad& q : layout.quads)
         quad(q.x, q.y, q.width, q.height, static_cast<float>(q.atlasX), static_cast<float>(q.atlasY));
-    for (const text::Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
+    for (const Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
     op.rect = Intersect(bounds, scissor);
     if (Empty(op.rect)) return;
     Push(std::move(op));
@@ -835,7 +835,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, width, height}, width, height);
-    FsParams fs{};
+    UiParams fs{};
     fs.source[2] = canvas.width;
     fs.source[3] = canvas.height;
     fs.dest[0] = width;
@@ -952,7 +952,7 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(batch.destination, width, height);
-    FsParams fs{};
+    UiParams fs{};
     fs.source[0] = batch.source.left;
     fs.source[1] = batch.source.top;
     fs.source[2] = canvas.width;

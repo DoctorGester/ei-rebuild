@@ -130,7 +130,7 @@ void NamedRecordTable<Record>::Load(ByteStream* source, int chunk) {
 
 int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
-    dbfile::LocalResource resource;
+    LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
@@ -138,7 +138,7 @@ int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!data) return game::FatalError("Can't open items database\n");
 
     MemoryStream stream;
-    dbfile::FillStream(stream, data, size);
+    FillStream(stream, data, size);
     materials.Load(&stream, kMaterialsChunk);
     weapons.Load(&stream, kWeaponsChunk);
     armors.Load(&stream, kArmorsChunk);

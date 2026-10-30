@@ -44,14 +44,6 @@ constexpr int kNoSpot = 0x7FFFFFFF;
 AIMap* MapOf(WorldServer* world) { return &world->aiMap; }
 constexpr float kHalfCell = 0.5f;
 
-// A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
-// is zeroed (the original leaves it uninitialised until it is filled).
-struct LocalMotionOrder : PathOrder {
-    LocalMotionOrder() { std::memset(&motionOrder, 0, sizeof(motionOrder)); }
-    LocalMotionOrder(const LocalMotionOrder&) = delete;
-    LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
-};
-
 // A UnitMotion on the stack, cleared, with the speed scale, no turning limit (1e10) and no segment.
 struct LocalUnitMotion {
     UnitMotion motion;

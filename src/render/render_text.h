@@ -3,6 +3,8 @@
 // Interface text without GDI: TrueType fonts (stb_truetype) laid out by DrawTextA's rules. See
 // docs/notes/ui-native.md, section 2 and "Source file overviews".
 
+#include "render_rect.h"
+
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -136,10 +138,6 @@ enum Format : unsigned {
 };
 constexpr unsigned kSupportedFormats =
     kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix | kEndEllipsis;
-
-struct Rect {
-    int left = 0, top = 0, right = 0, bottom = 0;
-};
 
 struct GlyphQuad {
     int atlasX, atlasY, width, height;   // source in the atlas

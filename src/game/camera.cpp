@@ -11,7 +11,6 @@
 #include "terrain.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/vecmath.h"
@@ -326,9 +325,8 @@ void Camera::ApplyView() {
     // Lifted over an object: aim back down at the focus.
     float dz = localPosition.z - focus.z;
     double across = libcrt::Hypot(localPosition.x - focus.x, localPosition.y - focus.y);
-    // FPATAN of a float and _hypot's double, which the float pc24::Atan2 does not take: this file stays x87 for it
-    // (CMakeLists' list); with a double form, -(right angle + angle) is pc24::Add of the two, negated.
-    double angle = x87::fpatan(dz, across);
+    // The arc tangent of the float and _hypot's double, unrounded into the add of the right angle.
+    const float tiltAngle = -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across));
     localRotation = viewRotation;
     const Quaternion s = localRotation;
     Vector3 axis;
@@ -336,7 +334,7 @@ void Camera::ApplyView() {
     axis.y = Dot2DUnrounded<float>(s.x, s.z, s.y, s.w) * 2.0f;
     axis.z = (s.x * s.z - s.y * s.w) * 2.0f;
     Quaternion q;
-    q.SetAngleAxis(static_cast<float>(-(CAM_RIGHT_ANGLE + angle)), axis);
+    q.SetAngleAxis(tiltAngle, axis);
     float y = ((q.z * s.x - s.z * q.x) + s.w * q.y) + s.y * q.w;
     float z = ((q.x * s.y - s.x * q.y) + s.w * q.z) + s.z * q.w;
     float w = s.w * q.w - DotUnrounded<Sum3::ZXY, float>(s.x, s.y, s.z, q.x, q.y, q.z);

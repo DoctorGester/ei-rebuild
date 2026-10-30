@@ -34,6 +34,7 @@
 #include <vector>
 
 using namespace render::text;
+using render::Rect;
 
 namespace {
 

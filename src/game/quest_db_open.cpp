@@ -12,9 +12,7 @@
 
 namespace {
 
-using dbfile::FillStream;
 using dbfile::LoadTable;
-using dbfile::LocalResource;
 
 // The chunks of quests.qdb.
 constexpr int kQuestsChunk = 1;

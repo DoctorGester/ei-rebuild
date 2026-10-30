@@ -93,15 +93,6 @@ void FillIdle(UnitServer* self, AnimationSteps* steps) {
     if (entry) AddEmote(steps, entry->index);
 }
 
-
-// A motion order on the stack, as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
-// uninitialised).
-struct LocalMotionOrder : PathOrder {
-    LocalMotionOrder() { std::memset(&motionOrder, 0, sizeof(motionOrder)); }
-    LocalMotionOrder(const LocalMotionOrder&) = delete;
-    LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
-};
-
 // A player's party, walked like the original's hash_map iteration.
 using PartyMap = CPlayer::UnitMap;
 

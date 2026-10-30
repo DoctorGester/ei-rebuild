@@ -62,13 +62,28 @@ def fastcall_shims(sources):
     return len(extra_parameters), sum(1 for rest in extra_parameters if not rest)
 
 
+STRUCT_DEFINITION = re.compile(
+    r'^(?:struct|class)\s+(?:__declspec\(\w+\)\s+)?(\w+(?:::\w+)*)(?:\s+final)?\s*(?::(?!:)[^{;]*)?\{', re.M)
+
+
+def defined_struct_names(code):
+    """The struct/class names that `code` (comments blanked) defines with a body at the start of a line, as written
+    (`miles::Sample`), but those inside an anonymous namespace: those are the file's own and cannot clash."""
+    scopes = None
+    names = set()
+    for m in STRUCT_DEFINITION.finditer(code):
+        scopes = scopes or srcscan.Scopes(code)
+        if '' not in (scopes.namespace_at(m.start()) or []):
+            names.add(m.group(1))
+    return names
+
+
 def structs_defined_twice(sources):
-    """Top-level struct/class names that are defined (with a body) in more than one file."""
-    definition = re.compile(r'^(?:struct|class)\s+(?:__declspec\(\w+\)\s+)?(\w+)(?:\s+final)?\s*(?::[^{;]*)?\{', re.M)
+    """Struct/class names that are defined (with a body, outside an anonymous namespace) in more than one file."""
     files = defaultdict(set)
     for s in sources:
-        for m in definition.finditer(s.code):
-            files[m.group(1)].add(s.path)
+        for name in defined_struct_names(s.code):
+            files[name].add(s.path)
     return sum(1 for paths in files.values() if len(paths) > 1)
 
 
