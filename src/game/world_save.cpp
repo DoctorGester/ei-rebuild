@@ -141,7 +141,7 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
         stream->WriteValue(-1);
         stream->WriteValue(player->godMode);
         const std::vector<std::uint32_t>& ids = player->recharging;
-        stream->WriteValue(std::ssize(ids));
+        stream->WriteValue(static_cast<std::int32_t>(std::ssize(ids)));
         for (std::uint32_t id : ids) stream->WriteValue(id);
     }
 }

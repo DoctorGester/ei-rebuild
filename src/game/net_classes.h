@@ -231,17 +231,17 @@ MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
 // The message type registry of a session.
 struct TypeRegistry {
 
-    std::unordered_map<std::uint32_t, std::uint32_t> byVtable;     // message vtable -> type id
+    std::unordered_map<std::uintptr_t, std::uint32_t> byVtable;    // message vtable -> type id
     std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
 
-    // The key of a message's class: its vtable (the object's first dword).
-    static std::uint32_t KeyOf(const RefObject* message) {
-        std::uint32_t key;
+    // The key of a message's class: its vtable (the object's first pointer).
+    static std::uintptr_t KeyOf(const RefObject* message) {
+        std::uintptr_t key;
         lib::LoadBytes(key, message);   // read before any null check
         return key;
     }
     // The type id of the message class whose key is *key, or -1.
-    int TypeOf(const std::uint32_t* key) const;
+    int TypeOf(const std::uintptr_t* key) const;
     // Registers `type`: makes a prototype with `factory` (to learn its vtable), maps the
     // vtable to the type and the type to the factory, and releases the prototype.
     void Register(std::uint32_t type, MessageFactory factory);

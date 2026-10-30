@@ -9,6 +9,8 @@
 // A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
 // catches; an uncaught one ends the game as before (a write to a full disk).
 
+#include "bytes.h"
+
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
@@ -59,12 +61,12 @@ public:
     // One value as its bytes (sizeof(T)).
     template <class T>
     unsigned ReadValue(T& value) {
-        static_assert(std::is_trivially_copyable_v<T>, "a file value is plain bytes");
+        static_assert(kFormatValue<T>, "a file value is plain bytes of one size in every build");
         return Read(&value, sizeof(T));
     }
     template <class T>
     void WriteValue(const T& value) {
-        static_assert(std::is_trivially_copyable_v<T>, "a file value is plain bytes");
+        static_assert(kFormatValue<T>, "a file value is plain bytes of one size in every build");
         Write(&value, sizeof(T));
     }
     // `from` FILE_BEGIN, FILE_CURRENT or FILE_END; the new position.

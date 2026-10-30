@@ -2,6 +2,8 @@
 // addresses), address parsing and formatting, and the TCP link to the master server (0x40 bytes:
 // an outgoing and an incoming growing buffer, the socket, a state). Winsock (WSOCK32) is called
 // through the game's import thunks. See docs/notes/network.md.
+#include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
+
 #include "net_classes.h"
 #include "net_coder.h"
 #include "lib/bytes.h"
@@ -27,10 +29,9 @@ constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {
-    auto* entry = static_cast<const std::uint8_t*>(host);
-    const std::uint32_t* const* list;
-    lib::LoadBytes(list, entry + 0xC);
-    return **list;
+    std::uint32_t address;
+    lib::LoadBytes(address, static_cast<const hostent*>(host)->h_addr_list[0]);
+    return address;
 }
 unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addresses.size()); }
 

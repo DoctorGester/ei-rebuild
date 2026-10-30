@@ -64,7 +64,7 @@ public:
     // Open creates the object with the class's factory.
     using Factory = RefCounted*(*)();
     struct ClassRegistry {
-        std::unordered_map<std::uint32_t, std::int32_t> classIds;     // vtable -> class id
+        std::unordered_map<std::uintptr_t, std::int32_t> classIds;    // vtable -> class id
         std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
     };
 
@@ -91,7 +91,7 @@ public:
     // One value of sizeof(T) bytes: Field(id, &value, sizeof(T)).
     template <class T>
     void Field(int id, T* value) {
-        static_assert(std::is_trivially_copyable_v<T>, "a field is plain bytes");
+        static_assert(lib::kFormatValue<T>, "a field is plain bytes of one size in every build");
         Field(id, static_cast<void*>(value), sizeof(T));
     }
     void StringField(int id, std::string* s);

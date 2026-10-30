@@ -6213,6 +6213,12 @@ model = "opus"
 note = "After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders; sokol_audio is output only, so miniaudio stays the choice) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
 
 [[ticket]]
+id = "A3d"
+title = "x64: Winsock sockets as SOCKET (prototypes, fields, the hand-built fd_set)"
+group = "port"
+note = "From A3b (docs/notes/x64.md, 'Pointers and handles in 32-bit fields'). SOCKET is UINT_PTR: the Winsock prototypes in src/lib/import_prototypes.h and gameapi.h take and return std::uint32_t; SocketDriver::socket and MasterLink::socket (net_classes.h), kNoSocket (net_socket_driver.cpp) and net_second_master.cpp's CopyAnnouncement keep it in 32 bits; MasterLinkTick builds an fd_set by hand as {count, uint32 socket} (x64's has 8-byte sockets after padding: use fd_set / FD_SET). Unchanged on 32-bit; goldens unchanged (the lobby / network scenarios). PL5 (sockets in the platform layer) can take it instead when it runs first."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
