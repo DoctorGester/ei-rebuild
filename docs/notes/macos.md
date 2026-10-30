@@ -33,6 +33,18 @@ Linux; a runnable GL backend is still needed there. Neither Linux nor clang-cl o
 
 ## Run and check
 
+For normal play, run from the repository:
+
+```sh
+python3 tools/run_macos.py --play
+```
+
+This runs until you quit and reuses `run/macos/` for saves, settings, copied `Config` and logs. The data defaults to
+`~/workspace/ei`; pass `--data` to choose it on the first run. Edit `run/macos/ei_settings.ini` to change resolution
+or other settings; subsequent launches preserve it. Startup movies are skipped unless `--intro` is supplied.
+
+For bounded checks:
+
 ```sh
 python3 tools/run_macos.py --data ~/workspace/ei --check
 python3 tools/run_macos.py --data ~/workspace/ei --seconds 60
