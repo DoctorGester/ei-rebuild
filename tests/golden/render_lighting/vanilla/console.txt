@@ -1,0 +1,99 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  Unit 1000000464 new motivation Player with power of 10
+  Unit 1000000465 new motivation Player with power of 10
+  Unit 1000000466 new motivation Player with power of 10
+  Unit 1000000467 new motivation Player with power of 10
+  Unit 1000000468 new motivation Player with power of 10
+  Unit 1000000469 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000000468 from 11.451m distance
+  Unit 1000011214 sees unit 1000000467 from 11.3137m distance
+  Unit 1000000465 hear delayed sound: Unit 1000000464 claims that player 3 are enemies! Unit 1000000464 claims that player 4 are enemies! Unit 1000000464 claims that player 6 are enemies! Unit 1000000464 claims that player 7 are enemies! Unit 1000000464 claims that player 8 are enemies! 
+  Unit 1000000466 hear delayed sound: Unit 1000000464 claims that player 3 are enemies! Unit 1000000464 claims that player 4 are enemies! Unit 1000000464 claims that player 6 are enemies! Unit 1000000464 claims that player 7 are enemies! Unit 1000000464 claims that player 8 are enemies! 
+  Unit 1000000468 hear delayed sound: Unit 1000000467 claims that player 3 are enemies! Unit 1000000467 claims that player 4 are enemies! Unit 1000000467 claims that player 6 are enemies! Unit 1000000467 claims that player 7 are enemies! Unit 1000000467 claims that player 8 are enemies! 
+  Unit 1000000469 hear delayed sound: Unit 1000000467 claims that player 3 are enemies! Unit 1000000467 claims that player 4 are enemies! Unit 1000000467 claims that player 6 are enemies! Unit 1000000467 claims that player 7 are enemies! Unit 1000000467 claims that player 8 are enemies! 
+  Unit 1000000399 new motivation Player with power of 10
+  Unit 1000000400 sees unit 1000011214 from 2.26385m distance
+  Unit 1000000400 new motivation Player with power of 10
+  Unit 1000000401 new motivation Player with power of 10
+  Unit 1000000402 new motivation Player with power of 10
+  using sense life Unit 1000000403 sees unit 1000011214 from 7.78621m distance
+  Unit 1000000403 new motivation Player with power of 10
+  Unit 1000000404 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000000400 from 2.26385m distance
+  1
+  Unit 1000011214 sees unit 1000000401 from 4.97584m distance
+  Unit 1000000401 sees unit 1000011214 from 4.97584m distance
+  Unit 1000011214 sees unit 1000000399 from 4.29333m distance
+  Unit 1000000399 sees unit 1000011214 from 4.29333m distance
+  Unit 1000000402 sees unit 1000011214 from 4.35327m distance
+  Unit 1000011214 sees unit 1000000402 from 4.2276m distance
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=8.66 destHL=RLeg
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=10.58 destHL=RLeg
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 2.011920m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000402 from 4.558474m distance
+  Unit 1000000400 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000401 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000402 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000403 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000404 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000402 from 4.086875m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000402 from 3.401091m distance
+  Unit 1000011214 was attacked by 1000000399 skill=-3.40282e+038 damage=7.96 destHL=RLeg
+  Delayed sound: Unit 1000011214 heard unit 1000000401 from 3.780460m distance
+  1
+  Unit 1804 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 sees unit 1000000440 from 1.45774m distance
+  Unit 1000011214 sees unit 1000000439 from 3.02076m distance
+  Unit 1000000439 sees unit 1000011214 from 3.02076m distance
+  Unit 1000000439 new motivation Player with power of 10
+  Unit 1000000440 sees unit 1000011214 from 1.45774m distance
+  Unit 1000000440 new motivation Player with power of 10
+  1
+  Unit 1000000439 hear delayed sound: Unit 1000011214 claims that player 3 are enemies! Unit 1000011214 claims that player 4 are enemies! Unit 1000011214 claims that player 6 are enemies! Unit 1000011214 claims that player 7 are enemies! Unit 1000011214 claims that player 8 are enemies! 
+  Unit 1000000440 hear delayed sound: Unit 1000011214 claims that player 3 are enemies! Unit 1000011214 claims that player 4 are enemies! Unit 1000011214 claims that player 6 are enemies! Unit 1000011214 claims that player 7 are enemies! Unit 1000011214 claims that player 8 are enemies! 
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 sees unit 702 from 12.9556m distance
+  Unit 1934 new motivation Guard with power of 50
+  Unit 1935 new motivation Guard with power of 50
+  Disconnecting player -1
+  Accepted player 0
+  Unit 182595 new motivation Patrol with power of 50
+  Unit 1001577495 new motivation Player with power of 10
+  Unit 1000059184 new motivation Player with power of 10
+  Unit 1000059185 new motivation Player with power of 10
+  Unit 1000063817 new motivation Player with power of 10
+  Unit 1000054752 new motivation Player with power of 10
+  Unit 1007671245 new motivation Player with power of 10
+  Unit 183332 new motivation Patrol with power of 50
+  Unit 927062 new motivation Player with power of 10
+  Unit 848411 new motivation Patrol with power of 50
+  Unit 399469 new motivation Patrol with power of 50
+  Unit 831510 new motivation Patrol with power of 50
+  party received on client
+  Unit 481569 new motivation Player with power of 10
+  Unit 196568 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000059184 from 11.7866m distance
+  Unit 1000011214 sees unit 1000063817 from 8.30257m distance
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 732495 new motivation Player with power of 10
+  Unit 1000059184 sees unit 1000011214 from 11.7866m distance
+  1
+  Unit 1000063817 sees unit 1000011214 from 8.30257m distance
+  Unit 601927 new motivation Sentry with power of 50
+  Unit 534153 new motivation Sentry with power of 50
+  Unit 686200 new motivation Sentry with power of 50
+  Unit 1000063817 lost from sight unit 1000011214
+  Unit 182595 acknowledges with idleSound = AAn4XyU
+  Unit 686200 new motivation Player with power of 10
+  Unit 481569 new motivation Sentry with power of 50
+  Unit 196568 new motivation Sentry with power of 50
+  Unit 732495 new motivation Sentry with power of 50
+  Unit 601927 new motivation Player with power of 10
+  Unit 534153 new motivation Player with power of 10

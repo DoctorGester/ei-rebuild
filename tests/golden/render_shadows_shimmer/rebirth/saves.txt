@@ -1,0 +1,7 @@
+current/bz1g.sav a06d63df120d4dd9
+current/gz1g.sav 306fcdcaefd0dcdc
+save2/bz1g.sav a06d63df120d4dd9
+save2/gz1g.sav 306fcdcaefd0dcdc
+save2/info.sav 2537a0697bb0e01f
+save2/mission.sav 0a228aaa1e417dc7
+save2/scenario.sav fc9b48312e7dccdb

@@ -2,12 +2,12 @@
   "scenario": "render_present_shot",
   "install": "vanilla",
   "recorded": "2026-10-30",
-  "commit": "6bd8a2287",
+  "commit": "b6204b4",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "GOG data re-downloaded 2026-10-30: unit radii from the new data",
+  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }

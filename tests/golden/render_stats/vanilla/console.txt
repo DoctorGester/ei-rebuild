@@ -1,0 +1,258 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  Unit 1000000399 new motivation Player with power of 10
+  Unit 1000000400 sees unit 1000011214 from 2.26385m distance
+  Unit 1000000400 new motivation Player with power of 10
+  Unit 1000000401 new motivation Player with power of 10
+  Unit 1000000402 new motivation Player with power of 10
+  Unit 1000000403 new motivation Player with power of 10
+  Unit 1000000404 new motivation Player with power of 10
+  Unit 1000000405 new motivation Player with power of 10
+  Unit 1000000406 sees unit 1000011214 from 7.07107m distance
+  Unit 1000000406 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000002045 from 7m distance
+  Unit 1000011214 sees unit 1000000406 from 7.07107m distance
+  Unit 1000011214 sees unit 1000000400 from 2.26385m distance
+  Unit 1000000407 new motivation Player with power of 10
+  using sense life Unit 1000002043 sees unit 1000011214 from 7m distance
+  Unit 1000002043 new motivation Player with power of 10
+  Unit 1000002044 new motivation Player with power of 10
+  Unit 1000002045 sees unit 1000011214 from 7m distance
+  Unit 1000002045 new motivation Player with power of 10
+  1
+  Unit 1000000399 sees unit 1000000407 from 2.26385m distance
+  Unit 1000000400 sees unit 1000002045 from 7.59111m distance
+  Unit 1000000401 sees unit 1000002044 from 2.5m distance
+  Unit 1000000402 sees unit 1000002045 from 2.26385m distance
+  Unit 1000000404 sees unit 1000002044 from 4.52769m distance
+  Unit 1000000406 sees unit 1000002043 from 5.38516m distance
+  Unit 1000000407 sees unit 1000000399 from 2.49892m distance
+  using sense life Unit 1000002043 sees unit 1000000404 from 7.0445m distance
+  Unit 1000002043 sees unit 1000000406 from 5.5149m distance
+  using sense life Unit 1000002043 sees unit 1000000402 from 8.37619m distance
+  using sense life Unit 1000002043 sees unit 1000000401 from 7.85016m distance
+  using sense life Unit 1000002043 sees unit 1000000400 from 5.00532m distance
+  Unit 1000002044 sees unit 1000000401 from 2.5m distance
+  Unit 1000002044 sees unit 1000000399 from 7.33142m distance
+  Unit 1000002044 sees unit 1000000404 from 4.52769m distance
+  Unit 1000002045 sees unit 1000000405 from 5.47122m distance
+  Unit 1000002045 sees unit 1000000402 from 2.34566m distance
+  Unit 1000002045 sees unit 1000000400 from 7.49389m distance
+  Unit 1000000399 sees unit 1000002044 from 6.97302m distance
+  Unit 1000000405 sees unit 1000002045 from 5.58067m distance
+  Unit 1000000405 sees unit 1000000407 from 5.22159m distance
+  Unit 1000011214 sees unit 1000000402 from 4.24704m distance
+  Unit 1000011214 sees unit 1000000399 from 4.29333m distance
+  Unit 1000000407 sees unit 1000000405 from 5.00845m distance
+  Unit 1000000399 sees unit 1000011214 from 4.29333m distance
+  Unit 1000000402 sees unit 1000011214 from 4.24704m distance
+  Unit 1000011214 sees unit 1000000401 from 5.5522m distance
+  Unit 1000000401 sees unit 1000011214 from 5.5522m distance
+  Unit 1000011214 sees unit 1000002044 from 5.56391m distance
+  Unit 1000002044 sees unit 1000011214 from 5.56391m distance
+  Unit 1000000400 sees unit 1000002044 from 6.23718m distance
+  Unit 1000000400 sees unit 1000000407 from 6.17756m distance
+  Unit 1000000407 sees unit 1000000400 from 6.17756m distance
+  Unit 1000002044 sees unit 1000000402 from 8.23714m distance
+  Unit 1000000403 sees unit 1000000407 from 4.45701m distance
+  Unit 1000000405 sees unit 1000002044 from 7.6224m distance
+  Unit 1000011214 sees unit 1000000407 from 4.22873m distance
+  Unit 1000000407 sees unit 1000011214 from 4.22873m distance
+  Unit 1000000407 sees unit 1000000403 from 4.45701m distance
+  Unit 1000002044 sees unit 1000000405 from 7.41629m distance
+  Unit 1000002044 sees unit 1000000400 from 6.1443m distance
+  Unit 1000000402 sees unit 1000002044 from 7.68137m distance
+  Unit 1000000402 sees unit 1000000407 from 6.35214m distance
+  Unit 1000000407 sees unit 1000000402 from 6.12917m distance
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=10.41 destHL=RHand
+  Unit 1000000403 sees unit 1000002044 from 3.55581m distance
+  Unit 1000000399 was attacked by 1000011214 skill=3.40282e+038 damage=10.4923 destHL=RLeg
+  impaling passed damage = 10.4923 HL was crippled
+  Unit 1000000404 sees unit 1000000402 from 7.75694m distance
+  Unit 1000000404 sees unit 1000000401 from 2.62664m distance
+  Unit 1000000404 sees unit 1000000400 from 6.42879m distance
+  Unit 1000000406 sees unit 1000000400 from 8.08216m distance
+  Unit 1000000402 sees unit 1000000404 from 7.75694m distance
+  Unit 1000000402 sees unit 1000000399 from 3.30868m distance
+  Unit 1000000402 sees unit 1000000400 from 1.34035m distance
+  Unit 1000000401 sees unit 1000000404 from 2.62664m distance
+  Unit 1000000401 sees unit 1000002045 from 6.53541m distance
+  Unit 1000000400 sees unit 1000000404 from 6.42879m distance
+  Unit 1000000400 sees unit 1000000399 from 3.51051m distance
+  Unit 1000000400 sees unit 1000000406 from 8.08216m distance
+  Unit 1000000400 sees unit 1000000402 from 1.34035m distance
+  Unit 1000000399 sees unit 1000000402 from 3.30868m distance
+  Unit 1000000399 sees unit 1000000400 from 3.51051m distance
+  Unit 1000000399 damaged to death
+  Unit 1000000407 sees corpse of unit 1000000399
+  Unit 1000000407 lost from sight unit 1000000399
+  Unit 1000002044 sees corpse of unit 1000000399
+  Unit 1000002044 lost from sight unit 1000000399
+  Unit 1000002045 sees unit 1000000401 from 6.53541m distance
+  Unit 1000000400 sees corpse of unit 1000000399
+  Unit 1000000400 lost from sight unit 1000000399
+  Unit 1000000402 sees corpse of unit 1000000399
+  Unit 1000000402 lost from sight unit 1000000399
+  Unit 1000011214 sees corpse of unit 1000000399
+  Unit 1000011214 lost from sight unit 1000000399
+  Unit 1000002044 sees unit 1000000403 from 3.80551m distance
+  Unit 1000000407 hear delayed sound: Unit 1000000399 claims that player 3 are enemies! Unit 1000000399 claims that player 4 are enemies! Unit 1000000399 claims that player 6 are enemies! Unit 1000000399 claims that player 7 are enemies! Unit 1000000399 claims that player 8 are enemies! 
+  Unit 1000002043 hear delayed sound: Unit 1000000400 claims that player 3 are enemies! Unit 1000000400 claims that player 4 are enemies! Unit 1000000400 claims that player 6 are enemies! Unit 1000000400 claims that player 7 are enemies! Unit 1000000400 claims that player 8 are enemies! 
+  Unit 1000002044 hear delayed sound: Unit 1000000399 claims that player 3 are enemies! Unit 1000000399 claims that player 4 are enemies! Unit 1000000399 claims that player 6 are enemies! Unit 1000000399 claims that player 7 are enemies! Unit 1000000399 claims that player 8 are enemies! 
+  Unit 1000002045 hear delayed sound: Unit 1000000399 claims that player 3 are enemies! Unit 1000000399 claims that player 4 are enemies! Unit 1000000399 claims that player 6 are enemies! Unit 1000000399 claims that player 7 are enemies! Unit 1000000399 claims that player 8 are enemies! 
+  Unit 1000000400 lost from sight unit 1000000406
+  Unit 1000000406 lost from sight unit 1000000400
+  Delayed sound: Unit 1000002043 heard unit 1000000406 from 5.514904m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000402 from 2.149007m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Unit 1000000400 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000401 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000402 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=9.23 destHL=LLeg
+  Unit 1000000403 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000404 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
+  Unit 1000000405 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
+  Unit 1000000406 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
+  Unit 1804 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=11.88 destHL=Body
+  Unit 1000002045 sees unit 1000000406 from 6.01301m distance
+  Unit 1000000406 sees unit 1000002045 from 6.01301m distance
+  Delayed sound: Unit 1000000400 heard unit 1000002045 from 3.434561m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.385237m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000402 from 1.696093m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.428492m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000406 from 4.496174m distance
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=7.51 destHL=LLeg
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=10.28 destHL=Body
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.57 destHL=Body
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Unit 1000000407 sees unit 1000000406 from 5.32595m distance
+  Unit 1000000406 sees unit 1000000407 from 5.32595m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000406 from 8.315514m distance
+  Unit 1000000406 sees unit 1000002044 from 6.04213m distance
+  Unit 1000002044 sees unit 1000000406 from 5.93299m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.413962m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000406 from 5.459099m distance
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=12.36 destHL=LLeg
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.15 destHL=Body
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=8.31 destHL=Body
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=12.45 destHL=Head!
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=11.74 destHL=LLeg
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=12.49 destHL=RLeg
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=12.91 destHL=RLeg
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.26 destHL=RLeg
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=8.02 destHL=Head!
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=11.17 destHL=LHand
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.69 destHL=RLeg
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=11.55 destHL=Body
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
+  Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=8.15 destHL=LLeg
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=7.39 destHL=Body
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=10.29 destHL=Head!
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
+  Delayed sound: Unit 1000002045 heard unit 1000000400 from 2.811282m distance
+  Delayed sound: Unit 1000000402 heard unit 1000000407 from 5.553733m distance
+  Delayed sound: Unit 1000000403 heard unit 1000000407 from 4.457014m distance
+  Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
+  Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
+  Unit 1000011214 was healed
+  1
+  party received on client
+  Unit 1000011214 new motivation Player with power of 10
+  Disconnecting player -1
+  Accepted player 0
+  Unit 182595 new motivation Patrol with power of 50
+  Unit 1001577495 new motivation Player with power of 10
+  Unit 1000059184 new motivation Player with power of 10
+  Unit 1000059185 new motivation Player with power of 10
+  Unit 1000063817 new motivation Player with power of 10
+  Unit 1000054752 new motivation Player with power of 10
+  Unit 1007671245 new motivation Player with power of 10
+  Unit 183332 new motivation Patrol with power of 50
+  Unit 927062 new motivation Player with power of 10
+  Unit 848411 new motivation Patrol with power of 50
+  Unit 399469 new motivation Patrol with power of 50
+  Unit 831510 new motivation Patrol with power of 50
+  party received on client
+  Unit 481569 new motivation Player with power of 10
+  Unit 196568 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000059184 from 11.7866m distance
+  Unit 1000011214 sees unit 1000063817 from 8.30257m distance
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 143005 new motivation Player with power of 10
+  Unit 732495 new motivation Player with power of 10
+  1
+  Unit 1000059184 sees unit 1000011214 from 11.7866m distance
+  Unit 469697 new motivation Sentry with power of 50
+  Unit 1000063817 sees unit 1000011214 from 8.30257m distance
+  Unit 848411 acknowledges with idleSound = AAn4XyU
+  Unit 469697 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 sees unit 469697 from 12.916m distance
+  Unit 469697 new motivation Player with power of 10
+  Unit 831510 acknowledges with idleSound = AAn4XyU
+  Unit 1000063817 lost from sight unit 1000011214
+  Unit 143005 new motivation Sentry with power of 50
+  Unit 481569 new motivation Sentry with power of 50
+  Unit 196568 new motivation Sentry with power of 50
+  Unit 732495 new motivation Sentry with power of 50
+  Unit 469697 new motivation Sentry with power of 50
+  Unit 1000011214 lost from sight unit 469697
+  Unit 182595 acknowledges with idleSound = AAn4XyU
+  Unit 143005 new motivation Player with power of 10
+  Unit 481569 new motivation Player with power of 10
+  Unit 732495 new motivation Player with power of 10
+  Unit 469697 new motivation Player with power of 10
+  Unit 196568 new motivation Player with power of 10
+  party received on client
+  Saved saveb
+  Unit 848411 acknowledges with idleSound = AAn4XyU

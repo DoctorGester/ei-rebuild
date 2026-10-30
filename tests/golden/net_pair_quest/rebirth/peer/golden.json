@@ -1,12 +1,13 @@
 {
   "scenario": "net_pair_quest",
   "install": "rebirth",
-  "recorded": "2026-10-29",
-  "commit": "8babcdb85",
+  "recorded": "2026-10-30",
+  "commit": "b6204b4",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 2,
-  "reason": "R34c: the client's idle animation picks and the hero previews' start frames on the client generator, DelayedProtectionCheck's rand() gone (user-approved re-record of the random group, as R34a)",
-  "side": "peer"
+  "repeated_in": 4,
+  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
+  "side": "peer",
+  "source": "image"
 }
