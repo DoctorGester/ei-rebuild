@@ -49,8 +49,8 @@ Rules (sokol-shdc's, or the shaders'):
   - the receivers' shared blocks are `shadow_params` 2, `scene_light_params` / `mesh_light_params` 3 and
     `point_shadow_params` 4;
   - their maps are `shadow_map` 3, `shadow_range` 4 and `point_shadow_map` 5 (`BindShadowMap`, `BindPointShadows`).
-  - the cursor thread's own present (render_cursor.cpp) binds its cbuffers at the registers `present_shader_desc`
-    gives.
+  - the cursor thread's present (`platform::graphics::PresentAgain`) binds its cbuffers at the registers the
+    shader's description (`present_shader_desc`) gives.
 - **Block members.** Members are `vec4`, `ivec4`, `mat4` or arrays of them, never structs. An unsigned value goes in
   an `int`, bit for bit.
 - **Indexing.** No variable index into a component of a uniform vector: copy the vector into a local first.
@@ -705,8 +705,16 @@ Ours is a present from the cursor thread, not a hardware cursor (that would move
 holds its own still (005E67B0, the camera turned with the right button), is not scaled with the frame in a larger
 window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to captures). The design is in
 the header of `render_cursor.cpp`; the rules worth knowing:
-- The cursor thread makes no sokol call (a deferred Direct3D 11 context with the raw objects of sokol's pipelines,
-  executed with RestoreContextState so sokol's state cache stays right; ID3D11Multithread protection on).
+- The cursor thread makes no sokol call: sokol is the main thread's alone (MAC3h). The main thread hands the graphics
+  backend the present's objects at the end of each present (`platform::graphics::KeepPresent`: its own references to
+  the raw objects of the pipeline, the frame target, the ramp, the cursor's picture and the sampler), and the cursor
+  thread asks it to draw them again (`PresentAgain`). On Direct3D 11 that is a deferred context executed with
+  RestoreContextState, so sokol's state cache stays right, with ID3D11Multithread protection on; on Metal it would be a
+  command buffer of its own on the queue and the layer's next drawable (Metal's objects may be used from any thread).
+  The other rule (MAC2's review, 3.4), the cursor thread calling sokol under one lock, needs every main-thread sokol
+  call (450 and more, lazy samplers and pipelines among them) under that lock and checked, sokol's frame advanced by
+  the cursor thread's commits, and a failure in a sokol path (render_window's `Fatal`) could end the game from the
+  cursor thread; this one leaves a missed turn on the lock at a frame shown half drawn, never sokol's state broken.
 - The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
   (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
   (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
@@ -723,10 +731,11 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
   the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
 - The cursor's texels are the part `from` of its picture's image (section 8, R32): the cursor thread takes the
-  picture the last frame drew (`SetCursorSheet`, its shader view referenced) and presents only when the call names
-  that picture; DropCursorPresents and HolderGone let it go.
-- Harness build: every frame the cursor thread presents is read back from the back buffer and compared with the
-  frame target, the cursor's texels (read back from the picture's image) and the ramp as uploaded (one to one placement; "render: cursor between frames: N
+  picture the last frame drew (`SetCursorSheet`; handed to the backend with the present, again when it changes between
+  presents) and presents only when the call names that picture; DropCursorPresents and DropCursorSheet let it go.
+- Harness build: every frame the cursor thread presents is read back from the back buffer before it is shown
+  (`PresentReads`) and compared with the frame target, the cursor's texels (read back from the picture's image) and
+  the ramp as uploaded (one to one placement; "render: cursor between frames: N
   presented frames checked, M differed" / "render: MISMATCH cursor between frames"). The ramp check of the main
   thread's present (`CheckRamp`) leaves out the points around the cursor.
 
@@ -1866,8 +1875,7 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   even at interval 0. Without support: interval 0 and no flags (it may still be capped by the compositor). `ResizeBuffers`
   takes the flags the chain was made with (`g_chainFlags`), and Present's flag follows them (the flag is only valid on a
   chain made with it). Both present paths use the same values: the backend's `EndDrawable` and the cursor
-  thread's between-frames present (render_cursor.cpp; `platform::graphics::CurrentChain` gives the sync interval and
-  flags). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_win32.h).
+  thread's between-frames present (`PresentAgain`). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_win32.h).
 - **Nothing else relies on vsync pacing**: game time is the world updates (up to five of 0078FF34 ms per frame, see
   the timing line in section 3: vsync only changes how they group into frames); the cursor thread presents only after
   40 ms without a main-thread present, so unlocked frames never reach it; the overlay's frame time simply stops including
@@ -1906,14 +1914,13 @@ game's cursor thread (every 41 ms) drew the cursor straight onto the primary sur
 moving while the main thread drew no frame (a long frame, a blocking load). Without DirectDraw the cursor thread
 hands the move here instead (render::CursorBetweenFrames): the last frame presented on the game window, which holds
 no cursor (the present draws it over the frame), is presented again with the cursor at its new place. The main
-thread keeps using sokol alone. The cursor thread makes no sokol call: it records its present on a Direct3D 11
-deferred context with the raw objects of sokol's present pipeline (the frame target and the cursor through the
-gamma ramp into the back buffer: the draw the main thread's present makes) and runs it as one command list on the
-immediate context (ExecuteCommandList, which puts the context's state back, so sokol's state cache stays right),
-with the device's multithread protection on. The swap chain and the frame target are shared: the main thread's
-frame draw and present on the game window and the cursor thread's present take turns under one lock, and the main
-thread takes the references the cursor thread draws with at the end of each of its presents (and drops them when it
-begins the next frame's draws: the frame target is partly drawn until then).
+thread keeps using sokol alone. The cursor thread makes no sokol call: the graphics backend draws the present again
+for it (`platform::graphics::PresentAgain`: the frame target and the cursor through the gamma ramp into the window's
+drawable, the draw the main thread's present makes, with the backend's own references to sokol's objects). The swap
+chain and the frame target are shared: the main thread's frame draw and present on the game window and the cursor
+thread's present take turns under one lock, and the main thread hands the backend what the cursor thread draws with
+at the end of each of its presents (`KeepPresent`; refused from when it begins the next frame's draws: the frame
+target is partly drawn until then).
 
 ### render_mesh.cpp: meshes
 

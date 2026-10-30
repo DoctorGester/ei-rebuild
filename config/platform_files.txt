@@ -3,7 +3,6 @@ src/lib/import_prototypes.h
 src/lib/import_table.h
 src/render/render_buffers.cpp
 src/render/render_compose.cpp
-src/render/render_cursor.cpp
 src/render/render_ui.cpp
 src/standalone/host.cpp
 src/standalone/image_imports.cpp

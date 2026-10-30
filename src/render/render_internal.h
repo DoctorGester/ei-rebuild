@@ -309,7 +309,8 @@ bool FrameSize(int* width, int* height);
 // the frame's commit, shows it. False: nothing to present into / nothing presented.
 bool DrawToWindow(const BlitBatch* cursor);
 bool PresentWindow();
-// What the last DrawToWindow drew with, for the cursor thread's presents; false when there is no drawable.
+// What the last DrawToWindow drew with, for the cursor thread's presents (main thread); false when there is no
+// drawable.
 struct WindowParts {
     sg_shader shader;
     sg_pipeline pipeline;
@@ -707,10 +708,9 @@ public:
 
 // The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
 // the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into
-// the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent takes the
-// references the cursor thread draws with. ProtectDevice (after sg_setup): the cursor thread's command list runs on
-// the immediate context. DropCursorPresents releases everything before the device goes.
-void ProtectDevice();
+// the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent hands the
+// backend what the cursor thread draws with (platform::graphics::KeepPresent). DropCursorPresents lets it go before
+// the device goes.
 void BeginWindowPresent();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
