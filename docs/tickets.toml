@@ -6674,6 +6674,13 @@ depends = ["C30e8a"]
 note = "C30e13 converted src/game/camera.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e13a): Camera::ApplyView, after ClampAboveObjects lifts the camera, aims back down with x87::fpatan(dz, across) where dz is a float difference and across is libcrt::Hypot's double (the full 53 bits: _hypot computes at 64 bits under its own control word), then SetAngleAxis(-(CAM_RIGHT_ANGLE + angle)); pc24::Atan2 took floats only. With C30e8a's pc24::Atan2(double, double): write it as -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across)) (check the old object: the fpatan result stays in ST0 for the FADD of the float constant), drop the ei/x87.h include and the C30e13a line from the list, sse2check the object (the rest of the file is plain float maths plus pc24::Exp / Cos / Mul / Add, tested in C30e13's eq/). Goldens unchanged (verify and --rebirth-only): the camera's update runs in every scenario."
 
 [[ticket]]
+id = "C53d"
+title = "Dead autoplay recording chain"
+group = "cleanup"
+model = "sonnet"
+note = "Left by C53c (which removed StartRecording / StopRecording, kAutoplay and RequestLoad's flag): the autoplay recording chain below it looks dead: NetLink::OpenRecording / CloseRecording, skipNext, the recording members, ReplayLink (plays back autoplay.apl) and the server's request 2 handler. Check nothing reaches them (the harness's replay is separate: tests/verify), remove, goldens unchanged. Also: about 100 one-return free functions in src/game not yet checked one by one."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
