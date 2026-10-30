@@ -62,9 +62,6 @@ set(EI_X87_GAME_SOURCES
     game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party
     game/world_quests game/world_rules game/world_save game/world_server game/world_spells game/world_sync
     game/world_tick game/world_time game/world_unit_set_add game/world_units game/world_update game/world_weather
-    # C30e7: combat
-    game/combat game/combat_actions game/combat_motion game/combat_orders game/combat_planning game/combat_sight
-    game/combat_spell_sight game/combat_steps game/combat_taming game/combat_tick game/combat_update
     # C30e8: AI maps, paths and motion
     game/ai_block_search game/ai_events game/ai_footprint game/ai_footprint_shapes game/ai_line_step game/ai_map
     game/ai_map_load game/ai_motion game/ai_movement game/ai_path game/ai_path_smooth game/ai_path_stand game/ai_plan

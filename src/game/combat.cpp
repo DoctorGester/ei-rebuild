@@ -9,7 +9,6 @@
 #include "console.h"
 #include "core_refcount.h"
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "item.h"
@@ -18,6 +17,8 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -43,8 +44,8 @@
 #include <list>
 #include <string>
 
-// Values the original keeps unrounded are double locals, values it stores (to memory) are float
-// locals.
+// The original's float maths ran at the main thread's 24-bit precision: float maths in its order here, and an int
+// or a double operand through lib/pc24.h's one rounding.
 
 namespace {
 constexpr float kPointOne = 0.1f;
@@ -117,12 +118,8 @@ std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode; }
 
 void AttackParamsOf(UnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
-// A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
-// the precision control rounds).
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+// _ftol: truncated through 64 bits, the low half (0 for a NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 float SpellDamage(const CSpell* spell) { return spell->damage; }
 float SpellRange(const CSpell* spell) { return spell->range; }
@@ -146,7 +143,7 @@ const char* HitLocationName(int location) {
 std::int16_t& LastDamageSource(CUnit* unit) { return unit->params.lastHitSource; }
 
 // One size class of the size computation: by the load first, then by `size`.
-std::int16_t SizeClassOf(double size, float load) {
+std::int16_t SizeClassOf(float size, float load) {
     if (load > kLoadOverloaded) return 7;
     if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
     if (size >= kSizeLarge) return 4;
@@ -190,7 +187,7 @@ void UnitServer::GetDamageByType(DamageWords* out) {
         weapon->GetDamageTypes(weights);
         for (int i = 0; i < 7; ++i) {
             float value = scale * weights[i];
-            out->words[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
+            out->words[1 + i] = static_cast<std::uint16_t>(lib::RoundEven(value));
         }
         return;
     }
@@ -198,7 +195,7 @@ void UnitServer::GetDamageByType(DamageWords* out) {
     float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
         float value = scale * stats.damageWeights[i];
-        out->words[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
+        out->words[1 + i] = static_cast<std::uint16_t>(lib::RoundEven(value));
     }
 }
 
@@ -206,7 +203,7 @@ void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
     *out = DamageWords{};
     if (spell) {
-        auto value = static_cast<std::uint16_t>(libcrt::Ftol(SpellDamage(spell)));
+        auto value = static_cast<std::uint16_t>(Truncate(SpellDamage(spell)));
         int damageType = spell->GetDamageType();
         out->words[1 + damageType] = value;
     }
@@ -275,7 +272,7 @@ bool UnitServer::CanCast(const AIOrder* order) {
     if (unit->player != nullptr) {
         float cost = SpellCost(spell);
         float mana = ServerMana(unit);
-        double needed = static_cast<double>(stats.Period20()) * cost;
+        float needed = stats.Period20() * cost;
         if (needed > mana) return false;
     }
     return true;
@@ -313,14 +310,14 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     }
     if (kind == UnitOrderKind::Use) {
         if (order->Skill() == UseSource::SearchBody) {
-            float part = static_cast<float>(target->Radius() * kPointThree);
-            return static_cast<float>(unit->Radius() + part);
+            float part = target->Radius() * kPointThree;
+            return unit->Radius() + part;
         }
         if (CUnit* other = UnitOrNull(target)) {
-            return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + kPointSix);
+            return (unit->standingHeight + other->standingHeight) + kPointSix;
         }
         float own = unit->Radius();
-        return static_cast<float>((target->Radius() + static_cast<double>(own)) - kPointOne);
+        return (target->Radius() + own) - kPointOne;
     }
     if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
@@ -328,12 +325,12 @@ float UnitServer::ActionDistance(const AIOrder* order) {
         ItemWeapon* weapon = unit->ActiveWeapon();
         float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
         float reach = range >= floor ? range : floor;
-        return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
+        return (unit->standingHeight + other->standingHeight) + reach;
     }
     ItemWeapon* weapon = unit->ActiveWeapon();
     float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
     float own = unit->Radius();
-    return static_cast<float>((target->Radius() + static_cast<double>(own)) + range);
+    return (target->Radius() + own) + range;
 }
 
 bool UnitServer::CanReachTarget(const AIOrder* order) {
@@ -347,7 +344,7 @@ bool UnitServer::CanReachTarget(const AIOrder* order) {
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = other->GetPrototype()->height;
-    double height = static_cast<double>(offset) + other->localPosition.z;
+    float height = offset + other->localPosition.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
@@ -376,9 +373,9 @@ int UnitServer::Level() {
     float experience = stats.experience;
     float base = g_logicSettings.considerModifier;
     float step = g_logicSettings.considerLogBase;
-    // ln(experience / base) / ln(step) as the x87 computes it, rounded to float, then to the nearest integer.
-    const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
-    return x87::fistp(ratio);
+    // ln(experience / base) / ln(step): FYL2X's two 64-bit logarithms, one rounding; then to the nearest integer.
+    const float ratio = pc24::Div(pc24::Log(experience / base), pc24::Log(step));
+    return lib::RoundEven(ratio);
 }
 
 void UnitServer::EffectsChanged() {
@@ -397,17 +394,17 @@ void UnitServer::GetAttackParams(AttackParams* out) {
         out->damageType = WeaponDamageType(weapon->prototypeId);
         out->speed = weapon->weight;
         float base = WeaponAttackBonus(weapon->prototypeId);
-        double bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
+        float bonus = stats.WeaponSkillBonus(out->weaponType, self);
+        out->attack = Truncate(bonus + base);
         base = WeaponDefenceBonus(weapon->prototypeId);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
+        out->defence = Truncate(bonus + base);
         out->damageType = WeaponDamageType(weapon->prototypeId);
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
-        out->attack = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kAttack]));
-        out->defence = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kDefence]));
+        out->attack = Truncate(stats.combat[UnitStats::kAttack]);
+        out->defence = Truncate(stats.combat[UnitStats::kDefence]);
         out->speed = stats.combat[UnitStats::kSpeed];
         if (weapon) {
             out->weaponType = weapon->GetType();
@@ -438,28 +435,29 @@ float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     AttackParams mine;
     AttackParamsOf(attacker, &theirs);
     AttackParamsOf(this, &mine);
-    float speedRatio = static_cast<float>(theirs.speed / (static_cast<double>(kSpeedScale) * mine.speed));
+    float speedRatio = theirs.speed / (kSpeedScale * mine.speed);
     const CUnit* self = unit;
     const CUnit* other = attacker->unit;
-    double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
-    double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
-    double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
-    double distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
-    float twice = static_cast<float>(distance + distance);
-    double radius = unit->Radius() * static_cast<double>(kDistanceScale);
-    float penalty = static_cast<float>(twice / (radius + radius));
+    float dx = self->localPosition.x - other->localPosition.x;
+    float dy = self->localPosition.y - other->localPosition.y;
+    float dz = self->localPosition.z - other->localPosition.z;
+    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+    float twice = distance + distance;
+    float radius = unit->Radius() * kDistanceScale;
+    float penalty = twice / (radius + radius);
 
-    double roll = 0.0;
+    float roll = 0.0f;
     float spread = theirs.attackSpread;
     if (spread > 0.0f) {
-        int sides = x87::fistp(spread);
+        int sides = lib::RoundEven(spread);
         std::uint32_t random = g_random.Next();
-        double drawn = Unsigned(random % static_cast<std::uint32_t>(sides + 1));
-        roll = (drawn + drawn) - (static_cast<double>(spread) + 1.0f);
+        // The draw doubled rounds once: as the draw rounded to a float, doubled.
+        float drawn = static_cast<float>(static_cast<double>(random % static_cast<std::uint32_t>(sides + 1)));
+        roll = (drawn + drawn) - (spread + 1.0f);
     }
-    roll = (roll + theirs.attack) - penalty;
+    roll = pc24::Add(roll, static_cast<double>(theirs.attack)) - penalty;   // the int exact, one rounding
     if (!backstab) roll = roll + speedRatio;
-    return MaxKeepB(0.0f, static_cast<float>(roll));
+    return MaxKeepB(0.0f, roll);
 }
 
 bool UnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
@@ -493,34 +491,34 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue;
-        int sides = static_cast<int>(libcrt::Ftol(kFive));
+        int sides = static_cast<int>(kFive);
         int drawn = libcrt::Rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
-        float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + 1.0f));
+        float roll = static_cast<float>(value) - (kFive + 1.0f);
         out->attackRoll = roll;
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
-        double factor = keyed ? 1.0f : DifficultyAttackFactor();
-        float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
+        float factor = keyed ? 1.0f : DifficultyAttackFactor();
+        float roll = factor * stats.combat[UnitStats::kAttack];
         out->attackRoll = roll;
-        double extra = 0.0;
+        float extra = 0.0f;
         float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);
         if (spread != 0.0f) {
             float scaled = spread * kHundred;
-            int sides = x87::fistp(scaled);
+            int sides = lib::RoundEven(scaled);
             std::uint32_t random = g_random.Next();
-            extra = Unsigned(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;
+            extra = pc24::Mul(static_cast<double>(random % static_cast<std::uint32_t>(sides + 1)), kPercent);
         }
-        out->amount = static_cast<float>(extra + stats.damage);
+        out->amount = extra + stats.damage;
     }
     out->amount = ScaleDamageByEffects(self, out->amount);
     out->location = location;
     out->hitKind = 0;
-    if (backstab) out->backstabFactor = static_cast<float>(stats.BackstabFactor());
+    if (backstab) out->backstabFactor = stats.BackstabFactor();
     else out->backstabFactor = 1.0f;
     if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);
@@ -613,13 +611,10 @@ void UnitServer::UpdateSizeClasses() {
         combat.sizeClass = 0;
         return;
     }
-    float load = static_cast<float>(unit->BodyExtent());
+    float load = unit->BodyExtent();
     const auto* model = unit->GetPrototypeModel();
-    double size = unit->DoubleHeight() * model->sizeScale;
-    if (unit->MapType() == MapObjectType::Hero) {
-        float uncapped = static_cast<float>(size);
-        size = uncapped <= kHeroSizeCap ? uncapped : kHeroSizeCap;
-    }
+    float size = unit->DoubleHeight() * model->sizeScale;
+    if (unit->MapType() == MapObjectType::Hero) size = size <= kHeroSizeCap ? size : kHeroSizeCap;
     combat.sizeClass = SizeClassOf(size, load);
     combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);
     combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);
@@ -627,14 +622,14 @@ void UnitServer::UpdateSizeClasses() {
 
 void UnitServer::UpdateMoveFactors() {
     const WorldServer* world = ServerWorld();
-    double factor = world->nightLevel;
-    double scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
+    float factor = world->nightLevel;
+    float scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[1] = 1.0f;
-    double sum = scaled + (1.0f - factor);
-    moveFactors[3] = static_cast<float>(sum);
-    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->weatherFactor) * sum);
+    float sum = scaled + (1.0f - factor);
+    moveFactors[3] = sum;
+    moveFactors[3] = std::bit_cast<float>(world->weatherFactor) * sum;
     if (unit->moveMode == 0) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];
@@ -709,7 +704,7 @@ constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
 
 // The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
-bool Usable(const Item* weapon) { return weapon && x87::RoundToInt(weapon->condition) > 0; }
+bool Usable(const Item* weapon) { return weapon && lib::RoundEven(weapon->condition) > 0; }
 } // namespace
 
 void UnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
@@ -805,8 +800,9 @@ void UnitServer::RefreshVitals(bool withHitPoints) {
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
-        float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / stats.rate);
-        nextAttackTime = x87::RoundToInt(scaled) + now;
+        // The int exact, one rounding.
+        float scaled = pc24::Mul(static_cast<double>(nextAttackTime - now), oldRate) / stats.rate;
+        nextAttackTime = lib::RoundEven(scaled) + now;
     }
     unit->MarkChanged(0);
 }
@@ -816,10 +812,10 @@ void UnitServer::UpdateProtection() {
     float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
-        double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
+        float bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
         protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
     } else {
-        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(static_cast<double>(factor) * stats.combat[UnitStats::kDefence]));
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(factor * stats.combat[UnitStats::kDefence]));
     }
 }
 

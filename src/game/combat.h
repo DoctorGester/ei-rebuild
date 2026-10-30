@@ -501,7 +501,7 @@ public:
     bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
     // Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks until the order's
     // target is in reach (and seen, when the order needs a line of sight); 0 for other kinds.
-    double TimeUntilAction(const AIOrder* order, PathOrder* motionOrder);
+    float TimeUntilAction(const AIOrder* order, PathOrder* motionOrder);
     // The use spot, the path (target lifted off the sector map) and whether the unit can act from its end,
     // with the player's path message; the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without
     // a player plan only use orders.

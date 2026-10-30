@@ -30,7 +30,7 @@ void UndoIfTamedBy(UnitServer* self, CUnit* tamer) {
 } // namespace
 
 bool UnitServer::TryTame(CUnit* tamer, float roll) {
-    float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
+    float bonus = stats.AttributeWithItems(kStatTaming, unit);
     int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
     if (unit->player || limit >= roll) {   // not taken (the taming succeeds) when the limit is below the roll or NaN

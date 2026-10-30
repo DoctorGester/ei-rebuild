@@ -10,8 +10,8 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstring>
@@ -63,9 +63,8 @@ bool MayCast(UnitServer* self, std::uint32_t source) {
     }
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded);
-        float skill = static_cast<float>(
-            self->stats.SpellSchoolSkill(spell->GetPrototype()->school));
-        if (x87::fistp(skill) < needed) return false;
+        float skill = self->stats.SpellSchoolSkill(spell->GetPrototype()->school);
+        if (lib::RoundEven(skill) < needed) return false;
     }
     return !(self->unit->flags & MapObjectFlag::NoCasting);
 }
@@ -104,11 +103,11 @@ void UnitServer::FinishCast() {
     } else if (unit->player) {
         float cost = spell->manaCost;
         UnitVitals* vitals = ServerStatsOf(unit);
-        double needed = static_cast<double>(stats.Period20()) * cost;
+        float needed = stats.Period20() * cost;
         float maximum;
         maximum = vitals->maxMana;
         float* mana = &vitals->mana;
-        float left = static_cast<float>(-needed + *mana);
+        float left = -needed + *mana;
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = left >= maximum ? maximum : left;
@@ -119,7 +118,7 @@ void UnitServer::FinishCast() {
     }
     world->CastSpell(spell, unit, unit->localPosition, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
-        float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
+        float loudness = stats.conspicuity[3].current * kCastNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
     action.source = kNoSource;
@@ -175,8 +174,7 @@ void UnitServer::OrderAttack(CMapObject* target, int location, int calledShot, A
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
             if (!ranged) {
-                double height =
-                    static_cast<double>(std::bit_cast<float>(other->GetPrototype()->height)) + other->localPosition.z;
+                float height = std::bit_cast<float>(other->GetPrototype()->height) + other->localPosition.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, AckKind::OutOfReach);
                     action2.kind = UnitOrderKind::None;

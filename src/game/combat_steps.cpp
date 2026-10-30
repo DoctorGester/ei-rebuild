@@ -8,12 +8,11 @@
 #include "random.h"
 #include "unit.h"
 
-#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstring>
@@ -87,19 +86,15 @@ bool HasRangedWeapon(CUnit* unit) {
 }
 
 
-// _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
-// precision a double holds it exactly).
-int FtolQuotient(double a, double b) { return static_cast<int>(libcrt::Ftol(a / b)); }
-
 // Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
-// zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated.
+// zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated (_ftol:
+// through 64 bits, the low half, 0 for a NaN).
 int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
-    volatile std::int64_t wide = entry->*frames;
-    float frameCount = static_cast<float>(wide);
-    double speed = unit->ActionSpeed(entry);
-    return FtolQuotient(frameCount, speed);
+    float frameCount = static_cast<float>(static_cast<double>(entry->*frames));
+    float speed = unit->ActionSpeed(entry);
+    return static_cast<int>(static_cast<std::int64_t>(frameCount / speed));
 }
 
 // Key bits of the mode being left (the movement bits) / entered (a Cross animation's number: 4, 3, 2, 5 for modes 0,
@@ -167,38 +162,38 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
 
 // The height band (key bits) of a blow at height `h` on the attacker's body: low up to 0.4 of its
 // height, middle up to 0.8, high up to its top; anywhere else the key stays middle.
-std::uint32_t BandAt(double h, float base, float size, float top) {
+std::uint32_t BandAt(float h, float base, float size, float top) {
     if (h >= base) {
-        double low = static_cast<double>(size) * kLowerPart + base;
+        float low = size * kLowerPart + base;
         EI_NAN_AUDIT(low);
         if (h <= low) return kKeyLow;
     }
-    double low = static_cast<double>(size) * kLowerPart + base;
+    float low = size * kLowerPart + base;
     if (h >= low) {
-        double middle = static_cast<double>(size) * kUpperPart + base;
+        float middle = size * kUpperPart + base;
         EI_NAN_AUDIT(middle);
         if (h <= middle) return kKeyMiddle;
     }
-    double middle = static_cast<double>(size) * kUpperPart + base;
+    float middle = size * kUpperPart + base;
     EI_NAN_AUDIT(top);
     if (h >= middle && h <= top) return kKeyHigh;
     return kKeyMiddle;
 }
 
 // A random height in [from, to) in steps of 0.01 (the span in hundredths, rounded), else in the
-// overlap [high, low), else `high`.
-double RandomHeight(double to, float from, float low, float high) {
-    float span = static_cast<float>((to - from) * kHundred);
-    if (x87::fistp(span) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span));
-        volatile std::int64_t pick = g_random.Next() % steps;
-        return static_cast<double>(pick) * kPercent + from;
+// overlap [high, low), else `high`. The pick (a dword, exact) times 0.01 rounds once.
+float RandomHeight(float to, float from, float low, float high) {
+    float span = (to - from) * kHundred;
+    if (lib::RoundEven(span) > 0) {
+        std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span));
+        std::uint32_t pick = g_random.Next() % steps;
+        return pc24::Mul(static_cast<double>(pick), kPercent) + from;
     }
-    float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
-    if (x87::fistp(span2) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span2));
-        volatile std::int64_t pick = g_random.Next() % steps;
-        return static_cast<double>(pick) * kPercent + high;
+    float span2 = (low - high) * kHundred;
+    if (lib::RoundEven(span2) > 0) {
+        std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span2));
+        std::uint32_t pick = g_random.Next() % steps;
+        return pc24::Mul(static_cast<double>(pick), kPercent) + high;
     }
     return high;
 }
@@ -370,18 +365,19 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     float z = unit->localPosition.z;
     Vector3 aim;
     target->AimPoint(&aim);
-    double dz = static_cast<double>(z) - aim.z;
-    double dy = static_cast<double>(y) - aim.y;
-    double dx = static_cast<double>(x) - aim.x;
-    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
-    float orderDistance = static_cast<float>(ActionDistance(&order));
+    float dz = z - aim.z;
+    float dy = y - aim.y;
+    float dx = x - aim.x;
+    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    float orderDistance = ActionDistance(&order);
     float reach = SelectLess(distance, orderDistance, distance, orderDistance);
 
     UnitStats* victimStats = &victim->ServerController()->stats;
-    float myBase = static_cast<float>(unit->GroundHeight(x, y) + z);
-    float mySize = static_cast<float>(unit->DoubleHeight());
-    float theirBase = static_cast<float>(victim->GroundHeight(aim.x, aim.y) + aim.z);
-    float theirSize = static_cast<float>(victim->DoubleHeight());
+    // The double ground heights plus a float: one rounding.
+    float myBase = pc24::Add(unit->GroundHeight(x, y), z);
+    float mySize = unit->DoubleHeight();
+    float theirBase = pc24::Add(victim->GroundHeight(aim.x, aim.y), aim.z);
+    float theirSize = victim->DoubleHeight();
 
     // Where to hit: a skill picks at random, an attack its source location, else the body; the
     // victim's stats move it to a part that can still be hit.
@@ -399,28 +395,26 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     // The height of the blow: the gap when the bodies do not overlap, else a random height on the
     // location within the overlap, measured from the attacker's eye level.
     std::uint32_t key = kKeyMiddle;
-    double blow;
-    double myTopValue = static_cast<double>(mySize) + myBase;
-    float myTop = static_cast<float>(myTopValue);
-    EI_NAN_AUDIT(myTopValue, theirBase);
-    if (myTopValue < theirBase) {
-        blow = static_cast<double>(theirBase) - myTop;
+    float blow;
+    float myTop = mySize + myBase;
+    EI_NAN_AUDIT(myTop, theirBase);
+    if (myTop < theirBase) {
+        blow = theirBase - myTop;
         key = kKeyHigh;
     } else {
-        double theirTopValue = static_cast<double>(theirSize) + theirBase;
-        float theirTop = static_cast<float>(theirTopValue);
-        EI_NAN_AUDIT(theirTopValue, myBase);
-        if (theirTopValue < myBase) {
-            blow = static_cast<double>(myBase) - theirTopValue;
+        float theirTop = theirSize + theirBase;
+        EI_NAN_AUDIT(theirTop, myBase);
+        if (theirTop < myBase) {
+            blow = myBase - theirTop;
             key = kKeyLow;
         } else {
             float low = SelectLess(theirTop, myTop, theirTop, myTop);         // top of the overlap
             float high = SelectLess(myBase, theirBase, theirBase, myBase);    // its bottom
             float from = theirBase;
-            double to;
+            float to;
             switch (static_cast<std::uint32_t>(location)) {
             case 0: {   // head
-                float part = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
+                float part = theirSize * kUpperPart + theirBase;
                 from = SelectLess(high, part, part, high);
                 to = SelectLess(theirTop, low, theirTop, low);
                 break;
@@ -428,16 +422,16 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
             case 1:
             case 2:
             case 3: {   // body and arms
-                float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
+                float part = theirSize * kLowerPart + theirBase;
                 from = SelectLess(high, part, part, high);
-                float upper = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
+                float upper = theirSize * kUpperPart + theirBase;
                 to = SelectLess(upper, low, upper, low);
                 break;
             }
             case 4:
             case 5: {   // legs
                 from = SelectLess(high, theirBase, theirBase, high);
-                float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
+                float part = theirSize * kLowerPart + theirBase;
                 to = SelectLess(part, low, part, low);
                 break;
             }
@@ -446,15 +440,15 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
                 to = std::bit_cast<float>(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(plan)));
                 break;
             }
-            double h = RandomHeight(to, from, low, high);
+            float h = RandomHeight(to, from, low, high);
             key = BandAt(h, myBase, mySize, myTop);
-            float offset = static_cast<float>((h - myBase) + static_cast<double>(mySize) * kEyeLevel);
+            float offset = (h - myBase) + mySize * kEyeLevel;
             blow = AbsBits(offset);
         }
     }
 
     // Beyond close range the slope of the blow decides instead.
-    double slope = blow / reach;
+    float slope = blow / reach;
     if (reach > kNearReach) {
         EI_NAN_AUDIT(slope);
         if (slope > kSteepUp) key = kKeyHigh;
@@ -467,12 +461,12 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
         // Other creatures strike low at targets that reach further than the distance between them.
         float myRadius = unit->Radius();
         CMapObject* other = order.target;
-        float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
+        float span = other->Radius() + myRadius;
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(stats.reachHeightScale) + 1.0f) * myRadius;
-            span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
+            float scale = (stats.reachHeightScale + 1.0f) * myRadius;
+            span = otherUnit->standingHeight + scale;
         }
-        key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
+        key = span - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
     }
     plan->hitLocation = location;
     order.target.Reset();
