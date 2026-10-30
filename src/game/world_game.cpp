@@ -47,6 +47,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/clock.h"
+#include "platform/net.h"
 
 #include "ei/rebirth.h"
 
@@ -191,7 +192,7 @@ bool Active(const RefCounted* object) { return object && !(object->flags7 & RefC
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (gameapi::gethostname(host, sizeof(host)) != 0) return;
+    if (!platform::net::HostName(host, sizeof(host))) return;
     net::NetAddress address{};
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();

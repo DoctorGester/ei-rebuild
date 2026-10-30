@@ -141,7 +141,7 @@ each step green on the goldens and removing a measured tie:
   `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
   SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with typed
   handles `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*`, Bink, Winsock 1.1 with SOCKET as
-  `std::uint32_t`, DirectInput, DirectDraw, the common controls, comdlg32, the print
+  `std::uintptr_t`, DirectInput, DirectDraw, the common controls, comdlg32, the print
   spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
   heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;

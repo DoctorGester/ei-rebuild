@@ -25,7 +25,7 @@ implementation folder; game code does not change.
   `gameapi::` (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
   calls run `python tools/check_platform.py --update` (the list only shrinks). The dashboard shows the count
   (`platform_files`, "Files calling Windows"): 97 before the layer, 78 after the first areas, 61 after the window
-  and input (PL2).
+  and input (PL2), 58 after the sockets (PL5).
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
   shared header holds one (app.h's `g_mainWindow`, texture.h's device window; `HWND` comes from lib/win_types.h, not
   `<windows.h>`).
@@ -44,6 +44,16 @@ implementation folder; game code does not change.
 | `cursor.h` | the cursor's shape, its position in game points (`MapCursorPoints` for the scaled frame) | the GetCursor / SetCursor / GetCursorPos / SetCursorPos slots (the harness's own mouse) |
 | `keyboard.h` | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)` | the GetKeyNameTextA (UTF-8 route) and keyboard layout slots |
 | `clipboard.h` | `CopyText`, `ClipboardText` (Rebirth's console) | direct |
+| `net.h` | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `Start` / `Stop`, `LastError()` as our `Error` | the WSOCK32 slots (19 of its 22 imports; `WSAGetLastError` direct, game.exe does not import it) |
+
+The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
+`Select` leaves only the ready sockets in its sets, so MasterLinkTick's failure check after a select that found the
+socket not ready asks with an empty set, which always fails (a refused master connect never closes the link there);
+`HostNameAt` takes the bytes it is given (NetAddress::Format passes the whole 16-byte address, so it finds no name);
+an `Address` whose family is not 2 fails in the system. The second master (net_second_master.cpp, EI_Plugin's) goes
+through the same slots, as the plugin's calls did except gethostbyname and select (no harness route touches those
+in its runs); its look-up thread, wait and times are standard C++ (`std::thread`, a future, `steady_clock`): the
+real clock, never the harness's.
 
 The two clocks stay two: the original reads `timeGetTime` and `GetTickCount` in different places, and the harness
 drives each separately, so a call keeps the clock it had. sokol_time (QueryPerformanceCounter) is not used for them: it
@@ -132,8 +142,6 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
   full list.
 - PL4, threads: lib/thread.cpp, the critical sections and events of sound_manager.cpp, ui_cursor_frame.cpp,
   ui_cursor_setup.cpp.
-- PL5, sockets: net_socket_driver.cpp, net_link.cpp, net_second_master.cpp, static_init.cpp's `WSAStartup`,
-  world_game.cpp's `gethostname`.
 - PL6, audio and video: sound_manager.cpp (Miles, `DirectSoundEnumerateA`), bink_video.cpp (Bink).
 - Rectangles (`SetRect`, `OffsetRect`, `IntersectRect`, ... in about 30 ui and figure files) go to our own functions
   (H33h), not to the layer; `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) to the CRT's formatting.

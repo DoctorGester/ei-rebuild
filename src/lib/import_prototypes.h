@@ -5,7 +5,7 @@
 // DirectDraw, the common controls, comdlg32, the print spooler, GetVersion (deprecated in
 // the SDK) and the Interlocked pair (macros for the compiler's intrinsics there). tools/gen_iat.py types
 // lib/import_table.h's ImportTable member of each `using` here's name with it; gameapi.h calls them through the
-// slot. A Winsock SOCKET is a std::uint32_t, its addresses and sets untyped.
+// slot. A Winsock SOCKET is a std::uintptr_t (pointer-sized, as the SDK's), its addresses and sets untyped.
 
 #include <windows.h>
 
@@ -95,18 +95,18 @@ using BinkClose = void(__stdcall*)(BinkHeader*);
 using BinkCopyToBuffer = int(__stdcall*)(BinkHeader*, void* to, int pitch, int height, int x, int y, unsigned flags);
 
 // WSOCK32.dll (Winsock 1.1, by ordinal).
-using listen = int(__stdcall*)(std::uint32_t s, int backlog);
-using accept = std::uint32_t(__stdcall*)(std::uint32_t s, void* address, int* length);
-using WSAFDIsSet = int(__stdcall*)(std::uint32_t s, void* set);
+using listen = int(__stdcall*)(std::uintptr_t s, int backlog);
+using accept = std::uintptr_t(__stdcall*)(std::uintptr_t s, void* address, int* length);
+using WSAFDIsSet = int(__stdcall*)(std::uintptr_t s, void* set);
 using select = int(__stdcall*)(int count, void* read, void* write, void* except, const void* timeout);
-using connect = int(__stdcall*)(std::uint32_t s, const void* address, int length);
-using recvfrom = int(__stdcall*)(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength);
-using send = int(__stdcall*)(std::uint32_t s, const void* data, int length, int flags);
-using socket = std::uint32_t(__stdcall*)(int family, int type, int protocol);
-using recv = int(__stdcall*)(std::uint32_t s, void* data, int length, int flags);
-using bind = int(__stdcall*)(std::uint32_t s, const void* address, int length);
-using setsockopt = int(__stdcall*)(std::uint32_t s, int level, int option, const void* value, int length);
-using closesocket = int(__stdcall*)(std::uint32_t s);
+using connect = int(__stdcall*)(std::uintptr_t s, const void* address, int length);
+using recvfrom = int(__stdcall*)(std::uintptr_t s, void* data, int length, int flags, void* from, int* fromLength);
+using send = int(__stdcall*)(std::uintptr_t s, const void* data, int length, int flags);
+using socket = std::uintptr_t(__stdcall*)(int family, int type, int protocol);
+using recv = int(__stdcall*)(std::uintptr_t s, void* data, int length, int flags);
+using bind = int(__stdcall*)(std::uintptr_t s, const void* address, int length);
+using setsockopt = int(__stdcall*)(std::uintptr_t s, int level, int option, const void* value, int length);
+using closesocket = int(__stdcall*)(std::uintptr_t s);
 using WSACleanup = int(__stdcall*)();
 using WSAStartup = int(__stdcall*)(std::uint16_t version, void* data);
 using gethostname = int(__stdcall*)(char* name, int length);
@@ -115,8 +115,8 @@ using ntohs = std::uint16_t(__stdcall*)(std::uint16_t v);
 using inet_addr = std::uint32_t(__stdcall*)(const char* text);
 using gethostbyname = void*(__stdcall*)(const char* name);
 using htons = std::uint16_t(__stdcall*)(std::uint16_t v);
-using ioctlsocket = int(__stdcall*)(std::uint32_t s, long command, std::uint32_t* argument);
-using sendto = int(__stdcall*)(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
+using ioctlsocket = int(__stdcall*)(std::uintptr_t s, long command, std::uint32_t* argument);
+using sendto = int(__stdcall*)(std::uintptr_t s, const void* data, int length, int flags, const void* to, int toLength);
 
 // DINPUT.dll, DDRAW.dll and COMCTL32.dll (#17).
 using DirectInputCreateEx = long(__stdcall*)(void* instance, unsigned long version, const void* iid, void** out,
