@@ -726,7 +726,10 @@ resolution must have the machine to themselves and serialised the suites.
 - The default suite is the standalone image's (`our_code()` in tools/run_all.py: installs `standalone` and
   `standalone-rebirth`), always `EI_RENDER=new,present`. dgVoodoo draws only the original code (`--no-hooks`,
   `--widescreen --record`'s rebirth-nohooks). A run of the original code never gets EI_RENDER (run_once drops it).
-- Alone (`runs_alone`): only a dgVoodoo run with a `resolution` step. Plans never hold a run that would switch the real
+- Alone (`runs_alone`): only a dgVoodoo run that sets the display mode (`sets_display_mode`: a `resolution` step for a size
+  other than `desktop`, or WideScreen on through Rebirth's addon.dll: `widescreen 1` on the rebirth installs, the
+  `--widescreen --record` runs among them). `resolution desktop` is the snapshot's own mode: such a run (net_pair_*,
+  render_pick_edges) shares the machine (H31a). Plans never hold a run that would switch the real
   display (main's `switches_display`: `resolution WxH` with `fullscreen 1`): such a scenario runs only on our renderer
   (a `# no original: <install>` line leaves its `--no-hooks` runs out).
 - Reference cache (`reference_key`, `store_reference`, `reference_from_cache`): a passed run of the original code is

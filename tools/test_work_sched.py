@@ -689,8 +689,20 @@ class SchedTest(unittest.TestCase):
             self.assertFalse(run_all.runs_alone(wide, install))          # our renderer changes no display mode
         for install in ('vanilla', 'rebirth', 'rebirth-nohooks', 'native'):
             self.assertFalse(run_all.our_code(install))
-        self.assertTrue(run_all.runs_alone(wide, 'rebirth'))              # --widescreen --record's rebirth-nohooks
+        self.assertTrue(run_all.runs_alone(wide, 'rebirth'))              # WideScreen through addon.dll
+        self.assertTrue(run_all.runs_alone(wide, 'rebirth-nohooks'))      # --widescreen --record's addon runs
         self.assertFalse(run_all.runs_alone(plain, 'vanilla'))
+        # H31a: 'resolution desktop' is the snapshot's mode, what every game.exe run uses: it shares the machine
+        # (net_pair_*, render_pick_edges), as does the vanilla install of a WideScreen scenario (no addon.dll).
+        desktop = self.scenario('desktop', 'resolution desktop\ntimeout 300\n')
+        for install in ('vanilla', 'rebirth', 'rebirth-nohooks'):
+            self.assertFalse(run_all.runs_alone(desktop, install))
+        self.assertFalse(run_all.runs_alone(wide, 'vanilla'))
+        # a size of its own switches the display (dgVoodoo's full screen), also windowed: alone, on every install
+        sized = self.scenario('sized', 'resolution 800x600\nfullscreen 0\n')
+        for install in ('vanilla', 'rebirth'):
+            self.assertTrue(run_all.runs_alone(sized, install))
+        self.assertFalse(run_all.runs_alone(sized, 'standalone'))
 
     def test_game_exe_runs_the_original(self):
         """S21c: a game.exe run is always ei_launch --no-hooks without EI_RENDER, the image always --standalone with
