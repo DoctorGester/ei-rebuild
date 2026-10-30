@@ -1,7 +1,7 @@
 #pragma once
 
 // The "path" family (docs/notes/standalone-verification.md, SV4c): the path searches on a saved AI
-// map. Shared by record_path.cpp (verify build) and replay_path.cpp (ei_vectors).
+// map. Shared by record_path.cpp (the tag original-oracle) and replay_path.cpp (ei_vectors).
 //
 // "@PathTables" (fixture, once): the game's tables the searches read: plain ranges written to the
 // game data stand-in, and CArrays (the spiral of cell offsets, the smoother's 81 transition tables)

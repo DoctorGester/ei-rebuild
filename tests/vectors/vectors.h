@@ -1,16 +1,13 @@
 #pragma once
 
-// Function vectors (docs/notes/standalone-verification.md, section 3): calls of the original game.exe,
-// recorded in the verify build's record mode, replayed against our code by ei_vectors.exe without
-// the game.
+// Function vectors (docs/notes/standalone-verification.md, section 3): calls of the original game.exe, replayed
+// against our code by ei_vectors.exe without the game.
 //
-// Record mode (EI_VECTORS=1, verify build): every function with a recorder (EI_RECORD in
-// tests/vectors/record<family>.cpp) runs the original through it. The recorder fills a payload (the
-// arguments, the state the function reads, the result and the state afterwards) and offers it to its
-// Sampler, which keeps a deterministic sample: repeats are dropped, and of the distinct calls a
-// reservoir of `cap` per bucket is kept (a bucket is a path the function must not lose among
-// common calls, such as the generator's refill). At the end of a harness run they are written to
-// <run folder>/vectors/<family>/<function>.vec; tools/vectors.py merges runs into tests/vectors/data.
+// Recorded until H40 from game.exe runs (EI_VECTORS=1 with --no-hooks): a recorder per function ran the original
+// through a trampoline, filled a payload (the arguments, the state the function reads, the result and the state
+// afterwards) and kept a deterministic sample of the distinct calls; tools/vectors.py merged the runs into
+// tests/vectors/data. The tag original-oracle has the recorders (tests/vectors/record_*.cpp) and the build that ran
+// them.
 //
 // Replay (ei_vectors.exe, tests/vectors/replay<family>.cpp): each file's records go to the check
 // registered under the file's function name, under the x87 control word recorded with the call.
@@ -146,53 +143,6 @@ private:
     std::size_t remaining;
     bool good = true;
 };
-
-// ---- Record side (verify build) ----
-
-class Sampler {
-public:
-    // Written to <family>/<function>.vec; `function` must match the replay's check name; `cap` records
-    // are kept per bucket. With payloadSize kVariableSize the payloads are offered with OfferBytes.
-    Sampler(const char* family, const char* function, std::uint32_t payloadSize, std::uint32_t cap,
-            unsigned buckets = 1);
-
-    // Offers one call's payload (taken under `controlWord`, normally ControlWord() before the call).
-    // `dedupe` false keeps calls whose payloads are too large to be worth hashing (they rarely repeat).
-    void Offer(const void* payload, std::uint16_t controlWord, unsigned bucket = 0, bool dedupe = true);
-
-    template <typename T>
-    void Offer(const T& payload, std::uint16_t controlWord, unsigned bucket = 0, bool dedupe = true) {
-        static_assert(std::is_trivially_copyable_v<T>);
-        Offer(static_cast<const void*>(&payload), controlWord, bucket, dedupe);
-    }
-
-    // A variable-size payload (a sampler made with kVariableSize).
-    void OfferBytes(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket = 0,
-                    bool dedupe = true);
-    void OfferBytes(const Writer& payload, std::uint16_t controlWord, unsigned bucket = 0, bool dedupe = true) {
-        OfferBytes(payload.data(), payload.size(), controlWord, bucket, dedupe);
-    }
-
-    struct State;   // vectors_record.cpp
-
-private:
-    friend void Flush();
-    void Keep(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket, bool dedupe);
-    const char* family;
-    const char* function;
-    std::uint32_t payloadSize;
-    std::uint32_t cap;
-    unsigned buckets;
-    State* state = nullptr;
-    Sampler* next;
-};
-
-// Writes every sampler's records to <output folder>/vectors (the harness calls it with its report).
-// Does nothing outside record mode.
-void Flush();
-
-// Whether record mode is on (EI_VECTORS=1).
-bool Recording();
 
 // ---- Replay side (ei_vectors.exe) ----
 

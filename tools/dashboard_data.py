@@ -115,7 +115,6 @@ STANDALONE = {
 # image, and reads of game.exe's file by the image.
 IMAGE_TIES = [
     ('src/standalone/host.cpp', re.compile(r'\bReadWholeFile\b')),                # the host reads game.exe
-    ('src/hook/hook.cpp', re.compile(r'\bStandaloneExePath\b')),                  # InstallHooks reads it in the image
     ('src/standalone/image_imports.cpp', re.compile(r'\bEiStandaloneExe\b')),    # imports from game.exe's folder
 ]
 DATA_RANGE = range(0x730000, 0x900000)

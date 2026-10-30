@@ -21,12 +21,10 @@ recorded from the original before that (the tag original-oracle has the harness 
 - Games only through `python tools/work.py test <ID> [run_all args]` (docs/worker-brief.md). You may add a
   scenario under `tests/scenarios/` that exercises your area (script commands via `@...`, checks via
   `check` and `waitfor`); its golden is recorded centrally.
-- Run `python tools/check_x87.py` (after `build.cmd release`) and `tools\check_signatures.cmd` (after
-  `build.cmd verify`) before handing back, and `python tools/check_stolen.py` after adding a vector
-  recorder. check_signatures compares the stack arguments of the declarations where game.exe's code meets ours
-  with the original's RET n: the recorders (they run inside game.exe), the harness's forwarders, and the rewrites
-  at a recorded address (the vectors' replays call them with arguments recorded from the original). Any other
-  rewrite is free to change its signature (a std::string_view for a const char*); `--all` checks them too.
+- Run `python tools/check_x87.py` (after `build.cmd release`) before handing back. Nothing of ours meets game.exe's
+  code any more (H40 removed the vector recorders and the harness's forwarders), so a rewrite is free to change its
+  signature (a std::string_view for a const char*), except that a rewrite the recorded vectors replay must still
+  take the recorded arguments (ei_vectors fails otherwise).
 
 ## Where code goes
 
@@ -66,7 +64,7 @@ recorded from the original before that (the tag original-oracle has the harness 
    only AL return `bool`. A float left unrounded in ST0 is rule 7's.
 3. **The original's address.** A rewrite is an ordinary function or member, called by name; nothing reaches
    game.exe's code addresses (C20 batch 6) and no table maps them to ours (C20l). Its signature need not match the
-   original's RET n unless a vector recorder records that address (the EI_RECORD names it; check_signatures).
+   original's RET n.
 4. **Virtual methods** are the compiler's (C19): nothing reaches a slot's address.
    The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
    virtuals. Constructors and destructors are C++ ones (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
@@ -150,7 +148,6 @@ does not need a second pass:
   `SlotNN()` (name the slot when you call it);
 - no byte arithmetic on pointers with literal offsets (`reinterpret_cast<uint8_t*>(p) + 0x..`);
 - game globals are named variables (C18, `tools/named_data.py`), not literal addresses in the code;
-  the forwarders and `EI_RECORD` keep their address;
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
@@ -239,13 +236,9 @@ heap or on memory layout, so a change of a class's layout is checked like any ot
   original's then), replayed with `work.py test <ID> --golden`, its state digest and saves compared field by
   field. Reach the function from a scenario that has a golden, or add one under `tests/scenarios/` (its golden is
   recorded by the Suites workflow's `record` input).
-- **Function vectors** (tests/vectors): a recorder (`EI_RECORD(addr, Recorder, stolenBytes,
-  originalPtr, OurFunction)` in `tests/vectors/record_<family>.cpp`; `OurFunction` is what the replay calls, its
-  stack arguments checked by check_signatures) sampled the original's calls in a
-  `--no-hooks` run with `EI_VECTORS=1` until H40 (recording again needs the tag original-oracle), and
-  `ei_vectors.exe` (build.cmd) replays them against ours without the game. For pure functions and ones that only write an output object. `stolenBytes`
-  must cover whole instructions at the function start, at least 5, with no relative operands (no
-  CALL/JMP/Jcc in them); `python tools/check_stolen.py` checks every recorder.
+- **Function vectors** (tests/vectors): calls of the original sampled by recorders in `--no-hooks` runs until H40
+  (the recorders and recording again: the tag original-oracle), and `ei_vectors.exe` (build.cmd) replays them
+  against ours without the game. For pure functions and ones that only write an output object.
 
 ## Notes
 

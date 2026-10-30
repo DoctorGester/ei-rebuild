@@ -771,7 +771,7 @@ struct ScriptKeyword {
     const char* command;    // commands: parameter types, else null
 };
 #if defined(_M_IX86)
-static_assert(sizeof(ScriptKeyword) == 16);   // game.exe's table (tests/vectors/record_script.cpp reads it)
+static_assert(sizeof(ScriptKeyword) == 16);   // game.exe's table (tests/vectors/record_script.cpp read it; the tag original-oracle)
 #endif
 // 225 keywords and the null entry; the loader reads it through KeywordTable().
 extern const ScriptKeyword kScriptKeywords[226];

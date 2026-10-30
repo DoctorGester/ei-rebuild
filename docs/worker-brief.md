@@ -49,10 +49,9 @@ Rules:
 - Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
   hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
-- Build `build.cmd verify` (the harness build: the image plus the harness and the vector recorders,
-  what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
-  or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
-  (vector recorders) and the checks build.cmd runs at 0 problems.
+- Build `build.cmd verify` (the harness build: the image plus the harness, what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
+  or warnings; `python tools/check_x87.py` and the checks build.cmd runs at
+  0 problems.
 - Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
   no log (the commit history keeps that; docs/notes/README.md).
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is

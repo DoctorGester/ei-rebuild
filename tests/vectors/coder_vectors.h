@@ -2,7 +2,7 @@
 
 // Payloads of the "coder" family (vectors.h): the LZ coder of save games and network messages
 // (src/game/net_coder.cpp, CoderState::Compress 00430450 and Decompress 00430960, and the code tables
-// 0042FAE0 fills at start-up). Recorded by record_coder.cpp, replayed by replay_coder.cpp. The coder
+// 0042FAE0 fills at start-up). Recorded by record_coder.cpp (the tag original-oracle), replayed by replay_coder.cpp. The coder
 // records are variable-size: a head struct, then the input and output bytes.
 
 #include "../../src/game/net_coder.h"

@@ -391,7 +391,6 @@
 #include "harness_pair.h"
 #include "harness_timing.h"
 #include "harness_utf8.h"
-#include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
 #include "../../src/hook/thread_context.h"
@@ -1105,7 +1104,6 @@ void Report(FILE* f);
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
-    ei::vectors::Flush();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
@@ -1124,8 +1122,6 @@ void WriteReport() {
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
 
-    if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
-        failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei-rebuild.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);

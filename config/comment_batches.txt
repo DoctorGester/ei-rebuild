@@ -548,10 +548,8 @@ src/game/ui_widescreen.cpp
 src/game/ui_widescreen.h
 src/game/ui_window.cpp
 src/game/ui_window_delete.cpp
-src/hook/cover.cpp
 src/hook/dllmain.cpp
 src/hook/function_sizes.inc
-src/hook/hook.cpp
 src/hook/log.h
 src/hook/paths.cpp
 src/hook/profile.cpp
@@ -1716,9 +1714,7 @@ src/game/world_units.cpp
 src/game/world_update.cpp
 src/game/world_weather.cpp
 src/game/world_zone.cpp
-src/hook/cover.cpp
 src/hook/dllmain.cpp
-src/hook/hook.cpp
 src/hook/log.h
 src/hook/paths.cpp
 src/hook/profile.cpp
