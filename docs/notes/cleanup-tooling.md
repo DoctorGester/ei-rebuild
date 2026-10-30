@@ -366,10 +366,11 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   where a NaN or a value beyond the int range can arrive (the low half; 0 for NaN, as `_ftol`: all 2^32 floats
   compared), else `static_cast<int>`; `x87::CopyBits` -> `=` (SSE2 copies keep a signalling NaN's bits);
   `x87::FromUnsigned` -> `static_cast<double>` (exact on SSE2).
-- **the chop rounding**: the original truncates the terrain's edge fade under chop rounding (`SectorData::Build`):
-  `Terrain::EdgeFadeDown` truncates the final conversion (C30e15; its sqrt, divide and multiply round to nearest where
-  the original's chopped: a byte one higher only where the product is within an ulp above an integer). The prints'
-  and objects' `EdgeFade` rounds to nearest, ties to even (`lib::RoundEven`, FISTP's).
+- **the chop rounding**: none. The original truncates the terrain's edge fade under chop rounding
+  (`SectorData::Build`); the image's `EdgeFade` (terrain_shadow) rounds to nearest with `std::lround` for every
+  caller. C30e15 tried truncation for the sector build: terrain_water_waves' golden (recorded from the image) differs in
+  the water sectors' speculars from record 0 (town_waves, zone1_waves), so the image keeps rounding to nearest; the
+  speculars are the shader's input, not game state.
 - **53-bit code**: before the device exists (start-up: options, registry, settings, the first files read) the main
   thread runs at 53 bits, where the original's double maths is SSE2's double maths: such code stays double. The other
   threads (the MP3 stream, the cursor, the master server lookup) are SSE2 already or do no float maths.
@@ -708,8 +709,7 @@ loaded them (both quiet: the larger significand, of equal ones the positive). Th
 `float_control` pair and Atan2, render's `AddOnX87`, the start-up's FNSTCW log, check_x87's object half. The release
 objects' x87 instructions 7,947 -> 7,077, their arithmetic and control-word ones 610 -> 474 (app_main 73 -> 0, the
 game CRT 59 -> 1, render.cpp 2 -> 0); what is left is MSVC's operations on values returned in ST0 ("The control
-word" below), among them crt_maths' `MovingSize` and pc24's `Scale` (a power of two times a short value: exact) and
-terrain_shadow's `FadeAmount` (FDIV, FMUL at PC24, as the original). Equivalence test (C30e15's `eq/`: HEAD's
+word" below), among them crt_maths' `MovingSize` and pc24's `Scale` (a power of two times a short value: exact). Equivalence test (C30e15's `eq/`: HEAD's
 crt_x87.cpp and app_main forms built /arch:IA32 against the new, plus the original's pow core as `__asm`, every
 thread at 007F; `eq all 100`, 3 min): every float through acos and asin (2^32 each: 6,896 and 2,188 differ in the
 double's last bit, 0 once rounded to a float), 100 M random doubles in (-1, 1) (1,419, 0 as floats); the differing

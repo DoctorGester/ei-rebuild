@@ -1285,9 +1285,8 @@ game, the `--no-hooks` suite) keeps the registry.
   delays, steps and AI cells follow the original. Goldens the same.
 - **_controlfp (SV10k, C20r, C30e14, C30e15)**: game.exe's one call outside the CRT, terrain lighting's
   `_controlfp(_RC_CHOP, _MCW_RC)` and the restore around `SectorData::Light` (006EBBB4 / 006EBC2A / 006EBCBC), has no
-  port: the CPU lighting is gone (R34a), and the edge fade that Build writes instead truncates
-  (`Terrain::EdgeFadeDown`: the final conversion; its few float operations round to nearest, where the original's
-  chopped). The edge fade the prints and objects read rounds to nearest, ties to even (`EdgeFade`, FISTP's).
+  port: the CPU lighting is gone (R34a), and the edge fade that Build writes instead rounds to nearest
+  (`std::lround`, C30c; truncating it changed the image's terrain_water_waves golden, C30e15).
 - **The x87 control word**: the main thread runs at 24-bit precision from the device's creation (device_object's
   `__control87_2(_PC_24, _MCW_PC)`, as Direct3D 7 set it for the original). The image's game code is SSE2, but the
   word still matters: MSVC leaves x87 operations in SSE2 code on a float or double returned in ST0 (the x86 calling

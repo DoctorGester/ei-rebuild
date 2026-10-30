@@ -292,8 +292,8 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 // ---- Register forms ----------------------------------------------------------------------------
 // The 2D differences and sums, and the 3- and 4-term dots, the game kept on its FPU stack and compared or used as they
 // were (the AI's target scoring returns one): at its 24-bit precision each operation rounded to a float significand,
-// so they are float maths in the grouping written here, T the type the site computes in. ("Unrounded": on the x87
-// build a helper above rounded its result through memory and these, compiled without precise semantics, did not.)
+// so they are float maths in the grouping written here, T the type the site computes in. ("Unrounded": the value the
+// original used without storing it, which at 24 bits is the float.)
 
 template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }

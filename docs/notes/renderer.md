@@ -1295,7 +1295,8 @@ across runs; the goldens check the game state.
      landscape's per-vertex light lists (their 16-byte node pool at 007C8840) and light areas are not ported. The
      landscape keeps only the table of shown point lights (`Terrain::lights`, by id, held: AddLight / RemoveLight),
      which the hand-over reads. `SectorData::Build` writes each vertex's edge fade into its specular word (the fog
-     factor, `Terrain::EdgeFadeDown`: truncated, as the original's chop rounding did); on the water Animate writes the wave crests over the colour bytes. The
+     factor, `Terrain::EdgeFade`: rounded to nearest, where the original truncated under chop rounding; the
+     image's terrain_water_waves golden holds the rounded bytes); on the water Animate writes the wave crests over the colour bytes. The
      water's specular lights are the shader's (`spec`, the larger of them and the crests: the original's crests
      replaced them where the waves ran).
      **No relighting (R34a).** A sector's fade never changes, so it is written once, at Build: there is no Lit stage,
