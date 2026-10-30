@@ -1,9 +1,7 @@
 // The camera's motion frame by frame: the drawn view's checks (harness_camera.h; tickets R18, R35a).
 #include "harness_camera.h"
 
-#include "exe_objects.h"
 #include "image/image_side.h"
-#include "ei/hook.h"
 #include "../../src/hook/log.h"
 
 #include <cmath>
@@ -83,29 +81,6 @@ int KindOf(const char* name) {
 
 } // namespace
 
-// game.exe's camera through its view (exe_objects.h); the original draws its own pose.
-image::CameraState OriginalCamera(const void* camera) {
-    const auto* c = static_cast<const exe::Camera*>(camera);
-    image::CameraState state;
-    image::CameraPose& pose = state.own;
-    pose.focusX = c->focus.x;
-    pose.focusY = c->focus.y;
-    pose.focusZ = c->focus.z;
-    pose.turnZ = c->viewRotation.z;
-    pose.turnW = c->viewRotation.w;
-    pose.distance = c->distance;
-    pose.position[0] = c->localPosition.x;
-    pose.position[1] = c->localPosition.y;
-    pose.position[2] = c->localPosition.z;
-    pose.rotation[0] = c->localRotation.w;
-    pose.rotation[1] = c->localRotation.x;
-    pose.rotation[2] = c->localRotation.y;
-    pose.rotation[3] = c->localRotation.z;
-    state.drawn = pose;
-    state.flags = c->flags;
-    return state;
-}
-
 Sample SampleOf(const image::CameraPose& pose) {
     const double dx = static_cast<double>(pose.position[0]) - pose.focusX, dy = static_cast<double>(pose.position[1]) - pose.focusY,
                  dz = static_cast<double>(pose.position[2]) - pose.focusZ;
@@ -116,7 +91,7 @@ Sample SampleOf(const image::CameraPose& pose) {
 void Frame(const void* camera, float seconds) {
     if (!g_recording || !camera) return;
     g_frameTime += seconds;
-    const image::CameraState c = ei::Standalone() ? image::Camera(camera) : OriginalCamera(camera);
+    const image::CameraState c = image::Camera(camera);
     g_flags = c.flags;
     const image::CameraPose& d = c.drawn;
     g_samples.push_back(SampleOf(d));

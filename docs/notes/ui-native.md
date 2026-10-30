@@ -199,8 +199,8 @@ P2 tunes `uidiff text / block / textlimit` for our own fonts (whole-word shifts 
 Six scenarios open every window family the original reaches with menus, keys and clicks, hold each still (`freeze`) and
 capture it (`frames\<name>.bmp` in the run folder); N4a's `ui_gallery_deals` adds the camp's deals and the map's zone
 click. The hero list's region 0 tooltip showed with `moveregion 0`, two `move`s a pixel apart a few frames later and 3 s;
-N4's `moveregion` with 2.5 s showed none (which of the two differences matters is untested). Each has a vanilla golden from three agreeing runs of the original
-(plain, `EI_HEAP_JITTER=1`, `2,fill`; no EI_COVER), so the suite checks that the steps keep doing the same; the frames
+N4's `moveregion` with 2.5 s showed none (which of the two differences matters is untested). Each has a vanilla golden (agreeing runs of the image since H40;
+no EI_COVER), so the suite checks that the steps keep doing the same; the frames
 themselves are not in the golden. They are the coverage for N3's per-surface diff and for P1-P8: run them under `uiboth`
 / `uinative` and compare.
 

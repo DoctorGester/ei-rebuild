@@ -1611,7 +1611,7 @@ def load_sizes():
 
 def write_sizes(exits):
     """Adds the exit functions' sizes to config/extra_function_sizes.csv and src/hook/function_sizes.inc
-    (the tools' function sizes: tools/check_signatures.py, coverage.py, check_stolen.py)."""
+    (the tools' function sizes: tools/coverage.py)."""
     sizes = load_sizes()
     rows = open(EXTRA_SIZES, encoding='utf-8').read().splitlines()
     listed = {int(r.split(',')[0], 16) for r in rows[1:] if r}

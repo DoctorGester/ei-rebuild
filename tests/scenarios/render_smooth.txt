@@ -13,7 +13,6 @@
 # (smooth_split, the later half drawn over the copy of the resolved first half) only where both halves'
 # edges meet in a pixel. R33: other levels, each alone: msaa 4 with anisotropy 4, msaa 2 alone, anisotropy 8
 # alone (smoothcheck: as many samples as asked, anisotropic models only when asked).
-# no original: vanilla rebirth (the render quality is our renderer's)
 render checkall
 msaa 8
 anisotropy 16

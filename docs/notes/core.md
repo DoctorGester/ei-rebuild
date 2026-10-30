@@ -31,14 +31,15 @@ Rewritten (grep the address): `AddVectors` 0040CDC0, `NegateVector` 00402200, `S
 (CopyTransform 00401490, CombineRotation 0040CB80, UpdateWorld 0040CC30, SaveTransform 00401510, LoadTransform 00401540), WorldMatrix
 00401570 (4x4), TiltTowards 00401680 (down axis a tenth of the way to a target), TurnTowards 00401940 (forward axis onto a target),
 RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetHeading 00402220 (atan2 about +Z), `IsaacRandom::Next`
-004667F0, `Refill` 0049EE70, `Init` 0049F150 (the generator is at 007A9D40), `Seed` 0049F660 (1 KB of a random file on drive C, xored with
-`rand()`; A-S10), `FindSeedFile` 0049F4B0 (its recursive CFileFind walk).
+004667F0, `Refill` 0049EE70, `Init` 0049F150 (the generator is at 007A9D40), `Seed` 0049F660 (the original: 1 KB of a random file on drive C, found by
+`FindSeedFile` 0049F4B0's recursive CFileFind walk, xored with `rand()`; A-S10. Ours fills the 1 KB from `std::random_device`
+and seeds `rand()` from it: the bytes only have to be unpredictable, and the walk read the player's files and needed a drive C).
 
 The client effects' generator `g_clientRandom` (random.h, R34a) is ours: a second ISAAC that `World::Create` seeds right after
 the game's (`InitFrom`: Init with the game's memory words as the seed, no file, no `rand()`), drawn by every effect whose result
 only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`; the client's idle animation picks
 through `AnimationRandom::Client`, R34c, the server's keep `rand()`). The list of the moved sites and how they
-were found: standalone-verification.md section 5 and harness_client_effects.cpp (the original's functions, patched alike).
+were found: standalone-verification.md section 5 (and until H40 harness_client_effects.cpp, the original's functions patched alike).
 
 - `TransformObject` (vtable 0073BA38, abstract, 0x54 bytes): EngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
@@ -285,10 +286,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
   messages keep their bytes.
 - game.exe's own layouts of these exist only in tests: tests/verify/exe_objects.h's views (`Vector<T>`, `List<T>`,
   `HashTable`, `StlpList`, `exe::CString`) and the recorders' `Original*` records (record_stats.cpp's
-  `OriginalSkill*`, script_original.h). A recorder declares game.exe's layout itself, never our header with a sizeof
-  stride. Record such a change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it,
-  `vectors.py merge <runs> --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs'
-  key without EI_VECTORS, so the plain original suite only replays its cache. The path family's raw recording does
+  `OriginalSkill*`, script_original.h). A recorder declared game.exe's layout itself, never our header with a sizeof
+  stride. Recording again needs the tag original-oracle (`EI_VECTORS=1`, `--no-hooks --vanilla-only` there,
+  `vectors.py merge <runs> --out <scratch>`, `ei_vectors.exe <scratch>`). The path family's raw recording does
   not replay without `tools/path_vectors.py prune` (its @AIMap records are sampled: searches on maps not kept
   crash). Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
   lexer reads): without that folder ei_vectors loops forever at full CPU. Replay a scratch folder with a timeout.

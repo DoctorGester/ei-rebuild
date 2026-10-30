@@ -7,10 +7,12 @@
 # output: every value the game writes, and the probe section kept as it was) and fails when ei_settings.ini.tmp is
 # left behind. The user's registry is never read or written.
 # To change the expected file: copy the run's ei_settings.ini over it after reading the difference.
-# no original: vanilla rebirth game.exe keeps its settings in the registry (the settings file is the image's)
 # settings-file: settings/settings_save.ini
 timeout 40
 settingsfile writable
+# One window size on both installs (the image's default differs: harness_starter.h), as the expected file has it.
+resolution 1280x720
+fullscreen 0
 reject Script error
 waitmenu
 wait 500

@@ -77,7 +77,7 @@ MIGRATIONS = [
         id        INTEGER PRIMARY KEY,
         batch     INTEGER NOT NULL REFERENCES batch(id) ON DELETE CASCADE,
         scenario  TEXT NOT NULL,
-        install   TEXT NOT NULL,         -- vanilla, rebirth, native, rebirth-nohooks
+        install   TEXT NOT NULL,         -- standalone, standalone-rebirth (before H40 also game.exe's: vanilla, rebirth, rebirth-nohooks)
         hooks     INTEGER NOT NULL DEFAULT 1,
         alone     INTEGER NOT NULL DEFAULT 0,   -- sets the display mode: runs with no other game
         expected  REAL,                  -- seconds from run_times.json (longest first)
@@ -115,7 +115,7 @@ MIGRATIONS = [
     CREATE TABLE timing (
         id           INTEGER PRIMARY KEY,
         scenario     TEXT NOT NULL,
-        install      TEXT NOT NULL,         -- vanilla, rebirth, native, rebirth-nohooks
+        install      TEXT NOT NULL,         -- standalone, standalone-rebirth (before H40 also game.exe's: vanilla, rebirth, rebirth-nohooks)
         scenario_rev TEXT NOT NULL DEFAULT '',
         seconds      REAL NOT NULL,
         time         TEXT NOT NULL,

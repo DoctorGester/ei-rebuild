@@ -1,10 +1,8 @@
 #pragma once
 
-// What the digest's two readers share (harness_digest.h): the record's entities and fields, and the readers'
-// entry points. The reading code (harness_digest_read.inc) is compiled twice: against game.exe's objects through
-// their views (harness_digest_exe.cpp, exe_objects.h) for game.exe's runs, and against our classes
-// (image/harness_digest_image.cpp) for the image's. Neither this header nor the views include a game header, so our
-// classes do not decide what the original's runs record (ticket H30b).
+// What the digest's reader shares with the rest of the harness (harness_digest.h): the record's entities and fields,
+// and the reader's entry points. The reading code (harness_digest_read.inc) is compiled against our classes
+// (image/harness_digest_image.cpp); this header includes no game header (ticket H30b).
 
 #include "harness_digest.h"
 
@@ -21,7 +19,8 @@
 
 namespace ei::verify::digest {
 
-// An object's class id as an int: the original's objects return one, the image's a ClassId.
+// An object's class id as an int (the image's objects return a ClassId).
+
 template <typename Object>
 int ClassOf(Object* object) { return static_cast<int>(object->GetClassId()); }
 
@@ -141,20 +140,13 @@ inline std::uint32_t TextHash(const char* text) {
 inline std::uint32_t TextHash(const std::string& text) { return TextHash(text.c_str()); }
 
 // The readers (harness_digest_read.inc), each over the server world `server`: the whole state into `s` (Read), a unit
-// now (Unit), the local leader (LocalLeader), every world object's id, class and address into the heap trace
-// (NoteAddresses). exe_side reads game.exe's objects (harness_digest_exe.cpp), image_side ours
-// (image/harness_digest_image.cpp).
-namespace exe_side {
-void Read(void* server, Snapshot& s);
-UnitNow UnitNowOf(void* server, int id);
-int LocalLeader(void* server, unsigned* money);
-void NoteAddresses(void* server);
-} // namespace exe_side
+// now (Unit) and the local leader (LocalLeader), over our objects (image/harness_digest_image.cpp).
 namespace image_side {
+
 void Read(void* server, Snapshot& s);
 UnitNow UnitNowOf(void* server, int id);
 int LocalLeader(void* server, unsigned* money);
-void NoteAddresses(void* server);
+
 } // namespace image_side
 
 } // namespace ei::verify::digest

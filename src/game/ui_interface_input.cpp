@@ -20,7 +20,6 @@
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
@@ -246,10 +245,9 @@ void Interface3D::OnStringEvent(std::string_view event) {
     std::string text(event);
     words = text::SplitWords(text, ' ');
     str::MakeLower(words[0]);
-    // Rebirth's NewStringEvents: "gameover [title [text]]" plays
-    // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
-    // game_over_msg).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && str::Compare(words[0], "gameover") == 0) {
+    // "gameover [title [text]]" plays buttons\gameover.wav and shows a message window (the texts default to the keys
+    // game_over and game_over_msg; Rebirth's NewStringEvents).
+    if (str::Compare(words[0], "gameover") == 0) {
         GameStopSounds(1);
         GameStopAmbience();
         PlayInterfaceSound("buttons\\gameover.wav");
@@ -433,16 +431,10 @@ constexpr std::uint32_t kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
 
-// A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
-// the full-size one the mode's size in pixels, unscaled (addon's operands
-// 1 -> 0, 600 -> height, 800 -> width).
+// A new surface for the screen's picture, as the interface's backdrop: the whole window in pixels, unscaled
+// (Rebirth's WideScreen; the original's 800 x 600 layout rectangle scaled is the same on a 4:3 window).
 void MakeBackdrop(Interface3D* ui) {
-    if (widescreen::Active()) {
-        const widescreen::Layout& wide = widescreen::Get();
-        ui->backdrop = new UiSurface(ui, 0, 0, wide.width, wide.height, SurfaceBlend::Opaque, false);
-    } else {
-        ui->backdrop = new UiSurface(ui, 0, 0, 800, 600, SurfaceBlend::Opaque, true);
-    }
+    ui->backdrop = new UiSurface(ui, 0, 0, ui->width, ui->height, SurfaceBlend::Opaque, false);
 }
 
 } // namespace

@@ -3,9 +3,7 @@
 #include "harness_imports.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 #include "image/image_side.h"
-
 
 #include <windows.h>
 
@@ -25,26 +23,10 @@ int g_discPrompts = -1;        // "discprompt <n>": the boxes to answer; -1 with
 int g_discPromptsShown = 0;    // the second disc's boxes the game showed
 bool g_wrongLabelAnswered = false;   // the last GetVolumeInformationA answered kNoDiscLabel
 
-decltype(&::RegQueryValueExA) g_query;
 decltype(&::GetVolumeInformationA) g_volumeInformation;
 
-// "CD-ROM Path" as "<the run's game folder>.\": a disc folder whose text differs from the data folder's.
-LSTATUS WINAPI DiscPathQuery(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
-    const DWORD capacity = size ? *size : 0;
-    const LSTATUS result = g_query(key, name, reserved, type, data, size);
-    if (result != ERROR_SUCCESS || !name || _stricmp(name, "CD-ROM Path") != 0 || !size) return result;
-    if (!data) {
-        *size += 2;
-        return result;
-    }
-    const std::size_t length = strnlen(reinterpret_cast<const char*>(data), capacity);
-    if (length + 3 > capacity) return result;
-    std::memcpy(data + length, ".\\", 3);
-    *size = static_cast<DWORD>(length + 3);
-    return result;
-}
-
-// The same for the standalone's settings file (game/settings.h): each read of "CD-ROM Path" gets ".\".
+// "CD-ROM Path" as "<the run's game folder>.\": a disc folder whose text differs from the data folder's. Each read
+// of the settings file's (game/settings.h) "CD-ROM Path" gets ".\".
 void DiscPathRead(const char* name, std::string& value) {
     if (_stricmp(name, "CD-ROM Path") == 0) value += ".\\";
 }
@@ -75,11 +57,8 @@ void AtWindowClass() {
     static bool done = false;
     if (done || g_discPrompts < 0) return;
     done = true;
-    if (ei::Standalone()) {
-        image::AddSettingsReadFilter(&DiscPathRead);
-    } else {
-        PatchOriginalImport(&ImportTable::RegQueryValueExA, &DiscPathQuery, g_query);
-    }
+    image::AddSettingsReadFilter(&DiscPathRead);
+
     PatchImport(&ImportTable::GetVolumeInformationA, &DiscVolumeInformation, g_volumeInformation);
     Log("harness: discprompt: %d box(es) of the second disc to answer", g_discPrompts);
 }

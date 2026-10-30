@@ -182,14 +182,15 @@ RendererBase::~RendererBase() = default;
 
 // ---- Matrices ---------------------------------------------------------------------------------------
 
-// The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. With Rebirth's WideScreen
-// x is scaled by width43 / width, so the 4:3 picture keeps its proportions on the wide screen
-// (widescreen::AxisScale); renderer_init.cpp calls it through its address (rule 9).
+// The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. x is scaled by width43 / width
+// and y by height43 / height (the window's 4:3 part, ui_widescreen.h; Rebirth's WideScreen scaled x), so the 4:3
+// picture keeps its proportions on any window, 1 and 1 on a 4:3 one; renderer_init.cpp calls it through its address
+// (rule 9).
 Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;
     out->m[0] = widescreen::AxisScale();
-    out->m[5] = -1.0f;
+    out->m[5] = -widescreen::AxisScaleY();
     return out;
 }

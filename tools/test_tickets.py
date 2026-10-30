@@ -1,8 +1,8 @@
 """Tests of ticket status in the work database (WB10): tools/tickets.py, work.py start / done, the live ticket board.
 
 usage: python tools/test_tickets.py [-v]
-Each test has its own tickets.toml, tickets.md, lock and database in a temporary folder under build/ (WORK_DB
-points there), so the checkout's files and build/live/work.db are never touched.
+Each test has its own tickets.toml, tickets.md, ticket_status.tsv, lock and database in a temporary folder under
+build/ (WORK_DB points there), so the checkout's files and build/live/work.db are never touched.
 """
 import argparse, contextlib, io, json, os, shutil, sys, tempfile, unittest
 from unittest import mock
@@ -65,6 +65,7 @@ class TicketsTest(unittest.TestCase):
         patches = [mock.patch.object(tickets, 'SOURCE', self.toml),
                    mock.patch.object(tickets, 'MARKDOWN', os.path.join(self.tmp, 'tickets.md')),
                    mock.patch.object(tickets, 'LOCK', os.path.join(self.tmp, 'tickets.lock')),
+                   mock.patch.object(tickets, 'STATUS_FILE', os.path.join(self.tmp, 'ticket_status.tsv')),
                    mock.patch.dict(os.environ, {'WORK_DB': os.path.join(self.tmp, 'work.db'), 'WORK_AGENT': 'tester'})]
         for p in patches:
             p.start()

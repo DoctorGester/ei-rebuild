@@ -281,7 +281,7 @@ void HudTopPanel::AddMoney(int money) {
 // --- Ui hud setup ------------------------------------------------------------------------------------
 
 // The battle HUD's two corner panels, the game clock (HudClock) and the movement panel (HudMovePanel): their setups.
-// Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h): the clock at the screen's
+// Rebirth patches both for its WideScreen layout, reproduced for every window (ui_widescreen.h): the clock at the screen's
 // right edge, the movement panel at its left. See ui.h and docs/notes/ui.md, "Battle HUD corner panels".
 
 namespace {

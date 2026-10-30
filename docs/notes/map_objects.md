@@ -75,7 +75,7 @@ Every rewritten function carries its address in its source comment (grep the add
 here is gone. Facts a worker needs:
 - Slot numbers: `MapObject::Update` 0050F1C0 (6; returns 1), `MapObjectServer::Update` 00515820, `MapObjectClientSpecific::Update`
   00510890 (counts - 1, stench timers - 1, 16 after going negative, light unchanged or at object + (0, 0, 2)), AddEffect 0050F1E0
-  (45; Rebirth-patched, reproduces FixSpellEffectsOverflow behind the flag), RecomputeScale 0050F2D0 (27), ResetScale 0050E440
+  (45; renews effects as Rebirth's FixSpellEffectsOverflow does, without its 20-effect cap or its skip after a removal: C68), RecomputeScale 0050F2D0 (27), ResetScale 0050E440
   (30; for units slot 30 rebuilds figures through 00517700 and must not run twice), GetPosition 0050E4B0 (52, RET 8) /
   GetPosition2 0050E4D0 (53, RET 4), GroundPoint 0050F730 (48), PlaceOnGround 0050F020 (51; the original's wrapper runs through a
   naked stub repeating its first three instructions PUSH ESI; MOV ESI,ECX; CALL 00455950 and jumping to 0050F028), SetServerData

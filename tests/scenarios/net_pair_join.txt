@@ -31,7 +31,7 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 # Row 0 (the new game), host.
 clickregion 14

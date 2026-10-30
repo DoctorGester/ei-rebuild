@@ -24,7 +24,7 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 # The host has hosted; the list asks again (its refresh) and shows the host's game in row 1.
 peerwait 90 hosted

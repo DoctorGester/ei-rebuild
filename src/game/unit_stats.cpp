@@ -7,7 +7,6 @@
 #include "spell.h"
 #include "unit.h"
 #include "unit_db.h"
-#include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
@@ -152,13 +151,10 @@ int LockKey::Opens(const LockKey* lock) const {
     if (common == 0) return 0;
     if ((common & 8) == 8 && id == lock->id) return 1;
     if ((common & 7) == 0) return 0;
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) {
-        // Rebirth: levels compared signed; a lock of level 0 gives the key's level + 1, so a key of level -1
-        // (0xFFFFFFFF) no longer opens it.
-        if (lock->level == 0) return static_cast<int>(level + 1);
-        return static_cast<std::int32_t>(level) < static_cast<std::int32_t>(lock->level) ? 0 : 1;
-    }
-    return level >= lock->level ? 1 : 0;
+    // Levels compared signed; a lock of level 0 gives the key's level + 1, so a key of level -1 (0xFFFFFFFF) no longer
+    // opens it (Rebirth's FixLeversActivate; the original compared unsigned).
+    if (lock->level == 0) return static_cast<int>(level + 1);
+    return static_cast<std::int32_t>(level) < static_cast<std::int32_t>(lock->level) ? 0 : 1;
 }
 
 std::uint32_t ResetDamageInfo(DamageInfo* info) {

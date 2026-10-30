@@ -1,9 +1,8 @@
 """game.exe's imports, from its import directory (docs/notes/standalone.md, "Own import table"):
 
   src/lib/import_table.h             game.exe's import address table as a struct (ImportTable, one member per
-                                     slot and terminator) and Imports(), the table calls go through: in game.exe
-                                     its own import address table (src/hook/original_data.cpp), in the image a
-                                     table of its own (src/standalone/image_imports.cpp).
+                                     slot and terminator) and Imports(), the table calls go through: the image's
+                                     own (src/standalone/image_imports.cpp).
                                      A member's type is its function's: the Windows SDK's, or for an import the
                                      SDK does not declare the prototype of src/lib/import_prototypes.h (read, not
                                      written: a `using` there per such import, by its member's name).
@@ -34,7 +33,6 @@ usage: python tools/gen_iat.py [--check | --counts]
                DLL and function in the comment) and the routes give; no game.exe (build.cmd). Catches gameapi.h / .cpp edited
                by hand, a new harness route on a slot, a gameapi:: call of an import gameapi.h does not have yet (or no
                longer one of one it has), and image_imports.inc and import_table.h that disagree.
-  Both fail when a route of game.exe's runs only (ORIGINAL) names a slot our code reaches: the image needs that route.
 """
 import argparse, os, re, struct, sys
 
@@ -61,10 +59,6 @@ ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.
             ('COMCTL32.dll', 17): 'InitCommonControls'}
 # The files that define the slots and name their members rather than call through them.
 DEFINITIONS = (GAMEAPI, GAMEAPI_CPP, IMPORT_TABLE, IMAGE_IMPORTS, PROTOTYPES)
-# A slot named only for game.exe's runs: a call of a function with "Original" in its name whose first argument is
-# `&ImportTable::X` (the harness's PatchOriginalImport / TraceOriginalSlot, import_table.h's OriginalImport). In the
-# image those do nothing, so the slot is neither a harness route nor reached.
-ORIGINAL = re.compile(r'\b\w*Original\w*\s*(?:<[^<>()]*>)?\(\s*&ImportTable::(\w+)')
 # game.exe's import address table (its IAT directory), the first 0x820 bytes of .rdata.
 IAT_BEGIN, IAT_END = 0x0073B000, 0x0073B820
 
@@ -210,12 +204,12 @@ def sources(folder, extensions):
 
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
-    "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names but ORIGINAL's), the image's
+    "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names), the image's
     routes (the UTF-8 routes of platform/win32/platform_win32.cpp) and a slot our code takes (`&gameapi::X`)."""
     names = {member(dll, fn, ordinal): fn for _, dll, fn, ordinal in table}
     out = set()
     for path in sources('tests', ('.cpp', '.h', '.inc')):
-        for name in re.findall(r'\bImportTable::(\w+)', ORIGINAL.sub('', read(path))):
+        for name in re.findall(r'\bImportTable::(\w+)', read(path)):
             if names.get(name):
                 out.add(names[name])
     out.update(text_routes())
@@ -257,8 +251,7 @@ def reached(table):
     image (docs/notes/standalone.md, "Own import table"). Our code and the harness reach a slot only by its member:
     `ImportTable::X` (the harness's routes, the static initialisers' Import), `Imports().X`, or a gameapi.h function
     that is the slot (slot_calls(): an `extern ...& X` there) called as `gameapi::X`. Every other import is called as
-    the Windows function itself or not at all, so the image leaves its slot a trap. ORIGINAL's names are game.exe's
-    runs only: left out."""
+    the Windows function itself or not at all, so the image leaves its slot a trap."""
     members = {member(dll, fn, ordinal) for _, dll, fn, ordinal in table}
     slots = slot_calls(table)
     skip = {os.path.normcase(p) for p in DEFINITIONS}
@@ -267,25 +260,12 @@ def reached(table):
         for path in sources(folder, ('.cpp', '.h', '.inc')):
             if os.path.normcase(path) in skip:
                 continue
-            text = ORIGINAL.sub('', code(read(path)))
+            text = code(read(path))
             names = re.findall(r'\bImportTable::(\w+)', text) + re.findall(r'\bImports\(\)\.(\w+)', text)
             names += [n for n in re.findall(r'\bgameapi::(\w+)', text) if n in slots]
             for name in names:
                 if name in members:
                     out.setdefault(name, set()).add(folder)
-    return out
-
-
-def original_only(table):
-    """Errors: the slots a route of game.exe's runs only (ORIGINAL) names that our code reaches in the image."""
-    reach = reached(table)
-    out = []
-    for folder in ('src', 'tests'):
-        for path in sources(folder, ('.cpp', '.h', '.inc')):
-            for name in ORIGINAL.findall(code(read(path))):
-                if 'src' in reach.get(name, ()):
-                    out.append(f'gen_iat: {os.path.relpath(path, ROOT)} routes {name} in game.exe only, but our code '
-                               'calls through its slot: route it in the image too (PatchImport)')
     return out
 
 
@@ -299,8 +279,7 @@ def import_table_text(table):
             lines.append(f'    {type_} {name};   // {what}')
     return ('#pragma once\n\n// Generated by tools/gen_iat.py from game.exe\'s import directory. Do not edit.\n'
             '// game.exe\'s import address table as a struct: one member per slot, in address order (each DLL\'s\n'
-            '// slots, then its zero terminator). Imports() is the table calls go through: in game.exe its own import\n'
-            '// address table (src/hook/original_data.cpp), in the image a table of its own\n'
+            '// slots, then its zero terminator). Imports() is the table calls go through: the image\'s own\n'
             '// (src/standalone/image_imports.cpp, S18f).\n'
             '// A slot holds the export, a route of the image (its UTF-8 version) or the harness\'s wrapper of\n'
             '// either; in the image a slot no call reaches is a trap (image_imports.inc).\n'
@@ -312,11 +291,8 @@ def import_table_text(table):
             'struct ImportTable {\n' + '\n'.join(lines) + '\n};\n'
             f'static_assert(sizeof(ImportTable) == 0x{(IAT_END - IAT_BEGIN) // 4:X} * sizeof(void*));   // game.exe\'s import '
             'address table\'s slots\n\n'
-            '// The table calls go through: game.exe\'s own in game.exe, the image\'s own in the image.\n'
+            '// The table calls go through: the image\'s own (src/standalone/image_imports.cpp).\n'
             'ImportTable& Imports();\n\n'
-            '// game.exe\'s own slot of `member`, for what runs only there (hook/paths.cpp): tools/gen_iat.py leaves a\n'
-            '// slot named through a function with "Original" in its name out of the image\'s reached ones (a trap there).\n'
-            'template <class F>\nF& OriginalImport(F ImportTable::* member) {\n    return Imports().*member;\n}\n\n'
             '} // namespace ei\n')
 
 
@@ -395,10 +371,6 @@ def main():
     if args.counts:
         return counts(committed_table())
     table = committed_table() if args.check else imports(exe_path.resolve())
-    errors = original_only(table)
-    if errors:
-        print('\n'.join(errors))
-        return 1
     gameapi, gameapi_cpp, functions = gameapi_text(table, routed(table), called(table))
     outputs = [(IMPORT_TABLE, import_table_text(table)), (GAMEAPI, gameapi), (GAMEAPI_CPP, gameapi_cpp),
                (IMAGE_IMPORTS, image_imports_text(table, reached(table)))]

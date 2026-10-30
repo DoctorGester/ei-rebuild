@@ -368,8 +368,8 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
     bought = boughtItems;
     rect = Rect{200, 100, 600, 500};
     sold = soldItems;
-    buyKind = spells ? 0 : 4;
-    sellKind = spells ? 1 : 5;
+    buyKind = spells ? PriceKind::SpellBuy : PriceKind::ItemBuy;
+    sellKind = spells ? PriceKind::SpellSell : PriceKind::ItemSell;
     exchange = isExchange;
     for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, TextureKind::Interface);
     BuildCellGrid(this);
@@ -382,13 +382,13 @@ Item* TradeGrid::ItemAt(int x, int y, int* topic) {
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);
     if (region >= 0 && region < kGridCellsPerList) {
-        *topic = exchange ? kTopicExchangeBuy : buyKind ? kTopicItemBuy : kTopicSpellBuy;
+        *topic = exchange ? kTopicExchangeBuy : buyKind == PriceKind::ItemBuy ? kTopicItemBuy : kTopicSpellBuy;
         if (region < std::ssize(*bought)) return (*bought)[region];
         return nullptr;
     }
     if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
     // The sold list's topic also follows buyKind.
-    *topic = exchange ? kTopicExchangeSell : buyKind ? kTopicItemSell : kTopicSpellSell;
+    *topic = exchange ? kTopicExchangeSell : buyKind == PriceKind::ItemBuy ? kTopicItemSell : kTopicSpellSell;
     if (region - kGridCellsPerList < std::ssize(*sold)) return (*sold)[region - kGridCellsPerList];
     return nullptr;
 }

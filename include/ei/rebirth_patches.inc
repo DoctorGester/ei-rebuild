@@ -1,78 +1,35 @@
-// The patches of the Rebirth community edition, one flag each (include/ei/rebirth.h).
+// The Rebirth community edition's patches that remain options of the rebuilt code, one flag each (include/ei/rebirth.h).
 //
-// addon.dll v0.12.4.2: every patch of its four main tables, in its own order, named exactly as
-// starter\addon.log prints them ("Applying patch <name>"). The fifth table (PerkLimit ... Lua*)
-// only runs with a mod whose config.reg has an [Addon] section and is not listed here.
-// EI_Plugin.asi: one flag per EI_Plugin.ini [CONFIG] feature, prefixed EiPlugin (EiPluginInit is
-// its loader hook, always applied). See docs/notes/rebirth.md for what each one does.
+// Named exactly as starter\addon.log prints them ("Applying patch <name>", addon.dll v0.12.4.2) or, prefixed
+// EiPlugin, as EI_Plugin.ini [CONFIG] names the feature. Every patch, with what the rebuild does about it, is in
+// config/rebirth_patches.csv and docs/notes/rebirth.md. Not here since C68 (user 2026-10-30): the bug fixes (always
+// the rebuilt code's behaviour), the patches the rebuild replaces (addon's and the plugin's infrastructure, WideScreen:
+// the layout follows the window) and the ones nothing implements (mod config options, inactive EI_Plugin features).
+// A settings file, profile or spec that names one of those is understood as before: the name is logged and left out.
 //
-// The order is part of nothing: flags are looked up by name in ei_rebirth.ini.
+// The order is part of nothing: flags are looked up by name.
 //
-// The second argument is the patch's kind in the standalone (user 2026-10-20, docs/notes/rebirth.md "One test
-// profile"): Fix, a bug fix that is on by default; Flag, off by default (scripting / console additions, mod
-// folders, widescreen and rendering, multiplayer features, EI_Plugin's features); Dropped, addon's or the
-// plugin's own infrastructure that the rebuild replaces (its flag stays, nothing implements it).
-EI_REBIRTH_PATCH(GameExeDebug, Dropped)
-EI_REBIRTH_PATCH(BinkPatch, Dropped)
-EI_REBIRTH_PATCH(WideScreen, Flag)
-EI_REBIRTH_PATCH(ObjectsDrawRadius, Flag)
-EI_REBIRTH_PATCH(LandscapeDrawRadius, Flag)
-EI_REBIRTH_PATCH(AllowScriptArgsInLoops, Flag)
-EI_REBIRTH_PATCH(AllowScriptsInMainMenu, Flag)
-EI_REBIRTH_PATCH(FixLeversActivate, Fix)
-EI_REBIRTH_PATCH(FixSpellEffectsOverflow, Fix)
-EI_REBIRTH_PATCH(FixProgressNames, Fix)
-EI_REBIRTH_PATCH(AddNewConsoleCommands, Flag)
-EI_REBIRTH_PATCH(ImproveConsole, Flag)
-EI_REBIRTH_PATCH(CommandLine, Dropped)
-EI_REBIRTH_PATCH(NewStringEvents, Flag)
-EI_REBIRTH_PATCH(FixSpellSelfCasting, Fix)
-EI_REBIRTH_PATCH(FixProcessLogin, Fix)
-EI_REBIRTH_PATCH(FixMoveObject, Fix)
-EI_REBIRTH_PATCH(GraphGenPatches, Dropped)
-EI_REBIRTH_PATCH(FixAddMapObject, Fix)
-EI_REBIRTH_PATCH(FixPlaingBattleMusicFromAntimagic, Fix)
-EI_REBIRTH_PATCH(FixRepairPrice, Fix)
-EI_REBIRTH_PATCH(FixRemoveMapObject, Fix)
-EI_REBIRTH_PATCH(FixCreateItem, Fix)
-EI_REBIRTH_PATCH(DisableExitOnCrashReport, Flag)
-EI_REBIRTH_PATCH(ExtendedServerName, Flag)
-EI_REBIRTH_PATCH(SetDefaultRate, Flag)
-EI_REBIRTH_PATCH(NivalRegistry, Dropped)
-EI_REBIRTH_PATCH(AutoExec, Flag)
-EI_REBIRTH_PATCH(MQClient, Flag)
-EI_REBIRTH_PATCH(MPSpeedControl, Flag)
-EI_REBIRTH_PATCH(MPConsole, Flag)
-EI_REBIRTH_PATCH(SetEiPluginMode, Dropped)
-EI_REBIRTH_PATCH(PlayerNumbers, Flag)
-EI_REBIRTH_PATCH(AddNewScriptCommands, Flag)
-EI_REBIRTH_PATCH(PersistentGlobalVars, Flag)
-EI_REBIRTH_PATCH(MenuMultiDisable, Flag)
-EI_REBIRTH_PATCH(MenuSingleDisable, Flag)
-EI_REBIRTH_PATCH(SavesPath, Flag)
-EI_REBIRTH_PATCH(MpZone, Flag)
-EI_REBIRTH_PATCH(PreventZone1Animation, Flag)
-EI_REBIRTH_PATCH(ChatLog, Flag)
-EI_REBIRTH_PATCH(Maps, Flag)
-EI_REBIRTH_PATCH(ResOverride, Flag)
-EI_REBIRTH_PATCH(ConfigMusicReg, Flag)
-EI_REBIRTH_PATCH(MoviesPatch, Flag)
-EI_REBIRTH_PATCH(CameraPatch, Flag)
-EI_REBIRTH_PATCH(ConfigStreamSNReg, Flag)
-EI_REBIRTH_PATCH(StreamPatch, Flag)
-EI_REBIRTH_PATCH(ForceShowTutorial, Flag)
-EI_REBIRTH_PATCH(ConfigMovieIni, Flag)
-EI_REBIRTH_PATCH(ConfigLightsIni, Flag)
-EI_REBIRTH_PATCH(ConfigTutorialIni, Flag)
-EI_REBIRTH_PATCH(EiPluginInit, Dropped)
-EI_REBIRTH_PATCH(EiPluginPK, Flag)
-EI_REBIRTH_PATCH(EiPluginNPlayers, Flag)
-EI_REBIRTH_PATCH(EiPluginPause, Flag)
-EI_REBIRTH_PATCH(EiPluginAutoAim, Flag)
-EI_REBIRTH_PATCH(EiPluginGraphGen, Dropped)
-EI_REBIRTH_PATCH(EiPluginTest, Flag)
-EI_REBIRTH_PATCH(EiPluginNewMaster, Flag)
-EI_REBIRTH_PATCH(EiPluginScripts, Flag)
-EI_REBIRTH_PATCH(EiPluginBriefings, Flag)
-EI_REBIRTH_PATCH(EiPluginFixes, Flag)
-EI_REBIRTH_PATCH(EiPluginUnload, Dropped)
+// Every flag is off by default (scripting / console additions, mod folders, rendering, multiplayer features,
+// EI_Plugin's features). The scripting and console additions that only add what nothing used before (ImproveConsole,
+// NewStringEvents, AutoExec, PersistentGlobalVars) are the rebuilt code's own since C68 and have no flag either.
+EI_REBIRTH_PATCH(ObjectsDrawRadius)
+EI_REBIRTH_PATCH(LandscapeDrawRadius)
+EI_REBIRTH_PATCH(AllowScriptArgsInLoops)
+EI_REBIRTH_PATCH(AllowScriptsInMainMenu)
+EI_REBIRTH_PATCH(AddNewConsoleCommands)
+EI_REBIRTH_PATCH(DisableExitOnCrashReport)
+EI_REBIRTH_PATCH(ExtendedServerName)
+EI_REBIRTH_PATCH(MQClient)
+EI_REBIRTH_PATCH(MPSpeedControl)
+EI_REBIRTH_PATCH(PlayerNumbers)
+EI_REBIRTH_PATCH(AddNewScriptCommands)
+EI_REBIRTH_PATCH(Maps)
+EI_REBIRTH_PATCH(ResOverride)
+EI_REBIRTH_PATCH(MoviesPatch)
+EI_REBIRTH_PATCH(CameraPatch)
+EI_REBIRTH_PATCH(StreamPatch)
+EI_REBIRTH_PATCH(EiPluginNPlayers)
+EI_REBIRTH_PATCH(EiPluginPause)
+EI_REBIRTH_PATCH(EiPluginNewMaster)
+EI_REBIRTH_PATCH(EiPluginBriefings)
+EI_REBIRTH_PATCH(EiPluginFixes)

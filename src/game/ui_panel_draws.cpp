@@ -59,7 +59,7 @@ void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {
 // model, then the screen to 1 again.
 void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, Rect slot) {
     Interface3D* ui = page->ui;
-    ui->ScaleRectToScreenEntry(&slot);
+    ui->ScaleRectToScreen(&slot);
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, &slot, 1);
     page->owner->DrawItem(pass, cell);
@@ -103,7 +103,7 @@ void HeroQuickStrip::Draw(SceneRenderer* pass) {
 void RepairGrid::Draw(SceneRenderer* pass) {
     Interface3D* currentUi = ui;
     Rect grid{200, 100, 600, 500};
-    currentUi->ScaleRectToScreenEntry(&grid);
+    currentUi->ScaleRectToScreen(&grid);
     Rect screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
@@ -126,7 +126,7 @@ void RepairGrid::Draw(SceneRenderer* pass) {
             surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
         Rect r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawTextIn(std::format("{}", owner->Price(item, 8)), &r, 1, kTextColour, 1, 1);
+        surface->DrawTextIn(std::format("{}", owner->Price(item, PriceKind::Repair)), &r, 1, kTextColour, 1, 1);
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);

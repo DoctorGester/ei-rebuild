@@ -31,7 +31,6 @@ GIT_FLAGS = 0x00004000 | 0x08000000 if os.name == 'nt' else 0
 NOTES_PER_TICKET = 3
 HISTORY = 40
 PASSED = ('PASS', 'PASS*')
-CACHED_NOTE = 'reference cache: '   # run_all.CACHED_NOTE: the note of a run taken from the reference cache
 
 _PAIR = {}   # scenario file -> whether it is a pair (a "peer" line: two games, two slots; run_all.games_of)
 
@@ -255,7 +254,6 @@ class Board:
             'running': sum(r['state'] == 'running' for r in runs), 'done': len(done),
             'games_running': sum(games_of(b['worktree'], r['scenario']) for r in runs if r['state'] == 'running'),
             'passed': len(done) - len(failed), 'failed': len(failed),
-            'cached': sum(any(n.startswith(CACHED_NOTE) for n in jlist(r['notes'])) for r in done),
             'expected': sum(r['expected'] or 0 for r in runs),
         }
 

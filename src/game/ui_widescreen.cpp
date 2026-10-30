@@ -1,14 +1,13 @@
-// Rebirth's WideScreen patch: the layout addon.dll computes, the layout widths it writes and its
-// scaling. See ui_widescreen.h.
+// The interface layout for any window shape (Rebirth's WideScreen folded in for every aspect ratio): the window's
+// 4:3 part, the layout widths and the scaling. See ui_widescreen.h.
 #include "ui_widescreen.h"
 
 #include "ui.h"
 
-#include "ei/rebirth.h"
 #include "hook/log.h"
-#include "settings.h"
 #include "lib/rect.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -18,32 +17,26 @@ namespace {
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 
-// The starter's switch (addon reads it from the registry): [rebirth] WideScreen of the settings file, on when missing
-// (addon's default).
-bool WideScreenSetting() { return settings::GetBool(settings::kRebirth, "WideScreen", true); }
-
-// addon's apply function (10023AFC): the checks that refuse a mode (logged as failed or disabled),
-// then the values, for the mode the game runs in.
+// The values for a window of width x height pixels (addon's apply function 10023AFC for a window wider than 4:3; it
+// refused every other shape, which the original's stretched layout then drew).
 Layout Compute(int width, int height) {
     Layout layout{};
-    if (!ei::rebirth::Enabled(ei::rebirth::Patch::WideScreen) || !WideScreenSetting()) return layout;
     layout.width = width;
     layout.height = height;
-    const int w = layout.width, h = layout.height;
-    if (static_cast<unsigned>(w - 640) > 0xFD7Fu || static_cast<unsigned>(h - 480) > 0xFE1Fu || w / h < 1) return layout;
-    if (w < kLayoutWidth || h < kLayoutHeight || w * 3 <= h * 4) return layout;
-    layout.width43 = h * kLayoutWidth / kLayoutHeight;
-    layout.margin = (w - layout.width43) / 2;
-    float units = layout.margin * 800.0f / layout.width43;
+    layout.width43 = std::min(width, height * kLayoutWidth / kLayoutHeight);
+    layout.height43 = std::min(height, width * kLayoutHeight / kLayoutWidth);
+    layout.margin = (width - layout.width43) / 2;
+    layout.marginY = (height - layout.height43) / 2;
+    const float units = layout.margin * 800.0f / layout.width43;
     layout.extra = static_cast<int>(std::ceil(units));
-    // width43 / width (addon's 10024954) and width * 0.0075 / height (10024902; addon divides in double).
-    layout.axisScale = layout.width43 / static_cast<float>(w);
-    layout.fontScale = w * 0.0075f / h;
-    layout.active = true;
+    // width43 / width (addon's 10024954) and width * 0.0075 / height43 (10024902; addon divides in double).
+    layout.axisScale = layout.width43 / static_cast<float>(width);
+    layout.axisScaleY = layout.height43 / static_cast<float>(height);
+    layout.fontScale = static_cast<float>(width * static_cast<double>(0.0075f) / layout.height43);
     return layout;
 }
 
-Layout g_layout;   // inactive until Configure
+Layout g_layout = Compute(kLayoutWidth, kLayoutHeight);   // an 800x600 window's until Configure
 
 int g_panelOffset;                 // ours (addon's 100BD0A0)
 
@@ -65,20 +58,16 @@ void SetCurtainLook(UiMesh* curtain, int visible) {
 float g_layoutWidth = /*00742B08*/ 800.0f;
 float g_panelRight = /*007428AC*/ 695.0f;
 
-// The layout for the resolution the game loaded from its options (addon reads VIDEORESOLUTION of its own key, the
-// same value on Rebirth's data; on the original's, the game's own tree), and the two widths written as addon
-// writes them.
+// The layout for the window the game makes at the resolution it loaded from its options, and the two widths
+// (addon: extra + 800.0 / 695.0 summed as doubles, stored as floats).
 void Configure(int width, int height) {
     g_layout = Compute(width, height);
-    g_layoutWidth = 800.0f;
-    g_panelRight = 695.0f;
-    if (!g_layout.active) return;
-    // addon: extra + 800.0 / 695.0 summed as doubles, stored as floats.
     g_layoutWidth = g_layout.extra + 800.0f;
     g_panelRight = g_layout.extra + 695.0f;
-    ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
-            g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
-            g_layoutWidth, g_panelRight);
+    ei::Log("Interface layout: %dx%d, 4:3 part %dx%d, margins %d, %d pixels (%d layout units); layout width %g, panel "
+            "right %g",
+            g_layout.width, g_layout.height, g_layout.width43, g_layout.height43, g_layout.margin, g_layout.marginY,
+            g_layout.extra, g_layoutWidth, g_panelRight);
 }
 
 const Layout& Get() { return g_layout; }
@@ -86,73 +75,66 @@ const Layout& Get() { return g_layout; }
 int PanelOffset() { return g_panelOffset; }
 void SetPanelOffset(int offset) { g_panelOffset = offset; }
 
-int EdgeShift() {
-    const Layout& l = Get();
-    return l.active ? l.extra : 0;
-}
+int EdgeShift() { return Get().extra; }
 
 // addon's entry handlers (load the extra into the offset; one negates it first) and exit handlers (zero the
 // offset).
-void EnterLeftPanel() {
-    if (Active()) SetPanelOffset(-Get().extra);
-}
-void EnterRightPanel() {
-    if (Active()) SetPanelOffset(Get().extra);
-}
-void LeavePanel() {
-    if (Active()) SetPanelOffset(0);
-}
+void EnterLeftPanel() { SetPanelOffset(-Get().extra); }
+void EnterRightPanel() { SetPanelOffset(Get().extra); }
+void LeavePanel() { SetPanelOffset(0); }
 
-// addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (with `margin`), y by
-// the mode's height.
+// Layout to screen: x by the 4:3 part's width plus its left margin (with `margin`), y by its height plus its top
+// margin (addon's code for x).
 void RectToScreen(Rect* rect, bool margin) {
     const Layout& l = Get();
-    const int shift = margin ? l.margin : 0;
-    rect->left = MulDiv64(l.width43, rect->left, kLayoutWidth) + shift;
-    rect->top = MulDiv64(l.height, rect->top, kLayoutHeight);
-    rect->right = MulDiv64(l.width43, rect->right, kLayoutWidth) + shift;
-    rect->bottom = MulDiv64(l.height, rect->bottom, kLayoutHeight);
+    const int shiftX = margin ? l.margin : 0;
+    const int shiftY = margin ? l.marginY : 0;
+    rect->left = MulDiv64(l.width43, rect->left, kLayoutWidth) + shiftX;
+    rect->top = MulDiv64(l.height43, rect->top, kLayoutHeight) + shiftY;
+    rect->right = MulDiv64(l.width43, rect->right, kLayoutWidth) + shiftX;
+    rect->bottom = MulDiv64(l.height43, rect->bottom, kLayoutHeight) + shiftY;
 }
 
-// addon's scaling of points and rectangles.
 void PointToScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
-    point->y = MulDiv64(l.height, point->y, kLayoutHeight);
+    point->y = MulDiv64(l.height43, point->y, kLayoutHeight) + (margin ? l.marginY : 0);
 }
 
-// addon's code for the screen-to-layout scaling: left, right, top, bottom in that order.
+// Screen to layout: left, right, top, bottom in that order (addon's).
 void RectFromScreen(Rect* rect, bool margin) {
     const Layout& l = Get();
-    const int shift = margin ? l.margin : 0;
-    rect->left = MulDiv64(rect->left - shift, kLayoutWidth, l.width43);
-    rect->right = MulDiv64(rect->right - shift, kLayoutWidth, l.width43);
-    rect->top = MulDiv64(rect->top, kLayoutHeight, l.height);
-    rect->bottom = MulDiv64(rect->bottom, kLayoutHeight, l.height);
+    const int shiftX = margin ? l.margin : 0;
+    const int shiftY = margin ? l.marginY : 0;
+    rect->left = MulDiv64(rect->left - shiftX, kLayoutWidth, l.width43);
+    rect->right = MulDiv64(rect->right - shiftX, kLayoutWidth, l.width43);
+    rect->top = MulDiv64(rect->top - shiftY, kLayoutHeight, l.height43);
+    rect->bottom = MulDiv64(rect->bottom - shiftY, kLayoutHeight, l.height43);
 }
 
-// addon's code for the screen-to-layout scaling of a point (two entries, one jumping to the other).
 void PointFromScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
-    point->y = MulDiv64(kLayoutHeight, point->y, l.height);
+    point->y = MulDiv64(kLayoutHeight, point->y - (margin ? l.marginY : 0), l.height43);
 }
 
-// addon's text extent code.
 Size TextExtentToLayout(Size pixels) {
     const Layout& l = Get();
-    return Size{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
+    return Size{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height43)};
 }
 
-float AxisScale() { return Active() ? Get().axisScale : 1.0f; }
+float AxisScale() { return Get().axisScale; }
+float AxisScaleY() { return Get().axisScaleY; }
 
-float FontScale() { return Active() ? Get().fontScale : 0.01f; }
+float FontScale() { return Get().fontScale; }
 
-int PickShift() { return Active() ? Get().margin / 2 : 0; }
+Point PickShift() {
+    const Layout& l = Get();
+    return Point{l.margin / 2, l.marginY / 2};
+}
 
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
 void AddCurtains(UiWindow* window, int visible) {
-    if (!Active()) return;
     const int margin = Get().margin;
     UiMesh* left = window->AddBlankSprite();
     left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
@@ -163,7 +145,7 @@ void AddCurtains(UiWindow* window, int visible) {
 }
 
 void ShowHeroCurtains(UiWindow* window, int mode) {
-    if (!Active() || std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
+    if (std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
     window->SceneMesh(kHeroScreenSprites - 2)->visible = shown;
     window->SceneMesh(kHeroScreenSprites - 1)->visible = shown;
@@ -171,6 +153,5 @@ void ShowHeroCurtains(UiWindow* window, int mode) {
 
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
-
 
 } // namespace widescreen

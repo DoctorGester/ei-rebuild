@@ -107,7 +107,7 @@ public:
     int filter;                 // 0 items, 1 spells, 2 armour
     std::vector<Item*> list;           // the visible items
     std::vector<Item*>* source; // all the items (a party's item list, PartyItemArray)
-    int slots;                  // 9
+    PriceKind priceKind;        // the price shown under each item (None: no price)
 };
 
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
@@ -373,7 +373,7 @@ public:
     void MasterRequest();
     // Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
-    // The list drawn on surface 0 (Rebirth-patched: WideScreen and ExtendedServerName reproduced behind their flags): see
+    // The list drawn on surface 0 (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag): see
     // docs/notes/ui.md, "MpConnectScreen::DrawListVanilla".
     void DrawListVanilla();
     // The list again: the client's servers (ServerAt) in order, sorted by sortKey (std::sort), the new game entry

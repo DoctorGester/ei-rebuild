@@ -1,7 +1,6 @@
 address,size,name,file
 0073CB38,64,kSphereSizeByLife,src/game/effects.h
 0073CB78,24,kAntimagicSizeByLife,src/game/effects.h
-0073D080,4,kSeedSearchPattern,src/game/random.cpp
 0073D780,16,kNoScreen,src/game/link_mesh_draw.cpp
 0073E048,84,kArmourCoverage,src/game/unit_armour_layers.cpp
 0073E09C,96,kArmourPieces,src/game/unit_hits.cpp

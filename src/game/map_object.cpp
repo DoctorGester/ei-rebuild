@@ -12,7 +12,6 @@
 #include "unit.h"     // MapObjectServer
 #include "unit_create.h"
 #include "world.h"    // World
-#include "ei/rebirth.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -45,25 +44,29 @@ void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(
 // The change stamp: the world's update count.
 int UpdateCount(const World* world) { return world->updateCount; }
 
-constexpr int kRebirthMaxEffects = 20;
-constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
+// The most effects an object holds: the network sends the count as a byte (WriteNetState).
+constexpr int kMaxEffects = 255;
+constexpr double kSameStrength = 0.001;   // Rebirth's constant (a double)
 
-// Rebirth fix (FixSpellEffectsOverflow): after adding `effect`, older effects (not the new last one) of the
-// same type and end flag whose second float is within 0.001 of the new one's, that last no longer and whose
-// value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
-// is not looked at) and reads the count each time.
+// After adding `effect`: the older effects (not the new last one) it renews are removed, those of the same type
+// and end flag whose strength is within 0.001 of the new one's, that last no longer and whose value is not above it.
+// The original kept every copy, so a buff cast again and again piled up (Rebirth's FixSpellEffectsOverflow, whose
+// loop also skipped the record after each removal).
 void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
-    for (int i = 0; i < std::ssize(object->effects) - 1; ++i) {
+    for (int i = 0; i < std::ssize(object->effects) - 1;) {
         MapEffect* e = &object->effects[i];
-        if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
-        EI_NAN_AUDIT(lib::FloatFromBits(effect->value), lib::FloatFromBits(e->value));
-        if (lib::FloatFromBits(effect->value) < lib::FloatFromBits(e->value)) continue;
-        if (e->ending != effect->ending) continue;
-        float difference = lib::FloatFromBits(e->strength) - lib::FloatFromBits(effect->strength);
-        float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
-        if (static_cast<double>(distance) < kRebirthSameStrength) {          // plain IEEE compare
-            object->effects.erase(object->effects.begin() + i);
+        bool outdated = e->type == effect->type && e->ticksLeft <= effect->ticksLeft && e->ending == effect->ending;
+        if (outdated) {
+            EI_NAN_AUDIT(lib::FloatFromBits(effect->value), lib::FloatFromBits(e->value));
+            outdated = !(lib::FloatFromBits(effect->value) < lib::FloatFromBits(e->value));
         }
+        if (outdated) {
+            float difference = lib::FloatFromBits(e->strength) - lib::FloatFromBits(effect->strength);
+            float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
+            outdated = static_cast<double>(distance) < kSameStrength;          // plain IEEE compare
+        }
+        if (outdated) object->effects.erase(object->effects.begin() + i);
+        else ++i;
     }
 }
 
@@ -97,8 +100,7 @@ void MapObject::SetEffectCount(int count) {
 }
 
 void MapObject::AddEffect(const MapEffect* effect) {
-    bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
-    if (rebirth && std::ssize(effects) >= kRebirthMaxEffects) return;   // addon.dll drops it (and logs)
+    if (std::ssize(effects) >= kMaxEffects) return;   // RemoveOutdatedEffects keeps the list far below this
     int count = lib::Count(effects);
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
@@ -114,10 +116,9 @@ void MapObject::AddEffect(const MapEffect* effect) {
     if (spellType == SpellType::Stun || spellType == SpellType::Teleport) SetStunned(1);
     EffectsChanged();
     if (scales) RecomputeScale();
-    if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
+    if (effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
-// Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is in
-// WorldServer::UpdateUnits (original).
+// A sleeping object's effects count down too (WorldServer::TickSleepingEffects).
 
 void MapObject::ClearEffects() {
     effects = {};
@@ -272,8 +273,7 @@ int MapObject::NotifyCompanion() {
 
 void MapObject::TakePrototype(std::string_view prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
-    // original then packs what its stack held; the harness zeroes them there too (a determinism fix,
-    // harness_leftovers.h).
+    // original then packed what its stack held (a determinism fix).
     UnitVitals vitals{};
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(&packedVitals);

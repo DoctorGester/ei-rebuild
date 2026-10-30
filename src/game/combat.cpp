@@ -8,7 +8,6 @@
 #include "combat_plan.h"
 #include "console.h"
 #include "core_refcount.h"
-#include "ei/rebirth.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
@@ -243,9 +242,7 @@ bool UnitServer::IsFighting() {
         if (spell) {
             SpellType spellType = spell->Type();
             if (spellType <= SpellType::AcidFog) return true;
-            // Rebirth's FixPlaingBattleMusicFromAntimagic skips the Antimagic test.
-            if (spellType == SpellType::Antimagic && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
-                return true;
+            // Antimagic is not a hostile cast (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
         }
     }
     return action.kind == UnitOrderKind::Attack;

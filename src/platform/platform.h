@@ -13,7 +13,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -89,8 +88,6 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 std::uint32_t PageSize();
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
-// Seed material for a 256-word generator, using the host's entropy source.
-void RandomWords(std::span<std::uint32_t, 256> words);
 // A complete decimal float in the C locale, including inf/nan; no leading plus, whitespace or hex syntax.
 // Leaves `value` untouched on failure.
 bool ParseFloat(std::string_view text, float* value);

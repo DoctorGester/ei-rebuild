@@ -2,7 +2,7 @@
 
 // The camera's motion frame by frame (verify build only; harness_camera.cpp, R18, R35a): the drawn view's checks
 // (camera::DrawnView, docs/notes/renderer.md section 14). Each frame samples the pose the world's draw shows and
-// the camera's own (in game.exe the original's camera through exe_objects.h, which draws its own pose). Steps:
+// the camera's own. Steps:
 //   camtrace start [log]      record after each frame's last camera update from now on (the main loop's
 //                             per-frame call, which the harness takes over for this: HeldCameraUpdate); with
 //                             "log" each frame's poses go to the log ("harness: camframe ...")

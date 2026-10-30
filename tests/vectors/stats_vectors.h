@@ -2,7 +2,7 @@
 
 // Payloads of the "stats" family (vectors.h): the creature statistics, lock and damage word formulas of
 // src/game/unit_stats.cpp, unit_skill_price.cpp, unit_params.cpp, unit_params.cpp and
-// unit_stats.cpp. Recorded by record_stats.cpp, replayed by replay_stats.cpp.
+// unit_stats.cpp. Recorded by record_stats.cpp (the tag original-oracle), replayed by replay_stats.cpp.
 // A StatView holds the fields of a UnitStats the formulas read; the recorder fills only those the
 // function in question reads and leaves the rest zero, so equal calls give equal bytes.
 
@@ -43,7 +43,7 @@ struct ReduceCall {
     std::uint32_t pad;
     double result;
 };
-struct OpensCall {         // LockKey::Opens (Rebirth's FixLeversActivate off)
+struct OpensCall {         // LockKey::Opens (the original's, without FixLeversActivate; the 8 recorded calls give the same with it)
     LockKey key, lock;
     std::int32_t result;
 };

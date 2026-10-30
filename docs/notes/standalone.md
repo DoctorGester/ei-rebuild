@@ -1,9 +1,9 @@
 # Standalone exe: the address image, the library ports, UTF-8
 
 The product is the standalone image: `ei-rebuild.exe` lays out game.exe's data without its code and runs our
-code, all of it linked into the exe (S23: dropped into a game folder it plays; "The drop-in exe"). game.exe runs only
-as the original game (the harness's references, with the harness in ei_harness.dll). This file holds how
-the image works, where the library code lives and what it must keep, the UTF-8 plan and game.exe's role. How
+code, all of it linked into the exe (S23: dropped into a game folder it plays; "The drop-in exe"). Nothing runs
+game.exe since H40 (the tag original-oracle has the last build that ran it as the harness's reference). This file holds
+how the image works, where the library code lives and what it must keep, the UTF-8 plan and game.exe's role. How
 changes are checked: docs/notes/standalone-verification.md. Per-ticket history: `git log --grep=<ID>`.
 
 ## 1. What ties the code to the exe
@@ -13,7 +13,7 @@ and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue 
 `this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_static_init,
-retired_vtables, gen_iat, check_signatures, check_stolen, find_vtables,
+retired_vtables, gen_iat, find_vtables,
 find_dead_code; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
@@ -43,8 +43,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   address left, the guard was a safety net only). A stray game address faults when the memory is free and is named by
   the image: OnOldCode (the code section) with the detailed report. The image has nothing of game.exe's data (C20u),
   so an access to its range has no report of its own: it ends in the unhandled-exception log line. Where the loader put memory in the range (the host, a heap, a DLL), an access finds that memory and
-  does not fault. `ei::Standalone()` is
-  "the main module exports `EiStandaloneHost`" (the exe's marker; game.exe, where ei_harness.dll runs, exports nothing).
+  does not fault.
   **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
   (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
   (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
@@ -79,8 +78,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
   mode change). run_all passes ei_launch no game.exe for them (S18k1; the run\<install>-clean folders of SV10f are gone):
   `--game` is the install whose data they play, and ei_launch --standalone sets EI_GAME_ROOT from it; `--exe` only
-  places the shared host copy of a launch without a scenario (launch-vanilla.cmd). run\<install> keeps dgVoodoo for
-  the original's runs.
+  places the shared host copy of a launch without a scenario (launch-vanilla.cmd).
 
 ### Own data (S18)
 
@@ -88,8 +86,8 @@ The image ran on game.exe's sections at their addresses. S18 moves them out one 
 each step green on the goldens and removing a measured tie:
 - **The seam** (S18a, src/game/game_data.h): code that reads game.exe's own data (the harness and the vector recorders
   in game.exe's runs) names it by the original's address and reaches it only through `GameData<T>(a)` or
-  `GamePointer<T>(a)` (the harness's tests/verify: `OriginalGameData`); `DataId(a)` marks an address kept in a table,
-  resolved by its reader. In game.exe it is the address; ei_vectors.exe (EI_VECTORS_REPLAY) hands a stand-in its checks
+  `GamePointer<T>(a)`; `DataId(a)` marks an address kept in a table, resolved by its reader (the harness's
+  `ExeTableId(a)`: a game.exe table kept as an id, never read). ei_vectors.exe (EI_VECTORS_REPLAY) hands a stand-in its checks
   fill (tests/vectors/replay_game_data.cpp). The image has none of game.exe's data and src/ names no address of it
   (the dashboard's "game data addresses": 0 since C20u).
 - **The check** (`python tools/data_seam.py`, build.cmd): every literal of game.exe's data range in src/, tests/ and
@@ -125,8 +123,8 @@ each step green on the goldens and removing a measured tie:
   funclets with C20a. A stray call through one would be a call of null. The launch-free check (`--check`): the routes and imports are checked. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, C20u, src/standalone/image_imports.cpp): game.exe's import address table (0x820 bytes,
   .rdata's start) is an ordinary table of the image's (`g_table` in image_imports.cpp); `ei::Imports()`
-  (lib/import_table.h) is that table in the image and game.exe's own (its IAT directory, src/hook/original_data.cpp)
-  in game.exe. `tools/gen_iat.py` writes the table
+  (lib/import_table.h) is that table (until H40 game.exe's own in the harness's game.exe runs). `tools/gen_iat.py`
+  writes the table
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
   `ei::Imports()` the table calls go through), the image's list (src/standalone/image_imports.inc, 504 imports:
@@ -167,13 +165,11 @@ each step green on the goldens and removing a measured tie:
   prototype from import_prototypes.h's does not compile (C2733, C4273). So a file that calls only gameapi:: needs no
   windows.h (~0.4 s of front end each). A harness route on a new slot, or a `gameapi::` call of an import gameapi.h
   does not have yet, makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
-  gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
-  hook/paths.cpp and the harness, which keep the slots they patch. **game.exe's own routes** (S22b, S22c): a slot only
-  the original calls through is named through a function with "Original" in its name taking `&ImportTable::X`
-  (harness_imports.h's `PatchOriginalImport`, harness_clock.cpp's `TraceOriginalSlot`, import_table.h's
-  `OriginalImport` for hook/paths.cpp); those do nothing in the image, and gen_iat.py's `ORIGINAL` leaves the slot out
-  of `routed()` and `reached()` (a trap in the image). gen_iat.py fails when our code reaches such a slot: the image
-  would need the route. They are the heap (repeatable addresses in the original; the image's layout is not kept),
+  gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. **game.exe's own
+  routes** (S22b, S22c, until H40): a slot only the original called through was named through a function with
+  "Original" in its name taking `&ImportTable::X` (`PatchOriginalImport`, `TraceOriginalSlot`), which did nothing in
+  the image; gen_iat.py's `ORIGINAL` still leaves such a name out of `routed()` and `reached()`, and none is left.
+  Those slots are traps in the image: the heap (repeatable addresses in the original; the image's layout is not kept),
   SetFocus / SetActiveWindow, SetFileAttributesA, the profile's Int / SectionNames reads and its writes, RegCreateKeyExA /
   RegSetValueExA / RegQueryValueExA (the image's settings are its file: harness_settings, settings.h),
   CreateFontIndirectA, GetTimeZoneInformation, the clock trace's CreateThread / GetMessageTime, and
@@ -302,7 +298,7 @@ What C25a named or dropped of its list, still the code's form:
 - **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
   `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
-  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
+  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address; harness_addon.cpp read it in game.exe until H40).
 - **The DragList message id**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64, read only by
   CWnd's message map) is gen_static_init.py's UNUSED_INITIALISERS since C14zi.
 - **Named**: OnNewParty's next record id
@@ -345,10 +341,8 @@ kinds given.
   members of the camera 0079B2A8 (0079B2B0, 0079B2C4, 0079B388, 0079B3C4), the scene renderer 007AF060 (007AF064), the client
   and server world blocks (007AF604, 007AFCA4, 007AFFAC, 007AFFC4), the mission script (007C2CD0), the Esc menu's rectangles 007C80A8 (inside the menus' block 007C8048 that LoadMenuRects fills by its base: a first try named them zero and the Esc menu's buttons went dead), the CWordArray 0079B668
   (0079B66C), the singleton pointers of game_singletons.h, the loading movie 007C5520 (static initialisers store into it).
-- **The harness in game.exe**: the original suite (`--no-hooks`) runs game.exe's own code, which never touches our
-  named globals. A harness step there must read game.exe's copy (`ei::OriginalGameData<T>(address)`, tests/ only)
-  or call game.exe's function by address instead of ours (the zone step's LeaveToZone, modfile's text folder, the
-  digest's random; 4cbf5d5c). Run the original suite after naming data the harness reads.
+- **The harness in game.exe** (until H40): the original suite ran game.exe's own code, which never touched our named
+  globals, so a harness step there read game.exe's copy or called game.exe's function by address (4cbf5d5c).
 - **The form**: a typed definition whose initialiser carries the original's address as a tag right after the `=`:
   `constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};`. The code names the global
   (`kSlotXs[i]`), never the address. It lives in the file that reads it (its anonymous namespace), or as
@@ -398,14 +392,14 @@ kinds given.
   (`scriptparse::kCommentOpen` / `kCommentClose` / `kLineComment`, script_parse.h; the quote 0078BC98 is the literal
   `kQuote`). **Rebirth**: only the image runs our code, and addon.dll never loads there; `KeywordTable()` gives
   `scriptaddon::Table()` (script_addon.cpp: built once from kScriptKeywords and addon's 69 records, as addon's
-  10022290 does) when the AddNewScriptCommands flag is on, else kScriptKeywords. game.exe (--no-hooks, the recorders)
-  runs its own code on its own table or addon's; nothing of ours reads game.exe's copy. The script vectors' fixture
+  10022290 does) when the AddNewScriptCommands flag is on, else kScriptKeywords. game.exe (the --no-hooks runs and the
+  recorders, until H40) ran its own code on its own table or addon's; nothing of ours reads game.exe's copy. The script vectors' fixture
   "@ScriptKeywords" keeps its format; the replay compares the recorded table and markers with ours instead of
   writing them into the stand-in. The CRT's locale data (getqloc's tables, `_ctype` / `_pctype`, `__lc_category`) is
   unread since C26 (setlocale and _setmbcp are the host CRT's; named_data still takes `NAME + k`, a named range's
   element k, as a pointer element). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
   `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
-  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets the classes with SetReplayLocale).
+  recorder read game.exe's `_pctype` through OriginalGameData until H40; the replay sets the classes with SetReplayLocale).
   config/image_kept.csv (C25) lost the rows these names replace: the keyword table and the strings only its cells
   reached (0078BCA0, 0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), and the CRT's locale rows
   (C18q, C26).
@@ -507,10 +501,10 @@ kinds given.
     length 1..0x22, 0078DB24 by bit count; 0078DB24 itself is the tail of the string "sky00"), so ours take
     `length - 1` / `count - 1`. **An object's start is where the next one ends**, not the base the code indexes
     from: read the bytes and the neighbours before trusting a `--refs` start. The coder vectors' "@CoderTables"
-    keeps its format (the recorder reads game.exe's copies at the indexed bases through OriginalGameData; the
+    keeps its format (the recorder read game.exe's copies at the indexed bases through OriginalGameData; the
     replay compares from entry 1 and fills ours). A bound must be decimal: `[0x22]` read as no bound (one element,
     zero bytes) and named nothing; named_data now refuses it. The network globals: net_classes.h's g_gamePort
-    00783E30 (8888; the harness writes its free port to ours in the image, game.exe's in --no-hooks), g_netLog,
+    00783E30 (8888; the harness writes its free port to ours), g_netLog,
     g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
     static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
     rows in config/extra_function_sizes.csv), the pump time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
@@ -590,9 +584,8 @@ kinds given.
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
         their class (g_gameFlow, g_partyManager, g_interface and g_cursor: plain globals since C54g / C54g1) are declared
         extern in game_singletons.h. **The harness** reads
-        them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
-        in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
-        difficulty from game.exe's options the same way. Left: MapDatabase 0079BF00, the renderer
+        them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor:
+        ours; game.exe's copy at the address in the --no-hooks runs until H40). Left: MapDatabase 0079BF00, the renderer
         007AF060 and the other vtable-storing objects (C19).
       - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
         the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
@@ -631,7 +624,7 @@ kinds given.
         gen_static_init's UNUSED_INITIALISERS. Since C50a1 the tables are function-local statics built on first use
         (SectorSpiralTables, SmoothTables; the builders' initialisers 005BF8E0 / 005C42A0 are UNUSED_INITIALISERS
         too). The path vectors keep their format:
-        the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
+        the recorder read game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
         template argument: the literal check's pattern takes no nested `<>`), the replay compares ours with them in
         the record's order.
       - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream
@@ -741,9 +734,9 @@ kinds given.
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading
       movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
-      005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
-      harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls
-      game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
+      005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads ours through
+      harness_objects.h (until H40 game.exe's copies in its --no-hooks runs, with game.exe's own PickAt2 / UnitAt /
+      GameSendLeave04 / GameSetConstructionVariable called by address).
     - **Names in the generated code (C18u, 53 -> 41)**: gen_static_init.py's GENERATED_NAMES maps an address to a
       name and its header, and the generator writes the name where the original's code has the address: a guard's
       flag byte (`Once(name, bit)`), the object a call takes as `this` (`Call(&Class::Method, &name)`) and where a
@@ -818,12 +811,10 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by address and name), so
   those cells may point at the zero table. Code that reaches game.exe's unported function reports "no code at
   <address>" through `ei::ReportNoCode` (ei/hook.h).
-- **Ids for the harness**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
-  `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
-  recording) and the image give the same: the harness maps a class to game.exe's address (`ei::OriginalGameData`):
-  harness_digest.cpp's `ModeKinds()` for the AI modes, `WindowKind` (a window by its class's `typeid`) with
-  `KnownWindows()` / `WindowReady` naming screens by game.exe's main table. When the label text changes, re-record with
-  `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
+- **Ids for the harness**: the digest's AI modes keep game.exe's table addresses as their ids (harness_digest.cpp's
+  `ModeKinds()`, `ExeTableId`: the goldens, first recorded from game.exe, hash them); the harness names windows by
+  name, mapped to our classes by `typeid` (harness_windows_image.cpp, `waitwindow`). A change of an id re-records the
+  goldens that hold it (the Suites workflow's `record` input). Slots the harness patches need a hook in our code
   instead (the console's line observer `console::g_consoleLineObserver`, the memory stream's
   `g_memoryStreamWriteObserver`).
 - **Slot conventions**: a class declares every slot of game.exe's table in its order (slot indexes keep their meaning
@@ -849,8 +840,6 @@ destructor, the slot bodies the virtual overrides (base calls qualified), class 
   plain `X x;`.
 - A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
   `__fastcall` shim that calls it (party.cpp's DestroyPartyInPlace at 006611D0).
-- check_signatures accepts a destructor named by an EI_RECORD whose original pops 4 more (the scalar deleting
-  destructor's flags argument).
 - Members must be trivially default-constructible or initialised in the constructor's list as the original does: a
   constructor default-initialises what it does not name.
 
@@ -875,7 +864,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
   GetCommandLineA (its slot is a trap since S22; the host's own call reads the host's line).
 - **Code bytes read as data**: none left (R9b3). app_frame's cursor lock (004580D7) calls our rewrite directly; the
   harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
-  through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h). ClassifyToken's
+  through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness.cpp). ClassifyToken's
   keyword table (the immediate at 004CF69B, which Rebirth rewrote) is `KeywordTable()`: kScriptKeywords (0078BCA0's
   bytes, C18q) or the add-on's, which script_addon.cpp builds from it under the flag.
   `AddonPanelOffset` returns none.
@@ -907,7 +896,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
 ### Settings file (ST1, 2026-10-22; our own format since 2026-10-30)
 
 The image keeps its settings in **ei_settings.ini next to ei-rebuild.exe**, a plain ini of its own (src/game/settings.h),
-and never reads or writes the registry. game.exe (the original game, the `--no-hooks` suite) keeps the registry.
+and never reads or writes the registry. game.exe (the original game) keeps the registry.
 - **Where (S24b)**: the first place that holds a file: next to the exe, then `%LOCALAPPDATA%\EvilIslands\ei_settings.ini`
   (the LOCALAPPDATA variable). With neither, the defaults are written to the first place that takes them: next to the
   exe, else the per-user one (its folder made), so a drop-in exe in a folder the user cannot write (Program Files)
@@ -942,7 +931,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   tables: the original's registry subkeys, General Settings split into video and sound, Joystick in game), renderer
   (Msaa, Anisotropy, VSync, PerfOverlay), patches (Rebirth's patches, `Name = true|false`, and EI_Plugin's NPlayers,
   Pause, SecondMaster: docs/notes/rebirth.md, "The flags"; C66a folded the separate ei_rebirth.ini in), rebirth
-  (Rebirth's starter switches: WideScreen, ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
+  (Rebirth's starter switches: ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
   names are the original's registry value names. A value is the text after the first `=`, spaces around it trimmed
   (in double quotes when it starts or ends with a space or starts with a quote: the outer pair is dropped); a line
   break inside one is written as a space. Numbers are decimal (up to 4294967295, read as the int of those bits), floats
@@ -950,8 +939,8 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   a number reads true / false as 1 / 0). The options writer writes its on / off options as booleans (options.cpp
   `kFlag`), the others as numbers. Sections and names compare without case; a name keeps its first spelling. A section
   name is letters, digits, spaces, `_` and `-`: a bad one and its lines are skipped (reported). One tree for both
-  installs: Rebirth's NivalRegistry (the starter's tree) is dropped, the WideScreen layout takes the resolution the
-  game loaded (ui_widescreen.cpp Configure).
+  installs: Rebirth's NivalRegistry (the starter's tree) is dropped; the interface layout (W12, no switch) takes the
+  resolution the game loaded (ui_widescreen.cpp Configure).
 - **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with `settings::Defaults`
   (settings_document.cpp) for the primary monitor's mode in pixels (EnumDisplaySettings of the primary monitor's
   device: the physical size whatever the process's DPI awareness, so no reader order matters; without a size, no
@@ -967,7 +956,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright), the hero's light 216 216 116 radius 5 and the
   quest light 120 72 120 radius 5, UseSWCursors false, SelectionType 1, DefaultMapName / DefaultStreamingSound, the
   master server a3master.nival.com (the code's is empty). renderer: VSync true, Msaa 8, Anisotropy 16, PerfOverlay
-  false. patches: a comment only (every patch takes the game folder's profile). rebirth: WideScreen true, ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
+  false. patches: a comment only (every patch takes the game folder's profile). rebirth: ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
   original's distances; 5376 draws the whole map and is what the user's starter had). autoexec: a comment only.
   Everything else is left out and read as absent: the game takes its own defaults (paths `.\` and `.\res\` from the
   working folder, the exe's: "The game folder" above, the other game settings, equal to the install's), Rebirth its
@@ -1075,15 +1064,13 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   before C20c, 3,527 after C20d, 809 before C20 batch 1, 72 after C20e, 1 after batch 3, 0 after batch 6.
 - **No function-to-original map** (C20l): the `EI_REWRITTEN` lines (C20d-C20k: {address, &Fn} in the DLL's `.eiorg`
   section, one per address by check_registrations) went with their last readers. What still needs a game address
-  of a function of ours has it where it is used: an EI_RECORD names the rewrite its replays call (check_signatures
-  checks its stack arguments), gen_static_init reads config/static_init_ports.csv. The trace tools (coverage, save_trace, named_data's --emit / --refs) no longer map
+  of a function of ours has it where it is used: gen_static_init reads config/static_init_ports.csv (the vector
+  recorders' EI_RECORD named the rewrites their replays call until H40). The trace tools (coverage, save_trace, named_data's --emit / --refs) no longer map
   game.exe's functions to ours; progress / the dashboard dropped the port counts.
-- **game.exe's side**: the vector recorders (`EI_RECORD`, tests/vectors/record_*.cpp) are the only hooks;
-  InstallHooks installs them in game.exe with EI_VECTORS=1, leaving out (and counting as unexpected) a second one at
-  an address or one whose stolen bytes differ from the file. check_stolen.py checks each against game.exe: a known
-  function start, one per address, whole instructions with no relative operand, no jump back into the stolen bytes.
+- **game.exe's side** (until H40; the tag original-oracle): the vector recorders (`EI_RECORD`, tests/vectors/
+  record_*.cpp) were game.exe's only hooks, installed with EI_VECTORS=1 and checked by check_stolen.py.
 - **Function sizes** (src/hook/function_sizes.inc from Ghidra, config/extra_function_sizes.csv for what Ghidra lacks
-  or cuts short) are the tools' (check_stolen, check_signatures, coverage, gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
+  or cuts short) are the tools' (coverage, gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
   006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
@@ -1123,8 +1110,8 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
   image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
-  repeatable heap, jitter, fill and trace (tests/verify/harness_heap.h) act on game.exe only now: the image's blocks
-  are the host heap's (its low-fragmentation front end), so a golden of the image already holds under other
+  repeatable heap, jitter, fill and trace (tests/verify/harness_heap.h) acted on game.exe only and went with H40: the
+  image's blocks are the host heap's (its low-fragmentation front end), so a golden of the image already holds under other
   addresses in every run. Our objects are the host's `new` / `delete` (C35g): MFC's handler loop
   (`_afxNewHandler` 00796E14, initial value `AfxNewHandler` 0070058F, which threw the static CMemoryException)
   is gone, so an exhausted heap throws std::bad_alloc where the game threw a CMemoryException.
@@ -1319,8 +1306,6 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 - A NaN in a sort key makes a comparator irreflexive and STLport's unguarded scans run off the array: the draw list
   sort crashed in its comparator 00574300 (S17a: a shadow-only object's never-written view depth); Object3D::Construct
   now zeroes it. Any comparator over a never-set float needs the same care.
-- A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
-  recorders' counts.
 - A system call does not trap on an inaccessible page, it fails: C25's image trace saw WriteFile fail (error 1784) on
   a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the Win32 calls that
   take it.
@@ -1589,8 +1574,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **The Rebirth profile** (src/standalone/startup.cpp, C66a): the game data folder (EI_GAME_ROOT when a launcher names
   it, else the exe's own) picks the profile from its files: Rebirth's where `starter\addon.dll` or `EI_Plugin.asi` is
   (config/rebirth_profile.ini's patches, made a spec at configure time: build/<cfg>/config/rebirth_profile.inc;
-  EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the plain install's (the defaults and
-  WideScreen). Then ei_settings.ini's `[patches]` (`Name = true|false`, `NPlayers`, `Pause`, `SecondMaster`; read as
+  EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the plain install's (the
+  defaults). Then ei_settings.ini's `[patches]` (`Name = true|false`, `NPlayers`, `Pause`, `SecondMaster`; read as
   the section's lines, so a harness run's pinned file reports nothing missing), then EI_REBIRTH and a scenario's flags.
   The defaults name no patch, so play.cmd's two modes share run\play's file and each takes its data folder's profile.
   When EI_REBIRTH is set no profile is taken: ei_launch sets it to `defaults` for a harness run whose caller set none,
@@ -1602,7 +1587,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   (`/DEPENDENTLOADFLAG:0x800`, where Windows honours it), so a wrapper DLL of the same name in a game folder (dgVoodoo,
   a dsound wrapper) is not taken; ASan's build leaves it out (its runtime is beside the exe).
 - **Checked** (hand, `--check` from C:\ without EI_GAME_ROOT, the release exe copied into a folder with an install's
-  DLLs): the imports load from the exe's folder, the plain folder takes the defaults and WideScreen, the folder with
+  DLLs): the imports load from the exe's folder, the plain folder takes the defaults (then also WideScreen, a flag until W12), the folder with
   EI_Plugin.asi / EI_Plugin.ini the 40 flags of the Rebirth profile with the plugin's players and pause mode,
   ei_settings.ini written beside the exe. The game itself plays in every suite run from the same exe layout.
 - **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
@@ -1619,15 +1604,14 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   ei_launch sets to the build's (from the copy, two folders up is the run folder). Scenarios: `dropin_boot` (the menu comes up), `dropin_profile` (the harness's `dropin` step,
   tests/verify/harness_dropin.h: no EI_GAME_ROOT or EI_REBIRTH, the working directory the exe's folder, and every
   flag as the folder's profile must set it, worked out from config/rebirth_profile.ini and the patch list,
-  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
-  profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
+  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Their goldens are their own (H40): no
+  EI_REBIRTH, so the Rebirth install's drop-in run plays in the vanilla runs' 4:3 window (harness_starter.h). The verify exe runs there (the harness is linked in), not the release one.
 
 ### The x64 build
 
 `build.cmd x64`: the release build for 64-bit Windows (vcvars64, build\x64; CMake's `EI_X64`, from the pointer size).
-- **What it builds**: ei-rebuild.exe, ei_text_check, ei_ui_check and ei_perf_check. 32-bit only: the harness (CMake
-  refuses `EI_HARNESS` there; it runs in game.exe), ei_vectors (its recordings are game.exe's) and ei_launch (it
-  starts game.exe and reads its threads). build_checks.py `--x64` runs every check but the function vectors. No
+- **What it builds**: ei-rebuild.exe, ei_text_check, ei_ui_check and ei_perf_check. 32-bit only: ei_vectors (its
+  recordings are game.exe's 32-bit calls); the harness and an x64 ei_launch are verify-x64's (below). build_checks.py `--x64` runs every check but the function vectors. No
   `/arch:SSE2` (x64 has it always).
 - **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through platform/platform.h and
   platform/platform.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
@@ -1655,14 +1639,10 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   (the difficulty dialog, the first zone with its hints, Zak in the circle by day), loading a save from the menu
   (the party, the HUD, the log). Without the x64 data fixes of docs/notes/x64.md (among them the save counts written
   as 32-bit values) a new game came up at night with no Zak; with them it starts as the 32-bit build's does.
-- **The x64 harness build** (A3c): `build.cmd verify-x64` builds builderify-x64: ei-rebuild.exe with the harness's image
-  side linked in (CMake `EI_HARNESS` on x64 builds no ei_harness.dll: game.exe is 32-bit) and an x64 ei_launch that
-  starts only the image. `python tools/work.py test <ID> --x64 [run_all args]` (or run_all.py `--x64`) runs the image's
-  scenarios on it, runs in builderify-x64
-uns, against the same goldens; `--no-hooks` is refused. game.exe's side of
-  the shared harness compiles there but never runs: `EI_NAKED` / `EI_ORIGINAL` (harness_original.h) give a body that
-  logs and ends the run, exe_objects.h's layout asserts (`EI_EXE_LAYOUT`) hold on x86 only, the inline assembly steps
-  are x86 only. What the harness does differently on x64: thread contexts through src/hook/thread_context.h (Rip / Rsp),
+- **The x64 harness build** (A3c): `build.cmd verify-x64` builds build\verify-x64: ei-rebuild.exe with the harness
+  linked in and an x64 ei_launch. `python tools/work.py test <ID> --x64 [run_all args]` (or run_all.py `--x64`) runs
+  the image's scenarios on it, runs in build\verify-x64\runs, against the same goldens. The inline assembly steps are
+  x86 only. What the harness does differently on x64: thread contexts through src/hook/thread_context.h (Rip / Rsp),
   user32's hot patches (an absolute jump and a trampoline for the prologues it knows, harness.cpp HotPatch), the
   registry hook (advapi32's import slot by name: some exports are wrappers there), ntdll's write guard (the x64 system
   call stub; the JMP goes to an absolute jump in a page near ntdll), a C++ throw's tables (offsets from the module base).
@@ -1673,59 +1653,52 @@ uns, against the same goldens; `--no-hooks` is refused. game.exe's side of
   comparison of the x64 runs with those of the 32-bit image without Miles is the x64 proof (docs/notes/x64.md, "The x64
   goldens").
 
-### The harness's homes (S23)
+### The harness in the image (S23, H40)
 
-The harness (tests/verify) runs in both games and so lives in two places, built once (CMake object library
-`ei_harness_shared`: tests/verify/*.cpp, src/hook/hook.cpp and cover.cpp, tests/vectors/vectors_record.cpp):
-- **The image** (verify and asan builds): linked into ei-rebuild.exe with its image side (tests/verify/image), which
-  calls our code by name. The release and play builds have none of it.
-- **game.exe**: `ei_harness.dll`, which ei_launch injects before game.exe's code runs: the shared harness, the hook
-  framework's game.exe side (src/hook: DllMain, the recorders' installation, the registry path redirect, the log),
-  `original_data.cpp` (the data seam's shift 0), src/lib/rebirth.cpp, the vector recorders, and
-  `tests/verify/original/image_absent.cpp`: every function of image/image_side.h (and the digest's image_side) with a
-  body that logs `FAILED: the harness called the image's ... in game.exe` and ends the run. No game code: ~0.6 MB
-  against the game's 5 MB. A new image_side function is a link error of ei_harness.dll until it has its body there.
+The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (CMake object library
+`ei_harness_shared`: tests/verify/*.cpp), with its image side (tests/verify/image), which calls our code by name. The
+release and play builds have none of it. Until H40 the same harness also ran inside game.exe as ei_harness.dll, for
+the original's runs (the tag original-oracle).
 - **Why linked, not a DLL the exe loads**: the image side reaches our code through ~120 functions (image_side.h) and
   the game's hook points; a harness DLL in the image would need the exe to export all of them and the data seam, and
   would have to load before the exe's static initialisers (it takes import slots there). Linked in, the seam is the
   one image_side.h already was, and the only cost is a verify exe that differs from release by the harness (it
   already differed by EI_NAN_AUDIT_LOG and the renderer's validation).
 - **Where the harness reaches into game code** (the explicit interface): image/image_side.h and
-  harness_digest_read.h's image_side (reads and calls of our classes, image only); the hook points the game exposes:
+  harness_digest_read.h's image_side (reads and calls of our classes); the hook points the game exposes:
   `ei::mainloop::g_harnessHooks` (main_loop.h: server update, client segment, camera, cursor lock, frame step),
   `g_directInputObserver` (ui_cursor.h), the settings file's read filters and pin (settings.h), the random
   generators' draw observers and seed hook, the console line observer, the memory stream write observer (each set
-  through image_side.h); the import slots it routes (harness_imports.h over lib/import_table.h: clock, heap, files,
-  registry, sockets, messages); the data seam (game_data.h); `ei::SetMissingCodeHandler`; the log (hook/log.h). In
-  game.exe it reaches game.exe's code by address only (harness_original.h, exe_objects.h).
-- **Logs**: our code's addresses are `<module>+offset`, `ei::OwnModuleName()`: `ei-rebuild+` in the image,
-  `ei_harness+` in game.exe (the user chose the names ei-rebuild.exe and ei-rebuild.log, S23b; the harness DLL keeps its name,
-  the log name is shared code so game.exe's runs write ei-rebuild.log too; resolve_crash.py still reads older logs' ei_standalone+ and ei_hook+); resolve_crash.py, randtrace.py and profile_report.py take the module's .map
-  (ei-rebuild.map, ei_harness.map); check_x87.py reads ei-rebuild.exe, check_signatures.py both maps.
+  through image_side.h); the import slots it routes (harness_imports.h over lib/import_table.h: clock, files,
+  registry, sockets, messages); the data seam (game_data.h); `ei::SetMissingCodeHandler`; the log (hook/log.h).
+- **Logs**: our code's addresses are `<module>+offset`, `ei::OwnModuleName()`: `ei-rebuild+` (the user chose the
+  names ei-rebuild.exe and ei-rebuild.log, S23b; resolve_crash.py still reads older logs' ei_harness+, ei_standalone+
+  and ei_hook+); resolve_crash.py, randtrace.py and profile_report.py take ei-rebuild.map; check_x87.py reads
+  ei-rebuild.exe.
 
 ## 5. game.exe's role
 
-game.exe runs only as the original game, for the harness's references; none of our code runs in it (ei_harness.dll,
-"The harness's homes", holds the harness and no game code).
-- ei_launch sets `EI_NO_HOOKS=1` for game.exe (`--no-hooks` is accepted and changes nothing; the image never gets it). Its
-  only hooks are the vector recorders with `EI_VECTORS=1` (refused when addon.dll is loaded: recordings are the vanilla
-  code's) and the harness's own patches, by address (that side of the harness keeps game.exe's addresses).
-- **Builds**: `release` is the product (the image); `verify` (CMake option EI_HARNESS) is the image with the harness
-  linked in and ei_harness.dll (the harness and the recorders, tests/vectors, for game.exe).
-- What runs against it: the original's harness (goldens, vectors, widescreen references, the reference cache);
-  how verification works: docs/notes/standalone-verification.md section 1.
-- **Scenarios**: a line `# no original: <install>... <reason>` leaves a scenario's `--no-hooks` runs out of plans
-  (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen).
+Nothing runs game.exe since H40: the goldens are the image's own (docs/notes/standalone-verification.md section 2).
+Until then it ran as the original game for the harness's references (goldens, function vectors, widescreen
+references, coverage), with ei_harness.dll and the vector recorders its only code of ours; the tag original-oracle
+(b06141b) has that build. What is left of it:
+- **Its file**: the tools that read game.exe (section 1, "Finding game.exe") take a copy in run\vanilla or
+  run\rebirth (tools/setup_vanilla_run.cmd, setup_rebirth_run.cmd).
+- **Its addresses as names**: the comments and function lists name the original functions by address (config/
+  functions.csv), the data seam keeps the unnamed data at its addresses, and the harness's digest keeps the AI modes'
+  ids as game.exe's table addresses (ExeTableId, harness_digest.cpp: the goldens hash them).
+- **Its recordings**: the function vectors (tests/vectors/data) replayed by ei_vectors, the widescreen references
+  (run_all.py --widescreen), tests/coverage/reach.txt.
 - EI_PROFILE=1 samples the image: StandaloneMain calls InstallProfiler before WinMain, and profile_report names the
   image's functions `ours:`.
-- **The user's real mouse is kept out of both games** (tests/verify/harness_input.cpp / .h): the game window's subclass
-  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client messages;
-  the harness's posted messages never hit-test. In game.exe DirectInputCreateEx's import slot (0073B044) is routed at
-  the game's CreateWindowExA; in the image the harness takes our seam `g_directInputObserver` (ui_cursor.h; S22b: our
-  code calls the system's dinput.dll directly, its slot is a trap): the game's DirectInput object's CreateDeviceEx is
-  wrapped, and through it the GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
-  counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
-  covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.
+- **The user's real mouse is kept out of the game** (tests/verify/harness_input.cpp / .h): the game window's subclass
+  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client
+  messages; the harness's posted messages never hit-test. The harness takes our seam `g_directInputObserver`
+  (ui_cursor.h; S22b: our code calls the system's dinput.dll directly): the game's DirectInput object's
+  CreateDeviceEx is wrapped, and through it the GetDeviceState for GUID_SysMouse is wrapped and the state zeroed
+  after each read. The report's `MOUSE:` line counts reads, real moves left out and hit tests. Without it the
+  original's goldens did not repeat: dgVoodoo's window covered the desktop and was not cloaked, so the resting cursor
+  sent WM_MOUSEMOVE to it and scrolled the camera.
 
 ## 6. The image's source files
 
@@ -1743,8 +1716,7 @@ imports into a table of its own (image_imports.cpp); main reads `--check` and th
 ### image_imports.cpp
 
 game.exe's imports in the image's own table (docs/notes/standalone.md, "Own import table"). `g_table`, an ordinary
-ImportTable of ours, is what lib/import_table.h's Imports() returns in the image (game.exe's own import address table
-in game.exe: src/hook/original_data.cpp), so everything that calls through a slot (gameapi.h's routed imports, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
+ImportTable of ours, is what lib/import_table.h's Imports() returns, so everything that calls through a slot (gameapi.h's routed imports, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
 (image_imports.inc, written by tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function
 or ordinal) has its slot; only the slots a call of ours reaches resolve (image_imports.inc's last field, gen_iat.py's
 reached(), S22); the rest stay traps and a DLL with none of them does not load. A text call's slot takes its UTF-8

@@ -2,10 +2,12 @@
 
 #include "platform/platform.h"
 
+#include "lib/crt.h"
 #include "lib/pc24.h"
 
 #include <cstdint>
 #include <cstring>
+#include <random>
 
 // The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
@@ -105,9 +107,18 @@ void IsaacRandom::Refill() {
     aa = a;
 }
 
+// The seed material only has to be unpredictable: the system's random source fills it, and seeds the CRT's rand() too
+// (its other users draw from it). The original read 1 KB at a random offset of a random file on C:\ (a depth-first
+// walk of the drive, up to 512 files deep) xored with rand() seeded from the clock, retrying while the bytes were all
+// zero; with exactly one file found its second search divided by zero.
 void IsaacRandom::Seed() {
-    if (g_seedHook) g_seedHook(*this);
-    else platform::RandomWords(results);
+    if (g_seedHook) {
+        g_seedHook(*this);
+        return;
+    }
+    std::random_device device;
+    for (std::uint32_t& word : results) word = device();
+    libcrt::Srand(device());
 }
 
 void IsaacRandom::Init() {

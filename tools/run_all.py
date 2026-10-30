@@ -1,11 +1,10 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
-                               [--standalone | --no-hooks] [--fresh] [--jobs N] [--retries N]
-                               [--clock virtual|real[,...]] [--golden] [--x64]
-       python tools/run_all.py --widescreen [--record] [scenario names...]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--x64]
+       python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
-  default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
+  default          the standalone image (H40: game.exe is no longer run), as
                    --standalone: ei_launch --standalone, build\\verify\\ei-rebuild.exe lays out game.exe's data
                    without its code (it reads no game.exe, S18k1), the game and the harness linked in (S23), on the vanilla install's data
                    (install "standalone", vanilla goldens), and on the Rebirth install's data
@@ -22,37 +21,19 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
                    install), and starts it from the run folder with no EI_GAME_ROOT or EI_REBIRTH.
                    On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
-                   --rebirth-only: one); never with --no-hooks or --widescreen. Their goldens are their own runs'
-                   (H40; the plain profile turns WideScreen on, so they never matched game.exe's).
-  --no-hooks      game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
-                   vanilla install (install "vanilla": with Rebirth's bug fixes, which ei_launch has addon.dll apply;
-                   docs/notes/rebirth.md "One test profile") and on Rebirth's (install "rebirth", with --rebirth as
-                   above): the runs goldens are recorded from
-                   (tools/golden.py), kept in the reference cache (--fresh). With EI_VECTORS=1 in the environment
-                   the recorders are the only hooks and the runs write function vectors (tools/vectors.py). A
-                   scenario's line "# no original: <install>..." (vanilla, rebirth) leaves its runs there out:
-                   checks only our renderer can pass, flags the original lacks (S21a). Since S21c no tool runs
-                   our code inside game.exe (--native and --dgvoodoo are gone with it).
+                   --rebirth-only: one); never with --widescreen. Their goldens are their own runs' (H40; no
+                   EI_REBIRTH: the Rebirth install's run plays in the vanilla runs' 4:3 window, harness_starter.h).
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
-                   change), so its runs never need the machine to themselves. dgVoodoo draws the original code
-                   (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with a "resolution" step for a
-                   size other than "desktop" (or WideScreen on, with Rebirth's addon.dll) runs alone, and a scenario at full screen at a mode of its own is left out (it would switch the
-                   display). EI_RENDER reaches no run: a scenario's "render" step sets the image's renderer options
-                   (EI_RENDER_EXTRA adds words to them).
-  --fresh          play the original code's runs again instead of taking them from the reference
-                   cache (build\\reference in the main checkout: a passed run of the original code,
-                   kept by scenario commit, install files, clock and EI_* settings; reference_key)
+                   change), so its runs never need the machine to themselves. EI_RENDER reaches no run: a scenario's
+                   "render" step sets the image's renderer options (EI_RENDER_EXTRA adds words to them).
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"): the
                    scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud,
                    ui_widescreen_screens and ui_widescreen_dialogue; they set the desktop's mode and WideScreen with the harness's
                    "resolution" / "widescreen" steps) on the image on the Rebirth install
                    (<scenario>-standalone-rebirth), then each frame against addon's recorded frames
-                   (compare_widescreen: tools/compare_frames.py with WIDESCREEN_COMPARE). No addon game is
-                   played: the references are recorded once, in <main checkout>\\build\\widescreen
-  --record         with --widescreen: play addon's code instead (game.exe with Rebirth's addon.dll, no hooks,
-                   dgVoodoo at the desktop's mode, alone: <scenario>-rebirth-nohooks) and keep its frames as the
-                   scenarios' references (record_widescreen), by the scenario's steps: needed once, and again
-                   when a scenario's steps change (a comment does not count; the comparison names it)
+                   (compare_widescreen: tools/compare_frames.py with WIDESCREEN_COMPARE). The references are
+                   addon's frames, recorded from game.exe until H40 in <main checkout>\\build\\widescreen; a
+                   scenario whose steps changed since has none (the comparison names it)
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei-rebuild.log, harness_report.txt and
@@ -68,23 +49,21 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
                    compare with the vanilla golden, on Rebirth's with the Rebirth golden
   --x64            the x64 image's runs (build.cmd verify-x64: build\\verify-x64, its ei-rebuild.exe started by its own
-                   x64 ei_launch; runs in build\\verify-x64\\runs), against the same goldens; the image's installs only
-                   (game.exe is 32-bit: not with --no-hooks or --widescreen --record). EI_BUILD_DIR still wins.
+                   x64 ei_launch; runs in build\\verify-x64\\runs), against the same goldens. EI_BUILD_DIR still wins.
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
 game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, io, json, msvcrt, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, msvcrt, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
 import frame_store, prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens',
                         'ui_widescreen_dialogue']   # --widescreen without scenario names
-STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')   # the image (our code)
-ORIGINAL_INSTALLS = ('vanilla', 'rebirth')                    # game.exe with the original code only (--no-hooks)
+STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')   # the image on the vanilla and the Rebirth data
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 BUILD_X64 = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify-x64')   # --x64: build.cmd verify-x64
 GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
@@ -186,48 +165,10 @@ def run_dir(root):
     return own
 
 
-def switches_display(scenario):
-    """Whether a scenario asks for full screen at a mode other than the desktop's (`resolution WxH` with
-    `fullscreen 1`). Only our renderer covers the monitor without changing the mode; the original's DirectDraw,
-    under dgVoodoo or not, switches the real display, which upsets the user's desktop. So such a scenario runs
-    only on the image (plan() leaves out its game.exe runs)."""
-    with open(scenario, encoding='cp1251', errors='replace') as f:
-        lines = f.read().splitlines()
-    mode = any(re.match(r'\s*resolution\s+(?!desktop\b)\S', l) for l in lines)
-    return mode and any(re.match(r'\s*fullscreen\s+1\b', l) for l in lines)
-
-
-def sets_display_mode(scenario, install):
-    """Whether a scenario run on install (game.exe) sets the display mode: a `resolution` step for a size other than
-    the desktop's (dgVoodoo switches the real display in full screen), or Rebirth's WideScreen (`widescreen 1`, the
-    addon.dll runs of --widescreen --record and the rebirth install). On dgVoodoo such a run takes the surfaces of
-    every other game; `resolution desktop` alone is the snapshot's mode, what every other game.exe run uses."""
-    with open(scenario, encoding='cp1251', errors='replace') as f:
-        lines = f.read().splitlines()
-    if any(re.match(r'\s*resolution\s+(?!desktop\b)\S', l) for l in lines):
-        return True
-    return install.startswith('rebirth') and any(re.match(r'\s*widescreen\s+1\b', l) for l in lines)
-
-
-def our_code(install):
-    """Whether a run on install (one of plan()'s) runs our code: the standalone image's installs, which draw with our
-    renderer. Every other run is game.exe with the original code only (--no-hooks, --widescreen --record's
-    rebirth-nohooks), drawn by dgVoodoo: since S21c no tool runs our code inside game.exe."""
-    return install in STANDALONE_INSTALLS
-
-
-def runs_alone(scenario, install):
-    """A run that keeps the machine to itself: a dgVoodoo run (the original code) that sets the display mode
-    (sets_display_mode). Our renderer changes no display mode (full screen is a window over the monitor), so the
-    image's runs share the machine."""
-    return not our_code(install) and sets_display_mode(scenario, install)
-
-
 # EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and
-# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_RENDER, EI_VECTORS, EI_COVER, ...) is read by a
-# game.
-NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_NO_HOOKS', 'EI_REFERENCE_DIR',
-                'EI_WIDESCREEN_DIR', 'EI_PAIR', 'EI_PAIR_SLOT_HELD')
+# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_SAVETRACE, ...) is read by a game.
+NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_WIDESCREEN_DIR', 'EI_PAIR',
+                'EI_PAIR_SLOT_HELD')
 
 
 def peer_scenario(scenario):
@@ -285,32 +226,12 @@ def expected_result(scenario):
     return None
 
 
-NO_ORIGINAL_PREFIX = '# no original:'
-
-
-def no_original(scenario):
-    """The installs (vanilla, rebirth) a scenario's line "# no original: <install>... <why>" names: the original
-    code cannot pass it there (renderer-only checks, flags the original lacks; S21a), so plan() leaves those
-    --no-hooks runs out. Words after the install names are the reason."""
-    installs = set()
-    with contextlib.suppress(OSError):
-        with open(scenario, encoding='utf-8', errors='replace') as f:
-            for text in f:
-                if text.startswith(NO_ORIGINAL_PREFIX):
-                    for word in text[len(NO_ORIGINAL_PREFIX):].split():
-                        if word not in ('vanilla', 'rebirth'):
-                            break
-                        installs.add(word)
-    return installs
-
-
 DROP_IN_PREFIX = '# drop-in:'
 
 
 def drop_in(scenario):
-    """Whether the scenario has a line "# drop-in: <why>": it checks the drop-in exe (S23a). ei_launch makes its image
-    runs drop-in runs (--drop-in); plan() runs it on both of the image's installs by default and never on the original
-    (--no-hooks)."""
+    """Whether the scenario has a line "# drop-in: <why>": it checks the drop-in exe (S23a). ei_launch makes its runs
+    drop-in runs (--drop-in); plan() runs it on both of the image's installs by default."""
     with contextlib.suppress(OSError):
         with open(scenario, encoding='utf-8', errors='replace') as f:
             return any(text.startswith(DROP_IN_PREFIX) for text in f)
@@ -340,38 +261,25 @@ def remove_drop_in_folder(out):
             remove(folder)
 
 
-def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, fresh=False,
-        held=1, slots=None):
+def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, held=1,
+        slots=None):
     """One game of a scenario on an install (a pair's two games for a scenario with a "peer" line, the peer's in
-    the run folder's peer\\): the image on standalone / standalone-rebirth, the original code
-    (game.exe, ei_launch --no-hooks) on vanilla / rebirth. root: the checkout whose tests/scenarios and run/ it uses;
-    build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
+    the run folder's peer\\): the image on standalone (the vanilla data) or standalone-rebirth. root: the checkout
+    whose tests/scenarios it uses; build: the verify build folder (ei_launch.exe; the run folder is
+    <build>/runs/<folder>).
     take_slot False: the caller already holds held machine slots for it (tools/work_sched.py); a pair whose caller
     holds one has ei_launch take the second. slots (with take_slot False): those slots as an object with release()
-    (called once the game has ended, or when the reference cache has the run: the frame packing and the reference
-    copy run without them, SV10h) and acquire() (before the game starts: waits until they are held again).
+    (called once the game has ended: the frame packing runs without them, SV10h) and acquire() (before the game
+    starts: waits until they are held again).
     clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
     ',randtrace').
     game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
     are exactly these (this process's other game variables are dropped), for a scheduler running other
-    submitters' batches. It goes to the subprocess only; os.environ stays as it is.
-    A run of the original code is taken from the reference cache when it holds it (reference_key),
-    unless fresh; a passed one is put there."""
+    submitters' batches. It goes to the subprocess only; os.environ stays as it is."""
     folder = folder or f'{name}-{install}'
-    scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
-    environ = os.environ if game_env is None else game_env
-    key = reference_key(name, install, root, clock, environ) if not our_code(install) else None
-    if key and not fresh:
-        cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder),
-                                      found=slots.release if slots else None)
-        if cached:
-            return cached
-    result, seconds, failures, counts, notes = run_once(name, install, folder, root, build, take_slot, clock, game_env,
-                                                        held, slots)
+    results = run_once(name, install, folder, root, build, take_slot, clock, game_env, held, slots)
     frame_store.pack_run(os.path.join(build, 'runs', folder))         # WB11: 4K frames stored compressed
-    if key and result == 'PASS':
-        store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
-    return result, seconds, failures, counts, notes
+    return results
 
 
 # A game writes its run folder (harness_saves' texture cache, saves, frames): on a full disk a write fails and the game
@@ -404,13 +312,12 @@ def wait_for_disk(path, low=None, wait=None, poll=5.0):
         time.sleep(poll)
 
 
-def crash_stack_note(out, build, cmd, root=ROOT):
+def crash_stack_note(out, build, root=ROOT):
     """The note under a crashed run's line: its stack by function names (tools/resolve_crash.py, X40a), the
     last frames before the crash; never fails the run."""
     try:
         import resolve_crash
-        exe = cmd[cmd.index('--exe') + 1] if '--exe' in cmd else None
-        text = resolve_crash.named_stack(out, build=build, game_exe=exe, root=root, max_frames=10)
+        text = resolve_crash.named_stack(out, build=build, root=root, max_frames=10)
         return f'stack: {text}' if text else f'stack: not resolved (python tools/resolve_crash.py {os.path.relpath(out, root)})'
     except Exception as e:           # a tool problem must not hide the crash itself
         return f'stack: not resolved ({type(e).__name__}: {e})'
@@ -448,9 +355,9 @@ def asan_failure(out):
 def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1, slots=None):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
-    if install not in STANDALONE_INSTALLS + ORIGINAL_INSTALLS:
-        return 'FAIL', 0.0, [f'unknown install {install!r} (the image: {", ".join(STANDALONE_INSTALLS)}; the original '
-                             f'code: {", ".join(ORIGINAL_INSTALLS)})'], {}, []
+    if install not in STANDALONE_INSTALLS:
+        return 'FAIL', 0.0, [f'unknown install {install!r} (the image\'s: {", ".join(STANDALONE_INSTALLS)}; game.exe '
+                             'is no longer run since H40)'], {}, []
     if low_disk := wait_for_disk(build):
         return 'FAIL', 0.0, [low_disk], {}, []
     remove_drop_in_folder(out)   # its junctions first: nothing may reach into the install
@@ -466,30 +373,20 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         # Never the display mode: our renderer whatever the environment says. The image reads no game.exe (S18k1):
         # --game is the install whose data it plays (ei_launch sets EI_GAME_ROOT from it).
         cmd += ['--game', r'F:\games\EvilIslands', '--standalone']
-    elif install == 'standalone-rebirth':
+    else:
         # ei_launch's default game folder is the Rebirth install's.
         cmd += ['--standalone']
         env = dict(os.environ if env is None else env, EI_REBIRTH=standalone_rebirth_flags(root))
-    else:
-        # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo. On the vanilla data
-        # ei_launch adds addon.dll's bug fixes (SV9, ADDON_FIXES).
-        if install == 'vanilla':
-            cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe')]
-        elif os.path.exists(os.path.join(run_dir(root), 'rebirth', 'game.exe')):
-            # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
-            cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe')]
-        cmd.append('--no-hooks')
     environ = os.environ if env is None else env
     if 'EI_RENDER' in environ:
-        # The image's renderer options are its scenario's "render" step, never the environment's; the original code
-        # has none.
+        # The image's renderer options are its scenario's "render" step, never the environment's.
         env = {k: v for k, v in environ.items() if k != 'EI_RENDER'}
     if clock:
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     games = games_of(scenario)
     if games > 1 and (take_slot or held >= games):
         env = dict(os.environ if env is None else env, EI_PAIR_SLOT_HELD='1')   # ei_launch takes no slot itself
-    with machine_slot(alone=runs_alone(scenario, install), count=games) if take_slot else contextlib.nullcontext():
+    with machine_slot(count=games) if take_slot else contextlib.nullcontext():
         if slots:
             slots.acquire()
         start = time.time()
@@ -504,8 +401,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
             if slots:
                 slots.release()       # the game has ended: the rest of the run needs no slot
         seconds = time.time() - start
-    if our_code(install):
-        remove_drop_in_folder(out)   # a drop-in run's: ei_launch removes it, not when it was killed
+    remove_drop_in_folder(out)   # a drop-in run's: ei_launch removes it, not when it was killed
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
@@ -518,8 +414,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if result == 'RUNNING' and not failures and proc.returncode not in (TIMEOUT_EXIT, UNKILLABLE_EXIT):
         failures = [f'the game ended before the harness wrote its result (ei_launch exit code {proc.returncode}; '
                     'its output in ei_launch.txt)']
-    # The per-function totals (verify wrappers, until S21d); the slot stays in the result (the reference cache
-    # and the work database's run rows keep its shape), always empty.
+    # The per-function totals (verify wrappers, until S21d); the slot stays in the result (the work database's run
+    # rows keep its shape), always empty.
     counts = {}
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
              if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
@@ -532,7 +428,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         if proc.returncode == UNKILLABLE_EXIT:
             failures.append('the game process is still alive after TerminateProcess')
     if any('the game crashed' in f or 'no code at' in f for f in failures):
-        notes.append(crash_stack_note(out, build, cmd, root))
+        notes.append(crash_stack_note(out, build, root))
     if asan := asan_failure(out):
         failures.append(asan)
         if result == 'PASS':
@@ -548,226 +444,14 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     return result, seconds, failures, counts, notes
 
 
-# ---- the reference cache: runs of the original code (on dgVoodoo) kept by what decides them (ticket R10)
-#
-# The original code does not change, so a run of it only needs playing again when its scenario, its install's
-# files, the clock, the game's EI_* settings or the harness change. A passed run's folder (frames, report, log; not
-# harness_saves) is kept in <main checkout>/build/reference/<scenario>-<install>/<key>/ with cached.json (run()'s
-# results); run() copies it into the run folder instead of playing it. The harness is what ei_harness.dll runs in
-# game.exe: since H30 only game.exe's own code and the files harness_files() lists (HARNESS_SOURCES, HARNESS_SHARED
-# and the headers they include), so a change of the game's code (src/game, src/lib, src/render) keeps the runs
-# cached and any change of the harness plays them again.
-
-# What game.exe's side of the harness builds from (H30, H30b; since S23 ei_harness.dll's sources, CMakeLists.txt): the
-# harness, the hook framework, the image side's absence (tests/verify/original), the launcher and the harness's
-# settings; the game's .cpp file it calls in game.exe (HARNESS_SHARED: kept to it); the vector recorders only in
-# EI_VECTORS=1 runs (HARNESS_VECTORS: they record our functions' vectors from game.exe's runs and read our classes);
-# and every header they include. Since H30b the harness reads game.exe's objects through its own views
-# (tests/verify/exe_objects.h) and reaches our classes only through tests/verify/image (image/image_side.h, functions
-# that name no class of ours), which only the image links in: tests/verify/* takes no file of that folder. So no
-# header of src/game, src/render or src/lib is in the key but game_data.h (GameData, the address in game.exe),
-# lib/intro_sort.h (the draw lists' sort, the game's) and lib/import_table.h with
-# lib/import_prototypes.h (game.exe's import slots, hook/original_data.cpp); tools/check_harness_key.py checks it. Nothing else of src/ is in ei_harness.dll.
-HARNESS_SOURCES = ('tests/verify/*', 'tests/verify/original/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')
-HARNESS_VECTORS = ('tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp')
-HARNESS_SHARED = ('src/lib/rebirth.cpp',)   # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
-QUOTED_INCLUDE = re.compile(rb'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
-
-CACHED_NOTE = 'reference cache: '     # the note of a run taken from the cache (no time recorded for it)
-REFERENCE_KEEP = 3                     # keys kept per <scenario>-<install> (other worktrees' scenario revisions)
-
-
-def reference_dir():
-    """<main checkout>/build/reference (shared by every worktree), or None outside a repository. EI_REFERENCE_DIR:
-    another folder (tests)."""
-    if os.environ.get('EI_REFERENCE_DIR'):
-        return os.environ['EI_REFERENCE_DIR']
+def main_build_dir():
+    """<main checkout>/build (shared by every worktree), or None outside a repository."""
     try:
         common = subprocess.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], cwd=ROOT,
                                 capture_output=True, text=True).stdout.strip()
     except OSError:
         return None
-    return os.path.join(os.path.dirname(os.path.normpath(common)), 'build', 'reference') if common else None
-
-
-# The vanilla install's original runs (SV9; docs/notes/rebirth.md, "One test profile"): ei_launch also loads Rebirth's
-# addon loader (ADDON_FILES[0]), so addon.dll applies its patches, and the harness keeps those of the Rebirth flags on
-# in the run (the standalone's defaults: the bug fixes) and undoes the rest (tests/verify/harness_addon.h). Not with
-# EI_VECTORS=1 (function vectors are the plain original's).
-ADDON_FILES = (r'F:\games\Evil Islands (Rebirth)\starter\Engine\dinput.dll', r'F:\games\Evil Islands (Rebirth)\starter\addon.dll')
-
-
-def addon_fixes(install, environ=None):
-    """Whether install's original runs carry addon.dll's bug fixes."""
-    environ = os.environ if environ is None else environ
-    return install == 'vanilla' and environ.get('EI_VECTORS') != '1' and environ.get('EI_ADDON_FLAGS') != '0'
-
-
-def install_fingerprint(root, install, environ=None):
-    """What of an install decides a run of the original code: the files beside its game.exe in run/<install>
-    (names, sizes, times; configuration files such as dgVoodoo.conf by content); with addon.dll's bug fixes, the
-    patches' kinds (include/ei/rebirth_patches.inc: the defaults) and addon's files."""
-    h = hashlib.sha1(install.encode())
-    if addon_fixes(install, environ):
-        with contextlib.suppress(OSError), open(os.path.join(root, 'include', 'ei', 'rebirth_patches.inc'), 'rb') as f:
-            h.update(f.read())
-        for path in ADDON_FILES:
-            with contextlib.suppress(OSError):
-                st = os.stat(path)
-                h.update(f'{path.lower()}\0{st.st_size}\0{st.st_mtime_ns}\0'.encode())
-    with contextlib.suppress(OSError):
-        for entry in sorted(os.scandir(os.path.join(run_dir(root), install)), key=lambda e: e.name.lower()):
-            if not entry.is_file():
-                continue
-            st = entry.stat()
-            h.update(f'{entry.name.lower()}\0{st.st_size}\0{st.st_mtime_ns}\0'.encode())
-            if os.path.splitext(entry.name)[1].lower() in ('.conf', '.ini', '.cfg', '.txt') and st.st_size < 1 << 20:
-                with open(entry.path, 'rb') as f:
-                    h.update(f.read())
-    return h.hexdigest()
-
-
-def harness_files(root, vectors=False):
-    """{path relative to root: content} of the files game.exe's side of the harness builds from: HARNESS_SOURCES,
-    HARNESS_SHARED (with vectors, HARNESS_VECTORS), and the files their quoted includes name (from the including file's
-    folder, include/ or src/)."""
-    todo = [path for pattern in HARNESS_SOURCES + HARNESS_SHARED + (HARNESS_VECTORS if vectors else ())
-            for path in glob.glob(os.path.join(root, *pattern.split('/')), recursive=True)
-            if os.path.isfile(path)]
-    files = {}
-    while todo:
-        path = os.path.normpath(todo.pop())
-        name = os.path.relpath(path, root).replace(os.sep, '/')
-        if name in files:
-            continue
-        try:
-            with open(path, 'rb') as f:
-                files[name] = f.read()
-        except OSError:
-            continue
-        for included in QUOTED_INCLUDE.findall(files[name]):
-            for base in (os.path.dirname(path), os.path.join(root, 'include'), os.path.join(root, 'src')):
-                candidate = os.path.join(base, included.decode('utf-8', 'replace'))
-                if os.path.isfile(candidate):
-                    todo.append(candidate)
-                    break
-    return files
-
-
-_harness_digests = {}    # (root, vectors) -> (time, digest)
-
-
-def harness_digest(root, vectors=False, max_age=30.0):
-    """One hash of harness_files(root, vectors), reused for max_age seconds (as work.scenario_revs). Never for a
-    process's life: the scheduler is one process for hours, and a digest it kept from before a merge of a harness
-    change gave main's runs the old key, so the cache served runs of the old harness (H34)."""
-    cached = _harness_digests.get((root, vectors))
-    if cached and time.time() - cached[0] < max_age:
-        return cached[1]
-    h = hashlib.sha1()
-    for name, content in sorted(harness_files(root, vectors).items()):
-        h.update(f'{name}\0{len(content)}\0'.encode())
-        h.update(content)
-    digest = h.hexdigest()
-    _harness_digests[(root, vectors)] = (time.time(), digest)
-    return digest
-
-
-def reference_key(name, install, root, clock, environ):
-    """The cache key of a run of the original code, or None when it is not cached (the scenario has uncommitted
-    edits or no commit). Made of: the scenario's last commit (work.scenario_revs, as WB6's timing table), the
-    install's files, the harness's sources (harness_files), the tools its "# prepare:" lines run, the clock override and
-    the game's EI_* settings."""
-    try:
-        import work
-        rev = work.scenario_revs(root).get(name, '')
-    except (Exception, SystemExit):
-        return None
-    if not rev or rev.endswith('+dirty'):
-        return None
-    h = hashlib.sha1(f'{name}\0{install}\0{rev}\0{clock or ""}\0'.encode())
-    settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
-    h.update(json.dumps(settings, sort_keys=True).encode())
-    h.update(install_fingerprint(root, install, environ).encode())
-    h.update(harness_digest(root, settings.get('EI_VECTORS') == '1').encode())
-    scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
-    if peer := peer_scenario(scenario):          # a pair: the peer's steps decide the run too
-        with contextlib.suppress(OSError), open(peer, 'rb') as f:
-            h.update(f.read())
-    with contextlib.suppress(OSError):
-        with open(scenario, encoding='utf-8', errors='replace') as f:
-            for text in f:
-                if text.startswith(prepare_scenario.PREFIX):
-                    tool = text[len(prepare_scenario.PREFIX):].split()[:1]
-                    with contextlib.suppress(OSError), open(os.path.join(root, 'tools', *tool), 'rb') as t:
-                        h.update(t.read())
-    return f'{rev[:10]}-{h.hexdigest()[:12]}'
-
-
-def reference_from_cache(name, install, key, out, found=None):
-    """run()'s results of a cached run, its files copied into the run folder out; None when not cached. found: called
-    once the cache has the run, before the copy."""
-    base = reference_dir()
-    if not base:
-        return None
-    entry = os.path.join(base, f'{name}-{install}', key)
-    try:
-        with open(os.path.join(entry, 'cached.json')) as f:
-            info = json.load(f)
-        if found:
-            found()
-        start = time.time()
-        shutil.rmtree(out, ignore_errors=True)
-        shutil.copytree(entry, out, ignore=shutil.ignore_patterns('cached.json'))
-        os.utime(entry)                                  # recently used: kept by the pruning
-        result, _, failures, counts, notes = info['run']
-    except (OSError, ValueError, TypeError, KeyError):
-        return None
-    return (result, time.time() - start, failures, {fn: tuple(c) for fn, c in counts.items()},
-            notes + [f'{CACHED_NOTE}{key} (played {info.get("time", "?")} in {info.get("seconds", 0):.0f}s)'])
-
-
-def store_reference(name, install, key, out, results):
-    """Keeps a passed run of the original code (its folder without harness_saves) under its key and drops the
-    scenario's least recently used keys beyond REFERENCE_KEEP. Never raises: a run never fails because of it."""
-    base = reference_dir()
-    if not base:
-        return
-    home = os.path.join(base, f'{name}-{install}')
-    entry = os.path.join(home, key)
-    tmp = f'{entry}.{os.getpid()}.{threading.get_ident()}.tmp'
-    try:
-        os.makedirs(home, exist_ok=True)
-        shutil.copytree(out, tmp, ignore=shutil.ignore_patterns('harness_saves'))
-        result, seconds, failures, counts, notes = results
-        with open(os.path.join(tmp, 'cached.json'), 'w') as f:
-            json.dump({'run': [result, seconds, failures, {fn: list(c) for fn, c in counts.items()}, notes],
-                       'seconds': seconds, 'time': time.strftime('%Y-%m-%d %H:%M'), 'folder': out}, f)
-        if os.path.isdir(entry):
-            shutil.rmtree(entry, ignore_errors=True)     # played again (--fresh): the newer run
-        os.replace(tmp, entry)
-        keys = sorted((e for e in os.scandir(home) if e.is_dir() and not e.name.endswith('.tmp')),
-                      key=lambda e: e.stat().st_mtime, reverse=True)
-        for old in keys[REFERENCE_KEEP:]:
-            shutil.rmtree(old.path, ignore_errors=True)
-    except OSError:
-        pass
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
-def cached_reference(name, install, root=ROOT, clock=None, environ=None):
-    """Whether run() would take this run from the reference cache (work.py test: then it is not alone)."""
-    if our_code(install):
-        return False
-    key = reference_key(name, install, root, clock, os.environ if environ is None else environ)
-    base = reference_dir()
-    return bool(key and base and os.path.exists(os.path.join(base, f'{name}-{install}', key, 'cached.json')))
-
-
-def is_cached(notes):
-    """Whether run() took the run from the reference cache (no game was played)."""
-    return any(n.startswith(CACHED_NOTE) for n in notes)
+    return os.path.join(os.path.dirname(os.path.normpath(common)), 'build') if common else None
 
 
 def console_of(folder, build=BUILD):
@@ -832,18 +516,14 @@ COMPARE_JOBS = 8     # compare_frames.py processes at once (each one CPU core, ~
 
 # ---- --widescreen: the image's frames against addon's WideScreen (S21b)
 #
-# Rebirth's WideScreen is addon.dll's code, on the Rebirth install only. Its frames are recorded once with the
-# original game's harness (`--widescreen --record`: game.exe with addon, EI_NO_HOOKS, drawn by dgVoodoo at the
-# desktop's mode; the run "<scenario>-rebirth-nohooks") and kept as references; `--widescreen` runs the image on
-# the Rebirth install ("<scenario>-standalone-rebirth", our renderer) and compares its frames with them. No addon
-# game is played for a comparison. The references live beside the reference cache, in
-# <main checkout>/build/widescreen/<scenario>/<steps key>/: frames/<frame>.bmp.z (the frames, packed as
+# Rebirth's WideScreen is addon.dll's code, on the Rebirth install only. Its frames were recorded with the original
+# game's harness until H40 (game.exe with addon, drawn by dgVoodoo at the desktop's mode) and are kept as references;
+# `--widescreen` runs the image on the Rebirth install ("<scenario>-standalone-rebirth", our renderer) and compares
+# its frames with them. The references live in <main checkout>/build/widescreen/<scenario>/<steps key>/: frames/<frame>.bmp.z (the frames, packed as
 # tools/frame_store.py packs a run's), skip/<frame>.bmp.z (what moved in addon's run between <frame> and its
 # _later / _moving twins, left out of the comparison) and recorded.json. The key is the scenario's steps (its lines
-# without comments): a changed step needs a new recording, a comment does not. WIDESCREEN_KEEP keys are kept per
-# scenario (other worktrees' scenario versions).
+# without comments): a changed step has no references any more, a comment keeps them.
 
-WIDESCREEN_KEEP = 3
 WIDESCREEN_SIZE = (3840, 2160)      # the frame size WIDESCREEN_AREAS' rectangles are given at (scaled to others)
 # compare_frames.py's settings for our renderer against dgVoodoo (docs/notes/standalone-verification.md,
 # "WideScreen references", S21b: measured over the four scenarios' 19 frames). A pixel differs when a channel lies more than 8 outside the range of the other
@@ -862,12 +542,12 @@ WIDESCREEN_AREAS = {
 
 
 def widescreen_dir():
-    """<main checkout>/build/widescreen (shared by every worktree, beside the reference cache), or None outside a
-    repository. EI_WIDESCREEN_DIR: another folder (tests)."""
+    """<main checkout>/build/widescreen (shared by every worktree), or None outside a repository. EI_WIDESCREEN_DIR:
+    another folder (tests)."""
     if os.environ.get('EI_WIDESCREEN_DIR'):
         return os.environ['EI_WIDESCREEN_DIR']
-    base = reference_dir()
-    return os.path.join(os.path.dirname(base), 'widescreen') if base else None
+    base = main_build_dir()
+    return os.path.join(base, 'widescreen') if base else None
 
 
 def steps_key(scenario):
@@ -929,58 +609,6 @@ def run_passed(folder):
     return False
 
 
-def record_widescreen(name, out=None, root=ROOT, build=BUILD):
-    """--widescreen --record: keeps the frames of <name>-rebirth-nohooks (addon's WideScreen) as the scenario's
-    references, with what moved in that run between each frame and its twins (compare_frames.py --write-skip).
-    False when the run did not pass or had no frames."""
-    out = out or sys.stdout
-    run = os.path.join(build, 'runs', f'{name}-rebirth-nohooks')
-    frames = os.path.join(run, 'frames')
-    names = primary_frames(frames)
-    base = widescreen_dir()
-    why = 'the run did not pass' if not run_passed(run) else 'no frames' if not names else 'no references folder' if not base else None
-    if why:
-        print(f'{name}: not recorded ({why})', file=out)
-        return False
-    key = steps_key(os.path.join(root, 'tests', 'scenarios', name + '.txt'))
-    home = os.path.join(base, name)
-    entry = os.path.join(home, key)
-    tmp = f'{entry}.{os.getpid()}.tmp'
-    shutil.rmtree(tmp, ignore_errors=True)
-    os.makedirs(os.path.join(tmp, 'frames'))
-    os.makedirs(os.path.join(tmp, 'skip'))
-    tool = os.path.join(root, 'tools', 'compare_frames.py')
-    commands = []
-    size = None
-    for frame in names:
-        source = os.path.join(frames, frame + '.bmp')
-        data = frame_store.read_frame(source)
-        with open(os.path.join(tmp, 'frames', frame + '.bmp'), 'wb') as f:
-            f.write(data)
-        size = size or list(struct.unpack_from('<ii', data, 18))
-        excludes = twin_excludes(frames, frame)
-        if excludes:
-            commands.append([sys.executable, tool, source, source, *excludes, '--exclude-grow', '8',
-                             '--write-skip', os.path.join(tmp, 'skip', frame + '.bmp')])
-    ok = run_compares(commands, io.StringIO())
-    frame_store.pack_folder(tmp)
-    with open(os.path.join(tmp, 'recorded.json'), 'w') as f:
-        json.dump({'scenario': name, 'steps': key, 'frames': names, 'size': [size[0], abs(size[1])],
-                   'time': time.strftime('%Y-%m-%d %H:%M'), 'run': run}, f, indent=1)
-    if not ok:
-        shutil.rmtree(tmp, ignore_errors=True)
-        print(f'{name}: not recorded (the skip masks could not be written)', file=out)
-        return False
-    shutil.rmtree(entry, ignore_errors=True)
-    os.replace(tmp, entry)
-    keys = sorted((e for e in os.scandir(home) if e.is_dir() and not e.name.endswith('.tmp')),
-                  key=lambda e: e.stat().st_mtime, reverse=True)
-    for old in keys[WIDESCREEN_KEEP:]:
-        shutil.rmtree(old.path, ignore_errors=True)
-    print(f'{name}: {len(names)} frames recorded in {entry} ({", ".join(names)})', file=out)
-    return True
-
-
 def widescreen_areas(name, frame, size):
     """compare_frames.py's --exclude-rect arguments for WIDESCREEN_AREAS' rectangles of a frame, scaled to its size."""
     args = []
@@ -1000,8 +628,8 @@ def compare_widescreen(name, install='standalone-rebirth', out=None, root=ROOT, 
     out = out or sys.stdout
     reference = widescreen_reference(name, root)
     if not reference:
-        print(f'no references of {name} for its steps: record them with '
-              f'python tools\\run_all.py --widescreen --record {name}', file=out)
+        print(f'no references of {name} for its steps (recorded from game.exe until H40; a scenario whose steps changed '
+              'since has none)', file=out)
         return False
     with open(os.path.join(reference, 'recorded.json')) as f:
         info = json.load(f)
@@ -1011,8 +639,7 @@ def compare_widescreen(name, install='standalone-rebirth', out=None, root=ROOT, 
         width, height = struct.unpack_from('<ii', frame_store.read_frame(os.path.join(ours, info['frames'][0] + '.bmp')), 18)
         if info.get('size') and [width, abs(height)] != info['size']:
             print(f'the references are {info["size"][0]}x{info["size"][1]}, the run\'s frames {width}x{abs(height)} (the '
-                  f'desktop\'s mode changed?): record them again with python tools\\run_all.py --widescreen --record {name}',
-                  file=out)
+                  'desktop\'s mode changed?)', file=out)
             return False
     diffs = os.path.join(build, 'runs', f'{name}-{install}', 'frames_diff')
     shutil.rmtree(diffs, ignore_errors=True)
@@ -1034,22 +661,16 @@ def compare_widescreen(name, install='standalone-rebirth', out=None, root=ROOT, 
     return ok
 
 
-def widescreen_check(jobs, record=False, out=None, root=ROOT, build=BUILD):
-    """After --widescreen's runs: records addon's frames as references (record) or compares the image's runs with
-    them. Prints each scenario's frames and a verdict; True when every one was recorded or matched."""
+def widescreen_check(jobs, out=None, root=ROOT, build=BUILD):
+    """After --widescreen's runs: compares the image's runs with addon's frames. Prints each scenario's frames and a
+    verdict; True when every one matched."""
     out = out or sys.stdout
     ok = True
     for name, install in jobs:
-        if record:
-            print(f'\nreferences of {name}: addon\'s frames ({name}-{install})', file=out)
-            out.flush()
-            ok = record_widescreen(name, out, root, build) and ok
-        else:
-            print(f'\nframes of {name}: the image ({name}-{install}) against addon\'s', file=out)
-            out.flush()
-            ok = compare_widescreen(name, install, out, root, build) and ok
-    print(('WIDESCREEN RECORDED' if ok else 'WIDESCREEN NOT RECORDED') if record else
-          ('WIDESCREEN FRAMES MATCH' if ok else 'WIDESCREEN FRAMES DIFFER'), file=out)
+        print(f'\nframes of {name}: the image ({name}-{install}) against addon\'s', file=out)
+        out.flush()
+        ok = compare_widescreen(name, install, out, root, build) and ok
+    print('WIDESCREEN FRAMES MATCH' if ok else 'WIDESCREEN FRAMES DIFFER', file=out)
     return ok
 
 
@@ -1067,12 +688,6 @@ def standalone_rebirth_flags(root=ROOT):
             if m and m.group(1) not in ('Default', 'NPlayers', 'Pause'):
                 names.append(m.group(1))
     return ','.join(names)
-
-
-def launch_install(install):
-    """The install run() is given for one of plan()'s: --widescreen --record's "rebirth-nohooks" is "rebirth" (the
-    original code, with addon; the name keeps addon's recording runs in folders of their own)."""
-    return install[:-len('-nohooks')] if install.endswith('-nohooks') else install
 
 
 # A scenario line that makes the run depend on the install (SV9): a step for one install only, Rebirth's flags, its
@@ -1110,10 +725,7 @@ def parse_args(argv=None):
     ap.add_argument('--rebirth-only', action='store_true')
     ap.add_argument('--all-rebirth', action='store_true')
     ap.add_argument('--standalone', action='store_true')
-    ap.add_argument('--no-hooks', action='store_true')
-    ap.add_argument('--fresh', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
-    ap.add_argument('--record', action='store_true')
     ap.add_argument('--golden', action='store_true')
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
@@ -1127,39 +739,21 @@ def build_of(args):
     return BUILD_X64 if getattr(args, 'x64', False) else BUILD
 
 
-def standalone_mode(args):
-    """Whether args ask for the standalone image's runs: the default since S21, also with --widescreen. --no-hooks and
-    --widescreen --record run game.exe with the original code."""
-    return not (args.no_hooks or getattr(args, 'record', False))
-
-
 def has_golden(name, install, root=ROOT):
     """Whether tests/golden holds a golden of the scenario for install ('vanilla' or 'rebirth')."""
     return os.path.exists(os.path.join(root, 'tests', 'golden', name, install, 'golden.json'))
 
 
 def plan(args, root=ROOT):
-    """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone,
-    standalone-rebirth, vanilla, rebirth (--no-hooks) or rebirth-nohooks (--widescreen --record); the run folder
-    is <scenario>-<install>. Also used by tools/work_sched.py (`work.py test`), so a batch holds the runs run_all
-    would make."""
+    """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone (the vanilla
+    data) or standalone-rebirth; the run folder is <scenario>-<install>. Also used by tools/work_sched.py
+    (`work.py test`), so a batch holds the runs run_all would make."""
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt')))
-    standalone = standalone_mode(args)
-    if args.standalone and not standalone:
-        sys.exit('--standalone runs the image: not with --no-hooks or --record')
-    if getattr(args, 'x64', False) and not standalone:
-        sys.exit('--x64 runs the x64 image: not with --no-hooks or --record (game.exe is 32-bit)')
-    if getattr(args, 'record', False) and not args.widescreen:
-        sys.exit("--record records --widescreen's references: --widescreen --record [scenario names]")
-    if args.widescreen and (args.no_hooks or args.vanilla_only):
-        sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames (--record "
-                 'records them): not with --no-hooks or --vanilla-only')
-    installs = ['vanilla', 'rebirth']
-    if args.vanilla_only: installs = ['vanilla']
-    if args.rebirth_only: installs = ['rebirth']
-    if standalone:
-        installs = ['standalone'] if args.vanilla_only else ['standalone-rebirth'] if args.rebirth_only else list(STANDALONE_INSTALLS)
+    if args.widescreen and args.vanilla_only:
+        sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames: not with "
+                 '--vanilla-only')
+    installs = ['standalone'] if args.vanilla_only else ['standalone-rebirth'] if args.rebirth_only else list(STANDALONE_INSTALLS)
     # The Rebirth data (SV9): only on demand: --rebirth / --rebirth-only the named scenarios or the smoke set,
     # --all-rebirth every one.
     if args.all_rebirth or ((args.rebirth or args.rebirth_only) and args.scenarios):
@@ -1171,7 +765,7 @@ def plan(args, root=ROOT):
     path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
     # The drop-in exe's scenarios (S23a): the image only, on both installs unless one is asked for alone.
     drop_ins = {n for n in names if drop_in(path(n))}
-    if args.no_hooks or args.widescreen:
+    if args.widescreen:
         for n in sorted(drop_ins):
             print(f'{n}: left out, a drop-in scenario ("{DROP_IN_PREFIX}") runs the image\'s exe in a copy of the install',
                   file=sys.stderr)
@@ -1183,21 +777,10 @@ def plan(args, root=ROOT):
     jobs = [(name, install) for name in names for install in (drop_in_installs if name in drop_ins else installs)
             if install not in ('rebirth', 'standalone-rebirth') or name in rebirth or name in drop_ins]
     if args.widescreen:
-        # addon's WideScreen exists on the Rebirth install only: the image there, or addon's runs to record
+        # addon's WideScreen exists on the Rebirth install only
         names = args.scenarios or WIDESCREEN_SCENARIOS
-        jobs = [(name, 'rebirth-nohooks' if args.record else 'standalone-rebirth') for name in names]
-    kept = [(n, i) for n, i in jobs if not switches_display(path(n)) or our_code(i)]
-    for n, i in jobs:
-        if (n, i) not in kept:
-            print(f'{n}-{i}: left out, full screen at its own mode without our renderer would switch the display',
-                  file=sys.stderr)
-    if args.no_hooks:
-        for n, i in list(kept):
-            if i in no_original(path(n)):
-                kept.remove((n, i))
-                print(f'{n}-{i}: left out, the original cannot run it ("{NO_ORIGINAL_PREFIX}" in the scenario)',
-                      file=sys.stderr)
-    return kept
+        jobs = [(name, 'standalone-rebirth') for name in names]
+    return jobs
 
 
 def load_times(build=BUILD):
@@ -1240,8 +823,8 @@ def expected_times(jobs, root=ROOT, build=BUILD, db=None):
 
 def record_time(db, name, install, seconds, result, root=ROOT, batch=None, notes=()):
     """Appends a finished game's time to the machine-wide table; never raises. Crashed and timed-out runs (ERROR, NO
-    REPORT, TIMEOUT) and runs taken from the reference cache are not times."""
-    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT') or is_cached(notes):
+    REPORT, TIMEOUT) are not times."""
+    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT'):
         return
     try:
         import work
@@ -1326,8 +909,7 @@ def net_check(jobs, out, build=BUILD):
         print(f'  {name}-{install}: {l[5:]}', file=out)
 
 
-GOLDEN_INSTALL = {'vanilla': 'vanilla', 'standalone': 'vanilla', 'standalone-rebirth': 'rebirth', 'rebirth': 'rebirth',
-                  'rebirth-nohooks': 'rebirth'}
+GOLDEN_INSTALL = {'standalone': 'vanilla', 'standalone-rebirth': 'rebirth'}   # a run's install -> its goldens'
 
 
 def golden_check(jobs, out=None, root=ROOT, build=BUILD):
@@ -1369,9 +951,8 @@ def main():
     sys.stdout.flush()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        # (--widescreen --record's "rebirth-nohooks": the original code on Rebirth, in its own folder)
-        futures = {pool.submit(run_with_retries, n, launch_install(i), args.retries, f'{n}-{i}',
-                               functools.partial(run, build=build, clock=args.clock, fresh=args.fresh),
+        futures = {pool.submit(run_with_retries, n, i, args.retries, f'{n}-{i}',
+                               functools.partial(run, build=build, clock=args.clock),
                                functools.partial(keep_attempt, build=build)): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
@@ -1386,7 +967,7 @@ def main():
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()}, build=build)
     ok = summary(jobs, results, args, time.time() - started, build=build)
     if args.widescreen:
-        ok = widescreen_check(jobs, args.record, build=build) and ok
+        ok = widescreen_check(jobs, build=build) and ok
     if args.golden:
         ok = golden_check(jobs, build=build) and ok
     return 0 if ok else 1

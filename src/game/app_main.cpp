@@ -303,7 +303,7 @@ constexpr int kLongestPassTicks = 5;
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) { return pc24::Mul(static_cast<double>(milliseconds), 0.018181818f); }
 
-// Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
+// Three calls of the loop take a harness hook (ei/main_loop.h, set by tests/verify/harness.cpp) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
 void FrameCameraUpdate(Camera* camera, float seconds) {
@@ -471,10 +471,11 @@ bool EventWaits(ei::mainloop::Site where) {
     return platform::EventWaits();
 }
 
-// The loop: passes while no event waits, then the event handled. Returns the quit request's code.
-// `interfaceInput` says whether the interface takes the input (see GameMain).
-int RunMainLoop(bool interfaceInput) {
+// The loop: passes while no event waits, then the event handled. Returns the quit request's code. Whether the
+// interface takes the input is what the last pass said; before the first pass it does.
+int RunMainLoop() {
     platform::Event event;
+    bool interfaceInput = true;
     for (;;) {
         bool waits = EventWaits(ei::mainloop::Site::PeekBeforeFrame);
         while (!waits) {
@@ -585,7 +586,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     StartFirstMap();
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 
-    const int result = RunMainLoop(true);
+    const int result = RunMainLoop();
     ShutDown();
     return result;
 }

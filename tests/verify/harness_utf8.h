@@ -1,8 +1,7 @@
 #pragma once
 
-// The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/utf8_typing.txt, which has no
-// original run: game.exe's text is in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp);
-// in game.exe each step fails.
+// The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/utf8_typing.txt; game.exe's text was
+// in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp).
 
 #include <windows.h>
 

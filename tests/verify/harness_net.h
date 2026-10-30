@@ -11,14 +11,13 @@
 // server session gets no socket (the bind's failure is ignored, 00412D80 / 004409A0) and its local
 // client joins the first game's server instead. When that game quits, the second game's client loses
 // the connection and the interface shows the "disconnect" box (ui_mp_host, N0c; vanilla, Rebirth,
-// with and without the rewrites alike). The harness writes a free port of its own there (game.exe's copy in --no-hooks runs) before
+// with and without the rewrites alike). The harness writes a free port of its own there before
 // the game reads it, as two machines would each have their own.
 //
 // Loopback only (WB14): Windows Firewall asks the user about a program that listens on an address other
 // than loopback, once per program path (worktrees' builds, the standalone host's copies). The harness
-// routes WSOCK32's bind and sendto through the game's import slots (0073B6DC, 0073B70C; game.exe and
-// the standalone image call every WSOCK32 function through them, in every build, the original code's
-// --no-hooks runs too): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60)
+// routes WSOCK32's bind and sendto through the game's import slots (0073B6DC, 0073B70C; the image calls every
+// WSOCK32 function through them, in every build): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60)
 // binds 127.0.0.1, a datagram from a socket not bound yet (the client session's, Open(-1): Winsock
 // would bind it on every address) binds it to 127.0.0.1 first, and a datagram to another address
 // (the lobby's ping to the host's broadcast address, 00440A90) goes to 127.0.0.1 on the same port,

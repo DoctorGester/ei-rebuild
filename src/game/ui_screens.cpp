@@ -252,7 +252,7 @@ Item* ForwardingStrip::ItemAt(int x, int y, int* cursor) {
     case 3: *cursor = 0x17; break;
     }
     Point point{x, y};
-    ui->ScalePointFromScreenEntry(&point);
+    ui->ScalePointFromScreen(&point);
     int index = SlotAt(point.x);
     RebuildList();
     if (index < 0 || index >= std::ssize(list)) return nullptr;

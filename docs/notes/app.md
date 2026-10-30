@@ -105,9 +105,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 
 ## A-E2: WinMain, the static initialisers, the last Rebirth-patched functions, MFC TRY / CATCH
 
-- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). It can be hooked: ei_harness.dll installs its hooks
-  from a stub at WinMain's first instruction (hook.cpp), so a replacement of 00456440 itself takes effect when
-  the stub jumps back. Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
+- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). Until H40 ei_harness.dll installed its hooks in
+  game.exe from a stub at WinMain's first instruction (hook.cpp). Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
   rewrite runs in the vanilla launch only. Every callee is called through its address, so their hooks and
   wrappers keep running. Ours only (`verify_app_main.cpp`: no window at entry, the mouse object released at the
   end); every vanilla scenario runs on it from start to exit.
@@ -137,9 +136,9 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   flow's request, the tick fraction, the next client speed from balance = waiting updates - fraction
   (e^(balance / 10) when negative, 1 up to 1, else sqrt(balance) * 0.1 + 1 - 0.1; kept within 0.1 .. 10), the
   camera for the real time of the pass, the camera file's record / playback, the interface and a frame.
-- Kept: a message that waits before the first pass goes to the interface's input or to the window procedure by
-  the top byte of a reused stack slot (the disc folder's text pointer with sound, the free non-local video
-  memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
+- A message that waits before the first pass goes to the interface's input (`RunMainLoop`; the original chose by the
+  top byte of a reused stack slot: the disc folder's text pointer with sound, the free non-local video memory
+  without). Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
 - The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
   (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
 - Static initialisers (they run before WinMain): the options 00458870

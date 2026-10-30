@@ -1,4 +1,4 @@
-// ei-rebuild.log and the output folder (log.h): the standalone image's and ei_harness.dll's in game.exe.
+// ei-rebuild.log and the output folder (log.h).
 #include "ei/hook.h"
 #include "log.h"
 

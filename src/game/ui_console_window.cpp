@@ -9,7 +9,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
-#include "ei/rebirth.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -187,8 +186,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
     case 9:
         return;
     case 13: {   // Enter
-        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && !commands.empty() &&
-                        str::Compare(input, commands[0]) == 0;
+        // A line equal to the last one is not added to the history again (Rebirth's ImproveConsole).
+        bool repeated = !commands.empty() && str::Compare(input, commands[0]) == 0;
         if (!repeated) {
             commands.insert(commands.begin(), input);
             if (commands.size() > kHistoryDepth) commands.pop_back();
@@ -211,7 +210,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
     default:
         break;
     }
-    if (ctrl && !shift && ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole)) {
+    if (ctrl && !shift) {   // Ctrl+A / C / X / V: select all, copy, cut, paste (Rebirth's ImproveConsole)
         char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
         if (letter == 'a') {
             anchor = 0;

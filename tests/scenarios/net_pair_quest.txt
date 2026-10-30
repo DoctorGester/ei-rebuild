@@ -32,9 +32,10 @@
 #   stream thread, which plays in real time, does not report it playing, so the draws of the zone's fights
 #   followed the machine's load (SV5d5: the flake of C13b3).
 # prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
-# The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
-# to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.
-resolution desktop
+# A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
+# the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
+# layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+rebirth resolution desktop
 timeout 480
 music 0
 peer net_pair_quest
@@ -50,7 +51,7 @@ clickregion 9
 frames 10
 clickregion 1
 frames 10
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 clickregion 4
 frames 5

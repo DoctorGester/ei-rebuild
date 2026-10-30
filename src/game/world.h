@@ -299,20 +299,18 @@ public:
     void AddToUpdateMap(MapObject* unit);
     // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80 plus
     // 0..15, which the game takes from bits 5..8 of the object's address (in several functions), so it
-    // follows the heap's layout. Ours takes the low 4 bits of the object's id instead, and harness runs
-    // on the virtual clock patch the original to do the same (tests/verify/harness_heap.h), so that
-    // every run and both sides agree.
+    // follows the heap's layout. Ours takes the low 4 bits of the object's id instead, so that every run
+    // agrees.
     static int UpdateCountdownFor(const EngineObject* object);
 
     // One world tick: runs every timed object, advances the time wheel and countdowns, moves the missiles, runs the
     // script command queues and then the units.
     void Tick(char force);
     // Runs the objects: in the update-map mode the units in the update map, each counting down to sleep, else every
-    // map object; then the counted objects. Rebirth's FixSpellEffectsOverflow first ticks the effects of sleeping
-    // objects (TickSleepingEffects).
+    // map object; then the counted objects. The effects of sleeping objects are ticked first (TickSleepingEffects).
     void UpdateUnits();
-    // Rebirth's FixSpellEffectsOverflow #0: counts the effects of sleeping map objects down and wakes
-    // those with an expired one.
+    // Counts the effects of sleeping map objects down and wakes those with an expired one (Rebirth's
+    // FixSpellEffectsOverflow #0).
     void TickSleepingEffects();
     // Puts every unit in the sectors within `radius` of `position` (x, y) in the update map.
     void WakeUnitsAround(const Vector3& position, float radius);

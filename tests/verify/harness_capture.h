@@ -5,14 +5,12 @@
 #include <vector>
 
 // Frame capture for the harness's "capture <name>" step (verify build only; harness_capture.cpp).
-// The image comes from the game's own render target (the device object's +0x18, the back buffer in
-// full screen or the off-screen target in a window), read at the present point of the frame
-// function 00458010 after the scene and the interface are drawn and before the software cursor is
-// blitted and the frame flipped. See docs/notes/renderer.md ("Frame capture").
+// The image is the new renderer's presented frame, read at the frame step's cursor lock. See
+// docs/notes/renderer.md ("Frame capture").
 
 namespace ei::verify::capture {
 
-// Patches the present point (once). False when the game's code there is not what we expect.
+// Takes the frame step's cursor lock hook point (ei/main_loop.h). True.
 bool Install();
 
 // Asks for the frame presented after `skip` more frames to be written to

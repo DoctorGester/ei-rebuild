@@ -487,7 +487,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 // One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
 void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, UiSurface* surface,
-               float yOffset, float bigSize, float smallSize, int countTop, int priceTop, int kind) {
+               float yOffset, float bigSize, float smallSize, int countTop, int priceTop, PriceKind kind) {
     for (int i = 0; i < std::ssize(list); ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
@@ -511,7 +511,7 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
 void TradeGrid::Draw(SceneRenderer* pass) {
     Interface3D* currentUi = ui;
     Rect grid{200, 100, 600, 500};
-    currentUi->ScaleRectToScreenEntry(&grid);
+    currentUi->ScaleRectToScreen(&grid);
     Rect screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);

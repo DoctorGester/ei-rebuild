@@ -30,13 +30,13 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 # The master request: the probe (1 s), the fallback's link; then cancelled.
 clickregion 2
 wait 2500
 key esc
-waitwindow 5 00741CD0
+waitwindow 5 mpconnect
 
 # Public, row 0 (the new game), host; the first announcement (before the host's player is bound: no names)
 # and, 20 s later, the second (one name).

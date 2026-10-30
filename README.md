@@ -5,8 +5,8 @@ identical game behaviour, not identical bytes: the same world, saves and network
 renderer and the Rebirth edition's fixes on top.
 
 The product is the standalone game: `ei-rebuild.exe`, one exe that holds all of the game's code. Dropped into an
-installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` is used only by the
-test harness, as the reference our code is compared with.
+installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` was the test
+harness's reference until the goldens became our own (H40, git tag `original-oracle`).
 
 ## Status
 
@@ -39,7 +39,7 @@ test suite plays out exactly as on the original: the same world state and the sa
 - Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
-- Rebirth's bug fixes and widescreen are on by default, even on GOG data; `ei_settings.ini`'s `[patches]` turns them off.
+- Rebirth's bug fixes and its widescreen layout are always on, even on GOG data.
 
 The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
 Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets.md`.
@@ -64,8 +64,7 @@ run against a separate game-data folder. The Windows scenario harness has not ye
 
 ```
 build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
-build.cmd verify         the game with the test harness linked in, and ei_harness.dll (the harness for the original
-                         game.exe), into build\verify (what the tests run)
+build.cmd verify         the game with the test harness linked in, into build\verify (what the tests run)
 ```
 
 Shaders require the official [sokol-shdc compiler](https://github.com/floooh/sokol-tools-bin), pinned to
@@ -109,16 +108,15 @@ anisotropy), the performance overlay and vsync are set in its `[renderer]` secti
 ```
 harness.cmd tests\scenarios\smoke.txt     one scenario on our game, exit code 0 when it passes
 python tools\run_all.py --golden          every scenario, 16 games at once, compared with the goldens
-python tools\run_all.py --no-hooks        the same scenarios on the original game.exe
 ```
 
 Scenarios are text files in `tests/scenarios/`. The harness runs the game hidden on a virtual clock, so a scenario
-repeats exactly, and compares the world state with goldens recorded from the original (`tests/golden/`). The
-original's runs are cached and play again only when the harness changes. How to write scenarios and what a run does:
+repeats exactly, and compares the world state with its goldens (`tests/golden/`): our game's own runs (those that existed when the harness
+stopped running the original game, H40, were the same as its runs). How to write scenarios and what a run does:
 `docs/notes/harness.md`; how changes are checked: `docs/notes/standalone-verification.md`.
 
-The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`), and need
-`tools\setup_vanilla_run.cmd` once for the original's runs.
+The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`). The tools that read
+game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` once.
 
 ## Layout
 
@@ -126,7 +124,7 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
-- `src/hook/` logging and the Rebirth options (both homes), and the harness's game.exe side (ei_harness.dll).
+- `src/hook/` the image's start-up support: logging, the profiler, failure reports and the Rebirth options.
 - `tests/verify/` the harness; `tests/vectors/` function-level comparisons with the original; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one

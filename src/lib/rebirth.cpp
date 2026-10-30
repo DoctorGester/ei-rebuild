@@ -16,18 +16,11 @@ bool g_enabled[kPatchCount];   // zero-initialised: every patch off until Reset
 
 namespace {
 const char* const kNames[] = {
-#define EI_REBIRTH_PATCH(name, kind) #name,
+#define EI_REBIRTH_PATCH(name) #name,
 #include "ei/rebirth_patches.inc"
 #undef EI_REBIRTH_PATCH
 };
 static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
-
-const Kind kKinds[] = {
-#define EI_REBIRTH_PATCH(name, kind) Kind::kind,
-#include "ei/rebirth_patches.inc"
-#undef EI_REBIRTH_PATCH
-};
-static_assert(sizeof(kKinds) / sizeof(kKinds[0]) == kPatchCount);
 
 int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
@@ -38,9 +31,7 @@ void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
 }
 
-void SetDefaults() {
-    for (int i = 0; i < kPatchCount; ++i) detail::g_enabled[i] = kKinds[i] == Kind::Fix;
-}
+void SetDefaults() { SetAll(false); }
 
 // The environment variable `name`; empty when it is not set or too long.
 std::string Environment(const char* name) {
@@ -50,8 +41,6 @@ std::string Environment(const char* name) {
 }   // namespace
 
 void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
-
-Kind KindOf(Patch p) { return kKinds[static_cast<int>(p)]; }
 
 int PluginNPlayers() { return g_pluginNPlayers; }
 void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }

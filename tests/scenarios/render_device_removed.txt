@@ -7,8 +7,6 @@
 # same with the loss only reported (render::LoseDevice) on the hardware device players get. At one
 # frozen moment the frame before the removal and the frame after it must match, in the main menu, in
 # the world and in the camp (textures loaded on the second device).
-# no original: vanilla rebirth (removedevice needs our renderer; S21a)
-# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 render removable,checkall
 reject Script error
 waitmenu

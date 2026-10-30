@@ -2,8 +2,8 @@ r"""Where two random traces part, draw by draw (ticket SV1g).
 
 usage: python tools/randtrace.py A B [--context N]
     A, B: run folders (a name under build\verify\runs, or a path) or randtrace.txt files, made with
-    EI_HARNESS_CLOCK=virtual,randtrace (harness_clock.h). A is the reference (--no-hooks: the original
-    code), B the run to check (the standalone image).
+    EI_HARNESS_CLOCK=virtual,randtrace (harness_clock.h). A is the reference (a run that matched its golden;
+    until H40 also a --no-hooks run of the original code), B the run to check.
 
 Each traced draw carries the generator's state after it: ISAAC's position in its stream, rand()'s seed.
 A trace of B that ran both sides of a function (a verify wrapper, until S21d) put the generators back in

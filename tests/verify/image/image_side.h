@@ -1,10 +1,7 @@
 #pragma once
 
 // The harness's image side (tests/verify/image): what it reads and calls of our code, behind functions that name no
-// class of ours. The shared harness calls them only in the image's runs (ei::Standalone()); in game.exe's runs it
-// reads game.exe's objects through their views (exe_objects.h) and calls game.exe's code (harness_original.h). Only
-// the files in this folder include our game headers, so run_all's reference key (tools/run_all.py, harness_files)
-// leaves them out: our classes do not decide what the original's runs do (ticket H30b).
+// class of ours. Only the files in this folder include our game headers (ticket H30b).
 
 #include <windows.h>
 
@@ -30,8 +27,10 @@ void ObserveDraws(DrawWriter write);
 
 // The window on top (Interface3D::GetActiveWindow), null without one.
 void* TopWindow();
-// game.exe's table of `window`'s class (by its C++ type), else its +0.
-std::uintptr_t WindowKind(const void* window);
+// `window`'s name as a scenario names it (waitwindow: menu, battle, ...), else its class's name.
+std::string WindowKind(const void* window);
+// Whether `name` is a window's name a scenario can wait for.
+bool IsWindowName(const std::string& name);
 
 // ---- the base screen's player list (harness_address_order.cpp; image/harness_address_order_image.cpp)
 
@@ -125,7 +124,7 @@ struct RegionInfo {
 };
 int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
-void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreenEntry
+void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreen
 void InterfaceSize(int* width, int* height);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
@@ -142,7 +141,7 @@ bool RestoreSurfaces(long* result);
 // "hudstate": the battle screen's state logged; a failure, or "" (harness_hud_read.inc).
 std::string HudState(void* screen, const std::string& argument);
 
-// ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp, harness_hooks.h;
+// ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp;
 // image/harness_objects_image.cpp): each hook ends with the function it stands in for, called by name here.
 
 int ServerUpdate(void* server);                 // WorldServer::Update

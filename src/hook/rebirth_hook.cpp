@@ -16,10 +16,10 @@ bool g_rebirthLaunch;
 } // namespace
 
 void NoteLaunch() {
-    // Rebirth's bug fixes are on by default on either install: only the other flags make it Rebirth's.
+    // Any flag on makes it Rebirth's (every flag is off by default; the bug fixes have none).
     g_rebirthLaunch = false;
     for (int i = 0; i < rebirth::kPatchCount; ++i)
-        g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i)) && !rebirth::DefaultOn(static_cast<Patch>(i));
+        g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i));
 }
 
 void LogFlags() {

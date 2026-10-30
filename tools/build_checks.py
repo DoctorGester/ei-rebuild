@@ -19,12 +19,9 @@ def checks(out, x64):
         py + [tool('check_cleanup.py')],
         # Addresses and ticket ids in comments may only go down per file (docs/comment-guide.md).
         py + [tool('comments.py'), 'check'],
-        # Game data by address only through the data seam (src/game/game_data.h, the harness's OriginalGameData):
+        # Game data by address only through the data seam (src/game/game_data.h, the harness's ExeTableId):
         # no raw use.
         py + [tool('data_seam.py'), '--check'],
-        # game.exe's side of the harness reads game.exe's objects through its own views, ours only through
-        # tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files).
-        py + [tool('check_harness_key.py')],
         # Generated and listed files against what they come from, without game.exe: the import files (gameapi.h by
         # hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables.
         py + [tool('gen_iat.py'), '--check'],

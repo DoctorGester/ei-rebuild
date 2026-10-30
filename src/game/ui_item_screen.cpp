@@ -154,7 +154,7 @@ Unit* ItemScreen::HeroUnit(int) { return nullptr; }
 
 float ItemScreen::Weight() { return 0.0f; }
 
-int ItemScreen::Price(Item*, int) { return 0; }
+int ItemScreen::Price(Item*, PriceKind) { return 0; }
 
 void ItemTurn::OnShutdown() {}
 

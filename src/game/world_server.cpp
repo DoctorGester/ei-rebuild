@@ -186,10 +186,9 @@ void WorldServer::AddToUpdateMap(MapObject* unit) {
 void WorldServer::RemoveObject(unsigned objectId) {
     auto found = objects.map.find(objectId);
     MapObject* const* slot = found != objects.map.end() ? &found->second : nullptr;
-    // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
-    // pointer (and crashes).
-    if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
-    MapObject* object = *static_cast<MapObject* const volatile*>(slot);
+    // An unknown id is ignored (Rebirth's FixRemoveMapObject; the original read through the null pointer).
+    if (!slot) return;
+    MapObject* object = *slot;
     if (!object) return;
     if (object->GetClassId() != ClassId::MagicTrap) aiMap.sectorMap.Remove(*slot);    // magic traps are not in it
 

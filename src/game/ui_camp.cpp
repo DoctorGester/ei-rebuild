@@ -20,7 +20,6 @@
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "render/render_state.h"
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include <algorithm>
 #include <cstdint>
@@ -87,12 +86,10 @@ float ItemPrice(Item* item) {
     return item->GetPrice();
 }
 
-// How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a
-// negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
+// How worn the item is: 1 - durability / maximum, a negative (or NaN) durability or maximum taken as 0 and the
+// result clamped to [0, 1] (NaN stays; Rebirth's FixRepairPrice, the original's had neither).
 float WornFraction(const Item* item) {
     float durability = item->condition, maximum = item->conditionMax;
-    if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-        return kPriceOne - durability / maximum;
     float a = kPriceZero < durability ? durability : kPriceZero;
     float b = kPriceZero < maximum ? maximum : kPriceZero;
     float worn = kPriceOne - a / b;
@@ -166,7 +163,7 @@ void CampPages::ShowPage(int newPage) {
         itemConstructor2->SetEnabled(false);
         partStrip->SetEnabled(false);
     }
-    itemStrip->slots = 9;
+    itemStrip->priceKind = PriceKind::None;
 
     bool offered = true;
     switch (newPage) {
@@ -185,7 +182,7 @@ void CampPages::ShowPage(int newPage) {
         helpPanel->ShowHelp(0x65);
         spellConstructor1->SetEnabled(true);
         spellStrip->SetEnabled(true);
-        itemStrip->slots = 1;
+        itemStrip->priceKind = PriceKind::SpellSell;
         break;
     case 3:
         if (!spellConstructor || noConstructor) { offered = false; break; }
@@ -199,7 +196,7 @@ void CampPages::ShowPage(int newPage) {
         helpPanel->ShowHelp(0x64);
         itemConstructor1->SetEnabled(true);
         partStrip->SetEnabled(true);
-        itemStrip->slots = 5;
+        itemStrip->priceKind = PriceKind::ItemSell;
         break;
     case 5:
         if (!itemConstructor || noConstructor) { offered = false; break; }
@@ -267,30 +264,29 @@ void CampPages::ShowPage(int newPage) {
     ui->OpenHelp(false);
 }
 
-int CampPages::Price(Item* item, int kind) {
-    const float* multipliers = priceWeights;
+int CampPages::Price(Item* item, PriceKind kind) {
+    const float weight = priceWeights[static_cast<int>(kind)];
+    const float repairWeight = priceWeights[static_cast<int>(PriceKind::Repair)];
     float repair = kPriceZero;
     ItemKind itemKind = item->Kind();
-    if (itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || kind == 8) {
+    const bool wears = itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor;
+    if (wears || kind == PriceKind::Repair) {
         float worn = WornFraction(item);
-        repair = ItemPrice(item) * multipliers[8] * worn;
-        if (kind == 8) {
-            EI_NAN_AUDIT(worn, multipliers[8]);
+        repair = ItemPrice(item) * repairWeight * worn;
+        if (kind == PriceKind::Repair) {
+            EI_NAN_AUDIT(worn, repairWeight);
             if (worn == kPriceZero) return 0;
-            if (multipliers[8] == kPriceZero) return 0;
+            if (repairWeight == kPriceZero) return 0;
             int price = static_cast<int>(repair);
             return price > 0 ? price : 1;
         }
     }
-    if (itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor) {
-        // Rebirth's FixRepairPrice also jumps over this multiplication (written without an addon.log
-        // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
-        // wear is added instead of subtracted.
-        if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-            return static_cast<int>(ItemPrice(item) * multipliers[kind] + repair);
-        return static_cast<int>(ItemPrice(item) * multipliers[kind] - repair);
+    if (wears) {
+        // Taking a worn item apart pays its repair cost back instead of charging it (Rebirth's FixRepairPrice).
+        if (kind == PriceKind::ItemApart) return static_cast<int>(ItemPrice(item) * weight + repair);
+        return static_cast<int>(ItemPrice(item) * weight - repair);
     }
-    return static_cast<int>(ItemPrice(item) * multipliers[kind]);
+    return static_cast<int>(ItemPrice(item) * weight);
 }
 
 bool CampPages::CanEquip(Item* item, int mode) {
@@ -409,7 +405,7 @@ void CampPages::UpdateAction() {
     actionShown = false;
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
-    auto tradeWith = [&](Party* bought, int buyKind, Party* sold, int sellKind, const char* text) {
+    auto tradeWith = [&](Party* bought, PriceKind buyKind, Party* sold, PriceKind sellKind, const char* text) {
         if (bought->items.empty() && sold->items.empty()) return;
         action = text;
         actionEnabled = true;
@@ -419,7 +415,7 @@ void CampPages::UpdateAction() {
     };
     // A constructor's page: its slots' cost; a finished item in the slots is taken apart,
     // otherwise the constructor makes what the slots allow.
-    auto construct = [&](Ref<Item>& made, Party* slots, int slotKind, int recordKind, int apartKind,
+    auto construct = [&](Ref<Item>& made, Party* slots, PriceKind slotKind, PriceKind recordKind, PriceKind apartKind,
                          bool (*isFinished)(const Item*), bool (*isMaterial)(const Item*),
                          bool (CampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
         made.Reset();
@@ -460,8 +456,8 @@ void CampPages::UpdateAction() {
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor && !noConstructor) {
             PartyUnitRecord* heroRecord = HeroRecord();
-            for (Item* weapon : heroRecord->weapons) cost += Price(weapon, 8);
-            for (Item* armour : heroRecord->armor) cost += Price(armour, 8);
+            for (Item* weapon : heroRecord->weapons) cost += Price(weapon, PriceKind::Repair);
+            for (Item* armour : heroRecord->armor) cost += Price(armour, PriceKind::Repair);
             actionEnabled = cost > 0;
             if (actionEnabled) action = "camp_repair_all";
         }
@@ -476,17 +472,17 @@ void CampPages::UpdateAction() {
         break;
     }
     case 2:
-        tradeWith(spellParts[1], 0, spellParts[2], 1, "camp_spell_trade");
+        tradeWith(spellParts[1], PriceKind::SpellBuy, spellParts[2], PriceKind::SpellSell, "camp_spell_trade");
         break;
     case 3:
-        construct(spellMade, spellResults, 2, 0, 3, &IsSpellContainer, &IsSpell, &CampPages::CanMakeSpell,
+        construct(spellMade, spellResults, PriceKind::SpellMake, PriceKind::SpellBuy, PriceKind::SpellApart, &IsSpellContainer, &IsSpell, &CampPages::CanMakeSpell,
                   "camp_spell_deconstr", "camp_spell_constr", 0x67);
         break;
     case 4:
-        tradeWith(itemParts[1], 4, itemParts[2], 5, "camp_item_trade");
+        tradeWith(itemParts[1], PriceKind::ItemBuy, itemParts[2], PriceKind::ItemSell, "camp_item_trade");
         break;
     case 5:
-        construct(itemMade, itemResults, 6, 4, 7, &IsBuildable, &IsPart, &CampPages::CanMakeItem,
+        construct(itemMade, itemResults, PriceKind::ItemMake, PriceKind::ItemBuy, PriceKind::ItemApart, &IsBuildable, &IsPart, &CampPages::CanMakeItem,
                   "camp_item_deconstr", "camp_item_constr", 0x66);
         break;
     case 6:
@@ -494,7 +490,7 @@ void CampPages::UpdateAction() {
             action = "camp_item_repair";
             actionEnabled = true;
             actionShown = true;
-            for (Item* item : itemExtra->items) cost += Price(item, 8) * Count(item);
+            for (Item* item : itemExtra->items) cost += Price(item, PriceKind::Repair) * Count(item);
         }
         break;
     default:

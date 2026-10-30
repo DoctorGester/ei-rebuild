@@ -124,9 +124,10 @@ void GlobalMap::LeftDown(int, int x, int y) {
         ui->PlayInterfaceSound(kOkSound);
         link = region - kFirstLinkRegion;
     } else {
-        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
-        // WideScreen takes the margin off its x (addon's code).
-        const std::uint32_t pixel = backdrop->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
+        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
+        // part's margins come off (Rebirth's WideScreen took the margin off x).
+        const Point shift = widescreen::PickShift();
+        const std::uint32_t pixel = backdrop->PixelAt(x / 2 - shift.x, y / 2 - shift.y);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;
         ui->PlayInterfaceSound(kOkSound);

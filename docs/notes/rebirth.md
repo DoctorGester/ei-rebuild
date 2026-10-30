@@ -26,14 +26,14 @@ and the two mss32.dll versions, checked against `addon.log`.
 
 `starter\Engine\dinput.dll` ("Addon Loader", a proxy) reads `HKCU\Software\Gipat.Ru\EI_Starter` (`path`, `Settings\AddonPath`), loads
 `starter\addon.dll`, which writes a CALL at 006EC301 (the CRT's call of WinMain). Before WinMain addon makes .text / .rdata writable,
-applies the patch tables and calls WinMain; `ei_harness.dll` installs its hooks when WinMain starts and so sees all of addon's patches.
+applies the patch tables and calls WinMain (until H40 the harness in game.exe, ei_harness.dll, installed its hooks when WinMain started and so saw all of addon's patches).
 WinMain creates the sound manager (006B6040), whose `AIL_startup` makes Miles load every `*.asi` in the working directory (mp3dec.asi,
 EI_Plugin.asi); EI_Plugin writes CALL 10001BD0 at 006B6272 (right after `AIL_startup`), which applies its features and calls the original
 006B73E0. (More exactly: dinput.dll's DllMain points game.exe's entry 006EC226 at its loader, which loads addon.dll on the main
 thread; addon's DllMain, AddonInit at addon+FFDE, opens `starter\addon.log` (appended to on every launch) and sets its crash
 handler, which writes minidumps to `starter\Dumps\`. In harness runs both land in the run's overlay: standalone-verification.md,
 "No run writes into an install".) The installer knows the plugin's sites and active features (from `EI_Plugin.ini` and the mode word) and keeps the original where
-a hook would silently drop the plugin's change (0045C560 was one). dgVoodoo is the same in our vanilla runs.
+a hook would silently drop the plugin's change (0045C560 was one).
 
 addon reads `HKCU\Software\Gipat.Ru\EI_Starter\Settings` (`WideScreen`, `ObjectsDrawRadius` / `LandscapeDrawRadius` [100; 5376 here], `AddonPath` =
 `starter\MODS\Standard`, ...), `...\General Settings\VIDEORESOLUTION`, `2utoexec.cfg` and the mod's `config.reg`. The Standard mod sets only title
@@ -52,7 +52,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ## The patches
 
-*Implemented* = reproduced behind its flag (details: "Implemented patches: exact details"); where it lives is in the CSV. *Disabled here* = addon logs it as disabled in this install.
+*Implemented* = reproduced (behind its flag, but for the bug fixes) (details: "Implemented patches: exact details"); where it lives is in the CSV. *Disabled here* = addon logs it as disabled in this install.
 
 ### Bug fixes (10 applied, single player; all implemented)
 
@@ -61,7 +61,9 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 - **FixSpellEffectsOverflow**: (#1) `MapObject::AddEffect` (0050F1E0, slot 45) refuses a 21st effect and, after adding an effect lasting more
   than one tick, removes every older effect of the same type and end flag whose +0x0C is within 0.001, that lasts no longer and whose value
   is not higher. (#0) a hook in `WorldServer::UpdateUnits` (0058D670, at 0058D82E) counts every effect down one tick on objects that are
-  asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0).
+  asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0). Ours since C68: the
+  renewal and the sleeping count-down, without the cap of 20 (dropping a 21st effect was a bug of its own; the limit is the network's byte,
+  255) and without addon's skip of the record after each removal.
 - **FixProgressNames**: the loading movie (00595080) picks progres2.bik for "gipat2", progres5.bik for "jigran".
 - **FixSpellSelfCasting**: (#0) `Spell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `BattleScreen::SelectUnit`
   (00638EF0) always passes 0 as the flag to 00637500 when casting on a clicked unit.
@@ -76,8 +78,9 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ### Widescreen and rendering (3 of 4 applied)
 
-- **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below): with VIDEORESOLUTION wider
-  than 4:3 the 800x600 interface layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
+- **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below), and since W12 no flag: the
+  interface layout follows the window's shape on both installs; with a window wider than 4:3 the 800x600 interface
+  layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
   `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `UiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
   screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
   are why rule 9 of the rewrite guide exists.
@@ -122,8 +125,7 @@ not inventoried.
 
 ### Resources and paths (5 of 12 applied; single player; implemented: the five mod-folder patches in the standalone image)
 
-NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
-original in hooked runs because the harness keys on its return addresses; every registry read goes through that root; dropped in the
+NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; every registry read goes through that root; dropped in the
 standalone image, which keeps one settings file, ei_settings.ini, for both installs: docs/notes/standalone.md "Settings file"); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
@@ -211,8 +213,8 @@ computes at 53 bits in both installs (Rebirth does not raise the precision). Ret
 ### The flags
 
 `include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
-feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original, bugs included). Defaults: the bug fixes on, the
-rest off ("One test profile"). Sources, in order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the
+feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original). The bug fixes are no flags since C68: the
+rewritten code always has them and their names are only parsed. The rest is off by default ("One test profile"). Sources, in order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the
 exe's folder: Rebirth's, `config/rebirth_profile.ini` with EI_Plugin.ini's players and pause mode, where `starter\addon.dll` or `EI_Plugin.asi` is, else
 the bug fixes and WideScreen; none when `EI_REBIRTH` is set); the settings file's `[patches]` (ei_settings.ini, `Name = true|false`, and `NPlayers`,
 `Pause`, `SecondMaster`; the defaults name none, so every patch follows the folder until the player names it); the `EI_REBIRTH`
@@ -220,20 +222,27 @@ environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06,
 `EI_REBIRTH` (ei_launch: `defaults` when the caller gave none; run_all: the Rebirth profile's names on the Rebirth install), so they take no folder's
 profile and stay independent of the install's EI_Plugin.ini. There was a separate ei_rebirth.ini until C66a; there is no conversion from it. The flags (`src/lib/rebirth.cpp`)
 are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
+`config/rebirth_profile.ini` no longer names the fixes.
 
 ### One test profile (SV9)
 
 User 2026-10-20: Rebirth's obvious bug fixes are the standalone's defaults; scripting / console additions stay flags, off, decided later. The kind of each patch is
 the second argument in `include/ei/rebirth_patches.inc` and the `standalone` column of the CSV:
-- **on** (11): the ten single-player bug fixes and FixProcessLogin (a multiplayer repair ours always had).
-- **flag** (44, off): WideScreen and the draw radii (rendering; our renderer supersedes), the scripting / console patches, the mod-folder and Config* patches,
-  SavesPath, the multiplayer features (ExtendedServerName, MQClient, MPSpeedControl, PlayerNumbers, SetDefaultRate, MPConsole, MpZone, ChatLog),
-  the mod content switches (Menu*Disable, PreventZone1Animation, ForceShowTutorial), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and
-  every EI_Plugin feature (Briefings and Fixes repair multiplayer, but the recording below cannot load EI_Plugin.asi: Miles loads it from the install's folder).
-- **dropped** (9): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
-  EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs); the flags stay, nothing implements them.
+- **always** (15; the fixes `on` until C68): the ten single-player bug fixes, FixProcessLogin (a multiplayer repair ours always had) and four additions
+  that only add what nothing used before (ImproveConsole, NewStringEvents, AutoExec, PersistentGlobalVars). Unconditional code since C68 (user
+  2026-10-30), with no flag: not in `rebirth_patches.inc`.
+- **flag** (21, off): the draw radii (rendering), the scripting / console patches that change what existing scripts or the console do
+  (AllowScriptArgsInLoops, AllowScriptsInMainMenu, AddNewConsoleCommands, AddNewScriptCommands: each moved a golden when on, C68), the mod-folder patches, the multiplayer features (ExtendedServerName,
+  MQClient, MPSpeedControl, PlayerNumbers), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and EI_Plugin's active features
+  (NPlayers, Pause, NewMaster, Briefings, Fixes).
+- **dropped** (10): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
+  EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs) and WideScreen (the layout follows the window, W12). No flag
+  since C68.
+- **none** (18): implemented nowhere and no flag since C68: the mod config options (SavesPath, MpZone, ChatLog, Menu*Disable, PreventZone1Animation,
+  ForceShowTutorial, Config*), SetDefaultRate and MPConsole (disabled in this install) and EI_Plugin's inactive features (PK, AutoAim, Test, Scripts).
+A settings file, profile or spec naming a patch with no flag logs it and leaves it out.
 
-**Recording "original + fixes"** (`tests/verify/harness_addon.{h,cpp}`): addon.dll has no switch per patch (its main table applies every entry; apply functions
+**Recording "original + fixes"** (until H40, the goldens' source then; `tests/verify/harness_addon.{h,cpp}`, the tag original-oracle): addon.dll has no switch per patch (its main table applies every entry; apply functions
 only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_harness.dll) into every
 harness run of game.exe on the vanilla data (not with `EI_VECTORS=1`, not with `EI_ADDON_FLAGS=0`) and sets `EI_ADDON_FLAGS=1`. When WinMain is entered the
 harness keeps addon's sites of the patches whose flag is on in the run (`tests/verify/addon_sites.inc`, `tools/rebirth/make_addon_sites.py` from the CSV) and
@@ -260,7 +269,7 @@ movie choice is not in a golden), FixProcessLogin (multiplayer join; the age it 
 Fixes cannot be recorded through addon.dll (above).
 
 **Rebirth's data is a smoke set** (`run_all --rebirth`, before releases; `config/rebirth_scenarios.csv` plus every scenario with a step for
-one install, rebirthflags, addonpath or widescreen): the default suite and `--no-hooks` run the vanilla data only. `--all-rebirth`
+one install, rebirthflags, addonpath or widescreen): the default suite runs the vanilla data only. `--all-rebirth`
 still runs and compares every Rebirth golden.
 
 ### Installing and verifying flagged rewrites
@@ -294,8 +303,9 @@ layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-e
 0 otherwise) in `UiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
 the battle screen's panels at the screen's edges.
 
-All of it is rewritten (W1-W4b, W2a/b) behind `Patch::WideScreen` (`src/game/ui_widescreen.{h,cpp}` and the files named below), each
-function named in the csv's WideScreen rows; WideScreen has no leftovers.
+All of it is rewritten (W1-W4b, W2a/b; `src/game/ui_widescreen.{h,cpp}` and the files named below), each
+function named in the csv's WideScreen rows; WideScreen has no leftovers. Since W12 it has no flag: the layout follows
+the window's shape (the module overview at the end).
 
 **Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
 harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth
@@ -398,11 +408,10 @@ NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and
 game's and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's
 stub slots, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`); every other read of the game's and the
 starter's keys comes from `config/harness/registry.reg` (`tests/verify/harness_settings.h`, WB16). The widescreen scenarios use `desktop` (3840x2160 here):
-addon's references are recorded at it, and another mode makes dgVoodoo switch the display (the image's runs without a
-`resolution` line play at 1280x720 in a window, H31). Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the widescreen scenarios
+addon's references were recorded at it (the image's runs without a `resolution` line play in a window, H31, W12). Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the widescreen scenarios
 (`ui_widescreen`, `ui_widescreen_more`, `ui_widescreen_hud`, `ui_widescreen_screens`, `ui_widescreen_dialogue`) on the standalone image (Rebirth install) and compares
-its frames with addon's, recorded once (`--widescreen --record`; docs/notes/standalone-verification.md, "WideScreen references"). Before that it ran them under Rebirth with
-our hooks (`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compares the frames; the scenarios run on the virtual
+its frames with addon's, recorded until H40 (`--widescreen --record`; docs/notes/standalone-verification.md, "WideScreen references"). Before that it ran them under Rebirth with
+our hooks (`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compared the frames; the scenarios run on the virtual
 clock, and frames with a `_later` twin are compared without what moved between the two (the hero, his portrait, the menu's creatures); a
 pausing window's frame (the Save window) leaves out what moved in `<f>_moving` / `<f>_moving_later`, captured before it opened. The default
 tolerance is met by every frame (at most 0.065% of the pixels differ; the menu's swaying trees once reached 0.135%). Not compared: the
@@ -425,27 +434,41 @@ WideScreen on), so the Rebirth half of the suite compares these wrappers with ad
 NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only (hooked Rebirth launches keep addon's; S19b).
 ## WideScreen module overview
 
-Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering")
-behind the flag ei::rebirth::Patch::WideScreen. With the starter's Settings\WideScreen on (DWORD, 1 when
-absent) and the starter's EvilIslands\General Settings\VIDEORESOLUTION ("WxH") a valid mode wider than 4:3,
-addon widens the 800x600 interface layout: the 4:3 part of the screen keeps the 800x600 layout in the middle
-(width43 = H * 800 / 600 pixels) and the margins left and right of it (margin pixels each) add `extra`
-layout units on either side. addon computes these once, when it applies its patches before WinMain, from
-the registry (not from the game's screen). This module computes them once as well (widescreen::Configure, in
-GameMain right after the options load), from the resolution the game loaded: the settings file's [video]
-VideoResolution, one value for both installs (tests/scenarios/ui_widescreen_resolution.txt).
+Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering"),
+folded in for every window shape (W12, user 2026-10-30: no flag, no setting; src/game/ui_widescreen.h). The 800x600
+interface layout is drawn in the window's 4:3 part, the largest 4:3 rectangle in the window, centred:
+width43 = min(W, H * 800 / 600), height43 = min(H, W * 600 / 800). A window wider than 4:3 has margins left and
+right of it (margin pixels each, `extra` layout units: addon's layout); a window narrower than 4:3 (5:4, portrait)
+has bands above and below it (marginY pixels: the 4:3 part letterboxed, nothing moves into the bands, the 3D view
+keeps its proportions over the whole window through the axis swap's y scale); at exactly 4:3 both are 0 and every
+value is the original's. addon computed its values once, before WinMain, from the starter's registry, and refused
+every shape but wider than 4:3 (the original's stretched layout then drew). This module computes them once as well
+(widescreen::Configure, in GameMain right after the options load), from the resolution the game loaded and makes its
+window at: the settings file's [video] VideoResolution, one value for both installs
+(tests/scenarios/ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
 Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
-scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
-them without it; every one is without the margin when called with ECX 0), UiRegion::SetRect / AddPoint and
+scaling (+ the margins), the screen-to-layout scaling (- the margins), UiRegion::SetRect / AddPoint and
 the sprites' Place (x + the panel offset); the sprite shapes (x moved by the panel offset), the text extent
-(TextExtentToLayout), and the places addon scales without the margin (ECX 0: the text surfaces' draw, the
-edit field, the connection list, the save / load list, the chat line and the tooltip with its right edge
-LayoutRight; Interface3D::CallScale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
+(TextExtentToLayout), and the places scaled without the margins (addon's ECX 0: the text surfaces' draw and their
+text height, the edit field, the connection list, the save / load list, the chat line and the tooltip with its
+right edge LayoutRight; Interface3D::Scale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
 panel, the weapon bar, the quick items, the action and spell columns, the clock, the movement panel:
 ui_hud_*.cpp) set the panel offset (EnterLeftPanel / EnterRightPanel / LeavePanel) and move their layout
-constants by EdgeShift; the projection's x scale (the axis swap: AxisScale), the interface fonts' size
-(Interface3D::Create: FontScale), the screen backdrop at the mode's size (DrawOverlays), the drags scaled
-without the margin (the camera's and the global map's mouse moves), the global map's pick picture read
-without the margin (through addon's 9 bytes: PickShift), the curtains over the margins of the camp and the
-multiplayer hero screen and the tutorial messages' frames moved with the panels. With the flag off, or a
-mode addon would refuse, everything is the original's.
+constants by EdgeShift; the projection's x and y scales (the axis swap: AxisScale, AxisScaleY), the interface fonts'
+size (Interface3D::Create: FontScale, width * 0.0075 / height43 in double, 0.01f at every 4:3 size), the screen
+backdrop at the window's size (DrawOverlays), the drags scaled without the margins (the camera's and the global map's
+mouse moves), the global map's pick picture read without the margins (PickShift), the curtains over the margins of
+the camp and the multiplayer hero screen (empty sprites with no margin) and the tutorial messages' frames moved with
+the panels.
+- At 4:3 the wide code is the original's (W12 step 1): every branch's wide side, with margin 0 and extra 0, gives
+  the plain side's values (the 64-bit products equal the original's 32-bit ones in range; the font scale rounds to
+  0.01f; the backdrop's window-size rectangle is the scaled 800x600 one). Checked with the layout forced on and the
+  image at 960x720: the 117 vanilla goldens at 4:3 the same. Two things are not addon's: the unit panel's setup
+  keeps the original's slide and moves the original's rectangle by the shift (addon wrote (-133, 0)-(52, 225) and
+  `sliding` 0 whatever the margin), and the curtains are added at 4:3 too (empty: two more sprites on the camp and
+  hero screens).
+- The harness's image runs follow the goldens' shape: vanilla 960x720 (game.exe's stretched layout, a 4:3 window's),
+  Rebirth 1280x720 (addon's at the 16:9 desktop; tests/verify/harness_starter.h). The vanilla scenarios at
+  `resolution desktop` (16:9) get the wide layout there, which the vanilla original never drew.
+- The flag's name stays in rebirth_patches.inc as Dropped (nothing reads it): the harness's addon fix set undoes
+  addon's WideScreen sites in the original's vanilla runs by it.

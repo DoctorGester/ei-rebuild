@@ -11,7 +11,6 @@
 # cells). The two shadow views differ only by the filter's per-pixel grain and at the map's edge: by more
 # than a quarter of the range on 0.013% of the frame (0.051% with the per-cell reads, the squares moving
 # with the cells). Then a run of frames at 8 ms (the sun turns between them) for the eye.
-# no original: vanilla rebirth (the shadow map is our renderer's)
 # prepare: copy_save.py tests/saves/shadow_corrupt save2
 render smooth,checkall
 timeout 120

@@ -19,7 +19,6 @@
 #include <fstream>
 #include <locale.h>
 #include <netdb.h>
-#include <random>
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -731,10 +730,3 @@ bool ParseFloat(std::string_view text, float* value) {
 }
 
 }   // namespace platform
-
-namespace platform {
-void RandomWords(std::span<std::uint32_t, 256> words) {
-    std::random_device random;
-    for (auto& word : words) word = random();
-}
-}

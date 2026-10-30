@@ -963,8 +963,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
 }
 
 void GameFlow::StartNewGame() {
-    // Rebirth's AutoExec #2 (the call redirected): addon's AutoExec lines first.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
+    console::RunAddonAutoExec();   // the settings' AutoExec lines first (Rebirth's AutoExec)
     console::Execute(kExecAutoexec);
     g_interface.closeAll = 1;
     PartyManagerNewGame(&g_partyManager);
@@ -1080,8 +1079,7 @@ void GameFlow::ProcessRequest() {
 
 int GameFlow::LoadGame(const std::string& slot) {
     if (g_serverWorld.gameResult == 2 || g_serverWorld.gameResult == 3) return 0;
-    // Rebirth's AutoExec #1 (the call redirected): addon's AutoExec lines first.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
+    console::RunAddonAutoExec();   // the settings' AutoExec lines first (Rebirth's AutoExec)
     console::Execute(kExecAutoexec);
     g_cursor.SetShape(3);
     g_interface.closeAll = 1;
@@ -1208,13 +1206,8 @@ int CurrentSaveSize() {
 
 void GameFlow::AfterServerStart() {
     UseResources(true);
-// The variables of the party outside a game start empty. Rebirth's PersistentGlobalVars keeps the "gvar."
-// ones.
-    NamedFloatTable* variables = &GlobalParty()->variables;
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
-        ClearVariablesKeepingGlobals(variables);
-    else
-        variables->clear();
+// The variables of the party outside a game start empty but the "gvar." ones (Rebirth's PersistentGlobalVars).
+    ClearVariablesKeepingGlobals(&GlobalParty()->variables);
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (std::ssize(GlobalParty()->members) == 1) {
@@ -1237,14 +1230,11 @@ void GameFlow::UpdateFromServer() {
     auto* clientWorld = &g_clientWorld;
     Player* player = ClientWorldLocalView(clientWorld)->player;
     NamedFloatTable* variables = &player->GetParty()->variables;
-// The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
-// PersistentGlobalVars keeps the "gvar." ones.
+// The local player's variables are replaced by the server's; "constr.current" and the "gvar." ones survive (Rebirth's
+// PersistentGlobalVars).
     float construction = variables->Get(kConstructionVariable);
     NamedFloatTable unusedCopy(*variables);
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
-        ClearVariablesKeepingGlobals(variables);
-    else
-        variables->clear();
+    ClearVariablesKeepingGlobals(variables);
     variables->Set(kConstructionVariable, construction);
     if (net::MapMessage* map = net::g_gameClient->map) {
         if (IsLive(map)) LoadZoneQuests(map->text.data());
@@ -1343,14 +1333,7 @@ void SavedParties::Reload() {
         MpHeroRecord* entry = &read;
         entry->file = finder.GetFileName();
         if (entry->ReadFile(folder)) {
-            NamedFloatTable* variables = &entry->GetParty()->variables;
-            if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
-                // Rebirth's PersistentGlobalVars: the clear is skipped and the table is cleared
-                // keeping its "gvar." entries.
-                ClearVariablesKeepingGlobals(variables);
-            } else {
-                variables->clear();
-            }
+            ClearVariablesKeepingGlobals(&entry->GetParty()->variables);   // but "gvar." (Rebirth's PersistentGlobalVars)
             if (std::ssize(entry->GetParty()->members) == 1) {
                 ReserveOne();
                 entries.push_back(read);

@@ -10,7 +10,6 @@
 #   leaves the top of the screen, its long shadow stays on the road with them and is gone without them
 #   (the shadow that popped in at the screen's edge, the user's report).
 # shadowcheck requires casters outside the view and every object the game shadows in the map.
-# no original: vanilla rebirth (the shadow map is our renderer's)
 render checkall
 timeout 120
 reject Script error

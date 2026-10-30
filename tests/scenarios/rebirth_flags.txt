@@ -1,10 +1,11 @@
-# Rebirth's bug fixes in the rewritten code (include/ei/rebirth.h, docs/notes/rebirth.md), flags on.
-# Vanilla data: the flags on data the original never ran them with. The original cannot run it (no
-# --no-hooks run, no golden); on the standalone image it is a crash smoke test (user 2026-10-16,
+# Rebirth's bug fixes (always the rewritten code's since C68) and its option flags (include/ei/rebirth.h,
+# docs/notes/rebirth.md), the flags on.
+# Vanilla data: the flags on data the original never ran them with. The original could not run it
+# (it never had a golden from game.exe); on the standalone image it is a crash smoke test (user 2026-10-16,
 # S21a): the game must go through the changed code without a failure (hooked, the rewrites that
 # reproduce a fix and whose wrappers compare with the original run without them: ei-rebuild.log
 # "UNVERIFIED ... the original does not have it"): the loading movie (FixProgressNames), spell effects added to the hero and a
-# wolf over and over (FixSpellEffectsOverflow: at most 20, older duplicates removed), casts and
+# wolf over and over (FixSpellEffectsOverflow: older duplicates removed), casts and
 # attacks for the battle music test (FixPlaingBattleMusicFromAntimagic), the camp's prices
 # (FixRepairPrice), items made by name (FixCreateItem), objects removed (FixRemoveMapObject) and
 # the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0), objects created
@@ -14,8 +15,7 @@
 # drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
 # install: the flags follow addon.dll (the image: config/rebirth_profile.ini), checked by the
 # Rebirth golden recorded from the original with addon.dll (S20c).
-# no original: vanilla (the flags are Rebirth's; on vanilla data a crash smoke test of the image, no golden; S21a)
-rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
+rebirthflags AllowScriptArgsInLoops AllowScriptsInMainMenu AddNewConsoleCommands AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 waitmenu
 console thingamabob

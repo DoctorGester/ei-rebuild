@@ -10,8 +10,8 @@ class ByteStream;
 
 struct LockKey {
     // Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in
-    // common) this level is at least the lock's (unsigned)? Rebirth's FixLeversActivate compares
-    // signed, and for a lock of level 0 returns this level + 1.
+    // common) this level is at least the lock's, compared signed; a lock of level 0 gives this level + 1
+    // (Rebirth's FixLeversActivate; the original compared unsigned).
     int Opens(const LockKey* lock) const;
     // Always 1: placed traps take any key.
     bool AcceptedByTrap() const;

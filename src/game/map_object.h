@@ -160,9 +160,9 @@ public:
     virtual std::vector<Vector3> UseSpots(float userRadius);
     // Appends a copy of `effect`, marks part 3 changed and the object dirty, then calls the vitals virtual
     // (with whether the effect scales the object), SetStunned(1) for the stun types, the effects-changed
-    // virtual and, for a scaling effect, RecomputeScale. Rebirth's FixSpellEffectsOverflow keeps at most 20
-    // effects (a 21st is dropped) and, for an effect lasting more than one tick, removes older ones of the same
-    // type, end flag and second float (within 0.001) that last no longer and are no stronger.
+    // virtual and, for a scaling effect, RecomputeScale. An effect lasting more than one tick then removes the older
+    // ones it renews: the same type, end flag and strength (within 0.001), lasting no longer and no stronger. At most
+    // 255 effects (the network's count is a byte).
     virtual void AddEffect(const MapEffect* effect);
     // The effect array's SetSize(count, -1).
     void SetEffectCount(int count);

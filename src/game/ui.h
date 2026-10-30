@@ -64,25 +64,17 @@ extern char g_pauseMessageKey[12];
 // The interface manager.
 class Interface3D {
 public:
-    // Layout (800x600) to screen and back; the Copy is identical.
+    // Layout (800x600) to screen and back, in the window's 4:3 part (ui_widescreen.h).
     void ScaleRectToScreen(Rect* rect) const;
     void ScalePointToScreen(Point* point) const;
     void ScaleRectFromScreen(Rect* rect) const;
     void ScalePointFromScreen(Point* point) const;
-    void ScalePointFromScreenCopy(Point* point) const;
 
-    // The scaling where Rebirth's WideScreen (widescreen::Active) leaves out the margin: the text surfaces'
-    // draw, edit field, connection list, save / load list, chat line, tooltip.
-    void CallScaleRectToScreenNoMargin(Rect* rect) const;
-    void CallScalePointToScreenNoMargin(Point* point) const;
-    void CallScalePointFromScreenNoMargin(Point* point) const;
-
-    // The scaling as reached with a null interface (WideScreen's callers): then without the margin.
-    void ScaleRectToScreenEntry(Rect* rect) const;
-    void ScalePointToScreenEntry(Point* point) const;
-    void ScaleRectFromScreenEntry(Rect* rect) const;
-    void ScalePointFromScreenEntry(Point* point) const;
-    void ScalePointFromScreenCopyEntry(Point* point) const;
+    // The same for sizes and offsets, without the 4:3 part's margins: the text surfaces' draw and text height, edit
+    // field, connection list, save / load list, chat line, tooltip, the drags.
+    void ScaleRectToScreenNoMargin(Rect* rect) const;
+    void ScalePointToScreenNoMargin(Point* point) const;
+    void ScalePointFromScreenNoMargin(Point* point) const;
 
     // Once per frame: pending closes, the queued window, the mouse, the top window and the root.
     void Update();
@@ -133,8 +125,8 @@ public:
     // Enter opens it, Backspace empties the chat lines.
     void ChatKeyEnter();
     void ChatKeyBackspace();
-    // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout (cx * 800 /
-    // width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
+    // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout by the window's
+    // 4:3 part (widescreen::TextExtentToLayout).
     Size TextExtent(std::string_view text, int font) const;
     // `text` word-wrapped to `width` layout units in `font` (UiSurface::DrawWrappedText's lines: breaks at
     // spaces and '\n', a line keeps the space after its last word).
@@ -190,11 +182,11 @@ public:
     // Every frame from the main loop: a pending close-all, the backdrop (modes 2-4), the top window's
     // draw, then the fade over it all.
     void Draw();
-    // Rebirth-patched (WideScreen behind its flag). What is blitted over the scene after EndScene: the top window's surfaces and tooltips, the status surface, a backdrop asked for (mode 1
+    // Rebirth-patched (WideScreen). What is blitted over the scene after EndScene: the top window's surfaces and tooltips, the status surface, a backdrop asked for (mode 1
     // also keeps a 256 x 192 copy and greys it into mode 2; mode 3 puts the old one aside into mode 4), the
     // client's chat overlay, the frame rate and the console.
     void DrawOverlays();
-    // Rebirth-patched (WideScreen behind its flag). Makes the three "Times New Roman" fonts sized to the
+    // Rebirth-patched (WideScreen). Makes the three "Times New Roman" fonts sized to the
     // screen width, activates the game language's keyboard layout (else English, else the one it began
     // with), reads the key bindings and config\tutorial.ini's help topics, and makes the console, debug
     // panel, chat overlay and fade.
@@ -337,7 +329,7 @@ public:
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
     int DrawWrappedText(std::string_view text, const Rect* rect, int maxLines, int font, std::uint32_t colour, std::uint32_t format,
                         bool shadow);
-    // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
+    // Rebirth-patched (WideScreen). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
     // Returns the drawn height in layout units, 0 without a surface.
     int DrawTextIn(std::string_view text, const Rect* rect, int font, std::uint32_t colour, std::uint32_t format, bool shadow);
@@ -574,7 +566,7 @@ struct UiTooltip : UiWindow {
     void SetText(std::string_view text);
     // The first line in the title colour, followed by "  ( <key> )" with keyName.
     void DrawLines();
-    // Rebirth-patched (WideScreen behind its flag). One step of the showing, mouse in layout coordinates;
+    // Rebirth-patched (WideScreen). One step of the showing, mouse in layout coordinates;
     // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse
     // (Appearing); Appearing draws and becomes Shown; Disappearing draws while the timer is positive, then drops
     // the surface (Idle).
@@ -643,7 +635,7 @@ public:
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
     void Draw(SceneRenderer* pass) override;
-    // Rebirth-patched (WideScreen behind its flag: the bar at the screen's left edge, from 80 - shift with
+    // Rebirth-patched (WideScreen: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     HudWeaponBar(Interface3D* ui, BattleScreen* owner);
     // WideScreen: with the left panels' offset.
@@ -692,7 +684,7 @@ public:
         return items[index];
     }
 
-    // Rebirth-patched (WideScreen behind its flag: the panel at the screen's right edge).
+    // Rebirth-patched (WideScreen: the panel at the screen's right edge).
     HudQuickItems(Interface3D* ui, BattleScreen* owner);
     // The next sprite (at most eight): `image` copied into the panel's texture, the model `model` turned
     // over (a plain rectangle without one).
@@ -733,7 +725,7 @@ public:
     void Highlight(int index, bool on);
     // selected = -1.
     void ClearHighlights();
-    // Rebirth-patched (WideScreen behind its flag: the column at the screen's right edge).
+    // Rebirth-patched (WideScreen: the column at the screen's right edge).
     HudSpellColumn(Interface3D* ui, BattleScreen* owner);
     // The next button at the bottom, the ones so far moved up a step; selected = its index.
     void AddSpell(std::string_view model, std::string_view image);
@@ -759,7 +751,7 @@ public:
     void Select(int index);
     void Highlight(int index, bool on);
     void ClearHighlights();
-    // Rebirth-patched (WideScreen behind its flag: the column at the screen's left edge).
+    // Rebirth-patched (WideScreen: the column at the screen's left edge).
     HudActionColumn(Interface3D* ui, BattleScreen* owner);
     // The next button, above the ones so far; selected = its index.
     void AddAction(std::string_view model, std::string_view image, int action);
@@ -918,7 +910,7 @@ class HudMap : public UiWindow {
 public:
     HudMap(Interface3D* ui, BattleScreen* owner);
     void LeftDown(int buttons, int x, int y) override;   // the view buttons
-    // Rebirth-patched (WideScreen behind its flag: the map's centre at 700 + shift). A held view button is
+    // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
     // let go; otherwise region 0 starts the slide, 1 / 2 focus the camera on the map point (inside the
     // world), 5 is "camera north".
     void LeftUp(int buttons, int x, int y) override;
@@ -930,13 +922,13 @@ public:
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
     // clipped to the world, and the world-bounds quad (scene object 0).
     void UpdateView();
-    // Rebirth-patched (WideScreen behind its flag). The parts at the current slide offset.
+    // Rebirth-patched (WideScreen). The parts at the current slide offset.
     void Layout();
-    // Rebirth-patched (WideScreen behind its flag). Every frame: the zoom (2.5 times a second while a view
+    // Rebirth-patched (WideScreen). Every frame: the zoom (2.5 times a second while a view
     // button is held), the view and markers, the slide (0.3 s for the whole way, eased) and the "camera
     // north" time.
     void Update() override;
-    // Rebirth-patched (WideScreen behind its flag: the panel at the screen's right edge). The world's extent
+    // Rebirth-patched (WideScreen: the panel at the screen's right edge). The world's extent
     // and picture come from the local player's zone record (32 by 32 and "battle00" without one); `slid`
     // starts the slide at its far end.
     void Setup(float zoom, bool slid);
@@ -983,15 +975,15 @@ public:
     void ShowBodyPart();
     // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
     void ShowEffects(Unit* unit);
-    // Rebirth-patched (WideScreen behind its flag). The parts at the current slide offset.
+    // Rebirth-patched (WideScreen). The parts at the current slide offset.
     void Layout();
-    // Rebirth-patched (WideScreen behind its flag). Every frame: the slide (as the map's); a dead hover unit
+    // Rebirth-patched (WideScreen). Every frame: the slide (as the map's); a dead hover unit
     // is forgotten.
     void Update() override;
-    // Rebirth-patched (WideScreen behind its flag: the panel at the screen's left edge, rectangle (-133,
-    // 0)-(52, 225) and no slide, addon's constants). `slid` starts the panel at the far end of its slide.
+    // Rebirth-patched (WideScreen: the panel at the screen's left edge, its rectangle moved with it; addon's own
+    // rectangle and "no slide" are not kept, ui_hud_slide.cpp). `slid` starts the panel at the far end of its slide.
     void Setup(int bodyPart, bool slid);
-    // Rebirth-patched (WideScreen behind its flag). The hover unit, else the selected one, while the panel
+    // Rebirth-patched (WideScreen). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
     // its name, bars and texts.
     void Draw(SceneRenderer* pass) override;
@@ -1032,7 +1024,7 @@ public:
     void TogglePause();
     // The normal / fast speed (button and keys): the update period 55 / 27 ms and the clock sound.
     void SetSpeed(bool fast);
-    // Rebirth-patched (WideScreen behind its flag: the clock at the screen's right edge). Regions 0-2 the
+    // Rebirth-patched (WideScreen: the clock at the screen's right edge). Regions 0-2 the
     // pause, normal and fast sectors, 3 the objectives quarter disc.
     void Setup(bool fast);
 
@@ -1054,12 +1046,12 @@ public:
     void Update() override;
     // Region 0 (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
     void ToggleFlag();
-    // WideScreen behind its flag (the left panels' offset). A negative mode hides the marker.
+    // WideScreen (the left panels' offset). A negative mode hides the marker.
     void ShowMode(int mode);
     // A mode button and its keys: the click sound and the mode 0-3 for the selected party units (nothing
     // without the local player's view), then the marker moved there.
     void SetMode(int mode);
-    // Rebirth-patched (WideScreen behind its flag: the panel at the screen's left edge).
+    // Rebirth-patched (WideScreen: the panel at the screen's left edge).
     void Build() override;
 
     BattleScreen* owner;
@@ -1890,7 +1882,7 @@ public:
     void LeftDown(int buttons, int x, int y) override;
     // Enter the next page (Finish on the last), Esc or the help key Finish.
     void KeyDown(int key, int repeat, int flags) override;
-    // Rebirth-patched (WideScreen behind its flag). Builds the page from its "#screen" line: the rectangle
+    // Rebirth-patched (WideScreen). Builds the page from its "#screen" line: the rectangle
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowPage();
@@ -1930,7 +1922,7 @@ public:
     // Opening empties the typed line.
     void SetOpen(bool open);
     void ClearLines();
-    // Rebirth-patched (WideScreen behind its flag). Hidden while the chat is closed; clamps the caret.
+    // Rebirth-patched (WideScreen). Hidden while the chat is closed; clamps the caret.
     void DrawTyped();
     // Nothing while the chat is closed. Every key is marked used; Enter sends a non-empty line (a network
     // client: SayMessage kept 60 s) and, like Esc, closes the chat. Char inserts unless Ctrl is down, the

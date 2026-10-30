@@ -11,9 +11,7 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 
 | Tool | What it catches |
 |---|---|
-| `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs); a recorder not at a known function start, or a second one at an address |
 | `check_x87.py` | in the game sources (src/game, src/lib, src/render) an `x87::` helper, a `libcrt::Ftol` or a `D()` register (C30c): the build is SSE2 throughout, the original's x87 maths is plain float maths or `lib/pc24.h` ("The x87 files to SSE2" below) |
-| `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or the rewrite an `EI_RECORD` names (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other functions are free (argument order is not checked) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | the cleanup artefact counts (below) |
 | `find_dead_code.py` | updates `config/dead_code.csv`: keeps every hand-added row, rewrites its own generated rows in place, never removes (prints generated rows no longer dead); refuses arguments |
@@ -54,7 +52,7 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, platform_win32's UTF-8 routes), sockets
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
   (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
-  import_prototypes.h (the harness key: game.exe's side).
+  import_prototypes.h.
 - Files go through `platform/platform.h` (no SDK header): File (`FileMode` Read / Create / WriteExisting, Seek's
   `SeekFrom`; ReadAt, a seek and an exact read that return false instead of throwing, as the archive and the seed
   file checked SetFilePointer and ReadFile), MappedFile (the mapped archives, read only) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
@@ -66,9 +64,6 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
 - gameapi.h's slot imports are `extern` references bound once in the generated gameapi.cpp (init_seg(lib)), not
   `inline auto&` references whose dynamic initialiser every including object compiled: 0-0.07 s per object (thread,
   calendar, random), a few s of a clean build; the call code is the same.
-- `lib/import_table.h` and `import_prototypes.h` are in the harness's reference key (run_all `harness_files`,
-  through hook/paths.cpp and tests/verify/harness_imports.h): a change there replays every original run. gameapi.h,
-  gameapi.cpp and win_api.h are not (no file of game.exe's side includes them).
 - An include change can change how MSVC inlines `std::basic_string` members, as the precompiled header did: model.h
   without `script.h` changed ~25 objects, party.h without `map_object_figures.h` 3. Check each include change with a
   per-function `dumpbin /disasm` comparison of the objects (only `__LINE__` immediates may differ).
@@ -142,18 +137,14 @@ always-zero counts from progress.py, dashboard_data.py, standalone_gaps.py (gone
 puns the forwarders hid are `reinterpret_cast`s at the call, and the harness changes the image's behaviour through named seams
 (`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `libcrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
 `gen_originals.py`, `check_forwarders.py`, `direct_calls.py`, `RedirectCode` / `CodeLink` and the vector replay's stand-ins went
-with them. What is left calls game.exe's own code in its runs: tests/verify (`harness_original.h`; each forwarder sits behind
-`ei::Standalone()` with our function on the other side) and record_crt.cpp's recorders. ei_vectors links the callers without
-some targets: `tests/vectors/replay_unlinked.cpp` stops each one the replay never reaches (`EI_UNLINKED`) or stands in for it.
-Since H30 nothing of ours runs in game.exe's runs (the harness calls game.exe's own heap, rand seed and functions there;
-the host heap once crashed 104 of the original's runs when the harness freed blocks the game allocated), so crt.cpp's
-heap and rand seed are the image's only. Since H30b nothing of ours decides what the harness reads there either: it
-reads game.exe's objects through its own views (tests/verify/exe_objects.h, our member names at game.exe's offsets as
-they were at the split) and calls game.exe's virtuals at game.exe's slots, and reaches our classes only in the image
-(tests/verify/image). A cleanup that reorders, retypes or renames members of ours (C14a and later) changes neither
-the original's runs nor the reference cache's key (tools/check_harness_key.py); when a cleanup renames a member, the
-view may keep the old name. Of src/ game.exe's side still builds from src/hook (but standalone_main.cpp), rebirth.cpp,
-game_data.h, import_table.h with import_prototypes.h, and intro_sort.h (check_harness_key.py lists them).
+with them. What was left called game.exe's own code in its runs (tests/verify's game.exe side, the recorders) and
+went with H40. ei_vectors links the callers without some targets: `tests/vectors/replay_unlinked.cpp` stops each one
+the replay never reaches (`EI_UNLINKED`) or stands in for it. From H30 until H40 nothing of ours ran in game.exe's runs
+(the harness called game.exe's own heap, rand seed and functions there; the host heap once crashed 104 of the
+original's runs when the harness freed blocks the game allocated), so crt.cpp's heap and rand seed are the image's
+only. From H30b the harness read game.exe's objects there through its own views (tests/verify/exe_objects.h, our
+member names at game.exe's offsets as they were at the split); the views stay for the script vectors' replay
+(tests/vectors/script_original.h).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
@@ -788,7 +779,7 @@ branch (NaNs come out right: MSVC orders the operands for them). The strict form
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
 are on branch `c16-sse2-experiment` (not merged): CMake `EI_ARCH=SSE2` and `EI_X87_PLAIN=<bits>` (helper families as plain C++, bits
 in its `include/ei/x87.h`). A verify build outside `build\<cfg>` runs with `EI_BUILD_DIR=<dir>` and
-`EI_HARNESS_SETTINGS=<checkout>\config\harness` (the harness looks for `..\..\config\harness` from the DLL).
+`EI_HARNESS_SETTINGS=<checkout>\config\harness` (the harness looks for `..\..\config\harness` from the exe).
 
 **`/arch:SSE2`, helpers kept or all plain: 110 of 110 goldens differ**, all from the first record (world update 20, the menu's
 scene: place / AI hashes of its walkers); every run still passes its scenario, and the console differs only in printed distances

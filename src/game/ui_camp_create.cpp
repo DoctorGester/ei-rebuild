@@ -217,7 +217,7 @@ void CampPages::BuildPages() {
         spellStrip->Setup(&spellParts[0]->items, true);
         spellStrip->mode = kActionSpellParts;
         spellStrip->SetFilter(kFilterSpells);
-        spellStrip->slots = 0;
+        spellStrip->priceKind = PriceKind::SpellBuy;
 
         auto* grid = new TradeGrid(ui, this);
         spellConstructor1 = grid;
@@ -238,7 +238,7 @@ void CampPages::BuildPages() {
         partStrip->Setup(&itemParts[0]->items, true);
         partStrip->mode = kActionItemParts;
         partStrip->SetFilter(kFilterArmour);
-        partStrip->slots = 4;
+        partStrip->priceKind = PriceKind::ItemBuy;
 
         auto* grid = new TradeGrid(ui, this);
         itemConstructor1 = grid;

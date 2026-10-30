@@ -13,7 +13,6 @@
 #include "lib/pc24.h"
 #include "lib/str.h"
 
-#include "ei/rebirth.h"
 
 #include <cstdint>
 #include <memory>
@@ -126,8 +125,6 @@ bool NeedsMaterial(ItemKind kind) { return kind == ItemKind::Weapon || kind == I
 
 const char* const kSpellContainer = "spell container";
 const char* const kMaterialType = "material";
-const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
-const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
 // Index of `record` in `table`, -1 for no record.
 template <typename Table, typename Record>
@@ -297,9 +294,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     if (!prototype) prototype = items.questItems.Named(prototypeName);
     if (!prototype) prototype = items.loot.Named(prototypeName);
     if (!prototype) {
-        // Rebirth's FixCreateItem logs instead of the fatal error.
-        if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
-            game::FatalError(kNoPrototype, parts[0]);
+        // No item, no fatal error (Rebirth's FixCreateItem; the original stopped the game).
         return nullptr;
     }
     MaterialRecordHead* material = parts.size() > 1 ? items.materials.Named(parts[1]) : nullptr;
@@ -313,12 +308,8 @@ Item* ItemManager::CreateItem(std::string_view name) {
             spell = context->GetSpellManager()->CreateSpellFromText(extra);
     }
     Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
-    if (!item) {
-        // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
-        // with the null item (and crashes).
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
-        game::FatalError(kCantCreate, std::string(name));
-    }
+    // No item (Rebirth's FixCreateItem; the original reported the error and went on with the null item, crashing).
+    if (!item) return nullptr;
     if (item->GetClassId() == ClassId::ItemLoot && parts.size() > 1) {
         auto* loot = AsLoot(item);
         if (loot->kind == LootKind::Record) loot->index = static_cast<std::uint32_t>(LootTableIndex(loot->recordType, parts[1]));

@@ -3,7 +3,7 @@
 You are working on a C++ rebuild of Evil Islands' game.exe (1.06, MSVC6) in the repo at your
 current working directory (a git worktree of E:\workspace\ei). The product is the standalone image:
 ei-rebuild.exe runs our code (all of it linked in) with no game.exe code, on the part of game.exe's data not
-yet named in our source; game.exe runs only as the original, for the harness's references. Classes are
+yet named in our source. The harness no longer runs game.exe (H40): the goldens are the image's own. Classes are
 normal C++ (rewrite guide, "Where code goes"). Your task is ONE ticket, given in your prompt;
 do it, commit, report, and stop. Don't start other work.
 
@@ -38,13 +38,10 @@ Rules:
   scenario names for a subset, `--vanilla-only`, ...; same summary and exit code), at most `--jobs 4`.
   It queues behind other workers' batches on the machine's 16 game slots and runs to completion, also
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
-  The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
-  `--no-hooks` runs game.exe, always the original game (golden recording; with `EI_VECTORS=1`, vector recording:
-  docs/notes/standalone-verification.md). Run the `--no-hooks` suite when the harness changes (run_all.py
-  `harness_files`: tests/verify but tests/verify/image, src/hook, the headers they include; no game header since
-  H30b); its cache replays only then. Never with `--fresh`
-  unless the ticket says so; in game.exe the harness calls only game.exe's code (tests/verify/harness_original.h). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
-  E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
+  The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`).
+  A change that should not alter behaviour keeps every golden the same; an intended change re-records the affected
+  goldens (docs/notes/standalone-verification.md, section 2) and says why in the commit. Never leave a game running. The games read the installs under F:\games; your worktree needs
+  no run\ folder (the tools that read game.exe's file find the main checkout's run\).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
   reaches it, or which function vectors replay it.
@@ -52,10 +49,9 @@ Rules:
 - Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
   hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
-- Build `build.cmd verify` (the harness build: the image plus the harness and the vector recorders,
-  what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
-  or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
-  (vector recorders) and the checks build.cmd runs at 0 problems.
+- Build `build.cmd verify` (the harness build: the image plus the harness, what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
+  or warnings; `python tools/check_x87.py` and the checks build.cmd runs at
+  0 problems.
 - Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
   no log (the commit history keeps that; docs/notes/README.md).
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is

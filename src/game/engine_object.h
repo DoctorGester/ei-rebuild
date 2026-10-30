@@ -9,7 +9,7 @@
 
 // `new (kZeroed) T(...)`: T constructed on a zeroed block, for the engine objects whose constructors leave fields
 // unset (the two factories' server and map objects, the lights, the particle sources): a determinism fix the
-// standalone keeps; the harness zeroes the original's at the same calls (tests/verify/harness_leftovers.h).
+// standalone keeps.
 // `delete` frees them as any other.
 struct ZeroFill {};
 inline constexpr ZeroFill kZeroed{};

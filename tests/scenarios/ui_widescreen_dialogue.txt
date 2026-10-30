@@ -15,7 +15,6 @@ deterministic
 timeout 90
 resolution desktop
 widescreen 1
-rebirthflags WideScreen
 reject Script error
 waitmenu
 console thingamabob

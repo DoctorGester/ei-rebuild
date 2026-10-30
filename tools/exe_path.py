@@ -8,7 +8,7 @@ Vanilla's and Rebirth's game.exe 1.06 differ in one code byte (a Rebirth fix); t
 The lookup never writes and never reads F:\\games. Nothing found: one error naming everything looked for.
 
 usage: python tools/exe_path.py [--exe PATH] [--all]   prints the path (--all: every install's, one per line)
-(The build reads no game.exe: C25c, C25d. The generators, find_* and check_signatures / check_stolen read it.)
+(The build reads no game.exe: C25c, C25d. The generators and find_* read it.)
 """
 import os, struct, sys
 

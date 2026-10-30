@@ -1,7 +1,7 @@
-// "hudstate" (harness.cpp, HudState): the battle screen's state logged, over either side's classes. Compiled twice:
-// in harness.cpp over game.exe's views (exe_objects.h) and in image/harness_objects_image.cpp over our classes. The
-// including file defines UnitQuickItem, UnitSpell, UnitWeapon (the unit's slots, Unit 00531920 / 005319A0 /
-// 005318B0) and WeaponType (ItemWeapon::GetType 006A07F0) for its side.
+// "hudstate" (harness.cpp, HudState): the battle screen's state logged, compiled in image/harness_objects_image.cpp
+// over our classes. The including file defines UnitQuickItem, UnitSpell, UnitWeapon (the unit's slots) and
+// WeaponType (ItemWeapon::GetType).
+
 //
 // Logs the pending action (pendingAction, pendingSlot, pendingItem), each party member's selection (flags 0x10)
 // and quick items (slots 0-3), and the quick item panel's (quickItems) unit, entries shown and region items, the spell

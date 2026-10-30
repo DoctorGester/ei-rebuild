@@ -209,13 +209,13 @@ class RunAll(Fixture):
         d = os.path.join(self.root, 'runs', 'x-vanilla')
         os.makedirs(d)
         write(os.path.join(d, 'ei-rebuild.log'), make_log(self.words))
-        note = run_all.crash_stack_note(d, self.root, ['ei_launch', '--exe', os.path.join(self.root, 'none.exe')], self.root)
+        note = run_all.crash_stack_note(d, self.root, self.root)
         self.assertTrue(note.startswith('stack: ') and 'CFile::Write' in note, note)
 
     def test_note_when_nothing_resolves(self):
         d = os.path.join(self.root, 'runs', 'y-vanilla')
         os.makedirs(d)
-        note = run_all.crash_stack_note(d, self.root, ['ei_launch'], self.root)
+        note = run_all.crash_stack_note(d, self.root, self.root)
         self.assertTrue(note.startswith('stack: not resolved'), note)
 
 

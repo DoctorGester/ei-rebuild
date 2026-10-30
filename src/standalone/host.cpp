@@ -35,10 +35,6 @@ std::string GameArguments() {
 
 } // namespace
 
-// Marks this process as the standalone image (ei::Standalone): game.exe, where the same harness runs from
-// ei_harness.dll, exports nothing.
-extern "C" __declspec(dllexport) int EiStandaloneHost = 1;
-
 int main(int argc, char** argv) {
     // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on a missing-code report
     // (TerminateProcess) loses none of it.

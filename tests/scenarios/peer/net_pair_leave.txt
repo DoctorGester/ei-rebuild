@@ -1,9 +1,10 @@
 # The peer of net_pair_leave: lacks a quest file the host's server offers (z6q2.mq on Rebirth,
 # z7q1.mq on vanilla; both offers start with z3q2: A-I23, R34c) and joins the host's game (as in net_pair_join), follows the host into
 # the game zone, then its network is cut there.
-# The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
-# to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.
-resolution desktop
+# A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
+# the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
+# layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+rebirth resolution desktop
 timeout 300
 rebirth hidefile maps\z6q2.mq
 vanilla hidefile maps\z7q1.mq
@@ -29,7 +30,7 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 peerwait 90 hosted
 wait 4000

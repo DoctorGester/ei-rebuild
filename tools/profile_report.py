@@ -5,7 +5,7 @@ usage: python tools/profile_report.py <run folder> [--top N] [--min-ms MS]
 The run folder holds profile.txt and ei-rebuild.log. The run is cut at the harness steps in the log;
 for every stretch of at least --min-ms the report lists where the main thread was (self: the
 function it was in; total: functions anywhere on its stack, scanned, so a stale return address can
-add a little). game.exe names come from config/functions.csv, ours (ei-rebuild.exe, ei_harness.dll) from its .map file,
+add a little). game.exe names come from config/functions.csv, ours (ei-rebuild.exe) from its .map file,
 other modules show by name only.
 """
 import argparse
@@ -17,7 +17,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OWN_MODULES = ('ei-rebuild.exe', 'ei_harness.dll')   # our code: the image's exe, the harness in game.exe
+OWN_MODULES = ('ei-rebuild.exe',)   # our code: the image's exe
 
 
 def ms_of_day(stamp):

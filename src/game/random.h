@@ -23,13 +23,13 @@ public:
     // Next() * (max - min) * 2^-32 + min, rounded as the original rounds it (random.cpp).
     float Range(float min, float max);
 
-    // Once (while seeded is 0): seeds results from the platform, then the reference randinit(ctx, TRUE)
-    // and the first Refill.
+    // Once (while seeded is 0): seeds results (Seed), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
-    // Once (while seeded is 0): Init with `source`'s memory as the seed instead of Seed's (no file, no rand()).
+    // Once (while seeded is 0): Init with `source`'s memory as the seed instead of Seed's.
     void InitFrom(const IsaacRandom& source);
 
-    // Fills results with platform seed material, or the harness's deterministic seed hook when set.
+    // Fills results with 1 KB from the system's random source and seeds the CRT's rand() from it (random.cpp); the
+    // harness's seed hook instead, when set.
     void Seed();
 
     std::uint32_t seeded;           // non-zero once seeded from results
