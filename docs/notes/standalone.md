@@ -1624,6 +1624,22 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   (the difficulty dialog, the first zone with its hints, Zak in the circle by day), loading a save from the menu
   (the party, the HUD, the log). Without the x64 data fixes of docs/notes/x64.md (among them the save counts written
   as 32-bit values) a new game came up at night with no Zak; with them it starts as the 32-bit build's does.
+- **The x64 harness build** (A3c): `build.cmd verify-x64` builds builderify-x64: ei-rebuild.exe with the harness's image
+  side linked in (CMake `EI_HARNESS` on x64 builds no ei_harness.dll: game.exe is 32-bit) and an x64 ei_launch that
+  starts only the image. `python tools/work.py test <ID> --x64 [run_all args]` (or run_all.py `--x64`) runs the image's
+  scenarios on it, runs in builderify-x64uns, against the same goldens; `--no-hooks` is refused. game.exe's side of
+  the shared harness compiles there but never runs: `EI_NAKED` / `EI_ORIGINAL` (harness_original.h) give a body that
+  logs and ends the run, exe_objects.h's layout asserts (`EI_EXE_LAYOUT`) hold on x86 only, the inline assembly steps
+  are x86 only. What the harness does differently on x64: thread contexts through src/hook/thread_context.h (Rip / Rsp),
+  user32's hot patches (an absolute jump and a trampoline for the prologues it knows, harness.cpp HotPatch), the
+  registry hook (advapi32's import slot by name: some exports are wrappers there), ntdll's write guard (the x64 system
+  call stub; the JMP goes to an absolute jump in a page near ntdll), a C++ throw's tables (offsets from the module base).
+- **What the x64 goldens show** (A3c, vanilla data, against a 32-bit image without Miles and Bink as reference): runs
+  without Miles never set a speaking unit's Blocked flag (0x800000), so every golden from the first spoken line on
+  differs in the hero's `#unit` hash and the 23 scenarios that wait for `IsUnitBlocked(GetLeader())` time out, in the
+  32-bit image without Miles just as on x64: the null audio backend (PL6) is to make both builds the same. The
+  comparison of the x64 runs with those of the 32-bit image without Miles is the x64 proof (docs/notes/x64.md, "The x64
+  goldens").
 
 ### The harness's homes (S23)
 

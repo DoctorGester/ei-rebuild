@@ -4,6 +4,7 @@
 // start-up actions run, then the static initialisers and WinMain (app::GameMain).
 #include "ei/hook.h"
 #include "hook/log.h"
+#include "hook/thread_context.h"
 #include "game/app.h"
 #include "standalone/static_init.h"
 #include "game/settings_file.h"
@@ -31,11 +32,7 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 
 // The return address on top of an exception's stack: a call's caller.
 std::uintptr_t ReturnAddress(const CONTEXT& context) {
-#if defined(_M_X64)
-    return *reinterpret_cast<const std::uintptr_t*>(context.Rsp);
-#else
-    return *reinterpret_cast<const std::uintptr_t*>(context.Esp);
-#endif
+    return *reinterpret_cast<const std::uintptr_t*>(StackPointer(context));
 }
 
 // A failure of the image (no code at an address, an import that did not resolve): logged, and handed to the

@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -26,6 +27,27 @@ constexpr int kLootChunk = 6;
 // The text a table files a record under: a material's key, an item prototype's name.
 const std::string& IndexKey(const itemdb::MaterialRecordHead& record) { return record.key; }
 const std::string& IndexKey(const itemdb::ItemRecordHead& record) { return record.name; }
+
+// An armour's absorption row as items.idb holds it (fields 0x15 and 0x16): the factor, the absorption per damage type
+// and the flags. The first row's factor is the head's category, which an x64 build's head (8-byte aligned for its
+// vtable) does not keep beside absorbFirst: each row goes through this copy, not one read across the members.
+struct AbsorbRow {
+    std::uint32_t factor;   // float bits
+    float absorb[kDamageTypeCount];
+    std::uint32_t flags;
+};
+static_assert(sizeof(AbsorbRow) == 0x24);
+
+void AbsorbRowField(ChunkArchive* ar, int id, void* factor, float* absorb, std::uint32_t* flags) {
+    AbsorbRow row;
+    std::memcpy(&row.factor, factor, sizeof(row.factor));
+    std::memcpy(row.absorb, absorb, sizeof(row.absorb));
+    row.flags = *flags;
+    ar->Field(id, &row);
+    std::memcpy(factor, &row.factor, sizeof(row.factor));
+    std::memcpy(absorb, row.absorb, sizeof(row.absorb));
+    *flags = row.flags;
+}
 
 } // namespace
 
@@ -85,8 +107,8 @@ void WeaponRecord::Serialize(ChunkArchive* ar) {
 
 void ArmorRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
-    ar->Field(0x15, &category, 0x24);           // the factor (category), absorbFirst and the flags
-    ar->Field(0x16, &othersFactor, 0x24);       // the factor, absorbOthers and the flags
+    AbsorbRowField(ar, 0x15, &category, absorbFirst, &firstFlags);
+    AbsorbRowField(ar, 0x16, &othersFactor, absorbOthers, &othersFlags);
     ar->Field(0x17, &showsWounds);
     ar->Field(0x18, &layer);
     ar->Field(0x19, unreadFields, 3);

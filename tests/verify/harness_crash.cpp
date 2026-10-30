@@ -16,8 +16,19 @@ namespace {
 // An x86 MSVC throw: ExceptionInformation[0] the magic (0x19930520..22), [1] the thrown object's
 // address, [2] its throw information. The throw information lists the types a handler can catch it
 // as, the thrown type first, each named by its decorated name (".PAVCFileException@@" is a
-// CFileException*, ".?AVexception@std@@" a std::exception).
+// CFileException*, ".?AVexception@std@@" a std::exception). An x64 throw (build.cmd verify-x64) names the same tables
+// by 32-bit offsets from the throwing module's base, ExceptionInformation[3].
 constexpr DWORD kMsvcThrow = 0xE06D7363;
+
+#if defined(_M_X64)
+using Ref = std::int32_t;    // an offset from the module's base
+#else
+using Ref = std::uint32_t;   // an address (the base is 0)
+#endif
+template <class T>
+const T* At(Ref ref, std::uintptr_t base) {
+    return reinterpret_cast<const T*>(base + static_cast<std::uintptr_t>(ref));
+}
 
 struct TypeDescriptor {
     const void* vtable;
@@ -26,20 +37,20 @@ struct TypeDescriptor {
 };
 struct CatchableType {
     unsigned properties;
-    const TypeDescriptor* type;
+    Ref type;   // TypeDescriptor
     int displacement[3];
     int size;
-    const void* copy;
+    Ref copy;
 };
 struct CatchableTypes {
     int count;
-    const CatchableType* types[1];
+    Ref types[1];   // CatchableType
 };
 struct ThrowInfo {
     unsigned attributes;
-    const void* unwind;
-    const void* forwardCompat;
-    const CatchableTypes* catchable;
+    Ref unwind;
+    Ref forwardCompat;
+    Ref catchable;   // CatchableTypes
 };
 
 // MFC 4.2's file and archive exceptions as game.exe's copy throws them (pointers; the file name a CString, a
@@ -121,11 +132,21 @@ bool ReadThrow(const EXCEPTION_RECORD* record, Facts* facts) {
     __try {
         const auto* info = reinterpret_cast<const ThrowInfo*>(record->ExceptionInformation[2]);
         const auto* object = reinterpret_cast<const void*>(record->ExceptionInformation[1]);
-        if (!info || !info->catchable || info->catchable->count <= 0) return false;
-        const int count = info->catchable->count < 32 ? info->catchable->count : 32;
-        Undecorate(info->catchable->types[0]->type->name, facts->type, sizeof(facts->type));
+#if defined(_M_X64)
+        const std::uintptr_t base = record->NumberParameters > 3 ? record->ExceptionInformation[3] : 0;
+#else
+        const std::uintptr_t base = 0;
+#endif
+        if (!info || !info->catchable) return false;
+        const auto* catchable = At<CatchableTypes>(info->catchable, base);
+        if (catchable->count <= 0) return false;
+        const int count = catchable->count < 32 ? catchable->count : 32;
+        auto typeName = [&](int i) {
+            return At<TypeDescriptor>(At<CatchableType>(catchable->types[i], base)->type, base)->name;
+        };
+        Undecorate(typeName(0), facts->type, sizeof(facts->type));
         for (int i = 0; i < count && facts->kind == Kind::other; ++i) {
-            const char* name = info->catchable->types[i]->type->name;
+            const char* name = typeName(i);
             if (std::strcmp(name, ".PAVCFileException@@") == 0) facts->kind = Kind::file;
             else if (std::strcmp(name, ".PAVCArchiveException@@") == 0) facts->kind = Kind::archive;
             else if (std::strcmp(name, ".?AVexception@std@@") == 0 || std::strcmp(name, ".?AVexception@@") == 0)

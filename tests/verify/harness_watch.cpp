@@ -6,6 +6,7 @@
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
+#include "../../src/hook/thread_context.h"
 #include "ei/hook.h"
 
 #include <windows.h>
@@ -100,10 +101,10 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     if (code == EXCEPTION_SINGLE_STEP && g_slot && (c->Dr6 & 1)) {
         if (GetCurrentThreadId() == g_mainThread) {
             std::fprintf(g_file, "u%u", g_updates);
-            Print(c->Eip);
+            Print(InstructionPointer(*c));
             std::fprintf(g_file, " v %08X esp-%X <", unsigned(*reinterpret_cast<const std::uint32_t*>(g_slot)),
-                         unsigned(g_slot - c->Esp));
-            const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+                         unsigned(g_slot - StackPointer(*c)));
+            const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*c));
             int found = 0;
             for (int i = 0; i < 256 && found < 4; ++i) {
                 if (!ReturnAddress(stack[i])) continue;
@@ -123,9 +124,9 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         if (value != g_lastFlags) {
             g_lastFlags = value;
             std::fprintf(g_file, "u%u", g_updates);
-            Print(c->Eip);
+            Print(InstructionPointer(*c));
             std::fprintf(g_file, " flags %08X <", unsigned(value));
-            const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+            const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*c));
             int found = 0;
             for (int i = 0; i < 256 && found < kCallers; ++i) {
                 if (!ReturnAddress(stack[i])) continue;
@@ -140,10 +141,10 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     }
     const std::uint32_t* q = g_unit.rotation;
     std::fprintf(g_file, "u%u dr%X", g_updates, unsigned(c->Dr6 & 0xF));
-    Print(c->Eip);
+    Print(InstructionPointer(*c));
     std::fprintf(g_file, " q %08X %08X %08X %08X fcw %04X <", unsigned(q[0]), unsigned(q[1]), unsigned(q[2]),
-                 unsigned(q[3]), unsigned(c->FloatSave.ControlWord & 0xFFFF));
-    const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+                 unsigned(q[3]), FpuControlWordOf(*c));
+    const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*c));
     int found = 0;
     for (int i = 0; i < 256 && found < kCallers; ++i) {
         if (!ReturnAddress(stack[i])) continue;

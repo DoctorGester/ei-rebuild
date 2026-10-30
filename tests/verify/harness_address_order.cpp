@@ -29,8 +29,8 @@ bool g_patched = false;
 
 // The order of address_order::ObjectBefore: the object's id, then its address.
 bool IdBefore(std::uint32_t a, std::uint32_t b) {
-    int ia = reinterpret_cast<const EngineObject*>(a)->id;
-    int ib = reinterpret_cast<const EngineObject*>(b)->id;
+    int ia = reinterpret_cast<const EngineObject*>(static_cast<std::uintptr_t>(a))->id;
+    int ib = reinterpret_cast<const EngineObject*>(static_cast<std::uintptr_t>(b))->id;
     if (ia != ib) return ia < ib;
     return a < b;
 }
@@ -53,7 +53,8 @@ void __fastcall SortForOriginal(ObjectSet* self) {
 
 // DiffObjectSets' merge 0047B4C0: CMP ECX,EAX / JZ 0047B511 / MOV [ESP+0x24],1 / JNC 0047B4F5 (ECX the
 // sent element, EAX the current one; below: the sent one is gone, 0047B4CE). EAX, ECX and EDX kept.
-__declspec(naked) void MergeStep() {
+EI_NAKED void MergeStep() {
+#if defined(_M_IX86)
     __asm {
         cmp ecx, eax
         jne differ
@@ -78,6 +79,9 @@ __declspec(naked) void MergeStep() {
         push 0x0047B4F5
         ret
     }
+#else
+    ei::verify::NoOriginalCode(0);
+#endif
 }
 
 // 0041E430 (the client's binding handler; ECX the client, EDX the binding, plain RET): the original's

@@ -59,8 +59,8 @@ void ReadWorld(WorldServer* w, Builder& b) {
     b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects.map.size()));
     b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects.map.size()));
     b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap.map.size()));
-    b.Int("projectiles", std::ssize(w->projectiles));
-    b.Int("counted", std::ssize(w->counted));
+    b.Int("projectiles", static_cast<int>(std::ssize(w->projectiles)));
+    b.Int("counted", static_cast<int>(std::ssize(w->counted)));
     b.Int("sharedObjects", static_cast<int>(std::ssize(w->sharedObjects)));
     for (int i = 0; i < 32; ++i) {
         b.Bits("allied#", w->diplomacy.allied[i], i);
@@ -75,15 +75,15 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("lastScreen", p->lastScreen);
     b.Unsigned("godMode", p->godMode);
     b.Int("lastTick", p->lastTick);
-    b.Int("items", std::ssize(p->items));
-    b.Int("ids", std::ssize(p->recharging));
+    b.Int("items", static_cast<int>(std::ssize(p->items)));
+    b.Int("ids", static_cast<int>(std::ssize(p->recharging)));
     b.Unsigned("units", static_cast<std::uint32_t>(p->units.size()));
     b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects.size()));
     CParty* party = p->Party();
     b.Unsigned("money", party->money);
     b.Int("partyItems", PartyItemCount(party));
     b.Int("members", static_cast<int>(std::ssize(party->members)));
-    for (int i = 0; i < std::ssize(party->members); ++i) b.Unsigned("member#.unit", party->members[i].unitId, i);
+    for (int i = 0; i < static_cast<int>(std::ssize(party->members)); ++i) b.Unsigned("member#.unit", party->members[i].unitId, i);
     b.Unsigned("entrance", party->entrance);
     std::vector<std::pair<std::string, float>> variables;
     for (auto& n : party->variables) variables.emplace_back(Text(n.first), n.second);
@@ -93,7 +93,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
 
 void ReadEffects(CMapObject* m, Builder& b) {
     b.Int("effects", static_cast<int>(std::ssize(m->effects)));
-    for (int i = 0; i < std::ssize(m->effects); ++i) {
+    for (int i = 0; i < static_cast<int>(std::ssize(m->effects)); ++i) {
         const auto& e = m->effects[i];
         b.Unsigned("effect#.type", e.type, i);
         b.Unsigned("effect#.power", e.power, i);
@@ -126,9 +126,9 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Float("ai.noticed.y", brain.memory.noticedY);
     b.Int("ai.noticedLevel", brain.memory.noticedLevel);
     b.Int("ai.noticedKind", brain.memory.noticedDecay);
-    b.Int("ai.nearby", std::ssize(brain.memory.nearby));
-    b.Int("ai.visible", std::ssize(brain.memory.visible));
-    b.Int("ai.corpses", std::ssize(brain.memory.corpses));
+    b.Int("ai.nearby", static_cast<int>(std::ssize(brain.memory.nearby)));
+    b.Int("ai.visible", static_cast<int>(std::ssize(brain.memory.visible)));
+    b.Int("ai.corpses", static_cast<int>(std::ssize(brain.memory.corpses)));
     b.Int("ai.reports", static_cast<int>(brain.memory.reports.size()));
     b.Int("ai.calls", static_cast<int>(brain.memory.calls.size()));
     b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
@@ -180,8 +180,8 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Int("sizeClass", u->sizeClass);
     b.Int("fightAtWill", u->fightAtWill);
     const auto* m = &u->motion;
-    b.Int("motion.points", std::ssize(m->points));
-    b.Int("motion.waypoints", std::ssize(m->waypoints));
+    b.Int("motion.points", static_cast<int>(std::ssize(m->points)));
+    b.Int("motion.waypoints", static_cast<int>(std::ssize(m->waypoints)));
     b.Int("motion.segment", m->segment);
     // The trajectory only while the unit has one: a unit that never moved keeps the bytes its
     // allocation left there (zero in a run of the original code alone, heap leftovers in the
@@ -500,7 +500,7 @@ void ReadClientWorld(WorldClient* c, Builder& b, std::vector<CUnit*>& units) {
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));
-    b.Int("synchronised", std::ssize(c->dynamicObjects));
+    b.Int("synchronised", static_cast<int>(std::ssize(c->dynamicObjects)));
 }
 
 // A unit of the client world: what the screen shows (place, animation, the packed vitals).
@@ -539,7 +539,7 @@ void ReadWater(State& state) {
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
     for (const auto* sector : t->sectorCache) {
-        if (!sector || !sector->hasWater || std::ssize(sector->vertices) < 2 * kVertices || std::ssize(sector->records) < 2 * kVertices)
+        if (!sector || !sector->hasWater || static_cast<int>(std::ssize(sector->vertices)) < 2 * kVertices || static_cast<int>(std::ssize(sector->records)) < 2 * kVertices)
             continue;
         Hash positions, speculars;
         int water = 0;

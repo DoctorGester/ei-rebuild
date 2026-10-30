@@ -10,10 +10,18 @@
 
 #include <cstdint>
 
-// `__declspec(naked) R f(...) EI_ORIGINAL(addr)`: a body that jumps to `addr` with the stack untouched, so any calling
-// convention works.
+// `EI_NAKED R f(...) EI_ORIGINAL(addr)`: a body that jumps to `addr` with the stack untouched, so any calling
+// convention works. In an x64 build (build.cmd verify-x64) game.exe's side of the harness never runs (game.exe is
+// 32-bit) but still compiles: no naked functions there, and a body that reports the call and ends the run.
+#if defined(_M_IX86)
+#define EI_NAKED __declspec(naked)
 #define EI_ORIGINAL(addr) \
     { __asm { push addr } __asm { ret } }
+#else
+#define EI_NAKED
+#define EI_ORIGINAL(addr) \
+    { ::ei::verify::NoOriginalCode(addr); }
+#endif
 
 namespace ei {
 
@@ -30,6 +38,9 @@ T& OriginalGameData(std::uintptr_t address) {
 } // namespace ei
 
 namespace ei::verify {
+
+// The x64 build's body of a call of game.exe's code (EI_ORIGINAL, the inline steps): logs it and ends the run.
+[[noreturn]] void NoOriginalCode(std::uintptr_t address);
 
 // game.exe's function at `address` as F (a __thiscall member as `R(__thiscall*)(T*, ...)`). game.exe's runs only.
 template <class F>

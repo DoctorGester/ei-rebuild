@@ -170,7 +170,7 @@ void RebuildClientParty(BattleScreen* screen) {
                     party->resize(1);
                 } else {
                     party->resize(n + 1);
-                    std::memmove(party->data() + 1, party->data(), static_cast<std::size_t>(n) * 4);
+                    std::memmove(party->data() + 1, party->data(), static_cast<std::size_t>(n) * sizeof((*party)[0]));
 
                 }
                 (*party)[0] = unit;

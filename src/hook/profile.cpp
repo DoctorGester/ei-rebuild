@@ -5,6 +5,7 @@
 // can show up as a caller; only words that follow a CALL instruction in game.exe or our module count.
 #include "ei/hook.h"
 #include "log.h"
+#include "thread_context.h"
 
 #include <windows.h>
 #include <psapi.h>
@@ -82,11 +83,7 @@ DWORD WINAPI Sampler(void*) {
             ResumeThread(g_main);
             break;
         }
-#if defined(_M_X64)
-        const std::uintptr_t sp = context.Rsp, ip = context.Rip;
-#else
-        const std::uintptr_t sp = context.Esp, ip = context.Eip;
-#endif
+        const std::uintptr_t sp = StackPointer(context), ip = InstructionPointer(context);
         std::size_t words = 0;
         if (sp < g_stackBase) {
             words = std::min<std::size_t>((g_stackBase - sp) / sizeof(std::uintptr_t), stack.size());

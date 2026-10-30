@@ -59,9 +59,13 @@ static_assert(sizeof(RecordHeader) == 4);
 
 // The x87 control word now.
 inline std::uint16_t ControlWord() {
+#if defined(_M_IX86)
     std::uint16_t cw;
     __asm fnstcw cw
     return cw;
+#else
+    return 0;   // x64 (the verify-x64 build's harness, which records no vectors): no x87 maths
+#endif
 }
 
 // A zeroed payload (padding included), to be filled by a recorder.

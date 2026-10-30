@@ -257,10 +257,12 @@ int InstallHooks() {
 // has applied its own patches from a hook on the WinMain call. The standalone image runs its start-up from
 // StandaloneMain (src/standalone/standalone_main.cpp).
 void InstallCoverage();
-static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();
 
 void SetOriginalWinMainAction(void (*action)()) { g_originalWinMainAction = action; }
+
+#if defined(_M_IX86)   // game.exe is 32-bit: an x64 build has the image's side of the harness only
+static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
     // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
@@ -301,5 +303,6 @@ void InstallHooksAtWinMain() {
     VirtualProtect(p, 5, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);
 }
+#endif
 
 } // namespace ei

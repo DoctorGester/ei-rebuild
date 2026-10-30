@@ -16,30 +16,38 @@
 #include <cstdint>
 #include <cstring>
 
+// A view's size or offset as game.exe's: asserted in the 32-bit build. An x64 build (build.cmd verify-x64) compiles the
+// views for the shared harness but never reads game.exe (32-bit), so its pointers and offsets differ there.
+#if defined(_M_IX86)
+#define EI_EXE_LAYOUT(...) static_assert(__VA_ARGS__)
+#else
+#define EI_EXE_LAYOUT(...) static_assert(true)
+#endif
+
 namespace ei::verify::exe {
 
 struct Vector3 {
     float x, y, z;
 };
-static_assert(sizeof(Vector3) == 0xC);
+EI_EXE_LAYOUT(sizeof(Vector3) == 0xC);
 
 struct Quaternion {
     float w, x, y, z;
 };
-static_assert(sizeof(Quaternion) == 0x10);
+EI_EXE_LAYOUT(sizeof(Quaternion) == 0x10);
 
 // A Windows RECT.
 struct Rect {
     int left, top, right, bottom;
 };
-static_assert(sizeof(Rect) == 0x10);
+EI_EXE_LAYOUT(sizeof(Rect) == 0x10);
 
 // MFC's CString: a pointer to the text (its header before it).
 struct CString {
     const char* text;
     operator const char*() const { return text; }
 };
-static_assert(sizeof(CString) == 4);
+EI_EXE_LAYOUT(sizeof(CString) == 4);
 
 // STLport's string: start, finish, end of storage. Ordered as STLport's operator< (the bytes, then the length).
 struct StlpString {
@@ -54,7 +62,7 @@ struct StlpString {
         return a.size() < b.size();
     }
 };
-static_assert(sizeof(StlpString) == 0xC);
+EI_EXE_LAYOUT(sizeof(StlpString) == 0xC);
 
 // MFC's CArray<T> (CObject's vtable, data, size, capacity, grow-by).
 template <class T>
@@ -67,7 +75,7 @@ struct Array {
     int GetSize() const { return size; }
     const T& operator[](int i) const { return data[i]; }
 };
-static_assert(sizeof(Array<int>) == 0x14);
+EI_EXE_LAYOUT(sizeof(Array<int>) == 0x14);
 
 // A CArray<T> the rebuild holds as a std::vector: the same bytes, read through the vector's API (the shared readers
 // name both sides alike).
@@ -85,7 +93,7 @@ struct Vector {
     const T* end() const { return elements + count; }
     const T& operator[](std::size_t i) const { return elements[i]; }
 };
-static_assert(sizeof(Vector<int>) == 0x14);
+EI_EXE_LAYOUT(sizeof(Vector<int>) == 0x14);
 
 // MFC's CList<T> (CObject's vtable, head, tail, count, free list, blocks, block size); a node is next, prev, data.
 template <class T>
@@ -118,7 +126,7 @@ struct List {
     Iterator begin() const { return {head}; }
     Iterator end() const { return {nullptr}; }
 };
-static_assert(sizeof(List<int>) == 0x1C);
+EI_EXE_LAYOUT(sizeof(List<int>) == 0x1C);
 
 // STLport's list<T>: the sentinel node.
 template <class T>
@@ -146,7 +154,7 @@ struct StlpList {
     Iterator begin() const { return {head ? head->next : nullptr}; }
     Iterator end() const { return {head}; }
 };
-static_assert(sizeof(StlpList<int>) == 4);
+EI_EXE_LAYOUT(sizeof(StlpList<int>) == 4);
 
 // The game's aligned pointer array (data, count, capacity, grow-by).
 template <class T>
@@ -156,7 +164,7 @@ struct AlignedArray {
     int capacity;
     int growBy;
 };
-static_assert(sizeof(AlignedArray<int>) == 0x10);
+EI_EXE_LAYOUT(sizeof(AlignedArray<int>) == 0x10);
 
 // STLport's hashtable: the functor bytes, the bucket vector (start, finish, end of storage), the count. Walked
 // like a std map (begin / end, ->first and ->second on the nodes) in iterator order: the buckets in order, each
@@ -213,7 +221,7 @@ struct HashMapNode {
 };
 template <class K, class V>
 using HashMap = HashTable<HashMapNode<K, V>>;
-static_assert(sizeof(HashMap<int, int>) == 0x14);
+EI_EXE_LAYOUT(sizeof(HashMap<int, int>) == 0x14);
 
 // The world's maps of objects by id: the map and the highest id put in.
 struct CMapObject;
@@ -221,11 +229,11 @@ struct ObjectIdMap {
     HashMap<unsigned, CMapObject*> map;
     int maxId;
 };
-static_assert(sizeof(ObjectIdMap) == 0x18);
+EI_EXE_LAYOUT(sizeof(ObjectIdMap) == 0x18);
 
 // A party's named floats: a hashtable of {CString, float}.
 using NamedFloatTable = HashMap<CString, float>;
-static_assert(sizeof(NamedFloatTable) == 0x14);
+EI_EXE_LAYOUT(sizeof(NamedFloatTable) == 0x14);
 
 // An element of the network sessions' lists: a counted pointer.
 struct RefPtr {
@@ -262,7 +270,7 @@ struct EngineObject {
     int GetClassId() { return CallSlot<int>(12); }
     template <class R> R CallSlot(int slot) { return reinterpret_cast<R(__thiscall*)(EngineObject*)>(vtable[slot])(this); }
 };
-static_assert(sizeof(EngineObject) == 0x1C);
+EI_EXE_LAYOUT(sizeof(EngineObject) == 0x1C);
 
 // A placed object: position and orientation.
 struct TransformObject : EngineObject {
@@ -271,7 +279,7 @@ struct TransformObject : EngineObject {
     Quaternion localRotation;               // +0x34
     std::uint8_t unknown44[0x10];
 };
-static_assert(sizeof(TransformObject) == 0x54);
+EI_EXE_LAYOUT(sizeof(TransformObject) == 0x54);
 
 // The camera (camera.h, 0079B2A8): its focus, distance and heading; the camera trace reads them (harness_camera.cpp).
 struct Camera : TransformObject {
@@ -282,21 +290,21 @@ struct Camera : TransformObject {
     Quaternion viewRotation;                // +0xF4
     std::uint8_t unknown104[0x200];
 };
-static_assert(sizeof(Camera) == 0x304 && offsetof(Camera, focus) == 0xE0 && offsetof(Camera, viewRotation) == 0xF4);
+EI_EXE_LAYOUT(sizeof(Camera) == 0x304 && offsetof(Camera, focus) == 0xE0 && offsetof(Camera, viewRotation) == 0xF4);
 
 // A texture (texture.h).
 struct CTexture : EngineObject {
     CString name;                           // +0x1C
     std::uint8_t unknown20[0x48];
 };
-static_assert(sizeof(CTexture) == 0x68);
+EI_EXE_LAYOUT(sizeof(CTexture) == 0x68);
 
 // A model's part set (map_object_shadow.h).
 struct TextureParts {
     CTexture* texture;                      // +0x00
     std::uint8_t unknown4[0x10];
 };
-static_assert(sizeof(TextureParts) == 0x14);
+EI_EXE_LAYOUT(sizeof(TextureParts) == 0x14);
 
 // A 3D object's drawing half (map_object_shadow.h).
 struct Object3DClientSpecific : EngineObject {
@@ -304,7 +312,7 @@ struct Object3DClientSpecific : EngineObject {
     TextureParts* partSets[2];              // +0x20
     std::uint8_t unknown28[0xD4];
 };
-static_assert(sizeof(Object3DClientSpecific) == 0xFC);
+EI_EXE_LAYOUT(sizeof(Object3DClientSpecific) == 0xFC);
 
 // A figure (link_figure.h).
 struct LinkMesh {
@@ -314,7 +322,7 @@ struct LinkMesh {
     float morphWeights[3];                  // +0x30
     std::uint8_t unknown3C[0x74];
 };
-static_assert(sizeof(LinkMesh) == 0xB0);
+EI_EXE_LAYOUT(sizeof(LinkMesh) == 0xB0);
 
 // A figure in the world: its model's name and scale.
 struct CObject3D : TransformObject {
@@ -329,7 +337,7 @@ struct CObject3D : TransformObject {
     std::uint8_t unknownF4[0x7C];
     Object3DClientSpecific* ClientSpecific() const { return static_cast<Object3DClientSpecific*>(attached); }
 };
-static_assert(sizeof(CObject3D) == 0x170);
+EI_EXE_LAYOUT(sizeof(CObject3D) == 0x170);
 
 // An effect on a map object (map_object.h).
 struct MapEffect {
@@ -341,7 +349,7 @@ struct MapEffect {
     std::uint32_t strength;                 // +0x0C
     std::uint8_t unknown10[0x4];
 };
-static_assert(sizeof(MapEffect) == 0x14);
+EI_EXE_LAYOUT(sizeof(MapEffect) == 0x14);
 
 // A map object's vitals as the client sees them.
 struct UnitVitalsPacked {
@@ -352,7 +360,7 @@ struct UnitVitalsPacked {
     std::uint16_t maxMana;                  // +0x08
     std::uint8_t unknownA[0xE];
 };
-static_assert(sizeof(UnitVitalsPacked) == 0x18);
+EI_EXE_LAYOUT(sizeof(UnitVitalsPacked) == 0x18);
 
 // A map object (map_object.h): its server or client half, effects and sector cell.
 struct CMapObject : CObject3D {
@@ -366,7 +374,7 @@ struct CMapObject : CObject3D {
     int sectorCellY;                        // +0x1BC
     std::uint8_t unknown1C0[0x78];
 };
-static_assert(sizeof(CMapObject) == 0x238);
+EI_EXE_LAYOUT(sizeof(CMapObject) == 0x238);
 
 // Hit points and mana (unit.h).
 struct UnitVitals {
@@ -379,7 +387,7 @@ struct UnitVitals {
     float maxMana;                          // +0x18
     std::uint8_t unknown1C[0x3C];
 };
-static_assert(sizeof(UnitVitals) == 0x58);
+EI_EXE_LAYOUT(sizeof(UnitVitals) == 0x58);
 
 // A map object's server half (class 0x39).
 struct MapObjectServer : EngineObject {
@@ -387,7 +395,7 @@ struct MapObjectServer : EngineObject {
     UnitVitals vitals;                      // +0x20
     std::uint8_t unknown78[0x1C];
 };
-static_assert(sizeof(MapObjectServer) == 0x94);
+EI_EXE_LAYOUT(sizeof(MapObjectServer) == 0x94);
 
 // A unit's path and the segment it walks (unit_motion.h).
 struct UnitMotion {
@@ -412,7 +420,7 @@ struct UnitMotion {
     float segmentEnd;                       // +0x9C
     int segment;                            // +0xA0
 };
-static_assert(sizeof(UnitMotion) == 0xA4);
+EI_EXE_LAYOUT(sizeof(UnitMotion) == 0xA4);
 
 // A unit (unit.h, class 0x50).
 struct CUnit : CMapObject {
@@ -445,7 +453,7 @@ struct CUnit : CMapObject {
     std::uint32_t altPassCosts;             // +0x43C
     std::uint8_t unknown440[0x9C];
 };
-static_assert(sizeof(CUnit) == 0x4DC && offsetof(CUnit, motion) == 0x27C);
+EI_EXE_LAYOUT(sizeof(CUnit) == 0x4DC && offsetof(CUnit, motion) == 0x27C);
 
 // A unit controller's order (combat.h).
 struct UnitAction {
@@ -454,7 +462,7 @@ struct UnitAction {
     CMapObject* target;                     // +0x08
     std::uint8_t unknownC[0x18];
 };
-static_assert(sizeof(UnitAction) == 0x24);
+EI_EXE_LAYOUT(sizeof(UnitAction) == 0x24);
 
 // A unit's statistics (unit.h).
 struct UnitStats {
@@ -466,14 +474,14 @@ struct UnitStats {
     std::uint32_t flags;                    // +0x6F8
     std::uint8_t unknown6FC[0x8];
 };
-static_assert(sizeof(UnitStats) == 0x704);
+EI_EXE_LAYOUT(sizeof(UnitStats) == 0x704);
 
 // The AI's move target.
 struct AIMoveOrder {
     Vector3 point;                          // +0x00
     Vector<AILook> looks;                   // +0x0C
 };
-static_assert(sizeof(AIMoveOrder) == 0x20);
+EI_EXE_LAYOUT(sizeof(AIMoveOrder) == 0x20);
 
 // What the AI remembers (unit_ai.h).
 struct AIMemory {
@@ -492,7 +500,7 @@ struct AIMemory {
     std::uint8_t seesEnemy;                 // +0xBC
     std::uint8_t unknownBD[0x3];
 };
-static_assert(sizeof(AIMemory) == 0xC0);
+EI_EXE_LAYOUT(sizeof(AIMemory) == 0xC0);
 
 // A unit controller's AI (unit_ai.h).
 struct AIBrain {
@@ -520,7 +528,7 @@ struct AIBrain {
     std::uint8_t unknown90[0x40];
     AIMemory memory;                        // +0xD0
 };
-static_assert(sizeof(AIBrain) == 0x190);
+EI_EXE_LAYOUT(sizeof(AIBrain) == 0x190);
 
 // A unit's server controller (combat.h, class 0x3E).
 struct UnitServer : EngineObject {
@@ -547,8 +555,8 @@ struct UnitServer : EngineObject {
     AIBrain brain;                          // +0x980
     std::uint8_t unknownB10[0x10];
 };
-static_assert(sizeof(UnitServer) == 0xB20);
-static_assert(offsetof(UnitServer, moveMode2) == 0x170 && offsetof(UnitServer, orderStopped) == 0x18C);
+EI_EXE_LAYOUT(sizeof(UnitServer) == 0xB20);
+EI_EXE_LAYOUT(offsetof(UnitServer, moveMode2) == 0x170 && offsetof(UnitServer, orderStopped) == 0x18C);
 
 // A timed effect (world_effect.h).
 struct CEffect : TransformObject {
@@ -558,7 +566,7 @@ struct CEffect : TransformObject {
     int moving;                             // +0xA4
     std::uint8_t unknownA8[0xA4];
 };
-static_assert(sizeof(CEffect) == 0x14C);
+EI_EXE_LAYOUT(sizeof(CEffect) == 0x14C);
 
 struct EffectSound : CEffect {
     std::uint8_t unknown14C[0x100];
@@ -567,7 +575,7 @@ struct EffectSound : CEffect {
     int looping;                            // +0x254
     std::uint8_t unknown258[0xC];
 };
-static_assert(sizeof(EffectSound) == 0x264);
+EI_EXE_LAYOUT(sizeof(EffectSound) == 0x264);
 
 struct CEffectParticle : CEffect {
     std::uint8_t unknown14C[0xC];
@@ -579,14 +587,14 @@ struct CEffectParticle : CEffect {
     std::uint8_t unknown178[0x4];
     int unitId;                             // +0x17C
 };
-static_assert(sizeof(CEffectParticle) == 0x180);
+EI_EXE_LAYOUT(sizeof(CEffectParticle) == 0x180);
 
 struct EffectPointLight : CEffect {
     Vector3 color;                          // +0x14C
     float range;                            // +0x158
     std::uint8_t unknown15C[0x8];
 };
-static_assert(sizeof(EffectPointLight) == 0x164);
+EI_EXE_LAYOUT(sizeof(EffectPointLight) == 0x164);
 
 struct EffectLightning : CEffect {
     Vector3 from;                           // +0x14C
@@ -596,14 +604,14 @@ struct EffectLightning : CEffect {
     int fromObject;                         // +0x170
     std::uint8_t unknown174[0x4];
 };
-static_assert(sizeof(EffectLightning) == 0x178);
+EI_EXE_LAYOUT(sizeof(EffectLightning) == 0x178);
 
 struct EffectMissile : CEffect {
     int arrived;                            // +0x14C
     int targetId;                           // +0x150
     std::uint8_t unknown154[0x4];
 };
-static_assert(sizeof(EffectMissile) == 0x158);
+EI_EXE_LAYOUT(sizeof(EffectMissile) == 0x158);
 
 // A spell (spell.h).
 struct CSpell : EngineObject {
@@ -616,7 +624,7 @@ struct CSpell : EngineObject {
     std::uint32_t targetFlags;              // +0x3C
     std::uint8_t unknown40[0x1C];
 };
-static_assert(sizeof(CSpell) == 0x5C);
+EI_EXE_LAYOUT(sizeof(CSpell) == 0x5C);
 
 // A spell on its way or lasting (spell.h): the server world's missiles.
 struct SpellEffect {
@@ -638,7 +646,7 @@ struct SpellEffect {
     std::uint8_t unknownA4[0x4];
     const CSpell* Spell() const { return &spell; }
 };
-static_assert(sizeof(SpellEffect) == 0xA8);
+EI_EXE_LAYOUT(sizeof(SpellEffect) == 0xA8);
 
 // An AI event (unit_ai.h).
 struct AIEvent {
@@ -652,7 +660,7 @@ struct AIEvent {
     std::uint8_t unknown24[0x8];
     AIEvent* nextInSlot;                    // +0x2C
 };
-static_assert(sizeof(AIEvent) == 0x30);
+EI_EXE_LAYOUT(sizeof(AIEvent) == 0x30);
 
 // The server world's AI events by wheel slot and side (unit_ai.h).
 struct AIEventTable {
@@ -664,7 +672,7 @@ struct AIEventTable {
     int width;                              // +0x10034
     int height;                             // +0x10038
 };
-static_assert(sizeof(AIEventTable) == 0x1003C);
+EI_EXE_LAYOUT(sizeof(AIEventTable) == 0x1003C);
 
 // The server world's AI map (ai_map.h).
 struct AIMap {
@@ -673,7 +681,7 @@ struct AIMap {
     std::uint8_t unknown2698[0x30];
     AIEventTable events;                    // +0x26C8
 };
-static_assert(sizeof(AIMap) == 0x12704 && offsetof(AIMap, footprintTick) == 0x2694 && offsetof(AIMap, events) == 0x26C8);
+EI_EXE_LAYOUT(sizeof(AIMap) == 0x12704 && offsetof(AIMap, footprintTick) == 0x2694 && offsetof(AIMap, events) == 0x26C8);
 
 struct WorldAlarm {
     std::uint8_t active;                    // +0x00
@@ -682,18 +690,18 @@ struct WorldAlarm {
     float x;                                // +0x08
     float y;                                // +0x0C
 };
-static_assert(sizeof(WorldAlarm) == 0x10);
+EI_EXE_LAYOUT(sizeof(WorldAlarm) == 0x10);
 
 struct Diplomacy {
     std::uint32_t allied[32];               // +0x00
     std::uint32_t hostile[32];              // +0x80
 };
-static_assert(sizeof(Diplomacy) == 0x100);
+EI_EXE_LAYOUT(sizeof(Diplomacy) == 0x100);
 
 struct ScriptObjectRef {
     EngineObject* object;                  // +0x00
 };
-static_assert(sizeof(ScriptObjectRef) == 0x4);
+EI_EXE_LAYOUT(sizeof(ScriptObjectRef) == 0x4);
 
 // A script's variables: values and names of the four kinds (script.h).
 template <typename Value>
@@ -707,14 +715,14 @@ struct ScriptVars {
     ScriptNamedValues<ScriptObjectRef> objects; // +0x50
     ScriptNamedValues<ScriptGroup> groups;  // +0x78
 };
-static_assert(sizeof(ScriptVars) == 0xA0);
+EI_EXE_LAYOUT(sizeof(ScriptVars) == 0xA0);
 
 // A command block.
 struct ScriptDecl {
     std::uint8_t unknown0[0x14];
     int id;                                 // +0x14
 };
-static_assert(sizeof(ScriptDecl) == 0x18);
+EI_EXE_LAYOUT(sizeof(ScriptDecl) == 0x18);
 
 // A running script instance.
 struct ScriptDefinition {
@@ -723,7 +731,7 @@ struct ScriptDefinition {
     std::uint8_t unknown8[0x18];
     ScriptVars vars;                        // +0x20
 };
-static_assert(sizeof(ScriptDefinition) == 0xC0);
+EI_EXE_LAYOUT(sizeof(ScriptDefinition) == 0xC0);
 
 // A waiting run.
 struct ScriptRun {
@@ -734,7 +742,7 @@ struct ScriptRun {
     int* killFlag;                          // +0x10
     ScriptVars vars;                        // +0x14
 };
-static_assert(sizeof(ScriptRun) == 0xB4);
+EI_EXE_LAYOUT(sizeof(ScriptRun) == 0xB4);
 
 struct ScriptFxSource {
     EffectSound* object;                   // +0x00
@@ -748,7 +756,7 @@ struct ScriptFxSource {
     int maxDelay;                           // +0x2C
     int countdown;                          // +0x30
 };
-static_assert(sizeof(ScriptFxSource) == 0x34);
+EI_EXE_LAYOUT(sizeof(ScriptFxSource) == 0x34);
 
 struct ScriptParticleSource {
     CEffectParticle* object;                // +0x00
@@ -759,7 +767,7 @@ struct ScriptParticleSource {
     std::uint8_t unknown14[0xC];
     int lifetime;                           // +0x20
 };
-static_assert(sizeof(ScriptParticleSource) == 0x24);
+EI_EXE_LAYOUT(sizeof(ScriptParticleSource) == 0x24);
 
 struct ScriptPointLight {
     EffectPointLight* object;              // +0x00
@@ -769,13 +777,13 @@ struct ScriptPointLight {
     int steps;                              // +0x10
     std::uint8_t unknown14[0xC];
 };
-static_assert(sizeof(ScriptPointLight) == 0x20);
+EI_EXE_LAYOUT(sizeof(ScriptPointLight) == 0x20);
 
 struct ScriptLightning {
     EffectLightning* object;               // +0x00
     int id;                                 // +0x04
 };
-static_assert(sizeof(ScriptLightning) == 0x8);
+EI_EXE_LAYOUT(sizeof(ScriptLightning) == 0x8);
 
 // The mission script (script.h).
 struct Script {
@@ -794,7 +802,7 @@ struct Script {
     int fileCount;                          // +0x1AC
     std::uint8_t unknown1B0[0x48];
 };
-static_assert(sizeof(Script) == 0x1F8);
+EI_EXE_LAYOUT(sizeof(Script) == 0x1F8);
 
 // A party member's record (unit.h).
 struct PartyUnitRecord {
@@ -802,7 +810,7 @@ struct PartyUnitRecord {
     std::uint32_t unitId;                   // +0x1C
     std::uint8_t unknown20[0x764];
 };
-static_assert(sizeof(PartyUnitRecord) == 0x784);
+EI_EXE_LAYOUT(sizeof(PartyUnitRecord) == 0x784);
 
 // A party (party.h).
 struct CParty : EngineObject {
@@ -814,14 +822,14 @@ struct CParty : EngineObject {
     std::uint8_t unknown68[0x4];
     std::uint32_t entrance;                 // +0x6C
 };
-static_assert(sizeof(CParty) == 0x70);
+EI_EXE_LAYOUT(sizeof(CParty) == 0x70);
 
 // A player's connection, the base of its PlayerServer or PlayerClient (player_messages.h).
 struct PlayerConnection : EngineObject {
     CPlayer* player;                        // +0x1C
     int state;                              // +0x20 1 in the world, 3 leaving the zone
 };
-static_assert(sizeof(PlayerConnection) == 0x24);
+EI_EXE_LAYOUT(sizeof(PlayerConnection) == 0x24);
 
 // A player (player_messages.h).
 struct CPlayer : EngineObject {
@@ -844,7 +852,7 @@ struct CPlayer : EngineObject {
     std::uint8_t unknown130[0x4];
     CParty* Party() { return &party; }
 };
-static_assert(sizeof(CPlayer) == 0x134);
+EI_EXE_LAYOUT(sizeof(CPlayer) == 0x134);
 
 // The world's players (player_manager.h).
 struct PlayerManager : EngineObject {
@@ -852,7 +860,7 @@ struct PlayerManager : EngineObject {
     List<EngineObject*> objectList;        // +0x34
     std::uint8_t unknown50[0x60];
 };
-static_assert(sizeof(PlayerManager) == 0xB0);
+EI_EXE_LAYOUT(sizeof(PlayerManager) == 0xB0);
 
 // What both worlds share (world.h).
 struct CWorld : EngineObject {
@@ -870,7 +878,7 @@ struct CWorld : EngineObject {
     std::uint8_t paused;                    // +0x6C
     std::uint8_t unknown6D[0x17];
 };
-static_assert(sizeof(CWorld) == 0x84);
+EI_EXE_LAYOUT(sizeof(CWorld) == 0x84);
 
 // The server world (world.h).
 struct WorldServer : CWorld {
@@ -911,7 +919,7 @@ struct WorldServer : CWorld {
     List<SharedObject> sharedObjects;       // +0x12E60
     Script* MainScript() { return &commandsA; }
 };
-static_assert(sizeof(WorldServer) == 0x12E7C && offsetof(WorldServer, aiMap) == 0x170 && offsetof(WorldServer, commandsA) == 0x12874);
+EI_EXE_LAYOUT(sizeof(WorldServer) == 0x12E7C && offsetof(WorldServer, aiMap) == 0x170 && offsetof(WorldServer, commandsA) == 0x12874);
 
 // A window rectangle of the frame: the client world's screen list (world.h).
 struct ScreenEntry {
@@ -919,7 +927,7 @@ struct ScreenEntry {
     unsigned objectId;                      // +0x04
     Rect rect;                              // +0x08
 };
-static_assert(sizeof(ScreenEntry) == 0x18);
+EI_EXE_LAYOUT(sizeof(ScreenEntry) == 0x18);
 
 // The client world (world.h).
 struct WorldClient : CWorld {
@@ -937,7 +945,7 @@ struct WorldClient : CWorld {
     float tickFraction;                     // +0x6F0
     std::uint8_t unknown6F4[0xF0];
 };
-static_assert(sizeof(WorldClient) == 0x7E4);
+EI_EXE_LAYOUT(sizeof(WorldClient) == 0x7E4);
 
 // A landscape vertex record (terrain_sector.h; packed).
 #pragma pack(push, 1)
@@ -949,14 +957,14 @@ struct SectorVertex {
     std::uint8_t unknown27[0x2D];
 };
 #pragma pack(pop)
-static_assert(sizeof(SectorVertex) == 0x54);
+EI_EXE_LAYOUT(sizeof(SectorVertex) == 0x54);
 
 struct SectorPosition {
     float x;                                // +0x00
     float y;                                // +0x04
     float z;                                // +0x08
 };
-static_assert(sizeof(SectorPosition) == 0xC);
+EI_EXE_LAYOUT(sizeof(SectorPosition) == 0xC);
 
 // A cached landscape sector (terrain_sector.h).
 struct SectorData {
@@ -970,7 +978,7 @@ struct SectorData {
     Vector<SectorVertex> records;           // +0x190
     std::uint8_t unknown1A4[0x1F0];
 };
-static_assert(sizeof(SectorData) == 0x394);
+EI_EXE_LAYOUT(sizeof(SectorData) == 0x394);
 
 // The landscape (terrain.h).
 struct Terrain : TransformObject {
@@ -983,7 +991,7 @@ struct Terrain : TransformObject {
     float wavePhase;                        // +0x288
     std::uint8_t unknown28C[0x870];
 };
-static_assert(sizeof(Terrain) == 0xAFC);
+EI_EXE_LAYOUT(sizeof(Terrain) == 0xAFC);
 
 // The game's ISAAC generator (random.h).
 struct IsaacRandom {
@@ -995,7 +1003,7 @@ struct IsaacRandom {
     std::uint32_t bb;                       // +0x80C
     std::uint32_t cc;                       // +0x810
 };
-static_assert(sizeof(IsaacRandom) == 0x814);
+EI_EXE_LAYOUT(sizeof(IsaacRandom) == 0x814);
 
 // The AI's Suspection mode (unit_ai.h).
 struct SuspectionMode {
@@ -1008,7 +1016,7 @@ struct SuspectionMode {
     level = 0;
     }
 };
-static_assert(sizeof(SuspectionMode) == 0x18);
+EI_EXE_LAYOUT(sizeof(SuspectionMode) == 0x18);
 
 // The AI's Fear mode (unit_ai.h): its fields from `distance` on.
 struct FearMode {
@@ -1018,7 +1026,7 @@ struct FearMode {
     std::uint8_t unknownC[0x20];
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
 };
-static_assert(sizeof(FearMode) == 0x2C);
+EI_EXE_LAYOUT(sizeof(FearMode) == 0x2C);
 
 // A class template (class_templates.h).
 struct ClassTemplate {
@@ -1026,7 +1034,7 @@ struct ClassTemplate {
     std::uint8_t weightsTail[4];            // +0x34
     std::uint8_t unknown38[0x254];
 };
-static_assert(sizeof(ClassTemplate) == 0x28C);
+EI_EXE_LAYOUT(sizeof(ClassTemplate) == 0x28C);
 
 // A path cell (ai_map.h).
 struct PathCell {
@@ -1035,7 +1043,7 @@ struct PathCell {
     std::uint16_t flags;                    // +0x04
     std::uint16_t terrainBits;              // +0x06
 };
-static_assert(sizeof(PathCell) == 0x8);
+EI_EXE_LAYOUT(sizeof(PathCell) == 0x8);
 
 using PathCells = List<PathCell>;
 
@@ -1049,7 +1057,7 @@ struct RefObject {
     // The scalar deleting destructor (slot 0): game.exe's destructor and operator delete.
     void Delete() { reinterpret_cast<void*(__thiscall*)(RefObject*, unsigned)>(vtable[0])(this, 1); }
 };
-static_assert(sizeof(RefObject) == 0x8);
+EI_EXE_LAYOUT(sizeof(RefObject) == 0x8);
 
 // A network game's chat window (ui_briefing.h).
 struct ChatWindow {
@@ -1057,7 +1065,7 @@ struct ChatWindow {
     int listed;                             // +0x148
     std::uint8_t unknown14C[0x24];
 };
-static_assert(sizeof(ChatWindow) == 0x170);
+EI_EXE_LAYOUT(sizeof(ChatWindow) == 0x170);
 
 // The base screen (ui_briefing.h).
 struct BriefingScreen {
@@ -1065,7 +1073,7 @@ struct BriefingScreen {
     ChatWindow* chat;                      // +0x280
     std::uint8_t unknown284[0x20];
 };
-static_assert(sizeof(BriefingScreen) == 0x2A4);
+EI_EXE_LAYOUT(sizeof(BriefingScreen) == 0x2A4);
 
 // An item (item.h).
 struct Item : EngineObject {
@@ -1073,19 +1081,19 @@ struct Item : EngineObject {
     CSpell* spell;                          // +0x44
     std::uint8_t unknown48[0x4];
 };
-static_assert(sizeof(Item) == 0x4C);
+EI_EXE_LAYOUT(sizeof(Item) == 0x4C);
 
 // A quest item (item.h).
 struct ItemQuest : Item {
     std::uint32_t questItemId;              // +0x4C
 };
-static_assert(sizeof(ItemQuest) == 0x50);
+EI_EXE_LAYOUT(sizeof(ItemQuest) == 0x50);
 
 // A weapon (item.h).
 struct ItemWeapon : Item {
     std::uint8_t unknown4C[0x10];
 };
-static_assert(sizeof(ItemWeapon) == 0x5C);
+EI_EXE_LAYOUT(sizeof(ItemWeapon) == 0x5C);
 
 // A unit's client half (unit_client_models.h).
 struct UnitClientSpecific {
@@ -1093,14 +1101,14 @@ struct UnitClientSpecific {
     void* faceTexture;                      // +0xCC
     std::uint8_t unknownD0[0xC];
 };
-static_assert(sizeof(UnitClientSpecific) == 0xDC);
+EI_EXE_LAYOUT(sizeof(UnitClientSpecific) == 0xDC);
 
 // The party manager (party_manager.h).
 struct PartyManager {
     std::uint8_t unknown0[0x38];
     std::uint8_t templates[12];             // +0x38
 };
-static_assert(sizeof(PartyManager) == 0x44);
+EI_EXE_LAYOUT(sizeof(PartyManager) == 0x44);
 
 // A cursor image (ui_cursor.h).
 struct CursorImage {
@@ -1109,7 +1117,7 @@ struct CursorImage {
     int hotY;                               // +0x18
     std::uint8_t unknown1C[0x4];
 };
-static_assert(sizeof(CursorImage) == 0x20);
+EI_EXE_LAYOUT(sizeof(CursorImage) == 0x20);
 
 // The mouse cursor (ui_cursor.h).
 struct Cursor {
@@ -1121,7 +1129,7 @@ struct Cursor {
     void* thread;                           // +0x98
     std::uint8_t unknown9C[0x1C];
 };
-static_assert(sizeof(Cursor) == 0xB8);
+EI_EXE_LAYOUT(sizeof(Cursor) == 0xB8);
 
 namespace options {
 
@@ -1134,7 +1142,7 @@ struct GameOptions {
     std::uint8_t unknown20C[0x5C];
     CString masterServerName;               // +0x268
 };
-static_assert(sizeof(GameOptions) == 0x26C);
+EI_EXE_LAYOUT(sizeof(GameOptions) == 0x26C);
 
 } // namespace options
 
@@ -1144,7 +1152,7 @@ struct GameFlow {
     CString requestTarget;                  // +0x04
     std::uint8_t unknown8[0x7C];
 };
-static_assert(sizeof(GameFlow) == 0x84);
+EI_EXE_LAYOUT(sizeof(GameFlow) == 0x84);
 
 // The interface's screen fade (ui.h).
 struct ScreenFade {
@@ -1153,7 +1161,7 @@ struct ScreenFade {
     std::uint8_t active;                    // +0x08
     std::uint8_t unknown9[0xB];
 };
-static_assert(sizeof(ScreenFade) == 0x14);
+EI_EXE_LAYOUT(sizeof(ScreenFade) == 0x14);
 
 // A memory stream (core_streams.h).
 struct MemoryStream {
@@ -1162,7 +1170,7 @@ struct MemoryStream {
     std::uint8_t unknown1C[0x8];
     std::uint32_t size;                     // +0x24
 };
-static_assert(sizeof(MemoryStream) == 0x28);
+EI_EXE_LAYOUT(sizeof(MemoryStream) == 0x28);
 
 // A surface holder (texture.h).
 struct DXSurface {
@@ -1170,7 +1178,7 @@ struct DXSurface {
     void* surface;                          // +0x10
     std::uint8_t unknown14[0xC];
 };
-static_assert(sizeof(DXSurface) == 0x20);
+EI_EXE_LAYOUT(sizeof(DXSurface) == 0x20);
 
 // An interface surface (ui.h).
 struct UiSurface {
@@ -1182,7 +1190,7 @@ struct UiSurface {
     int height;                             // +0x18
     std::uint8_t unknown1C[0x1C];
 };
-static_assert(sizeof(UiSurface) == 0x38);
+EI_EXE_LAYOUT(sizeof(UiSurface) == 0x38);
 
 // A window's clickable region (ui.h).
 struct UiRegion {
@@ -1195,7 +1203,7 @@ struct UiRegion {
     int offsetY;                            // +0x2C
     std::uint8_t unknown30[0x4];
 };
-static_assert(sizeof(UiRegion) == 0x34);
+EI_EXE_LAYOUT(sizeof(UiRegion) == 0x34);
 
 // An interface window (ui.h).
 struct UiWindow {
@@ -1204,7 +1212,7 @@ struct UiWindow {
     AlignedArray<UiRegion*> regions;       // +0x128
     std::uint8_t unknown138[0x10];
 };
-static_assert(sizeof(UiWindow) == 0x148);
+EI_EXE_LAYOUT(sizeof(UiWindow) == 0x148);
 
 namespace console {
 
@@ -1214,7 +1222,7 @@ struct ConsoleWindow {
     UiSurface* surface;                    // +0x04
     std::uint8_t unknown8[0x74];
 };
-static_assert(sizeof(ConsoleWindow) == 0x7C);
+EI_EXE_LAYOUT(sizeof(ConsoleWindow) == 0x7C);
 
 } // namespace console
 
@@ -1237,7 +1245,7 @@ struct Interface3D {
     UiSurface* statusSurface;              // +0x64
     std::uint8_t unknown68[0x48];
 };
-static_assert(sizeof(Interface3D) == 0xB0);
+EI_EXE_LAYOUT(sizeof(Interface3D) == 0xB0);
 
 // The save / load window (ui.h).
 struct SaveLoadWindow {
@@ -1245,7 +1253,7 @@ struct SaveLoadWindow {
     bool sliding;                           // +0x179
     std::uint8_t unknown17A[0x1A];
 };
-static_assert(sizeof(SaveLoadWindow) == 0x194);
+EI_EXE_LAYOUT(sizeof(SaveLoadWindow) == 0x194);
 
 // The options window (ui.h).
 struct OptionsWindow {
@@ -1253,7 +1261,7 @@ struct OptionsWindow {
     bool sliding;                           // +0x3F5
     std::uint8_t unknown3F6[0x22];
 };
-static_assert(sizeof(OptionsWindow) == 0x418);
+EI_EXE_LAYOUT(sizeof(OptionsWindow) == 0x418);
 
 struct HudQuickItems;
 struct HudSpellColumn;
@@ -1270,7 +1278,7 @@ struct BattleScreen {
     HudSpellColumn* spellColumn;           // +0x19C
     std::uint8_t unknown1A0[0x90];
 };
-static_assert(sizeof(BattleScreen) == 0x230);
+EI_EXE_LAYOUT(sizeof(BattleScreen) == 0x230);
 
 // An entry of the quick item panel (ui.h, HudQuickItems::Entry).
 struct HudQuickItemsEntry {
@@ -1279,7 +1287,7 @@ struct HudQuickItemsEntry {
     int id;                                 // +0x04
     Item* item;                            // +0x08
 };
-static_assert(sizeof(HudQuickItemsEntry) == 0xC);
+EI_EXE_LAYOUT(sizeof(HudQuickItemsEntry) == 0xC);
 
 // The quick item panel (ui.h).
 struct HudQuickItems {
@@ -1291,7 +1299,7 @@ struct HudQuickItems {
     std::uint8_t unknown18C[0x14];
     using Entry = HudQuickItemsEntry;
 };
-static_assert(sizeof(HudQuickItems) == 0x1A0);
+EI_EXE_LAYOUT(sizeof(HudQuickItems) == 0x1A0);
 
 // The spell column (ui.h).
 struct HudSpellColumn {
@@ -1301,7 +1309,7 @@ struct HudSpellColumn {
     CUnit* unit;                            // +0x154
     std::uint8_t unknown158[0x14];
 };
-static_assert(sizeof(HudSpellColumn) == 0x16C);
+EI_EXE_LAYOUT(sizeof(HudSpellColumn) == 0x16C);
 
 // The render device (texture.h).
 struct TextureDevice {
@@ -1312,13 +1320,13 @@ struct TextureDevice {
     DXSurface* renderTarget;               // +0x18 the render target's holder
     std::uint8_t unknown1C[0x160];
 };
-static_assert(sizeof(TextureDevice) == 0x17C);
+EI_EXE_LAYOUT(sizeof(TextureDevice) == 0x17C);
 
 // The scene renderer's device (model.h).
 struct HeldDevice {
     TextureDevice* device;                 // +0x00
 };
-static_assert(sizeof(HeldDevice) == 0x4);
+EI_EXE_LAYOUT(sizeof(HeldDevice) == 0x4);
 
 // The scene renderer (model.h).
 struct SceneRenderer {
@@ -1326,7 +1334,7 @@ struct SceneRenderer {
     HeldDevice device;                      // +0x20
     std::uint8_t unknown24[0x38];
 };
-static_assert(sizeof(SceneRenderer) == 0x5C);
+EI_EXE_LAYOUT(sizeof(SceneRenderer) == 0x5C);
 
 // An item strip (ui_screens.h).
 struct UiItemStrip {
@@ -1334,7 +1342,7 @@ struct UiItemStrip {
     AlignedArray<Item*>* source;           // +0x1AC all the items (a party's item list)
     std::uint8_t unknown1B0[0x4];
 };
-static_assert(sizeof(UiItemStrip) == 0x1B4);
+EI_EXE_LAYOUT(sizeof(UiItemStrip) == 0x1B4);
 
 // The camp (ui_camp.h).
 struct CampPages {
@@ -1349,7 +1357,7 @@ struct CampPages {
         reinterpret_cast<void(__thiscall*)(CampPages*, Item*, int)>(vtable[42])(this, item, mode);
     }
 };
-static_assert(sizeof(CampPages) == 0x260);
+EI_EXE_LAYOUT(sizeof(CampPages) == 0x260);
 
 // A map.txt record (object_tables.h).
 struct MapRecord {
@@ -1357,7 +1365,7 @@ struct MapRecord {
     int kind;                               // +0x28 0 game, 1 edge, 2 brief
     std::uint8_t unknown2C[0x30];
 };
-static_assert(sizeof(MapRecord) == 0x5C);
+EI_EXE_LAYOUT(sizeof(MapRecord) == 0x5C);
 
 namespace net {
 
@@ -1367,7 +1375,7 @@ struct NetAddress {
     std::uint32_t ip;                       // +0x04
     std::uint8_t unknown8[0x8];
 };
-static_assert(sizeof(NetAddress) == 0x10);
+EI_EXE_LAYOUT(sizeof(NetAddress) == 0x10);
 
 // A server the client found (net_classes.h).
 struct ServerEntry {
@@ -1385,7 +1393,7 @@ struct ServerEntry {
     std::uint8_t password;                  // +0x46
     std::uint8_t unknown47[0x1];
 };
-static_assert(sizeof(ServerEntry) == 0x48);
+EI_EXE_LAYOUT(sizeof(ServerEntry) == 0x48);
 
 // The game's server session (net_classes.h).
 struct ServerSession {
@@ -1393,7 +1401,7 @@ struct ServerSession {
     StlpList<RefPtr> clients;               // +0x28 the connections
     std::uint8_t unknown2C[0x25D4];
 };
-static_assert(sizeof(ServerSession) == 0x2600);
+EI_EXE_LAYOUT(sizeof(ServerSession) == 0x2600);
 
 // The game's client session (net_classes.h).
 struct ClientSession {
@@ -1407,7 +1415,7 @@ struct ClientSession {
     RefObject* binding;                    // +0x25F0
     std::uint8_t unknown25F4[0x10C];
 };
-static_assert(sizeof(ClientSession) == 0x2700);
+EI_EXE_LAYOUT(sizeof(ClientSession) == 0x2700);
 
 } // namespace net
 

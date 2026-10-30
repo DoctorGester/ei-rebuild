@@ -150,7 +150,7 @@ bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<uns
     *page = pages->page;
     const std::vector<Item*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
     if (!source) return false;
-    for (int i = 0; i < std::ssize(*source); ++i) {
+    for (int i = 0; i < static_cast<int>(std::ssize(*source)); ++i) {
         Item* item = (*source)[i];
         items->push_back(item);
         types->push_back(item ? static_cast<unsigned>(item->type) : 0);
@@ -178,7 +178,7 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     return true;
 }
 
-int RegionCount(void* window) { return std::ssize(static_cast<UiWindow*>(window)->regions); }
+int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }
 bool Region(void* window, int index, RegionInfo* region) {
     const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];
     if (!found) return false;

@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 project(EvilIslands CXX RC)
 
-# 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64). The harness (tests/verify, src/hook's game.exe
-# side) and the function vectors (tests/vectors) are 32-bit only: they run in or record from game.exe.
+# 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64 / verify-x64). The harness's game.exe side
+# (ei_harness.dll, src/hook's game.exe side), ei_launch and the function vectors (tests/vectors) are 32-bit only: they
+# run in, start or record from game.exe. The harness's image side builds for both (build.cmd verify-x64).
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(EI_X64 ON)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -32,10 +33,9 @@ string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO
 # is the harness build, the same image with the harness linked in (tests/verify: scenario runs of the image) and
 # ei_harness.dll, the harness for the original game.exe (EI_NO_HOOKS runs for goldens) with the vector recorders
 # (tests/vectors/record_*.cpp, installed only in the original game.exe with EI_VECTORS=1).
+# On x64 (build.cmd verify-x64) only the image's side: game.exe is 32-bit, so there is no ei_harness.dll; that build's
+# ei_launch starts the x64 image (run_all.py --x64).
 option(EI_HARNESS "Build the harness: linked into ei-rebuild.exe, and ei_harness.dll for game.exe" OFF)
-if(EI_X64 AND EI_HARNESS)
-    message(FATAL_ERROR "The harness is 32-bit only (it runs in game.exe): build it with the x86 vcvars environment.")
-endif()
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
 # network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
@@ -223,7 +223,7 @@ target_compile_definitions(ei_game PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG
 # /MAP: ei-rebuild.map lets the harness crash log (ei-rebuild+offset) be resolved to functions.
 target_link_options(ei-rebuild PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
 
-if(EI_HARNESS)
+if(EI_HARNESS AND NOT EI_X64)
     # ei_harness.dll: the harness in game.exe, the original game, for the references (goldens, function vectors,
     # widescreen frames): ei_launch injects it before game.exe's own code runs (docs/notes/standalone.md section 5).
     # The shared harness and the hook framework, game.exe's data seam (shift 0), the Rebirth flags the harness reads,
@@ -246,9 +246,10 @@ if(EI_HARNESS)
     target_link_options(ei_harness PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
 endif()
 
-# The launcher: starts game.exe with the harness, or the image (ei_launch --standalone). 32-bit only (it reads the
-# 32-bit game's threads); the x64 image starts without it, from the game folder.
-if(NOT EI_X64)
+# The launcher: starts game.exe with the harness, or the image (ei_launch --standalone). On x64 in the verify build
+# only, for the x64 image's runs (it starts no game.exe there: that is 32-bit); the x64 release image starts without it,
+# from the game folder.
+if(NOT EI_X64 OR EI_HARNESS)
     add_executable(ei_launch tools/launcher/launch.cpp)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 endif()

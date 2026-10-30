@@ -165,10 +165,10 @@ void Install(const char* savesDir) {
 // game.exe's MappedResource (0x58 bytes) in a --no-hooks run: its constructor (00671280), OpenResource (00671730) and
 // Destroy (006714A0), GetFile (slot 5: 00671B40, Rebirth's ResOverride) and CloseFile (slot 6). The bytes of `name` in
 // the archive at `path`: -2 when the archive does not open, 0 without the file.
-__declspec(naked) void* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
-__declspec(naked) int __fastcall OriginalMappedResourceOpen(void* /*resource*/, void*, const char* /*path*/, int /*writable*/)
+EI_NAKED void* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
+EI_NAKED int __fastcall OriginalMappedResourceOpen(void* /*resource*/, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
-__declspec(naked) void __fastcall OriginalMappedResourceDestroy(void* /*resource*/) EI_ORIGINAL(0x006714A0)
+EI_NAKED void __fastcall OriginalMappedResourceDestroy(void* /*resource*/) EI_ORIGINAL(0x006714A0)
 long OriginalModFile(const std::string& path, const char* name) {
     constexpr std::size_t kMappedResourceSize = 0x58;
     void* memory = ::operator new(kMappedResourceSize);
