@@ -249,12 +249,6 @@ using ::BeginPaint;  // USER32.dll
 using ::GetUpdateRect;  // USER32.dll
 extern decltype(&::GetKeyNameTextA)& GetKeyNameTextA;  // USER32.dll, through the slot
 using ::wvsprintfA;  // USER32.dll
-using ::SetRect;  // USER32.dll
-using ::SetRectEmpty;  // USER32.dll
-using ::IsRectEmpty;  // USER32.dll
-using ::UnionRect;  // USER32.dll
-using ::PtInRect;  // USER32.dll
-using ::IntersectRect;  // USER32.dll
 using ::CopyRect;  // USER32.dll
 extern decltype(&::DispatchMessageA)& DispatchMessageA;  // USER32.dll, through the slot
 extern decltype(&::GetCursorPos)& GetCursorPos;  // USER32.dll, through the slot
@@ -271,7 +265,6 @@ using ::RegisterWindowMessageA;  // USER32.dll
 using ::PostQuitMessage;  // USER32.dll
 extern decltype(&::MessageBoxA)& MessageBoxA;  // USER32.dll, through the slot
 using ::SetCursor;  // USER32.dll
-using ::OffsetRect;  // USER32.dll
 using ::UpdateWindow;  // USER32.dll
 using ::GetCursor;  // USER32.dll
 

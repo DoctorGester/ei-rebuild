@@ -7,7 +7,7 @@
 #include "ui_widescreen.h"
 
 #include "hook/log.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
 #include "lib/win_user.h"
@@ -37,7 +37,7 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
 int UiSurface::DrawTextIn(std::string_view text, const RECT* area, int font, COLORREF colour, UINT format, bool shadow) {
     if (!holder) return 0;
     RECT frame;
-    if (gameapi::IsRectEmpty(area)) {
+    if (rects::IsEmpty(area)) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
         frame = *area;
@@ -66,7 +66,7 @@ int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const R
     const std::u32string points = CodePoints(text);
     if (shadow) {
         RECT shifted = area;
-        gameapi::OffsetRect(&shifted, 1, 1);
+        rects::Offset(&shifted, 1, 1);
         DrawRun(holder, *drawn, points, shifted, format, kShadowColour);
     }
     return DrawRun(holder, *drawn, points, area, format, colour);

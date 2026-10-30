@@ -20,7 +20,7 @@
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
 #include "party.h"
 #include "game_singletons.h"
@@ -195,7 +195,7 @@ void MpHeroScreen::DrawHeroList() {
         // A hero record is a party; its name the first member's text 0.
         surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->Party()->members[0].texts[0], &area, 1, kListColour,
                             kListFormat, 1);
-        gameapi::OffsetRect(&area, 0, 24);
+        rects::Offset(&area, 0, 24);
     }
 }
 
@@ -219,7 +219,7 @@ void MpHeroScreen::DrawVoices() {
             frame->Place(97.5f, y, kFrameDepth);
         }
         surface->DrawTextIn(currentVoices[index].name, &area, 0, kListColour, kListFormat, 1);
-        gameapi::OffsetRect(&area, 0, 15);
+        rects::Offset(&area, 0, 15);
     }
 }
 

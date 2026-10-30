@@ -4,7 +4,7 @@
 #include "model.h"     // TransformPipeline
 #include "texture.h"   // TextureDevice
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/rounding.h"
 
 #include <cfloat>
@@ -42,7 +42,7 @@ struct ScreenBounds {
         const int right = lib::RoundEven(maxX);
         const int top = lib::RoundEven(minY);
         const int left = lib::RoundEven(minX);
-        gameapi::SetRect(&device->drawnRect, left, top, right, bottom);
+        rects::Set(&device->drawnRect, left, top, right, bottom);
     }
 };
 

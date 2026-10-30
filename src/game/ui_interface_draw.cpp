@@ -13,7 +13,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
 #include <cstdint>
 #include <string>
@@ -32,7 +32,7 @@ constexpr float kOpaque = 255.0f;
 
 RECT ScreenOf(const SceneRenderer* renderer) {
     RECT screen;
-    gameapi::CopyRect(&screen, &renderer->device->screen);
+    rects::Copy(&screen, &renderer->device->screen);
     return screen;
 }
 

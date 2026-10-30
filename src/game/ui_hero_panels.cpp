@@ -6,7 +6,7 @@
 #include "item.h"
 #include "item_manager.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/nan_audit.h"
 #include "party.h"
 #include "text_manager.h"
@@ -23,7 +23,7 @@
 
 namespace {
 
-void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
+void Down(RECT* rect) { rects::Offset(rect, 0, 15); }
 
 void AddRect(UiWindow* window, const RECT& rect) { window->AddRegion()->SetRectFrom(rect); }
 

@@ -9,7 +9,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 
 #include "ei/rebirth.h"
 
@@ -63,7 +63,7 @@ bool UiRegion::HitTest(int x, int y) const {
     x -= offsetX;
     y -= offsetY;
     if (!enabled) return false;
-    if (!gameapi::PtInRect(&bounds, POINT{x, y})) return false;
+    if (!rects::Contains(&bounds, POINT{x, y})) return false;
     if (rectOnly) return true;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
     // bits like the original's.
@@ -144,7 +144,7 @@ int UiWindow::RegionAt(int x, int y) const {
 bool UiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
-    return gameapi::PtInRect(&rect, point) != FALSE;
+    return rects::Contains(&rect, point) != FALSE;
 }
 
 void UiWindow::UpdateRegionTips() {

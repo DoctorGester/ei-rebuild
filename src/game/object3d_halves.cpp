@@ -4,7 +4,7 @@
 #include "core_refcount.h"
 #include "figure_mesh.h"    // VertexPacket
 #include "ground_print.h"   // NamedTexture
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "link_figure.h"   // LinkMesh::screenRect
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -136,7 +136,7 @@ constexpr float kNoScale = 1.0f;
 
 int Object3DClientSpecific::BoundsContainPoint(const long* point) {
     if (!(object->flags & MapObjectFlag::Shown)) return FALSE;
-    return gameapi::PtInRect(&object->dirtyRect, AsPoint(point));
+    return rects::Contains(&object->dirtyRect, AsPoint(point));
 }
 
 int Object3DClientSpecific::PartsContainPoint(const long* point) {
@@ -145,7 +145,7 @@ int Object3DClientSpecific::PartsContainPoint(const long* point) {
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        if (gameapi::PtInRect(PartRect(part), AsPoint(point))) return TRUE;
+        if (rects::Contains(PartRect(part), AsPoint(point))) return TRUE;
     }
     return FALSE;
 }
@@ -157,8 +157,8 @@ int Object3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
         RECT common;
-        gameapi::IntersectRect(&common, PartRect(part), rect);
-        if (!gameapi::IsRectEmpty(&common)) return TRUE;
+        rects::Intersect(&common, PartRect(part), rect);
+        if (!rects::IsEmpty(&common)) return TRUE;
     }
     return FALSE;
 }

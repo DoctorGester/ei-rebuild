@@ -10,7 +10,7 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -285,16 +285,16 @@ void HelpWindow::ShowPage() {
     // The three buttons along the bottom, each with its region.
     RECT button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
     const int gap = (width - 150) / 6;
-    gameapi::OffsetRect(&button, gap + pageArea.left, 0);
+    rects::Offset(&button, gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
     AddRegion()->SetRectFrom(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
-    gameapi::OffsetRect(&button, step, 0);
+    rects::Offset(&button, step, 0);
     UiRegion* okRegion = AddRegion();
     okRegion->SetRectFrom(button);
     okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
-    gameapi::OffsetRect(&button, step, 0);
+    rects::Offset(&button, step, 0);
     AddRegion()->SetRectFrom(button);
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 

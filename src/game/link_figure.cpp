@@ -8,7 +8,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 
 #include <cstring>
 #include <new>
@@ -260,10 +260,10 @@ void LinkMesh::SetMorph(float s, float t, float u) {
 }
 
 void LinkMesh::UpdateScreenRect() {
-    gameapi::SetRect(&screenRect, kNoRect, kNoRect, -kNoRect, -kNoRect);
+    rects::Set(&screenRect, kNoRect, kNoRect, -kNoRect, -kNoRect);
     for (const auto& [part_name, header] : headers) {
         const RECT& part = header.screen;
-        if (gameapi::IsRectEmpty(&part)) continue;
+        if (rects::IsEmpty(&part)) continue;
         if (part.left < screenRect.left) screenRect.left = part.left;
         if (screenRect.right < part.right) screenRect.right = part.right;
         if (part.top < screenRect.top) screenRect.top = part.top;

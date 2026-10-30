@@ -5,7 +5,7 @@
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "lib/containers.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/pc24.h"
 #include "model.h"
 #include "render/render.h"
@@ -96,10 +96,10 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
     if (rect) {
         RECT* own = &screen;
         if (result == 2) {
-            gameapi::SetRectEmpty(own);
-            gameapi::SetRectEmpty(rect);
+            rects::SetEmpty(own);
+            rects::SetEmpty(rect);
         } else {
-            gameapi::CopyRect(own, &device->drawnRect);
+            rects::Copy(own, &device->drawnRect);
             *rect = *own;
         }
     }

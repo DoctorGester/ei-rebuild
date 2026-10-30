@@ -12,7 +12,7 @@
 #include "text_manager.h"
 
 #include "lib/containers.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -57,7 +57,7 @@ struct Panel {
     void DrawLine() { DrawLine(text); }
     void DrawLine(std::string_view line) {
         surface->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
-        gameapi::OffsetRect(&rect, 0, kLineHeight);
+        rects::Offset(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
     void DrawLabelled(int label, const std::string& line) {

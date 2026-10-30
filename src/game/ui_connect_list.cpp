@@ -11,7 +11,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -75,7 +75,7 @@ void DrawEllipsis(UiSurface* surface, std::string_view text, RECT* rect, int for
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
 }
-void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
+void Down(RECT* rect, int dy = kRowHeight) { rects::Offset(rect, 0, dy); }
 
 } // namespace
 
