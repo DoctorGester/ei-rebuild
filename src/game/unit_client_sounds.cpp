@@ -245,8 +245,7 @@ void UnitClientSpecific::PlayStepSounds() {
         if (!foot) break;
         Vector3 footAt;
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
-        Vector3 facing;
-        unit->localRotation.AxisY(&facing);
+        Vector3 facing = unit->localRotation.AxisY();
         float length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = facing.y / length;

@@ -283,12 +283,10 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (order->pointIsUseSpot) range = std::bit_cast<float>(kNoRangeBits);
 
     // The unit's heading and how many ticks a half turn takes.
-    Vector3 axis;
-    unit->localRotation.AxisY(&axis);
+    Vector3 axis = unit->localRotation.AxisY();
     Vector3 facing = {-axis.x, -axis.y, -axis.z};
     float heading = pc24::Round(pc24::Atan2(facing.y, facing.x));
-    float forward, turnSpeed;
-    unit->GetMoveSpeeds(&forward, &turnSpeed);
+    const float turnSpeed = unit->GetMoveSpeeds().turn;
     float halfTurn = kPi / turnSpeed;
     int ticks = lib::RoundEven(halfTurn) + 3;
 

@@ -255,8 +255,8 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
 
     CSpell* spell = item->spell;
     if (item->Kind() == ItemKind::Scroll && spell && spell->GetModifierCount() > 0) {
-        float px, py, pz;
-        model->GetPlacement(&px, &py, &pz);
+        const UiMesh::Placement placed = model->GetPlacement();
+        const float px = placed.x, py = placed.y, pz = placed.depth;
         float scale = model->scaleMatrix.m[0];
         UiMesh* mark = AddBlankSprite();
         mark->SetRectangle(pz * 0.9f, 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,

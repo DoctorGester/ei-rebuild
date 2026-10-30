@@ -533,9 +533,10 @@ void AIAttention::Build(CUnit* unit) {
 }
 
 // The count, the array sized to it (SetSize inlined), then each option.
-void LoadAttackOptions(std::vector<AIAttackOption>* options, ByteStream* stream) {
+std::vector<AIAttackOption> LoadAttackOptions(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
-    options->resize(count);
-    for (int i = 0; i < std::ssize(*options); ++i) (*options)[i].Load(stream);
+    std::vector<AIAttackOption> options(count);
+    for (AIAttackOption& option : options) option.Load(stream);
+    return options;
 }

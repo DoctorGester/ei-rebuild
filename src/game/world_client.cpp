@@ -111,9 +111,8 @@ bool PlatformSet::Contains(float x, float y) {
     return false;
 }
 
-void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height) {
-    *height = 0.0f;
-    *normal = {0.0f, 0.0f, 1.0f};
+PlatformSet::SurfacePlaneResult PlatformSet::SurfacePlane(float x, float y) {
+    SurfacePlaneResult result{{0.0f, 0.0f, 1.0f}, 0.0f};
     for (auto& node : list) {
         const Platform& p = node;
         EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
@@ -128,11 +127,12 @@ void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height)
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
-        if (z > *height) {   // lower, equal or NaN keeps the old one
-            *height = z;
-            *normal = {p.normal.x, p.normal.y, p.normal.z};
+        if (z > result.height) {   // lower, equal or NaN keeps the old one
+            result.height = z;
+            result.normal = {p.normal.x, p.normal.y, p.normal.z};
         }
     }
+    return result;
 }
 
 // x is summed ZYX, y and z ZXY.

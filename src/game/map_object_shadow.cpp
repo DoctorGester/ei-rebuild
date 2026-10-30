@@ -197,22 +197,21 @@ void FitShadowSphere(Object3DClientSpecific* self) {
 
 // --- The shadow -------------------------------------------------------------------------------
 
-bool ShadowCastStrength(CObject3D* object, float* strength) {
-    if (options::g_options.shadowQuality <= 0) return false;
-    if (!ShadowSwitch(object->GetClassId())) return false;
-    if (object->flags & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return false;
-    if (object->InvisibleSlot()) return false;
-    *strength = 1.0f;
-    if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
-    return true;
+std::optional<float> ShadowCastStrength(CObject3D* object) {
+    if (options::g_options.shadowQuality <= 0) return std::nullopt;
+    if (!ShadowSwitch(object->GetClassId())) return std::nullopt;
+    if (object->flags & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return std::nullopt;
+    if (object->InvisibleSlot()) return std::nullopt;
+    if (CUnit* unit = UnitOrNull(object)) return unit->ClientController()->fadeIn;
+    return 1.0f;
 }
 
 int Object3DClientSpecific::DrawShadow() {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
-    float strength = 1.0f;
-    if (!ShadowCastStrength(object, &strength)) return 1;
-    render::CastsShadow(object, strength);
+    const std::optional<float> strength = ShadowCastStrength(object);
+    if (!strength) return 1;
+    render::CastsShadow(object, *strength);
 
     // The shadow's sphere decides the object's shadow visibility (ShadowInView). Fitted the first time after
     // Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).

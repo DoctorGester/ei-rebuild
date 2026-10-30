@@ -163,10 +163,10 @@ void EffectPointLight::Start(int update) {
 
 int EffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
-    field->ReadFloat16x3(&color.x);
-    field->ReadFloat16(&range);
-    field->ReadFloat16x3(&velocity.x);
+    position = field->ReadPosition();
+    color = field->ReadFloat16x3();
+    range = field->ReadFloat16();
+    velocity = field->ReadFloat16x3();
     field->ReadDelta(&lightFlags, 4);
     moving = IsMoving(velocity);
     if (!SnapshotReadToEnd()) return 0;
@@ -251,16 +251,16 @@ void CEffectParticle::Start(int update) {
 
 int CEffectParticle::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
+    position = field->ReadPosition();
     field->ReadDelta(&startTick, 4);
     field->ReadDelta(&type, 4);
-    field->ReadFloat16(&size);
+    size = field->ReadFloat16();
     field->ReadDelta(&attachedTo, 4);
-    field->ReadFloat16x3(&velocity.x);
-    field->ReadPosition(&target);
+    velocity = field->ReadFloat16x3();
+    target = field->ReadPosition();
     field->ReadDelta(&unitId, 4);
-    field->ReadFloat16(&alpha);
-    field->ReadFloat16(&typeParam);
+    alpha = field->ReadFloat16();
+    typeParam = field->ReadFloat16();
     moving = IsMoving(velocity);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
@@ -465,7 +465,7 @@ void EffectWall::SetDirection(const Vector3& newDirection) {
 
 int EffectWall::Unpack(int update, DeltaField* field) {
     if (CEffectParticle::Unpack(update, field) == 0) return 0;
-    field->ReadFloat16x3(&direction.x);
+    direction = field->ReadFloat16x3();
     if (!SnapshotReadToEnd()) return 0;
     if (source != nullptr) source->extent = direction;
     if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
@@ -543,10 +543,10 @@ void EffectLightning::Start(int update) {
 
 int EffectLightning::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
-    field->ReadPosition(&from);
-    field->ReadPosition(&to);
-    field->ReadFloat16(&width);
+    position = field->ReadPosition();
+    from = field->ReadPosition();
+    to = field->ReadPosition();
+    width = field->ReadFloat16();
     field->ReadDelta(&flag, 1);
     field->ReadDelta(&toObject, 4);
     field->ReadDelta(&fromObject, 4);

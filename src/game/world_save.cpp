@@ -428,11 +428,9 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     e8 = std::bit_cast<std::uint32_t>(weatherStrength);
     stream->WriteValue(e8);
     // Stored by the callee as floats; written on as their bytes.
-    float time;
-    float speed;
-    GetTime(&time, &speed);
-    stream->WriteValue(time);
-    stream->WriteValue(speed);
+    const Clock clock = GetTime();
+    stream->WriteValue(clock.hours);
+    stream->WriteValue(clock.speed);
     stream->WriteValue(lastRainBoltTick);
     stream->WriteValue(sessionKind);
 

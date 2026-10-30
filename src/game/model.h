@@ -294,9 +294,8 @@ public:
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
     // The renderer's gamma ramp (applied as the frame goes to the window) from the options' brightness,
-    // contrast and gamma (kept for GetGamma); false without a device.
+    // contrast and gamma; false without a device.
     bool SetGamma(float brightness, float contrast, float gamma);
-    void GetGamma(float* brightness, float* contrast, float* gamma) const;
     // After a switch back (WM_ACTIVATE): a full-screen device gets its cooperative level and display mode
     // back, then every surface and the texture manager are restored. False without a device object.
     bool RestoreSurfaces();

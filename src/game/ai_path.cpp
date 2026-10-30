@@ -128,8 +128,7 @@ bool AIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minD
 void AIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = g_serverWorld.tick;
-    Vector3 facing;
-    unit->localRotation.AxisY(&facing);
+    Vector3 facing = unit->localRotation.AxisY();
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(unit->localPosition, backwards, count - 1);
 
@@ -250,8 +249,7 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
         }
 
         // Smooth the start of the path, entering from the side the unit faces.
-        Vector3 facing;
-        unit->localRotation.AxisY(&facing);
+        Vector3 facing = unit->localRotation.AxisY();
         float bx = -facing.x, by = -facing.y;
         float px;
         px = path->targetX;

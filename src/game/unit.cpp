@@ -280,10 +280,9 @@ bool CUnit::CanUseQuickItem(std::uint32_t slot) {
 
 // --- Movement --------------------------------------------------------------------------------
 
-void CUnit::GetMoveSpeeds(float* forward, float* backward) {
+CUnit::MoveSpeeds CUnit::GetMoveSpeeds() {
     float base = static_cast<float>(params.baseSpeed) * kSpeedByteScale;
-    *forward = base;
-    *backward = base;
+    MoveSpeeds speeds{base, base};
     std::uint8_t speed;
     switch (static_cast<std::uint32_t>(moveMode)) {
     case 0: speed = params.modeSpeeds[3]; break;
@@ -291,18 +290,19 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     case 3: speed = params.modeSpeeds[0]; break;
     case 2:
     case 4:
-        *backward = static_cast<float>(params.modeSpeeds[0]) * *forward * 2.0f * kByteScale;
-        *forward = static_cast<float>(params.modeSpeeds[1]) * *forward * 2.0f * kByteScale;
-        *backward = g_logicSettings.rotateSpeedMult * *backward;
-        return;
+        speeds.turn = static_cast<float>(params.modeSpeeds[0]) * speeds.forward * 2.0f * kByteScale;
+        speeds.forward = static_cast<float>(params.modeSpeeds[1]) * speeds.forward * 2.0f * kByteScale;
+        speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
+        return speeds;
     default:
-        *backward = g_logicSettings.rotateSpeedMult * *backward;
-        return;
+        speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
+        return speeds;
     }
-    float scaled = static_cast<float>(speed) * *forward * 2.0f * kByteScale;
-    *forward = scaled;
-    *backward = scaled;
-    *backward = g_logicSettings.rotateSpeedMult * *backward;
+    float scaled = static_cast<float>(speed) * speeds.forward * 2.0f * kByteScale;
+    speeds.forward = scaled;
+    speeds.turn = scaled;
+    speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
+    return speeds;
 }
 
 float CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }

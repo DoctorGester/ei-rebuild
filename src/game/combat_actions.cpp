@@ -208,8 +208,7 @@ BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
     float dy = attacker->localPosition.y - self->localPosition.y;
     float dz = attacker->localPosition.z - self->localPosition.z;
     const Quaternion* rotation = &self->localRotation;
-    Vector3 axisY;
-    rotation->AxisY(&axisY);
+    Vector3 axisY = rotation->AxisY();
     // The unit's Y axis points backwards: "front" is the negated projection on it.
     float front = -DotUnrounded<Sum3::ZYX>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
     // The X axis of the rotation, computed in place (Quaternion::AxisX's maths in the original's order).

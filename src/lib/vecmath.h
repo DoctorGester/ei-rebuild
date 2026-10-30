@@ -65,9 +65,9 @@ struct Quaternion {
 
     Quaternion* SetIdentity();
     void PreMultiply(const Quaternion& r);          // *this = r * *this
-    Vector3* AxisX(Vector3* out) const;
-    Vector3* AxisY(Vector3* out) const;
-    Vector3* AxisZ(Vector3* out) const;
+    Vector3 AxisX() const;
+    Vector3 AxisY() const;
+    Vector3 AxisZ() const;
 
     Quaternion* SetAngleAxis(float angle, const Vector3& axis);
     Quaternion* SetAxisAngle(const Vector3& axis, float angle);

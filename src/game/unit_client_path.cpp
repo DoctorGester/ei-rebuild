@@ -57,8 +57,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     if (unit->flags & MapObjectFlag::NoCasting) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
-        Vector3 axis;
-        unit->localRotation.AxisY(&axis);
+        Vector3 axis = unit->localRotation.AxisY();
         // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
         // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
         // flipped the orientation's sign once in the ui_hud run.

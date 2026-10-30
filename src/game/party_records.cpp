@@ -102,10 +102,7 @@ void PartyManager::EndRedeploy(CParty* party) { records.EndRedeploy(party); }
 
 int g_nextPartyId = /*0078B0E8*/ 1;
 
-int PartyNextId(int* out) {
-    *out = g_nextPartyId;
-    return ++g_nextPartyId;
-}
+int PartyNextId() { return g_nextPartyId++; }
 
 bool PartyManager::LoadParty(const int* key, CParty* target) const {
     if (*key == 0) {

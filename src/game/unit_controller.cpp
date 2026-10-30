@@ -34,8 +34,8 @@ void CUnit::SetHostileMask(std::uint32_t mask) {
 void CUnit::RefreshMotion() {
     PathOrder* path = Controller()->Path();
     path->ForgetObject(id);
-    float speed, turnRate;
-    GetMoveSpeeds(&speed, &turnRate);
+    const MoveSpeeds speeds = GetMoveSpeeds();
+    const float speed = speeds.forward, turnRate = speeds.turn;
     UnitMotion* unitMotion = &motion;
     unitMotion->segment = -1;
     unitMotion->speedScale = speed;

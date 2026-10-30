@@ -49,8 +49,7 @@ constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
 
 Vector3 Facing(const CUnit* unit) {
-    Vector3 axis;
-    unit->localRotation.AxisY(&axis);
+    Vector3 axis = unit->localRotation.AxisY();
     return Vector3{-axis.x, -axis.y, -axis.z};
 }
 
@@ -145,8 +144,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     CUnit* standing = noWalk ? leader : person;
     Vector3& standingPlace = noWalk ? leaderPlace : personPlace;
     Vector3& walkingPlace = noWalk ? personPlace : leaderPlace;
-    Vector3 axis;
-    standing->localRotation.AxisY(&axis);
+    Vector3 axis = standing->localRotation.AxisY();
     Vector3 at = standing->localPosition;
     float stepY = static_cast<float>(axis.y * reach);
     float stepX = static_cast<float>(axis.x * reach);

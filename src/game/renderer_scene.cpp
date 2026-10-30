@@ -116,12 +116,6 @@ int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<CLight*>* l
     return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
 }
 
-void SceneRenderer::GetGamma(float* outBrightness, float* outContrast, float* outGamma) const {
-    *outBrightness = brightness;
-    *outContrast = contrast;
-    *outGamma = gamma;
-}
-
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
 bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 

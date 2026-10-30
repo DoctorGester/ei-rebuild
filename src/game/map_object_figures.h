@@ -234,7 +234,7 @@ public:
     virtual FigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
     virtual FigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
     // The figure's extra scale (the base's: 1, 1, 1).
-    virtual void GetScale(float* x, float* y, float* z);
+    virtual Vector3 GetScale();
     // The client draws the parts / their shadow; the base returns 0.
     virtual int DrawParts(SceneRenderer* context, Rect* dirty);
     virtual int DrawPartsShadow(SceneRenderer* context);

@@ -91,8 +91,8 @@ public:
     // load drops the texture and the material and returns 0. Without a material a new one (blended 5 / 6, the
     // helper's preset 4) gets the first part set's texture, then the wounds texture. Returns 1.
     int ShowWounds(const char* name);
-    // x, y, z = figureScale.
-    void GetScale(float* x, float* y, float* z) override;
+    // figureScale.
+    Vector3 GetScale() override;
     // Each drawn part registers its material with the world's material manager (with the part's type).
     void RegisterPartMaterials();
     // Screen picking (a shown object only, flags 0x20 of the 3D object): whether the point (x, y) is in the
@@ -168,7 +168,7 @@ public:
 // Whether the game shows `object`'s shadow (shadows on for its kind, the object shown and not invisible) and,
 // when it does, how strongly it casts in the new renderer's shadow map (*strength: 1, a unit as far as it has
 // faded in). Reads only; the shadow draw and the casters outside the view share it.
-bool ShadowCastStrength(CObject3D* object, float* strength);
+std::optional<float> ShadowCastStrength(CObject3D* object);
 
 // The material that draws a wounds texture (made when the wounds are first shown): blending on, source
 // factor the source alpha, destination factor its inverse, the renderer helper's preset 4, two stages.

@@ -103,11 +103,7 @@ WoundsMaterial::~WoundsMaterial() { preset.Reset(); }
 
 // --- The client half's extra scale and part materials -----------------------------------------------
 
-void Object3DClientSpecific::GetScale(float* x, float* y, float* z) {
-    *x = figureScale.x;
-    *y = figureScale.y;
-    *z = figureScale.z;
-}
+Vector3 Object3DClientSpecific::GetScale() { return {figureScale.x, figureScale.y, figureScale.z}; }
 
 void Object3DClientSpecific::RegisterPartMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
@@ -180,8 +176,4 @@ ClassId Object3DClientSpecific::GetClassId() { return ClassId::Object3DClientSpe
 // The base half's destructor (deleting form): the object forgotten.
 Object3DSpecific::~Object3DSpecific() { object = nullptr; }
 
-void Object3DSpecific::GetScale(float* x, float* y, float* z) {
-    *x = kNoScale;
-    *y = kNoScale;
-    *z = kNoScale;
-}
+Vector3 Object3DSpecific::GetScale() { return {kNoScale, kNoScale, kNoScale}; }

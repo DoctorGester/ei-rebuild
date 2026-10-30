@@ -273,7 +273,11 @@ public:
     bool CanUseQuickItem(std::uint32_t slot);
 
     // Movement speeds for the current movement mode; `backward` scaled by the global.
-    void GetMoveSpeeds(float* forward, float* backward);
+    struct MoveSpeeds {
+        float forward;
+        float turn;   // the turn rate
+    };
+    MoveSpeeds GetMoveSpeeds();
     float MoveSpeed2();
     // The speed of movement mode `mode` (0..4; other values: the base speed).
     float MoveSpeedFor(int mode);

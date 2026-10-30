@@ -625,7 +625,7 @@ void AIBrain::Load(ByteStream* stream) {
     ClearModes();
     stream->ReadValue(action);
     stream->ReadValue(move.point);
-    LoadLooks(&move.looks, stream);
+    move.looks = LoadLooks(stream);
     stream->ReadValue(actionTime);
     LoadRef(target, stream, &g_serverWorld);
     LoadRef(seen, stream, &g_serverWorld);
@@ -664,9 +664,9 @@ void AIBrain::Load(ByteStream* stream) {
     stream->ReadValue(alwaysUpdated);
     if (stream->version < kVersionAttackOptions) return;
     attention.healWeight = 0.0f;
-    LoadAttackOptions(&attention.weapons, stream);
+    attention.weapons = LoadAttackOptions(stream);
     if (stream->version >= kVersionSpellOptions) {
-        LoadAttackOptions(&attention.spells, stream);
+        attention.spells = LoadAttackOptions(stream);
         stream->ReadValue(attention.healWeight);
     }
     if (stream->version < kVersionAlarmSlot) return;
@@ -900,16 +900,17 @@ void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
 }
 } // namespace
 
-void LoadLooks(std::vector<AILook>* looks, ByteStream* stream) {
+std::vector<AILook> LoadLooks(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
-    looks->resize(count);
-    for (AILook& look : *looks) {
+    std::vector<AILook> looks(count);
+    for (AILook& look : looks) {
         stream->ReadValue(look.angle);
         stream->ReadValue(look.time);
         stream->ReadValue(look.wait);
         if (stream->version >= kVersionLookStopFlag) stream->ReadValue(look.stopFirst);
     }
+    return looks;
 }
 
 void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {

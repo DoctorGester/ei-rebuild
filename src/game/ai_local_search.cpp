@@ -341,7 +341,9 @@ void AIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data() + std::ssize(climb) / 2;
     out->costs = passCosts;
-    unit->GetMoveSpeeds(&out->forwardSpeed, &out->backwardSpeed);
+    const CUnit::MoveSpeeds speeds = unit->GetMoveSpeeds();
+    out->forwardSpeed = speeds.forward;
+    out->backwardSpeed = speeds.turn;
     out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
 }
 

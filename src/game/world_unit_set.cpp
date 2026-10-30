@@ -82,11 +82,12 @@ void UnitSet::Write(ByteStream* stream) {
 
 // ---- The unit look lists' reader ------------------------------------------------------
 
-void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
+UnitLooks ReadUnitLooks(ByteStream* stream) {
+    UnitLooks result;
     std::uint32_t count;
     stream->ReadValue(count);
-    figured->resize(count);
-    for (FiguredUnitRecord& looks : *figured) {
+    result.figured.resize(count);
+    for (FiguredUnitRecord& looks : result.figured) {
         FiguredUnitRecord* record = &looks;
         stream->ReadValue(record->prototype);
         GetIds(stream, record->items);
@@ -103,8 +104,8 @@ void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, 
             record->names[i] = stream->ReadString();
     }
     stream->ReadValue(count);
-    dressed->resize(count);
-    for (DressedUnitRecord& looks : *dressed) {
+    result.dressed.resize(count);
+    for (DressedUnitRecord& looks : result.dressed) {
         DressedUnitRecord* record = &looks;
         stream->ReadValue(record->prototype);
         GetIds(stream, record->items);
@@ -112,4 +113,5 @@ void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, 
         stream->ReadValue(record->extraWeapon);
         stream->ReadValue(record->modelNumber);
     }
+    return result;
 }

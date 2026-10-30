@@ -65,8 +65,8 @@ FigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
 }
 
 float* CObject3D::PartWorldPosition(float* out, const FigureMesh* part) {
-    float scaleX, scaleY, scaleZ;
-    attached->GetScale(&scaleX, &scaleY, &scaleZ);
+    const Vector3 figureScale = attached->GetScale();
+    const float scaleX = figureScale.x, scaleY = figureScale.y, scaleZ = figureScale.z;
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
     const float w = localRotation.w;
     const float ux = localRotation.x, uy = localRotation.y, uz = localRotation.z;

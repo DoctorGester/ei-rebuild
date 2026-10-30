@@ -76,7 +76,7 @@ void EffectSoundSeq::Start(int update) {
 
 int EffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    field->ReadPosition(&position);
+    position = field->ReadPosition();
     name = field->ReadString();
     // The count is read into the storage of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
@@ -84,9 +84,9 @@ int EffectSoundSeq::Unpack(int update, DeltaField* field) {
     std::vector<std::string>& others = names;
     others.resize(static_cast<std::size_t>(count));
     for (std::string& other : others) other = field->ReadString();
-    field->ReadFloat16(&volume);
-    field->ReadFloat16(&radius);
-    field->ReadFloat16x3(&velocity.x);
+    volume = field->ReadFloat16();
+    radius = field->ReadFloat16();
+    velocity = field->ReadFloat16x3();
     field->ReadDelta(&noFade, 1);
     EI_NAN_AUDIT(velocity.x, velocity.y, velocity.z);
     moving = velocity.x == 0.0f && velocity.y == 0.0f && velocity.z == 0.0f ? 0 : 1;

@@ -65,8 +65,8 @@ void PartyRecordsReset(NamedPartyRecords* list);
 struct PartyManager;
 void PartyManagerNewGame(PartyManager* manager);
 void PartyManagerNewGameFour(PartyManager* manager);
-// *out = the global counter, then the counter is raised; returns it.
-int PartyNextId(int* out);
+// The global counter's value; the counter is raised.
+int PartyNextId();
 
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
 // without "::") equal to the manager's current name (NamedPartyRecords::currentName) gives the player's own

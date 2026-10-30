@@ -66,7 +66,8 @@ void AddCountedTail(std::vector<EngineObject*>* list, EngineObject* object) {
 
 } // namespace
 
-void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item*>* list) {
+std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
+    std::vector<Item*> taken;
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
@@ -86,10 +87,11 @@ void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item
             bool here = info && NamesZone(info, zoneName.c_str());
             if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId))) continue;
         }
-        list->push_back(ItemAt(items, i));
+        taken.push_back(ItemAt(items, i));
         items->erase(items->begin() + i);
         --i;
     }
+    return taken;
 }
 
 void WorldServer::RestorePlayerItems(CPlayer* player) {
@@ -101,7 +103,7 @@ void WorldServer::RestorePlayerItems(CPlayer* player) {
             for (int i = 0; i < std::ssize(*items); ++i) taken.push_back(ItemAt(items, i));
             items->clear();
         } else {
-            TakeZoneQuestItems(items, &taken);
+            taken = TakeZoneQuestItems(items);
         }
         if (player) {
             // Each item is given back as a fresh copy (the world's copy virtual) keeping its count; the old

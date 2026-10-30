@@ -71,9 +71,11 @@ void PathOrder::ReadState(DeltaField* field) {
     field->ReadDelta(&high, 1);
     field->ReadDelta(&low, 1);
     const int count = (high << 8) + low;
-    field->ReadPosition2D(&order->x);
+    const Vector2 start = field->ReadPosition2D();
+    order->x = start.x;
+    order->y = start.y;
     const float limit = kOrderAngleLimit;
-    field->ReadRanged(&order->angle, -limit, limit);
+    order->angle = field->ReadRanged(-limit, limit);
     field->ReadDelta(&order->startTime, 4);
     field->ReadDelta(&order->arg5, 4);
     field->ReadDelta(&order->arg6, 4);

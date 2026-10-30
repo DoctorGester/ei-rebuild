@@ -153,9 +153,6 @@ bool CUnit::IsDead() { return dead; }
 void CUnit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
 void CUnit::RefreshWounds() { Controller()->RefreshWounds(); }
 double CUnit::MoveSpeed() {
-    float forward;
-    float backward;
-    GetMoveSpeeds(&forward, &backward);
-    return forward;
+    return GetMoveSpeeds().forward;
 }
 float CUnit::Radius() { return unitRadius; }

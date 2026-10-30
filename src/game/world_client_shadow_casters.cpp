@@ -294,7 +294,11 @@ void HandOverOutsideCasters(WorldClient* world) {
                 }
                 // The game's own verdict when it drew the object's shadow this frame, else its tests.
                 float strength = render::CasterStrength(object);
-                if (strength < 0.0f && !ShadowCastStrength(object, &strength)) continue;
+                if (strength < 0.0f) {
+                    const std::optional<float> cast = ShadowCastStrength(object);
+                    if (!cast) continue;
+                    strength = *cast;
+                }
                 if (strength < kLeastStrength) continue;
                 HandOverParts(object, half, placement);
             }

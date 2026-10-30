@@ -71,19 +71,19 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
         BlowSide side = entry->Side();
         Vector3 axis;
         if (side == BlowSide::Front) {
-            unit->localRotation.AxisY(&axis);
+            axis = unit->localRotation.AxisY();
             float reach = unit->bounds.boxMax.y;
             offset = axis * reach;
         } else if (side == BlowSide::Back) {
-            unit->localRotation.AxisY(&axis);
+            axis = unit->localRotation.AxisY();
             float reach = unit->bounds.boxMax.y;
             offset = -axis * reach;
         } else if (side == BlowSide::MinusX) {
-            unit->localRotation.AxisX(&axis);
+            axis = unit->localRotation.AxisX();
             float reach = unit->bounds.boxMax.x;
             offset = axis * reach;
         } else if (side == BlowSide::PlusX) {
-            unit->localRotation.AxisX(&axis);
+            axis = unit->localRotation.AxisX();
             float reach = unit->bounds.boxMax.x;
             offset = -axis * reach;
         }

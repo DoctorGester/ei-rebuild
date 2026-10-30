@@ -930,8 +930,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     for (ZoneExit& exit : exits) exit.Read(block);
     int newCave;
     block->ReadValue(newCave);
-    UnitLooks looks;
-    ReadUnitLooks(block, &looks.figured, &looks.dressed);
+    UnitLooks looks = ReadUnitLooks(block);
     cave = newCave;
     GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);

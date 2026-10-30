@@ -296,8 +296,8 @@ std::uint32_t CUnit::ReadNetState(int first) {
         if (unit->pathTimeShift == 1) path->ShiftTime(-1);
         PathOrder* path2 = unit->Controller()->Path();
         path2->ForgetObject(unit->id);
-        float walk, run;
-        unit->GetMoveSpeeds(&walk, &run);
+        const CUnit::MoveSpeeds speeds = unit->GetMoveSpeeds();
+        const float walk = speeds.forward, run = speeds.turn;
         UnitMotion* walker = &unit->motion;
         walker->segment = -1;
         walker->speedScale = walk;
