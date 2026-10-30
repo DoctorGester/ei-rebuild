@@ -370,7 +370,7 @@ void BattleScreen::GameOver(bool won) {
     GameStopAmbience();
     MessageWindow* box;
     if (!won) {
-        ui->PlaySound("buttons\\gameover.wav");
+        ui->PlayInterfaceSound("buttons\\gameover.wav");
         box = new MessageWindow(ui, "game_over", "game_over_msg", 0x20000, 3, 1);
     } else {
         box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);

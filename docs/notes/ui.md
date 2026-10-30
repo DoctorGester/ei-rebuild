@@ -134,7 +134,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   `caret` +0x154). `UiItemPanel` (+0x148 `mode`, +0x14C `owner`) is the base of the description panel, hero
   equipment, quick strip, trade / repair grids, constructor pages and the blank panel 00741B58. The hero stats panel has
   its own deleting destructors 0060E340 / 00613DD0.
-- Glue (`ui_interface_glue.cpp`): `PlaySound` (Play2D, priority 1000, volume 100; the sound system gets the game's own
+- Glue (`ui_interface_glue.cpp`): `PlayInterfaceSound` (Play2D, priority 1000, volume 100; the sound system gets the game's own
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText), news for the top window
   (slots 28-32, 36, 37 as `UiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).

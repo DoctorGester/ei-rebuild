@@ -125,7 +125,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
     }
     std::string text;
     text = isLink ? links[index].name : zones[index].name;
-    if (str::Compare(shownName, text) != 0) ui->PlaySound(kZoneSound);
+    if (str::Compare(shownName, text) != 0) ui->PlayInterfaceSound(kZoneSound);
     shownName = text;
     text = isLink ? links[index].title : zones[index].title;
     surfaces[0]->Show();

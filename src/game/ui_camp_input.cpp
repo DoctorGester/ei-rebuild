@@ -8,6 +8,8 @@
 #include "unit.h"
 #include "world.h"
 
+#include <windows.h>
+
 namespace {
 
 constexpr const char* kMoveSound = "buttons\\camp\\move.wav";
@@ -53,7 +55,7 @@ void CampPages::LeftDown(int buttons, int x, int y) {
     case kRegionTurnLeft:
     case kRegionTurnRight:
         if (page == kEquipmentPage) {
-            ui->PlaySound(kMoveSound);
+            ui->PlayInterfaceSound(kMoveSound);
             turning = region == kRegionTurnLeft ? 1 : 2;
             CaptureMouse();
         }

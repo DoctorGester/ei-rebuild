@@ -76,7 +76,7 @@ void SaveLoadWindow::LeftDown(int buttons, int x, int y) {
         Confirm();
         break;
     case 1:
-        ui->PlaySound(kSoundCancel);
+        ui->PlayInterfaceSound(kSoundCancel);
         ui->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
@@ -86,7 +86,7 @@ void SaveLoadWindow::LeftDown(int buttons, int x, int y) {
         if (region >= 3) {
             unsigned index = static_cast<unsigned>(firstVisible + region - 3);
             if (index < static_cast<unsigned>(EntryCount())) {
-                ui->PlaySound(kSoundSelect);
+                ui->PlayInterfaceSound(kSoundSelect);
                 if (static_cast<int>(index) != selected) {
                     selected = static_cast<int>(index);
                     TakeSelectedTitle();
@@ -186,18 +186,18 @@ void OptionsWindow::LeftDown(int buttons, int x, int y) {
             RestoreSettings();
             sound = kSoundCancel;
         }
-        ui->PlaySound(sound);
+        ui->PlayInterfaceSound(sound);
         ui->SetPendingValue(kCloseOptions);
     } else {
         if (region >= 2 && region < 13) {
-            ui->PlaySound(kSoundSelect);
+            ui->PlayInterfaceSound(kSoundSelect);
             waitingForKey = false;
             ShowGroup(region - 2);
         }
         if (region >= 13) {
             OptionRow& row = RegionRow(region);
             if (row.binding || row.setting) {
-                ui->PlaySound(kSoundSelect);
+                ui->PlayInterfaceSound(kSoundSelect);
                 selectedRow = region - 13;
                 waitingForKey = false;
                 RefreshRows();
@@ -213,14 +213,14 @@ void OptionsWindow::LeftDouble(int buttons, int x, int y) {
     if (region >= 13) {
         OptionRow& row = RegionRow(region);
         if (row.binding) {
-            ui->PlaySound(kSoundSelect);
+            ui->PlayInterfaceSound(kSoundSelect);
             selectedRow = region - 13;
             waitingForKey = true;
             RefreshRows();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
             RegionRow(region).setting->spin->SetValue(value + 1);
-            ui->PlaySound(kSoundOk);
+            ui->PlayInterfaceSound(kSoundOk);
             RefreshRows();
         }
     }

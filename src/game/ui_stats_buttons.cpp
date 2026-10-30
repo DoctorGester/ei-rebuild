@@ -108,7 +108,7 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
         heldRegion = -1;
         if (StepPoint(region)) heldRegion = region;
         if (region >= kFirstButton && region < kButtonEnd) {
-            ui->PlaySound(kPerkSound);
+            ui->PlayInterfaceSound(kPerkSound);
             owner->RefreshStats();
         }
         if (heldRegion > 0) {
@@ -118,10 +118,10 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
         return;
     }
     if (region == kPreviousHero) {
-        ui->PlaySound(kHeroSound);
+        ui->PlayInterfaceSound(kHeroSound);
         owner->PreviousHero();
     } else if (region == kNextHero) {
-        ui->PlaySound(kHeroSound);
+        ui->PlayInterfaceSound(kHeroSound);
         owner->NextHero();
     }
 }

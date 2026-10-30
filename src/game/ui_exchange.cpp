@@ -91,23 +91,23 @@ void ExchangeScreen::LeftDown(int buttons, int x, int y) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted && ownOffer->money <= LocalPlayerData()->money) {
-            ui->PlaySound(kBuySound);
+            ui->PlayInterfaceSound(kBuySound);
             net::g_gameClient->RecordTrade(LocalPlayerData());
             return;
         }
-        ui->PlaySound(kCancelSound);
+        ui->PlayInterfaceSound(kCancelSound);
         return;
     }
     case kTakeBackRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
-            ui->PlaySound(kCancelSound);
+            ui->PlayInterfaceSound(kCancelSound);
             net::ClientCommitParty(net::g_gameClient);
         }
         return;
     }
     case kLeaveRegion:
-        ui->PlaySound(kTransitSound);
+        ui->PlayInterfaceSound(kTransitSound);
         net::ClientDropParty(net::g_gameClient);
         return;
     default:
@@ -278,7 +278,7 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
 // (The original first asks CanEquip, which always accepts here.)
 void ExchangeScreen::TakeItem(Item* item, int mode) {
     if (mode == kStripActionTake) {
-        ui->PlaySound(kPutOnSound);
+        ui->PlayInterfaceSound(kPutOnSound);
         MoveItem(item, ownOffer, LocalPlayerData(), kOfferLimit, true, false);
         net::ClientPublishParty(net::g_gameClient);
         return;
@@ -287,7 +287,7 @@ void ExchangeScreen::TakeItem(Item* item, int mode) {
     const std::vector<Item*>& offered = ownOffer->items;
     for (int i = 0; i < std::ssize(offered); ++i) {
         if (offered[i] != item) continue;
-        ui->PlaySound(kPutOffSound);
+        ui->PlayInterfaceSound(kPutOffSound);
         Item* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
         strip->ScrollToItem(held);
         net::ClientPublishParty(net::g_gameClient);

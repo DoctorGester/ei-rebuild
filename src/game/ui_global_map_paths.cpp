@@ -101,19 +101,19 @@ void GlobalMap::LeftDown(int, int x, int y) {
     const int region = RegionAt(x, y);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {
         turning = region == kRegionTurnLeft ? -1 : 1;
-        ui->PlaySound(kMoveSound);
+        ui->PlayInterfaceSound(kMoveSound);
         return;
     }
     if (region == kRegionCamp) {
         if (noCamp) return;
-        ui->PlaySound(kTransitSound);
+        ui->PlayInterfaceSound(kTransitSound);
         GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
         GameSendLeave04(kCampScreen);
         return;
     }
     int link;
     if (region >= kFirstLinkRegion) {
-        ui->PlaySound(kOkSound);
+        ui->PlayInterfaceSound(kOkSound);
         link = region - kFirstLinkRegion;
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
@@ -121,7 +121,7 @@ void GlobalMap::LeftDown(int, int x, int y) {
         const std::uint32_t pixel = backdrop->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;
-        ui->PlaySound(kOkSound);
+        ui->PlayInterfaceSound(kOkSound);
         GlobalMapZone& zone = zones[index];
         link = zone.link;
         if (!gipat || link < 0) {

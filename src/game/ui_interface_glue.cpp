@@ -31,7 +31,7 @@ constexpr char* kNoExtra = nullptr;
 
 } // namespace
 
-int Interface3D::PlaySound(std::string_view name, bool loop) {
+int Interface3D::PlayInterfaceSound(std::string_view name, bool loop) {
     return g_clientWorld.sounds->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
 }
 

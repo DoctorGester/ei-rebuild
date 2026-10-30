@@ -15,6 +15,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <windows.h>
 
 namespace {
 
@@ -94,7 +95,7 @@ void HelpWindow::Update() {
 }
 
 void HelpWindow::Finish() {
-    ui->PlaySound(kOkSound);
+    ui->PlayInterfaceSound(kOkSound);
     if (!message)
         ui->helpTopics[text] = page;
     else
@@ -107,7 +108,7 @@ void HelpWindow::LeftDown(int buttons, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
         if (page > 0) {
-            ui->PlaySound(kNextSound);
+            ui->PlayInterfaceSound(kNextSound);
             --page;
             ShowPage();
         }
@@ -117,7 +118,7 @@ void HelpWindow::LeftDown(int buttons, int x, int y) {
         break;
     case 2:
         if (page < static_cast<int>(lines.size()) - 1) {
-            ui->PlaySound(kNextSound);
+            ui->PlayInterfaceSound(kNextSound);
             ++page;
             ShowPage();
         }
@@ -130,7 +131,7 @@ void HelpWindow::LeftDown(int buttons, int x, int y) {
 void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     if (key == VK_RETURN && page < static_cast<int>(lines.size()) - 1) {
-        ui->PlaySound(kNextSound);
+        ui->PlayInterfaceSound(kNextSound);
         ++page;
         ShowPage();
         handled = true;

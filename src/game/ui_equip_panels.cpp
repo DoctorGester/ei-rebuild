@@ -55,7 +55,7 @@ void HeroEquipPanel::RightDown(int, int x, int y) {
     if (region < 0) return;
     PartyUnitRecord* hero = owner->HeroRecord();
     if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
-        ui->PlaySound(kChangeSound);
+        ui->PlayInterfaceSound(kChangeSound);
         hero->weaponIndex = static_cast<std::uint32_t>(region);
     }
     owner->RefreshWeapons();

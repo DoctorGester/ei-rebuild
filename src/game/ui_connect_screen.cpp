@@ -214,7 +214,7 @@ void MpConnectScreen::LeftDown(int buttons, int x, int y) {
         Connect();
         break;
     case kRegionBack:
-        ui->PlaySound(kCancelSound);
+        ui->PlayInterfaceSound(kCancelSound);
         SaveAddressBook();
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
@@ -262,7 +262,7 @@ void MpConnectScreen::LeftDown(int buttons, int x, int y) {
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
             if (row < entries.size()) {
-                ui->PlaySound(kSelectSound);
+                ui->PlayInterfaceSound(kSelectSound);
                 selected = static_cast<int>(row);
                 selectedAddress = entries[row].address;
                 DrawListVanilla();
@@ -295,7 +295,7 @@ void MpConnectScreen::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         return;
     case VK_ESCAPE:
-        ui->PlaySound(kCancelSound);
+        ui->PlayInterfaceSound(kCancelSound);
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
@@ -306,7 +306,7 @@ void MpConnectScreen::KeyDown(int key, int repeat, int modifiers) {
     case VK_NEXT: step = kRows; break;
     default: return;
     }
-    ui->PlaySound(kSelectSound);
+    ui->PlayInterfaceSound(kSelectSound);
     selected += step;
     SelectAndScroll();
     handled = true;
@@ -325,7 +325,7 @@ void MpConnectScreen::SelectAndScroll() {
 }
 
 void MpConnectScreen::Connect() {
-    ui->PlaySound(kOkSound);
+    ui->PlayInterfaceSound(kOkSound);
     int row = selected;
     if (row == 0) {
         const int players = playersSlider->TakePosition() + 1;

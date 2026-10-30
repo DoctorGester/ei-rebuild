@@ -384,7 +384,7 @@ void SaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    ui->PlaySound(kSoundOk);
+    ui->PlayInterfaceSound(kSoundOk);
     if (selected == 0) {
         SaveGame();
         return;
@@ -394,7 +394,7 @@ void SaveLoadWindow::Confirm() {
 
 void SaveLoadWindow::AskDelete() {
     if (selected < 0 || (isSave && selected == 0)) return;
-    ui->PlaySound(kSoundDelete);
+    ui->PlayInterfaceSound(kSoundDelete);
     Ask(ui, "delete", "delete_msg", kAskDelete);
 }
 
@@ -405,7 +405,7 @@ void SaveLoadWindow::LoadSelected() {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    ui->PlaySound(kSoundOk);
+    ui->PlayInterfaceSound(kSoundOk);
     g_gameFlow.RequestLoad(entries.data()[selected].folder, 0);
 }
 

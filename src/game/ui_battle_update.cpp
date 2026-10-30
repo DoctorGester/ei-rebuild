@@ -289,7 +289,7 @@ void BattleScreen::Update() {
         case 2: sound = "buttons\\subcomplete.wav"; break;
         case 3: sound = "buttons\\complete.wav"; break;
         }
-        if (sound) ui->PlaySound(sound);
+        if (sound) ui->PlayInterfaceSound(sound);
         questSound = 0;
     }
 }

@@ -57,7 +57,7 @@ void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
     case kRegionOk:
-        ui->PlaySound(kOkSound);
+        ui->PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
             ui->SetPendingValue(0);
         } else if (nearestExit >= 0) {
@@ -69,7 +69,7 @@ void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
         return;
     case kRegionCancel:
         if (twoButtons) {
-            ui->PlaySound(kCancelSound);
+            ui->PlayInterfaceSound(kCancelSound);
             ui->SetPendingValue(0);
         }
         return;
@@ -90,7 +90,7 @@ void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
     if (region < kRegionFirstExit) {
         int row = firstRow + region - kRegionFirstRow;
         if (row >= 0 && row < static_cast<int>(quests.size())) {
-            ui->PlaySound(kSelectSound);
+            ui->PlayInterfaceSound(kSelectSound);
             selectedQuest = row;
             DrawQuestList();
             ShowQuest();
@@ -100,11 +100,11 @@ void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
     if (region >= std::ssize(exits) + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
     if (twoButtons && exits[exit].flag) {
-        ui->PlaySound(kEnterSound);
+        ui->PlayInterfaceSound(kEnterSound);
         SelectExit(exit);
         return;
     }
-    ui->PlaySound(kCancelSound);
+    ui->PlayInterfaceSound(kCancelSound);
 }
 
 void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
@@ -112,7 +112,7 @@ void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        ui->PlaySound(kOkSound);
+        ui->PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
             ui->SetPendingValue(0);
         } else if (nearestExit >= 0) {
@@ -124,7 +124,7 @@ void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         break;
     case kKeyEsc:
-        ui->PlaySound(!twoButtons ? kOkSound : kCancelSound);
+        ui->PlayInterfaceSound(!twoButtons ? kOkSound : kCancelSound);
         ui->SetPendingValue(0);
         handled = true;
         break;
@@ -135,13 +135,13 @@ void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
     default: break;
     }
     if (step != 0) {
-        ui->PlaySound(kSelectSound);
+        ui->PlayInterfaceSound(kSelectSound);
         selectedQuest += step;
         RefreshQuests();
         handled = true;
     }
     if (!handled && g_keyActions[modifiers & 0x1FF] == kActionObjectives && !twoButtons) {
-        ui->PlaySound(kMessageOkSound);
+        ui->PlayInterfaceSound(kMessageOkSound);
         ui->SetPendingValue(0);
     }
 }
