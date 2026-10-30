@@ -136,9 +136,11 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   flow's request, the tick fraction, the next client speed from balance = waiting updates - fraction
   (e^(balance / 10) when negative, 1 up to 1, else sqrt(balance) * 0.1 + 1 - 0.1; kept within 0.1 .. 10), the
   camera for the real time of the pass, the camera file's record / playback, the interface and a frame.
-- Kept: a message that waits before the first pass goes to the interface's input or to the window procedure by
-  the top byte of a reused stack slot (the disc folder's text pointer with sound, the free non-local video
-  memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
+- Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
+- Dropped on purpose: a message that waits before the first pass goes to the interface's input (`RunMainLoop`).
+  The original chose the interface or the window procedure by the top byte of a reused stack slot: the disc
+  folder's text pointer with sound, the free non-local video memory without. Copied, it hung on where the folder's
+  text happened to lie (the stack or the heap by its length; the address's upper bits on x64).
 - The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
   (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
 - Static initialisers (they run before WinMain): the options 00458870

@@ -252,9 +252,8 @@ void CreateRenderer() {
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 }
 
-// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
-// the disc folder's text pointer (see the caller).
-std::uintptr_t OpenSound() {
+// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes.
+void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
@@ -280,7 +279,6 @@ std::uintptr_t OpenSound() {
     g_clientWorld.sounds->SetSpeechVolume(options->audioSpeech);
     g_clientWorld.sounds->SetMusicVolume(options->audioStreaming);
     g_clientWorld.sounds->panDirect = options->reverseStereo != 0;
-    return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
@@ -477,10 +475,11 @@ bool EventWaits(ei::mainloop::Site where) {
     return platform::EventWaits();
 }
 
-// The loop: passes while no event waits, then the event handled. Returns the quit request's code.
-// `interfaceInput` says whether the interface takes the input (see GameMain).
-int RunMainLoop(bool interfaceInput) {
+// The loop: passes while no event waits, then the event handled. Returns the quit request's code. Whether the
+// interface takes the input is what the last pass said; before the first pass it does.
+int RunMainLoop() {
     platform::Event event;
+    bool interfaceInput = true;
     for (;;) {
         bool waits = EventWaits(ei::mainloop::Site::PeekBeforeFrame);
         while (!waits) {
@@ -574,13 +573,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);
 
-    // "The interface takes the input" is carried in one byte and set after every pass. Before
-    // the first pass it holds the top byte of stack memory that start-up used last for the disc
-    // folder's text (with sound) or for the free non-local video memory (without; dgVoodoo's 256 MB,
-    // whose top byte is not zero): a message that waits before the first pass goes to the interface
-    // when that byte is not zero.
     CreateRenderer();
-    const bool interfaceTakesInput = options->audio ? (OpenSound() >> 24) != 0 : true;
+    if (options->audio) OpenSound();
 
     PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
@@ -595,7 +589,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     StartFirstMap();
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 
-    const int result = RunMainLoop(interfaceTakesInput);
+    const int result = RunMainLoop();
     ShutDown();
     return result;
 }

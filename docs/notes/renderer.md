@@ -511,7 +511,7 @@ no stand-in for any of them (R27c):
   released ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
-  free non-local video memory without sound, is 1 there (`GameMain`).
+  free non-local video memory without sound, is always 1 (`RunMainLoop`; app.md).
 - No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which
   the renderer draws with), the interface's depth clears go to `render::ClearDepth`
