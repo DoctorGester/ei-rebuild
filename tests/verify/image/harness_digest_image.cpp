@@ -1,7 +1,5 @@
-// The digest's reader of the image's objects (harness_digest_read.h): the reading code over our classes. The image's
-// side of the harness only (tests/verify/image): run_all's reference key leaves it out.
+// The digest's reader of the image's objects (harness_digest_read.h): the reading code over our classes.
 #include "../harness_digest_read.h"
-#include "../harness_heap.h"
 
 #include "game/ai_motion.h"
 #include "game/combat.h"

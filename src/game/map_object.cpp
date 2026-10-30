@@ -272,8 +272,7 @@ int MapObject::NotifyCompanion() {
 
 void MapObject::TakePrototype(std::string_view prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
-    // original then packs what its stack held; the harness zeroes them there too (a determinism fix,
-    // harness_leftovers.h).
+    // original then packed what its stack held (a determinism fix).
     UnitVitals vitals{};
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(&packedVitals);

@@ -81,9 +81,8 @@ ROOT = run_all.ROOT
 GOLDEN = os.path.join(ROOT, 'tests', 'golden')
 # Fields that follow heap addresses, which would differ between runs and between the original code alone and
 # ours (the allocations differ); left out unless --all-fields. None now: the one there was, a unit's
-# update-map countdown (0x80 + bits 5..8 of its address in the game), harness runs on the virtual clock take
-# from the object's id on both sides (tests/verify/harness_heap.h, SV1b). Runs with `--clock virtual,lfheap`
-# keep the game's: pass --ignore ' updateCountdown$' for those.
+# update-map countdown (0x80 + bits 5..8 of its address in the game), ours takes from the object's id (SV1b;
+# WorldServer::UpdateCountdownFor).
 ADDRESS_DEPENDENT = None
 # Differences between our code and the original that are known, each with the ticket that fixes it: "<key> <field>"
 # patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden

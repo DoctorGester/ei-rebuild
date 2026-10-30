@@ -1,5 +1,5 @@
 """Writes tests/verify/addon_sites.inc from config/rebirth_patches.csv: every site addon.dll writes (patch, address,
-size), for the harness's addon fix set (tests/verify/harness_addon.h; docs/notes/rebirth.md, "One test profile").
+size): the static data checks' addon.dll cells (tools/rdata_literals.py; the harness's addon fix set used it until H40).
 
 usage: python tools/rebirth/make_addon_sites.py
 """

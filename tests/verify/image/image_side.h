@@ -1,10 +1,7 @@
 #pragma once
 
 // The harness's image side (tests/verify/image): what it reads and calls of our code, behind functions that name no
-// class of ours. The shared harness calls them only in the image's runs (ei::Standalone()); in game.exe's runs it
-// reads game.exe's objects through their views (exe_objects.h) and calls game.exe's code (harness_original.h). Only
-// the files in this folder include our game headers, so run_all's reference key (tools/run_all.py, harness_files)
-// leaves them out: our classes do not decide what the original's runs do (ticket H30b).
+// class of ours. Only the files in this folder include our game headers (ticket H30b).
 
 #include <windows.h>
 
@@ -142,7 +139,7 @@ bool RestoreSurfaces(long* result);
 // "hudstate": the battle screen's state logged; a failure, or "" (harness_hud_read.inc).
 std::string HudState(void* screen, const std::string& argument);
 
-// ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp, harness_hooks.h;
+// ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp;
 // image/harness_objects_image.cpp): each hook ends with the function it stands in for, called by name here.
 
 int ServerUpdate(void* server);                 // WorldServer::Update

@@ -1,6 +1,5 @@
-// The harness's two homes (ei::Standalone): linked into ei-rebuild.exe (the image; its start-up is
-// src/standalone/standalone_main.cpp) or ei_harness.dll inside game.exe (the original's runs). What both use: the
-// run's kind, the code addresses as the log names them, and the image's failure reports' handler.
+// What the image's start-up (src/standalone/standalone_main.cpp) and the harness share: the code addresses as the
+// log names them, and the image's failure reports' handler.
 #include "ei/hook.h"
 #include "log.h"
 
@@ -38,13 +37,8 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
     std::snprintf(out, size, "%08X", static_cast<unsigned>(address));
 }
 
-// ei-rebuild.exe exports EiStandaloneHost; game.exe exports nothing.
-bool Standalone() {
-    static const bool standalone = GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneHost") != nullptr;
-    return standalone;
-}
+const char* OwnModuleName() { return "ei-rebuild"; }
 
-const char* OwnModuleName() { return Standalone() ? "ei-rebuild" : "ei_harness"; }
 
 void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
 

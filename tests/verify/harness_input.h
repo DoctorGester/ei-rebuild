@@ -21,8 +21,8 @@
 // draws and with them every later random draw), depending on where the user's cursor was and which
 // game's window was on top.
 //
-// So, in game.exe and in the standalone image alike (both create the device through the import slot
-// 0073B044, DirectInputCreateEx):
+// So (the image's DirectInput object reaches the harness through image::ObserveDirectInput):
+
 // - the game's mouse device reads no motion and no buttons (IDirectInputDevice7A::GetDeviceState of
 //   the device made by the game's CreateDeviceEx: the state is zeroed after the read);
 // - the game window answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only

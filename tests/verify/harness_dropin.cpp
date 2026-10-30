@@ -66,13 +66,12 @@ void DefaultGamePath(const char* name, std::string& value) {
 } // namespace
 
 void Install() {
-    if (!ei::Standalone() || Environment("EI_DROPIN").empty()) return;
+    if (Environment("EI_DROPIN").empty()) return;
     image::AddSettingsReadFilter(&DefaultGamePath);
     Log("harness: dropin: the game paths read as .\\ (the exe's folder), not the registry snapshot's");
 }
 
 std::string Step() {
-    if (!ei::Standalone()) return "dropin: not the image's run (the drop-in layout is the image's exe)";
     const std::string install = Environment("EI_DROPIN");
     if (install != "vanilla" && install != "rebirth")
         return "dropin: not a drop-in run (EI_DROPIN '" + install + "'; ei_launch --drop-in on one of the two installs)";

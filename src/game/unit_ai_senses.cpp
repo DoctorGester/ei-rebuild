@@ -257,7 +257,7 @@ void AIHeardCalls::Hear(const Vector3& point, int delay, std::string_view text) 
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int delay, std::string_view text) {
     // The point is left as the stack held it (saved as memory.callN.point); 0,0,0 is the
-    // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
+    // canonical value.
     calls.push_back({Vector3{0.0f, 0.0f, 0.0f}, delay, static_cast<int>(mask), std::string(text)});
 }
 

@@ -2,8 +2,7 @@
 // suspended and its EIP and the return addresses on its stack are written to profile.txt in the
 // output folder. tools/profile_report.py turns that into time per function between harness steps.
 // The stack is scanned, not walked (the game's code omits frame pointers), so a stale return address
-// can show up as a caller; only words that follow a CALL instruction in game.exe or our module count.
-#include "ei/hook.h"
+// can show up as a caller; only words that follow a CALL instruction in our module count.
 #include "log.h"
 #include "thread_context.h"
 
@@ -27,10 +26,10 @@ namespace {
 
 HANDLE g_main = nullptr;
 std::uintptr_t g_stackBase = 0;
-std::uintptr_t g_selfBase = 0, g_selfEnd = 0, g_exeCode = 0, g_exeCodeEnd = 0;
+std::uintptr_t g_selfBase = 0, g_selfEnd = 0;
 
-// game.exe's code sections only: a stack word into its data (the image's sealed .bss) is not read.
-bool InCode(std::uintptr_t a) { return (a >= g_exeCode && a < g_exeCodeEnd) || (a >= g_selfBase + 0x1000 && a < g_selfEnd); }
+// Our module's code only: a stack word into its data (the image's sealed .bss) is not read.
+bool InCode(std::uintptr_t a) { return a >= g_selfBase + 0x1000 && a < g_selfEnd; }
 
 // A return address: the bytes before it are a CALL (E8 rel32, or FF /2 in its 2-7 byte forms).
 bool AfterCall(std::uintptr_t a) {
@@ -111,7 +110,7 @@ DWORD WINAPI Sampler(void*) {
 
 } // namespace
 
-// From WinMain's hook (game.exe) or StandaloneMain before WinMain (the image): the main thread.
+// From StandaloneMain before WinMain: the main thread.
 void InstallProfiler() {
     char value[4];
     if (!GetEnvironmentVariableA("EI_PROFILE", value, sizeof value) || value[0] != '1') return;
@@ -124,19 +123,8 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    // game.exe's code: its module's code sections. None in the standalone image: none of game.exe's code runs
-    // there and its code section is guarded, so a stack word there is not read.
-    const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
-    const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
-    for (unsigned i = 0; !Standalone() && i < nt->FileHeader.NumberOfSections; ++i, ++section) {
-        if (!(section->Characteristics & IMAGE_SCN_CNT_CODE)) continue;
-        const std::uintptr_t start = base + section->VirtualAddress, end = start + section->Misc.VirtualSize;
-        if (!g_exeCode || start < g_exeCode) g_exeCode = start;
-        if (end > g_exeCodeEnd) g_exeCodeEnd = end;
-    }
-    HANDLE thread = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
+    HANDLE thread
+ = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
     SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
     CloseHandle(thread);
     Log("profile: sampling the main thread into profile.txt");

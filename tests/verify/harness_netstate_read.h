@@ -1,8 +1,7 @@
 #pragma once
 
-// The "netstate" step's reading (harness_netstate.cpp): the sessions' state as console lines, over either side's
-// classes. game.exe's runs read game.exe's sessions through their views (exe_objects.h); the image reads ours
-// (image/harness_netstate_image.cpp). `Entry` is the side's net::ServerEntry.
+// The "netstate" step's reading (harness_netstate.cpp): the sessions' state as console lines, over our classes
+// (image/harness_netstate_image.cpp). `Entry` is net::ServerEntry.
 
 #include <cstdint>
 #include <cstdio>

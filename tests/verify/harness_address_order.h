@@ -1,28 +1,13 @@
 #pragma once
 
-// The orders the game takes from heap addresses, settled in harness runs (verify build, virtual
-// clock; ticket T2f, docs/notes/standalone-verification.md "T2f"; src/game/address_order.h lists
-// them). Like script groups (harness_script_order.h), both sides use the same order instead:
-//
-//   - ours: always (src/game/address_order.h);
-//   - the original: the object sets' sort 0047ADF0 jumps to a sort by id (then address), the
-//     comparison of DiffObjectSets' merge (0047B4C0) to a stub that compares the same way, and the draw
-//     lists' sorts 005740D0 / 00574390 to sorts by texture and figure name (address_order::DrawBefore; SV7b6), and the client's
-//     binding handler 0041E430 to a stub that also refreshes the player list when the players came
-//     before the binding (UB1).
-//
-// Patched at the first message loop pass, after InstallHooks: an entry ours has replaced (0047ADF0 in
-// the image) is left alone, ours runs there.
+// The base screen's player list (verify build; ticket UB1). The game's address orders themselves (ticket T2f,
+// src/game/address_order.h) are ours in every run: by object id and by name.
 
 #include <cstdint>
 #include <string>
 
 namespace ei::verify::address_order {
 
-// Before the game starts: PatchOriginal will patch the original.
-void Install();
-// On the main thread once hooks are installed (the first message loop pass): the original's sites.
-void PatchOriginal();
 // The step "checkplayers" (UB1): the window on top is the base screen (`briefing`, game.exe's table of it:
 // WindowKind, harness_windows.h) of a network client with a live binding, and its player list (the chat window, ChatWindow
 // listed) lists every player the client holds. False with what differs in `*text`. With EI_HEAP_JITTER

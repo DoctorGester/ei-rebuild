@@ -1,5 +1,5 @@
 # Rebirth's bug fixes, the standalone's defaults (include/ei/rebirth.h; docs/notes/rebirth.md, "One test profile"),
-# on the vanilla data. The golden comes from the original with addon.dll's fixes (tests/verify/harness_addon.h), so
+# on the vanilla data. The golden came from the original with addon.dll's fixes (harness_addon.h until H40), so
 # what a fix changes here is in it: the same buff cast eight times and three others on the hero
 # (FixSpellEffectsOverflow: each AddEffect drops the older equal effect). The wolf hit by spells and attacked,
 # the items by name (two unknown) and the camp's trade and repair pages run next to FixPlaingBattleMusicFromAntimagic,

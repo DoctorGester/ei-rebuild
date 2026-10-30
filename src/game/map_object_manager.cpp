@@ -92,7 +92,7 @@ void MapObjectManager::GiveDefaults(MapObject* object) {
     // fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not what the stack held: a determinism
     // fix. The original's were WorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,
     // and gave the main menu's unmoco2 (the one unit added without a prototype) hit points that followed the
-    // heap; the harness zeroes them in the original too (tests/verify/harness_leftovers.h).
+    // heap.
     UnitVitals vitals{};
     vitals.Reset();
     if (object->GetClassId() != ClassId::Unit) {

@@ -299,9 +299,8 @@ public:
     void AddToUpdateMap(MapObject* unit);
     // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80 plus
     // 0..15, which the game takes from bits 5..8 of the object's address (in several functions), so it
-    // follows the heap's layout. Ours takes the low 4 bits of the object's id instead, and harness runs
-    // on the virtual clock patch the original to do the same (tests/verify/harness_heap.h), so that
-    // every run and both sides agree.
+    // follows the heap's layout. Ours takes the low 4 bits of the object's id instead, so that every run
+    // agrees.
     static int UpdateCountdownFor(const EngineObject* object);
 
     // One world tick: runs every timed object, advances the time wheel and countdowns, moves the missiles, runs the

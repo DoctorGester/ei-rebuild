@@ -465,7 +465,7 @@ def addon_sites():
 
 
 # The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
-# generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
+# generated list of sites that names them (game.exe's addresses; the harness's addon fix set read it until H40).
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
 # The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
 # disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write,
@@ -566,7 +566,7 @@ def check(update):
     # The retired vtables (config/vtables.csv, C19): no definition, the same proof that nothing reaches them.
     import retired_vtables
     retired = [Retired(v, n, cls, path) for v, n, cls, path in retired_vtables.retired_vtables()]
-    # addon.dll's sites are game.exe's: addon only runs in game.exe (harness_addon.cpp at WinMain), never in the
+    # addon.dll's sites are game.exe's: addon only ran in game.exe (the harness's addon fix set until H40), never in the
     # image, which reproduces its patches behind flags. A retired vtable may hold a site whose slot the image's
     # class reproduces (RETIRED_ADDON_SITES: ResOverride's GetFile slot, CMappedResource::GetFileImpl through
     # mod_folders), and addon_sites.inc may name it; any other site in a retired vtable is a problem.

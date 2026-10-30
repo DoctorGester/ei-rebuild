@@ -51,12 +51,10 @@ const char* HarnessPatchAt(std::uintptr_t address, std::size_t size);
 // (SV6).
 int UnexpectedSkips();
 
-// True inside ei-rebuild.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): nothing of
-// game.exe at its addresses, its data in the image's storage, its resources the exe's own. standalone.cpp.
-bool Standalone();
-// Our code's module as the logs name its addresses (<name>+offset; tools/resolve_crash.py): "ei-rebuild" in the
-// image (the game and the harness linked in), "ei_harness" in game.exe (ei_harness.dll). standalone.cpp.
+// Our code's module as the logs name its addresses (<name>+offset; tools/resolve_crash.py): "ei-rebuild" (the game
+// and the harness linked in). standalone.cpp.
 const char* OwnModuleName();
+
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (the guarded
 // code section), before the process ends: the harness (verify build) puts it in
 // its report.
@@ -86,7 +84,7 @@ void RunStartupActions();
 // breakpoints and the profiler to go in when WinMain is entered (after other mods patch).
 void InstallHooksAtWinMain();
 // game.exe: `action` runs when WinMain is entered (after addon.dll applied its patches), before the
-// recorders go in: the harness's addon fix set (tests/verify/harness_addon.h).
+// recorders go in (until H40 the harness's addon fix set).
 void SetOriginalWinMainAction(void (*action)());
 
 } // namespace ei

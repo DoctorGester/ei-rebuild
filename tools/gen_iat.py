@@ -61,7 +61,7 @@ ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.
 # The files that define the slots and name their members rather than call through them.
 DEFINITIONS = (GAMEAPI, GAMEAPI_CPP, IMPORT_TABLE, IMAGE_IMPORTS, PROTOTYPES)
 # A slot named only for game.exe's runs: a call of a function with "Original" in its name whose first argument is
-# `&ImportTable::X` (the harness's PatchOriginalImport / TraceOriginalSlot). In the
+# `&ImportTable::X` (the harness's PatchOriginalImport / TraceOriginalSlot, until H40). In the
 # image those do nothing, so the slot is neither a harness route nor reached.
 ORIGINAL = re.compile(r'\b\w*Original\w*\s*(?:<[^<>()]*>)?\(\s*&ImportTable::(\w+)')
 # game.exe's import address table (its IAT directory), the first 0x820 bytes of .rdata.

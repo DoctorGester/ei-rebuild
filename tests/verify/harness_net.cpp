@@ -6,7 +6,6 @@
 
 #include "harness_net.h"
 #include "harness_imports.h"
-#include "harness_original.h"
 #include "harness_pair.h"
 
 #include "../../src/hook/log.h"
@@ -247,8 +246,7 @@ void InstallPort() {
         Log("harness: no free UDP port found; the game keeps its own");
         return;
     }
-    // Ours in the image; game.exe's own in --no-hooks runs (the original code reads its copy).
-    int* target = ei::Standalone() ? &image::GamePort() : &ei::OriginalGameData<int>(0x00783E30);
+    int* target = &image::GamePort();
     int before = *target;
     DWORD old;
     if (!VirtualProtect(target, sizeof(int), PAGE_READWRITE, &old)) return;

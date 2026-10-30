@@ -34,7 +34,7 @@ struct UnitAction : AIOrder {
 // the emote / animation variant (0xFF: none), flags UnitSetAnimation's flags, a padding byte, duration in game
 // ticks, kind (1 holds the queue time, 2 lying, a fall; Unit::SetMotionMode). A blank step is 0xFF, 0xFF, 0,
 // duration -1, kind 0. The padding byte is never set: the original's steps carried a stack byte there, ours
-// carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
+// carry 0.
 struct AnimationStep {
     static constexpr std::uint8_t kNone = 0xFF;   // no animation (a pause) / no variant
 

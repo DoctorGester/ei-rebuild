@@ -1,6 +1,7 @@
-// The digest's reading code (harness_digest.h), included once by each reader inside its own namespace, where the
-// game's class names are the objects it reads: game.exe's views (harness_digest_exe.cpp, namespace exe_side) or our
-// classes (image/harness_digest_image.cpp, image_side). Before it each reader defines, for its objects:
+// The digest's reading code (harness_digest.h), included by the reader inside its own namespace, where the game's
+// class names are the objects it reads: our classes (image/harness_digest_image.cpp, image_side). Before it the
+// reader defines, for its objects:
+
 //   WorldClient* ClientWorld()                          the client world
 //   void ReadRandom(Builder& b)                          the generators' state ("random")
 //   std::uint32_t ModeId(AIMode* mode)                   an AI mode's id (ModeKindId; 0 for none)
@@ -674,11 +675,3 @@ int LocalLeader(void* server, unsigned* money) {
     return -1;
 }
 
-// The heap trace's end: every world object's id, class and address.
-void NoteAddresses(void* server) {
-    char line[96];
-    for (const auto& [id, object] : ObjectsById(static_cast<WorldServer*>(server)->objects)) {
-        std::snprintf(line, sizeof(line), "obj %u %d %08X", id, ClassOf(object), heap::TracePlace(object));
-        heap::Note(line);
-    }
-}

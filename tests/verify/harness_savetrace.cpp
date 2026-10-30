@@ -1,10 +1,8 @@
 // The save trace (harness_savetrace.h; ticket SV7a).
 #include "harness_savetrace.h"
-#include "harness_original.h"
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -18,15 +16,12 @@ namespace ei::verify::savetrace {
 
 namespace {
 
-// The slots the trace uses: 2 Write(buffer, size), 5 Position(). game.exe's run takes slot 2 of
-// game.exe's memory stream tables (MemoryStream 0073BD90; the second one, 0073C960, with the same
-// slots 1-7); the image's tables are compiled (C19) and tell g_memoryStreamWriteObserver.
-constexpr int kWriteSlot = 2;
+// The slot the trace reads: 5 Position(). The image's memory stream tables are compiled (C19) and tell
+// g_memoryStreamWriteObserver of each Write (slot 2).
 constexpr int kPositionSlot = 5;
 constexpr int kCallers = 4;
 constexpr std::uint32_t kDumpAbove = 2048;
 
-using WriteFn = void(__fastcall*)(void* stream, void* edx, const void* buffer, std::uint32_t size);
 using PositionFn = std::uint32_t(__fastcall*)(void* stream, void* edx);
 
 struct Entry {
@@ -38,16 +33,13 @@ struct Trace {
     std::uint32_t end = 0;
 };
 
-WriteFn g_writes[2];
 std::uintptr_t g_selfBase;
 std::uintptr_t g_selfEnd;
 CRITICAL_SECTION g_lock;
 std::unordered_map<void*, Trace>* g_streams;
 
 bool ReturnAddress(std::uintptr_t v) {
-    const bool game = !ei::Standalone() && v >= 0x00401000 && v < 0x0073A670;   // game.exe's .text (guarded in the image)
-    const bool self = v >= g_selfBase + 0x1000 && v < g_selfEnd;
-    if (!game && !self) return false;
+    if (v < g_selfBase + 0x1000 || v >= g_selfEnd) return false;
     const auto* code = reinterpret_cast<const unsigned char*>(v);
     return code[-5] == 0xE8 || code[-6] == 0xFF || code[-3] == 0xFF || code[-2] == 0xFF;
 }
@@ -76,13 +68,6 @@ void Note(void* stream, std::uint32_t size, void* const* frame) {
     LeaveCriticalSection(&g_lock);
 }
 
-
-template <int kVtable>
-void __fastcall TracedWrite(void* stream, void* edx, const void* buffer, std::uint32_t size) {
-    Note(stream, size, static_cast<void* const*>(_AddressOfReturnAddress()));
-    g_writes[kVtable](stream, edx, buffer, size);
-}
-
 } // namespace
 
 bool Enabled() {
@@ -95,18 +80,9 @@ void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     g_selfEnd = selfEnd;
     InitializeCriticalSection(&g_lock);
     g_streams = new std::unordered_map<void*, Trace>;
-    if (ei::Standalone()) image::ObserveStreamWrites(&Note);
-    const WriteFn traced[2] = {&TracedWrite<0>, &TracedWrite<1>};
-    void* const tables[2] = {&ei::OriginalGameData<std::uint8_t>(0x0073BD90), &ei::OriginalGameData<std::uint8_t>(0x0073C960)};
-    for (int i = 0; i < 2 && !ei::Standalone(); ++i) {
-        auto* slot = static_cast<WriteFn*>(tables[i]) + kWriteSlot;
-        DWORD old;
-        VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-        g_writes[i] = *slot;
-        *slot = traced[i];
-        VirtualProtect(slot, sizeof(*slot), old, &old);
-    }
-    Log("harness: save trace (memory stream writes into savetrace.txt when a .sav file is written)");
+    image::ObserveStreamWrites(&Note);
+    Log(
+"harness: save trace (memory stream writes into savetrace.txt when a .sav file is written)");
 }
 
 void OnFileWrite(const char* path) {
