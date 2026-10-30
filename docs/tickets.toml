@@ -6744,6 +6744,12 @@ model = "opus"
 note = "User 2026-10-30: the settings file still mirrors the registry (ei_settings.ini: [Software\\Nival Interactive\\EvilIslands\\...] key paths, \"name\"=dword:/float:/hex:/hex(n): values, @ defaults, REG_* types; code: settings_file, settings_document, settings_key, registry.cpp, options, logic_settings, ui_options, the two trees (Nival Interactive and Gipat.ru EI_Starter addon key) and S24's both-trees defaults). We are tied to nothing now: simplify and unify. Plan: one plain ini of our own: short section names ([camera], [video], [sound], [game], [rebirth]...), name = value with the value's own type (numbers, floats, strings, booleans; no type tags or hex), one tree (no Nival vs Gipat.ru duplicates: the addon's keys fold into the same sections), comments kept; typed accessors in place of the key/type API, the registry-shaped layers (SettingsKey, REG-like type and result codes, settings_document's registry text format) removed. No conversion of old-format files (user 2026-10-30: nobody plays yet): an old file is simply replaced by the new defaults. Check what the harness and tests write (starter lines, scenario settings, ei_vectors' settings-file checks) and move them to the new format; goldens unchanged; README / docs updated."
 
 [[ticket]]
+id = "C66a"
+title = "Rebirth flags into ei_settings.ini"
+group = "cleanup"
+note = "C66 left ei_rebirth.ini (the [Rebirth] patch flags, config/ei_rebirth_standalone.ini, EI_REBIRTH) as a file of its own beside ei_settings.ini. Folding the flags into one settings file (a [flags] section?) would unify them; it touches play.cmd, run_all's EI_REBIRTH, the drop-in profile and src/lib/rebirth.cpp. Decide with the user."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
