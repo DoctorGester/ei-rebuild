@@ -6772,6 +6772,13 @@ depends = ["W12"]
 note = "User 2026-10-30: after WideScreen (W12), the 11 Fix patches (FixLeversActivate, FixSpellEffectsOverflow, FixProgressNames, FixSpellSelfCasting, FixProcessLogin, FixMoveObject, FixAddMapObject, FixPlaingBattleMusicFromAntimagic, FixRepairPrice, FixRemoveMapObject, FixCreateItem) become unconditional code: no flag, no branch (every profile has them on, the vanilla goldens include them). Then the 44 Flag options (include/ei/rebirth_patches.inc): classify each from its code and Rebirth's docs as (a) clear improvement or harmless -> always on, flag and branch removed; (b) a real option for mods / multiplayer / data paths -> stays a setting in ei_settings.ini; (c) unsure -> listed for the user. Write the table to build/reviews/c68_flags.md first. Fold in (a) where the goldens stay the same; a fold that changes a golden is listed for the user, not re-recorded. Update rebirth_patches.inc / config/rebirth_patches.csv, the settings defaults, docs/notes/rebirth.md."
 
 [[ticket]]
+id = "C66b"
+title = "run_all: drop the fallback to config/ei_rebirth_standalone.ini"
+group = "cleanup"
+depends = ["C66a"]
+note = "C66a renamed the Rebirth profile to config/rebirth_profile.ini; main's run_all (the scheduler runs it on every worker checkout) still reads the old file when a checkout from before C66a has no new one. Remove the fallback (tools/run_all.py standalone_rebirth_flags) once no branch predates C66a."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

@@ -1,6 +1,6 @@
 # The drop-in exe boots (S23a): ei_launch --drop-in copies the image's exe into a folder made like the install (its
 # folders junctions to the install's, its files copies, no game.exe) and starts it from the run folder, without
-# EI_GAME_ROOT, EI_REBIRTH or an ei_rebirth.ini: the exe enters its own folder (EnterGameFolder), loads game.exe's
+# EI_GAME_ROOT or EI_REBIRTH: the exe enters its own folder (EnterGameFolder), loads game.exe's
 # imports from there and takes the folder's profile. The main menu comes up and takes input, the game quits.
 # drop-in: the exe's start-up from a game folder, on both installs; no golden
 timeout 40

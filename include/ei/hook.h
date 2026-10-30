@@ -78,8 +78,8 @@ struct StartupActionRegistrar {
     StartupAction entry;
     StartupActionRegistrar(void (*run)(), const char* name);
 };
-// The standalone image's start-up (StandaloneMain): loads the Rebirth flags (ei_rebirth.ini or the game folder's
-// profile), then runs every startup action. src/standalone/startup.cpp.
+// The standalone image's start-up (StandaloneMain): loads the Rebirth flags (the game folder's profile,
+// the settings file's [patches]), then runs every startup action. src/standalone/startup.cpp.
 void RunStartupActions();
 
 // game.exe (the original game's harness): arranges for InstallHooks() (the recorders), the coverage

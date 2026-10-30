@@ -383,11 +383,8 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
 - **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): lib/return_address.h
   declares the two compiler intrinsics without <intrin.h>.
-- **Rebirth's flags** (lib/rebirth.cpp, also in ei_harness.dll): ei_rebirth.ini's [Rebirth] read by its own reader as
-  GetPrivateProfileInt / String read it (the first section of the name, case ignored, trimmed keys and values, ';'
-  lines, outer quotes off, an empty value the default, a sign then 0x hex (lowercase x) or decimal digits, 32-bit
-  wrap); EI_REBIRTH with `getenv_s`; the file's presence with std::filesystem. Equal to the profile calls on 24000
-  reads of random files (scratch sweep).
+- **Rebirth's flags** (lib/rebirth.cpp, also in ei_harness.dll): plain data and specs; EI_REBIRTH with `getenv_s`. The
+  settings file's [patches] is read by the start-up through settings.h (C66a), no reader of its own.
 - The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.
 
 ## Rectangles

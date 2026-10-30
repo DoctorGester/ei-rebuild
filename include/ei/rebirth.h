@@ -8,19 +8,23 @@
 //     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) { ...patched behaviour... }
 //
 // Defaults (user 2026-10-20): Rebirth's bug fixes (Kind::Fix in rebirth_patches.inc) are on, every
-// other flag is off; each can be switched either way. Every flag is off until LoadSettings, which
-// the standalone image calls once at startup, before any rewritten code runs (ei_vectors.exe, which
-// replays the original's vectors, never does): the defaults, then ei_rebirth.ini next to the exe (without one, an
-// exe dropped into a game folder takes the folder's profile: src/standalone/startup.cpp), then the EI_REBIRTH
-// environment variable (ei_launch --rebirth), then a harness scenario's "rebirthflags" line. The standalone image
-// never loads addon.dll or EI_Plugin.asi: these flags alone decide (config/ei_rebirth_standalone.ini for the
-// Rebirth install's runs and the Rebirth profile). "none" is the original 1.06.
+// other flag is off; each can be switched either way. Every flag is off until Reset, which the standalone image's
+// start-up calls once, before any rewritten code runs (src/standalone/startup.cpp; ei_vectors.exe, which replays the
+// original's vectors, never does): the defaults, then the game folder's profile (Rebirth's in a Rebirth install:
+// config/rebirth_profile.ini; a launch that names its flags in EI_REBIRTH takes none), then the settings file's
+// [patches] (src/game/settings.h), then the EI_REBIRTH environment variable (ei_launch --rebirth) and a harness
+// scenario's "rebirthflags" lines (ApplyOverrides). The standalone image never loads addon.dll or EI_Plugin.asi:
+// these flags alone decide. "none" is the original 1.06.
 //
-// ei_rebirth.ini:
-//     [Rebirth]
-//     Default=0             ; every flag not named below (absent: the defaults)
-//     FixLeversActivate=0   ; any name from rebirth_patches.inc
-//     SecondMaster=         ; EI_Plugin NewMaster's second master server, host[:port] (default empty: none)
+// ei_settings.ini (a comment is a line of its own: the rest of a value line is its value):
+//     [patches]
+//     ; any name from rebirth_patches.inc, true or false (absent: the profile's)
+//     FixLeversActivate = false
+//     ; EI_Plugin's player count and pause mode (absent: the profile's)
+//     NPlayers = 7
+//     Pause = 1
+//     ; EI_Plugin NewMaster's second master server, host[:port] (default empty: none)
+//     SecondMaster =
 #pragma once
 
 #include <cstdint>
@@ -62,7 +66,7 @@ int PluginPause();
 void SetPluginPause(int mode);
 
 // The second master server of EI_Plugin's NewMaster (Patch::EiPluginNewMaster; the plugin's own is
-// hat.gipath.org:28004): "host[:port]" (port 28004 when left out), from ei_rebirth.ini [Rebirth]
+// hat.gipath.org:28004): "host[:port]" (port 28004 when left out), from the settings file's [patches]
 // SecondMaster or a spec's "SecondMaster=<address>". Empty (the default, and every harness run that
 // does not name one): no second master at all, the game's own code (net_second_master.h).
 const char* PluginSecondMaster();
@@ -75,11 +79,13 @@ bool FromName(const char* name, Patch* out);
 // Unknown names are skipped; returns false if there was one.
 bool ApplySpec(const char* spec);
 
-// Queues a spec to apply after the ini and the environment (the harness, before WinMain).
+// Queues a spec to apply after the settings file and the environment (the harness, before WinMain).
 void QueueSpec(const char* spec);
 
-// Reads the settings: the defaults, [Rebirth] of `iniPath` (a missing file: the spec `profile` when one is given,
-// else nothing), the EI_REBIRTH environment variable, then the queued specs. Called once, before WinMain.
-void LoadSettings(const char* iniPath, const char* profile = nullptr);
+// The defaults, then the spec `profile` when one is given; the plugin's values and SecondMaster back to theirs.
+void Reset(const char* profile = nullptr);
+
+// The specs that win over the settings file: the EI_REBIRTH environment variable, then the queued specs.
+void ApplyOverrides();
 
 } // namespace ei::rebirth

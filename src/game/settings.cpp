@@ -232,6 +232,19 @@ std::vector<std::string> GetValues(const char* section) {
     return values;
 }
 
+std::vector<Document::Line> GetLines(const char* section) {
+    Locked lock;
+    Store& s = S();
+    Load(s);
+    std::vector<Document::Line> lines;
+    for (const Document::Section& found : s.document.sections) {
+        if (_stricmp(found.name.c_str(), section) != 0) continue;
+        for (const Document::Line& line : found.lines)
+            if (!line.name.empty()) lines.push_back(line);
+    }
+    return lines;
+}
+
 void SetInt(const char* section, const char* name, int value) { SetText(section, name, IntText(value)); }
 void SetBool(const char* section, const char* name, bool value) { SetText(section, name, BoolText(value)); }
 void SetFloat(const char* section, const char* name, float value) { SetText(section, name, FloatText(value)); }

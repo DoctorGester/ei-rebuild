@@ -40,20 +40,20 @@ std::string ExeFolder() {
 
 bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
-// The Rebirth profile's flags as config/ei_rebirth_standalone.ini sets them (its [Rebirth] Default, then each name;
-// the checkout's file, found from the scenario: <checkout>\tests\scenarios\<name>.txt). False when it cannot be read.
+// The Rebirth profile's flags as config/rebirth_profile.ini sets them (each patch its [patches] names true on, every
+// other off; the checkout's file, found from the scenario: <checkout>\tests\scenarios\<name>.txt). False when it
+// cannot be read.
 bool RebirthProfileFlags(bool (&flags)[rebirth::kPatchCount], std::string* ini) {
     const std::string scenario = Environment("EI_HARNESS");
     const std::size_t slash = scenario.find_last_of('\\');
     if (slash == std::string::npos) return false;
-    *ini = FullPath(scenario.substr(0, slash) + "\\..\\..\\config\\ei_rebirth_standalone.ini");
+    *ini = FullPath(scenario.substr(0, slash) + "\\..\\..\\config\\rebirth_profile.ini");
     if (!Exists(*ini)) return false;
-    const int all = static_cast<int>(GetPrivateProfileIntA("Rebirth", "Default", -1, ini->c_str()));
     for (int i = 0; i < rebirth::kPatchCount; ++i) {
-        const Patch patch = static_cast<Patch>(i);
-        flags[i] = all >= 0 ? all != 0 : rebirth::DefaultOn(patch);
-        const int value = static_cast<int>(GetPrivateProfileIntA("Rebirth", rebirth::Name(patch), -1, ini->c_str()));
-        if (value >= 0) flags[i] = value != 0;
+        char value[16];
+        const char* name = rebirth::Name(static_cast<Patch>(i));
+        GetPrivateProfileStringA("patches", name, "", value, sizeof(value), ini->c_str());
+        flags[i] = _stricmp(value, "true") == 0;
     }
     return true;
 }
@@ -84,7 +84,6 @@ std::string Step() {
     const std::string working = FullPath(std::string(current, n > 0 && n < MAX_PATH ? n : 0));
     if (_stricmp(working.c_str(), FullPath(folder).c_str()) != 0)
         return "dropin: the working directory " + working + " is not the exe's folder " + folder;
-    if (Exists(folder + "\\ei_rebirth.ini")) return "dropin: the folder has an ei_rebirth.ini";
     const char* data = image::DataFolder();
     if (!data || _stricmp(FullPath(data).c_str(), FullPath(folder).c_str()) != 0)
         return std::string("dropin: the game's data folder ") + (data ? data : "(none)") + " is not the exe's folder";
@@ -95,7 +94,7 @@ std::string Step() {
     bool expected[rebirth::kPatchCount];
     std::string ini = "the defaults and WideScreen";
     if (rebirthInstall) {
-        if (!RebirthProfileFlags(expected, &ini)) return "dropin: cannot read config/ei_rebirth_standalone.ini (" + ini + ")";
+        if (!RebirthProfileFlags(expected, &ini)) return "dropin: cannot read config/rebirth_profile.ini (" + ini + ")";
     } else {
         for (int i = 0; i < rebirth::kPatchCount; ++i) expected[i] = rebirth::DefaultOn(static_cast<Patch>(i));
         expected[static_cast<int>(Patch::WideScreen)] = true;

@@ -1,6 +1,6 @@
-# The drop-in exe's profile (S23a): with no ei_rebirth.ini and no EI_GAME_ROOT the exe takes its Rebirth flags from
-# the folder's files (src/standalone/startup.cpp). The "dropin" step (tests/verify/harness_dropin.h) checks the
-# start-up and every flag: on the Rebirth install config/ei_rebirth_standalone.ini's, with EI_Plugin.ini's players
+# The drop-in exe's profile (S23a): with no EI_GAME_ROOT or EI_REBIRTH the exe takes its Rebirth flags from
+# the folder's files (the run's settings file names no patch) (src/standalone/startup.cpp). The "dropin" step (tests/verify/harness_dropin.h) checks the
+# start-up and every flag: on the Rebirth install config/rebirth_profile.ini's, with EI_Plugin.ini's players
 # and pause mode; on the vanilla install the defaults (the bug fixes) and WideScreen.
 # drop-in: the folder's profile, on both installs; no golden
 timeout 40

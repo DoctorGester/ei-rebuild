@@ -178,23 +178,15 @@ else()
     # (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
     target_link_options(ei-rebuild PRIVATE /DEPENDENTLOADFLAG:0x800)
 endif()
-# The Rebirth install's profile, which an exe dropped into a Rebirth folder without an ei_rebirth.ini takes
-# (src/standalone/startup.cpp): config/ei_rebirth_standalone.ini's flags as a spec (rebirth::ApplySpec), written at
-# configure time into config/rebirth_profile.inc in the build folder.
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/ei_rebirth_standalone.ini)
-file(STRINGS ${CMAKE_SOURCE_DIR}/config/ei_rebirth_standalone.ini EI_REBIRTH_PROFILE_LINES REGEX "^[A-Za-z]+=[01]$")
-set(EI_REBIRTH_PROFILE)
+# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/standalone/startup.cpp):
+# config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
+# into config/rebirth_profile.inc in the build folder.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini)
+file(STRINGS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini EI_REBIRTH_PROFILE_LINES REGEX "^[A-Za-z]+ = true$")
+set(EI_REBIRTH_PROFILE none)
 foreach(line ${EI_REBIRTH_PROFILE_LINES})
-    string(REGEX MATCH "^([A-Za-z]+)=([01])$" unused ${line})
-    if(CMAKE_MATCH_1 STREQUAL "Default")
-        if(CMAKE_MATCH_2 STREQUAL "0")
-            list(APPEND EI_REBIRTH_PROFILE none)
-        else()
-            list(APPEND EI_REBIRTH_PROFILE all)
-        endif()
-    elseif(NOT CMAKE_MATCH_1 MATCHES "^(NPlayers|Pause)$")
-        list(APPEND EI_REBIRTH_PROFILE ${line})
-    endif()
+    string(REGEX REPLACE " = true$" "" name ${line})
+    list(APPEND EI_REBIRTH_PROFILE ${name})
 endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)

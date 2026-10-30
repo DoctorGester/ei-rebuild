@@ -75,7 +75,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
 - **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
   holds no code pointer in the image since C20).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
-  `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
+  `standalone-rebirth` (the Rebirth data, the patches of `config/rebirth_profile.ini`, which are the 40 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
   mode change). run_all passes ei_launch no game.exe for them (S18k1; the run\<install>-clean folders of SV10f are gone):
   `--game` is the install whose data they play, and ei_launch --standalone sets EI_GAME_ROOT from it; `--exe` only
@@ -883,15 +883,16 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
   host's module, so the import is called as it is (S18j), from System32's dinput.dll (S22b). c_dfDIMouse (00745D00) points into game.exe's code section, so
   `DirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
-- **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
-  EI_Plugin's player count from `[Rebirth] NPlayers` (default 7). EI_Plugin.asi never loads (the image
+- **Rebirth**: RunStartupActions reads the flags first ("The Rebirth profile" below): the folder's profile,
+  ei_settings.ini's `[patches]`, EI_REBIRTH; EI_Plugin's player count from `[patches] NPlayers` (default 7, or the
+  Rebirth profile's EI_Plugin.ini's). EI_Plugin.asi never loads (the image
   loads no Miles, which loaded the game folder's `*.asi`). `starter::RebirthInstall()` is true for addon.dll or the image with a Rebirth flag on (the
   digest's and census's install lines follow it, and so does the harness's settings file: a Rebirth run's holds the
   options of addon's registry tree, `Software\Gipat.ru\EI_Starter\EvilIslands`, which hooked Rebirth runs read; with
   the vanilla tree's values every Rebirth run differed from record 0: the camera's keyboard powers differ). What
   addon and EI_Plugin patch is reproduced behind flags (docs/notes/rebirth.md): the multiplayer patches and Pause /
-  Briefings / NewMaster's game-side parts (S19a), NewMaster's second master server opt-in (`SecondMaster=` in
-  ei_rebirth.ini, empty in every harness run; S19c).
+  Briefings / NewMaster's game-side parts (S19a), NewMaster's second master server opt-in (`SecondMaster` in
+  `[patches]`, empty in every harness run; S19c).
 - **Mod folders** (S19b, src/game/mod_folders.{h,cpp}): Maps, ResOverride, CameraPatch, StreamPatch and MoviesPatch
   as addon.dll does them (rebirth.md, "Resources and paths"), active only in the image with the flag on. Sites:
   GetFile / ListFiles (plain bodies `GetFilePlain` / `ListFilesPlain`), OpenResource / Destroy,
@@ -939,8 +940,9 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ```
   Sections: paths, video, sound, shadows, terrain, camera, game, network, statistics (the game's options, options.cpp's
   tables: the original's registry subkeys, General Settings split into video and sound, Joystick in game), renderer
-  (Msaa, Anisotropy, VSync, PerfOverlay), rebirth (Rebirth's starter switches: WideScreen, ObjectsDrawRadius,
-  LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
+  (Msaa, Anisotropy, VSync, PerfOverlay), patches (Rebirth's patches, `Name = true|false`, and EI_Plugin's NPlayers,
+  Pause, SecondMaster: docs/notes/rebirth.md, "The flags"; C66a folded the separate ei_rebirth.ini in), rebirth
+  (Rebirth's starter switches: WideScreen, ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
   names are the original's registry value names. A value is the text after the first `=`, spaces around it trimmed
   (in double quotes when it starts or ends with a space or starts with a quote: the outer pair is dropped); a line
   break inside one is written as a space. Numbers are decimal (up to 4294967295, read as the int of those bits), floats
@@ -965,14 +967,14 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright), the hero's light 216 216 116 radius 5 and the
   quest light 120 72 120 radius 5, UseSWCursors false, SelectionType 1, DefaultMapName / DefaultStreamingSound, the
   master server a3master.nival.com (the code's is empty). renderer: VSync true, Msaa 8, Anisotropy 16, PerfOverlay
-  false. rebirth: WideScreen true, ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
+  false. patches: a comment only (every patch takes the game folder's profile). rebirth: WideScreen true, ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
   original's distances; 5376 draws the whole map and is what the user's starter had). autoexec: a comment only.
   Everything else is left out and read as absent: the game takes its own defaults (paths `.\` and `.\res\` from the
   working folder, the exe's: "The game folder" above, the other game settings, equal to the install's), Rebirth its
   own (no mod: AddonPath absent). The game's exit save then adds every option it keeps.
-- **Who uses it**: the typed accessors `settings::GetInt / GetBool / GetFloat / GetString / GetValues` and the setters
+- **Who uses it**: the typed accessors `settings::GetInt / GetBool / GetFloat / GetString / GetValues / GetLines` and the setters
   (settings.cpp): the options loader and writer (options.cpp; GameOptions::Save ends with `settings::Save`, which
-  writes the file when a value changed, atomically through `ei_settings.ini.tmp`), console_addon's AutoExec lines,
+  writes the file when a value changed, atomically through `ei_settings.ini.tmp`), console_addon's AutoExec lines, the start-up's Rebirth patches (startup.cpp),
   mod_folders (AddonPath, the paths; script_addon_commands' IsFileExists takes its ModPath), ui_widescreen,
   world_client_draw's draw radii, device_mesh's renderer section (PerfOverlay, VSync, Msaa and Anisotropy: the
   performance overlay, vsync and render quality, renderer.md sections 15, 15a and 11, not read in the harness build;
@@ -1577,8 +1579,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   PL6). Built in: the shaders (fxc bytecode headers, CMakeLists.txt), the interface fonts
   (render_fonts.cpp), game.exe's import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
-  (defaults, "Settings file"; the per-user fallback when the folder is not writable). Optional: `ei_rebirth.ini`
-  (flags). Written as output: `ei-rebuild.log` (beside the exe; EI_OUT_DIR under the harness), the saves.
+  (defaults, "Settings file"; the per-user fallback when the folder is not writable). Its `[patches]` holds the
+  Rebirth flags. Written as output: `ei-rebuild.log` (beside the exe; EI_OUT_DIR under the harness), the saves.
   `third_party_notices.txt` is the licences' text, shipped beside the exe (play.cmd copies it), not read.
 - **Not needed any more**: ei_hook.dll (the game is linked in), ei_launch (the exe enters its own folder: "The game
   folder" below), `--run` (the exe runs the game by default; `--check` only checks), a console (a windowed program
@@ -1586,13 +1588,18 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **The game folder**: the exe's static initialisation enters its own folder first (EnterGameFolder from
   image_imports.cpp's resolver, before the imports load), unless EI_GAME_ROOT names a data folder (ei_launch: the harness,
   play.cmd).
-- **The Rebirth profile** (src/standalone/startup.cpp): `ei_rebirth.ini` beside the exe when there is one; without it,
-  an exe in its game folder (no EI_GAME_ROOT) picks the profile from the folder's files: Rebirth's where
-  `starter\addon.dll` or `EI_Plugin.asi` is (config/ei_rebirth_standalone.ini's flags, made a spec at configure time:
-  build/<cfg>/config/rebirth_profile.inc; EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the
-  plain install's (the defaults and WideScreen, as play.cmd's vanilla mode). Applied where a missing ini left the
-  defaults (rebirth::LoadSettings' `profile`), so EI_REBIRTH and a scenario's flags still go on top. Under ei_launch the
-  flags are as before (the ini, EI_REBIRTH): the harness's runs and goldens do not change.
+- **The Rebirth profile** (src/standalone/startup.cpp, C66a): the game data folder (EI_GAME_ROOT when a launcher names
+  it, else the exe's own) picks the profile from its files: Rebirth's where `starter\addon.dll` or `EI_Plugin.asi` is
+  (config/rebirth_profile.ini's patches, made a spec at configure time: build/<cfg>/config/rebirth_profile.inc;
+  EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the plain install's (the defaults and
+  WideScreen). Then ei_settings.ini's `[patches]` (`Name = true|false`, `NPlayers`, `Pause`, `SecondMaster`; read as
+  the section's lines, so a harness run's pinned file reports nothing missing), then EI_REBIRTH and a scenario's flags.
+  The defaults name no patch, so play.cmd's two modes share run\play's file and each takes its data folder's profile.
+  When EI_REBIRTH is set no profile is taken: ei_launch sets it to `defaults` for a harness run whose caller set none,
+  run_all to the Rebirth profile's names on the Rebirth install, so the harness's runs and goldens are as before and do
+  not read the install's EI_Plugin.ini. The harness's settings file follows `rebirth_hook::RebirthLaunch`, which is
+  taken from the flags before the file's first read (that file names no patch); EI_REBIRTH and the queued specs go on
+  again after the file's lines.
 - **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`, where Windows honours it), so a wrapper DLL of the same name in a game folder (dgVoodoo,
   a dsound wrapper) is not taken; ASan's build leaves it out (its runtime is beside the exe).
@@ -1602,7 +1609,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   ei_settings.ini written beside the exe. The game itself plays in every suite run from the same exe layout.
 - **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
   `# drop-in:`, which run_all plans on both installs, standalone and standalone-rebirth) makes `<run folder>\dropin` like the `--game` install: each of its folders a
-  junction to the install's, each file a copy but game.exe and our own files (ei_settings.ini, ei_rebirth.ini,
+  junction to the install's, each file a copy but game.exe and our own files (ei_settings.ini,
   ei-rebuild.log), then the build's ei-rebuild.exe (and ASan's runtime). It starts that copy from the run folder with
   EI_GAME_ROOT and EI_REBIRTH cleared, so EnterGameFolder and the folder's profile run as in a player's folder, and
   removes the folder when the game has ended (junctions removed, never followed; run_all removes a killed run's too).
@@ -1613,7 +1620,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   the folder's junctions (harness_dropin.cpp). The harness finds config\harness through EI_HARNESS_SETTINGS, which
   ei_launch sets to the build's (from the copy, two folders up is the run folder). Scenarios: `dropin_boot` (the menu comes up), `dropin_profile` (the harness's `dropin` step,
   tests/verify/harness_dropin.h: no EI_GAME_ROOT or EI_REBIRTH, the working directory the exe's folder, and every
-  flag as the folder's profile must set it, worked out from config/ei_rebirth_standalone.ini and the patch list,
+  flag as the folder's profile must set it, worked out from config/rebirth_profile.ini and the patch list,
   not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
   profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
 
@@ -1635,7 +1642,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **Counts**: a container's size meets the game's int counts and indices through `lib::Count` (lib/containers.h), not
   `std::ssize` (64-bit on x64; the conversion warnings, C4244 / C4267).
 - **Playing it** (A3e): `play.cmd x64` (also `play.cmd vanilla x64`) builds `build.cmd play-x64` (the x64 release into
-  build\play-x64) and copies ei-rebuild.exe to `run\play-x64` (its own ei_settings.ini, ei_rebirth.ini and ei-rebuild.log,
+  build\play-x64) and copies ei-rebuild.exe to `run\play-x64` (its own ei_settings.ini and ei-rebuild.log,
   apart from run\play's). No x64 ei_launch in the release build: play.cmd sets EI_GAME_ROOT to the data folder (EI_GAME_REBIRTH /
   EI_GAME_VANILLA) and starts the exe from run\play-x64, which is all ei_launch --standalone does for a play start. So the
   paths are the 32-bit play's: the settings file's Work path and CD-ROM Path read as the data folder, and the saves, the

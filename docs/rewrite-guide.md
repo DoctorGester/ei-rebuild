@@ -135,7 +135,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `include/ei/rebirth.h`; what each patch does is in `docs/notes/rebirth.md` and
    `config/rebirth_patches.csv`, whose status column records which rewrite carries it).
    Flags are off by default; with a flag off the code must behave exactly as the original; the image's
-   Rebirth goldens check the flags on (config/ei_rebirth_standalone.ini).
+   Rebirth goldens check the flags on (config/rebirth_profile.ini).
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on
     purpose" in your notes file.
 

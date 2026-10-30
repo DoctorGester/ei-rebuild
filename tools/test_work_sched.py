@@ -800,10 +800,10 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(cmd[cmd.index('--game') + 1], r'F:\games\EvilIslands')
         self.assertNotIn('EI_RENDER', env)
         self.assertEqual(notes, ['ei-rebuild: the game returned 0'])
-        # standalone-rebirth: ei_launch's default (Rebirth) game folder, the ini's flags
+        # standalone-rebirth: ei_launch's default (Rebirth) game folder, the profile's patches
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
-        with open(os.path.join(self.tmp, 'config', 'ei_rebirth_standalone.ini'), 'w') as f:
-            f.write('[Rebirth]\nDefault=0\nNivalRegistry=1\nWideScreen=1\nMaps=0\nNPlayers=7\n')
+        with open(os.path.join(self.tmp, 'config', 'rebirth_profile.ini'), 'w') as f:
+            f.write('; a = true\n[patches]\nNivalRegistry = true\nWideScreen=true\nMaps = false\n')
         run_all.subprocess.run = fake_subprocess_run
         try:
             run_all.run('boot', 'standalone-rebirth', root=self.tmp, build=build, take_slot=False, game_env={})

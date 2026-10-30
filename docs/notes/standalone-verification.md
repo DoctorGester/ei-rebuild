@@ -11,7 +11,7 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
   "Verification"); `tools/coverage.py` says which (section 4).
 - **The suite** is the image's: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone`
   (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
-  (`standalone-rebirth`, `config/ei_rebirth_standalone.ini`'s flags) is a smoke set run on demand (`--rebirth`; SV9).
+  (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
   GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
 - **Goldens come from the original**: `--no-hooks` runs of game.exe (ei_launch always sets EI_NO_HOOKS for it), with
   the harness's canonicalising patches (section 5); on the vanilla data with addon.dll's bug fixes only
