@@ -1,16 +1,13 @@
 // The game-state digest of harness runs (harness_digest.h): the records, their writing and the steps. The state is
-// read by harness_digest_read.inc, over game.exe's objects in its runs (harness_digest_exe.cpp) and over ours in the
-// image's (image/harness_digest_image.cpp).
+// read by harness_digest_read.inc over our objects (image/harness_digest_image.cpp).
 #include "harness_digest.h"
 #include "harness_digest_read.h"
 
 #include "harness_clock.h"
-#include "harness_heap.h"
 #include "harness_original.h"
 #include "harness_starter.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -40,8 +37,8 @@ std::string KeyName(const Key& key) {
     return Single(key.first) ? name : name + std::to_string(key.second);
 }
 
-// The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold):
-// game.exe's modes keep that table; the image's are C++ classes, named by their type (ModeKindId).
+// The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold);
+// the image's modes are C++ classes, named by their type (ModeKindId).
 struct ModeKind {
     const void* original;   // game.exe's table: the id
     const char* name;
@@ -76,10 +73,9 @@ const char* ModeName(const void* id) {
 // about key order, so a key mostly gets the node it had.
 State g_spare;
 
-// The state of the server world `server` (game.exe's objects in its runs, ours in the image's), and its hashes.
+// The state of the server world `server`, and its hashes.
 void Read(void* server, Snapshot& s) {
-    if (ei::Standalone()) image_side::Read(server, s);
-    else exe_side::Read(server, s);
+    image_side::Read(server, s);
     Hash all, section[kGroups];
     for (const auto& [key, entity] : s.state) {
         Hash& h = section[key.first];
@@ -266,11 +262,6 @@ void Init(const unsigned* frames) {
 void AfterWorldUpdate(void* server) {
     g_server = server;
     ++g_updates;
-    if (heap::TraceUntil() && g_updates == heap::TraceUntil()) {
-        if (ei::Standalone()) image_side::NoteAddresses(g_server);   // the heap trace's end
-        else exe_side::NoteAddresses(g_server);
-        heap::StopTrace();
-    }
     if (g_period && g_updates >= g_nextAt) {
         g_nextAt = g_updates + g_period;
         TakeRecord();
@@ -317,12 +308,12 @@ std::string Dump(const std::string& name) {
 
 UnitNow UnitNowOf(int id) {
     if (!g_server || id < 0) return {};
-    return ei::Standalone() ? image_side::UnitNowOf(g_server, id) : exe_side::UnitNowOf(g_server, id);
+    return image_side::UnitNowOf(g_server, id);
 }
 
 int LocalLeader(unsigned* money) {
     if (!g_server) return -1;
-    return ei::Standalone() ? image_side::LocalLeader(g_server, money) : exe_side::LocalLeader(g_server, money);
+    return image_side::LocalLeader(g_server, money);
 }
 
 std::string Summary() {

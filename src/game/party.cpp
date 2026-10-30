@@ -371,8 +371,7 @@ PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view protot
     if (!itemManager) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
-    // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
-    // game's too, harness_leftovers.h).
+    // which the game took from its stack and saved with the party (a determinism fix).
     PartyUnitRecord* record = &members.emplace_back();
     record->texts[1] = name;
     record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));

@@ -6,10 +6,6 @@
 
 namespace ei {
 
-// ei_vectors runs without game.exe: code that would write the exe's own runtime data in the hook build
-// (the game CRT's errno, libcrt::WideToBytes) leaves it alone, as in the standalone image.
-bool Standalone() { return true; }
-
 // The import table gameapi.cpp binds its references to: all null (no check calls an import through it).
 ImportTable& Imports() {
     static ImportTable table{};

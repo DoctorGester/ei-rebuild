@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ inputs.ref != 'main' && inputs.ref || github.ref }}   # the input's default main: the branch the run was started on
           # Keep the ignored build folders between runs: a clean checkout rebuilt all seven builds from nothing
           # (6.5 of a run's 9.5 minutes); incremental they take a fraction of that.
           clean: false
@@ -149,23 +149,20 @@ jobs:
           git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
           cmd //c ".\\build.cmd verify > build_verify.log 2>&1" || { echo "::error::build verify failed"; tail -40 build_verify.log; exit 1; }
 
-      # Each pass plays the suite under one heap layout (golden.py IMAGE_RUNS: plain twice, two jitters) and keeps its
-      # run folders; a pass's failures and golden differences only mean those scenarios are not recorded.
+      # Each pass plays the suite (golden.py IMAGE_RUNS: twice, and the runs must agree) and keeps its run folders; a
+      # pass's failures and golden differences only mean those scenarios are not recorded.
       - name: Play the passes
         run: |
           installs="--vanilla-only --rebirth-only"
           [ "$RECORD" = vanilla ] && installs=--vanilla-only
           [ "$RECORD" = rebirth ] && installs=--rebirth-only
-          for pass in plain1 plain2 jit1 jit2; do
-            jitter=
-            [ $pass = jit1 ] && jitter=1
-            [ $pass = jit2 ] && jitter=2,fill
+          for pass in run1 run2; do
             for i in $installs; do
               install=vanilla
               [ $i = --rebirth-only ] && install=rebirth
               # the run folders stay between workflow runs: the snapshot takes only this pass's (--since)
               mkdir -p build/record && touch build/record/start
-              EI_HEAP_JITTER=$jitter python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
+              python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
               sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p; /^ALL PASS/p; /^SOME RUNS FAILED/p' pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
               python tools/golden.py snapshot build/record/$pass --install $install --since build/record/start $SCENARIOS | grep -v "left out" || true
             done
@@ -177,7 +174,7 @@ jobs:
           [ "$RECORD" = both ] || installs=$RECORD
           for install in $installs; do
             python tools/golden.py record $SCENARIOS --install $install --reason "$REASON" \
-              --runs build/record/plain1 build/record/plain2 build/record/jit1 build/record/jit2 2>&1 | tee -a record.txt || true
+              --runs build/record/run1 build/record/run2 2>&1 | tee -a record.txt || true
           done
           git add -A tests/golden
           {

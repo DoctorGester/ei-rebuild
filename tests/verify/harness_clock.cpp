@@ -6,9 +6,7 @@
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "ei/main_loop.h"
-#include "exe_objects.h"
 #include "image/image_side.h"
-#include "harness_original.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -38,9 +36,7 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     VirtualProtect(slot, sizeof(*slot), old, &old);
 }
 
-// The process's first thread: the one with the earliest creation time. ei_launch starts the game
-// suspended and loads ei_harness.dll from a thread of its own, so at that point the first thread is
-// the one that will run WinMain. The process's threads come from ntdll's NtGetNextThread: a toolhelp
+// The process's first thread: the one with the earliest creation time, the one that runs WinMain. The process's threads come from ntdll's NtGetNextThread: a toolhelp
 // snapshot lists every thread of the machine (SV10b: 16,000 with the suite's games: 70-130 ms of
 // each run's start-up).
 DWORD FindMainThread() {
@@ -70,25 +66,6 @@ DWORD FindMainThread() {
 DWORD g_mainThread = 0;
 FILE* g_randomFile = nullptr;   // the random trace (InstallRandomTrace)
 std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // our module's image (set with it)
-// game.exe's code (none runs in the standalone image, whose code section is guarded: S18i).
-bool InGameCode(std::uintptr_t a) { return !ei::Standalone() && a >= 0x00401000 && a < 0x00730000; }
-bool InHookCode(std::uintptr_t a) { return a >= g_selfBase + 0x1000 && a < g_selfEnd; }
-
-// The calls on the current stack (random trace notes): the game has no frame pointers, so every word
-// that points into game.exe's or our module's code just after a call instruction.
-void CallerStack(char* out, std::size_t size) {
-    int used = 0;
-    out[0] = 0;
-    const auto* word = reinterpret_cast<const std::uintptr_t*>(_AddressOfReturnAddress());
-    for (int i = 0; i < 2048 && used + 12 < static_cast<int>(size); ++i) {
-        const std::uintptr_t a = word[i];
-        if (!InGameCode(a) && !InHookCode(a)) continue;
-        const auto* code = reinterpret_cast<const unsigned char*>(a);
-        if (!(code[-5] == 0xE8 || code[-6] == 0xFF || code[-2] == 0xFF || code[-3] == 0xFF)) continue;
-        if (InGameCode(a)) used += std::snprintf(out + used, size - used, " %08X", unsigned(a));
-        else used += std::snprintf(out + used, size - used, " %s+%X", ei::OwnModuleName(), unsigned(a - g_selfBase));
-    }
-}
 
 void FindMainThreadOnce() {
     if (g_mainThread) return;
@@ -97,13 +74,8 @@ void FindMainThreadOnce() {
 }
 bool OnMainThread() { return GetCurrentThreadId() == g_mainThread; }
 
-// The caller of the clock function the trace wraps (the trace's own return address otherwise).
-thread_local const void* t_tracedCaller = nullptr;
-const void* CallerOf(const void* returnAddress) { return t_tracedCaller ? t_tracedCaller : returnAddress; }
-
 // ---- Virtual clock -------------------------------------------------------------------------------
 
-constexpr std::uintptr_t kMainLoopTimeReturn = 0x004571E2;   // after the main loop's timeGetTime call
 // As many as the main loop runs in one pass (kLongestPassTicks, app_main.cpp): fewer frames to draw.
 constexpr unsigned kUpdatesPerFrame = 5;
 unsigned g_frameMs = 0;   // "frametime": the advance at each frame instead (0: kUpdatesPerFrame updates)
@@ -116,42 +88,10 @@ decltype(&::timeGetTime) g_timeGetTime;
 decltype(&::GetTickCount) g_getTickCount;
 decltype(&::Sleep) g_sleep;
 decltype(&::WaitForSingleObject) g_waitForSingleObject;
-decltype(&::GetTimeZoneInformation) g_getTimeZoneInformation;
 
-// The time zone as the game's date finds it. game.exe's time() (VC6's CRT) turns GetLocalTime's date
-// into a time_t with the daylight state GetTimeZoneInformation returns: the state in force now, not
-// the date's. With the harness's fixed date (2001-03-26 12:00, harness.cpp) a save's time (info.sav)
-// then moved by an hour with the machine's summer time. This returns the state of the date the
-// game's GetLocalTime gives (the fixed one, read through the patched slot) under the zone's rules,
-// as the image's mktime (the host CRT's) finds it; the zone's information is the machine's.
-DWORD WINAPI DateTimeZone(LPTIME_ZONE_INFORMATION zone) {
-    const DWORD state = g_getTimeZoneInformation(zone);
-    if (state == TIME_ZONE_ID_INVALID || zone->DaylightDate.wMonth == 0 || zone->DaylightBias == 0) return state;
-    SYSTEMTIME local;
-    Imports().GetLocalTime(&local);
-    SYSTEMTIME utc;
-    FILETIME localFile;
-    FILETIME utcFile;
-    if (!TzSpecificLocalTimeToSystemTime(zone, &local, &utc) || !SystemTimeToFileTime(&local, &localFile) ||
-        !SystemTimeToFileTime(&utc, &utcFile))
-        return state;
-    const auto ticks = [](const FILETIME& t) {
-        return static_cast<long long>((static_cast<unsigned long long>(t.dwHighDateTime) << 32) | t.dwLowDateTime);
-    };
-    const long long biasMinutes = (ticks(utcFile) - ticks(localFile)) / (60 * 10000000LL);
-    return biasMinutes == zone->Bias + zone->DaylightBias ? TIME_ZONE_ID_DAYLIGHT : TIME_ZONE_ID_STANDARD;
-}
-
-void InstallDateTimeZone() {
-    if (!g_getTimeZoneInformation) PatchOriginalImport(&ImportTable::GetTimeZoneInformation, &DateTimeZone, g_getTimeZoneInformation);
-}
-
-// Whether a timeGetTime call is the main loop's frame time: the original WinMain's by its return
-// address, the rewritten one's (src/game/app_main.cpp) by the site it names.
-bool IsMainLoopTime(const void* caller) {
-    if (reinterpret_cast<std::uintptr_t>(caller) == kMainLoopTimeReturn) return true;
-    return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && OnMainThread();
-}
+// Whether a timeGetTime call is the main loop's frame time: the rewritten WinMain (src/game/app_main.cpp) names
+// its site.
+bool IsMainLoopTime() { return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && OnMainThread(); }
 
 // What other threads read. They do not move the clock, but they see time pass while the main thread
 // stands still: the new-game load waits on one of them. PlayJingle / the calm music (sound_music.cpp,
@@ -211,166 +151,17 @@ DWORD OtherThreadsNow() {
     return static_cast<DWORD>(seen);
 }
 
-// ---- Sound ends on the virtual clock -------------------------------------------------------------
-// The game learns that a voice's sample has ended from Miles' end-of-sample callback (006B75E0, on
-// Miles' timer thread: the slot's `finished`), and that feeds game state: a unit talks (server flag
-// kFlagTalking, unit_client_effects.cpp) until its speech sample ends, scripts wait on that (zone1's
-// intro), and FindPlaying frees voices. Played in real time, that made runs part. On the virtual
-// clock the harness keeps the callback from Miles and calls it itself, from the main loop's frame
-// time, once the sample's length (Miles' own ms position and loop count at the start) has passed
-// on the virtual clock. Stopped samples (PauseAll) keep what was left until resumed. game.exe's runs
-// only: the image has no Miles, its audio output times the ends the same way on the game's clock
-// (src/platform/audio.h), and the main loop delivers them after the frame's time.
-using EosCallback = void(__stdcall*)(void*);
-using RegisterEosFn = EosCallback(__stdcall*)(void*, EosCallback);
-using SampleFn = void(__stdcall*)(void*);
-using SampleIntFn = void(__stdcall*)(void*, int);
-using MsPositionFn = void(__stdcall*)(void*, long*, long*);
-RegisterEosFn g_ailRegisterEos;
-SampleIntFn g_ailSetSampleMsPosition, g_ailSetSampleLoopCount;
-SampleFn g_ailStartSample, g_ailResumeSample, g_ailStopSample, g_ailEndSample;
-MsPositionFn g_ailSampleMsPosition;
-
-struct Voice {
-    void* sample;
-    EosCallback callback = nullptr;
-    int loops = 1;            // 0: forever
-    bool running = false;     // started, its end not yet called
-    bool stopped = false;     // stopped while running: `left` is what remains
-    DWORD end = 0;            // virtual time of its end (running, finite)
-    DWORD left = 0;
-    bool forever = false;
-};
-std::vector<Voice> g_voices;   // in the order they first appeared (the order ends are called in)
-CRITICAL_SECTION g_voiceLock;
-
-Voice& VoiceOf(void* sample) {
-    for (Voice& v : g_voices)
-        if (v.sample == sample) return v;
-    g_voices.push_back(Voice{sample});
-    return g_voices.back();
-}
-
-// The milliseconds the sample still plays from its current position, by Miles.
-DWORD Remaining(const Voice& v, bool* forever) {
-    long total = 0, current = 0;
-    if (g_ailSampleMsPosition) g_ailSampleMsPosition(v.sample, &total, &current);
-    *forever = v.loops == 0;
-    long rest = total > current ? total - current : 0;
-    if (v.loops > 1) rest += total * (v.loops - 1);
-    return static_cast<DWORD>(rest);
-}
-
-void StartTimer(Voice& v) {
-    v.running = true;
-    v.stopped = false;
-    v.end = g_now + Remaining(v, &v.forever);
-    RandomNote("sound start at %lu: end %lu%s loops %d", g_now, v.end, v.forever ? " forever" : "", v.loops);
-}
-
-EosCallback __stdcall HeldRegisterEos(void* sample, EosCallback callback) {
-    EnterCriticalSection(&g_voiceLock);
-    Voice& v = VoiceOf(sample);
-    EosCallback previous = v.callback;
-    v.callback = callback;
-    LeaveCriticalSection(&g_voiceLock);
-    g_ailRegisterEos(sample, nullptr);
-    return previous;
-}
-void __stdcall TimedSetLoopCount(void* sample, int count) {
-    g_ailSetSampleLoopCount(sample, count);
-    EnterCriticalSection(&g_voiceLock);
-    VoiceOf(sample).loops = count;
-    LeaveCriticalSection(&g_voiceLock);
-}
-void __stdcall TimedStartSample(void* sample) {
-    g_ailStartSample(sample);
-    EnterCriticalSection(&g_voiceLock);
-    StartTimer(VoiceOf(sample));
-    LeaveCriticalSection(&g_voiceLock);
-}
-void __stdcall TimedSetMsPosition(void* sample, int ms) {
-    g_ailSetSampleMsPosition(sample, ms);
-    EnterCriticalSection(&g_voiceLock);
-    Voice& v = VoiceOf(sample);
-    if (v.running && !v.stopped) StartTimer(v);
-    LeaveCriticalSection(&g_voiceLock);
-}
-void __stdcall TimedStopSample(void* sample) {
-    g_ailStopSample(sample);
-    EnterCriticalSection(&g_voiceLock);
-    Voice& v = VoiceOf(sample);
-    if (v.running && !v.stopped) {
-        v.stopped = true;
-        v.left = static_cast<LONG>(v.end - g_now) > 0 ? v.end - g_now : 0;
-        RandomNote("sound stopped at %lu: end %lu", g_now, v.end);
-    }
-    LeaveCriticalSection(&g_voiceLock);
-}
-void __stdcall TimedResumeSample(void* sample) {
-    g_ailResumeSample(sample);
-    EnterCriticalSection(&g_voiceLock);
-    Voice& v = VoiceOf(sample);
-    if (v.running && v.stopped) {
-        v.stopped = false;
-        v.end = g_now + v.left;
-    }
-    LeaveCriticalSection(&g_voiceLock);
-}
-void __stdcall TimedEndSample(void* sample) {
-    g_ailEndSample(sample);
-    EnterCriticalSection(&g_voiceLock);
-    Voice& v = VoiceOf(sample);
-    if (v.running && !v.forever && g_randomFile) {
-        char stack[400];
-        CallerStack(stack, sizeof(stack));
-        RandomNote("sound ended by the game at %lu: end %lu;%s", g_now, v.end, stack);
-    }
-    v.running = false;
-    LeaveCriticalSection(&g_voiceLock);
-}
-
-// The ends due on the virtual clock (called after each frame's advance).
-void CallSampleEnds() {
-    std::vector<std::pair<EosCallback, void*>> due;
-    EnterCriticalSection(&g_voiceLock);
-    for (Voice& v : g_voices) {
-        if (!v.running || v.stopped || v.forever || static_cast<LONG>(g_now - v.end) < 0) continue;
-        v.running = false;
-        RandomNote("sound end at %lu", g_now);
-        if (v.callback) due.push_back({v.callback, v.sample});
-    }
-    LeaveCriticalSection(&g_voiceLock);
-    for (auto& [callback, sample] : due) callback(sample);
-}
-
-void InstallSampleTimers() {
-    InitializeCriticalSection(&g_voiceLock);   // CallSampleEnds takes it in the image too (no voices there)
-    if (Standalone()) return;
-    if (HMODULE mss = GetModuleHandleA("mss32.dll"))
-        g_ailSampleMsPosition = reinterpret_cast<MsPositionFn>(GetProcAddress(mss, "_AIL_sample_ms_position@12"));
-    if (!g_ailSampleMsPosition) Log("harness: no _AIL_sample_ms_position in mss32.dll: sounds end at once");
-    PatchOriginalImport(&ImportTable::AIL_register_EOS_callback, &HeldRegisterEos, g_ailRegisterEos);
-    PatchOriginalImport(&ImportTable::AIL_set_sample_ms_position, &TimedSetMsPosition, g_ailSetSampleMsPosition);
-    PatchOriginalImport(&ImportTable::AIL_start_sample, &TimedStartSample, g_ailStartSample);
-    PatchOriginalImport(&ImportTable::AIL_set_sample_loop_count, &TimedSetLoopCount, g_ailSetSampleLoopCount);
-    PatchOriginalImport(&ImportTable::AIL_resume_sample, &TimedResumeSample, g_ailResumeSample);
-    PatchOriginalImport(&ImportTable::AIL_stop_sample, &TimedStopSample, g_ailStopSample);
-    PatchOriginalImport(&ImportTable::AIL_end_sample, &TimedEndSample, g_ailEndSample);
-}
-
 // Main-thread sleeps since the last frame (see VirtualSleep).
 int g_sleepsSinceFrame = 0;
 
 DWORD WINAPI VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
-    if (IsMainLoopTime(CallerOf(_ReturnAddress()))) {
+    if (IsMainLoopTime()) {
         g_sleepsSinceFrame = 0;
         Advance(g_frameMs ? g_frameMs : kUpdatesPerFrame * *g_tickLength);
-        // The random trace notes every move of the clock (here, sleeps, timed waits) and every sound
-        // stopped or ended, so two runs show where their virtual times part (SV1g).
+        // The random trace notes every move of the clock (here, sleeps, timed waits), so two runs show where
+        // their virtual times part (SV1g).
         RandomNote("clock frame time %lu", g_now);
-        CallSampleEnds();
     }
     return g_now;
 }
@@ -444,10 +235,6 @@ SRWLOCK g_traceLock = SRWLOCK_INIT;
 bool g_tracing = false;
 
 void DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
-    if (InGameCode(a)) {
-        std::snprintf(out, size, "%08X", unsigned(a));
-        return;
-    }
     HMODULE module = nullptr;
     char path[MAX_PATH] = "?";
     if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -519,16 +306,8 @@ struct Traced {
     static R WINAPI Call(A... a) {
         const void* caller = _ReturnAddress();
         Record(kFn, caller, WaitArgument<kWaitIndex>(a...), kWaitIndex >= 0);
-        const void* outer = t_tracedCaller;
-        t_tracedCaller = caller;
-        if constexpr (std::is_void_v<R>) {
-            inner(a...);
-            t_tracedCaller = outer;
-        } else {
-            R result = inner(a...);
-            t_tracedCaller = outer;
-            return result;
-        }
+        return inner(a...);
+
     }
 };
 
@@ -566,24 +345,17 @@ void TraceSlot(F ImportTable::* slot) {
     PatchImport(slot, &T::Call, T::inner);
 }
 
-// The same in game.exe's runs only (PatchOriginalImport): an import our code calls as the Windows function, traced
-// in the image among the other modules' imports.
-template <class T, class F>
-void TraceOriginalSlot(F ImportTable::* slot) {
-    PatchOriginalImport(slot, &T::Call, T::inner);
-}
-
 void TraceGameImports() {
     using S = TracedSet<true>;
     TraceSlot<S::TimeGetTime>(&ImportTable::timeGetTime);
     TraceSlot<S::GetTickCount>(&ImportTable::GetTickCount);
     TraceSlot<S::Sleep>(&ImportTable::Sleep);
     TraceSlot<S::WaitForSingleObject>(&ImportTable::WaitForSingleObject);
-    TraceOriginalSlot<S::GetMessageTime>(&ImportTable::GetMessageTime);
+
     TraceSlot<S::GetMessageA>(&ImportTable::GetMessageA);
     TraceSlot<S::GetLocalTime>(&ImportTable::GetLocalTime);
     TraceSlot<S::GetSystemTime>(&ImportTable::GetSystemTime);
-    TraceOriginalSlot<S::CreateThread>(&ImportTable::CreateThread);
+
 }
 
 // Other modules' imports, by name, wrapped around the real export.
@@ -658,7 +430,7 @@ void TraceModuleImports(HMODULE module) {
     Log("clocktrace: %d imports of %s wrapped", wrapped, path);
 }
 
-// The DLLs to trace: those outside the Windows folder, other than the main module and ours (ei_harness.dll).
+// The DLLs to trace: those outside the Windows folder, other than the main module (ours).
 void TraceModules() {
     HMODULE modules[512];
     DWORD bytes = 0;
@@ -702,8 +474,6 @@ void InstallVirtual(const unsigned* tickLength) {
     PatchImport(&ImportTable::GetTickCount, &VirtualGetTickCount, g_getTickCount);
     PatchImport(&ImportTable::Sleep, &VirtualSleep, g_sleep);
     PatchImport(&ImportTable::WaitForSingleObject, &VirtualWaitForSingleObject, g_waitForSingleObject);
-    InstallDateTimeZone();
-    InstallSampleTimers();
 }
 
 bool Virtual() { return g_virtual; }
@@ -713,7 +483,6 @@ void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 void InstallHeld() {
     PatchImport(&ImportTable::timeGetTime, &HeldTimeGetTime, g_heldTimeGetTime.base);
     PatchImport(&ImportTable::GetTickCount, &HeldGetTickCount, g_heldTickCount.base);
-    InstallDateTimeZone();
 }
 
 void Freeze(bool on) {
@@ -777,8 +546,6 @@ void DumpTrace(const char* why) {
 
 namespace {
 
-constexpr std::uintptr_t kIsaacNext = 0x004667F0;
-constexpr std::uintptr_t kIsaacRefill = 0x0049EE70;
 const unsigned* g_traceFrames = nullptr;
 unsigned g_randomFrame = ~0u;
 CRITICAL_SECTION g_randomLock;
@@ -800,41 +567,6 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
                  ours ? ei::OwnModuleName() : "", ours ? "+" : "", unsigned(ours ? caller - g_selfBase : caller), value,
                  what, unsigned(where));
     LeaveCriticalSection(&g_randomLock);
-}
-
-// game.exe: the generator's Next (004667F0), which jumps here; its refill is game.exe's own.
-std::uint32_t __fastcall TracedNext(exe::IsaacRandom* self, void*) {
-    if (self->count-- == 0) {
-        ei::verify::OriginalCode<void(__thiscall*)(exe::IsaacRandom*)>(kIsaacRefill)(self);
-        self->count = 255;
-    }
-    const std::uint32_t value = self->results[self->count];
-    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value, self == &exe::Random() ? "" : " (another generator)",
-              self->cc * 256u + 255u - self->count);
-    return value;
-}
-
-// game.exe: the game's CRT rand() (006E77F7; its per-thread seed), which jumps here.
-constexpr std::uintptr_t kCrtRand = 0x006E77F7;
-int __cdecl TracedRand() {
-    unsigned& hold = ei::verify::OriginalRandState();
-    hold = hold * 0x343FDu + 0x269EC3u;
-    const int value = static_cast<int>((hold >> 16) & 0x7FFF);
-    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()", hold);
-    return value;
-}
-
-// game.exe: a JMP at `entry` to `to`.
-void JumpFrom(std::uintptr_t entry, const void* to) {
-    auto* p = reinterpret_cast<unsigned char*>(entry);
-    ei::NoteHarnessPatch(entry, 5, "the random trace");
-    DWORD old;
-    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
-    p[0] = 0xE9;
-    const auto relative = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(to) - (entry + 5));
-    std::memcpy(p + 1, &relative, 4);
-    VirtualProtect(p, 5, old, &old);
-    FlushInstructionCache(GetCurrentProcess(), p, 5);
 }
 
 } // namespace
@@ -862,18 +594,13 @@ void InstallRandomTrace(const unsigned* frames) {
     g_traceFrames = frames;
     HMODULE self = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&TracedNext), &self);
+                       reinterpret_cast<LPCSTR>(&InstallRandomTrace), &self);
     MODULEINFO info{};
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof(info));
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    // The generator's Next and rand().
-    if (ei::Standalone()) {
-        image::ObserveDraws(&WriteDraw);   // the draws of our generator and rand(), through their observers
-    } else {
-        JumpFrom(kIsaacNext, reinterpret_cast<const void*>(&TracedNext));
-        JumpFrom(kCrtRand, reinterpret_cast<const void*>(&TracedRand));
-    }
+    image::ObserveDraws(&WriteDraw);   // the draws of our generator and rand(), through their observers
+
     Log("harness: random trace to %s", path);
 }
 

@@ -166,7 +166,7 @@ def run_dir(root):
 
 
 # EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and
-# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_HEAP_JITTER, ...) is read by a game.
+# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_SAVETRACE, ...) is read by a game.
 NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_WIDESCREEN_DIR', 'EI_PAIR',
                 'EI_PAIR_SLOT_HELD')
 

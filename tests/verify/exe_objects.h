@@ -1,12 +1,12 @@
 #pragma once
 
-// game.exe's objects as the harness reads them in game.exe's runs (--no-hooks, EI_VECTORS=1), at game.exe's own
-// offsets (ticket H30b). Our classes (src/game) may reorder and retype their members freely: the harness reads the
-// original's objects only through these views, so nothing here includes a header of src/game or src/lib, and a change
-// of our classes does not change what the original's runs record (tools/run_all.py, reference_key).
+// game.exe's objects at game.exe's own offsets (ticket H30b), as the vector recorders read them in game.exe's runs
+// (tests/vectors/record_*.cpp, not built since H40) and the script replay's views of them (tests/vectors/
+// script_original.h). The harness itself no longer reads game.exe (H40). Our classes (src/game) may reorder and retype
+// their members freely: nothing here includes a header of src/game or src/lib.
 //
 // A view has our class's name, the original's size and the members the harness reads, under our names (the
-// digest's reading code, harness_digest_read.inc, compiles against either); the rest is padding. Containers are game.exe's MFC 4.2
+// digest's reading code compiled against it until H40); the rest is padding. Containers are game.exe's MFC 4.2
 // and STLport 4 layouts. The only code called is game.exe's own (EngineObject's slots 11 and 12). Offsets are game.exe
 // 1.06's (they were our classes' when H30b split the two; docs/notes/cleanup-tooling.md, "The harness in game.exe").
 

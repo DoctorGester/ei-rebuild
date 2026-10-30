@@ -1,7 +1,6 @@
 // The harness's mouse is the game's only mouse (harness_input.h).
 #define DIRECTINPUT_VERSION 0x0700
 #include "harness_input.h"
-#include "harness_imports.h"
 #include "image/image_side.h"
 
 #include <dinput.h>
@@ -20,11 +19,9 @@ namespace {
 constexpr int kCreateDeviceExSlot = 9;    // IDirectInput7A
 constexpr int kGetDeviceStateSlot = 9;    // IDirectInputDevice7A
 
-using CreateFn = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, void**, IUnknown*);
 using CreateDeviceExFn = HRESULT(STDMETHODCALLTYPE*)(IDirectInput7A*, REFGUID, REFIID, void**, IUnknown*);
 using GetDeviceStateFn = HRESULT(STDMETHODCALLTYPE*)(IDirectInputDevice7A*, DWORD, void*);
 
-CreateFn g_create;
 CreateDeviceExFn g_createDeviceEx;
 GetDeviceStateFn g_getDeviceState;
 std::atomic<IDirectInputDevice7A*> g_device{nullptr};   // the game's mouse
@@ -93,21 +90,14 @@ void RouteInput(IDirectInput7A* input) {
     if (*slot != reinterpret_cast<void*>(&RoutedCreateDeviceEx)) PatchSlot(slot, &RoutedCreateDeviceEx, g_createDeviceEx);
 }
 
-// game.exe's DirectInputCreateEx slot.
-HRESULT WINAPI RoutedCreate(HINSTANCE instance, DWORD version, REFIID iid, void** out, IUnknown* outer) {
-    const HRESULT result = g_create(instance, version, iid, out, outer);
-    if (SUCCEEDED(result) && out && *out) RouteInput(static_cast<IDirectInput7A*>(*out));
-    return result;
-}
-
 } // namespace
 
 void Install() {
     static bool installed = false;
     if (installed) return;
     installed = true;
-    if (ei::Standalone()) image::ObserveDirectInput(&RouteInput);   // our code calls the system's dinput.dll directly
-    else PatchOriginalImport(&ImportTable::DirectInputCreateEx, &RoutedCreate, g_create);
+    image::ObserveDirectInput(&RouteInput);   // our code calls the system's dinput.dll directly
+
 }
 
 bool RealMouse(HWND, UINT message, WPARAM, LPARAM lParam, LRESULT* result) {

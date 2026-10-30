@@ -4,7 +4,7 @@
 //
 // Scenario line (read when the scenario loads, before WinMain):
 //   discprompt <n>   the disc check asks for the second disc <n> times, each box answered OK. WinMain
-//                    (00456440, app_main.cpp CheckDrives) compares the disc folder (the registry's "CD-ROM
+//                    (app_main.cpp CheckDrives) compares the disc folder (the settings' "CD-ROM
 //                    Path") with the data folder and, when they differ, asks while the disc folder's volume
 //                    label is not the options' "CD2 Label". The run's "CD-ROM Path" becomes the game folder
 //                    written as "<folder>.\" (the same files, another text), and GetVolumeInformationA (the
@@ -13,8 +13,7 @@
 // Step:
 //   discprompts <n>  require that the game showed the second disc's box <n> times
 //
-// The slots are taken at WinMain's FindWindowA (its window class step, before the registry is read), where
-// the run's game paths (src/hook/paths.cpp) already answer "CD-ROM Path".
+// The slots are taken at WinMain's FindWindowA (its window class step, before the settings are read).
 
 #include <string>
 

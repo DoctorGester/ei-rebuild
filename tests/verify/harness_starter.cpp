@@ -2,13 +2,9 @@
 // selected mod's folder. See harness_starter.h.
 #include "harness_starter.h"
 
-#include "harness_addon.h"
-#include "exe_objects.h"
-#include "harness_original.h"
 #include "image/image_side.h"
 #include "../../src/hook/log.h"
 #include "../../src/hook/rebirth_hook.h"
-#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -16,7 +12,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
-#include <new>
 
 namespace ei::verify::starter {
 namespace {
@@ -153,7 +148,7 @@ void Install(const char* savesDir) {
     DWORD n = GetEnvironmentVariableA("EI_RESOLUTION", value, sizeof(value));
     if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
-    if (!g_resolution[0] && ei::Standalone()) {
+    if (!g_resolution[0]) {
         std::snprintf(g_resolution, sizeof(g_resolution), "%s", RebirthData() ? kImageResolutionRebirth : kImageResolution);
         if (g_fullScreen < 0) g_fullScreen = 0;
     }
@@ -169,47 +164,15 @@ void Install(const char* savesDir) {
             music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
-// game.exe's MappedResource (0x58 bytes) in a --no-hooks run: its constructor (00671280), OpenResource (00671730) and
-// Destroy (006714A0), GetFile (slot 5: 00671B40, Rebirth's ResOverride) and CloseFile (slot 6). The bytes of `name` in
-// the archive at `path`: -2 when the archive does not open, 0 without the file.
-EI_NAKED void* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
-EI_NAKED int __fastcall OriginalMappedResourceOpen(void* /*resource*/, void*, const char* /*path*/, int /*writable*/)
-    EI_ORIGINAL(0x00671730)
-EI_NAKED void __fastcall OriginalMappedResourceDestroy(void* /*resource*/) EI_ORIGINAL(0x006714A0)
-long OriginalModFile(const std::string& path, const char* name) {
-#if defined(_M_X64)
-    (void)path;
-    (void)name;
-    ::ei::verify::NoOriginalCode(0x00671280);   // no game.exe in the x64 build (its stubs end the run)
-#else
-    constexpr std::size_t kMappedResourceSize = 0x58;
-    void* memory = ::operator new(kMappedResourceSize);
-    std::memset(memory, 0, kMappedResourceSize);
-    void* res = OriginalMappedResourceConstruct(memory);
-    long got = -2;   // the archive did not open
-    if (OriginalMappedResourceOpen(res, nullptr, path.c_str(), 0)) {
-        void* const* vtable = *static_cast<void* const* const*>(res);
-        std::uint32_t size = 0;
-        void* data = reinterpret_cast<void*(__thiscall*)(void*, const char*, std::uint32_t*)>(vtable[5])(res, name, &size);
-        got = data ? static_cast<long>(size) : 0;
-        if (data) reinterpret_cast<bool(__thiscall*)(void*, void*)>(vtable[6])(res, data);
-    }
-    OriginalMappedResourceDestroy(res);
-    ::operator delete(memory);
-    return got;
-#endif
-}
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
     long expected = -1;
     if (sscanf_s(argument.c_str(), "%259s %259s %ld", archive, static_cast<unsigned>(sizeof(archive)), name,
                  static_cast<unsigned>(sizeof(name)), &expected) != 3)
         return "modfile " + argument + ": not <archive> <file> <bytes>";
-    // The archive as the game opens its own: the text resources' folder and the name. In game.exe's --no-hooks
-    // runs its own folder: our named copy (C18) is never set there.
-    const char* folder = ei::Standalone() ? image::TextFolder() : ei::OriginalGameData<const exe::CString>(0x007AF45C).text;
-    const std::string path = std::string(folder) + archive;   // host strings only (H30)
-    const long got = ei::Standalone() ? image::ModFile(path.c_str(), name) : OriginalModFile(path, name);
+    // The archive as the game opens its own: the text resources' folder and the name.
+    const std::string path = std::string(image::TextFolder()) + archive;   // host strings only (H30)
+    const long got = image::ModFile(path.c_str(), name);
     Log("harness: modfile %s %s: %ld bytes (expected %ld)", path.c_str(), name, got, expected);
     if (got == expected) return std::string();
     char error[2 * MAX_PATH + 64];
@@ -217,11 +180,7 @@ std::string ModFileStep(const std::string& argument) {
     return error;
 }
 
-bool RebirthInstall() {
-    // addon.dll in the vanilla install's game (EI_ADDON_FLAGS, harness_addon.h) keeps only the bug fixes: vanilla.
-    if (addon::Active()) return false;
-    return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
-}
+bool RebirthInstall() { return rebirth_hook::RebirthLaunch(); }
 
 bool RebirthData() {
     char folder[MAX_PATH];

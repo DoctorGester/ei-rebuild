@@ -261,20 +261,16 @@ void FreeHandle(HKEY key) {
     ReleaseSRWLockExclusive(&g_lock);
 }
 
-// The full lower-case path of `sub` below `root`, and whether it is one of the trees answered here
-// (`any`: whatever the root, for game.exe's creates).
-bool Resolve(HKEY root, const char* sub, std::string* path, bool any = false) {
+// The full lower-case path of `sub` below `root`, and whether it is one of the trees answered here.
+bool Resolve(HKEY root, const char* sub, std::string* path) {
     if (IsOurs(root)) {
         *path = PathOf(root);
     } else if (root == HKEY_CURRENT_USER) {
         *path = kCurrentUser;
     } else if (root == HKEY_LOCAL_MACHINE) {
         *path = kLocalMachine;
-    } else if (any) {
-        char name[32];
-        std::snprintf(name, sizeof(name), "key%p", static_cast<void*>(root));
-        *path = name;
     } else {
+
         return false;
     }
     // Each part of `sub` (empty parts, from doubled or outer backslashes, are skipped), lower case.
@@ -284,7 +280,7 @@ bool Resolve(HKEY root, const char* sub, std::string* path, bool any = false) {
         if (end != p) *path += '\\' + Lower(std::string(p, end));
         p = *end ? end + 1 : end;
     }
-    if (IsOurs(root) || any) return true;
+    if (IsOurs(root)) return true;
     const std::size_t rootEnd = path->find('\\');
     if (rootEnd == std::string::npos) return false;
     const std::string below = path->substr(rootEnd + 1);
@@ -411,13 +407,7 @@ LSTATUS WINAPI CreateW(HKEY root, LPCWSTR sub, DWORD reserved, LPWSTR cls, DWORD
         return g_createW(root, sub, reserved, cls, options, sam, sa, out, disposition);
     return OpenOurs(path, true, out, disposition);
 }
-// game.exe's own import (the original's WinRegistry and the image's): whatever the key, nothing is created.
-LSTATUS WINAPI GameCreate(HKEY root, LPCSTR sub, DWORD, LPSTR, DWORD, REGSAM, const LPSECURITY_ATTRIBUTES, PHKEY out,
-                          LPDWORD disposition) {
-    std::string path;
-    Resolve(root, sub, &path, true);
-    return OpenOurs(path, true, out, disposition);
-}
+
 LSTATUS WINAPI QueryA(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
     if (!IsOurs(key)) return g_queryA(key, name, reserved, type, data, size);
     return QueryOurs(key, name ? name : "", false, type, data, size);
@@ -544,8 +534,6 @@ bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
     return true;
 }
 #endif
-
-decltype(&::RegCreateKeyExA) g_gameCreate;
 
 // ---- the standalone's settings file (game/settings.h) ----
 
@@ -719,7 +707,8 @@ void Install() {
     }
     if (!GetFullPathNameA(folder, MAX_PATH, g_folder, nullptr)) strcpy_s(g_folder, folder);
     Load();
-    if (ei::Standalone()) PinSettingsFile();   // the image reads its settings file, never the registry
+    PinSettingsFile();   // the image reads its settings file, never the registry
+
     for (const char* file : {"vanilla\\keyboard.ini", "vanilla\\addrbook.ini", "rebirth\\keyboard.ini", "rebirth\\addrbook.ini"}) {
         char path[MAX_PATH];
         std::snprintf(path, sizeof(path), "%s\\%s", g_folder, file);
@@ -749,7 +738,6 @@ void Install() {
     HookExport(advapi, "RegEnumKeyExW", &EnumKeyW, g_enumKeyW);
     HookExport(advapi, "RegGetValueA", &GetA, g_getA);
     HookExport(advapi, "RegGetValueW", &GetW, g_getW);
-    PatchOriginalImport(&ImportTable::RegCreateKeyExA, &GameCreate, g_gameCreate);
 }
 
 bool PinnedFile(const char* relative, char (&out)[260]) {

@@ -50,8 +50,7 @@ struct ScriptObjectRef {
 
 // A script group: object references kept sorted, without duplicates. The set operations build the result in
 // `this`. The game sorts by object address, so which unit a script's "n-th of group" gets follows the heap
-// layout; ours sorts by object id instead, and the harness patches the original to do the same
-// (tests/verify/harness_script_order.cpp). The members are read like a vector's; only the methods change them.
+// layout; ours sorts by object id instead. The members are read like a vector's; only the methods change them.
 class ScriptGroup {
 public:
     // The id order: null before every object, then EngineObject::id (signed). World objects' ids are

@@ -1,13 +1,10 @@
 // The orientation watch (harness_watch.h; tickets SV7b4 / SV3f).
 #include "harness_watch.h"
 
-#include "exe_objects.h"
-#include "harness_digest_read.h"   // the class ids
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
 #include "../../src/hook/thread_context.h"
-#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -52,8 +49,7 @@ void ModuleRange(HMODULE module, std::uintptr_t& base, std::uintptr_t& end) {
 }
 
 bool Code(std::uintptr_t v) {
-    return (!ei::Standalone() && v >= 0x00401000 && v < 0x0073A670) || (v >= g_addonBase + 0x1000 && v < g_addonEnd) ||
-           (v >= g_selfBase + 0x1000 && v < g_selfEnd);
+    return (v >= g_addonBase + 0x1000 && v < g_addonEnd) || (v >= g_selfBase + 0x1000 && v < g_selfEnd);
 }
 
 bool ReturnAddress(std::uintptr_t v) {
@@ -157,24 +153,10 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-// The client world's unit g_id: ours in the image, game.exe's (its views, exe_objects.h) in its runs.
+// The client world's unit g_id.
 Watched FindUnit() {
     Watched found;
-    if (ei::Standalone()) {
-        found.unit = image::ClientUnit(g_id, &found.flags, &found.rotation);
-        return found;
-    }
-    exe::WorldClient* c = exe::ClientWorld();
-    if (!c->objects.head) return found;
-    for (auto* n = c->objects.First(); n != c->objects.End(); n = n->next) {
-        exe::MapObject* object = n->data;
-        if (object && static_cast<unsigned>(object->id) == g_id && digest::ClassOf(object) == digest::kClassUnit) {
-            found.unit = object;
-            found.flags = &object->flags;
-            found.rotation = reinterpret_cast<std::uint32_t*>(&object->localRotation);
-            return found;
-        }
-    }
+    found.unit = image::ClientUnit(g_id, &found.flags, &found.rotation);
     return found;
 }
 

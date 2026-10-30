@@ -875,7 +875,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
   GetCommandLineA (its slot is a trap since S22; the host's own call reads the host's line).
 - **Code bytes read as data**: none left (R9b3). app_frame's cursor lock (004580D7) calls our rewrite directly; the
   harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
-  through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h). ClassifyToken's
+  through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness.cpp). ClassifyToken's
   keyword table (the immediate at 004CF69B, which Rebirth rewrote) is `KeywordTable()`: kScriptKeywords (0078BCA0's
   bytes, C18q) or the add-on's, which script_addon.cpp builds from it under the flag.
   `AddonPanelOffset` returns none.

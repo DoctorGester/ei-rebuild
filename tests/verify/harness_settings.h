@@ -7,8 +7,8 @@
 // config\harness\registry.reg, the committed snapshot, through advapi32's own import slots (its exports are
 // stubs that jump through them), so the game, the image, the harness's own reads and addon.dll all see it.
 // Such keys are never opened, created or written in the real registry: opens and creates get handles of
-// this module's, writes and deletes on them are dropped (as game.exe's RegSetValueExA always is,
-// harness.cpp), and game.exe's import of RegCreateKeyExA never reaches the registry at all. A value or key
+// this module's, and writes and deletes on them are dropped. A value or key
+
 // the snapshot lacks fails the run (an entry "name"=- / [-key] marks one read but absent on purpose), as
 // does a call on these keys the module does not answer (enumeration, RegGetValue). The scenario's starter
 // lines (harness_starter.h) are answered first.

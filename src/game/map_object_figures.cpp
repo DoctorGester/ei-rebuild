@@ -179,7 +179,7 @@ Object3D::Object3D() {
     defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
     // only for its shadow before it was ever in view (a NaN there made the draw order irreflexive). It starts at
-    // zero here, and in the original through a harness patch (harness_leftovers.cpp).
+    // zero here.
     worldPosition = {};
 }
 

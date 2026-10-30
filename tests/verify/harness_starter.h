@@ -20,18 +20,14 @@
 //                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
 //                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
-// without those the registry snapshot's values (harness_settings.h), but for the resolution of the
-// standalone image's runs: a window (FullScreen 0 unless a "fullscreen" line says otherwise; H31) of 960x720 on the
-// vanilla data and 1280x720 on Rebirth's (the shape of the goldens' interface layout). game.exe's runs (--no-hooks,
-// the references) keep the snapshot's desktop size. Rebirth's CtfMon switch is answered 0 in every run (S3e: addon.dll closes ctfmon at start and restarts it from its
-// DLL_PROCESS_DETACH, which hung the exit).
+// without those the registry snapshot's values (harness_settings.h), but for the resolution: a window (FullScreen 0
+// unless a "fullscreen" line says otherwise; H31) of 960x720 on the vanilla data and 1280x720 on Rebirth's (the shape
+// of the goldens' interface layout). Rebirth's CtfMon switch is answered 0 in every run (S3e: addon.dll closed
+// ctfmon at start and restarted it from its DLL_PROCESS_DETACH, which hung the exit).
 //
 // The answers are given by harness_settings.cpp, which answers every read of the game's and the starter's
-// keys (the game's, the image's and addon.dll's), these by value name before its snapshot.
-//
-// A resolution other than the desktop's makes dgVoodoo (game.exe's runs) switch the display mode in its
-// full screen (seen 2026-10-04 with 1280x720): run_all runs such a scenario on the image only (switches_display).
-// Our renderer changes no display mode.
+// keys (the game's, the image's and addon.dll's), these by value name before its snapshot. Our renderer changes no
+// display mode.
 
 #include <string>
 
@@ -50,14 +46,13 @@ bool ParseStep(const std::string& verb, const std::string& argument);
 void Install(const char* savesDir);
 
 // The step "modfile <archive> <file> <bytes>": the game's archive <archive> in the text resources' folder opened
-// through OpenResource's address and <file> read through GetFile's vtable slot (Rebirth's ResOverride, addon's
-// or the standalone image's, looks in the mod's archives first): its size must be <bytes> (0: not found). An
-// error message, empty when it matches.
+// as the game opens it and <file> read through its GetFile (which looks in the mod's archives first, as Rebirth's
+// ResOverride did): its size must be <bytes> (0: not found). An error message, empty when it matches.
 std::string ModFileStep(const std::string& argument);
 
-// Whether this run plays the Rebirth install: addon.dll is loaded (game.exe), or the standalone image runs
-// with Rebirth flags (rebirth_hook::SettingsOnly; S19). Scenario lines "vanilla ..." / "rebirth ..." and the
-// digest's and the UI census's install follow it.
+// Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_hook::SettingsOnly; S19).
+// Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.
+
 bool RebirthInstall();
 
 // Whether the run's data folder (EI_GAME_ROOT, else the exe's own) is a Rebirth install (starter\addon.dll or
