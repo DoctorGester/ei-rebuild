@@ -69,12 +69,12 @@ static_assert(sizeof(UnitParamsSlot) == 0x1C);
 
 // The unit's parameter block: UnitStats rounded to bytes and shorts, what the client and the saved games see.
 struct UnitParams {
-    double Period();
+    float Period();
     // Zeroes the block; the slot types become 4 and lastHitSource 7.
     int Reset();
     // UnitStats::WeaponSkillBonus on the packed bytes (the client's party units), with the weapon's prototype
-    // record `weapon` (or null). Unrounded.
-    double WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
+    // record `weapon` (or null).
+    float WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
 
     std::uint8_t unused_00[4];
     int experience;
@@ -103,8 +103,8 @@ struct UnitParams {
     std::uint8_t flags;             // UnitStatsFlag bits (UnitStats::flags, low byte)
 
     // The sight range at `daylight` (0 night .. 1 day):
-    // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01). Unrounded.
-    double VisionRange(float daylight);
+    // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01).
+    float VisionRange(float daylight);
 
     // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) the body slots'
     // protection weighted by kSlotWeights and the packed vitals' protection added; others get the packed protection
@@ -274,20 +274,20 @@ public:
 
     // Movement speeds for the current movement mode; `backward` scaled by the global.
     void GetMoveSpeeds(float* forward, float* backward);
-    double MoveSpeed2();
+    float MoveSpeed2();
     // The speed of movement mode `mode` (0..4; other values: the base speed).
-    double MoveSpeedFor(int mode);
+    float MoveSpeedFor(int mode);
     // 3 * value + 10 for units without a player and (value capped at 10) while MapObjectFlag::ChoosingTarget is
     // set, else 1000000.
-    double ScaledValue(float value);
+    float ScaledValue(float value);
 
     // BaseSpeed scaled by the movement mode: x0.2 when standing or inactive, x0.7 in mode 1.
-    double ModeSpeed();
+    float ModeSpeed();
     // 1.8 * above[2] when bit 1 of boundsFlags is set, else 0.7 * radius + center[2] (a height from the
     // figure's bounds, despite the name).
-    double BaseSpeed();
+    float BaseSpeed();
 
-    double TotalItemWeight();
+    float TotalItemWeight();
 
     UnitPrototypeRecord* GetPrototype();
     UnitModelRecord* GetPrototypeModel();
@@ -322,7 +322,7 @@ public:
     bool AcceptsAnimation(const FigureAnimation* entry) override;
 
     // Ratio of the animation factors of the scale's and the base scale's z.
-    double AnimationRatio();
+    float AnimationRatio();
 
     // The per-tick update (another name, so it is no override): the controller's update, then the map object's.
     void Tick();
@@ -422,10 +422,10 @@ public:
     FigureAnimation* AnimationEntry(std::uint32_t key);
     // The horizontal extent of the body: the box maximum's (x, y) length of the figure part "bd" (else
     // "chest"), doubled for the mosquito (MapObjectType::Creature, prototype "unmosp"); 0 when the figure has neither
-    // part. Unrounded.
-    double BodyExtent();
+    // part.
+    float BodyExtent();
     // The ground height at (x, y); for units moving on the water surface (movementKind 2) the surface height
-    // plus the unit's z (server units) or its heightOffset. Unrounded.
+    // plus the unit's z (server units) or its heightOffset. A double: the world's height as it is on the ground.
     double GroundHeight(float x, float y);
     // Where effects (lightning, particles) start from the unit: on a client, a hero's right hand (part
     // "rh3"), another unit's weapon point (the controller's) turned by the orientation, or else its position
@@ -445,8 +445,8 @@ public:
     // marked.
     void SetMotionSpeeds(float speed, float turnRate);
     bool HasPlayer() const;
-    // Twice above.z, unrounded.
-    double DoubleHeight() const;
+    // Twice above.z.
+    float DoubleHeight() const;
     ItemArmor* WornItem(int slot) const;
     // SetPlayer(null), the controller's release, every item slot released and emptied (quick items, weapons, spells,
     // armour), the carried items released and their array freed.
@@ -580,34 +580,33 @@ static_assert(sizeof(UnitVitals) == 0x58);
 struct UnitStats {
     // Indices of combat[].
     enum CombatIndex { kReach, kAttack, kAttackSpread, kDefence, kSpeed };
-    // The float results below are returned unrounded (declared double: the FPU runs above 24-bit precision
-    // under Rebirth, see ItemWeapon::RollDamage). Period20: 25 / intelligence.
-    double Period20();
+    // Period20: 25 / intelligence.
+    float Period20();
     // The item panel's lines: strength over the setting "HP Val 1", dexterity over "MP Val 1".
-    double StrengthRatio();
-    double DexterityRatio();
+    float StrengthRatio();
+    float DexterityRatio();
     // pendingExperience 0, then the block read raw, as long as the stream's format version knew it (below
     // 0x45: 0x6F8 bytes, below 0x50: 0x6FC, below 0x63: 0x700, else 0x704). Returns the stream's result.
     int LoadFrom(ByteStream* stream);
     void SaveTo(ByteStream* stream);
     float AttributeBase(int index);
     // Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).
-    double AttributeWithBonus(int index);
+    float AttributeWithBonus(int index);
     float SkillBase(int index);
     // Skill `index` plus (stat - 25) of the stat its name starts with ('s', 'd', 'i').
-    double SkillWithBonus(std::uint32_t index);
+    float SkillWithBonus(std::uint32_t index);
     // The weapon skill for weapon type `type`.
     float WeaponSkill(int type);
-    double SkillLevelValue(int index);
+    float SkillLevelValue(int index);
     ::SkillLevelRecord* SkillLevelRecord(int index);
     // Strength * 12 scaled by (1 + 0.01 * the level value of skill level 21).
-    double ScaledStrength();
+    float ScaledStrength();
     // Global + 0.01 * the level value of skill level 22.
-    double BackstabFactor();
+    float BackstabFactor();
     // `value` minus what the six slots take from it (by their kind, current, maximum and factor).
-    double Reduce(float value);
+    float Reduce(float value);
     // `value` minus value * factor of each slot record of kind 1.
-    double ReduceKind1(float value);
+    float ReduceKind1(float value);
     // Two factors from strength and dexterity (relative to 15, over 20).
     void GetFactors(float* scaleX, float* scaleY, int unused);
 
@@ -638,11 +637,11 @@ struct UnitStats {
     // share of its maximum, else 0.
     int MovementState(char checkLoad);
     // The hit point / mana maximum from the experience curve ("HP Val" / "MP Val" settings), strength /
-    // dexterity and skill levels 16 / 17. Unrounded.
-    double HitPointCurve();
-    double ManaCurve();
-    // (dexterity * 0.2 + 10) scaled by the arms and skill level 20. Unrounded.
-    double RateValue();
+    // dexterity and skill levels 16 / 17.
+    float HitPointCurve();
+    float ManaCurve();
+    // (dexterity * 0.2 + 10) scaled by the arms and skill level 20.
+    float RateValue();
     // Adds `amount` to the pending experience; a positive total moves into the experience.
     void AddExperience(float amount);
     void AddScaledExperience(float amount);
@@ -661,7 +660,7 @@ struct UnitStats {
     bool RaiseStrength(int amount, CUnit* unit);
     bool RaiseDexterity(int amount, CUnit* unit);
     bool RaiseIntelligence(int amount, CUnit* unit);
-    double SkillLevelValueCopy(int skill);
+    float SkillLevelValueCopy(int skill);
 
     // Applies `hit` (from `weapon`'s attack, may be null): UnitStatsFlag Head / Electrical, the
     // vitals' protection (scaled by the difficulty for units without a player), wear of the
@@ -684,8 +683,8 @@ struct UnitStats {
     void LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // The attack skill for weapon type `type` (0-4 use skill 0, 5 and 6 skill 1, 8 the bonused skill 0;
     // others 0): for text-key units the skill byte, the weapon prototype's bonus and the stat the skill's
-    // name starts with minus 25, plus the level value of skill `type`. Unrounded.
-    double WeaponSkillBonus(int type, CUnit* unit);
+    // name starts with minus 25, plus the level value of skill `type`.
+    float WeaponSkillBonus(int type, CUnit* unit);
     // Can the unit learn skill level `record` of the skill database: learnable, the three stats at least the
     // record's, the required attribute and skill level present unless named "none" or empty, no known level
     // of the same skill id in another skill, and the record's own level above the one known. 0/1.
@@ -720,11 +719,11 @@ struct UnitStats {
     void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out);
     // Attribute `index` for skill checks: the attribute byte for units without a text key; otherwise the
     // attribute with its stat bonus (stat - 25; 0 for other indices) plus the largest bonus of the unit's
-    // quick items. Unrounded.
-    double AttributeWithItems(int index, CUnit* unit);
+    // quick items.
+    float AttributeWithItems(int index, CUnit* unit);
     // The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3 (schools 0-2), 4 (3-4)
-    // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25. Unrounded.
-    double SpellSchoolSkill(int school);
+    // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25.
+    float SpellSchoolSkill(int school);
 
     std::uint32_t builtFlags;           // bit 0 set when built from the prototype
     float experience;
@@ -854,13 +853,13 @@ void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKi
 // `amount`.
 void WearArmour(CUnit* unit, int location, int layer, float amount);
 // The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
-double WeaponPrototypeSkillBonus(std::uint32_t itemId);
+float WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1: (1 +
 // strengthen * k) / (1 + weaken * k), 1 without a unit.
 float ScaleDamageByEffects(CUnit* unit, float value);
-// The scale itself with k = 0.005, unrounded.
-double HitPointEffectScale(CUnit* unit);
+// The scale itself with k = 0.005.
+float HitPointEffectScale(CUnit* unit);
 // `value` scaled with k = 0.005, at least 1.
 float ScaleHitPointsByEffects(CUnit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);

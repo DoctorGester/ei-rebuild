@@ -3,7 +3,7 @@
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h). The game's x87
 // code ran at 24-bit precision, where every operation rounds to a float: float maths here, and
-// lib/rounded_ops.h where an operand is an int or a double that a float cannot hold.
+// lib/pc24.h where an operand is an int or a double that a float cannot hold.
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
@@ -25,7 +25,7 @@
 #include "world_glue.h"
 
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -51,11 +51,11 @@ float SquaredDistance(float x, float y, float centreX, float centreY) {
 // value * range / (2^32 - 1): the game multiplies the 32-bit value (loaded whole) by the range, then by the double
 // 1 / (2^32 - 1) = 2^-32 (1 + 2^-32), which rounds the rounded product to the product times 2^-32: the same as the
 // range times value * 2^-32 (exact in a double) rounded once.
-float ScaleRandom(std::uint32_t value, float range) { return lib::RoundedProduct(range, value * 0x1p-32); }
+float ScaleRandom(std::uint32_t value, float range) { return pc24::Mul(range, value * 0x1p-32); }
 
 // (float)(time + add) rounded to nearest: the sum (the int loaded whole) is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
-    return lib::RoundEven(lib::RoundedSum(static_cast<double>(time), extra));
+    return lib::RoundEven(pc24::Add(static_cast<double>(time), extra));
 }
 
 // The game's _ftol: truncating conversion; out-of-range values keep the low 32 bits
@@ -85,7 +85,7 @@ WorldAlarm& Alarm(int index) { return g_serverWorld.alarms[index]; }
 // GetWorldTime: (time * scale + offset) mod 24 (the tick loaded whole; fmod is exact).
 float WorldTimeOfDay() {
     const WorldServer* world = &g_serverWorld;
-    return std::fmod(lib::RoundedProduct(world->secondsPerTick, world->tick) + world->timeBase, 24.0f);
+    return std::fmod(pc24::Mul(world->secondsPerTick, world->tick) + world->timeBase, 24.0f);
 }
 
 // What a unit sees: the AI brain's visible list.
@@ -206,7 +206,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
-        if (CUnit* unit = UnitOrNull(o)) *result = lib::RoundedSum(unit->GroundHeight(x, y), z);   // (o is not null)
+        if (CUnit* unit = UnitOrNull(o)) *result = pc24::Add(unit->GroundHeight(x, y), z);   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }

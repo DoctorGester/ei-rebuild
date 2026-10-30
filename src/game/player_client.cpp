@@ -27,7 +27,7 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -86,7 +86,7 @@ constexpr int kNumberExperience = 8;
 // here gives the same 256 doubles as the x87 build's (an equivalence test, docs/notes/cleanup-tooling.md).
 int ScaledExperience(const CUnit* unit, float amount) {
     const double power = std::pow(1.04, static_cast<float>(unit->params.intelligence) - 25.0f);
-    return lib::RoundEven(lib::RoundedProduct(amount, power));
+    return lib::RoundEven(pc24::Mul(amount, power));
 }
 
 bool IsQuestVariable(const std::string& name) {

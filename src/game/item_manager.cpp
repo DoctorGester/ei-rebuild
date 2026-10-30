@@ -10,7 +10,7 @@
 #include "text_split.h"
 
 #include "lib/crt.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
@@ -65,7 +65,7 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
     }
     // Price: the prototype's material units (unsigned; the product rounded once) times the material's unit price,
     // plus the prototype's price.
-    record->price = lib::RoundedProduct(material->unitPrice, prototype->materialUnits) + prototype->price;
+    record->price = pc24::Mul(material->unitPrice, prototype->materialUnits) + prototype->price;
     record->weight = prototype->weight * material->weightFactor;
     record->unreadValue = prototype->unreadValue;
     record->charge = prototype->charge + material->magicPower;

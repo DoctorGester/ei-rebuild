@@ -3,7 +3,7 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -86,7 +86,7 @@ std::uint32_t IsaacRandom::Next() {
 float IsaacRandom::Range(float min, float max) {
     // The draw (a 32-bit integer) times the range, rounded once to a float as the original's multiply at 24-bit
     // precision; the scale is exact (in the normal float range); the sum is the float sum.
-    return lib::RoundedProduct(max - min, static_cast<double>(Next())) * kRangeScale + min;
+    return pc24::Mul(max - min, static_cast<double>(Next())) * kRangeScale + min;
 }
 
 void IsaacRandom::Refill() {

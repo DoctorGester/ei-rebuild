@@ -6,7 +6,7 @@
 #include "item.h"
 #include "object_tables.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cmath>
@@ -50,7 +50,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
         ItemArmor* piece = unit->armor[i];
         if (!piece) continue;
         float condition = piece->condition;
-        if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // to nearest
+        if (lib::RoundEven(condition) > 0) AddArmourLayer(piece);   // to nearest
     }
 }
 
@@ -59,15 +59,15 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
     int top = keyed ? 2 : 0;
     const UnitStatSlot& body = slots[kBodySlot];
     for (int k = 0; k < 7; ++k) {
-        double value = vitals->protection[k].current;   // summed on the FPU stack
+        float value = vitals->protection[k].current;
         for (int j = top; j >= 0; --j) {
             if (body.layers[j].state >= kLayerThere) value += body.layers[j].absorb[k];
         }
-        out->words[1 + k] = static_cast<std::uint16_t>(x87::RoundToInt(static_cast<float>(value)));
+        out->words[1 + k] = static_cast<std::uint16_t>(lib::RoundEven(value));
     }
 }
 
-double UnitStats::AttributeWithItems(int index, CUnit* unit) {
+float UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!IsTextKey(unit->id)) return attributes[index];    // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
@@ -78,21 +78,22 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
         best = best >= bonus ? best : bonus;   // a select
     }
     switch (index) {
-    case 0: return (dexterity - kStatBase) + static_cast<double>(attributes[0]) + best;
-    case 1: return (dexterity - kStatBase) + static_cast<double>(attributes[1]) + best;
-    case 2: return (intelligence - kStatBase) + static_cast<double>(attributes[2]) + best;
-    default: return 0.0f + static_cast<double>(best);
+    case 0: return (dexterity - kStatBase) + attributes[0] + best;
+    case 1: return (dexterity - kStatBase) + attributes[1] + best;
+    case 2: return (intelligence - kStatBase) + attributes[2] + best;
+    default: return 0.0f + best;
     }
 }
 
-double UnitStats::SpellSchoolSkill(int school) {
+float UnitStats::SpellSchoolSkill(int school) {
     if (school == 4) school = 3;
     else if (school == 6 || school == 7) school = 5;
-    double base = 0.0;
+    float base = 0.0f;
     if (school >= 0 && school <= 2) base = skills[3];
     else if (school >= 3 && school <= 4) base = skills[4];
     else if (school >= 5 && school <= 7) base = skills[5];
     // skillLevels[school + 7] and its record.
-    double level = SkillLevelValue(school + 7);
+    float level = SkillLevelValue(school + 7);
+
     return (base + level) + (intelligence - kStatBase);
 }

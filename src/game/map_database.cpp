@@ -10,7 +10,7 @@
 #include "object_tables.h"
 #include "world.h"
 
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "lib/text_case.h"
 
 #include <cstdlib>
@@ -22,7 +22,7 @@ namespace {
 
 // *out = std::atof(text) * (pi * 1/180): degrees to radians, the double times the float factor rounded once to a
 // float as the original's multiply at 24-bit precision (the map database loads after the device exists).
-void StoreRadians(float* out, const char* text) { *out = lib::RoundedProduct(ei::kRadiansPerDegree, std::atof(text)); }
+void StoreRadians(float* out, const char* text) { *out = pc24::Mul(ei::kRadiansPerDegree, std::atof(text)); }
 
 bool Is(const char* word, const char* text) {
     return std::strcmp(word, text) == 0;

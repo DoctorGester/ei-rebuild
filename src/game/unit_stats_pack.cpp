@@ -2,10 +2,10 @@
 // UnitVitalsPacked). See unit.h.
 #include "unit.h"
 
-#include "ei/x87.h"
-#include "lib/crt.h"
+#include "lib/rounding.h"
 
 #include <bit>
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -16,12 +16,15 @@ constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
 
 // Rounded to the nearest integer after a store to float.
-int RoundStored(float value) { return x87::fistp(value); }
+int RoundStored(float value) { return lib::RoundEven(value); }
+
+// Truncated as _ftol does: the low half of the 64-bit integer (0 for a NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 // round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).
 std::uint8_t ScaledByte(float value, float scale, float divisor) {
     float scaled = value * scale / divisor;
-    auto rounded = static_cast<std::uint32_t>(x87::fistp(scaled));
+    auto rounded = static_cast<std::uint32_t>(lib::RoundEven(scaled));
     if (rounded > 0xFF) rounded = 0xFF;
     return static_cast<std::uint8_t>(rounded);
 }
@@ -91,8 +94,8 @@ void UnitStats::Pack(UnitParams* params) {
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(movementKind);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
-    params->damage = static_cast<std::uint8_t>(libcrt::Ftol(damage));         // truncated
-    params->damageSpread = static_cast<std::uint8_t>(libcrt::Ftol(damageSpread));
+    params->damage = static_cast<std::uint8_t>(Truncate(damage));
+    params->damageSpread = static_cast<std::uint8_t>(Truncate(damageSpread));
     params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
         params->perception[i] = static_cast<std::uint8_t>(RoundStored(perception[i].current));
@@ -107,9 +110,10 @@ void UnitStats::Pack(UnitParams* params) {
         out.current = static_cast<std::int16_t>(RoundStored(slot.current));
         out.maximum = static_cast<std::uint16_t>(RoundStored(slot.maximum));
         for (int type = 0; type < 7; ++type) {
-            double sum = 0.0;   // accumulated on the FPU stack
+            float sum = 0.0f;
             for (const UnitStatLayer& layer : slot.layers) sum += layer.absorb[type];
-            out.protection[type] = static_cast<std::int16_t>(RoundStored(static_cast<float>(sum)));
+            out.protection[type] = static_cast<std::int16_t>(RoundStored(sum));
+
         }
     }
     std::memcpy(params->attributes, attributes, sizeof(params->attributes));

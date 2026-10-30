@@ -40,15 +40,15 @@ constexpr float kFactorStatRange = /*007AF280*/ 20.0f;
 
 } // namespace
 
-double UnitStats::StrengthRatio() { return strength / g_logicSettings.hpVal[0]; }
+float UnitStats::StrengthRatio() { return strength / g_logicSettings.hpVal[0]; }
 
-double UnitStats::DexterityRatio() { return dexterity / g_logicSettings.mpVal[0]; }
+float UnitStats::DexterityRatio() { return dexterity / g_logicSettings.mpVal[0]; }
 
-double UnitStats::Period20() { return kStatBase / intelligence; }
+float UnitStats::Period20() { return kStatBase / intelligence; }
 
 float UnitStats::AttributeBase(int index) { return static_cast<float>(attributes[index]); }
 
-double UnitStats::AttributeWithBonus(int index) {
+float UnitStats::AttributeWithBonus(int index) {
     switch (index) {
     case 0: return (dexterity - kStatBase) + static_cast<float>(attributes[0]);
     case 1: return (dexterity - kStatBase) + static_cast<float>(attributes[1]);
@@ -59,7 +59,7 @@ double UnitStats::AttributeWithBonus(int index) {
 
 float UnitStats::SkillBase(int index) { return static_cast<float>(skills[index]); }
 
-double UnitStats::SkillWithBonus(std::uint32_t index) {
+float UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(skills[index]);
     // The first letter of the skill's first stat name picks the stat; a missing record faults.
     const SkillRecord* skillRecord = unitdb::SkillAt(index);
@@ -84,7 +84,7 @@ float UnitStats::WeaponSkill(int type) {
     return unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
 }
 
-double UnitStats::SkillLevelValue(int index) {
+float UnitStats::SkillLevelValue(int index) {
     std::uint8_t level = skillLevels[index];
     if (level != 0) {
         const ::SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
@@ -93,8 +93,8 @@ double UnitStats::SkillLevelValue(int index) {
     return 0.0f;
 }
 
-double UnitStats::ScaledStrength() {
-    double scaledStrength = strength * kTwelve;   // kept on the FPU stack
+float UnitStats::ScaledStrength() {
+    float scaledStrength = strength * kTwelve;
     std::uint8_t level = skillLevels[kScaledStrengthSkill];
     if (level != 0) {
         const ::SkillLevelRecord* record = unitdb::SkillLevelAt(level + kScaledStrengthLevelBase);
@@ -105,8 +105,8 @@ double UnitStats::ScaledStrength() {
     return (0.0f * kPercent + 1.0f) * scaledStrength;
 }
 
-double UnitStats::BackstabFactor() {
-    double base = g_logicSettings.backstabAdd;
+float UnitStats::BackstabFactor() {
+    float base = g_logicSettings.backstabAdd;
     std::uint8_t level = skillLevels[kBackstabSkill];
     if (level != 0) {
         const ::SkillLevelRecord* record = unitdb::SkillLevelAt(level + kBackstabLevelBase);
@@ -117,8 +117,8 @@ double UnitStats::BackstabFactor() {
     return 0.0f * kPercent + base;
 }
 
-double UnitStats::Reduce(float value) {
-    double taken = 0.0;   // accumulated on the FPU stack
+float UnitStats::Reduce(float value) {
+    float taken = 0.0f;
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind < 1) continue;
         if (slot.current >= 0.0f) {
@@ -127,23 +127,24 @@ double UnitStats::Reduce(float value) {
             taken = value * slot.factor + taken;   // also NaN
         }
     }
-    return value - taken;   // unrounded
+    return value - taken;
 }
 
-double UnitStats::ReduceKind1(float value) {
-    double taken = 0.0;
+float UnitStats::ReduceKind1(float value) {
+    float taken = 0.0f;
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind == 1) taken = value * slot.factor + taken;
     }
-    return value - taken;   // unrounded
+    return value - taken;
 }
 
 void UnitStats::GetFactors(float* scaleX, float* scaleY, int) {
-    double x = (strength - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
-    double y = 1.0f - (dexterity - kFactorBase) / kFactorStatRange;
-    *scaleX = static_cast<float>(y * kPointThree + x * kPointSeven);
-    *scaleY = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
+    float x = (strength - kFactorBase) / kFactorStatRange;
+    float y = 1.0f - (dexterity - kFactorBase) / kFactorStatRange;
+    *scaleX = y * kPointThree + x * kPointSeven;
+    *scaleY = (y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo;
 }
+
 
 int LockKey::Opens(const LockKey* lock) const {
     std::uint32_t common = lock->mask & mask;

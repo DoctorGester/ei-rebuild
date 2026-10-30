@@ -4,7 +4,6 @@
 // read from / written to the tagged-chunk archive (model.h, ChunkArchive); the field ids are the archive's. See
 // docs/notes/units.md ("Database records").
 
-#include "ei/x87.h"
 #include <cstdint>
 #include <string>
 #include "maths.h"
@@ -260,8 +259,9 @@ struct SkillLevelRecord {
     // stat 0 strength, 1 dexterity, 2 intelligence.
     float RequiredStat(int stat) const { return std::bit_cast<float>(values[3 + stat]); }
 
-    // The level's value (values[7], unsigned; exact).
-    double Value() const { return x87::FromUnsigned(values[7]); }
+    // The level's value (values[7], unsigned): a percentage or a stat bonus, exact as a float (the original's
+    // integer load is exact up to 2^32; the data's values are small).
+    float Value() const { return static_cast<float>(values[7]); }
     // The worth exponent the skill prices use (values[6], signed).
     int WorthExponent() const { return static_cast<int>(values[6]); }
 };

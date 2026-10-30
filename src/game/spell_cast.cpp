@@ -9,7 +9,7 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 
 
 #include <cstring>
@@ -30,7 +30,7 @@ const char* const kCantEnd = "Can't end spell construction\n";
 
 // value * factor (rounded once) truncated as _ftol does: through a 64-bit integer, 0 for a NaN.
 int ScaleTruncate(std::uint32_t value, float factor) {
-    return static_cast<int>(static_cast<std::int64_t>(lib::RoundedProduct(factor, value)));
+    return static_cast<int>(static_cast<std::int64_t>(pc24::Mul(factor, value)));
 }
 
 // sqrt(area / pi).

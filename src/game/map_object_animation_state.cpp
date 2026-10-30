@@ -7,7 +7,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 
 namespace {
 constexpr std::uint32_t kKeyEndMask = AnimationKeyOf(AnimationKeyFlag::Once | AnimationKeyFlag::Looped);   // what happens at the end
@@ -83,7 +83,7 @@ void FigureAnimationState::SetTime(float frame) {
     while (current) {
         double frames = current->frameCount;   // exact, where a float would round a count above 2^24
         if (frames >= time) break;             // on while below the frame reached, or NaN
-        time = lib::RoundedSum(time, -frames);
+        time = pc24::Sub(time, frames);
         if (onEnd) onEnd(owner);
         if (!queue.empty()) {
             current = PopQueued(this);

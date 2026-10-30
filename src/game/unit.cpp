@@ -2,9 +2,10 @@
 
 #include "ai_map.h"      // AIPath
 #include "ai_motion.h"   // UnitMotion
-#include "ei/x87.h"
 #include "item.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "logic_settings.h"
 #include "party.h"
 #include "player_messages.h"
@@ -69,8 +70,8 @@ void RemoveFromSlots(CUnit* unit, Item** slots, std::uint32_t slot) {
 }
 
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
-double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
-    double base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
+float ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
+    float base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;
     std::uint8_t speed;
     switch (mode) {
     case 0: speed = unit->params.modeSpeeds[3]; break;
@@ -235,8 +236,8 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     return spells[slot]->spell;
 }
 
-double CUnit::TotalItemWeight() {
-    double total = 0.0;   // accumulated on the FPU stack
+float CUnit::TotalItemWeight() {
+    float total = 0.0f;
     for (Item* item : weapons) {
         if (item) total += ItemWeight(item);
     }
@@ -249,7 +250,7 @@ double CUnit::TotalItemWeight() {
     for (Item* item : armor) {
         if (item) total += ItemWeight(item);
     }
-    return total;   // unrounded
+    return total;
 }
 
 bool CUnit::CanCastSpell(std::uint32_t slot) {
@@ -259,7 +260,7 @@ bool CUnit::CanCastSpell(std::uint32_t slot) {
     if (!spell) return false;
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
-    double needed = params.Period() * cost;
+    float needed = params.Period() * cost;
     EI_NAN_AUDIT(needed);
     return !(available < needed);   // a NaN cost can cast
 }
@@ -303,11 +304,11 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     *backward = g_logicSettings.rotateSpeedMult * *backward;
 }
 
-double CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
+float CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
 
-double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
+float CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
 
-double CUnit::ScaledValue(float value) {
+float CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
     if (flags & MapObjectFlag::ChoosingTarget) {
         float capped = value >= kTen ? kTen : value;   // NaN is kept
@@ -316,13 +317,13 @@ double CUnit::ScaledValue(float value) {
     return kNoPlayerValue;
 }
 
-double CUnit::BaseSpeed() {
+float CUnit::BaseSpeed() {
     if (lib::Has(bounds.flags, BoundsFlag::Box)) return bounds.boxMax.z * kFastSpeedScale;
-    return bounds.radius * kWalkSpeedScale + bounds.center.z;
+    return pc24::Mul(bounds.radius, kWalkSpeedScale) + bounds.center.z;
 }
 
-double CUnit::ModeSpeed() {
-    float speed = static_cast<float>(BaseSpeed());   // stored as a float
+float CUnit::ModeSpeed() {
+    float speed = BaseSpeed();
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
@@ -378,16 +379,16 @@ bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
     return (entry->flags & required) == required;
 }
 
-double CUnit::AnimationRatio() {
+float CUnit::AnimationRatio() {
     float denominator = AnimationFactor(baseScale.z);
     return AnimationFactor(scale.z) / denominator;
 }
 
-double UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }   // unrounded
+float UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }
 
 // --- Map object state ------------------------------------------------------------------------
 
-bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
+bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(lib::RoundEven(vitals.hitPoints)) <= 0; }
 
 bool MapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
@@ -413,7 +414,8 @@ void CUnit::SetMotionSpeeds(float speed, float turnRate) {
 
 bool CUnit::HasPlayer() const { return player != nullptr; }
 
-double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
+float CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
+
 
 ItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
 

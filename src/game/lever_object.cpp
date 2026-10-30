@@ -10,7 +10,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 
 #include <initializer_list>
 #include <new>
@@ -60,7 +60,7 @@ bool Lever::RunTick() {
     if (WorldContext()->IsServer()) return false;
     Vector3 shown = {scale.x, scale.y, scale.z};
     // The tick (an int) subtracted with one rounding.
-    float t = lib::RoundedSum(endTick, -static_cast<double>(g_clientWorld.tick)) * rate;
+    float t = pc24::Sub(endTick, static_cast<double>(g_clientWorld.tick)) * rate;
     if (t > 0.0f) {
         shown.y = to - (to - from) * t;
         Object3D()->SetFigureScale(&shown.x);

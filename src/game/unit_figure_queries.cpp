@@ -8,6 +8,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -32,7 +33,7 @@ const char* const kChestPart = "chest";
 const char* const kMosquito = "unmosp";
 const char* const kRightHand = "rh3";
 
-constexpr double kNoExtent = 0.0;
+constexpr float kNoExtent = 0.0f;
 constexpr float kExtentScale = 1.0f;
 constexpr float kMosquitoExtentScale = 2.0f;
 
@@ -75,7 +76,7 @@ FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
     return entry;
 }
 
-double CUnit::BodyExtent() {
+float CUnit::BodyExtent() {
     int part = FindPartIndex(kBodyPart);
     if (part < 0) {
         part = FindPartIndex(kChestPart);
@@ -84,17 +85,17 @@ double CUnit::BodyExtent() {
     float extentScale = kExtentScale;
     if (MapType() == MapObjectType::Creature && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
     const Vector3& corner = partBoxes[part].bounds.boxMax;
-    double y = corner.y;
-    double x = corner.x;
-    return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
+    return extentScale * std::sqrt(LengthSquared2DUnrounded(corner.y, corner.x));
 }
 
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition.z;
-    return world->SurfaceHeightAt(x, y) + heightOffset;
+    // The world's double plus a float: one rounding.
+    if (controller->GetClassId() == ClassId::UnitServer) return pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
+    return pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
 }
+
 
 Vector3* CUnit::EffectPoint(Vector3* out) {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns

@@ -18,7 +18,7 @@
 
 #include "lib/calendar.h"
 #include "lib/file_io.h"
-#include "lib/rounded_quotient.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -284,7 +284,7 @@ void Give(std::vector<std::string>* args) {
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
         int count = std::ssize(player->Party()->members);
         // The typed number over the count, rounded once to a float (the original's division at 24-bit precision).
-        const float share = lib::RoundedQuotient(str::ToDouble((*args)[2]), count);
+        const float share = pc24::Div(str::ToDouble((*args)[2]), count);
         for (int i = 0; i < count; ++i)
             player->Party()->members[i].stats.AddScaledExperience(share);
         return state->SendParty();

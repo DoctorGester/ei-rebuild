@@ -291,15 +291,15 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   saves, messages) keep their type and receive the float value.
 - **double constants wider than a float** in arithmetic: FLD keeps all 53 bits and the one operation rounds, where
   `x * 0.001f` rounds the constant first. 39 such literals in 29 of the files left (pi, 0.001, 0.01, 1.04, 1.61, 0.7,
-  0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: the operation in double,
-  then a fix-up where the double result sits on a float tie (the error term from Dekker's two-product / two-sum
-  says which way the exact result lies): `lib::RoundedProduct(float, double)` and `lib::RoundedSum(double, double)`
-  (lib/rounded_ops.h, SSE2 only; C30e3's test: 50 M cases, a million of them where the double then float rounding
-  differs, 0 differ from the x87 form). A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
-  The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`);
-  `RoundedProduct(x, word * 0x1p-32)` (the scaling exact in the double) keeps the x87 result where the product
-  `x * word` alone would pass 3.4e38. A zero, infinite or NaN product is the plain double product (C30e2: the split
-  turned an infinity times a zero half into a NaN and lost a zero's sign).
+  0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: `pc24::Mul / Add / Sub /
+  Div` (below: the exact result as a double-double, then one rounding to 24 bits; C30e3's test, rerun against them in
+  C30e16: 50 M cases, a million of them where the double then float rounding differs, 0 differ from the x87 form;
+  every pair of 29 special operands, as float or double, through all four: zeros, infinities, NaNs, denormals, the
+  float and double range ends, 0 of 3,364 differ).
+  A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
+  The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`).
+  `pc24::Mul(x, word * 0x1p-32)` (the scaling exact in the double) keeps the x87 result where the product `x * word`
+  alone would pass 3.4e38. A zero, infinite or NaN product is the plain double product.
   A single operation on two floats done in double and then stored as float is the float operation (53 >= 2 x 24 + 2:
   double rounding is harmless there); a chain of them in double is not.
 - **ints above 2^24** in float arithmetic: FILD is exact and the operation rounds once; float maths converts first.
@@ -336,7 +336,7 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
   of few significant bits (the test's half integers) the product with f can lie that near a float rounding boundary.
   Accepted. NaNs: of two NaN
-  operands the FPU takes the larger significand, as `Add` .. `Div` do, but a signalling float operand loses to a
+  operands the FPU takes the larger significand (of equal ones the positive), as `Add` .. `Div` do, but a signalling float operand loses to a
   quiet one in the FPU, and a float converted to double is already quiet (nan-bits cases only, never a number).
 - **x87 code in SSE2 objects:** a float returned by a call comes back in ST0 (the x86 calling convention), and the
   compiler may do the next float operation there (`pc24::Exp(...) - 0.2f` is an FSUB). One such operation on two floats
@@ -392,7 +392,7 @@ minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (
 **C30e11 (map objects; 10 files).** No transcendental, wide constant or large int but two operands: the bounds, cage
 interpolation, track lerps, scale steps, light reach and the companion light's distance are float maths in the
 original's order (the double locals were PC24 registers); the ground height (`GridHeightAt`, a double) plus a float and
-the animation time minus the frame count (a uint32 as a double) go through `lib::RoundedSum`. `AnimationDatabase::TimeFactor`
+the animation time minus the frame count (a uint32 as a double) go through `pc24::Add` / `Sub`. `AnimationDatabase::TimeFactor`
 (map_object_figures.h, inlined in figure_bones' x87 object too) and `CObject3D::AnimationFactor` return float: at PC24
 their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track's key frame), `modf` on the float.
 Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),
@@ -404,7 +404,7 @@ plausible. The truncations (`Ftol`, 72 calls): the game's `_ftol` is `Truncate` 
 own CVTTSD2SI is `TruncateOrMin` (0x80000000 for NaN and out of range), unchanged. `fistp` / `RoundToInt` ->
 `lib::RoundEven`, addon's `Store` and `CopyBits` -> `=`. Float maths: the distances (vecmath's `Length2D` /
 `DistanceSquared2D`; IsInArea's squared distance is a float), `LightStep`, addon's `Round` / `Ceil` / `Floor` on
-floats. Through the helpers: `ScaleRandom` and the FX source offset (`RoundedProduct(x, word * 0x1p-32)`),
+floats. Through the helpers: `ScaleRandom` and the FX source offset (`pc24::Mul(x, word * 0x1p-32)`),
 `RoundTimeOffset` (the int plus the float), `GetWorldTime` (the tick times seconds per tick; fmod is exact), `GetZ`
 (the unit's double ground height plus z). addon's sin / cos / pow stay the host CRT's calls: the x87 and the SSE2
 object call the same UCRT functions (SSE2 code inside), equal on all 2^32 floats (sin, cos) and 48 M pairs (pow).
@@ -414,6 +414,21 @@ and with |x| 2^-30 to 2^60 plus zeros, infinities, NaN and the int edges. Left, 
 of squares past 3.4e38 (coordinates beyond 1.8e19) or under 1.2e-38 (two coordinates within 1e-19), an FX spread beyond 1.7e38 (twice it
 passes the float range) and denormal results; and when two different NaNs meet in one operation, which one comes out
 (x87: the larger significand; SSE2: the first operand).
+
+**C30e6 (units; 20 files).** The stats' double locals and returns were PC24 registers: unit.h's and unit_db.h's
+returns (Reduce, the curves, Period20, the speeds, TotalItemWeight, WeaponSkillBonus ...) are float, the maths in the
+original's order. The experience curves: `pc24::Div(pc24::Log(e / d), pc24::Log(base))` into `libcrt::CiPow`, whose
+result at PC24 is a float; `CiPow(1.04, ...)`, `CiPow(1.61, ...)`. SkillPrice (the original's disassembly):
+`_CIpow` for the worth, the perk power and 10^floor(log10 price), the log's 64-bit result stored to a double for the
+CRT's floor (`pc24::Log10(price).hi`), so the host CRT's `std::pow` there became `libcrt::CiPow` (its vectors, SkillPrice
+and SchoolPrice, replay at 0 failures). Through pc24: the ints added to a float (RaiseLevel's cost, the scripts' stat
+raises), the worth exponent over Skill Val 2, the 0.7 of `BaseSpeed`, the stamina drain step (a double), the world's
+double surface height plus z (`GroundHeight`, `StandPoint`, `PlaceOnGround`), the FCOS of the sight cones (pi times
+1/180, both doubles). `x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `Ftol` -> int64 truncation. The skill level
+values (`SkillLevelRecord::Value`, a data dword the original loads exactly) are floats: percentages and stat bonuses,
+far below 2^24. Kept double: `GroundHeight` / `StandPoint`'s world height and the virtual `MoveSpeed`, the 0.001 heal
+threshold compare. ei_vectors builds unit_stats / unit_params_* / unit_skill_price for x87 still, with pc24.cpp in
+`ei_vectors_sse2` (C30e1's split) and crt_x87.cpp for `CiPow`.
 
 **Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
 Each one focused area, one worker session, after C30e4 where it has a transcendental:
@@ -425,7 +440,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
 | C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
 | C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
-| C30e6 units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
+| C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
 | C30e8 AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
 | C30e9 unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
@@ -442,9 +457,9 @@ the sums (`SessionBase::time`, `Connection::clock`, `SentPacket::time`) keep the
 their differences are float differences (`Age`). net_connection_tick's `D()` registers, the round-trip averages, the
 lobby's and the server's timers, the use order's distance (`(dz dz + dy dy) + dx dx` in float), the formation
 offsets, the stat fractions: float maths. Through the exact helpers: `IsaacRandom::Range` (the draw times the range by
-`lib::RoundedProduct`, then 2^-32), map_database's degrees (an `atof` double times the float factor),
+`pc24::Mul`, then 2^-32), map_database's degrees (an `atof` double times the float factor),
 `ScaledExperience` (the double power times the float amount), the old disk-space product, and the divisions
-`BufferRatio` (int / int, now a float return) and the console's exp share (`lib::RoundedQuotient`,
+`BufferRatio` (int / int, now a float return) and the console's exp share (`pc24::Div`,
 lib/rounded_quotient.h: the double quotient, its remainder's sign by two-product). player_client's `std::pow(1.04,
 k)`: the SSE2 call gives the same 256 doubles as the x87 build's `__CIpow`, so it stays `std::pow`. **Precision at
 start-up:** options' loader runs before the device exists (53-bit: its `value * 255` and `value * (1 / 255)` stay
@@ -452,8 +467,8 @@ double maths), the saver at shut-down after it (24-bit: `value * 255` is a float
 own helpers (`LoadedTimes255`, `SavedTimes255`); `Ftol` truncates through int64. **ei_vectors** builds each game
 file as the game does: the files of `EI_X87_GAME_SOURCES` in the executable, the rest in `ei_vectors_sse2` linked
 whole after it (Range's vectors, all recorded at control word 007F, replay against the SSE2 code). Equivalence test
-(C30e1's `eq/`, each old expression built /arch:IA32 at PC24 against the new): `RoundedProduct` and
-`RoundedQuotient` 2^28 cases each (random and built on float ties: 36 M and 33 M where double then float differs),
+(C30e1's `eq/`, each old expression built /arch:IA32 at PC24 against the new): `RoundedProduct` (now `pc24::Mul`) and
+`RoundedQuotient` (now `pc24::Div`) 2^28 cases each (random and built on float ties: 36 M and 33 M where double then float differs),
 Range for every draw of three ranges and 2^28 random, `ScaledExperience` 2^28 (each of the 256 powers), the map's
 degrees for every 3-decimal text in [-1000, 1000], `BufferRatio` 2^27, the share 2^26, the saver's product on every
 float: 0 differ. Behaviour change: a signalling NaN in a variable table or an award keeps its bits (SSE2 copies).

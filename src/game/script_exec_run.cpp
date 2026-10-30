@@ -9,7 +9,7 @@
 #include "world_effect.h"
 
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -38,7 +38,7 @@ void EffectMoved(EngineObject* object) { static_cast<CEffect*>(object)->MarkChan
 // same as (r - (-r)) times random * 2^-32 (exact in a double) rounded once.
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
-    return lib::RoundedProduct(radius - negative, random * 0x1p-32) + negative;
+    return pc24::Mul(radius - negative, random * 0x1p-32) + negative;
 }
 
 void RespawnFxSources(Script* script) {

@@ -9,7 +9,7 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "lib/rounded_quotient.h"
+#include "lib/pc24.h"
 
 #include <cstring>
 
@@ -66,7 +66,7 @@ float ClientSession::BufferRatio(GameBuffer* buffer) {
     std::uint32_t stored;
     buffer->ReadBytes(&stored, 4);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
-    return lib::RoundedQuotient(streamSize(), divisor);
+    return pc24::Div(streamSize(), divisor);
 }
 
 } // namespace net

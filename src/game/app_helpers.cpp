@@ -15,7 +15,7 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 
 #include <cstdint>
 #include <memory>
@@ -45,8 +45,8 @@ double DiskFreeSpace(const char* path) {
     }
     DWORD sectorsPerCluster, bytesPerSector, freeClusters, totalClusters;
     if (!gameapi::GetDiskFreeSpaceA(path, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters)) return 0.0;
-    const float clusterBytes = lib::RoundedProduct(static_cast<float>(sectorsPerCluster), bytesPerSector);
-    return lib::RoundedProduct(clusterBytes, freeClusters);
+    const float clusterBytes = pc24::Mul(static_cast<float>(sectorsPerCluster), bytesPerSector);
+    return pc24::Mul(clusterBytes, freeClusters);
 }
 
 bool QuitGame(int exitCode) {

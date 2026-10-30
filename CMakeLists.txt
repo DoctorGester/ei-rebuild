@@ -62,11 +62,6 @@ set(EI_X87_GAME_SOURCES
     game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party
     game/world_quests game/world_rules game/world_save game/world_server game/world_spells game/world_sync
     game/world_tick game/world_time game/world_unit_set_add game/world_units game/world_update game/world_weather
-    # C30e6: units
-    game/unit game/unit_armour_layers game/unit_create_stats game/unit_figure_queries game/unit_hits game/unit_lever
-    game/unit_motion_tick game/unit_params_protection game/unit_params_skill game/unit_points game/unit_record
-    game/unit_size_class game/unit_skill_price game/unit_skins game/unit_stat_small game/unit_stats game/unit_stats_pack
-    game/unit_update game/unit_vision game/unit_vitals
     # C30e7: combat
     game/combat game/combat_actions game/combat_motion game/combat_orders game/combat_planning game/combat_sight
     game/combat_spell_sight game/combat_steps game/combat_taming game/combat_tick game/combat_update
@@ -341,6 +336,7 @@ set(EI_VECTORS_GAME_SOURCES
     src/game/unit_stats.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
+    src/lib/crt_x87.cpp
     src/lib/file_io.cpp
     src/lib/hash_map.cpp
     src/lib/pc24.cpp
