@@ -1242,7 +1242,7 @@ game, the `--no-hooks` suite) keeps the registry.
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller). Our
 code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files platform::File /
-TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads lib/thread.h.
+TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads platform/thread.h.
 - **CString**: the static initialisers of CString's four fixed allocators (00700718 .. 007007AB, 007C8B80 ..
   007C8B08) and of the temporary DCs' and GDI objects' CFixedAlloc (007C8D18 / 007C8CF0) are gen_static_init.py's
   UNUSED_INITIALISERS. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the real MakeUpper,
@@ -1257,7 +1257,7 @@ TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h
   own message boxes of MFC's kind are app::ShowLibraryMessageBox.
 - **Replacements**: CTime is lib/calendar.h (VC6's time() from GetLocalTime through the import, `_mktime32`,
   `_localtime32_s` / strftime); the GDI classes and handle maps are lib/gdi.h's gdi::Font / Pen / Brush (PointFont =
-  CreatePointFont, FillSolidRect); the threads are lib/thread.h's StartThread (`_beginthreadex` suspended, the priority
+  CreatePointFont, FillSolidRect); the threads are platform::Thread (`_beginthreadex` suspended, the priority
   set, resumed, as AfxBeginThread); the new handler is libcrt::OperatorNew, which throws the CMemoryException itself.
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
   constructors / FormatMessage; CPtrList, CPtrArray.
