@@ -230,9 +230,8 @@ bool Enabled() {
 }
 
 void Install() {
-    char path[MAX_PATH];
-    ei::OutputPath("watch.txt", path);
-    if (fopen_s(&g_file, path, "w") != 0 || !g_file) return;
+    const std::string path = ei::OutputPath("watch.txt");
+    if (fopen_s(&g_file, path.c_str(), "w") != 0 || !g_file) return;
     ModuleRange(GetModuleHandleA("addon.dll"), g_addonBase, g_addonEnd);
     HMODULE self = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,

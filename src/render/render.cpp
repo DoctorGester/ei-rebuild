@@ -75,16 +75,9 @@ void ParseSpec(const char* spec) {
     g_configured = true;
 }
 
-std::string EnvironmentSpec() {
-    char spec[256];
-    DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
-    if (n > 0 && n < sizeof(spec)) return std::string(spec);
-    return std::string();
-}
-
 void EnsureConfigured() {
     if (g_configured) return;
-    ParseSpec(EnvironmentSpec().c_str());
+    ParseSpec(platform::EnvironmentVariable("EI_RENDER").c_str());
 }
 
 // --- Game memory -----------------------------------------------------------------------------------
@@ -545,13 +538,6 @@ std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
     }
     return h;
 }
-double g_msPerTick = 0.0;
-
-long long Ticks() {
-    LARGE_INTEGER now{};
-    QueryPerformanceCounter(&now);
-    return now.QuadPart;
-}
 #endif
 
 void AddFrameStats() {
@@ -980,7 +966,7 @@ bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || c
 
 void Configure(const char* spec) {
     std::string combined = spec ? spec : "";
-    std::string environment = EnvironmentSpec();
+    const std::string environment = platform::EnvironmentVariable("EI_RENDER");
     if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
     ParseSpec(combined.c_str());
 }
@@ -1117,12 +1103,7 @@ StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0
 
 StatsTimer::~StatsTimer() {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_msPerTick == 0.0) {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
-    }
-    double ms = static_cast<double>(Ticks() - start) * g_msPerTick;
+    double ms = static_cast<double>(Ticks() - start) * kMsPerTick;
     g_stats.*field += ms;
     if (outer) g_stats.*(outer->field) -= ms;      // the outer timer counts its own work only
     g_innerTimer = outer;

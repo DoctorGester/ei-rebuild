@@ -215,10 +215,9 @@ FILE* g_file = nullptr;
 State g_previous;
 
 FILE* OpenOutput(const char* name, const char* mode) {
-    char path[MAX_PATH];
-    ei::OutputPath(name, path);
+    const std::string path = ei::OutputPath(name);
     FILE* f = nullptr;
-    if (fopen_s(&f, path, mode) != 0) return nullptr;
+    if (fopen_s(&f, path.c_str(), mode) != 0) return nullptr;
     return f;
 }
 

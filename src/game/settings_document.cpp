@@ -2,6 +2,8 @@
 // functions of the values, Defaults. See settings.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings.h"
 
+#include "lib/text_case.h"
+
 #include <array>
 #include <charconv>
 #include <cstdint>
@@ -12,7 +14,7 @@ namespace settings {
 namespace {
 
 bool Same(std::string_view a, std::string_view b) {
-    return a.size() == b.size() && _strnicmp(a.data(), b.data(), a.size()) == 0;
+    return a.size() == b.size() && text::CompareIgnoringCase(a.data(), b.data(), a.size()) == 0;
 }
 
 bool Space(char c) { return c == ' ' || c == '\t'; }

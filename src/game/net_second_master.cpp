@@ -43,7 +43,7 @@ std::atomic<std::uint32_t> g_resolved{kUnknown};
 std::atomic<bool> g_lookingUp;               // a look-up thread runs (1001F128)
 std::optional<Clock::time_point> g_lastStart;   // the last start, none before the first (1001F12C)
 std::shared_future<void> g_done;             // ready when the last look-up ended (1001F124)
-char g_host[256];                            // the setting's host part, which the thread looks up
+std::string g_host;                          // the setting's host part, which the thread looks up
 int g_port = kDefaultPort;
 
 // The plugin's block +0xC7 (family 2, port, address; the address -1 until known) and +0xD7.
@@ -52,18 +52,16 @@ char g_text[32];
 
 // The setting split into host and port (the port kDefaultPort when it names none).
 void SplitSetting() {
-    strncpy_s(g_host, ei::rebirth::PluginSecondMaster(), _TRUNCATE);
-    g_port = kDefaultPort;
-    if (char* colon = std::strchr(g_host, ':')) {
-        *colon = '\0';
-        g_port = std::atoi(colon + 1);
-    }
+    const std::string& setting = ei::rebirth::PluginSecondMaster();
+    const std::size_t colon = setting.find(':');
+    g_host = setting.substr(0, colon);
+    g_port = colon == std::string::npos ? kDefaultPort : std::atoi(setting.c_str() + colon + 1);
 }
 
 // 100050C0: the first address of the host, or -1; then the end and the running flag.
 void LookUp(std::promise<void> done) {
     std::uint32_t address = kUnknown;
-    if (!sockets::LookUp(g_host, &address)) address = kUnknown;
+    if (!sockets::LookUp(g_host.c_str(), &address)) address = kUnknown;
     g_resolved = address;
     done.set_value();
     g_lookingUp = false;
@@ -127,7 +125,7 @@ bool Reachable(const NetAddress& master) {
 
 } // namespace
 
-bool Configured() { return ei::rebirth::PluginSecondMaster()[0] != '\0'; }
+bool Configured() { return !ei::rebirth::PluginSecondMaster().empty(); }
 
 void OnMultiplayerClick() {
     if (!Configured()) return;

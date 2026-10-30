@@ -134,7 +134,7 @@ void CursorThread(Cursor* self) {
 }
 
 // The procedure platform::Thread starts (the cursor as its parameter): CursorThread, then exit code 0.
-unsigned __stdcall CursorThreadEntry(void* cursor) {
+unsigned CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<Cursor*>(cursor));
     return 0;
 }

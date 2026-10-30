@@ -19,7 +19,7 @@ inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
 inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
 
-unsigned __stdcall CursorThreadEntry(void* cursor);
+unsigned CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class DirectInputMouse final {

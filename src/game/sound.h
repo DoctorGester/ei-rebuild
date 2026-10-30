@@ -90,7 +90,7 @@ struct SoundEmitter {
 };
 
 struct SoundSequence;
-unsigned __stdcall StreamThreadEntry(void* manager);
+unsigned StreamThreadEntry(void* manager);
 
 // The bit of a sequence chooser's result that loops the sound (bit 30).
 inline constexpr int kSequenceLoop = 0x40000000;

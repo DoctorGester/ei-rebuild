@@ -88,15 +88,16 @@ bool WriteBmp(const char* path, const Image& image) {
     return std::fclose(f) == 0 && ok;
 }
 
+// <output folder>\frames\<name>.bmp.
+std::string FramePath(const char* name) { return ei::OutputPath("frames") + "\\" + name + ".bmp"; }
+
 void Capture() {
     // The new renderer presents by itself: its frame is the capture.
     image::EndFrame();
     Image frame;
-    char path[MAX_PATH];
-    ei::OutputPath("frames", path);
-    CreateDirectoryA(path, nullptr);
-    std::size_t used = std::strlen(path);
-    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", g_name.c_str());
+    CreateDirectoryA(ei::OutputPath("frames").c_str(), nullptr);
+    const std::string file = FramePath(g_name.c_str());
+    const char* path = file.c_str();
     if (!image::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
         g_state = State::Failed;
         g_detail = "the new renderer has no frame";
@@ -145,11 +146,9 @@ State Poll(const char** detail) {
 }
 
 bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written) {
-    char path[MAX_PATH];
-    ei::OutputPath("frames", path);
-    CreateDirectoryA(path, nullptr);
-    std::size_t used = std::strlen(path);
-    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
+    CreateDirectoryA(ei::OutputPath("frames").c_str(), nullptr);
+    const std::string file = FramePath(name);
+    const char* path = file.c_str();
     Image image;
     image.width = width;
     image.height = height;
@@ -216,11 +215,7 @@ bool ReadBmpFile(const char* path, Image& image, std::string* how = nullptr) {
 }
 
 bool ReadBmp(const char* name, Image& image) {
-    char path[MAX_PATH];
-    ei::OutputPath("frames", path);
-    std::size_t used = std::strlen(path);
-    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
-    return ReadBmpFile(path, image);
+    return ReadBmpFile(FramePath(name).c_str(), image);
 }
 
 bool CompareImages(const Image& ia, const Image& ib, int tolerance, double* differing, int* largest, const char** why) {

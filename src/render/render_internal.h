@@ -7,6 +7,7 @@
 
 #include "lib/vecmath.h"
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -698,6 +699,10 @@ void DropBlits();
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
 extern FrameStats g_stats;
+// The renderer's own timings (StatsTimer, the perf overlay, the texture counts): the steady clock's ticks.
+inline long long Ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
+inline constexpr double kMsPerTick =
+    1000.0 * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
 class StatsTimer {
 public:
     explicit StatsTimer(double FrameStats::* field);

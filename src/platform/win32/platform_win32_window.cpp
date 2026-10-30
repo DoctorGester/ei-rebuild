@@ -61,11 +61,30 @@ MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption,
 
 namespace platform {
 
+namespace {
+
+// What a new thread runs, handed to it on the heap: the thread may begin after Start has returned.
+struct ThreadStart {
+    ThreadProcedure procedure;
+    void* parameter;
+};
+
+// The game's procedure under _beginthreadex's calling convention.
+unsigned __stdcall RunThread(void* data) {
+    const ThreadStart start = *static_cast<ThreadStart*>(data);
+    delete static_cast<ThreadStart*>(data);
+    return start.procedure(start.parameter);
+}
+
+} // namespace
+
 bool Thread::Start(ThreadProcedure procedure, void* parameter, int priority) {
     Close();
+    auto start = std::make_unique<ThreadStart>(procedure, parameter);
     unsigned id = 0;
-    HANDLE thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, procedure, parameter, CREATE_SUSPENDED, &id));
+    HANDLE thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, RunThread, start.get(), CREATE_SUSPENDED, &id));
     if (!thread) return false;
+    start.release();   // RunThread deletes it
     gameapi::SetThreadPriority(thread, priority);
     gameapi::ResumeThread(thread);
     handle = thread;

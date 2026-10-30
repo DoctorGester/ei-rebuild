@@ -21,7 +21,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <unknwn.h>
 
 int SceneRenderer::BeginScene() {
     if (!(flags & 1)) return 0;

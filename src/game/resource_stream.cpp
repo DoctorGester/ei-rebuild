@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
 
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -18,10 +19,25 @@
 
 namespace {
 
-// CRT and library routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) {
-#pragma warning(suppress : 4996)
-    _splitpath(path, drive, dir, name, ext);
+// A name's parts as _splitpath gives them: the drive ("C:"), the folder up to its last separator (either slash), the
+// name, and the extension from the name's last dot.
+struct PathParts {
+    std::string drive, directory, name, extension;
+};
+
+PathParts SplitPath(std::string_view path) {
+    PathParts parts;
+    if (path.size() >= 2 && path[1] == ':') {
+        parts.drive = path.substr(0, 2);
+        path.remove_prefix(2);
+    }
+    const std::size_t folderEnd = path.find_last_of("\\/") + 1;   // 0 without a separator
+    parts.directory = path.substr(0, folderEnd);
+    path.remove_prefix(folderEnd);
+    const std::size_t dot = path.find_last_of('.');
+    parts.name = path.substr(0, dot);
+    if (dot != std::string_view::npos) parts.extension = path.substr(dot);
+    return parts;
 }
 
 // The listing's drive and directory tests: an empty pattern matches anything.
@@ -108,15 +124,15 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
         std::memcpy(name, names + entry.nameOffset, entry.nameLength);
         name[entry.nameLength] = '\0';
         if (pattern != nullptr) {
-            char nameDrive[4], patternDrive[4];
-            char nameDir[0x100], patternDir[0x100];
-            char nameBase[0x100], patternBase[0x100];
-            char nameExt[0x100], patternExt[0x100];
-            SplitPath(name, nameDrive, nameDir, nameBase, nameExt);
-            SplitPath(pattern, patternDrive, patternDir, patternBase, patternExt);
-            if (!PartMatches(nameDrive, patternDrive) || !PartMatches(nameDir, patternDir)) continue;
+            const PathParts nameParts = SplitPath(name);
+            const PathParts patternParts = SplitPath(pattern);
+            if (!PartMatches(nameParts.drive.c_str(), patternParts.drive.c_str()) ||
+                !PartMatches(nameParts.directory.c_str(), patternParts.directory.c_str()))
+                continue;
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
-            if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
+            if (WildcardMatch(nameParts.name.c_str(), patternParts.name.c_str(), 0) == 0 ||
+                WildcardMatch(nameParts.extension.c_str(), patternParts.extension.c_str(), 1) == 0)
+                continue;
         }
         fileNames.push_back(name);
     }
