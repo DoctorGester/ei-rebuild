@@ -1,7 +1,7 @@
 # The drop-in exe's profile (S23a): with no ei_rebirth.ini and no EI_GAME_ROOT the exe takes its Rebirth flags from
 # the folder's files (src/standalone/startup.cpp). The "dropin" step (tests/verify/harness_dropin.h) checks the
 # start-up and every flag: on the Rebirth install config/ei_rebirth_standalone.ini's, with EI_Plugin.ini's players
-# and pause mode; on the vanilla install the defaults (the bug fixes) and WideScreen.
+# and pause mode; on the vanilla install the defaults (the bug fixes).
 # drop-in: the folder's profile, on both installs; no golden
 timeout 40
 reject Script error

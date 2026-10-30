@@ -34,7 +34,7 @@ UiSurface::~UiSurface() {
 
 UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
     : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom} {
-    if (scale) ui->ScaleRectToScreenEntry(&rect);
+    if (scale) ui->ScaleRectToScreen(&rect);
     width = rect.right - rect.left;
     height = rect.bottom - rect.top;
     // (The interface's renderer is the device object.)
@@ -51,12 +51,12 @@ void UiSurface::SetRect(int left, int top, int right, int bottom) {
     rect.top = top;
     rect.right = right;
     rect.bottom = bottom;
-    ui->ScaleRectToScreenEntry(&rect);
+    ui->ScaleRectToScreen(&rect);
 }
 
 void UiSurface::MoveTo(int x, int y) {
     Point point{x, y};
-    ui->ScalePointToScreenEntry(&point);
+    ui->ScalePointToScreen(&point);
     int rectWidth = rect.right - rect.left;
     int rectHeight = rect.bottom - rect.top;
     rect.left = point.x;
@@ -110,7 +110,7 @@ void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
         frame = *area;
-        ui->ScaleRectToScreenEntry(&frame);           // (Rebirth-patched)
+        ui->ScaleRectToScreen(&frame);           // (Rebirth-patched)
     }
     render::ui::FrameRect(holder, ToRect(frame), colour);
 }

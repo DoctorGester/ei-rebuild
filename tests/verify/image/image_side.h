@@ -125,7 +125,7 @@ struct RegionInfo {
 };
 int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
-void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreenEntry
+void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreen
 void InterfaceSize(int* width, int* height);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);

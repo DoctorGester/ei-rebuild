@@ -17,7 +17,7 @@
 //            working directory and the game's data folder the exe's folder (EnterGameFolder), no ei_rebirth.ini
 //            there, and the Rebirth flags the folder's profile (src/standalone/startup.cpp): on the Rebirth install every flag as
 //            config/ei_rebirth_standalone.ini says, with EI_Plugin.ini's players and pause mode; on the vanilla
-//            install the defaults (the bug fixes) and WideScreen. The flags' expected values are worked out here
+//            install the defaults (the bug fixes). The flags' expected values are worked out here
 //            from the ini and the patch list, not taken from the image's profile.
 
 #include <string>

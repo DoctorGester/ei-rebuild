@@ -87,10 +87,8 @@ bool UiRegion::HasActiveTip() const {
 // is moved by the panel offset its panel builders set (ui_widescreen.h; 0 outside them).
 void UiRegion::SetRect(int left, int top, int right, int bottom) {
     points.clear();
-    if (widescreen::Active()) {
-        left += widescreen::PanelOffset();
-        right += widescreen::PanelOffset();
-    }
+    left += widescreen::PanelOffset();
+    right += widescreen::PanelOffset();
     bounds.left = left;
     bounds.right = right;
     bounds.top = top;
@@ -100,7 +98,7 @@ void UiRegion::SetRect(int left, int top, int right, int bottom) {
 }
 
 void UiRegion::AddPoint(int x, int y) {
-    if (widescreen::Active()) x += widescreen::PanelOffset();
+    x += widescreen::PanelOffset();
     if (points.empty()) {
         bounds.left = x;
         bounds.top = y;
@@ -134,7 +132,7 @@ void UiRegion::OnMouseMove(int x, int y) {
 
 int UiWindow::RegionAt(int x, int y) const {
     Point point{x, y};
-    ui->ScalePointFromScreenEntry(&point);
+    ui->ScalePointFromScreen(&point);
     for (int i = 0; i < std::ssize(regions); ++i) {
         if (regions[i]->HitTest(point.x, point.y)) return i;
     }
@@ -143,13 +141,13 @@ int UiWindow::RegionAt(int x, int y) const {
 
 bool UiWindow::ContainsPoint(int x, int y) const {
     Point point{x, y};
-    ui->ScalePointFromScreenEntry(&point);
+    ui->ScalePointFromScreen(&point);
     return rects::Contains(&rect, point);
 }
 
 void UiWindow::UpdateRegionTips() {
     Point mouse{ui->mouseX, ui->mouseY};
-    ui->ScalePointFromScreenEntry(&mouse);
+    ui->ScalePointFromScreen(&mouse);
     // Inlines UiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];
@@ -160,7 +158,7 @@ void UiWindow::UpdateRegionTips() {
 // The same per region, each tooltip then redrawn (the tooltip is re-read).
 void UiWindow::RedrawTips() {
     Point mouse{ui->mouseX, ui->mouseY};
-    ui->ScalePointFromScreenEntry(&mouse);
+    ui->ScalePointFromScreen(&mouse);
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];
         if (region->tip) region->OnMouseMove(mouse.x, mouse.y);

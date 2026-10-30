@@ -315,10 +315,9 @@ Document Defaults(int width, int height) {
     d.Set(kRenderer, "Anisotropy", IntText(16));
     d.Set(kRenderer, "PerfOverlay", BoolText(false));
 
-    // Rebirth's switches (ui_widescreen.cpp, world_client_draw.cpp, mod_folders.cpp).
+    // Rebirth's switches (world_client_draw.cpp, mod_folders.cpp).
     d.Comment(kRebirth, "Read with Rebirth's flags on (ei_rebirth.ini). The draw radii: 100 is the original's. AddonPath:");
     d.Comment(kRebirth, "the mod's folder.");
-    d.Set(kRebirth, "WideScreen", BoolText(true));
     d.Set(kRebirth, "ObjectsDrawRadius", IntText(5376));
     d.Set(kRebirth, "LandscapeDrawRadius", IntText(5376));
     d.Comment(kAutoExec, "Console lines run before autoexec.cfg with Rebirth's AutoExec flag, one per line: 1 = <command>.");

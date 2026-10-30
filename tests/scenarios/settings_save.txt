@@ -11,6 +11,9 @@
 # settings-file: settings/settings_save.ini
 timeout 40
 settingsfile writable
+# One window size on both installs (the image's default differs: harness_starter.h), as the expected file has it.
+resolution 1280x720
+fullscreen 0
 reject Script error
 waitmenu
 wait 500

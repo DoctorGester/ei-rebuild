@@ -316,7 +316,7 @@ void HudMap::LeftUp(int, int x, int y) {
     case 2: {   // the map area
         // The world point under the click.
         Point point = {x, y};
-        ui->ScalePointFromScreenEntry(&point);
+        ui->ScalePointFromScreen(&point);
         // WideScreen: the centre moved right by the shift.
         float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide;
         float down = static_cast<float>(point.y - kMapCentreY) / halfSide;

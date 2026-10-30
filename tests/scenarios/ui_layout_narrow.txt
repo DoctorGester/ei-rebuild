@@ -1,0 +1,25 @@
+# The interface layout on a window narrower than 4:3 (W12, src/game/ui_widescreen.h): at 1000x800 (5:4) the 800x600
+# layout is letterboxed in the window's 4:3 part (1000x750, bands of 25 pixels above and below; nothing moves into
+# them) and the 3D view keeps its proportions over the whole window. Captures to look at: the main menu and the
+# battle screen. The harness's points spread over the whole window (a layout y is at (y * 750 / 600 + 25) pixels).
+# no original: vanilla rebirth (the layout is the image's; the original stretched the 800x600 layout over any window)
+resolution 1000x800
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+wait 500
+expectlog Interface layout: 1000x800, 4:3 part 1000x750, margins 0, 25 pixels (0 layout units)
+freeze
+capture menu
+unfreeze
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+move 400 300
+wait 2000
+freeze
+capture battle
+unfreeze
+report
+quit

@@ -939,7 +939,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ```
   Sections: paths, video, sound, shadows, terrain, camera, game, network, statistics (the game's options, options.cpp's
   tables: the original's registry subkeys, General Settings split into video and sound, Joystick in game), renderer
-  (Msaa, Anisotropy, VSync, PerfOverlay), rebirth (Rebirth's starter switches: WideScreen, ObjectsDrawRadius,
+  (Msaa, Anisotropy, VSync, PerfOverlay), rebirth (Rebirth's starter switches: ObjectsDrawRadius,
   LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
   names are the original's registry value names. A value is the text after the first `=`, spaces around it trimmed
   (in double quotes when it starts or ends with a space or starts with a quote: the outer pair is dropped); a line
@@ -948,8 +948,8 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   a number reads true / false as 1 / 0). The options writer writes its on / off options as booleans (options.cpp
   `kFlag`), the others as numbers. Sections and names compare without case; a name keeps its first spelling. A section
   name is letters, digits, spaces, `_` and `-`: a bad one and its lines are skipped (reported). One tree for both
-  installs: Rebirth's NivalRegistry (the starter's tree) is dropped, the WideScreen layout takes the resolution the
-  game loaded (ui_widescreen.cpp Configure).
+  installs: Rebirth's NivalRegistry (the starter's tree) is dropped; the interface layout (W12, no switch) takes the
+  resolution the game loaded (ui_widescreen.cpp Configure).
 - **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with `settings::Defaults`
   (settings_document.cpp) for the primary monitor's mode in pixels (EnumDisplaySettings of the primary monitor's
   device: the physical size whatever the process's DPI awareness, so no reader order matters; without a size, no
@@ -965,7 +965,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright), the hero's light 216 216 116 radius 5 and the
   quest light 120 72 120 radius 5, UseSWCursors false, SelectionType 1, DefaultMapName / DefaultStreamingSound, the
   master server a3master.nival.com (the code's is empty). renderer: VSync true, Msaa 8, Anisotropy 16, PerfOverlay
-  false. rebirth: WideScreen true, ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
+  false. rebirth: ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
   original's distances; 5376 draws the whole map and is what the user's starter had). autoexec: a comment only.
   Everything else is left out and read as absent: the game takes its own defaults (paths `.\` and `.\res\` from the
   working folder, the exe's: "The game folder" above, the other game settings, equal to the install's), Rebirth its
@@ -1590,14 +1590,14 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   an exe in its game folder (no EI_GAME_ROOT) picks the profile from the folder's files: Rebirth's where
   `starter\addon.dll` or `EI_Plugin.asi` is (config/ei_rebirth_standalone.ini's flags, made a spec at configure time:
   build/<cfg>/config/rebirth_profile.inc; EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the
-  plain install's (the defaults and WideScreen, as play.cmd's vanilla mode). Applied where a missing ini left the
+  plain install's (the defaults, as play.cmd's vanilla mode). Applied where a missing ini left the
   defaults (rebirth::LoadSettings' `profile`), so EI_REBIRTH and a scenario's flags still go on top. Under ei_launch the
   flags are as before (the ini, EI_REBIRTH): the harness's runs and goldens do not change.
 - **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`, where Windows honours it), so a wrapper DLL of the same name in a game folder (dgVoodoo,
   a dsound wrapper) is not taken; ASan's build leaves it out (its runtime is beside the exe).
 - **Checked** (hand, `--check` from C:\ without EI_GAME_ROOT, the release exe copied into a folder with an install's
-  DLLs): the imports load from the exe's folder, the plain folder takes the defaults and WideScreen, the folder with
+  DLLs): the imports load from the exe's folder, the plain folder takes the defaults (then also WideScreen, a flag until W12), the folder with
   EI_Plugin.asi / EI_Plugin.ini the 40 flags of the Rebirth profile with the plugin's players and pause mode,
   ei_settings.ini written beside the exe. The game itself plays in every suite run from the same exe layout.
 - **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
@@ -1614,8 +1614,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   ei_launch sets to the build's (from the copy, two folders up is the run folder). Scenarios: `dropin_boot` (the menu comes up), `dropin_profile` (the harness's `dropin` step,
   tests/verify/harness_dropin.h: no EI_GAME_ROOT or EI_REBIRTH, the working directory the exe's folder, and every
   flag as the folder's profile must set it, worked out from config/ei_rebirth_standalone.ini and the patch list,
-  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
-  profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
+  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: no EI_REBIRTH,
+  so the Rebirth install's drop-in run plays in the vanilla runs' 4:3 window (harness_starter.h). The verify exe runs there (the harness is linked in), not the release one.
 
 ### The x64 build
 

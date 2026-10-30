@@ -18,8 +18,8 @@ StartupAction* g_startupActions = nullptr;
 constexpr const char* kRebirthProfile =
 #include "rebirth_profile.inc"
     ;
-// The plain install's: the defaults (the bug fixes) and widescreen, as play.cmd's vanilla mode.
-constexpr const char* kVanillaProfile = "WideScreen=1";
+// The plain install's: the defaults (the bug fixes), as play.cmd's vanilla mode.
+constexpr const char* kVanillaProfile = "defaults";
 
 // The start-up asks the system itself (not the game's slots): its files are the exe's own, whatever a harness run
 // redirects.

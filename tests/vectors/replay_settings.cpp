@@ -218,7 +218,7 @@ void Defaults() {
     is("renderer", "Msaa", "8");
     is("renderer", "Anisotropy", "16");
     is("renderer", "PerfOverlay", "false");
-    is("rebirth", "WideScreen", "true");
+    CHECK(!document.Find("rebirth", "WideScreen"));   // no switch: the layout follows the window
     is("rebirth", "ObjectsDrawRadius", "5376");
     is("rebirth", "LandscapeDrawRadius", "5376");
     // Left out: the game's and Rebirth's own defaults.

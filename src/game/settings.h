@@ -95,7 +95,7 @@ bool ParseBool(std::string_view text, bool* value);
 // trilinear filtering, full-size textures, mipmaps, every shadow, self shadowing), and what a game install writes in
 // place of the game's own placeholder defaults (the camera's section, the objects' lighting, the hero's and the
 // quest light, the master server). The renderer: Msaa 8 (the device's best when less), Anisotropy 16, VSync on, no
-// performance overlay. Rebirth's switches: WideScreen on, the draw radii 5376 (the whole map; Rebirth's own default
+// performance overlay. Rebirth's switches: the draw radii 5376 (the whole map; Rebirth's own default
 // is the original's 100). Everything else (paths, the other options and switches) is left out: the game and Rebirth
 // read it as absent and take their own defaults.
 Document Defaults(int width, int height);

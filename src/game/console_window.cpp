@@ -16,7 +16,7 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
     int screenHeight = screen->height;
     screenRect = *newRect;
     // The 3D interface scales 800x600 to pixels (Rebirth patches it, so it is called through its address).
-    screen->ScaleRectToScreenEntry(&screenRect);
+    screen->ScaleRectToScreen(&screenRect);
     width = screenRect.right - screenRect.left;
     height = screenRect.bottom - screenRect.top;
     if (width < 0x4C) width = 0x4C;
@@ -27,7 +27,7 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
     screenRect.right = screenRect.left + width;
     screenRect.bottom = screenRect.top + height;
     rect = screenRect;
-    screen->ScaleRectFromScreenEntry(&rect);
+    screen->ScaleRectFromScreen(&rect);
     if (shown) {
         Show(false);
         Show(true);

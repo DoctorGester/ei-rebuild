@@ -194,7 +194,7 @@ bool Region(void* window, int index, RegionInfo* region) {
 }
 void ScaleToScreen(long* x, long* y) {
     Point point{*x, *y};
-    g_interface.ScalePointToScreenEntry(&point);
+    g_interface.ScalePointToScreen(&point);
     *x = point.x;
     *y = point.y;
 }

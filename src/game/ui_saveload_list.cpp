@@ -79,8 +79,8 @@ void SaveLoadWindow::RefreshListVanilla() {
                     Point top{titleRect.left + width, titleRect.top};
                     Point bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
-                    ui->CallScalePointToScreenNoMargin(&top);
-                    ui->CallScalePointToScreenNoMargin(&bottom);
+                    ui->ScalePointToScreenNoMargin(&top);
+                    ui->ScalePointToScreenNoMargin(&bottom);
                     surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
                 }
             }

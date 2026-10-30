@@ -89,16 +89,14 @@ std::string Step() {
     if (!data || _stricmp(FullPath(data).c_str(), FullPath(folder).c_str()) != 0)
         return std::string("dropin: the game's data folder ") + (data ? data : "(none)") + " is not the exe's folder";
 
-    // What the folder's profile must have set: Rebirth's on the Rebirth install, the defaults and WideScreen on the
-    // vanilla one.
+    // What the folder's profile must have set: Rebirth's on the Rebirth install, the defaults on the vanilla one.
     const bool rebirthInstall = install == "rebirth";
     bool expected[rebirth::kPatchCount];
-    std::string ini = "the defaults and WideScreen";
+    std::string ini = "the defaults";
     if (rebirthInstall) {
         if (!RebirthProfileFlags(expected, &ini)) return "dropin: cannot read config/ei_rebirth_standalone.ini (" + ini + ")";
     } else {
         for (int i = 0; i < rebirth::kPatchCount; ++i) expected[i] = rebirth::DefaultOn(static_cast<Patch>(i));
-        expected[static_cast<int>(Patch::WideScreen)] = true;
     }
     std::string wrong;
     int on = 0;
