@@ -65,8 +65,7 @@ void ShowMessageBox(const char* text);
 // The box of the game's library code (AfxMessageBox): no owner, the program's file name as its title, OK with the
 // warning icon.
 void ShowLibraryMessageBox(const char* text);
-// WinMain: the application's start-up, main loop and shutdown. Rebirth patches
-// it (NivalRegistry), so the rewrite runs in the vanilla launch only.
+// WinMain: the application's start-up, main loop and shutdown.
 int GameMain(platform::NativeInstance instance, platform::NativeInstance previous, char* commandLine, int show);
 // A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its
 // DirectXErrorText in a message box and to the error hook; the error counter is raised and the

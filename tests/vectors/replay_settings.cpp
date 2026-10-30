@@ -1,24 +1,21 @@
-// The standalone's settings file without the game (ST1a): Document::Text / Parse round trips of every kind of value,
-// the format's rules (case, comments, continuation lines, bad lines) and the defaults a missing file is written
-// with. Not recorded vectors: ei_vectors runs these after the replays and counts their failures (replay_main.cpp).
-// The file save (.tmp, then moved) and the defaults in a running game are the harness scenarios settings_save and
-// settings_defaults (tests/scenarios, tools/settings_file_check.py).
-#include "../../src/game/settings_file.h"
+// The standalone's settings file without the game: Document::Text / Parse round trips of every kind of value, the
+// format's rules (case, quotes, comments, bad lines, a file of another format) and the defaults a missing file is
+// written with. Not recorded vectors: ei_vectors runs these after the replays and counts their failures
+// (replay_main.cpp). The file save (.tmp, then moved) and the defaults in a running game are the harness scenarios
+// settings_save and settings_defaults (tests/scenarios).
+#include "../../src/game/settings.h"
 
-#include <windows.h>
-
-#include <algorithm>
+#include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
+#include <iterator>
 #include <string>
 #include <vector>
 
 namespace {
 
-using settings_file::Document;
-using settings_file::Key;
-using settings_file::Value;
+using settings::Document;
 
 int g_checks = 0;
 int g_failures = 0;
@@ -39,468 +36,200 @@ void Fail(int line, const char* what, const std::string& detail) {
         if (!(cond)) Fail(__LINE__, #cond, (detail)); \
     } while (0)
 
-constexpr const char* kKey = "Software\\Test\\Key";
-
-std::string Bytes32(std::uint32_t bits) { return std::string(reinterpret_cast<const char*>(&bits), 4); }
-
-std::string Hex(const std::string& data) {
-    static constexpr char kDigits[] = "0123456789abcdef";
-    std::string out;
-    for (std::size_t i = 0; i < data.size(); ++i) {
-        if (i) out += ',';
-        out += kDigits[static_cast<unsigned char>(data[i]) >> 4];
-        out += kDigits[static_cast<unsigned char>(data[i]) & 15];
-    }
-    return out;
-}
-
-std::string Printable(const std::string& s) {
-    std::string out;
-    for (char c : s) out += (static_cast<unsigned char>(c) < 0x20 || c == '\x7f') ? '?' : c;
-    return out;
-}
-
-// The document's text read back; the parse must leave no problem.
-Document Reread(const Document& document, std::string* text = nullptr) {
-    const std::string written = document.Text();
-    if (text) *text = written;
+// The document's text read back.
+Document RoundTrip(const Document& document, std::vector<std::string>* problems = nullptr) {
+    std::vector<std::string> own;
     Document back;
-    std::vector<std::string> problems;
-    back.Parse(written, &problems);
-    CHECK_MSG(problems.empty(), problems.empty() ? "" : problems[0]);
+    back.Parse(document.Text(), problems ? problems : &own);
     return back;
 }
 
-bool SameValue(const Value& a, const Value& b) { return a.name == b.name && a.type == b.type && a.data == b.data; }
-
-// Same keys and values, in the same order, spelt the same.
-bool SameDocument(const Document& a, const Document& b) {
-    if (a.keys.size() != b.keys.size()) return false;
-    for (std::size_t k = 0; k < a.keys.size(); ++k) {
-        if (a.keys[k].path != b.keys[k].path || a.keys[k].values.size() != b.keys[k].values.size()) return false;
-        for (std::size_t v = 0; v < a.keys[k].values.size(); ++v)
-            if (!SameValue(a.keys[k].values[v], b.keys[k].values[v])) return false;
-    }
-    return true;
+std::string Value(const Document& document, const char* section, const char* name) {
+    const std::string* value = document.Find(section, name);
+    return value ? *value : std::string("(missing)");
 }
 
-// The text line of the value `name` of the document (without its line break); empty when there is none.
-std::string LineOf(const std::string& text, const std::string& quotedName) {
-    const std::string at = "\n" + quotedName + "=";
-    const std::size_t start = text.find(at);
-    if (start == std::string::npos) return std::string();
-    const std::size_t end = text.find("\r\n", start + 1);
-    return text.substr(start + 1, end == std::string::npos ? std::string::npos : end - start - 1);
+void Ints() {
+    for (int value : {0, 1, -1, 42, 1033, 2147483647, -2147483647 - 1}) {
+        int back = 7;
+        CHECK_MSG(settings::ParseInt(settings::IntText(value), &back) && back == value, settings::IntText(value));
+    }
+    int value = 0;
+    CHECK(settings::ParseInt("4294967295", &value) && value == -1);   // a DWORD's bits
+    CHECK(settings::ParseInt("+5", &value) && value == 5);
+    CHECK(settings::ParseInt("true", &value) && value == 1 && settings::ParseInt("Off", &value) && value == 0);
+    for (const char* bad : {"", "-", "1.5", "0x10", "12a", "4294967296", "-2147483649", " 1"}) {
+        value = 7;
+        CHECK_MSG(!settings::ParseInt(bad, &value) && value == 7, bad);
+    }
 }
 
-const Value* Find(Document& document, const char* path, const char* name) {
-    Key* key = document.FindKey(path);
-    return key ? Document::FindValue(*key, name) : nullptr;
+void Bools() {
+    bool value = false;
+    for (const char* yes : {"true", "TRUE", "yes", "on", "1", "2", "-1"}) CHECK_MSG(settings::ParseBool(yes, &value) && value, yes);
+    for (const char* no : {"false", "No", "off", "0"}) CHECK_MSG(settings::ParseBool(no, &value) && !value, no);
+    value = true;
+    CHECK(!settings::ParseBool("maybe", &value) && value);
+    CHECK(settings::BoolText(true) == "true" && settings::BoolText(false) == "false");
 }
 
-// Sets `data` as `name` of kKey with `type`, reads the text back and requires the same value; returns the text
-// line of the value.
-std::string RoundTripOne(std::uint32_t type, const std::string& data, const char* name = "v") {
-    Document document;
-    document.Set(kKey, name, type, data);
-    std::string text;
-    Document back = Reread(document, &text);
-    const Value* value = Find(back, kKey, name);
-    CHECK_MSG(value && value->type == type && value->data == data,
-              std::string("type ") + std::to_string(type) + " data " + Hex(data) + " came back changed");
-    CHECK(SameDocument(document, back));
-    CHECK(back.Text() == text);   // and writes the same text again
-    std::string quoted = "\"";
-    for (const char* c = name; *c; ++c) {
-        if (*c == '\\' || *c == '"') quoted += '\\';
-        quoted += *c;
-    }
-    quoted += '"';
-    return LineOf(text, *name ? quoted : std::string("@"));
-}
-
-void Dwords() {
-    for (std::uint32_t dword : {0u, 1u, 0x7fffffffu, 0x80000000u, 0xffffffffu, 0x12345678u, 0x000000ffu}) {
-        const std::string line = RoundTripOne(REG_DWORD, Bytes32(dword));
-        char expected[40];
-        std::snprintf(expected, sizeof(expected), "\"v\"=dword:%08x", dword);
-        CHECK_MSG(line == expected, "got " + line);
-    }
-    // A REG_DWORD that is not four bytes keeps its bytes (hex(4)).
-    for (std::size_t size : {0u, 1u, 3u, 5u, 8u}) {
-        const std::string line = RoundTripOne(REG_DWORD, std::string(size, '\x5a'));
-        CHECK_MSG(line.rfind("\"v\"=hex(4):", 0) == 0, "REG_DWORD of " + std::to_string(size) + " bytes: " + line);
-    }
-    // The other four-byte integer type.
-    CHECK(RoundTripOne(REG_DWORD_BIG_ENDIAN, Bytes32(0x01020304)).rfind("\"v\"=hex(5):", 0) == 0);
-}
-
-void Strings() {
-    const std::vector<std::string> plain = {
-        "", "plain", "C:\\Games\\EI\\", "quote\"d", "\\\\server\\share", "ends\\", "\\", "\"", "a=b", "[not a section]",
-        "; not a comment", "  padded  ", "dword:00000001", "float:1", "hex:01", "hex(7):61", "@", "tab-free \x7f del",
-        "\xD0\x9A\xD0\xB8\xD1\x80\xD0\xB8\xD0\xBB\xD0\xBB (utf-8)", "\xE9\xF0\xFF high bytes", std::string(300, 'x'),
-        "1920x1080", "a\\\"b\\\\\"c"};
-    for (const std::string& text : plain) {
-        const std::string line = RoundTripOne(REG_SZ, text + '\0');
-        CHECK_MSG(line.rfind("\"v\"=\"", 0) == 0, "REG_SZ " + Printable(text) + " written as " + Printable(line));
-    }
-    // What the quoted form cannot hold goes to hex(1): control characters, a second terminator.
-    const std::vector<std::string> raw = {std::string("a\tb\0", 4), std::string("a\nb\0", 4), std::string("a\rb\0", 4),
-                                          std::string("\x01\0", 2), std::string("a\0b\0", 4), std::string("\0\0", 2)};
-    for (const std::string& data : raw) {
-        const std::string line = RoundTripOne(REG_SZ, data);
-        CHECK_MSG(line.rfind("\"v\"=hex(1):", 0) == 0, "REG_SZ " + Hex(data) + " written as " + Printable(line));
-    }
-    // A hex(1) line without the terminator reads with one added, so a string value always ends in a zero.
-    for (const std::string& data : {std::string("abc", 3), std::string("a\0b", 3), std::string()}) {
-        Document document;
-        document.Set(kKey, "v", REG_SZ, data);
-        Document back = Reread(document);
-        const Value* value = Find(back, kKey, "v");
-        CHECK_MSG(value && value->type == REG_SZ && value->data == data + '\0', "REG_SZ " + Hex(data) + " without terminator");
-    }
-    // The empty string is the quoted form.
-    CHECK(RoundTripOne(REG_SZ, std::string("\0", 1)) == "\"v\"=\"\"");
-    // A REG_EXPAND_SZ is hex(2) whatever it holds.
-    CHECK(RoundTripOne(REG_EXPAND_SZ, std::string("%PATH%\0", 7)) == "\"v\"=hex(2):25,50,41,54,48,25,00");
-}
-
+// Every float reads back to its bits (NaNs as a NaN): a sweep of bit patterns plus every exponent.
 void Floats() {
-    struct Case {
-        std::uint32_t bits;
-        const char* text;   // the float: text; null: hex (not a number)
+    std::uint32_t state = 12345;
+    auto check = [](std::uint32_t bits) {
+        const float value = std::bit_cast<float>(bits);
+        const std::string text = settings::FloatText(value);
+        float back = 0;
+        const bool read = settings::ParseFloat(text, &back);
+        const bool same = std::isnan(value) ? std::isnan(back) : std::bit_cast<std::uint32_t>(back) == bits;
+        CHECK_MSG(read && same, text);
     };
-    const Case cases[] = {
-        {0x00000000u, "float:0"},   {0x80000000u, "float:-0"},   {0x3f800000u, "float:1"},    {0xbf800000u, "float:-1"},
-        {0x3dcccccdu, "float:0.1"}, {0x42b40000u, "float:90"},   {0x7f7fffffu, nullptr},       {0xff7fffffu, nullptr},
-        {0x00800000u, nullptr},     {0x7f800000u, nullptr},      {0xff800000u, nullptr},       {0x7fc00000u, nullptr},
-        {0xffc00000u, nullptr},     {0x7f800001u, nullptr},      {0x7fffffffu, nullptr},       {0xffffffffu, nullptr},
-        {0x00000001u, nullptr},     {0x80000001u, nullptr},      {0x007fffffu, nullptr},       {0x807fffffu, nullptr},
-        {0x4b800000u, nullptr},     {0x33800000u, nullptr},
-    };
-    for (const Case& c : cases) {
-        const std::string line = RoundTripOne(REG_BINARY, Bytes32(c.bits));
-        const bool number = (c.bits & 0x7f800000u) != 0x7f800000u;
-        char name[32];
-        std::snprintf(name, sizeof(name), "%08x", c.bits);
-        if (c.text) {
-            CHECK_MSG(line == std::string("\"v\"=") + c.text, std::string(name) + " written as " + line);
-        } else if (!number) {   // a NaN or infinity is bytes, not a number
-            CHECK_MSG(line == "\"v\"=hex:" + Hex(Bytes32(c.bits)), std::string(name) + " written as " + line);
-        } else {                // any other number: float: when its text reads back to the bits, else bytes
-            CHECK_MSG(line.rfind("\"v\"=float:", 0) == 0 || line.rfind("\"v\"=hex:", 0) == 0, std::string(name) + " written as " + line);
-        }
-    }
-    // Every exponent with a few mantissas and both signs, then a pseudo-random sweep of bit patterns: the bits
-    // read back whatever the text form is (the writer falls back to bytes when the text does not round trip).
-    std::vector<std::uint32_t> sweep;
-    for (std::uint32_t sign = 0; sign < 2; ++sign)
-        for (std::uint32_t exponent = 0; exponent < 256; ++exponent)
-            for (std::uint32_t mantissa : {0u, 1u, 2u, 0x400000u, 0x7ffffeu, 0x7fffffu, 0x123456u})
-                sweep.push_back(sign << 31 | exponent << 23 | mantissa);
-    std::uint32_t state = 0x9e3779b9u;
     for (int i = 0; i < 20000; ++i) {
-        state ^= state << 13;
-        state ^= state >> 17;
-        state ^= state << 5;
-        sweep.push_back(state);
+        state = state * 1664525u + 1013904223u;
+        check(state);
     }
-    int asText = 0, asBytes = 0;
-    for (std::size_t from = 0; from < sweep.size(); from += 1500) {
-        Document document;
-        const std::size_t to = (std::min)(sweep.size(), from + 1500);
-        for (std::size_t i = from; i < to; ++i) document.Set(kKey, ("f" + std::to_string(i)).c_str(), REG_BINARY, Bytes32(sweep[i]));
-        std::string text;
-        Document back = Reread(document, &text);
-        CHECK(SameDocument(document, back));
-        for (std::size_t i = from; i < to; ++i) {
-            const std::string line = LineOf(text, "\"f" + std::to_string(i) + "\"");
-            if (line.find("=float:") != std::string::npos) ++asText;
-            else ++asBytes;
-        }
-    }
-    CHECK(asText > 10000);          // the numbers are written as numbers
-    CHECK(asBytes >= 14);           // and at least the NaNs and infinities as bytes
+    for (std::uint32_t exponent = 0; exponent < 256; ++exponent) check(exponent << 23 | 0x2AAAAAu);
+    for (std::uint32_t bits : {0u, 0x80000000u, 1u, 0x3F800000u, 0xBF800000u, 0x7F800000u, 0xFF800000u}) check(bits);
+    CHECK(settings::FloatText(0.46f) == "0.46" && settings::FloatText(90.0f) == "90" && settings::FloatText(-0.0f) == "-0");
+    float value = 0;
+    CHECK(settings::ParseFloat("3", &value) && value == 3.0f);
+    CHECK(settings::ParseFloat("+0.5", &value) && value == 0.5f);
+    CHECK(!settings::ParseFloat("", &value) && !settings::ParseFloat("1.5x", &value) && !settings::ParseFloat("true", &value));
 }
 
-void Binaries() {
-    CHECK(RoundTripOne(REG_BINARY, std::string()) == "\"v\"=hex:");
-    CHECK(RoundTripOne(REG_BINARY, std::string("\x01", 1)) == "\"v\"=hex:01");
-    CHECK(RoundTripOne(REG_BINARY, std::string("\x01\x02\x03", 3)) == "\"v\"=hex:01,02,03");
-    CHECK(RoundTripOne(REG_BINARY, std::string("\x01\x02\x03\x04\x05", 5)) == "\"v\"=hex:01,02,03,04,05");
-    std::string all;
-    for (int i = 0; i < 256; ++i) all += static_cast<char>(i);
-    RoundTripOne(REG_BINARY, all);
-    RoundTripOne(REG_BINARY, all + all + all);
+// Text values, quoted when spaces or a quote at an end would be lost.
+void Strings() {
+    const char* values[] = {"plain", "", "C:\\Probe Dir\\\"quoted\"\\end\\", "  two spaces around  ", " lead", "trail\t",
+                            "\"in quotes\"", "\"", "a\"", "\"a", "a = b ; c # d", "[not a section]", "; not a comment",
+                            "\xD0\x9F\xD1\x80\xD0\xB8\xD0\xB2\xD0\xB5\xD1\x82"};
+    Document document;
+    for (int i = 0; i < static_cast<int>(std::size(values)); ++i) document.Set("text", ("v" + std::to_string(i)).c_str(), values[i]);
+    const Document back = RoundTrip(document);
+    for (int i = 0; i < static_cast<int>(std::size(values)); ++i)
+        CHECK_MSG(Value(back, "text", ("v" + std::to_string(i)).c_str()) == values[i], values[i]);
+    // A line break, which no line holds, becomes a space.
+    document.Set("text", "lines", "one\r\ntwo");
+    CHECK(Value(RoundTrip(document), "text", "lines") == "one  two");
+    // Spaces around the '=' and the line's ends are not the value's.
+    Document parsed;
+    std::vector<std::string> problems;
+    parsed.Parse("[a]\r\n  name\t=\t value  \r\nempty =\r\nequals==x\r\n", &problems);
+    CHECK(problems.empty() && Value(parsed, "a", "name") == "value" && Value(parsed, "a", "empty").empty() &&
+          Value(parsed, "a", "equals") == "=x");
 }
 
-void OtherTypes() {
-    CHECK(RoundTripOne(REG_MULTI_SZ, std::string("one\0two\0\0", 9)) == "\"v\"=hex(7):6f,6e,65,00,74,77,6f,00,00");
-    CHECK(RoundTripOne(REG_MULTI_SZ, std::string("\0\0", 2)) == "\"v\"=hex(7):00,00");
-    CHECK(RoundTripOne(REG_MULTI_SZ, std::string()) == "\"v\"=hex(7):");
-    RoundTripOne(REG_MULTI_SZ, std::string("\xD0\x96\0b\0\0", 6));
-    CHECK(RoundTripOne(REG_QWORD, std::string("\x01\x02\x03\x04\x05\x06\x07\x08", 8)) == "\"v\"=hex(b):01,02,03,04,05,06,07,08");
-    CHECK(RoundTripOne(REG_NONE, std::string("ab", 2)) == "\"v\"=hex(0):61,62");
-    CHECK(RoundTripOne(REG_LINK, std::string("x", 1)) == "\"v\"=hex(6):78");
-    CHECK(RoundTripOne(0xdeadbeefu, std::string("z", 1)) == "\"v\"=hex(deadbeef):7a");
-    CHECK(RoundTripOne(REG_RESOURCE_LIST, std::string("\xff\x00", 2)) == "\"v\"=hex(8):ff,00");
-}
-
+// Sections and names without case, the first spelling kept; a value set again stays where it was.
 void Names() {
-    // The default value is "@", a value named "@" is quoted; both are kept apart.
     Document document;
-    document.Set(kKey, "", REG_SZ, std::string("default\0", 8));
-    document.Set(kKey, "@", REG_DWORD, Bytes32(7));
-    document.Set(kKey, "quote\"back\\slash", REG_DWORD, Bytes32(1));
-    document.Set(kKey, "a=b", REG_DWORD, Bytes32(2));
-    document.Set(kKey, "[bracket]", REG_DWORD, Bytes32(3));
-    document.Set(kKey, ";semi", REG_DWORD, Bytes32(4));
-    document.Set(kKey, "  spaced name  ", REG_DWORD, Bytes32(5));
-    document.Set(kKey, "\xD0\x98\xD0\xBC\xD1\x8F", REG_DWORD, Bytes32(6));
-    std::string text;
-    Document back = Reread(document, &text);
-    CHECK(SameDocument(document, back));
-    CHECK(LineOf(text, "@") == "@=\"default\"");
-    CHECK(LineOf(text, "\"@\"") == "\"@\"=dword:00000007");
-    CHECK(Find(back, kKey, "") && Find(back, kKey, "@") && Find(back, kKey, "")->data != Find(back, kKey, "@")->data);
-    CHECK(LineOf(text, "\"quote\\\"back\\\\slash\"") == "\"quote\\\"back\\\\slash\"=dword:00000001");
-    // Value names compare without case; the first spelling stays.
-    CHECK(Find(back, kKey, "A=B") && Find(back, kKey, "A=B")->name == "a=b");
-    document.Set(kKey, "A=B", REG_DWORD, Bytes32(99));
-    CHECK(document.keys[0].values.size() == 8);
-    CHECK(Find(document, kKey, "a=b")->data == Bytes32(99) && Find(document, kKey, "a=b")->name == "a=b");
-    // Another type replaces the type too.
-    document.Set(kKey, "a=b", REG_SZ, std::string("s\0", 2));
-    CHECK(Find(document, kKey, "a=b")->type == REG_SZ);
-    // Value order is the order of setting.
-    Document ordered;
-    for (const char* name : {"z", "a", "m", "B"}) ordered.Set(kKey, name, REG_DWORD, Bytes32(1));
-    Document orderedBack = Reread(ordered);
-    CHECK(orderedBack.keys[0].values.size() == 4 && orderedBack.keys[0].values[0].name == "z" &&
-          orderedBack.keys[0].values[1].name == "a" && orderedBack.keys[0].values[3].name == "B");
-}
-
-void Keys() {
-    const char* text =
-        "[Software\\Nival Interactive\\EvilIslands]\r\n"
-        "\"Name\"=dword:00000001\r\n"
-        "[SOFTWARE\\nival interactive\\EVILISLANDS]\r\n"
-        "\"NAME\"=dword:00000002\r\n"
-        "\"other\"=\"x\"\r\n"
-        "[Software\\Nival Interactive\\EvilIslands\\Sub]\r\n"
-        "\"s\"=dword:00000003\r\n";
-    Document document;
+    document.Set("Video", "FullScreen", "true");
+    document.Set("video", "FULLSCREEN", "false");
+    document.Set("VIDEO", "Other", "1");
+    CHECK(document.sections.size() == 1 && document.sections[0].name == "Video" && document.sections[0].lines.size() == 2);
+    CHECK(document.sections[0].lines[0].name == "FullScreen" && document.sections[0].lines[0].value == "false");
+    CHECK(document.Find("VIDEO", "fullscreen") && !document.Find("video", "full screen") && !document.Find("audio", "Other"));
+    CHECK(document.Values() == 2);
+    // A section met twice in a file is one section.
+    Document parsed;
     std::vector<std::string> problems;
-    document.Parse(text, &problems);
-    CHECK(problems.empty());
-    CHECK(document.keys.size() == 2);   // the second header is the first key again
-    CHECK(document.keys[0].path == "Software\\Nival Interactive\\EvilIslands");   // the first spelling stays
-    CHECK(document.keys[0].values.size() == 2);
-    const Value* name = Find(document, "SOFTWARE\\NIVAL INTERACTIVE\\evilislands", "name");
-    CHECK(name && name->name == "Name" && name->data == Bytes32(2));   // the last value wins, the first spelling stays
-    CHECK(document.FindKey("software\\nival interactive\\evilislands\\sub") != nullptr);
-    CHECK(document.FindKey("software\\nival interactive") == nullptr);   // a parent is not made
-    // Set and AddKey meet the same key without case.
-    document.Set("software\\NIVAL INTERACTIVE\\evilislands", "other", REG_SZ, std::string("y\0", 2));
-    CHECK(document.keys.size() == 2 && document.keys[0].values.size() == 2 && Find(document, "Software\\Nival Interactive\\EvilIslands", "OTHER")->data == std::string("y\0", 2));
-    Key& again = document.AddKey("SOFTWARE\\nival interactive\\evilislands\\SUB");
-    CHECK(&again == &document.keys[1] && document.keys.size() == 2);
-    // Paths are joined by one backslash; empty parts and outer backslashes go.
-    CHECK(settings_file::JoinPath("a\\b", "c\\d") == "a\\b\\c\\d");
-    CHECK(settings_file::JoinPath("\\a\\\\b\\", "\\c\\") == "a\\b\\c");
-    CHECK(settings_file::JoinPath("", "x") == "x" && settings_file::JoinPath("x", nullptr) == "x" && settings_file::JoinPath("", "").empty());
-    Document odd;
-    odd.Parse("[\\Software\\\\Odd\\]\n\"v\"=dword:1\n", &problems);
-    CHECK(odd.keys.size() == 1 && odd.keys[0].path == "Software\\Odd");
-    // Key paths with spaces, and with ']' inside, round trip.
-    Document paths;
-    paths.Set("Software\\Nival Interactive\\Evil Islands (x86)", "a", REG_DWORD, Bytes32(1));
-    paths.Set("Software\\odd]key", "b", REG_DWORD, Bytes32(2));
-    paths.AddKey("Software\\Empty");
-    CHECK(SameDocument(paths, Reread(paths)));
+    parsed.Parse("[a]\nx=1\n[b]\ny=2\n[A]\nx=3\nz=4\n", &problems);
+    CHECK(problems.empty() && parsed.sections.size() == 2 && Value(parsed, "a", "x") == "3" && Value(parsed, "a", "z") == "4");
 }
 
+// Comments are kept where they are; the lines before the first section stay first.
 void Comments() {
-    // Comments, blank lines, indentation, trailing blanks, any line break, a BOM, no final line break.
-    const std::string text =
-        "\xEF\xBB\xBF; header comment\n"
-        "\n"
-        "   ; an indented comment\r\n"
-        "[Software\\C]  \r\n"
-        "; between a header and its values\n"
-        "  \"a\"=dword:00000005 \t \n"
-        "\t\n"
-        "\"b\" = \"two words\" \n"
-        "@=\"default\"\n"
-        "\"c\"=hex:01,\\\n"
-        "  02,03,\\\r\n"
-        "  04\n"
-        "\"d\"=float:2.5";
-    Document document;
     std::vector<std::string> problems;
-    document.Parse(text, &problems);
-    CHECK_MSG(problems.empty(), problems.empty() ? "" : problems[0]);
-    CHECK(document.keys.size() == 1 && document.keys[0].values.size() == 5);
-    const Value* a = Find(document, "Software\\C", "a");
-    CHECK(a && a->type == REG_DWORD && a->data == Bytes32(5));
-    const Value* b = Find(document, "Software\\C", "b");
-    CHECK(b && b->type == REG_SZ && b->data == std::string("two words\0", 10));
-    const Value* def = Find(document, "Software\\C", "");
-    CHECK(def && def->data == std::string("default\0", 8));
-    const Value* c = Find(document, "Software\\C", "c");
-    CHECK(c && c->type == REG_BINARY && c->data == std::string("\x01\x02\x03\x04", 4));
-    const float two = 2.5f;
-    const Value* d = Find(document, "Software\\C", "d");
-    CHECK(d && d->type == REG_BINARY && d->data == std::string(reinterpret_cast<const char*>(&two), 4));
-    // The written text starts with comments and no more than that before the first key.
-    const std::string written = document.Text();
-    CHECK(written.rfind("; ", 0) == 0 && written.find("\r\n[Software\\C]\r\n") != std::string::npos);
-    // The comment lines are not part of any value: a comment character after a value is part of a string only.
-    Document inString;
-    inString.Parse("[K]\n\"s\"=\"a ; b\"\n", &problems);
-    CHECK(Find(inString, "K", "s") && Find(inString, "K", "s")->data == std::string("a ; b\0", 6));
-    // Uppercase hex digits and prefixes read the same.
-    Document upper;
-    upper.Parse("[K]\n\"x\"=HEX(7):6F,6E,00,00\n\"y\"=DWORD:0000000A\n\"z\"=FLOAT:1.5\n\"w\"=hex(B):0A,0B,0C,0D,0E,0F,10,11\n", &problems);
-    CHECK(Find(upper, "K", "x") && Find(upper, "K", "x")->type == REG_MULTI_SZ && Find(upper, "K", "x")->data == std::string("on\0\0", 4));
-    CHECK(Find(upper, "K", "y") && Find(upper, "K", "y")->data == Bytes32(10));
-    CHECK(Find(upper, "K", "w") && Find(upper, "K", "w")->type == REG_QWORD && Find(upper, "K", "w")->data.size() == 8);
-    const float oneAndHalf = 1.5f;
-    CHECK(Find(upper, "K", "z") && Find(upper, "K", "z")->data == std::string(reinterpret_cast<const char*>(&oneAndHalf), 4));
-    // dword: with fewer digits is the number; with more than eight is a problem.
-    Document few;
-    few.Parse("[K]\n\"x\"=dword:1\n", &problems);
-    CHECK(Find(few, "K", "x") && Find(few, "K", "x")->data == Bytes32(1));
+    Document document;
+    document.Parse("\xEF\xBB\xBF; top\r\n# also top\r\n\r\n[a]\r\n; in a\r\nx = 1\r\n\r\n[b]\r\ny = 2\r\n; end of b\r\n", &problems);
+    CHECK(problems.empty());
+    CHECK(document.Text() == "; top\r\n# also top\r\n\r\n[a]\r\n; in a\r\nx = 1\r\n\r\n[b]\r\ny = 2\r\n; end of b\r\n");
+    document.Comment("", "added");
+    document.Comment("c", "new section");
+    CHECK(document.Text() == "; top\r\n# also top\r\n; added\r\n\r\n[a]\r\n; in a\r\nx = 1\r\n\r\n[b]\r\ny = 2\r\n; end of b\r\n"
+                             "\r\n[c]\r\n; new section\r\n");
+    // A document without lines before its first section starts with it.
+    Document plain;
+    plain.Set("a", "x", "1");
+    CHECK(plain.Text() == "[a]\r\nx = 1\r\n");
+    // Line breaks: \n alone, and a last line without one.
+    Document unix;
+    unix.Parse("[a]\nx = 1\ny = 2", &problems);
+    CHECK(problems.empty() && Value(unix, "a", "y") == "2");
 }
 
+// Lines not understood are reported and skipped; below a bad section every line is skipped.
 void BadLines() {
-    const std::string text =
-        "\"early\"=dword:00000001\n"            // a value before any section
-        "[K]\n"
-        "\"a\"=bogus\n"
-        "\"b\"=dword:zz\n"
-        "\"c\"=dword:123456789\n"               // nine digits
-        "\"d\"=hex:0\n"                         // half a byte
-        "\"e\"=hex:zz\n"
-        "\"f\"=\"unterminated\n"
-        "x=dword:00000001\n"                    // a name without quotes
-        "\"g\"=hex(zz):01\n"
-        "\"h\"=\"text\" trailing\n"
-        "\"i\"\n"
-        "[unclosed\n"
-        "\"ok\"=dword:00000007\n"
-        "\"float\"=float:abc\n"
-        "\"fine\"=\"yes\"\n";
-    Document document;
     std::vector<std::string> problems;
-    document.Parse(text, &problems);
-    CHECK_MSG(problems.size() == 13, "problems: " + std::to_string(problems.size()));
-    CHECK(document.keys.size() == 1);
-    CHECK(document.keys[0].values.size() == 2);   // only the good lines
-    CHECK(Find(document, "K", "ok") && Find(document, "K", "ok")->data == Bytes32(7));
-    CHECK(Find(document, "K", "fine") != nullptr);
-    CHECK(!problems.empty() && problems[0].find("line 1") != std::string::npos);
-    // Nothing breaks on empty or odd input.
-    Document empty;
-    empty.Parse("", &problems);
-    CHECK(empty.keys.empty());
-    empty.Parse("\r\n\r\n;only comments\r\n", &problems);
-    CHECK(empty.keys.empty());
-    empty.Parse("[]\n\"v\"=dword:1\n", &problems);   // an empty key path
-    CHECK(empty.keys.size() == 1 && empty.keys[0].path.empty());
-}
-
-void Whole() {
-    // A document of every kind of value, in two keys: its text reads back to the same, twice.
     Document document;
-    document.Set("Software\\One", "dword", REG_DWORD, Bytes32(0xfeedbeefu));
-    document.Set("Software\\One", "string", REG_SZ, std::string("C:\\dir\\\"q\"\0", 12));
-    document.Set("Software\\One", "float", REG_BINARY, Bytes32(0x80000000u));
-    document.Set("Software\\One", "nan", REG_BINARY, Bytes32(0x7fc00001u));
-    document.Set("Software\\One", "multi", REG_MULTI_SZ, std::string("a\0b\0\0", 5));
-    document.Set("Software\\One", "", REG_SZ, std::string("d\0", 2));
-    document.AddKey("Software\\Two");
-    document.Set("Software\\Two\\Deep", "bytes", REG_BINARY, std::string("\x00\xff\x7f", 3));
-    std::string first, second;
-    Document back = Reread(document, &first);
-    Document again = Reread(back, &second);
-    CHECK(first == second && SameDocument(document, back) && SameDocument(back, again));
-    CHECK(first.find('\r') != std::string::npos && first.find("\n\n") == std::string::npos);
-    CHECK(first.size() >= 2 && first.substr(first.size() - 2) == "\r\n");
+    document.Parse("x = before any section\n[good]\nno equals sign\n= no name\nok = 1\n[bad\\name]\nskipped = 1\n; skipped\n"
+                   "[]\nalso = skipped\n[good2]\nfine = 2\n",
+                   &problems);
+    CHECK_MSG(problems.size() == 5, std::to_string(problems.size()));
+    CHECK(Value(document, "good", "ok") == "1" && Value(document, "good2", "fine") == "2" && !document.Find("bad\\name", "skipped"));
+    CHECK(document.Values() == 2);
+    // The registry-shaped file of earlier builds holds no setting: the store writes the defaults over it.
+    Document old;
+    problems.clear();
+    old.Parse("; Evil Islands' settings for ei-rebuild.exe, in place of its registry keys under HKEY_CURRENT_USER.\r\n"
+              "\r\n[Software\\Nival Interactive\\EvilIslands\\General Settings]\r\n\"FullScreen\"=dword:00000001\r\n"
+              "\"VideoResolution\"=\"1920x1080\"\r\n\r\n[Software\\Gipat.Ru\\EI_Starter\\Settings]\r\n\"WideScreen\"=dword:00000001\r\n",
+              &problems);
+    CHECK(old.Values() == 0 && problems.size() == 2);
 }
 
-// ---- the defaults ----
-
-// DefaultDocument: the values the game and Rebirth read, under both option trees, at the desktop's size; written and
-// read back whole.
 void Defaults() {
-    Document document = settings_file::DefaultDocument(2560, 1440);
-    auto dword = [&](const std::string& path, const char* name, std::uint32_t expected) {
-        const Value* value = Find(document, path.c_str(), name);
-        CHECK_MSG(value && value->type == REG_DWORD && value->data == Bytes32(expected), path + "\\" + name);
+    const Document document = settings::Defaults(2560, 1440);
+    auto is = [&](const char* section, const char* name, const char* value) {
+        CHECK_MSG(Value(document, section, name) == value, std::string(section) + " " + name + " = " + Value(document, section, name));
     };
-    for (const char* tree : settings_file::kOptionTrees) {
-        const std::string root = tree;
-        const Value* resolution = Find(document, (root + "\\General Settings").c_str(), "VideoResolution");
-        CHECK_MSG(resolution && resolution->type == REG_SZ && resolution->data == std::string("2560x1440\0", 10), root);
-        dword(root + "\\General Settings", "FullScreen", 1);
-        dword(root + "\\General Settings", "VideoColorDepthInBits", 32);
-        dword(root + "\\General Settings", "Audio", 1);
-        for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) dword(root + "\\General Settings", volume, 100);
-        dword(root + "\\General Settings", "Filtering", 2);
-        dword(root + "\\General Settings", "TextureQuality", 0);
-        dword(root + "\\General Settings", "Mipmapping", 1);
-        dword(root + "\\Shadow Settings", "ShadowQuality", 2);
-        for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
-            dword(root + "\\Shadow Settings", shadow, 1);
-        for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableDynamicLights"})
-            dword(root + "\\Terrain Settings", feature, 1);
-        dword(root + "\\Terrain Settings", "LightingFreq", 1000);
-        // The LOD distances as the game reads its floats: four-byte REG_BINARY.
-        const Value* lod1 = Find(document, (root + "\\Terrain Settings").c_str(), "LOD1");
-        const Value* lod2 = Find(document, (root + "\\Terrain Settings").c_str(), "LOD2");
-        CHECK(lod1 && lod1->type == REG_BINARY && lod1->data == Bytes32(0x42b40000u));   // 90
-        CHECK(lod2 && lod2->type == REG_BINARY && lod2->data == Bytes32(0x43020000u));   // 130
-        // The install's camera and game settings: floats as four-byte REG_BINARY, the rest as the install has them.
-        const Value* rotate = Find(document, (root + "\\Camera Settings").c_str(), "CameraDefaultRotateSpeed");
-        CHECK(rotate && rotate->type == REG_BINARY && rotate->data == Bytes32(0x3e19999au));   // 0.15
-        const Value* pitch = Find(document, (root + "\\Camera Settings").c_str(), "CameraDefaultPitchSpeed");
-        CHECK(pitch && pitch->type == REG_BINARY && pitch->data == Bytes32(0x3ac49ba6u));      // 0.0015
-        const Value* shortcut = Find(document, (root + "\\Camera Settings").c_str(), "CameraShortcut 3 Pitch");
-        CHECK(shortcut && shortcut->type == REG_BINARY && shortcut->data == Bytes32(0x42340000u));   // 45
-        dword(root + "\\Camera Settings", "CameraBorderScrollArea", 1);
-        const Value* coefficient = Find(document, (root + "\\Game Specific Settings").c_str(), "ObjectsLightingCoeff");
-        CHECK(coefficient && coefficient->type == REG_BINARY && coefficient->data == Bytes32(0x40000000u));   // 2
-        dword(root + "\\Game Specific Settings", "Hero Light B", 116);
-        dword(root + "\\Game Specific Settings", "Quest Light Radius", 5);
-        const Value* master = Find(document, (root + "\\Network Settings").c_str(), "Master Server Name");
-        CHECK(master && master->type == REG_SZ && master->data == std::string("a3master.nival.com\0", 19));
-        // Left to the game's own defaults: the paths (".\" from the working folder), the tutorial.
-        CHECK(document.FindKey(root + "\\Path Settings") == nullptr);
-        CHECK(Find(document, (root + "\\Game Specific Settings").c_str(), "ShowTutorial") == nullptr);
-    }
-    // Rebirth's tree by the name its NivalRegistry patch opens (app_main.cpp: "Gipat.ru"), names without case.
-    CHECK(Find(document, "Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings", "VIDEORESOLUTION") != nullptr);
-    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", 1);
-    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "Msaa", 8);
-    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "Anisotropy", 16);
-    CHECK(Find(document, "Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay") == nullptr);
-    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "WideScreen", 1);
-    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "ObjectsDrawRadius", 5376);
-    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "LandscapeDrawRadius", 5376);
-    CHECK(Find(document, "Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath") == nullptr);   // no mod selected
-    // Written and read back: the same document, the floats as numbers, the text stable.
-    std::string first, second;
-    Document back = Reread(document, &first);
-    CHECK(SameDocument(document, back));
-    Reread(back, &second);
-    CHECK(first == second && first.find("\"LOD2\"=float:130\r\n") != std::string::npos);
-    CHECK(first.find("\"VideoResolution\"=\"2560x1440\"\r\n") != std::string::npos);
+    is("video", "VideoResolution", "2560x1440");
+    is("video", "FullScreen", "true");
+    is("video", "VideoColorDepthInBits", "32");
+    is("video", "Antialiasing", "true");
+    is("video", "Mipmapping", "true");
+    is("video", "Filtering", "2");
+    is("video", "TextureQuality", "0");
+    is("video", "ShowParticles", "true");
+    is("sound", "Audio", "true");
+    for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) is("sound", volume, "100");
+    is("shadows", "ShadowQuality", "2");
+    for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"}) is("shadows", shadow, "true");
+    is("terrain", "LightingFreq", "1000");
+    for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
+                                "EnableBloodprints", "EnableFireprints"})
+        is("terrain", feature, "true");
+    CHECK(!document.Find("terrain", "LOD1") && !document.Find("terrain", "LOD2"));
+    is("camera", "CameraFlipXAxis", "false");
+    is("camera", "CameraMinHeight", "3");
+    is("camera", "CameraDefaultRotateSpeed", "0.15");
+    is("camera", "CameraDefaultPitchSpeed", "0.0015");
+    is("camera", "CameraDefaultZoomPowerKeyboard", "0.46");
+    is("camera", "CameraFrameSelectionSensetiveArea", "30");
+    is("camera", "CameraShortcut 3 Pitch", "45");
+    is("camera", "CameraShortcut 0 AxisZ", "1");
+    is("game", "UseSWCursors", "false");
+    is("game", "SelectionType", "1");
+    is("game", "Hero Light B", "116");
+    is("game", "Quest Light G", "72");
+    is("game", "ObjectsLightingCoeff", "2");
+    is("game", "DefaultMapName", "Zone1.mpr");
+    is("game", "DefaultStreamingSound", "melody.mp3");
+    is("network", "Master Server Name", "a3master.nival.com");
+    is("renderer", "VSync", "true");
+    is("renderer", "Msaa", "8");
+    is("renderer", "Anisotropy", "16");
+    is("renderer", "PerfOverlay", "false");
+    is("rebirth", "WideScreen", "true");
+    is("rebirth", "ObjectsDrawRadius", "5376");
+    is("rebirth", "LandscapeDrawRadius", "5376");
+    // Left out: the game's and Rebirth's own defaults.
+    CHECK(!document.Find("paths", "Work path") && !document.Find("game", "ShowTutorial") && !document.Find("rebirth", "AddonPath"));
+    // The text reads back to the same document, comments included, with no problem.
+    std::vector<std::string> problems;
+    const Document back = RoundTrip(document, &problems);
+    CHECK(problems.empty() && back.Text() == document.Text() && back.Values() == document.Values());
     // Another desktop changes the resolution only.
-    Document other = settings_file::DefaultDocument(1920, 1080);
-    const Value* resolution = Find(other, "Software\\Nival Interactive\\EvilIslands\\General Settings", "VideoResolution");
-    CHECK(resolution && resolution->data == std::string("1920x1080\0", 10) && other.keys.size() == document.keys.size());
+    const Document other = settings::Defaults(1920, 1080);
+    CHECK(Value(other, "video", "VideoResolution") == "1920x1080" && other.Values() == document.Values());
 }
 
 } // namespace
@@ -508,16 +237,13 @@ void Defaults() {
 // replay_main.cpp: the number of failed checks.
 int RunSettingsFileChecks() {
     g_checks = g_failures = 0;
-    Dwords();
-    Strings();
+    Ints();
+    Bools();
     Floats();
-    Binaries();
-    OtherTypes();
+    Strings();
     Names();
-    Keys();
     Comments();
     BadLines();
-    Whole();
     Defaults();
     std::printf("ei_vectors: settings file: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;

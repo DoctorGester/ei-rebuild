@@ -1,11 +1,11 @@
-# ST1a: the image's options save into its settings file (src/game/settings_file.cpp, win_registry.cpp). The run's
-# ei_settings.ini is not read only (tests/verify/harness_settings.h): it is written from the registry snapshot, with a
-# probe key of odd values (every value type, escapes, -0 / denormal / NaN floats, a multi-string, a default value),
-# and the game's exit save (WinMain's GameOptions::SaveToRegistry; CWinRegistry::Close writes the file when a value
-# changed, to ei_settings.ini.tmp and moved over it) rewrites it. The options window's water waves setting is switched
-# on in memory, so the save has a change to write; ei_launch compares the file after the exit with
-# settings/settings_save.ini (the save's whole output: every value the game writes, and the probe key kept as it was)
-# and fails when ei_settings.ini.tmp is left behind. The user's registry is never read or written.
+# The image's options save into its settings file (src/game/settings.cpp). The run's ei_settings.ini is not read
+# only (tests/verify/harness_settings.h): it is written from the registry snapshot, with a probe section of odd values
+# (quotes, spaces at the ends, '=' and ';' inside, UTF-8, an empty value) and a comment, and the game's exit save
+# (WinMain's GameOptions::Save; settings::Save writes the file when a value changed, to ei_settings.ini.tmp and
+# moved over it) rewrites it. The options window's water waves setting is switched on in memory, so the save has a
+# change to write; ei_launch compares the file after the exit with settings/settings_save.ini (the save's whole
+# output: every value the game writes, and the probe section kept as it was) and fails when ei_settings.ini.tmp is
+# left behind. The user's registry is never read or written.
 # To change the expected file: copy the run's ei_settings.ini over it after reading the difference.
 # no original: vanilla rebirth game.exe keeps its settings in the registry (the settings file is the image's)
 # settings-file: settings/settings_save.ini

@@ -848,8 +848,8 @@ src/game/search_grid.h
 src/game/server_specific_manager.cpp
 src/game/server_specific_manager.h
 src/game/settings_document.cpp
-src/game/settings_file.cpp
-src/game/settings_file.h
+src/game/settings.cpp
+src/game/settings.h
 src/game/skin_quaternion.cpp
 src/game/sky_object.cpp
 src/game/sky_object.h
@@ -1354,8 +1354,8 @@ src/game/sector_spiral.cpp
 src/game/server_specific_manager.cpp
 src/game/server_specific_manager.h
 src/game/settings_document.cpp
-src/game/settings_file.cpp
-src/game/settings_file.h
+src/game/settings.cpp
+src/game/settings.h
 src/game/skin_quaternion.cpp
 src/game/sky_object.cpp
 src/game/sky_object.h

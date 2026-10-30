@@ -1,10 +1,7 @@
 #pragma once
 
-// The game options object (a global), its loader from the Windows registry
-// (called once by WinMain with the game's registry path) and the matching writer. Names are provisional; see
-// docs/notes/objects.md ("Options").
-// The object starts with eight registry subkey names that the loader passes to the value getters;
-// the values follow.
+// The game options object (a global), its loader from the settings file (settings.h; called once by WinMain) and
+// the matching writer. Names are provisional; see docs/notes/objects.md ("Options").
 
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +25,7 @@ struct CameraShortcutOptions {
     float angle;
     float pitch;
 };
-// A light's colour (0..1; the registry holds 0..255) and radius.
+// A light's colour (0..1; the settings file holds 0..255) and radius.
 struct LightOptions {
     float red;
     float green;
@@ -36,30 +33,20 @@ struct LightOptions {
     float radius;
 };
 
-// The whole object; the registry value names in comments (a member named after its
-// value is not commented).
+// The whole object; the settings file's value names in comments (a member named after its value is not commented).
+// The sections: options.cpp's tables.
 class GameOptions {
 public:
-    // What the static initialiser builds before
-    // WinMain: the eighteen strings and the first defaults (800 x 600, 16 bits; the defaults function
-    // sets the game's real defaults later, before the registry is read).
+    // What the static initialiser builds before WinMain: the first defaults (800 x 600, 16 bits; the defaults
+    // function sets the game's real defaults later, before the settings are read).
     GameOptions();
-    // Reads every option from the registry under HKEY_CURRENT_USER\<path>\<subkey>; a
-    // missing value keeps the current one (the defaults set before).
-    void LoadFromRegistry(const char* path);
-    // Writes the same values back (WinMain calls it once, on exit). The camera flips are written as booleans,
-    // the light colours as 0..255, "Joystick" always as 0, and "Difficulty Level" from +0x254.
-    void SaveToRegistry(const char* path);
+    // Reads every option from the settings file; a missing value keeps the current one (the defaults set before).
+    void Load();
+    // Writes the same values back and saves the file (WinMain calls it once, on exit). The camera flips are written
+    // as booleans, the light colours as 0..255, "Joystick" always as false, and "Difficulty Level" from
+    // difficultyStored.
+    void Save();
 
-    // The registry subkeys.
-    std::string keyStatistics;      // "Statistics Output Settings"
-    std::string keyGame;            // "Game Specific Settings"
-    std::string keyTerrain;         // "Terrain Settings"
-    std::string keyGeneral;         // "General Settings" (video and audio)
-    std::string keyCamera;          // "Camera Settings"
-    std::string keyShadows;         // "Shadow Settings"
-    std::string keyPaths;           // "Path Settings"
-    std::string keyNetwork;         // "Network Settings"
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
     std::string cdRomPath;          // CD-ROM Path
@@ -99,8 +86,6 @@ public:
     int otherShadow;
     int shadowLightingFreq;          // LightingFreq of the shadow settings
     int floraSpecialLight;
-    float lod1;
-    float lod2;
     float borderFogDistance;
     int enableWaterWaves;
     int enableSelfShadowing;

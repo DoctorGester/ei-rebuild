@@ -206,21 +206,21 @@ void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void
 
 // ---- the run's settings file (harness_settings.cpp, harness_startup.cpp; image/harness_settings_image.cpp)
 
-// One entry of a settings document, in order: a key (AddKey: `value` false), or a value of a key (Set).
-struct SettingsValue {
-    std::string key;
-    bool value = false;
+// One line of a settings file, in order: a value of `section` (Document::Set), or with `name` empty a comment
+// (Document::Comment: `value` is its text).
+struct SettingsLine {
+    std::string section;
     std::string name;
-    unsigned long type = 0;
-    std::string data;
+    std::string value;
 };
-using SettingsMissing = void (*)(const char* path, const char* name);
-using SettingsReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
-const char* SettingsFileName();                                        // settings_file::kFileName
-std::string SettingsText(const std::vector<SettingsValue>& document);  // the document's file text
-// The file pinned (settings_file::Pin); and pinned writable without a file, which the first use writes with the
-// defaults for a `width` x `height` desktop (settings_file::SetDesktopSize), every value absent from them read as absent.
-void PinSettings(const char* file, SettingsMissing missing, bool readOnly);
+using SettingsMissing = void (*)(const char* section, const char* name);
+using SettingsReadFilter = void (*)(const char* name, std::string& value);
+const char* SettingsFileName();                                      // settings::kFileName
+std::string SettingsText(const std::vector<SettingsLine>& lines);    // the file's text
+// The file pinned (settings::Pin); and pinned writable without a file, which the first use writes with the defaults
+// for a `width` x `height` desktop (settings::SetDesktopSize), every value absent from them read as absent.
+using SettingsPrepare = void (*)(const char* file);
+void PinSettings(const char* file, SettingsMissing missing, bool readOnly, SettingsPrepare prepare);
 void DefaultSettings(const char* file, int width, int height);
 void AddSettingsReadFilter(SettingsReadFilter filter);
 

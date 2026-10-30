@@ -59,8 +59,8 @@ bool RebirthProfileFlags(bool (&flags)[rebirth::kPatchCount], std::string* ini) 
 }
 
 // The settings file's game paths read as the default settings file has them.
-void DefaultGamePath(const char* name, unsigned long, std::string& data) {
-    if (_stricmp(name, "Work path") == 0 || _stricmp(name, "CD-ROM Path") == 0) data.assign(".\\", 3);
+void DefaultGamePath(const char* name, std::string& value) {
+    if (_stricmp(name, "Work path") == 0 || _stricmp(name, "CD-ROM Path") == 0) value = ".\\";
 }
 
 } // namespace

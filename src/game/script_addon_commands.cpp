@@ -11,7 +11,7 @@
 #include "party.h"
 #include "player_messages.h"
 #include "script_addon_handlers.h"
-#include "settings_file.h"
+#include "mod_folders.h"
 #include "platform/files.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -51,25 +51,6 @@ bool Equals(float constant, float value) { return constant == value; }
 PlayerServer* FirstPlayerState() {
     Player* player = g_serverWorld.GetPlayer(0);
     return player ? player->Server() : nullptr;
-}
-
-// The folder IsFileExists looks in: addon's mod folder (100BD184). Without a mod (as here) it is
-// HKCU\Software\Gipat.Ru\EI_Starter\Settings "AddonPath", with a '\' added; read once, like addon
-// reads it when it loads.
-const std::string& ModFolder() {
-    static const std::string folder = [] {
-        std::string path;
-        char value[520];   // two paths of 260 bytes
-        std::uint32_t size = sizeof(value) - 1, type = 0;
-        if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", &type, value, &size) == 0 &&
-            type == settings_file::kTypeString) {
-            value[size] = 0;
-            path = value;
-        }
-        if (!path.empty() && path.back() != '\\') path += '\\';
-        return path;
-    }();
-    return folder;
 }
 
 bool EndsWith(const std::string& text, const char* suffix) {
@@ -186,7 +167,7 @@ bool GameOverMsg(Call* call) {
 // that is "..", contains "/../", starts with "../" or ends with "/.." is refused (the result is
 // then left alone).
 bool IsFileExists(Call* call) {
-    std::string path = ModFolder();
+    std::string path = modfolders::ModPath();   // addon's mod folder (100BD184)
     std::string name = Text(call, 0);
     for (char& c : name)
         if (c == '\\') c = '/';

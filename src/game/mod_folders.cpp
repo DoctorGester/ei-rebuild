@@ -5,7 +5,7 @@
 
 #include "registry.h"
 #include "resource.h"
-#include "settings_file.h"
+#include "settings.h"
 #include "lib/text_case.h"
 
 #include "platform/files.h"
@@ -44,19 +44,6 @@ private:
         return section;
     }
 };
-
-// A string value of the starter's settings (HKCU; the standalone's settings file, settings_file.h), or
-// `fallback`. addon reads them with RegQueryValueExW.
-std::string StarterValue(const char* key, const char* name, const char* fallback) {
-    std::string value = fallback;
-    char text[kPathBytes * 2];
-    std::uint32_t size = sizeof(text) - 1, type = 0;
-    if (settings_file::ReadValue(key, name, &type, text, &size) == settings_file::kSuccess && (type == settings_file::kTypeString || type == settings_file::kTypeExpandString)) {
-        text[size] = '\0';
-        value = text;
-    }
-    return value;
-}
 
 // addon's 10025C9D: a '\' added to a path that does not end in one (an empty one stays empty).
 std::string WithSlash(std::string path) {
@@ -103,9 +90,9 @@ ResConfig ReadResConfig() {
     ResConfig config;
     const std::string& mod = ModPath();
     if (mod.empty()) return config;
-    constexpr const char* kPathSettings = "Software\\Gipat.Ru\\EI_Starter\\EvilIslands\\Path Settings";
-    const std::string resources = WithSlash(StarterValue(kPathSettings, "RESOURCES PATH", ".\\Res\\"));
-    const std::string cd = WithSlash(StarterValue(kPathSettings, "CD-ROM PATH", ".\\"));
+    // The game's paths (addon reads them from the starter's tree of the registry).
+    const std::string resources = WithSlash(settings::GetString(settings::kPaths, "Resources path", ".\\Res\\"));
+    const std::string cd = WithSlash(settings::GetString(settings::kPaths, "CD-ROM Path", ".\\"));
 
     FileRegistry registry;
     const std::string file = mod + "config.reg";
@@ -221,7 +208,7 @@ bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a 
 
 const std::string& ModPath() {
     static const std::string path =
-        WithSlash(StarterValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", ""));
+        WithSlash(settings::GetString(settings::kRebirth, "AddonPath", ""));
     return path;
 }
 

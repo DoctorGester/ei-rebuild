@@ -18,7 +18,7 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "renderer_lines.h"
-#include "settings_file.h"
+#include "settings.h"
 #include "sky_object.h"
 #include "spell.h"   // Light
 #include "terrain.h"
@@ -76,13 +76,10 @@ void PopMatrix(MatrixStack& stack) {
     if (depth) --depth;
 }
 
-// A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as addon turns it
+// A Rebirth switch ([rebirth] of the settings file, 100 when absent; addon reads the starter's) as addon turns it
 // into the float it patches in: (float)(unsigned)value, read once (addon reads its settings when it loads).
 float StarterDrawRadius(const char* name) {
-    std::uint32_t value = 100;
-    std::uint32_t data = 0, size = sizeof(data), type = 0;
-    if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", name, &type, &data, &size) == 0 && type == settings_file::kTypeDword)
-        value = data;
+    const auto value = static_cast<std::uint32_t>(settings::GetInt(settings::kRebirth, name, 100));
     float radius = static_cast<float>(static_cast<double>(value));
     return radius;
 }

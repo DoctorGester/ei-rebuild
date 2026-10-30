@@ -217,19 +217,14 @@
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
-//   expectlog <text>          require <text> in ei-rebuild.log so far (the code's own log lines, e.g. the WideScreen layout's);
-//                             "if=<word> <text>" / "ifnot=<word> <text>": only when the log has (lacks) <word>, e.g. the
-//                             Rebirth flag NivalRegistry
-//   treeresolution game|starter <W>x<H>
-//                             the image's settings file: the VideoResolution of the game's option tree or of
-//                             Rebirth's starter tree, in place of the "resolution" answer (the trees then differ)
+//   expectlog <text>          require <text> in ei-rebuild.log so far (the code's own log lines, e.g. the WideScreen layout's)
 //   settingsfile writable|defaults
 //                             the image's settings file (ei_settings.ini in the run folder) is not read only:
-//                             "writable" starts from the snapshot's file with a probe key of odd values and lets
+//                             "writable" starts from the snapshot's file with a probe section of odd values and lets
 //                             the game's exit save rewrite it (.tmp, then moved); "defaults" starts without a file,
 //                             which the first use writes with the defaults (for a 1280x720 desktop), as the
-//                             product's first start does. tools/settings_file_check.py compares the file after the run with the
-//                             scenario's "# settings-file:" line (harness_settings.h, ST1a)
+//                             product's first start does. ei_launch compares the file after the run with the
+//                             scenario's "# settings-file:" line (harness_settings.h)
 //   waitpresent <seconds> [gamma]
 //                             wait until the switch-over has presented a frame on the game window
 //                             (its own swap chain); with "gamma" also until the verify build has
@@ -3388,21 +3383,7 @@ void RunSteps() {
                     if (!std::strstr(line, "harness: ")) text += line;
                 std::fclose(log);
             }
-            // "if=<word> <text>" / "ifnot=<word> <text>": only when the log has <word> (or lacks it), e.g. a Rebirth
-            // flag in its "Rebirth flags on:" line.
-            std::string wanted = s.argument;
-            for (const char* prefix : {"if=", "ifnot="}) {
-                if (wanted.compare(0, std::strlen(prefix), prefix) != 0) continue;
-                const std::size_t space = wanted.find(' ');
-                const bool has = text.find(wanted.substr(std::strlen(prefix), space - std::strlen(prefix))) != std::string::npos;
-                wanted = space == std::string::npos ? std::string() : wanted.substr(space + 1);
-                if (has != (prefix[2] == '=')) {
-                    Log("harness: expectlog skipped (%s): %s", prefix, wanted.c_str());
-                    wanted.clear();
-                }
-                break;
-            }
-            if (wanted.empty()) continue;
+            const std::string& wanted = s.argument;
             const bool found = text.find(wanted) != std::string::npos;
             Log("harness: expectlog '%s': %s", wanted.c_str(), found ? "found" : "MISSING");
             if (!found) g_failures.push_back("expected ei-rebuild.log line '" + wanted + "'");

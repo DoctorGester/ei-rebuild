@@ -286,8 +286,12 @@ bool HasTilesOn(const SectorData* sector, int page) {
     return false;
 }
 
+// The LOD distances every run had from its settings (the settings file no longer holds them).
+constexpr float kLod1 = 90.0f;
+constexpr float kLod2 = 130.0f;
+
 // The sector's level of detail from the squared distance of its centre (mid height) to the camera: 0 within
-// the options' lod1, 1 within lod2, else 2.
+// kLod1, 1 within kLod2, else 2.
 void ChooseDetail(const Terrain* terrain, SectorData* sector) {
     const Vector3 centre = {(sector->sx + 0.5f) * kSectorCells,
                             (sector->sy + 0.5f) * kSectorCells,
@@ -296,8 +300,8 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
     const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition, g_camera.localPosition);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < options::g_options.lod1 * options::g_options.lod1) level = 0;
-    else if (distanceSquared < options::g_options.lod2 * options::g_options.lod2) level = 1;
+    if (distanceSquared < kLod1 * kLod1) level = 0;
+    else if (distanceSquared < kLod2 * kLod2) level = 1;
     sector->detail = level;
 }
 

@@ -855,15 +855,15 @@ Behaviour differences (one path for every sprite):
   models sampled anisotropically, each with its own level, as the user's Rebirth dgVoodoo setup draws at the most
   (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface.
   - **Settings** (user 2026-10-29: from the file, separately, with levels): in ei_settings.ini next to
-    ei-rebuild.exe (play.cmd's is run\play\ei_settings.ini), the key of the overlay and vsync (section 15):
+    ei-rebuild.exe (play.cmd's is run\play\ei_settings.ini), the section of the overlay and vsync (section 15):
     ```
-    [Software\Nival Interactive\EvilIslands\Standalone]
-    "Msaa"=dword:00000008          1 (off), 2, 4 or 8
-    "Anisotropy"=dword:00000010    1 (off) .. 16
+    [renderer]
+    Msaa = 8           1 (off), 2, 4 or 8
+    Anisotropy = 16    1 (off) .. 16
     ```
     Read once the renderer starts (`QualitySetting`, device_mesh.cpp, after `render::StartPresenting`); a value
-    missing or not a DWORD is written with its default (8 and 16: the look play.cmd's `smooth` gave before R33), so
-    the file always shows both (a new file has them already, with "VSync" 1: settings_file::DefaultDocument, S24). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
+    missing or not a number is written with its default (8 and 16: the look play.cmd's `smooth` gave before R33), so
+    the file always shows both (a new file has them already, with VSync true: settings::Defaults, S24). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
     target takes at most the device's samples; `render::SetAnisotropy` clamps to 1..16 (`kMostAnisotropy`). Both from
     the next frame (ST2's options screen can call them); `Msaa()` / `Anisotropy()` read them. **Never in a harness
     run**: `render::QualitySettingsSupported()` is false in the harness build (the pinned settings file lacks the
@@ -1744,10 +1744,10 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
 - **Switch**: in ei_settings.ini next to ei-rebuild.exe (docs/notes/standalone.md, "Settings file"; play.cmd's is
   run\play\ei_settings.ini):
   ```
-  [Software\Nival Interactive\EvilIslands\Standalone]
-  "PerfOverlay"=dword:00000001
+  [renderer]
+  PerfOverlay = true
   ```
-  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, device_mesh.cpp, after
+  Off when absent or false (a new file has it false). Read once the renderer starts (`PerfOverlaySetting`, device_mesh.cpp, after
   `render::StartPresenting`) into `render::SetPerfOverlay`. **Never in a harness run**: the harness build
   (EI_RENDER_VALIDATION) has `render::PerfOverlaySupported()` false, so the value is not even read (the pinned
   settings file lacks it, and a read of a missing value fails a run) and SetPerfOverlay keeps it off.
@@ -1804,12 +1804,12 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
 
 User 2026-10-22: a way to disable vsync, from the settings file, no UI.
 
-- **Switch**: next to PerfOverlay (section 15), same file and key:
+- **Switch**: next to PerfOverlay (section 15), same file and section:
   ```
-  [Software\Nival Interactive\EvilIslands\Standalone]
-  "VSync"=dword:00000000
+  [renderer]
+  VSync = false
   ```
-  On when absent or any value but 0 (the default: `Present(1, 0)`); 0 turns it off. Read once the renderer starts
+  On when absent or true (the default: `Present(1, 0)`); false turns it off. Read once the renderer starts
   (`VsyncSetting`, device_mesh.cpp, after `render::StartPresenting` and before the first present) into
   `render::SetVsync`. **Never in a harness run**: `render::VsyncSwitchSupported()` is false in the harness build
   (EI_RENDER_VALIDATION), so the value is not read (the pinned settings file lacks it) and SetVsync does nothing; the

@@ -7,7 +7,7 @@
 #include "hook/thread_context.h"
 #include "game/app.h"
 #include "standalone/static_init.h"
-#include "game/settings_file.h"
+#include "game/settings.h"
 #include "lib/crt.h"
 #include "platform/paths.h"
 #include "platform/system.h"
@@ -84,9 +84,9 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
 char g_gameRoot[MAX_PATH];   // EI_GAME_ROOT with a trailing backslash
 
 // The settings file's game paths (Work path, CD-ROM Path) read as EI_GAME_ROOT.
-void RedirectedPath(const char* name, unsigned long, std::string& data) {
+void RedirectedPath(const char* name, std::string& value) {
     if (_stricmp(name, "Work path") == 0 || _stricmp(name, "CD-ROM Path") == 0)
-        data.assign(g_gameRoot, std::strlen(g_gameRoot) + 1);
+        value = g_gameRoot;
 }
 
 // Under ei_launch, which names the data folder in EI_GAME_ROOT (the exe is the build's), the settings file's game
@@ -98,7 +98,7 @@ void RedirectSettingsPaths() {
         return;
     }
     if (g_gameRoot[n - 1] != '\\') strcat_s(g_gameRoot, "\\");
-    settings_file::AddReadFilter(&RedirectedPath);
+    settings::AddReadFilter(&RedirectedPath);
     Log("game paths redirected to %s (the settings file's)", g_gameRoot);
 }
 

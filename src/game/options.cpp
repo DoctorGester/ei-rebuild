@@ -1,11 +1,10 @@
 // The options loader and writer. See options.h.
-// Every value is read through the game's registry key helper, in the game's order; a value
-// that is missing keeps the field's current value, which is passed as the default.
+// Every value is read from the settings file in the game's order; a value that is missing keeps the field's current
+// value, which is passed as the default.
 #include "options.h"
 
-#include "settings_key.h"
+#include "settings.h"
 
-#include "lib/crt.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
@@ -35,95 +34,96 @@ int LoadedTimes255(float value) { return lib::Truncate(static_cast<double>(value
 int SavedTimes255(float value) { return lib::Truncate(value * kTimes255); }
 float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(static_cast<double>(value) * factor); }
 
-// One value: the subkey field, the value name, the field it goes to (and whose value is the default): `number`
-// for an integer (GetInt / SetInt), `real` for a float. Kept: a pointer-to-member type.
-using KeyField = std::string GameOptions::*;
+using namespace settings;
+
+// One value: the section, the value name, the field it goes to (and whose value is the default): `number` for an
+// integer, written as a boolean with `flag` (read as a number: true / false read as 1 / 0), `real` for a float.
+constexpr bool kFlag = true;
 struct Value {
-    constexpr Value(KeyField subkey, const char* valueName, int GameOptions::*field)
-        : key(subkey), name(valueName), number(field) {}
-    constexpr Value(KeyField subkey, const char* valueName, float GameOptions::*field)
-        : key(subkey), name(valueName), real(field) {}
-    KeyField key;
+    constexpr Value(const char* valueSection, const char* valueName, int GameOptions::*field, bool isFlag = false)
+        : section(valueSection), name(valueName), number(field), flag(isFlag) {}
+    constexpr Value(const char* valueSection, const char* valueName, float GameOptions::*field)
+        : section(valueSection), name(valueName), real(field) {}
+    const char* section;
     const char* name;
     int GameOptions::*number = nullptr;
     float GameOptions::*real = nullptr;
+    bool flag = false;
 };
 
 constexpr Value kVideoValues[] = {
-    {&GameOptions::keyGeneral, "VideoColorDepthInBits", &GameOptions::colourDepth},
-    {&GameOptions::keyGeneral, "VideoZBufferDepthInBits", &GameOptions::zBufferDepth},
-    {&GameOptions::keyGeneral, "VideoRefreshRate", &GameOptions::refreshRate},
-    {&GameOptions::keyGeneral, "FullScreen", &GameOptions::fullScreen},
+    {kVideo, "VideoColorDepthInBits", &GameOptions::colourDepth},
+    {kVideo, "VideoZBufferDepthInBits", &GameOptions::zBufferDepth},
+    {kVideo, "VideoRefreshRate", &GameOptions::refreshRate},
+    {kVideo, "FullScreen", &GameOptions::fullScreen, kFlag},
 };
 // Joystick (joystick, default 0) comes between these two lists.
-constexpr Value kAudioToGeneralValues[] = {
-    {&GameOptions::keyGeneral, "Video", &GameOptions::video},
-    {&GameOptions::keyGeneral, "Audio", &GameOptions::audio},
-    {&GameOptions::keyGeneral, "AudioStreaming", &GameOptions::audioStreaming},
-    {&GameOptions::keyGeneral, "AudioSFX", &GameOptions::audioSfx},
-    {&GameOptions::keyGeneral, "AudioSpeech", &GameOptions::audioSpeech},
-    {&GameOptions::keyGeneral, "Antialiasing", &GameOptions::antialiasing},
-    {&GameOptions::keyGeneral, "Dithering", &GameOptions::dithering},
-    {&GameOptions::keyGeneral, "Specular", &GameOptions::specular},
-    {&GameOptions::keyGeneral, "TextureQuality", &GameOptions::textureQuality},
-    {&GameOptions::keyGeneral, "Mipmapping", &GameOptions::mipmapping},
-    {&GameOptions::keyGeneral, "Filtering", &GameOptions::filtering},
-    {&GameOptions::keyGeneral, "PerspectiveCorrection", &GameOptions::perspectiveCorrection},
-    {&GameOptions::keyGeneral, "ShowParticles", &GameOptions::showParticles},
-    {&GameOptions::keyGeneral, "FPSIndependentCursor", &GameOptions::fpsIndependentCursor},
-    {&GameOptions::keyGeneral, "AutomaticQuantization", &GameOptions::automaticQuantization},
-    {&GameOptions::keyGeneral, "MovieCapturingFPS", &GameOptions::movieCapturingFps},
-    {&GameOptions::keyGeneral, "Brightness", &GameOptions::brightness},
-    {&GameOptions::keyGeneral, "Contrast", &GameOptions::contrast},
-    {&GameOptions::keyGeneral, "Gamma", &GameOptions::gamma},
-    {&GameOptions::keyGeneral, "Reverse Stereo", &GameOptions::reverseStereo},
-    {&GameOptions::keyShadows, "ShadowQuality", &GameOptions::shadowQuality},
-    {&GameOptions::keyShadows, "HeroShadow", &GameOptions::heroShadow},
-    {&GameOptions::keyShadows, "UnitShadow", &GameOptions::unitShadow},
-    {&GameOptions::keyShadows, "BuildingShadow", &GameOptions::buildingShadow},
-    {&GameOptions::keyShadows, "FloraShadow", &GameOptions::floraShadow},
-    {&GameOptions::keyShadows, "OtherShadow", &GameOptions::otherShadow},
-    {&GameOptions::keyShadows, "LightingFreq", &GameOptions::shadowLightingFreq},
-    {&GameOptions::keyShadows, "FloraSpecialLight", &GameOptions::floraSpecialLight},
-    {&GameOptions::keyTerrain, "LOD1", &GameOptions::lod1},
-    {&GameOptions::keyTerrain, "LOD2", &GameOptions::lod2},
-    {&GameOptions::keyTerrain, "BorderFogDistance", &GameOptions::borderFogDistance},
-    {&GameOptions::keyTerrain, "EnableWaterWaves", &GameOptions::enableWaterWaves},
-    {&GameOptions::keyTerrain, "EnableDynamicLights", &GameOptions::enableDynamicLights},
-    {&GameOptions::keyTerrain, "EnableSelfShadowing", &GameOptions::enableSelfShadowing},
-    {&GameOptions::keyTerrain, "LightingFreq", &GameOptions::lightingFreq},
-    {&GameOptions::keyTerrain, "ShadowingFreq", &GameOptions::shadowingFreq},
-    {&GameOptions::keyTerrain, "EnableFootprints", &GameOptions::enableFootprints},
-    {&GameOptions::keyTerrain, "EnableBloodprints", &GameOptions::enableBloodprints},
-    {&GameOptions::keyTerrain, "EnableFireprints", &GameOptions::enableFireprints},
-    {&GameOptions::keyTerrain, "EnableBloodprintsRelight", &GameOptions::enableBloodprintsRelight},
-    {&GameOptions::keyStatistics, "CreateOutputInfo", &GameOptions::createOutputInfo},
-    {&GameOptions::keyStatistics, "NumberOfFrames", &GameOptions::numberOfFrames},
+constexpr Value kValues[] = {
+    {kVideo, "Video", &GameOptions::video},
+    {kSound, "Audio", &GameOptions::audio, kFlag},
+    {kSound, "AudioStreaming", &GameOptions::audioStreaming},
+    {kSound, "AudioSFX", &GameOptions::audioSfx},
+    {kSound, "AudioSpeech", &GameOptions::audioSpeech},
+    {kVideo, "Antialiasing", &GameOptions::antialiasing, kFlag},
+    {kVideo, "Dithering", &GameOptions::dithering, kFlag},
+    {kVideo, "Specular", &GameOptions::specular, kFlag},
+    {kVideo, "TextureQuality", &GameOptions::textureQuality},
+    {kVideo, "Mipmapping", &GameOptions::mipmapping, kFlag},
+    {kVideo, "Filtering", &GameOptions::filtering},
+    {kVideo, "PerspectiveCorrection", &GameOptions::perspectiveCorrection, kFlag},
+    {kVideo, "ShowParticles", &GameOptions::showParticles, kFlag},
+    {kVideo, "FPSIndependentCursor", &GameOptions::fpsIndependentCursor, kFlag},
+    {kVideo, "AutomaticQuantization", &GameOptions::automaticQuantization, kFlag},
+    {kVideo, "MovieCapturingFPS", &GameOptions::movieCapturingFps},
+    {kVideo, "Brightness", &GameOptions::brightness},
+    {kVideo, "Contrast", &GameOptions::contrast},
+    {kVideo, "Gamma", &GameOptions::gamma},
+    {kSound, "Reverse Stereo", &GameOptions::reverseStereo, kFlag},
+    {kShadows, "ShadowQuality", &GameOptions::shadowQuality},
+    {kShadows, "HeroShadow", &GameOptions::heroShadow, kFlag},
+    {kShadows, "UnitShadow", &GameOptions::unitShadow, kFlag},
+    {kShadows, "BuildingShadow", &GameOptions::buildingShadow, kFlag},
+    {kShadows, "FloraShadow", &GameOptions::floraShadow, kFlag},
+    {kShadows, "OtherShadow", &GameOptions::otherShadow, kFlag},
+    {kShadows, "LightingFreq", &GameOptions::shadowLightingFreq},
+    {kShadows, "FloraSpecialLight", &GameOptions::floraSpecialLight, kFlag},
+    {kTerrain, "BorderFogDistance", &GameOptions::borderFogDistance},
+    {kTerrain, "EnableWaterWaves", &GameOptions::enableWaterWaves, kFlag},
+    {kTerrain, "EnableDynamicLights", &GameOptions::enableDynamicLights, kFlag},
+    {kTerrain, "EnableSelfShadowing", &GameOptions::enableSelfShadowing, kFlag},
+    {kTerrain, "LightingFreq", &GameOptions::lightingFreq},
+    {kTerrain, "ShadowingFreq", &GameOptions::shadowingFreq},
+    {kTerrain, "EnableFootprints", &GameOptions::enableFootprints, kFlag},
+    {kTerrain, "EnableBloodprints", &GameOptions::enableBloodprints, kFlag},
+    {kTerrain, "EnableFireprints", &GameOptions::enableFireprints, kFlag},
+    {kTerrain, "EnableBloodprintsRelight", &GameOptions::enableBloodprintsRelight, kFlag},
+    {kStatistics, "CreateOutputInfo", &GameOptions::createOutputInfo, kFlag},
+    {kStatistics, "NumberOfFrames", &GameOptions::numberOfFrames},
 };
 constexpr Value kCameraValues[] = {
-    {&GameOptions::keyCamera, "CameraMinHeight", &GameOptions::cameraMinHeight},
-    {&GameOptions::keyCamera, "CameraMaxHeight", &GameOptions::cameraMaxHeight},
-    {&GameOptions::keyCamera, "CameraDefaultHeight", &GameOptions::cameraDefaultHeight},
-    {&GameOptions::keyCamera, "CameraDefaultXDeploy", &GameOptions::cameraDefaultXDeploy},
-    {&GameOptions::keyCamera, "CameraDefaultYDeploy", &GameOptions::cameraDefaultYDeploy},
-    {&GameOptions::keyCamera, "CameraMinDistanceToCarrier", &GameOptions::cameraMinDistance},
-    {&GameOptions::keyCamera, "CameraMaxDistanceToCarrier", &GameOptions::cameraMaxDistance},
-    {&GameOptions::keyCamera, "CameraMinLimitDistanceToCarrier", &GameOptions::cameraMinLimitDistance},
-    {&GameOptions::keyCamera, "CameraMaxLimitDistanceToCarrier", &GameOptions::cameraMaxLimitDistance},
-    {&GameOptions::keyCamera, "CameraDefaultDistanceToCarrier", &GameOptions::cameraDefaultDistance},
-    {&GameOptions::keyCamera, "NearClipDistance", &GameOptions::nearClipDistance},
-    {&GameOptions::keyCamera, "FarClipDistance", &GameOptions::farClipDistance},
-    {&GameOptions::keyCamera, "CameraDefaultMinPitch", &GameOptions::cameraDefaultMinPitch},
-    {&GameOptions::keyCamera, "CameraDefaultMaxPitch", &GameOptions::cameraDefaultMaxPitch},
-    {&GameOptions::keyCamera, "CameraBriefingMinDistanceToCarrier", &GameOptions::briefingMinDistance},
-    {&GameOptions::keyCamera, "CameraBriefingMaxDistanceToCarrier", &GameOptions::briefingMaxDistance},
-    {&GameOptions::keyCamera, "CameraBriefingMinLimitDistanceToCarrier", &GameOptions::briefingMinLimitDistance},
-    {&GameOptions::keyCamera, "CameraBriefingMaxLimitDistanceToCarrier", &GameOptions::briefingMaxLimitDistance},
-    {&GameOptions::keyCamera, "CameraBriefingMinPitch", &GameOptions::briefingMinPitch},
-    {&GameOptions::keyCamera, "CameraBriefingMaxPitch", &GameOptions::briefingMaxPitch},
-    {&GameOptions::keyCamera, "CameraBorderScrollArea", &GameOptions::cameraBorderScrollArea},
-    {&GameOptions::keyCamera, "CameraFrameSelectionSensetiveArea", &GameOptions::cameraFrameSelectionArea},
-    {&GameOptions::keyCamera, "CameraTerrainSensetiveArea", &GameOptions::cameraTerrainArea},
+    {kCamera, "CameraMinHeight", &GameOptions::cameraMinHeight},
+    {kCamera, "CameraMaxHeight", &GameOptions::cameraMaxHeight},
+    {kCamera, "CameraDefaultHeight", &GameOptions::cameraDefaultHeight},
+    {kCamera, "CameraDefaultXDeploy", &GameOptions::cameraDefaultXDeploy},
+    {kCamera, "CameraDefaultYDeploy", &GameOptions::cameraDefaultYDeploy},
+    {kCamera, "CameraMinDistanceToCarrier", &GameOptions::cameraMinDistance},
+    {kCamera, "CameraMaxDistanceToCarrier", &GameOptions::cameraMaxDistance},
+    {kCamera, "CameraMinLimitDistanceToCarrier", &GameOptions::cameraMinLimitDistance},
+    {kCamera, "CameraMaxLimitDistanceToCarrier", &GameOptions::cameraMaxLimitDistance},
+    {kCamera, "CameraDefaultDistanceToCarrier", &GameOptions::cameraDefaultDistance},
+    {kCamera, "NearClipDistance", &GameOptions::nearClipDistance},
+    {kCamera, "FarClipDistance", &GameOptions::farClipDistance},
+    {kCamera, "CameraDefaultMinPitch", &GameOptions::cameraDefaultMinPitch},
+    {kCamera, "CameraDefaultMaxPitch", &GameOptions::cameraDefaultMaxPitch},
+    {kCamera, "CameraBriefingMinDistanceToCarrier", &GameOptions::briefingMinDistance},
+    {kCamera, "CameraBriefingMaxDistanceToCarrier", &GameOptions::briefingMaxDistance},
+    {kCamera, "CameraBriefingMinLimitDistanceToCarrier", &GameOptions::briefingMinLimitDistance},
+    {kCamera, "CameraBriefingMaxLimitDistanceToCarrier", &GameOptions::briefingMaxLimitDistance},
+    {kCamera, "CameraBriefingMinPitch", &GameOptions::briefingMinPitch},
+    {kCamera, "CameraBriefingMaxPitch", &GameOptions::briefingMaxPitch},
+    {kCamera, "CameraBorderScrollArea", &GameOptions::cameraBorderScrollArea},
+    {kCamera, "CameraFrameSelectionSensetiveArea", &GameOptions::cameraFrameSelectionArea},
+    {kCamera, "CameraTerrainSensetiveArea", &GameOptions::cameraTerrainArea},
 };
 // Read right after kCameraValues: "CameraDefault<Scroll|Rotate|Pitch|Zoom><Speed|PowerMouse|PowerKeyboard>".
 constexpr struct {
@@ -145,56 +145,56 @@ constexpr struct {
     {"CameraDefaultZoomPowerKeyboard", &GameOptions::cameraZoom, &CameraMotionOptions::powerKeyboard},
 };
 constexpr Value kGameValues[] = {
-    {&GameOptions::keyGame, "DefaultWindForce", &GameOptions::defaultWindForce},
-    {&GameOptions::keyGame, "DefaultTimeScale", &GameOptions::defaultTimeScale},
-    {&GameOptions::keyGame, "UseSWCursors", &GameOptions::useSwCursors},
-    {&GameOptions::keyGame, "SelectionType", &GameOptions::selectionType},
-    {&GameOptions::keyGame, "CornerSize", &GameOptions::cornerSize},
-    {&GameOptions::keyGame, "DrawVisibleOnly", &GameOptions::drawVisibleOnly},
-    {&GameOptions::keyGame, "DrawPath", &GameOptions::drawPath},
-    {&GameOptions::keyGame, "DrawFlyingHP", &GameOptions::drawFlyingHp},
-    {&GameOptions::keyGame, "ShowTutorial", &GameOptions::showTutorial},
-    {&GameOptions::keyGame, "Autosave", &GameOptions::autosave},
-    {&GameOptions::keyGame, "ToolTip Time", &GameOptions::toolTipTime},
-    {&GameOptions::keyGame, "SwitchFilters", &GameOptions::switchFilters},
+    {kGame, "DefaultWindForce", &GameOptions::defaultWindForce},
+    {kGame, "DefaultTimeScale", &GameOptions::defaultTimeScale},
+    {kGame, "UseSWCursors", &GameOptions::useSwCursors, kFlag},
+    {kGame, "SelectionType", &GameOptions::selectionType},
+    {kGame, "CornerSize", &GameOptions::cornerSize},
+    {kGame, "DrawVisibleOnly", &GameOptions::drawVisibleOnly, kFlag},
+    {kGame, "DrawPath", &GameOptions::drawPath, kFlag},
+    {kGame, "DrawFlyingHP", &GameOptions::drawFlyingHp, kFlag},
+    {kGame, "ShowTutorial", &GameOptions::showTutorial, kFlag},
+    {kGame, "Autosave", &GameOptions::autosave, kFlag},
+    {kGame, "ToolTip Time", &GameOptions::toolTipTime},
+    {kGame, "SwitchFilters", &GameOptions::switchFilters, kFlag},
 };
 constexpr Value kGameValues2[] = {
-    {&GameOptions::keyGame, "Keyboard Layout", &GameOptions::keyboardLayout},
-    {&GameOptions::keyGame, "ObjectsLightingCoeff", &GameOptions::objectsLightingCoeff},
+    {kGame, "Keyboard Layout", &GameOptions::keyboardLayout},
+    {kGame, "ObjectsLightingCoeff", &GameOptions::objectsLightingCoeff},
 };
 constexpr Value kFogValues[] = {
-    {&GameOptions::keyGame, "FogNightStartDistance", &GameOptions::fogNightStartDistance},
-    {&GameOptions::keyGame, "FogDayStartDistance", &GameOptions::fogDayStartDistance},
+    {kGame, "FogNightStartDistance", &GameOptions::fogNightStartDistance},
+    {kGame, "FogDayStartDistance", &GameOptions::fogDayStartDistance},
 };
 
-// One string option: subkey field, value name, field.
+// One string option: section, value name, field.
 using StringField = std::string& (*)(GameOptions&);
 template <std::string GameOptions::*Member>
 std::string& StringOf(GameOptions& options) { return options.*Member; }
 template <int Index>
 std::string& CdLabel(GameOptions& options) { return options.cdLabels[Index]; }
 struct StringValue {
-    KeyField key;
+    const char* section;
     const char* name;
     StringField field;
 };
 constexpr StringValue kPathValues[] = {
-    {&GameOptions::keyPaths, "Work path", &StringOf<&GameOptions::workPath>},
-    {&GameOptions::keyPaths, "Resources path", &StringOf<&GameOptions::resourcesPath>},
-    {&GameOptions::keyPaths, "CD-ROM Path", &StringOf<&GameOptions::cdRomPath>},
+    {kPaths, "Work path", &StringOf<&GameOptions::workPath>},
+    {kPaths, "Resources path", &StringOf<&GameOptions::resourcesPath>},
+    {kPaths, "CD-ROM Path", &StringOf<&GameOptions::cdRomPath>},
 };
 constexpr StringValue kCdValues[] = {
-    {&GameOptions::keyGame, "CD1 Label", &CdLabel<0>},
-    {&GameOptions::keyGame, "CD2 Label", &CdLabel<1>},
-    {&GameOptions::keyGame, "CD3 Label", &CdLabel<2>},
-    {&GameOptions::keyGame, "Font CharSet", &StringOf<&GameOptions::fontCharSet>},
+    {kGame, "CD1 Label", &CdLabel<0>},
+    {kGame, "CD2 Label", &CdLabel<1>},
+    {kGame, "CD3 Label", &CdLabel<2>},
+    {kGame, "Font CharSet", &StringOf<&GameOptions::fontCharSet>},
 };
 constexpr StringValue kDefaultValues[] = {
-    {&GameOptions::keyGame, "DefaultMapName", &StringOf<&GameOptions::defaultMapName>},
-    {&GameOptions::keyGame, "DefaultStreamingSound", &StringOf<&GameOptions::defaultStreamingSound>},
+    {kGame, "DefaultMapName", &StringOf<&GameOptions::defaultMapName>},
+    {kGame, "DefaultStreamingSound", &StringOf<&GameOptions::defaultStreamingSound>},
 };
 
-// The lights: r, g, b stored as 0..1 (the registry holds 0..255), then the radius.
+// The lights: r, g, b stored as 0..1 (the file holds 0..255), then the radius.
 constexpr const char* kHeroLightNames[] = {"Hero Light R", "Hero Light G", "Hero Light B", "Hero Light Radius"};
 constexpr const char* kQuestLightNames[] = {"Quest Light R", "Quest Light G", "Quest Light B", "Quest Light Radius"};
 constexpr float LightOptions::*kLightChannels[] = {&LightOptions::red, &LightOptions::green, &LightOptions::blue};
@@ -214,17 +214,13 @@ constexpr struct {
 
 class Loader {
 public:
-    Loader(GameOptions* newOptions, SettingsKey& newKey) : options(newOptions), key(newKey) {}
+    explicit Loader(GameOptions* newOptions) : options(newOptions) {}
 
-    const char* Key(KeyField field) const { return (options->*field).c_str(); }
     std::string& String(StringField field) { return field(*options); }
 
     void Read(const Value& v) {
-        if (v.number) options->*v.number = key.GetInt(Key(v.key), v.name, options->*v.number);
-        else ReadFloat(v.key, v.name, options->*v.real);
-    }
-    void ReadFloat(KeyField keyField, const char* name, float& field) {
-        field = static_cast<float>(key.GetFloat(Key(keyField), name, Bits(field)));
+        if (v.number) options->*v.number = GetInt(v.section, v.name, options->*v.number);
+        else options->*v.real = GetFloat(v.section, v.name, options->*v.real);
     }
     template <std::size_t N>
     void Read(const Value (&values)[N]) {
@@ -232,16 +228,19 @@ public:
     }
     template <std::size_t N>
     void Read(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) String(v.field) = key.GetString(Key(v.key), v.name, String(v.field));
+        for (const StringValue& v : values) String(v.field) = GetString(v.section, v.name, String(v.field));
     }
     void ReadCameraMotions() {
-        for (const auto& v : kCameraMotionValues) ReadFloat(&GameOptions::keyCamera, v.name, options->*v.motion.*v.part);
+        for (const auto& v : kCameraMotionValues) {
+            float& field = options->*v.motion.*v.part;
+            field = GetFloat(kCamera, v.name, field);
+        }
     }
 
-    // Stored as -1 / 1 floats, kept in the registry as booleans.
+    // Stored as -1 / 1 floats, kept in the file as booleans.
     void ReadCameraFlip(float& flip, const char* name) {
         int flipped = Bits(flip) == kMinusOneBits ? 1 : 0;
-        int value = key.GetInt(Key(&GameOptions::keyCamera), name, flipped);
+        int value = GetInt(kCamera, name, flipped);
         flip = static_cast<float>(value ? -1 : 1);
     }
 
@@ -250,38 +249,38 @@ public:
         for (unsigned i = 0; i < 4; ++i) {
             for (const auto& v : kShortcutValues) {
                 std::snprintf(name, sizeof(name), v.format, i);
-                ReadFloat(&GameOptions::keyCamera, name, options->cameraShortcuts[i].*v.field);
+                float& field = options->cameraShortcuts[i].*v.field;
+                field = GetFloat(kCamera, name, field);
             }
         }
     }
 
-    // The colour channels are kept in the registry as 0..255 integers.
+    // The colour channels are kept in the file as 0..255 integers.
     void ReadLight(LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             float& channel = light.*kLightChannels[c];
-            int value = key.GetInt(Key(&GameOptions::keyGame), names[c], LoadedTimes255(channel));
+            int value = GetInt(kGame, names[c], LoadedTimes255(channel));
             channel = UnsignedProduct(static_cast<std::uint32_t>(value), kOver255);
         }
-        int radius = key.GetInt(Key(&GameOptions::keyGame), names[3], lib::Truncate(light.radius));
+        int radius = GetInt(kGame, names[3], lib::Truncate(light.radius));
         light.radius = static_cast<float>(static_cast<std::uint32_t>(radius));
     }
 
 private:
     GameOptions* options;
-    SettingsKey& key;
 };
 
-// The writer: the same tables in the same order, each value through the setter matching its getter.
+// The writer: the same tables in the same order.
 class Saver {
 public:
-    Saver(GameOptions* newOptions, SettingsKey& newKey) : options(newOptions), key(newKey) {}
+    explicit Saver(GameOptions* newOptions) : options(newOptions) {}
 
-    const char* Key(KeyField field) const { return (options->*field).c_str(); }
     const std::string& String(StringField field) const { return field(*options); }
 
     void Write(const Value& v) {
-        if (v.number) key.SetInt(Key(v.key), v.name, options->*v.number);
-        else key.SetFloat(Key(v.key), v.name, Bits(options->*v.real));
+        if (v.real) SetFloat(v.section, v.name, options->*v.real);
+        else if (v.flag) SetBool(v.section, v.name, options->*v.number != 0);
+        else SetInt(v.section, v.name, options->*v.number);
     }
     template <std::size_t N>
     void Write(const Value (&values)[N]) {
@@ -289,53 +288,43 @@ public:
     }
     template <std::size_t N>
     void Write(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) key.SetString(Key(v.key), v.name, String(v.field));
+        for (const StringValue& v : values) SetString(v.section, v.name, String(v.field));
     }
     void WriteCameraMotions() {
-        for (const auto& v : kCameraMotionValues)
-            key.SetFloat(Key(&GameOptions::keyCamera), v.name, Bits(options->*v.motion.*v.part));
+        for (const auto& v : kCameraMotionValues) SetFloat(kCamera, v.name, options->*v.motion.*v.part);
     }
 
-    // 1 when the stored float is exactly -1 (compared as bits).
-    void WriteCameraFlip(float flip, const char* name) {
-        key.SetInt(Key(&GameOptions::keyCamera), name, Bits(flip) == kMinusOneBits ? 1 : 0);
-    }
+    // true when the stored float is exactly -1 (compared as bits).
+    void WriteCameraFlip(float flip, const char* name) { SetBool(kCamera, name, Bits(flip) == kMinusOneBits); }
 
     void WriteCameraShortcuts() {
         char name[0x400];
         for (unsigned i = 0; i < 4; ++i) {
             for (const auto& v : kShortcutValues) {
                 std::snprintf(name, sizeof(name), v.format, i);
-                key.SetFloat(Key(&GameOptions::keyCamera), name, Bits(options->cameraShortcuts[i].*v.field));
+                SetFloat(kCamera, name, options->cameraShortcuts[i].*v.field);
             }
         }
     }
 
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(const LightOptions& light, const char* const (&names)[4]) {
-        for (int c = 0; c < 3; ++c)
-            key.SetInt(Key(&GameOptions::keyGame), names[c], SavedTimes255(light.*kLightChannels[c]));
-        key.SetInt(Key(&GameOptions::keyGame), names[3], lib::Truncate(light.radius));
+        for (int c = 0; c < 3; ++c) SetInt(kGame, names[c], SavedTimes255(light.*kLightChannels[c]));
+        SetInt(kGame, names[3], lib::Truncate(light.radius));
     }
 
 private:
     GameOptions* options;
-    SettingsKey& key;
 };
 
 } // namespace
 
-void GameOptions::LoadFromRegistry(const char* path) {
-    std::string resolution;   // the game's local is constructed first, read later
-    SettingsKey key;
-    key.Open(path);
-    Loader l(this, key);
-
+void GameOptions::Load() {
+    Loader l(this);
     l.Read(kPathValues);
-    l.Read(Value{&GameOptions::keyGeneral, "DrawingTarget", &GameOptions::driverIndex});
+    l.Read(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
     {
-        // VideoResolution goes through the local string the game built first.
-        resolution = key.GetString(l.Key(&GameOptions::keyGeneral), "VideoResolution", resolution);
+        const std::string resolution = GetString(kVideo, "VideoResolution", std::string());
         int x = str::Find(resolution, 'x');
         if (x != -1) {
             resolutionX = str::ToInt(str::Left(resolution, x));
@@ -343,8 +332,8 @@ void GameOptions::LoadFromRegistry(const char* path) {
         }
     }
     l.Read(kVideoValues);
-    joystick = key.GetInt(l.Key(&GameOptions::keyGeneral), "Joystick", 0);
-    l.Read(kAudioToGeneralValues);
+    joystick = GetInt(kGame, "Joystick", 0);
+    l.Read(kValues);
     l.ReadCameraFlip(cameraFlipX, "CameraFlipXAxis");
     l.ReadCameraFlip(cameraFlipY, "CameraFlipYAxis");
     l.Read(kCameraValues);
@@ -355,28 +344,22 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kGameValues2);
     l.ReadLight(heroLight, kHeroLightNames);
     l.ReadLight(questLight, kQuestLightNames);
-    int newDifficulty = key.GetInt(l.Key(&GameOptions::keyGame), "Difficulty Level", difficultyStored);
+    int newDifficulty = GetInt(kGame, "Difficulty Level", difficultyStored);
     difficultyStored = newDifficulty;
     difficulty = newDifficulty;
     l.Read(kDefaultValues);
     l.Read(kFogValues);
-    masterServerName = key.GetString(l.Key(&GameOptions::keyNetwork), "Master Server Name", masterServerName);
-    key.Close();
+    masterServerName = GetString(kNetwork, "Master Server Name", masterServerName);
 }
 
-void GameOptions::SaveToRegistry(const char* path) {
-    std::string resolution;
-    SettingsKey key;
-    key.Open(path);
-    Saver s(this, key);
-
+void GameOptions::Save() {
+    Saver s(this);
     s.Write(kPathValues);
-    s.Write(Value{&GameOptions::keyGeneral, "DrawingTarget", &GameOptions::driverIndex});
-    resolution = std::format("{}x{}", resolutionX, resolutionY);
-    key.SetString(s.Key(&GameOptions::keyGeneral), "VideoResolution", resolution);
+    s.Write(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
+    SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
     s.Write(kVideoValues);
-    key.SetInt(s.Key(&GameOptions::keyGeneral), "Joystick", 0);
-    s.Write(kAudioToGeneralValues);
+    SetBool(kGame, "Joystick", false);
+    s.Write(kValues);
     s.WriteCameraFlip(cameraFlipX, "CameraFlipXAxis");
     s.WriteCameraFlip(cameraFlipY, "CameraFlipYAxis");
     s.Write(kCameraValues);
@@ -387,13 +370,13 @@ void GameOptions::SaveToRegistry(const char* path) {
     s.Write(kGameValues2);
     s.WriteLight(heroLight, kHeroLightNames);
     s.WriteLight(questLight, kQuestLightNames);
-    key.SetInt(s.Key(&GameOptions::keyGame), "Difficulty Level", difficultyStored);
+    SetInt(kGame, "Difficulty Level", difficultyStored);
     s.Write(kDefaultValues);
     s.Write(kFogValues);
     // EI_Plugin's NewMaster NOPs these 42 bytes: the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
-        key.SetString(s.Key(&GameOptions::keyNetwork), "Master Server Name", masterServerName);
-    key.Close();
+        SetString(kNetwork, "Master Server Name", masterServerName);
+    settings::Save();
 }
 
 } // namespace options

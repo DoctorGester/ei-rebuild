@@ -31,7 +31,7 @@ Main loop: while no message waits, the time since the last pass runs the server 
 world in ticks stretched by the "client speed" (1 in a local game; a network client speeds up or slows down by its
 backlog of server updates), then the camera, the interface and a frame. A waiting message goes to the interface's
 input (after a frame) or to the window procedure (while the renderer is inactive). Rebirth patches the original
-WinMain (NivalRegistry); ours follows the flag.
+WinMain (NivalRegistry); ours reads its one settings file on either install (the flag is dropped).
 
 ## Frame capture (harness)
 

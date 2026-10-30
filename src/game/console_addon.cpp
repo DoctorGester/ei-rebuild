@@ -6,7 +6,7 @@
 #include "game_singletons.h"
 #include "options.h"
 #include "script.h"
-#include "settings_file.h"
+#include "settings.h"
 #include "platform/files.h"
 #include "ui.h"
 #include "ui_cursor.h"
@@ -177,23 +177,10 @@ void Register(CommandMap* map, const char* name, CommandHandler handler) {
 // The AutoExec lines, read once (addon reads them when it loads).
 const std::vector<std::string>& AutoExecLines() {
     static std::vector<std::string> lines = [] {
+        // The settings file's [autoexec] values (addon's "Console AutoExec" lines of the starter's), empty ones left out.
         std::vector<std::string> result;
-        // The lines as the game holds its text (UTF-8; settings_file.h's bytes).
-        constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-        std::uint32_t type = 0, size = 0;
-        if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, nullptr, &size) == 0 && size != 0) {
-            std::string data(size, '\0');
-            if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, data.data(), &size) == 0 &&
-                type == settings_file::kTypeMultiString) {
-                data.resize(size);
-                for (std::size_t at = 0; at < data.size();) {
-                    std::size_t end = data.find('\0', at);
-                    if (end == std::string::npos) end = data.size();
-                    if (end > at) result.push_back(data.substr(at, end - at));
-                    at = end + 1;
-                }
-            }
-        }
+        for (std::string& line : settings::GetValues(settings::kAutoExec))
+            if (!line.empty()) result.push_back(std::move(line));
         if (platform::IsFile("2utoexec.cfg")) {
             std::ifstream file("2utoexec.cfg");
             std::string line;
