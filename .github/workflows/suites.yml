@@ -298,9 +298,11 @@ jobs:
               [ -z "$con" ] || { echo "console:"; echo "$con"; }
               grep -h "^FAILED" "$a/harness_report.txt" | sed 's/^/base /' || true
               grep -h "^FAILED" "$b/harness_report.txt" | sed 's/^/head /' || true
-              # where the camera looks and what the ground clicks found (harness.cpp groundview, clickground)
-              grep -h "harness: \(ground\|clickground\|starter settings\)" "$a/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/base /' || true
-              grep -h "harness: \(ground\|clickground\|starter settings\)" "$b/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/head /' || true
+              # where the camera looks and what the ground clicks found (harness.cpp groundview, clickground), the
+              # cursor thread's checks and the swap chain's size
+              pick="harness: \(ground\|clickground\|starter settings\|cursorcheck\)\|render: presenting"
+              grep -h "$pick" "$a/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/base /' || true
+              grep -h "$pick" "$b/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/head /' || true
             done
             done
           done

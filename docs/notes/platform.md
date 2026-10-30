@@ -123,14 +123,9 @@ private `Search` struct of the backend, a handle never leaves `File` or `MappedF
 Every open shares the file for reading and writing (FILE_SHARE_READ | FILE_SHARE_WRITE, never FILE_SHARE_DELETE, so
 removing an open file still fails) with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives'
 FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS hints and the sector-size test that chose between them are gone. Most
-of the game's opens were exclusive. An open that the old sharing refused would now succeed; none is known (the code
-never opens a file it holds). PL11b's temporary check in platform_win32.cpp (`OpenHandle`, `Held`) logs to
-ei-rebuild.log "platform: <path>: opened (read|write) while open (read|write) already" when a File or MappedFile opens
-a path one of them holds, and "platform: <path>: a sharing violation" when another holder refuses an open. Reading the
-first kind: two read opens of an archive (.res, .reg) or of the random seed's file were shared before too; any other
-line is an open the old modes refused. Open question until a main suite and the Rebirth suite have run with it: no
-line of either kind but the archives' expected, then the check goes (with the vectors' `ei::Log` stub if nothing
-else logs from the platform).
+of the game's opens were exclusive. An open that the old sharing refused would now succeed; none happens: PL11b's
+temporary check logged, over a main and a Rebirth suite, only read opens of a file already open for reading (the .res
+archives and maps/zq.mq), which were shared before too, and no sharing violation (PL11s removed it).
 
 A few callers never went through the game's slots and must not start to (the harness's routes would change what they
 see in verify runs). Each has its own platform function that calls the system directly:
