@@ -10,6 +10,7 @@
 #include "../../src/game/unit_db.h"
 #include "../../src/game/options.h"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -77,9 +78,13 @@ bool CheckWeaponSkill(const IndexCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("UnitStats::WeaponSkill", IndexCall, CheckWeaponSkill);
 
+// A NaN result matches any NaN: on SSE2 (C30e6) an invalid operation gives the default NaN where the x87 kept an
+// operand's payload (docs/notes/cleanup-tooling.md, the NaN rule); records 156 and 185 reduce huge values to NaN.
+bool SameOrBothNaN(double a, double b) { return Same(a, b) || (std::isnan(a) && std::isnan(b)); }
+
 bool CheckReduce(const ReduceCall& v, char* d, std::size_t n) {
     double result = StatsOf(v.stats).Reduce(v.value);
-    if (Same(result, v.result)) return true;
+    if (SameOrBothNaN(result, v.result)) return true;
     std::snprintf(d, n, "Reduce(%g): ours %.17g, original %.17g", v.value, result, v.result);
     return false;
 }
@@ -87,7 +92,7 @@ EI_VECTOR_CHECK("UnitStats::Reduce", ReduceCall, CheckReduce);
 
 bool CheckReduceKind1(const ReduceCall& v, char* d, std::size_t n) {
     double result = StatsOf(v.stats).ReduceKind1(v.value);
-    if (Same(result, v.result)) return true;
+    if (SameOrBothNaN(result, v.result)) return true;
     std::snprintf(d, n, "ReduceKind1(%g): ours %.17g, original %.17g", v.value, result, v.result);
     return false;
 }
