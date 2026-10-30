@@ -43,10 +43,27 @@ constexpr DWORD kCtfMon = 0;
 // (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way. The window's
 // shape decides the interface layout (src/game/ui_widescreen.h), so each install's runs take the shape of the
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
-// same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). EI_REBIRTH (run_all's
-// standalone-rebirth runs) tells them apart.
+// same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
+// apart as the image's start-up tells the profiles apart (src/standalone/startup.cpp): Rebirth's has starter\addon.dll
+// or EI_Plugin.asi. (EI_REBIRTH does not: ei_launch sets it to "defaults" for every run that names no flags.)
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";
+
+// The game's data folder: EI_GAME_ROOT (ei_launch), else the exe's own (a drop-in run).
+bool RebirthData() {
+    char folder[MAX_PATH];
+    DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", folder, sizeof(folder));
+    if (!n || n >= sizeof(folder)) {
+        n = GetModuleFileNameA(nullptr, folder, sizeof(folder));
+        if (!n || n >= sizeof(folder)) return false;
+        if (char* slash = std::strrchr(folder, '\\')) *slash = 0;
+    }
+    char path[MAX_PATH + 32];
+    std::snprintf(path, sizeof(path), "%s\\starter\\addon.dll", folder);
+    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) return true;
+    std::snprintf(path, sizeof(path), "%s\\EI_Plugin.asi", folder);
+    return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+}
 
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
@@ -152,8 +169,7 @@ void Install(const char* savesDir) {
     if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
     if (!g_resolution[0] && ei::Standalone()) {
-        const bool rebirthData = GetEnvironmentVariableA("EI_REBIRTH", nullptr, 0) != 0;
-        std::snprintf(g_resolution, sizeof(g_resolution), "%s", rebirthData ? kImageResolutionRebirth : kImageResolution);
+        std::snprintf(g_resolution, sizeof(g_resolution), "%s", RebirthData() ? kImageResolutionRebirth : kImageResolution);
         if (g_fullScreen < 0) g_fullScreen = 0;
     }
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
