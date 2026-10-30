@@ -6248,6 +6248,13 @@ depends = ["A3a"]
 note = "From A3a. play.cmd builds build\\play (32-bit) and starts it through ei_launch --standalone, which is 32-bit only (it reads game.exe's threads; CMake leaves it out of the x64 build). Add an x64 mode: build.cmd x64 (or an x64 play configuration) and start the x64 ei-rebuild.exe with EI_GAME_ROOT set as ei_launch does, or build ei_launch for x64 with its thread dump on Wow64GetThreadContext for 32-bit children. No sound or movies on x64 until A1 / A2."
 
 [[ticket]]
+id = "A3f"
+title = "x64 goldens: the three differences left (net_pair_master, client paused ticks)"
+group = "port"
+depends = ["A3c"]
+note = "A3c's x64 runs against a 32-bit image without Miles (docs/notes/x64.md, 'The x64 goldens'): net_pair_master's client lists no server on x64 (rerun on main after A3d / PL5's socket work); render_device_removed (record 4) and rebirth_flags (while paused) differ in the client unit's animationStart (paused client ticks, unit_client_update.cpp RunTick), 33 and 11, repeatably per build, the server state the same: find why the x64 client ticks differently there. After PL6 the goldens themselves can be the reference (both builds without Miles' speech block)."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
