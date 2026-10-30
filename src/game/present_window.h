@@ -5,19 +5,20 @@
 // docs/notes/renderer.md, section 9.
 // More: docs/notes/comments-c22i.md, "present_window.h".
 
-#include "lib/win_types.h"
-
 class TextureDevice;
+namespace platform {
+struct Event;
+}
 
 namespace present_window {
 
 // Each present without DirectDraw: a full-screen device (flags bit 0) gets its window
 // over the whole monitor it is on (not while minimised; again after a display mode change), and
-// the cursor imports are mapped from the first call.
+// the cursor's points are mapped (platform::MapCursorPoints).
 void Update(TextureDevice* device);
 
-// A mouse message's coordinates (client coordinates; WM_MOUSEWHEEL screen coordinates) as frame
-// pixels. Other messages, and everything outside the switch-over, unchanged.
-LPARAM MouseToGame(UINT message, LPARAM lParam);
+// A mouse event's position (client coordinates; the wheel's screen coordinates) as frame pixels. Other events, and
+// everything outside the switch-over, unchanged.
+void MouseToGame(platform::Event* event);
 
 } // namespace present_window

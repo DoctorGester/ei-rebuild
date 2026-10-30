@@ -10,7 +10,7 @@
 #include "ui_widescreen.h"
 
 #include "lib/nan_audit.h"
-#include "lib/gameapi.h"
+#include "platform/cursor.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
@@ -117,7 +117,7 @@ void CameraInput::RightUp(int, int, int) {
     g_cursor.motion.y = 0;
     g_cursor.motion.x = 0;
     g_cursor.SetHeld(0);
-    gameapi::SetCursorPos(positionX, positionY);
+    platform::SetCursorPosition({positionX, positionY});
     handled = true;
 }
 

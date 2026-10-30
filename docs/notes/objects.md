@@ -258,10 +258,11 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   both +0x250 and +0x254 and is written from +0x254. Map database: the map index continues from the last map of the earlier file
   (lines before the first "#zone" go to it), the exit index restarts with every "#zone"; "#allod" reads word 0 of its five
   following lines even without words; "#view" / "#deployangle" append a "0" word.
-- App: WindowProc's WM_ACTIVATE passes 005DAE70 a second argument built from AL only (upper bytes are those of the device pointer
-  0x007AF080, which ours rebuilds); states above 2 are ignored. DispatchInput logs every WM_SYSKEYUP ("<key>:<lParam>"), turns
-  Alt+Tab into a WM_ACTIVATE with the window's iconic state, keyboard positions use an arithmetic shift, mouse ones a logical
-  shift. PumpMessages hands messages straight to WindowProc (no TranslateMessage / DispatchMessage).
+- App: the window procedure's WM_ACTIVATE (HandleWindowEvent's Activate) passes 005DAE70 a second argument built from AL only
+  (upper bytes are those of the device pointer 0x007AF080, which ours rebuilds); states above 2 are ignored. DispatchInput logs
+  every WM_SYSKEYUP ("<key>:<lParam>"), turns Alt+Tab into a deactivation with the window's iconic state, keyboard flags are
+  sign-extended, mouse positions unsigned 16-bit. PumpMessages hands events straight to HandleWindowEvent (no TranslateMessage /
+  DispatchMessage). The events are platform::Event (docs/notes/platform.md, "Window and events").
 
 ## Skipped
 

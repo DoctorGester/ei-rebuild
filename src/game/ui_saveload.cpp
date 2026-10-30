@@ -22,6 +22,7 @@
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
+#include "platform/files.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -159,7 +160,7 @@ void SaveLoadWindow::SaveGame() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries.data() + currentSelected;
-    double space = app::DiskFreeSpace(DataFolderText());
+    double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
@@ -309,7 +310,7 @@ void SaveLoadWindow::FillEntries() {
 
 void QuickSave(const char* slot, bool stepFrame) {
     if (IsMultiplayerClient()) return;
-    double space = app::DiskFreeSpace(DataFolderText());
+    double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;

@@ -6221,6 +6221,20 @@ depends = ["C30e15"]
 note = "From PL1: the calls PL1 left because C30e15 was editing these files. app_main.cpp: the main loop's timeGetTime (two calls; the harness finds main-loop time by ei::mainloop::g_site, not the caller, so platform::Milliseconds keeps it), the two MessageBoxA warnings (platform::ShowMessageBox with OkCancel / Warning, answer Cancel), GetModuleHandleA / GetProcAddress for GetDiskFreeSpaceExA (with app_helpers.cpp's copy; or PL3's disk space call). src/standalone/startup.cpp and standalone_main.cpp: GetModuleFileNameA / SetCurrentDirectoryA / Sleep(INFINITE) are direct calls (not the slots, before or beside the import table): a platform function that calls the system directly (not ExePath, which goes through the UTF-8 route slot), or leave them as the win32 entry. Then python tools/check_platform.py --update. Goldens unchanged."
 
 [[ticket]]
+id = "PL1b"
+title = "Platform layer: the standalone start-up's direct calls"
+group = "port"
+depends = ["A3a"]
+note = "From PL1a (its app_main.cpp part is done in PL2's branch): src/standalone/startup.cpp and standalone_main.cpp call GetModuleFileNameA / SetCurrentDirectoryA / Sleep(INFINITE) / GetModuleHandleA directly (before or beside the import table, not the slots): a platform function that calls the system directly (not platform::ExePath, which goes through the UTF-8 route slot), or leave them as the win32 entry and say so in docs/notes/platform.md. GameMain's (HINSTANCE, HINSTANCE, char*, int show) signature to platform::NativeInstance with it. Then python tools/check_platform.py --update. Goldens unchanged."
+
+[[ticket]]
+id = "PL2a"
+title = "Platform layer: key codes, native window types, the DirectInput mouse"
+group = "port"
+depends = ["PL2"]
+note = "From PL2 (docs/notes/platform.md, Window and events). (1) Key codes as our own constants: a platform/keys.h (values = the virtual-key codes the bindings file and options keep) in place of lib/win_user.h's VK_ in about 20 ui files (ui_battle_keys, ui_briefing_keys, ui_camp_input, ui_chat_overlay, ui_connect_screen, ui_console_window, ui_global_map_input, ui_help_window, ui_hero_screen_click, ui_interface_input, ui_item_info, ui_main_menu, ui_message_box, ui_screens, ui_view_screen, console.h, ui.h, app.cpp, bink_video.cpp); DT_ flags stay with the text layout. (2) app::g_mainWindow and TextureDevice::window as platform::NativeWindow (app.h, texture.h, the renderer's GameWindow, sound Open, DirectInputMouse::Setup). (3) input_mouse.cpp: DirectInput (dinput.h, LoadLibrary / GetProcAddress of the system's dinput.dll) behind a platform mouse-motion header; check_platform.py only looks for <windows.h> and gameapi::, so it misses dinput.h (input_mouse.cpp) and wingdi.h (dib.h): widen it to the Windows system headers. Goldens unchanged (the harness answers the DirectInput mouse: tests/verify/harness_input.h)."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"

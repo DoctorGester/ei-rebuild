@@ -13,7 +13,8 @@
 
 #include <cstring>
 #include <string>
-#include <windows.h>
+#include "lib/win_user.h"
+#include "platform/clipboard.h"
 
 namespace console {
 
@@ -47,44 +48,6 @@ constexpr int kHistoryDepth = 30;
 // CDC::FillSolidRect of `width` x `height` at (x, y).
 void FillArea(UiSurface* surface, int x, int y, int width, int height, COLORREF colour) {
     surface->FillRect(RECT{x, y, x + width, y + height}, colour);
-}
-
-// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted from UTF-8 (addon's helpers convert
-// with the ANSI code page).
-void CopyToClipboard(const char* first, const char* last) {
-    int count = static_cast<int>(last - first);
-    std::wstring wide;
-    if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
-    HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
-    if (!memory) return;
-    void* locked = GlobalLock(memory);
-    if (!locked) {
-        GlobalFree(memory);
-        return;
-    }
-    std::memcpy(locked, wide.c_str(), (wide.size() + 1) * 2);
-    GlobalUnlock(memory);
-    if (!OpenClipboard(nullptr)) {
-        GlobalFree(memory);
-        return;
-    }
-    EmptyClipboard();
-    SetClipboardData(CF_UNICODETEXT, memory);
-    CloseClipboard();
-}
-
-std::string ClipboardText() {
-    std::wstring wide;
-    if (OpenClipboard(nullptr)) {
-        if (HANDLE data = GetClipboardData(CF_UNICODETEXT)) {
-            if (const auto* text = static_cast<const wchar_t*>(GlobalLock(data))) {
-                wide = text;
-                GlobalUnlock(data);
-            }
-        }
-        CloseClipboard();
-    }
-    return ::text::Narrow(wide);
 }
 
 } // namespace
@@ -256,7 +219,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             DrawInput();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
             const char* text = input.c_str();
-            CopyToClipboard(text + low, text + high);
+            platform::CopyText(std::string_view(text + low, static_cast<std::size_t>(high - low)));   // Rebirth's clipboard (ImproveConsole)
             if (letter == 'x') {
                 std::string rest = str::Mid(input, high);
                 std::string head = str::Left(input, low);
@@ -266,7 +229,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
                 DrawInput();
             }
         } else if (letter == 'v') {
-            std::string clip = ClipboardText();
+            std::string clip = platform::ClipboardText();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = str::Left(clip, cut);
             std::string rest = str::Mid(input, high);
