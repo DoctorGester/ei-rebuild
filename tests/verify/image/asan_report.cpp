@@ -12,9 +12,7 @@ extern "C" void __sanitizer_set_report_path(const char* path);   // the ASan run
 namespace {
 
 const bool g_reportPath = [] {
-    char path[MAX_PATH];
-    ei::OutputPath("asan", path);
-    __sanitizer_set_report_path(path);
+    __sanitizer_set_report_path(ei::OutputPath("asan").c_str());   // the runtime copies it
     return true;
 }();
 

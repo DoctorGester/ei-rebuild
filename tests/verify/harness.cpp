@@ -2982,11 +2982,10 @@ void RunSteps() {
             if (!found) g_failures.push_back("expected console output '" + s.argument + "'");
             g_expectFrom = g_console.size();
         } else if (s.verb == "expectlog") {
-            char logPath[MAX_PATH];
-            ei::OutputPath("ei-rebuild.log", logPath);
+            const std::string logPath = ei::OutputPath("ei-rebuild.log");
             std::string text;   // the log without the harness's own echoes of its steps
             FILE* log = nullptr;
-            if ((log = _fsopen(logPath, "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
+            if ((log = _fsopen(logPath.c_str(), "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
                 char line[4096];
                 while (std::fgets(line, sizeof(line), log))
                     if (!std::strstr(line, "harness: ")) text += line;
@@ -3680,7 +3679,7 @@ struct Harness {
         if (n == 0 || n >= MAX_PATH) return;
         // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
         // tell a run whose harness never started from one that is still going.
-        ei::OutputPath("harness_report.txt", g_reportPath);
+        strcpy_s(g_reportPath, ei::OutputPath("harness_report.txt").c_str());
         FILE* report = nullptr;
         fopen_s(&report, g_reportPath, "w");
         if (!LoadScenario(path)) {

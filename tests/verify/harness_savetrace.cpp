@@ -89,10 +89,9 @@ void OnFileWrite(const char* path) {
     if (!g_streams || !path) return;
     const std::size_t length = std::strlen(path);
     if (length < 4 || _stricmp(path + length - 4, ".sav") != 0) return;
-    char out[MAX_PATH];
-    ei::OutputPath("savetrace.txt", out);
+    const std::string out = ei::OutputPath("savetrace.txt");
     FILE* f = nullptr;
-    if (fopen_s(&f, out, "a") != 0 || !f) return;
+    if (fopen_s(&f, out.c_str(), "a") != 0 || !f) return;
     EnterCriticalSection(&g_lock);
     for (const auto& [stream, trace] : *g_streams) {
         if (trace.end <= kDumpAbove) continue;

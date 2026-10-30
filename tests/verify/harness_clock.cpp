@@ -586,9 +586,8 @@ void RandomNote(const char* format, ...) {
 void InstallRandomTrace(const unsigned* frames) {
     if (g_randomFile) return;
     FindMainThreadOnce();
-    char path[MAX_PATH];
-    ei::OutputPath("randtrace.txt", path);
-    if (fopen_s(&g_randomFile, path, "w") != 0 || !g_randomFile) return;
+    const std::string path = ei::OutputPath("randtrace.txt");
+    if (fopen_s(&g_randomFile, path.c_str(), "w") != 0 || !g_randomFile) return;
     std::setvbuf(g_randomFile, nullptr, _IOFBF, 1 << 20);
     InitializeCriticalSection(&g_randomLock);
     g_traceFrames = frames;
@@ -601,7 +600,7 @@ void InstallRandomTrace(const unsigned* frames) {
     g_selfEnd = g_selfBase + info.SizeOfImage;
     image::ObserveDraws(&WriteDraw);   // the draws of our generator and rand(), through their observers
 
-    Log("harness: random trace to %s", path);
+    Log("harness: random trace to %s", path.c_str());
 }
 
 void FlushRandomTrace() {

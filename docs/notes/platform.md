@@ -403,7 +403,9 @@ MIT and links nothing of FFmpeg's); FFmpeg ran only offline as the oracle.
 ## Left for the next areas
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
-- The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
+- The renderer's own timings are `std::chrono::steady_clock` (render_internal.h's `Ticks` / `kMsPerTick`), not the
+  game's clocks; the log (src/hook/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
+  through `FormatLocalTime`).
 - The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is a
   `std::recursive_mutex` (a critical section re-enters).
 - The import layer's table (lib/import_table.h, import_prototypes.h) stays in src/lib while the harness's reference

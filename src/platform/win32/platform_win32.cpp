@@ -62,7 +62,7 @@ std::string Utf8(std::wstring_view wide) {
 
 namespace platform {
 
-std::string FormatLocalTime(std::int32_t seconds, const char* format) {
+std::string FormatLocalTime(std::int64_t seconds, const char* format) {
     char text[128];
     std::tm local{};
     const std::time_t time = seconds;

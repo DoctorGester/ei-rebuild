@@ -667,11 +667,9 @@ void WriteSettingsFile(const char* file) {
 // The run's settings file pinned (read only, or writable): written by WriteSettingsFile at the first use, or with
 // `settingsfile defaults` missing (the first use writes the defaults).
 void PinSettingsFile() {
-    char file[MAX_PATH];
-    ei::OutputPath(image::SettingsFileName(), file);
-    char temporary[MAX_PATH];
-    std::snprintf(temporary, sizeof(temporary), "%s.tmp", file);
-    DeleteFileA(temporary);
+    const std::string path = ei::OutputPath(image::SettingsFileName());
+    const char* file = path.c_str();
+    DeleteFileA((path + ".tmp").c_str());
     if (g_mode == Mode::Defaults) {
         // No file: the first use writes the defaults, for the image runs' 1280x720 desktop (so the file does not
         // depend on the machine's monitor).

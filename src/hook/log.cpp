@@ -1,81 +1,82 @@
 // ei-rebuild.log and the output folder (log.h).
-#include "ei/hook.h"
 #include "log.h"
 
-#include <windows.h>
+#include "platform/platform.h"
 
+#include <chrono>
 #include <cstdarg>
 #include <cstdio>
-#include <cstring>
-#include <share.h>
+#include <filesystem>
+#include <fstream>
+#include <mutex>
+#include <string>
+#include <system_error>
 
 namespace ei {
 
-static char g_logPath[MAX_PATH];
+namespace {
 
-void OutputPath(const char* name, char* out) {
-    DWORD n = GetEnvironmentVariableA("EI_OUT_DIR", out, MAX_PATH);
-    if (n == 0 || n >= MAX_PATH) {
-        HMODULE self = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(&OutputPath), &self);
-        GetModuleFileNameA(self, out, MAX_PATH);
-        if (char* slash = strrchr(out, '\\')) *slash = 0;
-    }
-    CreateDirectoryA(out, nullptr);
-    std::size_t used = strlen(out);
-    std::snprintf(out + used, MAX_PATH - used, "\\%s", name);
+// One Log line at a time. Constant-initialised: static constructors (the harness, the image's import table) log first.
+std::mutex g_logMutex;
+
+// UTF-8 text as the system's path.
+std::filesystem::path SystemPath(const std::string& utf8) {
+    return std::filesystem::path(std::u8string(utf8.begin(), utf8.end()));
 }
 
-// ei-rebuild.log in the output folder. Set on first use: static constructors (the harness, the image's import table) log
-// first.
-static void InitLogPath() { OutputPath("ei-rebuild.log", g_logPath); }
+// The folder `OutputPath` puts its files in (log.h).
+std::string OutputFolder() {
+    const std::string folder = platform::EnvironmentVariable("EI_OUT_DIR");
+    if (!folder.empty()) return folder;
+    const std::string program = platform::ProgramPath();
+    return program.substr(0, program.find_last_of("\\/"));
+}
 
 // The file stays open for the whole run and each line is flushed as it is written (a crash loses
 // nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000
 // scans per harness run, most of its scanning during the suite.
-static FILE* LogFile() {
-    static FILE* f = [] {
-        if (!g_logPath[0]) InitLogPath();
-        return _fsopen(g_logPath, "a", _SH_DENYNO);
-    }();
-    return f;
+std::ofstream& LogFile() {
+    static std::ofstream file(SystemPath(OutputPath("ei-rebuild.log")), std::ios::app);
+    return file;
 }
 
-static void WriteStamp(FILE* f) {
-    SYSTEMTIME t;
-    GetLocalTime(&t);
-    std::fprintf(f, "[%02d:%02d:%02d.%03d] ", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
+// "[hh:mm:ss.mmm] ": the local time of day.
+std::string Stamp() {
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    const long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+    const std::string time = platform::FormatLocalTime(ms / 1000, "%H:%M:%S");
+    char stamp[32];
+    std::snprintf(stamp, sizeof(stamp), "[%s.%03d] ", time.c_str(), static_cast<int>(ms % 1000));
+    return stamp;
 }
 
-void Log(const char* fmt, ...) {
-    FILE* f = LogFile();
-    if (!f) return;
-    _lock_file(f);
-    WriteStamp(f);
-    va_list ap;
-    va_start(ap, fmt);
-    std::vfprintf(f, fmt, ap);
-    va_end(ap);
-    std::fputc('\n', f);
-    std::fflush(f);
-    _unlock_file(f);
+} // namespace
+
+std::string OutputPath(const char* name) {
+    const std::filesystem::path folder = SystemPath(OutputFolder());
+    std::error_code error;
+    std::filesystem::create_directory(folder, error);
+    const std::u8string path = (folder / name).u8string();
+    return std::string(path.begin(), path.end());
 }
 
-void LogLines(const char* lines) {
-    FILE* f = LogFile();
-    if (!f || !*lines) return;
-    _lock_file(f);
-    for (const char* at = lines; *at;) {
-        const char* end = std::strchr(at, '\n');
-        if (!end) end = at + std::strlen(at);
-        WriteStamp(f);
-        std::fwrite(at, 1, static_cast<std::size_t>(end - at), f);
-        std::fputc('\n', f);
-        at = *end ? end + 1 : end;
-    }
-    std::fflush(f);
-    _unlock_file(f);
+void Log(const char* format, ...) {
+    va_list arguments;
+    va_start(arguments, format);
+    va_list measured;
+    va_copy(measured, arguments);
+    const int size = std::vsnprintf(nullptr, 0, format, measured);
+    va_end(measured);
+    std::string line = Stamp();
+    const std::size_t text = line.size();
+    line.resize(text + (size > 0 ? size : 0) + 1);
+    if (size > 0) std::vsnprintf(line.data() + text, size + 1, format, arguments);
+    va_end(arguments);
+    line.back() = '\n';
+    const std::lock_guard lock(g_logMutex);
+    std::ofstream& file = LogFile();
+    file.write(line.data(), static_cast<std::streamsize>(line.size()));
+    file.flush();
 }
 
 } // namespace ei

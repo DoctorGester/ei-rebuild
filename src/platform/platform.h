@@ -45,9 +45,9 @@ struct DateTime {
 };
 // The local date and time now.
 DateTime LocalTime();
-// strftime of the local time of `seconds` since 1970 UTC (a save's date) in at most 127 characters; empty when it has
-// no local time or does not fit.
-std::string FormatLocalTime(std::int32_t seconds, const char* format);
+// strftime of the local time of `seconds` since 1970 UTC (a save's date, the log's time of day) in at most 127
+// characters; empty when it has no local time or does not fit.
+std::string FormatLocalTime(std::int64_t seconds, const char* format);
 
 // ==== Output for a developer =========================================================================================
 

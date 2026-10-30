@@ -27,24 +27,7 @@ using namespace detail;
 
 bool g_on = false;
 
-// ---- Time --------------------------------------------------------------------------------------------------
-
-long long Now() {
-    LARGE_INTEGER now{};
-    QueryPerformanceCounter(&now);
-    return now.QuadPart;
-}
-
-double MsPerTick() {
-    static const double ms = [] {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        return frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
-    }();
-    return ms;
-}
-
-// One second of samples: each with the time it was taken (performance counter ticks).
+// One second of samples: each with the time it was taken (Ticks).
 template <int N>
 struct Sample {
     long long when = 0;
@@ -54,7 +37,7 @@ struct Sample {
 template <int N>
 void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     samples.push_back(s);
-    long long second = static_cast<long long>(1000.0 / MsPerTick());
+    constexpr long long second = static_cast<long long>(1000.0 / kMsPerTick);
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
 }
 
@@ -140,7 +123,7 @@ void Collect() {
         double ms = 1000.0 / static_cast<double>(d.Frequency);
         auto span = [&](int from, int to) { return t[to] > t[from] ? static_cast<double>(t[to] - t[from]) * ms : 0.0; };
         Sample<GpuValues> s;
-        s.when = Now();
+        s.when = Ticks();
         s.values[GpuTotal] = span(0, q.count - 1);
         for (int k = 0; k + 1 < q.count; ++k) s.values[GpuPasses + static_cast<int>(q.passes[k])] += span(k, k + 1);
         Keep(g_gpu, s);
@@ -318,8 +301,8 @@ bool UploadText() {
 
 // The text made again from the last second's numbers (every kRefreshMs: readable, and cheap).
 void RefreshText() {
-    long long now = Now();
-    if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * MsPerTick() < kRefreshMs) return;
+    long long now = Ticks();
+    if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
     g_lastText = now;
     std::vector<std::string> lines = Lines(Current());
     if (lines == g_lines && !g_pixels.empty()) return;
@@ -380,23 +363,23 @@ void EndGpuFrame() {
     g_open = -1;
 }
 
-CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Now() : 0) {}
+CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Ticks() : 0) {}
 
 CpuTimer::~CpuTimer() { Stop(); }
 
 void CpuTimer::Stop() {
     if (!start) return;
-    g_cpu[static_cast<int>(part)] += static_cast<double>(Now() - start) * MsPerTick();
+    g_cpu[static_cast<int>(part)] += static_cast<double>(Ticks() - start) * kMsPerTick;
     start = 0;
 }
 
 void FrameDone() {
     if (!g_on) return;
-    long long now = Now();
+    long long now = Ticks();
     if (g_lastPresent) {
         Sample<FrameValues> s;
         s.when = now;
-        s.values[Interval] = static_cast<double>(now - g_lastPresent) * MsPerTick();
+        s.values[Interval] = static_cast<double>(now - g_lastPresent) * kMsPerTick;
         s.values[SubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
         s.values[ShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
         for (int p = 0; p < kPasses; ++p) s.values[FrameDraws + p] = g_draws[p];
