@@ -234,6 +234,22 @@ every backend.
   sample). Volume 0..127 is linear; pan 0..127 is a balance (64 both sides full, the far side down to nothing at 0 /
   127). Volume and pan changes ramp over one device period. The end the game sees stays the clock's (above): the
   device's own end only stops the mixing.
+- The cave reverb (`SetReverb(room, level, time)`; the game gives every new voice the cave's 0.3, 1.0, 3.0 s while
+  the party is in a cave zone, world_client_maps.cpp, and room 0 with the level kept once it leaves one): a voice with
+  room and level above 0 feeds a mono send at its level (after its volume and pan) and keeps 1 - 0.35 * level of itself
+  (`kReverbDryCut`), so a full-scale voice and its tail stay under full scale. One shared Freeverb-style network
+  (`Reverb`): eight damped feedback combs in parallel and four all-passes in series a side, Freeverb's tunings scaled
+  by the room (0.5 + room: 0.8 for caves) and the rate, the right side 23 frames longer; each comb's feedback is the
+  time's -60 dB over its own delay, the loop's low-pass at 0.1. The last SetReverb's room and time shape it (the game
+  passes the same to every voice); a new room empties the lines. With nothing sent for two tails (-120 dB) and the
+  longest delay it clears its lines and rests: no denormals ever, and no cost while no cave voice plays. Output only:
+  the voices' ends, positions and the stream are untouched, and harness runs (no device) never mix.
+- How the reverb was checked (scratch tool, A1a): a click's tail falls 60 dB in 2.6 s and steady noise's in 2.7 s of
+  the 3.0 asked (the damping takes the highs sooner); the steady tail sits 11 dB under the voice; over all 3848 waves
+  of the vanilla sfx.res at full volume none clips that did not clip dry (the worst peak with the reverb 1.19 times
+  the dry's); dry and reverb takes of every voice play the same frames and end at the same clock time; the network
+  costs about 1.4 ms of mixer time a second of audio while it runs (one core) and nothing once it rests, the same in
+  every 5 s window of a 60 s tail.
 - The stream: the halves are mixed straight from the caller's buffers (it writes a half only once ReadyHalf gave it)
   at each half's format (`SetStreamFormat` applies to the halves queued after it), 16 bits signed or 8 unsigned, any
   rate. More than one stream can play (A2's movie sound can take one of its own).

@@ -1,5 +1,6 @@
 // The audio backend on miniaudio (platform/audio.h; third_party/miniaudio): one output device, the voices' waves
-// decoded by dr_wav and the music's halves mixed into it at their volume and pan, the MP3 files decoded by dr_mp3.
+// decoded by dr_wav and the music's halves mixed into it at their volume and pan, the cave voices through a reverb,
+// the MP3 files decoded by dr_mp3.
 // What the game reads back keeps to the game's clock whatever the device does: a voice ends when its wave would have
 // (WaveMilliseconds on platform::Milliseconds, delivered by DeliverEnds). The music's halves become free as the device
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
@@ -30,14 +31,15 @@ constexpr float kSampleScale = 1.0f / 32768.0f;
 // ---- Mixing ----
 
 // What a source's left and right sample are multiplied by: the volume (0..127) linear, the pan (0 left .. 127 right)
-// a balance that takes the far side down to nothing and keeps the near one, both full at 64.
+// a balance that takes the far side down to nothing and keeps the near one, both full at 64, and `dry` (the part a
+// voice keeps of itself next to its reverb).
 struct Gains {
     float left = 1.0f;
     float right = 1.0f;
 };
 
-Gains GainsOf(int volume, int pan) {
-    const float level = static_cast<float>(std::clamp(volume, 0, 127)) / 127.0f;
+Gains GainsOf(int volume, int pan, float dry) {
+    const float level = static_cast<float>(std::clamp(volume, 0, 127)) / 127.0f * dry;
     const int p = std::clamp(pan, 0, 127);
     const float left = p <= 64 ? 1.0f : static_cast<float>(127 - p) / 63.0f;
     const float right = p >= 64 ? 1.0f : static_cast<float>(p) / 64.0f;
@@ -87,6 +89,181 @@ std::uint64_t Step(unsigned sourceRate, unsigned outputRate) {
     return (static_cast<std::uint64_t>(sourceRate) << 32) / std::max(1u, outputRate);
 }
 
+// ---- The reverb ----
+
+// The voices' reverb (SetReverb), one network all of them feed: a Freeverb-style mono send into eight parallel
+// damped combs and four series all-passes a side, the right side's delays a little longer (stereo spread). The room
+// (0..1) scales the delays, the time is the tail's fall to -60 dB (each comb's feedback from its own delay). It runs
+// on the mixer's thread under g_mix; with nothing sent for two tails' length it clears its lines and rests, so the
+// lines never decay into denormals and an idle reverb costs nothing.
+class Reverb {
+public:
+    // The lines for `rate`, long enough for the largest room.
+    void Open(unsigned rate) {
+        rate_ = rate;
+        for (int side = 0; side < 2; ++side) {
+            for (int i = 0; i < kCombs; ++i) combs_[side][i].Open(DelayAt(kCombDelays[i], side, 1.0f));
+            for (int i = 0; i < kAllPasses; ++i) allPasses_[side][i].Open(DelayAt(kAllPassDelays[i], side, 1.0f));
+        }
+        send_.assign(4096, 0.0f);
+        shaped_ = false;
+        Clear();
+    }
+
+    // The room and the tail's time of the voices sent in from now on (the last SetReverb's: the game passes the same
+    // to every voice). A new room moves the delays: the lines start empty.
+    void Shape(float room, float time) {
+        room = std::clamp(room, 0.0f, 1.0f);
+        time = std::clamp(time, 0.1f, 20.0f);
+        if (shaped_ && room == room_ && time == time_) return;
+        if (!shaped_ || room != room_) {
+            for (int side = 0; side < 2; ++side) {
+                for (int i = 0; i < kCombs; ++i) combs_[side][i].Resize(DelayAt(kCombDelays[i], side, room));
+                for (int i = 0; i < kAllPasses; ++i) allPasses_[side][i].Resize(DelayAt(kAllPassDelays[i], side, room));
+            }
+            Clear();
+        }
+        room_ = room;
+        time_ = time;
+        shaped_ = true;
+        // Each pass round a comb loses delay / (time * rate) of the 60 dB.
+        const float perFrame = -3.0f / (time * static_cast<float>(rate_));
+        for (int side = 0; side < 2; ++side)
+            for (Comb& comb : combs_[side])
+                comb.feedback = std::pow(10.0f, perFrame * static_cast<float>(comb.Length()));
+        tailFrames_ = static_cast<std::uint32_t>(2.0f * time * static_cast<float>(rate_)) + DelayAt(kCombDelays[kCombs - 1], 1, 1.0f);
+    }
+
+    // The send for a mix of `frames`, silent: the voices add to it.
+    float* Send(std::uint32_t frames) {
+        if (send_.size() < frames) send_.resize(frames);
+        std::fill_n(send_.data(), frames, 0.0f);
+        return send_.data();
+    }
+
+    // The send through the network, added to `out` (interleaved stereo).
+    void Process(float* out, std::uint32_t frames) {
+        bool sent = false;
+        for (std::uint32_t i = 0; i < frames && !sent; ++i) sent = send_[i] != 0.0f;
+        if (!sent) {
+            if (resting_) return;
+            quiet_ += frames;
+            if (quiet_ >= tailFrames_) {
+                Clear();
+                return;
+            }
+        } else {
+            quiet_ = 0;
+            resting_ = false;
+        }
+        for (std::uint32_t i = 0; i < frames; ++i) {
+            const float in = send_[i] * kInputGain;
+            for (int side = 0; side < 2; ++side) {
+                float wet = 0.0f;
+                for (Comb& comb : combs_[side]) wet += comb.Process(in);
+                for (AllPass& pass : allPasses_[side]) wet = pass.Process(wet);
+                out[2 * i + side] += wet;
+            }
+        }
+    }
+
+private:
+    // A delay line's samples and where it reads and writes.
+    struct Line {
+        std::vector<float> samples;
+        std::uint32_t length = 1;
+        std::uint32_t at = 0;
+
+        void Open(std::uint32_t capacity) { samples.assign(capacity, 0.0f); }
+        void Resize(std::uint32_t frames) {
+            length = std::clamp<std::uint32_t>(frames, 1, static_cast<std::uint32_t>(samples.size()));
+            at = 0;
+        }
+        void Clear() {
+            std::fill(samples.begin(), samples.end(), 0.0f);
+            at = 0;
+        }
+        float Read() const { return samples[at]; }
+        void Write(float value) {
+            samples[at] = value;
+            if (++at == length) at = 0;
+        }
+    };
+    // A feedback comb with a one-pole low-pass in its loop (the walls take the highs first).
+    struct Comb {
+        Line line;
+        float feedback = 0.0f;
+        float low = 0.0f;
+
+        void Open(std::uint32_t capacity) { line.Open(capacity); }
+        void Resize(std::uint32_t frames) { line.Resize(frames); }
+        std::uint32_t Length() const { return line.length; }
+        void Clear() {
+            line.Clear();
+            low = 0.0f;
+        }
+        float Process(float in) {
+            const float out = line.Read();
+            low = out + (low - out) * kDamping;
+            line.Write(in + low * feedback);
+            return out;
+        }
+    };
+    // Schroeder's all-pass (Freeverb's form): it smears the combs' echoes into a dense tail.
+    struct AllPass {
+        Line line;
+
+        void Open(std::uint32_t capacity) { line.Open(capacity); }
+        void Resize(std::uint32_t frames) { line.Resize(frames); }
+        void Clear() { line.Clear(); }
+        float Process(float in) {
+            const float delayed = line.Read();
+            line.Write(in + delayed * 0.5f);
+            return delayed - in;
+        }
+    };
+
+    static constexpr int kCombs = 8;
+    static constexpr int kAllPasses = 4;
+    // Freeverb's tunings at 44.1 kHz (frames); the right side's are kSpread longer.
+    static constexpr std::uint32_t kCombDelays[kCombs] = {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
+    static constexpr std::uint32_t kAllPassDelays[kAllPasses] = {556, 441, 341, 225};
+    static constexpr std::uint32_t kSpread = 23;
+    static constexpr float kDamping = 0.1f;
+    // The send's level into the combs: a long broadband sound's tail comes out about 6 dB under the sound.
+    static constexpr float kInputGain = 0.009f;
+
+    // A tuning's delay at the output's rate in a room (0 the smallest: half the tuning, 1 one and a half).
+    std::uint32_t DelayAt(std::uint32_t tuning, int side, float room) const {
+        const float frames = static_cast<float>(tuning + (side != 0 ? kSpread : 0)) * (0.5f + room) *
+                             static_cast<float>(rate_) / static_cast<float>(kDefaultRate);
+        return std::max<std::uint32_t>(1, static_cast<std::uint32_t>(frames));
+    }
+
+    void Clear() {
+        for (int side = 0; side < 2; ++side) {
+            for (Comb& comb : combs_[side]) comb.Clear();
+            for (AllPass& pass : allPasses_[side]) pass.Clear();
+        }
+        quiet_ = 0;
+        resting_ = true;
+    }
+
+    unsigned rate_ = kDefaultRate;
+    Comb combs_[2][kCombs];
+    AllPass allPasses_[2][kAllPasses];
+    std::vector<float> send_;
+    float room_ = 0.0f;
+    float time_ = 0.0f;
+    bool shaped_ = false;
+    bool resting_ = true;            // the lines are empty: nothing to run until something is sent
+    std::uint32_t quiet_ = 0;        // frames since the send last carried anything
+    std::uint32_t tailFrames_ = 0;   // two tails' fall (-120 dB) and the longest delay
+};
+
+// The part of itself a voice gives up to the reverb at level 1 (Sound::UpdateGains).
+constexpr float kReverbDryCut = 0.35f;
+
 // ---- The device ----
 
 bool g_open = false;
@@ -101,6 +278,7 @@ std::mutex g_mix;
 unsigned g_voicesStarted = 0;
 float g_peak = 0.0f;
 bool g_heard = false;
+Reverb g_reverb;   // under g_mix
 
 void Log(const char* format, ...) {
     char text[256];
@@ -127,6 +305,10 @@ void UseNoDevice() { g_noDevice = true; }
 bool OpenOutput(NativeWindow, unsigned rate, bool, std::string*) {
     g_open = true;
     g_rate = rate != 0 ? rate : kDefaultRate;
+    {
+        std::lock_guard hold(g_mix);
+        g_reverb.Open(g_rate);
+    }
     if (g_noDevice) return true;
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format = ma_format_f32;
@@ -180,8 +362,12 @@ struct Sound {
     int pan = 64;
     Gains gains;               // what the volume and pan ask for
     Gains applied;             // what the last mix ended on: the next goes there smoothly
+    float reverb = 0.0f;       // the level it feeds the reverb at, 0 for none
     Resampler resampler;
 
+    // The gains for the volume, the pan and the reverb: a voice in the reverb keeps less of itself (kReverbDryCut at
+    // level 1), so a loud one and its tail stay under full scale.
+    void UpdateGains() { gains = GainsOf(volume, pan, 1.0f - kReverbDryCut * reverb); }
     bool Fetch(float frame[2]) {
         if (next >= frames) {
             if (frames == 0 || loopsLeft == 1) return false;
@@ -337,16 +523,24 @@ void SetLoopCount(Voice* voice, int count) { voice->loops = count; }
 void SetVolume(Voice* voice, int volume) {
     std::lock_guard hold(g_mix);
     voice->sound.volume = volume;
-    voice->sound.gains = GainsOf(volume, voice->sound.pan);
+    voice->sound.UpdateGains();
 }
 
 void SetPan(Voice* voice, int pan) {
     std::lock_guard hold(g_mix);
     voice->sound.pan = pan;
-    voice->sound.gains = GainsOf(voice->sound.volume, pan);
+    voice->sound.UpdateGains();
 }
 
-void SetReverb(Voice*, float, float, float) {}
+// The voice feeds the reverb at `level` (0..1) while `room` and `level` are above 0: the game sets room 0 when the
+// party leaves a cave, the level and time kept. The room and time shape the one reverb every voice shares.
+void SetReverb(Voice* voice, float room, float level, float time) {
+    std::lock_guard hold(g_mix);
+    const bool on = room > 0.0f && level > 0.0f;
+    voice->sound.reverb = on ? std::min(level, 1.0f) : 0.0f;
+    voice->sound.UpdateGains();
+    if (on) g_reverb.Shape(room, time);
+}
 
 void SetPositionMs(Voice* voice, std::uint32_t ms) {
     SetPosition(voice, static_cast<std::int32_t>(static_cast<std::uint64_t>(ms) * BytesPerSecond(voice->wave) / 1000));
@@ -546,13 +740,13 @@ void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits) {
 void SetStreamVolume(Stream* stream, int volume) {
     std::lock_guard hold(g_mix);
     stream->volume = volume;
-    stream->gains = GainsOf(volume, stream->pan);
+    stream->gains = GainsOf(volume, stream->pan, 1.0f);
 }
 
 void SetStreamPan(Stream* stream, int pan) {
     std::lock_guard hold(g_mix);
     stream->pan = pan;
-    stream->gains = GainsOf(stream->volume, pan);
+    stream->gains = GainsOf(stream->volume, pan, 1.0f);
 }
 
 int ReadyHalf(Stream* stream) {
@@ -594,23 +788,27 @@ void ResumeStream(Stream* stream) {
 
 namespace {
 
-// `frames` of the source into `out` (interleaved stereo) at its gains, going from `from` to `to` over the frames.
-// False once the source has ended.
+// `frames` of the source into `out` (interleaved stereo) at its gains, going from `from` to `to` over the frames, and
+// into `send` (mono, the reverb's) at `sendLevel` when that is above 0. False once the source has ended.
 template <class Fetch>
-bool Render(Resampler& resampler, bool& primed, std::uint64_t step, Gains from, Gains to, float* out,
-            std::uint32_t frames, Fetch fetch) {
+bool Render(Resampler& resampler, bool& primed, std::uint64_t step, Gains from, Gains to, float* out, float* send,
+            float sendLevel, std::uint32_t frames, Fetch fetch) {
     if (!primed) {
         resampler.Prime(fetch);
         primed = true;
     }
     const float slope = 1.0f / static_cast<float>(std::max<std::uint32_t>(frames, 1));
+    const float sendHalf = sendLevel * 0.5f;
     for (std::uint32_t i = 0; i < frames; ++i) {
         if (!resampler.aLive) return false;
         const float t = static_cast<float>(i) * slope;
         float frame[2];
         resampler.Frame(frame);
-        out[2 * i] += frame[0] * (from.left + (to.left - from.left) * t);
-        out[2 * i + 1] += frame[1] * (from.right + (to.right - from.right) * t);
+        const float left = frame[0] * (from.left + (to.left - from.left) * t);
+        const float right = frame[1] * (from.right + (to.right - from.right) * t);
+        out[2 * i] += left;
+        out[2 * i + 1] += right;
+        if (sendHalf > 0.0f) send[i] += (left + right) * sendHalf;
         resampler.Advance(step, fetch);
     }
     return resampler.aLive;
@@ -619,12 +817,14 @@ bool Render(Resampler& resampler, bool& primed, std::uint64_t step, Gains from, 
 void Mix(float* out, std::uint32_t frames) {
     std::fill_n(out, static_cast<std::size_t>(frames) * kOutputChannels, 0.0f);
     std::lock_guard hold(g_mix);
+    float* send = g_reverb.Send(frames);
     for (Voice* v : g_voices) {
         Sound& s = v->sound;
         if (!s.playing || s.paused) continue;
         if (!s.primed) s.applied = s.gains;
         const auto fetch = [&s](float frame[2]) { return s.Fetch(frame); };
-        if (!Render(s.resampler, s.primed, Step(s.rate, g_rate), s.applied, s.gains, out, frames, fetch)) s.playing = false;
+        if (!Render(s.resampler, s.primed, Step(s.rate, g_rate), s.applied, s.gains, out, send, s.reverb, frames, fetch))
+            s.playing = false;
         s.applied = s.gains;
     }
     for (Stream* stream : g_streams) {
@@ -632,9 +832,11 @@ void Mix(float* out, std::uint32_t frames) {
         if (!stream->primed) stream->applied = stream->gains;
         const unsigned rate = stream->playing >= 0 ? stream->halves[stream->playing].rate : stream->rate;
         const auto fetch = [stream](float frame[2]) { return stream->Fetch(frame); };
-        Render(stream->resampler, stream->primed, Step(rate, g_rate), stream->applied, stream->gains, out, frames, fetch);
+        Render(stream->resampler, stream->primed, Step(rate, g_rate), stream->applied, stream->gains, out, send, 0.0f, frames,
+               fetch);
         stream->applied = stream->gains;
     }
+    g_reverb.Process(out, frames);
     float peak = g_peak;
     for (std::size_t i = 0; i < static_cast<std::size_t>(frames) * kOutputChannels; ++i) {
         out[i] = std::clamp(out[i], -1.0f, 1.0f);
