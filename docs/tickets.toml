@@ -6794,6 +6794,13 @@ depends = ["C66a"]
 note = "C66a renamed the Rebirth profile to config/rebirth_profile.ini; main's run_all (the scheduler runs it on every worker checkout) still reads the old file when a checkout from before C66a has no new one. Remove the fallback (tools/run_all.py standalone_rebirth_flags) once no branch predates C66a."
 
 [[ticket]]
+id = "C69"
+title = "ei_settings.ini explains itself: a comment above every setting, docs/settings.md generated"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-30 asked for one place that says what every ini setting does. One table holds each setting's section, name, default and a one-or-two-line description (the game options in src/game/options.cpp's table, the renderer switches of device_mesh.cpp, Rebirth's patches / switches / console lines; move them into the table or give each a description field there). (1) When the game writes the defaults (settings::Defaults, a missing or empty file) it writes '; description' above each line; comments are already kept on rewrite; an existing file gains no comments (do not edit the user's file). (2) tools/gen_settings_doc.py writes docs/settings.md from the same table (section, name, default, range / values, what it does), and build_checks fails when it is out of date. Descriptions say what the player sees, plainly; check each against the code that reads it. Goldens unchanged (harness runs pin their own file)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
