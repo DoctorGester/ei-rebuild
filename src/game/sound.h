@@ -159,7 +159,9 @@ struct miles::Sample {
     std::uint8_t unused_000[0x144];
     AsiStage codec;
 };
-static_assert(offsetof(miles::Sample, codec) == 0x144);
+#if defined(_M_IX86)
+static_assert(offsetof(miles::Sample, codec) == 0x144);   // Miles' 32-bit layout
+#endif
 
 struct SoundManager : EngineObject {
     // Also runs AIL_startup, then Reset.

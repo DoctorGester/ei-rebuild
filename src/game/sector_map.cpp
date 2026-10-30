@@ -2,6 +2,7 @@
 #include "sector_map.h"
 
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
@@ -23,7 +24,7 @@ int Sector::NewOccluder() {
         return index;
     }
     occluders.resize(std::ssize(occluders) + 1);
-    return std::ssize(occluders) - 1;
+    return lib::Count(occluders) - 1;
 }
 
 int Sector::RemoveOccluder(int head, int bottom, int top, OccluderKind kind, int transparency) {

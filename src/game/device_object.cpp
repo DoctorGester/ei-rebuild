@@ -68,9 +68,12 @@ TextureDevice::TextureDevice(HWND newWindow, bool newFullScreen, int width, int 
     // DDSCL_FPUSETUP). The game code is SSE2 code, but the precision still counts: MSVC's 32-bit code gets a float
     // result back on the x87 register stack and may do the next operations there (a product plus one, a dot's sums),
     // which give float maths' result only at 24 bits; and the DLLs with x87 code (Miles, Bink) compute as they did
-    // in the original (docs/notes/cleanup-tooling.md, "The control word").
+    // in the original (docs/notes/cleanup-tooling.md, "The control word"). x64 code has no x87 maths and no
+    // precision control: SSE float maths is 24-bit already.
+#if defined(_M_IX86)
     unsigned int x87 = 0;
     __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
+#endif
 }
 
 TextureDevice::~TextureDevice() {

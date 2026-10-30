@@ -4,6 +4,7 @@
 #include "combat.h"
 #include "core_maths.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -1068,7 +1069,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;
-        lib::SetAtGrow(planned, std::ssize(planned), look);
+        lib::SetAtGrow(planned, lib::Count(planned), look);
     }
 }
 
@@ -1274,7 +1275,7 @@ void PatrolMode::AppendPoint(const Vector3& position) {
     int iy = lib::RoundEven(1.0f / cell * position.y);
     float x = (static_cast<float>(ix) + 0.5f) * cell;
     float y = (static_cast<float>(iy) + 0.5f) * cell;
-    int index = std::ssize(points);
+    int index = lib::Count(points);
     points.resize(index + 1);
     PatrolPoint& added = points[index];
     added.position = Vector3{x, y, 0.0f};

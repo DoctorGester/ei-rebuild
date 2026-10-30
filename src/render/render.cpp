@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <float.h>
+#include <xmmintrin.h>
 #if defined(EI_RENDER_VALIDATION)
 #include <d3d11on12.h>
 #include <d3d12.h>
@@ -912,12 +913,23 @@ void Fatal(const char* format, ...) {
 // The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
 // drivers are not expected to change it, but the control word is put back after every call into them anyway
 // (set only when it changed).
+#if defined(_M_IX86)
 FpuGuard::FpuGuard() { __control87_2(0, 0, &saved, nullptr); }
 FpuGuard::~FpuGuard() {
     unsigned int now = 0;
     __control87_2(0, 0, &now, nullptr);
     if (now != saved) __control87_2(saved, _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC, &now, nullptr);
 }
+#else
+// MXCSR's control bits (flush to zero, rounding, the exception masks, denormals are zero); the low six are the
+// status flags.
+constexpr unsigned int kMxcsrControl = 0xFFC0;
+FpuGuard::FpuGuard() : saved(_mm_getcsr()) {}
+FpuGuard::~FpuGuard() {
+    const unsigned int now = _mm_getcsr();
+    if ((now ^ saved) & kMxcsrControl) _mm_setcsr((now & ~kMxcsrControl) | (saved & kMxcsrControl));
+}
+#endif
 
 Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }

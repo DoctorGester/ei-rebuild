@@ -15,6 +15,7 @@
 #include "ui_cursor.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -224,7 +225,7 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics.push_back(kGoodbyeTopic);
-    const int count = std::ssize(topics);
+    const int count = lib::Count(topics);
     topicBar->SetMaximum(count > kTopicRows ? count - kTopicRows : 0);
     topicBar->SetPosition(0);
     topicTop = 0;

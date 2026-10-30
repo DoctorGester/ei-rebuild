@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "game_singletons.h"
+#include "lib/containers.h"
 
 #include <cstring>
 #include <vector>
@@ -45,7 +46,7 @@ static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(
 void WriteType(MemoryStream& out, std::uint8_t type) { out.WriteValue(type); }
 
 void WriteUnits(MemoryStream& out, const std::vector<CUnit*>* units) {
-    int count = std::ssize(*units);
+    int count = lib::Count(*units);
     out.WriteValue(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
         int id = (*units)[i] ? (*units)[i]->id : kNoObjectId;

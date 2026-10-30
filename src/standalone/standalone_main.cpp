@@ -26,6 +26,15 @@ int ImageImportsMissing();   // standalone/image_imports.cpp
 // A code address as the log names it (standalone.cpp).
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 
+// The return address on top of an exception's stack: a call's caller.
+std::uintptr_t ReturnAddress(const CONTEXT& context) {
+#if defined(_M_X64)
+    return *reinterpret_cast<const std::uintptr_t*>(context.Rsp);
+#else
+    return *reinterpret_cast<const std::uintptr_t*>(context.Esp);
+#endif
+}
+
 // A failure of the image (no code at an address, an import that did not resolve): logged, and handed to the
 // harness's handler (its report) before the process ends.
 void ReportImageFailure(const char* what);
@@ -57,7 +66,7 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     const std::uintptr_t data = r->ExceptionInformation[1];
     const bool execute = r->ExceptionInformation[0] == 8 || at == data;
     if (!InGameText(data)) return EXCEPTION_CONTINUE_SEARCH;
-    if (execute) ReportNoCode(at, *reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp));
+    if (execute) ReportNoCode(at, ReturnAddress(*e->ContextRecord));
     char code[160], what[320];
     DescribeCode(at, code, sizeof(code));
     std::snprintf(what, sizeof(what), "%s of game.exe's code at %08X by %s: the image's code section is guarded",
@@ -89,17 +98,17 @@ bool RouteImport(std::uintptr_t base, const char* dll, const char* function, con
     const FARPROC current = exporter ? GetProcAddress(exporter, function) : nullptr;
     if (!current) return false;
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
     const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
     if (!dir.VirtualAddress) return false;
     bool routed = false;
     for (auto* d = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base + dir.VirtualAddress); d->Name; ++d) {
         if (_stricmp(reinterpret_cast<const char*>(base + d->Name), dll) != 0) continue;
-        for (auto* slot = reinterpret_cast<IMAGE_THUNK_DATA32*>(base + d->FirstThunk); slot->u1.Function; ++slot) {
-            if (slot->u1.Function != reinterpret_cast<DWORD>(current)) continue;
+        for (auto* slot = reinterpret_cast<IMAGE_THUNK_DATA*>(base + d->FirstThunk); slot->u1.Function; ++slot) {
+            if (slot->u1.Function != reinterpret_cast<ULONG_PTR>(current)) continue;
             DWORD old;
             VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-            slot->u1.Function = reinterpret_cast<DWORD>(replacement);
+            slot->u1.Function = reinterpret_cast<ULONG_PTR>(replacement);
             VirtualProtect(slot, sizeof(*slot), old, &old);
             routed = true;
         }

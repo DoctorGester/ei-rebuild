@@ -61,10 +61,12 @@ protected:
     // both sizes hold; the pointers keep their offsets.
     void ResizeBlock(std::vector<std::uint8_t>& block, std::uint32_t capacity);
 };
-// tests/vectors/record_coder.cpp reads game.exe's buffers through this layout.
+// tests/vectors/record_coder.cpp reads game.exe's buffers through this layout (32-bit).
+#if defined(_M_IX86)
 static_assert(offsetof(GameBuffer, begin) == 0x04);
 static_assert(offsetof(GameBuffer, flags) == 0x18);
 static_assert(sizeof(GameBuffer) == 0x1C);
+#endif
 
 class GrowingBuffer final : public GameBuffer {
 public:
@@ -152,9 +154,11 @@ struct BufferCursor {
     void BeginRead(GameBuffer* buffer, std::int32_t size);
     void BeginWrite(GameBuffer* buffer, std::int32_t size);
 };
+#if defined(_M_IX86)
 static_assert(sizeof(BufferCursor) == 0x18);
 static_assert(offsetof(BufferCursor, bits) == 0x0C);
 static_assert(offsetof(BufferCursor, sink) == 0x10);
+#endif
 
 struct CoderState;
 
@@ -193,9 +197,11 @@ private:
 static_assert(offsetof(CoderState, chain) == 0x800);
 static_assert(offsetof(CoderState, head) == 0x1800);
 static_assert(offsetof(CoderState, out) == 0x2800);
+#if defined(_M_IX86)
 static_assert(offsetof(CoderState, pos) == 0x2818);
 static_assert(offsetof(CoderState, prev) == 0x2824);
 static_assert(sizeof(CoderState) == 0x2828);
+#endif
 
 // The code tables of the coder's lengths and distances, filled at start-up by InitCodeTables: the code and
 // its bit count of each match length 1..0x22 (at length - 1) and of each distance bucket 0..0x21.

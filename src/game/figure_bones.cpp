@@ -7,6 +7,7 @@
 #include "map_object_animation.h" // AnimationTrack
 #include "bone_pose.h"
 
+#include "lib/containers.h"
 #include "lib/vecmath.h"
 
 namespace {
@@ -44,7 +45,7 @@ void FigureBone::Place(const Vector3& origin) {
         mesh->localPosition = position;
         mesh->localRotation = rotation;
         // The pose's morphed vertices ({data, count}; read even without a pose, like the original).
-        FigureMesh::OffsetSpan vertices{pose->vertices.data(), std::ssize(pose->vertices)};
+        FigureMesh::OffsetSpan vertices{pose->vertices.data(), static_cast<int>(lib::Count(pose->vertices))};
         mesh->SetOffsets(&vertices);
     }
     for (auto node = children.begin(); node != children.end();) {

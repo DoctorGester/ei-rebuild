@@ -11,6 +11,7 @@
 #include "terrain.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -122,5 +123,5 @@ void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, f
         pipeline->PopMatrix(TransformPipeline::kDecalStack);
     }
     builder.Finish();
-    render::EndDecalTime(std::ssize(*points) * 4);
+    render::EndDecalTime(lib::Count(*points) * 4);
 }

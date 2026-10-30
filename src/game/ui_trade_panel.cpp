@@ -6,6 +6,7 @@
 #include "party.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -146,7 +147,7 @@ void TradePanel::BuildLists() {
 void TradePanel::DrawLists() {
     UiSurface* draw = surfaces[0];
     draw->Clear();
-    while (std::ssize(sceneObjects) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects) - 1);
+    while (lib::Count(sceneObjects) > 4) RemoveSceneObjectAt(lib::Count(sceneObjects) - 1);
 
     RECT title = {0, 10, 200, 25};
     draw->DrawTextIn(texts[0], &title, 0, 0xFFFFFF, 1, 1);

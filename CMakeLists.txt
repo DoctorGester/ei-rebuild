@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 project(EvilIslands CXX RC)
 
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
-    message(FATAL_ERROR "Build for 32-bit x86 (game.exe and its DLLs are 32-bit). Use the x86 vcvars environment.")
+# 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64). The harness (tests/verify, src/hook's game.exe
+# side) and the function vectors (tests/vectors) are 32-bit only: they run in or record from game.exe.
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(EI_X64 ON)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(EI_X64 OFF)
+else()
+    message(FATAL_ERROR "Build for 32-bit x86 or x64: use the x86 or x64 vcvars environment.")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -27,6 +33,9 @@ string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO
 # ei_harness.dll, the harness for the original game.exe (EI_NO_HOOKS runs for goldens) with the vector recorders
 # (tests/vectors/record_*.cpp, installed only in the original game.exe with EI_VECTORS=1).
 option(EI_HARNESS "Build the harness: linked into ei-rebuild.exe, and ei_harness.dll for game.exe" OFF)
+if(EI_X64 AND EI_HARNESS)
+    message(FATAL_ERROR "The harness is 32-bit only (it runs in game.exe): build it with the x86 vcvars environment.")
+endif()
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
 # network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
@@ -36,7 +45,10 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 # SSE2 floating point everywhere: the original's x87 maths at the main thread's 24-bit precision is float maths in
 # its order, with src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by an ulp (SV7d1).
-add_compile_options(/arch:SSE2 /fp:precise /W4 /permissive- /utf-8)
+add_compile_options(/fp:precise /W4 /permissive- /utf-8)
+if(NOT EI_X64)
+    add_compile_options(/arch:SSE2)   # x64 has SSE2 always
+endif()
 
 # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
 # instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside the
@@ -233,10 +245,16 @@ if(EI_HARNESS)
     target_link_options(ei_harness PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
 endif()
 
-add_executable(ei_launch tools/launcher/launch.cpp)
+# The launcher: starts game.exe with the harness, or the image (ei_launch --standalone). 32-bit only (it reads the
+# 32-bit game's threads); the x64 image starts without it, from the game folder.
+if(NOT EI_X64)
+    add_executable(ei_launch tools/launcher/launch.cpp)
+    target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
+endif()
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
-# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.
+# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it. 32-bit only (its recordings are).
+if(NOT EI_X64)
 file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 set(EI_VECTORS_GAME_SOURCES
     src/game/ai_block_search.cpp
@@ -293,6 +311,7 @@ add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_
 target_include_directories(ei_vectors PRIVATE include src)
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
 target_link_libraries(ei_vectors PRIVATE ei_platform)
+endif()
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -309,5 +328,4 @@ target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
 add_executable(ei_perf_check tools/perf_check/perf_check.cpp)
 target_include_directories(ei_perf_check PRIVATE include src third_party/sokol)
 target_link_libraries(ei_perf_check PRIVATE ei_render)
-target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 

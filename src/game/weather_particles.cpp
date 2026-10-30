@@ -17,6 +17,7 @@
 #include "weather_noise.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -140,7 +141,7 @@ void Project(RainSnow& layer, SceneRenderer* renderer) {
     layer.outcodes.resize(std::ssize(layer.positions) * 4);
     const TransformPipeline* pipeline = renderer->pipeline;
     pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), layer.positions.data(),
-                             layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
+                             layer.projected.data(), layer.outcodes.data(), lib::Count(layer.positions));
 }
 
 void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex, &projected, sizeof(projected)); }
@@ -159,7 +160,7 @@ void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
 // The vertices kept (three per particle on screen) and taken to the screen.
 int Finish(RainSnow& layer, SceneRenderer* renderer, int used) {
     layer.vertices.resize(used);
-    if (used != 0) renderer->pipeline->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
+    if (used != 0) renderer->pipeline->ToScreen(layer.vertices.data(), lib::Count(layer.vertices));
     return used;
 }
 
@@ -301,7 +302,7 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
 }
 
 void RainSnow::DrawParticles(SceneRenderer* renderer, int vertexCount) {
-    renderer->device->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
+    renderer->device->DrawTlTriangles(vertices.data(), lib::Count(vertices), indices.data(), vertexCount);
 }
 
 int RainSnow::DrawRain(SceneRenderer* renderer) {

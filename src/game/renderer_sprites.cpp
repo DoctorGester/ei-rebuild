@@ -82,7 +82,7 @@ int SortBackToFront() {
     g_cornersCopy.resize(std::ssize(g_corners));
     std::memcpy(g_cornersCopy.data(), g_corners.data(), static_cast<std::size_t>(std::ssize(g_corners)) * sizeof(TLVertex));
     TLVertex* corners = g_cornersCopy.data();
-    int sprites = std::ssize(g_cornersCopy) / 4;
+    int sprites = lib::Count(g_cornersCopy) / 4;
     g_records.resize(sprites);
     g_order.resize(sprites);
     int kept = 0;
@@ -210,7 +210,7 @@ int SceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spr
     const Matrix4& clip = *currentPipeline->Top(TransformPipeline::kClipStack);
 
     const SpritePoint* point = points->data();
-    int remaining = std::ssize(*points);
+    int remaining = lib::Count(*points);
     const Sprite* sprite = sprites->data();
     render::RenderState& state = render::g_renderState;
     const render::Blend savedSource = state.sourceBlend;

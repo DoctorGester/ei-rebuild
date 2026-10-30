@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -133,7 +134,7 @@ int FindHero(int start, Step step) {
     CParty* party = LocalPlayerData();
     int i = start;
     for (int tries = 0;;) {
-        int count = std::ssize(party->members);
+        int count = lib::Count(party->members);
         if (tries > count) {
             game::FatalError("ERROR: no human personages in the party.\n");
             break;
@@ -708,7 +709,7 @@ Item* CampPages::TakeOff(Item* item) {
     switch (item->Kind()) {
     case ItemKind::Weapon: {
         // The chosen weapon moves back when the item lies before it.
-        int count = std::ssize(heroRecord->weapons);
+        int count = lib::Count(heroRecord->weapons);
         Item** weapons = heroRecord->weapons.data();
         for (int i = 0; i < count; ++i) {
             if (weapons[i] != item) continue;

@@ -18,6 +18,7 @@
 #include "world_glue.h"
 #include "random.h"
 
+#include "lib/containers.h"
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
@@ -510,13 +511,13 @@ void MpHeroScreen::AddNewHero() {
     ui->PlayInterfaceSound(kSoundOk);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
-    for (int i = std::ssize(hero->weapons) - 1; i >= 0; --i)
+    for (int i = lib::Count(hero->weapons) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon)
             hero->RemoveWeapon(hero->weapons[i]);
-    for (int i = std::ssize(hero->quickItems) - 1; i >= 0; --i)
+    for (int i = lib::Count(hero->quickItems) - 1; i >= 0; --i)
         if (hero->quickItems[i] != quickItem)
             hero->RemoveQuickItem(hero->quickItems[i]);
-    for (int i = std::ssize(hero->spells) - 1; i >= 0; --i)
+    for (int i = lib::Count(hero->spells) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer)
             hero->RemoveSpell(hero->spells[i]);
     hero->weaponIndex = !hero->weapons.empty() ? 0 : kNoWeaponSlot;

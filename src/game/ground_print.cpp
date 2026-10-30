@@ -16,6 +16,7 @@
 #include "world.h"
 #include "random.h"
 
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -197,7 +198,7 @@ int GroundPrint::Draw() {
         // it, the others their v part.
         float uc = std::cos(uvAngle);
         float us = std::sin(uvAngle);
-        int vertices = std::ssize(positions) * 4;
+        int vertices = lib::Count(positions) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords[i];
             float du = uv.u - 0.5f;
@@ -217,8 +218,8 @@ int GroundPrint::Draw() {
     colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
-    return device->DrawFlatBlocks(positions.data(), texCoords.data(), std::ssize(positions),
-                                  indices.data(), std::ssize(indices), colour, static_cast<std::uint32_t>(lit) << 24);
+    return device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions),
+                                  indices.data(), lib::Count(indices), colour, static_cast<std::uint32_t>(lit) << 24);
 }
 
 // ---- Footprint ----------------------------------------------------------------------------------

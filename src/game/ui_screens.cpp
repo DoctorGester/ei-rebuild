@@ -15,6 +15,7 @@
 #include "party.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
@@ -181,7 +182,7 @@ void ForwardingStrip::RebuildList() {
     list.clear();
     if (filter == 0 && tab == 5) {
         for (int i = 0; i < std::ssize(*source); ++i) {
-            int index = std::ssize(list);
+            int index = lib::Count(list);
             Item* item = (*source)[i];
             list.resize(index + 1);
             list[index] = item;
@@ -190,13 +191,13 @@ void ForwardingStrip::RebuildList() {
         for (int i = 0; i < std::ssize(*source); ++i) {
             Item* item = (*source)[i];
             if (TabOf(item) == tab) {
-                int index = std::ssize(list);
+                int index = lib::Count(list);
                 list.resize(index + 1);
                 list[index] = item;
             }
         }
     }
-    count = std::ssize(list);
+    count = lib::Count(list);
 }
 
 int UiItemStrip::TabOf(const Item* item) {
@@ -216,7 +217,7 @@ void UiItemStrip::ScrollToItem(Item* item) {
     // The original inlines the array's SetSize in the second loop.
     auto append = [&](Item* entry) {
         if (wanted->IsSameAs(entry)) found = static_cast<float>(list.size());
-        int index = std::ssize(list);
+        int index = lib::Count(list);
         list.resize(index + 1);
         list[index] = entry;
     };

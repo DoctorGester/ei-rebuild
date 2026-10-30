@@ -6,6 +6,7 @@
 #include "ai_map.h"
 
 #include "core_maths.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 
@@ -147,7 +148,7 @@ bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AI
                 int x = bad->x;
                 int y = bad->y;
                 std::vector<BlockPoint>* excluded = &path->excludedBlocks;
-                int size = std::ssize(*excluded);
+                int size = lib::Count(*excluded);
                 excluded->resize(size + 1);
                 BlockPoint* data = excluded->data();
                 data[size].x = x;

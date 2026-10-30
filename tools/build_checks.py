@@ -2,7 +2,8 @@
 nothing, so they run side by side; their output comes in the order below. Run alone they took about 9 s one after
 another, together about as long as the slowest.
 
-usage: python tools/build_checks.py BUILD_DIR [--times]   (exit code 1 when any check fails; --times: each one's seconds)
+usage: python tools/build_checks.py BUILD_DIR [--times] [--x64]   (exit code 1 when any check fails; --times: each one's
+seconds; --x64: the x64 build, which has no function vectors: their recordings and replay are 32-bit only)
 """
 import os, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -10,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def checks(out):
+def checks(out, x64):
     py = [sys.executable]
     tool = lambda name: os.path.join(ROOT, 'tools', name)
     return [
@@ -35,7 +36,7 @@ def checks(out):
         # config/platform_files.txt (tools/check_platform.py).
         py + [tool('check_platform.py')],
         # Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
-        [os.path.join(out, 'ei_vectors.exe')],
+        *([] if x64 else [[os.path.join(out, 'ei_vectors.exe')]]),
         # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
         # The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps
@@ -54,12 +55,12 @@ def run(cmd):
 
 
 def main(argv):
-    args = [a for a in argv[1:] if a != '--times']
+    args = [a for a in argv[1:] if a not in ('--times', '--x64')]
     if len(args) != 1:
         print(__doc__)
         return 2
     out = os.path.abspath(args[0])
-    cmds = checks(out)
+    cmds = checks(out, '--x64' in argv)
     with ThreadPoolExecutor(len(cmds)) as pool:
         results = list(pool.map(run, cmds))
     failed = []

@@ -10,6 +10,7 @@
 #include "ui_screens.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -222,7 +223,7 @@ void ObjectivesWindow::Update() {
         static_cast<std::uint32_t>((std::cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast =
         static_cast<std::uint32_t>((std::cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = std::ssize(exits) + kFirstExitSprite; i < std::ssize(sceneObjects); ++i) {
+    for (int i = lib::Count(exits) + kFirstExitSprite; i < lib::Count(sceneObjects); ++i) {
         UiMesh* place = SceneMesh(i);
         place->flags |= FigureMeshFlag::Flat;
         place->flatColour = fast << 24 | 0xFF0000u;

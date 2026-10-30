@@ -7,6 +7,7 @@
 #include "object_maths.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
 #include "lib/crt.h"
@@ -326,7 +327,7 @@ constexpr std::int32_t kRiseFallAlpha[20] = /*0078A914*/ {0, 0, 32, 64, 112, 160
 // particle (state -1 - k).
 int AddOrbiter(ParticleSource* s, Particle* p) {
     float orbit, carrier;     // the orbit radius and the carrier's radius
-    int k = std::ssize(s->elements);
+    int k = lib::Count(s->elements);
     if (k == 0) {
         Vector3 offset;
         float radius;
@@ -685,7 +686,7 @@ const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 // original's two orders; returns y.
 float FunnelCentre(const ParticleSource* s, float h, float& x) {
     int k = static_cast<int>(h);
-    if (k >= std::ssize(s->elements) - 2) k = std::ssize(s->elements) - 2;
+    if (k >= lib::Count(s->elements) - 2) k = lib::Count(s->elements) - 2;
     float f = h - k;
     float t = MinKeepA(f, 1.0f);
     float u = EI_P_ONE - t;
@@ -720,7 +721,7 @@ void SetUpCylinder(ParticleSource* s) {
     if (ParticleTypeOf(s->type) == ParticleType::Cylinder2) turn = -turn;
     float c = std::cos(turn);
     float sn = std::sin(turn);
-    int count = std::ssize(s->elements);
+    int count = lib::Count(s->elements);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         float orbit = radius * EI_CYL_ORBIT;
         float twice = static_cast<float>(2 * i);
@@ -735,7 +736,7 @@ void SetUpCylinder(ParticleSource* s) {
         e.star.rise = (EI_CYL_TWO / e.ticks) * radius * EI_CYL_RISE;
         e.star.inverseOrbit = EI_P_ONE / orbit;
         e.star.orbit = orbit;
-        count = std::ssize(s->elements);
+        count = lib::Count(s->elements);
     }
 }
 
@@ -1886,7 +1887,7 @@ int ParticleSource::EmitBag(Particle* p, int index) {
             }
         }
         std::uint32_t r = Next();
-        p->state = std::ssize(particles);
+        p->state = lib::Count(particles);
         p->color = 0xFFFFFF;
         p->life = 15;
         p->frame = static_cast<int>(r & 3);
@@ -2249,7 +2250,7 @@ int ParticleSource::EmitTornado(Particle* p, int) {
     p->life = static_cast<int>(Next() % 9) + 100;
     float scaled = height01 * EI_FUNNEL_PI_F;
     int k = std::lround(scaled);
-    if (k >= std::ssize(elements) - 2) k = std::ssize(elements) - 2;
+    if (k >= lib::Count(elements) - 2) k = lib::Count(elements) - 2;
     float f = scaled - k;
     float t = MinKeepA(f, 1.0f);
     float u = EI_P_ONE - t;
@@ -2426,8 +2427,8 @@ int ParticleSource::UpdatePortalStar(Particle* p) {
 // places them around the carrier); later ones are sparks along a random star's last step.
 int ParticleSource::EmitCylinder(Particle* p, int) {
     p->color = 0xFFFFFF;
-    int count = std::ssize(particles);
-    int stars = std::ssize(elements);
+    int count = lib::Count(particles);
+    int stars = lib::Count(elements);
     if (count < stars) {
         if (count == 0) SetUpCylinder(this);
         p->frame = 0;
@@ -3267,7 +3268,7 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
 // source and four satellites half a unit out, at the angles 2 pi times 0.2, 0.4, 0.6 and 0.8 (the
 // first at angle 0); with another lifetime (used as the frame) just the one particle.
 int ParticleSource::EmitVisionStar(Particle* p, int) {
-    int count = std::ssize(particles);
+    int count = lib::Count(particles);
     if (count > 4) return 0;
     if (count > 0 && lifetime != 1) return 0;
     p->color = 0xFFFFFF;

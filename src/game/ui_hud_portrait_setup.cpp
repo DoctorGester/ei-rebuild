@@ -15,6 +15,7 @@
 #include "ei/rebirth.h"
 #include <string>
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -94,7 +95,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
         }
     } else {
         width = 0x38;
-        x = column * 0x38 - std::ssize(owner->party) * 0x38 / 2 + 400;
+        x = column * 0x38 - lib::Count(owner->party) * 0x38 / 2 + 400;
     }
     const int right = x + width;
 

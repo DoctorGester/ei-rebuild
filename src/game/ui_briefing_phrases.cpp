@@ -23,6 +23,7 @@
 #include "world_glue.h"
 #include "random.h"
 
+#include "lib/containers.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -109,7 +110,7 @@ void BriefingScreen::NextPhrase(bool skip) {
             lips = false;
             continue;
         }
-        int count = words.size();
+        int count = lib::Count(words);
         if (count < 2) continue;
         if (text::CompareIgnoringCase(words[0], kShowCommand) == 0) {
             if (count > 3 && text::CompareIgnoringCase(words[3], kWeaponWord) == 0)

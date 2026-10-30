@@ -8,6 +8,7 @@
 #include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 #include "player_manager.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 
@@ -17,7 +18,7 @@ namespace {
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
 CParty* GlobalParty() { return g_savedParties.outsideGame.Party(); }
-int GlobalRecordCount() { return std::ssize(GlobalParty()->members); }
+int GlobalRecordCount() { return lib::Count(GlobalParty()->members); }
 int& GlobalGold() { return GlobalParty()->money; }
 
 constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's

@@ -91,7 +91,7 @@ const LinkPartRanges* RangesOf(const LinkMesh* figure, const char* name) {
 const float* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
                             std::vector<VertexPacket>& moved) {
     moved.assign(positions, positions + packets);
-    const int count = (std::min)(std::ssize(offsets), packets * 4);
+    const int count = static_cast<int>((std::min)(std::ssize(offsets), static_cast<std::ptrdiff_t>(packets) * 4));
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = moved[static_cast<std::size_t>(i >> 2)];
         packet.block[0][i & 3] = offsets[i].x + packet.block[0][i & 3];

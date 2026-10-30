@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include "lib/containers.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "world.h"
@@ -284,7 +285,7 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     float y = kColumnBottom - (count * kStep);
     sprite->Place(20.0f - widescreen::EdgeShift(), y, 40.0f);   // WideScreen
     MakePlain(sprite);
-    int place = std::ssize(actions);
+    int place = lib::Count(actions);
     actions.resize(place + 1);
     actions[place] = static_cast<std::uint32_t>(action);
     int index = count;

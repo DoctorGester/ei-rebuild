@@ -263,8 +263,8 @@ public:
     CMapObject* FindObject(unsigned id);
     // Creates the object a .mob record describes (base.kind): map objects and units (1, 5, 8, 9; 6 with a
     // figure and maybe a campfire; 7) go into the object maps, the update map and the sector map; sounds (3),
-    // lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused, the message's address
-    // for an unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
+    // lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused or for an unknown kind (the
+    // original returned the message's address there; no caller reads it). Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
     int CreateObject(mapspec::Spec* message);
     // Removes object `id` from the server: out of the sector map, the id maps and the command queues,
     // forgotten by every object, the missiles and the players' states, the maps' reference released. An

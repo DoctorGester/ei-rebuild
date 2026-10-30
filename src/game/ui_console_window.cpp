@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "system_text.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
@@ -90,7 +91,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_END:
         if (!ctrl) {
-            caret = input.size();
+            caret = lib::Count(input);
             if (!shift) anchor = caret;
             DrawInput();
             return;
@@ -126,7 +127,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             input = commands[commandIndex];
         else
             input.clear();
-        caret = input.size();
+        caret = lib::Count(input);
         anchor = caret;
         DrawInput();
         return;
@@ -215,7 +216,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
         if (letter == 'a') {
             anchor = 0;
-            caret = input.size();
+            caret = lib::Count(input);
             DrawInput();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
             const char* text = input.c_str();
@@ -283,8 +284,8 @@ void ConsoleWindow::DrawLines() {
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
 // the input, and a 2-pixel caret line when it lies left of that limit.
 void ConsoleWindow::DrawInput() {
-    caret = Clamp(caret, input.size());
-    anchor = Clamp(anchor, input.size());
+    caret = Clamp(caret, lib::Count(input));
+    anchor = Clamp(anchor, lib::Count(input));
     if (!surface || !font) return;
     UiSurface* currentSurface = surface;
     FillArea(currentSurface, 0, height - kInputHeight, width, kInputHeight, kBackground);

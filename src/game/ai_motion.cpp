@@ -9,6 +9,7 @@
 #include "map_object.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -473,7 +474,7 @@ void UnitMotion::Build(PathOrder* path) {
     first.x = order->x;
     first.y = order->y;
     first.cells = 0;
-    lib::SetAtGrow(waypoints, std::ssize(waypoints), first);
+    lib::SetAtGrow(waypoints, lib::Count(waypoints), first);
     int previous = 0;
     for (auto node = path->steps.begin(); node != path->steps.end();) {
         auto next = std::next(node);
@@ -488,15 +489,15 @@ void UnitMotion::Build(PathOrder* path) {
         switch (dir) {
         case 2:
             w = Waypoint(cx, cy);
-            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
+            lib::SetAtGrow(waypoints, lib::Count(waypoints), w);
             break;
         case 4:
             w = Waypoint(cx, cy + 1.0f);
-            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
+            lib::SetAtGrow(waypoints, lib::Count(waypoints), w);
             break;
         case 6:
             w = Waypoint(cx + 1.0f, cy + 1.0f);
-            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
+            lib::SetAtGrow(waypoints, lib::Count(waypoints), w);
             break;
         case 8:
             w = Waypoint(cx + 1.0f, cy);
@@ -516,7 +517,7 @@ void UnitMotion::Build(PathOrder* path) {
                 break;
             case 3:
                 w = Waypoint(cx, cy + 0.5f);
-                lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
+                lib::SetAtGrow(waypoints, lib::Count(waypoints), w);
                 break;
             case 5:
                 w = Waypoint(cx + 0.5f, cy + 1.0f);
@@ -606,11 +607,11 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
         p.x = a->x;
         p.y = a->y;
-        int size = std::ssize(points);
+        int size = lib::Count(points);
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         points.resize(size + 1);
         points[size] = p;
-        size = std::ssize(points);
+        size = lib::Count(points);
         p.x = b->x;
         p.y = b->y;
         points.resize(size + 1);
@@ -626,7 +627,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         p.x = f * b->x + g * a->x;
         p.y = g * a->y + f * b->y;
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
-        int size = std::ssize(points);
+        int size = lib::Count(points);
         points.resize(size + 1);
         points[size] = p;
         ++*stepIndex;
@@ -674,13 +675,13 @@ void UnitMotion::LoadState(ByteStream* stream) {
 }
 
 void UnitMotion::SaveState(ByteStream* stream) {
-    int count = std::ssize(points);
+    int count = lib::Count(points);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
-    count = std::ssize(waypoints);
+    count = lib::Count(waypoints);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->WriteValue(waypoints[i]);
-    count = std::ssize(stepSpeeds);
+    count = lib::Count(stepSpeeds);
     stream->WriteValue(count);
     for (const float& step : stepSpeeds) stream->WriteValue(step);
     // Copied bit for bit.

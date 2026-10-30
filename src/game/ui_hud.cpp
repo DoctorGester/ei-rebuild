@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "console.h"
 #include "game_strings.h"
+#include "lib/containers.h"
 #include "lib/text_case.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -514,7 +515,7 @@ void HudMovePanel::Update() {
     // The common value over the selected units: -1 none selected, -2 mixed.
     int newMode = -1;
     int newFlag = -1;
-    int count = std::ssize(owner->party);
+    int count = lib::Count(owner->party);
     CUnit** units = owner->party.data();
     for (int i = 0; i < count; ++i) {
         CUnit* unit = units[i];
@@ -596,7 +597,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
-    int count = std::ssize(party);
+    int count = lib::Count(party);
     int firstIndex = -1;
     CUnit* first = nullptr;
     int selected = 0;
@@ -647,7 +648,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 OrderDeadUnit(unit, ctrl);
                 return;
             }
-            int members = std::ssize(party);
+            int members = lib::Count(party);
             for (int i = 0; i < members; ++i) {
                 if (unit != party[i]) continue;
                 ui->PlayInterfaceSound(game::SoundOnOffText());

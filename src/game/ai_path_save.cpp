@@ -6,6 +6,7 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "core_streams.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 
@@ -36,7 +37,7 @@ void AIPath::LoadPath(ByteStream* stream) {
 }
 
 void AIPath::SavePath(ByteStream* stream) {
-    int count = std::ssize(cells);
+    int count = lib::Count(cells);
     stream->WriteValue(count);
     for (const PathCell& cell : cells) stream->WriteValue(cell);
     SaveOrder(stream);
@@ -47,7 +48,7 @@ void AIPath::SavePath(ByteStream* stream) {
     stream->WriteValue(mayExcludeRegions);
     stream->WriteValue(firstSearch);
     const std::vector<BlockPoint>* excluded = &excludedBlocks;
-    count = std::ssize(*excluded);
+    count = lib::Count(*excluded);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(*excluded); ++i) {
         int x = (*excluded)[i].x;
@@ -86,7 +87,7 @@ void PathOrder::SaveOrder(ByteStream* stream) {
     stream->WriteValue(order->angle);
     stream->WriteValue(order->startTime);
     stream->Write(&order->arg5, 0xC);
-    int count = std::ssize(steps);
+    int count = lib::Count(steps);
     stream->WriteValue(count);
     for (auto node = steps.begin(); node != steps.end();) {
         auto next = std::next(node);

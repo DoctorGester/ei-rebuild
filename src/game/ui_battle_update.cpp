@@ -21,6 +21,7 @@
 #include "world.h"
 #include "world_glue.h"
 
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 
 #include <algorithm>
@@ -164,7 +165,7 @@ void RebuildClientParty(BattleScreen* screen) {
             if (unitId == ids.camera) {
                 g_clientWorld.Select(unit);
                 // Insert at the front.
-                int n = std::ssize(*party);
+                int n = lib::Count(*party);
                 if (n <= 0) {
                     party->resize(1);
                 } else {
@@ -175,7 +176,7 @@ void RebuildClientParty(BattleScreen* screen) {
                 (*party)[0] = unit;
                 cameraFirst = true;
             } else {
-                lib::SetAtGrow(*party, std::ssize(*party), unit);
+                lib::SetAtGrow(*party, lib::Count(*party), unit);
             }
         }
         screen->portraits->Rebuild(cameraFirst);
@@ -243,7 +244,7 @@ void BattleScreen::Update() {
         std::vector<PartyUnitRecord*> second = {};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < std::ssize(data->members); ++i)
-            lib::SetAtGrow(records, std::ssize(records), &data->members[i]);
+            lib::SetAtGrow(records, lib::Count(records), &data->members[i]);
         if (GamePartyInExit(&records, pendingExit, &second)) {
             MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             ui->PushWindow(box, true, true);

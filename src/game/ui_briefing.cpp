@@ -15,6 +15,7 @@
 #include "world.h"
 #include "world_glue.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 
@@ -70,7 +71,7 @@ void BriefingScreen::MessageResult(int result) {
 
 void BriefingScreen::UnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
-    int count = std::ssize(player->members);
+    int count = lib::Count(player->members);
     if (count == 0) return;
     int place = 0;
     int record = 0;
@@ -82,7 +83,7 @@ void BriefingScreen::UnitJoined(CUnit* unit) {
     if (record < count) {
         // Insert `unit` at `place` (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
-        int size = std::ssize(party);
+        int size = lib::Count(party);
         if (place >= size) {
             party.resize(place + 1);
         } else {
@@ -92,7 +93,7 @@ void BriefingScreen::UnitJoined(CUnit* unit) {
         party[place] = unit;
     } else {
         // SetAtGrow(size, unit).
-        int size = std::ssize(party);
+        int size = lib::Count(party);
         party.resize(size + 1);
         party[size] = unit;
     }
@@ -121,7 +122,7 @@ void BriefingScreen::UnitJoined(CUnit* unit) {
 
 void BriefingScreen::UnitLeft(CUnit* unit) {
     if (unit == leader) leader = nullptr;
-    int count = std::ssize(party);
+    int count = lib::Count(party);
     int index = 0;
     while (index < count && party[index]->id != unit->id) ++index;
     if (index >= count) return;

@@ -11,6 +11,7 @@
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach Miles.
 #include "game_strings.h"
 #include "lib/bytes.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
@@ -795,7 +796,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
         at = 0x7FFFFFFF;
         break;
     case 3: {
-        int n = std::ssize(markers);
+        int n = lib::Count(markers);
         if (n == 0) {
             m = 1;
             at = 0x7FFFFFFF;
@@ -901,7 +902,9 @@ struct miles::SoundInfo {
     std::uint32_t blockSize;
     const void* initial;
 };
-static_assert(sizeof(miles::SoundInfo) == 0x24);
+#if defined(_M_IX86)
+static_assert(sizeof(miles::SoundInfo) == 0x24);   // Miles' 32-bit layout
+#endif
 
 float SoundManager::WaveLength(const void* data) {
     miles::SoundInfo info;
@@ -1374,6 +1377,12 @@ int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
+// Whether Miles (mss32.dll) is loaded with game.exe's imports (src/standalone/image_imports.cpp). The x64 build
+// has none: the manager does not start Miles and never opens, so every sound call returns at its `enabled` test.
+namespace {
+bool MilesLoaded() { return gameapi::GetModuleHandleA("mss32.dll") != nullptr; }
+} // namespace
+
 // The stream reader, the strings and the archive are members the compiler constructs before the body.
 SoundManager::SoundManager() {
     musicFader.volume = kFullVolume;
@@ -1383,14 +1392,14 @@ SoundManager::SoundManager() {
     gameapi::InitializeCriticalSection(&streamLock);
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
-    gameapi::AIL_startup();
+    if (MilesLoaded()) gameapi::AIL_startup();
     Reset();
 }
 
 // The archive, the strings and the stream reader are destroyed after the body.
 SoundManager::~SoundManager() {
     Close();
-    gameapi::AIL_shutdown();
+    if (MilesLoaded()) gameapi::AIL_shutdown();
     cacheList.clear();
     gameapi::DeleteCriticalSection(&midiLock);
     gameapi::DeleteCriticalSection(&streamLock);
@@ -1501,7 +1510,7 @@ unsigned __stdcall StreamThreadEntry(void* manager) {
 // aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
 BOOL CALLBACK AddSoundDevice(LPGUID guid, LPCSTR, LPCSTR, LPVOID devices) {
     auto* list = static_cast<std::vector<int>*>(devices);
-    const int at = std::ssize(*list);
+    const int at = lib::Count(*list);
     list->resize(at + 1);
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
     return 1;
@@ -1576,6 +1585,10 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
 
 int SoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
     Destroy();   // Close
+    if (!MilesLoaded()) {
+        game::DebugLog("No sound: Miles (mss32.dll) is not loaded.\n");
+        return 0;
+    }
     const bool waveOut = options::g_options.audio == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {

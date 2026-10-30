@@ -6,6 +6,7 @@
 #include "ai_map.h"
 #include "core_maths.h"
 
+#include "lib/containers.h"
 #include "lib/rounding.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"
@@ -23,7 +24,7 @@ void ResetSet(FootprintCellSet* set) {
 // The cell record of these footprints. The original appends it from a stack copy whose byte 0x13 and `next`
 // it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the cells are in no bucket.
 void AddCell(FootprintCellSet* set, int x, int y) {
-    int index = std::ssize(set->cells);
+    int index = lib::Count(set->cells);
     set->SetSize(index + 1);
     FootprintCell& cell = set->cells[index];
     cell.x = x;

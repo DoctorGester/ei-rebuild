@@ -2,6 +2,7 @@
 
 #include "core_transform.h"
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
@@ -96,7 +97,7 @@ void CMapObject::SetEffectCount(int count) {
 void CMapObject::AddEffect(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
     if (rebirth && std::ssize(effects) >= kRebirthMaxEffects) return;   // addon.dll drops it (and logs)
-    int count = std::ssize(effects);
+    int count = lib::Count(effects);
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
     netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3

@@ -8,7 +8,7 @@
 // A slot holds the export, a route of the image (its UTF-8 version) or the harness's wrapper of
 // either; in the image a slot no call reaches is a trap (image_imports.inc).
 // A member's type is its function's: the Windows SDK's, or lib/import_prototypes.h's for an import
-// the SDK does not declare.
+// the SDK does not declare. Every member is a pointer-sized slot (8 bytes on x64).
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -36,16 +36,16 @@ struct ImportTable {
     decltype(&::RegEnumValueA) RegEnumValueA;   // ADVAPI32.dll!RegEnumValueA
     decltype(&::RegEnumKeyExA) RegEnumKeyExA;   // ADVAPI32.dll!RegEnumKeyExA
     decltype(&::RegQueryValueExA) RegQueryValueExA;   // ADVAPI32.dll!RegQueryValueExA
-    std::uint32_t ADVAPI32_end;   // zero: the end of ADVAPI32.dll's slots
+    void* ADVAPI32_end;   // zero: the end of ADVAPI32.dll's slots
     import_fn::InitCommonControls InitCommonControls;   // COMCTL32.dll!#17
-    std::uint32_t COMCTL32_end;   // zero: the end of COMCTL32.dll's slots
+    void* COMCTL32_end;   // zero: the end of COMCTL32.dll's slots
     import_fn::DirectDrawEnumerateExA DirectDrawEnumerateExA;   // DDRAW.dll!DirectDrawEnumerateExA
     import_fn::DirectDrawCreateEx DirectDrawCreateEx;   // DDRAW.dll!DirectDrawCreateEx
-    std::uint32_t DDRAW_end;   // zero: the end of DDRAW.dll's slots
+    void* DDRAW_end;   // zero: the end of DDRAW.dll's slots
     import_fn::DirectInputCreateEx DirectInputCreateEx;   // DINPUT.dll!DirectInputCreateEx
-    std::uint32_t DINPUT_end;   // zero: the end of DINPUT.dll's slots
+    void* DINPUT_end;   // zero: the end of DINPUT.dll's slots
     decltype(&::DirectSoundEnumerateA) DirectSoundEnumerateA;   // DSOUND.dll!#2
-    std::uint32_t DSOUND_end;   // zero: the end of DSOUND.dll's slots
+    void* DSOUND_end;   // zero: the end of DSOUND.dll's slots
     decltype(&::CreateRectRgnIndirect) CreateRectRgnIndirect;   // GDI32.dll!CreateRectRgnIndirect
     decltype(&::CombineRgn) CombineRgn;   // GDI32.dll!CombineRgn
     decltype(&::SetRectRgn) SetRectRgn;   // GDI32.dll!SetRectRgn
@@ -129,7 +129,7 @@ struct ImportTable {
     decltype(&::GetTextExtentPoint32A) GetTextExtentPoint32A;   // GDI32.dll!GetTextExtentPoint32A
     decltype(&::CreateSolidBrush) CreateSolidBrush;   // GDI32.dll!CreateSolidBrush
     decltype(&::CreatePalette) CreatePalette;   // GDI32.dll!CreatePalette
-    std::uint32_t GDI32_end;   // zero: the end of GDI32.dll's slots
+    void* GDI32_end;   // zero: the end of GDI32.dll's slots
     decltype(&::Sleep) Sleep;   // KERNEL32.dll!Sleep
     decltype(&::OutputDebugStringA) OutputDebugStringA;   // KERNEL32.dll!OutputDebugStringA
     decltype(&::FreeLibrary) FreeLibrary;   // KERNEL32.dll!FreeLibrary
@@ -289,10 +289,10 @@ struct ImportTable {
     decltype(&::CreateFileMappingA) CreateFileMappingA;   // KERNEL32.dll!CreateFileMappingA
     decltype(&::GetFileSize) GetFileSize;   // KERNEL32.dll!GetFileSize
     decltype(&::RaiseException) RaiseException;   // KERNEL32.dll!RaiseException
-    std::uint32_t KERNEL32_end;   // zero: the end of KERNEL32.dll's slots
+    void* KERNEL32_end;   // zero: the end of KERNEL32.dll's slots
     decltype(&::DragAcceptFiles) DragAcceptFiles;   // SHELL32.dll!DragAcceptFiles
     decltype(&::SHGetFileInfoA) SHGetFileInfoA;   // SHELL32.dll!SHGetFileInfoA
-    std::uint32_t SHELL32_end;   // zero: the end of SHELL32.dll's slots
+    void* SHELL32_end;   // zero: the end of SHELL32.dll's slots
     decltype(&::BringWindowToTop) BringWindowToTop;   // USER32.dll!BringWindowToTop
     decltype(&::GetLastActivePopup) GetLastActivePopup;   // USER32.dll!GetLastActivePopup
     decltype(&::SetForegroundWindow) SetForegroundWindow;   // USER32.dll!SetForegroundWindow
@@ -444,17 +444,17 @@ struct ImportTable {
     decltype(&::GetDlgItemInt) GetDlgItemInt;   // USER32.dll!GetDlgItemInt
     decltype(&::GetDlgItemTextA) GetDlgItemTextA;   // USER32.dll!GetDlgItemTextA
     decltype(&::GetCursor) GetCursor;   // USER32.dll!GetCursor
-    std::uint32_t USER32_end;   // zero: the end of USER32.dll's slots
+    void* USER32_end;   // zero: the end of USER32.dll's slots
     decltype(&::mmioClose) mmioClose;   // WINMM.dll!mmioClose
     decltype(&::mmioOpenA) mmioOpenA;   // WINMM.dll!mmioOpenA
     decltype(&::mmioRead) mmioRead;   // WINMM.dll!mmioRead
     decltype(&::mmioSeek) mmioSeek;   // WINMM.dll!mmioSeek
     decltype(&::timeGetTime) timeGetTime;   // WINMM.dll!timeGetTime
-    std::uint32_t WINMM_end;   // zero: the end of WINMM.dll's slots
+    void* WINMM_end;   // zero: the end of WINMM.dll's slots
     import_fn::ClosePrinter ClosePrinter;   // WINSPOOL.DRV!ClosePrinter
     import_fn::DocumentPropertiesA DocumentPropertiesA;   // WINSPOOL.DRV!DocumentPropertiesA
     import_fn::OpenPrinterA OpenPrinterA;   // WINSPOOL.DRV!OpenPrinterA
-    std::uint32_t WINSPOOL_end;   // zero: the end of WINSPOOL.DRV's slots
+    void* WINSPOOL_end;   // zero: the end of WINSPOOL.DRV's slots
     import_fn::listen listen;   // WSOCK32.dll!#13
     import_fn::accept accept;   // WSOCK32.dll!#1
     import_fn::WSAFDIsSet WSAFDIsSet;   // WSOCK32.dll!#151
@@ -477,7 +477,7 @@ struct ImportTable {
     import_fn::htons htons;   // WSOCK32.dll!#9
     import_fn::ioctlsocket ioctlsocket;   // WSOCK32.dll!#12
     import_fn::sendto sendto;   // WSOCK32.dll!#20
-    std::uint32_t WSOCK32_end;   // zero: the end of WSOCK32.dll's slots
+    void* WSOCK32_end;   // zero: the end of WSOCK32.dll's slots
     import_fn::BinkGoto BinkGoto;   // binkw32.dll!_BinkGoto@12
     import_fn::BinkDoFrame BinkDoFrame;   // binkw32.dll!_BinkDoFrame@4
     import_fn::BinkDDSurfaceType BinkDDSurfaceType;   // binkw32.dll!_BinkDDSurfaceType@4
@@ -490,9 +490,9 @@ struct ImportTable {
     import_fn::BinkOpenMiles BinkOpenMiles;   // binkw32.dll!_BinkOpenMiles@4
     import_fn::BinkClose BinkClose;   // binkw32.dll!_BinkClose@4
     import_fn::BinkCopyToBuffer BinkCopyToBuffer;   // binkw32.dll!_BinkCopyToBuffer@28
-    std::uint32_t binkw32_end;   // zero: the end of binkw32.dll's slots
+    void* binkw32_end;   // zero: the end of binkw32.dll's slots
     import_fn::GetFileTitleA GetFileTitleA;   // comdlg32.dll!GetFileTitleA
-    std::uint32_t comdlg32_end;   // zero: the end of comdlg32.dll's slots
+    void* comdlg32_end;   // zero: the end of comdlg32.dll's slots
     import_fn::AIL_set_sample_file AIL_set_sample_file;   // mss32.dll!_AIL_set_sample_file@12
     import_fn::AIL_WAV_info AIL_WAV_info;   // mss32.dll!_AIL_WAV_info@8
     import_fn::AIL_mem_alloc_lock AIL_mem_alloc_lock;   // mss32.dll!_AIL_mem_alloc_lock@4
@@ -540,13 +540,13 @@ struct ImportTable {
     import_fn::AIL_end_sequence AIL_end_sequence;   // mss32.dll!_AIL_end_sequence@4
     import_fn::AIL_decompress_ASI AIL_decompress_ASI;   // mss32.dll!_AIL_decompress_ASI@24
     import_fn::AIL_init_sample AIL_init_sample;   // mss32.dll!_AIL_init_sample@4
-    std::uint32_t mss32_end;   // zero: the end of mss32.dll's slots
+    void* mss32_end;   // zero: the end of mss32.dll's slots
     decltype(&::CoCreateInstance) CoCreateInstance;   // ole32.dll!CoCreateInstance
     decltype(&::CoInitialize) CoInitialize;   // ole32.dll!CoInitialize
     decltype(&::CoUninitialize) CoUninitialize;   // ole32.dll!CoUninitialize
-    std::uint32_t ole32_end;   // zero: the end of ole32.dll's slots
+    void* ole32_end;   // zero: the end of ole32.dll's slots
 };
-static_assert(sizeof(ImportTable) == 0x820);   // game.exe's import address table
+static_assert(sizeof(ImportTable) == 0x208 * sizeof(void*));   // game.exe's import address table's slots
 
 // The table calls go through: game.exe's own in game.exe, the image's own in the image.
 ImportTable& Imports();

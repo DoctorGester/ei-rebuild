@@ -6241,6 +6241,13 @@ depends = ["PL2"]
 note = "From PL2 (docs/notes/platform.md, Window and events). (1) Key codes as our own constants: a platform/keys.h (values = the virtual-key codes the bindings file and options keep) in place of lib/win_user.h's VK_ in about 20 ui files (ui_battle_keys, ui_briefing_keys, ui_camp_input, ui_chat_overlay, ui_connect_screen, ui_console_window, ui_global_map_input, ui_help_window, ui_hero_screen_click, ui_interface_input, ui_item_info, ui_main_menu, ui_message_box, ui_screens, ui_view_screen, console.h, ui.h, app.cpp, bink_video.cpp); DT_ flags stay with the text layout. (2) app::g_mainWindow and TextureDevice::window as platform::NativeWindow (app.h, texture.h, the renderer's GameWindow, sound Open, DirectInputMouse::Setup). (3) input_mouse.cpp: DirectInput (dinput.h, LoadLibrary / GetProcAddress of the system's dinput.dll) behind a platform mouse-motion header; check_platform.py only looks for <windows.h> and gameapi::, so it misses dinput.h (input_mouse.cpp) and wingdi.h (dib.h): widen it to the Windows system headers. Goldens unchanged (the harness answers the DirectInput mouse: tests/verify/harness_input.h)."
 
 [[ticket]]
+id = "A3e"
+title = "play.cmd x64: build and play the x64 exe"
+group = "port"
+depends = ["A3a"]
+note = "From A3a. play.cmd builds build\\play (32-bit) and starts it through ei_launch --standalone, which is 32-bit only (it reads game.exe's threads; CMake leaves it out of the x64 build). Add an x64 mode: build.cmd x64 (or an x64 play configuration) and start the x64 ei-rebuild.exe with EI_GAME_ROOT set as ei_launch does, or build ei_launch for x64 with its thread dump on Wow64GetThreadContext for 32-bit children. No sound or movies on x64 until A1 / A2."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"

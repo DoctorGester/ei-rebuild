@@ -68,10 +68,11 @@ int FatalError(const char* format, Args&&... args) {
 }
 // A std::string message (its text is the format, as the caller's c_str() was).
 inline int FatalError(const std::string& message) { return FatalError(message.c_str()); }
-// FatalError's result as a pointer (it returns what the report returns, when it returns at all).
+// FatalError for a function returning a pointer: null when it returns at all (FatalError's 0).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {
-    return reinterpret_cast<T*>(FatalError(format, args...));
+    FatalError(format, args...);
+    return nullptr;
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (bink_video.cpp's error message masks it, so it returns a value).

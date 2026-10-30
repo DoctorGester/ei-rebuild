@@ -8,6 +8,7 @@
 #include "sound.h"
 #include "texture.h"
 
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include <cstdint>
 
@@ -65,7 +66,7 @@ void SaveLoadWindow::TakeSelectedTitle() {
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped = false;
     name = entries[currentSelected].title;
-    cursor = name.size();
+    cursor = lib::Count(name);
 }
 
 void SaveLoadWindow::LeftDown(int buttons, int x, int y) {

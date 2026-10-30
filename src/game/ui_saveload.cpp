@@ -6,6 +6,7 @@
 #include "app_helpers.h"
 #include "lib/calendar.h"
 #include "core_streams.h"
+#include "lib/containers.h"
 #include "lib/text_case.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -290,7 +291,7 @@ void SaveLoadWindow::FillEntries() {
             CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
             dialog = shot;
             shot->AddRef();
-            RemoveObjectAt(std::ssize(objects) - 1);
+            RemoveObjectAt(lib::Count(objects) - 1);
             newPicture.assign(copy, copy + kShotBytes);
             DrawPicture(dialog, newPicture.data(), kShotBytes);
         }

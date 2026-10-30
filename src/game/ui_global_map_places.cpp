@@ -11,6 +11,7 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "render/render_state.h"
+#include "lib/containers.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -85,7 +86,7 @@ void GlobalMap::SelectZone(int index, bool isLink) {
         marker->flags &= ~FigureMeshFlag::Flat;
     }
     for (int i = 0; i < std::ssize(links); ++i) {
-        UiMesh* marker = Marker(std::ssize(zones) + std::ssize(quests) + i);
+        UiMesh* marker = Marker(lib::Count(zones) + lib::Count(quests) + i);
         for (int k = 0; k < 3; ++k) marker->tint[k] = i == link ? fog[k] : 1.0f;
     }
 }
@@ -96,7 +97,7 @@ void GlobalMap::SelectZone(int index, bool isLink) {
 // layers and the rest) shown or hidden.
 void GlobalMap::ShowAllButZones(bool visible) {
     for (int i = 0; i < 3; ++i) SceneMesh(i)->visible = visible;
-    for (int i = std::ssize(zones) + 3; i < std::ssize(sceneObjects); ++i) SceneMesh(i)->visible = visible;
+    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) SceneMesh(i)->visible = visible;
 }
 
 void GlobalMap::RefreshSelection() {

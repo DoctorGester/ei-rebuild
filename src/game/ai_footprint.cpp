@@ -3,6 +3,7 @@
 #include "ai_map.h"
 #include "ai_unit_layer.h"
 
+#include "lib/containers.h"
 #include "lib/rounding.h"
 #include "lib/crt.h"
 #include <cstddef>
@@ -32,11 +33,11 @@ FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
 
 void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     int bucket = (cell.x + cell.y) & 15;
-    int index = std::ssize(set->cells);
+    int index = lib::Count(set->cells);
     set->SetSize(index + 1);
     set->cells[index] = cell;
     set->cells[std::ssize(set->cells) - 1].next = set->buckets[bucket];
-    set->buckets[bucket] = std::ssize(set->cells) - 1;
+    set->buckets[bucket] = lib::Count(set->cells) - 1;
 }
 
 const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }

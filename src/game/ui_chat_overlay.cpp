@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "platform/clock.h"
 #include "lib/str.h"
 #include "lib/win_user.h"
@@ -181,7 +182,7 @@ void ChatOverlay::DrawTyped() {
         return;
     }
     surfaces[0]->Show();
-    if (caret > static_cast<int>(typed.size())) caret = typed.size();
+    if (caret > static_cast<int>(typed.size())) caret = lib::Count(typed);
     if (caret < 0) caret = 0;
     UiSurface* surface = surfaces[0];
     surface->Clear();
@@ -219,7 +220,7 @@ void ChatOverlay::KeyDown(int key, int, int) {
         chatOpen = false;
         break;
     case VK_END:
-        caret = typed.size();
+        caret = lib::Count(typed);
         break;
     case VK_HOME:
         caret = 0;

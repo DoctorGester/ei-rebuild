@@ -22,6 +22,7 @@
 #include "world.h"
 #include "world_data.h"
 
+#include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -167,11 +168,11 @@ void ShareAmongHeroes(WorldServer* world, CPlayer* player, float amount) {
         CUnit* unit = node->second;
         if (unit->IsDead() != 0 || unit->MapType() != MapObjectType::Hero) continue;
         int id = unit->id;
-        int index = std::ssize(heroes);
+        int index = lib::Count(heroes);
         heroes.resize(index + 1);
         heroes[index] = id;
     }
-    int count = std::ssize(heroes);
+    int count = lib::Count(heroes);
     if (count >= 1) {
         float share = amount / static_cast<float>(count);
         float stored = share;
@@ -471,7 +472,7 @@ void WorldServer::SyncPartyRecords(CPlayer* player) {
     CParty* party = PartyOf(player);
     for (Item* item : player->items) party->AddItem(item, 1, 1);
     std::vector<PartyUnitRecord*> list{};
-    for (int i = 0; i < std::ssize(player->Party()->members); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
+    for (int i = 0; i < lib::Count(player->Party()->members); ++i) lib::SetAtGrow(list, lib::Count(list), &MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
         auto* record = list[i];
         CUnit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -527,7 +528,7 @@ void WorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* plac
         --i;
     }
     for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
-        int index = std::ssize(list);
+        int index = lib::Count(list);
         list.resize(index + 1);
         list[index] = &MercRecord(player, i);
     }

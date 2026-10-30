@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <string>
+#include "lib/containers.h"
 #include "lib/text_case.h"
 
 #include "game_singletons.h"
@@ -126,10 +127,10 @@ void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
         if (editable) {
             nameTyped = true;
             currentName = entries[selected].title;
-            cursor = currentName.size();
+            cursor = lib::Count(currentName);
         }
         if (key == kKeyEnd)
-            cursor = currentName.size();
+            cursor = lib::Count(currentName);
         else if (key == kKeyHome)
             cursor = 0;
         else if (key == kKeyLeft)

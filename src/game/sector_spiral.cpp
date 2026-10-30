@@ -4,6 +4,7 @@
 // links them.
 #include "sector_map.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <bit>
@@ -69,7 +70,7 @@ SectorSpiral BuildSectorSpiral() {
         }
     }
     radii.push_back(kBeyondSpiral);
-    lengths.push_back(std::ssize(spiral.offsets));
+    lengths.push_back(lib::Count(spiral.offsets));
     spiral.radii.Build(radii.data(), static_cast<int>(radii.size()));
     return spiral;
 }

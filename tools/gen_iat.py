@@ -293,7 +293,7 @@ def import_table_text(table):
     lines = []
     for name, type_, dll, fn, ordinal in layout(table):
         if type_ is None:
-            lines.append(f'    std::uint32_t {name};   // zero: the end of {dll}\'s slots')
+            lines.append(f'    void* {name};   // zero: the end of {dll}\'s slots')
         else:
             what = f'{dll}!{fn}' if fn else f'{dll}!#{ordinal}'
             lines.append(f'    {type_} {name};   // {what}')
@@ -305,12 +305,13 @@ def import_table_text(table):
             '// A slot holds the export, a route of the image (its UTF-8 version) or the harness\'s wrapper of\n'
             '// either; in the image a slot no call reaches is a trap (image_imports.inc).\n'
             '// A member\'s type is its function\'s: the Windows SDK\'s, or lib/import_prototypes.h\'s for an import\n'
-            '// the SDK does not declare.\n\n'
+            '// the SDK does not declare. Every member is a pointer-sized slot (8 bytes on x64).\n\n'
             '#include <windows.h>\n#include <mmsystem.h>\n#include <shellapi.h>\n#include <objbase.h>\n#include <dsound.h>\n\n'
             '#include <cstdint>\n\n#include "lib/import_prototypes.h"\n\n'
             '#undef GetObject\n\nnamespace ei {\n\n'
             'struct ImportTable {\n' + '\n'.join(lines) + '\n};\n'
-            f'static_assert(sizeof(ImportTable) == 0x{IAT_END - IAT_BEGIN:X});   // game.exe\'s import address table\n\n'
+            f'static_assert(sizeof(ImportTable) == 0x{(IAT_END - IAT_BEGIN) // 4:X} * sizeof(void*));   // game.exe\'s import '
+            'address table\'s slots\n\n'
             '// The table calls go through: game.exe\'s own in game.exe, the image\'s own in the image.\n'
             'ImportTable& Imports();\n\n'
             '// game.exe\'s own slot of `member`, for what runs only there (hook/paths.cpp): tools/gen_iat.py leaves a\n'

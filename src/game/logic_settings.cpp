@@ -3,6 +3,8 @@
 
 #include "registry.h"
 
+#include "lib/containers.h"
+
 #include <cstring>
 
 namespace {
@@ -10,7 +12,7 @@ namespace {
 void ReadDifficulties(FileRegistry& reg, const char* key, float* out) {
     std::vector<std::uint32_t> values{};
     reg.GetFloatArray("DifficultyLevels", key, &values);
-    int n = std::ssize(values) < 3 ? std::ssize(values) : 3;
+    int n = lib::Count(values) < 3 ? lib::Count(values) : 3;
     if (n > 0) std::memcpy(out, values.data(), static_cast<std::size_t>(n) * sizeof(float));
     values.clear();
 }

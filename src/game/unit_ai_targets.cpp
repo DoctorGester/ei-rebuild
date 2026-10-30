@@ -4,6 +4,7 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
@@ -183,7 +184,7 @@ float Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* cur
              const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
     UnitServer* control = candidate->ServerController();
-    int others = std::ssize(*group) - 1;
+    int others = lib::Count(*group) - 1;
     int cap = option->maxCount;
     std::uint32_t damage = 0;
     int words = 0;              // the damage's low 16 bits: all that counts

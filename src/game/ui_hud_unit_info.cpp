@@ -11,6 +11,7 @@
 #include "unit_db.h"
 #include "text_manager.h"
 
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include <cmath>
 #include <cstdint>
@@ -68,7 +69,7 @@ struct Panel {
 // Whether `unit` is not in the group (the battle screen's party).
 bool OutsideGroup(HudUnitPanel* self, CUnit* unit) {
     BattleScreen* group = self->owner;
-    int count = std::ssize(group->party);
+    int count = lib::Count(group->party);
     CUnit** units = group->party.data();
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;

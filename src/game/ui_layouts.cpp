@@ -21,6 +21,7 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include <cstdint>
 #include <cstring>
@@ -155,7 +156,7 @@ void SaveLoadWindow::CreateScreen() {
         if (EntryCount() != 0) {
             nameTyped = false;
             name = entries.front().title;
-            cursor = name.size();
+            cursor = lib::Count(name);
         }
     } else {
         selected = EntryCount() != 0 ? 0 : -1;

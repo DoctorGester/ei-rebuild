@@ -12,6 +12,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/calendar.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <string>
@@ -53,7 +54,7 @@ bool SameFolder(std::string_view folder, std::string_view name) {
 
 void SaveLoadWindow::RefreshListVanilla() {
     auto& currentName = name;
-    if (cursor > static_cast<int>(currentName.size())) cursor = currentName.size();
+    if (cursor > static_cast<int>(currentName.size())) cursor = lib::Count(currentName);
     if (cursor < 0) cursor = 0;
     UiSurface* surface = surfaces[0];
     surface->Clear();

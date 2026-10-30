@@ -4,6 +4,7 @@
 // destructor bodies. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>
@@ -19,7 +20,7 @@ constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
 void Append(std::vector<UiTextToken*>& tokens, UiTextToken* token) {
-    int index = std::ssize(tokens);
+    int index = lib::Count(tokens);
     tokens.resize(index + 1);
     tokens[index] = token;
 }
@@ -54,7 +55,7 @@ void LayOut(UiScrollText* self) { self->Layout(); }
 } // namespace
 
 int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
-    int length = text.size();
+    int length = lib::Count(text);
     const char* chars = text.c_str();
     while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
     if (pos >= length) return -1;
@@ -70,13 +71,13 @@ int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) 
             game::FatalError("ScrollText::Incorrect special symbol '%c'", static_cast<int>(r[1]));
             // Should the error come back, the original takes the text's data pointer as the count.
             count = static_cast<int>(reinterpret_cast<std::intptr_t>(r));
-            if (count == -1) count = rest.size();
+            if (count == -1) count = lib::Count(rest);
         }
     } else if (r[0] == '\n') {
         count = 1;
     } else {
         count = str::FindOneOf(rest, " \t\a\n");
-        if (count == -1) count = rest.size();
+        if (count == -1) count = lib::Count(rest);
     }
     *out = str::Left(rest, count);
     return pos + count;
@@ -135,7 +136,7 @@ void UiScrollText::Tokenize(const std::string& text) {
 void UiScrollText::DrawLines(int scroll) {
     UiSurface* surface = !surfaces.empty() ? surfaces[0] : nullptr;
     surface->Clear();
-    int lineCount = std::ssize(lines);
+    int lineCount = lib::Count(lines);
     if (lineCount <= 0) {
         return;
     }
@@ -179,7 +180,7 @@ void UiScrollText::DrawLines(int scroll) {
         const UiTextLine* record = lines[line];
         row.bottom = row.top + record->height;
         int begin = record->firstToken;
-        int end = line == std::ssize(lines) - 1 ? std::ssize(tokens) : lines[line + 1]->firstToken;
+        int end = line == lib::Count(lines) - 1 ? lib::Count(tokens) : lines[line + 1]->firstToken;
 
         int wordsWidth = 0;
         int words = 0;

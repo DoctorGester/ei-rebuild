@@ -24,6 +24,7 @@
 
 #include "render/render_state.h"
 
+#include "lib/containers.h"
 #include "platform/cursor.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
@@ -238,7 +239,7 @@ void GlobalMap::CreateScreen() {
             EI_NAN_AUDIT(state);
             if (state != 2.0f) continue;
             if (way->figure.empty()) continue;
-            if (zones[i].state == 2) zones[i].link = std::ssize(links);
+            if (zones[i].state == 2) zones[i].link = lib::Count(links);
             GlobalMapPlace& link = links.emplace_back();
             link.zone = i;
             link.name = way->name;
@@ -394,12 +395,12 @@ void GlobalMap::Update() {
         for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(MarkerCount() + k));
         for (int i = 0; i < std::ssize(zones); ++i) builder.Turn(Marker(i));
         for (int i = 0; i < std::ssize(quests); ++i) {
-            UiMesh* sprite = Marker(std::ssize(zones) + i);
+            UiMesh* sprite = Marker(lib::Count(zones) + i);
             sprite->localPosition = builder.ModelPoint(quests[i].position);
             builder.Turn(sprite);
         }
         for (int i = 0; i < std::ssize(links); ++i) {
-            UiMesh* sprite = Marker(std::ssize(zones) + std::ssize(quests) + i);
+            UiMesh* sprite = Marker(lib::Count(zones) + lib::Count(quests) + i);
             sprite->localPosition = builder.ModelPoint(links[i].position);
             builder.Turn(sprite);
             SetMarkerRegion(regions[3 + i], sprite);

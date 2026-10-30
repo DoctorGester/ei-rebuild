@@ -264,10 +264,9 @@ void EffectAmbientSound::Start(int update) {
 int EffectAmbientSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    // The count is read into the low byte of the argument slot that held `field`.
-    std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
-    field->ReadDelta(&countSlot, 1);
-    names.resize(countSlot & 0xFF);
+    std::uint8_t count = 0;   // (ReadDelta writes it either way)
+    field->ReadDelta(&count, 1);
+    names.resize(count);
     for (std::string& name : names) name = field->ReadString();
     field->ReadFloat16(&volume);
     field->ReadFloat16(&radius);

@@ -3,6 +3,7 @@
 #include "ai_map.h"
 #include "core_streams.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <algorithm>
@@ -70,7 +71,7 @@ bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGri
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
-            int n = std::ssize(blocks);
+            int n = lib::Count(blocks);
             blocks.resize(n + 1);
             blocks[n].x = xx;
             blocks[n].y = yy;
@@ -130,7 +131,7 @@ void RegionMap::LabelRegions() {
             for (int bx = 0; bx < BlocksWide(this); ++bx) {
                 if (grid[by][bx] != 0) continue;
                 grid[by][bx] = static_cast<std::uint16_t>(label);
-                int n = std::ssize(queue);
+                int n = lib::Count(queue);
                 queue.resize(n + 1);
                 queue[n].x = bx;
                 queue[n].y = by;
@@ -486,7 +487,7 @@ void RegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier
                 std::uint16_t& region = regionRows[ny][nx];
                 if (region != 0) continue;
                 region = static_cast<std::uint16_t>(label);
-                int n = std::ssize(*next);
+                int n = lib::Count(*next);
                 next->resize(n + 1);
                 (*next)[n].x = nx;
                 (*next)[n].y = ny;

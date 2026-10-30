@@ -8,6 +8,7 @@
 #include "ei/rebirth.h"
 #include "game_singletons.h"
 #include "game_strings.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "maths.h"
 #include "model.h"
@@ -82,7 +83,7 @@ void BattleScreen::CreateScreen() {
         // A new game: the local player's first hero.
         if (std::ssize(LocalPlayerData()->members) > 0) {
             CParty* player = LocalPlayerData();
-            int index = std::ssize(heroes);
+            int index = lib::Count(heroes);
             std::uint32_t hero = player->members[0].unitId;
             heroes.resize(index + 1);
             heroes[index] = hero;
@@ -253,7 +254,7 @@ void BattleScreen::UnitLeft(CUnit* unit) {
     int index = 0;
     while (index < std::ssize(currentParty) && currentParty[index] != unit) ++index;
     if (index >= std::ssize(currentParty)) return;
-    int after = std::ssize(currentParty) - index - 1;
+    int after = lib::Count(currentParty) - index - 1;
     if (after != 0) std::memmove(&currentParty[index], &currentParty[index + 1], after * sizeof(currentParty[0]));
     currentParty.pop_back();
     portraits->Rebuild(false);
@@ -310,7 +311,7 @@ void BattleScreen::UnitJoined(CUnit* unit) {
     }
     bool selected = false;
     if (found) {
-        int count = std::ssize(currentParty);
+        int count = lib::Count(currentParty);
         if (place >= count) {
             currentParty.resize(place + 1);
         } else {
@@ -320,7 +321,7 @@ void BattleScreen::UnitJoined(CUnit* unit) {
         currentParty[place] = unit;
         selected = player->members[record].selected != 0;
     } else {
-        int count = std::ssize(currentParty);
+        int count = lib::Count(currentParty);
         currentParty.resize(count + 1);
         currentParty[count] = unit;
     }
@@ -332,7 +333,7 @@ void BattleScreen::UnitJoined(CUnit* unit) {
     // A hero the save had selected.
     for (int i = 0; i < std::ssize(heroes); ++i) {
         if (static_cast<int>(heroes[i]) != unit->id) continue;
-        int after = std::ssize(heroes) - i - 1;
+        int after = lib::Count(heroes) - i - 1;
         if (after != 0) std::memmove(&heroes[i], &heroes[i + 1], after * sizeof(heroes[0]));
         heroes.pop_back();
         g_clientWorld.Select(unit);

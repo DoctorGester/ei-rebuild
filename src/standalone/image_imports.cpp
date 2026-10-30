@@ -19,6 +19,7 @@
 namespace ei {
 
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
+std::uintptr_t ReturnAddress(const CONTEXT& context);   // standalone_main.cpp
 void ReportImageFailure(const char* what);
 void EnterGameFolder();   // standalone_main.cpp
 
@@ -37,7 +38,7 @@ constexpr Import kImports[] = {
 
 ImportTable g_table;
 
-constexpr std::size_t kSlots = sizeof(ImportTable) / 4;
+constexpr std::size_t kSlots = sizeof(ImportTable) / sizeof(void*);
 // One INT3 per slot for our table's unresolved slots.
 unsigned char* g_traps;
 int g_missing;   // imports that did not resolve
@@ -61,9 +62,9 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
     const auto traps = reinterpret_cast<std::uintptr_t>(g_traps);
     if (r->ExceptionCode != EXCEPTION_BREAKPOINT || !g_traps || at - traps >= kSlots) return EXCEPTION_CONTINUE_SEARCH;
     char import[160], caller[160], what[480];
-    const Import* i = ImportAt(4 * (at - traps));
+    const Import* i = ImportAt(sizeof(void*) * (at - traps));
     Describe(i, import, sizeof(import));
-    DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
+    DescribeCode(ReturnAddress(*e->ContextRecord), caller, sizeof(caller));
     std::snprintf(what, sizeof(what), "a call of game.exe's import %s, which %s, by %s", import,
                   i && !i->reached ? "no code was found to call (rerun python tools/gen_iat.py)" : "did not resolve",
                   caller);
@@ -86,6 +87,17 @@ HMODULE LoadImport(const char* name) {
     return LoadLibraryExA(name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 }
 
+// Miles (mss32.dll) and Bink (binkw32.dll) are 32-bit DLLs: the x64 image loads neither. Their slots stay traps and
+// the game runs without sound and movies (sound_manager.cpp and bink_video.cpp check that the DLL is loaded).
+bool LoadsHere(const char* dll) {
+#if defined(_M_X64)
+    return _stricmp(dll, "mss32.dll") != 0 && _stricmp(dll, "binkw32.dll") != 0;
+#else
+    (void)dll;
+    return true;
+#endif
+}
+
 void Fail(const char* what) {
     std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
@@ -106,10 +118,10 @@ void ResolveImports() {
     const char* moduleName = nullptr;
     char what[320];
     for (const Import& i : kImports) {
-        const std::size_t index = i.offset / 4;
+        const std::size_t index = i.offset / sizeof(void*);
         auto& ours = reinterpret_cast<const void**>(&g_table)[index];
         ours = g_traps ? g_traps + index : nullptr;
-        if (!i.reached) {   // a DLL none of whose slots is reached does not load
+        if (!i.reached || !LoadsHere(i.dll)) {   // a DLL none of whose slots is reached does not load
             ++traps;
             continue;
         }
@@ -142,6 +154,7 @@ void ResolveImports() {
     Log("standalone: game.exe's %d imports in the image's table: %d resolved (%d routed), %d missing, %d traps (no "
         "call reaches them); %d DLLs loaded",
         static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), resolved, routed, g_missing, traps, loaded);
+    if (!LoadsHere("mss32.dll")) Log("standalone: x64: Miles and Bink (32-bit DLLs) not loaded: no sound, no movies");
 }
 
 struct ImportResolver {

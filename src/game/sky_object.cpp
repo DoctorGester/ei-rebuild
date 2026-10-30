@@ -5,6 +5,7 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -54,7 +55,7 @@ void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
     const std::uint32_t lit = ((r | 0xFFFFFF00u) << 8 | g) << 8 | b;
-    const int count = std::ssize(colorsA);
+    const int count = lib::Count(colorsA);
     if (std::ssize(distances) != count) {
         distances.resize(count);
         for (int i = 0; i < std::ssize(distances); ++i) {
