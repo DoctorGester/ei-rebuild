@@ -38,13 +38,6 @@ struct TileUv {
     float v[kVertices];
 };
 
-// Tile edge flags (SectorData::tileFlags): the tile is on the sector's first / last row, first / last column.
-// The seams towards a coarser neighbour are drawn along these edges (render_terrain.cpp).
-constexpr std::uint8_t kFirstRowTile = 1;
-constexpr std::uint8_t kLastRowTile = 2;
-constexpr std::uint8_t kFirstColumnTile = 4;
-constexpr std::uint8_t kLastColumnTile = 8;
-
 // Texture pages: the map's `pages` pages hold `perPage` tile textures each, then come kExtraPages pages
 // (<map>L00, <map>L01) of kExtraPageTextures each. The ground tiles use pages 0 .. LayerPages() - 1, the
 // water tiles the same pages numbered after them.
@@ -127,16 +120,11 @@ struct SectorData {
     float minZ = 0.0f;
     float maxZ = 0.0f;
     std::vector<std::uint8_t> waterMaterials;
-    // The level of detail (0 every vertex, 1 every second column, 2 every second row too) and the seams
-    // towards the sectors before / after it.
-    int detail = 0;
-    bool seamBefore = false, seamAfter = false;
     std::vector<SectorPosition> vertices;
     std::vector<SectorVertex> records;   // ground, then water (zeroed when made)
     std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[kLayerTiles] = {};
     std::vector<int> waterTiles;        // water material per tile, -1 none
-    std::vector<std::vector<std::uint8_t>> tileFlags[4];  // per quarter, per page
     std::vector<std::vector<TileVertex>> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
@@ -184,9 +172,6 @@ struct SectorData {
     bool IsDrawn() const;
     // The box, and unless culled its quarters, with the renderer's pipeline.
     void ClipTest(SceneRenderer* renderer);
-    // At detail 0 whether the lit sectors before / after in y are drawn at detail 1, at detail 1 whether
-    // those before / after in x are drawn at detail 2.
-    void FindSeams();
 };
 
 struct TerrainMaterial {

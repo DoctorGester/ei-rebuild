@@ -99,7 +99,7 @@ public:
     int otherShadow;
     int shadowLightingFreq;          // LightingFreq of the shadow settings
     int floraSpecialLight;
-    float lod1;
+    float lod1;                      // LOD1 / LOD2 of the terrain settings: loaded and saved, read by nothing
     float lod2;
     float borderFogDistance;
     int enableWaterWaves;

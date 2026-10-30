@@ -284,9 +284,9 @@ that shows the world reaches the passes and light tests each frame; `terrain_wat
 water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock screenshot) reaches the Dib part marked *.
 
 Rewritten (grep the address): `Terrain::DrawGround` 006C6230 / `DrawWater` 006C6330 (the landscape's matrix on pipeline stacks 2 and
-1 around the pages), `DrawPages` 006C6460 (per visible sector: detail, clip test, seams, projection; per page: texture,
-DrawSectorPage; callees through their addresses), `ChooseDetail` 006C66E0, `SectorData::SetDetail` 006C1390 (`SunReaches` 006C92C0,
-the sun shadow ray over the vertex grid, is not ported, R34), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
+1 around the pages), `DrawPages` 006C6460 (per visible sector: clip test, projection; per page: texture,
+DrawSectorPage; callees through their addresses), (`SunReaches` 006C92C0,
+the sun shadow ray over the vertex grid, is not ported, R34; `ChooseDetail` 006C66E0, `SetDetail` 006C1390 and `FindSeams` 006BFB80 are gone, R38), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
 006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetWaterLevel` 006CC7F0,
 `BuildTileUv` 006C7940; `Dib` Create / ConstructSized / Construct / CreateObject (006D4BA0, 006D4B30, 006D4AA0, 006D49E0),
 AllocateBits 006D6AB0, MakePalette 006D54D0, Empty / Destruct / Delete (slot 1) / Serialize (slot 2), Size 006D4D10,
@@ -297,9 +297,8 @@ the captures are reached by `camera` (Scroll Lock screenshot).
 Facts. The two passes differ only in the page range: ground 0..LayerPages()-1, water LayerPages()..2*LayerPages()-1
 (LayerPages() = pages + the two extra pages); a page's texture is `pageTextures[page % LayerPages()]`, bound at the first
 sector that has tiles on it. They do not touch the device (matrix
-pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20 and seams 006BFB80
-(below 006C0000) are ported there too (A-Z1, items_spells.md). Level of detail: 0 / 1 below the squared distances 0079BD2C /
-0079BD30 from the camera to the sector's centre, else 2 (the original's `minDetail` +0xAA0 was always 0).
+pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20
+(below 006C0000) is ported there too (A-Z1, items_spells.md). The original drew each sector at level 0 / 1 / 2 by its squared distance from the camera (the options' LOD1 / LOD2, 90 and 130 in Rebirth's best landscape detail) with seam triangles to a coarser neighbour; ours always draws the full mesh (R38: client drawing only, no server or save state read it; the two options stay loaded and saved for the settings file, read by nothing).
 Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material; ours one flat vector). Gone as written
 but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
 nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column

@@ -651,9 +651,7 @@ ui_layouts.cpp.
 ## A-Z1: the last eight hookable functions without a replacement
 
 - 006BFB00 / 006BFB20 / 006BFB80 `SectorData::IsDrawn` (+0x60 is 0 or 1), `ClipTest` (the box's verdict at +0x60, -1 stored as
-  2; unless culled the four quarters' in `quarterMode`), `FindSeams` (the two seam flags from the lit neighbours' level of
-  detail; lookups without create) in `terrain.cpp`: S, every map frame (DrawPages calls the three through their
-  addresses; RunTick calls IsDrawn directly).
+  2; unless culled the four quarters' in `quarterMode`) in `terrain.cpp` (`FindSeams` 006BFB80 is gone, R38): S, every map frame (DrawPages calls them; RunTick calls IsDrawn directly).
 - 0066D730 `PlayerServer::SendValue12` (`player_messages.cpp`): message 0x12, a byte and the value; S with the stream restored,
   the unwritten byte left out (the script command SendEvent through PlayerManager::SendValueToAll calls it by address). The
   original never writes the first payload byte: what goes out is the stack byte 8 below its entry ESP, which cannot be

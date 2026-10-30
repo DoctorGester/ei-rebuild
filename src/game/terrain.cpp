@@ -262,8 +262,8 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
 
 // The landscape's draw passes (terrain.h), called by the client's draw after Terrain::SetVisibleSectors:
 // the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
-// renderer's pipeline, prepares every visible sector (level of detail, clip test of the sector and its quarters,
-// seams) and hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles
+// renderer's pipeline, prepares every visible sector (the clip test of the sector and its quarters)
+// and hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles
 // from the sector's data); the GPU clips what crosses the view's edges. Nothing here talks to the device: the texture goes through the renderer's SetTexture.
 
 namespace terrain {
@@ -286,21 +286,6 @@ bool HasTilesOn(const SectorData* sector, int page) {
     return false;
 }
 
-// The sector's level of detail from the squared distance of its centre (mid height) to the camera: 0 within
-// the options' lod1, 1 within lod2, else 2.
-void ChooseDetail(const Terrain* terrain, SectorData* sector) {
-    const Vector3 centre = {(sector->sx + 0.5f) * kSectorCells,
-                            (sector->sy + 0.5f) * kSectorCells,
-                            (sector->maxZ + sector->minZ) * 0.5f};
-    // (z^2 + y^2) + x^2.
-    const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition, g_camera.localPosition);
-    int level = 2;
-    EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < options::g_options.lod1 * options::g_options.lod1) level = 0;
-    else if (distanceSquared < options::g_options.lod2 * options::g_options.lod2) level = 1;
-    sector->detail = level;
-}
-
 } // namespace
 
 // --- The sector's part of the passes -------------------------------------
@@ -316,25 +301,6 @@ void SectorData::ClipTest(SceneRenderer* renderer) {
     clipMode = verdict(box);
     if (clipMode == kCulled) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
-}
-
-void SectorData::FindSeams() {
-    seamAfter = false;
-    seamBefore = false;
-    // A built neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
-    // the seam triangles (render_terrain.cpp). The lookup does not load anything.
-    const auto coarser = [&](int nx, int ny, int level) {
-        const SectorData* neighbour = owner->SectorAt(nx, ny, SectorStage::Built, false);
-        return neighbour && neighbour->detail == level && neighbour->IsDrawn();
-    };
-    if (detail == 0) {
-        if (coarser(sx, sy - 1, 1)) seamBefore = true;
-        if (coarser(sx, sy + 1, 1)) seamAfter = true;
-    }
-    if (detail == 1) {
-        if (coarser(sx - 1, sy, 2)) seamBefore = true;
-        if (coarser(sx + 1, sy, 2)) seamAfter = true;
-    }
 }
 
 void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
@@ -364,13 +330,7 @@ void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
 
 void Terrain::DrawPages(SceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
-    ForVisibleSectors(this, [&](SectorData* sector) {
-        ChooseDetail(this, sector);
-        sector->ClipTest(renderer);
-    });
-    ForVisibleSectors(this, [&](SectorData* sector) {
-        if (sector->IsDrawn()) sector->FindSeams();
-    });
+    ForVisibleSectors(this, [&](SectorData* sector) { sector->ClipTest(renderer); });
     for (int page = firstPage; page <= lastPage; ++page) {
         bool bound = false;
         ForVisibleSectors(this, [&](SectorData* sector) {
@@ -428,12 +388,9 @@ void CircleSines(const Terrain* owner, float* sines) {
 void SectorData::Clear() {
     records.clear();
     for (int quarter = 0; quarter < 4; ++quarter) {
-        for (std::vector<std::uint8_t>& flags : tileFlags[quarter]) flags.clear();
         for (std::vector<TileVertex>& list : tiles[quarter]) list.clear();
     }
     sx = sy = -1;
-    detail = 0;
-    seamAfter = seamBefore = false;
     hasWater = false;
     hasWaterTiles = false;
     data = nullptr;

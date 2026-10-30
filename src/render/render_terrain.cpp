@@ -28,40 +28,9 @@ using terrain::TileVertex;
 
 // --- Tile patterns (as DrawSectorPage builds them) -----------------------------------------------------
 
-// The entries of a tile (3x3, row by row) each level of detail uses.
-constexpr int kLod0Entries[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-constexpr int kLod1Entries[6] = {0, 2, 3, 5, 6, 8};
-constexpr int kLod2Entries[4] = {0, 2, 6, 8};
-// Triangles per tile, relative to the tile's first emitted vertex; the variants leave out the
-// triangles along an edge to a coarser neighbour (the tile edge flags of terrain_sector.h).
-constexpr std::uint16_t kLod0[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
-constexpr std::uint16_t kLod0FirstRow[21] = {0, 2, 4, 0, 4, 3, 2, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
-constexpr std::uint16_t kLod0LastRow[21] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 6, 4, 8, 6, 4, 5, 8};
-constexpr std::uint16_t kLod1[12] = {0, 1, 3, 0, 3, 2, 2, 3, 5, 2, 5, 4};
-constexpr std::uint16_t kLod1FirstColumn[9] = {0, 1, 3, 0, 3, 4, 3, 5, 4};
-constexpr std::uint16_t kLod1LastColumn[9] = {0, 1, 2, 1, 5, 2, 2, 5, 4};
-constexpr std::uint16_t kLod2[6] = {0, 1, 3, 0, 3, 2};
-
-template <int N>
-void PutTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, const std::uint16_t (&pattern)[N]) {
-    for (int k = 0; k < N; ++k) out.push_back(base + pattern[k]);
-}
-
-// The triangles of one tile, as the original draw picked them.
-void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod, bool seams, const SectorData* s,
-                   std::uint8_t edge) {
-    if (lod == 2) {
-        PutTriangles(out, base, kLod2);
-    } else if (lod == 1) {
-        if (seams && s->seamBefore && (edge & terrain::kFirstColumnTile)) PutTriangles(out, base, kLod1FirstColumn);
-        else if (seams && s->seamAfter && (edge & terrain::kLastColumnTile)) PutTriangles(out, base, kLod1LastColumn);
-        else PutTriangles(out, base, kLod1);
-    } else {
-        if (seams && s->seamBefore && (edge & terrain::kFirstRowTile)) PutTriangles(out, base, kLod0FirstRow);
-        else if (seams && s->seamAfter && (edge & terrain::kLastRowTile)) PutTriangles(out, base, kLod0LastRow);
-        else PutTriangles(out, base, kLod0);
-    }
-}
+// Triangles per tile (3x3 vertices, row by row), relative to the tile's first emitted vertex.
+constexpr int kTileVertices = 9;
+constexpr std::uint16_t kTileTriangles[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
 
 // --- Game memory -------------------------------------------------------------------------------------
 
@@ -148,7 +117,6 @@ struct PageSource {
     int positionCount = 0;
     const TileVertex* lists[4] = {};
     int listSizes[4] = {};
-    const std::uint8_t* edges[4] = {};
     const terrain::AnimatedTile* animated = nullptr;
     int animatedCount = 0;
     SectorChanges changes;
@@ -156,7 +124,7 @@ struct PageSource {
     // The same tiles of the same records: at most vertices and texture coordinates moved.
     bool SameTiles(const PageSource& o) const {
         for (int q = 0; q < 4; ++q)
-            if (lists[q] != o.lists[q] || listSizes[q] != o.listSizes[q] || edges[q] != o.edges[q]) return false;
+            if (lists[q] != o.lists[q] || listSizes[q] != o.listSizes[q]) return false;
         return records == o.records && recordCount == o.recordCount && positions == o.positions &&
                positionCount == o.positionCount && animated == o.animated && animatedCount == o.animatedCount &&
                changes.rebuilt == o.changes.rebuilt;
@@ -174,7 +142,6 @@ PageSource SourceOf(const SectorData* s, int page) {
             src.lists[q] = s->tiles[q][page].data();
             src.listSizes[q] = lib::Count(s->tiles[q][page]);
         }
-        if (page < std::ssize(s->tileFlags[q])) src.edges[q] = s->tileFlags[q][page].data();
     }
     src.animated = s->animated.data();
     src.animatedCount = lib::Count(s->animated);
@@ -247,7 +214,7 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
 
 namespace detail {
 
-// A sector page at one level of detail and seam variant, as built and as placed in the pool.
+// A sector page as built and as placed in the pool.
 struct CachedPage {
     PageSource source;
     std::vector<PageVertex> vertices;
@@ -274,7 +241,7 @@ struct CachedPage {
 namespace {
 
 // The quarters' vertices in runs with their boxes, after they were built or moved: a run is a few tiles in a row
-// (8 at the finest level of detail), small enough that its box's top stays close to its ground.
+// (8 tiles), small enough that its box's top stays close to its ground.
 constexpr std::uint32_t kGroupVertices = 72;
 void MakeGroups(CachedPage& p) {
     p.groups.clear();
@@ -298,10 +265,9 @@ void MakeGroups(CachedPage& p) {
     }
 }
 
-// The tiles of `page` at level of detail `lod` (with the seams' variants when `seams`), every quarter's
-// (culled or not), as DrawSectorPage builds them: positions, texture coordinates, the record of each
+// The tiles of `page`, every quarter's (culled or not), as DrawSectorPage builds them: positions, texture coordinates, the record of each
 // vertex and the triangles.
-void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& out) {
+void BuildPage(const SectorData* s, int page, CachedPage& out) {
     out.vertices.clear();
     out.records.clear();
     out.entries.clear();
@@ -312,8 +278,6 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
     animated.clear();
     for (int i = 0; i < std::ssize(s->animated); ++i) animated.push_back(s->animated[i].vertices);
     std::sort(animated.begin(), animated.end());
-    const int* entries = lod == 0 ? kLod0Entries : lod == 1 ? kLod1Entries : kLod2Entries;
-    int perTile = lod == 0 ? 9 : lod == 1 ? 6 : 4;
     for (int quarter = 0; quarter < 4; ++quarter) {
         QuarterRange& range = out.quarters[quarter];
         range.firstVertex = static_cast<std::uint32_t>(out.vertices.size());
@@ -322,16 +286,13 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         if (page < std::ssize(lists) && !lists[page].empty()) {
             const std::vector<terrain::TileVertex>& list = lists[page];
             int tiles = lib::Count(list) / 9;
-            const std::uint8_t* edges = nullptr;
-            if (seams && page < std::ssize(s->tileFlags[quarter]))
-                edges = s->tileFlags[quarter][page].data();
             for (int t = 0; t < tiles; ++t) {
                 const TileVertex* tile = list.data() + t * 9;
                 if (std::binary_search(animated.begin(), animated.end(), tile)) out.animatedTiles = true;
                 auto base = static_cast<std::uint32_t>(out.vertices.size());
                 bool ok = true;
-                for (int k = 0; k < perTile; ++k) {
-                    const TileVertex& e = tile[entries[k]];
+                for (int k = 0; k < kTileVertices; ++k) {
+                    const TileVertex& e = tile[k];
                     std::ptrdiff_t index = e.vertex - s->records.data();
                     if (index < 0 || index >= std::ssize(s->records) || index >= std::ssize(s->vertices)) {
                         ok = false;
@@ -347,7 +308,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
                     out.entries.resize(base);
                     continue;
                 }
-                TileTriangles(out.indices, base, lod, seams, s, edges ? edges[t] : 0);
+                for (std::uint16_t corner : kTileTriangles) out.indices.push_back(base + corner);
             }
         }
         range.vertexCount = static_cast<std::uint32_t>(out.vertices.size()) - range.firstVertex;
@@ -413,12 +374,11 @@ bool ReadVertices(const SectorData* s, CachedPage& p) {
 struct PageKey {
     const SectorData* sector;
     int page;
-    int variant;   // the level of detail | 4 seam before | 8 seam after
-    bool operator==(const PageKey& o) const { return sector == o.sector && page == o.page && variant == o.variant; }
+    bool operator==(const PageKey& o) const { return sector == o.sector && page == o.page; }
 };
 struct PageKeyHash {
     std::size_t operator()(const PageKey& k) const {
-        return std::hash<const void*>()(k.sector) ^ (static_cast<std::size_t>(k.page) * 16 + k.variant) * 0x9E3779B9u;
+        return std::hash<const void*>()(k.sector) ^ static_cast<std::size_t>(k.page) * 0x9E3779B9u;
     }
 };
 std::unordered_map<PageKey, CachedPage, PageKeyHash> g_pages;
@@ -606,8 +566,8 @@ void Write(CachedPage& p) {
 }
 
 CachedPage g_scratch;
-bool BuildAgain(const SectorData* s, int page, int lod, bool seams, CachedPage& p) {
-    BuildPage(s, page, lod, seams, g_scratch);
+bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
+    BuildPage(s, page, g_scratch);
     if (SameGeometry(g_scratch, p)) return false;
     p.vertices.swap(g_scratch.vertices);
     p.records.swap(g_scratch.records);
@@ -846,13 +806,10 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     const MatrixStack& clipStack = pipeline->stacks[TransformPipeline::kClipStack];
     const int depth = clipStack.count;
     if (depth <= 0) return;
-    int lod = s->detail;
-    if (lod < 0 || lod > 2) return;
     if (!f.haveFog) ReadFog(f);
     int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     const void* texture = PageTexture(s, page);
     bool water = page >= s->LayerPages();
-    bool seams = lod != 2 && (s->seamBefore || s->seamAfter);
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];
@@ -861,31 +818,31 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     }
     if (!inView) return;
 
-    PageKey key{s, page, lod | (seams && s->seamBefore != 0 ? 4 : 0) | (seams && s->seamAfter != 0 ? 8 : 0)};
+    PageKey key{s, page};
     auto [found, made] = g_pages.try_emplace(key);
     CachedPage& p = found->second;
     PageSource source = SourceOf(s, page);
     bool moved = false, upload = false;
     if (made) {
-        BuildPage(s, page, lod, seams, p);
+        BuildPage(s, page, p);
         upload = true;
 #if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
-        moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before
+        moved = BuildAgain(s, page, p);   // off: all of it uploaded again, as before
         upload = true;
 #endif
     } else if (!p.source.SameTiles(source)) {
-        moved = upload = BuildAgain(s, page, lod, seams, p);
+        moved = upload = BuildAgain(s, page, p);
     } else if ((p.animatedTiles && p.source.changes.moved != source.changes.moved) ||
                (p.readsWater && p.source.changes.waterMoved != source.changes.waterMoved)) {
         moved = ReadVertices(s, p);
 #if defined(EI_RENDER_VALIDATION)
     } else if (FrameNumber() % kCheckEvery == 0) {
         ++g_checks;
-        if (BuildAgain(s, page, lod, seams, p)) {
+        if (BuildAgain(s, page, p)) {
             if (++g_stale <= 20)
-                ei::Log("render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d, detail %d, seams %d / %d",
-                        s->sx, s->sy, page, lod, s->seamBefore, s->seamAfter);
+                ei::Log("render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
+                        s->sx, s->sy, page);
             moved = upload = true;
         }
 #endif
