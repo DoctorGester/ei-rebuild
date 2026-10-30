@@ -17,6 +17,7 @@
 #include "ini_file.h"
 
 #include "lib/crt.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 #include "game_singletons.h"
 
@@ -41,29 +42,29 @@ const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::g_options.resourcesPath.c_str(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
-// (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
-// accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
+// (in file order; hour 0 before the first) are stepped linearly from that key's colour. The file's
+// ints enter the product exactly (pc24::Mul rounds it once).
 void ReadTable(IniFile& ini, const char* section, LightColour* table) {
     int previous = 0;
     for (const std::string& key : ini.GetKeyNames(section)) {
         int index = str::ToInt(str::Mid(key, 4, 2));
         const std::vector<std::uint32_t> values = ini.GetIntArray(section, key.c_str());
         LightColour& to = table[index];
-        to.r = static_cast<float>(static_cast<double>(static_cast<int>(values[0])) * kByteToUnit);
-        to.g = static_cast<float>(static_cast<double>(static_cast<int>(values[1])) * kByteToUnit);
-        to.b = static_cast<float>(static_cast<double>(static_cast<int>(values[2])) * kByteToUnit);
+        to.r = pc24::Mul(static_cast<double>(static_cast<int>(values[0])), kByteToUnit);
+        to.g = pc24::Mul(static_cast<double>(static_cast<int>(values[1])), kByteToUnit);
+        to.b = pc24::Mul(static_cast<double>(static_cast<int>(values[2])), kByteToUnit);
         to.a = 1.0f;
         const LightColour& from = table[previous];
-        double r = from.r, g = from.g, b = from.b;
+        float r = from.r, g = from.g, b = from.b;
         if (previous + 1 < index) {
-            double steps = index - previous;
+            float steps = static_cast<float>(index - previous);   // two digits: exact
             for (int k = previous + 1; k < index; ++k) {
-                r += (static_cast<double>(to.r) - from.r) / steps;
-                g += (static_cast<double>(to.g) - from.g) / steps;
-                b += (static_cast<double>(to.b) - from.b) / steps;
-                table[k].r = static_cast<float>(r);
-                table[k].g = static_cast<float>(g);
-                table[k].b = static_cast<float>(b);
+                r += (to.r - from.r) / steps;
+                g += (to.g - from.g) / steps;
+                b += (to.b - from.b) / steps;
+                table[k].r = r;
+                table[k].g = g;
+                table[k].b = b;
                 table[k].a = 1.0f;
             }
         }

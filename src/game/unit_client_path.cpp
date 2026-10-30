@@ -1,8 +1,7 @@
 // A party unit's client controller (UnitClientSpecific, class 0x3D) placing its unit on the
 // motion it follows. See docs/notes/units.md ("Client path placement").
-// Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
-// library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
-// (the two angles are rounded to float, which removes the common 1-ULP shift).
+// Float maths as the main thread's 24-bit x87 rounds it: atan2, exp, cos and sin through lib/pc24.h
+// (FPATAN, VC6's inline exp, FCOS, FSIN).
 #include "ai_motion.h"
 #include "core_transform.h"
 #include "map_object_figures.h"
@@ -10,8 +9,8 @@
 #include "unit_client_models.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 #include <cmath>
@@ -49,7 +48,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     float toWorld = 0.5f;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
-    position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
+    position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
     self->World()->MoveObject(unit, &position.x);
     if (self->snapHeading) {
         self->snapHeading = 0;
@@ -63,8 +62,8 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
         // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
         // flipped the orientation's sign once in the ui_hud run.
-        float current = static_cast<float>(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
-        float target = static_cast<float>(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
+        float current = pc24::Round(pc24::Atan2(-axis.y, -axis.x));
+        float target = pc24::Round(pc24::Atan2(direction.y, direction.x));
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
@@ -75,10 +74,10 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
             else
                 target = kFullTurn + target;
         }
-        double weight = x87::fexp(static_cast<double>(rate * kDecay));
-        double heading = (1.0 - weight) * target + weight * current;
-        direction.x = static_cast<float>(x87::fcos(heading));
-        direction.y = static_cast<float>(x87::fsin(heading));
+        float weight = pc24::Exp(rate * kDecay);
+        float heading = (1.0f - weight) * target + weight * current;
+        direction.x = pc24::Round(pc24::Cos(heading));
+        direction.y = pc24::Round(pc24::Sin(heading));
         direction.z = 0.0f;
         unit->SetHeading(&direction.x);
     }
@@ -106,10 +105,10 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     EI_NAN_AUDIT(span);
     if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
-    double moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
-    double numerator = moved * speed * kAnimationRate;
-    double denominator = 2.0f * (static_cast<double>(frames) * length);
-    unit->animationSpeed = static_cast<float>(numerator / denominator);
+    float moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(direction.x, direction.y, direction.z));
+    float numerator = moved * speed * kAnimationRate;
+    float denominator = 2.0f * (frames * length);
+    unit->animationSpeed = numerator / denominator;
 }
 
 void UnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }

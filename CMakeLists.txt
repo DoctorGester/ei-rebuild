@@ -62,14 +62,8 @@ set(EI_X87_GAME_SOURCES
     game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party
     game/world_quests game/world_rules game/world_save game/world_server game/world_spells game/world_sync
     game/world_tick game/world_time game/world_unit_set_add game/world_units game/world_update game/world_weather
-    # C30e8a: UnitMotion::Build's FPATAN of FSIN's and FCOS's results stored as doubles
-    game/ai_motion
     # C30e9: unit AI
     game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
-    # C30e12: client units and world
-    game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
-    game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client
-    game/world_client_draw game/world_client_maps game/world_client_setup game/world_client_view
     # C30e13: camera, picking and the briefing
     game/camera game/camera_motion game/camera_path_load game/device_bounds game/device_mesh game/ui_battle_commands
     game/ui_battle_hover game/ui_briefing_create game/ui_briefing_dialogue game/ui_briefing_input

@@ -39,10 +39,10 @@
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -123,11 +123,11 @@ bool Less(float a, float b) {
 // t when 0 < t or unordered, else 0.
 // A float copied through the FPU in the original; here the value as it is.
 float Reload(float v) { return v; }
-int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
-// The client world's time: (float)(int)tick + the tick's fraction, rounded once.
+int Ftol(float v) { return static_cast<int>(static_cast<std::int64_t>(v)); }   // the low half; 0 for NaN
+// The client world's time: the tick (an int) plus the tick's fraction, rounded once.
 float AnimationTime() {
     const WorldClient* world = &g_clientWorld;
-    return static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
+    return pc24::Add(static_cast<double>(world->tick), world->tickFraction);
 }
 
 // Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's

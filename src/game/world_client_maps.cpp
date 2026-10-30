@@ -50,9 +50,10 @@
 #include "lib/float_select.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 
-#include "ei/x87.h"
 
 #include <algorithm>
 #include <cmath>
@@ -69,7 +70,7 @@ namespace {
 
 // The cell index of a coordinate: rounded to nearest, then an unsigned shift by 4, so a
 // negative coordinate gives a huge index that fails the bounds tests.
-std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
+std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(lib::RoundEven(coordinate)) >> 4; }
 
 // Every element of `list` (a sector cell or the heroes) that is `object` erased (released), the object held
 // meanwhile.
@@ -223,8 +224,8 @@ constexpr int kCave = 1;
 // A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
 // stored, then allocated.
 void FitGrid(SectorGrid& grid, const terrain::Terrain* terrain) {
-    const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
-    const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
+    const std::uint32_t height = static_cast<std::uint32_t>(lib::RoundEven(terrain->height));
+    const std::uint32_t width = static_cast<std::uint32_t>(lib::RoundEven(terrain->width));
     grid.Resize(1, 1);
     grid.height = height >> 4;
     grid.width = width >> 4;
@@ -327,8 +328,8 @@ bool WorldClient::QueueSynchronised(CMapObject* object) {
 void WorldClient::MarkFootprintsInSight(const float* point, float range) {
     // A footprint is made visible when hypot(position - point) <= its scale * range.
     for (Footprint& print : footprints) {
-        double dx = print.position.x - point[0];
-        double dy = print.position.y - point[1];
+        float dx = print.position.x - point[0];
+        float dy = print.position.y - point[1];
         double distance = libcrt::Hypot(dx, dy);
         float limit = print.scale * range;
         EI_NAN_AUDIT(distance, limit);
@@ -556,12 +557,12 @@ std::vector<CObject3D*> WorldClient::ObjectsInRange(const Vector3& point, float 
             float pz = point.z;
             float ox = object->localPosition.x + object->bounds.center.x;
             float oy = object->localPosition.y + object->bounds.center.y;
-            double reach = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
+            float reach = pc24::Add(libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y), radius);
             float dx = ox - point.x;
             float dy = oy - point.y;
             float dz = pz - point.z;
-            double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
-            double limit = reach * reach;
+            float distance = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+            float limit = reach * reach;
             // Skipped when the limit is below (or unordered).
             if (limit >= distance) found.push_back(object);
         }

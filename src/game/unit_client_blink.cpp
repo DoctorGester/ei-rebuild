@@ -12,7 +12,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/x87.h"
+#include "lib/pc24.h"
 #include "render/render.h"
 
 #include <windows.h>
@@ -25,7 +25,7 @@ constexpr float kEyeUnit = 0.00390625f;    // 1/256 of the skin's width
 constexpr int kSkinUnits = 0x100;
 
 // _ftol: truncation through a 64-bit integer, of which the low half is kept.
-int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
@@ -35,23 +35,23 @@ CTexture* SkinOf(CUnit* unit) {
     return half->partSets[0]->texture;
 }
 
-// The eye rectangle's numbers shared by both: the skin's scale (stored as a float) and the
-// face's offset `t` (in mixed units, kept as computed).
+// The eye rectangle's numbers shared by both: the skin's scale and the face's offset `t` (in mixed units). The
+// data's ints enter the operations exactly (pc24's helpers round the result once).
 struct EyeFrame {
     float scale;
-    double offset;
+    float offset;
     int at[2];
 };
 
 EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord* model) {
     EyeFrame frame;
-    float scale = static_cast<float>(x87::FromUnsigned(skin->width) * kEyeUnit);
-    frame.scale = scale;
+    frame.scale = static_cast<float>(static_cast<double>(skin->width) * kEyeUnit);
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    frame.offset = (x87::FromUnsigned(face->height) / frame.scale - (eyeHeight + eyeHeight)) / frame.scale;
-    frame.at[0] = Truncate(static_cast<int>(model->eyeLeft) * static_cast<double>(frame.scale));
+    frame.offset = pc24::Sub(pc24::Div(static_cast<double>(face->height), frame.scale),
+                             static_cast<double>(eyeHeight + eyeHeight)) / frame.scale;
+    frame.at[0] = Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeLeft)), frame.scale));
     int fromBottom = kSkinUnits - static_cast<int>(model->eyeBottom) - eyeHeight;
-    frame.at[1] = Truncate(fromBottom * static_cast<double>(frame.scale));
+    frame.at[1] = Truncate(pc24::Mul(static_cast<double>(fromBottom), frame.scale));
     return frame;
 }
 
@@ -74,10 +74,10 @@ void UnitClientSpecific::BlinkClose(bool force) {
     auto* model = unit->GetPrototypeModel();
     CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
-    double scale = frame.scale;
+    float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    RECT closed = {0, Truncate(frame.offset), Truncate(static_cast<int>(model->eyeWidth) * scale),
-                   Truncate((eyeHeight + frame.offset) * scale)};
+    RECT closed = {0, Truncate(frame.offset), Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
+                   Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
@@ -90,10 +90,11 @@ void UnitClientSpecific::BlinkOpen(bool force) {
     auto* model = unit->GetPrototypeModel();
     CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
-    double scale = frame.scale;
+    float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    RECT open = {0, Truncate((eyeHeight + frame.offset) * scale), Truncate(static_cast<int>(model->eyeWidth) * scale),
-                 Truncate((eyeHeight + eyeHeight + frame.offset) * scale)};
+    RECT open = {0, Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
+                 Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
+                 Truncate(pc24::Add(static_cast<double>(eyeHeight + eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }
