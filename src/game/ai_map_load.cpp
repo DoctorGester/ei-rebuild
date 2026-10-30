@@ -8,7 +8,7 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include <cstddef>
@@ -17,6 +17,7 @@
 #include <new>
 #include <string>
 #include "lib/in_place.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
@@ -141,11 +142,10 @@ constexpr float kFlatCost = 1024.0f;
 constexpr int kFlatCostUnits = 0x400;
 constexpr float kLargeLimit = 40.0f;        // degrees
 constexpr float kSmallLimit = 60.0f;
-// These are divided and multiplied on the FPU as the original goes, at the thread's precision; they are read at
-// run time so the compiler does not fold them at its own.
-const volatile double kPiVolatile = 3.141592653589793;
-const volatile double kHalfTurn = 180.0;
-const volatile double kPerDegree = 1.0 / 180.0;
+// Doubles the original divides and multiplies on the FPU (with vecmath.h's kPiDouble), each operation rounded to a
+// float (lib/pc24.h).
+constexpr double kHalfTurn = 180.0;
+constexpr double kPerDegree = 1.0 / 180.0;
 
 // The cost of a height step between neighbouring cells, by its slope: (sin^2 + 1)^2 times the flat
 // cost uphill and on the level, the flat cost over sin^2 + 1 downhill. The larger size classes take
@@ -155,12 +155,12 @@ void BuildClimbTables(AIMap& map) {
     map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
         const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
-        const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPiVolatile)));
-        const double sine = x87::fsin(kPiVolatile * kPerDegree * slope);
-        double effort = sine * sine + 1.0;
+        const float slope = std::fabs(pc24::Mul(pc24::Atan2(rise, kCellSize), pc24::Div(kHalfTurn, kPiDouble)));
+        const pc24::Unrounded sine = pc24::Sin(pc24::Mul(kPerDegree, kPiDouble) * slope);
+        float effort = pc24::Mul(sine, sine) + 1.0f;
         effort *= effort;
-        if (i < kLevelStep) effort = 1.0 / std::sqrt(effort);
-        const int cost = x87::fistp(static_cast<float>(effort * kFlatCost));
+        if (i < kLevelStep) effort = 1.0f / std::sqrt(effort);
+        const int cost = lib::RoundEven(effort * kFlatCost);
         map.climbSmall[i] = slope > kSmallLimit ? -1 : kFlatCostUnits;
         map.climbLarge[i] = slope > kLargeLimit ? -1 : cost;
     }
@@ -223,23 +223,19 @@ int ReadTerrainTypes(AIMap& map) {
 
 // A vertex's altitude as a fraction of the map's highest point. The game's constant (which the landscape's
 // sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not 1 / 65535 (with that the ground levels
-// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds `1.0f /
-// 65534.0f` at double precision wherever the constant meets a double, and the heights below are doubles.
+// of a few dozen cells per map were one unit off). Written as the exact fraction.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
-static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 
 constexpr float kQuarter = 0.25f;
 
-// The heights follow the original's x87 sequence value by value: a float below is one it stores, a double one
-// it keeps on the FPU stack. At the main thread's 24-bit precision the two are the same number; told apart,
-// the results are also the original's at 53 bits (and at 64 while the compiler keeps the doubles in
-// registers: nothing unrounded is alive across a call).
+// The heights follow the original's x87 sequence value by value, in float maths (its registers held floats at the
+// main thread's 24-bit precision).
 
-// A vertex's height in world units as the original leaves it on the FPU stack: the altitude times the map's
-// highest point times the altitude unit, in that order, neither product stored.
-__forceinline double VertexHeight(const SectorFileVertex& vertex, float maxZ) {
-    return static_cast<double>(vertex.altitude) * maxZ * kAltitudeUnit;
+// A vertex's height in world units: the altitude times the map's highest point times the altitude unit, in that
+// order.
+__forceinline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
+    return static_cast<float>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
 
 // Four floats of a terrain square, one per cell: [0] at its first vertex, [1] towards the next
@@ -252,17 +248,17 @@ struct SquareHeights {
 // each of the two corners beside it. The original stores the heights of the three other corners and keeps the
 // first one, and the quarter of the first and the opposite corner, on the stack.
 SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
-    const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
-    const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));
-    const float opposite = static_cast<float>(VertexHeight(vertex[kVertexRow + 1], maxZ));
-    const double first = VertexHeight(vertex[0], maxZ);
-    const float sides = static_cast<float>((below + next) * kQuarter);
+    const float next = VertexHeight(vertex[1], maxZ);
+    const float below = VertexHeight(vertex[kVertexRow], maxZ);
+    const float opposite = VertexHeight(vertex[kVertexRow + 1], maxZ);
+    const float first = VertexHeight(vertex[0], maxZ);
+    const float sides = (below + next) * kQuarter;
     SquareHeights heights;
-    heights.cell[0] = static_cast<float>(first * 0.5f + sides);
-    const double diagonal = (first + opposite) * kQuarter;
-    heights.cell[1] = static_cast<float>(next * 0.5f + diagonal);
-    heights.cell[2] = static_cast<float>(below * 0.5f + diagonal);
-    heights.cell[3] = static_cast<float>(opposite * 0.5f + sides);
+    heights.cell[0] = first * 0.5f + sides;
+    const float diagonal = (first + opposite) * kQuarter;
+    heights.cell[1] = next * 0.5f + diagonal;
+    heights.cell[2] = below * 0.5f + diagonal;
+    heights.cell[3] = opposite * 0.5f + sides;
     return heights;
 }
 
@@ -270,26 +266,26 @@ SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
 // ground `land`. The original keeps the third cell's surface on the stack here as well and subtracts the
 // ground from it there.
 SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const SquareHeights& land) {
-    const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
-    const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));
-    const float opposite = static_cast<float>(VertexHeight(vertex[kVertexRow + 1], maxZ));
-    const double first = VertexHeight(vertex[0], maxZ);
-    const float sides = static_cast<float>((below + next) * kQuarter);
-    const float surface0 = static_cast<float>(first * 0.5f + sides);
-    const double diagonal = (first + opposite) * kQuarter;
-    const float surface1 = static_cast<float>(next * 0.5f + diagonal);
-    const double surface2 = below * 0.5f + diagonal;
-    const float surface3 = static_cast<float>(opposite * 0.5f + sides);
+    const float next = VertexHeight(vertex[1], maxZ);
+    const float below = VertexHeight(vertex[kVertexRow], maxZ);
+    const float opposite = VertexHeight(vertex[kVertexRow + 1], maxZ);
+    const float first = VertexHeight(vertex[0], maxZ);
+    const float sides = (below + next) * kQuarter;
+    const float surface0 = first * 0.5f + sides;
+    const float diagonal = (first + opposite) * kQuarter;
+    const float surface1 = next * 0.5f + diagonal;
+    const float surface2 = below * 0.5f + diagonal;
+    const float surface3 = opposite * 0.5f + sides;
     SquareHeights depths;
-    depths.cell[0] = static_cast<float>(surface0 - land.cell[0]);
-    depths.cell[1] = static_cast<float>(surface1 - land.cell[1]);
-    depths.cell[2] = static_cast<float>(surface2 - land.cell[2]);
-    depths.cell[3] = static_cast<float>(surface3 - land.cell[3]);
+    depths.cell[0] = surface0 - land.cell[0];
+    depths.cell[1] = surface1 - land.cell[1];
+    depths.cell[2] = surface2 - land.cell[2];
+    depths.cell[3] = surface3 - land.cell[3];
     return depths;
 }
 
 // A world height in the map's units (the float product rounded to nearest).
-int HeightUnits(float height, float scale) { return x87::fistp(static_cast<float>(height * scale)); }
+int HeightUnits(float height, float scale) { return lib::RoundEven(height * scale); }
 
 // The terrain type of a tile word: the type word of its tile, 0xF outside the textures.
 std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {

@@ -17,13 +17,13 @@ namespace {
 // -((ww - ((zz + xx) + yy)) + 2yy) and z = -2(yz + xw), the last two rounded to floats before the negation, as
 // the original.
 void FacingFromQuaternion(const float* q, float* out) {
-    const double w = q[0], x = q[1], y = q[2], z = q[3];
-    const double across = y * x - z * w;
-    const double squares = LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z);
-    const float up = static_cast<float>((w * w - squares) + (y * y + y * y));
-    const double along = Dot2DUnrounded<double>(z, x, y, w);
-    const float forward = static_cast<float>(along + along);
-    out[0] = static_cast<float>(-(across + across));
+    const float w = q[0], x = q[1], y = q[2], z = q[3];
+    const float across = y * x - z * w;
+    const float squares = LengthSquaredUnrounded<Sum3::ZXY>(x, y, z);
+    const float up = (w * w - squares) + (y * y + y * y);
+    const float along = Dot2DUnrounded(z, x, y, w);
+    const float forward = along + along;
+    out[0] = -(across + across);
     out[1] = -up;
     out[2] = -forward;
 }
@@ -41,10 +41,9 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->excludedBlocks.clear();
     path->smoothing = 0;
     path->reached = true;
-    double scale = 1.0 /
-                   (0.5f);
-    path->targetX = static_cast<float>(scale * object->localPosition.x);
-    path->targetY = static_cast<float>(scale * object->localPosition.y);
+    float scale = 1.0f / 0.5f;
+    path->targetX = scale * object->localPosition.x;
+    path->targetY = scale * object->localPosition.y;
     Vector3 facing;
     FacingFromQuaternion(&object->localRotation.w, &facing.x);
     path->Start(object->localPosition, facing, *time);

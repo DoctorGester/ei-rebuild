@@ -6503,3 +6503,10 @@ group = "cleanup"
 depends = ["C30e16"]
 note = "C30e10 kept src/game/quaternion.cpp x87: Quaternion::Slerp's 1 / x87::fsin(angle) takes libcrt::CiAcos's double (FPATAN's result through a double at PC24), and pc24::Sin takes a float. Add pc24::Sin(double) (FSIN's reduction of a 53-bit argument: the angle is in [0, pi], so q is 0..2 and the 128-bit remainder holds it) with its equivalence test against FSIN on doubles in [0, pi] (and the stored / times-a-float forms), then move quaternion.cpp by C30e's method (FromAngle: pc24::Div(Sin(half), length), Round(Cos(half)); Slerp's weights pc24::Mul(Sin(...), Div(1.0, Sin(angle))) - note inverseSine is itself a PC24 float) and drop it from EI_X87_GAME_SOURCES; it is in ei_vectors' list (no Slerp vectors). Goldens unchanged (verify and --rebirth-only)."
 
+[[ticket]]
+id = "C30e8a"
+title = "SSE2: ai_motion.cpp (FPATAN of FSIN / FCOS doubles in Build)"
+group = "cleanup"
+depends = ["C30e16"]
+note = "C30e8 converted src/game/ai_motion.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e8a): UnitMotion::Build's turn order (kind 4) computes x87::fpatan(s, c) - startAngle where s = x87::fsin(angle) and c = x87::fcos(angle) are stored as doubles (53-bit roundings of the 64-bit results; the naked fpatan takes doubles), and pc24::Atan2 takes floats. Add pc24::Atan2(double, double) (or Atan2(Unrounded, Unrounded) rounding each to 53 bits first) with its equivalence test against FPATAN on doubles (sin / cos of every float angle in [-pi, pi] at least, and the minus-a-float form), write the site as pc24::Sub(pc24::Atan2(Sin(angle) rounded to double, Cos(angle) rounded to double), startAngle) (hi + lo is the 53-bit rounding; the c == 0 && s == 0 test on those doubles), drop the x87.h include and the C30e8a line from the list. C30e8's eq/ test (scratch folder) covers the rest of the file. Goldens unchanged (verify and --rebirth-only); ai_motion is in ei_vectors' list (builds into ei_vectors_sse2 once off the x87 list)."
+

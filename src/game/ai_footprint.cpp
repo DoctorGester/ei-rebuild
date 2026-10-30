@@ -3,7 +3,7 @@
 #include "ai_map.h"
 #include "ai_unit_layer.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>
@@ -167,10 +167,10 @@ bool AIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet,
             const Vector3 &p0 = corner[k], &p1 = corner[k + 1], &p2 = corner[k + 2];
             float ax = p0.x - p1.x, ay = p0.y - p1.y, az = p0.z - p1.z;
             float bx = p2.x - p1.x, by = p2.y - p1.y, bz = p2.z - p1.z;
-            double la = std::sqrt(LengthSquared2DUnrounded(ay, ax));
-            int stepsA = x87::fistp(static_cast<float>((la + la) * 1.5f)) + 2;
-            double lb = std::sqrt(LengthSquared2DUnrounded(by, bx));
-            int stepsB = x87::fistp(static_cast<float>((lb + lb) * 1.5f)) + 2;
+            float la = std::sqrt(LengthSquared2DUnrounded(ay, ax));
+            int stepsA = lib::RoundEven((la + la) * 1.5f) + 2;
+            float lb = std::sqrt(LengthSquared2DUnrounded(by, bx));
+            int stepsB = lib::RoundEven((lb + lb) * 1.5f) + 2;
             float countA = static_cast<float>(stepsA);
             float dax = ax / countA, day = ay / countA, daz = az / countA;
             float countB = static_cast<float>(stepsB);
@@ -187,7 +187,7 @@ bool AIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet,
                     float sz = iaz + p1.z + jbz;
                     int x = WorldToCell(sx), y = WorldToCell(sy);
                     if (!(x < cells.width && y < cells.height && x >= 0 && y >= 0)) continue;
-                    int z = x87::fistp(sz * heightScale);
+                    int z = lib::RoundEven(sz * heightScale);
                     if (z > 0x3FC) z = 0x3FC;
                     else if (z < 0) z = 0;
                     if (normal[k].z > 0.0f) set->AddTop(x, y, z, kind, transparency);

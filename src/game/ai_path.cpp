@@ -2,11 +2,12 @@
 // planned cells to the unit's steering.
 #include "ai_map.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "sector_map.h"
@@ -89,14 +90,14 @@ bool AIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minD
     // Directions tried at each distance: the step, then the others round the circle.
     const float directions[8][2] = {{sx, sy}, {p, q}, {q, -p}, {sy, -sx}, {-sy, sx}, {-q, p}, {-p, -q}, {-sx, -sy}};
 
-    int first = x87::fistp(2.0f * minDistance) - 1;
+    int first = lib::RoundEven(2.0f * minDistance) - 1;
     if (first < 0) first = 0;
     for (int r = first; r <= steps; ++r) {
         int count = r != 0 ? 8 : 1;
         float distance = static_cast<float>(r);
         for (int d = 0; d < count; ++d) {
-            int cx = tx - x87::fistp(distance * directions[d][0]);
-            int cy = ty - x87::fistp(distance * directions[d][1]);
+            int cx = tx - lib::RoundEven(distance * directions[d][0]);
+            int cy = ty - lib::RoundEven(distance * directions[d][1]);
             if (unit->GetClassId() == ClassId::Unit) {
                 if (!CanStandAt(unit, cx, cy, &reason) || !IsCellPassable(this, unit, cx, cy)) continue;
             }
@@ -179,11 +180,11 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
         sectorMap.Add(unit);
         return false;
     }
-    int tx = x87::fistp(goal.x - 0.5f);
-    int ty = x87::fistp(goal.y - 0.5f);
-    int ux = x87::fistp(fx - 0.5f);
+    int tx = lib::RoundEven(goal.x - 0.5f);
+    int ty = lib::RoundEven(goal.y - 0.5f);
+    int ux = lib::RoundEven(fx - 0.5f);
     float uyHalf = fy - 0.5f;   // also ends up in the path cell's second half below
-    int uy = x87::fistp(uyHalf);
+    int uy = lib::RoundEven(uyHalf);
 
     bool found = false;
     PathCell cell;
@@ -229,8 +230,8 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
                 sectorMap.Add(unit);
                 return false;
             }
-            int gx = x87::fistp(goal.x - 0.5f);
-            int gy = x87::fistp(goal.y - 0.5f);
+            int gx = lib::RoundEven(goal.x - 0.5f);
+            int gy = lib::RoundEven(goal.y - 0.5f);
             path->targetX = goal.x;
             path->targetY = goal.y;
             if (ux == gx && uy == gy) {
@@ -254,12 +255,12 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
         float bx = -facing.x, by = -facing.y;
         float px;
         px = path->targetX;
-        float a = AbsBits(px - static_cast<float>(x87::fistp(px)));
+        float a = AbsBits(px - static_cast<float>(lib::RoundEven(px)));
         px = path->targetX;    // targetX twice (not targetY), like the original
-        float b = AbsBits(px - static_cast<float>(x87::fistp(px)));
+        float b = AbsBits(px - static_cast<float>(lib::RoundEven(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
-        int octant = x87::fistp(static_cast<float>(x87::fpatan(by, bx) * 1.273239605931458));
+        int octant = lib::RoundEven(pc24::Mul(pc24::Atan2(by, bx), 1.273239605931458));
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);

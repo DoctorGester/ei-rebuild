@@ -8,7 +8,7 @@
 #include "resource.h"
 #include "world_data.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/crt.h"
 #include "lib/in_place.h"
 #include <cstddef>
@@ -48,8 +48,8 @@ std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 by
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) {
     // Each coordinate is scaled, stored to a float and rounded to nearest.
-    const int x = x87::fistp(event->x * kCellScale);
-    const int y = x87::fistp(event->y * kCellScale);
+    const int x = lib::RoundEven(event->x * kCellScale);
+    const int y = lib::RoundEven(event->y * kCellScale);
     if (x < 0 || y < 0 || x >= width || y >= height) return nullptr;
     return &cells[y * width + x];
 }
@@ -161,8 +161,8 @@ int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
     const float scale = (-0.125f);
-    const int newWidth = 1 - static_cast<int>(libcrt::Ftol(sizeX * scale));
-    const int newHeight = 1 - static_cast<int>(libcrt::Ftol(sizeY * scale));
+    const int newWidth = 1 - static_cast<int>(static_cast<std::int64_t>(sizeX * scale));
+    const int newHeight = 1 - static_cast<int>(static_cast<std::int64_t>(sizeY * scale));
     width = newWidth;
     height = newHeight;
     cells.assign(static_cast<std::size_t>(width * height), AIEventCell{});

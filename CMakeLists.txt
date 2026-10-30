@@ -70,10 +70,8 @@ set(EI_X87_GAME_SOURCES
     # C30e7: combat
     game/combat game/combat_actions game/combat_motion game/combat_orders game/combat_planning game/combat_sight
     game/combat_spell_sight game/combat_steps game/combat_taming game/combat_tick game/combat_update
-    # C30e8: AI maps, paths and motion
-    game/ai_block_search game/ai_events game/ai_footprint game/ai_footprint_shapes game/ai_line_step game/ai_map
-    game/ai_map_load game/ai_motion game/ai_movement game/ai_path game/ai_path_smooth game/ai_path_stand game/ai_plan
-    game/ai_refresh game/ai_shape_cache game/ai_unit_shape game/ai_water_patch
+    # C30e8a: UnitMotion::Build's FPATAN of FSIN's and FCOS's results stored as doubles
+    game/ai_motion
     # C30e9: unit AI
     game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
     # C30e10a: Slerp's FSIN of the game CRT's double arc cosine

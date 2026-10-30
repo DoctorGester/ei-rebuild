@@ -3,7 +3,7 @@
 // are built on first use. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <algorithm>
 #include <array>
@@ -35,7 +35,7 @@ int CdqAbs(int v) {
 }
 
 // The cost of `turn` eighths of a turn, rounded like the original.
-int TurnCost(int turn, float scale) { return x87::fistp(static_cast<float>(static_cast<float>(turn) * scale * kTurnCost)); }
+int TurnCost(int turn, float scale) { return lib::RoundEven(static_cast<float>(turn) * scale * kTurnCost); }
 
 int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direction + 4; }
 
@@ -166,7 +166,7 @@ int PathSmoother::Smooth(CUnit* unit, AIMap* mapArg, PathCells* path, int startD
         for (int d = 1; d <= 8; ++d) {
             SmoothState& state = to[d - 1];
             if (state.cost == kUnreached) continue;
-            if (IsDiagonal(d)) state.cost += x87::fistp(static_cast<float>((1.0f - fraction) * kDiagonalEndCost));
+            if (IsDiagonal(d)) state.cost += lib::RoundEven((1.0f - fraction) * kDiagonalEndCost);
             if (state.cost < best) {
                 best = state.cost;
                 bestNode = state.node;

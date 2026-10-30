@@ -6,7 +6,7 @@
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include <cstddef>
@@ -20,7 +20,7 @@ UnitShapeCache g_unitShapes;
 namespace {
 
 // World coordinate to cell: (x / (half a cell) - 0.5) rounded to float, then to the nearest integer.
-int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
+int CellOf(float world) { return lib::RoundEven(2.0f * world - 0.5f); }
 
 constexpr float kShapeMinHeight = 0.2f;
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
@@ -40,9 +40,9 @@ CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
     CUnit* blocker = nullptr;
     for (CUnit* other : nearby) {
         if (other == unit) continue;
-        double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position.y) - other->localPosition.y;
-        double dx = static_cast<double>(position.x) - other->localPosition.x;
+        float reach = other->standingHeight + unitHeight;
+        float dy = position.y - other->localPosition.y;
+        float dx = position.x - other->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
@@ -57,13 +57,13 @@ CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
         if (otherHeight <= kShapeMinHeight) {
             handle.ref.Reset();
         } else {
-            int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
-            handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
+            int tenths = lib::RoundEven(otherHeight * 10.0f + 1.0f);
+            handle.height = static_cast<float>(tenths) * 0.1f;
             shape = static_cast<const UnitShape*>(g_unitShapes.Get(&handle));
             handle.ref.Reset();
         }
 
-        int level = x87::fistp(static_cast<float>((2.0f - static_cast<double>(unit->standingHeight)) * 16.0f));
+        int level = lib::RoundEven((2.0f - unit->standingHeight) * 16.0f);
         int minLevel = level < 0 ? 0 : (level & 0xFF);
         int dxCells = unitX - otherX + 8;
         int dyCells = unitY - otherY + 8;
@@ -128,7 +128,7 @@ bool AIMap::StandsOnCheapCell(CUnit* unit) {
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (HasSpellArea(x, y)) {
         int sizeClass = unit->sizeClass;
-        int level = x87::fistp(static_cast<float>(static_cast<double>(kLevelHeights[sizeClass]) * heightScale));
+        int level = lib::RoundEven(kLevelHeights[sizeClass] * heightScale);
         CellMarkState mark;
         CellMark(&mark, sizeClass, level, x, y);
         return mark.cost < kExpensive;
@@ -174,29 +174,29 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
     bool anyDirection = cosLimit <= -1.0f;
     bool noLineOfSight = targetHeight < -100.0f;
 
-    const double half = 0.5;    // half a cell
+    const float half = 0.5f;    // half a cell
     for (int y = eyeY - reach; y < eyeY + reach; ++y) {
         for (int x = eyeX - reach; x < eyeX + reach; ++x) {
             int gx = x - grid->x0;
             int gy = y - grid->y0;
             if (x * 9 < 0 || y < 0 || x >= cells.width || y >= cells.height) continue;
             Vector3 cell;
-            cell.x = static_cast<float>(static_cast<double>(x) * half);
-            cell.y = static_cast<float>(static_cast<double>(y) * half);
+            cell.x = static_cast<float>(x) * half;
+            cell.y = static_cast<float>(y) * half;
             cell.z = 0.0f;
-            float dx = static_cast<float>(static_cast<double>(cell.x) - eye.x);
-            float dy = static_cast<float>(static_cast<double>(cell.y) - eye.y);
-            float dz = static_cast<float>(-static_cast<double>(eye.z));
-            float distance = static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2DUnrounded(dy, dx))));
+            float dx = cell.x - eye.x;
+            float dy = cell.y - eye.y;
+            float dz = -eye.z;
+            float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
             EI_NAN_AUDIT(radius, distance);
             if (radius < distance) continue;
             if (!anyDirection) {
-                double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look.x, look.y, look.z);
-                if (static_cast<double>(distance) * cosLimit > dot) continue;
+                float dot = DotUnrounded<Sum3::ZYX>(dx, dy, dz, look.x, look.y, look.z);
+                if (distance * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {
-                cell.z = static_cast<float>(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
-                double seen = LineOfSight(eye, cell) * radius;
+                cell.z = static_cast<float>(cells[y][x].groundLevel) / heightScale + targetHeight;
+                float seen = LineOfSight(eye, cell) * radius;
                 EI_NAN_AUDIT(seen, distance);
                 if (seen < distance) continue;
             }
@@ -209,8 +209,8 @@ void* AIMap::ShapeForHeight(float standingHeight) {
     ShapeCacheHandle handle;
     EI_NAN_AUDIT(standingHeight);
     if (standingHeight <= kShapeMinHeight) return nullptr;
-    int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
-    handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
+    int tenths = lib::RoundEven(standingHeight * 10.0f + 1.0f);
+    handle.height = static_cast<float>(tenths) * 0.1f;
 
     RefObject* shape = g_unitShapes.Resolve(&handle);
     handle.ref.Reset();

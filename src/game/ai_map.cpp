@@ -3,15 +3,16 @@
 #include "map_object.h"
 #include "sector_map.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 #include <bit>
 #include <cstring>
 
 int WorldToCell(float world) {
     float cell = 2.0f * world - 0.5f;
-    return x87::fistp(cell);
+    return lib::RoundEven(cell);
 }
 
 namespace {
@@ -39,11 +40,11 @@ const std::int16_t* SpiralOffsets() { return &SectorSpiralTables().offsets.data(
 
 int LevelForSizeClass(int sizeClass) {
     if (sizeClass < 0 || sizeClass >= 8) return sizeClass & ~0xFF;   // XOR AL,AL
-    return PositiveOrZero(x87::fistp((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
+    return PositiveOrZero(lib::RoundEven((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
 }
 
 int StandingLevel(const CUnit* unit) {
-    return PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
+    return PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
 }
 
 int BridgeHeights::HeightAt(short x, short y) const {
@@ -56,7 +57,7 @@ int BridgeHeights::HeightAt(short x, short y) const {
 bool AIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     if (unit->GetClassId() == ClassId::Unit) {
-        int level = x87::fistp((2.0f - unit->standingHeight) * 16.0f);
+        int level = lib::RoundEven((2.0f - unit->standingHeight) * 16.0f);
         if (level < 0) level = 0;
         *reason = 1;
         if (cells[y][x].level > static_cast<std::uint8_t>(level)) return false;
@@ -69,7 +70,7 @@ bool AIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
 
 bool AIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
-    int level = PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
+    int level = PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
     // The unit's own cell is not bounds-checked, like the original.
     if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
@@ -233,20 +234,20 @@ bool AIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
 float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
     float dx = to.x - from.x, dy = to.y - from.y;
     float dz = to.z - from.z;
-    float length = static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) / 0.5f);   // half-cells
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) / 0.5f;   // half-cells
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return 1.0f;
     float inverse = 1.0f / length;
-    int steps = x87::fistp(length);
+    int steps = lib::RoundEven(length);
 
     // 16.16 fixed point position and step, in half-cells (x, y) and AI height units (z).
-    int x = x87::fistp(from.x * 65536.0f / 0.5f);
-    int y = x87::fistp(from.y * 65536.0f / 0.5f);
-    int z = x87::fistp(from.z * heightScale) << 16;
-    int stepX = x87::fistp(dx * inverse * 65536.0f / 0.5f);
-    int stepY = x87::fistp(dy * inverse * 65536.0f / 0.5f);
-    int toZ = x87::fistp(to.z * heightScale);
-    int stepZ = x87::fistp(static_cast<float>(static_cast<double>((toZ - (z >> 16)) << 16) * inverse));
+    int x = lib::RoundEven(from.x * 65536.0f / 0.5f);
+    int y = lib::RoundEven(from.y * 65536.0f / 0.5f);
+    int z = lib::RoundEven(from.z * heightScale) << 16;
+    int stepX = lib::RoundEven(dx * inverse * 65536.0f / 0.5f);
+    int stepY = lib::RoundEven(dy * inverse * 65536.0f / 0.5f);
+    int toZ = lib::RoundEven(to.z * heightScale);
+    int stepZ = lib::RoundEven(pc24::Mul(static_cast<double>((toZ - (z >> 16)) << 16), inverse));
 
     auto outside = [this](int fx, int fy) {
         int cx = fx >> 16, cy = fy >> 16;

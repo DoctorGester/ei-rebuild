@@ -476,6 +476,29 @@ WorldMatrix, Tilt / Turn / Roll / TurnUpTowards and the turn-up tail above pi, S
 FromAxisAngle and Length, ProjectionMatrix, the morphs, FigureMesh::UpdateWorld, TickTime: 48 M random cases each,
 0 differ. ei_vectors' maths family replays the SSE2 maths / core_maths / matrix_math (pc24.cpp in ei_vectors_sse2).
 
+**C30e8 (AI maps, paths and motion; 16 of 17 files moved).** The paths, footprints, line of sight, cell marks, unit
+shapes and the AI map's heights: float maths in the original's order. Through `lib/pc24.h`: the motion's angles
+(ai_motion: `Round(Cos / Sin)` of the turn angles, `Sub(Atan2(...), startAngle)` into `NormalizeTurn`, the tracking
+turn `Div(elapsed * angleTo, ticks)` over the int tick count, `Sub(time, start)` with the int start tick), the
+smoothing's octant (`Mul(Atan2(by, bx), 4 / pi)`), the climb tables (`Mul(Atan2(rise, 0.5), Div(180, pi))`,
+`Sin(Mul(1 / 180, pi) * slope)` squared by `Mul`), the occluders' damping (`Mul(Exp(table * a * b), passage)`) and the
+line of sight's z step (an int up to 2^31 times the float inverse, `Mul`). Three forms that read FPATAN's register
+as it is: `PathOrder::Start` compares the stored angle with the unrounded result (`angle.hi == stored && angle.lo ==
+0`), `Build` compares FCOS's result with the double 0.9 (`Above`: hi, then lo), and `LimitSpeeds`' first angle is
+kept through the second FPATAN call as a double (`Sub(a1.hi + a1.lo, a2)`: the sum is the 53-bit rounding). The
+damping scale ln 0.6 is FYL2X of the double 0.6, a constant: `-0x1.058afp-1f`. `x87::fistp` -> `lib::RoundEven` (49),
+the event grid's `Ftol` -> int64 truncation, `CopyBits` -> `=`. `MotionCubic::Value / Slope` and
+`AIMap::LargestStepAlong` return float (their x87 doubles were PC24 floats). **Kept:** ai_motion (C30e8a):
+`Build`'s turn order (kind 4) takes FPATAN of FSIN's and FCOS's results stored as doubles, which `pc24::Atan2`
+(floats) does not take; the rest of the file is converted and its x87 object calls pc24. Equivalence test (C30e8's
+`eq/`: HEAD's forms built /arch:IA32 at PC24 against the new ones): Start, SetTurn, Sample (kinds 0 to 4, paths of 2 to
+6 points sampled three times), Build's turn and tail, SubdivideSegment, LimitSpeeds, the climb tables (75,000 scales,
+every step), land and water heights, the octant, the z step, Damp, Occlude / Refresh, LargestStepAlong, the
+footprints, movement, facing and unit shapes: 4.8 M cases each (14.4 M path samples), 0 differ with game operands
+and with wide ones (2^-30 to 2^31, zeros, infinities, NaN); left: which NaN comes out where two meet (the default
+NaN's sign: an infinite angle, NaN and infinite coordinates) and the exponent range (an exponent of Damp's past 88,
+not reachable: ln 0.6 times a fraction times 7).
+
 ### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
