@@ -114,8 +114,8 @@ void SetTextureFilters(const GameOptions* settings) {
 }
 
 // Blending (one, zero) and the alpha test (greater than 200) on, clockwise triangles dropped, specular from the
-// options, fog on in black. (The options' dithering, perspective correction and antialiasing do nothing: the
-// renderer always draws with perspective correction.)
+// options, fog on in black. (The original's dithering, perspective correction and antialiasing options are gone:
+// the renderer always draws with perspective correction, [renderer] Msaa smooths the edges.)
 void SetRenderState(const GameOptions* settings) {
     render::RenderState& state = render::g_renderState;
     state.blend = true;

@@ -37,14 +37,13 @@ struct LightOptions {
 // The sections: options.cpp's tables.
 class GameOptions {
 public:
-    // What the static initialiser builds before WinMain: the first defaults (800 x 600, 16 bits; the defaults
-    // function sets the game's real defaults later, before the settings are read).
+    // What the static initialiser builds before WinMain: the defaults of a value the settings file lacks (the file's
+    // own defaults: settings::Defaults; what each option does: src/game/settings_catalog.inc).
     GameOptions();
     // Reads every option from the settings file; a missing value keeps the current one (the defaults set before).
     void Load();
     // Writes the same values back and saves the file (WinMain calls it once, on exit). The camera flips are written
-    // as booleans, the light colours as 0..255, "Joystick" always as false, and "Difficulty Level" from
-    // difficultyStored.
+    // as booleans, the light colours as 0..255 and "Difficulty Level" from difficultyStored.
     void Save();
 
     std::string workPath;           // Work path
@@ -54,50 +53,34 @@ public:
     int resolutionX;                 // VideoResolution
     int resolutionY;
     int colourDepth;                 // VideoColorDepthInBits
-    int zBufferDepth;                // VideoZBufferDepthInBits
-    int refreshRate;                 // VideoRefreshRate
     int fullScreen;                  // FullScreen
-    int joystick;
     int video;
     int audio;
     int audioStreaming;
     int audioSfx;
     int audioSpeech;
-    int dithering;                   // Dithering
     int specular;                    // Specular
-    int antialiasing;                // Antialiasing
     int textureQuality;              // TextureQuality
     int mipmapping;                  // Mipmapping (cleared when the driver has no mipmaps)
     int filtering;                   // Filtering: 0 point, 1 / 2 linear
-    int perspectiveCorrection;       // PerspectiveCorrection
-    int showParticles;
     int fpsIndependentCursor;
-    int automaticQuantization;
-    int movieCapturingFps;
     float brightness;
     float contrast;
     float gamma;
     int reverseStereo;               // "Reverse Stereo"
     int shadowQuality;
-    int heroShadow;
     int unitShadow;
     int buildingShadow;
     int floraShadow;
-    int otherShadow;
     int shadowLightingFreq;          // LightingFreq of the shadow settings
     int floraSpecialLight;
     float borderFogDistance;
     int enableWaterWaves;
     int enableSelfShadowing;
-    int enableDynamicLights;
-    int lightingFreq;                // LightingFreq of the terrain settings: loaded and saved, read by nothing
-    int shadowingFreq;
     int enableFootprints;
     int enableBloodprints;
     int enableFireprints;
     int enableBloodprintsRelight;
-    int createOutputInfo;
-    int numberOfFrames;
     float cameraFlipX;               // CameraFlipXAxis: -1 or 1
     float cameraFlipY;
     float cameraMinHeight;
@@ -130,9 +113,7 @@ public:
     float farClipDistance;           // FarClipDistance
     float defaultWindForce;
     int defaultTimeScale;
-    int useSwCursors;                // UseSWCursors
     int selectionType;
-    float cornerSize;
     int drawVisibleOnly;
     int drawPath;
     int drawFlyingHp;                // DrawFlyingHP
@@ -140,8 +121,7 @@ public:
     int autosave;
     float toolTipTime;               // "ToolTip Time"
     int switchFilters;
-    std::string cdLabels[3];        // "CD1 Label" ..
-    std::string fontCharSet;        // "Font CharSet"
+    std::string cd2Label;           // "CD2 Label": the disc asked for when the CD-ROM Path is not the Work path
     int keyboardLayout;              // "Keyboard Layout"
     float objectsLightingCoeff;
     LightOptions heroLight;
@@ -156,8 +136,5 @@ public:
 };
 // The game's options (options_construct.cpp).
 extern GameOptions g_options;
-
-// The options' defaults.
-void OptionsResetDefaults(GameOptions* self);
 
 } // namespace options

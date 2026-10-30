@@ -32,6 +32,8 @@ def checks(out, x64):
         # The game's code calls Windows only through src/platform: the files that still do may only leave
         # config/platform_files.txt (tools/check_platform.py).
         py + [tool('check_platform.py')],
+        # docs/settings.md against the settings catalog, and the catalog against the settings the code reads (C69).
+        py + [tool('gen_settings_doc.py'), '--check'],
         # Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
         *([] if x64 else [[os.path.join(out, 'ei_vectors.exe')]]),
         # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).

@@ -5,6 +5,7 @@
 // settings_save and settings_defaults (tests/scenarios).
 #include "../../src/game/settings.h"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -188,21 +189,22 @@ void Defaults() {
     };
     is("video", "VideoResolution", "2560x1440");
     is("video", "FullScreen", "true");
+    is("video", "Video", "2");   // the movies (the game's own 0 plays none)
     is("video", "VideoColorDepthInBits", "32");
-    is("video", "Antialiasing", "true");
     is("video", "Mipmapping", "true");
     is("video", "Filtering", "2");
     is("video", "TextureQuality", "0");
-    is("video", "ShowParticles", "true");
     is("sound", "Audio", "true");
     for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) is("sound", volume, "100");
     is("shadows", "ShadowQuality", "2");
-    for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"}) is("shadows", shadow, "true");
-    is("terrain", "LightingFreq", "1000");
-    for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
+    for (const char* shadow : {"UnitShadow", "BuildingShadow", "FloraShadow"}) is("shadows", shadow, "true");
+    for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableFootprints",
                                 "EnableBloodprints", "EnableFireprints"})
         is("terrain", feature, "true");
     CHECK(!document.Find("terrain", "LOD1") && !document.Find("terrain", "LOD2"));
+    // The original's settings nothing here reads are not written.
+    for (const char* dropped : {"Antialiasing", "ShowParticles", "Dithering", "VideoRefreshRate"}) CHECK(!document.Find("video", dropped));
+    CHECK(!document.Find("terrain", "LightingFreq") && !document.Find("shadows", "HeroShadow") && !document.Find("game", "UseSWCursors"));
     is("camera", "CameraFlipXAxis", "false");
     is("camera", "CameraMinHeight", "3");
     is("camera", "CameraDefaultRotateSpeed", "0.15");
@@ -211,7 +213,6 @@ void Defaults() {
     is("camera", "CameraFrameSelectionSensetiveArea", "30");
     is("camera", "CameraShortcut 3 Pitch", "45");
     is("camera", "CameraShortcut 0 AxisZ", "1");
-    is("game", "UseSWCursors", "false");
     is("game", "SelectionType", "1");
     is("game", "Hero Light B", "116");
     is("game", "Quest Light G", "72");
@@ -241,6 +242,37 @@ void Defaults() {
 } // namespace
 
 // replay_main.cpp: the number of failed checks.
+// The catalog (settings_catalog.inc): every line the defaults write has its row, with the same default and its
+// description as the comment line(s) right above it (a pattern's above its first line only); the lookup's patterns.
+void Catalog() {
+    const Document document = settings::Defaults(2560, 1440);
+    std::vector<const settings::Described*> seen;
+    for (const Document::Section& section : document.sections) {
+        for (std::size_t i = 0; i < section.lines.size(); ++i) {
+            const Document::Line& line = section.lines[i];
+            if (line.name.empty()) continue;
+            const settings::Described* row = settings::Describe(section.name, line.name);
+            CHECK_MSG(row != nullptr, section.name + " " + line.name + ": no catalog row");
+            if (!row) continue;
+            if (line.name != "VideoResolution")
+                CHECK_MSG(line.value == row->defaultText, section.name + " " + line.name + " = " + line.value + ", the catalog's " + row->defaultText);
+            const bool first = std::find(seen.begin(), seen.end(), row) == seen.end();
+            seen.push_back(row);
+            const bool described = [&] {   // the description's first words on one of the comment lines right above
+                for (std::size_t j = i; j > 0 && section.lines[j - 1].name.empty(); --j)
+                    if (section.lines[j - 1].value.find(std::string(row->description).substr(0, 20)) != std::string::npos) return true;
+                return false;
+            }();
+            CHECK_MSG(described == first, section.name + " " + line.name + (first ? ": no description above" : ": described twice"));
+        }
+    }
+    CHECK(settings::Describe("CAMERA", "CameraShortcut 3 Pitch") == settings::Describe("camera", "CameraShortcut 0 Pitch"));
+    CHECK(settings::Describe("camera", "CameraShortcut 0 Pitch") != nullptr);
+    CHECK(settings::Describe("camera", "CameraShortcut x Pitch") == nullptr);
+    CHECK(settings::Describe("autoexec", "anything") != nullptr && settings::Describe("autoexec", "") == nullptr);
+    CHECK(settings::Describe("video", "NoSuchSetting") == nullptr);
+}
+
 int RunSettingsFileChecks() {
     g_checks = g_failures = 0;
     Ints();
@@ -251,6 +283,7 @@ int RunSettingsFileChecks() {
     Comments();
     BadLines();
     Defaults();
+    Catalog();
     std::printf("ei_vectors: settings file: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;
 }

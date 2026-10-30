@@ -114,7 +114,8 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
 // The command line: "-moviepath_<folder>" (the client's WorldClientFlag::MoviePathOption off), "-nocam" (NoCamOption
-// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
+// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file and "-devicetarget_<driver>". (The
+// original's "-benchmark_<frames>" set statistics nothing reads; it is ignored.)
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments = text::Split(commandLine, ' ');
     g_cameraFile = ".\\camera.cam";
@@ -150,10 +151,6 @@ void ReadCommandLine(const char* commandLine) {
             g_commandLineMob = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mpr") != -1) {
             g_commandLineMap = arguments[i].c_str();
-        } else if (str::Find(arguments[i], "-benchmark_") == 0) {
-            std::string frames = Tail(arguments[i], 11);
-            options->numberOfFrames = str::ToInt(frames);
-            options->createOutputInfo = 1;
         } else if (str::Find(arguments[i], "-devicetarget_") == 0) {
             std::string driver = Tail(arguments[i], 14);
             options->driverIndex = str::ToInt(driver);
@@ -197,7 +194,7 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
         const std::string root = DriveRoot(discFolder.c_str());
-        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(root.c_str())) != 0) {
+        while (str::Compare(options::g_options.cd2Label, platform::VolumeLabel(root.c_str())) != 0) {
             if (!WarningAccepted(messages[kInsertDisc])) return false;
         }
     }
@@ -389,6 +386,9 @@ void PrintClientSpeed(float speed, float balance) {
     console::EndLine(console::g_netLogOut << "Client speed = " << speed << " balance = " << balance);
 }
 
+// The frame recorder's frames a second (g_recordingFrames; the harness's "record" step).
+constexpr int kRecordedFramesPerSecond = 15;
+
 // One pass of the loop while no message waits. Returns whether the interface takes the input
 // messages from now on: not while the renderer is inactive.
 bool RunPass() {
@@ -408,8 +408,9 @@ bool RunPass() {
     net::Pump();
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
-        // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const float frame = pc24::Div(1000.0, static_cast<double>(options::g_options.movieCapturingFps));
+        // A recorded frame lasts 1000 / the movie's frames a second, rounded up (the original's MovieCapturingFPS
+        // setting, 15 by default; nothing in the game turns the recorder on).
+        const float frame = pc24::Div(1000.0, static_cast<double>(kRecordedFramesPerSecond));
         elapsed = static_cast<std::uint32_t>(static_cast<std::int64_t>(std::ceil(frame)));
     }
     g_serverBacklog += elapsed;

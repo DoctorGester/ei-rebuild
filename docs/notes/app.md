@@ -125,7 +125,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   camera update, the server's update and the client's tick through the harness's hook points when set
   (`g_harnessHooks`: "freeze" holds the camera, "speed" the updates), else directly.
 - Start-up order: sysmsg.txt (three lines, built-in fallback), DirectX 7, the two class factories, the command
-  line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-benchmark_", "-devicetarget_"), the window class
+  line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-devicetarget_"; the original's "-benchmark_" is
+  ignored since C69: it set statistics nothing reads), the window class
   (a running game is brought forward and this one exits), the registry root and options, the new handler, the
   worlds and the camera (field of view pi * 2 / 7), free disk space (300 MB warning) and the disc's label, the
   mouse object, the saves / mp / textures folders, the window, the renderer (the driver flag 00784756 and the

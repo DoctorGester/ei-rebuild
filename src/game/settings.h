@@ -31,8 +31,8 @@ namespace settings {
 inline constexpr const char* kFileName = "ei_settings.ini";
 
 // The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's patches
-// (src/standalone/startup.cpp, include/ei/rebirth.h), its switches (ui_widescreen.cpp, world_client_draw.cpp,
-// mod_folders.cpp) and its console lines (console_addon.cpp).
+// (src/standalone/startup.cpp, include/ei/rebirth.h), its switch (mod_folders.cpp) and its console lines
+// (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";
 inline constexpr const char* kSound = "sound";
@@ -41,7 +41,6 @@ inline constexpr const char* kTerrain = "terrain";
 inline constexpr const char* kCamera = "camera";
 inline constexpr const char* kGame = "game";
 inline constexpr const char* kNetwork = "network";
-inline constexpr const char* kStatistics = "statistics";
 inline constexpr const char* kRenderer = "renderer";
 inline constexpr const char* kPatches = "patches";
 inline constexpr const char* kRebirth = "rebirth";
@@ -92,16 +91,31 @@ bool ParseFloat(std::string_view text, float* value);
 bool ParseBool(std::string_view text, bool* value);
 
 // The settings a missing file starts with, for a desktop of `width` x `height` pixels: full screen (a borderless
-// window over the monitor) at that size, sound and music at the game's own defaults, every graphics option at its
-// best (the starters' best detail level: water waves on, LOD distances 90 and 130, the most frequent relighting;
-// trilinear filtering, full-size textures, mipmaps, every shadow, self shadowing), and what a game install writes in
-// place of the game's own placeholder defaults (the camera's section, the objects' lighting, the hero's and the
-// quest light, the master server). The renderer: Msaa 8 (the device's best when less), Anisotropy 16, VSync on, no
-// performance overlay. Rebirth's patches: none named (each takes the game folder's profile). Rebirth's switches:
-// the draw radii 5376 (the whole map; Rebirth's own default is the original's 100). Everything else
-// (paths, the other options and switches) is left out: the game and Rebirth read it as absent and take their own
-// defaults.
+// window over the monitor) at that size, the movies on (the installers' Video 2; the game's own 0 is none), sound,
+// music and voices at full volume, every graphics option at its best (smoothed full-size textures with mipmaps, every
+// shadow, water waves, self shadowing, ground prints),
+// and what a game install writes in place of the game's own placeholder defaults (the camera's section, the objects'
+// lighting, the hero's and the quest light, the master server). The renderer: Msaa 8 (the device's best when less),
+// Anisotropy 16, VSync on, no performance overlay. Rebirth's patches: none named (each takes the game folder's
+// profile). Everything else (paths, the other options and switches) is left out: the game and Rebirth read it as
+// absent and take their own defaults. Each line has its catalog description above it (once for the lines of a
+// pattern, the camera shortcuts).
 Document Defaults(int width, int height);
+
+// ---- The catalog: what every setting does (settings_catalog.inc; tools/gen_settings_doc.py writes docs/settings.md)
+
+struct Described {
+    const char* section;
+    const char* name;          // "<n>" stands for a number (the camera shortcuts), "<name>" for any name
+    const char* defaultText;   // what a new file holds, else what the game takes when the value is absent
+    const char* values;        // the values it takes, short
+    const char* description;   // what it does, for the player
+};
+// Every setting the game reads, by section, in the order of settings_catalog.inc.
+const Described* CatalogBegin();
+const Described* CatalogEnd();
+// The catalog's row for `name` in `section` (both without case), or null.
+const Described* Describe(std::string_view section, std::string_view name);
 
 // ---- The process's settings (the standalone; game.exe uses the registry) ----
 
