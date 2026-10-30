@@ -116,7 +116,7 @@ void MainMenu::CreateScreen() {
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
     if (GameServerTimeOfDay() < kDawn && rain)
-        GameSetWeather(kWeatherRain, kWeatherStrength);
+        g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);
     hour = 0.0f;
@@ -129,8 +129,8 @@ void MainMenu::Update() {
     UiContainer::Update();
     int serverHour = static_cast<int>(GameServerTimeOfDay());
     if (serverHour != static_cast<int>(hour) && rain) {
-        if (serverHour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
-        else if (serverHour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
+        if (serverHour == kRainStartHour) g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);
+        else if (serverHour == kRainEndHour) g_serverWorld.SetWeather(kWeatherClear, kWeatherStrength);
     }
     if (!daylight && rain && serverHour < kLightningBeforeHour && (g_sceneRenderer.flags & 1) != 0) {
         std::uint32_t now = platform::TickCount();

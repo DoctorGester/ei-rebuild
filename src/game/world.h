@@ -1222,6 +1222,8 @@ struct SavedParties {
     MpHeroRecord outsideGame;
 };
 extern SavedParties g_savedParties;
+// The party of the record kept outside a running game (the multiplayer hero).
+inline Party* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 
 int RequestZone(std::string_view zone, int entrance);
 

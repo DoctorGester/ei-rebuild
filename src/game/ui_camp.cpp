@@ -681,7 +681,7 @@ void CampPages::CloseScreen() {
         record.unitId += kRecordBias;
         records.push_back(&record);
     }
-    GameRemoveUnitsOf(&records);
+    g_clientWorld.RemoveUnitsOf(&records);
     for (PartyUnitRecord& record : player->members) record.unitId -= kRecordBias;
 
     lib::FreeStorage(heroes);

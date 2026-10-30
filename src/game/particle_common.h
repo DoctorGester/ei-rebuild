@@ -18,9 +18,6 @@
 
 namespace particle {
 
-// A random word as a float (scaled by the callers' EI_P_SCALE_* to a fraction).
-inline float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
-
 inline std::uint32_t Bits(const void* field) {
     std::uint32_t bits;
     lib::LoadBytes(bits, field);
@@ -42,6 +39,6 @@ inline MapObject* Carrier(Object3D* object) { return static_cast<MapObject*>(obj
 #define EI_P_SCALE_1 2.3283064e-10f   // ~2^-32
 
 // Next() * 2^-31 - 1: a random value in [-1, 1).
-inline float SignedUnit() { return Unsigned(Next()) * EI_P_SCALE_2 - EI_P_ONE; }
+inline float SignedUnit() { return WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE; }
 
 } // namespace particle

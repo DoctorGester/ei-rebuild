@@ -41,7 +41,6 @@
 #include "world.h"
 #include "world_data.h"
 #include "world_effect.h"
-#include "world_glue.h"
 #include "world_map_files.h"
 
 #include "lib/containers.h"
@@ -932,7 +931,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     block->ReadValue(newCave);
     UnitLooks looks = ReadUnitLooks(block);
     cave = newCave;
-    GameEnsureZone(map, mob);
+    g_serverWorld.EnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);
 
     bloodPrints.clear();

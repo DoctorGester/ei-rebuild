@@ -160,7 +160,7 @@ void BattleScreen::CreateScreen() {
     g_camera.flags &= ~0x40u;
     pendingAction = kPendingNone;
     pendingSlot = -1;
-    GameSetWeather(0, 0.0f);   // clear weather
+    g_serverWorld.SetWeather(0, 0.0f);   // clear weather
     GameStartAmbience();
     party.clear();
     viewPressed = false;
@@ -178,7 +178,7 @@ void BattleScreen::CreateScreen() {
 }
 
 void BattleScreen::Draw(SceneRenderer* pass) {
-    GameRender();
+    g_clientWorld.Render();
     if (boxSelecting) {    // the selection box, a dark rectangle with an outline
         pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
                                                             selectionBox.bottom, 0x40, 1);

@@ -2,7 +2,6 @@
 // cursor shape for what a click would do. See ui.h (BattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
-#include "world_glue.h"
 #include "ui.h"
 
 #include "ui_cursor.h"
@@ -129,7 +128,7 @@ void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
             Vector3 at = pick();
             int exit;
             if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
-            std::string name = GameExitTarget(exit);
+            std::string name = g_clientWorld.ExitTarget(exit);
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;

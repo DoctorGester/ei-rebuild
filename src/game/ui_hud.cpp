@@ -1,7 +1,6 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
 #include "item.h"
-#include "world_glue.h"
 #include "texture.h"
 #include "ui.h"
 
@@ -413,7 +412,7 @@ void HudClock::LeftUp(int, int x, int y) {
         handled = true;
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (g_clientWorld.paused) GameSendFlag10(0);
+        if (g_clientWorld.paused) g_clientWorld.SendFlag10(0);
         SetSpeed(region == 2);
         return;
     case 3:     // the objectives
@@ -432,7 +431,7 @@ void HudClock::MouseMove(int, int x, int y) {
 void HudClock::TogglePause() {
     ui->PlayInterfaceSound(kSoundClock);
     const bool paused = g_clientWorld.paused;
-    GameSendFlag10(paused ? 0 : 1);
+    g_clientWorld.SendFlag10(paused ? 0 : 1);
 }
 
 void HudClock::SetSpeed(bool newFast) {
@@ -787,8 +786,8 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     // update to ask about leaving (exitPending and the exit).
     exitPending = false;
     int exit;
-    if (GameFindExitAt(&point.x, &exit) && selected > 0) {
-        std::string name = GameExitTarget(exit);
+    if (g_clientWorld.FindExitAt(&point.x, &exit) && selected > 0) {
+        std::string name = g_clientWorld.ExitTarget(exit);
         if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."

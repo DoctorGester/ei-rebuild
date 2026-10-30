@@ -122,7 +122,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
         if (words.size() < 2) continue;
         int textKey = TextKeyFromName(words[1]);
         if (textKey == leader->id) continue;
-        auto* unit = GameFindClientUnit(textKey);
+        auto* unit = g_clientWorld.FindUnit(textKey);
         if (!unit) continue;
         if (!person)
             person = unit;

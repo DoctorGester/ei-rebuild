@@ -17,9 +17,6 @@
 
 namespace {
 
-// A random word as a float.
-float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
-
 // Constants the original reads from memory at run time.
 #define EI_ONE 1.0f
 #define EI_POINT_FOUR 0.4f
@@ -96,7 +93,7 @@ void SetupExplosion(ParticleSource* s) {
         float x, y, z;
         float lengthSquared;
         for (int tries = 10;;) {
-            x = Unsigned(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+            x = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
             y = g_clientRandom.Range(-1.0f, 1.0f);
             z = g_clientRandom.Range(-1.0f, 1.0f) + EI_POINT_SEVEN;
             lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
@@ -108,7 +105,7 @@ void SetupExplosion(ParticleSource* s) {
         v.Construct(x, y, z);
         Vector3 direction;
         DivideVector(&direction, v, length);
-        float speed = Unsigned(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
+        float speed = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
         float vx = direction.x * speed;
         float vy = speed * direction.y;
         float vz = speed * direction.z;
@@ -120,8 +117,8 @@ void SetupExplosion(ParticleSource* s) {
         fragment.radius = 0.0f;
         fragment.growth = 0.4f;
         fragment.decay = 0.7f;
-        fragment.frame = Unsigned(g_clientRandom.Next() % 6);
-        fragment.sizeFactor = Unsigned(g_clientRandom.Next() & 1);
+        fragment.frame = WordToFloat(g_clientRandom.Next() % 6);
+        fragment.sizeFactor = WordToFloat(g_clientRandom.Next() & 1);
     }
 }
 

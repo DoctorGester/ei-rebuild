@@ -206,7 +206,6 @@ void AnnounceHost(const char* zone) {
 // game state request to the server (a change goes out with a new version).
 int ServerPlayerCount() { return static_cast<int>(g_serverWorld.players->objects.size()); }
 
-Party* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 constexpr int kCommandBriefing = 1;

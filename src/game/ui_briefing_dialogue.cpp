@@ -251,7 +251,7 @@ void BriefingScreen::ViewPreset(int preset) {
 }
 
 void BriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool run) {
-    auto* speaker = GameFindClientUnit(TextKeyFromName(name));
+    auto* speaker = g_clientWorld.FindUnit(TextKeyFromName(name));
     if (!speaker) {
         for (auto node = shown.begin(); node != shown.end(); ++node) {
             if (text::CompareIgnoringCase(node->name,

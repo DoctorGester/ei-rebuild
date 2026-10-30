@@ -3,7 +3,10 @@
 // Plain values in raw byte buffers (file images, network cursors), where the address may be unaligned: the
 // bytes of `value` copied from / to `address` (a float's too, a signalling NaN's bits kept).
 
+#include <bit>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <type_traits>
 
@@ -29,5 +32,9 @@ void StoreBytes(void* address, const T& value) {
     static_assert(std::is_trivially_copyable_v<T>, "plain values");
     std::memcpy(address, &value, sizeof(T));
 }
+
+// The float whose bits are `bits`. A float argument would convert to an integer first: callers pass raw bits only.
+inline float FloatFromBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
+template <std::floating_point T> float FloatFromBits(T) = delete;
 
 } // namespace lib

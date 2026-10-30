@@ -345,7 +345,7 @@ void GlobalMap::CreateScreen() {
 
     selectPending = true;
     SelectZone(-1, false);
-    GameSetWeather(0, 0.0f);   // clear
+    g_serverWorld.SetWeather(0, 0.0f);   // clear
     g_clientWorld.music->Stop();
     weather = new GlobalMapClouds();
     weather->Start();

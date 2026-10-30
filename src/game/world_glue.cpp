@@ -41,7 +41,6 @@ Script* CommandScript() { return g_serverWorld.SecondScript(); }
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 const char* DefaultMusic() { return options::g_options.defaultStreamingSound.c_str(); }
-PlayerClient* LocalClient() { return g_clientWorld.LocalView(); }
 
 } // namespace
 
@@ -84,8 +83,6 @@ void GameSetConstructionVariable(std::uint32_t value) {
     if (player) player->Server()->SetVariable(kConstructionVariable, value);
 }
 
-void GameSetWeather(int weather, float strength) { g_serverWorld.SetWeather(weather, strength); }
-
 double GameServerTimeOfDay() {
     WorldServer* world = &g_serverWorld;
     return world->TimeOfDay();
@@ -95,8 +92,6 @@ void GamePassTime(float offset) {
     // Nothing for a negative offset or a NaN.
     if (offset >= 0.0f) g_serverWorld.UpdatePlayerTimes(offset);
 }
-
-void GameEnsureZone(std::string_view map, std::string_view mob) { g_serverWorld.EnsureZone(map, mob); }
 
 void GameSetUnitHeight(int id, float z) {
     WorldServer* world = &g_serverWorld;
@@ -143,9 +138,6 @@ int GameShowCameraPath(const char* name) {
 
 std::uint32_t GameCameraPathPlaying() { return g_clientWorld.camera->flags & Camera::kPlaying; }
 
-// The client's draw is called through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
-int GameRender() { return g_clientWorld.Render(); }
-
 void GameStopSounds(int stopStream) { g_clientWorld.sounds->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
 
 void GameStopAmbience() { g_clientWorld.terrain->StopAmbience(); }
@@ -156,45 +148,28 @@ int GamePlayMusic(const char* name) {
     return g_clientWorld.sounds->RequestStream(name ? name : DefaultMusic(), 4);
 }
 
-Unit* GameFindClientUnit(int id) { return g_clientWorld.FindUnit(id); }
-
 void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour) {
     g_clientWorld.CreatePartyUnits(party, static_cast<char>(allArmour));
 }
-
-void GameRemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) { g_clientWorld.RemoveUnitsOf(records); }
-
-int GameFindExitAt(const float* point, int* index) { return g_clientWorld.FindExitAt(point, index); }
-
-int GamePartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
-    return g_clientWorld.PartyInExit(records, exit, inExit);
-}
-
-const char* GameExitTarget(int index) { return g_clientWorld.ExitTarget(index); }
 
 void GameLeaveThroughExit(int exit) {
     if (IsMultiplayerClient())
         g_gameFlow.SwitchMultiplayerZone();
     else
-        LocalClient()->TakeExit(exit);
+        g_clientWorld.LocalView()->TakeExit(exit);
 }
 
 void GameSendLeave04(int value) {
     g_interface.closeAll = 1;
-    LocalClient()->SendLeave04(value);
+    g_clientWorld.LocalView()->SendLeave04(value);
 }
 
 void GameRejoin() {
     g_interface.closeAll = 1;
-    LocalClient()->Rejoin();
+    g_clientWorld.LocalView()->Rejoin();
 }
 
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out) {
     Player* player = g_clientWorld.LocalView()->player;
     player->GetParty()->variables.CopyPrefixed(prefix, out);
 }
-
-PlayerClient* GameLocalView() { return g_clientWorld.LocalView(); }
-
-int GameSendFlag10(int value) { return g_clientWorld.SendFlag10(value); }
-

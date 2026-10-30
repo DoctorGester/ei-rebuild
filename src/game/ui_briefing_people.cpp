@@ -1,7 +1,6 @@
 // The briefing / base screen's dialogue people and items (BriefingScreen, ui_briefing.h): a
 // person walking to a place and a dialogue's "#show" line. See
 // docs/notes/ui.md, "Briefing / base screen".
-#include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
 #include "ui_briefing.h"
@@ -83,7 +82,7 @@ void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3&
 }
 
 void BriefingScreen::ShowItem(std::string_view name, int index) {
-    auto* unit = GameFindClientUnit(TextKeyFromName(name));
+    auto* unit = g_clientWorld.FindUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
         auto entry = std::find_if(speakers.begin(), speakers.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });

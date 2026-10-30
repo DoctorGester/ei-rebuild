@@ -50,8 +50,6 @@ constexpr int kVersionRecord77C = 0x5B;
 constexpr int kVersionRecord780 = 0x61;
 constexpr int kVersionRecordText6 = 0x6B;
 
-int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
-
 void CopyThrough(Party* target, Party* source) {
     // Through an empty memory stream, freed afterwards.
     MemoryStream copy;
@@ -84,15 +82,15 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
     ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
     texts[1] = stream->ReadString();
-    if (Version(stream) < kVersionRecordFlags) return;
+    if (stream->Version() < kVersionRecordFlags) return;
     stream->ReadValue(moveMode2);
     stream->ReadValue(weaponIndex);
     stream->ReadValue(selected);
-    if (Version(stream) < kVersionRecord77C) return;
+    if (stream->Version() < kVersionRecord77C) return;
     stream->ReadValue(leaderId);
-    if (Version(stream) < kVersionRecord780) return;
+    if (stream->Version() < kVersionRecord780) return;
     stream->ReadValue(fightAtWill);
-    if (Version(stream) < kVersionRecordText6) return;
+    if (stream->Version() < kVersionRecordText6) return;
     texts[6] = stream->ReadString();
 }
 
@@ -137,7 +135,7 @@ void Party::LoadParty(ByteStream* stream, int loadVariables) {
     g_loadingParty = nullptr;
     money = 0;
     stream->ReadValue(money);
-    if (Version(stream) > kVersionPartyKey) {
+    if (stream->Version() > kVersionPartyKey) {
         std::uint32_t key;
         stream->ReadValue(key);
         money ^= key;
