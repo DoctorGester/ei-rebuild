@@ -61,7 +61,6 @@
 #include <new>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 namespace {
 
@@ -1358,17 +1357,14 @@ void GameFlow::UpdateFromServer() {
 void SavedParties::Reload() {
     entries.clear();
 
-    WIN32_FIND_DATAA found;
-    HANDLE search;
-    {
-        std::string pattern = folder + kPartyFilePattern;
-        search = gameapi::FindFirstFileA(pattern.c_str(), &found);
-    }
-    if (search == INVALID_HANDLE_VALUE) return;
+    lib::FileFind finder;
+    if (!finder.FindFile(folder + kPartyFilePattern)) return;
+    bool more;
     do {
+        more = finder.FindNext();
         MpHeroRecord read;
         MpHeroRecord* entry = &read;
-        entry->file = found.cFileName;
+        entry->file = finder.GetFileName();
         if (entry->ReadFile(folder)) {
             NamedFloatTable* variables = &entry->Party()->variables;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
@@ -1383,8 +1379,7 @@ void SavedParties::Reload() {
                 entries.push_back(read);
             }
         }
-    } while (gameapi::FindNextFileA(search, &found));
-    gameapi::FindClose(search);
+    } while (more);
 }
 
 void GameFlow::BuildZoneTable() {

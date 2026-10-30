@@ -14,7 +14,6 @@
 #include <cstring>
 #include <memory>
 #include <new>
-#include <windows.h>
 
 
 namespace netlink {
@@ -59,7 +58,7 @@ std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
 
 void FileStream::Write(const void* buffer, std::uint32_t size) { file.Write(buffer, size); }
 
-long FileStream::SeekFrom(long position) { return file.Seek(position, FILE_BEGIN); }
+long FileStream::SeekFrom(long position) { return file.Seek(position, lib::File::begin); }
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
 std::uint32_t FileStream::Size() { return file.GetLength(); }
@@ -67,7 +66,7 @@ std::uint32_t FileStream::Position() { return file.GetPosition(); }
 
 long FileStream::Restart() {
     ok = 1;
-    return file.Seek(0L, FILE_BEGIN);
+    return file.Seek(0L, lib::File::begin);
 }
 void FileStream::Clear() { Restart(); }
 

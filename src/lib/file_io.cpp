@@ -1,6 +1,7 @@
 #include "file_io.h"
 
 #include "gameapi.h"
+#include "text_case.h"
 
 #include <windows.h>
 
@@ -57,8 +58,10 @@ bool File::Open(std::string_view filePath, unsigned flags) {
     }
     DWORD disposition = OPEN_EXISTING;
     if (flags & modeCreate) disposition = (flags & modeNoTruncate) ? OPEN_ALWAYS : CREATE_ALWAYS;
-    const HANDLE opened =
-        gameapi::CreateFileA(path.c_str(), access, share, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+    DWORD attributes = FILE_ATTRIBUTE_NORMAL;
+    if (flags & osNoBuffer) attributes |= FILE_FLAG_NO_BUFFERING;
+    if (flags & osRandomAccess) attributes |= FILE_FLAG_RANDOM_ACCESS;
+    const HANDLE opened = gameapi::CreateFileA(path.c_str(), access, share, nullptr, disposition, attributes, nullptr);
     handle = opened == INVALID_HANDLE_VALUE ? nullptr : opened;
     return IsOpen();
 }
@@ -98,6 +101,67 @@ unsigned long File::GetLength() const {
     const DWORD size = gameapi::GetFileSize(Win32(handle), nullptr);
     if (size == INVALID_FILE_SIZE) ThrowLastError(path);
     return size;
+}
+
+bool File::ReadAt(long offset, void* buffer, unsigned count) {
+    DWORD read = 0;
+    return gameapi::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+           gameapi::ReadFile(Win32(handle), buffer, count, &read, nullptr) && read == count;
+}
+
+bool File::WriteAt(long offset, const void* buffer, unsigned count) {
+    DWORD written = 0;
+    return gameapi::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+           gameapi::WriteFile(Win32(handle), buffer, count, &written, nullptr) && written == count;
+}
+
+// The game also read the file's information here and did not use it.
+void File::SetWriteTimeNow() {
+    SYSTEMTIME now;
+    gameapi::GetSystemTime(&now);
+    BY_HANDLE_FILE_INFORMATION info;
+    gameapi::GetFileInformationByHandle(Win32(handle), &info);
+    FILETIME time;
+    gameapi::SystemTimeToFileTime(&now, &time);
+    gameapi::SetFileTime(Win32(handle), nullptr, nullptr, &time);
+}
+
+// ---- FileMapping ----------------------------------------------------------------------------------
+
+FileMapping::~FileMapping() { Close(); }
+
+bool FileMapping::Create(const File& file, bool writable) {
+    Close();
+    mapping = gameapi::CreateFileMappingA(Win32(file.Handle()), nullptr, writable ? PAGE_READWRITE : PAGE_READONLY, 0, 0,
+                                          nullptr);
+    return mapping != nullptr;
+}
+
+void* FileMapping::MapView(bool writable) {
+    view = gameapi::MapViewOfFile(mapping, writable ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
+    return view;
+}
+
+void FileMapping::Flush() { gameapi::FlushViewOfFile(view, 0); }
+
+void FileMapping::Close() {
+    if (view) gameapi::UnmapViewOfFile(view);
+    view = nullptr;
+    if (mapping) gameapi::CloseHandle(mapping);
+    mapping = nullptr;
+}
+
+// The sector size stays 0xFFFFFFFF (larger than any page) when GetDiskFreeSpaceA fails.
+bool SectorsFitPages(const std::string& path) {
+    char root[4] = {};
+    path.copy(root, 3);
+    const char* rootPath = root;
+    if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
+    DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
+    gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
+    SYSTEM_INFO info;
+    gameapi::GetSystemInfo(&info);
+    return info.dwPageSize >= bytesPerSector && info.dwPageSize % bytesPerSector == 0;
 }
 
 // ---- TextFile -------------------------------------------------------------------------------------

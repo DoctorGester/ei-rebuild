@@ -18,7 +18,7 @@
 #include <map>
 #include <set>
 
-#include <windows.h>
+#include <winerror.h>
 
 namespace modfolders {
 namespace {
@@ -68,12 +68,6 @@ std::string WithSlash(std::string path) {
 std::string Lower(std::string text) {
     if (!text.empty()) text::utf8::CharLowerA(text.data());
     return text;
-}
-
-// addon's 1001B9B3: the path names a file (GetFileAttributes; not a folder).
-bool FileExists(const std::string& path) {
-    DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
-    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
 
@@ -193,25 +187,20 @@ struct MapsListing {
 
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
-    WIN32_FIND_DATAA found;
-    HANDLE find = text::utf8::FindFirstFileA(pattern.c_str(), &found);
-    if (find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            if (std::strcmp(found.cFileName, ".") != 0 && std::strcmp(found.cFileName, "..") != 0)
-                ListMaps(mod, sub + "\\" + found.cFileName, list);
+    for (const text::FoundEntry& found : text::FindAll(pattern)) {
+        const char* name = found.name.c_str();
+        if (found.folder) {
+            if (std::strcmp(name, ".") != 0 && std::strcmp(name, "..") != 0) ListMaps(mod, sub + "\\" + name, list);
             continue;
         }
         if (!sub.empty()) {
-            list.names.push_back(sub.substr(1) + "\\" + found.cFileName);
+            list.names.push_back(sub.substr(1) + "\\" + name);
             continue;
         }
-        const std::size_t length = std::strlen(found.cFileName);
-        if (!list.hasQuestList && length >= 3 && std::strcmp(found.cFileName + length - 3, ".mq") == 0)
-            list.hasQuestList = true;
-        list.names.push_back(found.cFileName);
-    } while (text::utf8::FindNextFileA(find, &found));
-    FindClose(find);
+        const std::size_t length = found.name.size();
+        if (!list.hasQuestList && length >= 3 && std::strcmp(name + length - 3, ".mq") == 0) list.hasQuestList = true;
+        list.names.push_back(found.name);
+    }
 }
 
 const MapsListing& Maps() {
@@ -339,13 +328,13 @@ std::string CameraFile(const char* path) {
     const char* last = std::strrchr(path, '\\');
     if (!last || ModPath().empty()) return path;
     std::string mod = ModPath() + "Camera" + last;
-    return FileExists(mod) ? mod : std::string(path);
+    return text::IsFile(mod) ? mod : std::string(path);
 }
 
 bool StreamInMod(std::string_view name) {
     // 1001BA8D: the mod's Stream\ (100BCB5C) and the name.
     if (name.empty() || ModPath().empty()) return false;
-    return FileExists(ModPath() + "Stream\\" + std::string(name));
+    return text::IsFile(ModPath() + "Stream\\" + std::string(name));
 }
 
 const std::string& StreamFolder() {
@@ -358,7 +347,7 @@ std::string MovieFile(const char* name) {
     const char* last = std::strrchr(name, '\\');
     if (!last || ModPath().empty()) return name;
     std::string mod = ModPath() + "Movies" + last;
-    return FileExists(mod) ? mod : std::string(name);
+    return text::IsFile(mod) ? mod : std::string(name);
 }
 
 } // namespace modfolders

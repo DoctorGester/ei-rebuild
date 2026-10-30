@@ -9,7 +9,6 @@
 #include <string>
 
 #include <intrin.h>
-#include <windows.h>
 
 // The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
@@ -159,8 +158,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     return 0;
 }
 
-// A failed open, seek or read of the file clears `ok`: Open reports the failure and the seek and read go to the
-// handle directly, so nothing throws. Kept: when the first search counts exactly one file, rand() % 0 faults as in
+// A failed open, seek or read of the file clears `ok`: Open and ReadAt report the failure, so nothing throws. Kept: when the first search counts exactly one file, rand() % 0 faults as in
 // the game.
 void IsaacRandom::Seed() {
     if (g_seedHook) {
@@ -183,10 +181,7 @@ void IsaacRandom::Seed() {
         if (file.Open(path, kOpenReadShared)) {
             libcrt::Srand(gameapi::timeGetTime());
             long offset = kSeedBytes - RandomBelow512();
-            DWORD read = 0;
-            if (gameapi::SetFilePointer(file.Handle(), offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
-                !gameapi::ReadFile(file.Handle(), results, kSeedBytes, &read, nullptr) || read != kSeedBytes)
-                ok = 0;
+            if (!file.ReadAt(offset, results, kSeedBytes)) ok = 0;
             file.Close();
         } else {
             ok = 0;

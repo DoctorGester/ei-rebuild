@@ -14,7 +14,6 @@
 #include "lib/text_case.h"
 
 #include <cstdio>
-#include <windows.h>
 
 int ResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header.count;
@@ -35,27 +34,10 @@ int ResourceBase::FindEntry(std::string_view name) const {
     }
 }
 
-namespace {
-
-// `size` bytes at `offset` of the archive, read or written through the game's slots (SetFilePointer, ReadFile,
-// WriteFile; VC6's _lseek, _read and _write on a binary descriptor did the same calls).
-bool ReadAt(void* file, std::uint32_t offset, void* to, std::uint32_t size) {
-    DWORD read = 0;
-    return gameapi::SetFilePointer(file, static_cast<LONG>(offset), nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-           gameapi::ReadFile(file, to, size, &read, nullptr) && read == size;
-}
-
-bool WriteAt(void* file, std::uint32_t offset, const void* from, std::uint32_t size) {
-    DWORD written = 0;
-    return gameapi::SetFilePointer(file, static_cast<LONG>(offset), nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-           gameapi::WriteFile(file, from, size, &written, nullptr) && written == size;
-}
-
-} // namespace
-
+// The archive's reads and writes are File's ReadAt and WriteAt (SetFilePointer, then ReadFile or WriteFile; VC6's
+// _lseek, _read and _write on a binary descriptor did the same calls).
 MappedResource::MappedResource() {
     image = nullptr;
-    handle = INVALID_HANDLE_VALUE;
     writable = 0;
 }
 
@@ -63,10 +45,7 @@ MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
     MappedResource::FreeAllFiles();   // called directly, not through the vtable
-    if (handle != INVALID_HANDLE_VALUE) {
-        CloseHandle(handle);
-        handle = INVALID_HANDLE_VALUE;
-    }
+    archive.Close();
     entries = nullptr;
     names = nullptr;
     entryTable = {};
@@ -86,13 +65,11 @@ bool MappedResource::OpenResource(const std::string& path, bool forWriting) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable = forWriting;
-    handle = gameapi::CreateFileA(path.c_str(), forWriting ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ,
-                                   FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
-                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, nullptr);
-    if (handle == INVALID_HANDLE_VALUE)
+    if (!archive.Open(path, (forWriting ? lib::File::modeReadWrite : lib::File::modeRead) | lib::File::shareDenyNone |
+                                lib::File::osRandomAccess))
         return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
 
-    if (ReadAt(handle, 0, &header, sizeof(header))) {
+    if (archive.ReadAt(0, &header, sizeof(header))) {
         if (header.magic != kResMagic) {
             game::FatalError("Wrong format resource file \"" + path + "\"");
             CloseResource();
@@ -103,8 +80,8 @@ bool MappedResource::OpenResource(const std::string& path, bool forWriting) {
         nameTable.resize(header.namesSize);
         entries = entryTable.data();
         names = nameTable.data();
-        if (ReadAt(handle, header.tableOffset, entries, tableSize) &&
-            ReadAt(handle, header.tableOffset + tableSize, names, header.namesSize))
+        if (archive.ReadAt(static_cast<long>(header.tableOffset), entries, tableSize) &&
+            archive.ReadAt(static_cast<long>(header.tableOffset + tableSize), names, header.namesSize))
             return true;
     }
     CloseResource();
@@ -129,10 +106,7 @@ bool MappedResource::OpenFromMemory(const void* memoryImage) {
 
 void MappedResource::CloseResource() {
     FreeAllFiles();
-    if (handle != INVALID_HANDLE_VALUE) {
-        CloseHandle(handle);
-        handle = INVALID_HANDLE_VALUE;
-    }
+    archive.Close();
     entries = nullptr;
     names = nullptr;
     entryTable = {};
@@ -178,7 +152,7 @@ void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
     file->data = ::operator new(file->size);
     file->offset = entry.offset;
 
-    if (ReadAt(handle, file->offset, file->data, file->size)) {
+    if (archive.ReadAt(static_cast<long>(file->offset), file->data, file->size)) {
         if (size) *size = file->size;
         {
             std::string key(file->name);
@@ -206,7 +180,7 @@ bool MappedResource::CloseFile(void* data) {
     if (--file->refCount != 0) return true;
 
     if (writable) {
-        if (!WriteAt(handle, file->offset, file->data, file->size)) {
+        if (!archive.WriteAt(static_cast<long>(file->offset), file->data, file->size)) {
             // The file name is the formatted data pointer.
             std::string name;
             name = static_cast<const char*>(data);
@@ -231,21 +205,9 @@ void MappedResource::FreeAllFiles() {
     filesByName.clear();
 }
 
-MappedFile::MappedFile() : file(INVALID_HANDLE_VALUE) {}
-
 void MappedFile::Close() {
-    if (view) {
-        gameapi::UnmapViewOfFile(view);
-        view = nullptr;
-    }
-    if (mapping) {
-        gameapi::CloseHandle(mapping);
-        mapping = nullptr;
-    }
-    if (file != INVALID_HANDLE_VALUE) {
-        gameapi::CloseHandle(file);
-        file = INVALID_HANDLE_VALUE;
-    }
+    mapping.Close();
+    file.Close();
     size = 0;
 }
 
@@ -253,66 +215,46 @@ bool MappedFile::Open(const std::string& path, bool writable) {
     if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
-    char root[4];
-    DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
-    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
-    std::strncpy(root, path.c_str(), 3);
-    root[3] = '\0';
-    const char* rootPath = root;
-    if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
-    gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
-    SYSTEM_INFO info;
-    gameapi::GetSystemInfo(&info);
-    DWORD flags = (info.dwPageSize < bytesPerSector || info.dwPageSize % bytesPerSector != 0)
-                      ? FILE_FLAG_RANDOM_ACCESS | FILE_ATTRIBUTE_NORMAL
-                      : FILE_FLAG_NO_BUFFERING | FILE_ATTRIBUTE_NORMAL;
-
-    file = gameapi::CreateFileA(path.c_str(), writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
-                                 nullptr, OPEN_EXISTING, flags, nullptr);
-    if (file == INVALID_HANDLE_VALUE) {
-        gameapi::GetLastError();
+    const unsigned access = lib::File::shareDenyWrite | (writable ? lib::File::modeReadWrite : lib::File::modeRead) |
+                            (lib::SectorsFitPages(path) ? lib::File::osNoBuffer : lib::File::osRandomAccess);
+    if (!file.Open(path, access)) {
         char message[256];
         std::snprintf(message, sizeof(message), "CMappedFile::Open().\nUnable to open file \"%s\".\n", path.c_str());
         game::DebugLog(message);
         return false;
     }
 
-    size = gameapi::GetFileSize(file, nullptr);
-    if (size == INVALID_FILE_SIZE) {
+    bool sized = true;
+    try {
+        size = file.GetLength();
+    } catch (const lib::FileError&) {
+        sized = false;
+    }
+    if (!sized) {
         game::FatalError("CMappedFile::Open().\nUnable to determine file size.\n");
     } else if (size > 0x80000000) {
         game::FatalError("CMappedFile::Open().\nToo large file to map.\n");
+    } else if (!mapping.Create(file, writable)) {
+        game::FatalError("CMappedFile::Open().\nUnable to create file mapping.\n");
     } else {
-        mapping = gameapi::CreateFileMappingA(file, nullptr, writable ? PAGE_READWRITE : PAGE_READONLY, 0, 0, nullptr);
-        if (!mapping) {
-            game::FatalError("CMappedFile::Open().\nUnable to create file mapping.\n");
-        } else {
-            view = gameapi::MapViewOfFile(mapping, writable ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
-            if (view) return true;
-            game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path,
-                             gameapi::GetLastError());
-        }
+        if (mapping.MapView(writable)) return true;
+        game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path,
+                         gameapi::GetLastError());
     }
     Close();
     return false;
 }
 
 void MappedFile::Flush() {
-    if (!view) return;
-    gameapi::FlushViewOfFile(view, 0);
-    SYSTEMTIME now;
-    gameapi::GetSystemTime(&now);
-    BY_HANDLE_FILE_INFORMATION info;
-    gameapi::GetFileInformationByHandle(file, &info);
-    FILETIME time;
-    gameapi::SystemTimeToFileTime(&now, &time);
-    gameapi::SetFileTime(file, nullptr, nullptr, &time);
+    if (!mapping.View()) return;
+    mapping.Flush();
+    file.SetWriteTimeNow();
 }
 
 
 bool MMIOResource::OpenResource(const std::string& path, bool forWriting) {
     if (!file.Open(path, forWriting)) return false;
-    if (OpenFromMemory(file.view)) return true;
+    if (OpenFromMemory(file.mapping.View())) return true;
     CloseResource();
     return false;
 }
