@@ -273,17 +273,18 @@ DD ToDD(U128 v) {
 
 // |x| = q * P66/2 + r exactly, |r| <= P66/4 (and a hair), for 0 < |x| < 2^63; FSIN / FCOS take sin / cos of r by q's
 // quadrant. The quotient's estimate in double is up to 2^10 off for the largest x: the remainder corrects it once.
+// x is a float or a double: the 128-bit integers hold either's multiples exactly.
 struct Reduced {
     DD r;
     unsigned quadrant;
 };
 
-Reduced Reduce(float ax) {
-    std::uint64_t q = static_cast<std::uint64_t>(static_cast<double>(ax) * kTwoOverPi + 0.5);
+Reduced Reduce(double ax) {
+    std::uint64_t q = static_cast<std::uint64_t>(ax * kTwoOverPi + 0.5);
     if (q == 0) return {DD{ax}, 0};
-    const std::uint32_t bits = std::bit_cast<std::uint32_t>(ax);
-    const std::uint64_t mantissa = (bits & 0x7FFFFFu) | 0x800000u;     // ax >= 0.78: normal
-    const int shift = static_cast<int>(bits >> 23) - 150 + 65;         // ax = mantissa * 2^(shift - 65), 41 .. 104
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(ax);
+    const std::uint64_t mantissa = (bits & 0x000FFFFFFFFFFFFFull) | 0x0010000000000000ull;   // ax >= 0.78: normal
+    const int shift = static_cast<int>(bits >> 52) - 1075 + 65;   // ax = mantissa * 2^(shift - 65), 12 .. 75
     const U128 scaled = shift >= 64 ? U128{0, mantissa << (shift - 64)}
                                     : U128{mantissa << shift, mantissa >> (64 - shift)};
     U128 rest = Sub128(scaled, TimesQuarterTurn(q));
@@ -314,12 +315,12 @@ DD CosOf(DD r) {
     return AddDD(1.0, MulDD(z, Series(z, kCosHead, kCosTail)));
 }
 
-// sin (cosine false) or cos of a float by FSIN / FCOS's reduction.
-Unrounded SinCos(float x, bool cosine) {
-    if (std::isnan(x)) return static_cast<double>(x);
+// sin (cosine false) or cos of a float or a double by FSIN / FCOS's reduction.
+Unrounded SinCos(double x, bool cosine) {
+    if (std::isnan(x)) return x;
     if (std::isinf(x)) return kIndefinite;
-    const float ax = std::fabs(x);
-    if (ax >= 0x1p63f) return static_cast<double>(x);
+    const double ax = std::fabs(x);
+    if (ax >= 0x1p63) return x;
     const Reduced reduced = Reduce(ax);
     const unsigned quadrant = (reduced.quadrant + (cosine ? 1 : 0)) & 3;
     const DD v = Round64((quadrant & 1) ? CosOf(reduced.r) : SinOf(reduced.r));
@@ -379,6 +380,8 @@ double Scale(double g, double n) {
 
 Unrounded Sin(float x) { return SinCos(x, false); }
 Unrounded Cos(float x) { return SinCos(x, true); }
+Unrounded Sin(double x) { return SinCos(x, false); }
+Unrounded Cos(double x) { return SinCos(x, true); }
 
 Unrounded Atan2(float y, float x) {
     if (std::isnan(y) || std::isnan(x)) return NaNOf(y, x);

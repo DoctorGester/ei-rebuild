@@ -1,89 +1,58 @@
-// Quaternion helpers: rotation from an angle and an axis (two argument orders), products with a conjugate,
-// and spherical interpolation. Names are provisional. Floating point follows the game's x87 code: `double`
-// for values the game keeps on the FPU stack, static_cast<float> where it stores to a float.
+// Quaternion helpers: rotation from an angle and an axis (two argument orders) and spherical interpolation.
+// The original's maths ran at the main thread's 24-bit precision: float maths in its order, and its FSIN of
+// a double through lib/pc24.h.
 #include "maths.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-
-#include <cstdint>
-#include <cstring>
+#include "lib/pc24.h"
 
 namespace {
 
-inline double D(float f) { return f; }
-
-// Rounds to double.
-double StoreDouble(double v) {
-    volatile double r = v;
-    return r;
-}
-
-// Constants the game reads from memory at run time.
-#define EI_HALF_F 0.5f
-#define EI_ONE_F 1.0f
-#define EI_ZERO_D 0.0
-#define EI_ONE_D 1.0
-#define EI_SLERP_LINEAR 0.0001   // 1e-4: below this 1 - cos interpolates linearly
-
-// The shared body of the two angle/axis setters: w = cos(angle / 2), (x, y, z) = axis * sin(angle
-// / 2) / |axis|, the factor rounded to float.
-void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
-    double half = D(angle) * D(EI_HALF_F);
-    // The squared length stays unrounded (LengthSquaredXYZ would round it: the same at 24 bits).
-    float factor = static_cast<float>(x87::fsin(half) / std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
-    q->w = static_cast<float>(x87::fcos(half));
-    Vector3 v = factor * axis;
-    q->x = v.x;
-    q->y = v.y;
-    q->z = v.z;
-}
+// Below this 1 - cos interpolates linearly (a double the FPU compares exactly).
+constexpr double kSlerpLinear = 0.0001;
 
 } // namespace
 
 // Arguments (angle, axis); returns this.
 Quaternion* Quaternion::SetAngleAxis(float angle, const Vector3& axis) {
-    FromAngle(this, axis, angle);
+    FromAxisAngle(axis, angle);
     return this;
 }
 
 // Arguments (axis, angle); returns this.
 Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
-    FromAngle(this, axis, angle);
+    FromAxisAngle(axis, angle);
     return this;
 }
 
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
-// rotations interpolate linearly. The weight of a is rounded to float, the weight of b is not.
+// rotations interpolate linearly. The angle is the game CRT's arc cosine, a double: its sine is the FPU's
+// FSIN of the whole double (pc24::Sin's double form), and each weight one PC24 product.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
-    double cosine = DotWZYXUnrounded<double>(a, b);
-    Quaternion c;
-    c = b;
-    double stored = StoreDouble(cosine);
+    float cosine = DotWZYXUnrounded<float>(a, b);
+    Quaternion c = b;
     EI_NAN_AUDIT(cosine);
-    if (cosine < EI_ZERO_D) {
+    if (cosine < 0.0f) {
         cosine = -cosine;
-        stored = StoreDouble(cosine);
-        c.x = static_cast<float>(-D(b.x));
-        c.y = static_cast<float>(-D(b.y));
-        c.z = static_cast<float>(-D(b.z));
-        c.w = static_cast<float>(-D(b.w));
+        c.x = -b.x;
+        c.y = -b.y;
+        c.z = -b.z;
+        c.w = -b.w;
     }
     float weightA;
-    double weightB;
-    double one = EI_ONE_D;
-    if (one - cosine > EI_SLERP_LINEAR) {
-        double angle = libcrt::CiAcos(stored);
-        double inverseSine = one / x87::fsin(angle);
-        weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
-        weightB = x87::fsin(angle * D(t)) * inverseSine;
+    float weightB;
+    if (static_cast<double>(1.0f - cosine) > kSlerpLinear) {
+        const double angle = libcrt::CiAcos(cosine);
+        const float inverseSine = pc24::Div(1.0, pc24::Sin(angle));
+        weightA = pc24::Mul(pc24::Sin(pc24::Mul(1.0f - t, angle)), inverseSine);
+        weightB = pc24::Mul(pc24::Sin(pc24::Mul(angle, t)), inverseSine);
     } else {   // also NaN
-        weightA = static_cast<float>(D(EI_ONE_F) - D(t));
+        weightA = 1.0f - t;
         weightB = t;
     }
-    x = static_cast<float>(D(weightA) * D(a.x) + weightB * D(c.x));
-    y = static_cast<float>(D(weightA) * D(a.y) + weightB * D(c.y));
-    z = static_cast<float>(D(weightA) * D(a.z) + weightB * D(c.z));
-    w = static_cast<float>(D(weightA) * D(a.w) + weightB * D(c.w));
+    x = weightA * a.x + weightB * c.x;
+    y = weightA * a.y + weightB * c.y;
+    z = weightA * a.z + weightB * c.z;
+    w = weightA * a.w + weightB * c.w;
 }

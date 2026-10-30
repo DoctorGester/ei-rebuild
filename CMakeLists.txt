@@ -71,8 +71,6 @@ set(EI_X87_GAME_SOURCES
     game/ai_refresh game/ai_shape_cache game/ai_unit_shape game/ai_water_patch
     # C30e9: unit AI
     game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
-    # C30e10a: Slerp's FSIN of the game CRT's double arc cosine
-    game/quaternion
     # C30e12: client units and world
     game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
     game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client

@@ -21,8 +21,8 @@
 // doubles is exact by construction (two-sum / two-product, then one rounding); Exp is VC6's sequence step by step;
 // Sin, Cos, Log, Log10 and Exp give the FPU's float for every float argument; a following operation differs only where
 // the FPU's own 64-bit result is off by an ulp next to a rounding boundary (9 of 200 M atan2 products tested).
-// Arguments are floats: the callers' arguments are PC24 results. Results beyond a float's range (the FPU's registers
-// keep a 15-bit exponent) give the float the store would.
+// Arguments are floats (the callers' arguments are PC24 results), but Sin and Cos also take a double. Results beyond
+// a float's range (the FPU's registers keep a 15-bit exponent) give the float the store would.
 //
 // Built for SSE2 only (pc24.cpp), out of line: an x87 object may call them too.
 
@@ -39,9 +39,11 @@ struct Unrounded {
 };
 
 // FSIN / FCOS: the argument reduced by the FPU's 66-bit pi, as the FPU does. |x| >= 2^63 gives x (the FPU's C2 case),
-// an infinity the default NaN.
+// an infinity the default NaN. The double forms take a double loaded whole (FLD qword: the game CRT's arc cosine).
 Unrounded Sin(float x);
 Unrounded Cos(float x);
+Unrounded Sin(double x);
+Unrounded Cos(double x);
 
 // FPATAN: atan2(y, x) in (-pi, pi], the signed zeros and infinities as IEEE's atan2.
 Unrounded Atan2(float y, float x);
