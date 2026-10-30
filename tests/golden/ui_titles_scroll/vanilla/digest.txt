@@ -3018,7 +3018,7 @@ client tick 3360
 client ticksRun 3357
 cunit148 #place 97E4F2D8
 cunit148 #unit 2880F1E9
-@ 168 update 3380 frame 687 tick 3380 zone - hash 5FD4CB97 n 68
+@ 168 update 3380 frame 687 tick 3380 zone - hash EE295FC4 n 68
 world tick 3380
 world updates 3380
 random isaac.count 87
@@ -3035,5 +3035,5 @@ client ticksRun 3377
 cunit2 #place 85C53A26
 cunit129 #place BDB749EA
 cunit129 #unit 97AF1D83
-cunit148 #place 299B05A6
+cunit148 #place 4C35AA95
 cunit187 #place 8FD72F05
