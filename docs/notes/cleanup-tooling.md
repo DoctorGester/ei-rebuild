@@ -458,6 +458,30 @@ Range for every draw of three ranges and 2^28 random, `ScaledExperience` 2^28 (e
 degrees for every 3-decimal text in [-1000, 1000], `BufferRatio` 2^27, the share 2^26, the saver's product on every
 float: 0 differ. Behaviour change: a signalling NaN in a variable table or an award keeps its bits (SSE2 copies).
 
+**C30e5 (server world, world effects; 21 files, all moved).** The double locals and casts were PC24 registers: float
+maths in the original's order (the particle step and the scorch shape, the light's range, the bird's speed, the
+tornado's step, the view and hearing ranges, the exit centres, the experience weights and shares, the depth sort's
+dot (`DotZYX`), the hero-start and spell-target distances; `VariableGet` returns float). Through `pc24`: a random
+word (FromUnsigned's FILD is exact) times a wide double constant (the bird's flight angle, the tornado's speed, the
+scorch angle, the weather's map point, offsets, bolt and spread: `pc24::Mul(double(word), c)`); the world tick, an
+int past 2^24 in long games, times the seconds per tick (`CWorld::Elapsed`; `CWorld::TimeOfDay` is fmod(Elapsed() +
+timeBase, 24), exact, for the time functions, `GameServerTimeOfDay`; the save's player times) and plus the tick
+fraction (the camera path); 1 / the time-scale option and the rate times the double 1/15; a height
+(`RawSurfaceHeightAt`, a double virtual) plus or minus a float (missile, particle, spell missile, rain bolt); an
+effect's double `Radius()` times a float (sync); the bird's sin / cos times a radius and its atan2 minus a float, the
+party's facing, PlaceInLine's sin / cos. **Kept:** `libcrt::CiAcos` (PlaceInLine) stays the game CRT's x87 call: its
+64-bit result reaches SSE2 code as a double, and the doubling `pc24::Add(arc, arc)` still gives the x87's float for
+every float argument (tested); the double virtuals (`Radius`, `LightRadius`, `NightLevel`, the heights) keep their
+type and return float values. `Ftol` -> int64 truncation (`Truncate`: the catch-up ticks, the movie flag; the quest
+money), `x87::fistp` / `RoundToInt` -> `lib::RoundEven`. x87 code MSVC leaves in the SSE2 objects: one float
+operation on a call's ST0 result (the bird's floor, `LightRadius`) and NightLevel's (h - 20) * 0.25 (exact at any
+precision); the out-of-line x87 copies of `DotZYX` / `vecmath::Dot` are not called (inlined as SSE). Equivalence
+test (C30e5's `eq/`, the x87 sequences at PC24 against the new forms): every float's acos doubled, 1 / every int,
+every float times 1/15 (2^32 each); every tick 0..2^31 times 8 game rates and plus 5 fractions; random tick times
+and plus a float (200 M each); every word times the bird's and the tornado's constants (2^32 each) and 2^26 words
+(every 64th) times each of the 7 constants: 0 differ. Keep such sweeps to a few minutes each (`eq words 6` 31 s; the
+2^32 sweeps took 4-5 min each, the tick sweeps 25 min together).
+
 ### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
