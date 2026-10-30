@@ -150,5 +150,6 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   Ours only. 006462A0, the unit panel's draw: items_spells.md.
 - **The game's caught file errors**: the game's MFC threw a `CFileException*` from a failed file call, and
   004D5880 (the script loader's text file reader, `script_exec_helpers.cpp`) and `Dib::Read` 006D5910 / `Write`
-  006D5AC0 (`dib.cpp`) caught it. Ours catch `platform::FileError`, which platform::File / TextFile throw by value
-  (no MFC exception class is left since C14zi).
+  006D5AC0 (`dib.cpp`) caught it. Ours: Dib catches `platform::FileError`, which platform::File throws by value (no
+  MFC exception class is left); the script reader reads the whole file with `platform::ReadFile`, which does not
+  throw.

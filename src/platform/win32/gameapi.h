@@ -97,10 +97,6 @@ extern decltype(&::DeleteFileA)& DeleteFileA;  // KERNEL32.dll, through the slot
 extern decltype(&::FindFirstFileA)& FindFirstFileA;  // KERNEL32.dll, through the slot
 using ::GetLastError;  // KERNEL32.dll
 extern decltype(&::CreateFileA)& CreateFileA;  // KERNEL32.dll, through the slot
-using ::SetFileTime;  // KERNEL32.dll
-using ::SystemTimeToFileTime;  // KERNEL32.dll
-using ::GetFileInformationByHandle;  // KERNEL32.dll
-extern decltype(&::GetSystemTime)& GetSystemTime;  // KERNEL32.dll, through the slot
 extern decltype(&::GetPrivateProfileSectionA)& GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetPrivateProfileStringA)& GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
 using ::ReadFile;  // KERNEL32.dll
@@ -111,10 +107,8 @@ extern decltype(&::GetModuleFileNameA)& GetModuleFileNameA;  // KERNEL32.dll, th
 using ::SetLastError;  // KERNEL32.dll
 using ::ResumeThread;  // KERNEL32.dll
 using ::SetThreadPriority;  // KERNEL32.dll
-using ::FlushViewOfFile;  // KERNEL32.dll
 extern decltype(&::GetFileAttributesA)& GetFileAttributesA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetTickCount)& GetTickCount;  // KERNEL32.dll, through the slot
-extern decltype(&::GetDiskFreeSpaceA)& GetDiskFreeSpaceA;  // KERNEL32.dll, through the slot
 extern decltype(&::MoveFileA)& MoveFileA;  // KERNEL32.dll, through the slot
 using ::CreateFileMappingA;  // KERNEL32.dll
 using ::GetFileSize;  // KERNEL32.dll

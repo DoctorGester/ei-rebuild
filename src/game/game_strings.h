@@ -51,7 +51,7 @@ inline const char* SpellContainerText() { return "spell container"; }
 // The interface's help topics file (Interface3D, Create / Shutdown): the name (after the data path) and the line
 // format (a topic and its count).
 inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
-inline const char* TutorialLineFormat() { return "%s %d\n"; }
+inline const char* TutorialLineFormat() { return "%s %d"; }
 
 // The flying hit points' draw: the amount's format and its FatalError.
 inline const char* DecimalFormat() { return "%d"; }

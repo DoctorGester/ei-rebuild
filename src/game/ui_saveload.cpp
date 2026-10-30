@@ -43,7 +43,6 @@ constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bit
 constexpr int kShotWidth = 256, kShotHeight = 192;
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
-constexpr unsigned kOpenWrite = platform::File::modeCreate | platform::File::modeWrite;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
@@ -125,7 +124,7 @@ void SaveLoadWindow::ShowPicture() {
     platform::File file;
     {
         std::string path = folder + game::savewords::ShotFile();
-        file.Open(path, platform::File::modeRead);
+        file.Open(path, platform::FileMode::Read);
     }
     const unsigned read = file.Read(picture.data(), kShotBytes);
     file.Close();
@@ -180,7 +179,7 @@ void SaveLoadWindow::SaveGame() {
     netlink::FileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
-        info.Open(path, kOpenWrite, 0);
+        info.Open(path, platform::FileMode::Create, 0);
     }
     if (nameTyped)
         entries.data()->title = name;
@@ -205,7 +204,7 @@ void SaveLoadWindow::SaveGame() {
         platform::File shot;
         {
             std::string path = folder + game::savewords::ShotFile();
-            shot.Open(path, kOpenWrite);
+            shot.Open(path, platform::FileMode::Create);
         }
         shot.Write(newPicture.data(), kShotBytes);
         shot.Close();
@@ -239,7 +238,7 @@ void SaveLoadWindow::FillEntries() {
         } else {
             infoFind.FindNext();
             netlink::FileStream info;
-            info.Open(infoFind.GetFilePath(), 0, 1);
+            info.Open(infoFind.GetFilePath(), platform::FileMode::Read, 1);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime);
                 entry->map = info.ReadString();
@@ -333,7 +332,7 @@ void QuickSave(const char* slot, bool stepFrame) {
         map = record->allod;
     std::string folder = SlotFolder(slot);
     netlink::FileStream info;
-    info.Open(folder + game::savewords::InfoFile(), kOpenWrite, 0);
+    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create, 0);
     info.WriteHeader(kInfoMagic, kInfoVersion);
     info.WriteValue(gameTime);
     info.WriteString(map);
@@ -345,7 +344,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     // shot.sav: the copied screen at 256x192.
     const std::vector<std::uint16_t> pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     platform::File shot;
-    shot.Open(folder + game::savewords::ShotFile(), kOpenWrite);
+    shot.Open(folder + game::savewords::ShotFile(), platform::FileMode::Create);
     shot.Write(pixels.data(), kShotBytes);
     shot.Close();
     if (surface != nullptr) {

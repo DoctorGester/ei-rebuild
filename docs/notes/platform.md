@@ -34,7 +34,7 @@ moving them replays every game.exe run; move them only with tools/check_harness_
   procedure's message; SDL leaves it empty) and `Event::window` its window. Still Windows' values, on purpose: the key
   codes and key flags (the bindings file and the interface keep them; SDL's backend maps its keys to them).
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
-  (`Sleep`, `OpenFile`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
+  (`Sleep`, `ReadFile`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
   the system as `::X` or `gameapi::X`. When the files were merged, EndProcess's `Sleep(INFINITE)` (system.cpp, which
   did not see the clock header) would have become `platform::Sleep`, the harness's slot; it is `::Sleep`.
 
@@ -83,7 +83,7 @@ platform.h's sections (the sockets in `platform::net`, the sound in `platform::a
 | Paths | `ExePath()`, `CurrentFolder()`; `ProgramPath()`, `UserDataFolder()`, `SetCurrentFolder` | the GetModuleFileNameA / GetCurrentDirectoryA slots (UTF-8 routes); the last three direct (wide calls) |
 | The machine | `PageSize()`, `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | GetSystemInfo; the SystemParametersInfoA slot (the harness fixes smoothing off); the last three direct |
 | Folders, drives and whole files | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `FreeDiskSpace`, `VolumeLabel`; `ReadWholeFile` / `WriteWholeFile`, `PathExists`, `IsFile`, `FolderEntries` | the CreateDirectoryA, RemoveDirectoryA, DeleteFileA, MoveFileA, CopyFileA (harness redirects, UTF-8 routes) and GetVolumeInformationA slots; GetDiskFreeSpaceExW direct; the last five direct (below) |
-| Files | `File`, `TextFile`, `FileMapping`, `FileFind` (attributes as `IsDirectory` / `IsHidden` / `IsSystem`), `OpenFile`, `FileExists`, `FileError`, `LastError()` | the CreateFileA, ReadFile, WriteFile, SetFilePointer, CreateFileMappingA, MapViewOfFile, FindFirstFileA, GetFileAttributesA ... slots (UTF-8 routes), so the harness's save / install redirection and a mod's hooks apply |
+| Files | `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `ReadFile` (a whole file), `MappedFile` (read only), `FileFind` (attributes as `IsDirectory` / `IsHidden` / `IsSystem`), `FileExists`, `FileError` | the CreateFileA, ReadFile, WriteFile, SetFilePointer, CreateFileMappingA, MapViewOfFile, FindFirstFileA, GetFileAttributesA ... slots (UTF-8 routes), so the harness's save / install redirection and a mod's hooks apply |
 | The .ini files | `IniSectionEntries`, `IniString`; `IniInt` | the GetPrivateProfileSectionA / StringA slots (not routed: the config\*.ini names are ASCII); `IniInt` direct |
 | The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the window and message slots (the harness hooks CreateWindowExA, ShowWindow, PeekMessageA), the screen mapping and monitor calls direct |
 | The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: the FindWindowA (the harness answers it), GetWindowThreadProcessId and foreground slots; `ProgramInstance` direct |
@@ -112,10 +112,25 @@ would bypass the harness's clocks and change the replays.
 
 ## Files and the direct calls
 
-The Files section is the game's file objects (the old lib/file_io.h): `File` (a binary file, MFC's open flags), `TextFile`,
-`FileMapping`, `FileFind` (a folder search with CFileFind's read-ahead), `OpenFile` (fopen) and `FileExists`. A failed
-read, write or seek throws `FileError`; seek and error behaviour are as before the move. No SDK type is in the header
-(the search state is a private `Search` struct of the backend, a handle never leaves `File`).
+The Files section is the game's file objects (the old lib/file_io.h): `File` (a binary file opened in one of three
+`FileMode`s: Read, Create (truncating), WriteExisting; a text file's lines written with `WriteLine`, "\r\n" ends),
+`ReadFile` (a whole file; the text readers cut it with lib's `str::Lines`, text mode's line ends), `MappedFile` (a
+whole file mapped read only: the archives and the registry files), `FileFind` (a folder search with CFileFind's
+read-ahead) and `FileExists`. A failed read, write or seek throws `FileError` (the code and the path in what());
+`ReadFile`, `ReadAt` and `MappedFile::Open` return false instead. No SDK type is in the header (the search state is a
+private `Search` struct of the backend, a handle never leaves `File` or `MappedFile`).
+
+Every open shares the file for reading and writing (FILE_SHARE_READ | FILE_SHARE_WRITE, never FILE_SHARE_DELETE, so
+removing an open file still fails) with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives'
+FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS hints and the sector-size test that chose between them are gone. Most
+of the game's opens were exclusive. An open that the old sharing refused would now succeed; none is known (the code
+never opens a file it holds). PL11b's temporary check in platform_win32.cpp (`OpenHandle`, `Held`) logs to
+ei-rebuild.log "platform: <path>: opened (read|write) while open (read|write) already" when a File or MappedFile opens
+a path one of them holds, and "platform: <path>: a sharing violation" when another holder refuses an open. Reading the
+first kind: two read opens of an archive (.res, .reg) or of the random seed's file were shared before too; any other
+line is an open the old modes refused. Open question until a main suite and the Rebirth suite have run with it: no
+line of either kind but the archives' expected, then the check goes (with the vectors' `ei::Log` stub if nothing
+else logs from the platform).
 
 A few callers never went through the game's slots and must not start to (the harness's routes would change what they
 see in verify runs). Each has its own platform function that calls the system directly:

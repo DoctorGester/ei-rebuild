@@ -53,8 +53,8 @@ void ResourceStream::Close() { file.Close(); }
 bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     Close();
     if (!platform::FileExists(name)) return false;
-    if (!file.Open(name, platform::File::modeRead | platform::File::shareDenyWrite)) return false;
-    if (size != nullptr) *size = static_cast<std::uint32_t>(file.GetLength());
+    if (!file.Open(name, platform::FileMode::Read)) return false;
+    if (size != nullptr) *size = file.Size();
     return true;
 }
 
@@ -70,7 +70,7 @@ long ResourceStream::Read(char* buffer, long size) {
 long ResourceStream::Seek(long offset, int origin) {
     if (!file.IsOpen()) return -1;
     try {
-        return file.Seek(offset, origin == 2 ? platform::File::end : platform::File::begin);
+        return file.Seek(offset, origin == 2 ? platform::SeekFrom::End : platform::SeekFrom::Begin);
     } catch (const platform::FileError&) {
         return -1;
     }
@@ -124,11 +124,10 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
 }
 
 
-// The mapped file is constructed as a member (MappedFile's constructor).
 MMIOResource::MMIOResource() { mappedImage = nullptr; }
 
 MMIOResource::~MMIOResource() {
-    // CloseResource, inlined (is MappedFile::Close's copy).
+    // CloseResource, inlined.
     file.Close();
     entries = nullptr;
     names = nullptr;

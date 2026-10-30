@@ -253,7 +253,7 @@ be here are gone. Where things live: `world_server.cpp` (lookups, setters, objec
 `world_map.cpp`, `world_savefile.cpp`, `world_create.cpp`, `world_deleting_destructors.cpp`,
 `world_client*.cpp` (frame, maps, setup, lights, draw, view, session), `figure_mesh*.cpp`,
 `figure_manager.cpp`, `figure_part_draw.cpp`, the AI grids in `ai_block_search.cpp` / `ai_unit_shape.cpp` / `ai_map_load.cpp` /
-`ai_path_smooth.cpp` / `ai_unit_shape.cpp` / `ai_fog_grid.cpp` / `ai_path_save.cpp` / `sector_map.cpp`, `buffered_file.cpp`,
+`ai_path_smooth.cpp` / `ai_unit_shape.cpp` / `ai_fog_grid.cpp` / `ai_path_save.cpp` / `sector_map.cpp`,
 `bink_video.cpp`, `console_commands.cpp` (`generateacks`), `logic_settings.h`, `cursor_setup.cpp`.
 
 Facts a worker needs that the code comments do not say:
@@ -267,8 +267,8 @@ Facts a worker needs that the code comments do not say:
   00790AAC, and reaches the AI graph and the map through the forwarders. `BuildZoneTable` fills 007AFDE0 from the maps
   folder's *.mq files (allod 0 / 1 / 2 by the lists 00790270 / 00790298 / 007902C0, else 3).
 - `LoadZoneQuests` (stdcall, AL): the zone's "<zone>.mq" of the maps folder; a running server shares the file's bytes through
-  a growing GameBuffer, the path joins the quest files 007AFDD0 once and the briefing texts 007AF788 add it as a source
-  (`GameBuffer::BeginWrite` 00580EE0 lives in buffered_file.cpp).
+  a growing GameBuffer (the file read whole: `platform::ReadFile`), the path joins the quest files 007AFDD0 once and the
+  briefing texts 007AF788 add it as a source (`GameBuffer::BeginWrite` 00580EE0 lives in game_buffer.cpp).
 - `WorldClient::LoadZone`: the zone state block (tick, map and .mob names, exits, cave flag, unit looks, `unit_looks.h`);
   the old zone's prints, objects, maps, items and spells freed; the terrain's map through `LandscapeLoadMapOriginal` 006C68B0
   with the allod of the local player's zone; sectors of 16 cells, sky, lights table, exit markers, lighting, music, unit

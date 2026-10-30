@@ -474,12 +474,12 @@ void CloseAndDelete(MappedResource* source) {
 
 } // namespace
 
-bool TextSources::Add(const std::string& path, bool writable) {
+bool TextSources::Add(const std::string& path) {
     for (const TextSource& archive : archives)
         if (SameName(archive, path)) return true;
     auto* resource = new MappedResource();
     archives.push_back(TextSource{path, resource});
-    return archives.back().source->OpenResource(path, writable);
+    return archives.back().source->OpenResource(path);
 }
 
 void TextSources::Remove(const std::string& path) {
@@ -497,7 +497,7 @@ void TextSources::Clear() {
 }
 
 bool TextManager::AddSource(const std::string& path) {
-    return sources.Add(path, 0);
+    return sources.Add(path);
 }
 
 void TextManager::RemoveSource(const std::string& path) { sources.Remove(path); }

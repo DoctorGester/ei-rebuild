@@ -20,7 +20,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -181,11 +180,10 @@ const std::vector<std::string>& AutoExecLines() {
         std::vector<std::string> result;
         for (std::string& line : settings::GetValues(settings::kAutoExec))
             if (!line.empty()) result.push_back(std::move(line));
-        if (platform::IsFile("2utoexec.cfg")) {
-            std::ifstream file("2utoexec.cfg");
-            std::string line;
-            while (std::getline(file, line)) result.push_back(line);
-        }
+        std::string bytes;
+        std::uint32_t error;
+        if (platform::ReadWholeFile("2utoexec.cfg", &bytes, &error) == platform::WholeFile::read)
+            for (std::string& line : str::Lines(bytes)) result.push_back(std::move(line));
         return result;
     }();
     return lines;

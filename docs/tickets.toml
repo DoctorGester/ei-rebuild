@@ -6887,3 +6887,10 @@ title = "The harness drives the SDL path in the image's runs (platform_win32_win
 group = "port"
 depends = ["PL9a"]
 note = "PL10 review (build/reviews/pl10_platform.md, section 6): an image-side seam in the platform (events injected as platform::Event, the frame step at the game's EventWaits site, the two clocks / Sleep / thread join, cursor position, mouse motion, the one-instance check and the message box settable by tests/verify/image) so the harness's image runs use platform_sdl.cpp. Deletes platform_win32_window.cpp, DirectInput and g_directInputObserver, Event::native / DefaultHandling. Every golden needs re-checking against game.exe's references (events a pump earlier or later); keep the two clocks distinct. After PL9a and PL11."
+
+[[ticket]]
+id = "PL11s"
+title = "The shared-opens check read and removed"
+group = "port"
+depends = ["PL11"]
+note = "PL11b made every File / MappedFile open shared for reading and writing (most were exclusive). platform_win32.cpp's temporary check (OpenHandle, Held, Release; ei::Log lines 'opened (read|write) while open (read|write) already' and 'a sharing violation') runs until a main suite and the Rebirth suite have run with it: read ei-rebuild.log of every run (two read opens of a .res / .reg / the random seed file were shared before too; any other line is an open the old modes refused: look at it before going on), then delete the check, its hook/log.h include and docs/notes/platform.md's paragraph; keep tests/vectors/hook_stub.cpp's ei::Log stub only if the platform still logs."

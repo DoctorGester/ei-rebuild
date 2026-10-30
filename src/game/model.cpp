@@ -202,7 +202,7 @@ int LinkFigureLoader::AddArchive(const std::string* path) {
     LinkArchive& archive = archives.emplace_back(*path);
     MappedResource* resource = new MMIOResource();
     archive.resource = resource;
-    if (resource->OpenResource(path->data(), 0)) return 1;
+    if (resource->OpenResource(path->data())) return 1;
 
     // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
     // string object by value to "%s": its first word, the text pointer, is what printed.)

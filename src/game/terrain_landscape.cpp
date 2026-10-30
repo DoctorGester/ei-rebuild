@@ -368,7 +368,7 @@ int Terrain::SetupPages(int count) {
 int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon) {
     ClearMap();
     const std::string name(path);
-    if (!archive.OpenResource(name, 0)) return 0;
+    if (!archive.OpenResource(name)) return 0;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
     // (An archive without a map file is not tested for either.)

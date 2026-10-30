@@ -1208,7 +1208,7 @@ void SoundManager::ClearWaveSources() {
 int SoundManager::AddWaveSource(const std::string& path) {
     if (enabled == 0) return 1;
     auto* source = new MappedResource();
-    if (source->OpenResource(path, 0) == 0) {
+    if (source->OpenResource(path) == 0) {
         delete source;
         return 0;
     }

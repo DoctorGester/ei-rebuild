@@ -261,7 +261,7 @@ Every function carries its address in its source comment. The files, with the sc
 in `newgame` unless noted): `core_streams.cpp` (MemoryStream, ByteStream::CopyFrom / ReadSized / ReadHeader; every save
 and network message), `core_streams.cpp` / `core_streams.cpp` (WriteDiff, ApplyDiff, ReadTagged, FindTagged,
 ReadText, ReplaceTagged; world_load, ui_saveload), `game_buffer.cpp` / `game_buffer_strings.cpp` / `net_coder.h` (growing
-byte buffer; save compression, multiplayer, net_lobby), `buffered_file.cpp` (005809D0 reads "quest.reg"),
+byte buffer; save compression, multiplayer, net_lobby),
 `projection.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `projection.cpp` (CameraViewMatrix
 004F0EF0; LightRotation 004F15C0 and LightShearMatrix 004F1440 went with the shadow's projection, R37f; 004E5660 a byte
 copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0), `text_split.cpp` (Split, SplitWords,

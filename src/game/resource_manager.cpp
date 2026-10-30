@@ -56,7 +56,7 @@ bool ResourceManager::AddArchiveOf(const std::string& path, MappedResource* (*cr
         archives.push_back(ArchiveEntry(path, resource));
     }
     // The result is ignored: a missing archive stays in the list, empty.
-    archives.back().resource->OpenResource(path, 0);
+    archives.back().resource->OpenResource(path);
     return true;
 }
 

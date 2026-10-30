@@ -157,8 +157,8 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
 - `FileStream` (0073C8D8, 0x1C): a ByteStream over a `platform::File` (src/platform/platform.h; the original: an MFC `CFile` at
   +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
-  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
-  (platform::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).
+  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes a `platform::FileMode`
+  (`Create` to save, `Read` to load).
 - `Chunk` (vtable 0073BE94, 0x18: vtable, id, consumed, size, start, parent; not the models'
   `ChunkArchive`): slot 0 a handler called for every chunk `ForEachChild` reads (empty in the base),
   slot 1 the file (base asks its parent). Sizes include the 8-byte header; every byte read or
@@ -312,9 +312,11 @@ instantiations were, for reading game.exe (config/library.csv names them):
   the vanilla body replaces the list, Rebirth's ResOverride (modfolders::ListFiles) appends to it, so the reused scratch
   vector of TextSources::ListKeys and SoundManager::ListWaveFiles grows over the archives as game.exe's array did. `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
   name) hashes its bytes as the CString did, up to the first zero byte.
-- A reader of the original's `CString::ReadString` (CStdioFile): 128-byte chunks through a local buffer, fgets given 129
-  as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
-  nothing, even after a full chunk (`platform::TextFile`).
+- The text files the game reads by lines (keyboard.ini, tutorial.ini, the console's loadvar and exec files, sysmsg.txt,
+  2utoexec.cfg) are read whole (`platform::ReadFile`) and cut by `str::Lines`: at each '\n', a '\r' before it
+  dropped, as a text-mode read gave them. MFC's ReadString cut a line into 128-byte pieces and stopped at a zero byte or
+  Ctrl-Z; no file of any install or scenario has such a line or byte (PL10's check), so the plain cut reads the same.
+  The game's text files are written with `File::WriteLine` ("\r\n" ends).
 - Rules from real bugs:
   - A `const char*` given to a std::string parameter builds the string from it: CString took a null pointer as ""
     where std::string's constructor does not. `GameFlow::SetNetworkZone(nullptr)` crashed net_pair_leave (it stores ""

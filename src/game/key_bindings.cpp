@@ -8,6 +8,7 @@
 #include "platform/platform.h"
 #include <cstring>
 #include <string>
+#include "lib/str.h"
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
@@ -57,12 +58,11 @@ void LoadKeyBindings() {
         UiKeyName& k = g_keyNames[i];
         if (!platform::KeyName(k.scan, k.name, 0x1F)) k.name[0] = 0;
     }
-    std::string line;
     std::vector<std::string> words;
-    platform::TextFile file;
+    std::string bytes;
     std::memset(g_keyActions, 0, 0x200);
-    if (!file.Open(g_dataFolder + "config\\keyboard.ini", "r")) return;
-    while (file.ReadLine(line)) {
+    if (!platform::ReadFile(g_dataFolder + "config\\keyboard.ini", &bytes)) return;
+    for (const std::string& line : str::Lines(bytes)) {
         words = text::SplitWords(line, ' ');
         if (words.size() <= 1) continue;
         bool known = false;
@@ -79,15 +79,13 @@ void LoadKeyBindings() {
             break;
         }
     }
-    file.Close();
 }
 
 // One line per scan code with an action, when both the key and the action are known:
 // key name, action name.
 void SaveKeyBindings() {
-    std::string line;
-    platform::TextFile file;
-    if (!file.Open(g_dataFolder + "config\\keyboard.ini", "w")) return;
+    platform::File file;
+    if (!file.Open(g_dataFolder + "config\\keyboard.ini", platform::FileMode::Create)) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = g_keyActions[scan];
         if (!id) continue;
@@ -101,10 +99,7 @@ void SaveKeyBindings() {
         }
         for (int action = 0; action < kActionCount; ++action) {
             if (kActionDefinitions[action].id != id) continue;
-            if (known) {
-                line = std::format("{} {}\n", g_keyNames[key].file, kActionDefinitions[action].name);
-                file.WriteString(line);
-            }
+            if (known) file.WriteLine(std::format("{} {}", g_keyNames[key].file, kActionDefinitions[action].name));
             break;
         }
     }

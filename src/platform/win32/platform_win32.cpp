@@ -8,19 +8,18 @@
 
 #include "platform/win32/gameapi.h"
 #include "platform/win32/platform_win32.h"
+#include "hook/log.h"   // the shared opens' check (temporary)
 #include "lib/text_case.h"
 
 #include <windows.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fcntl.h>
-#include <io.h>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #pragma comment(lib, "ws2_32.lib")   // WSAGetLastError, which game.exe does not import
@@ -212,7 +211,7 @@ WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32
     if (ok) {
         bytes->resize(static_cast<std::size_t>(size.QuadPart));
         DWORD read = 0;
-        ok = ReadFile(handle, bytes->data(), static_cast<DWORD>(bytes->size()), &read, nullptr) && read == bytes->size();
+        ok = ::ReadFile(handle, bytes->data(), static_cast<DWORD>(bytes->size()), &read, nullptr) && read == bytes->size();
     }
     *error = ok ? 0 : GetLastError();
     CloseHandle(handle);
@@ -272,59 +271,84 @@ namespace platform {
 
 namespace {
 
-std::string ErrorText(unsigned long osError, std::string_view path) {
-    return "file error: OS error " + std::to_string(osError) + ", file '" + std::string(path) + "'";
+// Every open's sharing: other readers and writers may hold the file too.
+constexpr DWORD kShareReadWrite = FILE_SHARE_READ | FILE_SHARE_WRITE;
+
+std::string ErrorText(unsigned long code, std::string_view path) {
+    return "file error: OS error " + std::to_string(code) + ", file '" + std::string(path) + "'";
 }
 
 [[noreturn]] void ThrowLastError(std::string_view path) { throw FileError(gameapi::GetLastError(), path); }
-// The host CRT's Win32 error of its last failed call.
-[[noreturn]] void ThrowCrtError(std::string_view path) { throw FileError(static_cast<unsigned long>(_doserrno), path); }
 
 // A closed file's calls fail as on INVALID_HANDLE_VALUE (MFC's hFileNull).
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
 
+// Temporary, for a suite's check of the shared opens (then removed with OpenHandle's logging): every open is shared
+// now where most were exclusive, so an open of a file one of ours holds, which failed when either open was exclusive,
+// now succeeds. Such an open is logged, and so is an open another holder's sharing refuses. The handles File and
+// MappedFile hold, with their paths in lower case and whether they write.
+struct HeldFile {
+    std::string path;
+    bool write;
+};
+// Made at the first open and never destroyed: files also open in static constructors and close in destructors.
+std::mutex& HeldLock() {
+    static auto* lock = new std::mutex;
+    return *lock;
+}
+std::unordered_map<void*, HeldFile>& Held() {
+    static auto* held = new std::unordered_map<void*, HeldFile>;
+    return *held;
+}
+
+void Release(void* handle) {
+    std::lock_guard lock(HeldLock());
+    Held().erase(handle);
+}
+
+// `path` opened through the CreateFileA slot; null when it does not open.
+HANDLE OpenHandle(const std::string& path, DWORD access, DWORD disposition) {
+    const HANDLE handle =
+        gameapi::CreateFileA(path.c_str(), access, kShareReadWrite, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        if (gameapi::GetLastError() == ERROR_SHARING_VIOLATION) {
+            ei::Log("platform: %s: a sharing violation (the shared opens' check)", path.c_str());
+            gameapi::SetLastError(ERROR_SHARING_VIOLATION);
+        }
+        return nullptr;
+    }
+    HeldFile opened{path, access != GENERIC_READ};
+    for (char& c : opened.path) c = static_cast<char>(text::ToLower(static_cast<unsigned char>(c)));
+    std::lock_guard lock(HeldLock());
+    for (const auto& [other, held] : Held())
+        if (held.path == opened.path)
+            ei::Log("platform: %s: opened (%s) while open (%s) already (the shared opens' check)", path.c_str(),
+                    opened.write ? "write" : "read", held.write ? "write" : "read");
+    Held()[handle] = std::move(opened);
+    return handle;
+}
+
 } // namespace
 
-unsigned long LastError() { return gameapi::GetLastError(); }
-
-FileError::FileError(unsigned long error, std::string_view path) : std::runtime_error(ErrorText(error, path)), osError(error) {}
+FileError::FileError(unsigned long code, std::string_view path) : std::runtime_error(ErrorText(code, path)) {}
 
 // ---- File -----------------------------------------------------------------------------------------
 
-File::File(std::string_view path, unsigned flags) {
-    if (!Open(path, flags)) ThrowLastError(path);
-}
-
 File::~File() { Close(); }
 
-bool File::Open(std::string_view filePath, unsigned flags) {
+bool File::Open(std::string_view filePath, FileMode mode) {
     Close();
     path = filePath;
-    DWORD access = 0;
-    switch (flags & 3) {
-    case modeRead: access = GENERIC_READ; break;
-    case modeWrite: access = GENERIC_WRITE; break;
-    case modeReadWrite: access = GENERIC_READ | GENERIC_WRITE; break;
-    default: break;
+    switch (mode) {
+    case FileMode::Read: handle = OpenHandle(path, GENERIC_READ, OPEN_EXISTING); break;
+    case FileMode::Create: handle = OpenHandle(path, GENERIC_WRITE, CREATE_ALWAYS); break;
+    case FileMode::WriteExisting: handle = OpenHandle(path, GENERIC_WRITE, OPEN_EXISTING); break;
     }
-    DWORD share = 0;   // exclusive (and the undefined values)
-    switch (flags & 0x70) {
-    case shareDenyWrite: share = FILE_SHARE_READ; break;
-    case shareDenyRead: share = FILE_SHARE_WRITE; break;
-    case shareDenyNone: share = FILE_SHARE_READ | FILE_SHARE_WRITE; break;
-    default: break;
-    }
-    DWORD disposition = OPEN_EXISTING;
-    if (flags & modeCreate) disposition = (flags & modeNoTruncate) ? OPEN_ALWAYS : CREATE_ALWAYS;
-    DWORD attributes = FILE_ATTRIBUTE_NORMAL;
-    if (flags & osNoBuffer) attributes |= FILE_FLAG_NO_BUFFERING;
-    if (flags & osRandomAccess) attributes |= FILE_FLAG_RANDOM_ACCESS;
-    const HANDLE opened = gameapi::CreateFileA(path.c_str(), access, share, nullptr, disposition, attributes, nullptr);
-    handle = opened == INVALID_HANDLE_VALUE ? nullptr : opened;
     return IsOpen();
 }
 
 void File::Close() {
+    Release(handle);
     if (IsOpen()) gameapi::CloseHandle(handle);
     handle = nullptr;
 }
@@ -343,19 +367,26 @@ void File::Write(const void* buffer, unsigned count) {
     if (written != count) throw FileError(ERROR_DISK_FULL, path);
 }
 
-long File::Seek(long offset, unsigned from) {
-    const DWORD position = gameapi::SetFilePointer(Win32(handle), offset, nullptr, from);
+void File::WriteLine(std::string_view line) {
+    std::string text(line);
+    text += "\r\n";
+    Write(text.data(), static_cast<unsigned>(text.size()));
+}
+
+long File::Seek(long offset, SeekFrom from) {
+    const DWORD method = from == SeekFrom::Begin ? FILE_BEGIN : from == SeekFrom::Current ? FILE_CURRENT : FILE_END;
+    const DWORD position = gameapi::SetFilePointer(Win32(handle), offset, nullptr, method);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
     return static_cast<long>(position);
 }
 
-unsigned long File::GetPosition() const {
+std::uint32_t File::Position() const {
     const DWORD position = gameapi::SetFilePointer(Win32(handle), 0, nullptr, FILE_CURRENT);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
     return position;
 }
 
-unsigned long File::GetLength() const {
+std::uint32_t File::Size() const {
     const DWORD size = gameapi::GetFileSize(Win32(handle), nullptr);
     if (size == INVALID_FILE_SIZE) ThrowLastError(path);
     return size;
@@ -367,111 +398,31 @@ bool File::ReadAt(long offset, void* buffer, unsigned count) {
            gameapi::ReadFile(Win32(handle), buffer, count, &read, nullptr) && read == count;
 }
 
-bool File::WriteAt(long offset, const void* buffer, unsigned count) {
-    DWORD written = 0;
-    return gameapi::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-           gameapi::WriteFile(Win32(handle), buffer, count, &written, nullptr) && written == count;
-}
+// ---- MappedFile -----------------------------------------------------------------------------------
 
-// The game also read the file's information here and did not use it.
-void File::SetWriteTimeNow() {
-    SYSTEMTIME now;
-    gameapi::GetSystemTime(&now);
-    BY_HANDLE_FILE_INFORMATION info;
-    gameapi::GetFileInformationByHandle(Win32(handle), &info);
-    FILETIME time;
-    gameapi::SystemTimeToFileTime(&now, &time);
-    gameapi::SetFileTime(Win32(handle), nullptr, nullptr, &time);
-}
+MappedFile::~MappedFile() { Close(); }
 
-// ---- FileMapping ----------------------------------------------------------------------------------
-
-FileMapping::~FileMapping() { Close(); }
-
-bool FileMapping::Create(const File& file, bool writable) {
+bool MappedFile::Open(std::string_view path) {
     Close();
-    mapping = gameapi::CreateFileMappingA(Win32(file.handle), nullptr, writable ? PAGE_READWRITE : PAGE_READONLY, 0, 0,
-                                          nullptr);
-    return mapping != nullptr;
+    file = OpenHandle(std::string(path), GENERIC_READ, OPEN_EXISTING);
+    if (!file) return false;
+    size = gameapi::GetFileSize(file, nullptr);
+    if (size != INVALID_FILE_SIZE) mapping = gameapi::CreateFileMappingA(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    if (mapping) view = gameapi::MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+    if (view) return true;
+    Close();
+    return false;
 }
 
-void* FileMapping::MapView(bool writable) {
-    view = gameapi::MapViewOfFile(mapping, writable ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
-    return view;
-}
-
-void FileMapping::Flush() { gameapi::FlushViewOfFile(view, 0); }
-
-void FileMapping::Close() {
+void MappedFile::Close() {
     if (view) gameapi::UnmapViewOfFile(view);
     view = nullptr;
     if (mapping) gameapi::CloseHandle(mapping);
     mapping = nullptr;
-}
-
-// The sector size stays 0xFFFFFFFF (larger than any page) when GetDiskFreeSpaceA fails.
-bool SectorsFitPages(const std::string& path) {
-    char root[4] = {};
-    path.copy(root, 3);
-    const char* rootPath = root;
-    if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
-    DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
-    gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
-    SYSTEM_INFO info;
-    gameapi::GetSystemInfo(&info);
-    return info.dwPageSize >= bytesPerSector && info.dwPageSize % bytesPerSector == 0;
-}
-
-// ---- TextFile -------------------------------------------------------------------------------------
-
-TextFile::~TextFile() { Close(); }
-
-bool TextFile::Open(std::string_view filePath, const char* mode) {
-    Close();
-    path = filePath;
-    stream = OpenFile(path, mode);
-    return stream != nullptr;
-}
-
-void TextFile::Close() {
-    if (stream) std::fclose(stream);
-    stream = nullptr;
-}
-
-// Read 128 characters at a time (fgets is given 129, as MFC's ReadString read into the string's buffer).
-bool TextFile::ReadLine(std::string& line) {
-    constexpr int kPiece = 128;
-    char piece[kPiece + 1];
-    line.clear();
-    char* result;
-    for (;;) {
-        result = std::fgets(piece, kPiece + 1, stream);
-        if (!result) {
-            if (!std::feof(stream)) {
-                std::clearerr(stream);
-                ThrowCrtError(path);
-            }
-            break;
-        }
-        const std::size_t length = std::strlen(piece);
-        line.append(piece, length);
-        if (length < kPiece || piece[length - 1] == '\n') break;
-    }
-    if (!line.empty() && line.back() == '\n') line.pop_back();
-    return result != nullptr;
-}
-
-char* TextFile::ReadString(char* buffer, unsigned size) {
-    char* result = std::fgets(buffer, static_cast<int>(size), stream);
-    if (!result && !std::feof(stream)) {
-        std::clearerr(stream);
-        ThrowCrtError(path);
-    }
-    return result;
-}
-
-void TextFile::WriteString(std::string_view text) {
-    if (std::fwrite(text.data(), 1, text.size(), stream) != text.size()) ThrowCrtError(path);
+    Release(file);
+    if (file) gameapi::CloseHandle(file);
+    file = nullptr;
+    size = 0;
 }
 
 // ---- FileFind -------------------------------------------------------------------------------------
@@ -543,28 +494,16 @@ bool FileFind::IsSystem() const { return hasFound && (attributes & FILE_ATTRIBUT
 
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 
-// ---- fopen / _access ------------------------------------------------------------------------------
+// ---- Whole files and _access ---------------------------------------------------------------------
 
-std::FILE* OpenFile(const std::string& path, const char* mode) {
-    const char kind = mode[0];
-    if (kind != 'r' && kind != 'w' && kind != 'a') return nullptr;
-    const bool update = std::strchr(mode + 1, '+') != nullptr;
-    const bool binary = std::strchr(mode + 1, 'b') != nullptr;
-    const DWORD access = update ? GENERIC_READ | GENERIC_WRITE : kind == 'r' ? GENERIC_READ : GENERIC_WRITE;
-    const DWORD disposition = kind == 'r' ? OPEN_EXISTING : kind == 'w' ? CREATE_ALWAYS : OPEN_ALWAYS;
-    const HANDLE handle = gameapi::CreateFileA(path.c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, disposition,
-                                               FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) return nullptr;
-    // The descriptor takes the translation mode and the append flag, the stream the direction.
-    const int fd = _open_osfhandle(reinterpret_cast<std::intptr_t>(handle), (binary ? 0 : _O_TEXT) | (kind == 'a' ? _O_APPEND : 0));
-    if (fd == -1) {
-        CloseHandle(handle);
-        return nullptr;
-    }
-    const char streamMode[3] = {kind, update ? '+' : '\0', '\0'};
-    std::FILE* file = _fdopen(fd, streamMode);
-    if (!file) _close(fd);
-    return file;
+bool ReadFile(const std::string& path, std::string* bytes) {
+    bytes->clear();
+    File file;
+    if (!file.Open(path, FileMode::Read)) return false;
+    bytes->resize(file.Size());
+    if (file.ReadAt(0, bytes->data(), static_cast<unsigned>(bytes->size()))) return true;
+    bytes->clear();
+    return false;
 }
 
 bool FileExists(const std::string& path) { return gameapi::GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }

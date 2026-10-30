@@ -89,7 +89,7 @@ struct Archive {
     ~Archive() { Get()->MappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     MappedResource* Get() { return storage.Get(); }
-    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path), 0) != 0; }
+    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path)) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->MappedResource::GetFile(name, size); }
     void Close(void* file) { Get()->MappedResource::CloseFile(file); }
 

@@ -475,7 +475,7 @@ void CreditsScreen::CreateScreen() {
     nextLineAt = 0.0f;
 
     MappedResource* currentArchive = &archive;
-    currentArchive->OpenResource((options::g_options.resourcesPath + "outro.res"), 0);
+    currentArchive->OpenResource((options::g_options.resourcesPath + "outro.res"));
     std::uint32_t size = 0;
     void* data = currentArchive->GetFile("credits.scr", &size);
     if (!data) {

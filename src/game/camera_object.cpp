@@ -150,7 +150,7 @@ int Camera::OpenFile(const char* name) {
     {
         std::string folder = kRecordFolder;
         std::string full = folder + name;
-        failed = !file.Open(full, platform::File::modeCreate | platform::File::modeWrite);
+        failed = !file.Open(full, platform::FileMode::Create);
     }
     if (failed) return 0;
     {
@@ -169,8 +169,8 @@ int Camera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     platform::File file;
     if (!(flags & Camera::kRecording)) return 0;
-    if (!file.Open(fileName, platform::File::modeNoTruncate | platform::File::modeWrite)) return 0;    // (an existing file only)
-    file.Seek(0, platform::File::end);
+    if (!file.Open(fileName, platform::FileMode::WriteExisting)) return 0;    // (an existing file only)
+    file.Seek(0, platform::SeekFrom::End);
     record.time = std::bit_cast<float>(time);
     record.reserved = 0;
     record.position = localPosition;
@@ -405,16 +405,16 @@ int Camera::LoadPath(const char* name, int settle) {
         std::string path = folder + "camera\\" + name;
         if (ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)) {
             // CameraPatch: the mod's Camera\ copy when there is one.
-            opened = file.Open(modfolders::CameraFile(path.c_str()), platform::File::modeRead);
+            opened = file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read);
         } else {
-            opened = file.Open(path, platform::File::modeRead);
+            opened = file.Open(path, platform::FileMode::Read);
         }
     }
     if (!opened) return 0;
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.
-    keys.resize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
+    keys.resize(static_cast<int>(file.Size() / sizeof(CameraKey)));
     file.Read(keys.data(), static_cast<unsigned>(std::ssize(keys)) * sizeof(CameraKey));
 
     if (settle != 0 && std::ssize(keys) > settle && settle > 1) {

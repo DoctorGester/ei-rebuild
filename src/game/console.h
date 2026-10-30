@@ -18,7 +18,7 @@ class Interface3D;
 class UiContainer;
 class UiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
-namespace platform { class TextFile; }
+namespace platform { class File; }
 
 namespace console {
 
@@ -203,8 +203,8 @@ void Fps(std::vector<std::string>* args);
 void Rate(std::vector<std::string>* args);
 void LocalRate(std::vector<std::string>* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
-void WriteSpeechLines(platform::TextFile* file, const acks::Speeches* list);
-void WriteEnvironmentSpeechLines(platform::TextFile* file, const acks::EnvironmentSpeeches* list);
+void WriteSpeechLines(platform::File* file, const acks::Speeches* list);
+void WriteEnvironmentSpeechLines(platform::File* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

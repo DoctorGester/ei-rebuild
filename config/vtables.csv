@@ -305,8 +305,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F778,3,,game,00571FC0,006CECD0,GroundPrint,src/game/ground_print.h,
 0073F7C4,13,,game,005794B0 00579730,00589B40,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F7F8,42,,game,005794B0 00579730,00579690,dead class,-,stored only by dead code 005794B0 / 00579730
-0073F8A4,9,,game,005809D0 00580E60,004DAE30,BufferedFile,src/game/buffered_file.h,
-0073F8C8,9,,game,00580DD0 00580DF0 00580E60,004DAE30,BufferedStream,src/game/buffered_file.h,
+0073F8A4,9,,game,005809D0 00580E60,004DAE30,BufferedFile,-,stored only by game.exe (ours reads the quest file whole: platform::ReadFile since PL11a)
+0073F8C8,9,,game,00580DD0 00580DF0 00580E60,004DAE30,BufferedStream,-,stored only by game.exe (BufferedFile's base)
 0073F928,42,,game,00589ED0 0058AAD0,0058A430,WorldServer,src/game/world.h,the server world
 0073F9D0,3,,game,00589ED0 0058AAD0 00599D60,007005E3,RefListBClass,-,CList (the world server's counted pointers); stored only by game.exe (ours is a std::list)
 0073F9DC,1,,game,0058A450 0058A700 005B3C30 005B5E10 005C02E0,0058A780,SectorMap,src/game/sector_map.h,the sector map

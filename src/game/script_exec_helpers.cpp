@@ -199,26 +199,17 @@ std::string g_scriptQuestName;
 
 // --- Script text file --------------------------------------------------------------------------------
 
-// The script loader's text file reader: a file read in lines of at most 2 KB into one text. A file that does not
-// open or a failed read (the game catches the file error) ends with a result of 0 and what was read so far in the
-// text.
+// The script loader's text file reader: the whole file as one text, its "\r\n" line ends made "\n" (a text-mode
+// read's). A file that does not open or read gives a result of 0 and an empty text.
 
 namespace scriptparse {
 
-namespace {
-constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
-} // namespace
-
 int ReadTextFile(const std::string& path, std::string* text) {
     text->clear();
-    platform::TextFile file;
-    if (!file.Open(path, "r")) return 0;
-    char line[kLineSize];
-    try {
-        while (file.ReadString(line, kLineSize)) *text += line;
-    } catch (const platform::FileError&) {
-        return 0;
-    }
+    std::string bytes;
+    if (!platform::ReadFile(path, &bytes)) return 0;
+    for (std::size_t i = 0; i < bytes.size(); ++i)
+        if (bytes[i] != '\r' || i + 1 == bytes.size() || bytes[i + 1] != '\n') *text += bytes[i];
     return 1;
 }
 

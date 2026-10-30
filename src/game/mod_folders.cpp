@@ -226,7 +226,7 @@ void LoadModArchives() {
             std::memset(memory, 0, sizeof(MappedResource));
             MappedResource* res = new (memory) MappedResource();
             tables.modArchives[key].push_back(res);
-            res->MappedResource::OpenResource(path, 0);
+            res->MappedResource::OpenResource(path);
         }
     }
 }

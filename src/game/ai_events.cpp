@@ -177,7 +177,7 @@ int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
     {
         std::string folder = g_textFolder;
         std::string path = folder + kAiInfoArchive;
-        failed = archive->MappedResource::OpenResource(path, 0) == 0;
+        failed = archive->MappedResource::OpenResource(path) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;

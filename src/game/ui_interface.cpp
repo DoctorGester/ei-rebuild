@@ -222,21 +222,13 @@ void Interface3D::Create(TextureDevice* device) {
     pollTop = false;
 
     // The help topics seen: "topic count" lines.
-    platform::TextFile file;
-    bool opened;
-    {
-        std::string path = g_dataFolder + game::TutorialIniText();
-        opened = file.Open(path, "r") != 0;
-    }
-    if (opened) {
-        std::string line;
+    if (std::string bytes; platform::ReadFile(g_dataFolder + game::TutorialIniText(), &bytes)) {
         std::vector<std::string> words;
-        while (file.ReadLine(line)) {
+        for (const std::string& line : str::Lines(bytes)) {
             words = text::SplitWords(line, ' ');
             if (words.size() <= 1) continue;
             helpTopics[words[0]] = str::ToInt(words[1]);
         }
-        file.Close();
     }
     messageFlag = 0;
     fpsSurface = nullptr;
@@ -283,19 +275,8 @@ void Interface3D::Shutdown() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 
-    platform::TextFile file;
-    bool opened;
-    {
-        std::string path = g_dataFolder + game::TutorialIniText();
-        opened = file.Open(path, "w") != 0;
-    }
-    if (opened) {
-        std::string line;
-        for (const auto& [topic, page] : helpTopics) {
-            line = str::Format(game::TutorialLineFormat(), topic, page);
-            file.WriteString(line);
-        }
-        file.Close();
+    if (platform::File file; file.Open(g_dataFolder + game::TutorialIniText(), platform::FileMode::Create)) {
+        for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format(game::TutorialLineFormat(), topic, page));
     }
 
     DeleteSurface(fpsSurface);
@@ -459,9 +440,8 @@ void Interface3D::OnKeyDown(int key, int repeat, int flags) {
         std::string name;
         name = std::format("shot{:04}.bmp", g_shotCounter);
         ++g_shotCounter;
-        platform::File file(name, platform::File::modeCreate | platform::File::modeWrite);
-        picture->Write(&file);
-        file.Close();
+        platform::File file;
+        if (file.Open(name, platform::FileMode::Create)) picture->Write(&file);
         delete picture;
         return;
     }

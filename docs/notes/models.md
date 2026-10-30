@@ -361,8 +361,10 @@ renderer's frame when the switch-over draws without a DirectDraw surface.
 
 ## Resources and the sound file reader (00671280-00675B40)
 
-Code: `resource_stream.h/.cpp`; earlier resource work (MappedResource, MMIOResource methods, ResourceManager slots 16-22,
-MappedFile) is in `resource.cpp` / `resource_manager.cpp`. Every scenario reaches it (archives open at startup, the sound
+Code: `resource_stream.h/.cpp`; earlier resource work (MappedResource, MMIOResource methods, ResourceManager slots
+16-22) is in `resource.cpp` / `resource_manager.cpp`; the mapping is `platform::MappedFile`. Every archive opens read
+only: the game never opened one writable (every OpenResource passed 0), so the writable path (CloseFile's write-back,
+Flush, the read-write mapping) is gone. Every scenario reaches it (archives open at startup, the sound
 file reader at every sound).
 
 MappedResource (vtable 007432E0), MMIOResource (00743300), ResourceBase (00743324), ResourceManager (00743338, ctor

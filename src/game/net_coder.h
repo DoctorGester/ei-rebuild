@@ -9,8 +9,7 @@
 #include <string>
 #include <vector>
 
-// A byte buffer: GrowingBuffer, BufferView (a fixed view over memory owned elsewhere) and BufferedStream (a
-// window onto a file).
+// A byte buffer: GrowingBuffer and BufferView (a fixed view over memory owned elsewhere).
 class GameBuffer {
 public:
     GameBuffer(const GameBuffer&) = delete;

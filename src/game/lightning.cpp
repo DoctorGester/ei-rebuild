@@ -555,7 +555,7 @@ int LoadLightningNoise() {
         std::string folder = g_textFolder;
         std::string path = folder + "gfx.res";
         // Through the vtable.
-        opened = resource.Get()->OpenResource(path, 0) != 0;
+        opened = resource.Get()->OpenResource(path) != 0;
     }
     if (!opened) return 0;
 

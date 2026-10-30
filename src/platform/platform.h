@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -147,48 +146,41 @@ std::string VolumeLabel(const char* root);
 
 // Paths are UTF-8. The Windows implementation goes through the game's import slots
 // (CreateFileA, FindFirstFileA, GetFileAttributesA, ...): a mod's hook in the import table and the harness's save /
-// install redirection apply to every file the game opens or lists.
-//   - File: a binary file on a system handle (the game's CFile uses);
-//   - TextFile: a text file read and written by lines on a host CRT stream (its CStdioFile uses);
-//   - FileMapping: a File's contents mapped into memory (its CMappedFile);
+// install redirection apply to every file the game opens or lists. Every open shares the file with other readers and
+// writers.
+//   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
+//   - ReadFile: a whole file at once (the text files, split into lines with str::Lines);
+//   - MappedFile: a whole file mapped into memory, read only (the archives' and the registry files');
 //   - FileFind: a folder search (its CFileFind uses);
-//   - OpenFile / FileExists: fopen and _access.
+//   - FileExists: _access.
 // A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
 // catches; an uncaught one ends the game as before (a write to a full disk).
 
-// The system's error code of the last failed file call on this thread (GetLastError).
-unsigned long LastError();
-
-// A failed file operation: the system's (or the CRT's) error code and the file's path, both in what().
+// A failed file operation: the system's error code and the file's path, both in what().
 class FileError : public std::runtime_error {
 public:
-    FileError(unsigned long osError, std::string_view path);
-    unsigned long osError;
+    FileError(unsigned long code, std::string_view path);
 };
 
-// A binary file. Open's flags are MFC's CFile open flags, which the callers pass on (the save code's and the chunk
-// readers' numbers): access in bits 0-1, sharing in bits 4-6, create (truncating unless noTruncate); the type bits
-// are ignored; later MFC's osNoBuffer and osRandomAccess (FILE_FLAG_NO_BUFFERING, FILE_FLAG_RANDOM_ACCESS: the
-// archive readers' opens). Closed by the destructor.
+// How File::Open opens a file.
+enum class FileMode : std::uint8_t {
+    Read,            // an existing file, for reading
+    Create,          // a new file, or an existing one emptied, for writing
+    WriteExisting,   // an existing file, for writing
+};
+// Where File::Seek counts from.
+enum class SeekFrom : std::uint8_t { Begin, Current, End };
+
+// A binary file. Closed by the destructor.
 class File {
 public:
-    enum Flags : unsigned {
-        modeRead = 0x0000, modeWrite = 0x0001, modeReadWrite = 0x0002, shareExclusive = 0x0010, shareDenyWrite = 0x0020,
-        shareDenyRead = 0x0030, shareDenyNone = 0x0040, modeCreate = 0x1000, modeNoTruncate = 0x2000,
-        typeText = 0x4000, typeBinary = 0x8000, osNoBuffer = 0x10000, osRandomAccess = 0x40000
-    };
-    // Seek's origins (FILE_BEGIN, FILE_CURRENT, FILE_END).
-    enum SeekPosition : unsigned { begin = 0, current = 1, end = 2 };
-
     File() = default;
-    // Opens `path`; a FileError when it cannot.
-    File(std::string_view path, unsigned flags);
     ~File();
     File(const File&) = delete;
     File& operator=(const File&) = delete;
 
     // False when the file cannot be opened. A file still open is closed first.
-    bool Open(std::string_view path, unsigned flags);
+    bool Open(std::string_view path, FileMode mode);
     void Close();
     bool IsOpen() const { return handle != nullptr; }
 
@@ -207,76 +199,41 @@ public:
         static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
         Write(&value, sizeof(T));
     }
-    // `from` begin, current or end; the new position.
-    long Seek(long offset, unsigned from);
-    unsigned long GetPosition() const;
-    unsigned long GetLength() const;
-    // `count` bytes at `offset` from the start: a seek, then a read or write; false when either fails or fewer bytes
-    // were moved (nothing throws).
+    // `line` and "\r\n" (a text file's line end on disk).
+    void WriteLine(std::string_view line);
+    // The new position.
+    long Seek(long offset, SeekFrom from);
+    std::uint32_t Position() const;
+    std::uint32_t Size() const;
+    // `count` bytes at `offset` from the start: false when the seek or the read fails or fewer bytes were read (nothing
+    // throws).
     bool ReadAt(long offset, void* buffer, unsigned count);
-    bool WriteAt(long offset, const void* buffer, unsigned count);
-    // The last-write time set to the current time.
-    void SetWriteTimeNow();
 
 private:
-    friend class FileMapping;
     void* handle = nullptr;   // the system's file handle
     std::string path;         // as opened (for FileError)
 };
 
-// A text file: lines with "\r\n" on disk, "\n" in memory. Closed by the destructor.
-class TextFile {
+// A whole file mapped into memory, read only. Closed by the destructor.
+class MappedFile {
 public:
-    TextFile() = default;
-    ~TextFile();
-    TextFile(const TextFile&) = delete;
-    TextFile& operator=(const TextFile&) = delete;
+    MappedFile() = default;
+    ~MappedFile();
+    MappedFile(const MappedFile&) = delete;
+    MappedFile& operator=(const MappedFile&) = delete;
 
-    // `mode` "r" (reading) or "w" (created or truncated): OpenFile's text modes.
-    bool Open(std::string_view path, const char* mode);
+    // False when the file does not open or cannot be mapped (an empty one cannot). A file still open is closed first.
+    bool Open(std::string_view path);
     void Close();
-
-    // The next line without its '\n' into `line`; false at the end of the file (also when the last piece read
-    // nothing after a line of exactly 128 characters, as MFC's ReadString(CString&)). The line ends at a zero byte
-    // of each 128-character piece.
-    bool ReadLine(std::string& line);
-    // fgets: a line with its '\n' into `buffer` (at most size - 1 characters); null at the end of the file.
-    char* ReadString(char* buffer, unsigned size);
-    void WriteString(std::string_view text);
+    const void* Data() const { return view; }
+    std::uint32_t Size() const { return size; }
 
 private:
-    std::FILE* stream = nullptr;
-    std::string path;
-};
-
-// A File's contents mapped into memory: a mapping of the whole file, then a view of all of it. Closed by the
-// destructor.
-class FileMapping {
-public:
-    FileMapping() = default;
-    ~FileMapping();
-    FileMapping(const FileMapping&) = delete;
-    FileMapping& operator=(const FileMapping&) = delete;
-
-    // The mapping of `file`, read-only or read-write; false when the system cannot map it. A mapping still open is
-    // closed first.
-    bool Create(const File& file, bool writable);
-    // The view of the whole mapping; null when it cannot be made (LastError tells why).
-    void* MapView(bool writable);
-    // The view's changes written to the file.
-    void Flush();
-    // The view unmapped and the mapping closed.
-    void Close();
-    void* View() const { return view; }
-
-private:
+    void* file = nullptr;      // the system's file handle
     void* mapping = nullptr;   // the system's mapping handle
-    void* view = nullptr;
+    const void* view = nullptr;
+    std::uint32_t size = 0;
 };
-
-// Whether the sector size of `path`'s volume (its drive for an "X:\" path, else the current one's) divides the
-// page size, so that an unbuffered file can be mapped; false when the volume does not tell.
-bool SectorsFitPages(const std::string& path);
 
 // A folder search as MFC's CFileFind: FindFile starts it, then each FindNext moves to the next entry and returns
 // false when that entry is the last one (it is still there to read). The paths are the search pattern's folder made
@@ -316,10 +273,9 @@ private:
     std::string root;
 };
 
-// fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened
-// through the system's slot, shared for reading and writing, then becomes a host stream; null when
-// either fails.
-std::FILE* OpenFile(const std::string& path, const char* mode);
+// The whole file `path` into `bytes`, shared with other readers and writers; false (and `bytes` empty) when it does not
+// open or a read fails.
+bool ReadFile(const std::string& path, std::string* bytes);
 
 // Whether `path` names a file or folder (the original's _access with mode 0 or 4).
 bool FileExists(const std::string& path);
