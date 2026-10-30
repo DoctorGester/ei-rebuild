@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump town_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 34 update 685 frame 137 tick 685 zone bz1g hash 7028B35C n 408
+@ 34 update 685 frame 137 tick 685 zone bz1g hash 83A15637 n 408
 + world world
 world tick 685
 world updates 685
@@ -901,9 +901,9 @@ obj831510 #place 7E3F314E
 obj831510 #unit B7C56B0E
 obj831510 #vitals B8D59A04
 + obj848411 80 unanhopi ""
-obj848411 #ai 8E6F7C81
-obj848411 #place 03C40C44
-obj848411 #unit DE94CB46
+obj848411 #ai AC6A0419
+obj848411 #place F1EAA9B6
+obj848411 #unit CB9D6CA5
 obj848411 #vitals 0D6AE555
 + obj868303 82 naflbu17
 obj868303 # 6C398E1A
@@ -1096,8 +1096,8 @@ cunit831510 #place 03DF68FE
 cunit831510 #unit 7AD02858
 cunit831510 #vitals 0F819E5B
 + cunit848411 80 unanhopi ""
-cunit848411 #place 3F3B38DE
-cunit848411 #unit 6269CF5A
+cunit848411 #place A5084934
+cunit848411 #unit 702A13FD
 cunit848411 #vitals ED40ECA3
 + cunit927062 80 unhuma ""
 cunit927062 #place 82CFA275

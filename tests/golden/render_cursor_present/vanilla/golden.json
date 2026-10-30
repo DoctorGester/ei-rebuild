@@ -1,13 +1,13 @@
 {
   "scenario": "render_cursor_present",
   "install": "vanilla",
-  "recorded": "2026-10-29",
-  "commit": "8babcdb85",
+  "recorded": "2026-10-30",
+  "commit": "6bd8a2287",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "R34c: image-only golden re-recorded: the client's idle animation picks and the hero previews' start frames on the client generator, DelayedProtectionCheck's rand() gone, so the game's rand() state moves; 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
+  "reason": "GOG data re-downloaded 2026-10-30: unit radii from the new data",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }
