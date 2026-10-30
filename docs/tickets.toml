@@ -6168,7 +6168,7 @@ id = "A3c"
 title = "x64 verify build: the harness's in-process side for x64, goldens on the x64 exe"
 group = "port"
 model = "opus"
-note = "After A3a. The goldens are the proof the x64 build plays the same: build the harness's in-process part (ei_harness.dll's image side, the digest readers) for x64 while the game.exe side stays 32-bit, run work.py test --golden against the x64 exe and compare with the 32-bit run. Expect differences only where a golden reads a pointer-sized value (fix the digest, not the game). Then add x64 to the merge builds."
+note = "C30e15 (2026-10-30): the 32-bit image keeps the main thread at PC24 because MSVC still does ~470 x87 operations on values returned in ST0 (chains like LightRiseScaled, PlaneHeight) and the UCRT log2 / exp2 / cbrt follow the precision; x64 has no x87 path and no precision control, so those run at SSE2 precision: expect small rounding differences in goldens and judge them (user: no tests that hinge on rounding), pc24 helpers where a difference shows. After A3a. The goldens are the proof the x64 build plays the same: build the harness's in-process part (ei_harness.dll's image side, the digest readers) for x64 while the game.exe side stays 32-bit, run work.py test --golden against the x64 exe and compare with the 32-bit run. Expect differences only where a golden reads a pointer-sized value (fix the digest, not the game). Then add x64 to the merge builds."
 
 [[ticket]]
 id = "PL1"
