@@ -9,7 +9,7 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "lib/gameapi.h"
+#include "platform/files.h"
 #include <memory>
 #include <string>
 #include "lib/text_case.h"
@@ -47,12 +47,12 @@ bool Numbered(const std::string& name) {
 
 void MpHeroRecord::WriteFile(const std::string& folder) {
     if (!Numbered(file)) {
-        gameapi::DeleteFileA(InFolder(folder, file).c_str());
+        platform::RemoveFile(InFolder(folder, file).c_str());
         return;
     }
     {
         std::string temp = TempFile(folder);
-        gameapi::MoveFileA(InFolder(folder, file).c_str(), temp.c_str());
+        platform::RenameFile(InFolder(folder, file).c_str(), temp.c_str());
     }
     {
         LocalStreams streams;
@@ -60,7 +60,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
         Party()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, &streams.data);
     }
-    gameapi::DeleteFileA(TempFile(folder).c_str());
+    platform::RemoveFile(TempFile(folder).c_str());
 }
 
 bool MpHeroRecord::ReadFile(const std::string& folder) {

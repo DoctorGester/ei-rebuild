@@ -8,7 +8,7 @@
 #include "texture.h"   // TextureDevice, Surface
 
 #include "ei/main_loop.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include "platform/clock.h"
 #include <cstdint>
@@ -60,8 +60,8 @@ void FrameStep(bool draw, bool cursor) {
     if (!app::g_recordingFrames) return;
     char path[256];
     std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);
-    lib::File file;
-    if (!file.Open(path, lib::File::modeCreate | lib::File::modeWrite)) {
+    platform::File file;
+    if (!file.Open(path, platform::File::modeCreate | platform::File::modeWrite)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
         app::g_recordingFrames = 0;
         return;

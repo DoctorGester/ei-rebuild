@@ -6,7 +6,7 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "platform/file.h"
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -65,8 +65,8 @@ bool MappedResource::OpenResource(const std::string& path, bool forWriting) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable = forWriting;
-    if (!archive.Open(path, (forWriting ? lib::File::modeReadWrite : lib::File::modeRead) | lib::File::shareDenyNone |
-                                lib::File::osRandomAccess))
+    if (!archive.Open(path, (forWriting ? platform::File::modeReadWrite : platform::File::modeRead) | platform::File::shareDenyNone |
+                                platform::File::osRandomAccess))
         return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
 
     if (archive.ReadAt(0, &header, sizeof(header))) {
@@ -215,8 +215,8 @@ bool MappedFile::Open(const std::string& path, bool writable) {
     if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
-    const unsigned access = lib::File::shareDenyWrite | (writable ? lib::File::modeReadWrite : lib::File::modeRead) |
-                            (lib::SectorsFitPages(path) ? lib::File::osNoBuffer : lib::File::osRandomAccess);
+    const unsigned access = platform::File::shareDenyWrite | (writable ? platform::File::modeReadWrite : platform::File::modeRead) |
+                            (platform::SectorsFitPages(path) ? platform::File::osNoBuffer : platform::File::osRandomAccess);
     if (!file.Open(path, access)) {
         char message[256];
         std::snprintf(message, sizeof(message), "CMappedFile::Open().\nUnable to open file \"%s\".\n", path.c_str());
@@ -227,7 +227,7 @@ bool MappedFile::Open(const std::string& path, bool writable) {
     bool sized = true;
     try {
         size = file.GetLength();
-    } catch (const lib::FileError&) {
+    } catch (const platform::FileError&) {
         sized = false;
     }
     if (!sized) {
@@ -239,7 +239,7 @@ bool MappedFile::Open(const std::string& path, bool writable) {
     } else {
         if (mapping.MapView(writable)) return true;
         game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path,
-                         gameapi::GetLastError());
+                         platform::LastError());
     }
     Close();
     return false;

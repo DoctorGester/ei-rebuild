@@ -148,6 +148,8 @@ void BringToFront(NativeWindow window) {
     gameapi::SetForegroundWindow(popup);
 }
 
+NativeInstance ProgramInstance() { return GetModuleHandleA(nullptr); }
+
 NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height) {
     return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, width,
                                     height, nullptr, nullptr, static_cast<HINSTANCE>(instance), nullptr);

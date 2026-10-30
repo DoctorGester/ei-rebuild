@@ -10,7 +10,7 @@
 #include <vector>
 #include <wingdi.h>   // RGBQUAD, BITMAPINFOHEADER
 
-namespace lib {
+namespace platform {
 class File;
 }
 
@@ -34,12 +34,12 @@ public:
     // the bits (unchanged without a header).
     std::uint8_t* AllocateBits();
     // The bitmap emptied, then the file header, the info header with what follows it up to the bits (masks or
-    // colours), the bits; the colour count. A short or non-"BM" file, or a lib::FileError
+    // colours), the bits; the colour count. A short or non-"BM" file, or a platform::FileError
     // from the reads: a message box and 0. Returns 1.
-    int Read(lib::File* file);
+    int Read(platform::File* file);
     // The file header, the info header with the masks, `imageSize`
-    // bytes of bits. A lib::FileError from the writes: a message box and 0. Returns 1.
-    int Write(lib::File* file);
+    // bytes of bits. A platform::FileError from the writes: a message box and 0. Returns 1.
+    int Write(platform::File* file);
 
     RGBQUAD* colours = nullptr;              // after the header
     std::vector<std::uint8_t> bits;

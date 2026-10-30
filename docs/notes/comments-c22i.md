@@ -55,7 +55,7 @@ and the pump that keeps a driver link per remote player. Names are
 provisional; see docs/notes/network.md and
 docs/notes/cleanup-network.md.
 Class map (vtables):
-  FileStream (0x1C): a ByteStream over a `lib::File` (the original: an MFC CFile). Save files go through it
+  FileStream (0x1C): a ByteStream over a `platform::File` (the original: an MFC CFile). Save files go through it
             (world_game.cpp, ui_saveload.cpp), and the links record their messages with it.
   NetLink (0x28, abstract): the recording flags and the recording file.
   LoopbackLink (0x30): two of them joined to each other, the single-player

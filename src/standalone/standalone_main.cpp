@@ -8,6 +8,9 @@
 #include "standalone/static_init.h"
 #include "game/settings_file.h"
 #include "lib/crt.h"
+#include "platform/paths.h"
+#include "platform/system.h"
+#include "platform/window.h"
 #include "render/render.h"
 
 #include <cstdlib>
@@ -47,8 +50,7 @@ void ReportImageFailure(const char* what);
     DescribeCode(caller, from, sizeof(from));
     std::snprintf(what, sizeof(what), "no code at %08X, [esp] %s", static_cast<unsigned>(address), from);
     ReportImageFailure(what);
-    TerminateProcess(GetCurrentProcess(), 3);
-    for (;;) Sleep(INFINITE);
+    platform::EndProcess(3);
 }
 
 namespace {
@@ -74,14 +76,12 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
-    TerminateProcess(GetCurrentProcess(), 3);
-    return EXCEPTION_CONTINUE_SEARCH;
+    platform::EndProcess(3);
 }
 
 LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     Log("standalone: unhandled exception %08lX at %p", e->ExceptionRecord->ExceptionCode, e->ExceptionRecord->ExceptionAddress);
-    TerminateProcess(GetCurrentProcess(), 4);
-    return EXCEPTION_CONTINUE_SEARCH;
+    platform::EndProcess(4);
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
@@ -173,12 +173,13 @@ void RedirectSettingsPaths() {
 // "Start in", a shell in another folder): its own folder. Runs first in the image's static initialisation
 // (image_imports.cpp).
 void EnterGameFolder() {
-    if (GetEnvironmentVariableA("EI_GAME_ROOT", nullptr, 0) != 0) return;
-    char self[MAX_PATH];
-    const DWORD n = GetModuleFileNameA(nullptr, self, MAX_PATH);
-    if (n == 0 || n >= MAX_PATH) return;
-    if (char* slash = std::strrchr(self, '\\')) *slash = 0;
-    if (!SetCurrentDirectoryA(self)) Log("standalone: cannot enter the exe's folder %s (error %lu)", self, GetLastError());
+    if (!platform::EnvironmentVariable("EI_GAME_ROOT").empty()) return;
+    std::string self = platform::ProgramPath();
+    if (self.empty()) return;
+    self.resize(self.find_last_of('\\') == std::string::npos ? self.size() : self.find_last_of('\\'));
+    unsigned long error = 0;
+    if (!platform::SetCurrentFolder(self, &error))
+        Log("standalone: cannot enter the exe's folder %s (error %lu)", self.c_str(), error);
 }
 
 // Called by the exe's main with the game's arguments (what followed "--" on its command line, as typed). `run`
@@ -210,7 +211,7 @@ int StandaloneMain(bool run, const char* arguments) {
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();
-    const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_arguments.data(), SW_SHOWNORMAL);
+    const int result = app::GameMain(platform::ProgramInstance(), nullptr, g_arguments.data(), SW_SHOWNORMAL);
     std::exit(result);
 }
 

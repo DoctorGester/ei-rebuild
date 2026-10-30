@@ -5,6 +5,7 @@
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
 #include "lib/win_types.h"
+#include "platform/window.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -35,7 +36,7 @@ extern DirectInputMouse* g_mouse;
 // client speed; what the video memory allows (little memory besides the textures, little texture memory) and
 // whether a device was named on the command line; the loading screen's movie file. g_mainWindow is the game window.
 extern char g_windowTitle[256];
-extern HINSTANCE g_instance;
+extern platform::NativeInstance g_instance;
 extern HWND g_mainWindow;
 extern std::uint8_t g_active;
 extern std::uint8_t g_activationChanged;
@@ -67,7 +68,7 @@ void ShowMessageBox(const char* text);
 void ShowLibraryMessageBox(const char* text);
 // WinMain: the application's start-up, main loop and shutdown. Rebirth patches
 // it (NivalRegistry), so the rewrite runs in the vanilla launch only.
-int GameMain(HINSTANCE instance, HINSTANCE previous, char* commandLine, int show);
+int GameMain(platform::NativeInstance instance, platform::NativeInstance previous, char* commandLine, int show);
 // A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its
 // DirectXErrorText in a message box and to the error hook; the error counter is raised and the
 // game exits (exit(-1)). Not patched by Rebirth. Returns 0.

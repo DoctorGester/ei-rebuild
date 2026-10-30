@@ -7,7 +7,7 @@
 #include "game_strings.h"
 #include "ui.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 #include "ei/rebirth.h"
 #include "game_singletons.h"

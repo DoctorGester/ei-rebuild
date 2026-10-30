@@ -25,7 +25,7 @@ implementation folder; game code does not change.
   `gameapi::` (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
   calls run `python tools/check_platform.py --update` (the list only shrinks). The dashboard shows the count
   (`platform_files`, "Files calling Windows"): 97 before the layer, 78 after the first areas, 61 after the window
-  and input (PL2), 58 after the sockets (PL5).
+  and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b).
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
   shared header holds one (app.h's `g_mainWindow`, texture.h's device window; `HWND` comes from lib/win_types.h, not
   `<windows.h>`).
@@ -37,10 +37,12 @@ implementation folder; game code does not change.
 | `clock.h` | `Milliseconds()` (timeGetTime), `TickCount()` (GetTickCount), `Sleep`, `LocalTime()` | the slots of timeGetTime, GetTickCount, Sleep, GetLocalTime |
 | `debug.h` | `DebugOutput` | OutputDebugStringA |
 | `message_box.h` | `ShowMessageBox(owner, text, caption, buttons, icon)` | the MessageBoxA slot (UTF-8 route) |
-| `paths.h` | `ExePath()`, `CurrentFolder()` | the GetModuleFileNameA / GetCurrentDirectoryA slots (UTF-8 routes) |
-| `system.h` | `PageSize()`, `FontSmoothing()` | GetSystemInfo; the SystemParametersInfoA slot (the harness fixes smoothing off) |
-| `files.h` | `CreateFolder`, `FreeDiskSpace`, `VolumeLabel` | the CreateDirectoryA (harness redirect, UTF-8 route) and GetVolumeInformationA slots; GetDiskFreeSpaceExW direct |
-| `window.h` | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | the window and message slots (the harness hooks CreateWindowExA, ShowWindow, PeekMessageA, FindWindowA); the screen mapping and monitor calls direct |
+| `paths.h` | `ExePath()`, `CurrentFolder()`; `ProgramPath()`, `UserDataFolder()`, `SetCurrentFolder` | the GetModuleFileNameA / GetCurrentDirectoryA slots (UTF-8 routes); the last three direct (wide calls) |
+| `system.h` | `PageSize()`, `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | GetSystemInfo; the SystemParametersInfoA slot (the harness fixes smoothing off); the last three direct |
+| `files.h` | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `FreeDiskSpace`, `VolumeLabel`; `ReadWholeFile` / `WriteWholeFile`, `PathExists`, `IsFile`, `FolderEntries` | the CreateDirectoryA, RemoveDirectoryA, DeleteFileA, MoveFileA, CopyFileA (harness redirects, UTF-8 routes) and GetVolumeInformationA slots; GetDiskFreeSpaceExW direct; the last five direct (below) |
+| `file.h` | `File`, `TextFile`, `FileMapping`, `FileFind` (attributes as `IsDirectory` / `IsHidden` / `IsSystem`), `OpenFile`, `FileExists`, `FileError`, `LastError()` | the CreateFileA, ReadFile, WriteFile, SetFilePointer, CreateFileMappingA, MapViewOfFile, FindFirstFileA, GetFileAttributesA ... slots (UTF-8 routes), so the harness's save / install redirection and a mod's hooks apply |
+| `ini.h` | `IniSectionEntries`, `IniString`; `IniInt` | the GetPrivateProfileSectionA / StringA slots (not routed: the config\*.ini names are ASCII); `IniInt` direct |
+| `window.h` | the window class, `ProgramInstance()`, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | the window and message slots (the harness hooks CreateWindowExA, ShowWindow, PeekMessageA, FindWindowA); the screen mapping, monitor calls and `ProgramInstance` direct |
 | `cursor.h` | the cursor's shape, its position in game points (`MapCursorPoints` for the scaled frame) | the GetCursor / SetCursor / GetCursorPos / SetCursorPos slots (the harness's own mouse) |
 | `keyboard.h` | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)` | the GetKeyNameTextA (UTF-8 route) and keyboard layout slots |
 | `clipboard.h` | `CopyText`, `ClipboardText` (Rebirth's console) | direct |
@@ -58,6 +60,30 @@ real clock, never the harness's.
 The two clocks stay two: the original reads `timeGetTime` and `GetTickCount` in different places, and the harness
 drives each separately, so a call keeps the clock it had. sokol_time (QueryPerformanceCounter) is not used for them: it
 would bypass the harness's clocks and change the replays.
+
+## Files and the direct calls
+
+`file.h` is the game's file objects (the old lib/file_io.h): `File` (a binary file, MFC's open flags), `TextFile`,
+`FileMapping`, `FileFind` (a folder search with CFileFind's read-ahead), `OpenFile` (fopen) and `FileExists`. A failed
+read, write or seek throws `FileError`; seek and error behaviour are as before the move. No SDK type is in the header
+(the search state is a private `Search` struct of the win32 file, a handle never leaves `File`).
+
+A few callers never went through the game's slots and must not start to (the harness's routes would change what they
+see in verify runs). Each has its own platform function that calls the system directly:
+
+- Rebirth's file look-ups (mod_folders, console_addon, script_addon_commands: addon.dll called its own imports):
+  `platform::IsFile`, `platform::FolderEntries` (the UTF-8 versions in game/system_text.cpp, called by name).
+- The settings file (settings_file.cpp: next to the exe or in the user's data folder, whatever a harness run
+  redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
+  its lock is a `std::mutex`.
+- The standalone's start-up (startup.cpp, standalone_main.cpp's `EnterGameFolder` and exit paths): `ProgramPath`,
+  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt`, `ProgramInstance` and `EndProcess`
+  (TerminateProcess, then `Sleep(INFINITE)` as the old code, so the call never returns). `app::GameMain` takes
+  `platform::NativeInstance`.
+- standalone_main.cpp, host.cpp and image_imports.cpp stay on the list as the win32 entry: they are the loader (the
+  vectored and unhandled exception handlers, `VirtualProtect` on another module's import table, `GetModuleHandleA` /
+  `GetProcAddress` of the DLLs the slots resolve to, the DPI call, the process id for the log). A port has its own
+  entry; nothing of the game's code is in them.
 
 ## Window and events
 
@@ -124,22 +150,13 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
 
 ## Left for the next areas
 
-- src/standalone/startup.cpp and standalone_main.cpp (`GetModuleFileNameA`, `SetCurrentDirectoryA`,
-  `Sleep(INFINITE)`, `GetModuleHandleA`; these run before or beside the import table and call the system directly;
-  PL1a's second half, after A3a), lib/file_io.cpp (`GetCurrentDirectoryA` / `GetFullPathNameA`, PL3), resource.cpp's
-  `GetSystemTime` (the mapped file's write time, PL3).
-- `GameMain(HINSTANCE, HINSTANCE, char*, int show)` keeps WinMain's types (win_types.h) while standalone start-up
-  calls it (A3a's files).
+- standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
 - The key codes as our own constants (a platform/keys.h in place of lib/win_user.h's VK_ values in about 20 ui
   files), and `g_mainWindow` / the device's window as `platform::NativeWindow` (app.h, texture.h, the sound and
   renderer start-up): PL2a.
-- PL3, files: lib/file_io.cpp, resource.cpp, resource_stream.cpp (file mapping, `mmio*`), random.cpp's seed file
-  reads, world_game.cpp, party_file.cpp, camera_object.cpp, ui_saveload.cpp, ui_hero_screen_click.cpp, ini_file.cpp
-  (`GetPrivateProfile*`), and the direct (`::X`) callers: mod_folders.cpp, console_addon.cpp,
-  script_addon_commands.cpp (file attributes, find), settings_file.cpp (its own file, environment and monitor
-  calls). asset_text.cpp's code page conversions go with the text rules (UTF-8, C34). config/platform_files.txt is the
-  full list.
+- resource_stream.cpp's `mmio*` (sound files) and its FindFirstFileA for the file size (PL6 moves them with the
+  audio).
 - PL4, threads: lib/thread.cpp, the critical sections and events of sound_manager.cpp, ui_cursor_frame.cpp,
   ui_cursor_setup.cpp.
 - PL6, audio and video: sound_manager.cpp (Miles, `DirectSoundEnumerateA`), bink_video.cpp (Bink).

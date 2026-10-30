@@ -5,7 +5,7 @@
 // the first is a blank id 0). See docs/notes/ui.md section 8.
 #include "console.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "platform/keyboard.h"
 #include <cstring>
 #include <string>
@@ -60,7 +60,7 @@ void LoadKeyBindings() {
     }
     std::string line;
     std::vector<std::string> words;
-    lib::TextFile file;
+    platform::TextFile file;
     std::memset(g_keyActions, 0, 0x200);
     if (!file.Open(g_dataFolder + "config\\keyboard.ini", "r")) return;
     while (file.ReadLine(line)) {
@@ -87,7 +87,7 @@ void LoadKeyBindings() {
 // key name, action name.
 void SaveKeyBindings() {
     std::string line;
-    lib::TextFile file;
+    platform::TextFile file;
     if (!file.Open(g_dataFolder + "config\\keyboard.ini", "w")) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = g_keyActions[scan];

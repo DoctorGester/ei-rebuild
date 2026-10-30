@@ -3,8 +3,10 @@
 #include "ei/rebirth.h"
 #include "hook/log.h"
 #include "hook/rebirth_hook.h"
-
-#include <windows.h>
+#include "platform/files.h"
+#include "platform/ini.h"
+#include "platform/paths.h"
+#include "platform/system.h"
 
 #include <string>
 
@@ -22,12 +24,10 @@ constexpr const char* kRebirthProfile =
 // The plain install's: the defaults (the bug fixes) and widescreen, as play.cmd's vanilla mode.
 constexpr const char* kVanillaProfile = "WideScreen=1";
 
-bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
-
+// The start-up asks the system itself (not the game's slots): its files are the exe's own, whatever a harness run
+// redirects.
 std::string ExeFolder() {
-    char path[MAX_PATH];
-    const DWORD n = GetModuleFileNameA(nullptr, path, MAX_PATH);
-    std::string folder(path, n < MAX_PATH ? n : 0);
+    std::string folder = platform::ProgramPath();
     const std::size_t slash = folder.find_last_of("\\/");
     return slash == std::string::npos ? std::string(".") : folder.substr(0, slash);
 }
@@ -42,8 +42,9 @@ void LoadRebirthSettings() {
     const std::string ini = folder + "\\ei_rebirth.ini";
     const std::string plugin = folder + "\\EI_Plugin.ini";
     const char* profile = nullptr;
-    if (GetEnvironmentVariableA("EI_GAME_ROOT", nullptr, 0) == 0 && !Exists(ini)) {
-        const bool rebirth = Exists(folder + "\\starter\\addon.dll") || Exists(folder + "\\EI_Plugin.asi");
+    if (platform::EnvironmentVariable("EI_GAME_ROOT").empty() && !platform::PathExists(ini)) {
+        const bool rebirth =
+            platform::PathExists(folder + "\\starter\\addon.dll") || platform::PathExists(folder + "\\EI_Plugin.asi");
         profile = rebirth ? kRebirthProfile : kVanillaProfile;
         Log("Rebirth: no ei_rebirth.ini beside the exe: the %s install's profile (from the folder's files)",
             rebirth ? "Rebirth" : "plain");
@@ -51,9 +52,9 @@ void LoadRebirthSettings() {
     rebirth::LoadSettings(ini.c_str(), profile);
     if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
     rebirth_hook::SettingsOnly(ini.c_str());
-    if (profile == kRebirthProfile && Exists(plugin)) {
-        rebirth::SetPluginNPlayers(static_cast<int>(GetPrivateProfileIntA("CONFIG", "NPlayers", 7, plugin.c_str())));
-        rebirth::SetPluginPause(static_cast<int>(GetPrivateProfileIntA("CONFIG", "Pause", 1, plugin.c_str())));
+    if (profile == kRebirthProfile && platform::PathExists(plugin)) {
+        rebirth::SetPluginNPlayers(platform::IniInt("CONFIG", "NPlayers", 7, plugin.c_str()));
+        rebirth::SetPluginPause(platform::IniInt("CONFIG", "Pause", 1, plugin.c_str()));
         Log("Rebirth: EI_Plugin.ini's players %d, pause mode %d", rebirth::PluginNPlayers(), rebirth::PluginPause());
     }
 }

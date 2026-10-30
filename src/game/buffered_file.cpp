@@ -4,7 +4,7 @@
 #include "net_classes.h"
 
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -170,7 +170,7 @@ void BufferedFile::Close() {
 void BufferedFile::Open(const std::string& path, const char* mode, std::uint32_t newFlags) {
     Close();
     flags = newFlags;
-    file = lib::OpenFile(path, mode);
+    file = platform::OpenFile(path, mode);
     if (!file) {
         flags |= kFlagError;
         return;

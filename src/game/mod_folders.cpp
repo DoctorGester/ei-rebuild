@@ -8,6 +8,8 @@
 #include "settings_file.h"
 #include "system_text.h"
 
+#include "platform/files.h"
+
 #include "ei/hook.h"
 #include <cstddef>
 #include <cstdint>
@@ -187,7 +189,7 @@ struct MapsListing {
 
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
-    for (const text::FoundEntry& found : text::FindAll(pattern)) {
+    for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
         const char* name = found.name.c_str();
         if (found.folder) {
             if (std::strcmp(name, ".") != 0 && std::strcmp(name, "..") != 0) ListMaps(mod, sub + "\\" + name, list);
@@ -328,13 +330,13 @@ std::string CameraFile(const char* path) {
     const char* last = std::strrchr(path, '\\');
     if (!last || ModPath().empty()) return path;
     std::string mod = ModPath() + "Camera" + last;
-    return text::IsFile(mod) ? mod : std::string(path);
+    return platform::IsFile(mod) ? mod : std::string(path);
 }
 
 bool StreamInMod(std::string_view name) {
     // 1001BA8D: the mod's Stream\ (100BCB5C) and the name.
     if (name.empty() || ModPath().empty()) return false;
-    return text::IsFile(ModPath() + "Stream\\" + std::string(name));
+    return platform::IsFile(ModPath() + "Stream\\" + std::string(name));
 }
 
 const std::string& StreamFolder() {
@@ -347,7 +349,7 @@ std::string MovieFile(const char* name) {
     const char* last = std::strrchr(name, '\\');
     if (!last || ModPath().empty()) return name;
     std::string mod = ModPath() + "Movies" + last;
-    return text::IsFile(mod) ? mod : std::string(name);
+    return platform::IsFile(mod) ? mod : std::string(name);
 }
 
 } // namespace modfolders

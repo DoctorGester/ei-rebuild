@@ -7,8 +7,8 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/file_io.h"
-#include "lib/gameapi.h"
+#include "platform/file.h"
+#include "platform/files.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -117,8 +117,8 @@ const Vector3* CameraAnchor(const Camera* self) {
 // rename goes to camera0001.cam; kept as the game has it). Sets the client world's
 // WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName, flag 0x10 set) when the file can be created, else 0.
 int Camera::OpenFile(const char* name) {
-    lib::FileFind find;
-    lib::File file;
+    platform::FileFind find;
+    platform::File file;
     if (find.FindFile(kCurrentRecord) == 1) {
         int last = 0;
         if (find.FindFile(kNumberedRecords)) {
@@ -136,14 +136,14 @@ int Camera::OpenFile(const char* name) {
         }
         std::string path;
         path = str::Format(kNumberedRecord, last + 1);
-        gameapi::MoveFileA(kCurrentRecord, path.c_str());
+        platform::RenameFile(kCurrentRecord, path.c_str());
     }
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
     bool failed;
     {
         std::string folder = kRecordFolder;
         std::string full = folder + name;
-        failed = !file.Open(full, lib::File::modeCreate | lib::File::modeWrite);
+        failed = !file.Open(full, platform::File::modeCreate | platform::File::modeWrite);
     }
     if (failed) return 0;
     {
@@ -160,10 +160,10 @@ int Camera::OpenFile(const char* name) {
 // when written, 0 when not recording or the file does not open.
 int Camera::RecordFrame(std::uint32_t time) {
     CameraKey record;
-    lib::File file;
+    platform::File file;
     if (!(flags & Camera::kRecording)) return 0;
-    if (!file.Open(fileName, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;    // (an existing file only)
-    file.Seek(0, lib::File::end);
+    if (!file.Open(fileName, platform::File::modeNoTruncate | platform::File::modeWrite)) return 0;    // (an existing file only)
+    file.Seek(0, platform::File::end);
     record.time = std::bit_cast<float>(time);
     record.reserved = 0;
     record.position = localPosition;

@@ -1,22 +1,17 @@
 # The files that still call Windows outside the platform layer (tools/check_platform.py).
 src/game/asset_text.cpp
 src/game/bink_video.cpp
-src/game/camera_object.cpp
 src/game/device_bounds.cpp
 src/game/dx_errors.cpp
 src/game/figure_part_draw.cpp
 src/game/figure_part_draw_plain.cpp
-src/game/ini_file.cpp
 src/game/link_figure.cpp
 src/game/map_object_draw.cpp
 src/game/map_object_figures.cpp
 src/game/menu_rects.cpp
 src/game/object3d_halves.cpp
-src/game/party_file.cpp
-src/game/resource.cpp
 src/game/resource_stream.cpp
 src/game/script_parse.cpp
-src/game/settings_file.cpp
 src/game/sound_manager.cpp
 src/game/system_text.cpp
 src/game/ui_connect_list.cpp
@@ -25,7 +20,6 @@ src/game/ui_cursor_setup.cpp
 src/game/ui_help_page.cpp
 src/game/ui_hero_panels.cpp
 src/game/ui_hero_screen.cpp
-src/game/ui_hero_screen_click.cpp
 src/game/ui_hud_panels.cpp
 src/game/ui_hud_unit_info.cpp
 src/game/ui_interface_draw.cpp
@@ -35,7 +29,6 @@ src/game/ui_main_menu.cpp
 src/game/ui_menus.cpp
 src/game/ui_objectives.cpp
 src/game/ui_options.cpp
-src/game/ui_saveload.cpp
 src/game/ui_saveload_list.cpp
 src/game/ui_scrolling_surface.cpp
 src/game/ui_spin.cpp
@@ -47,8 +40,6 @@ src/game/ui_text_draw.cpp
 src/game/ui_tooltip.cpp
 src/game/ui_trade_panel.cpp
 src/game/ui_window.cpp
-src/game/world_game.cpp
-src/lib/file_io.cpp
 src/lib/import_prototypes.h
 src/lib/import_table.h
 src/lib/rebirth.cpp
@@ -56,4 +47,3 @@ src/lib/thread.cpp
 src/standalone/host.cpp
 src/standalone/image_imports.cpp
 src/standalone/standalone_main.cpp
-src/standalone/startup.cpp

@@ -3,7 +3,7 @@
 #include "app.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/str.h"
 #include "mod_folders.h"
 #include "options.h"
@@ -72,7 +72,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return 1;
     }
 
-    lib::FileFind finder;
+    platform::FileFind finder;
     std::string path = GameRoot() + "textures\\" + texture->GetName() + ".bmp";
     int result;
 

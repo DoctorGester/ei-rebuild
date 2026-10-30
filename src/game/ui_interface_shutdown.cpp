@@ -8,7 +8,7 @@
 #include "game_strings.h"
 #include "ui_cursor.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -48,7 +48,7 @@ void Interface3D::Shutdown() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 
-    lib::TextFile file;
+    platform::TextFile file;
     bool opened;
     {
         std::string path = g_dataFolder + game::TutorialIniText();

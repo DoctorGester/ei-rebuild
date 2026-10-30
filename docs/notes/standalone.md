@@ -453,7 +453,7 @@ kinds given.
     gen_function_sizes.py for new rows of config/extra_function_sizes.csv: it rewrites every size from the Ghidra
     database, which has moved from the committed file; add the rows by hand in order.
     **The throws**: the device layer's GameError is this compiler's `throw` of a pointer to a class of the game's name
-    (dx_errors.h: GameException, DXException). A failed file call throws `lib::FileError` (a std::runtime_error, by
+    (dx_errors.h: GameException, DXException). A failed file call throws `platform::FileError` (a std::runtime_error, by
     value) where MFC threw a CFileException*; no MFC exception class is left (C14zi).
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
@@ -808,8 +808,8 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   thread, GDI, DC, handle-map and state classes (CWinApp, CWnd, CCmdTarget, CDC, CGdiObject, CHandleMap, _AFX_*_STATE,
   ...), the old iostream classes, 0073B98C, 0073BFAC, 0073D860 / 0073D888, 0074019C and 00740244 (small bases and
   locals of game.exe's inlined code) and the dead code's tables. Our code does the same work with other classes: the
-  game's files are `lib::File`, `lib::TextFile` and `lib::FileFind` (src/lib/file_io.h; a failed call throws
-  `lib::FileError`), its fonts, pens and brushes `lib/gdi.h`'s, its threads `lib::StartThread`. 0073B984's ~140 readers
+  game's files are `platform::File`, `platform::TextFile` and `platform::FileFind` (src/platform/file.h; a failed call throws
+  `platform::FileError`), its fonts, pens and brushes `lib/gdi.h`'s, its threads `lib::StartThread`. 0073B984's ~140 readers
   compare a hash table's prime pointer with the end of `__stl_prime_list` (0073B914 + 28 dwords), the same address: no
   read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable field points at it;
   nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by address and name), so
@@ -1158,16 +1158,16 @@ game, the `--no-hooks` suite) keeps the registry.
   characters before it; %B (no conversion) writes nothing where VC6 wrote the previous conversion's text again.
   atof and sscanf are the host CRT's (C26: goldens and the atof vectors the same); callers use std::atof / sscanf_s.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
-  install redirection and a mod's hooks apply. `lib::OpenFile` (src/lib/file_io.h; fopen's r / w / a, +, b / t) opens
+  install redirection and a mod's hooks apply. `platform::OpenFile` (src/platform/file.h; fopen's r / w / a, +, b / t) opens
   with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
-  the callers (sysmsg.txt, BufferedFile, lib::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
-  it. The game's CFile, CStdioFile and CFileFind uses are file_io.h's `lib::File` (a Win32 handle from CreateFileA,
-  MFC's open flags), `lib::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `lib::FileFind`
+  the callers (sysmsg.txt, BufferedFile, platform::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
+  it. The game's CFile, CStdioFile and CFileFind uses are platform/file.h's `platform::File` (a Win32 handle from CreateFileA,
+  MFC's open flags), `platform::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `platform::FileFind`
   (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
   pattern's folder through GetFullPathNameA, as CFileFind's root).
   The res archives (MappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
   the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
-  `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
+  `platform::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
   FindFirstFileA (now closed). Dropped with
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
@@ -1238,7 +1238,7 @@ game, the `--no-hooks` suite) keeps the registry.
 ### MFC (none of ours; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller). Our
-code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files lib::File /
+code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files platform::File /
 TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads lib/thread.h.
 - **CString**: the static initialisers of CString's four fixed allocators (00700718 .. 007007AB, 007C8B80 ..
   007C8B08) and of the temporary DCs' and GDI objects' CFixedAlloc (007C8D18 / 007C8CF0) are gen_static_init.py's
@@ -1316,7 +1316,7 @@ scenario (tests/coverage/coverage.csv).
 
 ## 3. Runtime: MFC, STLport, CRT later
 
-The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: file_io.h,
+The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: platform/file.h,
 gdi.h, thread.h, calendar.h, hash_map.h, intro_sort.h, str.h); linking real MFC would tie the build to Windows
 (platform.md).
 
@@ -1706,7 +1706,7 @@ a trap that names its import until the run ends (OnTrap; `--check` fails on an u
 other static constructor of the exe (init_seg(compiler)), after entering the game folder (EnterGameFolder): the
 harness takes import slots in its own.
 
-### lib/file_io.h
+### platform/file.h
 
 The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
 redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a

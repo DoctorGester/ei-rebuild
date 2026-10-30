@@ -12,7 +12,7 @@
 #include <memory>
 #include <new>
 #include <string>
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 namespace {
 
@@ -38,7 +38,7 @@ std::string MapPath(std::string_view name) {
 }
 
 bool MapFileExists(const char* name) {
-    lib::FileFind find;
+    platform::FileFind find;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     std::string path = MapsFolder() + name;
     return find.FindFile(path) != 0;

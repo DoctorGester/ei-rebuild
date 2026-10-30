@@ -1,7 +1,8 @@
-#include "file_io.h"
+// Files on Windows (platform/file.h): every call goes through game.exe's import slots, as the game made them.
+#include "platform/file.h"
 
-#include "gameapi.h"
-#include "text_case.h"
+#include "lib/gameapi.h"
+#include "lib/text_case.h"
 
 #include <windows.h>
 
@@ -12,7 +13,7 @@
 #include <fcntl.h>
 #include <io.h>
 
-namespace lib {
+namespace platform {
 
 namespace {
 
@@ -28,6 +29,8 @@ std::string ErrorText(unsigned long osError, std::string_view path) {
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
 
 } // namespace
+
+unsigned long LastError() { return gameapi::GetLastError(); }
 
 FileError::FileError(unsigned long error, std::string_view path) : std::runtime_error(ErrorText(error, path)), osError(error) {}
 
@@ -132,7 +135,7 @@ FileMapping::~FileMapping() { Close(); }
 
 bool FileMapping::Create(const File& file, bool writable) {
     Close();
-    mapping = gameapi::CreateFileMappingA(Win32(file.Handle()), nullptr, writable ? PAGE_READWRITE : PAGE_READONLY, 0, 0,
+    mapping = gameapi::CreateFileMappingA(Win32(file.handle), nullptr, writable ? PAGE_READWRITE : PAGE_READONLY, 0, 0,
                                           nullptr);
     return mapping != nullptr;
 }
@@ -218,22 +221,27 @@ void TextFile::WriteString(std::string_view text) {
 
 // ---- FileFind -------------------------------------------------------------------------------------
 
+struct FileFind::Search {
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATAA next{};   // the entry read ahead
+};
+
 FileFind::FileFind() = default;
 FileFind::~FileFind() { Close(); }
 
 void FileFind::Close() {
-    if (context) gameapi::FindClose(context);
-    context = nullptr;
+    if (search) gameapi::FindClose(search->handle);
+    search.reset();
     hasFound = false;
 }
 
 bool FileFind::FindFile(std::string_view pattern) {
     Close();
     const std::string text(pattern);
-    if (!next) next = std::make_unique<WIN32_FIND_DATAA>();
-    const HANDLE found = gameapi::FindFirstFileA(text.c_str(), next.get());
-    if (found == INVALID_HANDLE_VALUE) return false;
-    context = found;
+    auto started = std::make_unique<Search>();
+    started->handle = gameapi::FindFirstFileA(text.c_str(), &started->next);
+    if (started->handle == INVALID_HANDLE_VALUE) return false;
+    search = std::move(started);
     // The root: the pattern made absolute (the current folder for an empty one), up to its last separator.
     char full[MAX_PATH];
     const DWORD length = text.empty() ? gameapi::GetCurrentDirectoryA(MAX_PATH, full)
@@ -249,12 +257,12 @@ bool FileFind::FindFile(std::string_view pattern) {
 }
 
 bool FileFind::FindNext() {
-    if (!context) return false;
+    if (!search) return false;
     hasFound = true;
-    name = next->cFileName;
-    attributes = next->dwFileAttributes;
-    size = next->nFileSizeLow;
-    return gameapi::FindNextFileA(context, next.get()) != 0;
+    name = search->next.cFileName;
+    attributes = search->next.dwFileAttributes;
+    size = search->next.nFileSizeLow;
+    return gameapi::FindNextFileA(search->handle, &search->next) != 0;
 }
 
 std::string FileFind::GetFileName() const { return hasFound ? name : std::string(); }
@@ -274,9 +282,11 @@ std::string FileFind::GetTitle() const {
 
 unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
 
-bool FileFind::MatchesMask(unsigned long mask) const { return hasFound && (attributes & mask) != 0; }
+bool FileFind::IsDirectory() const { return hasFound && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0; }
+bool FileFind::IsHidden() const { return hasFound && (attributes & FILE_ATTRIBUTE_HIDDEN) != 0; }
+bool FileFind::IsSystem() const { return hasFound && (attributes & FILE_ATTRIBUTE_SYSTEM) != 0; }
 
-bool FileFind::IsDots() const { return MatchesMask(FILE_ATTRIBUTE_DIRECTORY) && (name == "." || name == ".."); }
+bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
 
 // ---- fopen / _access ------------------------------------------------------------------------------
 
@@ -304,4 +314,4 @@ std::FILE* OpenFile(const std::string& path, const char* mode) {
 
 bool FileExists(const std::string& path) { return gameapi::GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
-} // namespace lib
+} // namespace platform

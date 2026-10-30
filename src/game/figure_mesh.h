@@ -102,7 +102,7 @@ public:
     // Writes the mesh to a file: the name (length then characters), each buffer
     // (buffers) as a count and its elements, a 0, then centre, box, radius and two trailing dwords.
     // PlainFigureMesh::LoadTransform reads it back.
-    void SaveTransform(lib::File* file) override;
+    void SaveTransform(platform::File* file) override;
     // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
     // words, indices) and the bounds.
     virtual void CopyFigure(const FigureMesh* other);
@@ -218,7 +218,7 @@ public:
 
     // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
     void Destroy() override;
-    void LoadTransform(lib::File* file) override;
+    void LoadTransform(platform::File* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), the first of FIG8's 8 versions of every vertex; once only (flag
     // 0x20).
     void LoadFig(char** cursor) override;

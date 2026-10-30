@@ -10,7 +10,7 @@
 #include "figure_mesh.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
@@ -238,9 +238,9 @@ void CObject3D::RemoveEffectSource(ParticleSource* source) {
 void CObject3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
 
 // TransformObject's functions, called directly.
-void CObject3D::SaveTransform(lib::File* file) { TransformObject::SaveTransform(file); }
+void CObject3D::SaveTransform(platform::File* file) { TransformObject::SaveTransform(file); }
 
-void CObject3D::LoadTransform(lib::File* file) { TransformObject::LoadTransform(file); }
+void CObject3D::LoadTransform(platform::File* file) { TransformObject::LoadTransform(file); }
 
 // The parts are copied uncounted, as the original copies the pointers: the old ones are dropped without a release
 // and the copies take no reference.

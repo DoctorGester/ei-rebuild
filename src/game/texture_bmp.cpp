@@ -10,7 +10,7 @@
 #include "dib.h"
 #include "surface.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include "render/render.h"
 
@@ -51,11 +51,11 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // surface's: sizes zero) ends the game.
 int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath) {
     if (flags & TextureFlag::Loaded) return 1;
-    lib::File file;
-    lib::File alphaFile;
+    platform::File file;
+    platform::File alphaFile;
     Dib colour;
     Dib alpha;
-    if (!file.Open(path, lib::File::modeRead)) {
+    if (!file.Open(path, platform::File::modeRead)) {
         game::DebugLog(CantLoadText(), GetName());
         return 0;
     }
@@ -65,7 +65,7 @@ int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* 
     colour.Size(&size);
     const int bmpWidth = size.cx, bmpHeight = size.cy;
     bool withAlpha = false;
-    if (alphaFile.Open(alphaPath, lib::File::modeRead)) {
+    if (alphaFile.Open(alphaPath, platform::File::modeRead)) {
         alpha.Read(&alphaFile);
         alphaFile.Close();
         WORD bits = alpha.header->biBitCount;

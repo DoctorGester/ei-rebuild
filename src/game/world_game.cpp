@@ -41,12 +41,13 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/clock.h"
+#include "platform/files.h"
 #include "platform/net.h"
 
 #include "ei/rebirth.h"
@@ -115,7 +116,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
                 std::string slotFile = slotPath + kSaveExtension;
                 std::string currentPath = currentFolder + zone;
                 std::string currentFile = currentPath + kSaveExtension;
-                failed = gameapi::CopyFileA(currentFile.c_str(), slotFile.c_str(), FALSE) == 0;
+                failed = !platform::CopyFileOver(currentFile.c_str(), slotFile.c_str());
             }
             if (!failed) continue;
         }
@@ -882,8 +883,8 @@ int LoadMission(ByteStream* file) {
 }
 
 void ClearSaveFolder(const std::string& path) {
-    gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    lib::FileFind finder;
+    platform::CreateFolder(path.c_str());
+    platform::FileFind finder;
     int found;
     {
         std::string pattern = path + kAllFiles;
@@ -892,7 +893,7 @@ void ClearSaveFolder(const std::string& path) {
     while (found) {
         found = finder.FindNext();
         std::string file(finder.GetFilePath());
-        gameapi::DeleteFileA(file.c_str());
+        platform::RemoveFile(file.c_str());
     }
     finder.Close();
 }
@@ -1174,7 +1175,7 @@ int GameFlow::LoadGame(const std::string& slot) {
                 std::string currentFile = currentPath + kSaveExtension;
                 std::string slotPath = slotFolder + zone;
                 std::string slotFile = slotPath + kSaveExtension;
-                restored = gameapi::CopyFileA(slotFile.c_str(), currentFile.c_str(), FALSE) != 0;
+                restored = platform::CopyFileOver(slotFile.c_str(), currentFile.c_str());
                 if (restored) continue;
             }
         }
@@ -1215,7 +1216,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
 }
 
 int CurrentSaveSize() {
-    lib::FileFind find;
+    platform::FileFind find;
     std::string pattern;
     pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
@@ -1357,7 +1358,7 @@ void GameFlow::UpdateFromServer() {
 void SavedParties::Reload() {
     entries.clear();
 
-    lib::FileFind finder;
+    platform::FileFind finder;
     if (!finder.FindFile(folder + kPartyFilePattern)) return;
     bool more;
     do {
@@ -1385,7 +1386,7 @@ void SavedParties::Reload() {
 void GameFlow::BuildZoneTable() {
     std::vector<ZoneEntry>& table = g_zoneTable;
     if (table.end() != table.begin()) return;
-    lib::FileFind find;
+    platform::FileFind find;
     int more;
     {
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);

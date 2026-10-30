@@ -3,8 +3,8 @@
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
 // so the Windows calls that take or give text (file names, the window title, the message box, key names) are the
 // wide ones, converting at the call:
-//   - the game's imports (gameapi.h, and through it lib's File, TextFile and FileFind (file_io.h)): the image's
-//     slot of each ANSI call below that our code calls through gameapi:: takes its UTF-8 version (text::utf8,
+//   - the game's imports (gameapi.h, and through it the platform's File, TextFile and FileFind (platform/file.h)): the
+//     image's slot of each ANSI call below that our code calls through gameapi:: takes its UTF-8 version (text::utf8,
 //     SystemRoute's list; image_imports.cpp asks for it), so such a call passes and receives UTF-8. A new
 //     gameapi:: call of another import that takes or gives text needs its version and route here. The harness
 //     takes those slots after, as it does the ANSI exports' (its redirects work on the bytes).
@@ -85,18 +85,5 @@ LPSTR WINAPI CharUpperA(LPSTR text);
 LPSTR WINAPI CharLowerA(LPSTR text);
 
 } // namespace utf8
-
-// addon.dll's own file lookups (Rebirth's code: mod_folders, console_addon, script_addon_commands), through the
-// UTF-8 calls above directly: addon called its own imports, not the game's slots, so the harness's read redirection
-// of the game's slots does not apply to them.
-// Whether `path` names a file, not a folder (addon's 1001B9B3: GetFileAttributes).
-bool IsFile(const std::string& path);
-// One entry of a folder search.
-struct FoundEntry {
-    std::string name;
-    bool folder;
-};
-// The entries `pattern` matches, in FindFirstFile / FindNextFile's order (none when it matches nothing).
-std::vector<FoundEntry> FindAll(const std::string& pattern);
 
 } // namespace text

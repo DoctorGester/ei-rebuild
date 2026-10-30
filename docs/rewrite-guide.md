@@ -40,7 +40,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O),
   `containers.h` (helpers for the std::vector the engine's arrays are), `hash_map.h` (STLport's walk order),
-  `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `file_io.h`,
+  `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `platform/file.h`,
   `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports our code calls; generated: the
   ones the harness or the image routes go through the image's import slots; declared by `win_api.h` over
   `win_types.h`, so no windows.h), `win_user.h` (VK_* / DT_* without windows.h). Containers and strings are standard
@@ -200,7 +200,7 @@ does not need a second pass:
   its `handled` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
-  written by a transform slot is a `lib::File*`, and so is a chunk's `Chunk::File()`. A use order's spots
+  written by a transform slot is a `platform::File*`, and so is a chunk's `Chunk::File()`. A use order's spots
   are a `UseSpotArray` (map_object.h, `std::vector<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
   connection is a `Ref<Connection>`; a session's message lists are
   `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>`; a map object's

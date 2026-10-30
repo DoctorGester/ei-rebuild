@@ -48,7 +48,7 @@ qualified member).
   (`Party()->variables`) and the game state (`sessionKind`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
   world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge`
   (+0x28; the FLD / FSTP copy is kept).
-- `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s file is a `lib::File`
+- `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s file is a `platform::File`
   (`File()`). `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server) and asks the game server
   (`GameServer()`, 00417E40) about each connection.
 - Shared list values in `net_classes.h`: `TimedEntry` / `TimedNode` ({seconds as a float or its

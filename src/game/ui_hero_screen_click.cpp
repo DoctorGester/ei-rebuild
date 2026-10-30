@@ -19,8 +19,8 @@
 #include "random.h"
 
 #include "lib/containers.h"
-#include "lib/file_io.h"
-#include "lib/gameapi.h"
+#include "platform/file.h"
+#include "platform/files.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/win_user.h"
@@ -79,7 +79,7 @@ constexpr int kAnswerOk = 0x10001;
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
     int highest = 0;
-    lib::FileFind find;
+    platform::FileFind find;
     if (find.FindFile(pattern)) {
         int more;
         do {
@@ -474,7 +474,7 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame = *hero; }
 void MpHeroScreen::DeleteHero() {
     if (!IsHero(heroIndex)) return;
     std::string path = g_savedParties.folder + g_savedParties.entries[heroIndex].file;
-    gameapi::DeleteFileA(path.c_str());
+    platform::RemoveFile(path.c_str());
     g_savedParties.entries.erase(g_savedParties.entries.begin() + heroIndex);
     if (heroIndex >= g_savedParties.Count()) heroIndex = g_savedParties.Count() - 1;
     RefreshHeroScroll();

@@ -9,7 +9,7 @@
 #include "net_connection.h"
 #include "player_source.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include <cstdint>
 
 #include <cstddef>
@@ -50,10 +50,10 @@ public:
     }
     void Close() { file.Close(); }
 
-    static constexpr unsigned kOpenRead = lib::File::modeRead;
-    static constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
+    static constexpr unsigned kOpenRead = platform::File::modeRead;
+    static constexpr unsigned kOpenWrite = platform::File::modeCreate | platform::File::modeWrite;
 
-    lib::File file;
+    platform::File file;
 };
 
 class NetLink : public RefObject {

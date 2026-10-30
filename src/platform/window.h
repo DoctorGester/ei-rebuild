@@ -93,6 +93,8 @@ using EventHandler = std::intptr_t (*)(const Event& event);
 // Registers the game window's class under `className`, its events going to `handler`; the window keeps the system's
 // cursor hidden only as the handler does (no class cursor), has no icon and gets double clicks.
 void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler);
+// The running program's own instance (the module the program was started from), asked of the system directly.
+NativeInstance ProgramInstance();
 // A window of the registered class with the title `title` (a game that runs already), or null.
 NativeWindow FindClassWindow(const char* title);
 // The id of the process that owns `window`.

@@ -6,7 +6,7 @@
 #include "console.h"
 
 #include "lib/containers.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "mob_script_decoder.h"
 #include "lib/str.h"
 
@@ -22,9 +22,9 @@ namespace {
 constexpr std::uint32_t kSeekCurrent = 1;
 constexpr int kHeader = 8;
 
-std::uint32_t FileRead(lib::File* file, void* data, std::uint32_t size) { return file->Read(data, size); }
-void FileWrite(lib::File* file, const void* data, std::uint32_t size) { file->Write(data, size); }
-void FileSeek(lib::File* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
+std::uint32_t FileRead(platform::File* file, void* data, std::uint32_t size) { return file->Read(data, size); }
+void FileWrite(platform::File* file, const void* data, std::uint32_t size) { file->Write(data, size); }
+void FileSeek(platform::File* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
 
 // A chunk holding one value: header, then the value (counted with the header).
 void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
@@ -53,7 +53,7 @@ void Chunk::Advance(int bytes) {
 
 void Chunk::OnChunk() {}
 
-lib::File* Chunk::File() { return parent ? parent->File() : nullptr; }
+platform::File* Chunk::File() { return parent ? parent->File() : nullptr; }
 
 // --- Writing -----------------------------------------------------------------------------------
 
@@ -231,7 +231,7 @@ void Chunk::WriteString(std::uint32_t chunkId, std::string text) {
     if (parent) parent->Advance(chunkSize);
     consumed += chunkSize;
     int length = lib::Count(text);
-    lib::File* file = File();
+    platform::File* file = File();
     FileWrite(file, text.data(), static_cast<std::uint32_t>(length));
 }
 
@@ -278,6 +278,6 @@ int RootChunk::Open(const std::string& path, unsigned flags) {
     return file.Open(path, flags & 0xFFFF);
 }
 
-lib::File* RootChunk::File() { return &file; }
+platform::File* RootChunk::File() { return &file; }
 
 RootChunk::~RootChunk() = default;

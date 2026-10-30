@@ -3,7 +3,7 @@
 #include "camera.h"
 
 #include "core_maths.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -59,12 +59,12 @@ void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     worldPosition.z = z;
 }
 
-void TransformObject::SaveTransform(lib::File* file) {
+void TransformObject::SaveTransform(platform::File* file) {
     file->WriteValue(localPosition);
     file->WriteValue(localRotation);
 }
 
-void TransformObject::LoadTransform(lib::File* file) {
+void TransformObject::LoadTransform(platform::File* file) {
     file->ReadValue(localPosition);
     file->ReadValue(localRotation);
 }

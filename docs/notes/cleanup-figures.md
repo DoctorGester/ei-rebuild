@@ -17,7 +17,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   `CreateMesh` (0059F210), slot 18 `CopyFigureImpl` (0059F0F0), slots 19-23 `LoadFromMemoryImpl`, `LoadFigImpl`, `LoadOldImpl`,
   `MirrorXImpl`, `MirrorYImpl`, 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object`; the +0x94 drawer is `FigureMeshDrawer`, not
   LinkMesh, though both have the screen RECT at +0x20. `using FigurePart = FigureMesh` stays only for ui_model.cpp, player_client.cpp and
-  verify_ui_model.cpp. Mesh file slots take `lib::File*` (`Read` 13, `Write` 14).
+  verify_ui_model.cpp. Mesh file slots take `platform::File*` (`Read` 13, `Write` 14).
 - `FigureModel` (model.h; the cached model, 0x20 bytes) holds the three archives (`mesh`, `bones`, `animations`, each a
   `MappedResource`) and the animation cache. Models go through `GetFile` / `CloseFile` / `OpenFromMemory` / `CloseResource` and `delete`;
   the manager's own files through `CFigureManager::GetFile` / `CloseFile` (slots 19 / 20). The figure factory builds the part meshes as

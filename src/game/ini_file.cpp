@@ -4,8 +4,8 @@
 
 #include "console.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include "lib/str.h"
+#include "platform/ini.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -30,15 +30,8 @@ void IniFile::SetPath(std::string_view newPath) {
 
 std::vector<std::string> IniFile::GetKeyNames(const char* section) {
     std::vector<std::string> names;
-    std::string item;
-    char buffer[0x5000];
-    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path.c_str());
-    if (buffer[0] == '\0') return names;
-    const char* start = buffer;
-    for (int i = 0; i < static_cast<int>(sizeof(buffer)); ++i) {
-        if (buffer[i] != '\0') continue;
-        // One "key=value" entry ends here.
-        item = start;
+    for (std::string item : platform::IniSectionEntries(section, path.c_str())) {
+        // One "key=value" entry.
         int equals = str::Find(item, '=');
         if (equals != -1) {
             item = str::Left(item, equals);
@@ -46,17 +39,12 @@ std::vector<std::string> IniFile::GetKeyNames(const char* section) {
             str::TrimRight(item);
         }
         names.push_back(item);
-        start = buffer + i + 1;
-        if (*start == '\0') break;   // the double terminator
     }
     return names;
 }
 
 std::string IniFile::GetString(const char* section, const char* key, const char* defaultValue) {
-    char buffer[0x400];
-    std::memset(buffer, 0, 4);
-    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path.c_str());
-    return std::string(buffer);
+    return platform::IniString(section, key, defaultValue, path.c_str());
 }
 
 std::vector<std::string> IniFile::GetList(const char* section, const char* key, char separator) {

@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include <string>
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "game_singletons.h"
 
 #include <cstring>
@@ -59,7 +59,7 @@ void Interface3D::OnKeyDown(int key, int repeat, int flags) {
         std::string name;
         name = std::format("shot{:04}.bmp", g_shotCounter);
         ++g_shotCounter;
-        lib::File file(name, lib::File::modeCreate | lib::File::modeWrite);
+        platform::File file(name, platform::File::modeCreate | platform::File::modeWrite);
         picture->Write(&file);
         file.Close();
         delete picture;

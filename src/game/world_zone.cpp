@@ -82,7 +82,7 @@ int WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
 
     std::string path = MapPath(file);
     int result;
-    if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
+    if (!root->Open(path, platform::File::modeRead | platform::File::shareDenyWrite)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = root->Load(keepIds);

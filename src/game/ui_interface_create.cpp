@@ -12,7 +12,7 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include "platform/keyboard.h"
 #include "platform/clock.h"
@@ -87,7 +87,7 @@ void Interface3D::Create(TextureDevice* device) {
     pollTop = false;
 
     // The help topics seen: "topic count" lines.
-    lib::TextFile file;
+    platform::TextFile file;
     bool opened;
     {
         std::string path = g_dataFolder + game::TutorialIniText();

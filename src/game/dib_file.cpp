@@ -1,10 +1,10 @@
-// Dib's file reader and writer (dib.h): a .bmp file read from and written to a lib::File.
-// A lib::FileError from the file's calls ends in a message box and a result of 0, as any error of the
+// Dib's file reader and writer (dib.h): a .bmp file read from and written to a platform::File.
+// A platform::FileError from the file's calls ends in a message box and a result of 0, as any error of the
 // game's file calls did.
 #include "dib.h"
 #include "app.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 #include <cstdint>
 
@@ -33,7 +33,7 @@ int ColourCount(const BITMAPINFOHEADER* header, int current) {
 
 } // namespace
 
-int Dib::Read(lib::File* input) {
+int Dib::Read(platform::File* input) {
     Empty();
     try {
         BITMAPFILEHEADER fileHeader;
@@ -53,7 +53,7 @@ int Dib::Read(lib::File* input) {
         colours = reinterpret_cast<RGBQUAD*>(header + 1);
         bits.resize(imageSize);
         input->Read(bits.data(), imageSize);
-    } catch (const lib::FileError&) {
+    } catch (const platform::FileError&) {
         app::ShowLibraryMessageBox("Read error 1");
         return 0;
     }
@@ -61,7 +61,7 @@ int Dib::Read(lib::File* input) {
     return 1;
 }
 
-int Dib::Write(lib::File* output) {
+int Dib::Write(platform::File* output) {
     BITMAPFILEHEADER fileHeader;
     fileHeader.bfType = kBitmapFileType;
     fileHeader.bfSize = imageSize + maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);
@@ -72,7 +72,7 @@ int Dib::Write(lib::File* output) {
         output->WriteValue(fileHeader);
         output->Write(header, maskBytes + sizeof(BITMAPINFOHEADER));
         output->Write(bits.data(), imageSize);
-    } catch (const lib::FileError&) {
+    } catch (const platform::FileError&) {
         app::ShowLibraryMessageBox("write error");
         return 0;
     }

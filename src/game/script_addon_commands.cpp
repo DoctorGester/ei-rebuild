@@ -12,7 +12,7 @@
 #include "player_messages.h"
 #include "script_addon_handlers.h"
 #include "settings_file.h"
-#include "system_text.h"
+#include "platform/files.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -194,7 +194,7 @@ bool IsFileExists(Call* call) {
                      EndsWith(name, "/..");
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
-    *call->result.number = text::IsFile(path) ? 1.0f : 0.0f;
+    *call->result.number = platform::IsFile(path) ? 1.0f : 0.0f;
     return true;
 }
 

@@ -1,6 +1,6 @@
 #include "random.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "platform/clock.h"
@@ -27,11 +27,8 @@ constexpr float kRangeScale = 0x1p-32f;
 constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
 const char* SubdirectoryPattern() { return "\\*.*"; }
 
-constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
-constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM
-constexpr unsigned long kAttributeDirectory = 0x10;   // FILE_ATTRIBUTE_DIRECTORY
 constexpr unsigned long kMinimumFileSize = 0x800;
-constexpr unsigned kOpenReadShared = lib::File::modeRead | lib::File::shareDenyNone;
+constexpr unsigned kOpenReadShared = platform::File::modeRead | platform::File::shareDenyNone;
 constexpr int kSeedBytes = 0x400;
 
 // The game's 284-byte path buffer on its stack.
@@ -128,13 +125,13 @@ void IsaacRandom::Refill() {
 }
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
-    lib::FileFind finder;
+    platform::FileFind finder;
     bool more = finder.FindFile(pattern);
     while (more) {
         more = finder.FindNext();
         if (finder.IsDots()) continue;
-        if (finder.MatchesMask(kAttributeSystem) || finder.MatchesMask(kAttributeHidden)) continue;
-        if (finder.MatchesMask(kAttributeDirectory)) {
+        if (finder.IsSystem() || finder.IsHidden()) continue;
+        if (finder.IsDirectory()) {
             int found;
             {
                 // The game's string result calls (GetFilePath, operator+) construct these.
@@ -178,7 +175,7 @@ void IsaacRandom::Seed() {
             if (!FindSeedFile(path, kSeedSearchPattern, r % (files - 1) + 1, &counter)) continue;
         }
         ok = 1;
-        lib::File file;
+        platform::File file;
         if (file.Open(path, kOpenReadShared)) {
             libcrt::Srand(platform::Milliseconds());
             long offset = kSeedBytes - RandomBelow512();

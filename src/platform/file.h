@@ -1,8 +1,9 @@
 #pragma once
 
-// Files through the game's import slots (CreateFileA, FindFirstFileA, GetFileAttributesA, ...): a mod's hook in the
-// import table and the harness's save / install redirection apply to every file the game opens or lists.
-//   - File: a binary file on a Win32 handle (the game's CFile uses);
+// Files (docs/notes/platform.md). Paths are UTF-8. The Windows implementation goes through the game's import slots
+// (CreateFileA, FindFirstFileA, GetFileAttributesA, ...): a mod's hook in the import table and the harness's save /
+// install redirection apply to every file the game opens or lists.
+//   - File: a binary file on a system handle (the game's CFile uses);
 //   - TextFile: a text file read and written by lines on a host CRT stream (its CStdioFile uses);
 //   - FileMapping: a File's contents mapped into memory (its CMappedFile);
 //   - FileFind: a folder search (its CFileFind uses);
@@ -10,7 +11,7 @@
 // A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
 // catches; an uncaught one ends the game as before (a write to a full disk).
 
-#include "bytes.h"
+#include "lib/bytes.h"
 
 #include <cstdio>
 #include <memory>
@@ -19,11 +20,12 @@
 #include <string_view>
 #include <type_traits>
 
-struct _WIN32_FIND_DATAA;
+namespace platform {
 
-namespace lib {
+// The system's error code of the last failed file call on this thread (GetLastError).
+unsigned long LastError();
 
-// A failed file operation: the Win32 (or CRT) error code and the file's path, both in what().
+// A failed file operation: the system's (or the CRT's) error code and the file's path, both in what().
 class FileError : public std::runtime_error {
 public:
     FileError(unsigned long osError, std::string_view path);
@@ -51,12 +53,10 @@ public:
     File(const File&) = delete;
     File& operator=(const File&) = delete;
 
-    // False when CreateFileA fails. A file still open is closed first.
+    // False when the file cannot be opened. A file still open is closed first.
     bool Open(std::string_view path, unsigned flags);
     void Close();
     bool IsOpen() const { return handle != nullptr; }
-    // The Win32 handle (null when closed).
-    void* Handle() const { return handle; }
 
     // The bytes read (fewer at the end of the file).
     unsigned Read(void* buffer, unsigned count);
@@ -65,12 +65,12 @@ public:
     // One value as its bytes (sizeof(T)).
     template <class T>
     unsigned ReadValue(T& value) {
-        static_assert(kFormatValue<T>, "a file value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
         return Read(&value, sizeof(T));
     }
     template <class T>
     void WriteValue(const T& value) {
-        static_assert(kFormatValue<T>, "a file value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
         Write(&value, sizeof(T));
     }
     // `from` begin, current or end; the new position.
@@ -85,8 +85,9 @@ public:
     void SetWriteTimeNow();
 
 private:
-    void* handle = nullptr;
-    std::string path;    // as opened (for FileError)
+    friend class FileMapping;
+    void* handle = nullptr;   // the system's file handle
+    std::string path;         // as opened (for FileError)
 };
 
 // A text file: lines with "\r\n" on disk, "\n" in memory. Closed by the destructor.
@@ -123,10 +124,10 @@ public:
     FileMapping(const FileMapping&) = delete;
     FileMapping& operator=(const FileMapping&) = delete;
 
-    // The mapping of `file`, read-only or read-write; false when CreateFileMappingA fails. A mapping still open is
+    // The mapping of `file`, read-only or read-write; false when the system cannot map it. A mapping still open is
     // closed first.
     bool Create(const File& file, bool writable);
-    // The view of the whole mapping; null when MapViewOfFile fails (GetLastError tells why).
+    // The view of the whole mapping; null when it cannot be made (LastError tells why).
     void* MapView(bool writable);
     // The view's changes written to the file.
     void Flush();
@@ -135,7 +136,7 @@ public:
     void* View() const { return view; }
 
 private:
-    void* mapping = nullptr;   // the mapping's handle
+    void* mapping = nullptr;   // the system's mapping handle
     void* view = nullptr;
 };
 
@@ -164,14 +165,15 @@ public:
     std::string GetTitle() const;
     // The low dword of the size.
     unsigned long GetLength() const;
-    // Whether the entry has one of the attribute bits `mask`.
-    bool MatchesMask(unsigned long mask) const;
+    bool IsDirectory() const;
+    bool IsHidden() const;
+    bool IsSystem() const;
     // "." or "..".
     bool IsDots() const;
 
 private:
-    void* context = nullptr;                     // the search's handle (null when none)
-    std::unique_ptr<_WIN32_FIND_DATAA> next;     // the entry read ahead
+    struct Search;                               // the system's search handle and the entry read ahead
+    std::unique_ptr<Search> search;              // null when none
     // The current entry.
     bool hasFound = false;
     std::string name;
@@ -180,13 +182,12 @@ private:
     std::string root;
 };
 
-// fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened by
-// CreateFileA through its slot, shared for reading and writing, then becomes a host stream; null when
+// fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened
+// through the system's slot, shared for reading and writing, then becomes a host stream; null when
 // either fails.
 std::FILE* OpenFile(const std::string& path, const char* mode);
 
-// Whether `path` names a file or folder (GetFileAttributesA through its slot; the original's _access
-// with mode 0 or 4).
+// Whether `path` names a file or folder (the original's _access with mode 0 or 4).
 bool FileExists(const std::string& path);
 
-} // namespace lib
+} // namespace platform

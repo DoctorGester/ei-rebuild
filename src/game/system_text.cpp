@@ -348,21 +348,4 @@ LPSTR WINAPI CharLowerA(LPSTR text) { return ChangeCase(text, LowerCodePoint, Lo
 
 } // namespace utf8
 
-bool IsFile(const std::string& path) {
-    const DWORD attributes = utf8::GetFileAttributesA(path.c_str());
-    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
-}
-
-std::vector<FoundEntry> FindAll(const std::string& pattern) {
-    std::vector<FoundEntry> entries;
-    WIN32_FIND_DATAA found;
-    const HANDLE find = utf8::FindFirstFileA(pattern.c_str(), &found);
-    if (find == INVALID_HANDLE_VALUE) return entries;
-    do {
-        entries.push_back({found.cFileName, (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0});
-    } while (utf8::FindNextFileA(find, &found));
-    ::FindClose(find);
-    return entries;
-}
-
 } // namespace text

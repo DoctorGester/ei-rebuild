@@ -15,7 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 
 #pragma pack(push, 1)
@@ -49,8 +49,8 @@ public:
     bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
 
-    lib::File file;
-    lib::FileMapping mapping;     // its View() is the mapped base address
+    platform::File file;
+    platform::FileMapping mapping;     // its View() is the mapped base address
     std::uint32_t size = 0;
 };
 
@@ -109,7 +109,7 @@ public:
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
 
-    lib::File archive;           // the archive's file
+    platform::File archive;           // the archive's file
     char* image;                 // archive image when opened with OpenFromMemory
     std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries and names point into them)
     std::vector<char> nameTable;

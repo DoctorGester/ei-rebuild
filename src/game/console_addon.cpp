@@ -7,7 +7,7 @@
 #include "options.h"
 #include "script.h"
 #include "settings_file.h"
-#include "system_text.h"
+#include "platform/files.h"
 #include "ui.h"
 #include "ui_cursor.h"
 
@@ -194,7 +194,7 @@ const std::vector<std::string>& AutoExecLines() {
                 }
             }
         }
-        if (text::IsFile("2utoexec.cfg")) {
+        if (platform::IsFile("2utoexec.cfg")) {
             std::ifstream file("2utoexec.cfg");
             std::string line;
             while (std::getline(file, line)) result.push_back(line);

@@ -6,7 +6,7 @@
 #include "mod_folders.h"
 #include "world_data.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/containers.h"
 #include <string>
 #include "lib/nan_audit.h"
@@ -19,16 +19,16 @@ constexpr float kLeadInGap = 500.0f;
 } // namespace
 
 int Camera::LoadPath(const char* name, int settle) {
-    lib::File file;
+    platform::File file;
     int opened;
     {
         std::string folder = g_dataFolder;
         std::string path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
             // CameraPatch: the mod's Camera\ copy when there is one.
-            opened = file.Open(modfolders::CameraFile(path.c_str()), lib::File::modeRead);
+            opened = file.Open(modfolders::CameraFile(path.c_str()), platform::File::modeRead);
         } else {
-            opened = file.Open(path, lib::File::modeRead);
+            opened = file.Open(path, platform::File::modeRead);
         }
     }
     if (!opened) return 0;

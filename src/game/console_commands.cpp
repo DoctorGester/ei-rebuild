@@ -18,7 +18,7 @@
 
 #include "lib/calendar.h"
 #include "lib/containers.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -62,7 +62,7 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
     (g_gameFlow.*Request)(map.c_str(), &party);
 }
 
-void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
+void WriteSpeech(platform::TextFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
     line = std::format("#say {}\n", speech.name.data());
     file->WriteString(line);
@@ -193,7 +193,7 @@ void ListVar(std::vector<std::string>* args) {
     if (!player) return PrintLine("Wrong player number");
 
     std::string line;
-    lib::TextFile file;
+    platform::TextFile file;
     bool writing = false;
     if (args->size() > 1) {
         writing = file.Open((*args)[1], "w");
@@ -222,7 +222,7 @@ void LoadVar(std::vector<std::string>* args) {
 
     std::string line;
     std::vector<std::string> parts;
-    lib::TextFile file;
+    platform::TextFile file;
     if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for reading");
         return;
@@ -255,7 +255,7 @@ void Exec(std::vector<std::string>* args) {
     std::string name = (*args)[0];
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
-    lib::TextFile file;
+    platform::TextFile file;
     if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[0] << " for reading");
         return;
@@ -352,13 +352,13 @@ void Net(std::vector<std::string>* args) {
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 
-void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list) {
+void WriteSpeechLines(platform::TextFile* file, const acks::Speeches* list) {
     if (!list) return;
     std::string line;
     for (const SpeechRecord& speech : list->records) WriteSpeech(file, line, speech);
 }
 
-void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list) {
+void WriteEnvironmentSpeechLines(platform::TextFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     std::string line;
     for (const acks::EnvironmentSpeech& entry : list->entries) WriteSpeech(file, line, entry.speech);
@@ -368,12 +368,12 @@ void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpe
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
 void GenerateAcks(std::vector<std::string>*) {
-    lib::TextFile file;
+    platform::TextFile file;
     {
         std::string path = g_dataFolder + "scenack.txt";
         if (!file.Open(path, "w")) return;
     }
-    lib::TextFile* out = &file;
+    platform::TextFile* out = &file;
     acks::AckDatabase& database = g_ackDatabase;
     for (acks::UnitAcks& record : database.units.records) {
         for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);

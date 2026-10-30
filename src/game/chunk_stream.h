@@ -6,7 +6,7 @@
 // docs/notes/core.md.
 
 #include "maths.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -20,7 +20,7 @@ public:
 
     // Called by ForEachChild for each child header read; the readers read the chunk's value by its id.
     virtual void OnChunk();
-    virtual lib::File* File();
+    virtual platform::File* File();
 
     void Advance(int bytes);
     // Writing a chunk of unknown size: a placeholder size, patched in at the end.
@@ -69,12 +69,12 @@ class RootChunk : public Chunk {
 public:
     RootChunk() : Chunk(nullptr) {}
 
-    lib::File* File() override;
+    platform::File* File() override;
 
     ~RootChunk();
 
-    // Opens the file: lib::File::Open with the low 16 bits of `flags`.
+    // Opens the file: platform::File::Open with the low 16 bits of `flags`.
     int Open(const std::string& path, unsigned flags);
 
-    lib::File file;
+    platform::File file;
 };

@@ -56,7 +56,7 @@ none may be devirtualised.
   with `delete` (`Dib` is a real class).
 - `app_registry`: prototypes and counted pointers are `RefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM
   pointers are `IUnknown`. Signatures (`void*`) kept for the verify wrappers.
-- Files are `lib::File` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`); `FreeSpares` deletes the
+- Files are `platform::File` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`); `FreeSpares` deletes the
   spare list with `delete`.
 - `refptr_copies`: `RefPtrRelease` deletes on `RefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount`),
   `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the

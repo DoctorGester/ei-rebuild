@@ -19,7 +19,7 @@
 #include "world_map_files.h"
 
 #include "lib/containers.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -156,7 +156,7 @@ bool LoadZoneQuests(std::string_view zone) {
     file += kQuestFileSuffix;
     bool found;
     {
-        lib::FileFind find;
+        platform::FileFind find;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         std::string pattern = MapsFolder() + file;
         found = find.FindFile(pattern) != 0;

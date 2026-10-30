@@ -55,11 +55,11 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
   (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
   import_prototypes.h (the harness key: game.exe's side).
-- Files go through `lib/file_io.h` (no SDK header): File (Seek's `File::begin` / `current` / `end`; ReadAt / WriteAt,
+- Files go through `platform/file.h` (no SDK header): File (Seek's `File::begin` / `current` / `end`; ReadAt / WriteAt,
   a seek and an exact read or write that return false instead of throwing, as the archive and the seed file
   checked SetFilePointer and ReadFile; the osNoBuffer / osRandomAccess open flags), FileMapping (the mapped
   archives) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
-  `text::IsFile` / `text::FindAll` (system_text.h), the UTF-8 calls directly: addon.dll called its own imports,
+  `platform::IsFile` / `platform::FolderEntries` (platform/files.h), the UTF-8 calls directly: addon.dll called its own imports,
   which the harness's read redirection (the game's slots only) leaves alone, so they must not move onto File /
   FileFind. A member type change (MappedFile, held by FileRegistry, held by WorldServer and SoundManager) moves
   their members: a per-function `dumpbin` comparison then differs in displacements, so compare with hex

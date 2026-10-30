@@ -34,7 +34,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/pc24.h"
 
 #include <bit>
@@ -155,9 +155,9 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 // first: `site`).
 bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
     const std::string file(name);
-    if (lib::FileExists(file)) return false;
+    if (platform::FileExists(file)) return false;
     modfolders::SelectMaps(name, site);
-    return !lib::FileExists(MapsFolder() + file);
+    return !platform::FileExists(MapsFolder() + file);
 }
 
 } // namespace

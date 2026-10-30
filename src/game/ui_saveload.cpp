@@ -20,7 +20,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
 #include "platform/files.h"
@@ -33,6 +33,7 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "platform/files.h"
 
 #include <cstdlib>
 #include <memory>
@@ -45,7 +46,7 @@ constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bit
 constexpr int kShotWidth = 256, kShotHeight = 192;
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
-constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
+constexpr unsigned kOpenWrite = platform::File::modeCreate | platform::File::modeWrite;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
@@ -115,7 +116,7 @@ void SaveLoadWindow::ShowPicture() {
         return;
     }
     std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
-    lib::FileFind find;
+    platform::FileFind find;
     bool found;
     {
         std::string path = folder + game::savewords::ShotFile();
@@ -124,10 +125,10 @@ void SaveLoadWindow::ShowPicture() {
     if (!found) return;
     // The file's picture (the rows a short file has; the rest keeps the last picture's, as the original's read).
     std::vector<std::uint8_t> picture(kShotBytes);
-    lib::File file;
+    platform::File file;
     {
         std::string path = folder + game::savewords::ShotFile();
-        file.Open(path, lib::File::modeRead);
+        file.Open(path, platform::File::modeRead);
     }
     const unsigned read = file.Read(picture.data(), kShotBytes);
     file.Close();
@@ -204,7 +205,7 @@ void SaveLoadWindow::SaveGame() {
 
     // shot.sav: the game's picture.
     if (dialog) {
-        lib::File shot;
+        platform::File shot;
         {
             std::string path = folder + game::savewords::ShotFile();
             shot.Open(path, kOpenWrite);
@@ -218,17 +219,17 @@ void SaveLoadWindow::SaveGame() {
 
 void SaveLoadWindow::FillEntries() {
     std::string pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
-    lib::FileFind find;
+    platform::FileFind find;
     entries.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     bool more = find.FindFile(pattern);
     while (more) {
         more = find.FindNext();
-        if (find.IsDots() || !find.MatchesMask(FILE_ATTRIBUTE_DIRECTORY)) continue;
+        if (find.IsDots() || !find.IsDirectory()) continue;
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries.emplace_back();
         entry->folder = find.GetFileName();
-        lib::FileFind infoFind;
+        platform::FileFind infoFind;
         bool hasInfo;
         {
             std::string folderPath = find.GetFilePath();
@@ -346,7 +347,7 @@ void QuickSave(const char* slot, bool stepFrame) {
 
     // shot.sav: the copied screen at 256x192.
     const std::vector<std::uint16_t> pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
-    lib::File shot;
+    platform::File shot;
     shot.Open(folder + game::savewords::ShotFile(), kOpenWrite);
     shot.Write(pixels.data(), kShotBytes);
     shot.Close();
@@ -359,7 +360,7 @@ void QuickSave(const char* slot, bool stepFrame) {
 void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
-    if (!lib::FileExists(folder)) return;
+    if (!platform::FileExists(folder)) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
@@ -415,14 +416,14 @@ void SaveLoadWindow::DeleteSave() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder = str::Format(kFolderFormat, DataFolderText(), entries[currentSelected].folder);
-    lib::FileFind find;
+    platform::FileFind find;
     bool more = find.FindFile(folder + kEveryFile);
     while (more) {
         more = find.FindNext();
-        gameapi::DeleteFileA(find.GetFilePath().c_str());
+        platform::RemoveFile(find.GetFilePath().c_str());
     }
     find.Close();
-    gameapi::RemoveDirectoryA(folder.c_str());
+    platform::RemoveFolder(folder.c_str());
     FillEntries();
     int count = EntryCount();
     if (static_cast<unsigned>(selected) >= static_cast<unsigned>(count)) selected = count - 1;

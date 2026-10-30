@@ -5,7 +5,7 @@
 
 #include "core_maths.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "object_maths.h"
@@ -14,11 +14,11 @@
 
 namespace {
 
-void Write(lib::File* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
-void Read(lib::File* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
+void Write(platform::File* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
+void Read(platform::File* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 
-void WriteCount(lib::File* file, int count) { Write(file, &count, 4); }
-int ReadCount(lib::File* file) {
+void WriteCount(platform::File* file, int count) { Write(file, &count, 4); }
+int ReadCount(platform::File* file) {
     int count;
     Read(file, &count, 4);
     return count;
@@ -26,7 +26,7 @@ int ReadCount(lib::File* file) {
 
 } // namespace
 
-void FigureMesh::SaveTransform(lib::File* file) {
+void FigureMesh::SaveTransform(platform::File* file) {
     int length = static_cast<int>(name.size());
     WriteCount(file, length);
     Write(file, name.c_str(), length);
@@ -51,7 +51,7 @@ void FigureMesh::SaveTransform(lib::File* file) {
     Write(file, &meshType, 4);
 }
 
-void PlainFigureMesh::LoadTransform(lib::File* file) {
+void PlainFigureMesh::LoadTransform(platform::File* file) {
     BuffersChanged();
     int length = ReadCount(file);
     Read(file, str::SetLength(name, length), length);

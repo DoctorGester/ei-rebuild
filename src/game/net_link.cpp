@@ -8,7 +8,7 @@
 #include "world.h"   // WorldHandle (CreatePair)
 
 #include "lib/bytes.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
@@ -58,7 +58,7 @@ std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
 
 void FileStream::Write(const void* buffer, std::uint32_t size) { file.Write(buffer, size); }
 
-long FileStream::SeekFrom(long position) { return file.Seek(position, lib::File::begin); }
+long FileStream::SeekFrom(long position) { return file.Seek(position, platform::File::begin); }
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
 std::uint32_t FileStream::Size() { return file.GetLength(); }
@@ -66,7 +66,7 @@ std::uint32_t FileStream::Position() { return file.GetPosition(); }
 
 long FileStream::Restart() {
     ok = 1;
-    return file.Seek(0L, lib::File::begin);
+    return file.Seek(0L, platform::File::begin);
 }
 void FileStream::Clear() { Restart(); }
 

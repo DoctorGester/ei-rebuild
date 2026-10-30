@@ -27,7 +27,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "platform/clock.h"
@@ -104,7 +104,7 @@ void AppendDefaultMessages(std::vector<std::string>& messages) {
 
 // The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
 void LoadSystemMessages(std::vector<std::string>& messages) {
-    std::FILE* file = lib::OpenFile(".\\res\\sysmsg.txt", "rt");
+    std::FILE* file = platform::OpenFile(".\\res\\sysmsg.txt", "rt");
     if (!file) {
         AppendDefaultMessages(messages);
         return;
@@ -172,7 +172,7 @@ void ReadCommandLine(const char* commandLine) {
 
 // The window class registered (no icon: its resource is not shipped); a game that runs already is brought to the
 // front instead and this one exits.
-void RegisterWindowClass(HINSTANCE instance) {
+void RegisterWindowClass(platform::NativeInstance instance) {
     std::snprintf(g_windowTitle, sizeof(g_windowTitle), "%s", kWindowTitle);
     platform::RegisterWindowClass(instance, kWindowClassName, HandleWindowEvent);
 
@@ -536,7 +536,7 @@ void ReleaseMouseAtExit() {
 }
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
-HINSTANCE g_instance = /*0079BC24*/ {};
+platform::NativeInstance g_instance = /*0079BC24*/ {};
 HWND g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_activationChanged = /*0079BC5D*/ {};
@@ -546,7 +546,7 @@ std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
-int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
+int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* commandLine, int show) {
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
@@ -599,7 +599,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
-    g_mouse->Setup(g_mainWindow, instance);
+    g_mouse->Setup(g_mainWindow, static_cast<HINSTANCE>(instance));
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
     SetUpCursors(options->fpsIndependentCursor != 0, g_mouse, 0);
     g_interface.Create(g_sceneRenderer.device);

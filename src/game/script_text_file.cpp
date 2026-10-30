@@ -3,7 +3,7 @@
 // text.
 #include "script_parse.h"
 
-#include "lib/file_io.h"
+#include "platform/file.h"
 
 #include <string>
 
@@ -15,12 +15,12 @@ constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 
 int ReadTextFile(const std::string& path, std::string* text) {
     text->clear();
-    lib::TextFile file;
+    platform::TextFile file;
     if (!file.Open(path, "r")) return 0;
     char line[kLineSize];
     try {
         while (file.ReadString(line, kLineSize)) *text += line;
-    } catch (const lib::FileError&) {
+    } catch (const platform::FileError&) {
         return 0;
     }
     return 1;

@@ -11,7 +11,7 @@
 #include <string>
 
 #include "lib/crt.h"
-#include "lib/file_io.h"
+#include "platform/file.h"
 #include "lib/gameapi.h"
 
 #include <cstdlib>
@@ -58,7 +58,7 @@ void ResourceStream::Close() {
 
 bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     Close();
-    if (!lib::FileExists(name)) return false;
+    if (!platform::FileExists(name)) return false;
     WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
     const HANDLE search = gameapi::FindFirstFileA(name.c_str(), &found);
     if (search != INVALID_HANDLE_VALUE) FindClose(search);

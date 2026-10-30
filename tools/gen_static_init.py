@@ -650,6 +650,8 @@ REVIEWED_READ = {
     0x007C53E0: '00683868 is the middle of a call displacement (coincidence); 005C8AE2.. are the initialiser own stores',
     0x007C7E80: '0070B443 is the middle of a CMP [reg + 0x7C], 0 (coincidence); 00600AF2.. are the initialiser own stores',
     0x007C8430: 'CEffectMoshka::Update (ported, 0067CEF0): pi / 2 is its kHalfPi literal',
+    0x007C8964: "the sun ray march's step scale (95): the march (006C9047 / 006C9068) was ported and then deleted with "
+                'the terrain CPU lighting, so nothing of ours reads it',
     0x007AA890: 'CSky::Draw (ported): 004D9841 / 004D9846 push the identity rotation and the origin as the figure '
                 'draw arguments nothing read; ours passes neither (R27c)',
     0x007AA8A0: 'CSky::Draw (ported): see 007AA890',

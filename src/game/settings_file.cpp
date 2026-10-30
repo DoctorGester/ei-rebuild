@@ -3,9 +3,13 @@
 
 #include "ei/hook.h"
 #include "hook/log.h"
+#include "platform/files.h"
+#include "platform/paths.h"
+#include "platform/system.h"
 
+#include <mutex>
 #include <string>
-#include <windows.h>
+#include <winerror.h>
 
 #include <cstring>
 
@@ -16,7 +20,7 @@ namespace {
 
 struct Store {
     Document document;
-    std::wstring file;            // empty until loaded: the one next to the exe or the per-user one, or the pinned one
+    std::string file;             // empty until loaded: the one next to the exe or the per-user one, or the pinned one
     bool loaded = false;
     bool pinned = false;          // a harness run's file
     bool readOnly = false;        // pinned and read only: nothing written, no defaults
@@ -31,86 +35,47 @@ Store& S() {
     static Store* store = new Store;   // never destroyed: the game may still read at exit
     return *store;
 }
-SRWLOCK g_lock = SRWLOCK_INIT;
+std::mutex g_lock;
 
 struct Locked {
-    Locked() { AcquireSRWLockExclusive(&g_lock); }
-    ~Locked() { ReleaseSRWLockExclusive(&g_lock); }
-    Locked(const Locked&) = delete;
-    Locked& operator=(const Locked&) = delete;
+    std::lock_guard<std::mutex> guard{g_lock};
 };
 
-std::wstring WithFileName(std::wstring folder) {
-    for (const char* c = kFileName; *c; ++c) folder += static_cast<wchar_t>(*c);
-    return folder;
-}
+std::string WithFileName(std::string folder) { return folder + kFileName; }
 
-std::wstring FileNextToExe() {
-    std::wstring path(MAX_PATH, L'\0');
-    for (;;) {
-        const DWORD n = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
-        if (n < path.size()) {
-            path.resize(n);
-            break;
-        }
-        path.resize(path.size() * 2);
-    }
-    path.resize(path.find_last_of(L'\\') + 1);
+std::string FileNextToExe() {
+    std::string path = platform::ProgramPath();
+    path.resize(path.find_last_of('\\') + 1);
     return WithFileName(path);
 }
 
 // %LOCALAPPDATA%\EvilIslands\ei_settings.ini (empty without LOCALAPPDATA).
-std::wstring FileForUser() {
-    const DWORD n = GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
-    if (n == 0) return {};
-    std::wstring folder(n, L'\0');
-    folder.resize(GetEnvironmentVariableW(L"LOCALAPPDATA", folder.data(), n));
+std::string FileForUser() {
+    std::string folder = platform::UserDataFolder();
     if (folder.empty()) return {};
-    if (folder.back() != L'\\') folder += L'\\';
-    return WithFileName(folder + L"EvilIslands\\");
+    return WithFileName(folder + "EvilIslands\\");
 }
 
 enum class Read { read, missing, failed };
 
 // The whole file, shared with any writer (an editor or a sync tool holding it open). `missing` only when the file
 // or its folder does not exist.
-Read ReadWhole(const std::wstring& file, std::string* text) {
-    HANDLE handle = CreateFileW(file.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                nullptr, OPEN_EXISTING, 0, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) {
-        const DWORD error = GetLastError();
-        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) return Read::missing;
-        ei::Log("settings: %ls cannot be read (error %lu)", file.c_str(), error);
-        return Read::failed;
+Read ReadWhole(const std::string& file, std::string* text) {
+    unsigned long error = 0;
+    switch (platform::ReadWholeFile(file, text, &error)) {
+    case platform::WholeFile::read: return Read::read;
+    case platform::WholeFile::missing: return Read::missing;
+    case platform::WholeFile::failed: break;
     }
-    LARGE_INTEGER size{};
-    bool ok = GetFileSizeEx(handle, &size) && size.QuadPart < (1 << 24);
-    if (ok) {
-        text->resize(static_cast<std::size_t>(size.QuadPart));
-        DWORD read = 0;
-        ok = ReadFile(handle, text->data(), static_cast<DWORD>(text->size()), &read, nullptr) && read == text->size();
-    }
-    if (!ok) ei::Log("settings: %ls cannot be read (error %lu, %lld bytes)", file.c_str(), GetLastError(), size.QuadPart);
-    CloseHandle(handle);
-    return ok ? Read::read : Read::failed;
+    ei::Log("settings: %s cannot be read (error %lu)", file.c_str(), error);
+    return Read::failed;
 }
 
 // The file written whole beside itself (its folder made when missing), then moved over it.
 bool Write(Store& s) {
-    const std::string text = s.document.Text();
-    const std::wstring temporary = s.file + L".tmp";
-    CreateDirectoryW(s.file.substr(0, s.file.find_last_of(L'\\')).c_str(), nullptr);
-    HANDLE handle = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
-    DWORD written = 0;
-    bool ok = handle != INVALID_HANDLE_VALUE;
-    if (ok) {
-        ok = WriteFile(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) && written == text.size();
-        CloseHandle(handle);
-    }
-    ok = ok && MoveFileExW(temporary.c_str(), s.file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
-    if (!ok) {
-        ei::Log("settings: cannot write %ls (error %lu)", s.file.c_str(), GetLastError());
-        DeleteFileW(temporary.c_str());
+    unsigned long error = 0;
+    if (!platform::WriteWholeFile(s.file, s.document.Text(), &error)) {
+        ei::Log("settings: cannot write %s (error %lu)", s.file.c_str(), error);
         return false;
     }
     s.dirty = false;
@@ -122,16 +87,7 @@ bool Write(Store& s) {
 void UseDefaults(Store& s, int* width, int* height) {
     *width = s.desktopWidth;
     *height = s.desktopHeight;
-    MONITORINFOEXW monitor{};
-    monitor.cbSize = sizeof(monitor);
-    DEVMODEW mode{};
-    mode.dmSize = sizeof(mode);
-    if ((*width <= 0 || *height <= 0) &&
-        GetMonitorInfoW(MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &monitor) &&
-        EnumDisplaySettingsW(monitor.szDevice, ENUM_CURRENT_SETTINGS, &mode)) {
-        *width = static_cast<int>(mode.dmPelsWidth);
-        *height = static_cast<int>(mode.dmPelsHeight);
-    }
+    if (*width <= 0 || *height <= 0) platform::PrimaryDesktopSize(width, height);
     if (*width <= 0 || *height <= 0) {
         ei::Log("settings: no desktop size (%dx%d): the defaults for 1024x768, not written this session", *width, *height);
         *width = 1024;
@@ -147,14 +103,14 @@ void UseDefaults(Store& s, int* width, int* height) {
 void Load(Store& s) {
     if (s.loaded) return;
     s.loaded = true;
-    std::vector<std::wstring> places;
+    std::vector<std::string> places;
     if (s.pinned) places.push_back(s.file);
     else {
         places.push_back(FileNextToExe());
-        if (std::wstring user = FileForUser(); !user.empty()) places.push_back(std::move(user));
+        if (std::string user = FileForUser(); !user.empty()) places.push_back(std::move(user));
     }
     int width = 0, height = 0;
-    for (const std::wstring& place : places) {
+    for (const std::string& place : places) {
         s.file = place;
         std::string text;
         const Read read = ReadWhole(place, &text);
@@ -163,29 +119,29 @@ void Load(Store& s) {
             if (s.readOnly) return;
             UseDefaults(s, &width, &height);
             s.inMemory = true;
-            ei::Log("settings: %ls left as it is: the defaults (full screen at %dx%d) are used and nothing is written "
+            ei::Log("settings: %s left as it is: the defaults (full screen at %dx%d) are used and nothing is written "
                     "this session", place.c_str(), width, height);
             return;
         }
         std::vector<std::string> problems;
         s.document.Parse(text, &problems);
-        for (const std::string& problem : problems) ei::Log("settings: %ls: %s", place.c_str(), problem.c_str());
+        for (const std::string& problem : problems) ei::Log("settings: %s: %s", place.c_str(), problem.c_str());
         std::size_t values = 0;
         for (const Key& key : s.document.keys) values += key.values.size();
-        ei::Log("settings: %ls: %zu keys, %zu values%s", place.c_str(), s.document.keys.size(), values,
+        ei::Log("settings: %s: %zu keys, %zu values%s", place.c_str(), s.document.keys.size(), values,
                 s.readOnly ? " (pinned, read only)" : s.pinned ? " (pinned)" : "");
         return;
     }
     if (s.readOnly) {
-        ei::Log("settings: the pinned file %ls cannot be read", s.file.c_str());
+        ei::Log("settings: the pinned file %s cannot be read", s.file.c_str());
         return;
     }
     UseDefaults(s, &width, &height);
     if (s.inMemory) return;
-    for (const std::wstring& place : places) {
+    for (const std::string& place : places) {
         s.file = place;
         if (Write(s)) {
-            ei::Log("settings: %ls missing: written with the defaults (full screen at %dx%d)", place.c_str(), width, height);
+            ei::Log("settings: %s missing: written with the defaults (full screen at %dx%d)", place.c_str(), width, height);
             return;
         }
     }
@@ -283,9 +239,7 @@ void Pin(const char* file, MissingHandler missing, bool readOnly) {
     Locked lock;
     Store& s = S();
     s.document.keys.clear();
-    s.file.assign(static_cast<std::size_t>(MultiByteToWideChar(CP_ACP, 0, file, -1, nullptr, 0)), L'\0');
-    MultiByteToWideChar(CP_ACP, 0, file, -1, s.file.data(), static_cast<int>(s.file.size()));
-    if (!s.file.empty()) s.file.pop_back();   // the terminator
+    s.file = file;
     s.pinned = true;
     s.readOnly = readOnly;
     s.loaded = false;
