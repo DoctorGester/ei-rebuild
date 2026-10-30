@@ -67,8 +67,6 @@ set(EI_X87_GAME_SOURCES
     game/combat_spell_sight game/combat_steps game/combat_taming game/combat_tick game/combat_update
     # C30e8a: UnitMotion::Build's FPATAN of FSIN's and FCOS's results stored as doubles
     game/ai_motion
-    # C30e9: unit AI
-    game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
     # C30e10a: Slerp's FSIN of the game CRT's double arc cosine
     game/quaternion
     # C30e12: client units and world

@@ -5,11 +5,11 @@
 #include "combat.h"
 #include "console.h"
 #include "effects.h"
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "map_object.h"
@@ -38,9 +38,9 @@ constexpr float kSectorScale = 0.03125f;
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 
-bool IsZero(double v) {
+bool IsZero(float v) {
     EI_NAN_AUDIT(v);
-    return v == 0.0;
+    return v == 0.0f;
 }
 
 // "Unit <self> <text> <other>" (no line end).
@@ -60,8 +60,8 @@ void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
 
 void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
-        eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
-    eye.z = static_cast<float>(static_cast<double>(self->bounds.boxMax.z) * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z);
+        eye.z = static_cast<float>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z;
+    eye.z = self->bounds.boxMax.z * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z;
     Vector3 axis = RotatedAxisY(self->localRotation);
     ready = 1;
     facing = -axis;
@@ -75,11 +75,10 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     int blockY = cellY / 32;
     UnitServer* control = self->ServerController();
     float hearing = control->stats.perception[2].current;
-    float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
+    float sight = control->moveFactors[3] * control->stats.perception[0].current;
     float reach = sight >= hearing ? sight : hearing;
     int count = 0;
-    const std::int16_t* offsets =
-        memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
+    const std::int16_t* offsets = memory->sightCells.Get(reach * kSightCellsFactor * kSectorScale, &count);
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
         std::vector<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
@@ -116,14 +115,13 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         UnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
-        double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
-                          ours->stats.perception[0].current;
-        float sight = static_cast<float>(sightRaw);
+        float sight = theirs->moveFactors[2] * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                      ours->stats.perception[0].current;
         bool seen = false;
-        if (sightRaw >= distance) {
-            double along = DotZYX(d, facing);
+        if (sight >= distance) {
+            float along = DotZYX(d, facing);
             EI_NAN_AUDIT(coneLimit, distance, along);
-            if (static_cast<double>(coneLimit) * distance <= along) {
+            if (coneLimit * distance <= along) {
                 Vector3 to = eye + d;
                 seen = map->LineOfSight(eye, to) * sight > distance;
             }
@@ -137,7 +135,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             } else {
                 if (dead) continue;
                 EI_NAN_AUDIT(theirs->stats.conspicuity[2].current, ours->stats.perception[2].current, distance);
-                if (static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current <= distance) continue;
+                if (theirs->stats.conspicuity[2].current * ours->stats.perception[2].current <= distance) continue;
                 kAiLog << "using sense life ";
                 alive = true;
             }
@@ -150,9 +148,9 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
         if (alive) {
             memory->visible.insert(memory->visible.begin(), other);
-            double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
-            double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
-            double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
+            float dx = self->localPosition.x - other->localPosition.x;
+            float dy = self->localPosition.y - other->localPosition.y;
+            float dz = self->localPosition.z - other->localPosition.z;
             LogPair(self, " sees unit ", other) << " from ";
             console::EndLine(kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
         }
@@ -165,9 +163,8 @@ namespace {
 // first (twice in the seen corpses when allied, as the original does).
 bool StillSees(UnitServer* owner, AIMemory* memory, CUnit* other, float reachFactor) {
     CUnit* self = owner->unit;
-    Vector3 d{static_cast<float>(static_cast<double>(other->localPosition.x) - self->localPosition.x),
-              static_cast<float>(static_cast<double>(other->localPosition.y) - self->localPosition.y),
-              static_cast<float>(static_cast<double>(other->localPosition.z) - self->localPosition.z)};
+    Vector3 d{other->localPosition.x - self->localPosition.x, other->localPosition.y - self->localPosition.y,
+              other->localPosition.z - self->localPosition.z};
     float distance = LengthZYX(d);
     if (other->IsDead()) {
         if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
@@ -183,10 +180,10 @@ bool StillSees(UnitServer* owner, AIMemory* memory, CUnit* other, float reachFac
     UnitServer* theirs = other->ServerController();
     AIBrain* theirBrain = &theirs->brain;
     if (theirs->moveMode2.onGuard && theirBrain->target == self) return true;
-    double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
-                   owner->stats.perception[0].current * reachFactor;
+    float sight = theirs->moveFactors[2] * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                  owner->stats.perception[0].current * reachFactor;
     if (sight > distance) return true;
-    double sense = static_cast<double>(theirs->stats.conspicuity[2].current) * owner->stats.perception[2].current * reachFactor;
+    float sense = theirs->stats.conspicuity[2].current * owner->stats.perception[2].current * reachFactor;
     if (sense > distance) return true;
     return theirBrain->AggressionEnemy() == self;
 }
@@ -201,8 +198,8 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     ready = 0;
     eye = *&self->localPosition;
     float scale = 2.0f;
-    cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - 0.5f));
-    cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - 0.5f));
+    cellX = lib::RoundEven(scale * eye.x - 0.5f);
+    cellY = lib::RoundEven(scale * eye.y - 0.5f);
     Refresh(self, memory);
     HeldUnits& visible = memory->visible;
     for (std::size_t i = 0; i < visible.size();) {
@@ -233,16 +230,16 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     UnitServer* mine = seer->ServerController();
     UnitServer* theirs = observer->ServerController();
     float cone = mine->stats.sightCone;
-    float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
-                               theirs->stats.conspicuity[0].current * mine->stats.perception[0].current);
+    float sight = theirs->moveFactors[2] * mine->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                  mine->stats.perception[0].current;
     // The larger of 0 and the sight.
     EI_NAN_AUDIT(sight);
     float radius = 0.0f < sight ? sight : 0.0f;
-    float height = static_cast<float>(observer->ModeSpeed());
+    float height = observer->ModeSpeed();
     AIMap* map = &g_serverWorld.aiMap;
     map->MarkVisibleCells(eye, radius, look, cone, height, grid);
-    double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
-    if (!IsZero(hearing)) map->MarkVisibleCells(eye, static_cast<float>(hearing), look, kNoCone, kNoLineOfSight, grid);
+    float hearing = mine->stats.perception[2].current * theirs->stats.conspicuity[2].current;
+    if (!IsZero(hearing)) map->MarkVisibleCells(eye, hearing, look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
     if (!IsZero(peripheral)) map->MarkVisibleCells(eye, peripheral, look, 0.0f, kNoLineOfSight, grid);
 }
@@ -283,13 +280,13 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
         AIBrain* brain = &control->brain;
         // A unit that noticed something at least as loud as a call hears nothing.
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
-        const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.perception[3].current;
+        const float hearing = control->moveFactors[1] * control->stats.perception[3].current;
         const float distance = vecmath::Distance<Sum3::XYZ>(at, other->localPosition);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         std::string text;
         if (console::g_filterMask & 1) {
-            const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition, unit->localPosition);
+            const float between = vecmath::Distance<Sum3::XYZ>(other->localPosition, unit->localPosition);
             text = str::Format(kHeardFormat, other->id, unit->id, between);
         }
         brain->memory.calls.Hear(unit->localPosition, delay, text);
@@ -312,20 +309,20 @@ const float kFar = 1e30f;
 
 
 // (a - b) squared in 3D, summed z, then x, then y.
-double Distance2(const CUnit* a, const float* b) {
-    double dx = static_cast<double>(a->localPosition.x) - b[0];
-    double dy = static_cast<double>(a->localPosition.y) - b[1];
-    double dz = static_cast<double>(a->localPosition.z) - b[2];
+float Distance2(const CUnit* a, const float* b) {
+    float dx = a->localPosition.x - b[0];
+    float dy = a->localPosition.y - b[1];
+    float dz = a->localPosition.z - b[2];
     return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 
 constexpr float kMaxExposure = 3.0f;
 
 // distance / range, at most 3 (NaN kept); 3 for a zero range.
-float Exposure(float distance, double range) {
+float Exposure(float distance, float range) {
     EI_NAN_AUDIT(range);
-    if (range == 0.0) return kMaxExposure;
-    float ratio = static_cast<float>(distance / range);
+    if (range == 0.0f) return kMaxExposure;
+    float ratio = distance / range;
     return ratio >= kMaxExposure ? kMaxExposure : ratio;
 }
 
@@ -346,7 +343,7 @@ UnitList AIMemory::FindEnemies(CUnit* self) {
 
 UnitList AIMemory::FindEnemiesNear(CUnit* self, const Vector3& point, float radius) {
     UnitList out;
-    float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
+    float radius2 = radius > 0.0f ? radius * radius : -1.0f;
     for (auto& node : visible) {
         CUnit* other = node;
         if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
@@ -369,13 +366,13 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     for (auto& node : visible) {
         CUnit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead()) continue;
-        double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
-        double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
-        double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
-        double d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
+        float dx = self->localPosition.x - other->localPosition.x;
+        float dy = self->localPosition.y - other->localPosition.y;
+        float dz = self->localPosition.z - other->localPosition.z;
+        float d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
         EI_NAN_AUDIT(d2, best);
         if (d2 < best) {
-            best = static_cast<float>(d2);
+            best = d2;
             nearest = other;
         }
     }
@@ -387,17 +384,17 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     CUnit* other = object;
     UnitServer* theirs = other->ServerController();
     UnitServer* ours = self->ServerController();
-    double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
-    double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
-    double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
-    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+    float dx = self->localPosition.x - other->localPosition.x;
+    float dy = self->localPosition.y - other->localPosition.y;
+    float dz = self->localPosition.z - other->localPosition.z;
+    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     AIBrain* theirBrain = &theirs->brain;
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
                      theirBrain->target == self;
     if (!attacksUs) {
-        double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
-                       ours->stats.perception[0].current;
-        double nearValue = static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current;
+        float sight = theirs->moveFactors[2] * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                      ours->stats.perception[0].current;
+        float nearValue = theirs->stats.conspicuity[2].current * ours->stats.perception[2].current;
         if (sight > distance && nearValue > distance) return;
     }
     if (object->IsDead()) {
@@ -426,22 +423,22 @@ void AIMemory::MeasureExposure(UnitServer* self, float* out) {
         CUnit* other = node;
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
         UnitServer* theirs = other->ServerController();
-        double dx = static_cast<double>(other->localPosition.x) - unit->localPosition.x;
-        double dy = static_cast<double>(other->localPosition.y) - unit->localPosition.y;
-        double dz = static_cast<double>(other->localPosition.z) - unit->localPosition.z;
-        float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-        float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
-                                   theirs->stats.perception[0].current * self->stats.conspicuity[0].current);
+        float dx = other->localPosition.x - unit->localPosition.x;
+        float dy = other->localPosition.y - unit->localPosition.y;
+        float dz = other->localPosition.z - unit->localPosition.z;
+        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+        float sight = theirs->moveFactors[3] * self->moveFactors[2] * theirs->stats.perception[0].current *
+                      self->stats.conspicuity[0].current;
         EI_NAN_AUDIT(distance, sight);
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *other->EyePoint(&theirEye);
-            double range = g_serverWorld.aiMap.LineOfSight(eye, to) * sight;
+            float range = g_serverWorld.aiMap.LineOfSight(eye, to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
-        KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.perception[2].current) * self->stats.conspicuity[2].current));
-        KeepLower(out[1], Exposure(distance, static_cast<double>(theirs->stats.perception[4].current) * self->stats.conspicuity[4].current));
-        KeepLower(out[2], Exposure(distance, static_cast<double>(theirs->moveFactors[1]) * self->moveFactors[0] *
+        KeepLower(out[4], Exposure(distance, theirs->stats.perception[2].current * self->stats.conspicuity[2].current));
+        KeepLower(out[1], Exposure(distance, theirs->stats.perception[4].current * self->stats.conspicuity[4].current));
+        KeepLower(out[2], Exposure(distance, theirs->moveFactors[1] * self->moveFactors[0] *
                                                  theirs->stats.perception[3].current * self->stats.conspicuity[3].current));
     }
 }

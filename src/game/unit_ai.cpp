@@ -8,10 +8,11 @@
 #include "console.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "logic_settings.h"
 #include "map_spec.h"
@@ -191,9 +192,8 @@ CMapObject* AIBrain::AggressionEnemy() {
 
 bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float radiusSq = radius * radius;
-    // Kept on the FPU stack (double holds the 24-bit results exactly).
-    double dx = position.x - point.x;
-    double dy = position.y - point.y;
+    float dx = position.x - point.x;
+    float dy = position.y - point.y;
     EI_NAN_AUDIT(dy, dx, radiusSq);
     if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
     // The unit has not moved -> not near.
@@ -203,13 +203,12 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float pointY = point.y;
     float segX = previousPosition.x - position.x;
     float segY = previousPosition.y - position.y;
-    float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
-                                 LengthSquared2DUnrounded<double>(segY, segX));
+    float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / LengthSquared2DUnrounded(segY, segX);
     // Clamp to [0, 1] with selects: a NaN t gives 1.
     float u = 0.0f >= t ? 0.0f : t;
     u = 1.0f >= u ? u : 1.0f;
-    double ex = position.x - (pointX - u * segX);
-    double ey = position.y - (pointY - u * segY);
+    float ex = position.x - (pointX - u * segX);
+    float ey = position.y - (pointY - u * segY);
     EI_NAN_AUDIT(ey, ex);
     return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
@@ -239,8 +238,8 @@ void AIBrain::UpdateMove() {
     if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
     if (owner->orderStopped) {
         CUnit* unit = owner->unit;
-        double dy = move.point.y - unit->localPosition.y;      // kept on the FPU stack
-        double dx = move.point.x - unit->localPosition.x;
+        float dy = move.point.y - unit->localPosition.y;
+        float dx = move.point.x - unit->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             StopAction();
             return;
@@ -253,18 +252,17 @@ void AIBrain::UpdateMove() {
         }
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
-        double angle = look.angle;
         Vector3 direction;
         direction.z = 0.0f;
-        direction.x = static_cast<float>(x87::fcos(angle));
-        direction.y = static_cast<float>(x87::fsin(angle));
+        direction.x = pc24::Round(pc24::Cos(look.angle));
+        direction.y = pc24::Round(pc24::Sin(look.angle));
         owner->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }
     if (actionTime == kLookStarted) {
         if (move.looks.front().stopFirst) owner->StopQueued();
         float end = static_cast<float>(g_serverWorld.tick) + move.looks.front().wait;
-        actionTime = x87::fistp(end);
+        actionTime = lib::RoundEven(end);
         move.looks.erase(move.looks.begin());
         return;
     }
@@ -517,9 +515,9 @@ void AIBrain::CallAllies(const Vector3& point) {
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
-            double dz = self->localPosition.z - other->localPosition.z;
-            double dy = self->localPosition.y - other->localPosition.y;
-            double dx = self->localPosition.x - other->localPosition.x;
+            float dz = self->localPosition.z - other->localPosition.z;
+            float dy = self->localPosition.y - other->localPosition.y;
+            float dx = self->localPosition.x - other->localPosition.x;
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
@@ -533,11 +531,11 @@ bool AIMemory::Notice(const Vector3& point, int level, int decay) {
     if (level <= noticedLevel) return false;
     bool changed = true;
     if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
-        double dx = point.x - noticedX;
-        double dy = point.y - noticedY;
-        double z = point.z;
+        float dx = point.x - noticedX;
+        float dy = point.y - noticedY;
+        float z = point.z;
         // Farther than the limit; NaN is not.
-        changed = z * z + dy * dy + dx * dx > 10.0;
+        changed = z * z + dy * dy + dx * dx > 10.0f;
     }
     noticedLevel = level;
     noticedX = point.x;
@@ -761,9 +759,9 @@ bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
 }
-bool IsZero(double v) {
+bool IsZero(float v) {
     EI_NAN_AUDIT(v);
-    return v == 0.0;
+    return v == 0.0f;
 }
 
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
@@ -772,12 +770,13 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
     mode->points.clear();
     for (int i = 0; i < std::ssize(record->patrols); ++i) {
         const mapspec::Patrol& patrol = record->patrols[i];
-        double cell = 0.5;
-        long cellX = x87::RoundToInt(static_cast<float>(1.0f / cell * patrol.position.x));
-        long cellY = x87::RoundToInt(static_cast<float>(1.0f / cell * patrol.position.y));
+        float cell = 0.5f;
+        int cellX = lib::RoundEven(1.0f / cell * patrol.position.x);
+        int cellY = lib::RoundEven(1.0f / cell * patrol.position.y);
         PatrolPoint point{};
-        point.position.y = static_cast<float>((static_cast<double>(cellY) + 0.5f) * cell);
-        point.position.x = static_cast<float>((static_cast<double>(cellX) + 0.5f) * cell);
+        // The index plus a half rounded once (exact for any int; times a half is exact too).
+        point.position.y = pc24::Add(static_cast<double>(cellY), 0.5f) * cell;
+        point.position.x = pc24::Add(static_cast<double>(cellX), 0.5f) * cell;
         point.position.z = 0.0f;
         mode->points.push_back(point);
 
@@ -787,9 +786,9 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
             const mapspec::Waypoint& waypoint = record->patrols[i].waypoints[j];
             const Vector3& from = record->patrols[i].position;
             float angle = 0.0f;
-            double dx = static_cast<double>(waypoint.position.x) - from.x;
-            double dy = static_cast<double>(waypoint.position.y) - from.y;
-            if (!IsZero(dx) || !IsZero(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
+            float dx = waypoint.position.x - from.x;
+            float dy = waypoint.position.y - from.y;
+            if (!IsZero(dx) || !IsZero(dy)) angle = pc24::Round(pc24::Atan2(dy, dx));
             last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
                                          (waypoint.stopFirst & 1) != 0});
         }

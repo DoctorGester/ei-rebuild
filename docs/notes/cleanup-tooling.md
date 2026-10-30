@@ -443,7 +443,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
 | C30e8 AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
-| C30e9 unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
+| C30e9 (done) unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
 | C30e12 client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
@@ -513,6 +513,28 @@ footprints, movement, facing and unit shapes: 4.8 M cases each (14.4 M path samp
 and with wide ones (2^-30 to 2^31, zeros, infinities, NaN); left: which NaN comes out where two meet (the default
 NaN's sign: an infinite angle, NaN and infinite coordinates) and the exponent range (an exponent of Damp's past 88,
 not reachable: ln 0.6 times a fraction times 7).
+
+**C30e9 (unit AI; 4 files, all moved).** The modes', senses' and target scoring's double locals and returns were PC24
+registers: float maths in the original's order (`Score`, `AIAttackOption::Weight` and `OptionWeight` return float).
+Through `lib/pc24.h`: the random words times a wide double (`Mul(word, scale)`: the decay's 0.4 / 2^32, the flight
+jitter's 6 / 2^32, the look angle's 6.3 / 2^32), a span times a word then the double 2^-32 (1 + 2^-32), which rounds as
+`* 0x1p-32f` (`Mul(span, word) * 0x1p-32f`: FearMode's jitter, the look's wait, FindStandPoint's offsets), the looks'
+`Round(Sin)`, `Add(Cos, x)` and `Round(Atan2)`, UpdateMove's turn, the patrol waypoints' angle, the patrol cell
+index plus a half and Score's ints plus a float (`Add(words * count, partial)`, `Add(count, ...)`: a spell's target
+count comes from data and may pass 2^24; the equivalence test's wide operands caught the plain form). The path
+smoothing (an int) is compared with a float through doubles (exact). `x87::RoundToInt` / `fistp` -> `lib::RoundEven`.
+Equivalence test (C30e9's `eq/`: HEAD's forms built /arch:IA32 at PC24 against the new ones, one case per area: the
+decay, FindFlightPoint, FearMode's Evaluate and Execute, a planned look, FindStandPoint, UpdateFollow, the guard /
+suspicion / combat filter / party / path-clear tests, the patrol points, UpdateMove, Notice, IsNearPath, the senses
+(Prepare to ForceSee) and the targets (Score, GroupExcess, IsUsable, CanReach, Weight)): 2.4 M cases each, 0 differ
+with game operands and with wide ones (2^-12 to 2^13, zeros, infinities, NaN) but which NaN comes out and one zero
+sign below; with 2^-30 to 2^32, the senses' four-factor products' exponent range (denormal exposures). **Signed zero
+selects:** MSVC (/fp:precise, SSE2) compiles `a >= b ? a : b` to MAXSS (and `a >= b ? b : a` to MINSS), which give
+the second operand on a tie: where +0 meets -0 the result's zero sign differs from the x87 compare-and-branch
+(float_select's MaxKeepB / MinKeepA too). In these files: AIViewer::Refresh's reach (a -0 sight against a +0
+hearing, only with a negative stat; the test's 2,229), FearMode::Evaluate's distance (only a -0 distance from a
+save), KeepLower's exposures (a -0 exposure needs a negative range), Score's penalty and IsNearPath's clamp (no
+decision changes); `a < b ? a : b` forms map exactly. C30e17 makes the selects exact.
 
 ### The whole image on SSE2 (C16 experiment)
 

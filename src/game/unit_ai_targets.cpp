@@ -3,9 +3,10 @@
 // options themselves (AIAttention, unit_ai.h). See docs/notes/unit_ai.md.
 #include "ai_map.h"
 #include "combat.h"
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
@@ -48,10 +49,10 @@ constexpr float kSmallHeight = 0.5f;            // prototypes below this height 
 std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* candidate) {
     std::uint32_t sum = 0;
     if (group->empty()) return sum;
-    float radius2 = static_cast<float>(option->radius * option->radius);
+    float radius2 = option->radius * option->radius;
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition, candidate->localPosition);
+        float distance2 = DistanceSquaredXYUnrounded<float>(member->localPosition, candidate->localPosition);
         EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
@@ -115,20 +116,20 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     if (self == object || fromHere) {
         point = self->localPosition;
     } else {
-        double dz = static_cast<double>(self->localPosition.z) - object->localPosition.z;
-        double dy = static_cast<double>(self->localPosition.y) - object->localPosition.y;
-        double dx = static_cast<double>(self->localPosition.x) - object->localPosition.x;
-        float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
-        float range = static_cast<float>(self->ScaledValue(distance));
-        float targetRadius = static_cast<float>(object->Radius());
-        float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
+        float dz = self->localPosition.z - object->localPosition.z;
+        float dy = self->localPosition.y - object->localPosition.y;
+        float dx = self->localPosition.x - object->localPosition.x;
+        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+        float range = self->ScaledValue(distance);
+        float targetRadius = object->Radius();
+        float minDistance = self->Radius() + targetRadius;
         WorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap.sectorMap.Remove(object);
         if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
             float scale = 0.5f;
-            point.x = static_cast<float>(scale * path.targetX);
-            point.y = static_cast<float>(scale * path.targetY);
+            point.x = scale * path.targetX;
+            point.y = scale * path.targetY;
             point.z = 0.0f;
         } else {
             point = self->localPosition;
@@ -158,17 +159,17 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
         CUnit* other = node;
-        double dy = static_cast<double>(at.y) - other->localPosition.y;
-        double dx = static_cast<double>(at.x) - other->localPosition.x;
+        float dy = at.y - other->localPosition.y;
+        float dx = at.x - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
         if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
     }
-    double dy = static_cast<double>(self->localPosition.y) - at.y;
-    double dx = static_cast<double>(self->localPosition.x) - at.x;
-    double radius = option->radius;
+    float dy = self->localPosition.y - at.y;
+    float dx = self->localPosition.x - at.x;
+    float radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
@@ -176,8 +177,8 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
 namespace {
 // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25 per unit of
 // distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for
-// attacks. -1e30 when it cannot apply. Unrounded.
-double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* current, CUnit* candidate, float threshold,
+// attacks. -1e30 when it cannot apply.
+float Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* current, CUnit* candidate, float threshold,
              const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
     UnitServer* control = candidate->ServerController();
@@ -189,7 +190,7 @@ double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* cu
     case AIOptionKind::Weapon:
         damage = option->damage.ExcessOver(&candidate->ServerController()->protection);
         words = static_cast<int>(damage & 0xFFFF);
-        score = static_cast<float>(static_cast<double>(words) * kDamageWeight + score);
+        score = static_cast<float>(words) * kDamageWeight + score;
         break;
     case AIOptionKind::SpellAttack:
     case AIOptionKind::AreaAttack:
@@ -204,33 +205,33 @@ double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* cu
             ++others;   // the group without the one left out
         }
         words = static_cast<int>(damage & 0xFFFF);
-        double partial = static_cast<double>(words) * kGroupDamageWeight + score + kGroupBase;
+        float partial = static_cast<float>(words) * kGroupDamageWeight + score + kGroupBase;
         int count = (std::min)(others, cap);
-        score = static_cast<float>(static_cast<double>(words * count) + partial);
+        score = pc24::Add(static_cast<double>(words * count), partial);   // the int exactly (data may pass 2^24)
         break;
     }
     case AIOptionKind::Curse:
     case AIOptionKind::Protect:
     case AIOptionKind::Enhance: {
         if (candidate->HasEffect(option->EffectSpell())) return kNoScore;
-        double partial = static_cast<double>(score) + 1.0f;
+        float partial = score + 1.0f;
         int count = (std::min)(others, cap);
-        score = static_cast<float>(static_cast<double>(count) + partial);
+        score = pc24::Add(static_cast<double>(count), partial);
         break;
     }
     case AIOptionKind::Heal: {
-        float base = static_cast<float>(kGroupBase + static_cast<double>(score));
+        float base = kGroupBase + score;
         int hp = candidate->packedVitals.hitPoints;
-        long limit = x87::RoundToInt(static_cast<float>(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
+        int limit = lib::RoundEven(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints)));
         if (hp > limit - 2) return kNoScore;
         if (hp * 3 < limit) {
             float weight = control->brain.attention.healWeight;
-            score = static_cast<float>(kHealFactor * weight);
-            if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = static_cast<float>(static_cast<double>(score) + weight);
+            score = kHealFactor * weight;
+            if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = score + weight;
         } else {
-            double partial = static_cast<double>(base) + kHealGroupBase;
+            float partial = base + kHealGroupBase;
             int count = (std::min)(others, cap);
-            score = static_cast<float>(static_cast<double>(count * 2) + partial);
+            score = pc24::Add(static_cast<double>(count * 2), partial);
         }
         break;
     }
@@ -239,20 +240,20 @@ double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* cu
     }
     EI_NAN_AUDIT(score, threshold);
     if (score < threshold) return score;
-    double reach = 0.0;
+    float reach = 0.0f;
     float scale = 1.0f;
     if (option->kind < AIOptionKind::Weapon || option->kind > AIOptionKind::Curse) {
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition, from)) - reach);
+    float beyond = std::sqrt(DistanceSquaredXYUnrounded<float>(candidate->localPosition, from)) - reach;
     float penalty = 0.0f >= beyond ? 0.0f : beyond;
-    double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
+    float result = score - penalty * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
     if (result < threshold) return result;
     if (option->kind >= AIOptionKind::Weapon && option->kind <= AIOptionKind::LastingArea) {
         int hits = words == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / words;
-        result -= static_cast<double>(hits) * kHitWeight;
+        result -= static_cast<float>(hits) * kHitWeight;
     }
     return result;
 }
@@ -274,7 +275,7 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
             held = nullptr;
             attack.object = nullptr;
         } else {
-            best = static_cast<float>(Score(from, self, candidates, held, held, kFloorScore, option));
+            best = Score(from, self, candidates, held, held, kFloorScore, option);
             EI_NAN_AUDIT(best);
             if (best < kFloorScore) {
                 attack.object = nullptr;
@@ -288,8 +289,8 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         for (auto node = candidates->begin(); node != candidates->end(); ++node) {
             auto* candidate = *node;
             for (int i = 0; i < std::ssize(weapons); ++i) {
-                double s = Score(from, self, candidates, held, candidate, best, &weapons[i]);
-                if (s > best) scored.push_back({weapons[i].part, candidate, static_cast<float>(s)});
+                float s = Score(from, self, candidates, held, candidate, best, &weapons[i]);
+                if (s > best) scored.push_back({weapons[i].part, candidate, s});
             }
         }
     }
@@ -307,8 +308,8 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
             for (int i = 0; i < std::ssize(spells); ++i) {
                 const AIAttackOption* option = &spells[i];
                 if (alliesOnly && option->kind == AIOptionKind::Enhance) continue;
-                double s = Score(from, self, &allies, held, ally, best, option);
-                if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});
+                float s = Score(from, self, &allies, held, ally, best, option);
+                if (s > best) scored.push_back({option->part, ally, s});
             }
         }
     }
@@ -363,9 +364,9 @@ constexpr AIOptionKind kSpellKinds[42] = {
     AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Unused, AIOptionKind::Unused,
     AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack};
 
-double OptionWeight(const AIAttackOption*);
+float OptionWeight(const AIAttackOption*);
 
-double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
+float OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 
 // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
 AIOptionKind SpellKind(const CSpell* spell) {
@@ -375,14 +376,14 @@ AIOptionKind SpellKind(const CSpell* spell) {
 }
 } // namespace
 
-double AIAttackOption::Weight() const {
+float AIAttackOption::Weight() const {
     switch (kind) {
     case AIOptionKind::Weapon:
         return MaxDamage(damage.words);
     case AIOptionKind::SpellAttack:
     case AIOptionKind::AreaAttack:
     case AIOptionKind::LastingArea:
-        return static_cast<double>(MaxDamage(damage.words)) * kAttackSpellWeight;
+        return static_cast<float>(MaxDamage(damage.words)) * kAttackSpellWeight;
     case AIOptionKind::Curse:
     case AIOptionKind::Protect:
     case AIOptionKind::Enhance:
@@ -390,7 +391,7 @@ double AIAttackOption::Weight() const {
     case AIOptionKind::Heal:
         return kHealWeight;
     default:
-        return 0.0;
+        return 0.0f;
     }
 }
 
@@ -522,7 +523,7 @@ void AIAttention::Build(CUnit* unit) {
     }
     healWeight = 0.0f;
     for (int i = 0; i < std::ssize(weapons); ++i) {
-        float weight = static_cast<float>(OptionWeight(&weapons[i]));
+        float weight = OptionWeight(&weapons[i]);
         healWeight = healWeight >= weight ? healWeight : weight;
     }
 }

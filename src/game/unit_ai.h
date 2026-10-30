@@ -507,7 +507,7 @@ enum class AIOptionKind : int {
 struct AIAttackOption {
     // How much the option counts: a weapon its largest damage, a spell attack that * 1.3, a curse, protection or
     // enhancement 1, healing 10, other kinds 0.
-    double Weight() const;
+    float Weight() const;
     // The option from / to a save. Before version 0x5A only the part, a dropped dword and the damage were
     // saved: the kind becomes part >= 0, the range 1, the rest 0.
     void Load(ByteStream* stream);
