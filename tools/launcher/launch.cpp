@@ -28,11 +28,16 @@
 // "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A --standalone run of
 // a scenario with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
 //
+// The x64 verify build (build.cmd verify-x64) has its own ei_launch, built for x64 beside its x64 ei-rebuild.exe: it
+// starts the image only (game.exe is 32-bit; its runs need the 32-bit build's ei_launch, which injects ei_harness.dll).
+//
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
 // it kTimeoutMargin later. The game runs in a job object that is killed with ei_launch, so it (and any
 // process it started) never outlives ei_launch. Exit codes of a run: 0 passed, 1 failed, 2 no report /
 // not started, 3 and 4 below.
+#include "../../src/hook/thread_context.h"
+
 #include <windows.h>
 #include <tlhelp32.h>
 #include <winioctl.h>
@@ -333,21 +338,24 @@ static void WriteThreadStacks(HANDLE process, DWORD pid, const std::wstring& pat
         c.ContextFlags = CONTEXT_CONTROL;
         wchar_t where[MAX_MODULE_NAME32 + 16] = L"?";
         if (GetThreadContext(t, &c)) {
-            describe(c.Eip, where, std::size(where));
-            std::fwprintf(out, L"thread %lu: eip %08lX %s\n", te.th32ThreadID, c.Eip, where);
-            std::vector<std::uint32_t> stack(16384);
+            const std::uintptr_t ip = ei::InstructionPointer(c);
+            auto* sp = reinterpret_cast<void*>(ei::StackPointer(c));
+            describe(ip, where, std::size(where));
+            std::fwprintf(out, L"thread %lu: eip %08llX %s\n", te.th32ThreadID, static_cast<unsigned long long>(ip), where);
+            std::vector<std::uintptr_t> stack(16384);
+            constexpr SIZE_T kWord = sizeof(std::uintptr_t);
             SIZE_T got = 0;
-            ReadProcessMemory(process, reinterpret_cast<void*>(c.Esp), stack.data(), stack.size() * 4, &got);
+            ReadProcessMemory(process, sp, stack.data(), stack.size() * kWord, &got);
             if (!got) {
                 // The read stops at the stack's end: take what is there, a page at a time.
-                for (SIZE_T n = 4096; n <= stack.size() * 4; n += 4096) {
+                for (SIZE_T n = 4096; n <= stack.size() * kWord; n += 4096) {
                     SIZE_T part = 0;
-                    if (!ReadProcessMemory(process, reinterpret_cast<void*>(c.Esp), stack.data(), n, &part)) break;
+                    if (!ReadProcessMemory(process, sp, stack.data(), n, &part)) break;
                     got = part;
                 }
             }
             int shown = 0;
-            for (SIZE_T i = 0; i < got / 4 && shown < 48; ++i)
+            for (SIZE_T i = 0; i < got / kWord && shown < 48; ++i)
                 if (describe(stack[i], where, std::size(where)) && afterCall(stack[i])) {
                     std::fwprintf(out, L"  %s\n", where);
                     ++shown;
@@ -730,6 +738,13 @@ int wmain(int argc, wchar_t** argv) {
     wchar_t standaloneValue[4];
     if (GetEnvironmentVariableW(L"EI_LAUNCH_STANDALONE", standaloneValue, 4) == 1 && standaloneValue[0] == L'1') standalone = true;
     if (standalone && !harness.empty() && ScenarioDropIn(harness.c_str())) dropIn = wait = true;
+#if defined(_M_X64)
+    if (!standalone) {
+        std::fwprintf(stderr, L"ei_launch: the x64 build's ei_launch starts the image only (--standalone); game.exe is "
+                              L"32-bit (build\\verify's ei_launch)\n");
+        return 2;
+    }
+#endif
     wchar_t full[MAX_PATH];
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;

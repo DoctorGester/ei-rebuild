@@ -49,7 +49,7 @@ def load_map(path, code_only=False):
             m = re.match(r'\s*Preferred load address is ([0-9a-fA-F]+)', line)
             if m:
                 base = int(m.group(1), 16)
-            m = re.match(r'\s*([0-9a-fA-F]{4}):[0-9a-fA-F]{8}\s+(\S+)\s+([0-9a-fA-F]{8})\s', line)
+            m = re.match(r'\s*([0-9a-fA-F]{4}):[0-9a-fA-F]{8}\s+(\S+)\s+([0-9a-fA-F]{16}|[0-9a-fA-F]{8})\s', line)   # x64: 16 digits
             if m and int(m.group(3), 16) >= base:
                 if code_only and (m.group(1) not in code or m.group(2).startswith(NOISE_PREFIXES)):
                     continue
@@ -342,7 +342,8 @@ def guess_game_exe(logdir, root=ROOT):
 def resolve(logdir, build=None, game_exe=None, raw=False, root=ROOT):
     """Lines of the named stack of the last crash in logdir/ei-rebuild.log (see the module text), or
     ['no crash logged']. build: the folder with our module's map and binary (<module>.map and .exe or .dll; default:
-    logdir when it holds the map, else build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by
+    logdir when it holds the map, else the build whose runs folder holds logdir (build/verify-x64's runs too), else
+    build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by
     the folder's name). Without our binary or the exe the words of that module are not judged."""
     with open(os.path.join(logdir, 'ei-rebuild.log'), errors='replace') as f:
         lines = f.read().splitlines()
@@ -350,7 +351,9 @@ def resolve(logdir, build=None, game_exe=None, raw=False, root=ROOT):
     if start is None:
         return ['no crash logged']
     own = own_module(lines, start)
-    build = build or (logdir if os.path.exists(os.path.join(logdir, own + '.map')) else os.path.join(root, 'build', 'verify'))
+    runs_of = os.path.dirname(os.path.dirname(os.path.abspath(logdir)))   # <build>/runs/<folder>
+    build = build or next((b for b in (logdir, runs_of) if os.path.exists(os.path.join(b, own + '.map'))),
+                          os.path.join(root, 'build', 'verify'))
     images = {}
     for binary in (own + '.exe', own + '.dll'):
         if os.path.exists(os.path.join(build, binary)):

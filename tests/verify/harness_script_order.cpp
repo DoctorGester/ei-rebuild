@@ -48,7 +48,8 @@ static int __cdecl CompareByIdForOriginal(const void* a, const void* b) {
 // after the jump back.
 
 // Union 004B27B2: CMP EDI,EDX / MOV [ESP+0x20],EDX / JNZ 004B27EF (there JBE 004B281B).
-__declspec(naked) static void UnionStep() {
+EI_NAKED static void UnionStep() {
+#if defined(_M_IX86)
     __asm {
         mov dword ptr [esp + 0x20], edx
         cmp edi, edx
@@ -73,10 +74,14 @@ __declspec(naked) static void UnionStep() {
         push 0x004B281B
         ret
     }
+#else
+    ei::verify::NoOriginalCode(0);
+#endif
 }
 
 // Difference 004B2A9A: MOV ECX,[ECX+EDX*4] / CMP EAX,ECX / JNZ 004B2AA9 (there JBE 004B2AB2).
-__declspec(naked) static void DifferenceStep() {
+EI_NAKED static void DifferenceStep() {
+#if defined(_M_IX86)
     __asm {
         mov ecx, dword ptr [ecx + edx * 4]
         cmp eax, ecx
@@ -101,10 +106,14 @@ __declspec(naked) static void DifferenceStep() {
         push 0x004B2AB2
         ret
     }
+#else
+    ei::verify::NoOriginalCode(0);
+#endif
 }
 
 // Intersection 004B2CEE: MOV EAX,[EAX+EDX*4] / CMP ESI,EAX / JNZ 004B2D35 (there JBE 004B2D3E).
-__declspec(naked) static void IntersectionStep() {
+EI_NAKED static void IntersectionStep() {
+#if defined(_M_IX86)
     __asm {
         mov eax, dword ptr [eax + edx * 4]
         cmp esi, eax
@@ -129,10 +138,14 @@ __declspec(naked) static void IntersectionStep() {
         push 0x004B2D3E
         ret
     }
+#else
+    ei::verify::NoOriginalCode(0);
+#endif
 }
 
 // Insert 004B2F27 (the binary search): CMP EDX,ECX / JZ 004B30FC / JBE 004B2F3A.
-__declspec(naked) static void InsertStep() {
+EI_NAKED static void InsertStep() {
+#if defined(_M_IX86)
     __asm {
         cmp edx, ecx
         jne differ
@@ -156,6 +169,9 @@ __declspec(naked) static void InsertStep() {
         push 0x004B2F3A
         ret
     }
+#else
+    ei::verify::NoOriginalCode(0);
+#endif
 }
 
 namespace ei::verify::script_order {

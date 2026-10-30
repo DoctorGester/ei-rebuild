@@ -2,7 +2,7 @@
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
                                [--standalone | --no-hooks] [--fresh] [--jobs N] [--retries N]
-                               [--clock virtual|real[,...]] [--golden]
+                               [--clock virtual|real[,...]] [--golden] [--x64]
        python tools/run_all.py --widescreen [--record] [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
@@ -67,6 +67,9 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
                    compare with the vanilla golden, on Rebirth's with the Rebirth golden
+  --x64            the x64 image's runs (build.cmd verify-x64: build\\verify-x64, its ei-rebuild.exe started by its own
+                   x64 ei_launch; runs in build\\verify-x64\\runs), against the same goldens; the image's installs only
+                   (game.exe is 32-bit: not with --no-hooks or --widescreen --record). EI_BUILD_DIR still wins.
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
@@ -83,6 +86,7 @@ WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hu
 STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')   # the image (our code)
 ORIGINAL_INSTALLS = ('vanilla', 'rebirth')                    # game.exe with the original code only (--no-hooks)
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
+BUILD_X64 = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify-x64')   # --x64: build.cmd verify-x64
 GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
@@ -1101,7 +1105,13 @@ def parse_args(argv=None):
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
+    ap.add_argument('--x64', action='store_true')
     return ap.parse_args(argv)
+
+
+def build_of(args):
+    """The verify build args' runs use: build\\verify-x64 with --x64 (BUILD_X64), else build\\verify (BUILD)."""
+    return BUILD_X64 if getattr(args, 'x64', False) else BUILD
 
 
 def standalone_mode(args):
@@ -1125,6 +1135,8 @@ def plan(args, root=ROOT):
     standalone = standalone_mode(args)
     if args.standalone and not standalone:
         sys.exit('--standalone runs the image: not with --no-hooks or --record')
+    if getattr(args, 'x64', False) and not standalone:
+        sys.exit('--x64 runs the x64 image: not with --no-hooks or --record (game.exe is 32-bit)')
     if getattr(args, 'record', False) and not args.widescreen:
         sys.exit("--record records --widescreen's references: --widescreen --record [scenario names]")
     if args.widescreen and (args.no_hooks or args.vanilla_only):
@@ -1332,8 +1344,9 @@ def main():
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     jobs = plan(args)
+    build = build_of(args)
     db = timing_db()
-    times = expected_times(jobs, db=db)
+    times = expected_times(jobs, build=build, db=db)
     order = sorted(jobs, key=lambda j: -(times[j] if times[j] is not None else 1000))   # new scenarios first
 
     results = {}
@@ -1345,7 +1358,8 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen --record's "rebirth-nohooks": the original code on Rebirth, in its own folder)
         futures = {pool.submit(run_with_retries, n, launch_install(i), args.retries, f'{n}-{i}',
-                               functools.partial(run, clock=args.clock, fresh=args.fresh), keep_attempt): (n, i)
+                               functools.partial(run, build=build, clock=args.clock, fresh=args.fresh),
+                               functools.partial(keep_attempt, build=build)): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
@@ -1353,15 +1367,15 @@ def main():
             with lock:
                 results[(name, install)] = (result, seconds, failures, notes)
                 record_time(db, name, install, seconds, result, notes=notes)
-                print(line(name, install, result, seconds, failures, notes))
+                print(line(name, install, result, seconds, failures, notes, build=build))
                 sys.stdout.flush()
 
-    save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()})
-    ok = summary(jobs, results, args, time.time() - started)
+    save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()}, build=build)
+    ok = summary(jobs, results, args, time.time() - started, build=build)
     if args.widescreen:
-        ok = widescreen_check(jobs, args.record) and ok
+        ok = widescreen_check(jobs, args.record, build=build) and ok
     if args.golden:
-        ok = golden_check(jobs) and ok
+        ok = golden_check(jobs, build=build) and ok
     return 0 if ok else 1
 
 

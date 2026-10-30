@@ -500,6 +500,32 @@ void PatchSlot(T* slot, T replacement, T& original) {
     VirtualProtect(slot, sizeof(*slot), old, &old);
 }
 
+#if defined(_M_X64)
+// x64 (build.cmd verify-x64): advapi32's export `name` jumps through, or (RegEnumValue, RegEnumKeyExA) is a wrapper that
+// calls through, advapi32's own import of the same name (kernelbase's, by an API set): every module's call comes
+// through that slot, found by its name in advapi32's import table.
+template <class T>
+bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
+    auto* base = reinterpret_cast<BYTE*>(advapi);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + reinterpret_cast<const IMAGE_DOS_HEADER*>(base)->e_lfanew);
+    const IMAGE_DATA_DIRECTORY& imports = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    for (auto* d = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base + imports.VirtualAddress);
+         imports.VirtualAddress && d->Name; ++d) {
+        if (!d->OriginalFirstThunk) continue;
+        auto* names = reinterpret_cast<const IMAGE_THUNK_DATA*>(base + d->OriginalFirstThunk);
+        auto* slots = reinterpret_cast<IMAGE_THUNK_DATA*>(base + d->FirstThunk);
+        for (; names->u1.AddressOfData; ++names, ++slots) {
+            if (IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal) ||
+                std::strcmp(reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(base + names->u1.AddressOfData)->Name, name) != 0)
+                continue;
+            PatchSlot(reinterpret_cast<T*>(&slots->u1.Function), replacement, original);
+            return true;
+        }
+    }
+    Problem(std::string("advapi32 imports no ") + name + ": its callers read the user's registry");
+    return false;
+}
+#else
 // advapi32's export `name` is a stub (MOV EDI,EDI; PUSH EBP; MOV EBP,ESP; POP EBP; JMP [slot]) that jumps
 // through advapi32's own import of kernelbase's: every module's call comes through that slot.
 template <class T>
@@ -515,6 +541,7 @@ bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
     PatchSlot(slot, replacement, original);
     return true;
 }
+#endif
 
 decltype(&::RegCreateKeyExA) g_gameCreate;
 

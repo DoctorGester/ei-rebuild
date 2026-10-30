@@ -5,6 +5,7 @@
 // <address>" and resumes at the address.
 #include "ei/hook.h"   // ei::InGameText
 #include "log.h"
+#include "thread_context.h"
 
 #include <windows.h>
 
@@ -47,7 +48,7 @@ LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* info) {
         PutByte(address, it->second.byte);
         for (std::uintptr_t game : it->second.addresses) Log("cover %08X", unsigned(game));
     }
-    info->ContextRecord->Eip = static_cast<DWORD>(address);
+    SetInstructionPointer(*info->ContextRecord, address);
     return EXCEPTION_CONTINUE_EXECUTION;
 }
 

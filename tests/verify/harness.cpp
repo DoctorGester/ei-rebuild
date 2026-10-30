@@ -407,6 +407,7 @@
 #include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
+#include "../../src/hook/thread_context.h"
 #include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
@@ -431,6 +432,12 @@
 
 namespace ei::verify {
 
+void NoOriginalCode(std::uintptr_t address) {
+    Log("FAILED: the harness called game.exe's code at %08llX in an x64 build", static_cast<unsigned long long>(address));
+    TerminateProcess(GetCurrentProcess(), 3);
+    for (;;) Sleep(INFINITE);
+}
+
 namespace {
 
 // The console's streambuf (game.exe's table 00740034, instance 007C5868): overflow() collects the
@@ -443,24 +450,24 @@ using OverflowFn = int(__thiscall*)(void*, int);
 SyncFn g_sync;
 
 // 005DC620: the console's command executor (console::Execute; the command text in ECX).
-__declspec(naked) void __fastcall OriginalConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+EI_NAKED void __fastcall OriginalConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
 void ConsoleExecute(const char* text) { ei::Standalone() ? image::ConsoleExecute(text) : OriginalConsoleExecute(text); }
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> Interface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
 // In a --no-hooks run through the original address, as the one below: the functions read the worlds and the
 // interface, which that run has only in game.exe's own code and data.
-__declspec(naked) void __stdcall OriginalSendLeave04(int /*id*/) EI_ORIGINAL(0x00578B00)
+EI_NAKED void __stdcall OriginalSendLeave04(int /*id*/) EI_ORIGINAL(0x00578B00)
 void RequestScreen(int id) { ei::Standalone() ? image::SendLeave04(id) : OriginalSendLeave04(id); }
 // 00578560 (GameSetConstructionVariable): sets player 0's "constr_current" (the constructor the camp opens with).
-__declspec(naked) void __stdcall OriginalSetConstructionVariable(std::uint32_t /*value*/) EI_ORIGINAL(0x00578560)
+EI_NAKED void __stdcall OriginalSetConstructionVariable(std::uint32_t /*value*/) EI_ORIGINAL(0x00578560)
 void SetCurrentConstructor(float constructor) {
     auto value = std::bit_cast<std::uint32_t>(constructor);
     ei::Standalone() ? image::SetConstructionVariable(value) : OriginalSetConstructionVariable(value);
 }
 // 004A74F0 (TemplateTable::Find, __thiscall on the class template vector 007AA5D8): the template of a class, null
 // if none.
-__declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
+EI_NAKED void* __fastcall OriginalFindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
 // 0066F310 (RET 8): PlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -694,14 +701,25 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
         return EXCEPTION_CONTINUE_SEARCH;
     if (logged++ >= 5) return EXCEPTION_CONTINUE_SEARCH;
     const CONTEXT* c = e->ContextRecord;
+#if defined(_M_IX86)
+    const std::uintptr_t pc = c->Eip, sp = c->Esp;
     Log("harness: exception %08lX at %08lX (address %08lX); eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX "
         "esi=%08lX edi=%08lX ebp=%08lX esp=%08lX",
         code, c->Eip,
         e->ExceptionRecord->NumberParameters > 1 ? static_cast<unsigned long>(e->ExceptionRecord->ExceptionInformation[1]) : 0ul,
         c->Eax, c->Ebx, c->Ecx, c->Edx, c->Esi, c->Edi, c->Ebp, c->Esp);
-    LogModuleOf(c->Eip);
-    LogCodeAddress("at", c->Eip);
-    const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+#else
+    const std::uintptr_t pc = c->Rip, sp = c->Rsp;
+    Log("harness: exception %08lX at %p (address %p); rax=%p rbx=%p rcx=%p rdx=%p rsi=%p rdi=%p rbp=%p rsp=%p",
+        code, reinterpret_cast<void*>(pc),
+        reinterpret_cast<void*>(e->ExceptionRecord->NumberParameters > 1 ? e->ExceptionRecord->ExceptionInformation[1] : 0),
+        reinterpret_cast<void*>(c->Rax), reinterpret_cast<void*>(c->Rbx), reinterpret_cast<void*>(c->Rcx),
+        reinterpret_cast<void*>(c->Rdx), reinterpret_cast<void*>(c->Rsi), reinterpret_cast<void*>(c->Rdi),
+        reinterpret_cast<void*>(c->Rbp), reinterpret_cast<void*>(sp));
+#endif
+    LogModuleOf(pc);
+    LogCodeAddress("at", pc);
+    const auto* stack = reinterpret_cast<const std::uintptr_t*>(sp);
     MEMORY_BASIC_INFORMATION mbi{};
     VirtualQuery(stack, &mbi, sizeof(mbi));
     const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
@@ -1798,8 +1816,8 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // the log and the error (null: nothing logged).
 // WorldClient::PickAt2 (005659D0) and UnitAt (00565E40), thiscall RET 4, in a --no-hooks run through the original
 // addresses: they read the camera and the scene renderer, game.exe's own there.
-__declspec(naked) void* __fastcall OriginalPickAt2(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x005659D0)
-__declspec(naked) void* __fastcall OriginalUnitAt(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x00565E40)
+EI_NAKED void* __fastcall OriginalPickAt2(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x005659D0)
+EI_NAKED void* __fastcall OriginalUnitAt(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x00565E40)
 void* HarnessPickAt2(void* world, const POINT* p) {
     return ei::Standalone() ? image::PickAt2(world, p->x, p->y) : OriginalPickAt2(world, nullptr, p);
 }
@@ -1912,7 +1930,7 @@ std::string PostUnitMouse(const std::string& argument) {
 // 10-pixel grid, then pixel by pixel around the best; fails when no point comes within 1.5 units (the
 // point is off screen or hidden). The pick only reads the view and the terrain (its pick stack entry
 // is popped again), so the step is the plain mouse step at the point found.
-__declspec(naked) float* __fastcall OriginalPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
+EI_NAKED float* __fastcall OriginalPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x0056C350)
 void HarnessPickSurface(void* world, float* out, int x, int y) {
     if (ei::Standalone()) image::PickSurface(world, out, x, y);
@@ -1925,9 +1943,9 @@ void HarnessPickSurface(void* world, float* out, int x, int y) {
 // world with a face texture shows its face's open or closed state: the game's own blink (00539010 /
 // 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. A run of the original code takes its
 // own (the original addresses). Fails when no unit has a face.
-__declspec(naked) void __fastcall OriginalLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
-__declspec(naked) void __fastcall OriginalBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
-__declspec(naked) void __fastcall OriginalBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+EI_NAKED void __fastcall OriginalLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
+EI_NAKED void __fastcall OriginalBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
+EI_NAKED void __fastcall OriginalBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
 void HarnessLoadUnitFaces(void* world) {
     ei::Standalone() ? image::LoadUnitFaces(world) : OriginalLoadUnitFaces(world);
 }
@@ -2233,8 +2251,8 @@ constexpr DWORD kMsvcThrow = 0xE06D7363;
 // (harness_crash.h); ei-rebuild.log gets the code addresses on the stack.
 LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     char head[64];
-    std::snprintf(head, sizeof(head), "the game crashed: exception %08lX at %08lX", e->ExceptionRecord->ExceptionCode,
-                  static_cast<unsigned long>(e->ContextRecord->Eip));
+    std::snprintf(head, sizeof(head), "the game crashed: exception %08lX at %08llX", e->ExceptionRecord->ExceptionCode,
+                  static_cast<unsigned long long>(InstructionPointer(*e->ContextRecord)));
     std::string what = head;
     if (std::string thrown = crash::DescribeThrow(e->ExceptionRecord); !thrown.empty()) what += ": " + thrown;
     const long long freeMb = crash::FreeMegabytes(g_savesDir);
@@ -2243,8 +2261,8 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     what += " (stack in ei-rebuild.log)";
     Log("harness: %s", what.c_str());
     Log("harness: %lld MB free on the run folder's disk", freeMb);
-    LogModuleOf(e->ContextRecord->Eip);
-    const auto* stack = reinterpret_cast<const std::uintptr_t*>(e->ContextRecord->Esp);
+    LogModuleOf(InstructionPointer(*e->ContextRecord));
+    const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*e->ContextRecord));
     MEMORY_BASIC_INFORMATION mbi{};
     VirtualQuery(stack, &mbi, sizeof(mbi));
     const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
@@ -2324,10 +2342,110 @@ int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
     return IDABORT;
 }
 
+#if defined(_M_X64)
+// x64 (build.cmd verify-x64): user32's exports have no hot-patch padding. An export that is only "jmp qword ptr
+// [rip+disp32]" into win32u has that slot swapped. Any other starts with a 12-byte jump to the replacement ("mov rax,
+// replacement / jmp rax": RAX holds no argument at a call); when the original is wanted, its first instructions go to a
+// trampoline that then jumps back past them, which only works for the instructions PrologueLength knows (the prologues
+// of the exports the harness patches with an original: CreateWindowEx, SetWindowLong).
+constexpr std::size_t kPatchBytes = 12;
+constexpr std::size_t kJumpBackBytes = 14;   // jmp qword ptr [rip+0] and the address: no register
+
+// The length of the instruction at p when it is one of the few those prologues use and can be moved as it is (no RIP-
+// relative operand), else 0.
+std::size_t PrologueLength(const unsigned char* p) {
+    if (p[0] == 0x4C && p[1] == 0x8B && p[2] == 0xDC) return 3;                   // mov r11, rsp
+    if (p[0] == 0x45 && p[1] == 0x33 && (p[2] == 0xC0 || p[2] == 0xC9)) return 3;  // xor r8d, r8d / xor r9d, r9d
+    if (p[0] == 0x33 && p[1] == 0xC0) return 2;                                   // xor eax, eax
+    if (p[0] == 0x48 && p[1] == 0x81 && p[2] == 0xEC) return 7;                   // sub rsp, imm32
+    if (p[0] == 0x48 && p[1] == 0x83 && p[2] == 0xEC) return 4;                   // sub rsp, imm8
+    if (p[0] == 0x41 && p[1] >= 0xB8 && p[1] <= 0xBF) return 6;                   // mov r8d-r15d, imm32
+    return 0;
+}
+
+void WriteJumpBack(unsigned char* at, std::uintptr_t to) {
+    at[0] = 0xFF;
+    at[1] = 0x25;
+    std::memset(at + 2, 0, 4);
+    std::memcpy(at + 6, &to, 8);
+}
+
+// A trampoline running the original's first instructions (at least kPatchBytes of them, or up to its tail jump) and
+// jumping back after them; nullptr when one is not known or the patch would reach past a tail jump into code.
+void* Trampoline(unsigned char* p) {
+    static unsigned char* pool = nullptr;
+    static std::size_t used = 0;
+    constexpr std::size_t kPool = 4096;
+    unsigned char code[kPatchBytes + kJumpBackBytes * 2];
+    std::size_t at = 0, out = 0;
+    while (at < kPatchBytes) {
+        if (p[at] == 0xE9) {   // jmp rel32: the function's end; what the patch covers after it must be padding
+            for (std::size_t i = at + 5; i < kPatchBytes; ++i)
+                if (p[i] != 0xCC) return nullptr;
+            std::int32_t rel;
+            std::memcpy(&rel, p + at + 1, 4);
+            WriteJumpBack(code + out, reinterpret_cast<std::uintptr_t>(p + at + 5) + rel);
+            out += kJumpBackBytes;
+            at = kPatchBytes;
+            break;
+        }
+        const std::size_t length = PrologueLength(p + at);
+        if (!length) return nullptr;
+        std::memcpy(code + out, p + at, length);
+        at += length;
+        out += length;
+    }
+    if (out == at) {   // no tail jump copied: back to the instruction after the moved ones
+        WriteJumpBack(code + out, reinterpret_cast<std::uintptr_t>(p + at));
+        out += kJumpBackBytes;
+    }
+    if (!pool) pool = static_cast<unsigned char*>(VirtualAlloc(nullptr, kPool, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+    if (!pool || used + out > kPool) return nullptr;
+    unsigned char* trampoline = pool + used;
+    std::memcpy(trampoline, code, out);
+    used += out;
+    FlushInstructionCache(GetCurrentProcess(), trampoline, out);
+    return trampoline;
+}
+
+void* HotPatch(const char* name, void* replacement, bool wantOriginal) {
+    auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
+    if (!p) {
+        Log("harness: cannot hot-patch %s (no such export)", name);
+        return nullptr;
+    }
+    if (p[0] == 0xFF && p[1] == 0x25) {
+        std::int32_t rel;
+        std::memcpy(&rel, p + 2, 4);
+        auto** slot = reinterpret_cast<void**>(p + 6 + rel);
+        DWORD old;
+        VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
+        void* original = *slot;
+        *slot = replacement;
+        VirtualProtect(slot, sizeof(*slot), old, &old);
+        return original;
+    }
+    void* original = nullptr;
+    if (wantOriginal && !(original = Trampoline(p))) {
+        Log("harness: cannot hot-patch %s (unexpected prologue)", name);
+        return nullptr;
+    }
+    DWORD old;
+    VirtualProtect(p, kPatchBytes, PAGE_EXECUTE_READWRITE, &old);
+    p[0] = 0x48;   // mov rax, replacement
+    p[1] = 0xB8;
+    std::memcpy(p + 2, &replacement, 8);
+    p[10] = 0xFF;   // jmp rax
+    p[11] = 0xE0;
+    VirtualProtect(p, kPatchBytes, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, kPatchBytes);
+    return original;
+}
+#else
 // Hot patch: user32's exports start with "mov edi, edi" after five bytes of padding. The padding
 // becomes a JMP to the replacement and the first two bytes a short jump back to it. Returns the
 // original function (its code after the "mov edi, edi"), nullptr when the prologue is not that.
-void* HotPatch(const char* name, void* replacement) {
+void* HotPatch(const char* name, void* replacement, bool /*wantOriginal*/) {
     auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
     if (p && p[0] == 0xFF && p[1] == 0x25) {
         // Some exports are only "jmp dword ptr [slot]" into win32u: the slot is swapped instead.
@@ -2354,6 +2472,7 @@ void* HotPatch(const char* name, void* replacement) {
     FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
     return p + 2;
 }
+#endif
 
 // No window of a harness game takes the foreground (SV1c). The game's own calls are kept from it
 // by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but
@@ -2465,7 +2584,7 @@ HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x
 
 template <typename T>
 void Patch(const char* name, T replacement, T* original = nullptr) {
-    void* trampoline = HotPatch(name, reinterpret_cast<void*>(replacement));
+    void* trampoline = HotPatch(name, reinterpret_cast<void*>(replacement), original != nullptr);
     if (original) *original = reinterpret_cast<T>(trampoline);
 }
 
@@ -3544,14 +3663,14 @@ void LogMainThreadStack() {
     context.ContextFlags = CONTEXT_CONTROL;
     if (SuspendThread(thread) != DWORD(-1)) {
         MEMORY_BASIC_INFORMATION mbi{};
-        if (GetThreadContext(thread, &context) && VirtualQuery(reinterpret_cast<const void*>(context.Esp), &mbi, sizeof(mbi))) {
+        if (GetThreadContext(thread, &context) && VirtualQuery(reinterpret_cast<const void*>(StackPointer(context)), &mbi, sizeof(mbi))) {
             const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
-            words = (end - context.Esp) / sizeof(std::uintptr_t);
+            words = (end - StackPointer(context)) / sizeof(std::uintptr_t);
             if (words > stack.size()) words = stack.size();
             // Through the kernel, not memcpy: the AddressSanitizer build would report the other thread's
             // poisoned stack slots.
             SIZE_T read = 0;
-            ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(context.Esp), stack.data(),
+            ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(StackPointer(context)), stack.data(),
                               words * sizeof(std::uintptr_t), &read);
             words = read / sizeof(std::uintptr_t);
         }
@@ -3559,13 +3678,14 @@ void LogMainThreadStack() {
     }
     CloseHandle(thread);
     char where[MAX_PATH + 16] = "?";
-    DescribeAddress(context.Eip, where, sizeof(where));
-    Log("harness: main thread %lu at %08X %s; return addresses on its stack:", mainId, unsigned(context.Eip), where);
+    DescribeAddress(InstructionPointer(context), where, sizeof(where));
+    Log("harness: main thread %lu at %08llX %s; return addresses on its stack:", mainId,
+        static_cast<unsigned long long>(InstructionPointer(context)), where);
     int logged = 0;
     for (std::size_t i = 0; i < words && logged < 48; ++i) {
         const std::uintptr_t a = stack[i];
         if (a < 0x10000 || !DescribeAddress(a, where, sizeof(where)) || !AfterCallInstruction(a)) continue;
-        Log("  %08X %s", unsigned(a), where);
+        Log("  %08llX %s", static_cast<unsigned long long>(a), where);
         ++logged;
     }
 }
@@ -3620,9 +3740,13 @@ DWORD WINAPI Watchdog(void*) {
 // main thread at whatever precision Direct3D and the DLLs loaded later leave (24-bit in the vanilla
 // install, more under Rebirth): logged when it changes, to find out who changes it.
 unsigned short FpuControlWord() {
+#if defined(_M_IX86)
     unsigned short cw;
     __asm fnstcw cw
     return cw;
+#else
+    return 0;   // x64: no x87 maths (the image's side only, which does not trace it)
+#endif
 }
 void TraceFpu(const char* where) {
     static unsigned short last = 0xFFFF;
@@ -3996,8 +4120,8 @@ struct Harness {
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
         ei::SetMissingCodeHandler(&EndRunOnMissingCode);
-        HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
-        HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));
+        HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA), false);
+        HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW), false);
         noforeground::Install();
         // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
         // (the watchdog included) until someone closes it.
