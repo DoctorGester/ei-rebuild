@@ -33,8 +33,8 @@ jobs:
     timeout-minutes: 120
     defaults:
       run:
-        # Git's bash: plain "bash" on this machine is WSL's (C:\Windows\system32ash.exe).
-        shell: '"C:\Program Files\Gitinash.exe" --noprofile --norc -eo pipefail {0}'
+        # Git's bash: plain "bash" on this machine is WSL's (C:\Windows\System32\bash.exe).
+        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -eo pipefail {0}'
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
       EI_RUN_DIR: E:\workspace\ei\run
