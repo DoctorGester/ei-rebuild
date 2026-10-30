@@ -433,16 +433,10 @@ constexpr std::uint32_t kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
 
-// A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
-// the full-size one the mode's size in pixels, unscaled (addon's operands
-// 1 -> 0, 600 -> height, 800 -> width).
+// A new surface for the screen's picture, as the interface's backdrop: the whole window in pixels, unscaled
+// (Rebirth's WideScreen; the original's 800 x 600 layout rectangle scaled is the same on a 4:3 window).
 void MakeBackdrop(Interface3D* ui) {
-    if (widescreen::Active()) {
-        const widescreen::Layout& wide = widescreen::Get();
-        ui->backdrop = new UiSurface(ui, 0, 0, wide.width, wide.height, SurfaceBlend::Opaque, false);
-    } else {
-        ui->backdrop = new UiSurface(ui, 0, 0, 800, 600, SurfaceBlend::Opaque, true);
-    }
+    ui->backdrop = new UiSurface(ui, 0, 0, ui->width, ui->height, SurfaceBlend::Opaque, false);
 }
 
 } // namespace

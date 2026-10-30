@@ -97,7 +97,7 @@ bool Listed(const std::string& page, const char* const* names, std::size_t count
 }
 
 int TutorialFrameShift(const HelpWindow* window) {
-    if (!widescreen::Active() || !window->message) return 0;
+    if (!window->message) return 0;
     const std::string page = std::string(window->text) + ':' + std::to_string(window->page);
     if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
     if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();

@@ -2,12 +2,12 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-10-30",
-  "commit": "b6204b4",
+  "commit": "c92e57b",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
+  "reason": "W12: vanilla runs in the 4:3 window (960x720); the desktop scenarios' vanilla runs too",
   "side": "peer",
   "source": "image"
 }

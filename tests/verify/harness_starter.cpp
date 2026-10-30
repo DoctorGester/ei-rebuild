@@ -40,8 +40,15 @@ char g_addonPath[MAX_PATH]; // its full path (Install)
 constexpr DWORD kCtfMon = 0;
 
 // The image's runs without a resolution of their own (H31): small captures and less GPU work per game, in a window
-// (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way.
-constexpr const char* kImageResolution = "1280x720";
+// (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way. The window's
+// shape decides the interface layout (src/game/ui_widescreen.h), so each install's runs take the shape of the
+// original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
+// same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
+// apart as the image's start-up tells the profiles apart (src/standalone/startup.cpp): Rebirth's has starter\addon.dll
+// or EI_Plugin.asi. (EI_REBIRTH does not: ei_launch sets it to "defaults" for every run that names no flags.)
+constexpr const char* kImageResolution = "960x720";
+constexpr const char* kImageResolutionRebirth = "1280x720";
+
 
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
@@ -147,7 +154,7 @@ void Install(const char* savesDir) {
     if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
     if (!g_resolution[0] && ei::Standalone()) {
-        std::snprintf(g_resolution, sizeof(g_resolution), "%s", kImageResolution);
+        std::snprintf(g_resolution, sizeof(g_resolution), "%s", RebirthData() ? kImageResolutionRebirth : kImageResolution);
         if (g_fullScreen < 0) g_fullScreen = 0;
     }
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
@@ -214,6 +221,21 @@ bool RebirthInstall() {
     // addon.dll in the vanilla install's game (EI_ADDON_FLAGS, harness_addon.h) keeps only the bug fixes: vanilla.
     if (addon::Active()) return false;
     return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
+}
+
+bool RebirthData() {
+    char folder[MAX_PATH];
+    DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", folder, sizeof(folder));
+    if (!n || n >= sizeof(folder)) {
+        n = GetModuleFileNameA(nullptr, folder, sizeof(folder));
+        if (!n || n >= sizeof(folder)) return false;
+        if (char* slash = std::strrchr(folder, '\\')) *slash = 0;
+    }
+    char path[MAX_PATH + 32];
+    std::snprintf(path, sizeof(path), "%s\\starter\\addon.dll", folder);
+    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) return true;
+    std::snprintf(path, sizeof(path), "%s\\EI_Plugin.asi", folder);
+    return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
 }
 
 } // namespace ei::verify::starter

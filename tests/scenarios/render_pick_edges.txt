@@ -3,10 +3,12 @@
 # its projected positions clamped to the screen; the battle screen's click picks a unit by those rectangles
 # (CWorldClient::UnitAt). An ogre stands where the view's left edge cuts it (in the start view), then one where the
 # bottom edge cuts it (after SetCPFast, which moves the camera to the hero: groundview), each held still (freeze)
-# while a Ctrl click lands on it: the hero turns on the ogre. At the desktop size, so both sides pick at the same
-# pixels. render_pick_edges_rule has the bottom edge's strip where the two differ.
+# while a Ctrl click lands on it: the hero turns on the ogre. The image's 4:3 window on either install, the view the
+# ogres' places were chosen in (at the desktop size, when the original's run had to pick at the same pixels; W12's
+# wide layout at 16:9 shows more ground at the sides). render_pick_edges_rule has the bottom edge's strip where the
+# two differ.
 reject Script error
-resolution desktop
+resolution 960x720
 timeout 120
 waitmenu
 console thingamabob

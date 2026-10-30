@@ -193,8 +193,8 @@ void ChatOverlay::DrawTyped() {
         Point top{width, 0};
         Point bottom{width, kCaretBottom};
         // WideScreen: without the margin.
-        ui->CallScalePointToScreenNoMargin(&top);
-        ui->CallScalePointToScreenNoMargin(&bottom);
+        ui->ScalePointToScreenNoMargin(&top);
+        ui->ScalePointToScreenNoMargin(&bottom);
         surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
     }
 }

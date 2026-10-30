@@ -144,9 +144,15 @@ class GoldenTest(unittest.TestCase):
             with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
                 meta = json.load(f)
             self.assertEqual((meta['digest_period'], meta['source'], meta['repeated_in']), (20, 'image', 4))
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                before = f.read()
+            args.reason = 'another reason'
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
-            self.assertIn('(the same as before)', out.getvalue())
+            self.assertIn('the same as its golden, kept', out.getvalue())
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                self.assertEqual(f.read(), before)                   # golden.json untouched
+            self.assertFalse(os.path.exists(target + '.new'))
             golden_folder = golden.golden_folder
             golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
             try:
@@ -250,6 +256,19 @@ class GoldenTest(unittest.TestCase):
             golden.run_all.BUILD = old
         copied = os.path.join(dest, 'levers-standalone')
         self.assertTrue(os.path.exists(os.path.join(copied, 'digest.txt')))
+        # --since: a run older than the pass's start (an earlier suite's folder) is left out
+        start = self.write('start', '')
+        os.utime(os.path.join(folder, 'harness_report.txt'), (0, 0))
+        old_dest = os.path.join(self.dir, 'dest2')
+        golden.run_all.BUILD = build
+        try:
+            args = type('Args', (), {'scenarios': [], 'install': 'vanilla', 'dest': old_dest, 'since': start})()
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.snapshot(args), 0)
+        finally:
+            golden.run_all.BUILD = old
+        self.assertIn('left out', out.getvalue())
+        self.assertFalse(os.path.exists(os.path.join(old_dest, 'levers-standalone')))
         self.assertEqual(sorted(os.listdir(os.path.join(copied, golden.SAVES))), ['keyboard.ini', 'savea'])
         self.assertEqual(os.listdir(os.path.join(copied, golden.SAVES, 'savea')), ['info.sav'])
 

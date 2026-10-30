@@ -21,9 +21,9 @@
 //                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
 // without those the registry snapshot's values (harness_settings.h), but for the resolution of the
-// standalone image's runs: 1280x720 in a window (FullScreen 0 unless a "fullscreen" line says otherwise;
-// H31). game.exe's runs (--no-hooks, the references) keep the snapshot's desktop size. Rebirth's CtfMon
-// switch is answered 0 in every run (S3e: addon.dll closes ctfmon at start and restarts it from its
+// standalone image's runs: a window (FullScreen 0 unless a "fullscreen" line says otherwise; H31) of 960x720 on the
+// vanilla data and 1280x720 on Rebirth's (the shape of the goldens' interface layout). game.exe's runs (--no-hooks,
+// the references) keep the snapshot's desktop size. Rebirth's CtfMon switch is answered 0 in every run (S3e: addon.dll closes ctfmon at start and restarts it from its
 // DLL_PROCESS_DETACH, which hung the exit).
 //
 // The answers are given by harness_settings.cpp, which answers every read of the game's and the starter's
@@ -59,5 +59,11 @@ std::string ModFileStep(const std::string& argument);
 // with Rebirth flags (rebirth_hook::SettingsOnly; S19). Scenario lines "vanilla ..." / "rebirth ..." and the
 // digest's and the UI census's install follow it.
 bool RebirthInstall();
+
+// Whether the run's data folder (EI_GAME_ROOT, else the exe's own) is a Rebirth install (starter\addon.dll or
+// EI_Plugin.asi, as the image's start-up decides its profile). Known before the game starts, unlike RebirthInstall:
+// the image's window size (960x720 on the vanilla data, 1280x720 on Rebirth's) and the scenario lines "vanilla
+// resolution ..." / "rebirth resolution ..." follow it.
+bool RebirthData();
 
 } // namespace ei::verify::starter

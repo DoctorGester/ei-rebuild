@@ -766,7 +766,7 @@ the file opens; nothing selected, the list rebuilt and drawn, the help topic, an
 
 ## MpConnectScreen::DrawListVanilla
 
-ui_connect_list.cpp (Rebirth-patched: WideScreen and ExtendedServerName reproduced behind their flags; the
+ui_connect_list.cpp (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag; the
 screen's other members call it through its address). The list drawn on surface 0. With row 0 (the new game)
 selected its controls show: the player slider and the name edit enabled (and editing), sprites 4 and 5 and
 their regions' tips (0x9EA4 / 0x9EA5, set once: newGameTips); otherwise they are off and the tips empty.
@@ -833,7 +833,7 @@ not while the image is hidden (the movie players and the loading screen hide it)
 The battle HUD's two corner panels, the game clock (HudClock) and the movement panel
 (HudMovePanel): their setups, which make the panels' sprites and their
 regions about the layout's bottom corners.
-Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
+Rebirth patches both for its WideScreen layout, reproduced for every window (ui_widescreen.h):
 the clock at the screen's right edge, the movement panel at its left (the panel offset while
 they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
 Place and SetTriangle, the regions' AddPoint, the panel's ShowMode)
@@ -845,7 +845,7 @@ docs/notes/items_spells.md and docs/notes/rebirth.md ("WideScreen").
 The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel):
 their layouts at the current slide offset, their per-frame updates
 (Update) and their setups.
-Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (
+Rebirth patches all of them for its WideScreen layout, reproduced for every window (
 ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
 offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
 Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
@@ -855,7 +855,7 @@ and docs/notes/rebirth.md ("WideScreen").
 ## Battle HUD unit panel draw
 
 The battle HUD's unit panel: its draw (HudUnitPanel).
-Rebirth patches it for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
+Rebirth patches it for its WideScreen layout, reproduced for every window (ui_widescreen.h):
 the panel offset while it draws (until the window's base draw), the model's x moved left by
 EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
 too (the sprites' Place, the layout scaling) are called through their

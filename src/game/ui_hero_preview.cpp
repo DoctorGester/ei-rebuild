@@ -73,7 +73,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
     if (wide) {
         for (int i = 0; i < 6; ++i) {
             Rect r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
-            ui->ScaleRectToScreenEntry(&r);
+            ui->ScaleRectToScreen(&r);
             rects[i] = r;
         }
         ClearUiDepth(1.0f, rects, 6);
@@ -83,7 +83,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
-        ui->ScaleRectToScreenEntry(&r);
+        ui->ScaleRectToScreen(&r);
         rects[0] = r;
         ClearUiDepth(1.0f, rects, 1);
     }

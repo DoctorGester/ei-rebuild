@@ -1,15 +1,13 @@
-# Rebirth's WideScreen layout takes the resolution the game loaded from its settings (src/game/ui_widescreen.h
-# Configure, called with the options' VideoResolution): the run's settings file holds 1600x900 (the "resolution"
-# line), and the layout must log that size, on either install's data.
+# The interface layout takes the resolution the game loaded from its settings (src/game/ui_widescreen.h Configure,
+# called with the options' VideoResolution, the window's size): the run's settings file holds 1600x900 (the
+# "resolution" line), and the layout must log that size and its 4:3 part, on either install's data, with no flag.
 # no original: vanilla rebirth (the layout is the image's; the original's addon.dll reads the starter's registry key)
 timeout 40
 deterministic
-widescreen 1
-rebirthflags WideScreen
 resolution 1600x900
 reject Script error
 waitmenu
 wait 500
-expectlog WideScreen: 1600x900, 4:3 part 1200
+expectlog Interface layout: 1600x900, 4:3 part 1200x900, margins 200, 0 pixels (134 layout units)
 report
 quit

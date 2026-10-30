@@ -99,7 +99,7 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 void UiScrollbar::MouseMove(int, int x, int y) {
     if (state == kDragging) {
         Point point{x, y};
-        ui->ScalePointFromScreenEntry(&point);
+        ui->ScalePointFromScreen(&point);
         int along = point.y - grabY;
         SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
     }
@@ -135,7 +135,7 @@ void UiSlider::SetPosition(int newPosition) {
 void UiSlider::MouseMove(int, int x, int y) {
     if (state == kDragging) {
         Point point{x, y};
-        ui->ScalePointFromScreenEntry(&point);
+        ui->ScalePointFromScreen(&point);
         int along = point.x - grabX;
         SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
     }

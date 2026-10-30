@@ -31,7 +31,6 @@ const char* EmptyLineSample() { return "w"; }
 const char* KeyOpen() { return "  ( "; }
 const char* KeyClose() { return " )"; }
 
-constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
 // exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by a static initialiser).
@@ -129,8 +128,8 @@ void UiTooltip::OnMouseMove(int x, int y) {
         Rect area{0, 0, width > keyWidth ? width : keyWidth, height};
         Point offset = kCursorOffset;
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
-        ui->CallScalePointFromScreenNoMargin(&offset);
-        const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;
+        ui->ScalePointFromScreenNoMargin(&offset);
+        const int layoutRight = widescreen::LayoutRight();
         rects::Offset(&area, offset.x, offset.y);
         rects::Offset(&area, x, y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.

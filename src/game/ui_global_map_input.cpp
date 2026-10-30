@@ -70,7 +70,7 @@ void GlobalMap::RightDown(int, int x, int y) {
     dragStart = Point{x, y};
     dragging = true;
     turning = 0;
-    ui->ScalePointFromScreenEntry(&dragStart);
+    ui->ScalePointFromScreen(&dragStart);
     dragAngle = angle;
     g_cursor.motion.y = 0;
     g_cursor.motion.x = 0;
@@ -82,7 +82,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
         Point drag{g_cursor.motion.x, g_cursor.motion.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
-        ui->CallScalePointFromScreenNoMargin(&drag);
+        ui->ScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f + angle);    // 1 / 300
         angle = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
         Quaternion spin, tilt;
@@ -104,9 +104,10 @@ void GlobalMap::MouseMove(int, int x, int y) {
             isLink = true;
         }
         if (region < 0) {
-            // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
-            // WideScreen takes the margin off its x (addon's code).
-            std::uint32_t pixel = backdrop->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
+            // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
+            // part's margins come off (Rebirth's WideScreen took the margin off x).
+            const Point shift = widescreen::PickShift();
+            std::uint32_t pixel = backdrop->PixelAt(x / 2 - shift.x, y / 2 - shift.y);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= std::ssize(zones)) index = -1;
             if (gipat && index >= 0 && zones[index].link >= 0) {

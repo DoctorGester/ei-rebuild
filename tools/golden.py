@@ -26,7 +26,7 @@ its title line. A golden keeps the groups its digest had: a run is compacted dow
 `diff` of two digests of different versions compares the groups both have. So adding a group needs no re-recording.
 
 usage:
-  python tools/golden.py diff A B [--ulps N] [--records K] [--fields K] [--ignore REGEX] [--all-fields]
+  python tools/golden.py diff A B [--ulps N] [--records K] [--fields K] [--ignore REGEX] [--all-fields] [--labels A,B]
       A, B: run folders (a name under build\verify\runs, or a path) or digest files (also compact ones, but
       not one of each). Walks both digests record by record; at the first record whose state differs it
       prints the record (world update, frame, tick) and the fields that differ, in record order: the world,
@@ -37,10 +37,11 @@ usage:
       SV1b) are left out unless --all-fields.
   python tools/golden.py state A [--record N] [--key REGEX]
       The whole state at record N (default: the last) of one digest, or the entities whose key matches.
-  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth]
+  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth] [--since FILE]
       Copies the image's run folders build\verify\runs\<scenario>-standalone (--install rebirth:
       <scenario>-standalone-rebirth; default: every one with a digest) to DEST: the report, the digest, the
-      dumps and harness_saves. One pass of the suite, for record --runs.
+      dumps and harness_saves. One pass of the suite, for record --runs. --since: only the runs whose report is
+      newer than FILE (touched before the pass), so a run folder an earlier suite left is not taken for this pass's.
   python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
       folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them, under
@@ -48,8 +49,9 @@ usage:
       and every other DIR's run must agree with the first DIR's: the console, every digest record and dump (but
       the known differences, KNOWN). A scenario that does not is not recorded, its old golden kept; its first
       difference is printed. The saves are kept (saves.txt) only when every run's saves decode to the same
-      fields. No SCENARIO: every run folder of the install in the first DIR. Each recorded golden is reported as
-      new, the same as before (only golden.json changed) or changed (the files that did).
+      fields. No SCENARIO: every run folder of the install in the first DIR. A golden whose content would not change
+      is left as it is (golden.json too: "the same as its golden, kept"); the others are reported as new or changed
+      (the files that did).
       A pair (a scenario with a "peer" line, SV5d): the second game's run folder is the peer\ subfolder; it
       must pass and agree the same way and is kept as the golden's peer\ (snapshot copies it, compare checks it,
       its lines start "peer:").
@@ -680,10 +682,15 @@ def snapshot(args):
     names = [f'{n}-{suffix}' for n in args.scenarios] if args.scenarios else \
         sorted(d for d in os.listdir(source) if d.endswith('-' + suffix)
                and os.path.exists(os.path.join(source, d, 'digest.txt')))
+    since = os.path.getmtime(args.since) if getattr(args, 'since', None) else None
     for name in names:
         src, dst = os.path.join(source, name), os.path.join(args.dest, name)
         if not os.path.isdir(src):
             print(f'{name}: no run folder')
+            continue
+        report = os.path.join(src, 'harness_report.txt')
+        if since is not None and (not os.path.exists(report) or os.path.getmtime(report) < since):
+            print(f'{name}: left out, its run is older than {args.since}')
             continue
         shutil.rmtree(dst, ignore_errors=True)
         for side in sides(src):
@@ -796,11 +803,13 @@ def record(args):
             code = 2
             continue
         target = os.path.join(GOLDEN, name, args.install)
-        before = golden_content(target)
-        shutil.rmtree(target, ignore_errors=True)
+        # Written beside the golden first: a golden whose content (what the comparison checks) is the same is left as
+        # it was, golden.json too, so a recording changes only the goldens that changed.
+        staging = target + '.new'
+        shutil.rmtree(staging, ignore_errors=True)
         for side in games:
             runs = [on_side(f, side) for f in folders]
-            into = on_side(target, side)
+            into = on_side(staging, side)
             os.makedirs(into)
             digest = os.path.join(runs[0], 'digest.txt')
             compact(digest, os.path.join(into, 'digest.txt'))
@@ -818,11 +827,18 @@ def record(args):
             with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
                 json.dump(meta, f, indent=2)
                 f.write('\n')
+        note = change_note(golden_content(target), golden_content(staging))
+        if note == 'the same as before':
+            shutil.rmtree(staging)
+            print(f'{name} {args.install}: the same as its golden, kept')
+            continue
+        shutil.rmtree(target, ignore_errors=True)
+        os.replace(staging, target)
         recorded += 1
         print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else '')
-              + f' ({change_note(before, golden_content(target))})')
+              + f' ({note})')
     prune_store()
-    print(f'{recorded} of {len(names)} recorded')
+    print(f'{recorded} of {len(names)} recorded (new or changed)')
     return code
 
 
@@ -985,6 +1001,7 @@ def main():
     p = sub.add_parser('diff')
     p.add_argument('a')
     p.add_argument('b')
+    p.add_argument('--labels')
     comparing(p)
     p = sub.add_parser('state')
     p.add_argument('digest')
@@ -994,6 +1011,7 @@ def main():
     p.add_argument('dest')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
+    p.add_argument('--since')
     p = sub.add_parser('record')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
@@ -1020,7 +1038,8 @@ def main():
             print(f'no digest at {args.a if not a else args.b}')
             return 2
         label = lambda spec: os.path.basename(os.path.normpath(spec))
-        return diff(a, b, label(args.a), label(args.b), args.ulps, args.records, args.fields, args.ignore)
+        name_a, name_b = args.labels.split(',', 1) if args.labels else (label(args.a), label(args.b))
+        return diff(a, b, name_a, name_b, args.ulps, args.records, args.fields, args.ignore)
     return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare,
             'saves': add_saves}[args.command](args)
 

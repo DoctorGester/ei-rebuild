@@ -2,10 +2,9 @@
 rem Builds the product with every option on and starts it to play.
 rem usage: play.cmd [rebirth|vanilla] [x64]
 rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:\games\Evil Islands (Rebirth)) with the Rebirth profile
-rem                      (config\rebirth_profile.ini: widescreen, draw radii, console and script additions,
-rem                      the bug fixes)
+rem                      (config\rebirth_profile.ini: draw radii, console and script additions, the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the plain profile (the bug fixes)
-rem                      and widescreen
+rem                      The interface follows the window's shape on both (widescreen on a wide window).
 rem   The profile is the data folder's (src/standalone/startup.cpp); a patch named in ei_settings.ini's [patches]
 rem   (name = true or false) wins over it in either mode.
 rem   x64                the 64-bit build (build.cmd play-x64, into build\play-x64) in place of the 32-bit one, in its own
@@ -17,7 +16,7 @@ rem The release build (build\play, apart from the builds the suites use) is copi
 rem game left open never locks a build, and drawn with the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults
 rem (docs/notes/standalone.md "Settings file": borderless full screen at the desktop's size, every graphics option
-rem at its best, the starter's WideScreen on; the registry is never read). Delete it to start from them again.
+rem at its best; the registry is never read). Delete it to start from them again.
 rem The renderer's switches are in that file's [renderer] section:
 rem   Msaa = 8             the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives;
 rem                        docs/notes/renderer.md section 11)

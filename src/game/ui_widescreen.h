@@ -1,9 +1,11 @@
 #pragma once
 
-// Rebirth's WideScreen patch behind the flag ei::rebirth::Patch::WideScreen (docs/notes/rebirth.md, "Widescreen and
-// rendering"). With a valid mode wider than 4:3 the 800x600 interface layout is widened: the 4:3 part of the screen keeps
-// the layout in the middle (width43 = H * 800 / 600 pixels) and the margins left and right of it add `extra` layout units
-// on either side. With the flag off, or a mode addon would refuse, everything is the original's. The list of what moves
+// The interface layout for any window shape (Rebirth's WideScreen patch folded in for every aspect ratio, no
+// flag; docs/notes/rebirth.md, "WideScreen"). The 800x600 layout is drawn in the window's 4:3 part: the largest 4:3
+// rectangle in the window, centred. A window wider than 4:3 has margins left and right of it (`margin` pixels, `extra`
+// layout units each; the battle screen's panels move out to the window's edges by `extra`, Rebirth's widescreen); a
+// window narrower than 4:3 (5:4, portrait) has bands above and below it (`marginY` pixels: the 4:3 part letterboxed,
+// nothing moves into the bands); at exactly 4:3 both are 0 and everything is the original's. The list of what moves
 // is in docs/notes/rebirth.md, "WideScreen module overview".
 
 #include "lib/rect.h"
@@ -12,87 +14,82 @@ class UiWindow;
 
 namespace widescreen {
 
-// addon's values (its globals at 100BD094..100BD0A8), valid when `active`.
+// The layout's values (Rebirth's for a window wider than 4:3: addon's globals at 100BD094..100BD0A8).
 struct Layout {
-    bool active;   // the flag is on and the settings give a mode wider than 4:3
-    int width;     // the options' VideoResolution width (100BD09C)
-    int height;    // ... and height (100BD098)
-    int width43;   // height * 800 / 600: the screen's 4:3 part (100BD0A4)
-    int margin;    // (width - width43) / 2: pixels on either side of it (100BD094)
-    int extra;     // margin in layout units, ceil((float)(margin * 800.0 / width43)) (100BD0A8)
-    // Two floats addon computes when it applies its patches (53-bit FPU precision, rounded to float):
-    float axisScale;   // (float)(width43 / width): written into the axis swap
-    float fontScale;   // (float)(width * (double)0.0075f / height): written into the font scale
+    int width;      // the window's width in pixels (the options' VideoResolution: the window is made at it)
+    int height;     // ... and height
+    int width43;    // the 4:3 part's width: min(width, height * 800 / 600)
+    int height43;   // ... and height: min(height, width * 600 / 800)
+    int margin;     // (width - width43) / 2: pixels left and right of the 4:3 part
+    int marginY;    // (height - height43) / 2: pixels above and below it
+    int extra;      // margin in layout units, ceil((float)(margin * 800.0 / width43))
+    // The 3D view keeps the 4:3 proportions over the whole window: the projection's x and y scales.
+    float axisScale;    // (float)(width43 / width)
+    float axisScaleY;   // (float)(height43 / height)
+    // The interface fonts' scale: (float)(width * (double)0.0075f / height43), 0.01 on a 4:3 window (addon's, which
+    // divides in double; at every 4:3 size the double result rounds to 0.01f, the original's constant).
+    float fontScale;
 };
 
-// Computes the layout for the mode the game loaded from its options (GameMain, right after the options load: the
-// resolution of the tree the game itself reads, Rebirth's on its data and the game's own on the original's) and
-// writes the two layout widths. Until then the layout is inactive.
+// Computes the layout for the window the game makes, at the resolution it loaded from its options (GameMain, right
+// after the options load), and writes the two layout widths. Until then the layout is an 800x600 window's.
 void Configure(int width, int height);
 
 const Layout& Get();
 
-// The layout widths addon writes (the game's .rdata floats 800.0 and 695.0; Startup adds `extra` with the
-// wide layout). Every reader reads them from memory (rewrite-guide rule 9).
+// The layout widths (the game's .rdata floats 800.0 and 695.0 plus `extra`: Rebirth wrote them). Every reader
+// reads them from memory (rewrite-guide rule 9).
 extern float g_layoutWidth;   // the layout's right edge: the clock's centre x (HudClock::Update)
 extern float g_panelRight;    // the bottom panels' right column: the quick items' x (HudQuickItems::SetUnit)
-inline bool Active() { return Get().active; }
 
-// addon's panel offset (100BD0A0): added to the x of every region rectangle and point and every
-// sprite placed or shaped while one of the battle screen's panel builders runs (they set it to
-// -extra or +extra and back to 0: EnterLeftPanel / EnterRightPanel / LeavePanel). 0 outside them.
-// Our builders are its only writers (addon's code wrote it nowhere else).
+// The panel offset (addon's 100BD0A0): added to the x of every region rectangle and point and every sprite placed or
+// shaped while one of the battle screen's panel builders runs (they set it to -extra or +extra and back to 0:
+// EnterLeftPanel / EnterRightPanel / LeavePanel). 0 outside them.
 int PanelOffset();
 void SetPanelOffset(int offset);
 
-// The layout units the battle screen's panels move by to reach the screen's edges: extra while
-// Active(), else 0. addon adds it to (right edge) or takes it off (left edge) the builders' layout
-// constants (its operands at the W3 sites).
+// The layout units the battle screen's panels move by to reach the window's edges: `extra` (0 on a window 4:3 or
+// narrower). Added to (right edge) or taken off (left edge) the builders' layout constants.
 int EdgeShift();
 
-// addon's handlers at a panel builder's entry: the panel offset -EdgeShift() for a panel at the
-// screen's left edge, +EdgeShift() at its right; and at its exit (every return), 0 again, also
-// when the builder ran inside another one (the outer one then goes on with 0, as with addon).
-// Nothing while not Active() (addon installs them only then).
+// At a panel builder's entry: the panel offset -EdgeShift() for a panel at the window's left edge, +EdgeShift() at its
+// right; and at its exit (every return), 0 again, also when the builder ran inside another one (the outer one then
+// goes on with 0, as with addon).
 void EnterLeftPanel();
 void EnterRightPanel();
 void LeavePanel();
 
-// The scaling with the wide layout (addon's replacements; only while Active()). Each returns the last
-// coordinate stored (y, or the bottom of a rectangle). `margin`: addon adds / takes off the margin only when
-// its interface argument is set; its two entries in front of the screen-to-layout scaling pass none, and the
-// text surfaces' draw calls the layout-to-screen scaling without one.
+// Layout to screen pixels and back: x by the 4:3 part's width, y by its height. `margin`: the 4:3 part's place in
+// the window (its left and top margins) added / taken off; without it for sizes and offsets (the text surfaces' draw,
+// the drags, the tooltip's cursor offset: Interface3D's *NoMargin scalings).
 void RectToScreen(Rect* rect, bool margin);
 void PointToScreen(Point* point, bool margin);
 void RectFromScreen(Rect* rect, bool margin);
 void PointFromScreen(Point* point, bool margin);
 
-// The interface's text extent (addon's replacement): GetTextExtentPoint32's pixels to layout units, the width
-// by the 4:3 part's width (not the screen's) and the height by the mode's height (64-bit products).
+// The interface's text extent: the drawn text's pixels to layout units, by the 4:3 part's size (64-bit products).
 Size TextExtentToLayout(Size pixels);
 
-// The projection's x scale on the axis swap's diagonal: axisScale while Active(), else 1.
+// The projection's x and y scales on the axis swap's diagonal (axisScale, axisScaleY).
 float AxisScale();
-// What a 75-point font's pixel height is multiplied by for the interface fonts' scale: fontScale while
-// Active(), else the original's 0.01.
+float AxisScaleY();
+// What a 75-point font's pixel height is multiplied by for the interface fonts' scale (fontScale).
 float FontScale();
-// addon's patch of the global map's mouse move and click, in place of the pick picture's pixel read: the
-// half-size picture's x is (x / 2) - margin / 2. margin / 2 while Active(), else 0.
-int PickShift();
+// The global map's pick picture is read at (x / 2, y / 2) less this: the 4:3 part's margins halved (addon's patch of
+// the map's mouse move and click took margin / 2 off x).
+Point PickShift();
 
-// addon's handlers after the camp's and the multiplayer hero screen's Creates: two more sprites of `window`
-// over the screen's margins, the left one the layout rectangle (-margin, 0)-(0, 600) showing texels (0xE3,
-// 0x3E)-(0x100, 0xB0), the right one (800, 0)-(800 + margin, 600) the same texels mirrored (addon takes the
-// margin's pixels as layout units: wider than the margins, harmless), both at depth 2, scale 100, tint 0.3,
-// shown `visible` (the camp 1, the hero screen 0). Nothing while not Active() (addon installs them only then).
+// After the camp's and the multiplayer hero screen's Creates: two more sprites of `window` over the window's left and
+// right margins, the left one the layout rectangle (-margin, 0)-(0, 600) showing texels (0xE3, 0x3E)-(0x100, 0xB0),
+// the right one (800, 0)-(800 + margin, 600) the same texels mirrored (addon takes the margin's pixels as layout
+// units: wider than the margins, harmless; with no margin both are empty), both at depth 2, scale 100, tint 0.3,
+// shown `visible` (the camp 1, the hero screen 0).
 void AddCurtains(UiWindow* window, int visible);
-// addon's handler after the hero screen's mode function: when the window has exactly 21 sprites (the 19 of the
-// hero screen and the curtains), the curtains (19, 20) are shown in every mode but the hero list (9). Nothing
-// while not Active().
+// After the hero screen's mode function: when the window has exactly 21 sprites (the 19 of the hero screen and the
+// curtains), the curtains (19, 20) are shown in every mode but the hero list (9).
 void ShowHeroCurtains(UiWindow* window, int mode);
 
-// The layout's right edge with the wide layout, 800 + extra: addon's operands (the tooltip kept on the
-// layout).
+// The layout's right edge, 800 + extra (the tooltip kept on the layout).
 int LayoutRight();
 
 } // namespace widescreen

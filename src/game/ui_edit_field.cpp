@@ -1,5 +1,5 @@
 // The message box's edit field: its key handler, constructor and character
-// handler, and its drawing (Rebirth's WideScreen behind its flag). See ui.h (UiEditField) and
+// handler, and its drawing (Rebirth's WideScreen). See ui.h (UiEditField) and
 // docs/notes/items_spells.md
 #include "ui.h"
 #include "ui_screens.h"
@@ -187,8 +187,8 @@ void UiEditField::DrawContentsVanilla() {
         Point top{caretX, 0};
         Point bottom{caretX, height};
         // WideScreen: without the margin.
-        ui->CallScalePointToScreenNoMargin(&top);
-        ui->CallScalePointToScreenNoMargin(&bottom);
+        ui->ScalePointToScreenNoMargin(&top);
+        ui->ScalePointToScreenNoMargin(&bottom);
         surface->Line(top.x, top.y, bottom.x, bottom.y, 1, caretColour);
     }
 }

@@ -1265,6 +1265,20 @@ group = "widescreen"
 model = "opus"
 note = "User 2026-10-30: drop Rebirth's widescreen fix as a branch; the code should work for any aspect ratio as is. Today: the WideScreen Rebirth flag (include/ei/rebirth_patches.inc) gates widescreen::Layout (ui_widescreen.h/.cpp: width43, margin, extra, axis and font scales); 21 widescreen::Active() checks in 8 files (ui_interface 9, ui_mesh 5, ui_window 2, ui_help_page, ui_hud_slide, ui_interface_input, ui_text, ui_tooltip), plus the helpers they guard (EdgeShift 18 uses, Enter/LeavePanel, PanelOffset, curtains, PickShift, Rect/Point To/FromScreen, FontScale, AxisScale). Step 1 (investigate, report first): does the wide path degenerate to the plain one at exactly 4:3 (margin 0, extra 0)? List each Active() branch and whether its wide side equals its plain side at extra 0; anything that differs (panel moves, curtains, picking shifts, font scale) is a real layout change. Also screens narrower than 4:3 (5:4, portrait windows): margin < 0 has no rule today; pick one (pillar or letterbox the 4:3 part) consistent with P8c's titles scaling by window. Step 2: make the layout always computed from the window (no flag, no setting), remove the Active() branches, the WideScreen flag and its settings entry. Goldens: vanilla runs are 4:3 so they should stay the same; if a branch differs at 4:3, the goldens decide (re-record only with the user's OK). Keep ui_widescreen_* scenarios and the 16:9 captures passing."
 
+[[ticket]]
+id = "W12a"
+title = "The vanilla 16:9 desktop scenarios' goldens under the window's layout"
+group = "widescreen"
+depends = ["W12"]
+note = "W12 made the interface layout follow the window, so the five vanilla scenarios at 'resolution desktop' (16:9 4K: net_pair_leave, net_pair_quest, net_pair_zone, render_pick_edges, render_pick_edges_rule) get the wide layout and differ from their goldens (game.exe's stretched 16:9): clickground finds no screen point, picks land elsewhere. The vanilla original has no wide layout, so no re-record from it can match at 16:9. Done 2026-10-30: the vanilla image runs play in a 4:3 window (960x720), where W12 lays out exactly as main's stretched 1280x720 (Suites diff runs 41074059416 / 41076142052: no scenario differs but these five and a 1-ulp rotation in ui_titles_scroll); 1280x720 with the wide layout changed about 30 goldens and failed 8 scenarios (run 41073972854). The five scenarios say 'rebirth resolution desktop', so their vanilla runs play in the 4:3 window too; their vanilla goldens are re-recorded there. Re-recorded in cd0ac18: those three net_pair goldens (clickground on the 960x720 pixel grid) and ui_titles_scroll's (1 ulp); render_pick_edges(_rule) play as on main. The causes of each of the reverted c6d10a7 goldens are in the message of the commit after cd0ac18."
+
+[[ticket]]
+id = "W12b"
+title = "Rename the layout module (widescreen namespace, ui_widescreen files) and audit relative-y scalings"
+group = "widescreen"
+depends = ["W12"]
+note = "After W12 ui_widescreen.{h,cpp} / namespace widescreen is the interface layout for every window shape; a name like ui_layout / screen_layout reads better (scripted rename, ~25 files). Also: letterboxed windows (narrower than 4:3) add marginY in the with-margin scalings; W12 moved the text height (DrawTextIn's extent) to the no-margin one, other sizes passed through the with-margin scalings would show only on 5:4 / portrait windows (ui_layout_narrow captures)."
+
 # ---------------------------------------------------------------- unknown fields
 
 [[ticket]]

@@ -10,11 +10,13 @@
 //
 // The second argument is the patch's kind in the standalone (user 2026-10-20, docs/notes/rebirth.md "One test
 // profile"): Fix, a bug fix that is on by default; Flag, off by default (scripting / console additions, mod
-// folders, widescreen and rendering, multiplayer features, EI_Plugin's features); Dropped, addon's or the
-// plugin's own infrastructure that the rebuild replaces (its flag stays, nothing implements it).
+// folders, rendering, multiplayer features, EI_Plugin's features); Dropped, addon's or the plugin's own
+// infrastructure that the rebuild replaces (its flag stays, nothing implements it), and WideScreen, which the
+// rebuild does whatever the flags (the interface layout follows the window's shape, src/game/ui_widescreen.h;
+// the name stays for addon's sites, which the harness undoes in the original's vanilla runs).
 EI_REBIRTH_PATCH(GameExeDebug, Dropped)
 EI_REBIRTH_PATCH(BinkPatch, Dropped)
-EI_REBIRTH_PATCH(WideScreen, Flag)
+EI_REBIRTH_PATCH(WideScreen, Dropped)
 EI_REBIRTH_PATCH(ObjectsDrawRadius, Flag)
 EI_REBIRTH_PATCH(LandscapeDrawRadius, Flag)
 EI_REBIRTH_PATCH(AllowScriptArgsInLoops, Flag)

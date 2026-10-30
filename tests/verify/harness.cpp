@@ -741,7 +741,7 @@ HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
 }
 
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
-// and the sound is muted (the image's runs also play in a 1280x720 window: harness_starter.h). The
+// and the sound is muted (the image's runs also play in a small window: harness_starter.h). The
 // game's own code still runs (sound included), so scenarios test the same paths.
 
 decltype(&::SetForegroundWindow) g_setForegroundWindow;
@@ -4051,6 +4051,19 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
+        // "vanilla <step>" / "rebirth <step>" for a window step, taken before the game starts (a window size for one
+        // install's runs): applied when the data folder is that install's (starter::RebirthData), else dropped.
+        if (g_steps.back().verb == "vanilla" || g_steps.back().verb == "rebirth") {
+            const std::string& inner = g_steps.back().argument;
+            const std::size_t at = inner.find(' ');
+            const std::string verb = inner.substr(0, at), argument = at == std::string::npos ? "" : inner.substr(at + 1);
+            if (verb == "resolution" || verb == "widescreen" || verb == "fullscreen") {
+                if ((g_steps.back().verb == "rebirth") == ei::verify::starter::RebirthData())
+                    ei::verify::starter::ParseStep(verb, argument);
+                g_steps.pop_back();
+                continue;
+            }
+        }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             settings::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             ei::verify::startup::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
@@ -4160,7 +4173,7 @@ struct Harness {
         PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
         PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
         PatchImport(&ImportTable::GetCursorPos, &HarnessCursorPos, g_getCursorPos);
-        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's 1280x720
+        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)

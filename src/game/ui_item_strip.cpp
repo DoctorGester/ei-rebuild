@@ -351,7 +351,7 @@ void FigureStrip::LeftDown(int buttons, int x, int y) {
     UiItemStrip::LeftDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     Point point{x, y};
-    ui->ScalePointFromScreenEntry(&point);
+    ui->ScalePointFromScreen(&point);
     int index = SlotAt(point.x);
     if (index < 0 || index >= count) return;
     ui->PlayInterfaceSound(kOnOffSound);
