@@ -21,22 +21,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
                    install), and starts it from the run folder with no EI_GAME_ROOT or EI_REBIRTH.
                    On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
-<<<<<<< HEAD
-                   --rebirth-only: one); never with --no-hooks or --widescreen. Their goldens are their own runs'
-                   (H40; no EI_REBIRTH: the Rebirth install's run plays in the vanilla runs' 4:3 window,
-                   harness_starter.h).
-  --no-hooks      game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
-                   vanilla install (install "vanilla": with Rebirth's bug fixes, which ei_launch has addon.dll apply;
-                   docs/notes/rebirth.md "One test profile") and on Rebirth's (install "rebirth", with --rebirth as
-                   above): the runs goldens are recorded from
-                   (tools/golden.py), kept in the reference cache (--fresh). With EI_VECTORS=1 in the environment
-                   the recorders are the only hooks and the runs write function vectors (tools/vectors.py). A
-                   scenario's line "# no original: <install>..." (vanilla, rebirth) leaves its runs there out:
-                   checks only our renderer can pass, flags the original lacks (S21a). Since S21c no tool runs
-                   our code inside game.exe (--native and --dgvoodoo are gone with it).
-=======
-                   --rebirth-only: one); never with --widescreen. Their goldens are their own runs' (H40).
->>>>>>> e90ceee (H40 step 3a: the Python tools stop running game.exe)
+                   --rebirth-only: one); never with --widescreen. Their goldens are their own runs' (H40; no
+                   EI_REBIRTH: the Rebirth install's run plays in the vanilla runs' 4:3 window, harness_starter.h).
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
                    change), so its runs never need the machine to themselves. EI_RENDER reaches no run: a scenario's
                    "render" step sets the image's renderer options (EI_RENDER_EXTRA adds words to them).
