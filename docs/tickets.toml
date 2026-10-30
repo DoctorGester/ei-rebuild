@@ -6145,6 +6145,14 @@ model = "opus"
 note = "User 2026-10-30: switch to our own goldens fully and stop testing game.exe. Today 122 of 122 comparable vanilla goldens and 24 Rebirth ones are the same as game.exe's, so re-recording every golden from our build loses nothing now; W12's 5 vanilla 16:9 scenarios get ours with the wide layout. Steps: (1) tag the last commit that still runs the original (git tag original-oracle) and note it in docs/notes; (2) golden.py records from the image (standalone, standalone-rebirth) instead of --no-hooks runs; re-record all, check that only W12's 5 change; (3) remove the game.exe side: --no-hooks and the reference cache, ei_harness.dll and its hooks (advapi registry snapshot, the addon undo in harness_addon, dgVoodoo setup, the import-slot routing), config/harness/registry.reg once nothing reads it, the harness key (check_harness_key) and every '# no original' line, run_all's install kinds vanilla/rebirth/rebirth-nohooks, the --widescreen --record addon references; (4) docs and memory rules that exist only because of game.exe (harness-key, original-suite-only-for-harness). Unblocks PL12 (the harness on the SDL path), C68 and W12 without the original's constraint. Several green commits; goldens the same as before step 2 except W12's."
 
 [[ticket]]
+id = "H41"
+title = "Stub game data: the suites run without the game's files (CI)"
+group = "harness"
+model = "opus"
+depends = ["H40"]
+note = "User 2026-10-30 idea: a test-only data set built from the install by a tool, so the harness runs where the real files are not (GitHub Actions, a clean checkout). Keep what decides game state: maps / terrain and collision, models' geometry, skeletons and animations (bones, timings, events), databases, scripts, text, unit/item tables. Stub what only shows or sounds: textures as 1x1 or same-size blank (keep the dimensions where layout reads them), sounds and speech as silent clips of the same length (scripts wait on speech), Bink movies as frame count / size / rate only, fonts kept for metrics or replaced by metric tables. Step 1: list every read the harness's runs make (file, which fields reach state) and prove each stub keeps the goldens (all suites the same on the stub set as on the install). Step 2: the stub tool (tools/stub_data.py) writing archives in the original formats so no new loader path is needed; a null renderer / no-audio run if the CI runner has no GPU. Step 3: CI job. Open question for the user: maps, models, animations and scripts are still the game's own copyrighted data, so the stub set stays out of the public repo; options are a private release asset / Actions cache fed once from the user's machine, or a self-hosted runner. Frame-capture scenarios stay local."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
