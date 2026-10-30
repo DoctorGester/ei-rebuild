@@ -4,9 +4,9 @@
 // The imports our code calls where game.exe called them through its import table. An import
 // whose slot can hold something other than the export in the image (the harness's slot routes, the
 // image's UTF-8 routes, a slot our code takes; gen_iat.py's routed()) is called through
-// the slot (lib/import_table.h), and so is every import the Windows SDK does not declare
-// (lib/import_prototypes.h: no import library) but the Interlocked pair (our code uses the
-// compiler's intrinsics); every other one is the Windows function itself.
+// the slot (lib/import_table.h): a reference to it, bound in gameapi.cpp. So is every import the
+// Windows SDK does not declare (lib/import_prototypes.h: no import library) but the Interlocked pair
+// (our code uses the compiler's intrinsics); every other one is the Windows function itself.
 
 #include "lib/import_table.h"
 
@@ -21,135 +21,135 @@
 
 namespace gameapi {
 
-inline auto& BinkGoto = ei::Imports().BinkGoto;  // binkw32.dll, through the slot
-inline auto& BinkDoFrame = ei::Imports().BinkDoFrame;  // binkw32.dll, through the slot
-inline auto& BinkDDSurfaceType = ei::Imports().BinkDDSurfaceType;  // binkw32.dll, through the slot
-inline auto& BinkOpen = ei::Imports().BinkOpen;  // binkw32.dll, through the slot
-inline auto& BinkNextFrame = ei::Imports().BinkNextFrame;  // binkw32.dll, through the slot
-inline auto& BinkWait = ei::Imports().BinkWait;  // binkw32.dll, through the slot
-inline auto& BinkSetFrameRate = ei::Imports().BinkSetFrameRate;  // binkw32.dll, through the slot
-inline auto& BinkSetVolume = ei::Imports().BinkSetVolume;  // binkw32.dll, through the slot
-inline auto& BinkSetSoundSystem = ei::Imports().BinkSetSoundSystem;  // binkw32.dll, through the slot
-inline auto& BinkOpenMiles = ei::Imports().BinkOpenMiles;  // binkw32.dll, through the slot
-inline auto& BinkClose = ei::Imports().BinkClose;  // binkw32.dll, through the slot
-inline auto& BinkCopyToBuffer = ei::Imports().BinkCopyToBuffer;  // binkw32.dll, through the slot
-inline auto& AIL_set_sample_file = ei::Imports().AIL_set_sample_file;  // mss32.dll, through the slot
-inline auto& AIL_WAV_info = ei::Imports().AIL_WAV_info;  // mss32.dll, through the slot
-inline auto& AIL_mem_alloc_lock = ei::Imports().AIL_mem_alloc_lock;  // mss32.dll, through the slot
-inline auto& AIL_register_EOS_callback = ei::Imports().AIL_register_EOS_callback;  // mss32.dll, through the slot
-inline auto& AIL_set_named_sample_file = ei::Imports().AIL_set_named_sample_file;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_reverb = ei::Imports().AIL_set_sample_reverb;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_ms_position = ei::Imports().AIL_set_sample_ms_position;  // mss32.dll, through the slot
-inline auto& AIL_start_sample = ei::Imports().AIL_start_sample;  // mss32.dll, through the slot
-inline auto& AIL_sample_position = ei::Imports().AIL_sample_position;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_volume = ei::Imports().AIL_set_sample_volume;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_loop_count = ei::Imports().AIL_set_sample_loop_count;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_pan = ei::Imports().AIL_set_sample_pan;  // mss32.dll, through the slot
-inline auto& AIL_resume_sample = ei::Imports().AIL_resume_sample;  // mss32.dll, through the slot
-inline auto& AIL_stop_sample = ei::Imports().AIL_stop_sample;  // mss32.dll, through the slot
-inline auto& AIL_release_sample_handle = ei::Imports().AIL_release_sample_handle;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_processor = ei::Imports().AIL_set_sample_processor;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_position = ei::Imports().AIL_set_sample_position;  // mss32.dll, through the slot
-inline auto& AIL_release_sequence_handle = ei::Imports().AIL_release_sequence_handle;  // mss32.dll, through the slot
-inline auto& AIL_waveOutClose = ei::Imports().AIL_waveOutClose;  // mss32.dll, through the slot
-inline auto& AIL_midiOutClose = ei::Imports().AIL_midiOutClose;  // mss32.dll, through the slot
-inline auto& AIL_set_preference = ei::Imports().AIL_set_preference;  // mss32.dll, through the slot
-inline auto& AIL_waveOutOpen = ei::Imports().AIL_waveOutOpen;  // mss32.dll, through the slot
-inline auto& AIL_last_error = ei::Imports().AIL_last_error;  // mss32.dll, through the slot
-inline auto& AIL_set_DirectSound_HWND = ei::Imports().AIL_set_DirectSound_HWND;  // mss32.dll, through the slot
-inline auto& AIL_allocate_sample_handle = ei::Imports().AIL_allocate_sample_handle;  // mss32.dll, through the slot
-inline auto& AIL_sample_user_data = ei::Imports().AIL_sample_user_data;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_playback_rate = ei::Imports().AIL_set_sample_playback_rate;  // mss32.dll, through the slot
-inline auto& AIL_register_sequence_callback = ei::Imports().AIL_register_sequence_callback;  // mss32.dll, through the slot
-inline auto& AIL_set_sequence_user_data = ei::Imports().AIL_set_sequence_user_data;  // mss32.dll, through the slot
-inline auto& AIL_init_sequence = ei::Imports().AIL_init_sequence;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_user_data = ei::Imports().AIL_set_sample_user_data;  // mss32.dll, through the slot
-inline auto& AIL_get_DirectSound_info = ei::Imports().AIL_get_DirectSound_info;  // mss32.dll, through the slot
-inline auto& AIL_shutdown = ei::Imports().AIL_shutdown;  // mss32.dll, through the slot
-inline auto& AIL_startup = ei::Imports().AIL_startup;  // mss32.dll, through the slot
-inline auto& AIL_end_sample = ei::Imports().AIL_end_sample;  // mss32.dll, through the slot
-inline auto& AIL_set_sample_type = ei::Imports().AIL_set_sample_type;  // mss32.dll, through the slot
-inline auto& AIL_minimum_sample_buffer_size = ei::Imports().AIL_minimum_sample_buffer_size;  // mss32.dll, through the slot
-inline auto& RIB_find_file_provider = ei::Imports().RIB_find_file_provider;  // mss32.dll, through the slot
-inline auto& AIL_sample_buffer_ready = ei::Imports().AIL_sample_buffer_ready;  // mss32.dll, through the slot
-inline auto& AIL_load_sample_buffer = ei::Imports().AIL_load_sample_buffer;  // mss32.dll, through the slot
-inline auto& AIL_start_sequence = ei::Imports().AIL_start_sequence;  // mss32.dll, through the slot
-inline auto& AIL_sequence_user_data = ei::Imports().AIL_sequence_user_data;  // mss32.dll, through the slot
-inline auto& AIL_sequence_ms_position = ei::Imports().AIL_sequence_ms_position;  // mss32.dll, through the slot
-inline auto& AIL_mem_free_lock = ei::Imports().AIL_mem_free_lock;  // mss32.dll, through the slot
-inline auto& AIL_end_sequence = ei::Imports().AIL_end_sequence;  // mss32.dll, through the slot
-inline auto& AIL_decompress_ASI = ei::Imports().AIL_decompress_ASI;  // mss32.dll, through the slot
-inline auto& AIL_init_sample = ei::Imports().AIL_init_sample;  // mss32.dll, through the slot
-inline auto& listen = ei::Imports().listen;  // WSOCK32.dll, through the slot
-inline auto& accept = ei::Imports().accept;  // WSOCK32.dll, through the slot
-inline auto& WSAFDIsSet = ei::Imports().WSAFDIsSet;  // WSOCK32.dll, through the slot
-inline auto& select = ei::Imports().select;  // WSOCK32.dll, through the slot
-inline auto& connect = ei::Imports().connect;  // WSOCK32.dll, through the slot
-inline auto& recvfrom = ei::Imports().recvfrom;  // WSOCK32.dll, through the slot
-inline auto& send = ei::Imports().send;  // WSOCK32.dll, through the slot
-inline auto& socket = ei::Imports().socket;  // WSOCK32.dll, through the slot
-inline auto& recv = ei::Imports().recv;  // WSOCK32.dll, through the slot
-inline auto& bind = ei::Imports().bind;  // WSOCK32.dll, through the slot
-inline auto& setsockopt = ei::Imports().setsockopt;  // WSOCK32.dll, through the slot
-inline auto& closesocket = ei::Imports().closesocket;  // WSOCK32.dll, through the slot
-inline auto& WSACleanup = ei::Imports().WSACleanup;  // WSOCK32.dll, through the slot
-inline auto& WSAStartup = ei::Imports().WSAStartup;  // WSOCK32.dll, through the slot
-inline auto& gethostname = ei::Imports().gethostname;  // WSOCK32.dll, through the slot
-inline auto& gethostbyaddr = ei::Imports().gethostbyaddr;  // WSOCK32.dll, through the slot
-inline auto& ntohs = ei::Imports().ntohs;  // WSOCK32.dll, through the slot
-inline auto& inet_addr = ei::Imports().inet_addr;  // WSOCK32.dll, through the slot
-inline auto& gethostbyname = ei::Imports().gethostbyname;  // WSOCK32.dll, through the slot
-inline auto& htons = ei::Imports().htons;  // WSOCK32.dll, through the slot
-inline auto& ioctlsocket = ei::Imports().ioctlsocket;  // WSOCK32.dll, through the slot
-inline auto& sendto = ei::Imports().sendto;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::BinkGoto)& BinkGoto;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkDoFrame)& BinkDoFrame;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkDDSurfaceType)& BinkDDSurfaceType;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkOpen)& BinkOpen;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkNextFrame)& BinkNextFrame;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkWait)& BinkWait;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkSetFrameRate)& BinkSetFrameRate;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkSetVolume)& BinkSetVolume;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkSetSoundSystem)& BinkSetSoundSystem;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkOpenMiles)& BinkOpenMiles;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkClose)& BinkClose;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::BinkCopyToBuffer)& BinkCopyToBuffer;  // binkw32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_file)& AIL_set_sample_file;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_WAV_info)& AIL_WAV_info;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_mem_alloc_lock)& AIL_mem_alloc_lock;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_register_EOS_callback)& AIL_register_EOS_callback;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_named_sample_file)& AIL_set_named_sample_file;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_reverb)& AIL_set_sample_reverb;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_ms_position)& AIL_set_sample_ms_position;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_start_sample)& AIL_start_sample;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_sample_position)& AIL_sample_position;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_volume)& AIL_set_sample_volume;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_loop_count)& AIL_set_sample_loop_count;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_pan)& AIL_set_sample_pan;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_resume_sample)& AIL_resume_sample;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_stop_sample)& AIL_stop_sample;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_release_sample_handle)& AIL_release_sample_handle;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_processor)& AIL_set_sample_processor;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_position)& AIL_set_sample_position;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_release_sequence_handle)& AIL_release_sequence_handle;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_waveOutClose)& AIL_waveOutClose;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_midiOutClose)& AIL_midiOutClose;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_preference)& AIL_set_preference;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_waveOutOpen)& AIL_waveOutOpen;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_last_error)& AIL_last_error;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_DirectSound_HWND)& AIL_set_DirectSound_HWND;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_allocate_sample_handle)& AIL_allocate_sample_handle;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_sample_user_data)& AIL_sample_user_data;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_playback_rate)& AIL_set_sample_playback_rate;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_register_sequence_callback)& AIL_register_sequence_callback;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sequence_user_data)& AIL_set_sequence_user_data;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_init_sequence)& AIL_init_sequence;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_user_data)& AIL_set_sample_user_data;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_get_DirectSound_info)& AIL_get_DirectSound_info;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_shutdown)& AIL_shutdown;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_startup)& AIL_startup;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_end_sample)& AIL_end_sample;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_set_sample_type)& AIL_set_sample_type;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_minimum_sample_buffer_size)& AIL_minimum_sample_buffer_size;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::RIB_find_file_provider)& RIB_find_file_provider;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_sample_buffer_ready)& AIL_sample_buffer_ready;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_load_sample_buffer)& AIL_load_sample_buffer;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_start_sequence)& AIL_start_sequence;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_sequence_user_data)& AIL_sequence_user_data;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_sequence_ms_position)& AIL_sequence_ms_position;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_mem_free_lock)& AIL_mem_free_lock;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_end_sequence)& AIL_end_sequence;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_decompress_ASI)& AIL_decompress_ASI;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::AIL_init_sample)& AIL_init_sample;  // mss32.dll, through the slot
+extern decltype(ei::ImportTable::listen)& listen;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::accept)& accept;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::WSAFDIsSet)& WSAFDIsSet;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::select)& select;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::connect)& connect;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::recvfrom)& recvfrom;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::send)& send;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::socket)& socket;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::recv)& recv;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::bind)& bind;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::setsockopt)& setsockopt;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::closesocket)& closesocket;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::WSACleanup)& WSACleanup;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::WSAStartup)& WSAStartup;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::gethostname)& gethostname;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::gethostbyaddr)& gethostbyaddr;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::ntohs)& ntohs;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::inet_addr)& inet_addr;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::gethostbyname)& gethostbyname;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::htons)& htons;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::ioctlsocket)& ioctlsocket;  // WSOCK32.dll, through the slot
+extern decltype(ei::ImportTable::sendto)& sendto;  // WSOCK32.dll, through the slot
 using ::DirectSoundEnumerateA;  // DSOUND.dll
-inline auto& DirectDrawEnumerateExA = ei::Imports().DirectDrawEnumerateExA;  // DDRAW.dll, through the slot
-inline auto& DirectDrawCreateEx = ei::Imports().DirectDrawCreateEx;  // DDRAW.dll, through the slot
-inline auto& DirectInputCreateEx = ei::Imports().DirectInputCreateEx;  // DINPUT.dll, through the slot
+extern decltype(ei::ImportTable::DirectDrawEnumerateExA)& DirectDrawEnumerateExA;  // DDRAW.dll, through the slot
+extern decltype(ei::ImportTable::DirectDrawCreateEx)& DirectDrawCreateEx;  // DDRAW.dll, through the slot
+extern decltype(ei::ImportTable::DirectInputCreateEx)& DirectInputCreateEx;  // DINPUT.dll, through the slot
 using ::mmioClose;  // WINMM.dll
-inline auto& mmioOpenA = ei::Imports().mmioOpenA;  // WINMM.dll, through the slot
+extern decltype(ei::ImportTable::mmioOpenA)& mmioOpenA;  // WINMM.dll, through the slot
 using ::mmioRead;  // WINMM.dll
 using ::mmioSeek;  // WINMM.dll
-inline auto& timeGetTime = ei::Imports().timeGetTime;  // WINMM.dll, through the slot
-inline auto& Sleep = ei::Imports().Sleep;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::timeGetTime)& timeGetTime;  // WINMM.dll, through the slot
+extern decltype(ei::ImportTable::Sleep)& Sleep;  // KERNEL32.dll, through the slot
 using ::OutputDebugStringA;  // KERNEL32.dll
 using ::FreeLibrary;  // KERNEL32.dll
-inline auto& GetVolumeInformationA = ei::Imports().GetVolumeInformationA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetVolumeInformationA)& GetVolumeInformationA;  // KERNEL32.dll, through the slot
 using ::EnterCriticalSection;  // KERNEL32.dll
-inline auto& CreateDirectoryA = ei::Imports().CreateDirectoryA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::CreateDirectoryA)& CreateDirectoryA;  // KERNEL32.dll, through the slot
 using ::GlobalMemoryStatus;  // KERNEL32.dll
 using ::GetSystemInfo;  // KERNEL32.dll
-inline auto& GetVersionExA = ei::Imports().GetVersionExA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetVersionExA)& GetVersionExA;  // KERNEL32.dll, through the slot
 using ::InitializeCriticalSection;  // KERNEL32.dll
 using ::GetComputerNameA;  // KERNEL32.dll
-inline auto& LoadLibraryA = ei::Imports().LoadLibraryA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::LoadLibraryA)& LoadLibraryA;  // KERNEL32.dll, through the slot
 using ::DeleteCriticalSection;  // KERNEL32.dll
-inline auto& CopyFileA = ei::Imports().CopyFileA;  // KERNEL32.dll, through the slot
-inline auto& GetLocalTime = ei::Imports().GetLocalTime;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::CopyFileA)& CopyFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetLocalTime)& GetLocalTime;  // KERNEL32.dll, through the slot
 using ::SetEvent;  // KERNEL32.dll
 using ::CreateEventA;  // KERNEL32.dll
 using ::CloseHandle;  // KERNEL32.dll
-inline auto& WaitForSingleObject = ei::Imports().WaitForSingleObject;  // KERNEL32.dll, through the slot
-inline auto& RemoveDirectoryA = ei::Imports().RemoveDirectoryA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::WaitForSingleObject)& WaitForSingleObject;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::RemoveDirectoryA)& RemoveDirectoryA;  // KERNEL32.dll, through the slot
 using ::MulDiv;  // KERNEL32.dll
 using ::FindClose;  // KERNEL32.dll
-inline auto& FindNextFileA = ei::Imports().FindNextFileA;  // KERNEL32.dll, through the slot
-inline auto& GetCurrentDirectoryA = ei::Imports().GetCurrentDirectoryA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::FindNextFileA)& FindNextFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetCurrentDirectoryA)& GetCurrentDirectoryA;  // KERNEL32.dll, through the slot
 using ::UnmapViewOfFile;  // KERNEL32.dll
 using ::MapViewOfFile;  // KERNEL32.dll
-inline auto& DeleteFileA = ei::Imports().DeleteFileA;  // KERNEL32.dll, through the slot
-inline auto& FindFirstFileA = ei::Imports().FindFirstFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::DeleteFileA)& DeleteFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::FindFirstFileA)& FindFirstFileA;  // KERNEL32.dll, through the slot
 using ::GetLastError;  // KERNEL32.dll
-inline auto& CreateFileA = ei::Imports().CreateFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::CreateFileA)& CreateFileA;  // KERNEL32.dll, through the slot
 using ::SetFileTime;  // KERNEL32.dll
 using ::SystemTimeToFileTime;  // KERNEL32.dll
 using ::GetFileInformationByHandle;  // KERNEL32.dll
-inline auto& GetSystemTime = ei::Imports().GetSystemTime;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetSystemTime)& GetSystemTime;  // KERNEL32.dll, through the slot
 using ::GetModuleHandleA;  // KERNEL32.dll
 using ::LeaveCriticalSection;  // KERNEL32.dll
-inline auto& GetPrivateProfileSectionA = ei::Imports().GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetPrivateProfileSectionA)& GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
 using ::GetPrivateProfileIntA;  // KERNEL32.dll
-inline auto& GetPrivateProfileStringA = ei::Imports().GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetPrivateProfileStringA)& GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
 using ::WritePrivateProfileStringA;  // KERNEL32.dll
 using ::GlobalFree;  // KERNEL32.dll
 using ::GlobalUnlock;  // KERNEL32.dll
@@ -160,7 +160,7 @@ using ::MultiByteToWideChar;  // KERNEL32.dll
 using ::DuplicateHandle;  // KERNEL32.dll
 using ::GetPrivateProfileSectionNamesA;  // KERNEL32.dll
 using ::ReadFile;  // KERNEL32.dll
-inline auto& WriteFile = ei::Imports().WriteFile;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::WriteFile)& WriteFile;  // KERNEL32.dll, through the slot
 using ::SetFilePointer;  // KERNEL32.dll
 using ::FlushFileBuffers;  // KERNEL32.dll
 using ::LockFile;  // KERNEL32.dll
@@ -168,12 +168,12 @@ using ::UnlockFile;  // KERNEL32.dll
 using ::SetEndOfFile;  // KERNEL32.dll
 using ::lstrcpyA;  // KERNEL32.dll
 using ::lstrcpynA;  // KERNEL32.dll
-inline auto& GetFullPathNameA = ei::Imports().GetFullPathNameA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetFullPathNameA)& GetFullPathNameA;  // KERNEL32.dll, through the slot
 using ::GetStringTypeExA;  // KERNEL32.dll
 using ::GetThreadLocale;  // KERNEL32.dll
 using ::lstrcmpiA;  // KERNEL32.dll
 using ::GetShortPathNameA;  // KERNEL32.dll
-inline auto& GetModuleFileNameA = ei::Imports().GetModuleFileNameA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetModuleFileNameA)& GetModuleFileNameA;  // KERNEL32.dll, through the slot
 using ::SetLastError;  // KERNEL32.dll
 using ::LocalFree;  // KERNEL32.dll
 using ::FormatMessageA;  // KERNEL32.dll
@@ -184,7 +184,7 @@ using ::GetCurrentThreadId;  // KERNEL32.dll
 using ::SuspendThread;  // KERNEL32.dll
 using ::FlushViewOfFile;  // KERNEL32.dll
 using ::GetCurrentProcess;  // KERNEL32.dll
-inline auto& GetVersion = ei::Imports().GetVersion;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetVersion)& GetVersion;  // KERNEL32.dll, through the slot
 using ::LocalAlloc;  // KERNEL32.dll
 using ::TlsAlloc;  // KERNEL32.dll
 using ::GlobalHandle;  // KERNEL32.dll
@@ -194,10 +194,10 @@ using ::GlobalAlloc;  // KERNEL32.dll
 using ::TlsSetValue;  // KERNEL32.dll
 using ::LocalReAlloc;  // KERNEL32.dll
 using ::TlsGetValue;  // KERNEL32.dll
-inline auto& GetFileAttributesA = ei::Imports().GetFileAttributesA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetFileAttributesA)& GetFileAttributesA;  // KERNEL32.dll, through the slot
 using ::GetFileTime;  // KERNEL32.dll
 using ::LocalFileTimeToFileTime;  // KERNEL32.dll
-inline auto& SetFileAttributesA = ei::Imports().SetFileAttributesA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::SetFileAttributesA)& SetFileAttributesA;  // KERNEL32.dll, through the slot
 using ::SetErrorMode;  // KERNEL32.dll
 using ::lstrcatA;  // KERNEL32.dll
 using ::GlobalFlags;  // KERNEL32.dll
@@ -213,7 +213,7 @@ using ::GetCurrentThread;  // KERNEL32.dll
 using ::GetCPInfo;  // KERNEL32.dll
 using ::GetOEMCP;  // KERNEL32.dll
 using ::RtlUnwind;  // KERNEL32.dll
-inline auto& GetTickCount = ei::Imports().GetTickCount;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetTickCount)& GetTickCount;  // KERNEL32.dll, through the slot
 using ::CreateThread;  // KERNEL32.dll
 using ::ExitThread;  // KERNEL32.dll
 using ::ExitProcess;  // KERNEL32.dll
@@ -261,30 +261,30 @@ using ::CompareStringA;  // KERNEL32.dll
 using ::CompareStringW;  // KERNEL32.dll
 using ::SetEnvironmentVariableA;  // KERNEL32.dll
 using ::GetProcAddress;  // KERNEL32.dll
-inline auto& GetDiskFreeSpaceA = ei::Imports().GetDiskFreeSpaceA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::GetDiskFreeSpaceA)& GetDiskFreeSpaceA;  // KERNEL32.dll, through the slot
 using ::FileTimeToSystemTime;  // KERNEL32.dll
-inline auto& MoveFileA = ei::Imports().MoveFileA;  // KERNEL32.dll, through the slot
+extern decltype(ei::ImportTable::MoveFileA)& MoveFileA;  // KERNEL32.dll, through the slot
 using ::FileTimeToLocalFileTime;  // KERNEL32.dll
 using ::CreateFileMappingA;  // KERNEL32.dll
 using ::GetFileSize;  // KERNEL32.dll
 using ::RaiseException;  // KERNEL32.dll
-inline auto& BringWindowToTop = ei::Imports().BringWindowToTop;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::BringWindowToTop)& BringWindowToTop;  // USER32.dll, through the slot
 using ::GetLastActivePopup;  // USER32.dll
-inline auto& SetForegroundWindow = ei::Imports().SetForegroundWindow;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::SetForegroundWindow)& SetForegroundWindow;  // USER32.dll, through the slot
 using ::IsIconic;  // USER32.dll
 using ::GetWindowThreadProcessId;  // USER32.dll
 using ::GetForegroundWindow;  // USER32.dll
-inline auto& FindWindowA = ei::Imports().FindWindowA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::FindWindowA)& FindWindowA;  // USER32.dll, through the slot
 using ::InvalidateRect;  // USER32.dll
-inline auto& TranslateMessage = ei::Imports().TranslateMessage;  // USER32.dll, through the slot
-inline auto& GetMessageA = ei::Imports().GetMessageA;  // USER32.dll, through the slot
-inline auto& PeekMessageA = ei::Imports().PeekMessageA;  // USER32.dll, through the slot
-inline auto& LoadStringA = ei::Imports().LoadStringA;  // USER32.dll, through the slot
-inline auto& DefWindowProcA = ei::Imports().DefWindowProcA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::TranslateMessage)& TranslateMessage;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::GetMessageA)& GetMessageA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::PeekMessageA)& PeekMessageA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::LoadStringA)& LoadStringA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::DefWindowProcA)& DefWindowProcA;  // USER32.dll, through the slot
 using ::EndPaint;  // USER32.dll
 using ::BeginPaint;  // USER32.dll
 using ::GetUpdateRect;  // USER32.dll
-inline auto& GetKeyNameTextA = ei::Imports().GetKeyNameTextA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::GetKeyNameTextA)& GetKeyNameTextA;  // USER32.dll, through the slot
 using ::wvsprintfA;  // USER32.dll
 using ::SetRect;  // USER32.dll
 using ::SetRectEmpty;  // USER32.dll
@@ -292,11 +292,11 @@ using ::IsRectEmpty;  // USER32.dll
 using ::UnionRect;  // USER32.dll
 using ::PtInRect;  // USER32.dll
 using ::IntersectRect;  // USER32.dll
-inline auto& LoadCursorFromFileA = ei::Imports().LoadCursorFromFileA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::LoadCursorFromFileA)& LoadCursorFromFileA;  // USER32.dll, through the slot
 using ::CopyRect;  // USER32.dll
-inline auto& DispatchMessageA = ei::Imports().DispatchMessageA;  // USER32.dll, through the slot
-inline auto& GetCursorPos = ei::Imports().GetCursorPos;  // USER32.dll, through the slot
-inline auto& SetCursorPos = ei::Imports().SetCursorPos;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::DispatchMessageA)& DispatchMessageA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::GetCursorPos)& GetCursorPos;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::SetCursorPos)& SetCursorPos;  // USER32.dll, through the slot
 using ::GetKeyboardLayoutNameA;  // USER32.dll
 using ::ActivateKeyboardLayout;  // USER32.dll
 using ::GetKeyboardLayout;  // USER32.dll
@@ -304,13 +304,13 @@ using ::GetKeyboardLayoutList;  // USER32.dll
 using ::ReleaseDC;  // USER32.dll
 using ::GetDC;  // USER32.dll
 using ::FrameRect;  // USER32.dll
-inline auto& SystemParametersInfoA = ei::Imports().SystemParametersInfoA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::SystemParametersInfoA)& SystemParametersInfoA;  // USER32.dll, through the slot
 using ::DestroyWindow;  // USER32.dll
 using ::SendMessageA;  // USER32.dll
 using ::CharToOemA;  // USER32.dll
 using ::OemToCharA;  // USER32.dll
 using ::wsprintfA;  // USER32.dll
-inline auto& CharUpperA = ei::Imports().CharUpperA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::CharUpperA)& CharUpperA;  // USER32.dll, through the slot
 using ::GetSystemMetrics;  // USER32.dll
 using ::ScreenToClient;  // USER32.dll
 using ::ClientToScreen;  // USER32.dll
@@ -341,8 +341,8 @@ using ::GetFocus;  // USER32.dll
 using ::CheckDlgButton;  // USER32.dll
 using ::CheckRadioButton;  // USER32.dll
 using ::GetDlgItem;  // USER32.dll
-inline auto& ShowWindow = ei::Imports().ShowWindow;  // USER32.dll, through the slot
-inline auto& CreateWindowExA = ei::Imports().CreateWindowExA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::ShowWindow)& ShowWindow;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::CreateWindowExA)& CreateWindowExA;  // USER32.dll, through the slot
 using ::SendDlgItemMessageA;  // USER32.dll
 using ::SetDlgItemInt;  // USER32.dll
 using ::SetDlgItemTextA;  // USER32.dll
@@ -409,10 +409,10 @@ using ::InsertMenuA;  // USER32.dll
 using ::DeleteMenu;  // USER32.dll
 using ::GetMenuStringA;  // USER32.dll
 using ::LoadIconA;  // USER32.dll
-inline auto& RegisterClassExA = ei::Imports().RegisterClassExA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::RegisterClassExA)& RegisterClassExA;  // USER32.dll, through the slot
 using ::RegisterWindowMessageA;  // USER32.dll
 using ::PostQuitMessage;  // USER32.dll
-inline auto& MessageBoxA = ei::Imports().MessageBoxA;  // USER32.dll, through the slot
+extern decltype(ei::ImportTable::MessageBoxA)& MessageBoxA;  // USER32.dll, through the slot
 using ::SetCursor;  // USER32.dll
 using ::OffsetRect;  // USER32.dll
 using ::UpdateWindow;  // USER32.dll
@@ -502,24 +502,24 @@ using ::SelectPalette;  // GDI32.dll
 using ::GetTextExtentPoint32A;  // GDI32.dll
 using ::CreateSolidBrush;  // GDI32.dll
 using ::CreatePalette;  // GDI32.dll
-inline auto& GetFileTitleA = ei::Imports().GetFileTitleA;  // comdlg32.dll, through the slot
-inline auto& ClosePrinter = ei::Imports().ClosePrinter;  // WINSPOOL.DRV, through the slot
-inline auto& DocumentPropertiesA = ei::Imports().DocumentPropertiesA;  // WINSPOOL.DRV, through the slot
-inline auto& OpenPrinterA = ei::Imports().OpenPrinterA;  // WINSPOOL.DRV, through the slot
+extern decltype(ei::ImportTable::GetFileTitleA)& GetFileTitleA;  // comdlg32.dll, through the slot
+extern decltype(ei::ImportTable::ClosePrinter)& ClosePrinter;  // WINSPOOL.DRV, through the slot
+extern decltype(ei::ImportTable::DocumentPropertiesA)& DocumentPropertiesA;  // WINSPOOL.DRV, through the slot
+extern decltype(ei::ImportTable::OpenPrinterA)& OpenPrinterA;  // WINSPOOL.DRV, through the slot
 using ::RegDeleteValueA;  // ADVAPI32.dll
 using ::RegDeleteKeyA;  // ADVAPI32.dll
 using ::RegOpenKeyA;  // ADVAPI32.dll
 using ::RegCloseKey;  // ADVAPI32.dll
-inline auto& RegCreateKeyExA = ei::Imports().RegCreateKeyExA;  // ADVAPI32.dll, through the slot
-inline auto& RegOpenKeyExA = ei::Imports().RegOpenKeyExA;  // ADVAPI32.dll, through the slot
-inline auto& RegSetValueExA = ei::Imports().RegSetValueExA;  // ADVAPI32.dll, through the slot
+extern decltype(ei::ImportTable::RegCreateKeyExA)& RegCreateKeyExA;  // ADVAPI32.dll, through the slot
+extern decltype(ei::ImportTable::RegOpenKeyExA)& RegOpenKeyExA;  // ADVAPI32.dll, through the slot
+extern decltype(ei::ImportTable::RegSetValueExA)& RegSetValueExA;  // ADVAPI32.dll, through the slot
 using ::GetUserNameA;  // ADVAPI32.dll
 using ::RegEnumValueA;  // ADVAPI32.dll
 using ::RegEnumKeyExA;  // ADVAPI32.dll
-inline auto& RegQueryValueExA = ei::Imports().RegQueryValueExA;  // ADVAPI32.dll, through the slot
+extern decltype(ei::ImportTable::RegQueryValueExA)& RegQueryValueExA;  // ADVAPI32.dll, through the slot
 using ::DragAcceptFiles;  // SHELL32.dll
 using ::SHGetFileInfoA;  // SHELL32.dll
-inline auto& InitCommonControls = ei::Imports().InitCommonControls;  // COMCTL32.dll, through the slot
+extern decltype(ei::ImportTable::InitCommonControls)& InitCommonControls;  // COMCTL32.dll, through the slot
 using ::CoCreateInstance;  // ole32.dll
 using ::CoInitialize;  // ole32.dll
 using ::CoUninitialize;  // ole32.dll
