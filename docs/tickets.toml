@@ -6658,7 +6658,7 @@ id = "R39"
 title = "Main menu terrain fogged cyan with the default BorderFogDistance 32"
 group = "renderer"
 model = "opus"
-note = "User 2026-10-30, drop-in exe on both installs: the main menu's ground and rocks are washed cyan and smeared. Reproduced with release and verify exes outside the harness (build/dropin_rel: junctions to the install, the user's ei_settings.ini windowed at 1920x1080). The setting that does it is Terrain Settings BorderFogDistance: the user's file has 32 (options_construct's default, what a fresh drop-in writes), the harness's config/harness/registry.reg has 16 and looks right. FloraShadow/OtherShadow/ShadowingFreq were changed together with it in the bisect, but fog is the lead. ui_main_menu.cpp sets borderFogDistance to kMenuEdgeFade 6 in its constructor and restores it on close; Terrain::EdgeFade (terrain.cpp) bakes the fade into the sector vertices' fog factor, so the menu's terrain was probably built (or rebuilt) while the value was the user's, not 6. Find the order against game.exe (--no-hooks with BorderFogDistance 32; a harness way to set a settings value per scenario if none exists), fix ours to match the original, and add a scenario with 32 that captures the menu. Goldens unchanged unless the original differs."
+note = "User 2026-10-30: the drop-in's menu was fogged cyan. Not a rendering bug: game.exe with BorderFogDistance 32 looks the same (vanilla and Rebirth captures); the constructor's default 32 was written into fresh settings files while installs carry 16. Fixed by defaulting to 16 (options_construct.cpp, settings_defaults.ini)."
 
 [[ticket]]
 id = "C30e16"
