@@ -4,6 +4,7 @@
 // docs/notes/ui-native.md, section 2 and "Source file overviews".
 
 #include "render_rect.h"
+#include "text_format.h"
 
 #include <cstdint>
 #include <memory>
@@ -121,21 +122,6 @@ std::u32string DecodeCp1251(const char* text, int count = -1);
 
 // ---- Layout -------------------------------------------------------------------------------------------
 
-// DrawText's format bits this layout follows (the values of DT_*). DT_VCENTER without DT_SINGLELINE
-// (the game's format 4) has no effect, as in DrawText.
-enum Format : unsigned {
-    kLeft = 0x0,
-    kCenter = 0x1,
-    kRight = 0x2,
-    kVCenter = 0x4,
-    kWordBreak = 0x10,
-    kSingleLine = 0x20,
-    kExpandTabs = 0x40,
-    kNoClip = 0x100,
-    kCalcRect = 0x400,
-    kNoPrefix = 0x800,
-    kEndEllipsis = 0x8000,
-};
 constexpr unsigned kSupportedFormats =
     kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix | kEndEllipsis;
 

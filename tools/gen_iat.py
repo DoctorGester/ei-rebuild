@@ -211,7 +211,7 @@ def sources(folder, extensions):
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
     "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names but ORIGINAL's), the image's
-    routes (the UTF-8 routes of game/system_text.cpp) and a slot our code takes (`&gameapi::X`)."""
+    routes (the UTF-8 routes of platform/win32/system_text.cpp) and a slot our code takes (`&gameapi::X`)."""
     names = {member(dll, fn, ordinal): fn for _, dll, fn, ordinal in table}
     out = set()
     for path in sources('tests', ('.cpp', '.h', '.inc')):
@@ -225,8 +225,8 @@ def routed(table):
 
 
 def text_routes():
-    """The imports the image's UTF-8 routes take (game/system_text.cpp's TEXT_ROUTE list)."""
-    return set(re.findall(r'TEXT_ROUTE\((\w+)\),', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
+    """The imports the image's UTF-8 routes take (platform/win32/system_text.cpp's TEXT_ROUTE list)."""
+    return set(re.findall(r'TEXT_ROUTE\((\w+)\),', read(os.path.join(ROOT, 'src', 'platform', 'win32', 'system_text.cpp'))))
 
 
 def code(text):

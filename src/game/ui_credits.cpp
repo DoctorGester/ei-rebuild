@@ -14,7 +14,7 @@
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/win_user.h"
+#include "render/text_format.h"
 
 #include <memory>
 
@@ -52,7 +52,7 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
                 const UiFont& font = ui->fonts[kHeaderFont];
                 const RECT& at = headerSurface->rect;
                 const RECT whole = {0, 0, at.right - at.left, at.bottom - at.top};
-                headerSurface->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, DT_CENTER,
+                headerSurface->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, render::text::kCenter,
                                                kHeaderColour, true);
                 headerSurface->Show();
             } else {

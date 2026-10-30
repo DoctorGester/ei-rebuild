@@ -150,7 +150,7 @@ each step green on the goldens and removing a measured tie:
   voice timers and its output are such);
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` was sealed in S18f (76 raw uses -> 0).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
-  routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
+  routes it (the `TEXT_ROUTE` list of platform/win32/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
   saves, profile reads, clocks, Winsock) or our code takes it by address (`&gameapi::X`; none since S22c).
   **gameapi.h** (H33f) holds only the imports our code calls (`gameapi::X` in src/ or tests/: gen_iat.py's
@@ -956,7 +956,7 @@ game, the `--no-hooks` suite) keeps the registry.
   its own defaults (paths `.\` and `.\res\` from the working folder, the exe's: "The game folder" above, ShowTutorial 1, the other game settings, equal to
   the install's), Rebirth its own (no mod: AddonPath absent, the console's levels and AutoExec). The game's exit save
   then adds every option it keeps.
-- **Who uses it**: WinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
+- **Who uses it**: SettingsKey (settings_key.cpp, the game's CWinRegistry: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
   ui_widescreen, world_client_draw's draw radii, device_object's `Standalone` "PerfOverlay", "VSync", "Msaa" and
@@ -990,7 +990,7 @@ game, the `--no-hooks` suite) keeps the registry.
     under both option trees, the starter's and the renderer's keys, what is left out, the text written and read back).
   - *The game's save and the defaults in a run*: `settingsfile writable` (settings_save.txt) leaves the run's
     ei_settings.ini writable with a probe key of odd values; the game's exit save (WinMain's SaveToRegistry, `Flush` at
-    `WinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile defaults`
+    `SettingsKey::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile defaults`
     (settings_defaults.txt) starts with no file, its desktop 1280x720 (`settings_file::SetDesktopSize`, so the file
     does not depend on the monitor), and no missing-value check, so the first-use defaults, `Write`, the game reading
     them (and its own defaults for the rest) and its exit save run for real.
@@ -1387,13 +1387,14 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U2: the system boundary
 
-- **Where**: src/game/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
+- **Where**: src/platform/win32/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
   UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
   resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). The list holds the reached
   slots only (H33f): the routes and versions of slots no call reaches went (LoadStringA, LoadLibraryA,
   SetFileAttributesA and the registry's RegOpenKeyExA, RegCreateKeyExA, RegQueryValueExA, RegSetValueExA: the
-  settings are a file, settings_file.h), and CharUpperA, CharLowerA, LoadCursorFromFileA lost their routes but keep
-  their versions, called as `text::utf8::` by name. A new `gameapi::` call of another import that takes or gives
+  settings are a file, settings_file.h), and CharUpperA, CharLowerA, LoadCursorFromFileA lost their routes; the game's
+  code changes case with lib/text_case.h's `UpperInPlace` / `LowerInPlace` and loads no cursor file (the world's
+  wincurs cursor was never used). A new `gameapi::` call of another import that takes or gives
   text needs its version and route added. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
   `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
   same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
@@ -1431,7 +1432,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   is sent.
 - **The editors** (asset_text.h, "Typing"): the caret stays a byte offset (every draw and `Left` / `Mid` take it as
   one) at a character's start. Sites: the message box's edit field (0065C610, 0065C930: its letter class for a code
-  point past ASCII is `IsCharAlphaW`), the console line (005E4180, 005E44A0; Rebirth's paste puts the caret at
+  point past ASCII is `IsCharAlphaW`, platform::IsLetter), the console line (005E4180, 005E44A0; Rebirth's paste puts the caret at
   `CharacterStart` of its own sum), the chat line (005E3230, 005E3550), the save window's name (006548A0, 00655050).
 - **Check**: tests/scenarios/utf8_typing.txt (no original run: game.exe's text is in the ANSI code page) types
   Cyrillic and a character past U+FFFF into the console line with the harness's `typeunicode` (each UTF-16 unit
@@ -1482,7 +1483,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   words). There are no double-byte lead bytes (`_ismbblead`, `isleadbyte`, `_mbsinc`, `_mbclen`; `_mbscmp` and
   `_mbsncmp` are byte compares; the standalone's start-up sets the host's `_MB_CP_SBCS` for `_splitpath` and the
   other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
-  `TextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
+  `TextManager::Create` (004DED20) leaves LC_CTYPE "C". The game's `CharUpperA` / `CharLowerA` calls are the table's `UpperInPlace` / `LowerInPlace`. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
   names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call
   `text::CompareIgnoringCase`, the table's compare. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
@@ -1495,7 +1496,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   game's own ASCII texts).
 - **Buffers**: about 95 fixed `char` buffers. Left: paths and file names (MAX_PATH, the figure, link and terrain
   names, archive patterns), numbers and ids, model / texture / sound names read from the network
-  (`DeltaField::ReadText` empties one too long), error texts (`wvsprintfA` stops at 1 KB), the profile calls'
+  (`DeltaField::ReadText` empties one too long), error texts (cut at 1023 bytes, as `wvsprintfA` stopped at 1 KB), the profile calls'
   buffers (ANSI, U2), the host password (`strncpy` to 20 bytes on both sides, compared as bytes). Fixed:
   `FileRegistry::GetStringBuffer` cuts at a character's end (`text::FittingBytes`; the asset's 16-bit length no
   longer wraps); the server list's 90-byte name buffer (`text::CopyFitting`); the message box's edit text (50
@@ -1634,7 +1635,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **The x64 harness build** (A3c): `build.cmd verify-x64` builds builderify-x64: ei-rebuild.exe with the harness's image
   side linked in (CMake `EI_HARNESS` on x64 builds no ei_harness.dll: game.exe is 32-bit) and an x64 ei_launch that
   starts only the image. `python tools/work.py test <ID> --x64 [run_all args]` (or run_all.py `--x64`) runs the image's
-  scenarios on it, runs in builderify-x64uns, against the same goldens; `--no-hooks` is refused. game.exe's side of
+  scenarios on it, runs in builderify-x64
+uns, against the same goldens; `--no-hooks` is refused. game.exe's side of
   the shared harness compiles there but never runs: `EI_NAKED` / `EI_ORIGINAL` (harness_original.h) give a body that
   logs and ends the run, exe_objects.h's layout asserts (`EI_EXE_LAYOUT`) hold on x86 only, the inline assembly steps
   are x86 only. What the harness does differently on x64: thread contexts through src/hook/thread_context.h (Rip / Rsp),

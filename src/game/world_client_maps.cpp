@@ -30,7 +30,6 @@
 #include "sky_object.h"
 #include "sound.h"
 #include "spell.h"
-#include "system_text.h"
 #include "terrain.h"
 #include "texture.h"
 #include "ui_flying_hit_points.h"
@@ -796,10 +795,6 @@ void WorldClient::Create() {
         flags |= WorldClientFlag::DrawShadows;
     else
         flags &= ~WorldClientFlag::DrawShadows;
-    {
-        std::string path = g_dataFolder + worlddata::CursorFileText();
-        cursor = text::utf8::LoadCursorFromFileA(path.c_str());
-    }
 
     if (SpellManager()) ReferenceEveryObject(SpellManager());
 

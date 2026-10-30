@@ -21,7 +21,7 @@ bool PerfOverlaySetting() {
     unsigned long type = 0, value = 0, size = sizeof(value);
     return settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay", &type, &value,
                                     &size) == 0 &&
-           type == 4 /* REG_DWORD */ && value != 0;
+           type == settings_file::kTypeDword && value != 0;
 }
 
 // The vertical blank's switch (docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
@@ -29,7 +29,7 @@ bool PerfOverlaySetting() {
 bool VsyncSetting() {
     unsigned long type = 0, value = 0, size = sizeof(value);
     return !(settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", &type, &value, &size) == 0 &&
-             type == 4 /* REG_DWORD */ && value == 0);
+             type == settings_file::kTypeDword && value == 0);
 }
 
 // The render quality (docs/notes/renderer.md section 11, "Render quality"): "Msaa" (the world view's samples: 1 off,
@@ -42,9 +42,9 @@ constexpr unsigned long kDefaultAnisotropy = 16;
 unsigned long QualitySetting(const char* name, unsigned long fallback) {
     unsigned long type = 0, value = 0, size = sizeof(value);
     if (settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", name, &type, &value, &size) == 0 &&
-        type == 4 /* REG_DWORD */)
+        type == settings_file::kTypeDword)
         return value;
-    settings_file::Set(nullptr, "Software\\Nival Interactive\\EvilIslands\\Standalone", name, 4 /* REG_DWORD */, &fallback,
+    settings_file::Set(nullptr, "Software\\Nival Interactive\\EvilIslands\\Standalone", name, settings_file::kTypeDword, &fallback,
                        sizeof(fallback));
     return fallback;
 }

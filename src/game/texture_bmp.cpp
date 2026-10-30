@@ -68,7 +68,7 @@ int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* 
     if (alphaFile.Open(alphaPath, platform::File::modeRead)) {
         alpha.Read(&alphaFile);
         alphaFile.Close();
-        WORD bits = alpha.header->biBitCount;
+        std::uint16_t bits = alpha.header->bitCount;
         if (bits == 8)
             withAlpha = true;
         else

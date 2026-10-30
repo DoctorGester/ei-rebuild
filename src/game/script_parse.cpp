@@ -7,11 +7,11 @@
 #include "script_addon.h"
 
 #include "ei/rebirth.h"
-#include "lib/gameapi.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
 #include <cstdarg>
+#include <cstdio>
 
 #include <cstring>
 #include <memory>
@@ -24,8 +24,8 @@ using namespace scriptparse;
 
 
 int scriptparse::ScriptErrorV(Script* script, int line, int code, const char* format, va_list args) {
-    char text[0x400];
-    gameapi::wvsprintfA(text, format, args);
+    char text[0x400];   // cut to 1023 bytes (the game's wvsprintf wrote at most 1024 characters)
+    std::vsnprintf(text, sizeof(text), format, args);
     script->errorLine = line;
     script->errorText = text;
     script->errorCode = code;

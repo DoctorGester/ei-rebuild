@@ -53,7 +53,6 @@
 
 #include <bit>
 #include <cstdio>
-#include <io.h>
 #include <format>
 
 using options::GameOptions;
@@ -110,8 +109,10 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
         AppendDefaultMessages(messages);
         return;
     }
-    const std::size_t length = static_cast<std::size_t>(_filelength(_fileno(file)));
-    std::vector<char> text(length);
+    std::fseek(file, 0, SEEK_END);
+    const std::size_t length = static_cast<std::size_t>(std::ftell(file));
+    std::fseek(file, 0, SEEK_SET);
+    std::vector<char> text(length + 1);   // the text mode's reads give less when lines end in CR LF; a zero after
     std::fread(text.data(), 1, length, file);
     std::fclose(file);
     messages = text::Split(text.data(), '\n');

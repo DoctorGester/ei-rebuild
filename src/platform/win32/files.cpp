@@ -1,10 +1,10 @@
 // Folders, drives and whole files on Windows (platform/files.h). The folder and file calls and the volume label go
 // through game.exe's import slots (the harness redirects folder creation and the saves; the image routes them to the
 // UTF-8 calls); the free space was never a slot (the original looked GetDiskFreeSpaceExA up by name) and calls the
-// system's wide function; IsFile and FolderEntries call the UTF-8 versions (game/system_text.h) directly.
+// system's wide function; IsFile and FolderEntries call the UTF-8 versions (system_text.h) directly.
 #include "platform/files.h"
 
-#include "game/system_text.h"
+#include "platform/win32/system_text.h"
 #include "lib/gameapi.h"
 #include "platform/win32/utf16.h"
 

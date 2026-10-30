@@ -56,7 +56,6 @@ WorldClient::WorldClient() {
     session = nullptr;
     skyDome = nullptr;
     bird = nullptr;
-    cursor = nullptr;
     appName = "EvilIslands";
     windowClass = "EvilIslandsClass";
     windowTitle = "EvilIslands";

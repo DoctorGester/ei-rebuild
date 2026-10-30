@@ -43,7 +43,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `platform/file.h`,
   `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports our code calls; generated: the
   ones the harness or the image routes go through the image's import slots; declared by `win_api.h` over
-  `win_types.h`, so no windows.h), `win_user.h` (VK_* / DT_* without windows.h). Containers and strings are standard
+  `win_types.h`, so no windows.h). Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
 - `src/platform/`: the game's calls of the operating system by area (clock, message box, paths, ...), no SDK types;
   `src/platform/win32/` implements them and is the only game-side place that includes windows.h or calls

@@ -2335,7 +2335,7 @@ std::string Narrow(LPCWSTR s) {
     return out;
 }
 
-// The image's MessageBoxA is the wide call (its text is UTF-8: game/system_text.h), so its boxes come here.
+// The image's MessageBoxA is the wide call (its text is UTF-8: platform/win32/system_text.h), so its boxes come here.
 int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
     if (int answer = ei::verify::startup::AnswerMessageBox(Narrow(caption).c_str())) return answer;   // "discprompt"
     EndRunOnMessageBox(Narrow(caption), Narrow(text));

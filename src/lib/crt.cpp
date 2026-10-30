@@ -1,7 +1,7 @@
 #include "crt.h"
 
 #include <cstddef>
-#include <intrin.h>
+#include "return_address.h"
 
 namespace game {
 

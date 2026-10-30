@@ -12,7 +12,7 @@
 #include "lib/containers.h"
 #include "platform/clock.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "render/text_format.h"
 #include "platform/keys.h"
 
 #include <algorithm>
@@ -188,7 +188,7 @@ void ChatOverlay::DrawTyped() {
     UiSurface* surface = surfaces[0];
     surface->Clear();
     RECT area{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
     int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).cx;
     if (width < kMaxTypedWidth) {
         POINT top{width, 0};

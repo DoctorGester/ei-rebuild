@@ -29,7 +29,7 @@ protected:
 
 class DXException final : public GameException {
 public:
-    // The wvsprintf text of `format` (variadic).
+    // The text of `format` (printf's: the callers use only %s and %d), cut to 1023 bytes.
     DXException(const char* format, va_list args);
     ~DXException() override;
 };

@@ -128,7 +128,6 @@ __declspec(dllimport) int WINAPI GetKeyboardLayoutList(int size, HKL* layouts);
 __declspec(dllimport) BOOL WINAPI GetKeyboardLayoutNameA(LPSTR name);
 __declspec(dllimport) HKL WINAPI ActivateKeyboardLayout(HKL layout, UINT flags);
 __declspec(dllimport) int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size);
-__declspec(dllimport) int WINAPI wvsprintfA(LPSTR buffer, LPCSTR format, va_list args);
 
 // WINMM.dll.
 __declspec(dllimport) DWORD WINAPI timeGetTime();

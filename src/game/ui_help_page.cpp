@@ -19,7 +19,7 @@
 #include "world.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "lib/win_user.h"
+#include "render/text_format.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -48,7 +48,7 @@ constexpr int kStripHeight = 55;                   // the title's and the button
 constexpr int kRowHeight = 16;
 constexpr int kPictureSize = 64;
 constexpr int kMaxPictures = 16;                   // the picture texture's cells
-constexpr int kWrapFormat = DT_WORDBREAK | DT_EXPANDTABS;
+constexpr int kWrapFormat = render::text::kWordBreak | render::text::kExpandTabs;
 
 // The body's texts: their left edge without a picture and beside one, and the room the original left
 // on the right (the width the texts wrap to is the page's less both).
@@ -172,10 +172,10 @@ void HelpWindow::ShowPage() {
     AddSurface(header);
     header->Clear();
     RECT line{0, 8, width, 30};
-    header->DrawTextIn(lines[page], &line, 2, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(lines[page], &line, 2, kTitleColour, render::text::kCenter, 1);
     line = RECT{0, 30, width, 50};
     titleText = str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size()));
-    header->DrawTextIn(titleText, &line, 1, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(titleText, &line, 1, kTitleColour, render::text::kCenter, 1);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::vector<PageEntry> entries;
@@ -304,7 +304,7 @@ void HelpWindow::ShowPage() {
     footer->Clear();
     if (page > 0) {
         RECT label{0, 5, width / 3, 25};
-        footer->DrawTextIn(lines[page - 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines[page - 1], &label, 0, kTitleColour, render::text::kCenter, 1);
         regions[0]->SetTip(0x7595);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
@@ -312,11 +312,11 @@ void HelpWindow::ShowPage() {
         hint += kSpace;
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
-        footer->DrawTextIn(hint, &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(hint, &label, 0, kTitleColour, render::text::kCenter, 1);
     }
     if (page < static_cast<int>(lines.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};
-        footer->DrawTextIn(lines[page + 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines[page + 1], &label, 0, kTitleColour, render::text::kCenter, 1);
         regions[2]->SetTip(0x7596);
     }
 

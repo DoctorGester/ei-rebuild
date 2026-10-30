@@ -3,7 +3,7 @@
 // that is missing keeps the field's current value, which is passed as the default.
 #include "options.h"
 
-#include "win_registry.h"
+#include "settings_key.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -216,7 +216,7 @@ constexpr struct {
 
 class Loader {
 public:
-    Loader(GameOptions* newOptions, WinRegistry& newKey) : options(newOptions), key(newKey) {}
+    Loader(GameOptions* newOptions, SettingsKey& newKey) : options(newOptions), key(newKey) {}
 
     const char* Key(KeyField field) const { return (options->*field).c_str(); }
     std::string& String(StringField field) { return field(*options); }
@@ -270,13 +270,13 @@ public:
 
 private:
     GameOptions* options;
-    WinRegistry& key;
+    SettingsKey& key;
 };
 
 // The writer: the same tables in the same order, each value through the setter matching its getter.
 class Saver {
 public:
-    Saver(GameOptions* newOptions, WinRegistry& newKey) : options(newOptions), key(newKey) {}
+    Saver(GameOptions* newOptions, SettingsKey& newKey) : options(newOptions), key(newKey) {}
 
     const char* Key(KeyField field) const { return (options->*field).c_str(); }
     const std::string& String(StringField field) const { return field(*options); }
@@ -322,14 +322,14 @@ public:
 
 private:
     GameOptions* options;
-    WinRegistry& key;
+    SettingsKey& key;
 };
 
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
     std::string resolution;   // the game's local is constructed first, read later
-    WinRegistry key;
+    SettingsKey key;
     key.Open(path);
     Loader l(this, key);
 
@@ -368,7 +368,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
 
 void GameOptions::SaveToRegistry(const char* path) {
     std::string resolution;
-    WinRegistry key;
+    SettingsKey key;
     key.Open(path);
     Saver s(this, key);
 

@@ -11,7 +11,6 @@
 #include <charconv>
 #include <cstdint>
 #include <cstring>
-#include <winerror.h>
 
 namespace settings_file {
 namespace {
@@ -65,16 +64,16 @@ void AppendHex(std::string& out, std::uint32_t value, int digits) {
 
 std::string ValueText(const Value& v) {
     std::string out;
-    if (v.type == REG_DWORD && v.data.size() == 4) {
+    if (v.type == kTypeDword && v.data.size() == 4) {
         std::uint32_t dword;
         lib::LoadBytes(dword, v.data.data());
         out = "dword:";
         AppendHex(out, dword, 8);
         return out;
     }
-    if (v.type == REG_SZ && PlainString(v.data)) return Quoted(v.data.substr(0, v.data.size() - 1));
-    if (v.type == REG_BINARY && FloatText(v.data, &out)) return out;
-    if (v.type == REG_BINARY) {
+    if (v.type == kTypeString && PlainString(v.data)) return Quoted(v.data.substr(0, v.data.size() - 1));
+    if (v.type == kTypeBinary && FloatText(v.data, &out)) return out;
+    if (v.type == kTypeBinary) {
         out = "hex:";
     } else {
         std::array<char, 16> type;
@@ -120,7 +119,7 @@ bool ParseValue(const char* p, Value* v) {
     const char* end = p + std::strlen(p);
     if (*p == '"') {
         if (!ParseQuoted(p, &v->data) || *p) return false;
-        v->type = REG_SZ;
+        v->type = kTypeString;
         v->data += '\0';
         return true;
     }
@@ -128,7 +127,7 @@ bool ParseValue(const char* p, Value* v) {
         std::uint32_t dword = 0;
         const auto read = std::from_chars(p + 6, end, dword, 16);
         if (read.ec != std::errc() || read.ptr != end || end - (p + 6) > 8) return false;
-        v->type = REG_DWORD;
+        v->type = kTypeDword;
         v->data.assign(reinterpret_cast<const char*>(&dword), 4);
         return true;
     }
@@ -136,12 +135,12 @@ bool ParseValue(const char* p, Value* v) {
         float value = 0;
         const auto read = std::from_chars(p + 6, end, value);
         if (read.ec != std::errc() || read.ptr != end) return false;
-        v->type = REG_BINARY;
+        v->type = kTypeBinary;
         v->data.assign(reinterpret_cast<const char*>(&value), 4);
         return true;
     }
     if (StartsWith(p, "hex:")) {
-        v->type = REG_BINARY;
+        v->type = kTypeBinary;
         return ParseHex(p + 4, &v->data);
     }
     if (StartsWith(p, "hex(")) {
@@ -333,56 +332,56 @@ Document DefaultDocument(int width, int height) {
     const std::string resolution = std::to_string(width) + "x" + std::to_string(height) + std::string(1, '\0');
     for (const char* tree : kOptionTrees) {
         const std::string general = JoinPath(tree, "General Settings");
-        document.Set(general, "VideoResolution", REG_SZ, resolution);
-        document.Set(general, "FullScreen", REG_DWORD, Dword(1));
-        document.Set(general, "VideoColorDepthInBits", REG_DWORD, Dword(32));
-        document.Set(general, "Audio", REG_DWORD, Dword(1));
-        for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) document.Set(general, volume, REG_DWORD, Dword(100));
-        document.Set(general, "Antialiasing", REG_DWORD, Dword(1));
-        document.Set(general, "Mipmapping", REG_DWORD, Dword(1));
-        document.Set(general, "Filtering", REG_DWORD, Dword(2));        // trilinear
-        document.Set(general, "TextureQuality", REG_DWORD, Dword(0));   // no mip level dropped (texture.cpp)
-        document.Set(general, "ShowParticles", REG_DWORD, Dword(1));
+        document.Set(general, "VideoResolution", kTypeString, resolution);
+        document.Set(general, "FullScreen", kTypeDword, Dword(1));
+        document.Set(general, "VideoColorDepthInBits", kTypeDword, Dword(32));
+        document.Set(general, "Audio", kTypeDword, Dword(1));
+        for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) document.Set(general, volume, kTypeDword, Dword(100));
+        document.Set(general, "Antialiasing", kTypeDword, Dword(1));
+        document.Set(general, "Mipmapping", kTypeDword, Dword(1));
+        document.Set(general, "Filtering", kTypeDword, Dword(2));        // trilinear
+        document.Set(general, "TextureQuality", kTypeDword, Dword(0));   // no mip level dropped (texture.cpp)
+        document.Set(general, "ShowParticles", kTypeDword, Dword(1));
         const std::string shadows = JoinPath(tree, "Shadow Settings");
-        document.Set(shadows, "ShadowQuality", REG_DWORD, Dword(2));
+        document.Set(shadows, "ShadowQuality", kTypeDword, Dword(2));
         for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
-            document.Set(shadows, shadow, REG_DWORD, Dword(1));
+            document.Set(shadows, shadow, kTypeDword, Dword(1));
         // Rebirth's starter (EIStarter.exe 1.46) writes these distances and water waves on for its best landscape
         // detail, 1000 for its most frequent relighting.
         const std::string terrain = JoinPath(tree, "Terrain Settings");
-        document.Set(terrain, "LOD1", REG_BINARY, Real(90.0f));
-        document.Set(terrain, "LOD2", REG_BINARY, Real(130.0f));
-        document.Set(terrain, "LightingFreq", REG_DWORD, Dword(1000));
+        document.Set(terrain, "LOD1", kTypeBinary, Real(90.0f));
+        document.Set(terrain, "LOD2", kTypeBinary, Real(130.0f));
+        document.Set(terrain, "LightingFreq", kTypeDword, Dword(1000));
         for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
                                     "EnableBloodprints", "EnableFireprints"})
-            document.Set(terrain, feature, REG_DWORD, Dword(1));
+            document.Set(terrain, feature, kTypeDword, Dword(1));
         // The install's camera and game settings.
         const std::string camera = JoinPath(tree, "Camera Settings");
-        document.Set(camera, "CameraFlipXAxis", REG_DWORD, Dword(0));
-        document.Set(camera, "CameraFlipYAxis", REG_DWORD, Dword(0));
-        for (const InstallFloat& value : kInstallCamera) document.Set(camera, value.name, REG_BINARY, Real(value.value));
-        document.Set(camera, "CameraBorderScrollArea", REG_DWORD, Dword(1));
-        document.Set(camera, "CameraFrameSelectionSensetiveArea", REG_DWORD, Dword(30));
+        document.Set(camera, "CameraFlipXAxis", kTypeDword, Dword(0));
+        document.Set(camera, "CameraFlipYAxis", kTypeDword, Dword(0));
+        for (const InstallFloat& value : kInstallCamera) document.Set(camera, value.name, kTypeBinary, Real(value.value));
+        document.Set(camera, "CameraBorderScrollArea", kTypeDword, Dword(1));
+        document.Set(camera, "CameraFrameSelectionSensetiveArea", kTypeDword, Dword(30));
         for (int shortcut = 0; shortcut < 4; ++shortcut)
             for (const InstallFloat& value : kInstallShortcut)
-                document.Set(camera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, REG_BINARY, Real(value.value));
+                document.Set(camera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, kTypeBinary, Real(value.value));
         const std::string game = JoinPath(tree, "Game Specific Settings");
-        for (const InstallDword& value : kInstallGameDwords) document.Set(game, value.name, REG_DWORD, Dword(value.value));
-        document.Set(game, "ObjectsLightingCoeff", REG_BINARY, Real(2.0f));
-        document.Set(game, "DefaultMapName", REG_SZ, Terminated("Zone1.mpr"));
-        document.Set(game, "DefaultStreamingSound", REG_SZ, Terminated("melody.mp3"));
-        document.Set(JoinPath(tree, "Network Settings"), "Master Server Name", REG_SZ, Terminated("a3master.nival.com"));
+        for (const InstallDword& value : kInstallGameDwords) document.Set(game, value.name, kTypeDword, Dword(value.value));
+        document.Set(game, "ObjectsLightingCoeff", kTypeBinary, Real(2.0f));
+        document.Set(game, "DefaultMapName", kTypeString, Terminated("Zone1.mpr"));
+        document.Set(game, "DefaultStreamingSound", kTypeString, Terminated("melody.mp3"));
+        document.Set(JoinPath(tree, "Network Settings"), "Master Server Name", kTypeString, Terminated("a3master.nival.com"));
     }
     // The renderer's (device_object.cpp).
     constexpr const char* kStandalone = "Software\\Nival Interactive\\EvilIslands\\Standalone";
-    document.Set(kStandalone, "VSync", REG_DWORD, Dword(1));
-    document.Set(kStandalone, "Msaa", REG_DWORD, Dword(8));
-    document.Set(kStandalone, "Anisotropy", REG_DWORD, Dword(16));
+    document.Set(kStandalone, "VSync", kTypeDword, Dword(1));
+    document.Set(kStandalone, "Msaa", kTypeDword, Dword(8));
+    document.Set(kStandalone, "Anisotropy", kTypeDword, Dword(16));
     // Rebirth's starter switches (ui_widescreen.cpp, world_client_draw.cpp).
     constexpr const char* kStarter = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-    document.Set(kStarter, "WideScreen", REG_DWORD, Dword(1));
-    document.Set(kStarter, "ObjectsDrawRadius", REG_DWORD, Dword(5376));
-    document.Set(kStarter, "LandscapeDrawRadius", REG_DWORD, Dword(5376));
+    document.Set(kStarter, "WideScreen", kTypeDword, Dword(1));
+    document.Set(kStarter, "ObjectsDrawRadius", kTypeDword, Dword(5376));
+    document.Set(kStarter, "LandscapeDrawRadius", kTypeDword, Dword(5376));
     return document;
 }
 
