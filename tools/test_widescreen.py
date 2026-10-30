@@ -3,7 +3,7 @@ compare_frames.py options they use (--shift, --exclude-mask, --exclude-rect, --w
 
 usage: python tools/test_widescreen.py
 """
-import io, json, os, shutil, struct, subprocess, sys, tempfile, unittest, unittest.mock
+import contextlib, io, json, os, shutil, struct, subprocess, sys, tempfile, unittest, unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compare_frames, frame_store, run_all
@@ -111,13 +111,33 @@ class WidescreenReferences(unittest.TestCase):
                 f.write(data)
         frame_store.pack_folder(folder)
 
-    def record(self):
-        out = io.StringIO()
-        return run_all.widescreen_check([('w', 'rebirth-nohooks')], True, out, self.root, self.build), out.getvalue()
+    def keep_reference(self, frames):
+        """addon's frames as references of the scenario's steps, as game.exe's recordings left them until H40: the
+        frames, what moved between each and its _later twin (the skip mask) and recorded.json."""
+        entry = os.path.join(os.environ['EI_WIDESCREEN_DIR'], 'w',
+                             run_all.steps_key(os.path.join(self.root, 'tests', 'scenarios', 'w.txt')))
+        for folder in ('frames', 'skip'):
+            os.makedirs(os.path.join(entry, folder))
+        for name, data in frames.items():
+            with open(os.path.join(entry, 'frames', name + '.bmp'), 'wb') as f:
+                f.write(data)
+        names = run_all.primary_frames(os.path.join(entry, 'frames'))
+        for name in names:
+            source = os.path.join(entry, 'frames', name + '.bmp')
+            excludes = run_all.twin_excludes(os.path.join(entry, 'frames'), name)
+            if excludes:
+                subprocess.run([sys.executable, TOOL, source, source, *excludes, '--exclude-grow', '8',
+                                '--write-skip', os.path.join(entry, 'skip', name + '.bmp')], check=True,
+                               capture_output=True)
+        size = struct.unpack_from('<ii', frames[names[0]], 18)
+        with open(os.path.join(entry, 'recorded.json'), 'w') as f:
+            json.dump({'scenario': 'w', 'frames': names, 'size': [size[0], abs(size[1])], 'time': 'test'}, f)
+        frame_store.pack_folder(entry)
+        return entry
 
     def check(self):
         out = io.StringIO()
-        return run_all.widescreen_check([('w', 'standalone-rebirth')], False, out, self.root, self.build), out.getvalue()
+        return run_all.widescreen_check([('w', 'standalone-rebirth')], out, self.root, self.build), out.getvalue()
 
     def test_steps_key_ignores_comments(self):
         path = os.path.join(self.root, 'tests', 'scenarios', 'w.txt')
@@ -127,16 +147,10 @@ class WidescreenReferences(unittest.TestCase):
         self.scenario('resolution desktop\nwidescreen 1\nwait 10\ncapture menu\n')
         self.assertNotEqual(run_all.steps_key(path), key)
 
-    def test_record_then_compare(self):
-        # addon's run: the menu, its creature (the dot) moved between menu and menu_later
-        self.run_folder('rebirth-nohooks', {'menu': picture(dot=(150, 20)), 'menu_later': picture(dot=(160, 20))})
-        ok, text = self.record()
-        self.assertTrue(ok, text)
-        self.assertIn('WIDESCREEN RECORDED', text)
-        reference = run_all.widescreen_reference('w', self.root)
-        with open(os.path.join(reference, "recorded.json")) as f:
-            info = json.load(f)
-        self.assertEqual((info['frames'], info['size']), (['menu'], [200, 120]))
+    def test_compare(self):
+        # addon's frames: the menu, its creature (the dot) moved between menu and menu_later
+        reference = self.keep_reference({'menu': picture(dot=(150, 20)), 'menu_later': picture(dot=(160, 20))})
+        self.assertEqual(run_all.widescreen_reference('w', self.root), reference)
         self.assertTrue(frame_store.exists(os.path.join(reference, 'skip', 'menu.bmp')))
 
         # the image: the creature elsewhere (in its own twin's moving area) and the panel a pixel off: the same
@@ -154,28 +168,20 @@ class WidescreenReferences(unittest.TestCase):
         self.assertTrue(frame_store.exists(os.path.join(self.build, 'runs', 'w-standalone-rebirth', 'frames_diff',
                                                         'menu.bmp')))
 
-        # a changed step needs a new recording; a comment does not
+        # a changed step has no references any more; a comment keeps them
         self.scenario('# reworded\nresolution desktop\nwidescreen 1\ncapture menu\n')
         self.assertEqual(run_all.widescreen_reference('w', self.root), reference)
         self.scenario('resolution desktop\nwidescreen 1\nwait 10\ncapture menu\n')
         ok, text = self.check()
         self.assertFalse(ok)
-        self.assertIn('--widescreen --record w', text)
+        self.assertIn('no references of w for its steps', text)
 
-    def test_another_mode_needs_a_new_recording(self):
-        self.run_folder('rebirth-nohooks', {'menu': picture()})
-        self.assertTrue(self.record()[0])
+    def test_another_mode_does_not_compare(self):
+        self.keep_reference({'menu': picture()})
         self.run_folder('standalone-rebirth', {'menu': picture(width=100, height=60, panel=(20, 15, 50, 40))})
         ok, text = self.check()
         self.assertFalse(ok)
         self.assertIn('the references are 200x120, the run\'s frames 100x60', text)
-
-    def test_failed_run_is_not_recorded(self):
-        self.run_folder('rebirth-nohooks', {'menu': picture()}, result='FAIL')
-        ok, text = self.record()
-        self.assertFalse(ok)
-        self.assertIn('not recorded (the run did not pass)', text)
-        self.assertIsNone(run_all.widescreen_reference('w', self.root))
 
     def test_areas_scale_with_the_frame(self):
         areas = {('w', 'menu'): [((0, 1000, 3840, 1600), 'the sea')], ('w', '*'): [((10, 0, 20, 14), 'a band')]}
@@ -187,14 +193,11 @@ class WidescreenReferences(unittest.TestCase):
     def test_plan(self):
         args = run_all.parse_args(['--widescreen'])
         self.assertEqual(run_all.plan(args), [(n, 'standalone-rebirth') for n in run_all.WIDESCREEN_SCENARIOS])
-        self.assertTrue(run_all.standalone_mode(args))
-        args = run_all.parse_args(['--widescreen', '--record', 'ui_widescreen'])
-        self.assertEqual(run_all.plan(args), [('ui_widescreen', 'rebirth-nohooks')])
-        self.assertFalse(run_all.standalone_mode(args))
-        self.assertFalse(run_all.our_code(run_all.launch_install('rebirth-nohooks')))     # the original code with addon
-        for bad in (['--record'], ['--widescreen', '--vanilla-only'], ['--widescreen', '--no-hooks']):
-            with self.assertRaises(SystemExit):
-                run_all.plan(run_all.parse_args(bad))
+        with self.assertRaises(SystemExit):
+            run_all.plan(run_all.parse_args(['--widescreen', '--vanilla-only']))
+        for gone in (['--record'], ['--no-hooks'], ['--fresh']):     # game.exe's, until H40
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                run_all.parse_args(gone)
 
 
 if __name__ == '__main__':

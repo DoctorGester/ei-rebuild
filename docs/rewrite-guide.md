@@ -4,8 +4,8 @@ How to write and change the game's code in this repo (ports, cleanup and fixes).
 starting; every rule here comes from a bug we already hit.
 
 Our code runs only in the standalone image (docs/notes/standalone.md), which contains no game.exe code.
-game.exe runs only as the original game, for the harness's references (goldens, function vectors), and
-the harness patches it by address there. Nothing of ours shares memory or calls with game.exe's code.
+The harness no longer runs game.exe (H40): the goldens are the image's own runs, and the function vectors were
+recorded from the original before that (the tag original-oracle has the harness that ran it).
 
 ## Setup
 
@@ -231,18 +231,19 @@ does not need a second pass:
 
 ## Verification
 
-A change is held to the original's behaviour by the two checks below. Neither depends on the heap or
-on memory layout, so a change of a class's layout is checked like any other change.
+A change is held to the behaviour the goldens and vectors pinned by the two checks below. Neither depends on the
+heap or on memory layout, so a change of a class's layout is checked like any other change.
 
-- **Goldens** (tests/golden, docs/notes/standalone-verification.md): a scenario recorded from the
-  original game (`--no-hooks`) and replayed on the image (`work.py test <ID> --golden`), its
-  state digest and saves compared field by field. Reach the function from a scenario that has a
-  golden, or add one under `tests/scenarios/` (its golden is recorded centrally).
+- **Goldens** (tests/golden, docs/notes/standalone-verification.md): a scenario's run of the image, recorded
+  under several heap layouts (until H40 the original game's run, and every golden that was the same as the
+  original's then), replayed with `work.py test <ID> --golden`, its state digest and saves compared field by
+  field. Reach the function from a scenario that has a golden, or add one under `tests/scenarios/` (its golden is
+  recorded by the Suites workflow's `record` input).
 - **Function vectors** (tests/vectors): a recorder (`EI_RECORD(addr, Recorder, stolenBytes,
   originalPtr, OurFunction)` in `tests/vectors/record_<family>.cpp`; `OurFunction` is what the replay calls, its
-  stack arguments checked by check_signatures) samples the original's calls in a
-  `--no-hooks` run with `EI_VECTORS=1`, and `ei_vectors.exe` (build.cmd) replays them against ours
-  without the game. For pure functions and ones that only write an output object. `stolenBytes`
+  stack arguments checked by check_signatures) sampled the original's calls in a
+  `--no-hooks` run with `EI_VECTORS=1` until H40 (recording again needs the tag original-oracle), and
+  `ei_vectors.exe` (build.cmd) replays them against ours without the game. For pure functions and ones that only write an output object. `stolenBytes`
   must cover whole instructions at the function start, at least 5, with no relative operands (no
   CALL/JMP/Jcc in them); `python tools/check_stolen.py` checks every recorder.
 

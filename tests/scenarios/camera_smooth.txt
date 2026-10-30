@@ -4,7 +4,6 @@
 # the camera jumps at every world tick (jerky: each client tick moves it by 55 ms of motion at once, on top of
 # the frame's 8 ms, as the original's does), the drawn view spreads each tick's step over the frames up to the
 # next tick, so it moves without jumps (camsmooth) and covers the same ground (camsame).
-# no original: vanilla rebirth (the drawn view is our renderer's; the original draws the camera's own pose)
 timeout 120
 reject Script error
 waitmenu

@@ -13,8 +13,6 @@
 # image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
 # off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
 # 1 for this run ("fpscursor"). "windowtitle" checks the window's title ("Evil Islands") and class name ("EIGAME").
-# no original: vanilla rebirth (the cursor thread's presents between frames: our renderer only; S21a)
-# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 fpscursor 1
 render checkall
 reject Script error

@@ -4,7 +4,6 @@
 # drawn). At frozen moments of zone1 (the start, a fight of creatures around the hero, the slopes) and of
 # the base bz1g (a town): the frame twice (the same); shadowcheck requires the map made with casters and
 # receivers. (Before R16i each moment was compared with the classic decals too.)
-# no original: vanilla rebirth (the shadow map is our renderer's)
 render checkall
 timeout 120
 reject Script error

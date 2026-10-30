@@ -14,7 +14,6 @@
 # drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
 # install: the flags follow addon.dll (the image: config/rebirth_profile.ini), checked by the
 # Rebirth golden recorded from the original with addon.dll (S20c).
-# no original: vanilla (the flags are Rebirth's; on vanilla data a crash smoke test of the image, no golden; S21a)
 rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 waitmenu

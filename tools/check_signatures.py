@@ -8,7 +8,7 @@ callee disagreeing on the stack and crashes far from the cause):
 - the EI_ORIGINAL forwarders (tests/verify, tests/vectors): our harness calls the original through them;
 - the rewrite each EI_RECORD names (its last argument: the function the vectors' replays call with the arguments
   recorded from the original, tests/vectors/replay_*.cpp): the recorded call frame must fit it.
-This takes the C++ declaration from build/verify's maps (ei-rebuild.map: the rewrites; ei_harness.map: the
+This takes the C++ declaration from build/verify's map (ei-rebuild.map; until H40 also ei_harness.map, the
 recorders and the harness in game.exe; undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MAPS = tuple(os.path.join(ROOT, 'build', 'verify', name) for name in ('ei-rebuild.map', 'ei_harness.map'))
+MAPS = (os.path.join(ROOT, 'build', 'verify', 'ei-rebuild.map'),)   # ei_harness.map too until H40 (game.exe's harness)
 
 
 def load_sizes():

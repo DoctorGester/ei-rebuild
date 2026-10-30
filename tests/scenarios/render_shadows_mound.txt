@@ -5,7 +5,6 @@
 # away from the sun get no sun light to lose, and the R22 caster ids (and the harness's "shadowfacing") are
 # gone (docs/notes/renderer.md sections 13 and 16). Frozen: the map three times (the same). On vanilla
 # data the save loads the same zone. Frame checks only (image).
-# no original: vanilla rebirth (the shadow map is our renderer's)
 # prepare: copy_save.py tests/saves/shadow_mound save2
 render checkall
 msaa 8

@@ -2,7 +2,6 @@
 # text"): the same run as ui_titles_scroll's first captures at 1600x900. The text's layout (line places, wrap, heights) is
 # the same in proportion at every window size and does not move with the system DPI. Compare the captures with
 # the other ui_titles_size_* scenarios' (tools/compare_frames.py, or by eye).
-# no original: vanilla rebirth (the titles' scale is ours; the original sized them by the system DPI)
 render checkall
 resolution 1600x900
 fullscreen 0

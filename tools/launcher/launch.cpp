@@ -1,36 +1,27 @@
-// ei_launch: starts the standalone image (--standalone: ei-rebuild.exe, our code) or the original
-// game.exe the same way the Rebirth starter does (exe from starter\Engine, working directory = game
-// root), or <game>\game.exe for a plain install. Nothing in the game folder is modified.
+// ei_launch: starts the standalone image (ei-rebuild.exe next to ei_launch.exe, our code; src/standalone/host.cpp) on an
+// install's data, the way the Rebirth starter starts the game (working directory = game root). Nothing in the game
+// folder is modified. game.exe is no longer started (H40: the goldens are the image's own; the tag original-oracle has
+// the launcher that injected ei_harness.dll into it).
 //
-// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_harness.dll>]
-//                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
-//                  [--standalone] [--drop-in] [game args...]
+// usage: ei_launch [--game <dir>] [--exe <game.exe>] [--harness <scenario.txt>] [--wait] [--rebirth <spec>]
+//                  [--out <dir>] [--standalone] [--drop-in] [-- game args...]
 // --out puts what the run writes (ei-rebuild.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_launch.exe (EI_OUT_DIR), so several runs can go at once.
-// game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
-// WideScreen frames): ei_harness.dll is loaded into it before the game's own code runs, so the harness
-// runs, with EI_NO_HOOKS=1, so none of our code is installed (InstallHooks installs only the vector
-// recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
-// tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1. With EI_REBIRTH set the image takes no game
-// folder's profile; a --standalone run of a scenario without one sets it to "defaults".
-// --standalone runs ei-rebuild.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
-// it runs without game.exe (S18k; --exe only places the shared copy of a launch without a scenario), the game and
-// (verify build) the harness linked in (S23), with the same
-// environment, working directory, output folder, job object and time limits as a game.exe run. Its own
-// output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
-// game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
-// environment reaches ei_launch when the scheduler's run_all does not know the install yet; S19).
+// folder's profile; a run of a scenario without one sets it to "defaults".
+// The image reads no game.exe (S18k): --exe only places the shared copy of a launch without a scenario. It has the
+// game and (verify build) the harness linked in (S23); its own output (imports, the INT3 hit) comes through
+// ei_launch's. Game args go after "--" (WinMain gets them as game.exe would). --standalone is what every launch does
+// and is kept for the tools' command lines.
 // --drop-in runs the image as an exe dropped into the game folder (S23a; docs/notes/standalone.md, "The drop-in exe"):
 // ei_launch makes <out>\dropin like the --game install (DropInFolder: nothing is written to the install) with a copy
 // of the build's ei-rebuild.exe, and starts that copy from the output folder with no EI_GAME_ROOT and no EI_REBIRTH,
 // so the exe enters its own folder and takes the folder's profile. EI_DROPIN names the install for the harness's
-// "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A --standalone run of
-// a scenario with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
+// "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A run of a scenario
+// with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
 //
-// The x64 verify build (build.cmd verify-x64) has its own ei_launch, built for x64 beside its x64 ei-rebuild.exe: it
-// starts the image only (game.exe is 32-bit; its runs need the 32-bit build's ei_launch, which injects ei_harness.dll).
+// The x64 verify build (build.cmd verify-x64) has its own ei_launch, built for x64 beside its x64 ei-rebuild.exe.
 //
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
@@ -389,40 +380,6 @@ static int Fail(const wchar_t* what) {
     return 1;
 }
 
-// Loads the DLL into the suspended game with a remote LoadLibraryW call. ei_launch is 32-bit like the game,
-// so kernel32's address is the same in both processes. 0, or ei_launch's exit code after ending the game.
-static int InjectDll(HANDLE process, const std::wstring& dll) {
-    std::size_t bytes = (dll.size() + 1) * sizeof(wchar_t);
-    void* remote = VirtualAllocEx(process, nullptr, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (!remote || !WriteProcessMemory(process, remote, dll.c_str(), bytes, nullptr)) {
-        TerminateProcess(process, 1);
-        return Fail(L"writing DLL path");
-    }
-    auto loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(
-        GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW"));
-    HANDLE thread = CreateRemoteThread(process, nullptr, 0, loadLibrary, remote, 0, nullptr);
-    if (!thread) {
-        TerminateProcess(process, 1);
-        return Fail(L"CreateRemoteThread");
-    }
-    if (WaitForSingleObject(thread, 60000) != WAIT_OBJECT_0) {
-        // The DLL's start-up hangs inside the game (the game is still suspended): end it, do not wait for ever.
-        std::fwprintf(stderr, L"ei_launch: loading %s did not finish in 60 s; terminating the game\n", dll.c_str());
-        TerminateProcess(process, 3);
-        return kExitTimeout;
-    }
-    DWORD module = 0;
-    GetExitCodeThread(thread, &module);
-    CloseHandle(thread);
-    VirtualFreeEx(process, remote, 0, MEM_RELEASE);
-    if (!module) {
-        TerminateProcess(process, 1);
-        std::fwprintf(stderr, L"ei_launch: LoadLibrary of %s failed inside the game\n", dll.c_str());
-        return 1;
-    }
-    return 0;
-}
-
 // ---- A pair of games (SV5d; tests/verify/harness_pair.h) ------------------------------------------------
 //
 // A scenario's "peer <name>" line makes this launch start a second game beside the scenario's own, on
@@ -535,7 +492,7 @@ static void WriteReport(const std::wstring& path, const std::vector<std::string>
 // A game that ended by itself while its report still says RUNNING died before the harness could write a result
 // (an INT3 of the standalone image before the missing-code report, a crash the harness did not see): the report
 // gets the reason instead of a silent RUNNING (S16c).
-static void ReportSilentEnd(const Game& game, bool standalone) {
+static void ReportSilentEnd(const Game& game) {
     const std::wstring path = game.outDir + L"\\harness_report.txt";
     std::vector<std::string> lines;
     if (!ReadReport(path, lines)) return;
@@ -544,8 +501,8 @@ static void ReportSilentEnd(const Game& game, bool standalone) {
         char why[256];
         if (game.code == static_cast<DWORD>(EXCEPTION_BREAKPOINT))
             std::snprintf(why, sizeof(why), "FAILED: the game ended on a breakpoint (exit code %08lX) before the harness "
-                                            "wrote its result%s\n", game.code,
-                          standalone ? ": an INT3 of the standalone image with no code there (ei-rebuild.log, the run notes)" : "");
+                                            "wrote its result: an INT3 of the standalone image with no code there "
+                                            "(ei-rebuild.log, the run notes)\n", game.code);
         else
             std::snprintf(why, sizeof(why), "FAILED: the game ended (exit code %lu, %08lX) before the harness wrote its "
                                             "result\n", game.code, game.code);
@@ -714,41 +671,31 @@ int wmain(int argc, wchar_t** argv) {
     GetModuleFileNameW(nullptr, self, MAX_PATH);
 
     std::wstring gameDir = kRebirthInstall;
-    std::wstring dll = Dir(self) + L"\\ei_harness.dll";
     std::wstring exeOverride;
     std::wstring harness;
     std::wstring outDir;
     bool wait = false;
-    bool standalone = false;
     bool dropIn = false;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
         std::wstring a = argv[i];
         if (a == L"--game" && i + 1 < argc) gameDir = argv[++i];
-        else if (a == L"--dll" && i + 1 < argc) dll = argv[++i];
         else if (a == L"--exe" && i + 1 < argc) exeOverride = argv[++i];
         else if (a == L"--harness" && i + 1 < argc) harness = argv[++i];
         else if (a == L"--wait") wait = true;
-        else if (a == L"--no-hooks") continue;   // game.exe always runs without hooks (below)
+        else if (a == L"--no-hooks" || a == L"--dll") {
+            std::fwprintf(stderr, L"ei_launch: %s: game.exe is no longer started (H40); the tag original-oracle has the "
+                                  L"launcher that ran it\n", a.c_str());
+            return 2;
+        }
         else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
         else if (a == L"--out" && i + 1 < argc) outDir = argv[++i];
-        else if (a == L"--standalone") standalone = true;
-        else if (a == L"--drop-in") dropIn = standalone = wait = true;   // waits: the folder goes when the game has ended
+        else if (a == L"--standalone") continue;   // every launch's
+        else if (a == L"--drop-in") dropIn = wait = true;   // waits: the folder goes when the game has ended
         else gameArgs += L" \"" + a + L"\"";
     }
-    wchar_t standaloneValue[4];
-    if (GetEnvironmentVariableW(L"EI_LAUNCH_STANDALONE", standaloneValue, 4) == 1 && standaloneValue[0] == L'1') standalone = true;
-    if (standalone && !harness.empty() && ScenarioDropIn(harness.c_str())) dropIn = wait = true;
-#if defined(_M_X64)
-    if (!standalone) {
-        std::fwprintf(stderr, L"ei_launch: the x64 build's ei_launch starts the image only (--standalone); game.exe is "
-                              L"32-bit (build\\verify's ei_launch)\n");
-        return 2;
-    }
-#endif
+    if (!harness.empty() && ScenarioDropIn(harness.c_str())) dropIn = wait = true;
     wchar_t full[MAX_PATH];
-    GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
-    dll = full;
     if (outDir.empty()) {
         outDir = Dir(self);
     } else {
@@ -758,21 +705,12 @@ int wmain(int argc, wchar_t** argv) {
         SetEnvironmentVariableW(L"EI_OUT_DIR", outDir.c_str());
     }
 
-    // Rebirth keeps the engine in starter\Engine (with its addon loader next to it); a plain
-    // install (e.g. GOG) has game.exe in the root.
-    std::wstring exe = gameDir + L"\\starter\\Engine\\game.exe";
-    if (GetFileAttributesW(exe.c_str()) == INVALID_FILE_ATTRIBUTES) exe = gameDir + L"\\game.exe";
-    if (!exeOverride.empty()) {
-        // An exe outside the game folder (e.g. run\vanilla): tell the harness where the game data is,
-        // so the game's registry path lookups point there instead of at another install.
-        exe = exeOverride;
-        SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
-    } else if (dropIn) {
+    if (dropIn) {
         // The exe finds its game folder and its flags itself: nothing of ei_launch's or the caller's names them.
         SetEnvironmentVariableW(L"EI_GAME_ROOT", nullptr);
         SetEnvironmentVariableW(L"EI_REBIRTH", nullptr);
-    } else if (standalone) {
-        // The image reads no game.exe (S18k): no exe needed, the data folder is the install's.
+    } else {
+        // The image reads no game.exe (S18k): the data folder is the install's.
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
         // A harness run names its flags (the defaults, EI_REBIRTH's and the scenario's), never the data folder's
         // profile (include/ei/rebirth.h): the image takes none when EI_REBIRTH is set.
@@ -846,54 +784,23 @@ int wmain(int argc, wchar_t** argv) {
         DeleteFileW((game.outDir + L"\\harness_quit").c_str());
         if (!harness.empty()) DeleteFileW((game.outDir + L"\\harness_report.txt").c_str());
     }
-    std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
-    std::wstring program = exe;
-    STARTUPINFOW si{sizeof(si)};
-    BOOL inherit = FALSE;
-    if (standalone) {
-        GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
-        const std::wstring built = Dir(self) + L"\\ei-rebuild.exe";
+    const std::wstring built = Dir(self) + L"\\ei-rebuild.exe";
+    std::wstring program = built;
+    if (dropIn) {
+        program = dropInExe;
+    } else if (harness.empty() && !exeOverride.empty()) {
         // The shared copy needs --exe: the run folder it sits in is found from there (never from the install's).
-        program = dropIn ? dropInExe : harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
-        cmd = L"\"" + program + L"\"";   // the exe reads no game.exe (S18k) and has the game linked in (S23)
-        if (!gameArgs.empty()) cmd += L" --" + gameArgs;
-        // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
-        si.dwFlags = STARTF_USESTDHANDLES;
-        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-        si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-        si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-        inherit = TRUE;
+        GetFullPathNameW(exeOverride.c_str(), MAX_PATH, full, nullptr);
+        program = SharedStandaloneHost(built, full);
     }
-
-    // game.exe runs the original code only (the harness's leftover patches follow EI_NO_HOOKS too); the
-    // image never has it.
-    SetEnvironmentVariableW(L"EI_NO_HOOKS", standalone ? nullptr : L"1");
-
-    // The original game on the vanilla data with Rebirth's bug fixes (SV9, tests/verify/harness_addon.h): a harness
-    // run of game.exe there also loads Rebirth's addon loader (starter\Engine\dinput.dll, which loads addon.dll at
-    // the game's entry point) and the harness keeps only the patches of the run's Rebirth flags (the standalone's
-    // defaults). Not for function vectors (EI_VECTORS=1: the plain original's) or with EI_ADDON_FLAGS=0.
-    std::wstring addonLoader;
-    {
-        wchar_t vectors[4] = L"", flags[4] = L"";
-        GetEnvironmentVariableW(L"EI_VECTORS", vectors, 4);
-        GetEnvironmentVariableW(L"EI_ADDON_FLAGS", flags, 4);
-        wchar_t fullGame[MAX_PATH];
-        GetFullPathNameW(gameDir.c_str(), MAX_PATH, fullGame, nullptr);
-        std::wstring game = fullGame;
-        while (game.size() > 3 && game.back() == L'\\') game.pop_back();
-        if (!standalone && !harness.empty() && _wcsicmp(game.c_str(), kVanillaInstall) == 0 && wcscmp(vectors, L"1") != 0 &&
-            wcscmp(flags, L"0") != 0) {
-            addonLoader = std::wstring(kRebirthInstall) + L"\\starter\\Engine\\dinput.dll";
-            if (GetFileAttributesW(addonLoader.c_str()) == INVALID_FILE_ATTRIBUTES) {
-                std::fwprintf(stderr, L"ei_launch: Rebirth's addon loader %s not found\n", addonLoader.c_str());
-                return 2;
-            }
-            SetEnvironmentVariableW(L"EI_ADDON_FLAGS", L"1");
-        } else if (!standalone) {
-            SetEnvironmentVariableW(L"EI_ADDON_FLAGS", nullptr);
-        }
-    }
+    std::wstring cmd = L"\"" + program + L"\"";   // the exe reads no game.exe (S18k) and has the game linked in (S23)
+    if (!gameArgs.empty()) cmd += L" --" + gameArgs;
+    // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
+    STARTUPINFOW si{sizeof(si)};
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
     // A run that waits for the game puts it in a job that dies with ei_launch (also when ei_launch is
     // killed): no game outlives its launcher. A launch without --wait leaves the game running.
@@ -921,7 +828,7 @@ int wmain(int argc, wchar_t** argv) {
         }
         std::wstring line = cmd;
         // A drop-in exe starts in the output folder: it must enter its own (EnterGameFolder), as from a shortcut.
-        if (!CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
+        if (!CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED, nullptr,
                             dropIn ? outDir.c_str() : gameDir.c_str(), &si, &game.pi)) {
             for (Game& started : games)
                 if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
@@ -931,27 +838,10 @@ int wmain(int argc, wchar_t** argv) {
         if (job && !AssignProcessToJobObject(job, game.pi.hProcess))
             std::fwprintf(stderr, L"ei_launch: warning: the game could not be put in the job object (error %lu)\n",
                           GetLastError());
-        // The standalone exe has the harness linked in; game.exe gets ei_harness.dll before its own code runs.
-        if (!standalone) {
-            if (const int failed = InjectDll(game.pi.hProcess, dll)) {
-                for (Game& started : games)
-                    if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
-                return failed;
-            }
-            // After ei_harness.dll, whose harness answers the loader's registry reads (harness_settings.h).
-            if (!addonLoader.empty())
-                if (const int failed = InjectDll(game.pi.hProcess, addonLoader)) {
-                    for (Game& started : games)
-                        if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
-                    return failed;
-                }
-        }
     }
     for (Game& game : games) {
         ResumeThread(game.pi.hThread);
-        std::wprintf(L"ei_launch: started %s%s (pid %lu)%s%s\n", game.label.c_str(),
-                     standalone ? L"ei-rebuild.exe" : L"game.exe", game.pi.dwProcessId, standalone ? L"" : L" with ",
-                     standalone ? L"" : dll.c_str());
+        std::wprintf(L"ei_launch: started %sei-rebuild.exe (pid %lu)\n", game.label.c_str(), game.pi.dwProcessId);
         CloseHandle(game.pi.hThread);
     }
     if (!wait) {
@@ -1044,14 +934,14 @@ int wmain(int argc, wchar_t** argv) {
     }
     if (!timedOut && !unkillable)
         for (const Game& game : games)
-            if (!game.quitSeen) ReportSilentEnd(game, standalone);
+            if (!game.quitSeen) ReportSilentEnd(game);
     const std::wstring reportPath = outDir + L"\\harness_report.txt";
     if (GetFileAttributesW(reportPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
         std::fwprintf(stderr, L"ei_launch: game exited (code %lu) without a harness report\n", code);
         return 2;
     }
     if (games.size() > 1) MergePeerReport(reportPath, games[1].outDir + L"\\harness_report.txt");
-    if (standalone && !timedOut && !unkillable)
+    if (!timedOut && !unkillable)
         CheckSettingsFile(reportPath, harness, outDir, _wcsicmp(gameDir.c_str(), kRebirthInstall) == 0);
     bool pass = false;
     std::vector<std::string> lines;
