@@ -78,8 +78,8 @@ bool OrderSpell(UnitServer* self, std::uint32_t source, CSpell** spell) {
     return true;
 }
 
-// AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
-// movement factor times the sight); the original's select picks the first for a NaN product.
+// AI units only act on a target within 1.05 times their sight range: the larger of a stats value and the
+// movement factor times the sight; the original's select picks the stats value for a NaN product.
 bool OutOfSightRange(UnitServer* self, const float* point) {
     float limit = self->stats.perception[2].current;
     float range = self->moveFactors[3] * self->stats.perception[0].current;
