@@ -6681,6 +6681,13 @@ model = "sonnet"
 note = "Left by C53c (which removed StartRecording / StopRecording, kAutoplay and RequestLoad's flag): the autoplay recording chain below it looks dead: NetLink::OpenRecording / CloseRecording, skipNext, the recording members, ReplayLink (plays back autoplay.apl) and the server's request 2 handler. Check nothing reaches them (the harness's replay is separate: tests/verify), remove, goldens unchanged. Also: about 100 one-return free functions in src/game not yet checked one by one."
 
 [[ticket]]
+id = "C59b"
+title = "Second feature-grouping pass: merge the thinly split files (unit_client_*, spell_*, ui_battle_*, texture_*, object3d_*)"
+group = "cleanup"
+depends = ["C59a"]
+note = "Part (2) of C59a. C59 removed every *_slots / *_lifetime / small_* file and cut unit_ai_* from 15 to 4 files; still split thin by the original's address order: unit_client_* (12 files), spell_* (11), ui_battle_* (8), texture_* (8), object3d_* (4) next to map_object_figures.cpp (the 3D object base). Merge where one feature is split thin; audit single members sitting in another subsystem's file beyond the grab-bags. Moves only, no signature changes; run alone between other workers (conflicts with everything)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
