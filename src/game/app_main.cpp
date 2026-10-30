@@ -28,7 +28,6 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/path.h"
 #include "lib/pc24.h"
 #include "platform/platform.h"
 #include "lib/text_case.h"
@@ -37,6 +36,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "world_glue.h"
@@ -177,7 +177,9 @@ void RegisterWindowClass(platform::NativeInstance instance) {
 }
 
 // "<drive>\." of `path`: the root the volume calls take.
-std::string DriveRoot(const char* path) { return lib::SplitPath(path).drive + "\\."; }
+std::string DriveRoot(std::string_view path) {
+    return std::string(path.size() >= 2 && path[1] == ':' ? path.substr(0, 2) : "") + "\\.";
+}
 
 // The free bytes on the drive of `folder`; 0 when unknown.
 double FreeDiskSpace(const char* folder) { return platform::FreeDiskSpace(DriveRoot(folder).c_str()); }

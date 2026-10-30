@@ -1084,7 +1084,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
 - **Locale** (C26, C34, C35b): the host CRT's "C" locale, never changed. The original's text manager Create 004DED20
   called setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5) and calls no multibyte function of
-  the host's (MAC3a: `_splitpath`, the last, is lib/path.h). Nothing reads the locale state: crt_format.cpp's Format takes the C
+  the host's (`_splitpath`, the last, is resource_stream.cpp's SplitPath). Nothing reads the locale state: crt_format.cpp's Format takes the C
   locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
   resource strings are copied as bytes. ei_vectors checks the game's recorded point and class words against that
   ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
@@ -1101,7 +1101,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   (C35i, the scratch mbs_equiv.cpp, not checked in: the host's _mbs* under the standalone's _MB_CP_SBCS and the byte
   functions side by side) on every char against texts of every byte and 2M random texts, sets and needles of ASCII
   and high bytes: 4M answers, all the same. memmove, memcpy, memset, wcslen, atoi and _itoa are the host's, called by
-  their own names; _splitpath is lib::SplitPath (MAC3a). Both suites goldens the same,
+  their own names; _splitpath is resource_stream.cpp's SplitPath. Both suites goldens the same,
   though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
   ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII,
@@ -1484,7 +1484,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   `tolower` / `toupper` change ASCII only, and `isalpha`, `isdigit`, `isspace`, `isprint`, `_ismbcdigit` and
   `_ismbcspace` give a byte past ASCII no class (code page 1252's `isspace(0xA0)`, the trail of "Р", would split
   words). There are no double-byte lead bytes (`_ismbblead`, `isleadbyte`, `_mbsinc`, `_mbclen`; `_mbscmp` and
-  `_mbsncmp` are byte compares; `_splitpath` is lib::SplitPath), whatever the system's ANSI code page. The "Font CharSet" option is not used:
+  `_mbsncmp` are byte compares; `_splitpath` is resource_stream.cpp's SplitPath), whatever the system's ANSI code page. The "Font CharSet" option is not used:
   `TextManager::Create` (004DED20) leaves LC_CTYPE "C". The game's `CharUpperA` / `CharLowerA` calls are the table's `UpperInPlace` / `LowerInPlace`. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
   names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call
