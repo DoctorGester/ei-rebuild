@@ -53,10 +53,9 @@ extern Camera g_camera;   // camera_object.cpp
 // The party manager (the parties by key, the named records and the class templates).
 extern PartyManager g_partyManager;   // party_manager.cpp
 
-// The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
+// The game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()
 // is its characters for printf-style arguments).
-extern std::string g_registryRoot;
 extern std::string g_startFolder;
 extern std::string g_discFolder;
 extern std::string g_textFolder;

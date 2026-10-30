@@ -527,7 +527,7 @@ void ShutDown() {
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
-    options::g_options.SaveToRegistry(g_registryRoot.c_str());
+    options::g_options.Save();
     g_clientWorld.SetCamera(nullptr);
     EmptyWorlds();
 }
@@ -561,16 +561,12 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     RegisterWindowClass(instance);
 
     GameOptions* options = &options::g_options;
-    // NivalRegistry: Rebirth's patch names its own key instead.
-    g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
-                         ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
-                         : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
         std::string settings = g_startFolder + "config\\ai.reg";
         g_logicSettings.Load(settings);
     }
-    options->LoadFromRegistry(g_registryRoot.c_str());
+    options->Load();
     widescreen::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();

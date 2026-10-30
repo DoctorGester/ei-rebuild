@@ -88,7 +88,7 @@ see in verify runs). Each has its own platform function that calls the system di
 
 - Rebirth's file look-ups (mod_folders, console_addon, script_addon_commands: addon.dll called its own imports):
   `platform::IsFile`, `platform::FolderEntries` (the UTF-8 versions in platform/win32/system_text.cpp, called by name).
-- The settings file (settings_file.cpp: next to the exe or in the user's data folder, whatever a harness run
+- The settings file (settings.cpp: next to the exe or in the user's data folder, whatever a harness run
   redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
   its lock is a `std::mutex`.
 - The standalone's start-up (startup.cpp, standalone_main.cpp's `EnterGameFolder` and exit paths): `ProgramPath`,
@@ -347,9 +347,9 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **The titles' twips** (ui_scrolling_surface.cpp): MulDiv's rounding (half away from zero, -1 for a zero divisor or
   an overflow) on 64 bits; equal to USER32's on 20 million cases but a divisor of INT_MIN, which USER32 mishandles (the
   divisor is a positive DPI).
-- **The settings file's codes** (settings_file.h): `ValueType` (kTypeString, kTypeDword, ... the registry's numbers,
-  which the file keeps) and `Status` (kSuccess, kNotFound, kMoreData, ...) in place of REG_* / ERROR_*. Nothing reads or
-  writes the registry: the options' key object is `SettingsKey` (settings_key.h, the game's CWinRegistry) on the file.
+- **The settings** (settings.h): a plain ini of our own read and written through typed accessors (GetInt / GetBool /
+  GetFloat / GetString and their setters), no REG_* / ERROR_* codes. Nothing reads or writes the registry (the game's
+  CWinRegistry has no counterpart).
 - **Bitmaps** (dib.h): `DibFileHeader`, `DibHeader`, `DibColour` with the .bmp layout (14, 40 and 4 bytes) in place of
   wingdi.h's structs.
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.

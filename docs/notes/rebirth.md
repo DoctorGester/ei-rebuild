@@ -120,11 +120,11 @@ PlayerNumbers (addon+21B4A replaces `Player::SetPlayerId(0)` in 0066C180: the hi
 else 0). *Disabled here*: SetDefaultRate, MPConsole, MpZone, ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
-### Resources and paths (6 of 12 applied; single player; implemented: NivalRegistry, and the five mod-folder patches in the standalone image)
+### Resources and paths (5 of 12 applied; single player; implemented: the five mod-folder patches in the standalone image)
 
 NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
-original in hooked runs because the harness keys on its return addresses; every registry read goes through that root, so rewrites follow it;
-our GameMain takes addon's key with the flag, for the standalone image, S19); Maps (10
+original in hooked runs because the harness keys on its return addresses; every registry read goes through that root; dropped in the
+standalone image, which keeps one settings file, ei_settings.ini, for both installs: docs/notes/standalone.md "Settings file"); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
 first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders, no [RES]).
@@ -221,12 +221,12 @@ are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on)
 User 2026-10-20: Rebirth's obvious bug fixes are the standalone's defaults; scripting / console additions stay flags, off, decided later. The kind of each patch is
 the second argument in `include/ei/rebirth_patches.inc` and the `standalone` column of the CSV:
 - **on** (11): the ten single-player bug fixes and FixProcessLogin (a multiplayer repair ours always had).
-- **flag** (45, off): WideScreen and the draw radii (rendering; our renderer supersedes), the scripting / console patches, the mod-folder and Config* patches,
-  NivalRegistry, SavesPath, the multiplayer features (ExtendedServerName, MQClient, MPSpeedControl, PlayerNumbers, SetDefaultRate, MPConsole, MpZone, ChatLog),
+- **flag** (44, off): WideScreen and the draw radii (rendering; our renderer supersedes), the scripting / console patches, the mod-folder and Config* patches,
+  SavesPath, the multiplayer features (ExtendedServerName, MQClient, MPSpeedControl, PlayerNumbers, SetDefaultRate, MPConsole, MpZone, ChatLog),
   the mod content switches (Menu*Disable, PreventZone1Animation, ForceShowTutorial), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and
   every EI_Plugin feature (Briefings and Fixes repair multiplayer, but the recording below cannot load EI_Plugin.asi: Miles loads it from the install's folder).
-- **dropped** (8): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
-  EiPluginGraphGen, EiPluginUnload); the flags stay, nothing implements them.
+- **dropped** (9): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
+  EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs); the flags stay, nothing implements them.
 
 **Recording "original + fixes"** (`tests/verify/harness_addon.{h,cpp}`): addon.dll has no switch per patch (its main table applies every entry; apply functions
 only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_harness.dll) into every
@@ -427,8 +427,8 @@ addon widens the 800x600 interface layout: the 4:3 part of the screen keeps the 
 (width43 = H * 800 / 600 pixels) and the margins left and right of it (margin pixels each) add `extra`
 layout units on either side. addon computes these once, when it applies its patches before WinMain, from
 the registry (not from the game's screen). This module computes them once as well (widescreen::Configure, in
-GameMain right after the options load), from the resolution the game loaded: the same value addon reads on Rebirth's
-data (both read the starter's tree), and on the original's data the game's own tree (tests/scenarios/ui_widescreen_trees.txt).
+GameMain right after the options load), from the resolution the game loaded: the settings file's [video]
+VideoResolution, one value for both installs (tests/scenarios/ui_widescreen_resolution.txt).
 Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
 scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
 them without it; every one is without the margin when called with ECX 0), UiRegion::SetRect / AddPoint and

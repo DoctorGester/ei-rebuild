@@ -1,5 +1,5 @@
-// The standalone's settings file. See settings_file.h.
-#include "settings_file.h"
+// The standalone's settings file and its typed accessors. See settings.h.
+#include "settings.h"
 
 #include "ei/hook.h"
 #include "hook/log.h"
@@ -10,12 +10,8 @@
 #include <mutex>
 #include <string>
 
-#include <cstring>
-
-namespace settings_file {
+namespace settings {
 namespace {
-
-// ---- The process's settings ----
 
 struct Store {
     Document document;
@@ -28,6 +24,7 @@ struct Store {
     int desktopWidth = 0;         // the harness's desktop for the defaults (0: the primary monitor's)
     int desktopHeight = 0;
     MissingHandler missing = nullptr;
+    PrepareHandler prepare = nullptr;   // the harness's writer of the pinned file
     std::vector<ReadFilter> filters;
 };
 Store& S() {
@@ -40,19 +37,17 @@ struct Locked {
     std::lock_guard<std::mutex> guard{g_lock};
 };
 
-std::string WithFileName(std::string folder) { return folder + kFileName; }
-
 std::string FileNextToExe() {
     std::string path = platform::ProgramPath();
     path.resize(path.find_last_of('\\') + 1);
-    return WithFileName(path);
+    return path + kFileName;
 }
 
 // %LOCALAPPDATA%\EvilIslands\ei_settings.ini (empty without LOCALAPPDATA).
 std::string FileForUser() {
     std::string folder = platform::UserDataFolder();
     if (folder.empty()) return {};
-    return WithFileName(folder + "EvilIslands\\");
+    return folder + "EvilIslands\\" + kFileName;
 }
 
 enum class Read { read, missing, failed };
@@ -93,15 +88,17 @@ void UseDefaults(Store& s, int* width, int* height) {
         *height = 768;
         s.inMemory = true;
     }
-    s.document = DefaultDocument(*width, *height);
+    s.document = Defaults(*width, *height);
 }
 
 // The first of the places that holds a file, read: the pinned file, else the one next to the exe, then the per-user
-// one. With none, the defaults, written to the first place that takes them. A file that exists but cannot be read
-// is never written over: the defaults are kept in memory, and nothing is written this session.
+// one. With none, or when the file read holds no setting, the defaults, written to the first place that takes them.
+// A file that exists but cannot be read is never written over: the defaults are kept in memory, and nothing is
+// written this session.
 void Load(Store& s) {
     if (s.loaded) return;
     s.loaded = true;
+    if (s.prepare) s.prepare(s.file.c_str());
     std::vector<std::string> places;
     if (s.pinned) places.push_back(s.file);
     else {
@@ -109,7 +106,8 @@ void Load(Store& s) {
         if (std::string user = FileForUser(); !user.empty()) places.push_back(std::move(user));
     }
     int width = 0, height = 0;
-    for (const std::string& place : places) {
+    for (std::size_t i = 0; i < places.size(); ++i) {
+        const std::string& place = places[i];
         s.file = place;
         std::string text;
         const Read read = ReadWhole(place, &text);
@@ -124,12 +122,19 @@ void Load(Store& s) {
         }
         std::vector<std::string> problems;
         s.document.Parse(text, &problems);
-        for (const std::string& problem : problems) ei::Log("settings: %s: %s", place.c_str(), problem.c_str());
-        std::size_t values = 0;
-        for (const Key& key : s.document.keys) values += key.values.size();
-        ei::Log("settings: %s: %zu keys, %zu values%s", place.c_str(), s.document.keys.size(), values,
-                s.readOnly ? " (pinned, read only)" : s.pinned ? " (pinned)" : "");
-        return;
+        constexpr std::size_t kShown = 8;
+        for (std::size_t p = 0; p < problems.size() && p < kShown; ++p)
+            ei::Log("settings: %s: %s", place.c_str(), problems[p].c_str());
+        if (problems.size() > kShown) ei::Log("settings: %s: %zu more lines not understood", place.c_str(), problems.size() - kShown);
+        if (s.document.Values() != 0 || s.readOnly) {
+            ei::Log("settings: %s: %zu sections, %zu values%s", place.c_str(), s.document.sections.size(),
+                    s.document.Values(), s.readOnly ? " (pinned, read only)" : s.pinned ? " (pinned)" : "");
+            return;
+        }
+        // No setting: the defaults are written over it (it is this place's file).
+        ei::Log("settings: %s holds no setting: the defaults are written over it", place.c_str());
+        places.erase(places.begin(), places.begin() + static_cast<std::ptrdiff_t>(i));
+        break;
     }
     if (s.readOnly) {
         ei::Log("settings: the pinned file %s cannot be read", s.file.c_str());
@@ -140,7 +145,7 @@ void Load(Store& s) {
     for (const std::string& place : places) {
         s.file = place;
         if (Write(s)) {
-            ei::Log("settings: %s missing: written with the defaults (full screen at %dx%d)", place.c_str(), width, height);
+            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), width, height);
             return;
         }
     }
@@ -149,78 +154,95 @@ void Load(Store& s) {
             "session", width, height);
 }
 
-// RegQueryValueEx's way of giving `bytes`.
-long Fill(std::uint32_t valueType, const std::string& bytes, std::uint32_t* type, void* data, std::uint32_t* size) {
-    if (type) *type = valueType;
-    if (!size) return data ? kInvalidParameter : kSuccess;
-    const auto needed = static_cast<std::uint32_t>(bytes.size());
-    if (!data) {
-        *size = needed;
-        return kSuccess;
+// The value's text after the read filters, or false (reported to the harness) when it is missing.
+bool Text(const char* section, const char* name, std::string* text) {
+    Locked lock;
+    Store& s = S();
+    Load(s);
+    const std::string* value = s.document.Find(section, name);
+    if (!value) {
+        if (s.missing) s.missing(section, name);
+        return false;
     }
-    if (*size < needed) {
-        *size = needed;
-        return kMoreData;
-    }
-    std::memcpy(data, bytes.data(), bytes.size());
-    *size = needed;
-    return kSuccess;
+    *text = *value;
+    for (ReadFilter filter : s.filters) filter(name, *text);
+    return true;
 }
 
-const char* PathOf(const void* key) { return key ? static_cast<const Key*>(key)->path.c_str() : ""; }
+// A value that is not of its type: logged, the default taken.
+void NotOfType(const char* section, const char* name, const std::string& text, const char* type) {
+    ei::Log("settings: [%s] %s = %s is not %s: the default is used", section, name, text.c_str(), type);
+}
+
+void SetText(const char* section, const char* name, const std::string& value) {
+    Locked lock;
+    Store& s = S();
+    Load(s);
+    if (s.readOnly) return;   // a harness run writes no settings
+    if (const std::string* old = s.document.Find(section, name); old && *old == value) return;
+    s.document.Set(section, name, value);
+    s.dirty = true;
+}
 
 } // namespace
 
-// ---- The process's settings ----
-
-void* CreateKey(const char* path) {
-    Locked lock;
-    Store& s = S();
-    Load(s);
-    return &s.document.AddKey(JoinPath(path, nullptr));
-}
-
-long Query(const void* key, const char* sub, const char* name, std::uint32_t* type, void* data, std::uint32_t* size) {
-    if (!name) name = "";
-    Locked lock;
-    Store& s = S();
-    Load(s);
-    const std::string path = JoinPath(PathOf(key), sub);
-    Key* found = s.document.FindKey(path);
-    const Value* value = found ? Document::FindValue(*found, name) : nullptr;
-    if (!value) {
-        if (s.missing) s.missing(path.c_str(), name);
-        return kNotFound;
+int GetInt(const char* section, const char* name, int defaultValue) {
+    std::string text;
+    int value = defaultValue;
+    if (Text(section, name, &text) && !ParseInt(text, &value)) {
+        NotOfType(section, name, text, "a number");
+        value = defaultValue;
     }
-    std::string bytes = value->data;
-    for (ReadFilter filter : s.filters) filter(name, value->type, bytes);
-    return Fill(value->type, bytes, type, data, size);
+    return value;
 }
 
-long Set(const void* key, const char* sub, const char* name, std::uint32_t type, const void* data, std::uint32_t size) {
-    if (!name) name = "";
+bool GetBool(const char* section, const char* name, bool defaultValue) {
+    std::string text;
+    bool value = defaultValue;
+    if (Text(section, name, &text) && !ParseBool(text, &value)) {
+        NotOfType(section, name, text, "true or false");
+        value = defaultValue;
+    }
+    return value;
+}
+
+float GetFloat(const char* section, const char* name, float defaultValue) {
+    std::string text;
+    float value = defaultValue;
+    if (Text(section, name, &text) && !ParseFloat(text, &value)) {
+        NotOfType(section, name, text, "a number");
+        value = defaultValue;
+    }
+    return value;
+}
+
+std::string GetString(const char* section, const char* name, const std::string& defaultValue) {
+    std::string text;
+    return Text(section, name, &text) ? text : defaultValue;
+}
+
+std::vector<std::string> GetValues(const char* section) {
     Locked lock;
     Store& s = S();
     Load(s);
-    if (s.readOnly) return kSuccess;   // a harness run writes no settings
-    const std::string path = JoinPath(PathOf(key), sub);
-    std::string bytes(static_cast<const char*>(data), size);
-    Key& target = s.document.AddKey(path);
-    if (const Value* value = Document::FindValue(target, name); value && value->type == type && value->data == bytes)
-        return kSuccess;
-    s.document.Set(path, name, type, std::move(bytes));
-    s.dirty = true;
-    return kSuccess;
+    std::vector<std::string> values;
+    for (const Document::Section& found : s.document.sections) {
+        if (_stricmp(found.name.c_str(), section) != 0) continue;
+        for (const Document::Line& line : found.lines)
+            if (!line.name.empty()) values.push_back(line.value);
+    }
+    return values;
 }
 
-void Flush() {
+void SetInt(const char* section, const char* name, int value) { SetText(section, name, IntText(value)); }
+void SetBool(const char* section, const char* name, bool value) { SetText(section, name, BoolText(value)); }
+void SetFloat(const char* section, const char* name, float value) { SetText(section, name, FloatText(value)); }
+void SetString(const char* section, const char* name, const std::string& value) { SetText(section, name, value); }
+
+void Save() {
     Locked lock;
     Store& s = S();
     if (s.loaded && !s.readOnly && !s.inMemory && s.dirty) Write(s);
-}
-
-long ReadValue(const char* path, const char* name, std::uint32_t* type, void* data, std::uint32_t* size) {
-    return Query(nullptr, path, name, type, data, size);
 }
 
 void AddReadFilter(ReadFilter filter) {
@@ -234,10 +256,10 @@ void SetDesktopSize(int width, int height) {
     S().desktopHeight = height;
 }
 
-void Pin(const char* file, MissingHandler missing, bool readOnly) {
+void Pin(const char* file, MissingHandler missing, bool readOnly, PrepareHandler prepare) {
     Locked lock;
     Store& s = S();
-    s.document.keys.clear();
+    s.document = Document{};
     s.file = file;
     s.pinned = true;
     s.readOnly = readOnly;
@@ -245,6 +267,7 @@ void Pin(const char* file, MissingHandler missing, bool readOnly) {
     s.inMemory = false;
     s.dirty = false;
     s.missing = missing;
+    s.prepare = prepare;
 }
 
-} // namespace settings_file
+} // namespace settings

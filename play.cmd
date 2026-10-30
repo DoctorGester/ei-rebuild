@@ -16,14 +16,12 @@ rem game left open never locks a build, and drawn with the smooth camera. The se
 rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults
 rem (docs/notes/standalone.md "Settings file": borderless full screen at the desktop's size, every graphics option
 rem at its best, the starter's WideScreen on; the registry is never read). Delete it to start from them again.
-rem The render quality (docs/notes/renderer.md section 11) is in that file:
-rem   [Software\Nival Interactive\EvilIslands\Standalone]
-rem   "Msaa"=dword:00000008          the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives)
-rem   "Anisotropy"=dword:00000010    the world's models' anisotropic sampling: 1 (off) .. 16 (hex: 10)
-rem The performance overlay (FPS, frame and GPU times, draws; docs/notes/renderer.md section 15): add to that key
-rem   "PerfOverlay"=dword:00000001
-rem Vsync (docs/notes/renderer.md section 15a): on by default; to run unlocked (tearing where the system allows it) add
-rem   "VSync"=dword:00000000
+rem The renderer's switches are in that file's [renderer] section:
+rem   Msaa = 8             the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives;
+rem                        docs/notes/renderer.md section 11)
+rem   Anisotropy = 16      the world's models' anisotropic sampling: 1 (off) .. 16
+rem   PerfOverlay = true   the performance overlay: FPS, frame and GPU times, draws (section 15; false by default)
+rem   VSync = false        run unlocked, tearing where the system allows it (section 15a; true by default)
 rem A harness game open does not end it (ST1b: harness windows have their own title).
 setlocal
 set MODE=rebirth

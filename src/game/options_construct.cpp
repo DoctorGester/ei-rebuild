@@ -6,17 +6,8 @@
 
 namespace options {
 
-// The eighteen strings start empty (the members' own constructors, in the object's order).
+// The strings start empty (the members' own constructors).
 GameOptions::GameOptions() {
-    keyStatistics = "Statistics Output Settings";
-    keyGame = "Game Specific Settings";
-    keyTerrain = "Terrain Settings";
-    keyGeneral = "General Settings";
-    keyCamera = "Camera Settings";
-    keyShadows = "Shadow Settings";
-    keyPaths = "Path Settings";
-    keyNetwork = "Network Settings";
-
     driverIndex = 0;
     resolutionX = 800;
     resolutionY = 600;
@@ -53,8 +44,6 @@ GameOptions::GameOptions() {
     buildingShadow = 0;
     floraShadow = 0;
     otherShadow = 0;
-    lod1 = 40.0f;
-    lod2 = 75.0f;
     borderFogDistance = 32.0f;
     enableSelfShadowing = 0;
     enableWaterWaves = 1;
@@ -136,28 +125,21 @@ GameOptions::GameOptions() {
     fogDayStartDistance = 90.0f;
 }
 
-// The game's options: constructed by the C++ runtime before the static initialisers and WinMain (LoadFromRegistry
-// fills them), destroyed after the game's exit functions (ShutDown's SaveToRegistry has written them back).
+// The game's options: constructed by the C++ runtime before the static initialisers and WinMain (Load fills them),
+// destroyed after the game's exit functions (ShutDown's Save has written them back).
 GameOptions g_options;
 
 } // namespace options
 
 // --- Options defaults --------------------------------------------------------------------------------
 
-// The options' defaults (called before the registry is read): the subkey names, the video mode (640 x 480, 16
+// The options' defaults (called before the settings are read): the video mode (640 x 480, 16
 // bits), the camera, shadows and lights, the paths ("." and ".\res\"), the map and stream names and the
 // master server ("a3master.nival.com"). See docs/notes/objects.md ("Rewritten").
 
 namespace options {
 
 void OptionsResetDefaults(GameOptions* self) {
-    self->keyStatistics = "Statistics Output Settings";
-    self->keyGame = "Game Specific Settings";
-    self->keyTerrain = "Terrain Settings";
-    self->keyGeneral = "General Settings";
-    self->keyCamera = "Camera Settings";
-    self->keyShadows = "Shadow Settings";
-    self->keyPaths = "Path Settings";
     self->driverIndex = 0;
     self->resolutionX = 0x280;
     self->resolutionY = 0x1E0;
@@ -193,8 +175,6 @@ void OptionsResetDefaults(GameOptions* self) {
     self->buildingShadow = 0;
     self->floraShadow = 0;
     self->otherShadow = 0;
-    self->lod1 = 33.0f;
-    self->lod2 = 66.0f;
     self->borderFogDistance = 2.0f;
     self->enableSelfShadowing = 1;
     self->enableWaterWaves = 1;

@@ -44,12 +44,9 @@ LSTATUS WINAPI DiscPathQuery(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD ty
     return result;
 }
 
-// The same for the standalone's settings file (game/settings_file.h): each read of "CD-ROM Path" gets ".\".
-void DiscPathRead(const char* name, unsigned long, std::string& data) {
-    if (_stricmp(name, "CD-ROM Path") != 0) return;
-    data.resize(strnlen(data.data(), data.size()));
-    data += ".\\";
-    data += '\0';
+// The same for the standalone's settings file (game/settings.h): each read of "CD-ROM Path" gets ".\".
+void DiscPathRead(const char* name, std::string& value) {
+    if (_stricmp(name, "CD-ROM Path") == 0) value += ".\\";
 }
 
 // The disc check's root ("<drive>\.", app_main.cpp DriveRoot) gets the label; every other caller (MFC's

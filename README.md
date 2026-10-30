@@ -32,7 +32,8 @@ test suite plays out exactly as on the original: the same world state and the sa
 
 ## Differences from the original
 
-- Settings live in `ei_settings.ini` beside the exe, not in the registry.
+- Settings live in `ei_settings.ini` beside the exe, a plain ini (`[video]`, `FullScreen = true`), not in the
+  registry; one file serves both installs.
 - Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
@@ -87,7 +88,7 @@ play.cmd
 The game plays from a copy of the build in `run\play`, so a game left open never locks the build. Its settings are
 `run\play\ei_settings.ini` (written with the defaults when missing: full screen at the desktop's size, every graphics
 setting at its best; the registry is never read). The render quality (MSAA samples,
-anisotropy), the performance overlay and vsync are set there (comments at the top of `play.cmd`;
+anisotropy), the performance overlay and vsync are set in its `[renderer]` section (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
 `run\play\ei-rebuild.log`.
 `play.cmd x64` does the same in `run\play-x64` (its own settings and log) with the 64-bit build.

@@ -1,169 +1,206 @@
-// The settings file's text and its defaults (no registry, no game): Document, its reg-export-style lines, JoinPath,
-// DefaultDocument. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
-#include "settings_file.h"
-#include "lib/bytes.h"
-
-#include <bit>
-#include <string>
+// The settings file's text, its values' text and its defaults (no file, no game): Document, the Parse / Text
+// functions of the values, Defaults. See settings.h; tests/vectors/replay_settings.cpp checks them without the game.
+#include "settings.h"
 
 #include <array>
 #include <charconv>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
-namespace settings_file {
+namespace settings {
 namespace {
 
-bool Same(const std::string& a, const std::string& b) { return _stricmp(a.c_str(), b.c_str()) == 0; }
+bool Same(std::string_view a, std::string_view b) {
+    return a.size() == b.size() && _strnicmp(a.data(), b.data(), a.size()) == 0;
+}
 
-// ---- The text ----
+bool Space(char c) { return c == ' ' || c == '\t'; }
 
-std::string Quoted(const std::string& text) {
-    std::string out = "\"";
-    for (char c : text) {
-        if (c == '\\' || c == '"') out += '\\';
-        out += c;
+std::string_view Trimmed(std::string_view text) {
+    while (!text.empty() && (Space(text.front()) || text.front() == '\r')) text.remove_prefix(1);
+    while (!text.empty() && (Space(text.back()) || text.back() == '\r')) text.remove_suffix(1);
+    return text;
+}
+
+// A section's name: letters, digits, spaces, '_' and '-'.
+bool SectionName(std::string_view name) {
+    if (name.empty()) return false;
+    for (char c : name) {
+        const bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+        if (!letter && c != ' ' && c != '_' && c != '-') return false;
     }
-    return out + '"';
-}
-
-// A string the quoted form holds: one terminator at its end, no other control character.
-bool PlainString(const std::string& data) {
-    if (data.empty() || data.back() != '\0') return false;
-    for (std::size_t i = 0; i + 1 < data.size(); ++i)
-        if (static_cast<unsigned char>(data[i]) < 0x20) return false;
     return true;
 }
 
-// The 4 bytes as "float:<value>" when the text reads back to the same bits (not for NaNs and infinities).
-bool FloatText(const std::string& data, std::string* out) {
-    if (data.size() != 4) return false;
-    std::uint32_t bits;
-    lib::LoadBytes(bits, data.data());
-    if ((bits & 0x7F800000u) == 0x7F800000u) return false;
-    float value;
-    value = std::bit_cast<float>(bits);
-    std::array<char, 32> text;
-    const auto written = std::to_chars(text.data(), text.data() + text.size(), value);
-    if (written.ec != std::errc()) return false;
-    float back = 0;
-    const auto read = std::from_chars(text.data(), written.ptr, back);
-    std::uint32_t backBits;
-    backBits = std::bit_cast<std::uint32_t>(back);
-    if (read.ec != std::errc() || read.ptr != written.ptr || backBits != bits) return false;
-    *out = "float:" + std::string(text.data(), written.ptr);
-    return true;
+// The value as a line holds it: in double quotes when it starts or ends with a space or starts with a quote; a line
+// break (which no line can hold) as a space.
+std::string ValueText(const std::string& value) {
+    std::string out = value;
+    for (char& c : out)
+        if (c == '\r' || c == '\n') c = ' ';
+    if (!out.empty() && (Space(out.front()) || Space(out.back()) || out.front() == '"')) out = '"' + out + '"';
+    return out;
 }
 
-// `value` as `digits` lower-case hex digits.
-void AppendHex(std::string& out, std::uint32_t value, int digits) {
-    static constexpr char kDigits[] = "0123456789abcdef";
-    for (int shift = (digits - 1) * 4; shift >= 0; shift -= 4) out += kDigits[(value >> shift) & 0xF];
+constexpr const char* kTrue[] = {"true", "yes", "on"};
+constexpr const char* kFalse[] = {"false", "no", "off"};
+
+} // namespace
+
+// ---- The document ----
+
+Document::Section* Document::FindSection(std::string_view name) {
+    for (Section& section : sections)
+        if (Same(section.name, name)) return &section;
+    return nullptr;
 }
 
-std::string ValueText(const Value& v) {
+Document::Section& Document::AddSection(std::string_view name) {
+    if (Section* section = FindSection(name)) return *section;
+    // The lines before the first section stay first.
+    if (name.empty()) return *sections.insert(sections.begin(), Section{});
+    sections.push_back(Section{std::string(name), {}});
+    return sections.back();
+}
+
+const std::string* Document::Find(std::string_view section, std::string_view name) const {
+    for (const Section& s : sections) {
+        if (!Same(s.name, section)) continue;
+        for (const Line& line : s.lines)
+            if (!line.name.empty() && Same(line.name, name)) return &line.value;
+    }
+    return nullptr;
+}
+
+void Document::Set(std::string_view section, std::string_view name, std::string_view value) {
+    Section& s = AddSection(section);
+    for (Line& line : s.lines) {
+        if (!line.name.empty() && Same(line.name, name)) {
+            line.value = value;
+            return;
+        }
+    }
+    s.lines.push_back(Line{std::string(name), std::string(value)});
+}
+
+void Document::Comment(std::string_view section, std::string_view text) {
+    AddSection(section).lines.push_back(Line{{}, "; " + std::string(text)});
+}
+
+std::size_t Document::Values() const {
+    std::size_t count = 0;
+    for (const Section& section : sections)
+        for (const Line& line : section.lines) count += !line.name.empty();
+    return count;
+}
+
+std::string Document::Text() const {
     std::string out;
-    if (v.type == kTypeDword && v.data.size() == 4) {
-        std::uint32_t dword;
-        lib::LoadBytes(dword, v.data.data());
-        out = "dword:";
-        AppendHex(out, dword, 8);
-        return out;
-    }
-    if (v.type == kTypeString && PlainString(v.data)) return Quoted(v.data.substr(0, v.data.size() - 1));
-    if (v.type == kTypeBinary && FloatText(v.data, &out)) return out;
-    if (v.type == kTypeBinary) {
-        out = "hex:";
-    } else {
-        std::array<char, 16> type;
-        out = "hex(" + std::string(type.data(), std::to_chars(type.data(), type.data() + type.size(), v.type, 16).ptr) + "):";
-    }
-    for (std::size_t i = 0; i < v.data.size(); ++i) {
-        if (i) out += ',';
-        AppendHex(out, static_cast<unsigned char>(v.data[i]), 2);
+    for (const Section& section : sections) {
+        if (!section.name.empty()) {
+            if (!out.empty()) out += "\r\n";
+            out += "[" + section.name + "]\r\n";
+        }
+        for (const Line& line : section.lines) {
+            if (line.name.empty()) out += line.value;
+            else if (line.value.empty()) out += line.name + " =";
+            else out += line.name + " = " + ValueText(line.value);
+            out += "\r\n";
+        }
     }
     return out;
 }
 
-// The quoted text at `p` (\\ and \" escaped); `p` moves past its closing quote.
-bool ParseQuoted(const char*& p, std::string* out) {
-    if (*p != '"') return false;
-    ++p;
-    out->clear();
-    while (*p && *p != '"') {
-        if (*p == '\\' && p[1]) ++p;
-        *out += *p++;
+void Document::Parse(std::string_view text, std::vector<std::string>* problems) {
+    if (text.substr(0, 3) == "\xEF\xBB\xBF") text.remove_prefix(3);   // a UTF-8 BOM
+    const char* section = "";     // the lines' section; null below a section not understood
+    std::string sectionName;
+    int number = 0;
+    while (!text.empty()) {
+        std::size_t end = text.find('\n');
+        if (end == std::string_view::npos) end = text.size();
+        const std::string_view line = Trimmed(text.substr(0, end));
+        text.remove_prefix(end < text.size() ? end + 1 : end);
+        ++number;
+        if (line.empty()) continue;
+        if (line.front() == '[') {
+            const std::string_view name = Trimmed(line.substr(1, line.size() - 1 - (line.back() == ']')));
+            if (line.back() == ']' && SectionName(name)) {
+                sectionName = name;
+                section = sectionName.c_str();
+                AddSection(sectionName);
+            } else {
+                section = nullptr;
+                problems->push_back("line " + std::to_string(number) + " not understood (and the lines below it): " +
+                                    std::string(line));
+            }
+            continue;
+        }
+        if (!section) continue;
+        if (line.front() == ';' || line.front() == '#') {
+            AddSection(section).lines.push_back(Line{{}, std::string(line)});
+            continue;
+        }
+        const std::size_t equals = line.find('=');
+        const std::string_view name = equals == std::string_view::npos ? std::string_view() : Trimmed(line.substr(0, equals));
+        if (name.empty() || !*section) {
+            problems->push_back("line " + std::to_string(number) + " not understood: " + std::string(line));
+            continue;
+        }
+        std::string_view value = Trimmed(line.substr(equals + 1));
+        if (value.size() >= 2 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
+        Set(section, name, value);
     }
-    if (*p != '"') return false;
-    ++p;
+}
+
+// ---- The values' text ----
+
+std::string IntText(int value) { return std::to_string(value); }
+
+std::string FloatText(float value) {
+    std::array<char, 32> text;
+    const auto written = std::to_chars(text.data(), text.data() + text.size(), value);
+    return std::string(text.data(), written.ptr);
+}
+
+std::string BoolText(bool value) { return value ? "true" : "false"; }
+
+bool ParseInt(std::string_view text, int* value) {
+    for (const char* word : kTrue)
+        if (Same(text, word)) return *value = 1, true;
+    for (const char* word : kFalse)
+        if (Same(text, word)) return *value = 0, true;
+    if (!text.empty() && text.front() == '+') text.remove_prefix(1);
+    // Up to 4294967295: the registry's unsigned DWORDs read as the int of the same bits.
+    std::int64_t number = 0;
+    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
+    if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size() || number < INT32_MIN ||
+        number > UINT32_MAX)
+        return false;
+    *value = static_cast<int>(static_cast<std::uint32_t>(number));
     return true;
 }
 
-bool ParseHex(const char* p, std::string* out) {
-    while (*p) {
-        while (*p == ',' || *p == ' ' || *p == '\t') ++p;
-        if (!*p) break;
-        unsigned byte = 0;
-        const auto read = std::from_chars(p, p + 2, byte, 16);
-        if (read.ec != std::errc() || read.ptr != p + 2) return false;
-        *out += static_cast<char>(byte);
-        p += 2;
-    }
+bool ParseFloat(std::string_view text, float* value) {
+    if (!text.empty() && text.front() == '+') text.remove_prefix(1);
+    float number = 0;
+    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
+    if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size()) return false;
+    *value = number;
     return true;
 }
 
-bool StartsWith(const char* p, const char* prefix) { return _strnicmp(p, prefix, std::strlen(prefix)) == 0; }
-
-bool ParseValue(const char* p, Value* v) {
-    const char* end = p + std::strlen(p);
-    if (*p == '"') {
-        if (!ParseQuoted(p, &v->data) || *p) return false;
-        v->type = kTypeString;
-        v->data += '\0';
-        return true;
-    }
-    if (StartsWith(p, "dword:")) {
-        std::uint32_t dword = 0;
-        const auto read = std::from_chars(p + 6, end, dword, 16);
-        if (read.ec != std::errc() || read.ptr != end || end - (p + 6) > 8) return false;
-        v->type = kTypeDword;
-        v->data.assign(reinterpret_cast<const char*>(&dword), 4);
-        return true;
-    }
-    if (StartsWith(p, "float:")) {
-        float value = 0;
-        const auto read = std::from_chars(p + 6, end, value);
-        if (read.ec != std::errc() || read.ptr != end) return false;
-        v->type = kTypeBinary;
-        v->data.assign(reinterpret_cast<const char*>(&value), 4);
-        return true;
-    }
-    if (StartsWith(p, "hex:")) {
-        v->type = kTypeBinary;
-        return ParseHex(p + 4, &v->data);
-    }
-    if (StartsWith(p, "hex(")) {
-        const char* close = std::strchr(p, ')');
-        if (!close || close[1] != ':') return false;
-        const auto read = std::from_chars(p + 4, close, v->type, 16);
-        if (read.ec != std::errc() || read.ptr != close) return false;
-        if (!ParseHex(close + 2, &v->data)) return false;
-        // A text value ends in a zero, as a quoted one does, so a hand-edited hex(1): line without it reads safely.
-        if (v->type == kTypeString && (v->data.empty() || v->data.back() != '\0')) v->data += '\0';
-        return true;
-    }
-    return false;
+bool ParseBool(std::string_view text, bool* value) {
+    int number = 0;
+    if (!ParseInt(text, &number)) return false;
+    *value = number != 0;
+    return true;
 }
 
-constexpr const char* kHeader =
-    "; Evil Islands' settings for ei-rebuild.exe, in place of its registry keys under HKEY_CURRENT_USER.\r\n"
-    "; [key below HKEY_CURRENT_USER], then \"name\"=value: dword:<hex> (REG_DWORD), \"text\" (REG_SZ, \\\\ and \\\"\r\n"
-    "; escaped), float:<number> (a 4-byte REG_BINARY float), hex:<bytes> (REG_BINARY), hex(<type>):<bytes>.\r\n"
-    "; @ is a key's default value. The game rewrites this file when it saves its options.\r\n";
+// ---- The defaults ----
 
-std::string Dword(std::uint32_t value) { return std::string(reinterpret_cast<const char*>(&value), sizeof(value)); }
-std::string Real(float value) { return Dword(std::bit_cast<std::uint32_t>(value)); }
-std::string Terminated(const char* text) { return std::string(text, std::strlen(text) + 1); }
+namespace {
 
 // What a game install writes and the game's own defaults lack (the original's installer and Rebirth's agree; the
 // game's defaults are placeholders: a camera turning about 7 and pitching about 700 times as fast, objects lit half
@@ -210,181 +247,82 @@ constexpr InstallFloat kInstallCamera[] = {
 // Each of the four shortcuts: the default distance, looking along Z, 45 degrees of pitch.
 constexpr InstallFloat kInstallShortcut[] = {{"AxisX", 0.0f}, {"AxisY", 0.0f}, {"AxisZ", 1.0f},
                                              {"Angle", 0.0f}, {"Distance", 30.0f}, {"Pitch", 45.0f}};
-// The game settings that differ from the game's own: hardware cursors, the selection type, the objects' lighting,
-// the hero's and the quest light (R, G, B of 255, radius), the default map and music.
-struct InstallDword {
+// The game settings that differ from the game's own: the selection type, the hero's and the quest light (R, G, B of
+// 255, radius).
+struct InstallInt {
     const char* name;
-    std::uint32_t value;
+    int value;
 };
-constexpr InstallDword kInstallGameDwords[] = {
-    {"UseSWCursors", 0},       {"SelectionType", 1},    {"Hero Light R", 216},   {"Hero Light G", 216},
-    {"Hero Light B", 116},     {"Hero Light Radius", 5}, {"Quest Light R", 120}, {"Quest Light G", 72},
-    {"Quest Light B", 120},    {"Quest Light Radius", 5},
+constexpr InstallInt kInstallGameInts[] = {
+    {"SelectionType", 1}, {"Hero Light R", 216},  {"Hero Light G", 216}, {"Hero Light B", 116},     {"Hero Light Radius", 5},
+    {"Quest Light R", 120}, {"Quest Light G", 72}, {"Quest Light B", 120}, {"Quest Light Radius", 5},
 };
 
 } // namespace
 
+Document Defaults(int width, int height) {
+    Document d;
+    d.Comment("", "Evil Islands settings (ei-rebuild.exe). Each [section] holds name = value lines: numbers, true or");
+    d.Comment("", "false, text as it is (in \"quotes\" when it starts or ends with a space). Lines starting with ; or #");
+    d.Comment("", "are comments. The game rewrites this file when it saves its options; delete it to get the defaults.");
 
-Key* Document::FindKey(const std::string& path) {
-    for (Key& key : keys)
-        if (Same(key.path, path)) return &key;
-    return nullptr;
-}
+    d.Comment(kVideo, "FullScreen: a borderless window over the monitor (the display mode never changes).");
+    d.Set(kVideo, "VideoResolution", std::to_string(width) + "x" + std::to_string(height));
+    d.Set(kVideo, "FullScreen", BoolText(true));
+    d.Set(kVideo, "VideoColorDepthInBits", IntText(32));
+    d.Set(kVideo, "Antialiasing", BoolText(true));
+    d.Set(kVideo, "Mipmapping", BoolText(true));
+    d.Set(kVideo, "Filtering", IntText(2));        // trilinear
+    d.Set(kVideo, "TextureQuality", IntText(0));   // no mip level dropped (texture.cpp)
+    d.Set(kVideo, "ShowParticles", BoolText(true));
 
-Key& Document::AddKey(const std::string& path) {
-    if (Key* key = FindKey(path)) return *key;
-    keys.push_back(Key{path, {}});
-    return keys.back();
-}
+    d.Comment(kSound, "Volumes 0..100.");
+    d.Set(kSound, "Audio", BoolText(true));
+    for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) d.Set(kSound, volume, IntText(100));
 
-Value* Document::FindValue(Key& key, const std::string& name) {
-    for (Value& value : key.values)
-        if (Same(value.name, name)) return &value;
-    return nullptr;
-}
+    d.Set(kShadows, "ShadowQuality", IntText(2));
+    for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
+        d.Set(kShadows, shadow, BoolText(true));
 
-void Document::Set(const std::string& path, const std::string& name, std::uint32_t type, std::string data) {
-    Key& key = AddKey(path);
-    if (Value* value = FindValue(key, name)) {
-        value->type = type;
-        value->data = std::move(data);
-        return;
-    }
-    key.values.push_back(Value{name, type, std::move(data)});
-}
+    // Rebirth's starter (EIStarter.exe 1.46) writes water waves on for its best landscape detail, 1000 for its most
+    // frequent relighting.
+    d.Set(kTerrain, "LightingFreq", IntText(1000));
+    for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
+                                "EnableBloodprints", "EnableFireprints"})
+        d.Set(kTerrain, feature, BoolText(true));
 
-std::string Document::Text() const {
-    std::string out = kHeader;
-    for (const Key& key : keys) {
-        out += "\r\n[" + key.path + "]\r\n";
-        for (const Value& value : key.values)
-            out += (value.name.empty() ? std::string("@") : Quoted(value.name)) + "=" + ValueText(value) + "\r\n";
-    }
-    return out;
-}
+    // The install's camera and game settings.
+    d.Set(kCamera, "CameraFlipXAxis", BoolText(false));
+    d.Set(kCamera, "CameraFlipYAxis", BoolText(false));
+    for (const InstallFloat& value : kInstallCamera) d.Set(kCamera, value.name, FloatText(value.value));
+    d.Set(kCamera, "CameraBorderScrollArea", IntText(1));
+    d.Set(kCamera, "CameraFrameSelectionSensetiveArea", IntText(30));
+    for (int shortcut = 0; shortcut < 4; ++shortcut)
+        for (const InstallFloat& value : kInstallShortcut)
+            d.Set(kCamera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, FloatText(value.value));
+    d.Set(kGame, "UseSWCursors", BoolText(false));
+    for (const InstallInt& value : kInstallGameInts) d.Set(kGame, value.name, IntText(value.value));
+    d.Set(kGame, "ObjectsLightingCoeff", FloatText(2.0f));
+    d.Set(kGame, "DefaultMapName", "Zone1.mpr");
+    d.Set(kGame, "DefaultStreamingSound", "melody.mp3");
+    d.Set(kNetwork, "Master Server Name", "a3master.nival.com");
 
-void Document::Parse(const std::string& text, std::vector<std::string>* problems) {
-    Key* key = nullptr;
-    std::string line;
-    int number = 0;
-    for (std::size_t at = text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? 3 : 0; at < text.size();) {   // past a UTF-8 BOM
-        std::size_t end = text.find('\n', at);
-        if (end == std::string::npos) end = text.size();
-        std::string part = text.substr(at, end - at);
-        at = end + 1;
-        ++number;
-        while (!part.empty() && (part.back() == '\r' || part.back() == ' ' || part.back() == '\t')) part.pop_back();
-        const std::size_t first = part.find_first_not_of(" \t");
-        part = first == std::string::npos ? std::string() : part.substr(first);
-        // Hex bytes continue on the next line after a backslash, as reg export writes them.
-        if (!part.empty() && part.back() == '\\') {
-            part.pop_back();
-            line += part;
-            continue;
-        }
-        line += part;
-        if (line.empty() || line[0] == ';') {
-            line.clear();
-            continue;
-        }
-        bool ok = true;
-        if (line[0] == '[' && line.back() == ']') {
-            key = &AddKey(JoinPath("", line.substr(1, line.size() - 2).c_str()));
-        } else if (key) {
-            const char* p = line.c_str();
-            Value value;
-            if (*p == '@') {
-                ++p;
-            } else {
-                ok = ParseQuoted(p, &value.name);
-            }
-            while (ok && (*p == ' ' || *p == '\t')) ++p;
-            ok = ok && *p++ == '=';
-            while (ok && (*p == ' ' || *p == '\t')) ++p;
-            ok = ok && ParseValue(p, &value);
-            if (ok) Set(key->path, value.name, value.type, std::move(value.data));
-        } else {
-            ok = false;
-        }
-        if (!ok) problems->push_back("line " + std::to_string(number) + " not understood: " + line);
-        line.clear();
-    }
-}
-
-std::string JoinPath(const char* path, const char* sub) {
-    std::string out;
-    for (const char* part : {path, sub}) {
-        for (const char* p = part; p && *p;) {
-            const char* end = std::strchr(p, '\\');
-            if (!end) end = p + std::strlen(p);
-            if (end != p) {
-                if (!out.empty()) out += '\\';
-                out.append(p, end);
-            }
-            p = *end ? end + 1 : end;
-        }
-    }
-    return out;
-}
-
-// ---- The defaults ----
-
-Document DefaultDocument(int width, int height) {
-    Document document;
-    const std::string resolution = std::to_string(width) + "x" + std::to_string(height) + std::string(1, '\0');
-    for (const char* tree : kOptionTrees) {
-        const std::string general = JoinPath(tree, "General Settings");
-        document.Set(general, "VideoResolution", kTypeString, resolution);
-        document.Set(general, "FullScreen", kTypeDword, Dword(1));
-        document.Set(general, "VideoColorDepthInBits", kTypeDword, Dword(32));
-        document.Set(general, "Audio", kTypeDword, Dword(1));
-        for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) document.Set(general, volume, kTypeDword, Dword(100));
-        document.Set(general, "Antialiasing", kTypeDword, Dword(1));
-        document.Set(general, "Mipmapping", kTypeDword, Dword(1));
-        document.Set(general, "Filtering", kTypeDword, Dword(2));        // trilinear
-        document.Set(general, "TextureQuality", kTypeDword, Dword(0));   // no mip level dropped (texture.cpp)
-        document.Set(general, "ShowParticles", kTypeDword, Dword(1));
-        const std::string shadows = JoinPath(tree, "Shadow Settings");
-        document.Set(shadows, "ShadowQuality", kTypeDword, Dword(2));
-        for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
-            document.Set(shadows, shadow, kTypeDword, Dword(1));
-        // Rebirth's starter (EIStarter.exe 1.46) writes these distances and water waves on for its best landscape
-        // detail, 1000 for its most frequent relighting.
-        const std::string terrain = JoinPath(tree, "Terrain Settings");
-        document.Set(terrain, "LOD1", kTypeBinary, Real(90.0f));
-        document.Set(terrain, "LOD2", kTypeBinary, Real(130.0f));
-        document.Set(terrain, "LightingFreq", kTypeDword, Dword(1000));
-        for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
-                                    "EnableBloodprints", "EnableFireprints"})
-            document.Set(terrain, feature, kTypeDword, Dword(1));
-        // The install's camera and game settings.
-        const std::string camera = JoinPath(tree, "Camera Settings");
-        document.Set(camera, "CameraFlipXAxis", kTypeDword, Dword(0));
-        document.Set(camera, "CameraFlipYAxis", kTypeDword, Dword(0));
-        for (const InstallFloat& value : kInstallCamera) document.Set(camera, value.name, kTypeBinary, Real(value.value));
-        document.Set(camera, "CameraBorderScrollArea", kTypeDword, Dword(1));
-        document.Set(camera, "CameraFrameSelectionSensetiveArea", kTypeDword, Dword(30));
-        for (int shortcut = 0; shortcut < 4; ++shortcut)
-            for (const InstallFloat& value : kInstallShortcut)
-                document.Set(camera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, kTypeBinary, Real(value.value));
-        const std::string game = JoinPath(tree, "Game Specific Settings");
-        for (const InstallDword& value : kInstallGameDwords) document.Set(game, value.name, kTypeDword, Dword(value.value));
-        document.Set(game, "ObjectsLightingCoeff", kTypeBinary, Real(2.0f));
-        document.Set(game, "DefaultMapName", kTypeString, Terminated("Zone1.mpr"));
-        document.Set(game, "DefaultStreamingSound", kTypeString, Terminated("melody.mp3"));
-        document.Set(JoinPath(tree, "Network Settings"), "Master Server Name", kTypeString, Terminated("a3master.nival.com"));
-    }
     // The renderer's (device_mesh.cpp).
-    constexpr const char* kStandalone = "Software\\Nival Interactive\\EvilIslands\\Standalone";
-    document.Set(kStandalone, "VSync", kTypeDword, Dword(1));
-    document.Set(kStandalone, "Msaa", kTypeDword, Dword(8));
-    document.Set(kStandalone, "Anisotropy", kTypeDword, Dword(16));
-    // Rebirth's starter switches (ui_widescreen.cpp, world_client_draw.cpp).
-    constexpr const char* kStarter = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-    document.Set(kStarter, "WideScreen", kTypeDword, Dword(1));
-    document.Set(kStarter, "ObjectsDrawRadius", kTypeDword, Dword(5376));
-    document.Set(kStarter, "LandscapeDrawRadius", kTypeDword, Dword(5376));
-    return document;
+    d.Comment(kRenderer, "Msaa: the world's multisampling, 1 (off), 2, 4 or 8. Anisotropy: 1 (off) .. 16. PerfOverlay:");
+    d.Comment(kRenderer, "FPS, frame and GPU times, draws.");
+    d.Set(kRenderer, "VSync", BoolText(true));
+    d.Set(kRenderer, "Msaa", IntText(8));
+    d.Set(kRenderer, "Anisotropy", IntText(16));
+    d.Set(kRenderer, "PerfOverlay", BoolText(false));
+
+    // Rebirth's switches (ui_widescreen.cpp, world_client_draw.cpp, mod_folders.cpp).
+    d.Comment(kRebirth, "Read with Rebirth's flags on (ei_rebirth.ini). The draw radii: 100 is the original's. AddonPath:");
+    d.Comment(kRebirth, "the mod's folder.");
+    d.Set(kRebirth, "WideScreen", BoolText(true));
+    d.Set(kRebirth, "ObjectsDrawRadius", IntText(5376));
+    d.Set(kRebirth, "LandscapeDrawRadius", IntText(5376));
+    d.Comment(kAutoExec, "Console lines run before autoexec.cfg with Rebirth's AutoExec flag, one per line: 1 = <command>.");
+    return d;
 }
 
-} // namespace settings_file
+} // namespace settings

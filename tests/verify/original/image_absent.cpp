@@ -110,8 +110,8 @@ const char* TextFolder() { Absent(__func__); }
 long ModFile(const char*, const char*) { Absent(__func__); }
 void ObserveStreamWrites(void (*)(void* stream, std::uint32_t size, void* const* frame)) { Absent(__func__); }
 const char* SettingsFileName() { Absent(__func__); }
-std::string SettingsText(const std::vector<SettingsValue>&) { Absent(__func__); }
-void PinSettings(const char*, SettingsMissing, bool) { Absent(__func__); }
+std::string SettingsText(const std::vector<SettingsLine>&) { Absent(__func__); }
+void PinSettings(const char*, SettingsMissing, bool, SettingsPrepare) { Absent(__func__); }
 void DefaultSettings(const char*, int, int) { Absent(__func__); }
 void AddSettingsReadFilter(SettingsReadFilter) { Absent(__func__); }
 int& GamePort() { Absent(__func__); }

@@ -6,7 +6,7 @@
 #include "device_material.h"
 #include "figure_mesh.h"
 #include "model.h"
-#include "settings_file.h"
+#include "settings.h"
 #include "texture.h"
 #include "lib/nan_audit.h"
 #include "render/render.h"
@@ -179,39 +179,27 @@ int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture
 
 namespace {
 
-// The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
-// Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
+// The performance overlay's switch (docs/notes/renderer.md section 15): [renderer] PerfOverlay of ei_settings.ini;
+// off when absent or without the overlay.
 bool PerfOverlaySetting() {
-    if (!render::PerfOverlaySupported()) return false;
-    std::uint32_t type = 0, value = 0, size = sizeof(value);
-    return settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay", &type, &value,
-                                    &size) == 0 &&
-           type == settings_file::kTypeDword && value != 0;
+    return render::PerfOverlaySupported() && settings::GetBool(settings::kRenderer, "PerfOverlay", false);
 }
 
-// The vertical blank's switch (docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
-// absent: on) of the same key. Read only in the product, as above.
-bool VsyncSetting() {
-    std::uint32_t type = 0, value = 0, size = sizeof(value);
-    return !(settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", &type, &value, &size) == 0 &&
-             type == settings_file::kTypeDword && value == 0);
-}
+// The vertical blank's switch (docs/notes/renderer.md section 15): [renderer] VSync, on when absent. Read only in the
+// product, as above.
+bool VsyncSetting() { return settings::GetBool(settings::kRenderer, "VSync", true); }
 
-// The render quality (docs/notes/renderer.md section 11, "Render quality"): "Msaa" (the world view's samples: 1 off,
-// 2, 4 or 8) and "Anisotropy" (its models' anisotropic sampling: 1 off .. 16), DWORDs of the same key. A value missing
-// (or not a DWORD) is written with its default, the look the user's dgVoodoo setup gave, so the file shows both. Read
-// only in the product, as above (render::QualitySettingsSupported).
-constexpr std::uint32_t kDefaultMsaa = 8;
-constexpr std::uint32_t kDefaultAnisotropy = 16;
+// The render quality (docs/notes/renderer.md section 11, "Render quality"): [renderer] Msaa (the world view's samples:
+// 1 off, 2, 4 or 8) and Anisotropy (its models' anisotropic sampling: 1 off .. 16). A value missing (or not a number)
+// is written with its default, the look the user's dgVoodoo setup gave, so the file shows both. Read only in the
+// product, as above (render::QualitySettingsSupported).
+constexpr int kDefaultMsaa = 8;
+constexpr int kDefaultAnisotropy = 16;
 
-std::uint32_t QualitySetting(const char* name, std::uint32_t fallback) {
-    std::uint32_t type = 0, value = 0, size = sizeof(value);
-    if (settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", name, &type, &value, &size) == 0 &&
-        type == settings_file::kTypeDword)
-        return value;
-    settings_file::Set(nullptr, "Software\\Nival Interactive\\EvilIslands\\Standalone", name, settings_file::kTypeDword, &fallback,
-                       sizeof(fallback));
-    return fallback;
+int QualitySetting(const char* name, int fallback) {
+    const int value = settings::GetInt(settings::kRenderer, name, fallback);
+    settings::SetInt(settings::kRenderer, name, value);
+    return value;
 }
 
 } // namespace
@@ -224,9 +212,9 @@ TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScree
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
     if (render::QualitySettingsSupported()) {
-        render::SetMsaa(static_cast<int>(QualitySetting("Msaa", kDefaultMsaa)));
-        render::SetAnisotropy(static_cast<int>(QualitySetting("Anisotropy", kDefaultAnisotropy)));
-        settings_file::Flush();
+        render::SetMsaa(QualitySetting("Msaa", kDefaultMsaa));
+        render::SetAnisotropy(QualitySetting("Anisotropy", kDefaultAnisotropy));
+        settings::Save();
     }
 
     // The game's Direct3D 7 device set the calling thread's x87 precision to 24 bits (the game asked for

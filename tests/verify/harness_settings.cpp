@@ -13,6 +13,8 @@
 #include <windows.h>
 
 #include <cctype>
+#include <charconv>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <map>
@@ -545,80 +547,138 @@ bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
 
 decltype(&::RegCreateKeyExA) g_gameCreate;
 
-// ---- the standalone's settings file (game/settings_file.h) ----
+// ---- the standalone's settings file (game/settings.h) ----
 
-// A read of a key or value the pinned file lacks: a problem unless the snapshot marks it read and absent.
-void PinnedMissing(const char* path, const char* name) {
-    const std::string key = std::string(kCurrentUser) + "\\" + Lower(path);
-    if (KeyAbsent(key)) return;
-    auto k = S().keys.find(key);
-    if (k != S().keys.end()) {
-        auto v = k->second.values.find(Lower(name));
-        if (v != k->second.values.end() && v->second.absent) return;
+// The run's settings file is written from the snapshot's option tree game.exe reads on this install (the original's,
+// or Rebirth's: addon.dll's NivalRegistry patch), its keys by section, and Rebirth's switches.
+constexpr const char* kOriginalTree = "hkey_current_user\\software\\nival interactive\\evilislands\\";
+constexpr const char* kRebirthTree = "hkey_current_user\\software\\gipat.ru\\ei_starter\\evilislands\\";
+constexpr const char* kRebirthSwitches = "hkey_current_user\\software\\gipat.ru\\ei_starter\\settings";
+constexpr struct {
+    const char* key;
+    const char* section;
+} kSections[] = {
+    {"camera settings", "camera"},     {"game specific settings", "game"}, {"general settings", "video"},
+    {"network settings", "network"},   {"path settings", "paths"},         {"shadow settings", "shadows"},
+    {"statistics output settings", "statistics"}, {"terrain settings", "terrain"},
+};
+// General Settings' values that go elsewhere.
+constexpr const char* kSoundValues[] = {"audio", "audiostreaming", "audiosfx", "audiospeech", "reverse stereo"};
+
+// The section of the value `name` (lower case) of the key `path` (lower case), or null when the file has none.
+const char* SectionOf(const std::string& path, const std::string& name) {
+    if (path == kRebirthSwitches) return "rebirth";
+    const char* tree = starter::RebirthInstall() ? kRebirthTree : kOriginalTree;
+    if (path.compare(0, std::strlen(tree), tree) != 0) return nullptr;
+    const std::string key = path.substr(std::strlen(tree));
+    for (const auto& s : kSections) {
+        if (key != s.key) continue;
+        if (key == "general settings") {
+            for (const char* sound : kSoundValues)
+                if (name == sound) return "sound";
+            if (name == "joystick") return "game";
+        }
+        return s.section;
     }
-    Problem("registry value not in the snapshot: " + key + "\\" + (*name ? name : "@"));
+    return nullptr;
+}
+
+// A value as the settings file holds it: a DWORD as its int, a 4-byte binary as its float, a string up to its
+// terminator; false for other types (the image reads none).
+bool ValueText(DWORD type, const std::string& data, std::string* text) {
+    if (type == REG_DWORD && data.size() == 4) {
+        std::int32_t value;
+        std::memcpy(&value, data.data(), 4);
+        *text = std::to_string(value);
+        return true;
+    }
+    if (type == REG_BINARY && data.size() == 4) {
+        float value;
+        std::memcpy(&value, data.data(), 4);
+        char number[32];
+        const auto written = std::to_chars(number, number + sizeof(number), value);
+        text->assign(number, written.ptr);
+        return true;
+    }
+    if (type == REG_SZ) {
+        text->assign(data.c_str());
+        return true;
+    }
+    return false;
+}
+
+// The values the snapshot marks read and absent ("name"=-), "<section>\<name>" in lower case.
+std::set<std::string> g_absent;
+
+// A read of a value the pinned file lacks: a problem unless the snapshot marks it read and absent.
+void PinnedMissing(const char* section, const char* name) {
+    if (g_absent.count(Lower(std::string(section) + "\\" + name))) return;
+    Problem(std::string("setting not in the run's file (registry value not in the snapshot): [") + section + "] " + name);
 }
 
 // How the run's settings file is used (the scenario's "settingsfile" line).
 enum class Mode { ReadOnly, Writable, Defaults };
 Mode g_mode = Mode::ReadOnly;
 
-// The scenario's "treeresolution game|starter <W>x<H>": the VideoResolution of the game's option tree, or of Rebirth's
-// starter tree, in the image's file in place of the starter lines' answer (so the two trees differ).
-constexpr const char* kTreePrefix[2] = {"software\\nival interactive\\evilislands\\", "software\\gipat.ru\\ei_starter\\evilislands\\"};
-std::string g_treeResolution[2];
-
-const std::string* TreeResolution(const std::string& path, const std::string& name) {
-    if (_stricmp(name.c_str(), "VideoResolution") != 0) return nullptr;
-    const std::string lower = Lower(path + "\\");
-    for (int tree = 0; tree < 2; ++tree)
-        if (!g_treeResolution[tree].empty() && lower.compare(0, std::strlen(kTreePrefix[tree]), kTreePrefix[tree]) == 0)
-            return &g_treeResolution[tree];
-    return nullptr;
+// Odd values in a section of their own (so the game keeps them as it keeps what it does not know), for the save to
+// carry as they are, with a comment.
+void AddProbeSection(std::vector<image::SettingsLine>& lines) {
+    const char* section = "probe";
+    lines.push_back({section, "", "a comment the save keeps"});
+    lines.push_back({section, "path", "C:\\Probe Dir\\\"quoted\"\\end\\"});
+    lines.push_back({section, "spaces", "  two spaces around  "});
+    lines.push_back({section, "quoted", "\"in quotes\""});
+    lines.push_back({section, "equals", "a = b ; c # d"});
+    lines.push_back({section, "empty", ""});
+    lines.push_back({section, "utf8", "\xD0\x9F\xD1\x80\xD0\xB8\xD0\xB2\xD0\xB5\xD1\x82"});
+    lines.push_back({section, "minus zero", "-0"});
+    lines.push_back({section, "not a number", "0x10"});
 }
 
-// Values of every kind in a key of the game's tree (so the game keeps them as it keeps what it does not know), for
-// the save to carry as they are.
-void AddProbeKey(std::vector<image::SettingsValue>& document) {
-    const char* key = "Software\\Nival Interactive\\EvilIslands\\ProbeSettings";
-    auto dword = [](std::uint32_t value) { return std::string(reinterpret_cast<const char*>(&value), 4); };
-    auto set = [&](const char* path, const char* name, unsigned long type, std::string data) {
-        document.push_back({path, true, name, type, std::move(data)});
-    };
-    set(key, "dword", REG_DWORD, dword(0xFEDCBA98u));
-    set(key, "string", REG_SZ, std::string("C:\\Probe Dir\\\"quoted\"\\end\\") + std::string(1, '\0'));
-    set(key, "minus zero", REG_BINARY, dword(0x80000000u));
-    set(key, "denormal", REG_BINARY, dword(0x00000001u));
-    set(key, "nan", REG_BINARY, dword(0x7FC00001u));
-    set(key, "bytes", REG_BINARY, std::string("\x00\x01\xFE\xFF\x7F", 5));
-    set(key, "multi", REG_MULTI_SZ, std::string("one\0two\0\0", 9));
-    set(key, "expand", REG_EXPAND_SZ, std::string("%TEMP%\\x\0", 9));
-    set(key, "control", REG_SZ, std::string("tab\there\0", 9));
-    set(key, "", REG_SZ, std::string("default\0", 8));
-}
-
-// The run's settings file: the snapshot's HKEY_CURRENT_USER keys, each value the scenario's starter lines
-// answer (any key) in place of the snapshot's, written to the run's folder and pinned (read only).
-void PinSettingsFile() {
-    std::vector<image::SettingsValue> document;   // in order: each key (AddKey), then its values (Set)
-    const std::string root = std::string(kCurrentUser) + "\\";
+// The run's settings file: the snapshot's values (SectionOf), each value the scenario's starter lines answer (any
+// key) in place of the snapshot's. Written at the first use of the settings, when the start-up has set the Rebirth
+// flags RebirthInstall follows.
+void WriteSettingsFile(const char* file) {
+    std::vector<image::SettingsLine> lines;
+    lines.push_back({"", "", "The run's settings: config/harness/registry.reg's and the scenario's (harness_settings.h)."});
     for (const auto& [lower, key] : S().keys) {
-        if (key.absent || lower.compare(0, root.size(), root) != 0) continue;
-        const std::string path = key.path.substr(root.size());
-        document.push_back({path, false, "", 0, {}});
+        if (key.absent) continue;
         for (const auto& [lowerName, value] : key.values) {
+            const char* section = SectionOf(lower, lowerName);
+            if (!section) continue;
+            if (value.absent) {
+                g_absent.insert(std::string(section) + "\\" + lowerName);
+                continue;
+            }
             unsigned long type, size, dword;
             const unsigned char* data;
-            if (const std::string* tree = TreeResolution(path, value.name)) {
-                document.push_back({path, true, value.name, REG_SZ, *tree + std::string(1, '\0')});
-            } else if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
-                document.push_back({path, true, value.name, type, std::string(reinterpret_cast<const char*>(data), size)});
-            } else if (!value.absent) {
-                document.push_back({path, true, value.name, value.type, std::string(value.data.begin(), value.data.end())});
+            std::string bytes(value.data.begin(), value.data.end());
+            if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
+                bytes.assign(reinterpret_cast<const char*>(data), size);
+            } else {
+                type = value.type;
             }
+            std::string text;
+            if (ValueText(type, bytes, &text)) lines.push_back({section, value.name, text});
         }
     }
-    if (g_mode == Mode::Writable) AddProbeKey(document);
+    if (g_mode == Mode::Writable) AddProbeSection(lines);
+    const std::string text = image::SettingsText(lines);
+    FILE* f = nullptr;
+    if (fopen_s(&f, file, "wb") != 0 || !f || std::fwrite(text.data(), 1, text.size(), f) != text.size()) {
+        if (f) std::fclose(f);
+        Problem(std::string("cannot write the run's settings file ") + file);
+        return;
+    }
+    std::fclose(f);
+    Log("harness: settings written to %s (the registry snapshot's %s tree and the starter lines; %s)", file,
+        starter::RebirthInstall() ? "Rebirth's" : "the original's",
+        g_mode == Mode::ReadOnly ? "read only" : "writable: the exit save rewrites it");
+}
+
+// The run's settings file pinned (read only, or writable): written by WriteSettingsFile at the first use, or with
+// `settingsfile defaults` missing (the first use writes the defaults).
+void PinSettingsFile() {
     char file[MAX_PATH];
     ei::OutputPath(image::SettingsFileName(), file);
     char temporary[MAX_PATH];
@@ -632,33 +692,13 @@ void PinSettingsFile() {
         Log("harness: no settings file: the first use writes %s with the defaults", file);
         return;
     }
-    const std::string text = image::SettingsText(document);
-    FILE* f = nullptr;
-    if (fopen_s(&f, file, "wb") != 0 || !f || std::fwrite(text.data(), 1, text.size(), f) != text.size()) {
-        if (f) std::fclose(f);
-        Problem(std::string("cannot write the run's settings file ") + file);
-        return;
-    }
-    std::fclose(f);
-    image::PinSettings(file, &PinnedMissing, g_mode == Mode::ReadOnly);
-    Log("harness: settings pinned in %s (the registry snapshot and the starter lines; %s)", file,
-        g_mode == Mode::ReadOnly ? "read only" : "writable: the exit save rewrites it");
+    DeleteFileA(file);
+    image::PinSettings(file, &PinnedMissing, g_mode == Mode::ReadOnly, &WriteSettingsFile);
 }
 
 } // namespace
 
 bool ParseStep(const std::string& verb, const std::string& argument) {
-    if (verb == "treeresolution") {
-        const std::size_t space = argument.find(' ');
-        const std::string tree = argument.substr(0, space);
-        const std::string size = space == std::string::npos ? std::string() : argument.substr(space + 1);
-        int w = 0, h = 0;
-        if ((tree != "game" && tree != "starter") || sscanf_s(size.c_str(), "%dx%d", &w, &h) != 2)
-            Problem("treeresolution needs game|starter and WxH");
-        else
-            g_treeResolution[tree == "game" ? 0 : 1] = size;
-        return true;
-    }
     if (verb != "settingsfile") return false;
     if (argument == "writable") g_mode = Mode::Writable;
     else if (argument == "defaults") g_mode = Mode::Defaults;

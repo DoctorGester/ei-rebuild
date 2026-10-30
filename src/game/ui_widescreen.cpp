@@ -6,7 +6,7 @@
 
 #include "ei/rebirth.h"
 #include "hook/log.h"
-#include "settings_file.h"
+#include "settings.h"
 #include "lib/rect.h"
 
 #include <cmath>
@@ -18,18 +18,9 @@ namespace {
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 
-// addon reads its starter switch with RegQueryValueExW under HKEY_CURRENT_USER; the standalone keeps it in its
-// settings file (settings_file.h; the string is the same in both).
-constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-
-// Settings\WideScreen: a DWORD, 1 when the key or the value is missing (addon's default).
-bool WideScreenSetting() {
-    std::uint32_t value = 1;
-    std::uint32_t read = 0, size = sizeof(read), type = 0;
-    if (settings_file::ReadValue(kStarterSettings, "WideScreen", &type, &read, &size) == settings_file::kSuccess && type == settings_file::kTypeDword)
-        value = read;
-    return value != 0;
-}
+// The starter's switch (addon reads it from the registry): [rebirth] WideScreen of the settings file, on when missing
+// (addon's default).
+bool WideScreenSetting() { return settings::GetBool(settings::kRebirth, "WideScreen", true); }
 
 // addon's apply function (10023AFC): the checks that refuse a mode (logged as failed or disabled),
 // then the values, for the mode the game runs in.
