@@ -9,7 +9,8 @@
 
 #include <cstdint>
 
-#include "ei/x87.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 
 #include <vector>
 
@@ -17,7 +18,7 @@ namespace {
 
 constexpr int kLevels = 8;
 
-// The occluders' damping scale, ln 0.6 as the x87 computes it, stored as a float by a static initialiser.
+// The occluders' damping scale, ln 0.6 (the double) as FYL2X computes it, stored as a float by a static initialiser.
 float g_dampScale = /*007C2F8C*/ {};
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.
@@ -33,8 +34,8 @@ std::uint32_t& CellWord(AIMap* map, int x, int y) {
 
 // passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
 int Damp(int table, float a, float b, int passage) {
-    const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
-    return x87::fistp(damped);
+    const float damped = pc24::Mul(pc24::Exp(static_cast<float>(table) * a * b), static_cast<double>(passage));
+    return lib::RoundEven(damped);
 }
 
 int TableInt(const int* table, int i) { return table[i]; }
@@ -55,9 +56,9 @@ void Occlude(CellMarkState* s, OccluderKind type, int lowest, int highest, bool 
     if (s->passage < 0 || lowest > s->top || highest < s->bottom) return;
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
-    float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
-    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, static_cast<int>(type))) * frac);
-    s->cost += x87::fistp(added);
+    float frac = static_cast<float>(hi - lo) / static_cast<float>(s->top - s->bottom);
+    float added = static_cast<float>(TableInt(worlddata::kOccluderCosts, static_cast<int>(type))) * frac;
+    s->cost += lib::RoundEven(added);
     float scale = g_dampScale;
     s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), scale, frac, s->passage)
                              : Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), frac, scale, s->passage);
@@ -81,7 +82,7 @@ int MaxStep(const std::vector<int>& table) {
 
 } // namespace
 
-void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6)); }
+void InitDampScale() { g_dampScale = -0x1.058afp-1f; }
 
 void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
@@ -98,9 +99,8 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
     CellMarkState scratch;
     for (int level = 0; level < kLevels; ++level) {
-        float h = static_cast<float>(static_cast<double>(kLevelHeights[level]) *
-                                                heightScale);
-        int levelHeight = x87::fistp(h);
+        float h = kLevelHeights[level] * heightScale;
+        int levelHeight = lib::RoundEven(h);
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
                 std::int8_t* row = marks[y];
@@ -143,13 +143,13 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (!refreshUnits) return;
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    double halfW = static_cast<double>(ox1 - ox0) * 0.5f + 1.0f;
-    double halfH = static_cast<double>(oy1 - oy0) * 0.5f + 1.0f;
+    float halfW = static_cast<float>(ox1 - ox0) * 0.5f + 1.0f;
+    float halfH = static_cast<float>(oy1 - oy0) * 0.5f + 1.0f;
     float scale = 0.5f;
-    float radius = static_cast<float>(std::sqrt(halfW * halfW + halfH * halfH) * scale);
+    float radius = std::sqrt(halfW * halfW + halfH * halfH) * scale;
     Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
-    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * 0.5f);
-    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f);
+    float cx = static_cast<float>(ox0 + ox1) * scale * 0.5f;
+    float cy = static_cast<float>(oy0 + oy1) * scale * 0.5f;
     centre.x = cx;
     centre.y = cy;
     SectorMap* sectors = &sectorMap;

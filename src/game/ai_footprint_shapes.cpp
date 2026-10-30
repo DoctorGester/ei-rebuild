@@ -6,7 +6,7 @@
 #include "ai_map.h"
 #include "core_maths.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"
 
@@ -45,10 +45,10 @@ struct Bounds {
 // bounds to width - 1 / height - 1).
 Bounds SquareAround(AIMap* map, float cx, float cy, float r) {
     Bounds b;
-    b.x0 = x87::fistp(static_cast<float>(static_cast<double>(cx) - r)) - 1;
-    b.y0 = x87::fistp(static_cast<float>(static_cast<double>(cy) - r)) - 1;
-    b.x1 = x87::fistp(static_cast<float>(static_cast<double>(r) + cx)) + 1;
-    b.y1 = x87::fistp(static_cast<float>(static_cast<double>(r) + cy)) + 1;
+    b.x0 = lib::RoundEven(cx - r) - 1;
+    b.y0 = lib::RoundEven(cy - r) - 1;
+    b.x1 = lib::RoundEven(r + cx) + 1;
+    b.y1 = lib::RoundEven(r + cy) + 1;
     if (b.x0 < 0) b.x0 = 0;
     if (b.y0 < 0) b.y0 = 0;
     if (b.x1 >= map->cells.width - 1) b.x1 = map->cells.width - 1;
@@ -61,53 +61,51 @@ Bounds SquareAround(AIMap* map, float cx, float cy, float r) {
 // The disc limited by a line, at half a unit's width from it.
 void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const Vector3& direction) {
     constexpr float kWidth = 0.5f;
-    double scale = 1.0 /
-                   (0.5);
-    float cx = static_cast<float>(scale * position.x);
-    float cy = static_cast<float>(scale * position.y);
-    double dx = direction.x, dy = direction.y, dz = direction.z;
-    double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
-    double reach = length * scale + 1.0;
-    float r = static_cast<float>(reach);
-    float r2 = static_cast<float>(reach * r);
+    float scale = 1.0f / 0.5f;
+    float cx = scale * position.x;
+    float cy = scale * position.y;
+    float dx = direction.x, dy = direction.y, dz = direction.z;
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    float reach = length * scale + 1.0f;
+    float r = reach;
+    float r2 = reach * r;
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction.y;
     float ny = direction.x;
-    double side = std::sqrt(LengthSquared2DUnrounded<double>(ny, nx));
-    double divisor = side * (scale * kWidth + 1.0);
-    nx = static_cast<float>(nx / divisor);
-    ny = static_cast<float>(ny / divisor);
+    float side = std::sqrt(LengthSquared2DUnrounded(ny, nx));
+    float divisor = side * (scale * kWidth + 1.0f);
+    nx = nx / divisor;
+    ny = ny / divisor;
 
     ResetSet(this);
     Bounds b = SquareAround(map, cx, cy, r);
     for (int y = b.y0; y <= b.y1; ++y)
         for (int x = b.x0; x <= b.x1; ++x) {
-            float fy = static_cast<float>(cy - static_cast<double>(y));
-            double fx = cx - static_cast<double>(x);
+            float fy = cy - static_cast<float>(y);
+            float fx = cx - static_cast<float>(x);
             EI_NAN_AUDIT(fy, fx, r2, ny, nx);
-            if (LengthSquared2DUnrounded<double>(fy, fx) >= r2) continue;
-            if (Dot2DUnrounded<double>(fy, fx, ny, nx) >= 1.0) continue;
+            if (LengthSquared2DUnrounded(fy, fx) >= r2) continue;
+            if (Dot2DUnrounded(fy, fx, ny, nx) >= 1.0f) continue;
             AddCell(this, x, y);
         }
 }
 
 // The disc.
 void FootprintCellSet::DiscAt(AIMap* map, const Vector3& position, float radius) {
-    double scale = 1.0 /
-                   (0.5);
-    float cx = static_cast<float>(scale * position.x);
-    float cy = static_cast<float>(scale * position.y);
-    double reach = scale * radius + 1.0;
-    float r = static_cast<float>(reach);
-    float r2 = static_cast<float>(reach * r);
+    float scale = 1.0f / 0.5f;
+    float cx = scale * position.x;
+    float cy = scale * position.y;
+    float reach = scale * radius + 1.0f;
+    float r = reach;
+    float r2 = reach * r;
 
     ResetSet(this);
     Bounds b = SquareAround(map, cx, cy, r);
     for (int y = b.y0; y <= b.y1; ++y)
         for (int x = b.x0; x <= b.x1; ++x) {
-            double fy = cy - static_cast<double>(y);
-            float fy2 = static_cast<float>(fy * fy);
-            double fx = cx - static_cast<double>(x);
+            float fy = cy - static_cast<float>(y);
+            float fy2 = fy * fy;
+            float fx = cx - static_cast<float>(x);
             EI_NAN_AUDIT(fx, fy2, r2);
             if (fx * fx + fy2 >= r2) continue;
             AddCell(this, x, y);

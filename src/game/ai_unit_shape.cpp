@@ -2,16 +2,16 @@
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
 #include "ai_unit_layer.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <cstring>
 
 namespace {
 
 // Constants of the shape maths (the cell size, halved, among them).
-constexpr double kMargin = 2.0;
-constexpr double kHalfCell = 0.5;
-constexpr double kLevelsPerUnit = 16.0;
+constexpr float kMargin = 2.0f;
+constexpr float kHalfCell = 0.5f;
+constexpr float kLevelsPerUnit = 16.0f;
 constexpr int kMiddle = 8;
 
 } // namespace
@@ -26,9 +26,9 @@ UnitShape::UnitShape(float newRadius) {
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
         int rowSquared = dy * dy;
         for (int dx = -kMiddle; dx < kMiddle; ++dx) {
-            double distance = std::sqrt(static_cast<double>(dx * dx + rowSquared));
-            float level = static_cast<float>(((kMargin + radius) - distance * kHalfCell) * kLevelsPerUnit);
-            int value = x87::fistp(level);
+            float distance = std::sqrt(static_cast<float>(dx * dx + rowSquared));
+            float level = ((kMargin + radius) - distance * kHalfCell) * kLevelsPerUnit;
+            int value = lib::RoundEven(level);
             if (value > 0) levels[dy + kMiddle][dx + kMiddle] = static_cast<std::uint8_t>(value);
         }
     }

@@ -14,8 +14,7 @@
 #include <cstring>
 
 void AIMap::StampWaterPatch(const Vector3& position, bool add) {
-    double scale = 1.0 /
-                   (0.5f);
+    float scale = 1.0f / 0.5f;
     int x = static_cast<int>(scale * position.x);
     int y = static_cast<int>(scale * position.y);
     static Ref<UnitShape> patch;

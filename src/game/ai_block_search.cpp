@@ -119,12 +119,12 @@ void RegionMap::UpdateBlocks(AIMap* aiMap, int x0, int x1, int y0, int y1) {
     if (edges[0].width <= x1) x1 = edges[0].width;
     for (int y = y0; y < y1; ++y) {
         for (int x = x0; x < x1; ++x) PickRepresentatives(aiMap, x, y);
-        if (progress) progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kFirstPassShare));
+        if (progress) progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kFirstPassShare);
     }
     for (int y = y0; y < y1; ++y) {
         for (int x = x0; x < x1; ++x) MeasureBlockEdges(x, y);
         if (progress)
-            progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kSecondPassShare + kFirstPassShare));
+            progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kSecondPassShare + kFirstPassShare);
     }
     ClampEdgeCosts();
     AttachSearches();

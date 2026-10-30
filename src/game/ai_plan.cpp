@@ -22,7 +22,7 @@ struct Waypoint {
     PathCells::iterator region;
 };
 
-constexpr double kThreshold = 15.0;
+constexpr float kThreshold = 15.0f;
 
 } // namespace
 
@@ -129,15 +129,15 @@ bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AI
         int diff = dx - dy;
         if (diff < 0) diff = -diff;
         int distance = diff + ((shorter * 1448) >> 10);
-        if (static_cast<double>(distance) > kThreshold) {
+        if (static_cast<float>(distance) > kThreshold) {
             search->CommitDirections();
             toY = bestY;
             toX = bestX;
             path->failed = true;
             result = true;
-            float tx = static_cast<float>(static_cast<double>(bestX) + 0.5f);
+            float tx = static_cast<float>(bestX) + 0.5f;
             path->targetX = tx;
-            float ty = static_cast<float>(static_cast<double>(bestY) + 0.5f);
+            float ty = static_cast<float>(bestY) + 0.5f;
             path->targetY = ty;
         } else {
             search->Reset();

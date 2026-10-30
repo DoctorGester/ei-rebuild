@@ -764,7 +764,7 @@ public:
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
     // The largest ground step between consecutive cells on the line, in world height; 1.0 for a zero-length line,
     // 100.0 when an end is off the map.
-    double LargestStepAlong(const Vector3& from, const Vector3& to);
+    float LargestStepAlong(const Vector3& from, const Vector3& to);
     // Joins the forward and backward local searches where they meet; false when they cannot.
     bool JoinLocalSearches(PathCells* cells, int* cost);
     // The path to cell (x, y) walked back along the direction marks into `path` (emptied first).

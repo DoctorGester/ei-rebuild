@@ -1,7 +1,7 @@
 // A unit's motion: the order header of AIPath and the trajectory the unit follows. The trajectory is rebuilt
-// when a path is advanced (Build) and sampled every tick by the unit's movement (Sample). Floating point
-// follows the original's x87 code: `double` for values the original keeps on the FPU stack,
-// static_cast<float> where it stores to a float.
+// when a path is advanced (Build) and sampled every tick by the unit's movement (Sample). Float maths in the
+// original's order (its FPU registers held floats at the main thread's 24-bit precision); FSIN, FCOS and FPATAN's
+// 64-bit results through lib/pc24.h.
 #include "ai_motion.h"
 
 #include "ai_map.h"
@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 #include "ei/x87.h"
@@ -38,7 +39,7 @@ const volatile float kMinusOne = -1.0f;
 const volatile float kZero = 0.0f;
 const volatile float kOne = 1.0f;
 
-constexpr double kHalfCellScale = 2.0;      // 1 / (half a cell)
+constexpr float kHalfCellScale = 2.0f;      // 1 / (half a cell)
 constexpr float kSpeedUnit = 0.001953125f;  // 1/512
 constexpr float kMinLength = 9.99999975e-06f;
 
@@ -54,49 +55,51 @@ int DirectionDelta(int a, int b) {
 }
 
 void FaceAngle(float angle, float* direction) {
-    direction[0] = static_cast<float>(x87::fcos(angle));
-    direction[1] = static_cast<float>(x87::fsin(angle));
+    direction[0] = pc24::Round(pc24::Cos(angle));
+    direction[1] = pc24::Round(pc24::Sin(angle));
 }
+
+// FCOS's 64-bit result above a double constant, compared unrounded.
+bool Above(pc24::Unrounded value, double limit) { return value.hi > limit || (value.hi == limit && value.lo > 0.0); }
 
 // Turning in place: the facing after `elapsed` of turning `turn` from `start` at `rate`; `final`
 // when the turn takes no longer than that. Used by the order kinds 1 and 4.
-double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
-    float ratio = AbsBits(static_cast<float>(static_cast<double>(m->turn) / m->turnRate));
+float TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
+    float ratio = AbsBits(m->turn / m->turnRate);
     EI_NAN_AUDIT(ratio, elapsed);
     if (ratio < elapsed) {
         *final = true;
-        return static_cast<double>(m->startAngle) + m->turn;
+        return m->startAngle + m->turn;
     }
     *final = false;
     EI_NAN_AUDIT(m->turn);
     float sign = m->turn < 0.0f ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
-    return static_cast<double>(sign) * elapsed * m->turnRate + m->startAngle;
+    return sign * elapsed * m->turnRate + m->startAngle;
 }
 
-// Brings `turn` (stored as float) into [-pi, pi]: the first comparison is on the unrounded difference, the
-// later ones on each unrounded step.
-void NormalizeTurn(UnitMotion* m, double turn) {
-    m->turn = static_cast<float>(turn);
-    const double twoPi = static_cast<double>(kPi) + kPi;
+// Brings `turn` into [-pi, pi], a turn (2 pi as the float sum kPi + kPi) at a time.
+void NormalizeTurn(UnitMotion* m, float turn) {
+    m->turn = turn;
+    const float twoPi = kPi + kPi;
     if (turn > kPi) {
-        double v;
+        float v;
         do {
-            v = static_cast<double>(m->turn) - twoPi;
-            m->turn = static_cast<float>(v);
+            v = m->turn - twoPi;
+            m->turn = v;
         } while (v > kPi);
     }
     const float negPi = -kPi;
     if (negPi > m->turn) {
-        double v;
+        float v;
         do {
             v = twoPi + m->turn;
-            m->turn = static_cast<float>(v);
+            m->turn = v;
             EI_NAN_AUDIT(v);
         } while (v < negPi);   // ends on a NaN (the original's did not)
     }
 }
 
-MotionWaypoint Waypoint(double x, double y) { return {static_cast<float>(x), static_cast<float>(y), 0}; }
+MotionWaypoint Waypoint(float x, float y) { return {x, y, 0}; }
 
 } // namespace
 
@@ -118,16 +121,17 @@ int PathOrder::Reset() {
 
 bool PathOrder::Start(const Vector3& position, const Vector3& direction, int time) {
     MotionOrder* order = OrderOf(this);
-    double dx = direction.x;
+    float dx = direction.x;
     float dy = direction.y;
-    double length = std::sqrt(LengthSquared2DUnrounded<double>(dy, dx));
-    double angle = length > 0.0 ? x87::fpatan(dy / length, dx / length) : 0.0;
-    double x = kHalfCellScale * position.x;
-    float y = static_cast<float>(kHalfCellScale * position.y);
-    EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
-    bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
-    order->x = static_cast<float>(x);
-    order->angle = static_cast<float>(angle);
+    float length = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    // FPATAN's 64-bit result: compared with the stored angle unrounded.
+    pc24::Unrounded angle = length > 0.0f ? pc24::Atan2(dy / length, dx / length) : pc24::Unrounded{};
+    float x = kHalfCellScale * position.x;
+    float y = kHalfCellScale * position.y;
+    EI_NAN_AUDIT(order->angle, angle.hi, x, order->x, order->y, y);
+    bool same = order->kind == 0 && order->angle == angle.hi && angle.lo == 0.0 && x == order->x && order->y == y;
+    order->x = x;
+    order->angle = pc24::Round(angle);
     order->kind = 0;
     order->y = y;
     order->startTime = time;
@@ -138,7 +142,7 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
 void PathOrder::SetTurn(const Vector3& direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
-    float angle = static_cast<float>(x87::fpatan(direction.y, direction.x));
+    float angle = pc24::Round(pc24::Atan2(direction.y, direction.x));
     order->arg6 = rateBits;
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -155,7 +159,7 @@ void PathOrder::SetTurnUntil(const Vector3& direction, int fromTime, int toTime)
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(toTime);
-    float angle = static_cast<float>(x87::fpatan(direction.y, direction.x));
+    float angle = pc24::Round(pc24::Atan2(direction.y, direction.x));
     order->arg6 = static_cast<std::uint32_t>(fromTime);
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -188,15 +192,15 @@ int PathOrder::SetStepSpeeds(std::uint16_t speed) {
 
 Vector3* PathOrder::Destination(Vector3* out) {
     const MotionOrder* order = OrderOf(this);
-    double scale = 0.5;     // half a cell
+    float scale = 0.5f;     // half a cell
     if (order->kind != 2) {
-        out->x = static_cast<float>(scale * order->x);
+        out->x = scale * order->x;
         out->z = 0.0f;
-        out->y = static_cast<float>(scale * order->y);
+        out->y = scale * order->y;
     } else {
-        out->x = static_cast<float>(scale * AsFloat(order->arg5));
+        out->x = scale * AsFloat(order->arg5);
         out->z = 0.0f;
-        out->y = static_cast<float>(scale * AsFloat(order->arg6));
+        out->y = scale * AsFloat(order->arg6);
     }
     return out;
 }
@@ -216,25 +220,25 @@ void AIPath::Clear() {
 
 // --- The trajectory --------------------------------------------------------------------------------
 
-// A copy of CubicSegment::Evaluate: Horner's scheme, unrounded.
-double MotionCubic::Value(float u) { return ((u * c3 + c2) * u + c1) * u + c0; }
+// A copy of CubicSegment::Evaluate: Horner's scheme.
+float MotionCubic::Value(float u) { return ((u * c3 + c2) * u + c1) * u + c0; }
 
 void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
-    double inverse = 1.0f / length;
-    x87::CopyBits(c0, p0);
-    x87::CopyBits(c1, d0);
-    double half = ((static_cast<double>(p1) - p0) - static_cast<double>(d0) * length) * inverse;
+    float inverse = 1.0f / length;
+    c0 = p0;
+    c1 = d0;
+    float half = ((p1 - p0) - d0 * length) * inverse;
     half = half + half;
-    double cubic = ((static_cast<double>(d1) - d0) - half) * inverse * inverse;
-    c3 = static_cast<float>(cubic);
-    double scaled = cubic * length * length;
+    float cubic = ((d1 - d0) - half) * inverse * inverse;
+    c3 = cubic;
+    float scaled = cubic * length * length;
     scaled = scaled + scaled;
-    c2 = static_cast<float>((half - scaled) * inverse * 0.5f);
+    c2 = (half - scaled) * inverse * 0.5f;
 }
 
-double MotionCubic::Slope(float u) {
-    double c2x2 = static_cast<double>(c2) + c2;
-    return (static_cast<double>(u) * c3 * 3.0f + c2x2) * u + c1;
+float MotionCubic::Slope(float u) {
+    float c2x2 = c2 + c2;
+    return (u * c3 * 3.0f + c2x2) * u + c1;
 }
 
 int UnitMotion::Clear() {
@@ -252,10 +256,11 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
     *speedOut = 0.1f;
     direction[2] = 0.0f;
     *turning = false;
+    // The start tick, an int: compared exactly; the elapsed time is the difference rounded once.
     double start = order->startTime;
     time = time >= start ? time : static_cast<float>(start);
-    x87::CopyBits(position[0], order->x);
-    x87::CopyBits(position[1], order->y);
+    position[0] = order->x;
+    position[1] = order->y;
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -264,13 +269,13 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
     case 1: {
         *turning = true;
         bool final;
-        double angle = TurnAngle(this, static_cast<float>(time - start), &final);
-        direction[0] = static_cast<float>(x87::fcos(angle));
-        direction[1] = static_cast<float>(x87::fsin(angle));
+        float angle = TurnAngle(this, pc24::Sub(time, start), &final);
+        direction[0] = pc24::Round(pc24::Cos(angle));
+        direction[1] = pc24::Round(pc24::Sin(angle));
         return !final;
     }
     case 2:
-        return SamplePath(static_cast<float>(time - start), turning, position, direction, speedOut, cellX, cellY);
+        return SamplePath(pc24::Sub(time, start), turning, position, direction, speedOut, cellX, cellY);
     case 3: {
         CMapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
         if (!object) {
@@ -284,38 +289,40 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         else where = object->AimPoint(&buffer);
         Vector3 target;
         target = *where;
-        float tx = static_cast<float>(kHalfCellScale * target.x);
-        double ty = kHalfCellScale * target.y;
+        float tx = kHalfCellScale * target.x;
+        float ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
         if (static_cast<double>(to) > time && to != order->startTime) {
-            double angleTo = x87::fpatan(ty - order->y, static_cast<double>(tx) - order->x) - order->angle;
-            const double twoPi = static_cast<double>(kPi) + kPi;
+            float angleTo = pc24::Sub(pc24::Atan2(ty - order->y, tx - order->x), order->angle);
+            const float twoPi = kPi + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
             EI_NAN_AUDIT(angleTo);
             while (angleTo < negPi) angleTo = angleTo + twoPi;   // ends on a NaN (the original's did not)
-            double angle = (time - start) * angleTo / static_cast<double>(to - order->startTime) + order->angle;
-            direction[0] = static_cast<float>(x87::fcos(angle));
-            direction[1] = static_cast<float>(x87::fsin(angle));
+            // Over the turn's tick count, an int.
+            float angle = pc24::Div(pc24::Sub(time, start) * angleTo, static_cast<double>(to - order->startTime)) +
+                          order->angle;
+            direction[0] = pc24::Round(pc24::Cos(angle));
+            direction[1] = pc24::Round(pc24::Sin(angle));
             return true;
         }
-        direction[0] = static_cast<float>(static_cast<double>(tx) - order->x);
-        double dy = ty - order->y;
-        direction[1] = static_cast<float>(dy);
-        double norm = std::sqrt(dy * dy + static_cast<double>(direction[0]) * direction[0]);
+        direction[0] = tx - order->x;
+        float dy = ty - order->y;
+        direction[1] = dy;
+        float norm = std::sqrt(dy * dy + direction[0] * direction[0]);
         EI_NAN_AUDIT(norm);
-        if (norm == 0.0) return true;
-        double inverse = 1.0f / norm;
-        direction[0] = static_cast<float>(inverse * direction[0]);
-        direction[1] = static_cast<float>(inverse * direction[1]);
-        direction[2] = static_cast<float>(inverse * direction[2]);
+        if (norm == 0.0f) return true;
+        float inverse = 1.0f / norm;
+        direction[0] = inverse * direction[0];
+        direction[1] = inverse * direction[1];
+        direction[2] = inverse * direction[2];
         return true;
     }
     case 4: {
         bool final;
-        double angle = TurnAngle(this, static_cast<float>(time - start), &final);
-        direction[0] = static_cast<float>(x87::fcos(angle));
-        direction[1] = static_cast<float>(x87::fsin(angle));
+        float angle = TurnAngle(this, pc24::Sub(time, start), &final);
+        direction[0] = pc24::Round(pc24::Cos(angle));
+        direction[1] = pc24::Round(pc24::Sin(angle));
         *turning = !final;
         return true;
     }
@@ -326,7 +333,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
 
 bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* direction, float* speedOut,
                             int* cellX, int* cellY) {
-    double end = 0.0;
+    float end = 0.0f;
     int index = 0;
     bool found = false;
     EI_NAN_AUDIT(time, segmentStart, segmentEnd);
@@ -339,21 +346,21 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     } else {
         *turning = true;
         turnRate = baseTurnRate;
-        float turnTime = AbsBits(static_cast<float>(static_cast<double>(turn) / baseTurnRate));
+        float turnTime = AbsBits(turn / baseTurnRate);
         EI_NAN_AUDIT(time, turnTime);
         if (time <= turnTime) {
-            float ratio = AbsBits(static_cast<float>(static_cast<double>(turn) / turnRate));
-            double angle;
+            float ratio = AbsBits(turn / turnRate);
+            float angle;
             EI_NAN_AUDIT(ratio);
             if (ratio < time) {
-                angle = static_cast<double>(startAngle) + turn;
+                angle = startAngle + turn;
             } else {
                 EI_NAN_AUDIT(turn);
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
-                angle = static_cast<double>(sign) * turnRate * time + startAngle;
+                angle = sign * turnRate * time + startAngle;
             }
-            direction[0] = static_cast<float>(x87::fcos(angle));
-            direction[1] = static_cast<float>(x87::fsin(angle));
+            direction[0] = pc24::Round(pc24::Cos(angle));
+            direction[1] = pc24::Round(pc24::Sin(angle));
             return true;
         }
         end = turnTime;
@@ -364,16 +371,16 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         *turning = false;
         float saved = segmentStart;
         for (; index < std::ssize(points) - 1; ++index) {
-            segmentStart = static_cast<float>(end);
+            segmentStart = end;
             const MotionPoint& from = points[index];
             const MotionPoint& to = points[index + 1];
             std::memcpy(&fromX, &from.x, 4 * sizeof(float));     // x, y, dirX, dirY
             std::memcpy(&toX, &to.x, 4 * sizeof(float));
-            double dx = static_cast<double>(fromX) - toX;
-            double dy = static_cast<double>(fromY) - toY;
-            double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
-            length = static_cast<float>(distance);
-            x87::CopyBits(speed, from.speed);
+            float dx = fromX - toX;
+            float dy = fromY - toY;
+            float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+            length = distance;
+            speed = from.speed;
             end = end + distance / speed;
             EI_NAN_AUDIT(end);
             if (time <= end) {
@@ -385,28 +392,28 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             segmentStart = saved;
             *speedOut = 0.0f;
             const MotionPoint& last = points[std::ssize(points) - 1];
-            x87::CopyBits(position[0], last.x);
-            x87::CopyBits(position[1], last.y);
-            x87::CopyBits(direction[0], last.dirX);
+            position[0] = last.x;
+            position[1] = last.y;
+            direction[0] = last.dirX;
             direction[2] = 0.0f;
-            x87::CopyBits(direction[1], last.dirY);
+            direction[1] = last.dirY;
             *cellX = last.cellX;
             *cellY = last.cellY;
             return false;
         }
         curveX.Fit(fromX, fromDirX, toX, toDirX, length);
         curveY.Fit(fromY, fromDirY, toY, toDirY, length);
-        segmentEnd = static_cast<float>(end);
+        segmentEnd = end;
         segment = index;
     }
 
     *turning = false;
-    x87::CopyBits(*speedOut, speed);
-    float u = static_cast<float>((time - static_cast<double>(segmentStart)) * speed);
-    position[0] = static_cast<float>(curveX.Value(u));
-    direction[0] = static_cast<float>(curveX.Slope(u));
-    position[1] = static_cast<float>(curveY.Value(u));
-    direction[1] = static_cast<float>(curveY.Slope(u));
+    *speedOut = speed;
+    float u = (time - segmentStart) * speed;
+    position[0] = curveX.Value(u);
+    direction[0] = curveX.Slope(u);
+    position[1] = curveY.Value(u);
+    direction[1] = curveY.Slope(u);
     *cellX = points[segment + 1].cellX;
     *cellY = points[segment + 1].cellY;
     return true;
@@ -418,7 +425,7 @@ void UnitMotion::Build(PathOrder* path) {
     points.clear();
     waypoints.clear();
     stepSpeeds.clear();
-    x87::CopyBits(startAngle, order->angle);
+    startAngle = order->angle;
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -427,21 +434,23 @@ void UnitMotion::Build(PathOrder* path) {
     case 1: {
         float rate = AsFloat(order->arg6);
         float angle = AsFloat(order->arg5);
-        float s = static_cast<float>(x87::fsin(angle));
-        double c = x87::fcos(angle);
-        float cf = static_cast<float>(c);
-        EI_NAN_AUDIT(c, s);
-        if (c == 0.0 && s == 0.0) {
+        float s = pc24::Round(pc24::Sin(angle));
+        pc24::Unrounded c = pc24::Cos(angle);   // compared with 0 unrounded
+        float cf = pc24::Round(c);
+        EI_NAN_AUDIT(c.hi, s);
+        if (c.hi == 0.0 && s == 0.0f) {
             turn = 0.0f;
             return;
         }
         EI_NAN_AUDIT(rate);
         if (rate != 0.0f) turnRate = rate;
         else turnRate = baseTurnRate;
-        NormalizeTurn(this, x87::fpatan(s, cf) - startAngle);
+        NormalizeTurn(this, pc24::Sub(pc24::Atan2(s, cf), startAngle));
         return;
     }
     case 4: {
+        // FPATAN of FSIN's and FCOS's results stored as doubles, which pc24::Atan2 (floats) does not take: this
+        // keeps the file on x87 (CMakeLists.txt's list).
         float angle = AsFloat(order->arg5);
         double s = x87::fsin(angle);
         double c = x87::fcos(angle);
@@ -451,7 +460,7 @@ void UnitMotion::Build(PathOrder* path) {
             return;
         }
         turnRate = baseTurnRate;
-        NormalizeTurn(this, x87::fpatan(s, c) - startAngle);
+        NormalizeTurn(this, static_cast<float>(x87::fpatan(s, c) - startAngle));
         return;
     }
     default:
@@ -461,19 +470,19 @@ void UnitMotion::Build(PathOrder* path) {
     // Kind 2 (and anything else): waypoints at the start, at each corner of the steps and at the
     // target, then one trajectory point per path cell.
     MotionWaypoint first;
-    x87::CopyBits(first.x, order->x);
-    x87::CopyBits(first.y, order->y);
+    first.x = order->x;
+    first.y = order->y;
     first.cells = 0;
     lib::SetAtGrow(waypoints, std::ssize(waypoints), first);
     int previous = 0;
     for (auto node = path->steps.begin(); node != path->steps.end();) {
         auto next = std::next(node);
         ++waypoints[std::ssize(waypoints) - 1].cells;
-        stepSpeeds.push_back(static_cast<float>(static_cast<double>(node->flags)));
+        stepSpeeds.push_back(static_cast<float>(node->flags));
         if (next == path->steps.end()) break;
         auto afterNext = std::next(next);
         const PathCell& cell = *node;
-        double cx = cell.x, cy = cell.y;
+        float cx = cell.x, cy = cell.y;
         int dir = Direction(cell, *next);
         MotionWaypoint w;
         switch (dir) {
@@ -535,10 +544,10 @@ void UnitMotion::Build(PathOrder* path) {
 
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data();
-    if (x87::fcos(x87::fpatan(p->dirY, p->dirX) - startAngle) > 0.9) {
+    if (Above(pc24::Cos(pc24::Sub(pc24::Atan2(p->dirY, p->dirX), startAngle)), 0.9)) {
         turn = 0.0f;
-        p->dirX = static_cast<float>(x87::fcos(startAngle));
-        points.data()->dirY = static_cast<float>(x87::fsin(startAngle));
+        p->dirX = pc24::Round(pc24::Cos(startAngle));
+        points.data()->dirY = pc24::Round(pc24::Sin(startAngle));
         AssignCells(path);
         return;
     }
@@ -548,9 +557,9 @@ void UnitMotion::Build(PathOrder* path) {
         AssignCells(path);
         return;
     }
-    double angle = x87::fpatan(p->dirY, p->dirX);
+    pc24::Unrounded angle = pc24::Atan2(p->dirY, p->dirX);
     turnRate = baseTurnRate;
-    NormalizeTurn(this, angle - startAngle);
+    NormalizeTurn(this, pc24::Sub(angle, startAngle));
     AssignCells(path);
 }
 
@@ -582,41 +591,41 @@ void UnitMotion::Subdivide() {
 
 void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint* b, int cells, float startOffset,
                                   float endOffset, int* stepIndex) {
-    double dx = static_cast<double>(a->x) - b->x;
-    double dy = static_cast<double>(a->y) - b->y;
-    double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float dx = a->x - b->x;
+    float dy = a->y - b->y;
+    float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
     EI_NAN_AUDIT(distance);
-    if (distance == 0.0) distance = kMinLength;
+    if (distance == 0.0f) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
     p.cellY = -1;
-    p.dirX = static_cast<float>((static_cast<double>(b->x) - a->x) / distance);
-    p.dirY = static_cast<float>((static_cast<double>(b->y) - a->y) / distance);
+    p.dirX = (b->x - a->x) / distance;
+    p.dirY = (b->y - a->y) / distance;
 
     EI_NAN_AUDIT(startOffset, endOffset);
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
-        x87::CopyBits(p.x, a->x);
-        x87::CopyBits(p.y, a->y);
+        p.x = a->x;
+        p.y = a->y;
         int size = std::ssize(points);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
+        p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         points.resize(size + 1);
         points[size] = p;
         size = std::ssize(points);
-        x87::CopyBits(p.x, b->x);
-        x87::CopyBits(p.y, b->y);
+        p.x = b->x;
+        p.y = b->y;
         points.resize(size + 1);
         points[size] = p;
         ++*stepIndex;
         return;
     }
 
-    float inverse = static_cast<float>(1.0f / (static_cast<double>(cells) + startOffset - endOffset));
+    float inverse = 1.0f / (static_cast<float>(cells) + startOffset - endOffset);
     for (int k = 0; k < cells; ++k) {
-        double f = (static_cast<double>(k) + startOffset + 0.5f) * inverse;
-        double g = 1.0f - f;
-        p.x = static_cast<float>(f * b->x + g * a->x);
-        p.y = static_cast<float>(g * a->y + f * b->y);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
+        float f = (static_cast<float>(k) + startOffset + 0.5f) * inverse;
+        float g = 1.0f - f;
+        p.x = f * b->x + g * a->x;
+        p.y = g * a->y + f * b->y;
+        p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         int size = std::ssize(points);
         points.resize(size + 1);
         points[size] = p;
@@ -625,20 +634,20 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
 }
 
 void UnitMotion::LimitSpeeds(float rate) {
-    const double twoPi = static_cast<double>(kPi) + kPi;
+    const float twoPi = kPi + kPi;
     for (int i = 0; i < std::ssize(points) - 1; ++i) {
         MotionPoint* p = &points[i];
-        double a1 = x87::fpatan(p[0].dirY, p[0].dirX);
-        double a2 = x87::fpatan(p[1].dirY, p[1].dirX);
-        double angle = AbsBits(static_cast<float>(a1 - a2));
+        // The first angle waits out the second FPATAN call stored as a double (rounded to 53 bits).
+        pc24::Unrounded a1 = pc24::Atan2(p[0].dirY, p[0].dirX);
+        float angle = AbsBits(pc24::Sub(a1.hi + a1.lo, pc24::Atan2(p[1].dirY, p[1].dirX)));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
-        double dx = static_cast<double>(p[0].x) - p[1].x;
-        double dy = static_cast<double>(p[0].y) - p[1].y;
-        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
-        double turnTime = angle / rate;
-        double wayTime = static_cast<double>(distance) / p[0].speed;
-        if (turnTime > wayTime) p[0].speed = static_cast<float>(distance / turnTime);
+        float dx = p[0].x - p[1].x;
+        float dy = p[0].y - p[1].y;
+        float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+        float turnTime = angle / rate;
+        float wayTime = distance / p[0].speed;
+        if (turnTime > wayTime) p[0].speed = distance / turnTime;
     }
 }
 
