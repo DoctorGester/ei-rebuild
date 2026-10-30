@@ -6764,6 +6764,13 @@ group = "cleanup"
 note = "C66 left ei_rebirth.ini (the [Rebirth] patch flags, config/ei_rebirth_standalone.ini, EI_REBIRTH) as a file of its own beside ei_settings.ini. Folding the flags into one settings file (a [flags] section?) would unify them; it touches play.cmd, run_all's EI_REBIRTH, the drop-in profile and src/lib/rebirth.cpp. Decide with the user."
 
 [[ticket]]
+id = "C66b"
+title = "run_all: drop the fallback to config/ei_rebirth_standalone.ini"
+group = "cleanup"
+depends = ["C66a"]
+note = "C66a renamed the Rebirth profile to config/rebirth_profile.ini; main's run_all (the scheduler runs it on every worker checkout) still reads the old file when a checkout from before C66a has no new one. Remove the fallback (tools/run_all.py standalone_rebirth_flags) once no branch predates C66a."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
