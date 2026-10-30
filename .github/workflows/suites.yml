@@ -206,7 +206,7 @@ jobs:
             build_verify.log
           if-no-files-found: ignore
 
-  # By hand with diff_base: the scenarios (default every one) on the vanilla data with the base ref's verify build (a
+  # By hand with diff_base: the scenarios (default every one) on both installs with the base ref's verify build (a
   # worktree in build/base, kept between runs and never deleted: run folders can hold junctions into the installs)
   # and with ref's, and for each run where its digest first differs, field by field (golden.py diff of the full
   # digests, which a golden's hashes cannot show), its console's first lines that differ and its failures.
@@ -247,8 +247,8 @@ jobs:
       - name: Play both
         run: |
           [ -z "$RESOLUTION" ] || export EI_RESOLUTION=$RESOLUTION
-          python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1 || true
-          (cd build/base && python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
+          python tools/work.py test CI --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1 || true
+          (cd build/base && python tools/work.py test CI --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
           for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
 
       - name: Where they part
@@ -256,20 +256,22 @@ jobs:
           names="$SCENARIOS"
           [ -n "$names" ] || names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//')
           for s in $names; do
+            for install in standalone standalone-rebirth; do
             for side in "" peer; do
-              a=build/base/build/verify/runs/$s-standalone${side:+/$side}
-              b=build/verify/runs/$s-standalone${side:+/$side}
-              [ -e "$a/digest.txt" ] && [ -e "$b/digest.txt" ] || continue
+              a=build/base/build/verify/runs/$s-$install${side:+/$side}
+              b=build/verify/runs/$s-$install${side:+/$side}
+              [ -e "$a/harness_report.txt" ] && [ -e "$b/harness_report.txt" ] || continue
               out=$(python tools/golden.py diff "$a" "$b" --records 1 --fields 30 --labels "base,head" 2>&1 || true)
               con=$(diff <(sed -n '/^console output:/,$p' "$a/harness_report.txt") <(sed -n '/^console output:/,$p' "$b/harness_report.txt") | head -12 || true)
               case "$out" in *"records, the same"*) [ -z "$con" ] && continue;; esac
-              echo "==== $s${side:+ ($side)}   base = $BASE, head = $REF (console: < base, > head)"
+              echo "==== $s ($install${side:+, $side})   base = $BASE, head = $REF (console: < base, > head)"
               echo "$out"
               [ -z "$con" ] || { echo "console:"; echo "$con"; }
               grep -h "^FAILED" "$a/harness_report.txt" | sed 's/^/base /' || true
               grep -h "^FAILED" "$b/harness_report.txt" | sed 's/^/head /' || true
               # where the camera looks and what the ground clicks found (harness.cpp groundview, clickground)
-              grep -h "harness: \(ground\|clickground\)" "$a/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/base /' || true
-              grep -h "harness: \(ground\|clickground\)" "$b/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/head /' || true
+              grep -h "harness: \(ground\|clickground\|starter settings\)" "$a/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/base /' || true
+              grep -h "harness: \(ground\|clickground\|starter settings\)" "$b/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/head /' || true
+            done
             done
           done
