@@ -4,12 +4,12 @@
 # clipped triangles. An ogre stands where the view's bottom edge cuts it (after SetCPFast, the camera on the hero),
 # held still (freeze), and a Ctrl click goes 2-3 pixels (800x600 layout) right of where the original picks it: the
 # image picks the ogre and the hero turns on it; the original picks nothing and the hero stays. The golden is the
-# image's (a regression test of the rule). The vanilla run in the image's 4:3 window, the view the ogre's place was
+# image's (a regression test of the rule). The image's 4:3 window on either install, the view the ogre's place was
 # chosen in (at the desktop size, the pose and pixels of the original's run; W12's wide layout at 16:9 shows more
 # ground at the sides).
 # no original: vanilla rebirth (the image's picking rule, an accepted difference from the original; renderer.md section 3)
 reject Script error
-rebirth resolution desktop
+resolution 960x720
 timeout 120
 waitmenu
 console thingamabob
