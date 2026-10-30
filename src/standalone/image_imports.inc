@@ -89,7 +89,7 @@
 {offsetof(ei::ImportTable, DirectDrawCreateEx), "DDRAW.dll", "DirectDrawCreateEx", 0, false},
 {offsetof(ei::ImportTable, DirectInputCreateEx), "DINPUT.dll", "DirectInputCreateEx", 0, false},
 {offsetof(ei::ImportTable, mmioClose), "WINMM.dll", "mmioClose", 0, false},
-{offsetof(ei::ImportTable, mmioOpenA), "WINMM.dll", "mmioOpenA", 0, true},
+{offsetof(ei::ImportTable, mmioOpenA), "WINMM.dll", "mmioOpenA", 0, false},
 {offsetof(ei::ImportTable, mmioRead), "WINMM.dll", "mmioRead", 0, false},
 {offsetof(ei::ImportTable, mmioSeek), "WINMM.dll", "mmioSeek", 0, false},
 {offsetof(ei::ImportTable, timeGetTime), "WINMM.dll", "timeGetTime", 0, true},

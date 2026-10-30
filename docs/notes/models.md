@@ -371,7 +371,7 @@ MappedResource (vtable 007432E0), MMIOResource (00743300), ResourceBase (0074332
 WildcardMatch 00674CE0. The sound system's file reader (vtable 00743320, 0x34 bytes, created by 006B6040): ResourceBase
 fields plus +0x24 archive HMMIO, +0x28 entry offset (1 loose file, 0 nothing open), +0x2C entry size, +0x30 loose file HMMIO;
 OpenFile tries a readable loose file first, then the archive's entry; the archive part is dead code (Open 00674310 and
-006745C0 have no callers, so +0x14 / +0x18 stay null). Ours (C58a) is a plain class over the loose file's HMMIO only.
+006745C0 have no callers, so +0x14 / +0x18 stay null). Ours (C58a) is a plain class over the loose file only (a platform::File since PL7b).
 
 Rewritten (grep the address): ResourceBase Construct / Destruct / deleting / FreeAccelTable (00674790, 00674810, 006747C0, 00674A90),
 ResourceStream ctor / dtor / deleting / Close / OpenFile / Read / Seek (00674280..006746F0), WildcardMatch 00674CE0,

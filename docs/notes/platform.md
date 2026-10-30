@@ -29,9 +29,8 @@ implementation folder; game code does not change.
   and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
   `gameapi::` only; widened to the other system headers (PL2a) it counted 12 more files (win_types.h, win_user.h,
   dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
-  (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9, all meant to stay for now: the win32 entry
-  (below, 5 files), the sound and movie files A1 / A2 replace (sound_manager.cpp, resource_stream.cpp, bink_video.cpp)
-  and lib/win_types.h.
+  (below) took 31 off: 26. The last game-side users (PL7) took 17 off, the sound files' reads (PL7b) one more: 6 are left, all meant to stay for now:
+  the import layer's headers (import_prototypes.h, import_table.h), the win32 entry (below, 3 files) and lib/win_types.h.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
   call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h is the one such header
   left: windef.h's types only (RECT, POINT, SIZE, DWORD, COLORREF, HWND, HANDLE, CRITICAL_SECTION), which 113 game
@@ -281,8 +280,6 @@ every backend.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
 - The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is the
   last user of win_types.h's `CRITICAL_SECTION`.
-- resource_stream.cpp: the sound files' reads (mmioOpenA and friends, FindFirstFileA for the size) still go straight
-  to Windows (PL7b).
 - lib/win_types.h: the game's RECT / POINT / SIZE / DWORD / COLORREF / HWND / HANDLE as our own types (PL7a).
 - The import layer's own files (lib/import_table.h, import_prototypes.h, gameapi.h / .cpp, win_api.h) stay in
   src/lib while the harness's reference key holds them.

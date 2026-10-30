@@ -14,7 +14,6 @@
 
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "user32.lib")
-#pragma comment(lib, "winmm.lib")
 
 // Miles Sound System's handles (HSAMPLE, HSEQUENCE, HDIGDRIVER, HMDIDRIVER), its AILSOUNDINFO and the end-of-sample
 // callback: declared only (game.exe's slots; the image calls no Miles).
@@ -76,10 +75,6 @@ extern ei::import_fn::gethostbyname& gethostbyname;  // WSOCK32.dll, through the
 extern ei::import_fn::htons& htons;  // WSOCK32.dll, through the slot
 extern ei::import_fn::ioctlsocket& ioctlsocket;  // WSOCK32.dll, through the slot
 extern ei::import_fn::sendto& sendto;  // WSOCK32.dll, through the slot
-using ::mmioClose;  // WINMM.dll
-extern decltype(&::mmioOpenA)& mmioOpenA;  // WINMM.dll, through the slot
-using ::mmioRead;  // WINMM.dll
-using ::mmioSeek;  // WINMM.dll
 extern decltype(&::timeGetTime)& timeGetTime;  // WINMM.dll, through the slot
 extern decltype(&::Sleep)& Sleep;  // KERNEL32.dll, through the slot
 using ::OutputDebugStringA;  // KERNEL32.dll

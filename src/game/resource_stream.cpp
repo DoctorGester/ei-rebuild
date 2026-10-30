@@ -12,12 +12,9 @@
 
 #include "lib/crt.h"
 #include "platform/file.h"
-#include "lib/gameapi.h"
 
 #include <cstdlib>
 #include <new>
-#include <windows.h>
-#include <mmsystem.h>
 
 namespace {
 
@@ -51,31 +48,32 @@ ResourceBase::~ResourceBase() {
 
 
 
-void ResourceStream::Close() {
-    if (file != nullptr) gameapi::mmioClose(file, 0);
-    file = nullptr;
-}
+void ResourceStream::Close() { file.Close(); }
 
 bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     Close();
     if (!platform::FileExists(name)) return false;
-    WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
-    const HANDLE search = gameapi::FindFirstFileA(name.c_str(), &found);
-    if (search != INVALID_HANDLE_VALUE) FindClose(search);
-    file = gameapi::mmioOpenA(const_cast<char*>(name.c_str()), nullptr, MMIO_DENYWRITE);
-    if (file == nullptr) return false;
-    if (size != nullptr) *size = found.nFileSizeLow;
+    if (!file.Open(name, platform::File::modeRead | platform::File::shareDenyWrite)) return false;
+    if (size != nullptr) *size = static_cast<std::uint32_t>(file.GetLength());
     return true;
 }
 
 long ResourceStream::Read(char* buffer, long size) {
-    if (file == nullptr) return -1;
-    return gameapi::mmioRead(file, buffer, size);
+    if (!file.IsOpen()) return -1;
+    try {
+        return static_cast<long>(file.Read(buffer, static_cast<unsigned>(size)));
+    } catch (const platform::FileError&) {
+        return -1;
+    }
 }
 
 long ResourceStream::Seek(long offset, int origin) {
-    if (file == nullptr) return -1;
-    return gameapi::mmioSeek(file, offset, origin == 2 ? SEEK_END : SEEK_SET);
+    if (!file.IsOpen()) return -1;
+    try {
+        return file.Seek(offset, origin == 2 ? platform::File::end : platform::File::begin);
+    } catch (const platform::FileError&) {
+        return -1;
+    }
 }
 
 // --- Archive listing -----------------------------------------------------------------------------

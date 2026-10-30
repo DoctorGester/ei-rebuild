@@ -4,13 +4,10 @@
 #include "lib/text_case.h"
 
 #include <windows.h>
-#include <mmsystem.h>
 
 #include <algorithm>
 #include <cstring>
 #include <string>
-
-#pragma comment(lib, "winmm.lib")   // mmioOpenW
 
 namespace text {
 
@@ -30,7 +27,6 @@ public:
         if (text) wide = Wide(text);
     }
     operator LPCWSTR() const { return null ? nullptr : wide.c_str(); }
-    LPWSTR Writable() { return null ? nullptr : wide.data(); }
 
 private:
     bool null;
@@ -103,7 +99,7 @@ const Route kRoutes[] = {
     TEXT_ROUTE(DeleteFileA),       TEXT_ROUTE(MoveFileA),             TEXT_ROUTE(CopyFileA),
     TEXT_ROUTE(CreateDirectoryA),  TEXT_ROUTE(RemoveDirectoryA),      TEXT_ROUTE(GetFileAttributesA),
     TEXT_ROUTE(GetCurrentDirectoryA), TEXT_ROUTE(GetFullPathNameA),   TEXT_ROUTE(GetModuleFileNameA),
-    TEXT_ROUTE(GetDiskFreeSpaceA), TEXT_ROUTE(GetVolumeInformationA), TEXT_ROUTE(mmioOpenA),
+    TEXT_ROUTE(GetDiskFreeSpaceA), TEXT_ROUTE(GetVolumeInformationA),
     TEXT_ROUTE(CreateWindowExA),   TEXT_ROUTE(FindWindowA),           TEXT_ROUTE(MessageBoxA),
     TEXT_ROUTE(GetKeyNameTextA),
     // The windows are Unicode ones: their class registered wide, their messages taken, passed on and
@@ -252,13 +248,6 @@ BOOL WINAPI GetVolumeInformationA(LPCSTR root, LPSTR volumeName, DWORD volumeNam
 }
 
 HCURSOR WINAPI LoadCursorFromFileA(LPCSTR name) { return ::LoadCursorFromFileW(WideArg(name)); }
-
-HMMIO WINAPI mmioOpenA(LPSTR name, LPMMIOINFO info, DWORD flags) {
-    // MMIO_PARSE and MMIO_GETTEMP write a name back into `name`: those stay ANSI (the game uses neither).
-    if (flags & (MMIO_PARSE | MMIO_GETTEMP)) return ::mmioOpenA(name, info, flags);
-    WideArg wide(name);
-    return ::mmioOpenW(wide.Writable(), info, flags);
-}
 
 // ---- The window title, the message box, key names -----------------------------------------------------
 

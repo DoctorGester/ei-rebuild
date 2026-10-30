@@ -31,7 +31,6 @@ ei::import_fn::gethostbyname& gethostbyname = ei::Imports().gethostbyname;
 ei::import_fn::htons& htons = ei::Imports().htons;
 ei::import_fn::ioctlsocket& ioctlsocket = ei::Imports().ioctlsocket;
 ei::import_fn::sendto& sendto = ei::Imports().sendto;
-decltype(&::mmioOpenA)& mmioOpenA = ei::Imports().mmioOpenA;
 decltype(&::timeGetTime)& timeGetTime = ei::Imports().timeGetTime;
 decltype(&::Sleep)& Sleep = ei::Imports().Sleep;
 decltype(&::GetVolumeInformationA)& GetVolumeInformationA = ei::Imports().GetVolumeInformationA;

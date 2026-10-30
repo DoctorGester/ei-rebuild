@@ -60,7 +60,6 @@ BOOL WINAPI GetVolumeInformationA(LPCSTR root, LPSTR volumeName, DWORD volumeNam
                                   LPDWORD maxComponentLength, LPDWORD fileSystemFlags, LPSTR fileSystemName,
                                   DWORD fileSystemNameSize);
 HCURSOR WINAPI LoadCursorFromFileA(LPCSTR name);
-HMMIO WINAPI mmioOpenA(LPSTR name, _MMIOINFO* info, DWORD flags);
 
 // The window class (registered wide: the window is a Unicode one), the window title, the message box, key
 // names.

@@ -13,13 +13,10 @@
 
 struct _BY_HANDLE_FILE_INFORMATION;
 struct _GUID;
-struct _MMIOINFO;
 struct _SYSTEM_INFO;
 struct tagMSG;
 struct tagPAINTSTRUCT;
 struct tagWNDCLASSEXA;
-struct HMMIO__;
-using HMMIO = HMMIO__*;
 
 extern "C" {
 
@@ -128,9 +125,5 @@ __declspec(dllimport) int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int siz
 
 // WINMM.dll.
 __declspec(dllimport) DWORD WINAPI timeGetTime();
-__declspec(dllimport) HMMIO WINAPI mmioOpenA(LPSTR name, _MMIOINFO* info, DWORD flags);
-__declspec(dllimport) LONG WINAPI mmioRead(HMMIO file, char* buffer, LONG size);
-__declspec(dllimport) LONG WINAPI mmioSeek(HMMIO file, LONG offset, int origin);
-__declspec(dllimport) UINT WINAPI mmioClose(HMMIO file, UINT flags);
 
 } // extern "C"
