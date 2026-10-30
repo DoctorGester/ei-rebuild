@@ -104,11 +104,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
   the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
-  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, section 2). The
-  suite checks them with `python tools\work.py test <ID> --golden` (any run_all arguments): every run that has
-  a golden is compared with it, its saves too, decoded field by field (`python tools\savefile.py
-  show|diff|rules`). A scenario the original cannot run (its `# no original:` line) gets the image's own golden
-  instead (`golden.py record --image`).
+  golden runs of the image in `tests/golden/` (H40: our own goldens, recorded on the runner by the Suites workflow's
+  `record` input; docs/notes/standalone-verification.md, section 2). The suite checks them with
+  `python tools\work.py test <ID> --golden` (any run_all arguments): every run that has a golden is compared with it,
+  its saves too, decoded field by field (`python tools\savefile.py show|diff|rules`).
 - Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
   each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
   to the run's `vectors/` folder (`set EI_VECTORS=1` then `python tools\work.py test <ID> <scenarios> --no-hooks

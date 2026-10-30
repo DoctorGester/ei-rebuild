@@ -13,10 +13,12 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
   (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
   (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
   GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
-- **Goldens come from the original**: `--no-hooks` runs of game.exe (ei_launch always sets EI_NO_HOOKS for it), with
-  the harness's canonicalising patches (section 5); on the vanilla data with addon.dll's bug fixes only
-  (docs/notes/rebirth.md, "One test profile"). A scenario the original cannot run (`# no original: <install>`)
-  gets the image's own golden instead (`golden.py record --image`, section 2).
+- **Goldens are our own** (H40): runs of the image that agree plain and under heap jitter (section 2), recorded on the
+  runner by the Suites workflow's `record` input. Until H40 they were game.exe's `--no-hooks` runs (with the harness's
+  canonicalising patches, section 5; on the vanilla data with addon.dll's bug fixes only), and every vanilla golden
+  the image could run and 24 Rebirth ones were the same as game.exe's when the switch was made. The git tag
+  `original-oracle` marks the last commit whose `golden.py record` took game.exe's runs: check a question about the
+  original's behaviour there.
 - **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap (the image's
   malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in every run): a golden must hold
   under every seed. Goldens are recorded from runs that agree plain and under jitter.
@@ -35,9 +37,10 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
 ## 2. Goldens
 
 **What a golden holds** (tests/golden/<scenario>/<install>/, tools/golden.py): golden.json (date, commit, digest period,
-fields left out, how many runs agreed, the reason, `"source": "image"` for image goldens), console.txt, digest.txt and
-dump_*.txt in compact form, and saves.txt. A difference names the record, the object and the group; for the fields behind
-a hash, run the original again (it repeats) and `golden.py diff` the two full digests.
+fields left out, how many runs agreed, the reason, `"source": "image"` for goldens recorded from the image), console.txt,
+digest.txt and dump_*.txt in compact form, and saves.txt. A difference names the record, the object and the group; for
+the fields behind a hash, run the scenario at the golden's commit again (it repeats) and `golden.py diff` the two full
+digests.
 
 **The digest** (SV2; tests/verify/harness_digest.{h,cpp}; `digest <N>` step or `EI_DIGEST=<N>`, the suite uses 20,
 `run_all.GOLDEN_PERIOD`): one record every N world updates, taken after the server update; each record a header (record,
@@ -69,24 +72,27 @@ suite's saves (decoded from the ported writers, unchecked against data): fake un
 spells, carried items, plan steps, most timed effects, items 0x3006 / 0x3007, time-wheel events, script lights /
 particles / FX sources / areas, party manager parties, saves\current\<zone>.sav.
 
-**Recording from the original** (`--fresh`; at least two plain passes, better also EI_HEAP_JITTER 1 and `2,fill`):
+**Recording** (H40): from the image's runs (`<scenario>-standalone`, `<scenario>-standalone-rebirth`), four passes
+that must agree (`IMAGE_RUNS`): plain twice, `EI_HEAP_JITTER=1` and `EI_HEAP_JITTER=2,fill`. The Suites workflow does it
+on the runner: Actions > Suites > Run workflow on a branch (not main) with `record` = both / vanilla / rebirth,
+optionally `scenarios` (space-separated) and `reason`. Its `record` job builds verify, plays the passes (the vanilla
+suite and the Rebirth smoke set, or the named scenarios), records and pushes the goldens to the branch as a commit of
+its own; the run's summary lists the new and changed goldens and `git diff --stat` of what changed but golden.json.
+That push starts no run: check the branch with a Suites run after it. By hand on the machine:
 ```
-set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh --golden <scenarios>   (each pass)
-python tools\golden.py snapshot <scratch>\passN                                             (after each pass)
-python tools\golden.py record --install vanilla --runs <scratch>\pass1 <scratch>\pass2 ... --reason "..."
-python tools\golden.py record --install rebirth --runs ...
+python tools\work.py test <ID> --golden --jobs 4 [scenarios]       (each pass; set EI_HEAP_JITTER=1, then 2,fill)
+python tools\golden.py snapshot <scratch>\passN [--install rebirth]  (after each pass)
+python tools\golden.py record --install vanilla --runs <scratch>\pass1 ... <scratch>\pass4 --reason "..."
 python tools\golden.py saves --runs <dirs>         (only the saves of existing goldens, digests kept)
 ```
 `record` keeps a scenario only when every run agrees with the first in console, every digest record, every dump and
-the decoded saves. It refuses a vanilla golden for a scenario with a `rebirthflags` line (SV7b8a: our WideScreen draws
-parts the vanilla original clips, so the client unit flags differ by design). An intended change (a Rebirth fix behind
-its flag, the UTF-8 switch) re-records the affected goldens and says why; anything else that differs is a regression.
+the decoded saves; one that does not keeps its old golden. It names each golden it wrote new, the same as before (only
+golden.json changed) or changed. An intended change (a fix, the UTF-8 switch, W12's layout) re-records the affected
+goldens and says why in the commit; anything else that differs is a regression.
 
-**Image goldens** (S20a): `golden.py record --image` / `snapshot --image` take the image's run folders
-(`<scenario>-standalone[-rebirth]`), accept only scenarios whose `# no original:` line names the install, and want at
-least `IMAGE_RUNS` (4) agreeing runs, plain and under jitter. Such a golden says the image keeps doing what it did, not
-that it does what the original does: render_cursor_present (V+R), render_present_shot (V+R), render_device_lost,
-render_device_removed, render_present_window and render_present_fullscreen (vanilla). Their digests do not follow the renderer: the world moves
+**Image goldens before H40** (S20a): the scenarios game.exe could not run (`# no original:`, renderer-only checks:
+render_cursor_present, render_present_shot, render_device_lost, render_device_removed, render_present_window,
+render_present_fullscreen) already had the image's goldens. Their digests do not follow the renderer: the world moves
 only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
 **WideScreen references** (S21b; tools/run_all.py `record_widescreen`, `compare_widescreen`): `run_all --widescreen
@@ -104,8 +110,8 @@ size fail with the command that records them; if a harness change moves what add
 scenario fails the same way: record again with `--fresh`. Vanilla data cannot be compared (its textures differ from
 Rebirth's); `--widescreen --vanilla-only` is refused. A one-layout-unit shift of the right panels (2.7 pixels) fails.
 
-**No golden by rule**: the `rebirthflags` scenarios on vanilla, the three watchdogs (meant to time out),
-harness_disk_full. `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
+**No golden by rule**: the three watchdogs (meant to time out), harness_disk_full. (The `rebirthflags` scenarios on
+vanilla had none while goldens were game.exe's, SV7b8a; the image's runs of them record like any other.) `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
 lands; `compare --strict` keeps them) are empty.
 
 ## 3. Function vectors

@@ -62,9 +62,13 @@ Read before changing code:
   - The runner is only up while Kirill is logged in, and a queued run waits until then.
   - Each push to a `claude/**` branch costs a full run (about 20 to 30 minutes), so batch your commits and push
     when a step is ready.
-- **Golden recording** (`tools/golden.py record`) needs run folders on the machine. The workflow cannot do it yet.
-  Adding a `record` input to the workflow is the first step of H40. Until then, a change that needs new goldens
-  waits for that.
+- **Golden recording** (H40): run the workflow by hand on your branch (not main) with `record` = both,
+  vanilla or rebirth (optionally `scenarios`, space-separated, and `reason`). Its `record` job plays four passes
+  (plain twice, two heap jitters), runs `tools/golden.py record` and pushes the goldens to the branch as a commit of
+  its own (`git pull` it). The summary names the new and changed goldens. That push starts no run, so dispatch a full
+  run on the branch after it. docs/notes/standalone-verification.md, section 2.
+- **Dispatching from a session:** the GitHub MCP tool `actions_run_trigger` (workflow `suites.yml`, ref your branch,
+  inputs as above; the `ref` input can stay main, which then means the branch the run was started on).
 - **What you can run in the cloud without the runner:** the Python tools' own tests (`python -m unittest` in
   `tools/`, for example `tools/test_work_sched.py`) and the text checks that read only the source:
   - `tools/check_cleanup.py`
