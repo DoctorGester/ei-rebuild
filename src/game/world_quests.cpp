@@ -23,13 +23,11 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -41,7 +39,7 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
+float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
 // original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
@@ -63,7 +61,7 @@ void GiveBriefingRewards(WorldServer* world, CPlayer* player, QuestBriefingRecor
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
-    PartyOf(player)->money += static_cast<int>(libcrt::Ftol(record->money));
+    PartyOf(player)->money += static_cast<int>(static_cast<std::int64_t>(record->money));   // _ftol: 0 for a NaN
 
     std::vector<Item*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
@@ -109,8 +107,8 @@ struct Share {
 };
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
-double Weight(UnitServer* controller) {
-    return std::sqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
+float Weight(UnitServer* controller) {
+    return std::sqrt(controller->stats.pendingExperience + controller->stats.experience);
 }
 
 // Without a player: the single heroes of every player share `amount` in proportion to their weights.
@@ -130,7 +128,7 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
         UnitServer* controller = unit->ServerController();
         if (!controller) continue;
         list.push_back({controller, 0.0f});
-        total = static_cast<float>(Weight(controller) + total);
+        total = Weight(controller) + total;
         float stored = total;   // stored into the float total
         total = stored;
     }
@@ -139,7 +137,7 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     float divisor = total >= minimum ? total : minimum;   // branch-free select
 
     for (Share& entry : list) {
-        float share = static_cast<float>(Weight(entry.controller) * amount / divisor);
+        float share = Weight(entry.controller) * amount / divisor;
         float stored = share;
         entry.share = stored;
         entry.controller->AddExperience(stored);
@@ -175,7 +173,7 @@ void ShareAmongHeroes(WorldServer* world, CPlayer* player, float amount) {
     }
     int count = std::ssize(heroes);
     if (count >= 1) {
-        float share = static_cast<float>(static_cast<double>(amount) / count);
+        float share = amount / static_cast<float>(count);
         float stored = share;
         share = stored;
         for (int i = 0; i < std::ssize(heroes); ++i) {
@@ -323,7 +321,7 @@ void WorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->Party()->variables;
-            double left = VariableGet(variables, b.n10);
+            float left = VariableGet(variables, b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
                 if (left != 0.0f) {
@@ -348,10 +346,10 @@ void WorldServer::UpdateMercBriefings() {
                 set(b.n10, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                double hiredValue = VariableGet(variables, b.hired);
-                float hired = static_cast<float>(hiredValue);   // stored as float, compared unrounded
+                float hiredValue = VariableGet(variables, b.hired);
+                float hired = hiredValue;
                 float hiredStored = hired;
-                double briefed = VariableGet(variables, b.n8);
+                float briefed = VariableGet(variables, b.n8);
                 EI_NAN_AUDIT(hiredValue, briefed);
                 if (hiredValue != 0.0f) {
                     if (briefed != 1.0f) {

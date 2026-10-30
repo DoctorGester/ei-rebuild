@@ -42,8 +42,8 @@
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "game_data.h"
 #include "lib/str.h"
 #include "lib/float_select.h"
@@ -92,16 +92,15 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     ry = rotation.x;
     rz = rotation.y;
     rw = rotation.z;
-    double axis = LengthSquaredUnrounded<Sum3::XYZ, double>(ry, rz, rw);
-    double angle;
+    float axis = LengthSquaredUnrounded<Sum3::XYZ>(ry, rz, rw);
+    float angle;
     EI_NAN_AUDIT(axis);
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
-        float axisStored = static_cast<float>(axis);
-        angle = libcrt::CiAcos(rx);
-        angle = angle + angle;
-        double sign = 1.0f / std::sqrt(axisStored) * rw;
+        double arc = libcrt::CiAcos(rx);
+        angle = pc24::Add(arc, arc);
+        float sign = 1.0f / std::sqrt(axis) * rw;
         EI_NAN_AUDIT(sign);
         if (sign < 0.0f) angle = -angle;
     }
@@ -111,19 +110,19 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     float zStep = 0.0f;
     spec.position = position;
     spec.rotation = rotation;
-    float cosine = static_cast<float>(x87::fcos(angle));
-    double sine = x87::fsin(angle);
+    float cosine = pc24::Round(pc24::Cos(angle));
+    pc24::Unrounded sine = pc24::Sin(angle);
     float step = static_cast<float>(index);
-    double dy = sine * step;
-    float dx = static_cast<float>(step * static_cast<double>(cosine));
-    float dz = static_cast<float>(static_cast<double>(zStep) * worlddata::kLineSpacing);
+    float dy = pc24::Mul(sine, step);
+    float dx = step * cosine;
+    float dz = zStep * worlddata::kLineSpacing;
     dy = dy * worlddata::kLineSpacing;
     float& x = spec.position.x;
     float& y = spec.position.y;
     float& z = spec.position.z;
-    x = static_cast<float>(static_cast<double>(dx) * worlddata::kLineSpacing + x);
-    y = static_cast<float>(y + dy);
-    z = static_cast<float>(static_cast<double>(z) + dz);
+    x = dx * worlddata::kLineSpacing + x;
+    y = y + dy;
+    z = z + dz;
 }
 
 // An item from an item record, with its counted record holding the item record's id.
@@ -162,10 +161,10 @@ void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* re
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
-        double dz = position.z;
-        double dy = static_cast<double>(position.y) - worlddata::kHeroStartY;
-        double dx = static_cast<double>(position.x) - worlddata::kHeroStartX;
-        double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
+        float dz = position.z;
+        float dy = position.y - worlddata::kHeroStartY;
+        float dx = position.x - worlddata::kHeroStartX;
+        float distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
         EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
     }

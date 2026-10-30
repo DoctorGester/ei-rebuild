@@ -17,7 +17,7 @@
 #include "world_effect.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "game_data.h"
 #include "player_manager.h"
 
@@ -71,8 +71,8 @@ CPlayer* WorldServer::GetPlayer(int playerId) {
 
 float WorldServer::GridHeight(float x, float y) {
     // Cell size 1.0 at half-cell offset: (1 / (1 * 0.5)) * v - 0.5, rounded through a float.
-    int cx = x87::fistp(static_cast<float>(2.0f * x - 0.5f));
-    int cy = x87::fistp(static_cast<float>(2.0f * y - 0.5f));
+    int cx = lib::RoundEven(2.0f * x - 0.5f);
+    int cy = lib::RoundEven(2.0f * y - 0.5f);
     const AIMap* map = &aiMap;
     if (cx < 0 || cy < 0 || cx >= map->cells.width || cy >= map->cells.height) return 0.0f;
     int raw = map->cells[cy][cx].groundLevel;

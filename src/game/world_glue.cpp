@@ -25,6 +25,7 @@
 #include "lib/gameapi.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 int FinishQuestMap(const char* name) {
     net::ServerSession* server = net::g_gameServer;
@@ -38,7 +39,6 @@ Script* CommandScript() { return g_serverWorld.SecondScript(); }
 
 constexpr unsigned kFolderBufferSize = 0x400;
 
-constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 const char* DefaultMusic() { return options::g_options.defaultStreamingSound.c_str(); }
@@ -92,7 +92,7 @@ void GameSetWeather(int weather, float strength) { g_serverWorld.SetWeather(weat
 
 double GameServerTimeOfDay() {
     WorldServer* world = &g_serverWorld;
-    return std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, kHoursPerDay);
+    return world->TimeOfDay();
 }
 
 void GamePassTime(float offset) {
@@ -134,7 +134,7 @@ int GamePlayCameraPath(const char* name, int flag) {
     Camera* camera = world->camera;
     camera->flags |= Camera::kPlaying;
     camera->keyIndex = 0;
-    camera->timeOffset = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction - camera->keys[0].time);
+    camera->timeOffset = pc24::Add(static_cast<double>(world->tick), world->tickFraction) - camera->keys[0].time;
     return 1;
 }
 

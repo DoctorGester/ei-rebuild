@@ -34,6 +34,7 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -171,8 +172,8 @@ void WorldServer::UpdatePlayerTimes(float offset) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
-        double current = player->Party()->variables.Get(name);
-        float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick + offset + current);
+        float current = player->Party()->variables.Get(name);
+        float value = pc24::Mul(static_cast<double>(elapsed), secondsPerTick) + offset + current;
         player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
 }

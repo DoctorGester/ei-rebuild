@@ -17,7 +17,7 @@
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -33,7 +33,7 @@ std::vector<CUnit*>* SectorUnits(SectorMap* map, int x, int y) {
 }
 
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
-int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
+int SectorOf(float world) { return lib::RoundEven(2.0f * world - 0.5f) / 32; }
 
 } // namespace
 

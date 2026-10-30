@@ -13,8 +13,9 @@
 #include "world_effect_internal.h"
 
 #include "lib/crt.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 
-#include "ei/x87.h"
 
 #include <cmath>
 #include <cstring>
@@ -73,17 +74,17 @@ void EffectTornado::Reset() {
 }
 
 void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
-    double speed = x87::FromUnsigned(g_random.Next()) * kRandomScale * kSpeedRange + kSpeedMin;
+    float speed = pc24::Mul(static_cast<double>(g_random.Next()), kRandomScale) * kSpeedRange + kSpeedMin;
     Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
     framesLeft = 0;
-    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
-    if (length > 0.0) {
-        double scale = speed / length;
-        way.x = static_cast<float>(way.x * scale);
-        way.y = static_cast<float>(way.y * scale);
-        way.z = static_cast<float>(way.z * scale);
-        float ticks = static_cast<float>(length / speed);
-        long rounded = x87::RoundToInt(ticks);
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
+    if (length > 0.0f) {
+        float scale = speed / length;
+        way.x = way.x * scale;
+        way.y = way.y * scale;
+        way.z = way.z * scale;
+        float ticks = length / speed;
+        int rounded = lib::RoundEven(ticks);
         framesLeft = rounded < 0 ? 0 : static_cast<int>(rounded);
     }
     velocity = way;
