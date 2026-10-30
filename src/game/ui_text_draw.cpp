@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
+#include "lib/win_user.h"
 
 namespace {
 constexpr COLORREF kShadowColour = 0x080808;

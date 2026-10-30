@@ -10,6 +10,7 @@
 #include "render/render.h"
 
 #include <cstdint>
+#include <windows.h>
 
 namespace present_window {
 namespace {

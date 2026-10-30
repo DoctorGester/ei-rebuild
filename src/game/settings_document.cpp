@@ -2,15 +2,16 @@
 // DefaultDocument. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings_file.h"
 #include "lib/bytes.h"
+#include "lib/win_types.h"
 
 #include <bit>
 #include <string>
-#include <windows.h>
 
 #include <array>
 #include <charconv>
 #include <cstdint>
 #include <cstring>
+#include <winerror.h>
 
 namespace settings_file {
 namespace {

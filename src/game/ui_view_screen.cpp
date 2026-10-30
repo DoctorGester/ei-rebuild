@@ -12,9 +12,9 @@
 #include <cstdint>
 #include "world_glue.h"
 #include "game_singletons.h"
+#include "lib/win_user.h"
 
 #include <vector>
-#include <windows.h>
 
 namespace {
 

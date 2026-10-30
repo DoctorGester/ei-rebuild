@@ -22,6 +22,7 @@
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "lib/win_user.h"
 
 #include <cstdint>
 #include <cstdlib>

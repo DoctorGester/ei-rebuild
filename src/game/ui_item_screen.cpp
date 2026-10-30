@@ -17,7 +17,6 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <windows.h>
 
 namespace {
 

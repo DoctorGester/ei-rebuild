@@ -16,6 +16,8 @@
 
 #include <cstdlib>
 #include <new>
+#include <windows.h>
+#include <mmsystem.h>
 
 namespace {
 

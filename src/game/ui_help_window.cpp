@@ -13,9 +13,9 @@
 #include "world.h"
 #include "render/render_state.h"
 #include "lib/str.h"
+#include "lib/win_user.h"
 
 #include <cmath>
-#include <windows.h>
 
 namespace {
 

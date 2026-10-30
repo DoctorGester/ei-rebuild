@@ -11,9 +11,9 @@
 #include "bink_video.h"
 #include "game_singletons.h"
 #include "options.h"
+#include "lib/win_user.h"
 
 #include <cstring>
-#include <windows.h>
 
 namespace {
 

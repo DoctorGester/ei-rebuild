@@ -553,8 +553,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
 # (tests/verify/exe_objects.h) and reaches our classes only through tests/verify/image (image/image_side.h, functions
 # that name no class of ours), which only the image links in: tests/verify/* takes no file of that folder. So no
 # header of src/game, src/render or src/lib is in the key but game_data.h (GameData's shift, 0 in game.exe:
-# hook/original_data.cpp), lib/intro_sort.h (the draw lists' sort, the game's) and lib/gameapi.h (game.exe's import
-# slots); tools/check_harness_key.py checks it. Nothing else of src/ is in ei_harness.dll.
+# hook/original_data.cpp), lib/intro_sort.h (the draw lists' sort, the game's) and lib/import_table.h with
+# lib/import_prototypes.h (game.exe's import slots); tools/check_harness_key.py checks it. Nothing else of src/ is in ei_harness.dll.
 HARNESS_SOURCES = ('tests/verify/*', 'tests/verify/original/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')
 HARNESS_VECTORS = ('tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp')
 HARNESS_SHARED = ('src/lib/rebirth.cpp',)   # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)

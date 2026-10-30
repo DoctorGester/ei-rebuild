@@ -25,6 +25,7 @@
 #include "game_singletons.h"
 #include "model.h"
 #include "figure_manager.h"
+#include "lib/win_user.h"
 
 
 namespace {

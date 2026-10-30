@@ -10,10 +10,10 @@
 #include "world_glue.h"
 
 #include "lib/text_case.h"
+#include "lib/win_user.h"
 
 #include <bit>
 #include <cstring>
-#include <windows.h>
 
 namespace {
 

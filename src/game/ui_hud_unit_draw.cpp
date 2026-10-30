@@ -16,12 +16,12 @@
 #include "render/render_state.h"
 #include "game_singletons.h"
 #include "world.h"
+#include "lib/win_user.h"
 
 #include <bit>
 
 #include <cstdint>
 #include <cstring>
-#include <windows.h>
 
 namespace {
 

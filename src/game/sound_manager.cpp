@@ -33,6 +33,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace {
 

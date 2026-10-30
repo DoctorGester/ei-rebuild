@@ -21,7 +21,6 @@
 
 #include <concepts>
 #include <cmath>
-#include <windows.h>
 
 namespace {
 

@@ -14,6 +14,7 @@
 #include "game_singletons.h"
 
 #include <cstdlib>
+#include <windows.h>
 
 namespace {
 

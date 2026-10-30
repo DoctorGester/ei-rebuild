@@ -7,8 +7,7 @@
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
-
-#include <windows.h>
+#include "lib/win_user.h"
 
 namespace {
 

@@ -172,7 +172,8 @@ each step green on the goldens and removing a measured tie:
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
   `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
-  ImportTable member, DLL, function or ordinal) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
+  ImportTable member, DLL, function or ordinal; the unreached ones too, so that a trap or a read of an old slot
+  names its import) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   game.exe's folder came first until S18k) and fills our reached slots (S22, below);
@@ -193,12 +194,20 @@ each step green on the goldens and removing a measured tie:
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
   saves, profile reads, clocks, Winsock, Miles) or our code takes it by address (`&gameapi::X`; none since S22c).
-  Those gameapi.h functions are references to the slot (50, with gen_iat's KEEP: GetVersionExA, deprecated in the
-  SDK: a direct call warns), and so are the 90 of import_prototypes.h (no import library; not the Interlocked pair,
-  which our code takes as the compiler's intrinsics): `extern decltype(ei::ImportTable::X)& X;`, bound once in
-  gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the move, before every other static constructor; an
-  `inline auto&` in the header was a dynamic initialiser in each of ~140 objects); the other 362 are `using ::X;`, the Windows function through the exe's own imports
-  (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
+  **gameapi.h** (H33f) holds only the imports our code calls (`gameapi::X` in src/ or tests/: gen_iat.py's
+  `called()`, 166 of 504; no DirectDraw, registry, GDI, shell or COM import), without the SDK's headers: the routed
+  ones are references to the slot (40), and so are the called ones of import_prototypes.h (69: Miles, Bink,
+  Winsock; no import library), their `using`s copied from it in its order: `extern decltype(&::X)& X;` /
+  `extern ei::import_fn::X& X;`, bound once in gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the
+  move, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
+  of ~140 objects); the other 57 are `using ::X;`, the Windows function through the exe's own imports
+  (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/lib/win_api.h, as the SDK
+  declares them (C linkage, dllimport, WINAPI) over lib/win_types.h with the structures they point to by tag
+  (tagMSG, _SYSTEM_INFO, ...); gen_iat.py stops on a called one it lacks. gameapi.cpp includes import_table.h
+  (windows.h, mmsystem, shellapi, objbase, dsound) too, so a declaration that differs from the SDK's or a copied
+  prototype from import_prototypes.h's does not compile (C2733, C4273). So a file that calls only gameapi:: needs no
+  windows.h (~0.4 s of front end each). A harness route on a new slot, or a `gameapi::` call of an import gameapi.h
+  does not have yet, makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. **game.exe's own routes** (S22b, S22c): a slot only
   the original calls through is named through a function with "Original" in its name taking `&ImportTable::X`
@@ -226,7 +235,7 @@ each step green on the goldens and removing a measured tie:
   only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers.
   **Only the reached slots resolve** (S22): gen_iat.py's `reached()` finds every slot a call of ours can go through,
   by its member (C18 left no other way): `ImportTable::X` (the harness's routes and its own calls, the static
-  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (`extern decltype(...)&`); comments
+  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (an `extern ...&`); comments
   are left out. image_imports.inc's last field says so; `ResolveImageImports` resolves those, leaves every other slot
   a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
   A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
@@ -243,7 +252,7 @@ each step green on the goldens and removing a measured tie:
   | DDRAW.dll | 2 | 0 | 0 | 0 | 2 |
   | DINPUT.dll | 1 | 0 | 0 | 0 | 1 |
   | WINMM.dll | 5 | 2 | 1 | 0 | 3 |
-  | KERNEL32.dll | 159 | 23 | 15 | 0 | 136 |
+  | KERNEL32.dll | 159 | 22 | 14 | 0 | 137 |
   | USER32.dll | 151 | 16 | 9 | 0 | 135 |
   | GDI32.dll | 83 | 0 | 0 | 0 | 83 |
   | comdlg32.dll | 1 | 0 | 0 | 0 | 1 |
@@ -252,7 +261,7 @@ each step green on the goldens and removing a measured tie:
   | SHELL32.dll | 2 | 0 | 0 | 0 | 2 |
   | COMCTL32.dll | 1 | 0 | 0 | 0 | 1 |
   | ole32.dll | 3 | 0 | 0 | 0 | 3 |
-  | all | 504 | 110 | 25 | 0 | 394 |
+  | all | 504 | 109 | 24 | 0 | 395 |
 
   The table loads binkw32, mss32, WSOCK32, WINMM, KERNEL32 and USER32 (the last three are the exe's own imports
   anyway). Not loaded: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and
@@ -1423,21 +1432,22 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 - **Where**: src/game/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
   UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
-  resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). A route whose slot no call
-  reaches (S22: CharUpperA, CharLowerA, LoadCursorFromFileA, LoadStringA, RegOpenKeyExA, called as `text::utf8::`
-  by name instead; S22c: SetFileAttributesA, RegCreateKeyExA, RegSetValueExA, RegQueryValueExA, which only the harness
-  reached, and our code calls by name or not at all) stays in the list, so a new `gameapi::` call of it is routed too. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
+  resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). The list holds the reached
+  slots only (H33f): the routes and versions of slots no call reaches went (LoadStringA, LoadLibraryA,
+  SetFileAttributesA and the registry's RegOpenKeyExA, RegCreateKeyExA, RegQueryValueExA, RegSetValueExA: the
+  settings are a file, settings_file.h), and CharUpperA, CharLowerA, LoadCursorFromFileA lost their routes but keep
+  their versions, called as `text::utf8::` by name. A new `gameapi::` call of another import that takes or gives
+  text needs its version and route added. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
   `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
   same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
   unchanged (they work on the bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h,
   harness_install.h).
 - **Routed**: files (CreateFile, FindFirstFile / FindNextFile, DeleteFile, MoveFile, CopyFile, Create- /
-  RemoveDirectory, Get- / SetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
-  GetDiskFreeSpace, GetVolumeInformation, LoadLibrary, LoadCursorFromFile, mmioOpen), the registry (RegOpenKeyEx,
-  RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
-  CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
-  GetKeyNameText, LoadString, the window's class and messages (U4), the text draw and fonts (U3), CharUpperA /
-  CharLowerA (U5). The image's log names the routes: "110 resolved (25 routed)" (S22c: the reached slots).
+  RemoveDirectory, GetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
+  GetDiskFreeSpace, GetVolumeInformation, mmioOpen), CreateWindowEx (a non-ASCII title is set as UTF-16 with
+  `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox, GetKeyNameText, the window's class and messages (U4); the
+  text draw and fonts (U3) and CharUpperA / CharLowerA (U5, by name). The image's log names the routes: "109
+  resolved (24 routed)" (the reached slots).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
   clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder

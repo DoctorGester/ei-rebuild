@@ -3,6 +3,9 @@
 
 #include "lib/text_case.h"
 
+#include <windows.h>
+#include <mmsystem.h>
+
 #include <algorithm>
 #include <cstring>
 #include <string>
@@ -89,30 +92,24 @@ void CopyFindData(const WIN32_FIND_DATAW& wide, WIN32_FIND_DATAA* data) {
     CopyOut(wide.cAlternateFileName, data->cAlternateFileName, static_cast<int>(sizeof(data->cAlternateFileName)));
 }
 
-bool IsStringType(DWORD type) { return type == REG_SZ || type == REG_EXPAND_SZ || type == REG_MULTI_SZ; }
-
 struct Route {
     const char* function;
     const void* utf8;
 };
 #define TEXT_ROUTE(name) {#name, reinterpret_cast<const void*>(&utf8::name)}
-// The game's imports that take or give text, and their UTF-8 versions.
+// The game's imports that take or give text and that a call reaches through the slot, and their UTF-8 versions.
 const Route kRoutes[] = {
     TEXT_ROUTE(CreateFileA),       TEXT_ROUTE(FindFirstFileA),        TEXT_ROUTE(FindNextFileA),
     TEXT_ROUTE(DeleteFileA),       TEXT_ROUTE(MoveFileA),             TEXT_ROUTE(CopyFileA),
     TEXT_ROUTE(CreateDirectoryA),  TEXT_ROUTE(RemoveDirectoryA),      TEXT_ROUTE(GetFileAttributesA),
-    TEXT_ROUTE(SetFileAttributesA), TEXT_ROUTE(GetCurrentDirectoryA), TEXT_ROUTE(GetFullPathNameA),
-    TEXT_ROUTE(GetModuleFileNameA), TEXT_ROUTE(GetDiskFreeSpaceA),    TEXT_ROUTE(GetVolumeInformationA),
-    TEXT_ROUTE(LoadLibraryA),      TEXT_ROUTE(LoadCursorFromFileA),   TEXT_ROUTE(mmioOpenA),
-    TEXT_ROUTE(RegOpenKeyExA),     TEXT_ROUTE(RegCreateKeyExA),       TEXT_ROUTE(RegQueryValueExA),
-    TEXT_ROUTE(RegSetValueExA),    TEXT_ROUTE(CreateWindowExA),       TEXT_ROUTE(FindWindowA),
-    TEXT_ROUTE(MessageBoxA),       TEXT_ROUTE(GetKeyNameTextA),       TEXT_ROUTE(LoadStringA),
+    TEXT_ROUTE(GetCurrentDirectoryA), TEXT_ROUTE(GetFullPathNameA),   TEXT_ROUTE(GetModuleFileNameA),
+    TEXT_ROUTE(GetDiskFreeSpaceA), TEXT_ROUTE(GetVolumeInformationA), TEXT_ROUTE(mmioOpenA),
+    TEXT_ROUTE(CreateWindowExA),   TEXT_ROUTE(FindWindowA),           TEXT_ROUTE(MessageBoxA),
+    TEXT_ROUTE(GetKeyNameTextA),
     // The windows are Unicode ones: their class registered wide, their messages taken, passed on and
     // handled wide, so WM_CHAR carries UTF-16.
     TEXT_ROUTE(RegisterClassExA),  TEXT_ROUTE(DefWindowProcA),        TEXT_ROUTE(GetMessageA),
     TEXT_ROUTE(PeekMessageA),      TEXT_ROUTE(DispatchMessageA),
-    // Case: UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
-    TEXT_ROUTE(CharUpperA),        TEXT_ROUTE(CharLowerA),
 };
 #undef TEXT_ROUTE
 
@@ -187,8 +184,6 @@ BOOL WINAPI RemoveDirectoryA(LPCSTR name) { return ::RemoveDirectoryW(WideArg(na
 
 DWORD WINAPI GetFileAttributesA(LPCSTR name) { return ::GetFileAttributesW(WideArg(name)); }
 
-BOOL WINAPI SetFileAttributesA(LPCSTR name, DWORD attributes) { return ::SetFileAttributesW(WideArg(name), attributes); }
-
 DWORD WINAPI GetCurrentDirectoryA(DWORD size, LPSTR buffer) {
     const DWORD needed = ::GetCurrentDirectoryW(0, nullptr);
     if (needed == 0) return 0;
@@ -256,8 +251,6 @@ BOOL WINAPI GetVolumeInformationA(LPCSTR root, LPSTR volumeName, DWORD volumeNam
     return ok;
 }
 
-HMODULE WINAPI LoadLibraryA(LPCSTR name) { return ::LoadLibraryW(WideArg(name)); }
-
 HCURSOR WINAPI LoadCursorFromFileA(LPCSTR name) { return ::LoadCursorFromFileW(WideArg(name)); }
 
 HMMIO WINAPI mmioOpenA(LPSTR name, LPMMIOINFO info, DWORD flags) {
@@ -267,58 +260,7 @@ HMMIO WINAPI mmioOpenA(LPSTR name, LPMMIOINFO info, DWORD flags) {
     return ::mmioOpenW(wide.Writable(), info, flags);
 }
 
-// ---- The registry --------------------------------------------------------------------------------------
-
-LSTATUS WINAPI RegOpenKeyExA(HKEY key, LPCSTR subKey, DWORD options, REGSAM access, PHKEY result) {
-    return ::RegOpenKeyExW(key, WideArg(subKey), options, access, result);
-}
-
-LSTATUS WINAPI RegCreateKeyExA(HKEY key, LPCSTR subKey, DWORD reserved, LPSTR keyClass, DWORD options, REGSAM access,
-                               const LPSECURITY_ATTRIBUTES security, PHKEY result, LPDWORD disposition) {
-    WideArg wideClass(keyClass);
-    return ::RegCreateKeyExW(key, WideArg(subKey), reserved, wideClass.Writable(), options, access, security, result,
-                             disposition);
-}
-
-LSTATUS WINAPI RegQueryValueExA(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
-    const WideArg wideName(name);
-    DWORD valueType = 0;
-    DWORD wideSize = 0;
-    LSTATUS status = ::RegQueryValueExW(key, wideName, reserved, &valueType, nullptr, &wideSize);
-    if (status != ERROR_SUCCESS) return status;
-    if (!IsStringType(valueType)) return ::RegQueryValueExW(key, wideName, reserved, type, data, size);
-    // A string: read as UTF-16 and given as UTF-8, its size in bytes (the stored terminators kept).
-    std::wstring wide(wideSize / sizeof(wchar_t) + 1, L'\0');
-    DWORD read = static_cast<DWORD>(wide.size() * sizeof(wchar_t));
-    status = ::RegQueryValueExW(key, wideName, reserved, &valueType, reinterpret_cast<LPBYTE>(wide.data()), &read);
-    if (status != ERROR_SUCCESS) return status;
-    wide.resize(read / sizeof(wchar_t));
-    const std::string utf8 = Narrow(wide);
-    if (type) *type = valueType;
-    if (!size) return data ? ERROR_INVALID_PARAMETER : ERROR_SUCCESS;
-    const DWORD needed = static_cast<DWORD>(utf8.size());
-    if (!data) {
-        *size = needed;
-        return ERROR_SUCCESS;
-    }
-    if (*size < needed) {
-        *size = needed;
-        return ERROR_MORE_DATA;
-    }
-    std::memcpy(data, utf8.data(), utf8.size());
-    *size = needed;
-    return ERROR_SUCCESS;
-}
-
-LSTATUS WINAPI RegSetValueExA(HKEY key, LPCSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD size) {
-    const WideArg wideName(name);
-    if (!IsStringType(type) || !data) return ::RegSetValueExW(key, wideName, reserved, type, data, size);
-    const std::wstring wide = Wide(std::string_view(reinterpret_cast<const char*>(data), size));
-    return ::RegSetValueExW(key, wideName, reserved, type, reinterpret_cast<const BYTE*>(wide.data()),
-                            static_cast<DWORD>(wide.size() * sizeof(wchar_t)));
-}
-
-// ---- The window title, the message box, key names, resource strings -----------------------------------
+// ---- The window title, the message box, key names -----------------------------------------------------
 
 HWND WINAPI CreateWindowExA(DWORD exStyle, LPCSTR className, LPCSTR title, DWORD style, int x, int y, int width,
                             int height, HWND parent, HMENU menu, HINSTANCE instance, LPVOID parameter) {
@@ -385,17 +327,6 @@ int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size) {
         return 0;
     }
     return CopyOut(std::wstring_view(wide.data(), static_cast<std::size_t>(length)), buffer, size);
-}
-
-int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
-    if (!buffer || size <= 0) return ::LoadStringA(instance, id, buffer, size);
-    const wchar_t* resource = nullptr;
-    const int length = ::LoadStringW(instance, id, reinterpret_cast<LPWSTR>(&resource), 0);
-    if (length <= 0 || !resource) {
-        buffer[0] = '\0';
-        return 0;
-    }
-    return CopyOut(std::wstring_view(resource, static_cast<std::size_t>(length)), buffer, size);
 }
 
 namespace {

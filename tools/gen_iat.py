@@ -6,20 +6,24 @@
                                      A member's type is its function's: the Windows SDK's, or for an import the
                                      SDK does not declare the prototype of src/lib/import_prototypes.h (read, not
                                      written: a `using` there per such import, by its member's name).
-  src/lib/gameapi.h                  the imports our code calls where the original called them through a slot:
-                                     an import whose slot can hold something other than the export in the image
-                                     (routed(): the harness's slot routes, the image's routes, a slot our code
-                                     takes) and every import of import_prototypes.h (no import library) through
-                                     Imports(), every other one as the Windows function itself. A slot is a
-                                     reference declared there and bound in src/lib/gameapi.cpp (one
+  src/lib/gameapi.h                  the imports our code calls (`gameapi::X` in src/ or tests/: called()), without
+                                     the SDK's headers: an import whose slot can hold something other than the
+                                     export in the image (routed(): the harness's slot routes, the image's routes, a
+                                     slot our code takes) and every import of import_prototypes.h (no import
+                                     library; its `using` copied) through Imports(), every other one as the Windows
+                                     function itself, which src/lib/win_api.h declares (read, not written). A slot
+                                     is a reference declared there and bound in src/lib/gameapi.cpp (one
                                      initialiser, not one in every file that includes the header).
   src/lib/gameapi.cpp                gameapi.h's references, bound before every other static constructor
-                                     (init_seg(lib)) and after the image's data move (init_seg(compiler)).
+                                     (init_seg(lib)) and after the image's data move (init_seg(compiler)). It sees
+                                     ImportTable's types and gameapi.h's declarations together: the compiler checks
+                                     win_api.h's and the copied prototypes against the SDK's and import_prototypes.h's.
   src/standalone/image_imports.inc   every import of game.exe with its ImportTable member, DLL and function (or
                                      ordinal) and whether a call reaches its slot (reached()): the standalone
                                      image's own import table, which the image resolves into its storage
                                      (src/standalone/image_imports.cpp, S18f); a slot no call reaches is a trap
-                                     and a DLL with none of them does not load (S22).
+                                     and a DLL with none of them does not load (S22). The unreached ones stay listed
+                                     (names only, no prototype) so that a trap that fires names its import.
 
 usage: python tools/gen_iat.py [--check | --counts]
   (no option)  write the four files (reads game.exe's import directory)
@@ -27,7 +31,8 @@ usage: python tools/gen_iat.py [--check | --counts]
                harness only) and the traps, from the committed files (docs/notes/standalone.md, "Own import table")
   --check      exit 1 when a file differs from what the committed import table (import_table.h: a member per slot, its
                DLL and function in the comment) and the routes give; no game.exe (build.cmd). Catches gameapi.h / .cpp edited
-               by hand, a new harness route on a slot, and image_imports.inc and import_table.h that disagree.
+               by hand, a new harness route on a slot, a gameapi:: call of an import gameapi.h does not have yet (or no
+               longer one of one it has), and image_imports.inc and import_table.h that disagree.
   Both fail when a route of game.exe's runs only (ORIGINAL) names a slot our code reaches: the image needs that route.
 """
 import argparse, os, re, struct, sys
@@ -41,10 +46,8 @@ GAMEAPI_CPP = os.path.join(ROOT, 'src', 'lib', 'gameapi.cpp')
 IMAGE_IMPORTS = os.path.join(ROOT, 'src', 'standalone', 'image_imports.inc')
 IMPORT_TABLE = os.path.join(ROOT, 'src', 'lib', 'import_table.h')
 PROTOTYPES = os.path.join(ROOT, 'src', 'lib', 'import_prototypes.h')
+WIN_API = os.path.join(ROOT, 'src', 'lib', 'win_api.h')
 DLLS = {'KERNEL32.dll', 'USER32.dll', 'GDI32.dll', 'ADVAPI32.dll', 'WINMM.dll', 'SHELL32.dll', 'ole32.dll', 'DSOUND.dll'}
-# Imports of import_prototypes.h that gameapi.h leaves out: the SDK's macros for the compiler's intrinsics, which our
-# code calls instead.
-INTRINSICS = {'InterlockedIncrement', 'InterlockedDecrement'}
 # Imports by ordinal: the exports they name (WSOCK32's are Winsock 1.1's fixed ordinals).
 ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.dll', 3): 'closesocket',
             ('WSOCK32.dll', 4): 'connect', ('WSOCK32.dll', 9): 'htons', ('WSOCK32.dll', 10): 'inet_addr',
@@ -55,9 +58,6 @@ ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.
             ('WSOCK32.dll', 57): 'gethostname', ('WSOCK32.dll', 115): 'WSAStartup', ('WSOCK32.dll', 116): 'WSACleanup',
             ('WSOCK32.dll', 151): 'WSAFDIsSet', ('DSOUND.dll', 2): 'DirectSoundEnumerateA',
             ('COMCTL32.dll', 17): 'InitCommonControls'}
-# Called through the slot although nothing routes them: what the Windows SDK declares deprecated (a direct call
-# warns, C4996).
-KEEP = {'GetVersionExA'}
 # The files that define the slots and name their members rather than call through them.
 DEFINITIONS = (GAMEAPI, GAMEAPI_CPP, IMPORT_TABLE, IMAGE_IMPORTS, PROTOTYPES)
 # A slot named only for game.exe's runs: a call of a function with "Original" in its name whose first argument is
@@ -116,8 +116,22 @@ def member(dll, fn, ordinal):
 
 def prototypes():
     """The imports src/lib/import_prototypes.h declares: the names of its `using`s in ei::import_fn."""
+    return set(prototype_text()) - {''}
+
+
+def prototype_text():
+    """{name: its `using` statement} of import_prototypes.h's ei::import_fn, and under '' what they need before them
+    (the Miles and Bink handles: the text between its includes and that namespace)."""
     text = read(PROTOTYPES)
-    return set(re.findall(r'^using (\w+) = ', text[text.index('namespace ei::import_fn {'):], re.M))
+    start = text.index('namespace ei::import_fn {')
+    out = {name: statement for statement, name in re.findall(r'^(using (\w+) = [^;]*;)', text[start:], re.M)}
+    out[''] = text[text.index('#include <cstdint>') + len('#include <cstdint>'):start].strip()
+    return out
+
+
+def win_api():
+    """The Windows functions src/lib/win_api.h declares."""
+    return set(re.findall(r'\bWINAPI (\w+)\(', code(read(WIN_API))))
 
 
 def member_type(dll, fn, name, declared):
@@ -196,9 +210,9 @@ def sources(folder, extensions):
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
     "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names but ORIGINAL's), the image's
-    routes (the UTF-8 routes of game/system_text.cpp), a slot our code takes (`&gameapi::X`), and KEEP."""
+    routes (the UTF-8 routes of game/system_text.cpp) and a slot our code takes (`&gameapi::X`)."""
     names = {member(dll, fn, ordinal): fn for _, dll, fn, ordinal in table}
-    out = set(KEEP)
+    out = set()
     for path in sources('tests', ('.cpp', '.h', '.inc')):
         for name in re.findall(r'\bImportTable::(\w+)', ORIGINAL.sub('', read(path))):
             if names.get(name):
@@ -219,15 +233,33 @@ def code(text):
     return re.sub(r'//[^\n]*', '', re.sub(r'/\*.*?\*/', ' ', text, flags=re.S))
 
 
+def called(table):
+    """The imports our code or the harness calls as `gameapi::X` (comments left out): what gameapi.h declares."""
+    members = {member(dll, fn, ordinal) for _, dll, fn, ordinal in table}
+    skip = {os.path.normcase(p) for p in DEFINITIONS}
+    out = set()
+    for folder in ('src', 'tests'):
+        for path in sources(folder, ('.cpp', '.h', '.inc')):
+            if os.path.normcase(path) not in skip:
+                out.update(n for n in re.findall(r'\bgameapi::(\w+)', code(read(path))) if n in members)
+    return out
+
+
+def slot_calls(table):
+    """The imports gameapi.h calls through the slot: of called(), import_prototypes.h's and routed()'s."""
+    declared, routes = prototypes(), routed(table)
+    return {name for name in called(table) if name in declared or name in routes}
+
+
 def reached(table):
     """{member: the folders ('src', 'tests') whose code reaches its slot}: the slots a call can go through in the
     image (docs/notes/standalone.md, "Own import table"). Our code and the harness reach a slot only by its member:
     `ImportTable::X` (the harness's routes, the static initialisers' Import), `Imports().X`, or a gameapi.h function
-    that is the slot (`extern decltype(ei::ImportTable::X)& X`) called as `gameapi::X`. Every other import is called as the
-    Windows function itself or not at all, so the image leaves its slot a trap. ORIGINAL's names are game.exe's runs
-    only: left out."""
+    that is the slot (slot_calls(): an `extern ...& X` there) called as `gameapi::X`. Every other import is called as
+    the Windows function itself or not at all, so the image leaves its slot a trap. ORIGINAL's names are game.exe's
+    runs only: left out."""
     members = {member(dll, fn, ordinal) for _, dll, fn, ordinal in table}
-    slot_calls = set(re.findall(r'^extern decltype\(ei::ImportTable::(\w+)\)&', read(GAMEAPI), re.M))
+    slots = slot_calls(table)
     skip = {os.path.normcase(p) for p in DEFINITIONS}
     out = {}
     for folder in ('src', 'tests'):
@@ -236,7 +268,7 @@ def reached(table):
                 continue
             text = ORIGINAL.sub('', code(read(path)))
             names = re.findall(r'\bImportTable::(\w+)', text) + re.findall(r'\bImports\(\)\.(\w+)', text)
-            names += [n for n in re.findall(r'\bgameapi::(\w+)', text) if n in slot_calls]
+            names += [n for n in re.findall(r'\bgameapi::(\w+)', text) if n in slots]
             for name in names:
                 if name in members:
                     out.setdefault(name, set()).add(folder)
@@ -284,39 +316,52 @@ def import_table_text(table):
             '} // namespace ei\n')
 
 
-def gameapi_text(table, routes):
-    """gameapi.h's text, gameapi.cpp's, and how many functions the header names."""
-    lines, slots = [], []
-    declared = prototypes()
+def gameapi_text(table, routes, calls):
+    """gameapi.h's text, gameapi.cpp's, and how many functions the header names: the imports of `calls`
+    (called()), in the import directory's order."""
+    lines, slots, copied, libs = [], [], [], set()
+    prototype = prototype_text()
+    declared = win_api()
 
-    def slot(name, dll):
-        lines.append(f'extern decltype(ei::ImportTable::{name})& {name};  // {dll}, through the slot')
-        slots.append(f'decltype(ei::ImportTable::{name})& {name} = ei::Imports().{name};')
+    def slot(type_, name, dll):
+        lines.append(f'extern {type_}& {name};  // {dll}, through the slot')
+        slots.append(f'{type_}& {name} = ei::Imports().{name};')
 
     for _, dll, fn, ordinal in table:
         name = member(dll, fn, ordinal)
-        if name in declared:
-            if name not in INTRINSICS:
-                slot(name, dll)
+        if name not in calls:
+            continue
+        if name in prototype:
+            copied.append(name)
+            slot(f'ei::import_fn::{name}', name, dll)
+        elif name not in declared:
+            sys.exit(f'gen_iat: our code calls gameapi::{name} ({dll}): declare it in src/lib/win_api.h')
         elif fn in routes:
-            slot(fn, dll)
+            slot(f'decltype(&::{name})', name, dll)
         else:
-            lines.append(f'using ::{fn or name};  // {dll}')
-    libs = ''.join(f'#pragma comment(lib, "{d.split(".")[0].lower()}.lib")\n' for d in sorted(DLLS))
+            lines.append(f'using ::{name};  // {dll}')
+            libs.add(dll.split('.')[0].lower())
     text = ('#pragma once\n\n// Generated by tools/gen_iat.py. Do not edit.\n'
-            '// The imports our code calls where game.exe called them through its import table. An import\n'
-            '// whose slot can hold something other than the export in the image (the harness\'s slot routes, the\n'
-            '// image\'s UTF-8 routes, a slot our code takes; gen_iat.py\'s routed()) is called through\n'
-            '// the slot (lib/import_table.h): a reference to it, bound in gameapi.cpp. So is every import the\n'
-            '// Windows SDK does not declare (lib/import_prototypes.h: no import library) but the Interlocked pair\n'
-            '// (our code uses the compiler\'s intrinsics); every other one is the Windows function itself.\n\n'
-            '#include "lib/import_table.h"\n\n' + libs + '\nnamespace gameapi {\n\n')
+            '// The imports our code calls (gameapi::X), without the Windows SDK\'s headers. An import whose slot can\n'
+            '// hold something other than the export in the image (the harness\'s slot routes, the image\'s UTF-8\n'
+            '// routes, a slot our code takes; gen_iat.py\'s routed()) is called through the slot (lib/import_table.h):\n'
+            '// a reference to it, bound in gameapi.cpp. So is every import the Windows SDK does not declare (no import\n'
+            '// library), by its prototype of lib/import_prototypes.h, copied below. Every other one is the Windows\n'
+            '// function itself, which lib/win_api.h declares.\n\n'
+            '#include <cstdint>\n\n#include "lib/win_api.h"\n\n'
+            + ''.join(f'#pragma comment(lib, "{lib}.lib")\n' for lib in sorted(libs)))
+    if copied:   # in import_prototypes.h's order (one may name another: BinkSetSoundSystem, BinkOpenMiles)
+        text += ('\n' + prototype[''] + '\n\nnamespace ei::import_fn {\n\n'
+                 + '\n'.join(statement for name, statement in prototype.items() if name in copied)
+                 + '\n\n} // namespace ei::import_fn\n')
+    text += '\nnamespace gameapi {\n\n'
     cpp = ('// Generated by tools/gen_iat.py. Do not edit.\n'
            '// gameapi.h\'s references to the import slots, bound once here rather than by an initialiser in every\n'
            '// file that includes the header. init_seg(lib): after the image\'s data move, which places the table\n'
            '// (src/standalone/image_data.cpp, init_seg(compiler)), and before every other static constructor, which\n'
-           '// may call through them.\n'
-           '#include "lib/gameapi.h"\n\n'
+           '// may call through them. With ImportTable\'s SDK types in view, a declaration of lib/win_api.h or a\n'
+           '// prototype gameapi.h copied that differs from the SDK\'s or import_prototypes.h\'s does not compile.\n'
+           '#include "lib/gameapi.h"\n#include "lib/import_table.h"\n\n'
            '#pragma warning(disable : 4073)   // initialisers put in the library initialisation area: the point\n'
            '#pragma init_seg(lib)\n\nnamespace gameapi {\n\n')
     return (text + '\n'.join(lines) + '\n\n} // namespace gameapi\n',
@@ -350,7 +395,7 @@ def main():
     if errors:
         print('\n'.join(errors))
         return 1
-    gameapi, gameapi_cpp, functions = gameapi_text(table, routed(table))
+    gameapi, gameapi_cpp, functions = gameapi_text(table, routed(table), called(table))
     outputs = [(IMPORT_TABLE, import_table_text(table)), (GAMEAPI, gameapi), (GAMEAPI_CPP, gameapi_cpp),
                (IMAGE_IMPORTS, image_imports_text(table, reached(table)))]
     if args.check:

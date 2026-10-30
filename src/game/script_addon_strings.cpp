@@ -15,7 +15,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <windows.h>
 
 #include <cstring>
 #include <string>

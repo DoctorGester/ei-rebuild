@@ -19,6 +19,7 @@
 #include "world.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/win_user.h"
 
 #include <algorithm>
 #include <cstdlib>

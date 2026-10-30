@@ -50,6 +50,7 @@
 #include <cstdio>
 #include <io.h>
 #include <format>
+#include <windows.h>
 
 using options::GameOptions;
 

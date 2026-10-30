@@ -14,9 +14,9 @@
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/win_user.h"
 
 #include <memory>
-#include <windows.h>
 
 namespace {
 

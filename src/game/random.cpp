@@ -9,6 +9,7 @@
 #include <string>
 
 #include <intrin.h>
+#include <windows.h>
 
 // The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};

@@ -6112,6 +6112,12 @@ group = "harness"
 note = "User 2026-10-30 asked why windows.h is everywhere. lib/gameapi.h (78 files) includes import_table.h / import_prototypes.h, the original's Win32 imports typed by their prototypes, so windows.h, mmsystem.h, shellapi.h, objbase.h and dsound.h reach every caller. Make gameapi.h expose the calls without the SDK headers (own declarations over lib/win_types.h, or the table kept to the few .cpp files that fill or call it), then audit the 62 direct windows.h includes (game 31, render 14, hook 8, standalone 5, lib 4): keep it only where Windows is really called (registry, sockets, files, window, DirectDraw), ideally a small platform layer; the rest take lib/win_types.h. User 2026-10-30: registry and DirectDraw should have no uses. They have none at run time: the standalone resolves 109 of game.exe's 504 imports and leaves 395 as traps, all DDRAW.dll and ADVAPI32 Reg* among them. What is left is declarations: ImportTable / gameapi.h are generated from game.exe's whole import directory, so gen_iat.py should emit only the reached imports (the unreached slots go, with their SDK prototypes), and system_text's UTF-8 Reg*A wrappers (and any other wrapper of an unreached import) are dead and go. The hook (src/hook/paths.cpp) still serves the original game.exe and keeps its own. Measure the clean build like H33a. gameapi.h / gen_iat.py are in the harness's reference key: goldens."
 
 [[ticket]]
+id = "H33g"
+title = "Files through lib/file_io: the last windows.h of the game's file users"
+group = "harness"
+note = "From H33f (docs/notes/cleanup-tooling.md, Build time). camera_object, random, world_game, net_link, resource, mod_folders, console_addon and script_addon_commands include windows.h only for the file calls they make through gameapi:: and their constants (FILE_BEGIN / FILE_END, INVALID_HANDLE_VALUE, INVALID_FILE_ATTRIBUTES, OPEN_EXISTING): moving them onto lib/file_io's File / FileFind (UTF-8, windows.h-free header) would drop windows.h from ~8 objects (~0.17 s each) and the raw handle code. Check by dumpbin per function or the goldens (seek and error behaviour must stay)."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

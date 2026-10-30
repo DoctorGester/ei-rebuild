@@ -11,6 +11,7 @@
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/str.h"
+#include "lib/win_user.h"
 
 #include <algorithm>
 #include <cstring>
