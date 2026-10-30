@@ -9,7 +9,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    --standalone: ei_launch --standalone, build\\verify\\ei-rebuild.exe lays out game.exe's data
                    without its code (it reads no game.exe, S18k1), the game and the harness linked in (S23), on the vanilla install's data
                    (install "standalone", vanilla goldens), and on the Rebirth install's data
-                   with the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
+                   with the patches of config/rebirth_profile.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
                    EI_Plugin.asi either way; install "standalone-rebirth", Rebirth goldens). Every scenario runs
                    on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
                    --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's marks and every
@@ -20,7 +20,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    into a game folder (S23a; docs/notes/standalone.md, "The drop-in exe"): ei_launch sees the line and
                    (as with --drop-in) copies the build's ei-rebuild.exe into <run folder>\\dropin, a folder made
                    like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
-                   install), and starts it from the run folder with no EI_GAME_ROOT, EI_REBIRTH or ei_rebirth.ini.
+                   install), and starts it from the run folder with no EI_GAME_ROOT or EI_REBIRTH.
                    On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
                    --rebirth-only: one); never with --no-hooks or --widescreen, and no goldens (the plain profile turns
                    WideScreen on).
@@ -1045,13 +1045,13 @@ def widescreen_check(jobs, record=False, out=None, root=ROOT, build=BUILD):
 
 
 def standalone_rebirth_flags(root=ROOT):
-    """EI_REBIRTH for the standalone image on the Rebirth install: the patch names config/ei_rebirth_standalone.ini
-    sets to 1, comma-separated (S19)."""
+    """EI_REBIRTH for the standalone image on the Rebirth install: the patch names config/rebirth_profile.ini sets
+    true, comma-separated (S19)."""
     names = []
-    with open(os.path.join(root, 'config', 'ei_rebirth_standalone.ini'), encoding='utf-8') as f:
+    with open(os.path.join(root, 'config', 'rebirth_profile.ini'), encoding='utf-8') as f:
         for text in f:
-            m = re.match(r'\s*(\w+)\s*=\s*1\s*$', text)
-            if m and m.group(1) not in ('Default', 'NPlayers', 'Pause'):
+            m = re.match(r'\s*(\w+)\s*=\s*true\s*$', text)
+            if m:
                 names.append(m.group(1))
     return ','.join(names)
 

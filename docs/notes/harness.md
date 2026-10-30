@@ -129,8 +129,9 @@ run_all at another verify build.
 
 `--no-hooks` (harness.cmd, run_all, `ei_launch`) runs the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
-code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
-permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
+code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`), and a scenario can ask with `rebirthflags <names>`. A harness
+run of the image never takes a game folder's profile: ei_launch sets `EI_REBIRTH=defaults` when the caller set none,
+and the run's settings file names no patch. A scenario's `resolution <WxH|desktop>`
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
 Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; without one the image's runs play
 at 1280x720 in a window (FullScreen 0 unless the scenario says `fullscreen 1`; H31), game.exe's at the snapshot's
@@ -187,7 +188,7 @@ play again only when the harness changes (`--fresh`: always).
 The standalone runs (the default, or `--standalone`) start `ei-rebuild.exe` instead of game.exe (install
 `standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone` with `--game` the install, no game.exe: the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
 the Rebirth data and
-goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
+goldens, the patches of `config/rebirth_profile.ini` as `EI_REBIRTH`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
 `--all-rebirth` every scenario); an address the image has no code for ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 A scenario with a line `# drop-in: <why>` (dropin_boot, dropin_profile) runs on both of the image's installs by

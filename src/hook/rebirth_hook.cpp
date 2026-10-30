@@ -2,8 +2,6 @@
 
 #include "log.h"
 
-#include <windows.h>
-
 #include <cstdio>
 #include <cstring>
 
@@ -15,7 +13,16 @@ namespace {
 
 bool g_rebirthLaunch;
 
-void LogFlagsOn() {
+} // namespace
+
+void NoteLaunch() {
+    // Rebirth's bug fixes are on by default on either install: only the other flags make it Rebirth's.
+    g_rebirthLaunch = false;
+    for (int i = 0; i < rebirth::kPatchCount; ++i)
+        g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i)) && !rebirth::DefaultOn(static_cast<Patch>(i));
+}
+
+void LogFlags() {
     char line[2048];
     int n = std::snprintf(line, sizeof(line), "Rebirth flags on:");
     int count = 0;
@@ -26,19 +33,6 @@ void LogFlagsOn() {
     }
     if (count == 0) strcat_s(line, " none");
     Log("%s", line);
-}
-
-} // namespace
-
-void SettingsOnly(const char* iniPath) {
-    rebirth::SetPluginNPlayers(static_cast<int>(GetPrivateProfileIntA("Rebirth", "NPlayers", 7, iniPath)));
-    rebirth::SetPluginPause(static_cast<int>(GetPrivateProfileIntA("Rebirth", "Pause", 1, iniPath)));
-    // Rebirth's bug fixes are on by default on either install: only the other flags make it Rebirth's.
-    for (int i = 0; i < rebirth::kPatchCount; ++i)
-        g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i)) && !rebirth::DefaultOn(static_cast<Patch>(i));
-    Log("Rebirth: standalone image: the flags are ei_rebirth.ini's or the game folder's profile alone (no addon.dll, no "
-        "EI_Plugin.asi)");
-    LogFlagsOn();
 }
 
 bool RebirthLaunch() { return g_rebirthLaunch; }

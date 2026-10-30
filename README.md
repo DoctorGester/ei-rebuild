@@ -37,7 +37,7 @@ test suite plays out exactly as on the original: the same world state and the sa
 - Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
-- Rebirth's bug fixes and widescreen are on by default, even on GOG data; `ei_rebirth.ini` turns them off.
+- Rebirth's bug fixes and widescreen are on by default, even on GOG data; `ei_settings.ini`'s `[patches]` turns them off.
 
 The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
 Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets.md`.
@@ -75,7 +75,7 @@ launch-vanilla.cmd  plays the last release build on the GOG install's data, defa
 
 Or copy `build\release\ei-rebuild.exe` into the game's folder and start it there: it writes `ei_settings.ini`
 beside itself with the defaults and picks the Rebirth flags from the folder (Rebirth's profile where Rebirth's plugin
-is, else the bug fixes and widescreen; an `ei_rebirth.ini` beside it overrides that). It writes into that folder
+is, else the bug fixes and widescreen; a patch named in the file's `[patches]` overrides that). It writes into that folder
 (settings, saves, `ei-rebuild.log`), so use a copy of the install if you want the original kept as it is.
 
 For example, with the game somewhere else:

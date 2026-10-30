@@ -13,7 +13,8 @@
 // recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
 // tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
-// "all", or patch names separated by commas, each optionally =0/=1.
+// "all", or patch names separated by commas, each optionally =0/=1. With EI_REBIRTH set the image takes no game
+// folder's profile; a --standalone run of a scenario without one sets it to "defaults".
 // --standalone runs ei-rebuild.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
 // it runs without game.exe (S18k; --exe only places the shared copy of a launch without a scenario), the game and
 // (verify build) the harness linked in (S23), with the same
@@ -190,7 +191,7 @@ static std::wstring DropInFolder(const std::wstring& folder, const std::wstring&
             continue;
         }
         bool ours = false;
-        for (const wchar_t* skipped : {L"game.exe", L"ei-rebuild.exe", L"ei_settings.ini", L"ei_rebirth.ini", L"ei-rebuild.log"})
+        for (const wchar_t* skipped : {L"game.exe", L"ei-rebuild.exe", L"ei_settings.ini", L"ei-rebuild.log"})
             ours = ours || _wcsicmp(name.c_str(), skipped) == 0;
         if (!ours && !CopyFileW(from.c_str(), to.c_str(), FALSE)) {
             std::fwprintf(stderr, L"ei_launch: cannot copy %s (error %lu)\n", from.c_str(), GetLastError());
@@ -773,6 +774,10 @@ int wmain(int argc, wchar_t** argv) {
     } else if (standalone) {
         // The image reads no game.exe (S18k): no exe needed, the data folder is the install's.
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+        // A harness run names its flags (the defaults, EI_REBIRTH's and the scenario's), never the data folder's
+        // profile (include/ei/rebirth.h): the image takes none when EI_REBIRTH is set.
+        if (!harness.empty() && GetEnvironmentVariableW(L"EI_REBIRTH", nullptr, 0) == 0)
+            SetEnvironmentVariableW(L"EI_REBIRTH", L"defaults");
     }
     std::wstring dropInFolder, dropInExe;
     if (dropIn) {

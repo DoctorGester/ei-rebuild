@@ -107,29 +107,14 @@ bool InKeptSite(std::uintptr_t address) {
     return false;
 }
 
-void LoadFlags() {
-    wchar_t module[MAX_PATH];
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&LoadFlags), &self);
-    const DWORD length = GetModuleFileNameW(self, module, MAX_PATH);
-    // rebirth.cpp's reader takes UTF-8 paths.
-    char utf8[MAX_PATH * 4];
-    const int bytes = length < MAX_PATH ? WideCharToMultiByte(CP_UTF8, 0, module, static_cast<int>(length), utf8,
-                                                              static_cast<int>(sizeof(utf8)), nullptr, nullptr) : 0;
-    std::string ini(utf8, static_cast<std::size_t>(bytes));
-    const std::size_t slash = ini.find_last_of('\\');
-    if (slash != std::string::npos) ini.resize(slash + 1);
-    ini += "ei_rebirth.ini";
-    rebirth::LoadSettings(ini.c_str());
-}
-
 void AtWinMain() {
     if (!GetModuleHandleA("addon.dll")) {
         Fail("EI_ADDON_FLAGS is set but addon.dll is not loaded (run\\vanilla-fixes: tools\\setup_fixes_run.cmd)");
         return;
     }
-    LoadFlags();
+    // The flags: the defaults, EI_REBIRTH's and the scenario's (game.exe has no settings file).
+    rebirth::Reset();
+    rebirth::ApplyOverrides();
     std::vector<unsigned char> file;
     char exe[MAX_PATH];
     GetModuleFileNameA(nullptr, exe, MAX_PATH);

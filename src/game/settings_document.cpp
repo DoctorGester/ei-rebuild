@@ -315,8 +315,13 @@ Document Defaults(int width, int height) {
     d.Set(kRenderer, "Anisotropy", IntText(16));
     d.Set(kRenderer, "PerfOverlay", BoolText(false));
 
+    // Rebirth's patches (startup.cpp): none named, each takes the game folder's profile.
+    d.Comment(kPatches, "Rebirth's patches (docs/notes/rebirth.md), name = true or false. A patch not named here takes the");
+    d.Comment(kPatches, "game folder's profile: Rebirth's in a Rebirth install, else the bug fixes and WideScreen. NPlayers,");
+    d.Comment(kPatches, "Pause: EI_Plugin's player count and pause mode. SecondMaster: a second master server, host[:port].");
+
     // Rebirth's switches (ui_widescreen.cpp, world_client_draw.cpp, mod_folders.cpp).
-    d.Comment(kRebirth, "Read with Rebirth's flags on (ei_rebirth.ini). The draw radii: 100 is the original's. AddonPath:");
+    d.Comment(kRebirth, "Read with Rebirth's patches on ([patches]). The draw radii: 100 is the original's. AddonPath:");
     d.Comment(kRebirth, "the mod's folder.");
     d.Set(kRebirth, "WideScreen", BoolText(true));
     d.Set(kRebirth, "ObjectsDrawRadius", IntText(5376));

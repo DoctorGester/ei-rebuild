@@ -223,6 +223,8 @@ void Defaults() {
     is("rebirth", "LandscapeDrawRadius", "5376");
     // Left out: the game's and Rebirth's own defaults.
     CHECK(!document.Find("paths", "Work path") && !document.Find("game", "ShowTutorial") && !document.Find("rebirth", "AddonPath"));
+    // Rebirth's patches: a comment only, each patch the game folder's profile.
+    CHECK(!document.Find("patches", "WideScreen") && !document.Find("patches", "FixLeversActivate"));
     // The text reads back to the same document, comments included, with no problem.
     std::vector<std::string> problems;
     const Document back = RoundTrip(document, &problems);

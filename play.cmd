@@ -2,10 +2,12 @@
 rem Builds the product with every option on and starts it to play.
 rem usage: play.cmd [rebirth|vanilla] [x64]
 rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:\games\Evil Islands (Rebirth)) with the Rebirth profile
-rem                      (config\ei_rebirth_standalone.ini: widescreen, draw radii, console and script additions,
+rem                      (config\rebirth_profile.ini: widescreen, draw radii, console and script additions,
 rem                      the bug fixes)
-rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the default flags (the bug fixes)
+rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the plain profile (the bug fixes)
 rem                      and widescreen
+rem   The profile is the data folder's (src/standalone/startup.cpp); a patch named in ei_settings.ini's [patches]
+rem   (name = true or false) wins over it in either mode.
 rem   x64                the 64-bit build (build.cmd play-x64, into build\play-x64) in place of the 32-bit one, in its own
 rem                      folder run\play-x64 (its own ei_settings.ini and log), on the same data and the same profile; the
 rem                      combination is free (play.cmd vanilla x64). No ei_launch (it is 32-bit): the exe is started
@@ -52,19 +54,15 @@ if not exist "%PLAY%" mkdir "%PLAY%"
 for %%f in (%FILES%) do (
     copy /y "%~dp0build\%CFG%\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
 )
-rem The Rebirth flags: ei_rebirth.ini next to the exe (docs/notes/rebirth.md).
+rem The Rebirth patches follow the data folder's profile; ei_settings.ini's [patches] overrides any of them
+rem (docs/notes/rebirth.md).
 if not defined EI_GAME_REBIRTH set "EI_GAME_REBIRTH=F:\games\Evil Islands (Rebirth)"
 if not defined EI_GAME_VANILLA set "EI_GAME_VANILLA=F:\games\EvilIslands"
 set "GAME=%EI_GAME_REBIRTH%"
-if /i "%MODE%"=="vanilla" (
-    set "GAME=%EI_GAME_VANILLA%"
-    > "%PLAY%\ei_rebirth.ini" (echo [Rebirth]& echo WideScreen=1)
-) else (
-    copy /y "%~dp0config\ei_rebirth_standalone.ini" "%PLAY%\ei_rebirth.ini" >nul
-)
+if /i "%MODE%"=="vanilla" set "GAME=%EI_GAME_VANILLA%"
 cd /d "%PLAY%"
 if defined ARCH (
-    rem The data folder as the 32-bit path's ei_launch names it; the exe's settings, flags and log are run\play-x64's.
+    rem The data folder as the 32-bit path's ei_launch names it; the exe's settings and log are run\play-x64's.
     set "EI_GAME_ROOT=%GAME%"
     start "" /wait "%PLAY%\ei-rebuild.exe"
     exit /b

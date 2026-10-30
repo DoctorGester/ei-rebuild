@@ -183,7 +183,7 @@ S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
   `ServerSession::OnMasterImpl` 0041ACA0 takes answers from any address (2 NOPs at 0041ACB7); `MasterLinkTick` 00440DE0 leaves a master
   link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F).
 - **NewMaster's second master server** (S19c, the user's decision: opt-in; `src/game/net_second_master.cpp`). The plugin's is
-  hat.gipath.org:28004; ours is `[Rebirth] SecondMaster=host[:port]` of ei_rebirth.ini (or `SecondMaster=` in a spec), empty by default
+  hat.gipath.org:28004; ours is `SecondMaster = host[:port]` in ei_settings.ini's `[patches]` (or `SecondMaster=` in a spec), empty by default
   and in harness runs: then the three functions are the game's own code (no thread, packet or probe), also in a Rebirth launch, where the
   plugin's code no longer runs (they are declared, so hooked). With an address and the flag: the main menu's Multiplayer click (00632D70,
   plugin 100051B0 at 006330A9) starts a look-up thread (gethostbyname, one at a time, at most every 10 s, until an address is known) and
@@ -212,8 +212,13 @@ computes at 53 bits in both installs (Rebirth does not raise the precision). Ret
 
 `include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
 feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original, bugs included). Defaults: the bug fixes on, the
-rest off ("One test profile"). Sources, in order: the defaults, `ei_rebirth.ini` next to the exe (`Default=` sets every flag it does not name; without one, a dropped-in exe takes its folder's profile: standalone.md, "The drop-in exe"), the `EI_REBIRTH`
-environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06, `defaults`), a scenario's `rebirthflags` line. The flags (`src/lib/rebirth.cpp`)
+rest off ("One test profile"). Sources, in order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the
+exe's folder: Rebirth's, `config/rebirth_profile.ini` with EI_Plugin.ini's players and pause mode, where `starter\addon.dll` or `EI_Plugin.asi` is, else
+the bug fixes and WideScreen; none when `EI_REBIRTH` is set); the settings file's `[patches]` (ei_settings.ini, `Name = true|false`, and `NPlayers`,
+`Pause`, `SecondMaster`; the defaults name none, so every patch follows the folder until the player names it); the `EI_REBIRTH`
+environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06, `defaults`); a scenario's `rebirthflags` line. Harness runs set
+`EI_REBIRTH` (ei_launch: `defaults` when the caller gave none; run_all: the Rebirth profile's names on the Rebirth install), so they take no folder's
+profile and stay independent of the install's EI_Plugin.ini. There was a separate ei_rebirth.ini until C66a; there is no conversion from it. The flags (`src/lib/rebirth.cpp`)
 are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
 
 ### One test profile (SV9)
@@ -261,7 +266,7 @@ still runs and compares every Rebirth golden.
 ### Installing and verifying flagged rewrites
 
 Which rewrite carries which Rebirth patch is the status column of `config/rebirth_patches.csv` ("implemented: <function> (<file>)"); the
-flag is on or off for the whole process (`Patch::X`, `ei_rebirth.ini`, `EI_REBIRTH`, a scenario's `rebirthflags`). There is no per-function
+flag is on or off for the whole process (`Patch::X`, the profile, `[patches]`, `EI_REBIRTH`, a scenario's `rebirthflags`). There is no per-function
 declaration in the code: the standalone image has no addon-patched original to compare with and nothing installs or skips a function by
 its patches. A rewrite that reproduces a Rebirth patch is verified in the image with the flag on (`rebirth_flags.txt` and the scenarios
 that set `rebirthflags`) against goldens recorded from the original game.exe run with the same flag on; Rebirth's own behaviour is

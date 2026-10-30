@@ -2,8 +2,8 @@
 
 // The standalone's settings: ei_settings.ini next to the exe (or %LOCALAPPDATA%\EvilIslands\ei_settings.ini when the
 // exe's folder has none and cannot be written; docs/notes/standalone.md, "Settings file"). The options (options.cpp),
-// the renderer's switches, Rebirth's switches and console lines are read and written here through typed accessors;
-// nothing reads or writes the registry (game.exe, the original game, keeps it).
+// the renderer's switches, Rebirth's patches, switches and console lines are read and written here through typed
+// accessors; nothing reads or writes the registry (game.exe, the original game, keeps it).
 //
 // The file is a plain ini:
 //   ; a comment (a line starting with ';' or '#'; kept when the game rewrites the file)
@@ -30,8 +30,9 @@ namespace settings {
 
 inline constexpr const char* kFileName = "ei_settings.ini";
 
-// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's switches
-// (ui_widescreen.cpp, world_client_draw.cpp, mod_folders.cpp) and its console lines (console_addon.cpp).
+// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's patches
+// (src/standalone/startup.cpp, include/ei/rebirth.h), its switches (ui_widescreen.cpp, world_client_draw.cpp,
+// mod_folders.cpp) and its console lines (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";
 inline constexpr const char* kSound = "sound";
@@ -42,6 +43,7 @@ inline constexpr const char* kGame = "game";
 inline constexpr const char* kNetwork = "network";
 inline constexpr const char* kStatistics = "statistics";
 inline constexpr const char* kRenderer = "renderer";
+inline constexpr const char* kPatches = "patches";
 inline constexpr const char* kRebirth = "rebirth";
 inline constexpr const char* kAutoExec = "autoexec";
 
@@ -95,9 +97,10 @@ bool ParseBool(std::string_view text, bool* value);
 // trilinear filtering, full-size textures, mipmaps, every shadow, self shadowing), and what a game install writes in
 // place of the game's own placeholder defaults (the camera's section, the objects' lighting, the hero's and the
 // quest light, the master server). The renderer: Msaa 8 (the device's best when less), Anisotropy 16, VSync on, no
-// performance overlay. Rebirth's switches: WideScreen on, the draw radii 5376 (the whole map; Rebirth's own default
-// is the original's 100). Everything else (paths, the other options and switches) is left out: the game and Rebirth
-// read it as absent and take their own defaults.
+// performance overlay. Rebirth's patches: none named (each takes the game folder's profile). Rebirth's switches:
+// WideScreen on, the draw radii 5376 (the whole map; Rebirth's own default is the original's 100). Everything else
+// (paths, the other options and switches) is left out: the game and Rebirth read it as absent and take their own
+// defaults.
 Document Defaults(int width, int height);
 
 // ---- The process's settings (the standalone; game.exe uses the registry) ----
@@ -110,6 +113,8 @@ float GetFloat(const char* section, const char* name, float defaultValue);
 std::string GetString(const char* section, const char* name, const std::string& defaultValue);
 // Every value of `section`, in file order (its lines' names apart).
 std::vector<std::string> GetValues(const char* section);
+// Every name = value line of `section`, in file order (comments left out; a value it lacks is not one read).
+std::vector<Document::Line> GetLines(const char* section);
 
 // Sets the value; kept until Save.
 void SetInt(const char* section, const char* name, int value);
