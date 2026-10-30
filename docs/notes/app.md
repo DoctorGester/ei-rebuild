@@ -66,6 +66,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   (GetModuleHandleA + GetProcAddress), its free-bytes-for-the-caller as a signed 64-bit value; without it
   sectors x bytes x free clusters; 0 when the call fails. Now `platform::FreeDiskSpace` (the save and load screens and
   WinMain's warning): GetDiskFreeSpaceExW, which every Windows has, so the cluster count path is gone.
+  Dropped on purpose: WinMain asked for `<drive>\.` of the data folder; ours asks for the folder itself, as the
+  save screens do (the same drive; a path that names no existing folder, an empty one included, gives 0: no warning).
 - 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
   else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
 - 00455B50 `DelayedProtectionCheck` (PlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF

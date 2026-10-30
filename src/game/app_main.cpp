@@ -189,13 +189,6 @@ void DriveRoot(const char* path, PathParts& parts) {
     std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 
-// The free bytes on the drive of `folder`; 0 when unknown.
-double FreeDiskSpace(const char* folder) {
-    PathParts parts;
-    DriveRoot(folder, parts);
-    return platform::FreeDiskSpace(parts.drive);
-}
-
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
     return platform::ShowMessageBox(nullptr, text.c_str(), "Warning", platform::MessageButtons::OkCancel,
@@ -208,7 +201,7 @@ bool WarningAccepted(const std::string& text) {
 bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = g_discFolder;
     std::string dataFolder = g_dataFolder;
-    const double freeBytes = FreeDiskSpace(dataFolder.c_str());
+    const double freeBytes = platform::FreeDiskSpace(dataFolder.c_str());
     if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
         PathParts parts;
