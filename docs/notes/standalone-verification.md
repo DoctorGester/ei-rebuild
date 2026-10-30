@@ -17,8 +17,8 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
   runner by the Suites workflow's `record` input. Until H40 they were game.exe's `--no-hooks` runs (with the harness's
   canonicalising patches, section 5; on the vanilla data with addon.dll's bug fixes only), and every vanilla golden
   the image could run and 24 Rebirth ones were the same as game.exe's when the switch was made. The git tag
-  `original-oracle` marks the last commit whose `golden.py record` took game.exe's runs: check a question about the
-  original's behaviour there.
+  `original-oracle` (main's b06141b) marks the last commit whose `golden.py record` took game.exe's runs: check a
+  question about the original's behaviour there.
 - **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap (the image's
   malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in every run): a golden must hold
   under every seed. Goldens are recorded from runs that agree plain and under jitter.
