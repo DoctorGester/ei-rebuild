@@ -49,21 +49,6 @@ constexpr DWORD kCtfMon = 0;
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";
 
-// The game's data folder: EI_GAME_ROOT (ei_launch), else the exe's own (a drop-in run).
-bool RebirthData() {
-    char folder[MAX_PATH];
-    DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", folder, sizeof(folder));
-    if (!n || n >= sizeof(folder)) {
-        n = GetModuleFileNameA(nullptr, folder, sizeof(folder));
-        if (!n || n >= sizeof(folder)) return false;
-        if (char* slash = std::strrchr(folder, '\\')) *slash = 0;
-    }
-    char path[MAX_PATH + 32];
-    std::snprintf(path, sizeof(path), "%s\\starter\\addon.dll", folder);
-    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) return true;
-    std::snprintf(path, sizeof(path), "%s\\EI_Plugin.asi", folder);
-    return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
-}
 
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
@@ -236,6 +221,21 @@ bool RebirthInstall() {
     // addon.dll in the vanilla install's game (EI_ADDON_FLAGS, harness_addon.h) keeps only the bug fixes: vanilla.
     if (addon::Active()) return false;
     return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
+}
+
+bool RebirthData() {
+    char folder[MAX_PATH];
+    DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", folder, sizeof(folder));
+    if (!n || n >= sizeof(folder)) {
+        n = GetModuleFileNameA(nullptr, folder, sizeof(folder));
+        if (!n || n >= sizeof(folder)) return false;
+        if (char* slash = std::strrchr(folder, '\\')) *slash = 0;
+    }
+    char path[MAX_PATH + 32];
+    std::snprintf(path, sizeof(path), "%s\\starter\\addon.dll", folder);
+    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) return true;
+    std::snprintf(path, sizeof(path), "%s\\EI_Plugin.asi", folder);
+    return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
 }
 
 } // namespace ei::verify::starter

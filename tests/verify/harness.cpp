@@ -4051,6 +4051,19 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
+        // "vanilla <step>" / "rebirth <step>" for a window step, taken before the game starts (a window size for one
+        // install's runs): applied when the data folder is that install's (starter::RebirthData), else dropped.
+        if (g_steps.back().verb == "vanilla" || g_steps.back().verb == "rebirth") {
+            const std::string& inner = g_steps.back().argument;
+            const std::size_t at = inner.find(' ');
+            const std::string verb = inner.substr(0, at), argument = at == std::string::npos ? "" : inner.substr(at + 1);
+            if (verb == "resolution" || verb == "widescreen" || verb == "fullscreen") {
+                if ((g_steps.back().verb == "rebirth") == ei::verify::starter::RebirthData())
+                    ei::verify::starter::ParseStep(verb, argument);
+                g_steps.pop_back();
+                continue;
+            }
+        }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             settings::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             ei::verify::startup::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
