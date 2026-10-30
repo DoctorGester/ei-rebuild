@@ -1270,7 +1270,7 @@ id = "W12a"
 title = "The vanilla 16:9 desktop scenarios' goldens under the window's layout"
 group = "widescreen"
 depends = ["W12"]
-note = "W12 made the interface layout follow the window, so the five vanilla scenarios at 'resolution desktop' (16:9 4K: net_pair_leave, net_pair_quest, net_pair_zone, render_pick_edges, render_pick_edges_rule) get the wide layout and differ from their goldens (game.exe's stretched 16:9): clickground finds no screen point, picks land elsewhere. The vanilla original has no wide layout, so no re-record from it can match at 16:9. User decides: e.g. both sides at a 4:3 window (game.exe windowed, goldens re-recorded), or no vanilla golden for them."
+note = "W12 made the interface layout follow the window, so the five vanilla scenarios at 'resolution desktop' (16:9 4K: net_pair_leave, net_pair_quest, net_pair_zone, render_pick_edges, render_pick_edges_rule) get the wide layout and differ from their goldens (game.exe's stretched 16:9): clickground finds no screen point, picks land elsewhere. The vanilla original has no wide layout, so no re-record from it can match at 16:9. Done 2026-10-30: the vanilla image runs play in a 4:3 window (960x720), where W12 lays out exactly as main's stretched 1280x720 (Suites diff runs 41074059416 / 41076142052: no scenario differs but these five and a 1-ulp rotation in ui_titles_scroll); 1280x720 with the wide layout changed about 30 goldens and failed 8 scenarios (run 41073972854). The five scenarios say 'rebirth resolution desktop', so their vanilla runs play in the 4:3 window too; their vanilla goldens are re-recorded there. The per-scenario causes of the reverted c6d10a7 goldens are in the commit message that records them."
 
 [[ticket]]
 id = "W12b"
