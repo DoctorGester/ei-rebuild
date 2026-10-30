@@ -229,8 +229,13 @@ class RealRun(unittest.TestCase):
             self.skipTest('no verify build or run of harness_disk_full here')
         text = rc.named_stack(d)
         names = text.split(' -> ')
-        self.assertEqual(names[-1], 'CxxThrowException', text)
-        self.assertLess(names.index('QuickSave'), names.index('lib::File::Write'), text)
+        # What the disk-full path must show, wherever the code sits: the save function calls a file Write (any
+        # class or namespace, it moves with the layout) that reaches the throw. Frames around them are not asserted.
+        writes = [i for i, n in enumerate(names) if n.endswith('File::Write')]
+        self.assertTrue(writes, text)
+        self.assertIn('QuickSave', names, text)
+        self.assertLess(names.index('QuickSave'), writes[-1], text)
+        self.assertIn('CxxThrowException', names[writes[-1]:], text)
         self.assertNotIn('__lseeki64', text)          # the stale words after the game's first function
 
 
