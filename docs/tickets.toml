@@ -7013,11 +7013,11 @@ note = "Scope: hook/log.cpp with `std::mutex` (no `_lock_file`), steady-clock ti
 
 [[ticket]]
 id = "MAC3j"
-title = "macos-port: Window creation (user decision first)"
+title = "macos-port: Window creation, decorated windowed mode"
 group = "port"
 model = "opus"
 depends = ["MAC2"]
-note = "Scope: `CreateGameWindow(title, w, h, fullScreen)` without out-parameters; the decorated, centred windowed mode on Windows only if the user wants it, with the borderless at 0,0 behaviour otherwise; `widescreen::Configure` placement plus its comment; options.h without `windowWidth/Height`. Check: manual Windows run windowed and full screen at desktop size, PL9a's SDL-vs-wndproc check, goldens. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+note = "User 2026-10-30: windowed mode is a decorated, centred window on every system (a borderless window that cannot be moved or resized makes no sense); a window larger than the desktop work area must still fit (shrink the client area or let the title bar sit at the top), and the harness window follows the same path. Scope: `CreateGameWindow(title, w, h, fullScreen)` without out-parameters; `widescreen::Configure` placement plus its comment; options.h without `windowWidth/Height`. Check: manual Windows run windowed and full screen at desktop size, PL9a's SDL-vs-wndproc check, goldens. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
 
 [[ticket]]
 id = "MAC3k"
