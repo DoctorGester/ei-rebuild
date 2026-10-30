@@ -53,22 +53,20 @@ Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
     return {object->localPosition.x, object->localPosition.y, rise + object->localPosition.z};
 }
 
-Vector3 ParticleSource::AttachmentOffset(float* radius) {
+ParticleSource::Attachment ParticleSource::AttachmentOffset() {
     Object3D* object = attachedTo;
-    if (!object) {
-        *radius = 0.1f;
-        return {0.0f, 0.0f, 0.0f};
-    }
+    if (!object) return {{0.0f, 0.0f, 0.0f}, 0.1f};
     object->ComputeBounds();
+    float radius;
     if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
-        *radius = object->bounds.radius;
+        radius = object->bounds.radius;
     } else {
         float dz = object->bounds.boxMax.z - object->bounds.boxMin.z;
         float dx = object->bounds.boxMax.x - object->bounds.boxMin.x;
         float dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
-        *radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5f;
+        radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5f;
     }
-    return {0.0f, 0.0f, object->bounds.center.z};
+    return {{0.0f, 0.0f, object->bounds.center.z}, radius};
 }
 
 void ParticleSource::Attach(Object3D* object) {

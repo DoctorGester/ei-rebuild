@@ -127,14 +127,8 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
     float t = 0.0f;
     for (;;) {
         float time = pc24::Add(static_cast<double>(pathOrder->startTime), t);   // the int exact, one rounding
-        bool turning;
-        Vector3 position;
-        Vector3 direction;
-        float speed;
-        int cellX;
-        int cellY;
-        simulated.motion.Sample(nullptr, OrderOf(motionOrder), time, &turning,
-                                                             &position.x, &direction.x, &speed, &cellX, &cellY);
+        MotionSample sample = simulated.motion.Sample(nullptr, OrderOf(motionOrder), time);
+        Vector3 position = {sample.x, sample.y, 0.0f};
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
         previous = position;
         float half = kHalfCell;

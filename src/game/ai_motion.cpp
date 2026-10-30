@@ -54,9 +54,9 @@ int DirectionDelta(int a, int b) {
     return d;
 }
 
-void FaceAngle(float angle, float* direction) {
-    direction[0] = pc24::Round(pc24::Cos(angle));
-    direction[1] = pc24::Round(pc24::Sin(angle));
+void FaceAngle(float angle, MotionSample* sample) {
+    sample->direction.x = pc24::Round(pc24::Cos(angle));
+    sample->direction.y = pc24::Round(pc24::Sin(angle));
 }
 
 // FCOS's 64-bit result above a double constant, compared unrounded.
@@ -241,38 +241,34 @@ int UnitMotion::Clear() {
     return 0;
 }
 
-bool UnitMotion::Sample(World* world, MotionOrder* order, float time, bool* turning, float* position,
-                        float* direction, float* speedOut, int* cellX, int* cellY) {
-    *cellX = -1;
-    *cellY = -1;
-    *speedOut = 0.1f;
-    direction[2] = 0.0f;
-    *turning = false;
+MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
+    MotionSample sample;
     // The start tick, an int: compared exactly; the elapsed time is the difference rounded once.
     double start = order->startTime;
     time = time >= start ? time : static_cast<float>(start);
-    position[0] = order->x;
-    position[1] = order->y;
+    sample.x = order->x;
+    sample.y = order->y;
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
-        FaceAngle(order->angle, direction);
-        return true;
+        FaceAngle(order->angle, &sample);
+        return sample;
     case 1: {
-        *turning = true;
+        sample.turning = true;
         bool final;
         float angle = TurnAngle(this, pc24::Sub(time, start), &final);
-        direction[0] = pc24::Round(pc24::Cos(angle));
-        direction[1] = pc24::Round(pc24::Sin(angle));
-        return !final;
+        sample.direction.x = pc24::Round(pc24::Cos(angle));
+        sample.direction.y = pc24::Round(pc24::Sin(angle));
+        sample.alive = !final;
+        return sample;
     }
     case 2:
-        return SamplePath(pc24::Sub(time, start), turning, position, direction, speedOut, cellX, cellY);
+        return SamplePath(pc24::Sub(time, start), sample.x, sample.y);
     case 3: {
         MapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
         if (!object) {
-            FaceAngle(order->angle, direction);
-            return true;
+            FaceAngle(order->angle, &sample);
+            return sample;
         }
         int from = static_cast<int>(order->arg6);
         Vector3 target = static_cast<double>(from) >= time ? object->PositionAt(from) : object->AimPoint();
@@ -289,37 +285,39 @@ bool UnitMotion::Sample(World* world, MotionOrder* order, float time, bool* turn
             // Over the turn's tick count, an int.
             float angle = pc24::Div(pc24::Sub(time, start) * angleTo, static_cast<double>(to - order->startTime)) +
                           order->angle;
-            direction[0] = pc24::Round(pc24::Cos(angle));
-            direction[1] = pc24::Round(pc24::Sin(angle));
-            return true;
+            sample.direction.x = pc24::Round(pc24::Cos(angle));
+            sample.direction.y = pc24::Round(pc24::Sin(angle));
+            return sample;
         }
-        direction[0] = tx - order->x;
+        sample.direction.x = tx - order->x;
         float dy = ty - order->y;
-        direction[1] = dy;
-        float norm = std::sqrt(dy * dy + direction[0] * direction[0]);
+        sample.direction.y = dy;
+        float norm = std::sqrt(dy * dy + sample.direction.x * sample.direction.x);
         EI_NAN_AUDIT(norm);
-        if (norm == 0.0f) return true;
+        if (norm == 0.0f) return sample;
         float inverse = 1.0f / norm;
-        direction[0] = inverse * direction[0];
-        direction[1] = inverse * direction[1];
-        direction[2] = inverse * direction[2];
-        return true;
+        sample.direction.x = inverse * sample.direction.x;
+        sample.direction.y = inverse * sample.direction.y;
+        sample.direction.z = inverse * sample.direction.z;
+        return sample;
     }
     case 4: {
         bool final;
         float angle = TurnAngle(this, pc24::Sub(time, start), &final);
-        direction[0] = pc24::Round(pc24::Cos(angle));
-        direction[1] = pc24::Round(pc24::Sin(angle));
-        *turning = !final;
-        return true;
+        sample.direction.x = pc24::Round(pc24::Cos(angle));
+        sample.direction.y = pc24::Round(pc24::Sin(angle));
+        sample.turning = !final;
+        return sample;
     }
     default:
-        return true;
+        return sample;
     }
 }
 
-bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* direction, float* speedOut,
-                            int* cellX, int* cellY) {
+MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
+    MotionSample sample;
+    sample.x = startX;
+    sample.y = startY;
     float end = 0.0f;
     int index = 0;
     bool found = false;
@@ -331,7 +329,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         end = segmentStart;     // later: walk on from the cached segment
         index = segment;
     } else {
-        *turning = true;
+        sample.turning = true;
         turnRate = baseTurnRate;
         float turnTime = AbsBits(turn / baseTurnRate);
         EI_NAN_AUDIT(time, turnTime);
@@ -346,16 +344,16 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = sign * turnRate * time + startAngle;
             }
-            direction[0] = pc24::Round(pc24::Cos(angle));
-            direction[1] = pc24::Round(pc24::Sin(angle));
-            return true;
+            sample.direction.x = pc24::Round(pc24::Cos(angle));
+            sample.direction.y = pc24::Round(pc24::Sin(angle));
+            return sample;
         }
         end = turnTime;
         index = 0;
     }
 
     if (!found) {
-        *turning = false;
+        sample.turning = false;
         float saved = segmentStart;
         for (; index < std::ssize(points) - 1; ++index) {
             segmentStart = end;
@@ -377,16 +375,15 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         }
         if (!found) {
             segmentStart = saved;
-            *speedOut = 0.0f;
             const MotionPoint& last = points[std::ssize(points) - 1];
-            position[0] = last.x;
-            position[1] = last.y;
-            direction[0] = last.dirX;
-            direction[2] = 0.0f;
-            direction[1] = last.dirY;
-            *cellX = last.cellX;
-            *cellY = last.cellY;
-            return false;
+            sample.alive = false;
+            sample.speed = 0.0f;
+            sample.x = last.x;
+            sample.y = last.y;
+            sample.direction = {last.dirX, last.dirY, 0.0f};
+            sample.cellX = last.cellX;
+            sample.cellY = last.cellY;
+            return sample;
         }
         curveX.Fit(fromX, fromDirX, toX, toDirX, length);
         curveY.Fit(fromY, fromDirY, toY, toDirY, length);
@@ -394,16 +391,16 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         segment = index;
     }
 
-    *turning = false;
-    *speedOut = speed;
+    sample.turning = false;
+    sample.speed = speed;
     float u = (time - segmentStart) * speed;
-    position[0] = curveX.Value(u);
-    direction[0] = curveX.Slope(u);
-    position[1] = curveY.Value(u);
-    direction[1] = curveY.Slope(u);
-    *cellX = points[segment + 1].cellX;
-    *cellY = points[segment + 1].cellY;
-    return true;
+    sample.x = curveX.Value(u);
+    sample.direction.x = curveX.Slope(u);
+    sample.y = curveY.Value(u);
+    sample.direction.y = curveY.Slope(u);
+    sample.cellX = points[segment + 1].cellX;
+    sample.cellY = points[segment + 1].cellY;
+    return sample;
 }
 
 void UnitMotion::Build(PathOrder* path) {

@@ -65,8 +65,7 @@ bool SetUpCasting(ParticleSource* s) {
         game::DebugLog(NoCarrierCasting());
         return false;
     }
-    float radius;
-    Vector3 offset = s->AttachmentOffset(&radius);
+    auto [offset, radius] = s->AttachmentOffset();
     radius = radius * EI_POINT_EIGHT;
     float scale = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
@@ -143,8 +142,7 @@ bool FollowCarrier(ParticleSource* s) {
         game::DebugLog(NoCarrierSphere());
         return false;
     }
-    float radius;
-    Vector3 offset = s->AttachmentOffset(&radius);
+    auto [offset, radius] = s->AttachmentOffset();
     radius = radius * EI_SPHERE_RADIUS;
     float height;
     height = offset.z;
@@ -209,8 +207,7 @@ constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's las
 // tick (Healing also sets the flame growth). Each ring counts down from `countdown`.
 void PlaceRings(ParticleSource* s, int countdown) {
     float step = ei::kRadiansPerDegree * (EI_FULL_TURN / s->emitCount);
-    float radius;
-    Vector3 offset = s->AttachmentOffset(&radius);
+    auto [offset, radius] = s->AttachmentOffset();
     float fullRadius = radius;
     float angle = 0.0f;
     offset.z = offset.z - fullRadius;
@@ -326,8 +323,7 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
     float orbit, carrier;     // the orbit radius and the carrier's radius
     int k = lib::Count(s->elements);
     if (k == 0) {
-        float radius;
-        Vector3 offset = s->AttachmentOffset(&radius);
+        auto [offset, radius] = s->AttachmentOffset();
         carrier = radius;
         orbit = radius * EI_HALF_C;
     } else {
@@ -606,8 +602,7 @@ bool SetUpColumn(ParticleSource* s) {
         game::DebugLog(NoCarrierCasting());
         return false;
     }
-    float radius;
-    Vector3 offset = s->AttachmentOffset(&radius);
+    auto [offset, radius] = s->AttachmentOffset();
     float height = radius + radius;
     float foot = -offset.z - height * EI_COLUMN_FOOT;
     radius = radius * EI_COLUMN_RADIUS;
@@ -707,8 +702,7 @@ constexpr std::int32_t kCylinderAlpha[32] = /*0078AB18*/ {0, 32, 64, 128, 255, 2
 
 // The stars on the carrier's orbit (the first emission).
 void SetUpCylinder(ParticleSource* s) {
-    float radius;
-    Vector3 offset = s->AttachmentOffset(&radius);
+    auto [offset, radius] = s->AttachmentOffset();
     float turn = (EI_CYL_TURN * EI_CYL_PI) * EI_CYL_TURN_SCALE;
     if (ParticleTypeOf(s->type) == ParticleType::Cylinder2) turn = -turn;
     float c = std::cos(turn);
@@ -2152,8 +2146,7 @@ int ParticleSource::EmitStench(Particle* p, int) {
             game::DebugLog(NoCarrierGas());
             return 0;
         }
-        float radius;
-        Vector3 offset = AttachmentOffset(&radius);
+        auto [offset, radius] = AttachmentOffset();
         float r = radius;
         float gasRadius = r * EI_GAS_RADIUS;
         float carrierHeight = r + r;
@@ -2714,8 +2707,7 @@ int ParticleSource::UpdateArrowSmoke(Particle* p) {
 int ParticleSource::EmitBanshee(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         elements.resize(1);
-        float radius;
-        Vector3 offset = AttachmentOffset(&radius);
+        auto [offset, radius] = AttachmentOffset();
         float tall = radius * EI_BANSHEE_TALL;
         float widen = radius * EI_BANSHEE_WIDEN;
         height = widen + widen;
@@ -3432,7 +3424,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
     } else {
         e->pos = origin;
     }
-    AttachmentOffset(&e->foot.radius);
+    e->foot.radius = AttachmentOffset().radius;
     e->foot.countdown = 0;
 }
 
@@ -4040,8 +4032,7 @@ void ParticleSource::TickGlow(ParticleElement*) {
 // ticks, else one; once the carrier is gone (nothing emitted) or it is dead (IsDead) the source stops and lets
 // it go.
 int ParticleSource::EmitStun(Particle* p, int) {
-    float radius;
-    Vector3 offset = AttachmentOffset(&radius);
+    auto [offset, radius] = AttachmentOffset();
     p->color = 0xFFFFFF;
     p->frame = 3;
     float x, y, z;

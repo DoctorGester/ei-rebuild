@@ -438,16 +438,9 @@ void UnitServer::TickAction() {
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
         World* context = WorldContext();
-        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
-        Vector3 direction;
-        float speed;
-        int cellX;
-        int cellY;
-        bool turning;
-        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick),
-                               &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
+        MotionSample sample = unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick));
         SetStandingFlag(this, state == UnitState::Idle ? 1 : 0);
-        unit->TurnUpTowards(direction, 0);
+        unit->TurnUpTowards(sample.direction, 0);
         return;
     }
     FinishAction(plan.hitLocation);

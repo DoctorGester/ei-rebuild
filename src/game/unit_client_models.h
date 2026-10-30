@@ -130,7 +130,7 @@ public:
     // The point the weapon in hand acts from: the node named by the weapon's model ("baserh3" without one) in the
     // unit's figure animation, copied to `out` (relative to the unit, not turned by its orientation). False when the
     // animation has no such node.
-    bool WeaponPoint(Vector3* out);
+    std::optional<Vector3> WeaponPoint();
 
     // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update".
     bool RunTick() override;

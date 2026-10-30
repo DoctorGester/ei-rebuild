@@ -108,6 +108,13 @@ template <> void ScriptNamedValues<std::string>::Save(ByteStream* stream) const;
 template <> void ScriptNamedValues<ScriptObjectRef>::Save(ByteStream* stream) const;
 template <> void ScriptNamedValues<ScriptGroup>::Save(ByteStream* stream) const;
 
+// Where ScriptVars::FindVariable found a variable: its type (1..4) and index in that type's arrays. A name
+// not found has index -1 and the last type searched (group).
+struct ScriptVarRef {
+    int index;
+    int type;
+};
+
 // A set of named script variables, one value array and one name array per type: a script's local variables
 // and the global variables (GlobalVars).
 struct ScriptVars {
@@ -120,8 +127,7 @@ struct ScriptVars {
     void Clear();
     // Any type; case-sensitive.
     bool HasVariable(std::string_view name) const;
-    // Sets *type (1..4) and *index (-1 when not found).
-    bool FindVariable(std::string_view name, int* index, int* type) const;
+    ScriptVarRef FindVariable(std::string_view name) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;

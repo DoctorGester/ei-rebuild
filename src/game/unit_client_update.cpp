@@ -281,20 +281,11 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     Unit* unit = self->unit;
     if (unit->flags & MapObjectFlag::Preview) return;
-    float toCells = 2.0f;
-    Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
-    position.x = toCells * position.x;
-    position.y = toCells * position.y;
-    Vector3 direction;
-    float speed;
-    int cellX, cellY;
-    bool turning;
     World* world = self->OwningWorld();
-    unit->motion.Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
-                           &direction.x, &speed, &cellX, &cellY);
+    MotionSample sample = unit->motion.Sample(world, OrderOf(&self->motion), time);
+    Vector3 direction = sample.direction;
     float toWorld = 0.5f;
-    position.x = toWorld * position.x;
-    position.y = toWorld * position.y;
+    Vector3 position = {toWorld * sample.x, toWorld * sample.y, 0.0f};
     position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
     self->OwningWorld()->MoveObject(unit, &position.x);
     if (self->snapHeading) {
@@ -352,7 +343,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
     float moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(direction.x, direction.y, direction.z));
-    float numerator = moved * speed * kAnimationRate;
+    float numerator = moved * sample.speed * kAnimationRate;
     float denominator = 2.0f * (frames * length);
     unit->animationSpeed = numerator / denominator;
 }

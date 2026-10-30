@@ -49,7 +49,8 @@ struct LightningSegment {
     // unit in between, a multiple of 4), the displacement axes scaled to the length (at most 15).
     void Init(const Vector3& from, const Vector3& to);
     // Advances the noise keys to `time` (one new key per elapsed unit, at most 100) and
-    // writes the two noise curves (one value per point) to outSide / outUp.
+    // writes the two noise curves (one value per point) to outSide / outUp. Animate passes the global
+    // buffers g_noiseSide / g_noiseUp (400 floats each), so there is no result value to return.
     void SampleNoise(float time, float* outSide, float* outUp, float amplitude);
     // Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.

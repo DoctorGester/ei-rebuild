@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
@@ -200,7 +201,7 @@ public:
     // The current or the queued order is of `kind`.
     bool HasOrder(UnitOrderKind kind) const { return action.kind == kind || action2.kind == kind; }
     // The point of the first move order (action, then action2). 0/1.
-    bool GetMovePoint(float* out);
+    std::optional<Vector3> GetMovePoint();
     float ActionDistance(const AIOrder* order);
     // False only for a melee order (kind 3 without a ranged weapon, or 6) on a living unit of size class 0
     // whose prototype height plus its z is 1.5 or more.

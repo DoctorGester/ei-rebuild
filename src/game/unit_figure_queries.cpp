@@ -109,7 +109,9 @@ Vector3 Unit::EffectPoint() {
                 PartWorldPosition(&at.x, hand);
                 return at;
             }
-        } else if (!ClientController()->WeaponPoint(&local)) {
+        } else if (std::optional<Vector3> weapon = ClientController()->WeaponPoint()) {
+            local = *weapon;
+        } else {
             return {localPosition.x + bounds.center.x, localPosition.y + bounds.center.y, localPosition.z + bounds.center.z};
         }
     }

@@ -274,16 +274,10 @@ bool UnitServer::CanCast(const AIOrder* order) {
     return true;
 }
 
-bool UnitServer::GetMovePoint(float* out) {
-    if (action.kind == UnitOrderKind::Move) {
-        lib::StoreBytes(out, action.point);
-        return true;
-    }
-    if (action2.kind == UnitOrderKind::Move) {
-        lib::StoreBytes(out, action2.point);
-        return true;
-    }
-    return false;
+std::optional<Vector3> UnitServer::GetMovePoint() {
+    if (action.kind == UnitOrderKind::Move) return action.point;
+    if (action2.kind == UnitOrderKind::Move) return action2.point;
+    return std::nullopt;
 }
 
 float UnitServer::ActionDistance(const AIOrder* order) {
