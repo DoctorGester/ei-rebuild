@@ -6654,6 +6654,13 @@ model = "sonnet"
 note = "User 2026-10-30: the terrain's distance LOD is needless complexity at the game's camera angles and polygon counts; always draw the highest level. Today terrain_passes.cpp picks level 0/1/2 per sector from the options' lod1 / lod2 distances, and render_terrain.cpp builds three index sets (kLod0/1/2 with first/last row and column seam variants). Remove the level choice, the lower levels and the seam variants that only join levels; keep the options' lod1 / lod2 fields only if the settings file or saves need them (else drop them from options and the settings defaults). Check: the level is client drawing only (confirm nothing on the server or in a golden reads it); goldens unchanged; frame time on R37's heavy scenes before/after (GPU cost of the extra triangles)."
 
 [[ticket]]
+id = "R39"
+title = "Main menu terrain fogged cyan with the default BorderFogDistance 32"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-30, drop-in exe on both installs: the main menu's ground and rocks are washed cyan and smeared. Reproduced with release and verify exes outside the harness (build/dropin_rel: junctions to the install, the user's ei_settings.ini windowed at 1920x1080). The setting that does it is Terrain Settings BorderFogDistance: the user's file has 32 (options_construct's default, what a fresh drop-in writes), the harness's config/harness/registry.reg has 16 and looks right. FloraShadow/OtherShadow/ShadowingFreq were changed together with it in the bisect, but fog is the lead. ui_main_menu.cpp sets borderFogDistance to kMenuEdgeFade 6 in its constructor and restores it on close; Terrain::EdgeFade (terrain.cpp) bakes the fade into the sector vertices' fog factor, so the menu's terrain was probably built (or rebuilt) while the value was the user's, not 6. Find the order against game.exe (--no-hooks with BorderFogDistance 32; a harness way to set a settings value per scenario if none exists), fix ours to match the original, and add a scenario with 32 that captures the menu. Goldens unchanged unless the original differs."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
