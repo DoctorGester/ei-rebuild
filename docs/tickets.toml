@@ -6764,6 +6764,14 @@ group = "cleanup"
 note = "C66 left ei_rebirth.ini (the [Rebirth] patch flags, config/ei_rebirth_standalone.ini, EI_REBIRTH) as a file of its own beside ei_settings.ini. Folding the flags into one settings file (a [flags] section?) would unify them; it touches play.cmd, run_all's EI_REBIRTH, the drop-in profile and src/lib/rebirth.cpp. Decide with the user."
 
 [[ticket]]
+id = "C68"
+title = "Rebirth's bug fixes always on, and harmless Rebirth options folded in"
+group = "cleanup"
+model = "opus"
+depends = ["W12"]
+note = "User 2026-10-30: after WideScreen (W12), the 11 Fix patches (FixLeversActivate, FixSpellEffectsOverflow, FixProgressNames, FixSpellSelfCasting, FixProcessLogin, FixMoveObject, FixAddMapObject, FixPlaingBattleMusicFromAntimagic, FixRepairPrice, FixRemoveMapObject, FixCreateItem) become unconditional code: no flag, no branch (every profile has them on, the vanilla goldens include them). Then the 44 Flag options (include/ei/rebirth_patches.inc): classify each from its code and Rebirth's docs as (a) clear improvement or harmless -> always on, flag and branch removed; (b) a real option for mods / multiplayer / data paths -> stays a setting in ei_settings.ini; (c) unsure -> listed for the user. Write the table to build/reviews/c68_flags.md first. Fold in (a) where the goldens stay the same; a fold that changes a golden is listed for the user, not re-recorded. Update rebirth_patches.inc / config/rebirth_patches.csv, the settings defaults, docs/notes/rebirth.md."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
