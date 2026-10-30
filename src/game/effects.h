@@ -583,7 +583,11 @@ public:
 
     // Offset (0, 0, the bounds centre's z) and radius of the object followed (its bounds recomputed); (0, 0, 0)
     // and 0.1 when there is none.
-    Vector3 AttachmentOffset(float* radius);
+    struct Attachment {
+        Vector3 offset;
+        float radius;
+    };
+    Attachment AttachmentOffset();
 
     // --- per-element callbacks ---
     void TickNuke(ParticleElement* e);

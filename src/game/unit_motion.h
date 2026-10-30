@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "lib/vecmath.h"
+
 #include <vector>
 
 class ByteStream;
@@ -42,16 +44,25 @@ struct MotionCubic {
     float Slope(float u);
 };
 
+// What UnitMotion::Sample finds at one time.
+struct MotionSample {
+    bool alive = true;      // false when the order is complete
+    bool turning = false;   // the unit only turns
+    float x = 0.0f;         // position in half-cells
+    float y = 0.0f;
+    Vector3 direction = {0.0f, 0.0f, 0.0f};
+    float speed = 0.1f;     // 0.1 if unchanged
+    int cellX = -1;         // the path cell reached (-1 if none)
+    int cellY = -1;
+};
+
 struct UnitMotion {
-    // Samples the motion of `order` at world time `time`: position (x, y) in half-cells,
-    // direction (x, y, 0), speed (0.1 if unchanged) and the path cell reached (-1 if none).
-    // `turning` is set while the unit only turns. Returns false when the order is complete.
-    // `world` resolves object ids for tracking orders (its ObjectWithId).
-    bool Sample(World* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
-                float* speed, int* cellX, int* cellY);
-    // Sample for a path order; `time` is relative to the order's start.
-    bool SamplePath(float time, bool* turning, float* position, float* direction, float* speed, int* cellX,
-                    int* cellY);
+    // Samples the motion of `order` at world time `time`. `world` resolves object ids for tracking orders
+    // (its ObjectWithId).
+    MotionSample Sample(World* world, MotionOrder* order, float time);
+    // Sample for a path order; `time` is relative to the order's start. `x`, `y`: the position while the
+    // unit only turns (the order's).
+    MotionSample SamplePath(float time, float x, float y);
     // Rebuilds the trajectory for `order` (a PathOrder with its steps).
     void Build(PathOrder* order);
     // Empties the trajectory. Returns 0.

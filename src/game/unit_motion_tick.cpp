@@ -33,11 +33,6 @@ namespace {
 // The stamina drain step, a double in the exe.
 constexpr double kDrainStep = 0.006666666666666666;
 
-void ToHalfCells(float* xy) {
-    xy[0] = 2.0f * xy[0];
-    xy[1] = 2.0f * xy[1];
-}
-
 void FromHalfCells(float* xy) {
     xy[0] = 0.5f * xy[0];
     xy[1] = 0.5f * xy[1];
@@ -311,17 +306,13 @@ void Exhaustion(UnitServer* c) {
 
 void UpdateMotion(UnitServer* c) {
     WorldServer* world = c->ServerWorld();
-    Vector3 position;
-    std::memcpy(&position, &c->unit->localPosition.x, 12);
-    ToHalfCells(&position.x);
     int time = world->tick;
-    bool turning = false;
-    Vector3 direction;
-    float speed;
-    int cellX, cellY;
-    bool going = c->unit->motion.Sample(world, &c->motion.motionOrder, TimeAsFloat(&time), &turning,
-                              &position.x, &direction.x, &speed, &cellX, &cellY);
-    bool motionOver = !going;
+    MotionSample sample = c->unit->motion.Sample(world, &c->motion.motionOrder, TimeAsFloat(&time));
+    Vector3 position = {sample.x, sample.y, c->unit->localPosition.z};
+    bool turning = sample.turning;
+    Vector3 direction = sample.direction;
+    int cellX = sample.cellX, cellY = sample.cellY;
+    bool motionOver = !sample.alive;
     FromHalfCells(&position.x);
 
     if (!turning && c->movingAnimation == 0) QueueNextAnimation(c);

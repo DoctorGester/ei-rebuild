@@ -28,18 +28,9 @@ static Vector3 PredictPosition(Unit* unit, int time) {
     if (unit->IsDead()) return unit->AimPoint();
     MotionOrder* order = &path->motionOrder;
     if (order->kind == kOrderPath && !(unit->flags & MapObjectFlag::Planned)) {
-        float toCells = 2.0f;
-        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
-        position.x = toCells * position.x;
-        position.y = toCells * position.y;
-        bool turning;
-        Vector3 direction;
-        float speed;
-        int cellX, cellY;
-        unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time), &turning,
-                               &position.x, &direction.x, &speed, &cellX, &cellY);
+        MotionSample sample = unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time));
         float toWorld = 0.5f;
-        return {toWorld * position.x, toWorld * position.y, position.z};
+        return {toWorld * sample.x, toWorld * sample.y, unit->localPosition.z};
     }
     return unit->localPosition;
 }

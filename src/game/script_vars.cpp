@@ -80,20 +80,14 @@ bool ScriptVars::HasVariable(std::string_view name) const {
     return false;
 }
 
-bool ScriptVars::FindVariable(std::string_view name, int* index, int* type) const {
-    *type = kScriptFloat;
-    *index = ::FindName(floats.names, name);
-    if (*index >= 0) return true;
-    *type = kScriptString;
-    *index = ::FindName(strings.names, name);
-    if (*index >= 0) return true;
-    *type = kScriptObject;
-    *index = ::FindName(objects.names, name);
-    if (*index >= 0) return true;
-    *type = kScriptGroup;
-    int found = ::FindName(groups.names, name);
-    *index = found;
-    return found >= 0;
+ScriptVarRef ScriptVars::FindVariable(std::string_view name) const {
+    int index = ::FindName(floats.names, name);
+    if (index >= 0) return {index, kScriptFloat};
+    index = ::FindName(strings.names, name);
+    if (index >= 0) return {index, kScriptString};
+    index = ::FindName(objects.names, name);
+    if (index >= 0) return {index, kScriptObject};
+    return {::FindName(groups.names, name), kScriptGroup};
 }
 
 void ScriptVars::RemoveDeletedObjects() {

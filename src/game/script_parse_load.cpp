@@ -315,8 +315,7 @@ bool Script::LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_ite
     }
     if (!ok) return false;
 
-    int index, type;
-    globals.FindVariable((*name), &index, &type);
+    auto [index, type] = globals.FindVariable(*name);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {

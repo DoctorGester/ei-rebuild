@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -737,7 +738,7 @@ struct AIBrain {
     // A random place within `radius` of `point` to stand at: not too steep, no unit of an allied player near
     // it, and a path there not much longer than the way. After a failure the next calls (up to 10, a third of
     // the distance) fail at once.
-    bool FindStandPoint(const Vector3& point, float radius, Vector3* out);
+    std::optional<Vector3> FindStandPoint(const Vector3& point, float radius);
     // Every allied unit within callRadius of the owner's unit hears a call for help (delay kCallDelay) at
     // `point`; the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3& point);

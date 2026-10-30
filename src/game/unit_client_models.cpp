@@ -712,17 +712,13 @@ bool UnitClientSpecific::LoadFaceTexture() {
 
 // --- The weapon point -------------------------------------------------------------------------
 
-bool UnitClientSpecific::WeaponPoint(Vector3* out) {
+std::optional<Vector3> UnitClientSpecific::WeaponPoint() {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoItemId;
     std::string node = WeaponBaseFigure(weapon);
     if (node.empty()) node = kHandNode;
     const FigureBone* found = unit->AsObject3D()->animation->FindBone(node);
-    if (!found) return false;
+    if (!found) return std::nullopt;
     // The bone's position in figure space.
-    const Vector3& position = found->position;
-    out->x = position.x;
-    out->y = position.y;
-    out->z = position.z;
-    return true;
+    return found->position;
 }

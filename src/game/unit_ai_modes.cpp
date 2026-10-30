@@ -116,10 +116,13 @@ void GuardMode::Execute(AIBrain* brain) {
     SetPositions(brain, point, kNearRange + radius, kFarRange + radius);
 
     AIMoveOrder order;
-    if (!brain->FindStandPoint(point, radius, &order.point)) {
+    std::optional<Vector3> stand = brain->FindStandPoint(point, radius);
+    if (!stand) {
         if (++failures <= 100) return;
-        if (!brain->FindStandPoint(brain->owner->unit->localPosition, radius, &order.point)) return;
+        stand = brain->FindStandPoint(brain->owner->unit->localPosition, radius);
+        if (!stand) return;
     }
+    order.point = *stand;
     failures = 0;
     float dx = order.point.x - point.x;
     float dy = order.point.y - point.y;
@@ -275,10 +278,12 @@ void SuspectionMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     if (brain->action == AIBrain::kActionNone) {
         if (brain->owner->orderStopped) level -= 50;
-        if (!brain->FindStandPoint(point, kStandRadius, &order.point)) {
+        std::optional<Vector3> stand = brain->FindStandPoint(point, kStandRadius);
+        if (!stand) {
             level -= 5;
             return;
         }
+        order.point = *stand;
     } else {
         order.point = point;
     }
@@ -1085,10 +1090,10 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
     }
 }
 
-bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
+std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radius) {
     if (standCooldown > 0) {
         --standCooldown;
-        return false;
+        return std::nullopt;
     }
     IsaacRandom* random = (&g_random);
     float low = -radius;
@@ -1102,28 +1107,29 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
         dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
         if (--tries < 0) break;
     }
-    out->x = dx + point.x;
-    out->y = dy + point.y;
-    out->z = 0.0f;
+    Vector3 spot;
+    spot.x = dx + point.x;
+    spot.y = dy + point.y;
+    spot.z = 0.0f;
     AIMap* map = &g_serverWorld.aiMap;
-    if (map->SlopeAt(*out) > kMaxSlope) return false;
+    if (map->SlopeAt(spot) > kMaxSlope) return std::nullopt;
 
     // No unit of an allied player may stand near it.
     Unit* self = owner->unit;
-    UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(*out, self->standingHeight * kAllySpace);
+    UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(spot, self->standingHeight * kAllySpace);
     for (Unit* other : units) {
-        if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return false;
+        if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return std::nullopt;
     }
 
     bool result = true;
     {
         AIPath path;
-        float ux = self->localPosition.x - out->x;
-        float uy = self->localPosition.y - out->y;
-        float uz = self->localPosition.z - out->z;
+        float ux = self->localPosition.x - spot.x;
+        float uy = self->localPosition.y - spot.y;
+        float uz = self->localPosition.z - spot.z;
         float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz));
         float range = distance * kRangePerDistance + kRangeBase;
-        bool found = map->FindPath(self, *out, &path, range, 0.0f);
+        bool found = map->FindPath(self, spot, &path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         EI_NAN_AUDIT(distance);
         if (!found || static_cast<double>(2.0f * distance * kDetourFactor) < static_cast<double>(path.smoothing)) {
@@ -1133,7 +1139,8 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
         }
     }
     units.clear();
-    return result;
+    if (!result) return std::nullopt;
+    return spot;
 }
 
 void AIBrain::UpdateFollow() {
@@ -1162,8 +1169,7 @@ void AIBrain::UpdateFollow() {
             owner->Idle();
             return;
         }
-        Vector3 goal;
-        if (!owner->GetMovePoint(&goal.x)) goal = self->localPosition;
+        Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
         float gx = goal.x - leader->localPosition.x;
         float gy = goal.y - leader->localPosition.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
@@ -1174,8 +1180,7 @@ void AIBrain::UpdateFollow() {
     }
 
     // The leader walks: where it will be in a moment.
-    Vector3 goal = self->localPosition;
-    owner->GetMovePoint(&goal.x);
+    Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
     Vector3 soon = leader->PositionAt(now + kLeaderAhead);
     float sx = self->localPosition.x - soon.x;
     float sy = self->localPosition.y - soon.y;
