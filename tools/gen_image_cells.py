@@ -65,31 +65,10 @@ SCANNED = [('rdata', IMPORTS[1], 0x00783000), ('data', 0x00783000, 0x0079C000)]
 # that takes it. "Strings" are string literals, which MSVC 6 put in .data.
 REVIEWED_DATA = [
     # .rdata
-    (0x00746900, 0x00746930, 3, "MFC CCmdTarget's dispatch and event sink maps: their entry counts and stock "
-                                "property mask (-1 in .data)"),
-    (0x00746C80, 0x00746C80, 1, 'MFC message map entry (ON_REGISTERED_MESSAGE, handler 00706CF4): the message\'s '
-                                'variable, set by a static initialiser to RegisterWindowMessageA("commctrl_DragListMsg")'),
     (0x007482F0, 0x0074C60C, 117, 'RTTI (MFC, the CRT, iostream, STLport): complete object locators and base class '
                                   'descriptors -> their type descriptors'),
     (0x00753F04, 0x0077F7CC, 12, 'C++ EH: catchable types (ThrowInfo) -> the thrown pointer types\' type '
                                  'descriptors (".PAV...")'),
-    # .data
-    (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
-    (0x00797888, 0x007978C8, 5, 'the CRT\'s locale categories __lc_category (6 x {name, locale, init}): the names\' '
-                                 'strings and the static "C" 00797778 (unread: setlocale is the host CRT\'s, C26)'),
-    (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
-    (0x00797DD8, 0x00797DDC, 2, 'the CRT\'s _pctype / _pwctype: the C locale\'s _ctype + 1 (unread: the classes are the '
-                                'host CRT\'s, C26)'),
-    (0x00797C04, 0x00797C44, 4, 'the CRT\'s lock table (_locktable, _mtinitlocks 006F0741): preallocated critical '
-                                'sections'),
-    (0x00798060, 0x00798068, 2, '_iob[0] (stdin) _ptr and _base: the static stdin buffer _bufin'),
-    (0x00798BF0, 0x00798BFC, 4, 'the CRT\'s small-block heap: the region list head\'s links (to itself)'),
-    (0x0079AC10, 0x0079AC10, 1, 'the CRT\'s small-block heap: the starting region (the list head)'),
-    (0x0079ACB4, 0x0079ACB4, 1, 'the CRT\'s run-time error messages (number, text): "\\r\\n"'),
-    (0x0079AD4C, 0x0079AD50, 2, 'the CRT\'s _tzname: "PST", "PDT"'),
-    (0x0079AE20, 0x0079AE24, 2, '__lconv_c (0079AE20): decimal_point ".", thousands_sep __lconv_static_null ("")'),
-    (0x0079AE28, 0x0079AE44, 8, '__lconv_c\'s other strings: __lconv_static_null'),
-    (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
 ]
 
 # Cells of tables nothing reads (C25a), as REVIEWED_DATA's groups but left out of the pointer cells: only game.exe's dead
@@ -143,6 +122,31 @@ UNREAD = [
     (0x007465A0, 0x007465B0, 2, "CMemoryException's runtime class record (C14zi: initialiser 0070C1B5 unused)"),
     (0x00797CC4, 0x00797D94, 27, "the CRT's math function names by code (\"exp\", \"pow\", ...), read by its math error "
                                  "reporting only (_87except, _matherr: not ported; named in crt_x87.cpp until C35h)"),
+    # The old CRT's and MFC's tables (C20t): only game.exe's own CRT and MFC code read them. The image runs none of
+    # it (its CRT is lib/crt and the host's, C26 / C35; no MFC since C14zi), and src/ names no address of the moved
+    # range but its bounds and the import table, so no code of ours reaches a cell either.
+    (0x007468DC, 0x0074701C, 15, "MFC CCmdTarget's maps (message, dispatch, event sink, interface, connection, OLE "
+                                 "command), CWnd's and CWinApp's message maps: base maps, entries, entry counts and "
+                                 "the stock property mask, the ON_REGISTERED_MESSAGE entry's variable 00746C80"),
+    (0x00796E48, 0x00796E4C, 2, "MFC CString's shared empty string (afxEmptyString's data) and _afxDataNil"),
+    (0x00797888, 0x007978C8, 11, "the CRT's locale categories __lc_category: their names and the static \"C\" "
+                                 "00797778 (setlocale is the host CRT's, C26)"),
+    (0x00797A58, 0x00797B08, 44, "the CRT's __lc_time_curr and __lc_time_c: day and month names, AM / PM, the date "
+                                 "and time formats"),
+    (0x00797C04, 0x00797C44, 4, "the CRT's lock table (_locktable): preallocated critical sections"),
+    (0x00797DD8, 0x00797DDC, 2, "the CRT's _pctype / _pwctype: the C locale's _ctype + 1 (the classes are lib/crt's "
+                                "kCtypeC)"),
+    (0x0079804C, 0x00798050, 2, "the CRT's \"(null)\" strings of printf (narrow and wide)"),
+    (0x00798060, 0x00798068, 2, "_iob[0] (stdin) _ptr and _base: the static stdin buffer _bufin"),
+    (0x0079847C, 0x007988FC, 54, "the CRT's locale info table (00798470) of 006F5231, getqloc's GetLocaleInfoA "
+                                 "stand-in off NT: language and country names"),
+    (0x00798928, 0x00798BE0, 88, "getqloc's country and language name tables (__rg_country 00798928, __rg_language "
+                                 "007989E0): their names"),
+    (0x00798BF0, 0x0079AC10, 5, "the CRT's small-block heap: the region list head's links (to itself) and the "
+                                "starting region"),
+    (0x0079AC34, 0x0079ACBC, 18, "the CRT's run-time error messages (number, text)"),
+    (0x0079AD4C, 0x0079AD50, 2, "the CRT's _tzname: \"PST\", \"PDT\""),
+    (0x0079AE20, 0x0079AE50, 11, "__lconv_c's strings (\".\", __lconv_static_null) and __lconv"),
 ]
 
 # Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets
@@ -170,19 +174,8 @@ STRUCTURES = [
 
 # Cells into .rdata outside those structures, as looked at in game.exe: as REVIEWED_DATA.
 REVIEWED_RDATA = [
-    (0x007468DC, 0x0074701C, 11, "MFC CCmdTarget's maps (message, dispatch, event sink, interface (IID_IDispatch), "
-                                 "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
     (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s (retired: '
                                  'nothing calls a descriptor\'s virtual)', 0x007472B0),
-    (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
-    (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
-    (0x00798928, 0x00798BE0, 88, 'getqloc\'s country and language name tables (__rg_country 00798928, __rg_language '
-                                 '007989E0): their names (unread: setlocale is the host CRT\'s, C26)'),
-    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories __lc_category: their names "LC_ALL" .. "LC_TIME" '
-                                '(unread: setlocale is the host CRT\'s, C26)'),
-    (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
-                                 'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
-    (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
 ]
 
 # Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.
@@ -331,16 +324,16 @@ def structures(img):
 
 
 def group_of(cell, value, kinds):
-    """('text' | 'structure' | 'data' | 'rdata', index) or None."""
+    """('text' | 'structure' | 'unread' | 'data' | 'rdata', index) or None: the first group that takes the cell."""
     for i, (first, last, _) in enumerate(TEXT):
         if first <= cell <= last:
             return ('text', i)
+    if cell in kinds:
+        return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
     for i, g in enumerate(UNREAD):
         if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
             return ('unread', i)
     section = section_of(value)
-    if cell in kinds:
-        return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
     groups = REVIEWED_RDATA if section == 'rdata' else REVIEWED_DATA
     for i, g in enumerate(groups):
         if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
