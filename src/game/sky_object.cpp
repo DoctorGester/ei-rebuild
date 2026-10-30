@@ -6,6 +6,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -73,7 +74,7 @@ void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light
             continue;
         }
         float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction[0], direction[1], direction[2]);
-        cosine = cosine >= 0.0f ? cosine : 0.0f;
+        cosine = MaxKeepB(cosine, 0.0f);
         const float strength = cosine * cosine;
         std::uint32_t specular = Truncate(distance * kColourScale);
         specular = specular << 8 | Truncate(light.r * strength * kLightScale);

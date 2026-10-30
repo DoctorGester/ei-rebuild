@@ -14,6 +14,7 @@
 #include <string>
 #include "render/render.h"
 #include "game_singletons.h"
+#include "lib/float_select.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -182,7 +183,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
         PartySkill best = owner->BestPartySkill(school);
         surface->DrawTextIn(str::Format(kCostFormat, texts[0], best.skill, needed), &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
-        float shown = manaSum >= lastMana ? manaSum : lastMana;
+        float shown = MaxKeepB(manaSum, lastMana);
         surface->DrawTextIn(str::Format(kCostFormat, texts[1], best.mana, static_cast<int>(shown)), &second, 1,
                           kTextColour, 0, 1);
     } else {

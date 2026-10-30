@@ -10,6 +10,7 @@
 #include "core_streams.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -205,8 +206,8 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float segY = previousPosition.y - position.y;
     float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / LengthSquared2DUnrounded(segY, segX);
     // Clamp to [0, 1] with selects: a NaN t gives 1.
-    float u = 0.0f >= t ? 0.0f : t;
-    u = 1.0f >= u ? u : 1.0f;
+    float u = MaxKeepB(0.0f, t);
+    u = MinKeepA(1.0f, u);
     float ex = position.x - (pointX - u * segX);
     float ey = position.y - (pointY - u * segY);
     EI_NAN_AUDIT(ey, ex);

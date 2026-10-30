@@ -9,6 +9,7 @@
 #include "spell.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/pc24.h"
 
 
@@ -40,7 +41,7 @@ float AreaToRadius(float area) { return std::sqrt(area / 3.1415927f); }
 // value or NaN keeps it, anything else gives +0).
 void AddScaledPositive(float& field, float strength, float base) {
     field = strength * base + field;
-    if (field <= 0.0f) field = 0.0f;
+    field = MaxKeepB(0.0f, field);
 }
 
 // The code letters of a modifier record.
@@ -193,7 +194,7 @@ void SpellContainer::Build() {
     // mana = max(prototype's mana, mana): the select keeps the computed value when the prototype's is
     // smaller or either is NaN.
     float base = prototype->mana;
-    if (base >= currentSpell->manaCost) currentSpell->manaCost = base;
+    currentSpell->manaCost = MaxKeepB(base, currentSpell->manaCost);
 
     // std::sort of the codes (signed chars). Any correct sort gives the same bytes.
     if (!codes.empty()) {

@@ -5,6 +5,7 @@
 #include "texture.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -29,8 +30,8 @@ constexpr int kReserve = 0x1000;
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
     float fraction = g_clientWorld.tickFraction;
-    float clamped = fraction <= 1.0f ? fraction : 1.0f;
-    return clamped >= 0.0f ? clamped : 0.0f;
+    float clamped = MinKeepA(1.0f, fraction);
+    return MaxKeepB(clamped, 0.0f);
 }
 
 // One colour channel (at `shift`) between the previous and the current colour, truncated.

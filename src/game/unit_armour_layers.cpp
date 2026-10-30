@@ -6,6 +6,7 @@
 #include "item.h"
 #include "object_tables.h"
 
+#include "lib/float_select.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -75,7 +76,7 @@ float UnitStats::AttributeWithItems(int index, CUnit* unit) {
         if (!item) continue;
         const auto* prototype = itemdb::RecordAs<itemdb::QuickItemRecord>(item->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index
-        best = best >= bonus ? best : bonus;   // a select
+        best = MaxKeepB(best, bonus);   // a select
     }
     switch (index) {
     case 0: return (dexterity - kStatBase) + attributes[0] + best;

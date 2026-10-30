@@ -14,6 +14,7 @@
 #include "world.h"
 #include "world_effect_internal.h"
 #include "game_singletons.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "save_versions.h"
@@ -57,7 +58,7 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
     // The speed when the distance is below it or they are unordered.
-    const float divisor = dist >= speed ? dist : speed;
+    const float divisor = MaxKeepB(dist, speed);
     *t = speed / divisor;
     return 1;
 }
@@ -423,10 +424,9 @@ bool CEffectParticle::RunTick() {
             float y = static_cast<float>(stepY + localPosition.y);
             float z = static_cast<float>(stepZ + localPosition.z);
             float floor = pc24::Add(World()->RawSurfaceHeightAt(x, y), aboveGround);
-            std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition.x = x;
             localPosition.y = y;
-            localPosition.z = std::bit_cast<float>(zBits);
+            localPosition.z = MaxKeepB(z, floor);
             if (source != nullptr) source->localPosition = localPosition;
         }
     }

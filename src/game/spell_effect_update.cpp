@@ -10,6 +10,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world_effect.h"
+#include "lib/float_select.h"
 
 
 using namespace spellfx;
@@ -83,7 +84,7 @@ void FireballFlight(SpellEffect* e) {
         float power = Power(e);
         float curve;
         AreaCurve(&e->Spell()->radius, &Prototype(e)->area, &curve);
-        float size = curve >= power ? curve : power;
+        float size = MaxKeepB(curve, power);
         CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
         float radius = e->Spell()->radius;
         float alpha = Power(e);
@@ -294,7 +295,7 @@ void Possession(SpellEffect* e) {
         target->flags |= MapObjectFlag::SeeAll;
         float sight = server->moveFactors[3] * server->stats.perception[0].current;
         float floor = server->stats.perception[2].current;
-        float reach = sight >= floor ? sight : floor;
+        float reach = MaxKeepB(sight, floor);
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
         e->world->WakeUnitsAround(target->localPosition, wake);

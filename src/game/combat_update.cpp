@@ -21,6 +21,7 @@
 #include "world.h"
 #include "world_effect.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -160,7 +161,7 @@ bool UnitServer::RunTick() {
         sinking += kSinkAcceleration;
         self->localPosition.z = self->localPosition.z - sinking;
         float z = unit->localPosition.z;
-        unit->localPosition.z = z <= 0.0f ? 0.0f : z;    // a NaN z is kept
+        unit->localPosition.z = MaxKeepB(0.0f, z);    // a NaN z is kept
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;

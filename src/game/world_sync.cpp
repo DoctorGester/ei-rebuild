@@ -15,6 +15,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 
+#include "lib/float_select.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
 
@@ -107,7 +108,7 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
         auto* controller = unit->ServerController();
         float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
         float minimum = controller->stats.perception[2].current;
-        float range = perception >= minimum ? perception : minimum;   // branch-free select
+        float range = MaxKeepB(perception, minimum);   // branch-free select
         float radius = range * kHearingScale + kHearingMargin;
         for (CUnit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
     }

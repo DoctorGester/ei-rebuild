@@ -52,8 +52,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kCastKindNone = 8;
 
-std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
-
 // An x87 compare as the original reads it (false for a NaN).
 bool Greater(float a, float b) { return a > b; }
 
@@ -86,8 +84,7 @@ bool OutOfSightRange(UnitServer* self, const float* point) {
     float limit = self->stats.perception[2].current;
     float range = self->moveFactors[3] * self->stats.perception[0].current;
     float rangeValue = range;
-    std::uint32_t chosenBits = rangeValue >= limit ? Bits(rangeValue) : Bits(limit);
-    float chosen = std::bit_cast<float>(chosenBits);
+    float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;
     CUnit* unit = self->unit;
     float dy = unit->localPosition.y - point[1];

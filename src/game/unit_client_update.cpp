@@ -11,6 +11,7 @@
 #include "world.h"
 #include "random.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -85,7 +86,7 @@ bool UnitClientSpecific::RunTick() {
         for (Material* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
-        fadeIn = next >= 1.0f ? 1.0f : next;   // the select keeps a NaN
+        fadeIn = MinKeepA(next, 1.0f);   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
         unit->Object3D()->ClientSpecific()->SetMaterialsLit(false);

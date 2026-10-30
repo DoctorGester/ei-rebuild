@@ -100,7 +100,7 @@ int ParticleSource::UpdateFalling(Particle* p) {
     p->pos.z = p->drift.z + p->pos.z;
     p->size = p->velocity.x * p->size;
     float fall = p->velocity.z + p->drift.z;
-    p->drift.z = fall >= terminal ? fall : terminal;
+    p->drift.z = MaxKeepB(fall, terminal);
     return 1;
 }
 
@@ -247,8 +247,8 @@ int ParticleSource::UpdateOrbit(Particle* p) {
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
         float t = -(DotZYX(p->velocity, n) / d);
-        t = t >= 1.0f ? 1.0f : t;
-        t = t >= 0.0f ? t : 0.0f;
+        t = MinKeepA(t, 1.0f);
+        t = MaxKeepB(t, 0.0f);
         Vector3 along;
         along.Construct(t * n.x, t * n.y, t * n.z);
         SubtractVectors(&offset, p->velocity, along);

@@ -23,6 +23,7 @@
 #include "world.h"
 #include "world_data.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -134,7 +135,7 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     }
     float minimum;
     minimum = kMinimumWeight;
-    float divisor = total >= minimum ? total : minimum;   // branch-free select
+    float divisor = MaxKeepB(total, minimum);   // branch-free select
 
     for (Share& entry : list) {
         float share = Weight(entry.controller) * amount / divisor;

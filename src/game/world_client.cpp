@@ -48,12 +48,12 @@
 
 float WorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
-    float cx = 0.0f >= x ? 0.0f : x;
+    float cx = MaxKeepB(0.0f, x);
     float maxX = static_cast<float>(terrain->width - 1.0f);
-    cx = maxX >= cx ? cx : maxX;
-    float cy = 0.0f >= y ? 0.0f : y;
+    cx = MinKeepA(maxX, cx);
+    float cy = MaxKeepB(0.0f, y);
     float maxY = static_cast<float>(terrain->height - 1.0f);
-    cy = maxY >= cy ? cy : maxY;
+    cy = MinKeepA(maxY, cy);
     return terrain->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
@@ -85,7 +85,7 @@ float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = static_cast<float>(p.axisV.z * v + p.axisU.z * u + p.origin.z);
-        height = height >= z ? height : z;
+        height = MaxKeepB(height, z);
     }
     return height;
 }

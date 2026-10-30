@@ -15,6 +15,7 @@
 #include "unit_ai.h"
 #include "world.h"
 
+#include "lib/float_select.h"
 #include "lib/str.h"
 
 #include <memory>
@@ -85,7 +86,7 @@ void ReadWeather(Chunk* parent) {
     WorldServer* server = &g_serverWorld;
     server->WorldServer::SetTime(time);
     float limit = options::g_options.defaultWindForce;
-    server->ChangeWind(direction, limit >= strength ? strength : limit);
+    server->ChangeWind(direction, MinKeepA(limit, strength));
 }
 
 // 0xDDDDDDD1: the relation table and the player names.

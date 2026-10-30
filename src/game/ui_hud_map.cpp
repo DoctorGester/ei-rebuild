@@ -484,10 +484,10 @@ void HudMap::UpdateView() {
     float top = -(-centreY * scale);
     float right = (worldWidth - centreX) * scale;
     float bottom = -((worldHeight - centreY) * scale);
-    left = left >= -1.0f ? left : -1.0f;
+    left = MaxKeepB(left, -1.0f);
     if (top > 1.0f) top = 1.0f;
     if (right > 1.0f) right = 1.0f;
-    bottom = bottom >= -1.0f ? bottom : -1.0f;
+    bottom = MaxKeepB(bottom, -1.0f);
     if (left >= right || bottom >= top) {
         bounds->visible = false;
         return;
@@ -526,7 +526,7 @@ void HudMap::Wheel(int, int delta, int x, int y) {
         float newZoom = pc24::Mul(WheelZoomFactor(static_cast<short>(delta)), zoom);
         zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
-        zoom = zoom >= 1.0f ? zoom : 1.0f;
+        zoom = MaxKeepB(zoom, 1.0f);
     }
     handled = true;
 }

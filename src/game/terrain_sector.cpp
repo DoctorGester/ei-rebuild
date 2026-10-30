@@ -9,6 +9,7 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <algorithm>
@@ -99,8 +100,8 @@ const std::uint8_t* BuildRecords(SectorData& s) {
         const SectorPosition& vertex = s.vertices[i];
         // The minimum keeps its value when it is below z, the maximum when z is below it (both when z is NaN).
         float z = vertex.z;
-        if (z <= s.minZ) s.minZ = z;
-        if (z >= s.maxZ) s.maxZ = z;
+        s.minZ = MinKeepA(s.minZ, z);
+        s.maxZ = MaxKeepB(z, s.maxZ);
 
         record.materialByte = 0xFF;
         record.materialColour = {0.0f, 0.0f, 0.0f};

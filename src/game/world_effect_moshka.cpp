@@ -16,6 +16,7 @@
 #include "world_effect_internal.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 
@@ -93,7 +94,7 @@ Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
     float distance = kPerchRadius;
     Vector3 perch;
     for (;;) {
-        float radius = distance >= kPerchMinRadius ? distance : kPerchMinRadius;
+        float radius = MaxKeepB(distance, kPerchMinRadius);
         float flightAngle = pc24::Mul(static_cast<double>(g_random.Next()), kRandomAngle);
         perch.z = from.z + perchHeight;
         perch.x = pc24::Mul(pc24::Cos(flightAngle), radius) + from.x;
@@ -185,7 +186,7 @@ void EffectMoshka::Update(float now) {
     Vector3 ground{target.x, target.y, 0.0f};
     double raw = g_clientWorld.RawSurfaceHeightAt(target.x, target.y);
     float floor = static_cast<float>(g_clientWorld.platforms.SurfaceHeight(ground, static_cast<float>(raw)) + kClearance);
-    float z = target.z >= floor ? target.z : floor;
+    float z = MaxKeepB(target.z, floor);
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
     if (!Same(distance, 0.0f)) {

@@ -4,6 +4,7 @@
 
 #include "combat.h"
 #include "unit_db.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -38,14 +39,14 @@ void CUnit::UpdateSizeClass() {
     // The larger half extent, selected bitwise: above.y when above.x is below it or NaN.
     float extentX = bounds.boxMax.x;
     float extentY = bounds.boxMax.y;
-    float extent = extentX >= extentY ? extentX : extentY;
+    float extent = MaxKeepB(extentX, extentY);
     float height = extent * kHeightScale;
     standingHeight = height;
     unitRadius = height + kRadiusExtra;
     if (player) standingHeight = height + kPlayerExtra;
     // At most 2, selected the same way: 2 when below the height or NaN.
     float limited = standingHeight;
-    standingHeight = kMaxHeight >= limited ? limited : kMaxHeight;
+    standingHeight = MinKeepA(kMaxHeight, limited);
     if (sizeClass != 0) return;
     // The prototype by prototypeId; out of range it reads address 0x24 (kept).
     auto* prototype = unitdb::PrototypeRecord(prototypeId);

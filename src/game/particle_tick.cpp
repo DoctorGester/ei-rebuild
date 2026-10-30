@@ -8,6 +8,7 @@
 #include "random.h"
 
 #include "lib/bytes.h"
+#include "lib/float_select.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
 #include "world.h"
@@ -41,12 +42,12 @@ void Normalize(Vector3& v, float length) {
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
 // smaller (or unordered), the maximum when the current maximum is smaller (or unordered).
 void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
-    low.x = p.x >= low.x ? low.x : p.x;
-    low.y = p.y >= low.y ? low.y : p.y;
-    low.z = p.z >= low.z ? low.z : p.z;
-    high.x = high.x >= p.x ? high.x : p.x;
-    high.y = high.y >= p.y ? high.y : p.y;
-    high.z = high.z >= p.z ? high.z : p.z;
+    low.x = MinKeepA(p.x, low.x);
+    low.y = MinKeepA(p.y, low.y);
+    low.z = MinKeepA(p.z, low.z);
+    high.x = MaxKeepB(high.x, p.x);
+    high.y = MaxKeepB(high.y, p.y);
+    high.z = MaxKeepB(high.z, p.z);
 }
 
 // Saves the fields the update callback may change, so a rejected update can be undone (dword copies).

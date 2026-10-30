@@ -7,6 +7,7 @@
 #include "world.h"
 
 #include "lib/containers.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <array>
@@ -132,12 +133,12 @@ void VisibilityFog::ComputeBounds() {
     bounds.boxMax = {-kFar, -kFar, -kFar};
     for (const auto& [key, cell] : cells) {
         const Vector3& p = cell.pos;
-        bounds.boxMin.x = p.x >= bounds.boxMin.x ? bounds.boxMin.x : p.x;
-        bounds.boxMin.y = p.y >= bounds.boxMin.y ? bounds.boxMin.y : p.y;
-        bounds.boxMin.z = p.z >= bounds.boxMin.z ? bounds.boxMin.z : p.z;
-        bounds.boxMax.x = bounds.boxMax.x >= p.x ? bounds.boxMax.x : p.x;
-        bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
-        bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
+        bounds.boxMin.x = MinKeepA(p.x, bounds.boxMin.x);
+        bounds.boxMin.y = MinKeepA(p.y, bounds.boxMin.y);
+        bounds.boxMin.z = MinKeepA(p.z, bounds.boxMin.z);
+        bounds.boxMax.x = MaxKeepB(bounds.boxMax.x, p.x);
+        bounds.boxMax.y = MaxKeepB(bounds.boxMax.y, p.y);
+        bounds.boxMax.z = MaxKeepB(bounds.boxMax.z, p.z);
     }
     bounds.boxMax.x = bounds.boxMax.x + 0.5f;
     bounds.boxMax.y = bounds.boxMax.y + 0.5f;

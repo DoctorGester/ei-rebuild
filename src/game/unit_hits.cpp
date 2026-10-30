@@ -209,7 +209,7 @@ void UnitVitals::TakeHit(const DamageInfo* hit) {
     float floor = maxHitPoints * kOverkill;
     float f = floor;
     float hp = hitPoints;
-    hitPoints = f >= hp ? f : hp;
+    hitPoints = MaxKeepB(f, hp);
 }
 
 bool CUnit::IsBehind(const CMapObject* t) {

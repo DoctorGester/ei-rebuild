@@ -24,7 +24,7 @@ std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     right = MinKeepA(0.0f, right);
     top = MinKeepA(0.0f, top);
     float depth = std::sqrt(top * top + right * right + bottom * bottom + left * left);
-    depth = fade >= depth ? depth : fade;
+    depth = MinKeepA(fade, depth);
     int amount = std::lround(depth / fade * 255.0f);
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }

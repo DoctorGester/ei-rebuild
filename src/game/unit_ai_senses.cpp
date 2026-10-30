@@ -76,7 +76,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     UnitServer* control = self->ServerController();
     float hearing = control->stats.perception[2].current;
     float sight = control->moveFactors[3] * control->stats.perception[0].current;
-    float reach = sight >= hearing ? sight : hearing;
+    float reach = MaxKeepB(sight, hearing);
     int count = 0;
     const std::int16_t* offsets = memory->sightCells.Get(reach * kSightCellsFactor * kSectorScale, &count);
     memory->nearby.clear();
@@ -323,11 +323,11 @@ float Exposure(float distance, float range) {
     EI_NAN_AUDIT(range);
     if (range == 0.0f) return kMaxExposure;
     float ratio = distance / range;
-    return ratio >= kMaxExposure ? kMaxExposure : ratio;
+    return MinKeepA(ratio, kMaxExposure);
 }
 
 // The smaller of the two; NaN `value` wins.
-void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; }
+void KeepLower(float& slot, float value) { slot = MinKeepA(value, slot); }
 
 } // namespace
 

@@ -43,9 +43,9 @@ bool Connection::Tick(double dt) {
     const float spread = AbsBits(roundTrip * roundTrip - roundTripSquare);
     float loss = std::sqrt(spread) * 3.0f + roundTrip;
     const float tenth = 0.1f;
-    loss = loss >= tenth ? loss : tenth;
+    loss = MaxKeepB(loss, tenth);
     const auto longest = static_cast<float>(g_currentSession->maxRoundTrip);
-    loss = longest >= loss ? loss : longest;
+    loss = MinKeepA(longest, loss);
     const auto kept = static_cast<float>(g_currentSession->maxRoundTrip);
 
     auto lost = history.begin();

@@ -324,7 +324,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
         if (other->player && unit->player) floor = kMeleeFloorParty;
         ItemWeapon* weapon = unit->ActiveWeapon();
         float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
-        float reach = range >= floor ? range : floor;
+        float reach = MaxKeepB(range, floor);
         return (unit->standingHeight + other->standingHeight) + reach;
     }
     ItemWeapon* weapon = unit->ActiveWeapon();
@@ -614,7 +614,7 @@ void UnitServer::UpdateSizeClasses() {
     float load = unit->BodyExtent();
     const auto* model = unit->GetPrototypeModel();
     float size = unit->DoubleHeight() * model->sizeScale;
-    if (unit->MapType() == MapObjectType::Hero) size = size <= kHeroSizeCap ? size : kHeroSizeCap;
+    if (unit->MapType() == MapObjectType::Hero) size = MinKeepA(kHeroSizeCap, size);
     combat.sizeClass = SizeClassOf(size, load);
     combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);
     combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);

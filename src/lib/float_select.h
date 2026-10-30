@@ -13,9 +13,16 @@
 //
 // The two with `<` are for values that are never NaN (a NaN there is a bug upstream: EI_NAN_AUDIT logs it
 // in the verify and debug builds); the two with `>=` are the ones the original's masks give a NaN to.
+//
+// Write a select of two floats on `>=` or `<=` through these, not as a conditional expression: MSVC compiles
+// `a >= b ? a : b` to MAXSS and `a >= b ? b : a` to MINSS, which return the second operand on a tie, so where
+// +0 meets -0 the zero's sign would differ from the original's compare and branch. The `>=` helpers are a
+// compare's mask and a blend (SelectLess), which keeps the operand the compare picks. `a < b ? a : b` and
+// `a < b ? b : a` compile to MINSS / MAXSS exactly.
 
 #include <bit>
 #include <cstdint>
+#include <xmmintrin.h>
 
 #include "nan_audit.h"
 
@@ -25,8 +32,20 @@ inline bool SignBit(float v) { return (std::bit_cast<std::uint32_t>(v) >> 31) !=
 // |v| by clearing the sign bit (the bits of a NaN stay).
 inline float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
-inline float MinKeepA(float a, float b) { return a >= b ? b : a; }
-inline float MaxKeepB(float a, float b) { return a >= b ? a : b; }
+// `ifLess` when a < b or unordered, else `otherwise` (the original's branch-free select): CMPLESS gives a >= b as
+// all ones (zero when unordered), and the mask picks the operand.
+inline float SelectLess(float a, float b, float ifLess, float otherwise) {
+    const __m128 notLess = _mm_cmple_ss(_mm_set_ss(b), _mm_set_ss(a));
+    const __m128 picked =
+        _mm_or_ps(_mm_and_ps(notLess, _mm_set_ss(otherwise)), _mm_andnot_ps(notLess, _mm_set_ss(ifLess)));
+    return _mm_cvtss_f32(picked);
+}
+
+inline float MinKeepA(float a, float b) { return SelectLess(a, b, a, b); }
+inline float MaxKeepB(float a, float b) { return SelectLess(a, b, b, a); }
+// Floats only: an int or double pair would convert silently.
+template <class A, class B> float MinKeepA(A, B) = delete;
+template <class A, class B> float MaxKeepB(A, B) = delete;
 
 inline float MinKeepB(float a, float b) {
     EI_NAN_AUDIT(a, b);
@@ -36,6 +55,3 @@ inline float MaxKeepA(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b ? b : a;
 }
-
-// `ifLess` when a < b or unordered, else `otherwise` (the original's branch-free select).
-inline float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }

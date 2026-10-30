@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -103,7 +104,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     if (along > length) return 0.0f;
     float c = along / length;
     if (c > 1.0f) c = 1.0f;
-    else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
+    else c = MaxKeepB(c, -1.0f);   // -1 also for NaN
     float angle = std::acos(c);
     if (angle > kHalfPi) angle = kPi - angle;
     angle = kPercent / kHalfPi * angle;
@@ -169,7 +170,7 @@ void Terrain::PlayAmbience() {
             cell.y = (sy + 0.5f) * kSectorCells;
             float ground = HeightAt(cell.x, cell.y, Layer::Ground);
             float water = HeightAt(cell.x, cell.y, Layer::Water);
-            cell.z = water >= ground ? water : ground;
+            cell.z = MaxKeepB(water, ground);
             cell.offset = {cell.x - listener.x, cell.y - listener.y,
                            cell.z - listener.z};
             float weights[kClasses];
@@ -183,7 +184,7 @@ void Terrain::PlayAmbience() {
                 }
             }
             float distance = LengthSquared2D(Vector2{cell.offset.x, cell.offset.y});
-            float within = distance >= radiusSquared ? radiusSquared : distance;
+            float within = MinKeepA(distance, radiusSquared);
             cell.weight = (radiusSquared - within) / radiusSquared * kPercent;
             ClassVotes& vote = votes[cell.soundClass];
             vote.weightSum = cell.weight * cell.weight + vote.weightSum;
@@ -213,8 +214,8 @@ void Terrain::PlayAmbience() {
         float pan = PanOf(vote.offset, axis);
         float limit = kAmbientSounds[vote.soundClass].panLimit;
         float low = -limit;
-        pan = pan >= low ? pan : low;
-        pan = limit >= pan ? pan : limit;
+        pan = MaxKeepB(pan, low);
+        pan = MinKeepA(limit, pan);
         vote.pan = std::lround(pan);
         PlayOneShot(sounds, cells, vote.soundClass, ambientVariants[vote.soundClass], ambientSet, listener);
     }

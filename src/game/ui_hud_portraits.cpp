@@ -18,6 +18,7 @@
 #include <string>
 
 #include <concepts>
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
 #include "world.h"
@@ -151,7 +152,7 @@ void HudPortraits::Update() {
         } else if (slot.flash > 0.0f) {
             slot.flash = slot.flash - dt;
         }
-        slot.flash = slot.flash >= 0.0f ? slot.flash : 0.0f;
+        slot.flash = MaxKeepB(slot.flash, 0.0f);
         EngineObject* flash = object(5);
         if (slot.flash > 0.0f) {
             AsUiMesh(flash)->visible = true;

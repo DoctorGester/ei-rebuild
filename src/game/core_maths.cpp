@@ -1,4 +1,5 @@
 #include "core_maths.h"
+#include "lib/float_select.h"
 
 // The order of operations in every expression follows the game's instruction sequence. Doubling is written as
 // `* 2.0f`, which is exact and equal to the game's addition of a value to itself, so no named temporary (which the compiler
@@ -27,7 +28,7 @@ const Vector3* Vector3::AddInPlace(const Vector3& v) {
 
 float ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
-    return v >= -1.0f ? v : -1.0f;   // -1 also for NaN
+    return MaxKeepB(v, -1.0f);   // -1 also for NaN
 }
 
 Quaternion* Quaternion::SetIdentity() {
