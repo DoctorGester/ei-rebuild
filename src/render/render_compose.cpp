@@ -23,18 +23,6 @@ namespace render::detail {
 
 namespace {
 
-struct ComposeParams {
-    std::int32_t offset[4];   // the image texel at target texel (0, 0); z: fill with `colour`; w: the alpha kept
-    float colour[4];
-};
-// texture_clouds.hlsl's fragment parameters.
-struct CloudParams {
-    std::uint32_t words[12];   // ps_frame: the layers' words
-    std::uint32_t blend[4];    // ps_clouds: x
-    std::uint32_t ramp[256];   // ps_clouds: one alpha a word
-};
-static_assert(sizeof(ComposeParams) == 32 && sizeof(CloudParams) == 1088);
-
 bool g_tried = false, g_made = false;
 sg_shader g_shader{}, g_cloudFrameShader{}, g_cloudsShader{};
 sg_pipeline g_over{}, g_replace{}, g_cloudFrame{}, g_clouds{};
@@ -75,37 +63,6 @@ sg_pipeline MakePipeline(bool over, const char* label) {
     return sg_make_pipeline(&p);
 }
 
-// A shader of texture_compose.hlsl or texture_clouds.hlsl: the rectangle's vertex parameters, `fsBytes` of fragment
-// parameters and `textures` texture views (t0, t1) of `sampleType` loaded directly (a non-filtering sampler paired
-// with each, as sokol wants).
-sg_shader MakeShader(const ShaderBytecode& code, std::size_t fsBytes, int textures, sg_image_sample_type sampleType,
-                     const char* label) {
-    sg_shader_desc s{};
-    SetBytecode(s, code);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(RectParams);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = static_cast<std::uint32_t>(fsBytes);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    for (int t = 0; t < textures; ++t) {
-        s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-        s.views[t].texture.image_type = SG_IMAGETYPE_2D;
-        s.views[t].texture.sample_type = sampleType;
-        s.views[t].texture.hlsl_register_t_n = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.texture_sampler_pairs[t].view_slot = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].sampler_slot = 0;
-    }
-    if (textures > 0) {
-        s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
-        s.samplers[0].hlsl_register_s_n = 0;
-    }
-    s.label = label;
-    return sg_make_shader(&s);
-}
-
 // A pipeline drawing `shader`'s rectangle into a target of `format`, no blending.
 sg_pipeline MakePlainPipeline(sg_shader shader, sg_pixel_format format, const char* label) {
     sg_pipeline_desc p{};
@@ -121,12 +78,12 @@ sg_pipeline MakePlainPipeline(sg_shader shader, sg_pixel_format format, const ch
 bool EnsurePipelines() {
     if (g_tried) return g_made;
     g_tried = true;
-    g_shader = MakeShader(kTextureComposeShader, sizeof(ComposeParams), 1, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT,
-                          "ei-texture-compose");
+    const sg_backend backend = sg_query_backend();
+    g_shader = sg_make_shader(texture_compose_shader_desc(backend));
     g_over = MakePipeline(true, "ei-texture-compose-over");
     g_replace = MakePipeline(false, "ei-texture-compose-replace");
-    g_cloudFrameShader = MakeShader(kCloudFrameShader, sizeof(CloudParams), 0, SG_IMAGESAMPLETYPE_UINT, "ei-cloud-frame");
-    g_cloudsShader = MakeShader(kCloudsShader, sizeof(CloudParams), 2, SG_IMAGESAMPLETYPE_UINT, "ei-clouds");
+    g_cloudFrameShader = sg_make_shader(texture_clouds_frame_shader_desc(backend));
+    g_cloudsShader = sg_make_shader(texture_clouds_shader_desc(backend));
     g_cloudFrame = MakePlainPipeline(g_cloudFrameShader, SG_PIXELFORMAT_R8UI, "ei-cloud-frame");
     g_clouds = MakePlainPipeline(g_cloudsShader, SG_PIXELFORMAT_RGBA8, "ei-clouds");
     sg_sampler_desc sd{};
@@ -247,10 +204,10 @@ sg_view CloudFrameView(const CloudFrame& frame) {
     sg_begin_pass(&pass);
     sg_apply_pipeline(g_cloudFrame);
     ApplyRect(Rect{0, 0, kCloudSize, kCloudSize}, kCloudSize, kCloudSize);
-    CloudParams params{};
-    std::memcpy(params.words, frame.words, sizeof(params.words));
-    sg_range range{&params, sizeof(params)};
-    sg_apply_uniforms(1, &range);
+    cloud_params_t params{};
+    static_assert(sizeof(params.words) == sizeof(frame.words));
+    std::memcpy(params.words, frame.words, sizeof(params.words));   // the words' bits, as the shader reads them
+    sg_apply_uniforms(UB_cloud_params, SG_RANGE(params));
     sg_draw(0, 6, 1);
     sg_end_pass();
     sg_destroy_view(attachment);
@@ -318,11 +275,10 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
             b.samplers[0] = g_nearest;
             sg_apply_bindings(&b);
             ApplyRect(step.to, recipe.width, recipe.height);
-            CloudParams params{};
-            params.blend[0] = static_cast<std::uint32_t>(step.clouds->blend);
-            for (int g = 0; g < 256; ++g) params.ramp[g] = step.clouds->ramp[g];
-            sg_range range{&params, sizeof(params)};
-            sg_apply_uniforms(1, &range);
+            cloud_params_t params{};
+            params.blend[0] = static_cast<int>(step.clouds->blend);
+            for (int g = 0; g < 256; ++g) params.ramp[g / 4][g % 4] = step.clouds->ramp[g];
+            sg_apply_uniforms(UB_cloud_params, SG_RANGE(params));
             sg_draw(0, 6, 1);
             continue;
         }
@@ -334,10 +290,10 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(step.to, recipe.width, recipe.height);
-        ComposeParams fs{{step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
-                    {1.0f, 1.0f, 1.0f, 1.0f}};
-        sg_range range{&fs, sizeof(fs)};
-        sg_apply_uniforms(1, &range);
+        const texture_compose_params_t fs{
+            {step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
+            {1.0f, 1.0f, 1.0f, 1.0f}};
+        sg_apply_uniforms(UB_texture_compose_params, SG_RANGE(fs));
         sg_draw(0, 6, 1);
     }
     sg_end_pass();
@@ -474,9 +430,8 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(Rect{0, 0, width, height}, width, height);
-        ComposeParams fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
-        sg_range range{&fs, sizeof(fs)};
-        sg_apply_uniforms(1, &range);
+        const texture_compose_params_t fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
+        sg_apply_uniforms(UB_texture_compose_params, SG_RANGE(fs));
         sg_draw(0, 6, 1);
         sg_end_pass();
         StagingCopy copy;

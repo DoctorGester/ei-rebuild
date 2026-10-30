@@ -109,38 +109,6 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-struct MeshVsParams {
-    Matrix4 matrix;
-    float distanceFog[4];
-    float shift[4];
-    Matrix4 light;
-    float uvOffset[4];
-    float normalOffset[4];   // x: world units
-    float landscape[3][4];   // model space to the landscape's: rows (point shadows)
-};
-static_assert(sizeof(MeshVsParams) == 240);
-struct MeshFsParams {
-    float fogColour[4];
-    float factor[4];
-    std::int32_t colourOps[4];
-    std::int32_t colourOps1[4];
-    std::int32_t alphaOps[4];
-    std::int32_t alphaOps1[4];
-    std::int32_t switches[4];
-    float patchTo[4];
-    float patchMap[4];
-    float patchInside[4];
-    ShadowParams shadow;
-    float shadowFigure[4];      // x: a unit's mesh, y: its object's nearest map depth (MeshBatch::front)
-    MeshLightParams lighting;   // its lights' w: their point shadow + 1
-    float pointOn[4];           // x: point shadows taken (MeshBatch::landscape), y: a unit's mesh
-    float pointFront[4];        // MeshBatch::pointFront
-};
-static_assert(sizeof(MeshFsParams) == 272 + sizeof(MeshLightParams));
-// How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
-// map's texels (as the ground's, shaders/terrain.hlsl).
-constexpr float kNormalOffset = 1.5f;
-
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh", false);
@@ -282,40 +250,7 @@ void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
 }
 
 bool CreateMeshShader() {
-    sg_shader_desc s{};
-    SetBytecode(s, kMeshShader);
-    const char* const semantics[5] = {"POSITION", "COLOR", "COLOR", "TEXCOORD", "NORMAL"};
-    const std::uint8_t indices[5] = {0, 0, 1, 0, 0};
-    for (int i = 0; i < 5; ++i) {
-        s.attrs[i].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[i].hlsl_sem_name = semantics[i];
-        s.attrs[i].hlsl_sem_index = indices[i];
-    }
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(MeshVsParams);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(MeshFsParams);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;   // the point shadows
-    s.uniform_blocks[2].size = sizeof(PointShadowParams);
-    s.uniform_blocks[2].hlsl_register_b_n = 1;
-    for (int t = 0; t < 3; ++t) {   // the two stages and stage 0's patch
-        s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-        s.views[t].texture.image_type = SG_IMAGETYPE_2D;
-        s.views[t].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-        s.views[t].texture.hlsl_register_t_n = static_cast<std::uint8_t>(t);
-        s.samplers[t].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.samplers[t].sampler_type = SG_SAMPLERTYPE_FILTERING;
-        s.samplers[t].hlsl_register_s_n = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.texture_sampler_pairs[t].view_slot = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].sampler_slot = static_cast<std::uint8_t>(t);
-    }
-    DescribeShadowMap(s, 3, 3);
-    DescribePointShadows(s, 5, 5);
-    s.label = "ei-mesh";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(mesh_shader_desc(sg_query_backend()));
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
     if (!ok) ei::Log("render: the mesh shader could not be created (see the sokol messages above)");
     return ok;
@@ -383,11 +318,11 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     }
     b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
     b.samplers[2] = b.samplers[0];
-    BindShadowMap(b, 3, 3);
-    BindPointShadows(b, 5, 5);
+    BindShadowMap(b);
+    BindPointShadows(b);
     sg_apply_bindings(&b);
     CountBindings(b);
-    MeshVsParams vs{};
+    mesh_vs_params_t vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
         vs.distanceFog[0] = 1.0f;
@@ -401,15 +336,15 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
-    MeshFsParams fs{};
-    ShadowUniforms(f, batch.light >= 0, &fs.shadow);
-    if (fs.shadow.on[0] > 0.5f && fs.shadow.soft[3] > 0.0f)   // the map's texel in world units
-        vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;
+    mesh_fs_params_t fs{};
+    const shadow_params_t& shadow = ShadowUniforms(f, batch.light >= 0);
+    vs.normalOffset[0] = ShadowNormalOffset(shadow);
+    mesh_light_params_t lighting{};   // unlit: on[0] 0
     if (batch.lighting >= 0) {
-        fs.lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
+        lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
         // Its lights' scene light becomes their point shadow, taken with the landscape's rows.
         for (int k = 0; k < kMostMeshLights; ++k) {
-            float& w = fs.lighting.points[k][1][3];
+            float& w = lighting.pointColour[k][3];
             w = static_cast<float>(PointShadowSlot(f, static_cast<int>(w) - 1) + 1);
         }
         if (batch.landscape >= 0) {
@@ -457,16 +392,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             fs.patchInside[k] = s.patch.inside[k];
         }
     }
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(1, &fr);
-    PointShadowParams point;
-    PointShadowUniforms(f, &point);
-    sg_range pr{&point, sizeof(point)};
-    sg_apply_uniforms(2, &pr);
+    sg_apply_uniforms(UB_mesh_vs_params, SG_RANGE(vs));
+    sg_apply_uniforms(UB_mesh_fs_params, SG_RANGE(fs));
+    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
+    sg_apply_uniforms(UB_mesh_light_params, SG_RANGE(lighting));
+    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
     sg_draw(first, batch.indexCount, 1);
-    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(point));
+    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }
 
 void DestroyMeshes() {
@@ -513,7 +445,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        MeshLightParams params;
+        mesh_light_params_t params;
         MeshLightUniforms(*lighting, &params);
         f.meshLights.push_back(params);
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;

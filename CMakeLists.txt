@@ -77,6 +77,7 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
+target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
@@ -99,49 +100,7 @@ endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
-# The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
-# SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
-# render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
-# shaders include each other: each header depends on all of them.
-find_program(EI_FXC fxc REQUIRED)
-file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
-set(EI_SHADER_SCRIPT ${CMAKE_SOURCE_DIR}/src/render/shaders/compile.cmake)
-set(EI_SHADER_HEADERS)
-# ei_shader(<array> <file> <entry> <profile> [<define>...]): the array's header shaders/<array>.h.
-function(ei_shader name file entry profile)
-    set(out ${CMAKE_BINARY_DIR}/shaders/${name}.h)
-    add_custom_command(OUTPUT ${out}
-        COMMAND ${CMAKE_COMMAND} -DFXC=${EI_FXC} -DSOURCE=${CMAKE_SOURCE_DIR}/src/render/shaders/${file} -DENTRY=${entry}
-                -DPROFILE=${profile} -DNAME=${name} "-DDEFINES=${ARGN}" -DOUT=${out} -P ${EI_SHADER_SCRIPT}
-        DEPENDS ${EI_SHADER_SOURCES} ${EI_SHADER_SCRIPT}
-        COMMENT "Compiling shader ${file} ${entry} ${ARGN}"
-        VERBATIM)
-    set(EI_SHADER_HEADERS ${EI_SHADER_HEADERS} ${out} PARENT_SCOPE)
-endfunction()
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-foreach(s blit solid mesh terrain present shadow_caster shadow_terrain into_multisampled perf_overlay texture_compose)
-    ei_shader(${s}_vs ${s}.hlsl vs_main vs_4_0)
-    ei_shader(${s}_ps ${s}.hlsl ps_main ps_4_0)
-endforeach()
-ei_shader(depth_from_multisampled_vs depth_from_multisampled.hlsl vs_main vs_4_0 SAMPLES=8)   # (reads no texture)
-foreach(samples 2 4 8)   # render_internal.h's kSmoothSamples and the counts below it
-    ei_shader(depth_from_multisampled${samples}_ps depth_from_multisampled.hlsl ps_main ps_4_0 SAMPLES=${samples})
-endforeach()
-# The global map's clouds (render_compose.cpp): a frame of noise and the blend of two.
-ei_shader(texture_clouds_vs texture_clouds.hlsl vs_main vs_4_0)
-ei_shader(texture_clouds_frame_ps texture_clouds.hlsl ps_frame ps_4_0)
-ei_shader(texture_clouds_ps texture_clouds.hlsl ps_clouds ps_4_0)
-ei_shader(shadow_range_vs shadow_range_vs.hlsl vs_main vs_4_0)
-ei_shader(shadow_reduce_ps shadow_reduce.hlsl ps_main ps_4_1)   # Gather (Direct3D 10.1)
-ei_shader(shadow_dilate_ps shadow_dilate.hlsl ps_main ps_4_1)
-# The interface canvases (render_ui.cpp): one file, an entry point per program.
-ei_shader(ui_rect_vs ui_canvas.hlsl vs_rect vs_4_0)
-ei_shader(ui_glyph_vs ui_canvas.hlsl vs_glyph vs_4_0)
-foreach(e solid glyph compose grey copy rgb565 blit)
-    ei_shader(ui_${e}_ps ui_canvas.hlsl ps_${e} ps_4_0)
-endforeach()
-target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})
-target_include_directories(ei_render PRIVATE ${CMAKE_BINARY_DIR})
+include(cmake/shaders.cmake)
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
 # as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).
 set(EI_FONT_HEADERS)

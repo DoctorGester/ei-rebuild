@@ -49,6 +49,8 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 - Windows 10 or later.
 - The VS 2022 Build Tools with MSVC 14.43 for x86 and x64, and CMake and Ninja from the same install. `build.cmd` looks in
   `E:\bin\vs\buildtools`; set `EI_VSROOT` to your Build Tools folder if it is elsewhere.
+- sokol-shdc, the shader compiler. `build.cmd` uses `E:\bin\sokol-shdc\sokol-shdc.exe`; set `EI_SHDC` to it if it
+  is elsewhere (`docs/notes/renderer.md`, "Shader authoring").
 - Python 3 (the build runs checks written in Python).
 - An installed copy of the game for its data:
   - the GOG release (`EI_GAME_VANILLA`, default `F:\games\EvilIslands`), and/or

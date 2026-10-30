@@ -243,17 +243,20 @@ void CheckPresented(const Kit& kit, const Rect& to, const Rect& from, ID3D11Shad
 
 // Records and runs the cursor thread's present: the frame target (it holds no cursor) and the part `from` of the
 // cursor's picture (`sheet`) at `to` through the gamma ramp into the swap chain's back buffer as the main thread's
-// present draws them (shaders/present.hlsl), Present.
+// present draws them (shaders/present.glsl), Present.
 bool PresentWithCursor(const Kit& kit, const Rect& to, const Rect& from, ID3D11ShaderResourceView* sheet) {
     ID3D11Device* device = kit.device;
-    // The present's cbuffers (render_window.cpp): the whole frame; the cursor's rectangle, the frame's size and the
+    // The present's uniforms (render_window.cpp): the whole frame; the cursor's rectangle, the frame's size and the
     // cursor texels per frame pixel (one), the size and the top left corner of the cursor's part of its picture.
-    float presentVs[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-    float presentPs[12] = {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
-                           static_cast<float>(to.bottom), static_cast<float>(kit.frameWidth), static_cast<float>(kit.frameHeight),
-                           1.0f, 1.0f, static_cast<float>(from.right - from.left), static_cast<float>(from.bottom - from.top),
-                           static_cast<float>(from.left), static_cast<float>(from.top)};
-    ID3D11Buffer* buffers[2] = {ConstantBuffer(device, presentVs, sizeof(presentVs)), ConstantBuffer(device, presentPs, sizeof(presentPs))};
+    const present_params_t presentVs{{0.0f, 0.0f, 1.0f, 1.0f}};
+    const cursor_params_t presentPs{
+        {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
+         static_cast<float>(to.bottom)},
+        {static_cast<float>(kit.frameWidth), static_cast<float>(kit.frameHeight), 1.0f, 1.0f},
+        {static_cast<float>(from.right - from.left), static_cast<float>(from.bottom - from.top),
+         static_cast<float>(from.left), static_cast<float>(from.top)}};
+    ID3D11Buffer* buffers[2] = {ConstantBuffer(device, &presentVs, sizeof(presentVs)),
+                                ConstantBuffer(device, &presentPs, sizeof(presentPs))};
     bool ok = buffers[0] && buffers[1];
     ID3D11CommandList* list = nullptr;
     if (ok) {
@@ -268,8 +271,10 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const Rect& from, ID3D11S
         dc->RSSetViewports(1, &placed);
         dc->RSSetScissorRects(1, &client);
         kit.present.Bind(dc);
-        dc->VSSetConstantBuffers(0, 1, &buffers[0]);
-        dc->PSSetConstantBuffers(0, 1, &buffers[1]);
+        // Their cbuffer registers, as sokol-shdc gave them.
+        const sg_shader_desc* present = present_shader_desc(SG_BACKEND_D3D11);
+        dc->VSSetConstantBuffers(present->uniform_blocks[UB_present_params].hlsl_register_b_n, 1, &buffers[0]);
+        dc->PSSetConstantBuffers(present->uniform_blocks[UB_cursor_params].hlsl_register_b_n, 1, &buffers[1]);
         ID3D11ShaderResourceView* views[3] = {kit.frame, kit.ramp, sheet};
         dc->PSSetShaderResources(0, 3, views);
         ID3D11SamplerState* samplers[1] = {kit.linear};

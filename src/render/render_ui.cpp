@@ -130,16 +130,6 @@ std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
-struct UiParams {
-    float colour[4];
-    std::uint32_t bits[4];
-    std::int32_t source[4];
-    std::int32_t dest[4];
-    float scale[4];
-    std::uint32_t key[4];
-};
-static_assert(sizeof(UiParams) == 96);
-
 bool g_pipelinesTried = false, g_pipelinesMade = false;
 sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
 sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{}, g_rgb565{};
@@ -172,41 +162,6 @@ std::size_t g_vertexCapacity = 0;
 
 ID3D11DeviceContext* Context() { return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context())); }
 
-// A shader of ui_canvas.hlsl: the vertex parameters, the fragment parameters, `textures` texture views
-// (t0, t1) loaded directly (a non-filtering sampler paired with each, as sokol wants), and for the glyph
-// shader its vertex (POSITION, float4).
-sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex, const char* label) {
-    sg_shader_desc s{};
-    SetBytecode(s, code);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(RectParams);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(UiParams);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    for (int t = 0; t < textures; ++t) {
-        s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-        s.views[t].texture.image_type = SG_IMAGETYPE_2D;
-        s.views[t].texture.sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
-        s.views[t].texture.hlsl_register_t_n = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.texture_sampler_pairs[t].view_slot = static_cast<std::uint8_t>(t);
-        s.texture_sampler_pairs[t].sampler_slot = 0;
-    }
-    if (textures > 0) {
-        s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
-        s.samplers[0].hlsl_register_s_n = 0;
-    }
-    if (glyphVertex) {
-        s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[0].hlsl_sem_name = "POSITION";
-        s.attrs[0].hlsl_sem_index = 0;
-    }
-    s.label = label;
-    return sg_make_shader(&s);
-}
-
 // A pipeline drawing into a canvas (RGBA8), the coverage scratch (R8, MAX blending) or the 5:6:5 picture
 // (R16UI), no depth.
 sg_pipeline MakeCanvasPipeline(sg_shader shader, sg_pixel_format format, const char* label) {
@@ -234,13 +189,14 @@ sg_pipeline MakeCanvasPipeline(sg_shader shader, sg_pixel_format format, const c
 bool EnsurePipelines() {
     if (g_pipelinesTried) return g_pipelinesMade;
     g_pipelinesTried = true;
-    g_solidShader = MakeShader(kUiSolidShader, 0, false, "ei-canvas-solid");
-    g_glyphShader = MakeShader(kUiGlyphShader, 1, true, "ei-canvas-glyph");
-    g_composeShader = MakeShader(kUiComposeShader, 2, false, "ei-canvas-compose");
-    g_greyShader = MakeShader(kUiGreyShader, 1, false, "ei-canvas-grey");
-    g_copyShader = MakeShader(kUiCopyShader, 1, false, "ei-canvas-copy");
-    g_rgb565Shader = MakeShader(kUiRgb565Shader, 1, false, "ei-canvas-rgb565");
-    g_blitShader = MakeShader(kUiBlitShader, 1, false, "ei-canvas-blit");
+    const sg_backend backend = sg_query_backend();
+    g_solidShader = sg_make_shader(ui_solid_shader_desc(backend));
+    g_glyphShader = sg_make_shader(ui_glyph_shader_desc(backend));
+    g_composeShader = sg_make_shader(ui_compose_shader_desc(backend));
+    g_greyShader = sg_make_shader(ui_grey_shader_desc(backend));
+    g_copyShader = sg_make_shader(ui_copy_shader_desc(backend));
+    g_rgb565Shader = sg_make_shader(ui_rgb565_shader_desc(backend));
+    g_blitShader = sg_make_shader(ui_blit_shader_desc(backend));
     g_solid = MakeCanvasPipeline(g_solidShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-solid");
     g_glyph = MakeCanvasPipeline(g_glyphShader, SG_PIXELFORMAT_R8, "ei-canvas-glyph");
     g_compose = MakeCanvasPipeline(g_composeShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-compose");
@@ -333,17 +289,14 @@ void BeginCanvasPass(sg_view attachment, bool clear, const char* label) {
     sg_begin_pass(&pass);
 }
 
-UiParams CanvasParams(const CanvasState& canvas) {
-    UiParams fs{};
-    for (int i = 0; i < 3; ++i) fs.bits[i] = canvas.bits[i];
-    fs.bits[3] = canvas.greyMode;
+ui_params_t CanvasParams(const CanvasState& canvas) {
+    ui_params_t fs{};
+    for (int i = 0; i < 3; ++i) fs.bits[i] = static_cast<int>(canvas.bits[i]);
+    fs.bits[3] = static_cast<int>(canvas.greyMode);
     return fs;
 }
 
-void ApplyFs(const UiParams& fs) {
-    sg_range range{&fs, sizeof(fs)};
-    sg_apply_uniforms(1, &range);
-}
+void ApplyFs(const ui_params_t& fs) { sg_apply_uniforms(UB_ui_params, SG_RANGE(fs)); }
 
 // `r` of the canvas's image copied into g_under at (0, row).
 void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
@@ -376,7 +329,7 @@ void DrawSolids(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (std::size_t k = from; k < to; ++k) {
         const Op& op = g_queue[k];
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        ui_params_t fs = CanvasParams(canvas);
         fs.colour[0] = ((op.colour >> 16) & 0xFF) / 255.0f;
         fs.colour[1] = ((op.colour >> 8) & 0xFF) / 255.0f;
         fs.colour[2] = (op.colour & 0xFF) / 255.0f;
@@ -485,7 +438,6 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(Rect{r.left, r.top - run.row, r.right, r.bottom - run.row}, g_coverage.width, g_coverage.height);
-        ApplyFs(CanvasParams(canvas));
         sg_draw(0, static_cast<int>(run.op->vertices.size() / 4), 1);
     }
     sg_end_pass();
@@ -501,7 +453,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (const Run& run : runs) {
         const Op& op = *run.op;
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        ui_params_t fs = CanvasParams(canvas);
         fs.colour[0] = static_cast<float>(op.colour & 0xFF);
         fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
         fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
@@ -538,7 +490,7 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-    UiParams fs = CanvasParams(canvas);
+    ui_params_t fs = CanvasParams(canvas);
     fs.source[0] = r.left;
     fs.source[1] = r.top;
     fs.source[2] = r.right - r.left;
@@ -885,7 +837,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, width, height}, width, height);
-    UiParams fs{};
+    ui_params_t fs{};
     fs.source[2] = canvas.width;
     fs.source[3] = canvas.height;
     fs.dest[0] = width;
@@ -1005,7 +957,7 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(batch.destination, width, height);
-    UiParams fs{};
+    ui_params_t fs{};
     fs.source[0] = batch.source.left;
     fs.source[1] = batch.source.top;
     fs.source[2] = canvas.width;
@@ -1014,10 +966,10 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     fs.dest[1] = batch.destination.top;
     fs.scale[0] = static_cast<float>(sw) / static_cast<float>(dw);
     fs.scale[1] = static_cast<float>(sh) / static_cast<float>(dh);
-    fs.key[0] = (batch.key >> 16) & 0xFF;
-    fs.key[1] = (batch.key >> 8) & 0xFF;
-    fs.key[2] = batch.key & 0xFF;
-    fs.key[3] = batch.keyed ? 1u : 0u;
+    fs.key[0] = static_cast<int>((batch.key >> 16) & 0xFF);
+    fs.key[1] = static_cast<int>((batch.key >> 8) & 0xFF);
+    fs.key[2] = static_cast<int>(batch.key & 0xFF);
+    fs.key[3] = batch.keyed ? 1 : 0;
     ApplyFs(fs);
     sg_draw(0, 6, 1);
 }

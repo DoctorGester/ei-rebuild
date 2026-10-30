@@ -7,6 +7,12 @@
 
 #include "lib/vecmath.h"
 
+// The shaders' uniform structs, bind slots and descriptions (cmake/shaders.cmake): after sokol_gfx.h and Matrix4.
+// Their blocks are copied by sg_apply_uniforms, so they are not 16-byte aligned (that would pad the frame's structs
+// that hold them).
+#define SOKOL_SHDC_ALIGN(a)
+#include "shaders/shaders.h"
+
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -58,24 +64,6 @@ struct StagePatch {
     float inside[4] = {};   // u0, v0, u1, v1
 };
 StagePatch PatchOf(const void* holder);
-
-// Compiled from src/render/shaders/*.hlsl at build time (CMakeLists.txt's ei_shader).
-struct ShaderBytecode {
-    sg_range vs, ps;
-};
-extern const ShaderBytecode kBlitShader, kSolidShader;
-extern const ShaderBytecode kMeshShader;
-extern const ShaderBytecode kTerrainShader;
-extern const ShaderBytecode kPresentShader;
-extern const ShaderBytecode kIntoMultisampledShader;
-extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, kDilateShader;
-extern const ShaderBytecode kPerfOverlayShader;
-extern const ShaderBytecode kTextureComposeShader, kCloudFrameShader, kCloudsShader;
-extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
-    kUiRgb565Shader, kUiBlitShader;
-// `samples` 2, 4 or 8; null ranges otherwise.
-ShaderBytecode DepthFromMultisampledShader(int samples);
-void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code);
 
 // The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
@@ -191,31 +179,13 @@ struct Command {
     int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / canvasBatches
 };
 
-// The receivers' shader parameters of the shadow map (shaders/shadow_receiver.hlsli).
-struct ShadowParams {
-    float on[4];       // x: on, y: strength, z: 1 the shadow alone (SetShadowView), w: constant depth bias
-    float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
-    float camera[4];   // xyz: the camera in shadow clip space
-    float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
-                       // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
-};
-static_assert(sizeof(ShadowParams) == 64);
-
-// The scene's light (shaders/scene_lighting.hlsli) as kept by render::SceneLighting, a fragment uniform block.
-struct LightParams {
-    float sun[4];          // xyz: the direction the sun's light travels (unit)
-    float sunColour[4];
-    float ambient[4];
-    float counts[4];       // x: the point lights
-    float mapSun[4];       // xyz: the direction the shadow map's light travels (MapLightDirection), unit
-    float points[kMostSceneLights][2][4];   // position xyz, 1 / range squared; colour rgb, w: 1 specular
-    float shadowSlots[kMostSceneLights];    // per point light its shadow map + 1, 0: none
-};
-static_assert(sizeof(LightParams) == 80 + kMostSceneLights * 36);
-void LightUniforms(LightParams* params);
-// The kept point lights, laid out as LightParams::points. SceneLightIndex: the kept light at `position`
-// exactly (the same Light's), -1 none.
-const float (*SceneLightPoints(int* count))[2][4];
+// The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.glsl), with
+// the frame's point shadows and the shadow map's light direction.
+static_assert(std::size(scene_light_params_t{}.pointAt) == kMostSceneLights);
+void LightUniforms(scene_light_params_t* params);
+// The kept point lights (`counts[0]` of them in pointAt / pointColour). SceneLightIndex: the kept light at
+// `position` exactly (the same Light's), -1 none.
+const scene_light_params_t& KeptSceneLight();
 // The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
 bool SceneLightCastsShadows(int k);
 int SceneLightIndex(const Vector3& position);
@@ -226,38 +196,23 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel);
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A figure part lit on the GPU (shaders/mesh.hlsl's fragment uniforms): the sun and lights in the part's
-// model space, their colours times the material's diffuse colour and the coefficient; the
-// kMostMeshLights nearest the part's origin.
+// A figure part lit on the GPU (shaders/mesh.glsl's mesh_light_params): the sun and lights in the part's model
+// space, their colours times the material's diffuse colour and the coefficient; the kMostMeshLights nearest the
+// part's origin. A light's pointColour w: the scene's light (SceneLightIndex) + 1, 0 none; drawn: its point shadow
+// + 1, 0 none.
 constexpr int kMostMeshLights = 8;
-struct MeshLightParams {
-    float on[4];           // x: 1 lit, y: the crown's pull (0 none), z: the lights
-    float sun[4];          // xyz: towards the sun in model space (as the game's: the direction's inverse)
-    float sunColour[4];    // rgb: the sun's lit colour (none: 0)
-    float ambient[4];      // rgb
-    float emissive[4];     // rgb
-    float points[kMostMeshLights][2][4];   // model-space position xyz, 1 / range squared; lit colour rgb, w: the
-                                           // scene's light (SceneLightIndex) + 1, 0 none; drawn: its point
-                                           // shadow + 1, 0 none
-};
-static_assert(sizeof(MeshLightParams) == 80 + kMostMeshLights * 32);
-void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
+static_assert(std::size(mesh_light_params_t{}.pointAt) == kMostMeshLights);
+void MeshLightUniforms(const MeshLighting& lighting, mesh_light_params_t* params);
 
-// Point-light shadows (shaders/point_shadow.hlsli): the receivers' fragment uniforms, the same for the
-// frame. Each light with a map has six faces of kPointFaceTexels in one row of the atlas.
+// Point-light shadows (shaders/point_shadow.glsl): the receivers' fragment uniforms, the same for the frame. Each
+// light with a map has six faces of kPointFaceTexels in one row of the atlas.
 constexpr int kMostPointShadows = 4;
 constexpr int kPointFaceTexels = 512;
-struct PointShadowParams {
-    float on[4];       // x: the lights with a map, y: texels a face side
-    float eye[4];      // xyz: the camera in the landscape's space
-    float lights[kMostPointShadows][4];   // xyz: the light in the landscape's space, w: the faces' near distance
-    float depth[kMostPointShadows][4];    // xy: a face's depth for a distance d along its axis is x + y / d
-};
-static_assert(sizeof(PointShadowParams) == 32 + kMostPointShadows * 32);
+static_assert(std::size(point_shadow_params_t{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
-    PointShadowParams params{};
+    point_shadow_params_t params{};
 };
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
@@ -268,7 +223,7 @@ struct ShadowFrame {
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     std::vector<Matrix4> lights;   // each receiving mesh's model space to the map's clip space; [0]: the terrain's
-    ShadowParams params{};
+    shadow_params_t params{};
     PointShadowFrame point;
 };
 
@@ -279,7 +234,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
-    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
+    std::vector<mesh_light_params_t> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<FillBatch> fills;
@@ -353,19 +308,12 @@ private:
     unsigned mappedWidth = 0, mappedHeight = 0;
 };
 
-// The vertex parameters of the rectangle shaders (blit, ui_canvas, texture_compose, texture_clouds): the rectangle
-// (left, top, right, bottom, target pixels) and the target's width and height.
-struct RectParams {
-    float rect[4];
-    float target[4];
-};
-static_assert(sizeof(RectParams) == 32);
-// `r` on a `width` x `height` target as vertex uniform block 0.
+// `r` on a `width` x `height` target as the rectangle shaders' vertex uniforms (shaders/rect.glsl).
 inline void ApplyRect(const Rect& r, int width, int height) {
-    RectParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                  {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range range{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &range);
+    rect_params_t vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
+                      static_cast<float>(r.bottom)},
+                     {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    sg_apply_uniforms(UB_rect_params, SG_RANGE(vs));
 }
 
 // The top `bits` of a channel value widened to 8 by repeating them (more than 8: the top 8 of them).
@@ -594,15 +542,18 @@ Vector3 CornerNormal(const MeshDraw& mesh, int index);
 // Object shadows (docs/notes/renderer.md section 13). PrepareShadows, once a frame before its first pass on
 // the world: fits the map around the visible ground seen from the sun and gives every receiving batch its
 // light matrix; DrawShadowMap draws the casters and the depth range per cell. Receivers include
-// shaders/shadow_receiver.hlsli, take ShadowParams and bind the map (or a cleared 1 x 1 one) with
-// BindShadowMap.
+// shaders/shadow_receiver.glsl, take its shadow_params (ShadowUniforms: all zero, no shadow, unless `receives`) and
+// bind the map (or a cleared 1 x 1 one) and its depth range per cell with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
-void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
-// The map's depth view and comparison sampler at the slots, its depth range per cell (RGBA32F, read
-// filtered) and sampler at the slots after them.
-void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
+const shadow_params_t& ShadowUniforms(const Frame& frame, bool receives);
+void BindShadowMap(sg_bindings& b);
+// How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
+// in world units (0 without the map).
+inline float ShadowNormalOffset(const shadow_params_t& shadow) {
+    if (!(shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)) return 0.0f;
+    return shadow.scale[0] * 2.0f / shadow.soft[3] * 1.5f;
+}
 void DestroyShadows();
 // The clip matrix of the frame's first ground batch and the camera in the landscape's space; false without
 // ground drawn.
@@ -611,7 +562,7 @@ bool WorldCamera(const Frame& frame, Matrix4* clip, Vector3* eye);
 bool MakeShadowDepth(int width, int height, const char* label, sg_image* image, sg_view* attachment, sg_view* texture);
 sg_sampler ShadowCompareSampler();
 sg_view NoShadowTexture();
-// The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
+// The casters' draws into a depth map (shaders/shadow_caster.glsl), the sun's and the point lights'. Each draw's
 // own data (CasterInstance) goes into one instance buffer uploaded once a pass and is read at the draw's first
 // instance; the draws are sorted by what they bind (a depth map does not depend on the order its casters are
 // drawn in) and the pipeline and bindings are applied only when they change.
@@ -665,9 +616,7 @@ private:
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
-void PointShadowUniforms(const Frame& frame, PointShadowParams* params);
-void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot);
-void DescribePointShadows(sg_shader_desc& s, int viewSlot, int samplerSlot);
+void BindPointShadows(sg_bindings& b);
 int PointShadowSlot(const Frame& frame, int sceneLight);
 void DestroyPointShadows();
 // The object whose meshes are being handed over. ShadowFrameEnd: the frame's passes are recorded (the harness

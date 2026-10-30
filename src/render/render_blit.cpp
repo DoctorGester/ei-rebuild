@@ -25,16 +25,6 @@ namespace {
 
 using namespace detail;
 
-struct BlitParams {
-    float dest[4];
-    float source[4];
-};
-struct SolidParams {
-    float rect[4];
-    float target[4];   // z: the depth clear's depth
-    float colour[4];   // the fill's colour
-};
-
 enum PipelineKind { kBlit, kClearDepth, kFill, kPipelineKinds };
 
 sg_shader g_blitShader{}, g_solidShader{};
@@ -84,12 +74,12 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
     sg_pipeline pipeline = PassPipeline(kind);
     sg_apply_pipeline(pipeline);
     CountPipeline(pipeline);
-    SolidParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                   {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
-                   {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f,
-                    (colour & 0xFF) / 255.0f, 1.0f}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
+    solid_params_t vs{
+        {static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
+         static_cast<float>(r.bottom)},
+        {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
+        {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
+    sg_apply_uniforms(UB_solid_params, SG_RANGE(vs));
     sg_draw(0, 6, 1);
     CountDraw(sizeof(vs));
 }
@@ -252,27 +242,7 @@ const CursorSheet* SheetOf(const void* holder, const void* mask, int maskBytes, 
 namespace detail {
 
 bool CreateBlitPipeline() {
-    sg_shader_desc s{};
-    SetBytecode(s, kBlitShader);
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(RectParams);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(BlitParams);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    // The shader loads texels directly; sokol still wants a sampler paired with the texture.
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-image-blit";
-    g_blitShader = sg_make_shader(&s);
+    g_blitShader = sg_make_shader(blit_shader_desc(sg_query_backend()));
     sg_sampler_desc sd{};
     sd.min_filter = SG_FILTER_NEAREST;
     sd.mag_filter = SG_FILTER_NEAREST;
@@ -281,13 +251,7 @@ bool CreateBlitPipeline() {
     sd.label = "ei-image-blit";
     g_nearest = sg_make_sampler(&sd);
 
-    sg_shader_desc c{};
-    SetBytecode(c, kSolidShader);
-    c.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    c.uniform_blocks[0].size = sizeof(SolidParams);
-    c.uniform_blocks[0].hlsl_register_b_n = 0;
-    c.label = "ei-solid";
-    g_solidShader = sg_make_shader(&c);
+    g_solidShader = sg_make_shader(solid_shader_desc(sg_query_backend()));
     bool ok = true;
     for (int k = 0; k < kPipelineKinds; ++k) {
         g_pipelines[k] = MakePipeline(static_cast<PipelineKind>(k), 1);
@@ -311,14 +275,13 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     sg_apply_bindings(&bind);
     CountBindings(bind);
     ApplyRect(b.destination, width, height);
-    BlitParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
-                 static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
-                {static_cast<float>(b.source.left), static_cast<float>(b.source.top), static_cast<float>(b.textureWidth),
-                 static_cast<float>(b.textureHeight)}};
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(1, &fr);
+    blit_params_t fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
+                      static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
+                     {static_cast<float>(b.source.left), static_cast<float>(b.source.top),
+                      static_cast<float>(b.textureWidth), static_cast<float>(b.textureHeight)}};
+    sg_apply_uniforms(UB_blit_params, SG_RANGE(fs));
     sg_draw(0, 6, 1);
-    CountDraw(sizeof(RectParams) + sizeof(fs));
+    CountDraw(sizeof(rect_params_t) + sizeof(fs));
 }
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {

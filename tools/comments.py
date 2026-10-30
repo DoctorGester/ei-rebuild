@@ -171,7 +171,7 @@ def sources(paths):
             continue
         for dirpath, _, names in os.walk(root):
             for name in sorted(names):
-                if name.endswith(('.cpp', '.h', '.inc', '.hlsl', '.hlsli')):
+                if name.endswith(('.cpp', '.h', '.inc', '.glsl')):
                     yield os.path.join(dirpath, name)
 
 

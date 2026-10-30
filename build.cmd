@@ -16,6 +16,8 @@ rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.
 if defined EI_VSROOT (set "VSROOT=%EI_VSROOT%") else (set "VSROOT=E:\bin\vs\buildtools")
+rem EI_SHDC: the sokol-shdc shader compiler (cmake/shaders.cmake) when it is not the default below.
+if not defined EI_SHDC set "EI_SHDC=E:\bin\sokol-shdc\sokol-shdc.exe"
 set CFG=%~1
 if "%CFG%"=="" set CFG=release
 

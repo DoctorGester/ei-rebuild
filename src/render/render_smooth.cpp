@@ -25,28 +25,6 @@ sg_pipeline g_into{}, g_from{};
 int g_copySamples = 0;   // the sample count the copies were made for
 sg_sampler g_point{};
 
-// A shader of `code` (shaders/*.hlsl) reading `views` textures (t0..), each paired with one non-filtering sampler
-// (sokol wants every texture paired; the shaders only Load).
-sg_shader CopyShader(const ShaderBytecode& code, int views, bool multisampled, const char* label) {
-    sg_shader_desc s{};
-    SetBytecode(s, code);
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    for (int v = 0; v < views; ++v) {
-        s.views[v].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-        s.views[v].texture.image_type = SG_IMAGETYPE_2D;
-        s.views[v].texture.sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
-        s.views[v].texture.multisampled = multisampled;
-        s.views[v].texture.hlsl_register_t_n = static_cast<std::uint8_t>(v);
-        s.texture_sampler_pairs[v].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.texture_sampler_pairs[v].view_slot = static_cast<std::uint8_t>(v);
-        s.texture_sampler_pairs[v].sampler_slot = 0;
-    }
-    s.label = label;
-    return sg_make_shader(&s);
-}
-
 // Depth always written, colour as `writeColour`, for `samples`.
 sg_pipeline CopyPipeline(sg_shader shader, int samples, bool writeColour, const char* label) {
     sg_pipeline_desc p{};
@@ -95,8 +73,8 @@ bool PrepareSmoothCopies(int samples) {
     d.mag_filter = SG_FILTER_NEAREST;
     d.label = "ei-smooth-copy";
     g_point = sg_make_sampler(&d);
-    g_intoShader = CopyShader(kIntoMultisampledShader, 2, false, "ei-into-multisampled");
-    g_fromShader = CopyShader(DepthFromMultisampledShader(samples), 1, true, "ei-depth-from-multisampled");
+    g_intoShader = sg_make_shader(into_multisampled_shader_desc(sg_query_backend()));
+    g_fromShader = sg_make_shader(depth_from_multisampled_shader_desc(sg_query_backend()));
     g_into = CopyPipeline(g_intoShader, samples, true, "ei-into-multisampled");
     g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-multisampled");
     bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;

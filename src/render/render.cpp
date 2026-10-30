@@ -176,7 +176,8 @@ HRESULT CreateRemovableDevice(const D3D_FEATURE_LEVEL* levels, UINT count, D3D_F
 }
 #endif
 
-const D3D_FEATURE_LEVEL kLevels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+// The shaders are shader model 5 (sokol-shdc's hlsl5): feature level 11_0 or no device.
+const D3D_FEATURE_LEVEL kLevels[] = {D3D_FEATURE_LEVEL_11_0};
 constexpr UINT kLevelCount = static_cast<UINT>(sizeof(kLevels) / sizeof(kLevels[0]));
 
 HRESULT CreatePlainDevice(ID3D11Device** device, ID3D11DeviceContext** context, D3D_FEATURE_LEVEL* got) {

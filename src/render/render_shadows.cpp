@@ -46,12 +46,13 @@ constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fadi
 constexpr float kSunSize = 0.025f;
 constexpr float kWidestRadius = 0.6f;
 constexpr float kLeastRadius = 1.5f;
-// The cells of the map's depth range (shaders/shadow_reduce.hlsl, the receivers' early end): kRangeCell texels a
+// The cells of the map's depth range (shaders/shadow_reduce.glsl, the receivers' early end): kRangeCell texels a
 // side, so kRangeSize cells a side; the dilation reaches at most kMostCellsAround cells.
 constexpr int kRangeCell = 16;
 constexpr int kRangeSize = kMapSize / kRangeCell;
 constexpr int kMostCellsAround = 8;
-static_assert(kMapSize == 4096 && kRangeCell == 16, "the constants written in shaders/shadow_reduce.hlsl and shadow_receiver.hlsli");
+static_assert(kMapSize == 4096 && kRangeCell == 16,
+              "the constants written in shaders/shadow_reduce.glsl and shadow_receiver.glsl");
 
 // --- Matrices in double ----------------------------------------------------------------------------
 
@@ -172,14 +173,15 @@ float g_nearestCaster = 1e30f;
 // --- GPU side ---------------------------------------------------------------------------------------
 
 // The casters' pipelines (CasterDraws): MeshLayout's position and texture coordinates in vertex buffers 0 and 1,
-// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.hlsl's TEXCOORD1-5).
+// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.glsl's in_row0 ..
+// in_cut).
 constexpr int kInstanceBuffer = 2;
 constexpr int kInstanceAttrs = 5;
 static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
 CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
 sg_shader g_casterShader{};
 sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
-sg_shader g_terrainCasterShader{};    // the ground's casters (shaders/shadow_terrain.hlsl)
+sg_shader g_terrainCasterShader{};    // the ground's casters (shaders/shadow_terrain.glsl)
 sg_pipeline g_terrainCasterPipeline{};
 sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
@@ -197,27 +199,7 @@ int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s{};
-    SetBytecode(s, kCasterShader);
-    s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-    s.attrs[0].hlsl_sem_name = "POSITION";
-    for (int k = 1; k <= kInstanceAttrs + 1; ++k) {   // the texture coordinates, then the instance's
-        s.attrs[k].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[k].hlsl_sem_name = "TEXCOORD";
-        s.attrs[k].hlsl_sem_index = static_cast<std::uint8_t>(k - 1);
-    }
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-shadow-caster";
-    g_casterShader = sg_make_shader(&s);
+    g_casterShader = sg_make_shader(shadow_caster_shader_desc(sg_query_backend()));
     if (sg_query_shader_state(g_casterShader) != SG_RESOURCESTATE_VALID) {
         ei::Log("render: the shadow casters' shader could not be created (see the sokol messages above)");
         return false;
@@ -230,7 +212,7 @@ bool MakeCasterPipelines() {
         p.layout.buffers[kInstanceBuffer].stride = sizeof(CasterInstance);
         p.layout.buffers[kInstanceBuffer].step_func = SG_VERTEXSTEP_PER_INSTANCE;
         for (int k = 0; k < kInstanceAttrs; ++k) {   // the light matrix's rows, then the offsets and the cut
-            sg_vertex_attr_state& a = p.layout.attrs[2 + k];
+            sg_vertex_attr_state& a = p.layout.attrs[ATTR_shadow_caster_in_row0 + k];
             a.buffer_index = kInstanceBuffer;
             a.offset = 16 * k;
             a.format = SG_VERTEXFORMAT_FLOAT4;
@@ -256,20 +238,7 @@ bool MakeCasterPipelines() {
 // uniforms, the sun's direction in the fragment ones.
 bool MakeTerrainCasterPipeline() {
     if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s{};
-    SetBytecode(s, kTerrainCasterShader);
-    s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-    s.attrs[0].hlsl_sem_name = "POSITION";
-    s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-    s.attrs[1].hlsl_sem_name = "NORMAL";
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(Matrix4);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = 16;
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
-    s.label = "ei-shadow-terrain";
-    g_terrainCasterShader = sg_make_shader(&s);
+    g_terrainCasterShader = sg_make_shader(shadow_terrain_shader_desc(sg_query_backend()));
     sg_pipeline_desc p{};
     p.shader = g_terrainCasterShader;
     p.layout.buffers[0].stride = sizeof(TerrainCasterVertex);
@@ -339,7 +308,7 @@ sg_sampler PointSampler() {
 }
 
 // The receivers' read of the range: bilinear between the four cells around the point, clamped at
-// the map's edges (shaders/shadow_receiver.hlsli).
+// the map's edges (shaders/shadow_receiver.glsl).
 sg_sampler RangeSampler() {
     if (g_rangeLinear.id) return g_rangeLinear;
     sg_sampler_desc d{};
@@ -353,30 +322,10 @@ sg_sampler RangeSampler() {
     return g_rangeLinear;
 }
 
-// A full-screen pass's shader and pipeline into an RGBA32F image: `fragment` reads view 0 (of
-// `sampleType`, with the point sampler) and, with `uniforms`, 16 bytes of fragment uniforms.
-bool MakeRangePipeline(const ShaderBytecode& code, sg_image_sample_type sampleType, bool uniforms, const char* label,
-                       sg_shader* shader, sg_pipeline* pipeline) {
+// A full-screen pass's shader (of `desc`: it reads view 0 with the point sampler) and pipeline into an RGBA32F image.
+bool MakeRangePipeline(const sg_shader_desc* desc, const char* label, sg_shader* shader, sg_pipeline* pipeline) {
     if (shader->id) return sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s{};
-    SetBytecode(s, code);
-    if (uniforms) {
-        s.uniform_blocks[0].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.uniform_blocks[0].size = 16;
-        s.uniform_blocks[0].hlsl_register_b_n = 0;
-    }
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = sampleType;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = label;
-    *shader = sg_make_shader(&s);
+    *shader = sg_make_shader(desc);
     sg_pipeline_desc p{};
     p.shader = *shader;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
@@ -395,7 +344,8 @@ bool MakeRange(int size, const char* label, sg_image* image, sg_view* attachment
     return MakeColour(size, SG_PIXELFORMAT_RGBA32F, label, image, attachment, texture);
 }
 
-void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const int* uniforms, const char* label) {
+void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const shadow_dilate_params_t* dilate,
+               const char* label) {
     sg_pass pass{};
     pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
     pass.action.colors[0].store_action = SG_STOREACTION_STORE;
@@ -408,10 +358,7 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     b.views[0] = source;
     b.samplers[0] = PointSampler();
     sg_apply_bindings(&b);
-    if (uniforms) {
-        sg_range r{uniforms, 16};
-        sg_apply_uniforms(0, &r);
-    }
+    if (dilate) sg_apply_uniforms(UB_shadow_dilate_params, SG_RANGE_REF(*dilate));
     sg_draw(0, 3, 1);
     sg_end_pass();
 }
@@ -690,7 +637,7 @@ std::optional<StatsTimer> g_walkTimer;
 
 // A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
-// its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
+// its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.glsl), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
 void FigureFronts(Frame& f) {
     std::unordered_map<const void*, float> fronts;
@@ -1056,7 +1003,7 @@ void PrepareShadows(Frame& f) {
     }
     FigureFronts(f);
 
-    ShadowParams p{};
+    shadow_params_t p{};
     p.on[0] = 1.0f;
     p.on[1] = kStrength;
     p.on[2] = g_shadowView ? 1.0f : 0.0f;
@@ -1123,14 +1070,16 @@ void DrawShadowMap(Frame& f) {
         StatsTimer timer(&FrameStats::shadowMs);
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
-        bool ok = MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
-                  (g_map.id || MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
-                  MakeRangePipeline(kReduceShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
-                                    &g_reduceShader, &g_reducePipeline) &&
-                  MakeRangePipeline(kDilateShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
-                                    &g_dilateShader, &g_dilatePipeline) &&
-                  (g_cells.id || MakeRange(kRangeSize, "ei-shadow-cells", &g_cells, &g_cellsAttachment, &g_cellsTexture)) &&
-                  (g_range.id || MakeRange(kRangeSize, "ei-shadow-range", &g_range, &g_rangeAttachment, &g_rangeTexture));
+        bool ok =
+            MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
+            (g_map.id ||
+             MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
+            MakeRangePipeline(shadow_reduce_shader_desc(sg_query_backend()), "ei-shadow-cells", &g_reduceShader,
+                              &g_reducePipeline) &&
+            MakeRangePipeline(shadow_dilate_shader_desc(sg_query_backend()), "ei-shadow-range", &g_dilateShader,
+                              &g_dilatePipeline) &&
+            (g_cells.id || MakeRange(kRangeSize, "ei-shadow-cells", &g_cells, &g_cellsAttachment, &g_cellsTexture)) &&
+            (g_range.id || MakeRange(kRangeSize, "ei-shadow-range", &g_range, &g_rangeAttachment, &g_rangeTexture));
         if (!ok) {
             f.shadow.on = false;
             g_info.made = false;
@@ -1205,21 +1154,19 @@ void DrawShadowMap(Frame& f) {
             g_casterDraws.Sort(0, g_casterDraws.Count());
             if (g_casterDraws.Upload()) g_casterDraws.Draw(0, g_casterDraws.Count());
             if (TerrainCasterCount() != 0) {
-                Matrix4 light = g_fit.light;
-                sg_range vr{&light, sizeof(light)};
-                const float fs[4] = {g_fit.d.x, g_fit.d.y, g_fit.d.z, 0.0f};
+                const shadow_terrain_vs_params_t vs{g_fit.light};
+                const shadow_terrain_fs_params_t fs{{g_fit.d.x, g_fit.d.y, g_fit.d.z, 0.0f}};
                 sg_apply_pipeline(g_terrainCasterPipeline);
-                sg_apply_uniforms(0, &vr);
-                sg_range fr{fs, sizeof(fs)};
-                sg_apply_uniforms(1, &fr);
+                sg_apply_uniforms(UB_shadow_terrain_vs_params, SG_RANGE(vs));
+                sg_apply_uniforms(UB_shadow_terrain_fs_params, SG_RANGE(fs));
                 int draws = DrawTerrainCasters(g_terrainCasterPipeline);
                 g_stats.shadowDraws += static_cast<std::uint64_t>(draws);
                 g_info.terrainCasters = draws;
             }
             sg_end_pass();
             RangePass(g_reducePipeline, g_cellsAttachment, g_mapTexture, nullptr, "ei-shadow-cells");
-            const int around[4] = {g_cellsAround, kRangeSize - 1, 0, 0};
-            RangePass(g_dilatePipeline, g_rangeAttachment, g_cellsTexture, around, "ei-shadow-range");
+            const shadow_dilate_params_t around{{g_cellsAround, kRangeSize - 1, 0, 0}};
+            RangePass(g_dilatePipeline, g_rangeAttachment, g_cellsTexture, &around, "ei-shadow-range");
             g_info.casters = static_cast<int>(counted.size());
             // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
             std::unordered_map<const void*, bool> handedOver;
@@ -1250,45 +1197,18 @@ void ShadowFrameEnd() {
 #endif
 }
 
-void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
-    if (receives && f.shadow.on) {
-        *params = f.shadow.params;
-    } else {
-        *params = ShadowParams{};
-    }
+const shadow_params_t& ShadowUniforms(const Frame& f, bool receives) {
+    static const shadow_params_t kNone{};
+    return receives && f.shadow.on ? f.shadow.params : kNone;
 }
 
-void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
+void BindShadowMap(sg_bindings& b) {
     bool on = g_mapTexture.id && g_rangeTexture.id && g_frame.shadow.on;
-    b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
-    b.samplers[samplerSlot] = ShadowCompareSampler();
+    b.views[VIEW_shadow_map] = on ? g_mapTexture : g_dummyTexture;
+    b.samplers[SMP_shadow_smp] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
-    b.views[viewSlot + 1] = on ? g_rangeTexture : g_rangeDummyTexture;
-    b.samplers[samplerSlot + 1] = RangeSampler();
-}
-
-void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
-    s.views[viewSlot].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[viewSlot].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[viewSlot].texture.sample_type = SG_IMAGESAMPLETYPE_DEPTH;
-    s.views[viewSlot].texture.hlsl_register_t_n = static_cast<std::uint8_t>(viewSlot);
-    s.samplers[samplerSlot].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[samplerSlot].sampler_type = SG_SAMPLERTYPE_COMPARISON;
-    s.samplers[samplerSlot].hlsl_register_s_n = static_cast<std::uint8_t>(samplerSlot);
-    s.texture_sampler_pairs[viewSlot].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[viewSlot].view_slot = static_cast<std::uint8_t>(viewSlot);
-    s.texture_sampler_pairs[viewSlot].sampler_slot = static_cast<std::uint8_t>(samplerSlot);
-    int rangeView = viewSlot + 1, rangeSampler = samplerSlot + 1;
-    s.views[rangeView].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[rangeView].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[rangeView].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[rangeView].texture.hlsl_register_t_n = static_cast<std::uint8_t>(rangeView);
-    s.samplers[rangeSampler].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[rangeSampler].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[rangeSampler].hlsl_register_s_n = static_cast<std::uint8_t>(rangeSampler);
-    s.texture_sampler_pairs[rangeView].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[rangeView].view_slot = static_cast<std::uint8_t>(rangeView);
-    s.texture_sampler_pairs[rangeView].sampler_slot = static_cast<std::uint8_t>(rangeSampler);
+    b.views[VIEW_shadow_range] = on ? g_rangeTexture : g_rangeDummyTexture;
+    b.samplers[SMP_shadow_linear] = RangeSampler();
 }
 
 void DestroyShadows() {
