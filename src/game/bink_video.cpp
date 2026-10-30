@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "platform/clock.h"
+#include "platform/video.h"
 #include "platform/window.h"
 #include "render/render.h"
 
@@ -25,41 +26,33 @@
 #include "options.h"
 #include "world.h"
 
+namespace video = platform::video;
+
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
-// Whether Bink (binkw32.dll) is loaded with game.exe's imports (src/standalone/image_imports.cpp). The x64 build
-// has none: its movies are skipped as when the movies option is off, the loading screen's does not open.
-bool BinkLoaded() { return gameapi::GetModuleHandleA("binkw32.dll") != nullptr; }
-
-// Movies play: the movies option is on and Bink is loaded.
-bool MoviesOn() { return options::g_options.video && BinkLoaded(); }
-
-// BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
-// Movies\ copy when there is one. Null without Bink.
-BinkHeader* OpenBink(const char* name) {
-    if (!BinkLoaded()) return nullptr;
-    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return gameapi::BinkOpen(modfolders::MovieFile(name).c_str(), 0);
-    return gameapi::BinkOpen(name, 0);
+// A movie opened with its sound when the sound option is on; with Rebirth's MoviesPatch the mod's Movies\ copy
+// when there is one.
+video::Movie* OpenMovie(const char* name) {
+    const bool sound = options::g_options.audio != 0;
+    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return video::Open(modfolders::MovieFile(name).c_str(), sound);
+    return video::Open(name, sound);
 }
 
-// The type of the CPU copy of a frame the new renderer gets.
-constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
-
-// The loading screen's movie: where it is drawn on the screen and its Bink handle (null until it is opened).
+// The loading screen's movie: where it is drawn on the screen and the movie (null until it is opened).
 RECT g_loadingScreen = /*007C5520*/ {};
-BinkHeader* g_loadingBink = /*007C5550*/ {nullptr};
+video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 
 // Cleared while a timed movie plays.
 void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
 
-// The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
-void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
-    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
+// The decoded frame as 32-bit R, G, B, X pixels, for the new renderer.
+void CopyFrame(const video::Movie* movie, std::vector<std::uint8_t>* frame) {
+    int width = video::Width(movie), height = video::Height(movie);
     frame->resize(static_cast<std::size_t>(width) * height * 4);
-    gameapi::BinkCopyToBuffer(bink, frame->data(), width * 4, height, 0, 0, kBinkSurface32R);
+    video::CopyFrame(movie, frame->data(), width * 4);
 }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
@@ -70,23 +63,24 @@ void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 
+// The movie's last frame has been decoded.
+bool Ended(const video::Movie* movie) { return video::DecodedFrameNumber(movie) >= video::FrameCount(movie); }
+
 } // namespace
 
 unsigned BinkVideo::Frame() {
     if (!options::g_options.video) return 0;    // movies off
-    BinkHeader* binkHandle = this->bink;
-    if (!binkHandle) return 0;
-    if (gameapi::BinkWait(binkHandle) == 0) {
-        gameapi::BinkDoFrame(binkHandle);
-        // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X type).
+    if (!movie) return 0;
+    if (!video::Waiting(movie)) {
+        video::DecodeFrame(movie);
+        // The new renderer gets the frame from a CPU buffer (32-bit R, G, B, X).
         static std::vector<std::uint8_t> frame;
-        CopyFrame(binkHandle, &frame);
-        render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
-        gameapi::BinkNextFrame(binkHandle);
+        CopyFrame(movie, &frame);
+        render::MovieFrame(this, frame.data(), video::Width(movie), video::Height(movie));
+        video::Advance(movie);
     }
     render::MovieBlit(this, ToRender(to));
-    const BinkHeader* header = this->bink;
-    return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
+    return Ended(movie) ? 0u : 1u;
 }
 
 // --- The movie players outside the frame -----------------------------------
@@ -96,20 +90,19 @@ unsigned BinkVideo::Frame() {
 // Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
                bool loadingStep) {
-    if (!MoviesOn()) return true;
+    if (!options::g_options.video) return true;
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
-    if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
-    BinkHeader* bink = OpenBink(file);
-    if (!bink) {
+    video::Movie* movie = OpenMovie(file);
+    if (!movie) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return true;
     }
-    gameapi::BinkSetVolume(bink, options::g_options.audioStreaming * 0x7FF6 / 100);
+    video::SetVolume(movie, options::g_options.audioStreaming * 0x7FF6 / 100);
     g_cursor.ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
-    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
+    int width = video::Width(movie), height = video::Height(movie);
     RECT screen;
     gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
@@ -148,25 +141,25 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
             continue;
         }
         DWORD now = platform::Milliseconds();
-        if (static_cast<int>(bink->lastFrame) >= static_cast<int>(bink->frames)) {
+        if (Ended(movie)) {
             if (frameTime == 0 || now - start >= frameTime) break;
             continue;
         }
         if (frameTime == 0) {
-            if (gameapi::BinkWait(bink) != 0) continue;
+            if (video::Waiting(movie)) continue;
         } else if (now - start < frameTime) {
             continue;
         }
-        gameapi::BinkDoFrame(bink);
-        CopyFrame(bink, &frame);
+        video::DecodeFrame(movie);
+        CopyFrame(movie, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
         if (clearScreen) render::Fill(ToRender(screen), 0);
         render::MovieBlit(&g_movieKey, ToRender(to));
         PresentMovieFrame();
-        if (bink->lastFrame != bink->frames) gameapi::BinkNextFrame(bink);
+        if (!Ended(movie)) video::Advance(movie);
         start = now;
     }
-    gameapi::BinkClose(bink);
+    video::Close(movie);
     SetQuitAllowed(1);
     g_cursor.ShowImage(1);
     return !escaped;
@@ -178,39 +171,35 @@ void ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
     g_cursor.ShowImage(0);
-    if (!g_loadingBink) {
-        if (!BinkLoaded()) return;
+    if (!g_loadingMovie) {
         std::string path = DataFolderText();
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
-        g_loadingBink = OpenBink(path.c_str());
-        if (!g_loadingBink) {
+        g_loadingMovie = OpenMovie(path.c_str());
+        if (!g_loadingMovie) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
         }
         g_loadingScreen = g_sceneRenderer.device->screen;
     }
-    BinkHeader* bink = g_loadingBink;
-    int last = static_cast<int>(bink->frames) - 1;
+    video::Movie* movie = g_loadingMovie;
+    int last = static_cast<int>(video::FrameCount(movie)) - 1;
     if (last < progress) progress = last;
     unsigned target = static_cast<unsigned>(progress) + 1;
     static std::vector<std::uint8_t> frame;
     bool decoded = false;
     for (;;) {
-        unsigned current = bink->frameNum;
+        unsigned current = video::NextFrameNumber(movie);
         if (current >= target && current != 1) break;
-        gameapi::BinkDoFrame(bink);
-        CopyFrame(bink, &frame);
+        video::DecodeFrame(movie);
+        CopyFrame(movie, &frame);
         decoded = true;
-        bink = g_loadingBink;
-        gameapi::BinkGoto(bink, bink->frameNum + 1, 0);
-        bink = g_loadingBink;
-        if (bink->frames == bink->lastFrame) break;
+        video::GoToFrame(movie, video::NextFrameNumber(movie) + 1);
+        if (Ended(movie)) break;
     }
     g_cursor.TakeLock();
-    bink = g_loadingBink;
     const void* key = &g_loadingScreen;   // the loading movie in the new renderer
-    if (decoded) render::MovieFrame(key, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
+    if (decoded) render::MovieFrame(key, frame.data(), video::Width(movie), video::Height(movie));
     render::MovieBlit(key, ToRender(g_loadingScreen));
     PresentMovieFrame();
     g_cursor.ReleaseLock();
@@ -218,22 +207,22 @@ void ShowLoadingMovie(int progress) {
 
 // --- Opening a movie for the frame's player ----------------------------------------------
 
-// The titles' Create starts Titles.bik with it. The movie open before is closed (its handle stays in `bink` when
-// movies are off), the loading screen steps when asked, Bink gets the Miles driver when movie sound is on; the
-// screen rectangle: movies mode 1 centred at the movie's size, otherwise stretched to the screen's width with
-// the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
+// The titles' Create starts Titles.bik with it. The movie open before is closed, the loading screen steps when
+// asked, the movie's sound plays when the sound option is on; the screen rectangle: movies mode 1 centred at the
+// movie's size, otherwise stretched to the screen's width with the height trunc(height / width * screen width),
+// centred vertically (divisions by 2 round towards zero).
 char BinkVideo::Open(const char* name, char loadingStep) {
-    if (bink) gameapi::BinkClose(bink);
-    if (!MoviesOn()) return 0;
+    video::Close(movie);
+    movie = nullptr;
+    if (!options::g_options.video) return 0;
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
-    if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
-    bink = OpenBink(name);
-    if (!bink) {
+    movie = OpenMovie(name);
+    if (!movie) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
         return 0;
     }
     g_cursor.ShowImage(0);
-    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
+    int width = video::Width(movie), height = video::Height(movie);
     RECT screen;
     gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
     if (options::g_options.video == 1) {
@@ -254,15 +243,15 @@ char BinkVideo::Open(const char* name, char loadingStep) {
 // --- Closing --------------------------------------------------------------------------------
 
 void CloseLoadingMovie() {
-    if (BinkLoaded()) gameapi::BinkClose(g_loadingBink);
-    g_loadingBink = nullptr;
+    video::Close(g_loadingMovie);
+    g_loadingMovie = nullptr;
     g_cursor.ShowImage(1);
 }
 
 void BinkVideo::Close() {
-    if (bink) {
-        gameapi::BinkClose(bink);
-        bink = nullptr;
+    if (movie) {
+        video::Close(movie);
+        movie = nullptr;
     }
     g_cursor.ShowImage(1);
 }

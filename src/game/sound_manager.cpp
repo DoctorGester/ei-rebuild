@@ -8,13 +8,14 @@
 // basic operations on floats and small integers in the original's order, which the original ran on the main
 // thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
 // operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
-// (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach Miles.
+// (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
 #include "game_strings.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
+#include "platform/audio.h"
 #include "platform/clock.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
@@ -22,7 +23,6 @@
 #include "lib/thread.h"
 #include "lib/vecmath.h"
 #include "mod_folders.h"
-#include "options.h"
 #include "random.h"
 #include "sound.h"
 
@@ -49,8 +49,8 @@ template <std::floating_point T> float FloatBits(T) = delete;
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
-constexpr float kMilesScale = 0.0127f;
-static_assert(std::bit_cast<std::uint32_t>(kMilesScale) == 0x3C5013A9u);
+constexpr float kOutputScale = 0.0127f;   // 0..100 times 0..100 to the output's 0..127
+static_assert(std::bit_cast<std::uint32_t>(kOutputScale) == 0x3C5013A9u);
 constexpr float kLevelMax = 127.0f;
 constexpr float kPercent = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
@@ -139,8 +139,6 @@ void MoveSequenceSound(SoundManager* m, int handle, const float* position, float
     rec->farDistance = farDist;
 }
 
-constexpr std::int32_t kImaAdpcm = 0x11;
-
 constexpr int kVoiceCount = 15;
 constexpr int kNoVoice = -1;
 
@@ -165,31 +163,29 @@ int DeferLooping(SoundManager* m, std::string_view name, int priority, int volum
 
 // The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
 int StartLoaded(SoundManager* m, SoundSlot* slot, int loop) {
-    if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
+    if (loop != 0) platform::audio::SetLoopCount(slot->voice, 0);
     m->ApplyVolumePan(slot);
-    gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
-    if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
+    platform::audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
+    if (m->reverbOn != 0) platform::audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        gameapi::AIL_set_sample_ms_position(slot->sample, g_clientRandom.Next() % range);
+        platform::audio::SetPositionMs(slot->voice, g_clientRandom.Next() % range);
     }
-    gameapi::AIL_start_sample(slot->sample);
+    platform::audio::Start(slot->voice);
     return slot->handle;
 }
 
-void* DecompressCallback() { return reinterpret_cast<void*>(SoundDecompressCallback); }
-const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(SoundManager* m, SoundSlot* slot, const std::string& name, std::list<WaveRecord>::iterator node) {
+void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator node) {
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
     record.lastUsed = platform::TickCount();
     record.uses = record.uses + 1;
-    slot->length = m->WaveLength(record.data);
-    gameapi::AIL_set_named_sample_file(slot->sample, name.c_str(), record.data, record.size, 0);
+    slot->length = m->WaveLength(record.data.data());
+    platform::audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
@@ -204,7 +200,6 @@ void Evict(SoundManager* m, int incoming, std::uint32_t now) {
             after = node;
             continue;
         }
-        gameapi::AIL_mem_free_lock(record.data);
         m->cacheBytes -= record.size;
         m->cache.erase(record.name);
         list.erase(node);
@@ -215,7 +210,7 @@ void Evict(SoundManager* m, int incoming, std::uint32_t now) {
 
 // --- Shared pieces ------------------------------------------------------------------------------
 
-// The Miles volume (0..127) of `level` (0..100, a 2D voice's base volume or a 3D voice's distance level), inlined in
+// The output's volume (0..127) of `level` (0..100, a 2D voice's base volume or a 3D voice's distance level), inlined in
 // every volume setter. A NaN camera height keeps the full level.
 int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     float v = static_cast<float>(level);
@@ -226,23 +221,23 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
     v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
-    v = v * kMilesScale;
+    v = v * kOutputScale;
     return ClampLevel(lib::RoundEven(v));
 }
 
-// Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
+// Hands the slot's volume and pan to the output; the pan is mirrored unless panDirect.
 void SoundManager::ApplyVolumePan(SoundSlot* slot) const {
     int direct = panDirect;
-    gameapi::AIL_set_sample_volume(slot->sample, slot->volume);
+    platform::audio::SetVolume(slot->voice, slot->volume);
     int p = slot->pan;
     if (direct == 0) p = -p;
-    gameapi::AIL_set_sample_pan(slot->sample, (p + 100) * 0x7F / 200);
+    platform::audio::SetPan(slot->voice, (p + 100) * 0x7F / 200);
 }
 
-// Ends a voice: releases its cached wave, stops the sample and frees the slot.
+// Ends a voice: releases its cached wave, stops the voice and frees the slot.
 void SoundManager::EndSlot(SoundSlot* slot) {
     --CacheEntry(cache, slot)->uses;
-    gameapi::AIL_end_sample(slot->sample);
+    platform::audio::End(slot->voice);
     slot->playing = 0;
     slot->finished = 0;
     slot->handle = -1;
@@ -333,7 +328,7 @@ void SoundManager::SetMusicVolume(int volume) {
     if (enabled == 0) return;
     musicFader.volume = v;
     musicFader.Recalc();
-    gameapi::AIL_set_sample_volume(streamSample, musicFader.level);
+    if (streamSample != nullptr) platform::audio::SetStreamVolume(streamSample, musicFader.level);
     if (v == 0) StopStream(4);
 }
 
@@ -348,15 +343,15 @@ void SoundManager::SetReverb(float room, float level, float time) {
 void SoundManager::PauseAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) gameapi::AIL_stop_sample(slots[i].sample);
-    if (enabled != 0 && streamSample != nullptr) gameapi::AIL_stop_sample(streamSample);
+            if (slots[i].playing != 0) platform::audio::Stop(slots[i].voice);
+    if (enabled != 0 && streamSample != nullptr) platform::audio::StopStream(streamSample);
 }
 
 void SoundManager::ResumeAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) gameapi::AIL_resume_sample(slots[i].sample);
-    if (enabled != 0 && streamSample != nullptr) gameapi::AIL_resume_sample(streamSample);
+            if (slots[i].playing != 0) platform::audio::Resume(slots[i].voice);
+    if (enabled != 0 && streamSample != nullptr) platform::audio::ResumeStream(streamSample);
 }
 
 // --- Per-handle controls --------------------------------------------------------------------------
@@ -618,7 +613,7 @@ void SoundManager::Tick() {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
         --CacheEntry(cache, slot)->uses;
-        gameapi::AIL_end_sample(slot->sample);
+        platform::audio::End(slot->voice);
         slot->handle = -1;
         slot->playing = 0;
         slot->finished = 0;
@@ -652,18 +647,18 @@ void SoundManager::Tick() {
         slot->position = rec->position;
         slot->nearDistance = rec->nearDistance;
         slot->farDistance = rec->farDistance;
-        gameapi::AIL_init_sample(slot->sample);
-        // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
+        platform::audio::ResetVoice(slot->voice);
+        // A flat sound's level is recomputed from its saved output level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
         if (LoadSample(slot, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;
-            gameapi::AIL_set_sample_loop_count(slot->sample, 0);
+            platform::audio::SetLoopCount(slot->voice, 0);
             ApplyVolumePan(slot);
-            gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
-            if (reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, reverb[0], reverb[1], reverb[2]);
-            gameapi::AIL_set_sample_position(slot->sample, rec->samplePosition);
-            gameapi::AIL_start_sample(slot->sample);
+            platform::audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
+            if (reverbOn != 0) platform::audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
+            platform::audio::SetPosition(slot->voice, rec->samplePosition);
+            platform::audio::Start(slot->voice);
         }
         if (rec != nullptr) FreeDeferred(rec);
     }
@@ -753,11 +748,11 @@ void SoundManager::FadeInStream() {
 // Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
 // 4 at the current buffer position; anything else is ignored. Repeating the playing file only
-// cancels a fade out. Returns 0 only when the stream has no codec.
+// cancels a fade out. Returns 0 only when the output has no stream.
 int SoundManager::RequestStream(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
-    if (streamCodec == nullptr) return 0;
+    if (streamSample == nullptr) return 0;
     CRITICAL_SECTION* lock = &streamLock;
     gameapi::EnterCriticalSection(lock);
     int m = 4;
@@ -852,7 +847,7 @@ void SoundManager::StopStream(int mode) {
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
-                streamCodec->close(streamFile);
+                platform::audio::CloseMp3(streamFile);
                 streamFile = nullptr;
             }
             streamState = 0;
@@ -890,27 +885,10 @@ void SoundManager::DeleteDeferred() {
     deferred.clear();
 }
 
-// AILSOUNDINFO, filled by AIL_WAV_info.
-struct miles::SoundInfo {
-    std::int32_t format;        // 0x11: IMA ADPCM
-    const void* data;
-    std::uint32_t dataLength;
-    std::uint32_t rate;
-    std::int32_t bits;
-    std::int32_t channels;
-    std::uint32_t samples;
-    std::uint32_t blockSize;
-    const void* initial;
-};
-#if defined(_M_IX86)
-static_assert(sizeof(miles::SoundInfo) == 0x24);   // Miles' 32-bit layout
-#endif
-
 float SoundManager::WaveLength(const void* data) {
-    miles::SoundInfo info;
-    gameapi::AIL_WAV_info(data, &info);
+    const platform::audio::WaveInfo info = platform::audio::ReadWaveInfo(data);
     std::uint32_t samples;
-    if (info.format == kImaAdpcm) {
+    if (info.format == platform::audio::kImaAdpcm) {
         samples = info.samples;
     } else {
         std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
@@ -997,7 +975,7 @@ int SoundManager::AllocateVoice(int priority) {
         rec->nearDistance = slot->nearDistance;
         rec->farDistance = slot->farDistance;
         rec->handle = slot->handle;
-        rec->samplePosition = gameapi::AIL_sample_position(slot->sample);
+        rec->samplePosition = platform::audio::Position(slot->voice);
         SetDeferred(deferred, rec->handle, rec);
     }
     if (slot->playing != 0) EndSlot(slot);
@@ -1019,7 +997,7 @@ int SoundManager::Play2D(std::string_view name, int priority, int volume, int pa
         return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
     }
     SoundSlot* slot = &slots[index];
-    gameapi::AIL_init_sample(slot->sample);
+    platform::audio::ResetVoice(slot->voice);
     slot->looping = loop;
     slot->baseVolume = volume;
     slot->pan = pan;
@@ -1057,7 +1035,7 @@ int SoundManager::Play3D(std::string_view name, int priority, const float* posit
         return rec->handle;
     }
     SoundSlot* slot = &slots[index];
-    gameapi::AIL_init_sample(slot->sample);
+    platform::audio::ResetVoice(slot->voice);
     slot->looping = loop;
     lib::LoadBytes(slot->position, position);
     slot->nearDistance = nearDist;
@@ -1073,15 +1051,15 @@ int SoundManager::Play3D(std::string_view name, int priority, const float* posit
 }
 
 // Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
-// voice without a new sample file), or the file from the first archive that has it, decompressed
-// from MP3 when `compressed` (kept at the cache's old end), else copied into Miles memory after
+// voice without a new wave), or the file from the first archive that has it, decoded
+// from MP3 when `compressed` (kept at the cache's old end), else copied after
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
-// Returns 0 when no archive has the file or the decompression fails.
+// Returns 0 when no archive has the file or the decoding fails.
 int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compressed) {
     std::string key(name);    // freed on each return
     auto cached = cache.find(key);
     if (cached != cache.end()) {
-        if (compressed == 0) UseCached(this, slot, key, cached->second);
+        if (compressed == 0) UseCached(this, slot, cached->second);
     } else {
         MappedResource* source = nullptr;
         void* data = nullptr;
@@ -1096,38 +1074,34 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
         }
         int size = static_cast<int>(fileSize);
         std::uint32_t now = platform::TickCount();
+        WaveRecord record;
         if (compressed != 0) {
-            void* decoded = nullptr;
-            int decodedSize = 0;
-            int ok = gameapi::AIL_decompress_ASI(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
+            const bool ok = platform::audio::DecodeMp3File(data, fileSize, &record.data);
             source->CloseFile(data);
-            if (ok == 0) return 0;
-            size = decodedSize;
-            data = decoded;
+            if (!ok) return 0;
+            size = static_cast<int>(record.data.size());
         } else {
             Evict(this, size, now);
+            const auto* bytes = static_cast<const std::uint8_t*>(data);
+            record.data.assign(bytes, bytes + fileSize);
+            source->CloseFile(data);
         }
-        WaveRecord record;
         record.name = key;
         record.lastUsed = now;
         record.size = size;
         record.uses = 1;
         cacheBytes += size;
+        std::list<WaveRecord>::iterator node;
         if (compressed == 0) {
-            void* memory = gameapi::AIL_mem_alloc_lock(size);
-            record.data = memory;
-            std::memcpy(memory, data, static_cast<std::size_t>(size));
-            source->CloseFile(data);
-            cacheList.push_front(record);
-            cache[key] = cacheList.begin();
-            gameapi::AIL_set_named_sample_file(slot->sample, key.c_str(), memory, size, 0);
+            cacheList.push_front(std::move(record));
+            node = cacheList.begin();
         } else {
-            record.data = data;
-            cacheList.push_back(record);
-            cache[key] = std::prev(cacheList.end());
-            gameapi::AIL_set_sample_file(slot->sample, data, size);
+            cacheList.push_back(std::move(record));
+            node = std::prev(cacheList.end());
         }
-        slot->length = WaveLength(record.data);
+        cache[key] = node;
+        platform::audio::SetWave(slot->voice, node->data.data(), node->data.size());
+        slot->length = WaveLength(node->data.data());
     }
     slot->name = key;
     slot->playing = 1;
@@ -1138,17 +1112,8 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
 
 void SoundManager::StreamNotify() {}
 
-int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
-    if (state == 1) {
-        set("Requested bit width", 16);
-        set("Requested sample rate", 44100);
-        set("Requested # of channels", 2);
-    }
-    return 1;
-}
-
 // --- The engine object's virtuals, the wave sources and sound folder, the music stream's file reading,
-// the lifetime and the Miles setup Open / Close / Reset.
+// the lifetime and the output's setup Open / Close / Reset.
 
 namespace {
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
@@ -1164,35 +1129,16 @@ void ConstructFader(SoundFader& fader) {
     fader.SetHold(0);
 }
 
-constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
-constexpr int kWaveMapper = -1;
 constexpr unsigned kMaxRate = 44100;
 constexpr int kStreamThreadPriority = 15;   // THREAD_PRIORITY_TIME_CRITICAL
-// Miles preferences (AIL_set_preference).
-constexpr unsigned kPrefReverb = 0x28;
-constexpr int kReverbBufferBytes = 0x40000;
-constexpr unsigned kPrefMixerChannels = 1;
-constexpr int kMixerChannels = 0x12;
-constexpr unsigned kPrefUseWaveOut = 0xF;
 
 constexpr int kStreamRate = 44100;
-constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
-constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
+constexpr int kStreamChannels = 2;
+constexpr int kStreamBits = 16;
 
 // The stream thread's (StreamThread).
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
-
-// PCMWAVEFORMAT, as Open fills it.
-struct PcmFormat {
-    std::uint16_t formatTag;
-    std::uint16_t channels;
-    std::uint32_t samplesPerSecond;
-    std::uint32_t bytesPerSecond;
-    std::uint16_t blockAlign;
-    std::uint16_t bitsPerSample;
-};
-static_assert(sizeof(PcmFormat) == 0x10);
 
 // The thread waited for and its handle closed.
 void EndThread(HANDLE& thread) {
@@ -1204,7 +1150,6 @@ void EndThread(HANDLE& thread) {
 constexpr std::uint32_t kSwitchHoldMs = 4000;
 constexpr int kNoLoop = 0x7FFFFFFF;
 constexpr int kNeverSwitch = -1;
-constexpr int kSeekKeep = -1;          // the decoder's "from where the file is"
 constexpr int kFullLevel = 0x7F;
 constexpr int kCentrePan = 0x40;
 constexpr std::uint8_t kSilence8 = 0x7F;
@@ -1214,14 +1159,9 @@ constexpr int kSwitchAfterFade = 2;
 const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
-void CodecSeek(SoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
-// The codec's attribute `name` (one of its handles) of the open file.
-int CodecAttribute(SoundManager* m, void* AsiStage::*name) {
-    return m->streamCodec->attribute(m->streamFile, m->streamCodec->*name);
-}
 void CodecClose(SoundManager* m) {
     if (m->streamFile == nullptr) return;
-    m->streamCodec->close(m->streamFile);
+    platform::audio::CloseMp3(m->streamFile);
     m->streamFile = nullptr;
 }
 void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
@@ -1229,7 +1169,7 @@ void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
 }
 // `bytes` of the file; what it does not give is silence.
 void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
-    int got = m->streamCodec->process(m->streamFile, to, bytes);
+    int got = platform::audio::DecodeMp3(m->streamFile, to, bytes);
     if (got < bytes) Silence(m, to + got, bytes - got);
 }
 
@@ -1240,11 +1180,12 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
-        m->streamReader.OpenFile(path, &m->streamFileSize) == 0) {
+    CodecClose(m);
+    if (str::Compare(m->nextName, game::kEmptyText) != 0 && m->streamReader.OpenFile(path, &m->streamFileSize) != 0)
+        m->streamFile = platform::audio::OpenMp3(SoundStreamRead, m);
+    if (m->streamFile == nullptr) {
         Silence(m, to, bytes);
         m->streamState = 0;
-        CodecClose(m);
         gameapi::EnterCriticalSection(&m->nameLock);
         m->streamName = game::kEmptyText;
         gameapi::LeaveCriticalSection(&m->nameLock);
@@ -1258,30 +1199,17 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
     m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
-    CodecClose(m);
-    m->streamFile = m->streamCodec->open(m, reinterpret_cast<void*>(SoundStreamRead), 0);
-    int rate = CodecAttribute(m, &AsiStage::outputSampleRate);
-    int channels = CodecAttribute(m, &AsiStage::outputChannels);
-    int bits = CodecAttribute(m, &AsiStage::outputBits);
-    // DIG_F_16BITS_MASK with DIG_PCM_SIGN, or unsigned 8 bits; DIG_F_STEREO_MASK.
-    int format = 0;
-    int flags = 0;
-    if (bits == 16) {
-        format = 1;
-        flags = kSignedPcm;
-        m->streamSilence = 0;
-    } else {
-        m->streamSilence = kSilence8;
-    }
-    if (channels == 2) format |= 2;
-    gameapi::AIL_set_sample_type(m->streamSample, format, flags);
-    gameapi::AIL_set_sample_playback_rate(m->streamSample, rate);
-    gameapi::AIL_set_sample_volume(m->streamSample, kFullLevel);
-    gameapi::AIL_set_sample_pan(m->streamSample, kCentrePan);
+    const unsigned rate = platform::audio::Mp3Rate(m->streamFile);
+    const int channels = platform::audio::Mp3Channels(m->streamFile);
+    const int bits = platform::audio::Mp3Bits(m->streamFile);
+    // 16 bits are signed, 8 bits unsigned (silence at 0x7F).
+    m->streamSilence = bits == 16 ? 0 : kSilence8;
+    platform::audio::SetStreamFormat(m->streamSample, rate, channels, bits);
+    platform::audio::SetStreamVolume(m->streamSample, kFullLevel);
+    platform::audio::SetStreamPan(m->streamSample, kCentrePan);
     m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
-    CodecSeek(m, kSeekKeep);
     ReadOrSilence(m, to, bytes);
 }
 
@@ -1363,7 +1291,8 @@ std::string SoundManager::CurrentStreamName() {
     return name;
 }
 
-int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int offset) {
+int SoundStreamRead(void* user, char* buffer, int size, int offset) {
+    auto* manager = static_cast<SoundManager*>(user);
     if (offset >= 0) {
         manager->streamReader.Seek(offset, 0);
         manager->streamReadPosition = offset;
@@ -1377,12 +1306,6 @@ int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
-// Whether Miles (mss32.dll) is loaded with game.exe's imports (src/standalone/image_imports.cpp). The x64 build
-// has none: the manager does not start Miles and never opens, so every sound call returns at its `enabled` test.
-namespace {
-bool MilesLoaded() { return gameapi::GetModuleHandleA("mss32.dll") != nullptr; }
-} // namespace
-
 // The stream reader, the strings and the archive are members the compiler constructs before the body.
 SoundManager::SoundManager() {
     musicFader.volume = kFullVolume;
@@ -1390,18 +1313,13 @@ SoundManager::SoundManager() {
     musicFader.SetHold(0);
     gameapi::InitializeCriticalSection(&nameLock);
     gameapi::InitializeCriticalSection(&streamLock);
-    ConstructFader(midiFader);
-    gameapi::InitializeCriticalSection(&midiLock);
-    if (MilesLoaded()) gameapi::AIL_startup();
     Reset();
 }
 
 // The archive, the strings and the stream reader are destroyed after the body.
 SoundManager::~SoundManager() {
     Close();
-    if (MilesLoaded()) gameapi::AIL_shutdown();
     cacheList.clear();
-    gameapi::DeleteCriticalSection(&midiLock);
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
     waveSources.clear();
@@ -1410,12 +1328,8 @@ SoundManager::~SoundManager() {
 void SoundManager::ResetStream() {
     streamState = 0;
     streamSample = nullptr;
-    streamDecoder = nullptr;
     streamFile = nullptr;
-    streamCodec = nullptr;
-    streamBuffers[2] = nullptr;
-    streamBuffers[1] = nullptr;
-    streamBuffers[0] = nullptr;
+    for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.clear();
     streamBufferSize = -1;
     streamSpareBuffer = -1;
     streamHalfBuffer[1] = -1;
@@ -1436,33 +1350,22 @@ void SoundManager::ResetStream() {
 // --- Open, Close, Reset ------------------------------------------------------------------
 
 int SoundManager::CloseStream() {
-    if (streamFile != nullptr && streamCodec != nullptr) streamCodec->close(streamFile);
-    if (streamSample != nullptr) gameapi::AIL_release_sample_handle(streamSample);
-    if (streamDecoder != nullptr) gameapi::AIL_release_sample_handle(streamDecoder);
-    for (void* buffer : streamBuffers)
-        if (buffer != nullptr) gameapi::AIL_mem_free_lock(buffer);
+    if (streamFile != nullptr) platform::audio::CloseMp3(streamFile);
+    if (streamSample != nullptr) platform::audio::DestroyStream(streamSample);
     ResetStream();
     return 0;
 }
 
-int SoundManager::OpenStream(miles::DigitalDriver* driver) {
-    void* codec = gameapi::RIB_find_file_provider("ASI codec", "Input file types", ".mp3");
-    streamSample = gameapi::AIL_allocate_sample_handle(driver);
-    streamDecoder = gameapi::AIL_allocate_sample_handle(driver);
-    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return CloseStream();
+int SoundManager::OpenStream() {
+    streamSample = platform::audio::CreateStream();
+    if (streamSample == nullptr) return CloseStream();
 
-    streamBufferSize = gameapi::AIL_minimum_sample_buffer_size(driver, kStreamRate, kStereo16) * 2;
-    for (void*& buffer : streamBuffers) buffer = gameapi::AIL_mem_alloc_lock(streamBufferSize);
-    gameapi::AIL_init_sample(streamSample);
-    gameapi::AIL_set_sample_type(streamSample, kStereo16, kSignedPcm);
-    gameapi::AIL_set_sample_playback_rate(streamSample, kStreamRate);
-    gameapi::AIL_set_sample_volume(streamSample, 0);
-    gameapi::AIL_set_sample_pan(streamSample, 0);
-    for (void* buffer : streamBuffers) std::memset(buffer, 0, static_cast<std::uint32_t>(streamBufferSize));
-    gameapi::AIL_set_sample_processor(streamDecoder, 0, codec);
-    gameapi::AIL_init_sample(streamDecoder);
-    // (The game also closes the stream when this address is null, which it cannot be.)
-    streamCodec = &streamDecoder->codec;
+    streamBufferSize = platform::audio::MinimumHalfBytes(kStreamRate, kStreamChannels, kStreamBits) * 2;
+    for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.assign(static_cast<std::size_t>(streamBufferSize), 0);
+    platform::audio::ResetStream(streamSample);
+    platform::audio::SetStreamFormat(streamSample, kStreamRate, kStreamChannels, kStreamBits);
+    platform::audio::SetStreamVolume(streamSample, 0);
+    platform::audio::SetStreamPan(streamSample, 0);
     streamHalfBuffer[0] = 0;
     streamHalfBuffer[1] = 1;
     streamSpareBuffer = 2;
@@ -1483,9 +1386,9 @@ void SoundManager::StreamThread() {
 
         gameapi::EnterCriticalSection(&streamLock);
         musicFader.Update();
-        gameapi::AIL_set_sample_volume(streamSample, musicFader.level);
+        platform::audio::SetStreamVolume(streamSample, musicFader.level);
         for (;;) {
-            int half = gameapi::AIL_sample_buffer_ready(streamSample);
+            int half = platform::audio::ReadyHalf(streamSample);
             if (half == kNoHalfReady) break;
             // The spare buffer goes into that half; the one it played becomes the spare.
             int buffer = streamSpareBuffer;
@@ -1493,7 +1396,7 @@ void SoundManager::StreamThread() {
             streamSpareBuffer = playing;
             playing = buffer;
             streamPosition += streamBufferFrames;
-            gameapi::AIL_load_sample_buffer(streamSample, half, streamBuffers[buffer], streamBufferSize);
+            platform::audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
             ReadStreamVanilla();
         }
         gameapi::LeaveCriticalSection(&streamLock);
@@ -1506,23 +1409,13 @@ unsigned __stdcall StreamThreadEntry(void* manager) {
     return 0;
 }
 
-// kDeviceCallback: DirectSoundEnumerateA's callback in Open. The device's GUID pointer is appended to the
-// aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
-BOOL CALLBACK AddSoundDevice(LPGUID guid, LPCSTR, LPCSTR, LPVOID devices) {
-    auto* list = static_cast<std::vector<int>*>(devices);
-    const int at = lib::Count(*list);
-    list->resize(at + 1);
-    (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
-    return 1;
-}
-
 // --- The stream's reader -----------------------------------------------------------------
 
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
 void SoundManager::ReadStreamVanilla() {
-    auto* const buffer = static_cast<std::uint8_t*>(streamBuffers[streamSpareBuffer]);
+    std::uint8_t* const buffer = streamBuffers[streamSpareBuffer].data();
     const std::int32_t state = streamState;
     if (state == 0) {
         Silence(this, buffer, streamBufferSize);
@@ -1552,14 +1445,14 @@ void SoundManager::ReadStreamVanilla() {
         restBytes = streamBufferSize;
         again = false;
     } else {
-        int got = streamCodec->process(streamFile, buffer, currentBytes);
+        int got = platform::audio::DecodeMp3(streamFile, buffer, currentBytes);
         if (got < currentBytes) {
             if (streamState == kStateSwitching && switchMode == kSwitchAtEnd) {
                 // The file ended: the next one from here.
                 currentBytes = got;
                 restBytes = streamBufferSize - got;
             } else {
-                CodecSeek(this, 0);
+                platform::audio::RewindMp3(streamFile);
                 streamPosition = 0;
                 ReadOrSilence(this, buffer + got, currentBytes - got);
             }
@@ -1567,7 +1460,7 @@ void SoundManager::ReadStreamVanilla() {
     }
     if (restBytes == 0) return;
     if (again) {
-        CodecSeek(this, 0);
+        platform::audio::RewindMp3(streamFile);
         streamPosition = 0;
         ReadOrSilence(this, buffer + currentBytes, restBytes);
         return;
@@ -1575,44 +1468,22 @@ void SoundManager::ReadStreamVanilla() {
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
 
-// Miles calls it on its own thread when a voice's sample ends (registered in sound_manager.cpp). The voice
-// (the sample's user data 1) is marked finished; the game also reads user data 0 (the manager) and drops
-// it.
-void __stdcall SoundEndOfSample(miles::Sample* sample) {
-    gameapi::AIL_sample_user_data(sample, 0);
-    reinterpret_cast<SoundSlot*>(gameapi::AIL_sample_user_data(sample, 1))->finished = 1;
-}
+void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = 1; }
 
-int SoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
+int SoundManager::Open(void* window, int useReverb, unsigned rate) {
     Destroy();   // Close
-    if (!MilesLoaded()) {
-        game::DebugLog("No sound: Miles (mss32.dll) is not loaded.\n");
-        return 0;
-    }
-    const bool waveOut = options::g_options.audio == kWaveOutMode;
-    int device = waveOut ? kWaveMapper : 0;
-    if (deviceIndex >= 0) {
-        std::vector<int> devices;
-        if (gameapi::DirectSoundEnumerateA(&AddSoundDevice, &devices) == 0 && deviceIndex < std::ssize(devices))
-            device = devices[deviceIndex];
-    }
     reverbOn = useReverb;
-    if (useReverb != 0) gameapi::AIL_set_preference(kPrefReverb, kReverbBufferBytes);
     if (rate >= kMaxRate) rate = kMaxRate;
-    PcmFormat format{1, 2, rate, rate * 4, 4, 16};
-    gameapi::AIL_set_preference(kPrefMixerChannels, kMixerChannels);
-    if (waveOut) gameapi::AIL_set_preference(kPrefUseWaveOut, 1);
-    if (gameapi::AIL_waveOutOpen(&waveDriver, nullptr, device, &format) != 0) {
-        game::DebugLog(gameapi::AIL_last_error());
+    std::string error;
+    if (!platform::audio::OpenOutput(window, rate, useReverb != 0, &error)) {
+        game::DebugLog("%s\n", error.c_str());
         return 0;
     }
-    gameapi::AIL_set_DirectSound_HWND(waveDriver, window);
-    if (OpenStream(waveDriver) != 0)
+    if (OpenStream() != 0)
         streamThread = lib::StartThread(StreamThreadEntry, this, kStreamThreadPriority);
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);
     for (int i = 0; i < kVoiceCount; ++i) {
         SoundSlot& slot = slots[i];
-        slot.sample = nullptr;
         slot.volume = -1;
         slot.baseVolume = -1;
         slot.pan = -1;
@@ -1623,9 +1494,7 @@ int SoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned ra
         slot.finished = 0;
         slot.heightFade = 0;
         slot.handle = -1;
-        slot.sample = gameapi::AIL_allocate_sample_handle(waveDriver);
-        gameapi::AIL_set_sample_user_data(slot.sample, 0, reinterpret_cast<std::intptr_t>(this));
-        gameapi::AIL_set_sample_user_data(slot.sample, 1, reinterpret_cast<std::intptr_t>(&slot));
+        slot.voice = platform::audio::CreateVoice();
     }
     enabled = 1;
     return 1;
@@ -1636,29 +1505,18 @@ void SoundManager::Close() {
         threadsQuit = 1;
         EndThread(streamThread);
     }
-    if (midiThread != nullptr) {
-        threadsQuit = 1;
-        EndThread(midiThread);
-    }
+    CloseStream();
     if (slots != nullptr) {
         for (int i = 0; i < kVoiceCount; ++i) {
             if (slots[i].playing != 0) EndSlot(&slots[i]);
-            if (slots[i].sample != nullptr) gameapi::AIL_release_sample_handle(slots[i].sample);
+            if (slots[i].voice != nullptr) platform::audio::DestroyVoice(slots[i].voice);
         }
         slots.reset();
     }
     DeleteDeferred();
-    while (!cacheList.empty()) {
-        gameapi::AIL_mem_free_lock(cacheList.front().data);
-        cacheList.pop_front();
-    }
+    cacheList.clear();
     cache.clear();
-    if (midiSequence != nullptr) {
-        gameapi::AIL_end_sequence(midiSequence);
-        gameapi::AIL_release_sequence_handle(midiSequence);
-    }
-    if (waveDriver != nullptr) gameapi::AIL_waveOutClose(waveDriver);
-    if (midiDriver != nullptr) gameapi::AIL_midiOutClose(midiDriver);
+    if (enabled != 0) platform::audio::CloseOutput();
     ClearWaveSources();
     streamReader.Close();
     soundRegistry.Close();
@@ -1666,11 +1524,8 @@ void SoundManager::Close() {
 }
 
 void SoundManager::Reset() {
-    waveDriver = nullptr;
-    midiDriver = nullptr;
     ResetStream();
     streamThread = nullptr;
-    midiThread = nullptr;
     threadsQuit = 0;
     slots = nullptr;
     cacheBytes = 0;
@@ -1698,9 +1553,6 @@ void SoundManager::Reset() {
     }
     nextHandle = 0;
     emitterTick = 0;
-    midiSequence = nullptr;
-    midiState = 0;
-    ConstructFader(midiFader);
     speechVolume = kFullVolume;
     effectsVolume = kFullVolume;
     enabled = 0;

@@ -52,8 +52,8 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   GetModuleFileNameA(NULL) names ei-rebuild.exe (the
   message box title).
   Its static initialisation enters the game folder, keeps .rdata (with the import slots) and .data in its own storage
-  and resolves the imports of game.exe our code still calls through a slot (S18f, S22; since S18k mss32 and binkw32 from the working
-  directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
+  and resolves the imports of game.exe our code still calls through a slot (S18f, S22; from the working directory, the
+  game folder, when it has the DLL, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then main calls `StandaloneMain` (standalone_main.cpp): the start-up actions run (`RunStartupActions`: the Rebirth
   flags, WideScreen's resolution), the static initialisers and WinMain (`app::GameMain`, called by name: "Code",
   below). Nothing runs in or jumps through game.exe's code. `ei-rebuild [--check] [-- <game args>]`, from anywhere
@@ -139,18 +139,20 @@ each step green on the goldens and removing a measured tie:
   DirectInput wrappers are gone: S18j, S22). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
   routed imports and every import of src/lib/import_prototypes.h, the static initialisers'
   `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
-  SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with typed
-  handles `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*`, Bink, Winsock 1.1 with SOCKET as
+  SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with handles
+  `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*` declared only, Bink: game.exe's slots, which
+  the harness patches in game.exe's runs; the image calls neither: platform/audio.h, video.h), Winsock 1.1 with SOCKET as
   `std::uintptr_t`, DirectInput, DirectDraw, the common controls, comdlg32, the print
   spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
-  heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
-  `PatchOriginalImport` / `TraceOriginalSlot` (S22b, S22c) for game.exe's runs only (do nothing in the image);
+  heap, Winsock, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
+  `PatchOriginalImport` / `TraceOriginalSlot` (S22b, S22c) for game.exe's runs only (do nothing in the image: Miles's
+  voice timers and its output are such);
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` was sealed in S18f (76 raw uses -> 0).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
-  saves, profile reads, clocks, Winsock, Miles) or our code takes it by address (`&gameapi::X`; none since S22c).
+  saves, profile reads, clocks, Winsock) or our code takes it by address (`&gameapi::X`; none since S22c).
   **gameapi.h** (H33f) holds only the imports our code calls (`gameapi::X` in src/ or tests/: gen_iat.py's
   `called()`, 166 of 504; no DirectDraw, registry, GDI, shell or COM import), without the SDK's headers: the routed
   ones are references to the slot (40), and so are the called ones of import_prototypes.h (69: Miles, Bink,
@@ -177,9 +179,10 @@ each step green on the goldens and removing a measured tie:
   CreateFontIndirectA, GetTimeZoneInformation, the clock trace's CreateThread / GetMessageTime, and
   DirectInputCreateEx (the image's harness takes the seam `g_directInputObserver`). Our code calls each as the Windows
   function or not at all. Rebirth's only import slot patch (MoviesPatch,
-  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink and Winsock stay table
-  calls: the table loads them from the game folder (Miles, Bink), which the exe's own imports would not.
-  DirectSound's enumerator is the Windows function (S22a, dsound.lib); DirectInputCreateEx is the System32 dinput.dll's
+  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp, at OpenMovie); Winsock stays table
+  calls. Miles and Bink are not called at all: sound and movies go through platform/audio.h and platform/video.h
+  (docs/notes/platform.md, "Audio and video"), so neither mss32.dll nor binkw32.dll loads.
+  DirectSound's enumerator is not called (PL6: the audio output picks its own device); DirectInputCreateEx is the System32 dinput.dll's
   export, loaded by input_mouse.cpp (S22b: the SDK has no import library of DirectInput 7's dinput.dll, and a static
   import would take Rebirth's proxy dinput.dll beside the exe, which loads addon.dll). The table is still needed as it is:
   the harness patches it and those families call through it; the slots of the direct functions are traps (S22).
@@ -201,8 +204,8 @@ each step green on the goldens and removing a measured tie:
 
 | DLL | slots | reached | UTF-8 route | harness only | traps |
   |---|---|---|---|---|---|
-  | binkw32.dll | 12 | 10 | 0 | 0 | 2 |
-  | mss32.dll | 47 | 40 | 0 | 0 | 7 |
+  | binkw32.dll | 12 | 0 | 0 | 0 | 12 |
+  | mss32.dll | 47 | 0 | 0 | 0 | 47 |
   | WSOCK32.dll | 22 | 19 | 0 | 0 | 3 |
   | DSOUND.dll | 1 | 0 | 0 | 0 | 1 |
   | DDRAW.dll | 2 | 0 | 0 | 0 | 2 |
@@ -219,11 +222,11 @@ each step green on the goldens and removing a measured tie:
   | ole32.dll | 3 | 0 | 0 | 0 | 3 |
   | all | 504 | 109 | 24 | 0 | 395 |
 
-  The table loads binkw32, mss32, WSOCK32, WINMM, KERNEL32 and USER32 (the last three are the exe's own imports
-  anyway). Not loaded: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and
-  DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll in the game folder stays out of the image), DSOUND
-  (S22a: the exe's own import), DINPUT (S22b: input_mouse.cpp loads System32's), GDI32 and ADVAPI32 (S22c: their
-  slots were the harness's only, now game.exe's own routes), comdlg32, WINSPOOL, SHELL32, COMCTL32, ole32.
+  The table loads WSOCK32, WINMM, KERNEL32 and USER32 (the last three are the exe's own imports anyway). Not loaded:
+  mss32, binkw32 and DSOUND (PL6: no call of ours; platform/audio.h and video.h), DDRAW (the renderer creates no
+  DirectDraw object: both slots, DirectDrawCreateEx and DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll
+  in the game folder stays out of the image), DINPUT (S22b: input_mouse.cpp loads System32's), GDI32 and ADVAPI32
+  (S22c: their slots were the harness's only, now game.exe's own routes), comdlg32, WINSPOOL, SHELL32, COMCTL32, ole32.
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
   the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
@@ -881,8 +884,8 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
   `DirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
 - **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
-  EI_Plugin's player count from `[Rebirth] NPlayers` (default 7). Miles's LoadLibraryA import refuses EI_Plugin.asi
-  (mp3dec.asi loads). `starter::RebirthInstall()` is true for addon.dll or the image with a Rebirth flag on (the
+  EI_Plugin's player count from `[Rebirth] NPlayers` (default 7). EI_Plugin.asi never loads (the image
+  loads no Miles, which loaded the game folder's `*.asi`). `starter::RebirthInstall()` is true for addon.dll or the image with a Rebirth flag on (the
   digest's and census's install lines follow it). GameMain reads addon's registry key with `NivalRegistry`
   (`Software\Gipat.ru\EI_Starter\EvilIslands`; with the vanilla key every Rebirth run differed from record 0). What
   addon and EI_Plugin patch is reproduced behind flags (docs/notes/rebirth.md): the multiplayer patches and Pause /
@@ -920,7 +923,7 @@ game, the `--no-hooks` suite) keeps the registry.
   image_imports.cpp's resolver) makes the exe's folder the working directory when EI_GAME_ROOT is not set (ei_launch sets it
   and starts the exe in that data folder), before game.exe's imports load: the
   game's relative paths (Work path and CD-ROM Path `.\`, Resources path `.\res\`, saves, mods) and the image's DLL
-  imports (image_imports.cpp LoadImport: mss32.dll, binkw32.dll from the working directory) are the exe's folder's
+  imports (image_imports.cpp LoadImport: a DLL from the working directory before System32's) are the exe's folder's
   whatever the shortcut's "Start in" or the shell's folder. The defaults hold no paths, so a moved game folder keeps
   working.
 - **Format**: a section per key, its path below HKEY_CURRENT_USER (`[Software\Nival Interactive\EvilIslands\General
@@ -1227,7 +1230,7 @@ game, the `--no-hooks` suite) keeps the registry.
   `__control87_2(_PC_24, _MCW_PC)`, as Direct3D 7 set it for the original). The image's game code is SSE2, but the
   word still matters: MSVC leaves x87 operations in SSE2 code on a float or double returned in ST0 (the x86 calling
   convention: `pc24::Exp(...) - 0.2f` is an FSUB, a chain like `LightRiseScaled`'s FDIVR then FMUL), the UCRT's log2,
-  exp2 and cbrt follow the precision control, and Miles and Bink ran under it in the original. render.cpp's
+  exp2 and cbrt follow the precision control, and Miles and Bink ran under it in the original (the image has neither). render.cpp's
   `FpuGuard` puts the word back after a library changed it. docs/notes/cleanup-tooling.md, "The control word".
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
@@ -1551,8 +1554,8 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 `ei-rebuild.exe` is the whole game: dropped into an original game folder (GOG's vanilla 1.06 or Rebirth's) it plays
 from there, started from anywhere, with no ei_launch, no DLL of ours and no file of ours beside it.
 - **What a play needs** (release build): the exe alone. From the game folder, as game.exe used them: the data (res,
-  maps, camera, movies, stream, ...), `mss32.dll`, `binkw32.dll` and Miles's `*.asi` (mp3dec.asi; EI_Plugin.asi is
-  refused, "What the image needs"). Built in: the shaders (fxc bytecode headers, CMakeLists.txt), the interface fonts
+  maps, camera, movies, stream, ...); no DLL of the game's (no Miles, Bink or `*.asi`: platform/audio.h and video.h,
+  PL6). Built in: the shaders (fxc bytecode headers, CMakeLists.txt), the interface fonts
   (render_fonts.cpp), game.exe's import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
   (defaults, "Settings file"; the per-user fallback when the folder is not writable). Optional: `ei_rebirth.ini`
@@ -1571,7 +1574,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   plain install's (the defaults and WideScreen, as play.cmd's vanilla mode). Applied where a missing ini left the
   defaults (rebirth::LoadSettings' `profile`), so EI_REBIRTH and a scenario's flags still go on top. Under ei_launch the
   flags are as before (the ini, EI_REBIRTH): the harness's runs and goldens do not change.
-- **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, dsound, ws2_32) come from System32 only
+- **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`, where Windows honours it), so a wrapper DLL of the same name in a game folder (dgVoodoo,
   a dsound wrapper) is not taken; ASan's build leaves it out (its runtime is beside the exe).
 - **Checked** (hand, `--check` from C:\ without EI_GAME_ROOT, the release exe copied into a folder with an install's
@@ -1602,13 +1605,10 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   refuses `EI_HARNESS` there; it runs in game.exe), ei_vectors (its recordings are game.exe's) and ei_launch (it
   starts game.exe and reads its threads). build_checks.py `--x64` runs every check but the function vectors. No
   `/arch:SSE2` (x64 has it always).
-- **No Miles, no Bink**: mss32.dll and binkw32.dll are 32-bit DLLs. image_imports.cpp's resolver does not load them on
-  x64 (their slots stay traps; the log says `x64: Miles and Bink (32-bit DLLs) not loaded: no sound, no movies`).
-  The game checks for the DLL, not for the build: SoundManager (sound_manager.cpp, MilesLoaded) does not start Miles
-  and never opens, so every sound call returns at its `enabled` test; bink_video.cpp's MoviesOn treats movies as off
-  and the loading screen's movie does not open. Our own audio and video backends replace both.
+- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through platform/audio.h and
+  platform/video.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
 - **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
-  Miles's layout (net_coder.h's buffers, ScriptKeyword, miles::Sample / SoundInfo), the PC24 control word
+  layout (net_coder.h's buffers, ScriptKeyword), the PC24 control word
   (device_object.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
   MXCSR's control bits on x64 in place of the x87 control word. ImportTable's slots are pointer-sized (gen_iat.py);
   the exception handlers read the return address through Rsp (standalone_main.cpp ReturnAddress), the profiler
@@ -1696,8 +1696,7 @@ imports into a table of its own (image_imports.cpp); main reads `--check` and th
 
 game.exe's imports in the image's own table (docs/notes/standalone.md, "Own import table"). `g_table`, an ordinary
 ImportTable of ours, is what lib/import_table.h's Imports() returns in the image (game.exe's own import address table
-in game.exe: src/hook/original_data.cpp), so everything that calls through a slot (gameapi.h's routed imports, Miles,
-Bink, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
+in game.exe: src/hook/original_data.cpp), so everything that calls through a slot (gameapi.h's routed imports, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
 (image_imports.inc, written by tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function
 or ordinal) has its slot; only the slots a call of ours reaches resolve (image_imports.inc's last field, gen_iat.py's
 reached(), S22); the rest stay traps and a DLL with none of them does not load. A text call's slot takes its UTF-8

@@ -53,6 +53,8 @@ implementation folder; game code does not change.
 | `keys.h` | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
 | `mouse.h` | `MouseDevice`: the mouse's motion (`Open`, `SetActive`, `Read`, `Close`), failures reported to the caller's `MouseReport` | DirectInput 7 of the system's dinput.dll, loaded directly (the harness observes the object: `g_directInputObserver`) |
 | `net.h` | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `Start` / `Stop`, `LastError()` as our `Error` | the WSOCK32 slots (19 of its 22 imports; `WSAGetLastError` direct, game.exe does not import it) |
+| `audio.h` | the output, voices (waves from memory, end callbacks), the music's double-buffered stream, the MP3 decoders | none: `null/audio.cpp` (silent, timed); A1 adds a real one |
+| `video.h` | Bink 1 movies a frame at a time into a CPU buffer | none: `null/video.cpp` (black frames, timed); A2 adds a decoder |
 
 The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
 `Select` leaves only the ready sockets in its sets, so MasterLinkTick's failure check after a select that found the
@@ -154,18 +156,91 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
 - Key codes stay the virtual-key values, as `platform::kKey...` constants (platform/keys.h; the bindings file and the
   options keep the values); a port gives its key events the same values.
 
+## Audio and video
+
+Miles (mss32.dll) and Bink (binkw32.dll) are gone from both builds (user 2026-10-30): no slot of theirs (nor
+DSOUND's `DirectSoundEnumerateA`) is reached, so neither DLL loads, nor the `*.asi` providers Miles loaded (mp3dec.asi;
+Rebirth's EI_Plugin.asi, which the image kept out anyway: its features are Rebirth flags of our code). Game code calls
+`platform/audio.h` and `platform/video.h`; today both are the null backends in `src/platform/null`, which A1
+(miniaudio) and A2 (our Bink 1 decoder) replace. `src/platform/audio_formats.cpp` (wave headers, the length rule, the
+MP3 frame scan) is shared by every backend.
+
+### What the game reads back
+
+| What | Read by | Kind |
+|---|---|---|
+| A voice's end (Miles' end-of-sample callback: `SoundSlot::finished`) | Tick frees the voice; `FindPlaying` (a unit's talking flag in unit_client_speech, unit_client_sounds / update, map_object_companion, the briefing's next phrase in ui_briefing_create); sequences start their next sound | **logic**: the goldens depend on when it comes |
+| Which voices are free (follows from the ends) | AllocateVoice: a speech gets -1 with every voice taken | logic |
+| A voice's byte position (`AIL_sample_position`) | kept in a stolen looping sound's deferred record, handed back at its restart | output only |
+| The wave's length (`AIL_WAV_info` -> `SoundSlot::length`) | copied into deferred records | read by nothing |
+| The decoded briefing voice's size | the wave cache's byte count (evictions) | memory only |
+| The music stream's free half (`AIL_sample_buffer_ready`), the MP3 decoder's bytes and file end | the stream thread: `streamState`, `streamName`, `CurrentStreamName`, which UpdateMusic reads; PlayJingle / the calm music busy-wait on `streamState` | logic, but on real time (the stream thread): not deterministic before either (docs/notes/sound.md, "Non-determinism"); fights play with `music 0` |
+| `AIL_minimum_sample_buffer_size` | the stream's buffer size (frames per buffer: RequestStream's switch points) | stream timing only |
+| Volumes, pans, reverb, 3D | nothing: the game computes 3D itself (UpdatePositional) and hands a 2D volume and pan | output only |
+| MIDI | the game ended and released a sequence it never started | gone |
+| A movie's frame numbers (`FrameNum`, `LastFrameNum`, `Frames`) | the players' loops: the blocking player ends after the last frame, BinkVideo::Frame answers 0 then (the credits close once their text is done too), the loading screen's movie stops at its last frame | logic (when a player ends), not game state |
+| `BinkWait` (the next frame is due) | the players' pacing | real time, not the game's clock |
+| A movie's sound, volume, pixels | nothing | output only |
+
+### The rules every backend keeps
+
+- **Voice ends on the game's clock.** A voice's end is due its wave's length after Start (`WaveMilliseconds`: the
+  data's bytes over the byte rate, IMA ADPCM's byte rate `rate * block / samplesPerBlock` truncated, then truncated
+  to ms; less the start position, times the loop count; never with loop count 0), on `platform::Milliseconds`; Stop /
+  Resume keep what is left. The main loop delivers the due ends with `DeliverEnds(now)` right after reading the
+  frame's time (app_main.cpp TimeSinceLastPass), so the callbacks run on the main thread, in voice order, as the
+  harness called Miles' callbacks on the virtual clock before (tests/verify/harness_clock.cpp, game.exe's runs). A
+  backend that plays for real still times the end this way, not by the device. The rule is Miles' own: checked
+  equal on every wave and briefing voice of the vanilla, Rebirth and LostInAstral archives (18993; the header fields,
+  the ms and the decoded sizes), with a 32-bit tool that asks mss32.dll (scratch; a sweep against its output takes
+  seconds).
+- **Decoded MP3 voices** (`DecodeMp3File`, the briefing voices, `compressed` in LoadSample): a 16-bit PCM wave with a
+  44-byte header at the file's rate and channels and every whole frame's samples (1152 for MPEG-1, 576 for MPEG-2 /
+  2.5). That is what Miles' mp3dec.asi gave (mono stayed mono although the game asked for stereo), so the length and
+  the cache's size stay the same. A1's decoder (dr_mp3) pads or cuts to that count.
+- **The stream** (`ReadyHalf` / `QueueHalf`): a half is free again once its bytes have played at the stream's format;
+  the null backend plays them on `platform::Milliseconds` from the stream thread (the harness's other-threads clock, a
+  real-time one). `MinimumHalfBytes` is 87 ms rounded up to 512 bytes (15360 for the game's 44.1 kHz stereo, what
+  Miles gave through the wave mapper; through DirectSound it varied run to run).
+- **Movies** pace on a real-time clock (std::chrono::steady_clock): the blocking player's loop reads the game's
+  clock, which the harness holds while no frame runs. `Advance` after the last frame goes back to the first (the
+  titles' movie loops under the text); `GoToFrame` stops at the last.
+
+### The null backends
+
+- Audio: the output always opens; voices keep their wave, loop count, volume, pan and position and end on time;
+  the stream's halves free as they would play; the MP3 decoders count the frames (`ScanMp3`) and give silence of the
+  file's decoded length. So the game runs its full sound logic (enabled, 15 voices, the stream thread) silently, on
+  both builds: the x64-only "Miles not loaded" path (A3a) is gone.
+- Video: a Bink 1 file opens with its size, frame count and rate from its header ("BIK", frames at +8, width +20,
+  height +24, rate +28 / +32); frames come black at the movie's rate. Movies play as long as with pictures
+  (Esc skips them) and the script's PlayMovie still stops the sounds first, as with Bink.
+- The goldens did not move with the null backends (122 the same, 2026-10-30). One difference from the harness's
+  timers in game.exe's runs: they keep a voice's loop count across `AIL_init_sample`, where Miles resets it to 1, so
+  there a one-shot sound on a voice that once looped never ends; `ResetVoice` resets it as Miles did. No golden
+  depends on it today.
+
+### For A1 and A2
+
+- A1 implements audio.h on miniaudio in a backend of its own (src/platform/miniaudio/, replacing null/audio.cpp in
+  CMake's list): mix the voices' waves (PCM and IMA ADPCM through dr_wav's decoders) at their volume (0..127) and pan
+  (0 left .. 127 right), loops, Stop / Resume / End; the stream's halves in order; `DecodeMp3` / `DecodeMp3File` with
+  dr_mp3. Keep the timing rules above: ends from `WaveMilliseconds` on `platform::Milliseconds` and `DeliverEnds`
+  (not the device's end), `DecodeMp3File`'s sample count, and the stream's halves freeing as the device plays them.
+  Reverb (`SetReverb`) has no effect today either way.
+- A2 implements video.h with our Bink 1 decoder (src/platform/bink/): the same header and frame numbering, frames as
+  R, G, B, X into `CopyFrame`'s buffer, `Waiting` from the movie's rate on a real-time clock, the sound track (when
+  `Open`'s `sound`) through A1's output, `SetVolume` 0..32768.
+
 ## Left for the next areas
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
-- The key codes in bink_video.cpp (`VK_ESCAPE`, `VK_SPACE`) go with PL6.
-- resource_stream.cpp's `mmio*` (sound files) and its FindFirstFileA for the file size (PL6 moves them with the
-  audio).
-- Threads: sound_manager.cpp's critical sections (`std::recursive_mutex`), events and music thread
+- The key codes in bink_video.cpp (`VK_ESCAPE`, `VK_SPACE`): PL6b.
+- Threads (PL6b): sound_manager.cpp's critical sections (`std::recursive_mutex`), events and music thread
   (`platform::Thread`, `platform::Signal`; lib/thread.h's `StartThread` wraps `Thread` until then) and sound.h's
   `CRITICAL_SECTION` / `HANDLE` members, which keep win_types.h's `CRITICAL_SECTION`. The renderer's own threads and
   lock (render.cpp, render_cursor.cpp) stay its own.
-- PL6, audio and video: sound_manager.cpp (Miles, `DirectSoundEnumerateA`), bink_video.cpp (Bink).
 - Rectangles (`SetRect`, `OffsetRect`, `IntersectRect`, ... in about 30 ui and figure files) go to our own functions
   (H33h), not to the layer; `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) to the CRT's formatting.
 - system_text.cpp, the UTF-8 routes themselves, is Windows code that belongs under src/platform/win32 once the
@@ -180,6 +255,6 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
 | Window, messages, cursor, input | USER32 (151 imports), DINPUT (1) | sokol_app planned (PL2) |
 | 2D text and surfaces | GDI32 (83) | the native interface (P track) replaces GDI |
 | Rendering | DDRAW, D3D7 through COM | isolated: sokol_gfx behind the DDraw7 / D3D7 boundary |
-| Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | seams with null backends (PL6), then A1 / A2 |
+| Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | none since PL6 (null backends); A1 / A2 the real ones |
 | Network | WSOCK32 (22, by ordinal) | BSD sockets map almost 1:1 (PL5) |
 | Files, threads, time | KERNEL32 (159), WINMM (5), ADVAPI32 (11) | PL3, PL4; time done here |

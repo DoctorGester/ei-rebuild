@@ -1,7 +1,7 @@
 #pragma once
 
-// Sound and music: the sound manager built on the Miles Sound System (mss32.dll), its MP3 music stream and
-// MIDI threads, and the music state machine. See docs/notes/sound.md.
+// Sound and music: the sound manager on the platform's audio output (platform/audio.h), its MP3 music stream thread,
+// and the music state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
 #include "registry.h"
@@ -11,6 +11,7 @@
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
 #include "lib/win_types.h"
+#include "platform/audio.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,15 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-// Miles' handles (as lib/import_prototypes.h declares them; the sample is defined below).
-namespace miles {
-struct Sample;
-struct Sequence;
-struct DigitalDriver;
-struct MidiDriver;
-} // namespace miles
-
-// A volume envelope: the music stream's and the MIDI sequence's.
+// The music stream's volume envelope.
 struct SoundFader {
     std::int32_t volume;        // 0..100
     std::int32_t level;         // 0..127, round(volume * factor * 127 * 0.01)
@@ -43,11 +36,11 @@ struct SoundFader {
     void Recalc();
 };
 
-// One of the 15 Miles sample voices.
+// One of the 15 voices.
 struct SoundSlot {
     std::string name;           // the wave name
-    miles::Sample* sample;
-    std::int32_t volume;        // Miles volume 0..127
+    platform::audio::Voice* voice;
+    std::int32_t volume;        // the output's volume 0..127
     std::int32_t baseVolume;    // 2D sounds: volume 0..100
     std::int32_t pan;           // -100..100
     std::int32_t priority;
@@ -55,7 +48,7 @@ struct SoundSlot {
     std::int32_t looping;       // kept as a deferred record when the voice is stolen
     std::int32_t speech;        // scaled by the speech volume instead of effects
     float length;               // seconds
-    std::int32_t finished;      // set by the end-of-sample callback (Miles thread)
+    std::int32_t finished;      // set by the voice's end callback (SoundEndOfSample)
     std::int32_t flat;          // 2D: volume from baseVolume, not from the listener distance
     std::int32_t heightFade;    // 2D sounds fading out as the camera rises (30..70)
     Vector3 position;
@@ -130,41 +123,14 @@ using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
 // list node.
 struct WaveRecord {
-    void* data = nullptr;       // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
+    std::vector<std::uint8_t> data;   // the wave file (a decoded MP3's as a 16-bit PCM wave)
     std::string name;
     std::uint32_t lastUsed = 0; // GetTickCount()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
 };
-// Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
-struct AsiStage {
-    void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
-    int(__stdcall* process)(void* stream, void* buffer, int bytes); // ASI_stream_process: bytes decoded
-    void(__stdcall* seek)(void* stream, int position);              // ASI_stream_seek
-    void(__stdcall* close)(void* stream);                           // ASI_stream_close
-    int(__stdcall* attribute)(void* stream, void* attribute);       // ASI_stream_attribute
-    void* setPreference;                                            // ASI_stream_set_preference
-    void* inputBitRate;
-    void* inputSampleRate;
-    void* inputBits;
-    void* inputChannels;
-    void* outputBitRate;
-    void* outputSampleRate;
-    void* outputBits;
-    void* outputChannels;
-};
-
-// Miles' sample (HSAMPLE), as far as the stream reads it: its codec stage.
-struct miles::Sample {
-    std::uint8_t unused_000[0x144];
-    AsiStage codec;
-};
-#if defined(_M_IX86)
-static_assert(offsetof(miles::Sample, codec) == 0x144);   // Miles' 32-bit layout
-#endif
 
 struct SoundManager : EngineObject {
-    // Also runs AIL_startup, then Reset.
     SoundManager();
     ~SoundManager() override;
 
@@ -173,22 +139,19 @@ struct SoundManager : EngineObject {
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    miles::DigitalDriver* waveDriver;
-    miles::MidiDriver* midiDriver;      // closed by Close; not opened here
     ResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
-    miles::Sample* streamSample;
-    void* streamFile;                   // ASI stream
-    AsiStage* streamCodec;              // the decoder sample's codec stage
-    void* streamBuffers[3];             // Miles memory, streamBufferSize bytes each
-    std::int32_t streamBufferSize;      // twice Miles' minimum buffer; -1 after ResetStream
+    platform::audio::Stream* streamSample;
+    platform::audio::Mp3Stream* streamFile;   // the playing file's decoder
+    std::vector<std::uint8_t> streamBuffers[3];   // streamBufferSize bytes each
+    std::int32_t streamBufferSize;      // twice the output's minimum half; -1 after ResetStream
     std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes
-    // Which buffer each half of Miles' double buffer plays (the first two) and the third one (taken next, and
-    // what the stream reader fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
+    // Which buffer each half of the stream plays (the first two) and the third one (taken next, and what the stream
+    // reader fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
     std::int32_t streamHalfBuffer[2];
     std::int32_t streamSpareBuffer;
     std::int32_t streamPosition;        // frames of the playing file queued so far
@@ -209,16 +172,9 @@ struct SoundManager : EngineObject {
     std::int32_t switchMode;            // RequestStream's mode
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
-    miles::Sample* streamDecoder;       // its processor is the MP3 codec (streamCodec is in it)
     CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
     HANDLE streamThread;                // when the MP3 stream opened (lib::StartThread)
-    // The MIDI sequence.
-    std::int32_t midiState;
-    miles::Sequence* midiSequence;
-    SoundFader midiFader;
-    CRITICAL_SECTION midiLock;
-    HANDLE midiThread;                  // never started
-    volatile std::int32_t threadsQuit;  // set by Close; both threads end on it
+    volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)
     Vector3 listenerAxis;               // listener direction, unit length in x/y
@@ -295,11 +251,11 @@ struct SoundManager : EngineObject {
 
     // Switch mode 4, the music fader at volume 100 with no fade.
     void ResetStream();
-    // 16-bit stereo at 44100 Hz. 0 when the codec or a sample cannot be had.
-    int OpenStream(miles::DigitalDriver* driver);
-    // OpenStream's failure. Returns 0.
+    // 16-bit stereo at 44100 Hz. 0 when the output has no stream.
+    int OpenStream();
+    // Frees what OpenStream made. Returns 0.
     int CloseStream();
-    // Every 100 ms until Close sets threadsQuit: a fader step, and every half Miles has played out gets the
+    // Every 100 ms until Close sets threadsQuit: a fader step, and every half the output has played out gets the
     // spare buffer. The thread ends when it returns.
     void StreamThread();
     // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
@@ -311,10 +267,9 @@ struct SoundManager : EngineObject {
     // looping sound there is deferred). -1 when no voice can be had.
     int AllocateVoice(int priority);
 
-    // The DirectSound device `deviceIndex` (DirectSoundEnumerateA's order; the default device when out of
-    // range or negative; the wave mapper when the sound option is 2), 16-bit stereo at `rate` (at most
-    // 44100). 0 when the driver cannot be opened.
-    int Open(void* window, int useReverb, int deviceIndex, unsigned rate);
+    // The default output device, 16-bit stereo at `rate` (at most 44100), with the voices' reverb when `useReverb`.
+    // 0 when the device cannot be opened.
+    int Open(void* window, int useReverb, unsigned rate);
     // Waits for the threads to quit and frees everything Open made, then Reset.
     void Close();
     // Volumes 100, sound off.
@@ -325,8 +280,8 @@ struct SoundManager : EngineObject {
     int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop);
     int Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
-    // From the cache, or read from the archives (with `compressed` an MP3 decompressed through the ASI codec);
-    // a new handle. 0 when the wave is nowhere.
+    // From the cache, or read from the archives (with `compressed` an MP3, decoded whole); a new handle. 0 when the
+    // wave is nowhere.
     int LoadSample(SoundSlot* slot, std::string_view name, int compressed);
 };
 
@@ -381,12 +336,9 @@ struct MusicSystem : EngineObject {
     void FadeOut();
     void FadeIn();
 };
-// The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
-// byte count (0 when the read fails).
-int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int offset);
-// AIL_decompress_ASI's callback: at state 1 it asks for 16 bits, 44100 Hz, 2 channels. Returns 1.
-using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
-int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
-// Miles calls it when a voice's sample ends: the voice is marked finished.
-void __stdcall SoundEndOfSample(miles::Sample* sample);
+// The MP3 decoder's read callback on the stream thread (`manager` the SoundManager): seeks to `offset` unless it is
+// negative. Returns the byte count (0 when the read fails).
+int SoundStreamRead(void* manager, char* buffer, int size, int offset);
+// A voice's end callback (`slot` its SoundSlot): the voice is marked finished.
+void SoundEndOfSample(void* slot);
 

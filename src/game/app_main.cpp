@@ -30,6 +30,7 @@
 #include "platform/file.h"
 #include "lib/text_case.h"
 #include "text_split.h"
+#include "platform/audio.h"
 #include "platform/clock.h"
 #include "platform/cursor.h"
 #include "platform/files.h"
@@ -269,7 +270,7 @@ std::uintptr_t OpenSound() {
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
     std::string discFolder = g_discFolder;
-    g_clientWorld.sounds->Open(g_mainWindow, 1, -1, 44100);
+    g_clientWorld.sounds->Open(g_mainWindow, 1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
@@ -361,6 +362,8 @@ std::uint32_t TimeSinceLastPass() {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
         now = platform::Milliseconds();
     }
+    // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them).
+    platform::audio::DeliverEnds(now);
     const std::uint32_t elapsed = now - g_lastTime;
     g_lastTime += elapsed;
     return elapsed;

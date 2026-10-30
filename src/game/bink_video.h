@@ -1,8 +1,9 @@
 #pragma once
 
-// Bink movies: the Bink handle's first fields and the game's video object.
+// Bink movies: the game's players on the platform's movies (platform/video.h).
 
 #include "lib/win_types.h"
+#include "platform/video.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,17 +21,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
 // shown again.
 void CloseLoadingMovie();
 
-// The Bink handle's first fields (Bink 1.x: Width, Height, Frames, FrameNum, LastFrameNum).
-struct BinkHeader {
-    std::uint32_t width;
-    std::uint32_t height;
-    std::uint32_t frames;       // the frame count
-    std::uint32_t frameNum;     // the frame to decode next (1-based)
-    std::uint32_t lastFrame;    // the frame decoded last
-};
-static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
-
-// BinkVideo: the letterboxed screen rectangle and the Bink handle.
+// BinkVideo: the letterboxed screen rectangle and the movie.
 struct BinkVideo {
     BinkVideo() = default;
     // Closes the movie as Close does (the cursor shown again).
@@ -49,5 +40,5 @@ struct BinkVideo {
     void Close();
 
     RECT to{};
-    BinkHeader* bink = nullptr;
+    platform::video::Movie* movie = nullptr;
 };

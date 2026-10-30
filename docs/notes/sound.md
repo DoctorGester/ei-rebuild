@@ -4,6 +4,12 @@ Files: `src/game/sound.h` (layouts, static_asserts), `sound_manager.cpp`, `sound
 `tests/verify/verify_sound.cpp` (counters taken under an SRW lock: the fader wrapper runs on the
 stream thread); scenario `tests/scenarios/sound.txt`.
 
+The image plays through the platform's audio output (`src/platform/audio.h`; docs/notes/platform.md, "Audio and
+video"), not Miles: voices, the music's double-buffered stream and the MP3 decoders. A voice's end is timed by its
+wave's length on the game's clock and delivered by the main loop after the frame's time, as the harness delivered
+Miles' callbacks in game.exe's runs. The map below is game.exe's (Miles, DirectSound, the unused MIDI part); the
+image has no MIDI part and no DirectSound device choice (the game always asked for the default device).
+
 ## Map of the range
 
 | Range | Contents |
@@ -119,7 +125,8 @@ state is whether a voice is taken: a speech's Play2D (priority 1, unit_client_sp
 play at priority 1 or above, and its handle keeps or ends the unit's talking flag. Which voices play follows from
 - Play3D's level (`UpdatePositional`: a one-shot at level 0 takes no voice);
 - the ambient emitters' distance tests and scaled intervals (Tick: a firing emitter's Play2D at priority 1);
-- the voices' ends: the harness ends samples by Miles' own length (`WaveLength` / `SoundSlot::length` are read by nothing).
+- the voices' ends: by the wave's length (`platform::audio::WaveMilliseconds`, Miles' rule; `WaveLength` /
+  `SoundSlot::length` are read by nothing).
 Play2D's silence test is on its integer volume, and Tick's restarts take free voices without a level test.
 The first two are basic float operations (+ - * /, sqrt, compares, FISTP's rounding as `lib::RoundEven`) on floats
 and small integers in the original's order. The original ran them on the main thread at 24-bit precision
@@ -127,21 +134,21 @@ control, where every x87 operation rounds once to a float significand, so the re
 exponent only matters for distances below about 1e-19, where both give the same decision. The emitter intervals are
 exact below 2^24 ms. Checked by comparing the old x87 forms at PC24 with the float forms on 30 M random cases:
 0 differ (at PC53 the same test differs in 29k of 3 M). The goldens hold it too (`sound` and every scenario with
-speech). The pans (acos), the listener axis, the music fader (stream thread) and the wave lengths only reach Miles.
+speech). The pans (acos), the listener axis, the music fader (stream thread) and the wave lengths only reach the
+output.
 
 ## Original bugs kept on purpose
 
 - `MoveEmitter`/`RemoveEmitter` accept index 16, one past the 16 emitters (it addresses the emitter
   tick and the first sequence).
 - Per-handle controls take the first voice whose handle matches; free voices hold -1, so handle -1
-  changes a free voice (and calls Miles on its sample).
-- Tick recomputes a restarted flat sound's level from its saved Miles level (0..127) as if it were the
+  changes a free voice (and calls the output on its voice).
+- Tick recomputes a restarted flat sound's level from its saved output level (0..127) as if it were the
   0..100 base volume (reads the voice's +0x10, not +0x14): such sounds come back louder.
 - `SetZoneMode` passes the error text to FatalError as the format string.
 - `PlayJingle` and the calm music busy-wait (Sleep(0)) on the main thread until the stream thread
   takes the request; an empty theme list (`combat` with 0 names) divides by zero.
 - `FadeOutStream`/`FadeInStream`/`SetMusicVolume` change the music fader without the stream lock.
-- `Open` keeps the GUID pointers DirectSoundEnumerateA's callback saw after the enumeration returned.
 
 ## Not rewritten
 

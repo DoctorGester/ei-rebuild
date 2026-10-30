@@ -12,13 +12,12 @@
 
 #include "lib/win_api.h"
 
-#pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "winmm.lib")
 
-// Miles Sound System's handles (HSAMPLE, HSEQUENCE, HDIGDRIVER, HMDIDRIVER), its AILSOUNDINFO (defined where
-// AIL_WAV_info's caller reads it) and the end-of-sample callback.
+// Miles Sound System's handles (HSAMPLE, HSEQUENCE, HDIGDRIVER, HMDIDRIVER), its AILSOUNDINFO and the end-of-sample
+// callback: declared only (game.exe's slots; the image calls no Miles).
 namespace miles {
 struct Sample;
 struct Sequence;
@@ -29,63 +28,11 @@ using SampleCallback = void(__stdcall*)(Sample*);
 using SequenceCallback = void(__stdcall*)(Sequence*);
 } // namespace miles
 
-// Bink's handle (HBINK), as far as the game reads it (game/bink_video.h).
+// Bink's handle (HBINK): declared only (game.exe's slots; the image calls no Bink).
 struct BinkHeader;
 
 namespace ei::import_fn {
 
-using AIL_set_sample_file = int(__stdcall*)(miles::Sample*, const void* file, int block);
-using AIL_WAV_info = int(__stdcall*)(const void* data, miles::SoundInfo* info);
-using AIL_mem_alloc_lock = void*(__stdcall*)(int size);
-using AIL_register_EOS_callback = miles::SampleCallback(__stdcall*)(miles::Sample*, miles::SampleCallback);
-using AIL_set_named_sample_file = int(__stdcall*)(miles::Sample*, const char* suffix, const void* file, int size,
-                                                  int block);
-using AIL_set_sample_reverb = void(__stdcall*)(miles::Sample*, float level, float reflectTime, float decayTime);
-using AIL_set_sample_ms_position = void(__stdcall*)(miles::Sample*, std::uint32_t ms);
-using AIL_start_sample = void(__stdcall*)(miles::Sample*);
-using AIL_sample_position = std::int32_t(__stdcall*)(miles::Sample*);
-using AIL_set_sample_volume = void(__stdcall*)(miles::Sample*, int volume);
-using AIL_set_sample_loop_count = void(__stdcall*)(miles::Sample*, int count);
-using AIL_set_sample_pan = void(__stdcall*)(miles::Sample*, int pan);
-using AIL_resume_sample = void(__stdcall*)(miles::Sample*);
-using AIL_stop_sample = void(__stdcall*)(miles::Sample*);
-using AIL_release_sample_handle = void(__stdcall*)(miles::Sample*);
-using AIL_set_sample_processor = void*(__stdcall*)(miles::Sample*, int stage, void* provider);
-using AIL_set_sample_position = void(__stdcall*)(miles::Sample*, int position);
-using AIL_release_sequence_handle = void(__stdcall*)(miles::Sequence*);
-using AIL_waveOutClose = void(__stdcall*)(miles::DigitalDriver*);
-using AIL_midiOutClose = void(__stdcall*)(miles::MidiDriver*);
-using AIL_set_preference = int(__stdcall*)(unsigned number, int value);
-using AIL_waveOutOpen = int(__stdcall*)(miles::DigitalDriver** driver, void* waveOut, int device, const void* format);
-using AIL_last_error = const char*(__stdcall*)();
-using AIL_set_DirectSound_HWND = void(__stdcall*)(miles::DigitalDriver*, void* window);
-using AIL_allocate_sample_handle = miles::Sample*(__stdcall*)(miles::DigitalDriver*);
-using AIL_sample_user_data = std::intptr_t(__stdcall*)(miles::Sample*, unsigned index);
-using AIL_set_sample_playback_rate = void(__stdcall*)(miles::Sample*, int rate);
-using AIL_set_sample_user_data = void(__stdcall*)(miles::Sample*, unsigned index, std::intptr_t value);
-using AIL_shutdown = void(__stdcall*)();
-using AIL_startup = int(__stdcall*)();
-using AIL_end_sample = void(__stdcall*)(miles::Sample*);
-using AIL_set_sample_type = void(__stdcall*)(miles::Sample*, int format, int flags);
-using AIL_minimum_sample_buffer_size = int(__stdcall*)(miles::DigitalDriver*, int rate, int format);
-using RIB_find_file_provider = void*(__stdcall*)(const char* interfaceName, const char* property, const char* suffix);
-using AIL_sample_buffer_ready = int(__stdcall*)(miles::Sample*);
-using AIL_load_sample_buffer = void(__stdcall*)(miles::Sample*, int half, void* buffer, int length);
-using AIL_mem_free_lock = void(__stdcall*)(void* memory);
-using AIL_end_sequence = void(__stdcall*)(miles::Sequence*);
-using AIL_decompress_ASI = int(__stdcall*)(const void* data, int size, const char* suffix, void** decoded,
-                                           int* decodedSize, void* callback);
-using AIL_init_sample = void(__stdcall*)(miles::Sample*);
-using BinkGoto = void(__stdcall*)(BinkHeader*, unsigned frame, int flags);
-using BinkDoFrame = int(__stdcall*)(BinkHeader*);
-using BinkOpen = BinkHeader*(__stdcall*)(const char* name, unsigned flags);
-using BinkNextFrame = void(__stdcall*)(BinkHeader*);
-using BinkWait = int(__stdcall*)(BinkHeader*);
-using BinkSetVolume = void(__stdcall*)(BinkHeader*, int volume);
-using BinkOpenMiles = void*(__stdcall*)(std::uint32_t driver);
-using BinkSetSoundSystem = int(__stdcall*)(BinkOpenMiles open, miles::DigitalDriver* driver);
-using BinkClose = void(__stdcall*)(BinkHeader*);
-using BinkCopyToBuffer = int(__stdcall*)(BinkHeader*, void* to, int pitch, int height, int x, int y, unsigned flags);
 using select = int(__stdcall*)(int count, void* read, void* write, void* except, const void* timeout);
 using connect = int(__stdcall*)(std::uintptr_t s, const void* address, int length);
 using recvfrom = int(__stdcall*)(std::uintptr_t s, void* data, int length, int flags, void* from, int* fromLength);
@@ -110,56 +57,6 @@ using sendto = int(__stdcall*)(std::uintptr_t s, const void* data, int length, i
 
 namespace gameapi {
 
-extern ei::import_fn::BinkGoto& BinkGoto;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkDoFrame& BinkDoFrame;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkOpen& BinkOpen;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkNextFrame& BinkNextFrame;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkWait& BinkWait;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkSetVolume& BinkSetVolume;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkSetSoundSystem& BinkSetSoundSystem;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkOpenMiles& BinkOpenMiles;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkClose& BinkClose;  // binkw32.dll, through the slot
-extern ei::import_fn::BinkCopyToBuffer& BinkCopyToBuffer;  // binkw32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_file& AIL_set_sample_file;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_WAV_info& AIL_WAV_info;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_mem_alloc_lock& AIL_mem_alloc_lock;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_register_EOS_callback& AIL_register_EOS_callback;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_named_sample_file& AIL_set_named_sample_file;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_reverb& AIL_set_sample_reverb;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_ms_position& AIL_set_sample_ms_position;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_start_sample& AIL_start_sample;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_sample_position& AIL_sample_position;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_volume& AIL_set_sample_volume;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_loop_count& AIL_set_sample_loop_count;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_pan& AIL_set_sample_pan;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_resume_sample& AIL_resume_sample;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_stop_sample& AIL_stop_sample;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_release_sample_handle& AIL_release_sample_handle;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_processor& AIL_set_sample_processor;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_position& AIL_set_sample_position;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_release_sequence_handle& AIL_release_sequence_handle;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_waveOutClose& AIL_waveOutClose;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_midiOutClose& AIL_midiOutClose;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_preference& AIL_set_preference;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_waveOutOpen& AIL_waveOutOpen;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_last_error& AIL_last_error;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_DirectSound_HWND& AIL_set_DirectSound_HWND;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_allocate_sample_handle& AIL_allocate_sample_handle;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_sample_user_data& AIL_sample_user_data;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_playback_rate& AIL_set_sample_playback_rate;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_user_data& AIL_set_sample_user_data;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_shutdown& AIL_shutdown;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_startup& AIL_startup;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_end_sample& AIL_end_sample;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_set_sample_type& AIL_set_sample_type;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_minimum_sample_buffer_size& AIL_minimum_sample_buffer_size;  // mss32.dll, through the slot
-extern ei::import_fn::RIB_find_file_provider& RIB_find_file_provider;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_sample_buffer_ready& AIL_sample_buffer_ready;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_load_sample_buffer& AIL_load_sample_buffer;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_mem_free_lock& AIL_mem_free_lock;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_end_sequence& AIL_end_sequence;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_decompress_ASI& AIL_decompress_ASI;  // mss32.dll, through the slot
-extern ei::import_fn::AIL_init_sample& AIL_init_sample;  // mss32.dll, through the slot
 extern ei::import_fn::select& select;  // WSOCK32.dll, through the slot
 extern ei::import_fn::connect& connect;  // WSOCK32.dll, through the slot
 extern ei::import_fn::recvfrom& recvfrom;  // WSOCK32.dll, through the slot
@@ -179,7 +76,6 @@ extern ei::import_fn::gethostbyname& gethostbyname;  // WSOCK32.dll, through the
 extern ei::import_fn::htons& htons;  // WSOCK32.dll, through the slot
 extern ei::import_fn::ioctlsocket& ioctlsocket;  // WSOCK32.dll, through the slot
 extern ei::import_fn::sendto& sendto;  // WSOCK32.dll, through the slot
-using ::DirectSoundEnumerateA;  // DSOUND.dll
 using ::mmioClose;  // WINMM.dll
 extern decltype(&::mmioOpenA)& mmioOpenA;  // WINMM.dll, through the slot
 using ::mmioRead;  // WINMM.dll
@@ -213,7 +109,6 @@ using ::SetFileTime;  // KERNEL32.dll
 using ::SystemTimeToFileTime;  // KERNEL32.dll
 using ::GetFileInformationByHandle;  // KERNEL32.dll
 extern decltype(&::GetSystemTime)& GetSystemTime;  // KERNEL32.dll, through the slot
-using ::GetModuleHandleA;  // KERNEL32.dll
 using ::LeaveCriticalSection;  // KERNEL32.dll
 extern decltype(&::GetPrivateProfileSectionA)& GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetPrivateProfileStringA)& GetPrivateProfileStringA;  // KERNEL32.dll, through the slot

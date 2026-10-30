@@ -11,8 +11,8 @@
 
 #include <cstdint>
 
-// Miles Sound System's handles (HSAMPLE, HSEQUENCE, HDIGDRIVER, HMDIDRIVER), its AILSOUNDINFO (defined where
-// AIL_WAV_info's caller reads it) and the end-of-sample callback.
+// Miles Sound System's handles (HSAMPLE, HSEQUENCE, HDIGDRIVER, HMDIDRIVER), its AILSOUNDINFO and the end-of-sample
+// callback: declared only (game.exe's slots; the image calls no Miles).
 namespace miles {
 struct Sample;
 struct Sequence;
@@ -23,7 +23,7 @@ using SampleCallback = void(__stdcall*)(Sample*);
 using SequenceCallback = void(__stdcall*)(Sequence*);
 } // namespace miles
 
-// Bink's handle (HBINK), as far as the game reads it (game/bink_video.h).
+// Bink's handle (HBINK): declared only (game.exe's slots; the image calls no Bink).
 struct BinkHeader;
 
 namespace ei::import_fn {

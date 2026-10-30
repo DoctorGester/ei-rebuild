@@ -218,7 +218,9 @@ DWORD OtherThreadsNow() {
 // intro), and FindPlaying frees voices. Played in real time, that made runs part. On the virtual
 // clock the harness keeps the callback from Miles and calls it itself, from the main loop's frame
 // time, once the sample's length (Miles' own ms position and loop count at the start) has passed
-// on the virtual clock. Stopped samples (PauseAll) keep what was left until resumed.
+// on the virtual clock. Stopped samples (PauseAll) keep what was left until resumed. game.exe's runs
+// only: the image has no Miles, its audio output times the ends the same way on the game's clock
+// (src/platform/audio.h), and the main loop delivers them after the frame's time.
 using EosCallback = void(__stdcall*)(void*);
 using RegisterEosFn = EosCallback(__stdcall*)(void*, EosCallback);
 using SampleFn = void(__stdcall*)(void*);
@@ -343,17 +345,18 @@ void CallSampleEnds() {
 }
 
 void InstallSampleTimers() {
-    InitializeCriticalSection(&g_voiceLock);
+    InitializeCriticalSection(&g_voiceLock);   // CallSampleEnds takes it in the image too (no voices there)
+    if (Standalone()) return;
     if (HMODULE mss = GetModuleHandleA("mss32.dll"))
         g_ailSampleMsPosition = reinterpret_cast<MsPositionFn>(GetProcAddress(mss, "_AIL_sample_ms_position@12"));
     if (!g_ailSampleMsPosition) Log("harness: no _AIL_sample_ms_position in mss32.dll: sounds end at once");
-    PatchImport(&ImportTable::AIL_register_EOS_callback, &HeldRegisterEos, g_ailRegisterEos);
-    PatchImport(&ImportTable::AIL_set_sample_ms_position, &TimedSetMsPosition, g_ailSetSampleMsPosition);
-    PatchImport(&ImportTable::AIL_start_sample, &TimedStartSample, g_ailStartSample);
-    PatchImport(&ImportTable::AIL_set_sample_loop_count, &TimedSetLoopCount, g_ailSetSampleLoopCount);
-    PatchImport(&ImportTable::AIL_resume_sample, &TimedResumeSample, g_ailResumeSample);
-    PatchImport(&ImportTable::AIL_stop_sample, &TimedStopSample, g_ailStopSample);
-    PatchImport(&ImportTable::AIL_end_sample, &TimedEndSample, g_ailEndSample);
+    PatchOriginalImport(&ImportTable::AIL_register_EOS_callback, &HeldRegisterEos, g_ailRegisterEos);
+    PatchOriginalImport(&ImportTable::AIL_set_sample_ms_position, &TimedSetMsPosition, g_ailSetSampleMsPosition);
+    PatchOriginalImport(&ImportTable::AIL_start_sample, &TimedStartSample, g_ailStartSample);
+    PatchOriginalImport(&ImportTable::AIL_set_sample_loop_count, &TimedSetLoopCount, g_ailSetSampleLoopCount);
+    PatchOriginalImport(&ImportTable::AIL_resume_sample, &TimedResumeSample, g_ailResumeSample);
+    PatchOriginalImport(&ImportTable::AIL_stop_sample, &TimedStopSample, g_ailStopSample);
+    PatchOriginalImport(&ImportTable::AIL_end_sample, &TimedEndSample, g_ailEndSample);
 }
 
 // Main-thread sleeps since the last frame (see VirtualSleep).
