@@ -49,6 +49,8 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 - Windows 10 or later.
 - The VS 2022 Build Tools with MSVC 14.43 for x86 and x64, and CMake and Ninja from the same install. `build.cmd` looks in
   `E:\bin\vs\buildtools`; set `EI_VSROOT` to your Build Tools folder if it is elsewhere.
+- sokol-shdc, the shader compiler. `build.cmd` uses `E:\bin\sokol-shdc\sokol-shdc.exe`; set `EI_SHDC` to it if it
+  is elsewhere (`docs/notes/renderer.md`, "Shader authoring").
 - Python 3 (the build runs checks written in Python).
 - An installed copy of the game for its data:
   - the GOG release (`EI_GAME_VANILLA`, default `F:\games\EvilIslands`), and/or
@@ -58,21 +60,14 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 
 ## Build
 
-An experimental native macOS build uses SDL3 and sokol's Metal backend. See
-[the macOS build and verification notes](docs/notes/macos.md) for dependencies, compile checkpoints and a bounded
-run against a separate game-data folder. The Windows scenario harness has not yet been ported.
+An experimental native macOS build uses SDL3 and sokol's Metal backend: see
+[the macOS notes](docs/notes/macos.md) for its dependencies, its checks and a bounded run against a separate game-data
+folder. The scenario harness is Windows only.
 
 ```
 build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
 build.cmd verify         the game with the test harness linked in, into build\verify (what the tests run)
 ```
-
-Shaders require the official [sokol-shdc compiler](https://github.com/floooh/sokol-tools-bin), pinned to
-`b975d5642093d62e76a1e088bdae945d6d8b8ff2`. Put the host binary on PATH or in `build/tools/`
-(`sokol-shdc.exe` on Windows), or set the `EI_SHDC` environment variable to its full path, which wins (on this
-machine `E:\bin\sokol-shdc\sokol-shdc.exe`, for every checkout and the Suites runner); CMake also accepts
-`-DEI_SHDC=/path/to/sokol-shdc`. Shader sources are annotated GLSL, compiled directly for every backend; see
-[shader authoring](docs/notes/renderer.md#shader-authoring).
 
 The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
 

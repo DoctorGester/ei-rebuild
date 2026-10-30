@@ -193,6 +193,9 @@
 //   clocktrace, randtrace     log every clock read and wait (ei-rebuild.log), every random draw
 //                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
+//   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
+//                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
+//                             their points over the whole window): the same place at any resolution
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
@@ -233,15 +236,16 @@
 //                             identity (one to one only; fails on a difference). Fails after
 //                             <seconds> or when the swap chain failed
 //   losedevice [seconds]      the new renderer acts as if its Direct3D 11 device were lost at the
-//                             next present (render::LoseDevice) and makes the device, the swap
-//                             chain and every image again; waits (default 10 s) until it has, and
-//                             presenting on the game window, until a frame is presented on the new
-//                             device. Fails on a timeout or when the new renderer gave up
-//   removedevice [seconds]    as losedevice, but the device is removed for real (render::RemoveDevice:
-//                             ID3D12Device5::RemoveDevice on the Direct3D 12 device under a device made
-//                             through D3D11On12; the scenario's "render" step names "removable").
-//                             Also fails when the loss seen was not that removal (GetDeviceRemovedReason
-//                             DXGI_ERROR_DEVICE_REMOVED) or the new device is not removable again
+//                             end of the next presented frame (render::LoseDevice) and makes the
+//                             device, the swap chain and every image again; waits (default 10 s) until
+//                             it has, and presenting on the game window, until a frame is presented on
+//                             the new device. Fails on a timeout or when the new renderer gave up
+//   removedevice [seconds]    as losedevice, but the device is removed for real right before the next
+//                             present (platform::graphics::RequestRemoval: ID3D12Device5::RemoveDevice
+//                             on the Direct3D 12 device under a device made through D3D11On12; the
+//                             scenario's "render" step names "removable"). Also fails when the loss
+//                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
+//                             is not removable again
 //   mouseglide <ms> <x0> <y0> <x1> <y1>
 //                             move the harness's mouse (what the game's GetCursorPos reads) from
 //                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
@@ -1478,6 +1482,17 @@ std::string WindowTitleStep() {
     return {};
 }
 
+// The layout point (x, y) of the 800x600 interface as the mouse steps' share of a window of width x height: the layout
+// fills the window's 4:3 part, the largest one, centred (src/game/ui_widescreen.h).
+void LayoutToWindowShare(int width, int height, int* x, int* y) {
+    const double part43Width = width * 3 < height * 4 ? width : height * 4.0 / 3.0;
+    const double part43Height = height * 4 < width * 3 ? height : width * 3.0 / 4.0;
+    const double pixelX = (width - part43Width) / 2 + *x * part43Width / 800;
+    const double pixelY = (height - part43Height) / 2 + *y * part43Height / 600;
+    *x = static_cast<int>(pixelX * 800 / width + 0.5);
+    *y = static_cast<int>(pixelY * 600 / height + 0.5);
+}
+
 void PostMouse(const std::string& verb, int x, int y) {
     RECT client = GameClient();
     POINT window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
@@ -2521,19 +2536,18 @@ void RunSteps() {
         bool presented = now.presents > now.presentsAtRecovery;
         const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented) {
-            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
-                verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
-                static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
-                " presents on the game window");
+            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX%s) presents on the "
+                "game window", verb, now.deviceLosses, now.deviceRecoveries,
+                static_cast<unsigned long>(now.lastLossCode), now.lastLossCode ? "" : ", simulated");
 
             // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
             // device removable again.
-            if (g_newDeviceRemoved &&
-                (now.lastLossSimulated || now.lastLossReason != DXGI_ERROR_DEVICE_REMOVED || !now.removable)) {
+            const auto removed = static_cast<std::uint32_t>(DXGI_ERROR_DEVICE_REMOVED);
+            if (g_newDeviceRemoved && (now.lastLossCode != removed || !now.removable)) {
                 char what[200];
-                std::snprintf(what, sizeof(what), "removedevice: not a real removal (reason %08lX, simulated %d) or the new device "
-                              "is not removable (%d)", static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated,
-                              now.removable);
+                std::snprintf(what, sizeof(what),
+                              "removedevice: not a real removal (the loss %08lX) or the new device is not removable (%d)",
+                              static_cast<unsigned long>(now.lastLossCode), now.removable);
                 Log("harness: %s", what);
                 g_failures.push_back(what);
             }
@@ -2663,6 +2677,23 @@ void RunSteps() {
             std::size_t space = s.argument.find(' ');
             s.verb = s.argument.substr(0, space);
             s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
+        }
+        // "layout <mouse step> <x> <y> ...": the point is in the 800x600 layout, which sits in the window's 4:3 part
+        // (W12), so the same step aims at the same interface place in a window of any shape.
+        if (s.verb == "layout") {
+            const std::size_t space = s.argument.find(' ');
+            const std::string verb = s.argument.substr(0, space);
+            int x = 0, y = 0, used = 0;
+            if (space != std::string::npos && IsInputStep(verb) &&
+                sscanf_s(s.argument.c_str() + space + 1, "%d %d%n", &x, &y, &used) >= 2) {
+                const RECT client = GameClient();
+                LayoutToWindowShare(client.right - client.left, client.bottom - client.top, &x, &y);
+                s.argument = std::to_string(x) + " " + std::to_string(y) + s.argument.substr(space + 1 + used);
+                s.verb = verb;
+            } else {
+                g_failures.push_back("layout needs <mouse step> <x> <y>: " + s.argument);
+                continue;
+            }
         }
         if (!g_inputLoop && IsInputStep(s.verb)) {
             --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)

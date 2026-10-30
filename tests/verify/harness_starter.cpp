@@ -146,8 +146,12 @@ void Install(const char* savesDir) {
     if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
     char value[32];
     DWORD n = GetEnvironmentVariableA("EI_RESOLUTION", value, sizeof(value));
-    if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
-        Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
+    if (!g_resolution[0] && n && n < sizeof(value)) {
+        if (!SetResolution(value)) Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
+        // The window of that size, as the default resolution's: the snapshot's FullScreen 1 would make the window
+        // cover the desktop with the frame scaled up (H42: the cursor thread's one-to-one frame check never ran).
+        else if (g_fullScreen < 0) g_fullScreen = 0;
+    }
     if (!g_resolution[0]) {
         std::snprintf(g_resolution, sizeof(g_resolution), "%s", RebirthData() ? kImageResolutionRebirth : kImageResolution);
         if (g_fullScreen < 0) g_fullScreen = 0;

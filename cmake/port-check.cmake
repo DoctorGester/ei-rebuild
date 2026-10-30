@@ -1,4 +1,4 @@
-# Compile the native game and platform independently while the renderer is being ported.
+# The native platform layer (SDL3 and POSIX) and its checks (tests/port/port_check.cpp).
 foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_GPU SDL_RENDER
             SDL_CAMERA SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGL
             SDL_OPENGLES SDL_VULKAN SDL_OFFSCREEN SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
@@ -8,6 +8,7 @@ set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/posix/*.cpp
      src/platform/sdl/*.cpp src/platform/bink/*.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)   # the renderer's
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
 target_link_libraries(ei_platform PUBLIC SDL3::SDL3-static)

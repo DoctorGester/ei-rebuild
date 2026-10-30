@@ -17,14 +17,14 @@ namespace {
 using namespace detail;
 
 // Until the first hand-over: a sun from above, half ambient.
-LightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}, {}, {}};
+scene_light_params_t g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
 // Per kept point light: it casts point shadows (ScenePointLight::shadows).
 bool g_shadows[kMostSceneLights] = {};
 
 } // namespace
 
 void SceneLighting(const SceneLights& lights) {
-    LightParams p{};
+    scene_light_params_t p{};
     const Vector3& d = lights.sunDirection;
     const float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(d));
     const float sun[3] = {d.x, d.y, d.z};
@@ -48,12 +48,12 @@ void SceneLighting(const SceneLights& lights) {
     bool shadows[kMostSceneLights] = {};
     for (int k = 0; k < count; ++k) {
         const ScenePointLight& l = lights.points[order[static_cast<std::size_t>(k)].second];
-        p.points[k][0][0] = l.position.x;
-        p.points[k][0][1] = l.position.y;
-        p.points[k][0][2] = l.position.z;
-        for (int j = 0; j < 3; ++j) p.points[k][1][j] = l.colour[j];
-        p.points[k][0][3] = l.inverseRangeSquared;
-        p.points[k][1][3] = l.specular ? 1.0f : 0.0f;
+        p.pointAt[k][0] = l.position.x;
+        p.pointAt[k][1] = l.position.y;
+        p.pointAt[k][2] = l.position.z;
+        p.pointAt[k][3] = l.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) p.pointColour[k][j] = l.colour[j];
+        p.pointColour[k][3] = l.specular ? 1.0f : 0.0f;
         shadows[k] = l.shadows;
     }
     p.counts[0] = static_cast<float>(count);
@@ -63,10 +63,11 @@ void SceneLighting(const SceneLights& lights) {
 
 namespace detail {
 
-void LightUniforms(LightParams* params) {
+void LightUniforms(scene_light_params_t* params) {
     *params = g_params;
     const Frame& f = g_frame;
-    for (int k = 0; k < kMostSceneLights; ++k) params->shadowSlots[k] = static_cast<float>(PointShadowSlot(f, k) + 1);
+    for (int k = 0; k < kMostSceneLights; ++k)
+        params->shadowSlots[k / 4][k % 4] = static_cast<float>(PointShadowSlot(f, k) + 1);
     const ShadowFrame& sh = g_frame.shadow;
     Vector3 travel{params->sun[0], params->sun[1], params->sun[2]};
     if (sh.haveSun) MapLightDirection(sh.sun, &travel);
@@ -75,8 +76,8 @@ void LightUniforms(LightParams* params) {
     params->mapSun[2] = travel.z;
 }
 
-void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
-    MeshLightParams p{};
+void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
+    mesh_light_params_t p{};
     Matrix4 model = l.model;
     if (l.camera && !UnderCamera(*l.camera, l.model, &model)) model = Matrix4{};
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
@@ -122,28 +123,25 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     for (int k = 0; k < count; ++k) {
         const MeshLightSource& s = l.lights[order[static_cast<std::size_t>(k)].second];
         const Vector3 position = toModel(s.position - at);
-        p.points[k][0][0] = position.x;
-        p.points[k][0][1] = position.y;
-        p.points[k][0][2] = position.z;
-        p.points[k][0][3] = s.inverseRangeSquared;
-        for (int j = 0; j < 3; ++j) p.points[k][1][j] = diffuse[j] * s.colour[j] * l.coefficient;
-        p.points[k][1][3] = static_cast<float>(SceneLightIndex(s.position) + 1);   // its point shadow at the draw
+        p.pointAt[k][0] = position.x;
+        p.pointAt[k][1] = position.y;
+        p.pointAt[k][2] = position.z;
+        p.pointAt[k][3] = s.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) p.pointColour[k][j] = diffuse[j] * s.colour[j] * l.coefficient;
+        p.pointColour[k][3] = static_cast<float>(SceneLightIndex(s.position) + 1);   // its point shadow at the draw
     }
     p.on[2] = static_cast<float>(count);
     *params = p;
 }
 
-const float (*SceneLightPoints(int* count))[2][4] {
-    *count = static_cast<int>(g_params.counts[0]);
-    return g_params.points;
-}
+const scene_light_params_t& KeptSceneLight() { return g_params; }
 
 bool SceneLightCastsShadows(int k) { return k >= 0 && k < kMostSceneLights && g_shadows[k]; }
 
 int SceneLightIndex(const Vector3& position) {
     const int count = static_cast<int>(g_params.counts[0]);
     for (int k = 0; k < count; ++k) {
-        const float* at = g_params.points[k][0];
+        const float* at = g_params.pointAt[k];
         if (at[0] == position.x && at[1] == position.y && at[2] == position.z) return k;
     }
     return -1;

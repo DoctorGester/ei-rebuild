@@ -8,7 +8,6 @@
 
 #include "platform/win32/gameapi.h"
 #include "platform/win32/platform_win32.h"
-#include "hook/log.h"   // the shared opens' check (temporary)
 #include "lib/text_case.h"
 
 #include <windows.h>
@@ -18,9 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <mutex>
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 #pragma comment(lib, "ws2_32.lib")   // WSAGetLastError, which game.exe does not import
@@ -301,49 +298,11 @@ std::string ErrorText(unsigned long code, std::string_view path) {
 // A closed file's calls fail as on INVALID_HANDLE_VALUE (MFC's hFileNull).
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
 
-// Temporary, for a suite's check of the shared opens (then removed with OpenHandle's logging): every open is shared
-// now where most were exclusive, so an open of a file one of ours holds, which failed when either open was exclusive,
-// now succeeds. Such an open is logged, and so is an open another holder's sharing refuses. The handles File and
-// MappedFile hold, with their paths in lower case and whether they write.
-struct HeldFile {
-    std::string path;
-    bool write;
-};
-// Made at the first open and never destroyed: files also open in static constructors and close in destructors.
-std::mutex& HeldLock() {
-    static auto* lock = new std::mutex;
-    return *lock;
-}
-std::unordered_map<void*, HeldFile>& Held() {
-    static auto* held = new std::unordered_map<void*, HeldFile>;
-    return *held;
-}
-
-void Release(void* handle) {
-    std::lock_guard lock(HeldLock());
-    Held().erase(handle);
-}
-
 // `path` opened through the CreateFileA slot; null when it does not open.
 HANDLE OpenHandle(const std::string& path, DWORD access, DWORD disposition) {
     const HANDLE handle =
         gameapi::CreateFileA(path.c_str(), access, kShareReadWrite, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) {
-        if (gameapi::GetLastError() == ERROR_SHARING_VIOLATION) {
-            ei::Log("platform: %s: a sharing violation (the shared opens' check)", path.c_str());
-            gameapi::SetLastError(ERROR_SHARING_VIOLATION);
-        }
-        return nullptr;
-    }
-    HeldFile opened{path, access != GENERIC_READ};
-    for (char& c : opened.path) c = static_cast<char>(text::ToLower(static_cast<unsigned char>(c)));
-    std::lock_guard lock(HeldLock());
-    for (const auto& [other, held] : Held())
-        if (held.path == opened.path)
-            ei::Log("platform: %s: opened (%s) while open (%s) already (the shared opens' check)", path.c_str(),
-                    opened.write ? "write" : "read", held.write ? "write" : "read");
-    Held()[handle] = std::move(opened);
-    return handle;
+    return handle == INVALID_HANDLE_VALUE ? nullptr : handle;
 }
 
 } // namespace
@@ -366,7 +325,6 @@ bool File::Open(std::string_view filePath, FileMode mode) {
 }
 
 void File::Close() {
-    Release(handle);
     if (IsOpen()) gameapi::CloseHandle(handle);
     handle = nullptr;
 }
@@ -437,7 +395,6 @@ void MappedFile::Close() {
     view = nullptr;
     if (mapping) gameapi::CloseHandle(mapping);
     mapping = nullptr;
-    Release(file);
     if (file) gameapi::CloseHandle(file);
     file = nullptr;
     size = 0;

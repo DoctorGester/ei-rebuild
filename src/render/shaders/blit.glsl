@@ -1,31 +1,9 @@
-// Image rectangles, texel for pixel, cut out where the cursor mask is below a half.
-@block rect_params
-layout(binding = 0) uniform rect_params {
-    vec4 rect;
-    vec4 target;
-};
-@end
-
-@block rect_vertex
-@include_block rect_params
-vec4 rect_position() {
-    int id = gl_VertexIndex;
-    vec2 corner = vec2(id == 1 || id == 2 || id == 4, id == 2 || id == 4 || id == 5);
-    vec2 p = mix(rect.xy, rect.zw, corner);
-    return vec4(p.x * 2.0 / target.x - 1.0, 1.0 - p.y * 2.0 / target.y, 0.0, 1.0);
-}
-@end
-
-@vs blit_vs
-@glsl_options fixup_clipspace
-@include_block rect_vertex
-void main() { gl_Position = rect_position(); }
-@end
-
+// The image blit (render_blit.cpp: the cursor, the movies, the fills): a rectangle of an image onto the frame,
+// texel for pixel, cut out where the texel's alpha (the cursor's mask) is below a half.
 @fs blit_fs
 layout(binding = 1) uniform blit_params {
-    vec4 dest;
-    vec4 source;
+    vec4 dest;     // x, y: destination left, top; z, w: source texels per destination pixel
+    vec4 source;   // x, y: source left, top; z, w: texture width, height
 };
 layout(binding = 0) uniform texture2D tex;
 layout(binding = 0) uniform sampler smp;
@@ -34,8 +12,8 @@ void main() {
     vec2 texel = source.xy + floor((gl_FragCoord.xy - dest.xy) * dest.zw);
     texel = clamp(texel, vec2(0.0), source.zw - 1.0);
     vec4 c = texelFetch(sampler2D(tex, smp), ivec2(texel), 0);
-    if (c.a < 0.5) discard;
+    if (c.a < 0.5) discard;   // the colour key
     frag_colour = vec4(c.rgb, 1.0);
 }
 @end
-@program blit blit_vs blit_fs
+@program blit rect_vs blit_fs

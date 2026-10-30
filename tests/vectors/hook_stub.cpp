@@ -12,7 +12,7 @@ ImportTable& Imports() {
     return table;
 }
 
-// The run log the platform's code writes a line to: no log in the checks.
+// The run log (the NaN audit, lib/nan_audit.h, writes to it): no log in the checks.
 void Log(const char*, ...) {}
 
 } // namespace ei

@@ -1,8 +1,9 @@
 // Point-light shadows: a cube of six depth faces for each of the few strongest point lights in view. See
 // docs/notes/renderer.md, "The renderer's source files".
-#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
+
+#include "../hook/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -246,9 +247,7 @@ bool MakePipelines() {
     if (g_clearPipeline.id) return sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
     bool ok = true;
     {
-        sg_shader_desc s = ShaderDescription(kSolidShader);
-        s.label = "ei-point-shadow-clear";
-        g_clearShader = sg_make_shader(&s);
+        g_clearShader = sg_make_shader(solid_shader_desc(sg_query_backend()));
         sg_pipeline_desc p{};
         p.shader = g_clearShader;
         p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
@@ -345,8 +344,8 @@ void PreparePointShadows(Frame& f) {
     g_casters.clear();
     g_units.clear();
     g_mappedCount = 0;
-    int sceneCount = 0;
-    const float(*scene)[2][4] = SceneLightPoints(&sceneCount);
+    const scene_light_params_t& scene = KeptSceneLight();
+    const int sceneCount = static_cast<int>(scene.counts[0]);
     Matrix4 camera;
     Vector3 eye;
     if (sceneCount == 0 || f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
@@ -356,8 +355,8 @@ void PreparePointShadows(Frame& f) {
     // the scene's order).
     g_candidates.clear();
     for (int k = 0; k < sceneCount; ++k) {
-        const float* at = scene[k][0];
-        const float* colour = scene[k][1];
+        const float* at = scene.pointAt[k];
+        const float* colour = scene.pointColour[k];
         const float brightest = std::max({colour[0], colour[1], colour[2]});
         if (!SceneLightCastsShadows(k) || !(at[3] > 0.0f) || brightest < kLeastColour) continue;
         const float range = 1.0f / std::sqrt(at[3]);
@@ -606,8 +605,7 @@ void DrawPointShadows(Frame& f) {
         sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
         const auto side = static_cast<float>(kPointFaceTexels);
         solid_params_t vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
-        sg_range vr{&vs, sizeof(vs)};
-        sg_apply_uniforms(UB_solid_params, &vr);
+        sg_apply_uniforms(UB_solid_params, SG_RANGE(vs));
         sg_draw(0, 6, 1);
     }
     if (haveDraws)
@@ -624,10 +622,10 @@ int PointShadowSlot(const Frame& f, int sceneLight) {
     return f.shadow.point.sceneSlots[sceneLight] - 1;
 }
 
-void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot) {
+void BindPointShadows(sg_bindings& b) {
     const bool on = g_atlasTexture.id && g_frame.shadow.point.params.on[0] > 0.5f;
-    b.views[viewSlot] = on ? g_atlasTexture : NoShadowTexture();
-    b.samplers[samplerSlot] = ShadowCompareSampler();
+    b.views[VIEW_point_shadow_map] = on ? g_atlasTexture : NoShadowTexture();
+    b.samplers[SMP_point_shadow_smp] = ShadowCompareSampler();
 }
 
 void DestroyPointShadows() {

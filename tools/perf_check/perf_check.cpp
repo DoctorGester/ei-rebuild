@@ -11,6 +11,10 @@
 //           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
 // Any sokol error or warning and any ei::Log line but the switch's fails the check. Exit code 0 when all pass.
 #define NOMINMAX
+#include <windows.h>
+#include <d3d11.h>
+#include <dxgi1_5.h>
+
 #include "platform/win32/graphics_win32.h"
 #include "render/render_internal.h"
 #include "render/render_perf.h"
@@ -21,11 +25,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <d3d11.h>
-#include <dxgi1_5.h>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 namespace perf = render::perf;
 
@@ -169,17 +170,16 @@ void BeginTargetPass(const Target& t) {
 }
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
-    render::detail::StagingCopy copy;
-    bool ok = copy.Map(t.image);
-    if (ok) {
+    platform::graphics::Readback copy;
+    const bool read = copy.Read(t.image, platform::Rect{0, 0, t.width, t.height});
+    if (read) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
             std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4,
-                        copy.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(t.width) * 4);
+                        copy.Row(y), static_cast<std::size_t>(t.width) * 4);
     }
     copy.Release();
-    sg_reset_state_cache();
-    return ok;
+    return read;
 }
 
 void CheckDraw(int width, int height) {
@@ -289,10 +289,11 @@ void CheckTime() {
 }
 
 bool StartDevice(bool hardware) {
-    const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+    const D3D_FEATURE_LEVEL level = D3D_FEATURE_LEVEL_11_0;   // the shaders are shader model 5
     D3D_FEATURE_LEVEL got{};
-    HRESULT hr = D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
-                                   D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, 3, D3D11_SDK_VERSION, &g_device, &got, &g_context);
+    HRESULT hr =
+        D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
+                          D3D11_CREATE_DEVICE_BGRA_SUPPORT, &level, 1, D3D11_SDK_VERSION, &g_device, &got, &g_context);
     if (FAILED(hr)) {
         std::printf("D3D11CreateDevice (%s) failed: %08lX\n", hardware ? "hardware" : "WARP", static_cast<unsigned long>(hr));
         return false;
@@ -308,7 +309,8 @@ bool StartDevice(bool hardware) {
     return sg_isvalid();
 }
 
-// The vertical blank switch (src/render/render_window.cpp, R23): the pure rules, then real chains on a hidden window.
+// The vertical blank switch (src/platform/win32/graphics_win32.cpp, R23): the pure rules, then real chains on a hidden
+// window.
 void CheckVsync() {
     const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     namespace d = platform::graphics;
@@ -330,14 +332,7 @@ void CheckVsync() {
     HWND window = CreateWindowExW(0, L"STATIC", L"ei_perf_check", WS_POPUP, 0, 0, 320, 240, nullptr, nullptr, nullptr, nullptr);
     Check(window != nullptr, "a hidden window");
     if (ok && window) {
-        IDXGIFactory5* factory5 = nullptr;
-        BOOL tearingSupported = FALSE;
-        if (SUCCEEDED(factory->QueryInterface(__uuidof(IDXGIFactory5), reinterpret_cast<void**>(&factory5)))) {
-            factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearingSupported,
-                                          sizeof(tearingSupported));
-            factory5->Release();
-        }
-        const bool supported = tearingSupported != FALSE;
+        const bool supported = d::TearingSupported(factory);
         std::printf("  tearing presents %s on this device\n", supported ? "supported" : "not supported");
         for (int wanted = 0; wanted < 2; ++wanted) {
             const bool allowTearing = wanted != 0;

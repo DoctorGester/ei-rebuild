@@ -7,6 +7,7 @@
 #include "../../../src/hook/log.h"
 #include "ei/hook.h"
 
+#include "platform/win32/graphics_win32.h"
 #include "render/render.h"
 
 #include <windows.h>
@@ -47,11 +48,9 @@ WindowPresents WindowPresentCounts() {
     counts.deviceLosses = info.deviceLosses;
     counts.deviceRecoveries = info.deviceRecoveries;
     counts.presentsAtRecovery = info.presentsAtRecovery;
-    counts.lastLossResult = info.lastLossResult;
-    counts.lastLossReason = info.lastLossReason;
-    counts.lastLossSimulated = info.lastLossSimulated;
-    counts.removable = info.removable;
-    counts.removals = info.removals;
+    counts.lastLossCode = info.lastLossCode;
+    counts.removable = platform::graphics::Removable();
+    counts.removals = platform::graphics::Removals();
     return counts;
 }
 
@@ -64,10 +63,24 @@ bool FrameInWindow(int* width, int* height) {
 }
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
-void ConfigureRenderer(const char* spec) { render::Configure(spec); }
+// "removable" is the Direct3D backend's (graphics_win32.h); the other words are the renderer's.
+void ConfigureRenderer(const char* spec) {
+    std::string words;
+    std::size_t start = 0;
+    const std::string all = spec ? spec : "";
+    while (start <= all.size()) {
+        std::size_t comma = all.find(',', start);
+        if (comma == std::string::npos) comma = all.size();
+        const std::string word = all.substr(start, comma - start);
+        if (word == "removable") platform::graphics::MakeRemovable();
+        else words += (words.empty() ? "" : ",") + word;
+        start = comma + 1;
+    }
+    render::Configure(words.c_str());
+}
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void LoseDevice() { render::LoseDevice(); }
-bool RemoveDevice() { return render::RemoveDevice(); }
+bool RemoveDevice() { return platform::graphics::RequestRemoval(); }
 void EndFrame() { render::EndFrame(); }
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) { return render::ReadFrame(width, height, bgr); }
 

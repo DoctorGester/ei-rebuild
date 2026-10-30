@@ -53,52 +53,36 @@ struct Value {
 
 constexpr Value kVideoValues[] = {
     {kVideo, "VideoColorDepthInBits", &GameOptions::colourDepth},
-    {kVideo, "VideoZBufferDepthInBits", &GameOptions::zBufferDepth},
-    {kVideo, "VideoRefreshRate", &GameOptions::refreshRate},
     {kVideo, "FullScreen", &GameOptions::fullScreen, kFlag},
 };
-// Joystick (joystick, default 0) comes between these two lists.
 constexpr Value kValues[] = {
     {kVideo, "Video", &GameOptions::video},
     {kSound, "Audio", &GameOptions::audio, kFlag},
     {kSound, "AudioStreaming", &GameOptions::audioStreaming},
     {kSound, "AudioSFX", &GameOptions::audioSfx},
     {kSound, "AudioSpeech", &GameOptions::audioSpeech},
-    {kVideo, "Antialiasing", &GameOptions::antialiasing, kFlag},
-    {kVideo, "Dithering", &GameOptions::dithering, kFlag},
     {kVideo, "Specular", &GameOptions::specular, kFlag},
     {kVideo, "TextureQuality", &GameOptions::textureQuality},
     {kVideo, "Mipmapping", &GameOptions::mipmapping, kFlag},
     {kVideo, "Filtering", &GameOptions::filtering},
-    {kVideo, "PerspectiveCorrection", &GameOptions::perspectiveCorrection, kFlag},
-    {kVideo, "ShowParticles", &GameOptions::showParticles, kFlag},
     {kVideo, "FPSIndependentCursor", &GameOptions::fpsIndependentCursor, kFlag},
-    {kVideo, "AutomaticQuantization", &GameOptions::automaticQuantization, kFlag},
-    {kVideo, "MovieCapturingFPS", &GameOptions::movieCapturingFps},
     {kVideo, "Brightness", &GameOptions::brightness},
     {kVideo, "Contrast", &GameOptions::contrast},
     {kVideo, "Gamma", &GameOptions::gamma},
     {kSound, "Reverse Stereo", &GameOptions::reverseStereo, kFlag},
     {kShadows, "ShadowQuality", &GameOptions::shadowQuality},
-    {kShadows, "HeroShadow", &GameOptions::heroShadow, kFlag},
     {kShadows, "UnitShadow", &GameOptions::unitShadow, kFlag},
     {kShadows, "BuildingShadow", &GameOptions::buildingShadow, kFlag},
     {kShadows, "FloraShadow", &GameOptions::floraShadow, kFlag},
-    {kShadows, "OtherShadow", &GameOptions::otherShadow, kFlag},
     {kShadows, "LightingFreq", &GameOptions::shadowLightingFreq},
     {kShadows, "FloraSpecialLight", &GameOptions::floraSpecialLight, kFlag},
     {kTerrain, "BorderFogDistance", &GameOptions::borderFogDistance},
     {kTerrain, "EnableWaterWaves", &GameOptions::enableWaterWaves, kFlag},
-    {kTerrain, "EnableDynamicLights", &GameOptions::enableDynamicLights, kFlag},
     {kTerrain, "EnableSelfShadowing", &GameOptions::enableSelfShadowing, kFlag},
-    {kTerrain, "LightingFreq", &GameOptions::lightingFreq},
-    {kTerrain, "ShadowingFreq", &GameOptions::shadowingFreq},
     {kTerrain, "EnableFootprints", &GameOptions::enableFootprints, kFlag},
     {kTerrain, "EnableBloodprints", &GameOptions::enableBloodprints, kFlag},
     {kTerrain, "EnableFireprints", &GameOptions::enableFireprints, kFlag},
     {kTerrain, "EnableBloodprintsRelight", &GameOptions::enableBloodprintsRelight, kFlag},
-    {kStatistics, "CreateOutputInfo", &GameOptions::createOutputInfo, kFlag},
-    {kStatistics, "NumberOfFrames", &GameOptions::numberOfFrames},
 };
 constexpr Value kCameraValues[] = {
     {kCamera, "CameraMinHeight", &GameOptions::cameraMinHeight},
@@ -147,9 +131,7 @@ constexpr struct {
 constexpr Value kGameValues[] = {
     {kGame, "DefaultWindForce", &GameOptions::defaultWindForce},
     {kGame, "DefaultTimeScale", &GameOptions::defaultTimeScale},
-    {kGame, "UseSWCursors", &GameOptions::useSwCursors, kFlag},
     {kGame, "SelectionType", &GameOptions::selectionType},
-    {kGame, "CornerSize", &GameOptions::cornerSize},
     {kGame, "DrawVisibleOnly", &GameOptions::drawVisibleOnly, kFlag},
     {kGame, "DrawPath", &GameOptions::drawPath, kFlag},
     {kGame, "DrawFlyingHP", &GameOptions::drawFlyingHp, kFlag},
@@ -171,8 +153,6 @@ constexpr Value kFogValues[] = {
 using StringField = std::string& (*)(GameOptions&);
 template <std::string GameOptions::*Member>
 std::string& StringOf(GameOptions& options) { return options.*Member; }
-template <int Index>
-std::string& CdLabel(GameOptions& options) { return options.cdLabels[Index]; }
 struct StringValue {
     const char* section;
     const char* name;
@@ -184,10 +164,7 @@ constexpr StringValue kPathValues[] = {
     {kPaths, "CD-ROM Path", &StringOf<&GameOptions::cdRomPath>},
 };
 constexpr StringValue kCdValues[] = {
-    {kGame, "CD1 Label", &CdLabel<0>},
-    {kGame, "CD2 Label", &CdLabel<1>},
-    {kGame, "CD3 Label", &CdLabel<2>},
-    {kGame, "Font CharSet", &StringOf<&GameOptions::fontCharSet>},
+    {kGame, "CD2 Label", &StringOf<&GameOptions::cd2Label>},
 };
 constexpr StringValue kDefaultValues[] = {
     {kGame, "DefaultMapName", &StringOf<&GameOptions::defaultMapName>},
@@ -332,7 +309,6 @@ void GameOptions::Load() {
         }
     }
     l.Read(kVideoValues);
-    joystick = GetInt(kGame, "Joystick", 0);
     l.Read(kValues);
     l.ReadCameraFlip(cameraFlipX, "CameraFlipXAxis");
     l.ReadCameraFlip(cameraFlipY, "CameraFlipYAxis");
@@ -358,7 +334,6 @@ void GameOptions::Save() {
     s.Write(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
     SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
     s.Write(kVideoValues);
-    SetBool(kGame, "Joystick", false);
     s.Write(kValues);
     s.WriteCameraFlip(cameraFlipX, "CameraFlipXAxis");
     s.WriteCameraFlip(cameraFlipY, "CameraFlipYAxis");

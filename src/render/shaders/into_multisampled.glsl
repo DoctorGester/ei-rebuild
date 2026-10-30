@@ -1,8 +1,5 @@
-@vs into_multisampled_vs
-@glsl_options fixup_clipspace
-@include_block fullscreen_vertex
-@end
-
+// The multisampling's copy into the multisampled targets (render_smooth.cpp): every sample of a pixel takes the
+// source's colour and depth at that pixel.
 @fs into_multisampled_fs
 layout(binding = 0) uniform texture2D colour;
 layout(binding = 1) uniform texture2D depth;
@@ -15,4 +12,4 @@ void main() {
     frag_colour = texelFetch(sampler2D(colour, copy_smp), p, 0);
 }
 @end
-@program into_multisampled into_multisampled_vs into_multisampled_fs
+@program into_multisampled fullscreen_vs into_multisampled_fs

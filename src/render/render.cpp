@@ -1,27 +1,30 @@
-// The new renderer's frame: the switch, the device behind sokol_gfx, the off-screen
-// target the frame is drawn into (the game's resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
+// The new renderer's frame: the switch, the device behind sokol_gfx (platform/graphics.h), the off-screen target the
+// frame is drawn into (the game's resolution) and reading it back for captures. See render.h and
+// docs/notes/renderer.md.
 #include "render.h"
+#include "render_internal.h"
+#include "render_perf.h"
+#include "render_ui.h"
 
+#include "../hook/log.h"
+#include "ei/hook.h"
+
+#include "render_state.h"
+#include "../game/texture.h"
 #include "../game/app.h"
 #include "../game/game_singletons.h"
 #include "../game/model.h"
-#include "../game/texture.h"
-#include "../hook/log.h"
 #include "platform/graphics.h"
-#include "platform/platform.h"
-#include "render_internal.h"
-#include "render_perf.h"
-#include "render_state.h"
-#include "render_ui.h"
 
-#include "ei/hook.h"
-
+#include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <optional>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -36,7 +39,6 @@ using namespace detail;
 bool g_configured = false;
 int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
 int g_anisotropy = 1;
-bool g_removable = false;   // requested only by diagnostic builds
 #if defined(EI_RENDER_VALIDATION)
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
@@ -44,7 +46,6 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 // EI_RENDER's words (render.h).
 void ParseSpec(const char* spec) {
 #if defined(EI_RENDER_VALIDATION)
-    g_removable = false;
     g_checkAll = false;
 #endif
     std::string s = spec ? spec : "";
@@ -56,8 +57,7 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         bool known = false;
 #if defined(EI_RENDER_VALIDATION)
-        if (word == "removable") g_removable = known = true;
-        else if (word == "checkall") g_checkAll = known = true;
+        if (word == "checkall") g_checkAll = known = true;
 #endif
         if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
@@ -80,6 +80,7 @@ sg_color FromD3DColour(std::uint32_t c) {
                     (c & 0xFF) / 255.0f, 1.0f};
 }
 
+
 int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
 
 void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
@@ -97,23 +98,34 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
     if (level == 0) Fatal("The renderer stopped: sokol_gfx panic %u (%s).", item, message ? message : "");
 }
 
+// Why the last CreateDevice failed (for the fatal error's message).
+const char* g_deviceError = "";
+
 bool CreateDevice() {
     sg_desc desc{};
-    if (!platform::graphics::CreateEnvironment(&desc.environment, g_removable, &CommitGpu)) return false;
+    if (!platform::graphics::Start(&desc.environment)) {
+        g_deviceError = platform::graphics::Error();
+        return false;
+    }
     desc.environment.defaults.color_format = kColourFormat;
     desc.environment.defaults.depth_format = kDepthFormat;
     desc.environment.defaults.sample_count = 1;
     desc.logger.func = &SokolLog;
-    desc.image_pool_size = desc.view_pool_size = 16384;
+    // The game's textures, canvases and the images replaced within a frame are far more than sokol's
+    // default pools (128 images, 256 views); a full pool made sg_make_image fail.
+    desc.image_pool_size = 16384;
+    desc.view_pool_size = 16384;
     desc.buffer_pool_size = 512;
     desc.pipeline_pool_size = 1024;
     desc.sampler_pool_size = 256;
     sg_setup(&desc);
     if (!sg_isvalid()) {
-        platform::graphics::DropDevice();
+        g_deviceError = "sokol_gfx could not be set up on the device";
+        ei::Log("render: %s", g_deviceError);
+        platform::graphics::Stop();
         return false;
     }
-    g_deviceSamples = platform::graphics::SampleCount();
+    g_deviceSamples = platform::graphics::MaxSamples(kSmoothSamples);
     return true;
 }
 
@@ -268,8 +280,8 @@ void MakePipelines(const char* what) {
 void detail::Start() {
     EnsureConfigured();
     if (g_started) return;
-    GpuGuard gpu;
-    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", platform::graphics::DeviceError());
+    platform::FloatingPointGuard fpu;
+    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", g_deviceError);
     MakePipelines("Can't start the renderer");
     g_started = true;
 }
@@ -278,19 +290,16 @@ namespace {
 
 // --- A lost device -------------------------------------------------------------------------------------
 
-bool g_deviceLost = false;     // seen (a DXGI error, GetDeviceRemovedReason): made again at the present
-bool g_simulateLoss = false;   // render::LoseDevice
-bool g_simulationTaken = false;   // the loss being reported is LoseDevice's
+bool g_simulateLoss = false;   // render::LoseDevice: taken at the end of the next presented frame
 int g_losses = 0, g_recoveries = 0;
-long g_lastLossResult = 0, g_lastLossReason = 0;   // what reported the last loss, GetDeviceRemovedReason then
-bool g_lastLossSimulated = false;
+std::uint32_t g_lastLossCode = 0;   // the backend's code of the last loss (0: LoseDevice's)
 
 // Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
-// the device and context with them; a new device gets sokol again and the pipelines. The frame target, the
+// the device with them; a new device gets sokol again and the pipelines. The frame target, the
 // window's swap chain and textures are made again as the next frames ask for them (from the file levels kept for
 // them), the interface canvases from the commands each keeps. No new device ends the game.
 void RecreateDevice() {
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
     DropCursorPresents();
@@ -306,30 +315,32 @@ void RecreateDevice() {
     perf::Release();
     DropTextures(&kept, &keptBytes);
     sg_shutdown();
-    platform::graphics::DropDevice();
-    ei::Log("render: rebuilding the device (%zu textures kept, %zu KB)", kept, keptBytes / 1024);
+    platform::graphics::Stop();
+    ei::Log("render: making a new device (%zu textures to make again from %zu KB of their files)", kept,
+            keptBytes / 1024);
     // A device right after a driver reset may not be available at once.
     bool made = false;
     for (int attempt = 0; attempt < 5 && !made; ++attempt) {
-        if (attempt) platform::Sleep(200);
+        if (attempt) std::this_thread::sleep_for(std::chrono::milliseconds(200));
         made = CreateDevice();
     }
-    if (!made)
-        Fatal("The graphics device was lost and no new one could be made: %s.", platform::graphics::DeviceError());
-    MakePipelines("The graphics device was lost and made again");
+    if (!made) Fatal("The device was lost and no new one could be made: %s.", g_deviceError);
+    MakePipelines("The device was lost and made again");
     RemakeComposed();
     ++g_recoveries;
-    g_deviceLost = false;
 }
 
-// The end of a presented frame (nothing of it holds sokol resources any more): a loss reported
-// during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported, e.g.
-// while minimised) makes everything again.
+// The end of a presented frame (nothing of it holds sokol resources any more): a loss a call reported during the
+// frame, one the device reports (e.g. while minimised, when nothing presents), or one asked for makes everything
+// again.
 void CheckDevice() {
-    if (TakeSimulatedLoss()) ReportDeviceLost(platform::graphics::kDeviceRemoved, 0);
-    long result = 0, reason = 0;
-    if (!g_deviceLost && platform::graphics::PollDeviceLoss(&result, &reason)) ReportDeviceLost(result, reason);
-    if (g_deviceLost) RecreateDevice();
+    const std::optional<std::uint32_t> lost = platform::graphics::Lost();
+    if (!lost && !g_simulateLoss) return;
+    g_lastLossCode = lost ? *lost : 0;
+    if (lost) ei::Log("render: the device was lost (%08X)", static_cast<unsigned>(*lost));
+    else ei::Log("render: the device's loss asked for (render::LoseDevice)");
+    g_simulateLoss = false;
+    RecreateDevice();
 }
 
 #if defined(EI_RENDER_VALIDATION)
@@ -637,35 +648,10 @@ bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.e
 
 namespace detail {
 
-void ReportDeviceLost(long result, long reason) {
-    if (!g_deviceLost) {
-        g_lastLossResult = result;
-        g_lastLossReason = reason;
-        g_lastLossSimulated = g_simulationTaken;
-    }
-    g_simulationTaken = false;
-    g_deviceLost = true;
-}
-bool DeviceIsLost() { return g_deviceLost; }
-
-bool TakeSimulatedLoss() {
-    if (!g_simulateLoss) return false;
-    g_simulateLoss = false;
-    g_simulationTaken = true;
-    ei::Log("render: the device's loss asked for (render::LoseDevice): taken as DXGI_ERROR_DEVICE_REMOVED");
-    return true;
-}
-
 void DeviceLossCounts(WindowPresentInfo* info) {
     info->deviceLosses = g_losses;
     info->deviceRecoveries = g_recoveries;
-    info->lastLossResult = g_lastLossResult;
-    info->lastLossReason = g_lastLossReason;
-    info->lastLossSimulated = g_lastLossSimulated;
-#if defined(EI_RENDER_VALIDATION)
-    info->removable = platform::graphics::Removable();
-    info->removals = platform::graphics::Removals();
-#endif
+    info->lastLossCode = g_lastLossCode;
 }
 
 } // namespace detail
@@ -674,13 +660,6 @@ void LoseDevice() {
     if (!g_started) return;
     g_simulateLoss = true;
 }
-
-#if defined(EI_RENDER_VALIDATION)
-bool RemoveDevice() { return g_started && platform::graphics::RequestRemoval(); }
-namespace detail {
-void RemoveIfAsked() { platform::graphics::RemoveIfAsked(); }
-}
-#endif
 
 namespace detail {
 
@@ -699,10 +678,6 @@ Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 
-void CommitGpu() {
-    sg_commit();
-    ++g_commits;
-}
 sg_image FrameImage() { return g_colour; }
 sg_view FrameTexture() { return g_colourTexture; }
 bool FrameSize(int* width, int* height) {
@@ -753,7 +728,7 @@ void Configure(const char* spec) {
 
 void PrepareDevice() {
     EnsureConfigured();
-    if (!g_started) platform::graphics::PrepareDevice(g_removable);
+    if (!g_started) platform::graphics::PrepareInBackground();
 }
 
 void BeginDeviceMeshTime() {
@@ -944,13 +919,13 @@ namespace detail {
 
 void SplitFrame() {
     if (!g_started || g_frameDrawn || BetweenFrames()) return;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     DrawPendingAlone();
 }
 
 void RunCanvasesNow() {
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     BeginWindowPresent();
     RunCanvasCommands();
     EndWindowPresent(false);
@@ -968,7 +943,7 @@ void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
     // Onto the game window through the renderer's swap chain, in turn with the cursor thread's presents, which
@@ -983,10 +958,10 @@ void EndFrame() {
     perf::EndGpuFrame();
     g_frame.haveCursor = false;
     ShadowFrameEnd();
-    CommitGpu();
+    sg_commit();
     submitTime.Stop();   // the present's wait for the display is not the renderer's work
-    if (toWindow) PresentWindow();
-    EndWindowPresent(toWindow && !g_deviceLost);
+    ++g_commits;
+    EndWindowPresent(toWindow && PresentWindow());
     g_haveFrame = true;
 }
 
@@ -1024,7 +999,7 @@ void Present() {
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         RetireTextures();
         RetireBuffers();
         RetireFrameImages();
@@ -1057,18 +1032,18 @@ SmoothInfo SmoothState() {
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
     if (!g_started || !g_haveFrame || !g_colour.id) return false;
-    GpuGuard gpu;
-    StagingCopy copy;
-    bool ok = copy.Map(g_colour);
-    if (ok) {
-        const unsigned w = copy.Width(), h = copy.Height();
-        *width = static_cast<int>(w);
-        *height = static_cast<int>(h);
+    platform::FloatingPointGuard fpu;
+    platform::graphics::Readback copy;
+    const int w = g_width, h = g_height;
+    const bool read = copy.Read(g_colour, platform::Rect{0, 0, w, h});
+    if (read) {
+        *width = w;
+        *height = h;
         bgr->resize(static_cast<std::size_t>(w) * h * 3);
-        for (unsigned y = 0; y < h; ++y) {
+        for (int y = 0; y < h; ++y) {
             const std::uint8_t* row = copy.Row(y);
             std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
-            for (unsigned x = 0; x < w; ++x) {
+            for (int x = 0; x < w; ++x) {
                 out[x * 3 + 0] = row[x * 4 + 2];
                 out[x * 3 + 1] = row[x * 4 + 1];
                 out[x * 3 + 2] = row[x * 4 + 0];
@@ -1076,8 +1051,7 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
         }
     }
     copy.Release();
-    sg_reset_state_cache();
-    return ok;
+    return read;
 }
 
 } // namespace render

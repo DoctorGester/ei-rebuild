@@ -1,29 +1,28 @@
-// Shared GPU glyph cases and their independent CPU pixel oracle.
-#pragma once
+#include "render/glyph_cases.h"
 
-constexpr std::uint32_t Colourref(unsigned r, unsigned g, unsigned b) { return r | (g << 8) | (b << 16); }
+#include "render/render_text.h"
+#include "render/render_ui.h"
 
-struct Format {
-    const char* name;
-    render::PixelFormat format;
-};
+#include <algorithm>
+#include <cstdio>
+#include <vector>
+
+namespace glyph_cases {
+
+using render::Rect;
+namespace ui = render::ui;
+namespace text = render::text;
+
 const Format kFormats[] = {
     {"5:6:5", {16, 0xF800, 0x7E0, 0x1F}},
     {"5:5:5", {16, 0x7C00, 0x3E0, 0x1F}},
     {"8:8:8", {32, 0xFF0000, 0xFF00, 0xFF}},
 };
 
-int g_checks = 0, g_failures = 0;
+namespace {
 
-void Check(bool ok, const std::string& what) {
-    ++g_checks;
-    if (ok) {
-        if (g_verbose) std::printf("  ok   %s\n", what.c_str());
-        return;
-    }
-    ++g_failures;
-    std::printf("  FAIL %s\n", what.c_str());
-}
+constexpr std::uint32_t Colourref(unsigned r, unsigned g, unsigned b) { return r | (g << 8) | (b << 16); }
+std::uint32_t RgbOfColorref(std::uint32_t c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
 
 // The test's own quantising (independent of render_ui's): top bits, repeated.
 std::uint32_t RefChannel(std::uint32_t v, int bits) {
@@ -38,26 +37,6 @@ struct Bits {
 Bits BitsOf(const render::PixelFormat& f) {
     if (f.bitsPerPixel == 32) return {8, 8, 8};
     return f.greenMask == 0x7E0 ? Bits{5, 6, 5} : Bits{5, 5, 5};
-}
-std::uint32_t RefQuantise(std::uint32_t rgb, const render::PixelFormat& f) {
-    Bits b = BitsOf(f);
-    return (RefChannel((rgb >> 16) & 0xFF, b.r) << 16) | (RefChannel((rgb >> 8) & 0xFF, b.g) << 8) |
-           RefChannel(rgb & 0xFF, b.b);
-}
-// Each channel's top bits of the format (the low bits 0), as the game's PixelAt gives them.
-std::uint32_t RefTopBits(std::uint32_t rgb, const render::PixelFormat& f) {
-    Bits b = BitsOf(f);
-    auto top = [](std::uint32_t v, int bits) { return v & (0xFFu << (8 - bits)) & 0xFF; };
-    return (top((rgb >> 16) & 0xFF, b.r) << 16) | (top((rgb >> 8) & 0xFF, b.g) << 8) | top(rgb & 0xFF, b.b);
-}
-std::uint32_t RgbOfColorref(std::uint32_t c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
-
-// A canvas read back, each pixel packed in the surface format (empty when it cannot be read).
-std::vector<std::uint32_t> ReadPacked(const void* holder, const render::PixelFormat& f) {
-    std::vector<std::uint32_t> pixels;
-    if (!ui::ReadPixels(holder, &pixels)) return {};
-    for (std::uint32_t& p : pixels) p = ui::Pack(p, f);
-    return pixels;
 }
 
 // The run drawn onto `pixels` (0x00RRGGBB) by the canvas's rule.
@@ -101,6 +80,20 @@ void RefGlyphRun(std::vector<std::uint32_t>& pixels, int width, int height, text
     }
 }
 
+}   // namespace
+
+std::uint32_t RefQuantise(std::uint32_t rgb, const render::PixelFormat& f) {
+    Bits b = BitsOf(f);
+    return (RefChannel((rgb >> 16) & 0xFF, b.r) << 16) | (RefChannel((rgb >> 8) & 0xFF, b.g) << 8) |
+           RefChannel(rgb & 0xFF, b.b);
+}
+// Each channel's top bits of the format (the low bits 0), as the game's PixelAt gives them.
+std::uint32_t RefTopBits(std::uint32_t rgb, const render::PixelFormat& f) {
+    Bits b = BitsOf(f);
+    auto top = [](std::uint32_t v, int bits) { return v & (0xFFu << (8 - bits)) & 0xFF; };
+    return (top((rgb >> 16) & 0xFF, b.r) << 16) | (top((rgb >> 8) & 0xFF, b.g) << 8) | top(rgb & 0xFF, b.b);
+}
+
 int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example) {
     int differ = 0;
     for (std::size_t i = 0; i < a.size() && i < b.size(); ++i)
@@ -114,8 +107,7 @@ int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>
     return differ + (a.size() == b.size() ? 0 : 1000000);
 }
 
-void CheckGlyphs() {
-    if (g_verbose) std::printf("glyphs:\n");
+void Run(CheckFn check) {
     const int w = 180, h = 72;
     struct Case {
         const char* text;
@@ -141,7 +133,7 @@ void CheckGlyphs() {
             const void* holder = &c;
             text::TextFont* font = text::GetTextFont("Times New Roman", c.pixels, c.smoothing);
             if (!font) {
-                Check(false, std::string("font Times New Roman ") + std::to_string(c.pixels) + " px");
+                check(false, std::string("font Times New Roman ") + std::to_string(c.pixels) + " px");
                 continue;
             }
             ui::Canvas(holder, w, h, f.format);
@@ -161,7 +153,7 @@ void CheckGlyphs() {
             Rect shifted{c.rect.left + 1, c.rect.top + 1, c.rect.right + 1, c.rect.bottom + 1};
             bool laid = text::Layout(*font, decoded, shifted, c.format, shadow) &&
                         text::Layout(*font, decoded, c.rect, c.format, layout);
-            Check(laid, std::string("layout of case ") + std::to_string(caseIndex));
+            check(laid, std::string("layout of case ") + std::to_string(caseIndex));
             ui::GlyphRun(holder, *font, shadow, Colourref(8, 8, 8));
             RefGlyphRun(expected, w, h, *font, shadow, Colourref(8, 8, 8), f.format);
             const std::uint32_t colour = Colourref(250, 220, 120 + caseIndex * 30);
@@ -170,7 +162,7 @@ void CheckGlyphs() {
             std::vector<std::uint32_t> got;
             std::string example;
             int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
-            Check(differ == 0, std::string(f.name) + " glyph run, case " + std::to_string(caseIndex) + " (" +
+            check(differ == 0, std::string(f.name) + " glyph run, case " + std::to_string(caseIndex) + " (" +
                                    std::to_string(layout.quads.size()) + " glyphs, " +
                                    std::to_string(layout.underlines.size()) +
                                    " underlines): " + std::to_string(differ) + " pixels differ" +
@@ -185,7 +177,7 @@ void CheckGlyphs() {
         const void* holder = &f;
         text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
         if (!font) {
-            Check(false, "font Times New Roman 14 px");
+            check(false, "font Times New Roman 14 px");
             continue;
         }
         ui::Canvas(holder, w, h, f.format);
@@ -206,7 +198,7 @@ void CheckGlyphs() {
         std::vector<std::uint32_t> got;
         std::string example;
         int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
-        Check(runs == 4 && differ == 0, std::string(f.name) + " glyph runs drawn together (" + std::to_string(runs) +
+        check(runs == 4 && differ == 0, std::string(f.name) + " glyph runs drawn together (" + std::to_string(runs) +
                                             " laid out): " + std::to_string(differ) + " pixels differ" +
                                             (example.empty() ? "" : " (" + example + ")"));
         ui::DropCanvas(holder);
@@ -235,12 +227,12 @@ void CheckGlyphs() {
             std::vector<std::uint32_t> got;
             std::string example;
             int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, bw, &example) : -1;
-            Check(runs == 13 && differ == 0, "glyph runs drawn together past the stream buffer (" +
+            check(runs == 13 && differ == 0, "glyph runs drawn together past the stream buffer (" +
                                                  std::to_string(runs) + " laid out): " + std::to_string(differ) +
                                                  " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
             ui::DropCanvas(holder);
         } else {
-            Check(false, "font Times New Roman 14 px");
+            check(false, "font Times New Roman 14 px");
         }
     }
     // Over black in 8:8:8 the run is ComposeAgainstBlack (render_text's CPU reference).
@@ -257,12 +249,13 @@ void CheckGlyphs() {
             for (std::uint32_t& p : composed) p &= 0xFFFFFF;
             std::string example;
             int differ = ui::ReadPixels(holder, &got) ? Differ(composed, got, w, &example) : -1;
-            Check(differ == 0, "8:8:8 glyph run over black against ComposeAgainstBlack: " + std::to_string(differ) +
+            check(differ == 0, "8:8:8 glyph run over black against ComposeAgainstBlack: " + std::to_string(differ) +
                                    " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
             ui::DropCanvas(holder);
         } else {
-            Check(false, "font or layout for the ComposeAgainstBlack case");
+            check(false, "font or layout for the ComposeAgainstBlack case");
         }
     }
-    sg_commit();
 }
+
+}   // namespace glyph_cases

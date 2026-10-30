@@ -2,11 +2,12 @@
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
 // device. Also the cursor pictures' pixels as RGBA8 (render::PictureFromMmp).
-#include "../game/texture.h"
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render_internal.h"
 #include "render_ui.h"
+
+#include "../hook/log.h"
+
+#include "../game/texture.h"
 
 #include <cstdio>
 #include <cstring>
@@ -321,7 +322,6 @@ sg_wrap Wrap(std::uint8_t address) {
 } // namespace
 
 sg_view SurfaceView(const void* holder) {
-    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     std::uint32_t frame = FrameNumber();
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
@@ -599,7 +599,7 @@ namespace render {
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data) return false;
     detail::Start();
-    detail::GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
 }
@@ -608,7 +608,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     using namespace detail;
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = recipe->height = size;
@@ -635,7 +635,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
     using namespace detail;
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = width;
@@ -648,7 +648,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
     using namespace detail;
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     ComposeStep step;
     step.over = false;
@@ -663,7 +663,7 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     using namespace detail;
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto clouds = std::make_shared<CloudsDraw>();
     clouds->from = from;
@@ -714,7 +714,7 @@ void HolderGone(const void* holder) {
 
 void PictureFromMmp(const void* holder, const void* data) {
     if (!holder || !data) return;
-    detail::GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     detail::PictureFromMmpData(holder, data);
 }
 

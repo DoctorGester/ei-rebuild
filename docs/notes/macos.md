@@ -18,18 +18,17 @@ cmake -S . -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build/macos -j 8
 ```
 
-The result is `build/macos/ei-rebuild.app/Contents/MacOS/ei-rebuild`. For smaller compile checkpoints:
+The result is `build/macos/ei-rebuild.app/Contents/MacOS/ei-rebuild`. A smaller compile checkpoint, the game and
+the platform without the renderer (also the starting point for Linux, which has no graphics backend yet):
 
 ```sh
-cmake -S . -B build/core -G Ninja -DEI_CORE_ONLY=ON
-cmake --build build/core -j 8
 cmake -S . -B build/port -G Ninja -DEI_PORT_CHECK_ONLY=ON
 cmake --build build/port -j 8
 ctest --test-dir build/port --output-on-failure
 ```
 
-`EI_PORT_CHECK_ONLY` builds the game library plus SDL/POSIX without the renderer. It is also the starting point for
-Linux; a runnable GL backend is still needed there. Neither Linux nor clang-cl on Windows was tested in this session.
+The native build's own CMake is `cmake/native.cmake` (CMakeLists.txt includes it off Windows) and
+`cmake/port-check.cmake`; the shaders are main's `cmake/shaders.cmake` (sokol-shdc's `metal_macos` output).
 
 ## Run and check
 
@@ -65,22 +64,32 @@ launcher while testing, so the installed data is left untouched.
 
 ## Implementation and checks
 
-- All 383 game/library translation units compile as native ARM64 C++20. Game code uses ordinary C++ functions,
-  inline helpers and thread callbacks; compiler/OS selection stays in `src/platform`. Portable math keeps
-  integer-conversion sentinels and disables multiply/add contraction.
-- The POSIX backend implements files, mappings, INI reads/writes, sockets, process locking and user-data paths.
-  File lookup normalizes backslashes and folds case a component at a time, so `res\\database.res` opens
-  `Res/database.res` on a case-sensitive volume. Exact spelling wins; ambiguous folded matches sort consistently.
-- Shader sources are annotated GLSL in `src/render/shaders`, collected by `shaders.glsl`. A shared CMake rule
-  invokes sokol-shdc directly for HLSL5, Metal and GL 4.3, producing `shaders/shaders.h` in the build tree.
-  There are 22 programs; multisample depth uses one shader at every sample count. Generated descriptors own
-  bindings and reflection, and generated C++ structs supply the uniform layouts. No external glslang,
-  SPIRV-Cross or fxc tool is needed. See docs/notes/renderer.md, "Shader authoring".
-- All render sources are shared across backends, including presentation, cursors, readback and shader selection.
-  Native operations live in `platform/graphics.h` with one implementation per backend (`graphics_metal.mm` or
-  `win32/graphics_win32.cpp`). Texture copies, readback and mip generation use the native API where this sokol
-  revision has no equivalent API. Metal shares sokol's command queue and flushes only pending command buffers;
-  empty commits otherwise rotate uniform storage without a fence and corrupt overlapping glyph draws.
+- All game and library translation units compile as native ARM64 C++20. Compiler and OS selection stays in
+  `src/platform` (the `__APPLE__` lines in platform_sdl.cpp, floating_point.cpp's ARM no-op). native.cmake turns off
+  multiply/add contraction (`-ffp-contract=off`).
+- The POSIX backend (`src/platform/posix/platform_posix.cpp`) implements files, mappings, INI reads/writes, sockets,
+  process locking and user-data paths. File lookup normalizes backslashes and folds case a component at a time, so
+  `res\database.res` opens `Res/database.res` on a case-sensitive volume. Exact spelling wins; ambiguous folded
+  matches sort consistently.
+- The renderer is main's, whole: shared shaders (docs/notes/renderer.md, "Shader authoring") and every transfer drawn
+  with sokol. `src/platform/graphics_metal.mm` implements `platform/graphics.h` on Metal and holds sokol's
+  implementation:
+  - The drawable: an SDL Metal view's `CAMetalLayer` (BGRA8, `framebufferOnly` off for reads), `drawableSize` the
+    window's pixels, `displaySyncEnabled` the present mode's vsync. sokol presents it at the end of its pass;
+    `EndDrawable` only lets it go.
+  - `UpdateBuffer` (the GpuPool's ranges): sokol's `write_unsealed` buffer is one `MTLBuffer`, not rotated, so a
+    CPU write would race the frames in flight. The bytes go into a compute pass of sokol's (`sg_mtl_compute_command_encoder`),
+    4 KB a `setBytes` with a word-copy kernel compiled at first use, ordered with sokol's draws in its command buffer.
+  - `Readback`: Metal runs a queue's command buffers in the order they were enqueued, and sokol enqueues the frame's
+    at its first pass, so a read first commits sokol's work (`sg_commit` after an empty compute pass, which gives
+    the commit a command buffer: one without moves sokol's uniform buffers on without waiting for the GPU), then
+    blits into a shared buffer of its own (`Staging`, pitch `sg_query_row_pitch`) and waits.
+  - `KeepPresent` / `PresentAgain` (the cursor between frames): the present pipeline's states, the views' images'
+    textures, the sampler and sokol's queue retained; the cursor thread draws them with a command buffer of its own
+    into the layer's next drawable (uniforms with `setVertexBytes` / `setFragmentBytes` at the shader's
+    `msl_buffer_n`), under the renderer's present lock. `PresentReads` stay empty (the harness's check is Direct3D's).
+  - No GPU timestamps (`GpuTimer::Begin` refuses), no lost device (`Lost` is empty), `MaxSamples` from
+    `supportsTextureSampleCount`.
 - Retina windows request high pixel density, and the game sees pixels only: platform_sdl.cpp makes the window
   VideoResolution / the display's content scale in points (1280x800 points for 2560x1600 on a 2x display), so its
   drawable holds the configured resolution, and scales mouse positions, motion, ScreenToClient / ClientToScreen and
@@ -88,22 +97,19 @@ launcher while testing, so the installed data is left untouched.
   VideoResolution 2560x1600.
 - Apple's libc++ has no float `std::from_chars`: settings_document.cpp's `ParseFloat` reads with `strtof` (the C
   locale) where the library does not define `__cpp_lib_to_chars`, refusing what from_chars refuses.
-- `port_platform` covers path folding, file/mapping behavior, INI updates, single-instance exclusion, UDP,
-  math edge cases, thread callbacks, caller capture and the existing 20,000+ settings checks. `port_render` runs
-  the same 29 glyph cases as the Windows canvas checker, against its CPU pixel oracle: Cyrillic, shadows, clipping,
-  overlap, batching, stream overflow and 555/565/888 destinations. It also checks partial uploads, region copies and
-  readback bounds. All pass, with zero differing glyph pixels. Configure with `-DEI_RENDER_CHECKS=ON` to include
-  diagnostic readback checks, verify generated mips, simulate device loss, restore canvas history, and repeat the
-  glyph oracle after recovery. Readback also follows sokol's active dynamic-image slot across commits.
-  The renderer checks also compile all 22 Metal programs, compare cloud pixels against saved HLSL hashes,
-  and verify canvas images, copies, greyscale, RGB565 packing and MSAA colour/depth copies at each supported
-  sample count. On this Mac the diagnostic run has 110 checks (2x and 4x MSAA). Normal builds leave the
-  diagnostic readbacks off.
+- `port_platform` (tests/port/port_check.cpp) covers path folding, file/mapping behavior, INI updates,
+  single-instance exclusion, UDP, math edge cases, caller capture and the settings checks
+  (tests/vectors/replay_settings.cpp). `port_render` (tests/port/render_check.cpp) runs the interface canvases' glyph
+  cases (tests/render/glyph_cases.cpp, the ones tools/ui_check runs on Direct3D 11) on Metal.
 
 ## Remaining verification and features
 
 The SDL scenario
 harness and Linux GL runtime remain unfinished; no claim of simulation equivalence across compilers follows from
 these native checks. Fullscreen, resizing across displays, Intel Macs, multiplayer, long play sessions and movie
-playback still need coverage. The native cursor is presented with normal frames; optional between-frame cursor
-presents and GPU timing queries are not implemented on Metal. The scratch launcher disables the independent cursor.
+playback still need coverage. GPU timing queries are not implemented on Metal. The scratch launcher disables the
+independent cursor.
+
+Open: a read-back mid-frame commits sokol's frame early, after which sokol appends to its stream buffers from the start
+of their other slot; GeometryStream (render_buffers.cpp) keeps the offsets of the renderer's frame, so a stream bound
+again after such a read in the same frame would read the wrong slot. No case is known; watch for it.

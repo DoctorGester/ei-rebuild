@@ -7,22 +7,15 @@ our own enums and structs, a native window as an opaque `void*`), and one implem
 and the threads in the builds without the harness; in the harness's builds those areas stay on Windows' window procedure
 and game.exe's import slots, which the harness drives ("SDL3 and the harness" below). Windows (`src/platform/win32/`)
 has the rest; it is the only place of the game's code that includes `<windows.h>` or calls game.exe's imports
-(`gameapi::X`). The renderer's native calls also live here, behind `src/platform/graphics.h`; shared rendering
-in `src/render` uses sokol and this interface.
-
-Game and library sources use no OS/compiler conditionals or compiler annotations; `tools/check_platform.py` enforces
-this boundary as well as the Windows API rule. The one library-feature test is settings_document.cpp's `ParseFloat`
-(`__cpp_lib_to_chars`: Apple's libc++ has no float from_chars).
+(`gameapi::X`). The renderer (`src/render`) reaches its device and the window's drawable through
+`src/platform/graphics.h` ("Graphics" below); three of its files still call Direct3D themselves until their
+transfers move behind it. A port replaces the Windows remainder; game code does not change.
 
 ## Files
 
 | File | What |
 |---|---|
 | `src/platform/platform.h` | the layer: every area below, in that order |
-| `src/platform/posix/platform_posix.cpp` | POSIX files, paths, INI files, sockets, process locking and calendar conversion |
-| `src/platform/graphics.h` | native device, drawable, transfer and timestamp interface for shared rendering |
-| `src/platform/graphics_metal.mm` | Metal implementation, including sokol's implementation and SDL drawables |
-| `src/platform/win32/graphics_win32.cpp` | D3D11 implementation, including sokol, DXGI, transfers, timestamps and floating-point state protection |
 | `src/platform/sdl/platform_sdl.cpp` | SDL3's areas (builds without the harness: release, debug, play, x64): the clocks, the message box, the threads, the window and its events, the cursor, the mouse, the clipboard |
 | `src/platform/win32/platform_win32_window.cpp` | the same areas on Windows' window procedure and game.exe's slots (the harness's builds: verify, verify-x64, asan); CMakeLists.txt takes one of the two |
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: output for a developer, paths, the machine, folders and files, the .ini files, the other game window (the one-instance check), the keyboard's names and layouts, sockets; then the UTF-8 routes (`text::utf8`, `TEXT_ROUTE`) |
@@ -31,14 +24,17 @@ this boundary as well as the Windows API rule. The one library-feature test is s
 | `src/platform/win32/win_api.h` | the Windows functions gameapi.h names, declared as the SDK does over its basic types (windef.h, minwinbase.h) |
 | `src/platform/audio_sdl.cpp` | the sound: the wave and MP3 frame rules every backend keeps, our mixer on an SDL3 audio stream, the decoders (dr_wav, dr_mp3: third_party/dr_libs) |
 | `src/platform/bink/` | the movies: our Bink 1 decoder (a codec, in its own files; "Movies" below) |
+| `src/platform/graphics.h` | the renderer's device, the window's drawable, read-backs and GPU timestamps ("Graphics" below) |
+| `src/platform/win32/graphics_win32.h`, `.cpp` | its Direct3D 11 backend (built into ei_render with sokol_gfx's implementation), and what only Windows has: the vertical blank switch's rules, the harness build's removable device, the Direct3D objects the remaining Direct3D render files use |
+| `src/platform/floating_point.cpp` | `FloatingPointGuard` (platform.h; built into ei_render with the graphics backend: the offline checks link the renderer without the game) |
 
 lib/import_table.h and lib/import_prototypes.h (game.exe's import table as a struct) stay in src/lib: the image's
 import slots and the harness's routes (tests/verify/harness_imports.h) use them. (Until H40 the harness's reference
 key held them too.)
 
-- CMakeLists.txt's ei_platform builds src/platform/*.cpp, src/platform/win32/*.cpp and src/platform/bink/*.cpp, and
-  either src/platform/sdl/*.cpp or (EI_HARNESS) platform_win32_window.cpp. The graphics implementation is built
-  into ei_render instead. platform.h carries no backend's type:
+- CMakeLists.txt's ei_platform builds src/platform/*.cpp, src/platform/win32/*.cpp and src/platform/bink/*.cpp (but the
+  graphics backend and floating_point.cpp, which ei_render builds), and
+  either src/platform/sdl/*.cpp or (EI_HARNESS) platform_win32_window.cpp. platform.h carries no backend's type:
   `MouseDevice` holds a backend's private `Device`, `NativeEvent` is the backend's record of an event (the window
   procedure's message; SDL leaves it empty) and `Event::window` its window. Still Windows' values, on purpose: the key
   codes and key flags (the bindings file and the interface keep them; SDL's backend maps its keys to them).
@@ -61,8 +57,9 @@ key held them too.)
   (net_second_master.cpp's `GetTickCount`) must not start reading the harness's.
 - `tools/check_platform.py` (build.cmd, through tools/build_checks.py) lists the files under `src/` outside
   `src/platform` and `src/hook` (the harness's hook framework) that include `<windows.h>` or another
-  system header (`<dinput.h>`, `<wingdi.h>`, `<mmsystem.h>`, `<winsock2.h>`, `<process.h>`, ...: the script lists them),
-  a header of the Windows backend (`platform/win32/`) or call `gameapi::` (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
+  system header (`<dinput.h>`, `<wingdi.h>`, `<mmsystem.h>`, `<winsock2.h>`, `<process.h>`, `<d3d11.h>`, ...: the
+  script lists them), a header of the Windows backend (`platform/win32/`) or call `gameapi::` or sokol's Direct3D
+  functions (`sg_d3d11_*`) (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
   calls run `python tools/check_platform.py --update` (the list only shrinks). The dashboard shows the count
   (`platform_files`, "Files calling Windows"): 97 before the layer, 78 after the first areas, 61 after the window
   and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
@@ -70,6 +67,9 @@ key held them too.)
   dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
   (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9; the sound and movie files (PL6b), the sound
   files' reads (PL7b) and lib/win_types.h (PL7a) left it: 5, the win32 entry (below) and the import layer's headers.
+  The rule took in src/render with graphics.h (MAC3f): 9; the transfers drawn with sokol (MAC3g) took
+  render_buffers, render_compose and render_ui off, and the cursor thread's present behind graphics.h (MAC3h)
+  render_cursor: 5, none of them in src/render.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
   call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h (windef.h's types)
   was the last such header: 113 game files used its RECT, POINT, SIZE, DWORD, COLORREF, LONG and UINT. They use our
@@ -77,7 +77,7 @@ key held them too.)
   static_asserts the sizes where it hands one to the system) and `std::uint32_t` / `std::int32_t` (DWORD, COLORREF,
   UINT, LONG). Its types are included by src/platform/win32/win_api.h (the gameapi:: declarations) now, its only user.
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code holds no `HWND`. app.h's
-  `g_mainWindow` and texture.h's device window are `platform::NativeWindow`; only the selected backend casts it.
+  `g_mainWindow` and texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
 
 ## Areas
 
@@ -132,14 +132,9 @@ private `Search` struct of the backend, a handle never leaves `File` or `MappedF
 Every open shares the file for reading and writing (FILE_SHARE_READ | FILE_SHARE_WRITE, never FILE_SHARE_DELETE, so
 removing an open file still fails) with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives'
 FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS hints and the sector-size test that chose between them are gone. Most
-of the game's opens were exclusive. An open that the old sharing refused would now succeed; none is known (the code
-never opens a file it holds). PL11b's temporary check in platform_win32.cpp (`OpenHandle`, `Held`) logs to
-ei-rebuild.log "platform: <path>: opened (read|write) while open (read|write) already" when a File or MappedFile opens
-a path one of them holds, and "platform: <path>: a sharing violation" when another holder refuses an open. Reading the
-first kind: two read opens of an archive (.res, .reg) or of the random seed's file were shared before too; any other
-line is an open the old modes refused. Open question until a main suite and the Rebirth suite have run with it: no
-line of either kind but the archives' expected, then the check goes (with the vectors' `ei::Log` stub if nothing
-else logs from the platform).
+of the game's opens were exclusive. An open that the old sharing refused would now succeed; none happens: PL11b's
+temporary check logged, over a main and a Rebirth suite, only read opens of a file already open for reading (the .res
+archives and maps/zq.mq), which were shared before too, and no sharing violation (PL11s removed it).
 
 A few callers never went through the game's slots and must not start to (the harness's routes would change what they
 see in verify runs). Each has its own platform function that calls the system directly:
@@ -196,10 +191,7 @@ What SDL's backend does (platform_sdl.cpp):
   harness's runs see). Hints: Alt+F4 is the
   game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE`
   0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows gave them). SDL makes the process
-  per-monitor DPI aware (its default, as the loader does): its coordinates are pixels. On macOS SDL's coordinates
-  are points: the window is made at the resolution / the display's content scale in points (its drawable the
-  resolution's pixels), and the mouse's positions and motion, `ScreenToClient` / `ClientToScreen` and the cursor
-  position are scaled by the window's pixel density, so the game sees pixels only.
+  per-monitor DPI aware (its default, as the loader does): its coordinates are pixels.
 - **Window events go to the handler at once**, as the window procedure's sent messages did: focus gained / lost,
   minimised, restored become `Activate` (only on a change of active / minimised), exposed becomes `Paint`, the close
   request (and SDL's quit) `Destroy`. No `SetCursor`, `SystemCommand` or `AutoPlay` events: SDL keeps the hidden cursor
@@ -414,6 +406,42 @@ MIT and links nothing of FFmpeg's); FFmpeg ran only offline as the oracle.
   the movie's stream was the first sound to reach the device; closed with WM_CLOSE.
 - Harness runs: the output has no device but gives streams, so a movie's sound decodes and its halves wait on the
   game's clock; movies pace on the real-time clock as before. The goldens did not move.
+
+## Graphics
+
+`src/platform/graphics.h` (namespace `platform::graphics`, MAC3f) is what the renderer needs of a graphics backend and
+no more; sokol_gfx draws everything, so a backend is small. No backend type crosses it: sokol's own structs, our
+`Rect`, fixed-width integers.
+
+- The device: `PrepareInBackground` (made on a thread while the game starts up), `Start` (sokol's environment),
+  `Stop` (after `sg_shutdown`: everything the backend made released), `Error`, `MaxSamples` (the frame target's
+  multisampling) and `Lost` (the backend's code of a loss: a failed present or resize, or the device's own removed
+  reason). The renderer asks `Lost` at the end of every presented frame and makes everything again (docs/notes/renderer.md,
+  R9c1).
+- The window: `BeginDrawable` gives sokol the window's drawable for the frame (`PresentMode`: the vertical blank and
+  tearing, docs/notes/renderer.md section 15a), `EndDrawable` presents it after `sg_commit`. The window's size in
+  pixels is platform.h's `WindowPixelSize` (SDL: `SDL_GetWindowSizeInPixels`, false while minimised; Windows: the
+  client rectangle).
+- Presenting again from another thread (the cursor between frames, docs/notes/renderer.md R9c2): the cursor thread
+  never calls sokol. The main thread hands the backend the present's sokol objects after each present (`KeepPresent`:
+  `PresentParts`, the backend's own references), and the cursor thread asks it to draw them again with its uniforms
+  and show them (`PresentAgain`; `PresentReads` the harness build's read-back before the present). The renderer's
+  present lock keeps the calls apart. Direct3D 11: a deferred context run on the immediate one with its state put back,
+  multithread protection on (`Start`). Metal: a command buffer of its own and the layer's next drawable.
+- Buffers: `UpdateBuffer` writes a range of a buffer and keeps the rest (render_buffers.cpp's `GpuPool`: terrain
+  pages and meshes kept on the GPU, only their changed ranges sent). It is the one transfer sokol cannot do (it writes
+  a buffer only whole, once a frame); the buffer is a sokol one, made with `usage.write_unsealed` and sealed at once.
+  Every other transfer is sokol's own or a draw: an image's pixels go in as an image of their own drawn texel for
+  texel, a copy is a draw, the levels below are drawn one from the other (docs/notes/renderer.md section 7).
+- Diagnostics: `Readback` (a region of an image or of the drawable, mapped until the next read; the backend's
+  `Staging` behind it) and `GpuTimer` (timestamps read frames later without waiting; the backend's `Queries` behind
+  it). Both are typed pimpls: render code holds no backend object.
+- `platform::FloatingPointGuard` (platform.h) puts the x87 control word (x86) or MXCSR's control bits (x64) back
+  after the driver changed it; the renderer holds one around every call into sokol that may reach the driver.
+- What only Direct3D has is in `win32/graphics_win32.h`, never included by game code: the vertical blank rules
+  tools/perf_check checks on real chains (`TearingSupported`, `ChainFlagsFor`, `SyncIntervalFor`, `PresentFlagsFor`),
+  the harness build's removable device (`MakeRemovable`, `RequestRemoval`: the harness's `removable` render word and
+  `removedevice` step, docs/notes/renderer.md R9c5). No render file calls Direct3D (MAC3g, MAC3h).
 
 ## Left for the next areas
 

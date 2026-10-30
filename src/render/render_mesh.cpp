@@ -109,10 +109,6 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-// How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
-// map's texels (as the ground's, shaders/terrain.glsl).
-constexpr float kNormalOffset = 1.5f;
-
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh", false);
@@ -254,9 +250,7 @@ void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
 }
 
 bool CreateMeshShader() {
-    sg_shader_desc s = ShaderDescription(kMeshShader);
-    s.label = "ei-mesh";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(mesh_shader_desc(sg_query_backend()));
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
     if (!ok) ei::Log("render: the mesh shader could not be created (see the sokol messages above)");
     return ok;
@@ -324,8 +318,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     }
     b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
     b.samplers[2] = b.samplers[0];
-    BindShadowMap(b, VIEW_shadow_map, SMP_shadow_smp);
-    BindPointShadows(b, VIEW_point_shadow_map, SMP_point_shadow_smp);
+    BindShadowMap(b);
+    BindPointShadows(b);
     sg_apply_bindings(&b);
     CountBindings(b);
     mesh_vs_params_t vs{};
@@ -343,33 +337,15 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
     mesh_fs_params_t fs{};
-    ShadowParams shadow{};
-    ShadowUniforms(f, batch.light >= 0, &shadow);
-    for (int k = 0; k < 4; ++k) {
-        fs.shadow_on[k] = shadow.on[k];
-        fs.shadow_scale[k] = shadow.scale[k];
-        fs.shadow_camera[k] = shadow.camera[k];
-        fs.shadow_soft[k] = shadow.soft[k];
-    }
-    if (shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)   // the map's texel in world units
-        vs.normalOffset[0] = shadow.scale[0] * 2.0f / shadow.soft[3] * kNormalOffset;
+    const shadow_params_t& shadow = ShadowUniforms(f, batch.light >= 0);
+    vs.normalOffset[0] = ShadowNormalOffset(shadow);
+    mesh_light_params_t lighting{};   // unlit: on[0] 0
     if (batch.lighting >= 0) {
-        MeshLightParams lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
+        lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
         // Its lights' scene light becomes their point shadow, taken with the landscape's rows.
         for (int k = 0; k < kMostMeshLights; ++k) {
-            float& w = lighting.points[k][1][3];
+            float& w = lighting.pointColour[k][3];
             w = static_cast<float>(PointShadowSlot(f, static_cast<int>(w) - 1) + 1);
-        }
-        for (int k = 0; k < 4; ++k) {
-            fs.light_on[k] = lighting.on[k];
-            fs.light_sun[k] = lighting.sun[k];
-            fs.light_sun_colour[k] = lighting.sunColour[k];
-            fs.light_ambient[k] = lighting.ambient[k];
-            fs.light_emissive[k] = lighting.emissive[k];
-            for (int light = 0; light < kMostMeshLights; ++light) {
-                fs.light_points[2 * light][k] = lighting.points[light][0][k];
-                fs.light_points[2 * light + 1][k] = lighting.points[light][1][k];
-            }
         }
         if (batch.landscape >= 0) {
             const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
@@ -396,7 +372,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.colourOps[0] = s0.colourOp;
     fs.colourOps[1] = s0.colourArg1;
     fs.colourOps[2] = s0.colourArg2;
-    fs.colourOps[3] = s0.colourOp > 1 ? static_cast<float>(s1.colourOp) : 1.0f;
+    fs.colourOps[3] = s0.colourOp > 1 ? s1.colourOp : 1;
     fs.colourOps1[0] = s1.colourArg1;
     fs.colourOps1[1] = s1.colourArg2;
     fs.alphaOps[0] = s0.alphaOp;
@@ -405,10 +381,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.alphaOps[3] = s1.alphaOp;
     fs.alphaOps1[0] = s1.alphaArg1;
     fs.alphaOps1[1] = s1.alphaArg2;
-    fs.switches[0] = s.specular ? 1.0f : 0.0f;
-    fs.switches[1] = s.fog ? 1.0f : 0.0f;
-    fs.switches[2] = s.alphaTest ? static_cast<float>(s.alphaFunc) : 0.0f;
-    fs.switches[3] = static_cast<float>(s.alphaReference);
+    fs.switches[0] = s.specular ? 1 : 0;
+    fs.switches[1] = s.fog ? 1 : 0;
+    fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
+    fs.switches[3] = s.alphaReference;
     if (s.patch.texture.id) {
         for (int k = 0; k < 4; ++k) {
             fs.patchTo[k] = s.patch.to[k];
@@ -416,24 +392,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             fs.patchInside[k] = s.patch.inside[k];
         }
     }
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(UB_mesh_vs_params, &vr);
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(UB_mesh_fs_params, &fr);
-    mesh_point_params_t point{};
-    const auto& shadows = f.shadow.point.params;
-    for (int k = 0; k < 4; ++k) {
-        point.point_shadow_on[k] = shadows.on[k];
-        point.point_shadow_eye[k] = shadows.eye[k];
-        for (int light = 0; light < kMostPointShadows; ++light) {
-            point.point_shadow_at[light][k] = shadows.lights[light][k];
-            point.point_shadow_depth[light][k] = shadows.depth[light][k];
-        }
-    }
-    sg_range pr{&point, sizeof(point)};
-    sg_apply_uniforms(UB_mesh_point_params, &pr);
+    sg_apply_uniforms(UB_mesh_vs_params, SG_RANGE(vs));
+    sg_apply_uniforms(UB_mesh_fs_params, SG_RANGE(fs));
+    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
+    sg_apply_uniforms(UB_mesh_light_params, SG_RANGE(lighting));
+    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
     sg_draw(first, batch.indexCount, 1);
-    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(point));
+    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }
 
 void DestroyMeshes() {
@@ -480,7 +445,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        MeshLightParams params;
+        mesh_light_params_t params;
         MeshLightUniforms(*lighting, &params);
         f.meshLights.push_back(params);
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
@@ -531,7 +496,7 @@ void MeshPass(void* device) {
         }
     }
     if (g_pending.indexCount > 0) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = g_pending.matrix;
         batch.firstIndex = g_pending.firstIndex;
@@ -608,7 +573,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
@@ -656,7 +621,7 @@ void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;

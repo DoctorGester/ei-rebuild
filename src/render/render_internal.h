@@ -2,22 +2,28 @@
 
 // Internals shared by the renderer's files.
 
-#include "platform/graphics.h"
 #include "render.h"
-#include "shaders/shaders.h"
 #include "sokol_gfx.h"
 
 #include "lib/vecmath.h"
+#include "platform/graphics.h"
+
+// The shaders' uniform structs, bind slots and descriptions (cmake/shaders.cmake): after sokol_gfx.h and Matrix4.
+// Their blocks are copied by sg_apply_uniforms, so they are not 16-byte aligned (that would pad the frame's structs
+// that hold them).
+#define SOKOL_SHDC_ALIGN(a)
+#include "shaders/shaders.h"
 
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <span>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 class TextureDevice;
+
 namespace render::detail {
 
 // The game's transform pipeline matrices are Matrix4: row-major, out = M * (x, y, z, 1), Direct3D clip
@@ -53,55 +59,6 @@ struct StagePatch {
     float inside[4] = {};   // u0, v0, u1, v1
 };
 StagePatch PatchOf(const void* holder);
-
-enum class ShaderProgram {
-    None,
-    Blit,
-    Solid,
-    Mesh,
-    Terrain,
-    Present,
-    IntoMultisampled,
-    Depth,
-    Caster,
-    TerrainCaster,
-    Reduce,
-    Dilate,
-    PerfOverlay,
-    TextureCompose,
-    CloudFrame,
-    Clouds,
-    UiSolid,
-    UiGlyph,
-    UiCompose,
-    UiGrey,
-    UiCopy,
-    UiRgb565,
-    UiBlit,
-};
-sg_shader_desc ShaderDescription(ShaderProgram program);
-inline constexpr auto kBlitShader = ShaderProgram::Blit;
-inline constexpr auto kSolidShader = ShaderProgram::Solid;
-inline constexpr auto kMeshShader = ShaderProgram::Mesh;
-inline constexpr auto kTerrainShader = ShaderProgram::Terrain;
-inline constexpr auto kPresentShader = ShaderProgram::Present;
-inline constexpr auto kIntoMultisampledShader = ShaderProgram::IntoMultisampled;
-inline constexpr auto kCasterShader = ShaderProgram::Caster;
-inline constexpr auto kTerrainCasterShader = ShaderProgram::TerrainCaster;
-inline constexpr auto kReduceShader = ShaderProgram::Reduce;
-inline constexpr auto kDilateShader = ShaderProgram::Dilate;
-inline constexpr auto kPerfOverlayShader = ShaderProgram::PerfOverlay;
-inline constexpr auto kTextureComposeShader = ShaderProgram::TextureCompose;
-inline constexpr auto kCloudFrameShader = ShaderProgram::CloudFrame;
-inline constexpr auto kCloudsShader = ShaderProgram::Clouds;
-inline constexpr auto kUiSolidShader = ShaderProgram::UiSolid;
-inline constexpr auto kUiGlyphShader = ShaderProgram::UiGlyph;
-inline constexpr auto kUiComposeShader = ShaderProgram::UiCompose;
-inline constexpr auto kUiGreyShader = ShaderProgram::UiGrey;
-inline constexpr auto kUiCopyShader = ShaderProgram::UiCopy;
-inline constexpr auto kUiRgb565Shader = ShaderProgram::UiRgb565;
-inline constexpr auto kUiBlitShader = ShaderProgram::UiBlit;
-inline constexpr auto kDepthFromMultisampledShader = ShaderProgram::Depth;
 
 // The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
@@ -217,29 +174,13 @@ struct Command {
     int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / canvasBatches
 };
 
-// The receivers' shader parameters of the shadow map (shaders/shadow_receiver.glsl).
-struct ShadowParams {
-    float on[4];       // x: on, y: strength, z: 1 the shadow alone (SetShadowView), w: constant depth bias
-    float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
-    float camera[4];   // xyz: the camera in shadow clip space
-    float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
-                       // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
-};
-
-// The scene's light (shaders/scene_lighting.glsl) as kept by render::SceneLighting, a fragment uniform block.
-struct LightParams {
-    float sun[4];          // xyz: the direction the sun's light travels (unit)
-    float sunColour[4];
-    float ambient[4];
-    float counts[4];       // x: the point lights
-    float mapSun[4];       // xyz: the direction the shadow map's light travels (MapLightDirection), unit
-    float points[kMostSceneLights][2][4];   // position xyz, 1 / range squared; colour rgb, w: 1 specular
-    float shadowSlots[kMostSceneLights];    // per point light its shadow map + 1, 0: none
-};
-void LightUniforms(LightParams* params);
-// The kept point lights, laid out as LightParams::points. SceneLightIndex: the kept light at `position`
-// exactly (the same Light's), -1 none.
-const float (*SceneLightPoints(int* count))[2][4];
+// The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.glsl), with
+// the frame's point shadows and the shadow map's light direction.
+static_assert(std::size(scene_light_params_t{}.pointAt) == kMostSceneLights);
+void LightUniforms(scene_light_params_t* params);
+// The kept point lights (`counts[0]` of them in pointAt / pointColour). SceneLightIndex: the kept light at
+// `position` exactly (the same Light's), -1 none.
+const scene_light_params_t& KeptSceneLight();
 // The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
 bool SceneLightCastsShadows(int k);
 int SceneLightIndex(const Vector3& position);
@@ -250,36 +191,23 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel);
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A figure part lit on the GPU (shaders/mesh.glsl's fragment uniforms): the sun and lights in the part's
-// model space, their colours times the material's diffuse colour and the coefficient; the
-// kMostMeshLights nearest the part's origin.
+// A figure part lit on the GPU (shaders/mesh.glsl's mesh_light_params): the sun and lights in the part's model
+// space, their colours times the material's diffuse colour and the coefficient; the kMostMeshLights nearest the
+// part's origin. A light's pointColour w: the scene's light (SceneLightIndex) + 1, 0 none; drawn: its point shadow
+// + 1, 0 none.
 constexpr int kMostMeshLights = 8;
-struct MeshLightParams {
-    float on[4];           // x: 1 lit, y: the crown's pull (0 none), z: the lights
-    float sun[4];          // xyz: towards the sun in model space (as the game's: the direction's inverse)
-    float sunColour[4];    // rgb: the sun's lit colour (none: 0)
-    float ambient[4];      // rgb
-    float emissive[4];     // rgb
-    float points[kMostMeshLights][2][4];   // model-space position xyz, 1 / range squared; lit colour rgb, w: the
-                                           // scene's light (SceneLightIndex) + 1, 0 none; drawn: its point
-                                           // shadow + 1, 0 none
-};
-void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
+static_assert(std::size(mesh_light_params_t{}.pointAt) == kMostMeshLights);
+void MeshLightUniforms(const MeshLighting& lighting, mesh_light_params_t* params);
 
-// Point-light shadows (shaders/point_shadow.glsl): the receivers' fragment uniforms, the same for the
-// frame. Each light with a map has six faces of kPointFaceTexels in one row of the atlas.
+// Point-light shadows (shaders/point_shadow.glsl): the receivers' fragment uniforms, the same for the frame. Each
+// light with a map has six faces of kPointFaceTexels in one row of the atlas.
 constexpr int kMostPointShadows = 4;
 constexpr int kPointFaceTexels = 512;
-struct PointShadowParams {
-    float on[4];       // x: the lights with a map, y: texels a face side
-    float eye[4];      // xyz: the camera in the landscape's space
-    float lights[kMostPointShadows][4];   // xyz: the light in the landscape's space, w: the faces' near distance
-    float depth[kMostPointShadows][4];    // xy: a face's depth for a distance d along its axis is x + y / d
-};
+static_assert(std::size(point_shadow_params_t{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
-    PointShadowParams params{};
+    point_shadow_params_t params{};
 };
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
@@ -290,7 +218,7 @@ struct ShadowFrame {
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     std::vector<Matrix4> lights;   // each receiving mesh's model space to the map's clip space; [0]: the terrain's
-    ShadowParams params{};
+    shadow_params_t params{};
     PointShadowFrame point;
 };
 
@@ -301,7 +229,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
-    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
+    std::vector<mesh_light_params_t> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<FillBatch> fills;
@@ -328,7 +256,6 @@ struct Frame {
 extern Frame g_frame;   // the frame being built
 std::uint32_t FrameNumber();
 std::uint32_t CommitNumber();
-void CommitGpu();
 
 // Added when it differs from the last one.
 int AddMatrix(const Matrix4& m);
@@ -342,34 +269,13 @@ void Start();
 // logged and shown in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not.
 // There is no other way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
-// A texture's first level, or a region of it, read back into a CPU snapshot (render_staging.cpp).
-// The backend owns any transfer resources; Release drops those before the device goes away.
-class StagingCopy {
-public:
-    bool Map(sg_image source);
-    bool Map(sg_image source, unsigned left, unsigned top, unsigned width, unsigned height);
-    bool MapDrawable(unsigned left, unsigned top, unsigned width, unsigned height);
-    // The snapshot's size and row y (the source's texel format), valid until Unmap or the next Map.
-    unsigned Width() const { return mappedWidth; }
-    unsigned Height() const { return mappedHeight; }
-    const std::uint8_t* Row(unsigned y) const { return data + static_cast<std::size_t>(y) * pitch; }
-    void Unmap();
-    void Release();
 
-private:
-    std::vector<std::uint8_t> storage;
-    const std::uint8_t* data = nullptr;
-    std::size_t pitch = 0;
-    unsigned mappedWidth = 0, mappedHeight = 0;
-};
-
-// `r` on a `width` x `height` target as vertex uniform block 0.
+// `r` on a `width` x `height` target as the rectangle shaders' vertex uniforms (shaders/rect.glsl).
 inline void ApplyRect(const Rect& r, int width, int height) {
     rect_params_t vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
                       static_cast<float>(r.bottom)},
                      {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range range{&vs, sizeof(vs)};
-    sg_apply_uniforms(UB_rect_params, &range);
+    sg_apply_uniforms(UB_rect_params, SG_RANGE(vs));
 }
 
 // The top `bits` of a channel value widened to 8 by repeating them (more than 8: the top 8 of them).
@@ -398,34 +304,27 @@ struct Channel {
 sg_image FrameImage();
 sg_view FrameTexture();
 bool FrameSize(int* width, int* height);
-// The frame into the window's swap chain through the gamma ramp, `cursor` (null: none) over it, then Present.
-// False: nothing to present into.
-bool DrawToWindow(const BlitBatch* cursor, bool overlay = true);
-void PresentWindow();
-// What the last DrawToWindow drew with, for the cursor thread's presents. Raw pointers, no references taken;
-// false when there is no swap chain.
+// The frame into the window's drawable through the gamma ramp, `cursor` (null: none) over it; PresentWindow, after
+// the frame's commit, shows it. False: nothing to present into / nothing presented.
+bool DrawToWindow(const BlitBatch* cursor);
+bool PresentWindow();
+// What the last DrawToWindow drew with, for the cursor thread's presents (main thread); false when there is no
+// drawable.
 struct WindowParts {
-    sg_view frame, ramp;
-    const std::uint8_t* rampTable;
-    int clientWidth, clientHeight, frameWidth, frameHeight;
+    sg_shader shader;
+    sg_pipeline pipeline;
+    sg_view frame;
+    sg_view ramp;
+    const std::uint8_t* rampTable;   // 256 RGBA8 entries
+    int clientWidth, clientHeight;
+    int frameWidth, frameHeight;
     Rect placed;
-    bool vsync;
 };
 bool CurrentWindowParts(WindowParts* parts);
-// Releases the swap chain and everything the window module made on the device (before sg_shutdown); the next
-// DrawToWindow makes them on the new device.
+// Releases everything the window module made on the device (before sg_shutdown); the next DrawToWindow makes them
+// on the new device.
 void DropWindow();
-// A lost device (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG, a driver error) was seen: everything is made again
-// at the end of the frame. `reason`: GetDeviceRemovedReason then (S_OK for render::LoseDevice's).
-// DeviceIsLost: seen and not made again yet.
-void ReportDeviceLost(long result, long reason);
-bool DeviceIsLost();
-// True once after render::LoseDevice.
-bool TakeSimulatedLoss();
 #if defined(EI_RENDER_VALIDATION)
-// After render::RemoveDevice: removes the device now (once), right before the window's Present, or at the end
-// of the frame without one.
-void RemoveIfAsked();
 // Whether the verify build's GPU read-backs (a stall each) run for the `count`th of their kind: the first
 // kReadBackAlways, then every 16th, and every one with "checkall" in EI_RENDER.
 constexpr long kReadBackAlways = 64;
@@ -476,9 +375,10 @@ struct PoolPlace {
 };
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
-// stream (kColourPairBytes a vertex) and absolute 32-bit indices, with CPU shadows uploaded through sokol
-// when changed. Items are placed one after the other; when one does
-// not fit, the pool starts again (Restart) with the items still needed, larger when they need more than half.
+// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
+// ranges (platform::graphics::UpdateBuffer: sokol writes a buffer only whole). Items are placed one after the
+// other; when one does not fit, the pool starts again (Restart) with the items still needed, larger when they
+// need more than half.
 constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
 class GpuPool {
 public:
@@ -497,12 +397,7 @@ public:
 
 private:
     struct Buffer {
-        mutable sg_buffer buffer{};
-        mutable std::vector<std::uint8_t> shadow;
-        bool index = false;
-        mutable bool dirty = false;
-        mutable std::uint32_t uploaded = 0xFFFFFFFFu;
-        void Flush() const;
+        sg_buffer buffer{};
         bool Make(std::size_t bytes, bool index, const char* label);
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // destroyed after the frame's commit
@@ -534,8 +429,8 @@ void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
-// The ground's casters (render::ShadowTerrainSector). The caller applies the pipeline and uniforms;
-// vertex buffer 0 holds TerrainCasterVertex, with 32-bit indices.
+// The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
+// 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
 struct TerrainCasterVertex {
     Vector3 position;
     Vector3 normal;
@@ -543,7 +438,7 @@ struct TerrainCasterVertex {
 static_assert(sizeof(TerrainCasterVertex) == 24);
 std::size_t TerrainCasterCount();
 void UploadTerrainCasters();
-int DrawTerrainCasters();
+int DrawTerrainCasters(sg_pipeline pipeline);
 void TerrainCastersDone();
 void DropTerrainCasters();
 
@@ -590,14 +485,18 @@ Vector3 CornerNormal(const MeshDraw& mesh, int index);
 // Object shadows (docs/notes/renderer.md section 13). PrepareShadows, once a frame before its first pass on
 // the world: fits the map around the visible ground seen from the sun and gives every receiving batch its
 // light matrix; DrawShadowMap draws the casters and the depth range per cell. Receivers include
-// shaders/shadow_receiver.glsl, take ShadowParams and bind the map (or a cleared 1 x 1 one) with
-// BindShadowMap.
+// shaders/shadow_receiver.glsl, take its shadow_params (ShadowUniforms: all zero, no shadow, unless `receives`) and
+// bind the map (or a cleared 1 x 1 one) and its depth range per cell with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
-void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
-// The map's depth view and comparison sampler at the slots, its depth range per cell (RGBA32F, read
-// filtered) and sampler at the slots after them.
+const shadow_params_t& ShadowUniforms(const Frame& frame, bool receives);
+void BindShadowMap(sg_bindings& b);
+// How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
+// in world units (0 without the map).
+inline float ShadowNormalOffset(const shadow_params_t& shadow) {
+    if (!(shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)) return 0.0f;
+    return shadow.scale[0] * 2.0f / shadow.soft[3] * 1.5f;
+}
 void DestroyShadows();
 // The clip matrix of the frame's first ground batch and the camera in the landscape's space; false without
 // ground drawn.
@@ -660,7 +559,7 @@ private:
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
-void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot);
+void BindPointShadows(sg_bindings& b);
 int PointShadowSlot(const Frame& frame, int sceneLight);
 void DestroyPointShadows();
 // The object whose meshes are being handed over. ShadowFrameEnd: the frame's passes are recorded (the harness
@@ -796,8 +695,8 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
 // again on a new device (no pass in progress).
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
 void RemakeComposed();
-// GPU work outside the frame's drawing (a texture composed, or canvases run at once): the cursor worker
-// stays off the device, and cannot present again until the main thread completes another frame.
+// GPU work from game code outside the frame's drawing (a texture composed): the cursor thread keeps off the
+// immediate context meanwhile (the present's lock), as for the canvases run at once.
 class GpuWorkAlone {
 public:
     GpuWorkAlone();
@@ -806,9 +705,11 @@ public:
     GpuWorkAlone& operator=(const GpuWorkAlone&) = delete;
 };
 
-// Both threads share the presentation pass under one recursive lock. BeginWindowPresent invalidates the
-// completed frame before drawing starts; EndWindowPresent enables cursor presents after a successful present.
-// DropCursorPresents clears the worker's resources before the device goes.
+// The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
+// the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into
+// the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent hands the
+// backend what the cursor thread draws with (platform::graphics::KeepPresent). DropCursorPresents lets it go before
+// the device goes.
 void BeginWindowPresent();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
@@ -826,19 +727,6 @@ void DestroyTextures();
 // by RemakeComposed.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
-// Serializes sokol access with the cursor worker. The backend also preserves floating-point control state
-// across driver calls where needed (Windows' x87 precision and SSE rounding modes).
-class GpuGuard {
-public:
-    GpuGuard();
-    ~GpuGuard();
-    GpuGuard(const GpuGuard&) = delete;
-    GpuGuard& operator=(const GpuGuard&) = delete;
-
-private:
-    unsigned int saved;
-};
-
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 
@@ -846,8 +734,7 @@ constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 // multisampled target resolved into the frame target. PassSampleCount: the sample count of the pass being
 // drawn; every pipeline drawing into it is made for it.
 int PassSampleCount();
-// The most samples up to kSmoothSamples the device renders kColourFormat and kDepthFormat with (1: none).
-constexpr int kSmoothSamples = 8;
+constexpr int kSmoothSamples = 8;   // the most the render quality asks for
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample.

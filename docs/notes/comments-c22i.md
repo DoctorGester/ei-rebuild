@@ -96,8 +96,9 @@ See docs/notes/rebirth.md ("EI_Plugin.asi", NewMaster).
 The options object's constructor. The static initialiser runs it on
 the global before WinMain (and registers the destructor with atexit), so the
 constructor has already run when the hooks install.
-These are not the defaults the game plays with: OptionsResetDefaults is called
-before the registry is read, and that sets most of them again (640 x 480 and so on). What stays
+These were not the defaults the original played with: its OptionsResetDefaults ran
+before the registry was read and set most of them again (640 x 480 and so on); the rebuild never called it and C69
+dropped it, so the constructor's values are the defaults of a value the settings file lacks. What stays
 from here: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
 layout, both lights' radius and a few values the defaults function does not touch. The master server's name
 stays empty.

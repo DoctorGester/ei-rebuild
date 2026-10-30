@@ -5,7 +5,7 @@ breaks all over a file nobody meant to touch).
 usage: python tools/format_changed.py [--base REV] [--check] [file ...]
   --base REV  the revision the change is measured against (default HEAD: the uncommitted change)
   --check     list the files that would change; write nothing
-  no files    every .h / .cpp / .inc that differs from the base
+  no files    every .h / .cpp / .inc / .mm that differs from the base
 """
 import difflib
 import pathlib
@@ -47,7 +47,7 @@ def main():
         base = args[args.index('--base') + 1]
     files = [a for a in args if not a.startswith('--') and a != base]
     if not files:
-        files = [f for f in git('diff', '--name-only', base).split() if f.endswith(SUFFIXES)]
+        files = [f for f in git('diff', '--name-only', '--diff-filter=d', base).split() if f.endswith(SUFFIXES)]
     total = 0
     for f in files:
         path = ROOT / f

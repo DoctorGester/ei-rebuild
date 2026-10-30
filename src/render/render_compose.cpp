@@ -3,11 +3,11 @@
 // below made by the GPU; and the global map's clouds (render::DrawClouds), their noise frames built by the GPU too.
 // render_textures.cpp keeps the result by holder and the recipe to make it again on a new device. See
 // docs/notes/renderer.md, section 7 ("Textures composed on the GPU").
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render_internal.h"
 
-#include <bit>
+#include "../hook/log.h"
+
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <string>
@@ -19,11 +19,10 @@ namespace render::detail {
 
 namespace {
 
-
 bool g_tried = false, g_made = false;
-sg_shader g_shader{}, g_cloudFrameShader{}, g_cloudsShader{};
-sg_pipeline g_over{}, g_replace{}, g_cloudFrame{}, g_clouds{};
-sg_sampler g_nearest{};
+sg_shader g_shader{}, g_mipShader{}, g_cloudFrameShader{}, g_cloudsShader{};
+sg_pipeline g_over{}, g_replace{}, g_mip{}, g_cloudFrame{}, g_clouds{};
+sg_sampler g_nearest{}, g_linear{};
 int g_failures = 0;
 
 constexpr int kCloudSize = 256;   // a clouds frame's width and height
@@ -60,12 +59,6 @@ sg_pipeline MakePipeline(bool over, const char* label) {
     return sg_make_pipeline(&p);
 }
 
-sg_shader MakeShader(ShaderProgram code, const char* label) {
-    sg_shader_desc s = ShaderDescription(code);
-    s.label = label;
-    return sg_make_shader(&s);
-}
-
 // A pipeline drawing `shader`'s rectangle into a target of `format`, no blending.
 sg_pipeline MakePlainPipeline(sg_shader shader, sg_pixel_format format, const char* label) {
     sg_pipeline_desc p{};
@@ -81,11 +74,14 @@ sg_pipeline MakePlainPipeline(sg_shader shader, sg_pixel_format format, const ch
 bool EnsurePipelines() {
     if (g_tried) return g_made;
     g_tried = true;
-    g_shader = MakeShader(kTextureComposeShader, "ei-texture-compose");
+    const sg_backend backend = sg_query_backend();
+    g_shader = sg_make_shader(texture_compose_shader_desc(backend));
     g_over = MakePipeline(true, "ei-texture-compose-over");
     g_replace = MakePipeline(false, "ei-texture-compose-replace");
-    g_cloudFrameShader = MakeShader(kCloudFrameShader, "ei-cloud-frame");
-    g_cloudsShader = MakeShader(kCloudsShader, "ei-clouds");
+    g_mipShader = sg_make_shader(texture_mip_shader_desc(backend));
+    g_mip = MakePlainPipeline(g_mipShader, SG_PIXELFORMAT_RGBA8, "ei-texture-mip");
+    g_cloudFrameShader = sg_make_shader(texture_clouds_frame_shader_desc(backend));
+    g_cloudsShader = sg_make_shader(texture_clouds_shader_desc(backend));
     g_cloudFrame = MakePlainPipeline(g_cloudFrameShader, SG_PIXELFORMAT_R8UI, "ei-cloud-frame");
     g_clouds = MakePlainPipeline(g_cloudsShader, SG_PIXELFORMAT_RGBA8, "ei-clouds");
     sg_sampler_desc sd{};
@@ -95,8 +91,12 @@ bool EnsurePipelines() {
     sd.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
     sd.label = "ei-texture-compose";
     g_nearest = sg_make_sampler(&sd);
+    sd.min_filter = SG_FILTER_LINEAR;
+    sd.mag_filter = SG_FILTER_LINEAR;
+    sd.label = "ei-texture-mip";
+    g_linear = sg_make_sampler(&sd);
     g_made = true;
-    for (sg_pipeline p : {g_over, g_replace, g_cloudFrame, g_clouds})
+    for (sg_pipeline p : {g_over, g_replace, g_mip, g_cloudFrame, g_clouds})
         g_made = g_made && sg_query_pipeline_state(p) == SG_RESOURCESTATE_VALID;
     if (!g_made) ei::Log("render: the texture composition pipelines could not be made (see the sokol messages above)");
     return g_made;
@@ -207,9 +207,9 @@ sg_view CloudFrameView(const CloudFrame& frame) {
     sg_apply_pipeline(g_cloudFrame);
     ApplyRect(Rect{0, 0, kCloudSize, kCloudSize}, kCloudSize, kCloudSize);
     cloud_params_t params{};
-    for (int k = 0; k < 12; ++k) params.words[k / 4][k % 4] = std::bit_cast<int>(frame.words[k / 3][k % 3]);
-    sg_range range{&params, sizeof(params)};
-    sg_apply_uniforms(UB_cloud_params, &range);
+    static_assert(sizeof(params.words) == sizeof(frame.words));
+    std::memcpy(params.words, frame.words, sizeof(params.words));   // the words' bits, as the shader reads them
+    sg_apply_uniforms(UB_cloud_params, SG_RANGE(params));
     sg_draw(0, 6, 1);
     sg_end_pass();
     sg_destroy_view(attachment);
@@ -238,6 +238,90 @@ StepTexture MakeStepTexture(const ComposeImage& image) {
     t.view = sg_make_view(&v);
     CountUpload(FrameStats::Mmp, image.rgba.size());
     return t;
+}
+
+// A view of one level of `image`: to read it (a texture view) or to draw into it.
+sg_view LevelView(sg_image image, int level, bool attachment) {
+    sg_view_desc v{};
+    if (attachment) {
+        v.color_attachment.image = image;
+        v.color_attachment.mip_level = level;
+    } else {
+        v.texture.image = image;
+        v.texture.mip_levels.base = level;
+        v.texture.mip_levels.count = 1;
+    }
+    return sg_make_view(&v);
+}
+
+// In a pass of its own: the level `attachment` views (`width` x `height`) drawn from the level `source` views, its
+// texels as they are (`copy`, alpha too) or filtered down from the level above (texture_mip).
+void DrawLevel(sg_view source, sg_view attachment, int width, int height, bool copy) {
+    if (sg_query_view_state(source) != SG_RESOURCESTATE_VALID ||
+        sg_query_view_state(attachment) != SG_RESOURCESTATE_VALID)
+        return;
+    sg_pass pass{};
+    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+    pass.action.colors[0].store_action = SG_STOREACTION_STORE;
+    pass.attachments.colors[0] = attachment;
+    pass.label = "ei-texture-level";
+    sg_begin_pass(&pass);
+    sg_apply_pipeline(copy ? g_replace : g_mip);
+    sg_bindings b{};
+    b.views[0] = source;
+    b.samplers[0] = copy ? g_nearest : g_linear;
+    sg_apply_bindings(&b);
+    ApplyRect(Rect{0, 0, width, height}, width, height);
+    if (copy) {
+        const texture_compose_params_t fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
+        sg_apply_uniforms(UB_texture_compose_params, SG_RANGE(fs));
+    }
+    sg_draw(0, 6, 1);
+    sg_end_pass();
+}
+
+// What drawing the levels of the texture drawn last takes, kept for its next draw (the global map's clouds are drawn
+// every frame; making it each time took 0.04-0.17 ms a frame): a scratch image of half the texture's size (a pass may
+// not read the image it draws into) and, per level below the first, four views: the texture's level above (read), the
+// scratch's level (drawn into, then read) and the texture's level (drawn into).
+struct LevelViews {
+    sg_image target{}, scratch{};
+    std::vector<sg_view> views;
+};
+LevelViews g_levelViews;
+
+void DropLevelViews() {
+    for (sg_view v : g_levelViews.views) sg_destroy_view(v);
+    if (g_levelViews.scratch.id) sg_destroy_image(g_levelViews.scratch);
+    g_levelViews = LevelViews{};
+}
+
+// The levels below the first, each from the one above: drawn into the scratch's level, then copied into the texture's.
+void DrawLevels(const ComposeRecipe& recipe, sg_image target) {
+    LevelViews& kept = g_levelViews;
+    if (kept.target.id != target.id) {
+        DropLevelViews();
+        kept.target = target;
+        sg_image_desc d{};
+        d.usage.color_attachment = true;
+        d.width = std::max(recipe.width / 2, 1);
+        d.height = std::max(recipe.height / 2, 1);
+        d.num_mipmaps = recipe.levels - 1;
+        d.pixel_format = SG_PIXELFORMAT_RGBA8;
+        d.sample_count = 1;
+        d.label = "ei-texture-levels";
+        kept.scratch = sg_make_image(&d);
+        for (int level = 1; level < recipe.levels; ++level)
+            kept.views.insert(kept.views.end(),
+                              {LevelView(target, level - 1, false), LevelView(kept.scratch, level - 1, true),
+                               LevelView(kept.scratch, level - 1, false), LevelView(target, level, true)});
+    }
+    for (int level = 1; level < recipe.levels; ++level) {
+        const sg_view* v = &kept.views[4 * static_cast<std::size_t>(level - 1)];
+        const int width = std::max(recipe.width >> level, 1), height = std::max(recipe.height >> level, 1);
+        DrawLevel(v[0], v[1], width, height, false);
+        DrawLevel(v[2], v[3], width, height, true);
+    }
 }
 
 void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* steps, std::size_t count, bool clear) {
@@ -278,10 +362,9 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
             sg_apply_bindings(&b);
             ApplyRect(step.to, recipe.width, recipe.height);
             cloud_params_t params{};
-            params.blend[0] = step.clouds->blend;
+            params.blend[0] = static_cast<int>(step.clouds->blend);
             for (int g = 0; g < 256; ++g) params.ramp[g / 4][g % 4] = step.clouds->ramp[g];
-            sg_range range{&params, sizeof(params)};
-            sg_apply_uniforms(UB_cloud_params, &range);
+            sg_apply_uniforms(UB_cloud_params, SG_RANGE(params));
             sg_draw(0, 6, 1);
             continue;
         }
@@ -293,11 +376,10 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(step.to, recipe.width, recipe.height);
-        texture_compose_params_t fs{
+        const texture_compose_params_t fs{
             {step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
             {1.0f, 1.0f, 1.0f, 1.0f}};
-        sg_range range{&fs, sizeof(fs)};
-        sg_apply_uniforms(UB_texture_compose_params, &range);
+        sg_apply_uniforms(UB_texture_compose_params, SG_RANGE(fs));
         sg_draw(0, 6, 1);
     }
     sg_end_pass();
@@ -306,10 +388,7 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
         if (t.view.id) sg_destroy_view(t.view);
         if (t.image.id) sg_destroy_image(t.image);
     }
-    if (recipe.levels > 1) {
-        // The levels below the first, from it (a box filter).
-        platform::graphics::GenerateMipmaps(target);
-    }
+    if (recipe.levels > 1) DrawLevels(recipe, target);
 }
 
 } // namespace
@@ -349,10 +428,13 @@ bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view) {
     desc.height = recipe.height;
     desc.num_mipmaps = recipe.levels;
     desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    desc.sample_count = 1;
     desc.label = "ei-composed-texture";
-    *image = platform::graphics::MakeMipmappedImage(desc);
+    *image = sg_make_image(&desc);
     if (sg_query_image_state(*image) != SG_RESOURCESTATE_VALID) {
-        sg_destroy_image(*image);
+        if (g_failures++ < 10)
+            ei::Log("render: a %dx%d composed texture could not be made", recipe.width, recipe.height);
+        if (image->id) sg_destroy_image(*image);
         *image = sg_image{};
         return false;
     }
@@ -381,73 +463,54 @@ void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep
 #if defined(EI_RENDER_VALIDATION)
 bool ReadImageLevel(sg_image image, int level, int width, int height, std::vector<std::uint8_t>* rgba) {
     if (!image.id || width <= 0 || height <= 0 || !EnsurePipelines()) return false;
-    sg_view_desc v{};
-    v.texture.image = image;
-    v.texture.mip_levels.base = level;
-    v.texture.mip_levels.count = 1;
-    sg_view source = sg_make_view(&v);
     sg_image_desc d{};
     d.usage.color_attachment = true;
     d.width = width;
     d.height = height;
     d.pixel_format = SG_PIXELFORMAT_RGBA8;
+    d.sample_count = 1;
     d.label = "ei-texture-level-read";
     sg_image target = sg_make_image(&d);
-    sg_view_desc a{};
-    a.color_attachment.image = target;
-    sg_view attachment = sg_make_view(&a);
     bool read = false;
-    if (sg_query_view_state(source) == SG_RESOURCESTATE_VALID && sg_query_view_state(attachment) == SG_RESOURCESTATE_VALID) {
-        sg_pass pass{};
-        pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
-        pass.action.colors[0].store_action = SG_STOREACTION_STORE;
-        pass.attachments.colors[0] = attachment;
-        pass.label = "ei-texture-level-read";
-        sg_begin_pass(&pass);
-        sg_apply_pipeline(g_replace);
-        sg_bindings b{};
-        b.views[0] = source;
-        b.samplers[0] = g_nearest;
-        sg_apply_bindings(&b);
-        ApplyRect(Rect{0, 0, width, height}, width, height);
-        texture_compose_params_t fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
-        sg_range range{&fs, sizeof(fs)};
-        sg_apply_uniforms(UB_texture_compose_params, &range);
-        sg_draw(0, 6, 1);
-        sg_end_pass();
-        StagingCopy copy;
-        if (copy.Map(target)) {
+    if (sg_query_image_state(target) == SG_RESOURCESTATE_VALID) {
+        sg_view source = LevelView(image, level, false), attachment = LevelView(target, 0, true);
+        DrawLevel(source, attachment, width, height, true);
+        sg_destroy_view(attachment);
+        sg_destroy_view(source);
+        platform::graphics::Readback copy;
+        if (copy.Read(target, platform::Rect{0, 0, width, height})) {
             rgba->resize(static_cast<std::size_t>(width) * height * 4);
             for (int y = 0; y < height; ++y)
-                std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(static_cast<unsigned>(y)),
+                std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(y),
                             static_cast<std::size_t>(width) * 4);
             read = true;
         }
         copy.Release();
     }
-    sg_destroy_view(attachment);
-    sg_destroy_image(target);
-    sg_destroy_view(source);
+    if (target.id) sg_destroy_image(target);
     return read;
 }
 #endif
 
 void DestroyCompose() {
+    DropLevelViews();
     for (CloudFrameTexture& f : g_cloudFrames) {
         sg_destroy_view(f.texture);
         sg_destroy_image(f.image);
     }
     g_cloudFrames.clear();
-    for (sg_pipeline* p : {&g_over, &g_replace, &g_cloudFrame, &g_clouds}) {
+    for (sg_pipeline* p : {&g_over, &g_replace, &g_mip, &g_cloudFrame, &g_clouds}) {
         if (p->id) sg_destroy_pipeline(*p);
         *p = sg_pipeline{};
     }
-    for (sg_shader* s : {&g_shader, &g_cloudFrameShader, &g_cloudsShader}) {
+    for (sg_shader* s : {&g_shader, &g_mipShader, &g_cloudFrameShader, &g_cloudsShader}) {
         if (s->id) sg_destroy_shader(*s);
         *s = sg_shader{};
     }
-    if (g_nearest.id) sg_destroy_sampler(g_nearest);
-    g_nearest = sg_sampler{};
+    for (sg_sampler* s : {&g_nearest, &g_linear}) {
+        if (s->id) sg_destroy_sampler(*s);
+        *s = sg_sampler{};
+    }
     g_tried = g_made = false;
 }
 

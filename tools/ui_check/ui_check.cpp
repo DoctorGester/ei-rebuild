@@ -24,6 +24,7 @@
 //           read back.
 // Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
 #define NOMINMAX
+#include "render/glyph_cases.h"
 #include "render/render_internal.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
@@ -42,6 +43,11 @@ using render::Rect;
 namespace ui = render::ui;
 namespace text = render::text;
 namespace detail = render::detail;
+using glyph_cases::Differ;
+using glyph_cases::Format;
+using glyph_cases::kFormats;
+using glyph_cases::RefQuantise;
+using glyph_cases::RefTopBits;
 
 namespace {
 
@@ -78,8 +84,7 @@ void DrawTestFrame() {
     for (std::size_t k = g_drawnCommands; k < detail::g_frame.commands.size(); ++k) {
         const detail::Command& c = detail::g_frame.commands[k];
         if (c.kind == detail::Command::Canvas)
-            detail::DrawCanvasBatch(detail::g_frame.canvasBatches[static_cast<std::size_t>(c.index)], g_targetWidth,
-                                    g_targetHeight);
+            detail::DrawCanvasBatch(detail::g_frame.canvasBatches[static_cast<std::size_t>(c.index)], g_targetWidth, g_targetHeight);
     }
     sg_end_pass();
     ++g_passes;
@@ -92,16 +97,14 @@ void LogLine(const char* prefix, const char* text) {
     std::printf("  %s%s\n", prefix, text);
 }
 
-void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
-              const char*, void*) {
+void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line, const char*, void*) {
     char buffer[1024];
-    std::snprintf(buffer, sizeof buffer, "%s level %u item %u (line %u): %s", tag ? tag : "sg", level, item, line,
-                  message ? message : "");
+    std::snprintf(buffer, sizeof buffer, "%s level %u item %u (line %u): %s", tag ? tag : "sg", level, item, line, message ? message : "");
     // sokol's note that a feature level 11.0 device has eight UAV slots (none are used here) is not a problem.
     if (level <= 2 && item != SG_LOGITEM_D3D11_FEATURE_LEVEL_0_DETECTED) LogLine("sokol: ", buffer);
 }
 
-}   // namespace
+} // namespace
 
 namespace ei {
 void Log(const char* fmt, ...) {
@@ -112,7 +115,7 @@ void Log(const char* fmt, ...) {
     va_end(args);
     LogLine("log: ", buffer);
 }
-}   // namespace ei
+} // namespace ei
 
 namespace render {
 namespace detail {
@@ -131,16 +134,32 @@ void SplitFrame() {
 void RunCanvasesNow() { RunCanvasCommands(); }
 GpuWorkAlone::GpuWorkAlone() {}
 GpuWorkAlone::~GpuWorkAlone() {}
-GpuGuard::GpuGuard() : saved(0) {}
-GpuGuard::~GpuGuard() {}
-}   // namespace detail
-}   // namespace render
+} // namespace detail
+} // namespace render
 
 namespace {
 
 // ---- Checks -------------------------------------------------------------------------------------------------
 
-#include "ui_canvas_glyphs.h"
+int g_checks = 0, g_failures = 0;
+
+void Check(bool ok, const std::string& what) {
+    ++g_checks;
+    if (ok) {
+        if (g_verbose) std::printf("  ok   %s\n", what.c_str());
+        return;
+    }
+    ++g_failures;
+    std::printf("  FAIL %s\n", what.c_str());
+}
+
+// A canvas read back, each pixel packed in the surface format (empty when it cannot be read).
+std::vector<std::uint32_t> ReadPacked(const void* holder, const render::PixelFormat& f) {
+    std::vector<std::uint32_t> pixels;
+    if (!ui::ReadPixels(holder, &pixels)) return {};
+    for (std::uint32_t& p : pixels) p = ui::Pack(p, f);
+    return pixels;
+}
 
 // ---- gdi: fills, frames, lines, pixels against GDI ------------------------------------------------------------
 
@@ -302,8 +321,6 @@ void CheckGdi() {
     }
     sg_commit();
 }
-
-// ---- glyphs: glyph runs against the CPU rule -----------------------------------------------------------------
 
 // ---- grey: 005FE440 -------------------------------------------------------------------------------------------
 
@@ -492,21 +509,21 @@ void CheckPicture() {
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
-    detail::StagingCopy copy;
-    bool ok = copy.Map(g_target);
-    if (ok) {
-        const unsigned w = copy.Width(), h = copy.Height();
+    platform::graphics::Readback copy;
+    const int w = g_targetWidth, h = g_targetHeight;
+    const bool read = copy.Read(g_target, platform::Rect{0, 0, w, h});
+    if (read) {
         rgb->resize(static_cast<std::size_t>(w) * h);
-        for (unsigned y = 0; y < h; ++y) {
+        for (int y = 0; y < h; ++y) {
             const std::uint8_t* row = copy.Row(y);
-            for (unsigned x = 0; x < w; ++x)
-                (*rgb)[static_cast<std::size_t>(y) * w + x] =
-                    (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
+            for (int x = 0; x < w; ++x)
+                (*rgb)[static_cast<std::size_t>(y) * w + x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) |
+                                                              (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) |
+                                                              row[x * 4 + 2];
         }
     }
     copy.Release();
-    sg_reset_state_cache();
-    return ok;
+    return read;
 }
 
 // The blit of `canvas` (its pixels, `cw` wide) onto `target` as ps_blit draws it (exact ratios only).
@@ -671,10 +688,11 @@ void CheckLost() {
 bool StartDevice(bool hardware) {
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
-    const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+    const D3D_FEATURE_LEVEL level = D3D_FEATURE_LEVEL_11_0;   // the shaders are shader model 5
     D3D_FEATURE_LEVEL got{};
-    HRESULT hr = D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                                   levels, 3, D3D11_SDK_VERSION, &device, &got, &context);
+    HRESULT hr =
+        D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
+                          D3D11_CREATE_DEVICE_BGRA_SUPPORT, &level, 1, D3D11_SDK_VERSION, &device, &got, &context);
     if (FAILED(hr)) {
         std::printf("D3D11CreateDevice (%s) failed: %08lX\n", hardware ? "hardware" : "WARP", static_cast<unsigned long>(hr));
         return false;
@@ -691,7 +709,7 @@ bool StartDevice(bool hardware) {
     return sg_isvalid();
 }
 
-}   // namespace
+} // namespace
 
 int main(int argc, char** argv) {
     bool hardware = false;
@@ -705,7 +723,9 @@ int main(int argc, char** argv) {
     }
     if (!StartDevice(hardware)) return 1;
     CheckGdi();
-    CheckGlyphs();
+    if (g_verbose) std::printf("glyphs:\n");
+    glyph_cases::Run(Check);
+    sg_commit();
     CheckGrey();
     CheckImage();
     CheckCopy();

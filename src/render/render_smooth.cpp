@@ -1,13 +1,13 @@
 // The render quality's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
 // commands into a multisampled colour and depth target and resolves the colour into the frame target at the
-// end of each such pass; the interface draws into the frame target as without the option. Here: the sample
-// count the device gives and the two copies between the targets where the frame changes from one to the other
-// (the frame target's colour and depth into every sample before a world run that follows interface draws;
-// sample 0 of the multisampled depth into the frame target's depth after a world run).
-#include "../hook/log.h"
-#include "platform/graphics.h"
+// end of each such pass; the interface draws into the frame target as without the option. Here: the two copies
+// between the targets where the frame changes from one to the other (the frame target's colour and depth into every
+// sample before a world run that follows interface draws; sample 0 of the multisampled depth into the frame target's
+// depth after a world run).
 #include "render.h"
 #include "render_internal.h"
+
+#include "../hook/log.h"
 
 namespace render {
 
@@ -19,12 +19,6 @@ sg_shader g_intoShader{}, g_fromShader{};
 sg_pipeline g_into{}, g_from{};
 int g_copySamples = 0;   // the sample count the copies were made for
 sg_sampler g_point{};
-
-sg_shader CopyShader(ShaderProgram code, const char* label) {
-    sg_shader_desc s = ShaderDescription(code);
-    s.label = label;
-    return sg_make_shader(&s);
-}
 
 // Depth always written, colour as `writeColour`, for `samples`.
 sg_pipeline CopyPipeline(sg_shader shader, int samples, bool writeColour, const char* label) {
@@ -54,7 +48,6 @@ void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
 
 namespace detail {
 
-
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
     DestroySmooth();
@@ -63,8 +56,8 @@ bool PrepareSmoothCopies(int samples) {
     d.mag_filter = SG_FILTER_NEAREST;
     d.label = "ei-smooth-copy";
     g_point = sg_make_sampler(&d);
-    g_intoShader = CopyShader(kIntoMultisampledShader, "ei-into-multisampled");
-    g_fromShader = CopyShader(kDepthFromMultisampledShader, "ei-depth-from-multisampled");
+    g_intoShader = sg_make_shader(into_multisampled_shader_desc(sg_query_backend()));
+    g_fromShader = sg_make_shader(depth_from_multisampled_shader_desc(sg_query_backend()));
     g_into = CopyPipeline(g_intoShader, samples, true, "ei-into-multisampled");
     g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-multisampled");
     bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;

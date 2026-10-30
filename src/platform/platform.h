@@ -464,6 +464,8 @@ void ClientToScreen(NativeWindow window, Point* point);
 // Full screen without a display mode change: the window moved over the whole monitor it is on, unless minimised or
 // there already. True when it moved; `was` and `monitor` then hold its old place and the monitor's.
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor);
+// The window's client area in pixels (what the renderer draws into); false when it has none (minimised).
+bool WindowPixelSize(NativeWindow window, int* width, int* height);
 
 // ---- Events ------------------------------------------------------------------------------------------------------
 
@@ -851,6 +853,22 @@ void GoToFrame(Movie* movie, unsigned frame);
 void SetVolume(Movie* movie, int volume);   // 0..32768
 
 } // namespace video
+
+// ==== Floating point =================================================================================================
+
+// Puts the floating-point control state back at the end of a scope that calls code which may change it (the graphics
+// driver): the x87 control word on 32-bit x86 (the game's main thread runs at 24-bit precision,
+// docs/notes/rebirth.md), MXCSR's control bits on x64. Set back only when it changed.
+class FloatingPointGuard {
+public:
+    FloatingPointGuard();
+    ~FloatingPointGuard();
+    FloatingPointGuard(const FloatingPointGuard&) = delete;
+    FloatingPointGuard& operator=(const FloatingPointGuard&) = delete;
+
+private:
+    unsigned int saved;
+};
 
 } // namespace platform
 

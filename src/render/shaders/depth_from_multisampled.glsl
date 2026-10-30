@@ -1,8 +1,5 @@
-@vs depth_from_multisampled_vs
-@glsl_options fixup_clipspace
-@include_block fullscreen_vertex
-@end
-
+// The multisampling's copy of sample 0 of the multisampled depth into the frame target's depth
+// (render_smooth.cpp), for any sample count (shader model 5: the count is not part of the texture's type).
 @fs depth_from_multisampled_fs
 layout(binding = 0) uniform texture2DMS depth_ms;
 layout(binding = 0) uniform sampler copy_smp;
@@ -12,4 +9,4 @@ void main() {
     frag_colour = vec4(0.0);
 }
 @end
-@program depth_from_multisampled depth_from_multisampled_vs depth_from_multisampled_fs
+@program depth_from_multisampled fullscreen_vs depth_from_multisampled_fs

@@ -1,10 +1,9 @@
 // The interface's 2D canvases (render_ui.h). See docs/notes/ui-native.md, "Source file overviews".
 #include "render_ui.h"
-
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render_internal.h"
 #include "render_text.h"
+
+#include "../hook/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -126,10 +125,10 @@ std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
-
 bool g_pipelinesTried = false, g_pipelinesMade = false;
-sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
-sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{}, g_rgb565{};
+sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_moveShader{},
+    g_rgb565Shader{}, g_blitShader{};
+sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{}, g_move{}, g_rgb565{};
 // The frame blit per sample count of the pass (1, or the render quality's multisampled one).
 struct BlitPipeline {
     int samples;
@@ -156,12 +155,6 @@ std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
 
 sg_buffer g_vertices{};
 std::size_t g_vertexCapacity = 0;
-
-sg_shader MakeShader(ShaderProgram code, const char* label) {
-    sg_shader_desc s = ShaderDescription(code);
-    s.label = label;
-    return sg_make_shader(&s);
-}
 
 // A pipeline drawing into a canvas (RGBA8), the coverage scratch (R8, MAX blending) or the 5:6:5 picture
 // (R16UI), no depth.
@@ -190,18 +183,21 @@ sg_pipeline MakeCanvasPipeline(sg_shader shader, sg_pixel_format format, const c
 bool EnsurePipelines() {
     if (g_pipelinesTried) return g_pipelinesMade;
     g_pipelinesTried = true;
-    g_solidShader = MakeShader(kUiSolidShader, "ei-canvas-solid");
-    g_glyphShader = MakeShader(kUiGlyphShader, "ei-canvas-glyph");
-    g_composeShader = MakeShader(kUiComposeShader, "ei-canvas-compose");
-    g_greyShader = MakeShader(kUiGreyShader, "ei-canvas-grey");
-    g_copyShader = MakeShader(kUiCopyShader, "ei-canvas-copy");
-    g_rgb565Shader = MakeShader(kUiRgb565Shader, "ei-canvas-rgb565");
-    g_blitShader = MakeShader(kUiBlitShader, "ei-canvas-blit");
+    const sg_backend backend = sg_query_backend();
+    g_solidShader = sg_make_shader(ui_solid_shader_desc(backend));
+    g_glyphShader = sg_make_shader(ui_glyph_shader_desc(backend));
+    g_composeShader = sg_make_shader(ui_compose_shader_desc(backend));
+    g_greyShader = sg_make_shader(ui_grey_shader_desc(backend));
+    g_copyShader = sg_make_shader(ui_copy_shader_desc(backend));
+    g_moveShader = sg_make_shader(ui_move_shader_desc(backend));
+    g_rgb565Shader = sg_make_shader(ui_rgb565_shader_desc(backend));
+    g_blitShader = sg_make_shader(ui_blit_shader_desc(backend));
     g_solid = MakeCanvasPipeline(g_solidShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-solid");
     g_glyph = MakeCanvasPipeline(g_glyphShader, SG_PIXELFORMAT_R8, "ei-canvas-glyph");
     g_compose = MakeCanvasPipeline(g_composeShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-compose");
     g_grey = MakeCanvasPipeline(g_greyShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-grey");
     g_copy = MakeCanvasPipeline(g_copyShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-copy");
+    g_move = MakeCanvasPipeline(g_moveShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-move");
     g_rgb565 = MakeCanvasPipeline(g_rgb565Shader, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565");
     sg_sampler_desc sd{};
     sd.min_filter = SG_FILTER_NEAREST;
@@ -211,7 +207,7 @@ bool EnsurePipelines() {
     sd.label = "ei-canvas";
     g_nearest = sg_make_sampler(&sd);
     g_pipelinesMade = true;
-    for (sg_pipeline p : {g_solid, g_glyph, g_compose, g_grey, g_copy, g_rgb565})
+    for (sg_pipeline p : {g_solid, g_glyph, g_compose, g_grey, g_copy, g_move, g_rgb565})
         g_pipelinesMade = g_pipelinesMade && sg_query_pipeline_state(p) == SG_RESOURCESTATE_VALID;
     if (!g_pipelinesMade) ei::Log("render: the canvas pipelines could not be created (see the sokol messages above)");
     return g_pipelinesMade;
@@ -292,18 +288,25 @@ void BeginCanvasPass(sg_view attachment, bool clear, const char* label) {
 ui_params_t CanvasParams(const CanvasState& canvas) {
     ui_params_t fs{};
     for (int i = 0; i < 3; ++i) fs.bits[i] = static_cast<int>(canvas.bits[i]);
-    fs.bits[3] = canvas.greyMode;
+    fs.bits[3] = static_cast<int>(canvas.greyMode);
     return fs;
 }
 
-void ApplyFs(const ui_params_t& fs) {
-    sg_range range{&fs, sizeof(fs)};
-    sg_apply_uniforms(UB_ui_params, &range);
-}
+void ApplyFs(const ui_params_t& fs) { sg_apply_uniforms(UB_ui_params, SG_RANGE(fs)); }
 
-// `r` of the canvas's image copied into g_under at (0, row).
-void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
-    platform::graphics::CopyImage(canvas.gpu.image, g_under.image, {r.left, r.top, r.right, r.bottom}, 0, row);
+// In a pass on a target of `width` x `height`: `from` of `source` drawn at (left, top), texel for pixel.
+void DrawMoved(sg_view source, const Rect& from, int left, int top, int width, int height) {
+    sg_apply_pipeline(g_move);
+    sg_bindings b{};
+    b.views[0] = source;
+    b.samplers[0] = g_nearest;
+    sg_apply_bindings(&b);
+    ApplyRect(Rect{left, top, left + from.right - from.left, top + from.bottom - from.top}, width, height);
+    ui_params_t fs{};
+    fs.source[0] = left - from.left;
+    fs.source[1] = top - from.top;
+    ApplyFs(fs);
+    sg_draw(0, 6, 1);
 }
 
 // The canvas's image of its size, all black.
@@ -395,9 +398,9 @@ int AppendVertices(const std::vector<float>& vertices) {
 
 // Glyph runs [from, to) of the queue, all on `canvas` and none overlapping another, drawn together: each run's
 // coverage into g_coverage and what the canvas held under it into g_under, the runs stacked in rows of both (each
-// with its top left corner at the left edge), then each composed into the canvas, in one coverage pass and one
-// compose pass: each pass waits on the GPU for the one before it (the battle screen's six runs a frame took the
-// GPU 0.07 ms drawn one by one, 0.055 ms together; docs/notes/renderer.md section 13).
+// with its top left corner at the left edge), then each composed into the canvas, in one pass each for the
+// coverage, the copy and the composition: each pass waits on the GPU for the one before it (the battle screen's six
+// runs a frame took the GPU 0.07 ms drawn one by one, 0.055 ms together; docs/notes/renderer.md section 13).
 void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     struct Run {
         const Op* op;
@@ -441,7 +444,9 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     }
     sg_end_pass();
     // What the canvas held there, then the runs composed into it.
-    for (const Run& run : runs) CopyUnder(canvas, run.op->rect, run.row);
+    BeginCanvasPass(g_under.attachment, false, "ei-canvas-under");
+    for (const Run& run : runs) DrawMoved(canvas.gpu.texture, run.op->rect, 0, run.row, g_under.width, g_under.height);
+    sg_end_pass();
     BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-compose");
     sg_apply_pipeline(g_compose);
     sg_bindings c{};
@@ -501,16 +506,34 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     sg_end_pass();
 }
 
-// An Image's pixels written into the canvas's texture.
+// An Image's pixels drawn into the canvas, through an image of their own.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
-    platform::graphics::WriteImage(canvas.gpu.image, {op.rect.left, op.rect.top, op.rect.right, op.rect.bottom},
-                                   op.pixels.data(), (op.rect.right - op.rect.left) * 4);
+    const Rect& r = op.rect;
+    sg_image_desc d{};
+    d.width = r.right - r.left;
+    d.height = r.bottom - r.top;
+    d.pixel_format = SG_PIXELFORMAT_RGBA8;
+    d.data.mip_levels[0] = sg_range{op.pixels.data(), op.pixels.size() * sizeof(std::uint32_t)};
+    d.label = "ei-canvas-pixels";
+    sg_image image = sg_make_image(&d);
+    sg_view_desc v{};
+    v.texture.image = image;
+    sg_view view = sg_make_view(&v);
+    if (sg_query_view_state(view) == SG_RESOURCESTATE_VALID) {
+        BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-pixels");
+        DrawMoved(view, Rect{0, 0, d.width, d.height}, r.left, r.top, canvas.width, canvas.height);
+        sg_end_pass();
+    }
+    if (view.id) sg_destroy_view(view);
+    if (image.id) sg_destroy_image(image);
 }
 
 void DrawGrey(const CanvasState& canvas) {
     if (!EnsureScratch(g_under, canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas-under")) return;
     Rect whole{0, 0, canvas.width, canvas.height};
-    CopyUnder(canvas, whole, 0);
+    BeginCanvasPass(g_under.attachment, false, "ei-canvas-under");
+    DrawMoved(canvas.gpu.texture, whole, 0, 0, g_under.width, g_under.height);
+    sg_end_pass();
     BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-grey");
     sg_apply_pipeline(g_grey);
     sg_bindings b{};
@@ -528,14 +551,9 @@ CanvasState* Find(const void* holder, unsigned id) {
     return it != g_canvases.end() && it->second.id == id ? &it->second : nullptr;
 }
 
-// Staging copies for the read-backs, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Mapped under the
-// present's lock (GpuWorkAlone); UnmapRegion after reading.
-StagingCopy g_staging, g_pictureStaging;
-
-void UnmapRegion(StagingCopy& s) {
-    s.Unmap();
-    sg_reset_state_cache();
-}
+// The read-backs' copies, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Read under the present's
+// lock (GpuWorkAlone); unmapped after reading.
+platform::graphics::Readback g_staging, g_pictureStaging;
 
 // `op`, just drawn on `canvas`, joins its history. One that covers the canvas whole (its making, a fill or
 // picture of all of it) starts the history again. A screen copy is not kept (the frame it copied is gone on a new
@@ -551,18 +569,18 @@ void Remember(CanvasState& canvas, Op&& op) {
 // A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
 void Compact(const void* holder, CanvasState& canvas) {
     canvas.copied = false;
-    sg_image texture = canvas.gpu.image;
-    const unsigned w = static_cast<unsigned>(canvas.width), h = static_cast<unsigned>(canvas.height);
-    if (!g_staging.Map(texture, 0, 0, w, h)) return;
+    const int w = canvas.width, h = canvas.height;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return;
     Op op;
     op.kind = Op::Pixels;
     op.holder = holder;
     op.canvas = canvas.id;
     op.rect = Rect{0, 0, canvas.width, canvas.height};
     op.pixels.resize(static_cast<std::size_t>(w) * h);
-    for (unsigned y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
-        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y), w * 4u);
-    UnmapRegion(g_staging);
+    for (int y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
+        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y),
+                    static_cast<std::size_t>(w) * 4);
+    g_staging.Unmap();
     canvas.history.clear();
     canvas.history.push_back(std::move(op));
 }
@@ -781,19 +799,18 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
-    sg_image texture = canvas.gpu.image;
-    unsigned w = static_cast<unsigned>(canvas.width), h = static_cast<unsigned>(canvas.height);
-    if (!g_staging.Map(texture, 0, 0, w, h)) return false;
+    const int w = canvas.width, h = canvas.height;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
-    for (unsigned y = 0; y < h; ++y) {
+    for (int y = 0; y < h; ++y) {
         const std::uint8_t* row = g_staging.Row(y);
         std::uint32_t* out = rgb->data() + static_cast<std::size_t>(y) * w;
-        for (unsigned x = 0; x < w; ++x)   // RGBA8
+        for (int x = 0; x < w; ++x)   // RGBA8
             out[x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
     }
-    UnmapRegion(g_staging);
+    g_staging.Unmap();
     if (width) *width = canvas.width;
     if (height) *height = canvas.height;
     return true;
@@ -806,13 +823,12 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
-    sg_image texture = canvas.gpu.image;
-    if (!g_staging.Map(texture, static_cast<unsigned>(x), static_cast<unsigned>(y), 1, 1)) return false;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{x, y, x + 1, y + 1})) return false;
     const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
-    UnmapRegion(g_staging);
+    g_staging.Unmap();
     return true;
 }
 
@@ -822,7 +838,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.texture.id || !EnsurePipelines()) return false;
     const CanvasState& canvas = it->second;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
     if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
     BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
@@ -841,12 +857,11 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     ApplyFs(fs);
     sg_draw(0, 6, 1);
     sg_end_pass();
-    sg_image texture = g_picture.image;
-    if (!g_pictureStaging.Map(texture, 0, 0, static_cast<unsigned>(width), static_cast<unsigned>(height))) return false;
+    if (!g_pictureStaging.Read(g_picture.image, platform::Rect{0, 0, width, height})) return false;
     for (int y = 0; y < height; ++y)
-        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width),
-                    g_pictureStaging.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(width) * sizeof(std::uint16_t));
-    UnmapRegion(g_pictureStaging);
+        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width), g_pictureStaging.Row(y),
+                    static_cast<std::size_t>(width) * sizeof(std::uint16_t));
+    g_pictureStaging.Unmap();
     return true;
 }
 
@@ -929,7 +944,7 @@ void RunCanvasCommands() {
     }
     g_queue.clear();
     if (readBack) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         for (auto& [holder, canvas] : g_canvases)
             if ((canvas.copied || canvas.history.size() > kMaxHistory) && canvas.gpu.image.id) Compact(holder, canvas);
     }
@@ -1007,12 +1022,12 @@ void DropCanvases() {
     g_vertexCapacity = 0;
     for (const BlitPipeline& b : g_blits) sg_destroy_pipeline(b.pipeline);
     g_blits.clear();
-    for (sg_pipeline* p : {&g_solid, &g_glyph, &g_compose, &g_grey, &g_copy, &g_rgb565}) {
+    for (sg_pipeline* p : {&g_solid, &g_glyph, &g_compose, &g_grey, &g_copy, &g_move, &g_rgb565}) {
         if (p->id) sg_destroy_pipeline(*p);
         *p = sg_pipeline{};
     }
-    for (sg_shader* s : {&g_solidShader, &g_glyphShader, &g_composeShader, &g_greyShader, &g_copyShader, &g_rgb565Shader,
-                         &g_blitShader}) {
+    for (sg_shader* s : {&g_solidShader, &g_glyphShader, &g_composeShader, &g_greyShader, &g_copyShader, &g_moveShader,
+                         &g_rgb565Shader, &g_blitShader}) {
         if (s->id) sg_destroy_shader(*s);
         *s = sg_shader{};
     }

@@ -33,23 +33,8 @@ template <lib::BitFlags E> constexpr E& operator|=(E& a, E b) { return a = a | b
 template <lib::BitFlags E> constexpr E& operator&=(E& a, E b) { return a = a & b; }
 template <lib::BitFlags E> constexpr E& operator^=(E& a, E b) { return a = a ^ b; }
 
-template <class E>
-constexpr std::enable_if_t<lib::kBitFlags<E>, std::uint32_t> operator|(std::uint32_t word, E bits) {
-    return word | lib::Bits(bits);
-}
-template <class E>
-constexpr std::enable_if_t<lib::kBitFlags<E>, std::uint32_t> operator&(std::uint32_t word, E bits) {
-    return word & lib::Bits(bits);
-}
-template <class E>
-constexpr std::enable_if_t<lib::kBitFlags<E>, std::uint32_t&> operator|=(std::uint32_t& word, E bits) {
-    return word |= lib::Bits(bits);
-}
-template <class E>
-constexpr std::enable_if_t<lib::kBitFlags<E>, std::uint32_t&> operator&=(std::uint32_t& word, E bits) {
-    return word &= lib::Bits(bits);
-}
-template <class E>
-constexpr std::enable_if_t<lib::kBitFlags<E>, std::uint32_t&> operator^=(std::uint32_t& word, E bits) {
-    return word ^= lib::Bits(bits);
-}
+template <lib::BitFlags E> constexpr std::uint32_t operator|(std::uint32_t word, E bits) { return word | lib::Bits(bits); }
+template <lib::BitFlags E> constexpr std::uint32_t operator&(std::uint32_t word, E bits) { return word & lib::Bits(bits); }
+template <lib::BitFlags E> constexpr std::uint32_t& operator|=(std::uint32_t& word, E bits) { return word |= lib::Bits(bits); }
+template <lib::BitFlags E> constexpr std::uint32_t& operator&=(std::uint32_t& word, E bits) { return word &= lib::Bits(bits); }
+template <lib::BitFlags E> constexpr std::uint32_t& operator^=(std::uint32_t& word, E bits) { return word ^= lib::Bits(bits); }

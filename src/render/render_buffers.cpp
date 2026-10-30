@@ -1,13 +1,12 @@
 // The new renderer's vertex and index buffers: the streams a frame appends its vertices to
 // (StreamBuffer, GeometryStream) and the pools that keep terrain pages and meshes on the GPU across
 // frames (GpuPool; docs/notes/renderer.md section 13).
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
 
+#include "../hook/log.h"
+
 #include <algorithm>
-#include <cstring>
 
 namespace render::detail {
 
@@ -106,47 +105,28 @@ void GeometryStream::Destroy() {
 
 // --- Pools -------------------------------------------------------------------------------------------------
 
-bool GpuPool::Buffer::Make(std::size_t bytes, bool newIndex, const char* label) {
-    GpuGuard gpu;
-    shadow.assign(bytes, 0);
-    index = newIndex;
-    dirty = true;
-    uploaded = 0xFFFFFFFFu;
-    sg_buffer_desc desc{};
-    desc.size = bytes;
-    desc.usage.vertex_buffer = !index;
-    desc.usage.index_buffer = index;
-    desc.usage.dynamic_update = true;
-    desc.label = label;
-    buffer = sg_make_buffer(desc);
-    return sg_query_buffer_state(buffer) == SG_RESOURCESTATE_VALID;
-}
-void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
-    if (!bytes || offset + bytes > shadow.size()) return;
-    std::memcpy(shadow.data() + offset, data, bytes);
-    dirty = true;
-}
-void GpuPool::Buffer::Flush() const {
-    if (!dirty) return;
-    // A later pass can update a pool already drawn in this frame: retain the earlier buffer until commit.
-    if (!buffer.id || uploaded == CommitNumber()) {
-        Retire(buffer);
-        sg_buffer_desc desc{};
-        desc.size = shadow.size();
-        desc.usage.vertex_buffer = !index;
-        desc.usage.index_buffer = index;
-        desc.usage.dynamic_update = true;
-        buffer = sg_make_buffer(desc);
+bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
+    sg_buffer_desc d{};
+    d.size = bytes;
+    d.usage.vertex_buffer = !index;
+    d.usage.index_buffer = index;
+    d.usage.write_unsealed = true;   // made without data, written in parts (Write)
+    d.label = label;
+    buffer = sg_make_buffer(&d);
+    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_UNSEALED) {
+        if (buffer.id) sg_destroy_buffer(buffer);
+        buffer = sg_buffer{};
+        return false;
     }
-    sg_update_buffer(buffer, sg_range{shadow.data(), shadow.size()});
-    uploaded = CommitNumber();
-    dirty = false;
+    sg_seal_buffer(buffer);
+    return true;
 }
-void GpuPool::Buffer::Drop() {
-    Retire(buffer);
-    shadow.clear();
-    dirty = false;
+
+void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
+    if (buffer.id) platform::graphics::UpdateBuffer(buffer, offset, data, bytes);
 }
+
+void GpuPool::Buffer::Drop() { Retire(buffer); }
 
 bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t indexCount, bool* anew) {
     *anew = false;
@@ -201,9 +181,6 @@ void GpuPool::WriteIndices(const PoolPlace& p, const std::uint32_t* relative, st
 }
 
 void GpuPool::Bind(sg_bindings& b) const {
-    geometry.Flush();
-    colours.Flush();
-    indices.Flush();
     b.vertex_buffers[0] = geometry.buffer;
     b.vertex_buffers[1] = colours.buffer;
     b.index_buffer = indices.buffer;

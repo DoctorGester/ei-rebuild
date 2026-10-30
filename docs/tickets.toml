@@ -6167,6 +6167,13 @@ depends = ["H40"]
 note = "User 2026-10-30 idea: a test-only data set built from the install by a tool, so the harness runs where the real files are not (GitHub Actions, a clean checkout). Keep what decides game state: maps / terrain and collision, models' geometry, skeletons and animations (bones, timings, events), databases, scripts, text, unit/item tables. Stub what only shows or sounds: textures as 1x1 or same-size blank (keep the dimensions where layout reads them), sounds and speech as silent clips of the same length (scripts wait on speech), Bink movies as frame count / size / rate only, fonts kept for metrics or replaced by metric tables. Step 1: list every read the harness's runs make (file, which fields reach state) and prove each stub keeps the goldens (all suites the same on the stub set as on the install). Step 2: the stub tool (tools/stub_data.py) writing archives in the original formats so no new loader path is needed; a null renderer / no-audio run if the CI runner has no GPU. Step 3: CI job. User 2026-10-30: if the data can be private, CI can use the real game instead of stubs. Note (mine): Actions cache is NOT private in a public repo (fork PRs can restore the base branch's cache, 10 GB cap, 7-day eviction), and public repo releases are public. Private options: a separate private repo holding the install, cloned with a fine-grained read-only PAT in a secret (secrets are not given to fork PRs); or a self-hosted runner on the user's machine (no upload, has a GPU, but must never run fork PRs). Stubs remain useful only if the data must go somewhere public. Frame-capture scenarios stay local."
 
 [[ticket]]
+id = "H42"
+title = "Harness: runs fail at EI_RESOLUTION=1280x720"
+group = "harness"
+model = "sonnet"
+note = "Found by MAC3e (main and its branch alike): with EI_RESOLUTION=1280x720, render_smooth / ui_quicksave (checksave about 20%), render_shadows_shimmer, render_cursor_present and ui_gallery_deals fail; at the default resolution all pass. Find whether the scenarios or the game depend on the resolution and fix the cause."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -6798,7 +6805,7 @@ title = "Rebirth's bug fixes always on, and harmless Rebirth options folded in"
 group = "cleanup"
 model = "opus"
 depends = ["W12"]
-note = "User 2026-10-30: after WideScreen (W12), the 11 Fix patches (FixLeversActivate, FixSpellEffectsOverflow, FixProgressNames, FixSpellSelfCasting, FixProcessLogin, FixMoveObject, FixAddMapObject, FixPlaingBattleMusicFromAntimagic, FixRepairPrice, FixRemoveMapObject, FixCreateItem) become unconditional code: no flag, no branch (every profile has them on, the vanilla goldens include them). Then the 44 Flag options (include/ei/rebirth_patches.inc): classify each from its code and Rebirth's docs as (a) clear improvement or harmless -> always on, flag and branch removed; (b) a real option for mods / multiplayer / data paths -> stays a setting in ei_settings.ini; (c) unsure -> listed for the user. Write the table to build/reviews/c68_flags.md first. Fold in (a) where the goldens stay the same; a fold that changes a golden is listed for the user, not re-recorded. Update rebirth_patches.inc / config/rebirth_patches.csv, the settings defaults, docs/notes/rebirth.md."
+note = "Done 2026-10-30 (719f4a9 and earlier squashes): the fixes and seven options folded in, the draw radii gone (whole map). Left as flags for later (user): MQClient, DisableExitOnCrashReport, the mod-folder patches, EI_Plugin's features."
 
 [[ticket]]
 id = "C66b"
@@ -6812,7 +6819,7 @@ id = "C69"
 title = "ei_settings.ini explains itself: a comment above every setting, docs/settings.md generated"
 group = "cleanup"
 model = "sonnet"
-note = "User 2026-10-30 asked for one place that says what every ini setting does. One table holds each setting's section, name, default and a one-or-two-line description (the game options in src/game/options.cpp's table, the renderer switches of device_mesh.cpp, Rebirth's patches / switches / console lines; move them into the table or give each a description field there). (1) When the game writes the defaults (settings::Defaults, a missing or empty file) it writes '; description' above each line; comments are already kept on rewrite; an existing file gains no comments (do not edit the user's file). (2) tools/gen_settings_doc.py writes docs/settings.md from the same table (section, name, default, range / values, what it does), and build_checks fails when it is out of date. Descriptions say what the player sees, plainly; check each against the code that reads it. Goldens unchanged (harness runs pin their own file)."
+note = "Done 2026-10-30: src/game/settings_catalog.inc (125 rows), described defaults, docs/settings.md (tools/gen_settings_doc.py, in build_checks), Video 2 in new files (the movies were off), 21 settings nothing read dropped (options, loader, writer, defaults; OptionsResetDefaults gone)."
 
 [[ticket]]
 id = "PL6b"
@@ -7041,3 +7048,19 @@ group = "port"
 model = "opus"
 depends = ["MAC3j"]
 note = "Merge current main into macos-port and adapt the branch's macOS code to what main took, so only macOS-specific differences remain in those files. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the macOS build cannot be built here, so the user checks it on the Mac."
+
+[[ticket]]
+id = "MAC3l"
+title = "macos-port: small leftovers main can take"
+group = "port"
+model = "sonnet"
+depends = ["MAC3f"]
+note = "From MAC3r: bit_flags.h enable_if instead of constrained templates (Apple clang), bink_file platform::File instead of std::ifstream (case-folding lookup), spell_effect.cpp <cfloat>, ui_connect_screen.cpp BufferPut without __declspec(noinline). Take each only if main needs it or it is simpler; batch with a MAC3 worker."
+
+[[ticket]]
+id = "MAC3r2"
+title = "macos-port: merge main back after MAC3e-h, MAC3k, MAC3l"
+group = "port"
+model = "opus"
+depends = ["MAC3g"]
+note = "Merge current main into macos-port and rebuild the macOS side on main's shapes (graphics_metal.mm on the slimmer graphics.h with KeepPresent/DropPresent/PresentAgain and UpdateBuffer; sokol-shdc GLSL; glyph_cases module), so only macOS-specific differences remain. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the user builds the Mac side."

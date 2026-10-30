@@ -3,7 +3,6 @@
 #include "../game/model.h"
 #include "../game/terrain_sector.h"
 #include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
 
@@ -395,7 +394,6 @@ GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
 
@@ -576,9 +574,7 @@ bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
 namespace detail {
 
 bool CreateTerrainShader() {
-    sg_shader_desc s = ShaderDescription(kTerrainShader);
-    s.label = "ei-terrain";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(terrain_shader_desc(sg_query_backend()));
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
     if (!ok) ei::Log("render: the terrain shader could not be created (see the sokol messages above)");
     return ok;
@@ -627,68 +623,33 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
         }
     }
 #endif
-    BindShadowMap(b, VIEW_shadow_map, SMP_shadow_smp);
-    BindPointShadows(b, VIEW_point_shadow_map, SMP_point_shadow_smp);
+    BindShadowMap(b);
+    BindPointShadows(b);
     sg_apply_bindings(&b);
     CountBindings(b);
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    ShadowParams shadow{};
-    ShadowUniforms(f, receives, &shadow);
-    auto fill = [&](auto& params) {
-        params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-        params.light = receives ? f.shadow.lights[0] : params.matrix;
-        for (int k = 0; k < 4; ++k) {
-            params.shadow_on[k] = shadow.on[k];
-            params.shadow_scale[k] = shadow.scale[k];
-            params.shadow_camera[k] = shadow.camera[k];
-            params.shadow_soft[k] = shadow.soft[k];
-        }
-        params.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
-        params.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
-        params.fog[2] = (f.fogColour & 0xFF) / 255.0f;
-        params.flags[0] = mode;
-        params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-        params.flags[2] = f.pixelShift[0];
-        params.flags[3] = f.pixelShift[1];
-    };
+    const shadow_params_t& shadow = ShadowUniforms(f, receives);
     terrain_vs_params_t vs{};
+    vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
+    vs.light = receives ? f.shadow.lights[0] : vs.matrix;
+    vs.shift[0] = f.pixelShift[0];
+    vs.shift[1] = f.pixelShift[1];
+    vs.normalOffset[0] = ShadowNormalOffset(shadow);
     terrain_fs_params_t fs{};
-    fill(vs);
-    fill(fs);
-    sg_range vu{&vs, sizeof(vs)}, fu{&fs, sizeof(fs)};
-    sg_apply_uniforms(UB_terrain_vs_params, &vu);
-    sg_apply_uniforms(UB_terrain_fs_params, &fu);
-    LightParams scene;
-    LightUniforms(&scene);
-    light_params_t light{};
-    for (int k = 0; k < 4; ++k) {
-        light.sun_dir[k] = scene.sun[k];
-        light.sun_colour[k] = scene.sunColour[k];
-        light.ambient_colour[k] = scene.ambient[k];
-        light.light_counts[k] = scene.counts[k];
-        light.map_sun[k] = scene.mapSun[k];
-        for (int index = 0; index < kMostSceneLights; ++index) {
-            light.point_lights[2 * index][k] = scene.points[index][0][k];
-            light.point_lights[2 * index + 1][k] = scene.points[index][1][k];
-        }
-    }
-    for (int k = 0; k < kMostSceneLights; ++k) light.point_slots[k / 4][k % 4] = scene.shadowSlots[k];
-    sg_range lu{&light, sizeof(light)};
-    sg_apply_uniforms(UB_light_params, &lu);
-    point_shadow_params_t point{};
-    const auto& shadows = f.shadow.point.params;
-    for (int k = 0; k < 4; ++k) {
-        point.point_shadow_on[k] = shadows.on[k];
-        point.point_shadow_eye[k] = shadows.eye[k];
-        for (int index = 0; index < kMostPointShadows; ++index) {
-            point.point_shadow_at[index][k] = shadows.lights[index][k];
-            point.point_shadow_depth[index][k] = shadows.depth[index][k];
-        }
-    }
-    sg_range pr{&point, sizeof(point)};
-    sg_apply_uniforms(UB_point_shadow_params, &pr);
-    std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(light) + sizeof(point);
+    fs.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
+    fs.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
+    fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
+    fs.flags[0] = mode;
+    fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    scene_light_params_t light;
+    LightUniforms(&light);
+    sg_apply_uniforms(UB_terrain_vs_params, SG_RANGE(vs));
+    sg_apply_uniforms(UB_terrain_fs_params, SG_RANGE(fs));
+    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
+    sg_apply_uniforms(UB_scene_light_params, SG_RANGE(light));
+    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
+    std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;
@@ -868,7 +829,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
     {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         state = ReadPassState(nullptr);
     }
     if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
@@ -897,7 +858,7 @@ void ShadowTerrainSector(const SectorData* s) {
     c.seen = FrameNumber();
     c.cast = false;
     if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
-        GpuGuard gpu;
+        platform::FloatingPointGuard fpu;
         BuildCaster(s, c);
         c.positions = s->vertices.data();
         c.sx = s->sx;
@@ -945,12 +906,13 @@ void UploadTerrainCasters() {
     }
 }
 
-int DrawTerrainCasters() {
+int DrawTerrainCasters(sg_pipeline pipeline) {
     if (g_frameCasters.empty()) return 0;
     sg_bindings b{};
     g_casterPool.Bind(b);
     b.vertex_buffers[1] = sg_buffer{};   // the colours: not read
     if (!b.vertex_buffers[0].id) return 0;
+    sg_apply_pipeline(pipeline);
     sg_apply_bindings(&b);
     int draws = 0;
     for (const SectorCaster* c : g_frameCasters) {

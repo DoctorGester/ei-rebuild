@@ -1,12 +1,16 @@
+// The casters into a depth map (render_shadows.cpp's CasterDraws: the sun's map, the point lights' faces):
+// positions through the light matrix; a pass with alpha test or blending cut out where its stage-0 texel's alpha
+// is below the reference. The texel is the texture's own (level 0): seen from the sun at a grazing angle a smaller
+// level's averaged alpha would cut out edges and fronds that the camera's view keeps. The caster's own data is
+// the draw's instance (CasterInstance): its light matrix by rows, its texture offsets and its cut.
 @vs shadow_caster_vs
-@glsl_options fixup_clipspace
 layout(location = 0) in vec3 in_pos;
 layout(location = 1) in vec2 in_uv;
 layout(location = 2) in vec4 in_row0;
 layout(location = 3) in vec4 in_row1;
 layout(location = 4) in vec4 in_row2;
 layout(location = 5) in vec4 in_row3;
-layout(location = 6) in vec4 in_cut;
+layout(location = 6) in vec4 in_cut;   // xy: the texture offsets, z: cut out, w: the least alpha kept
 layout(location = 0) out vec2 v_uv;
 layout(location = 1) flat out vec2 v_alpha;
 void main() {
@@ -20,6 +24,7 @@ void main() {
 }
 @end
 
+// Depth only.
 @fs shadow_caster_fs
 layout(location = 0) in vec2 v_uv;
 layout(location = 1) flat in vec2 v_alpha;

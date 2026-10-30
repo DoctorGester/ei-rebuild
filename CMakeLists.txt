@@ -1,39 +1,11 @@
 cmake_minimum_required(VERSION 3.24)
 project(EvilIslands CXX)
-if(WIN32)
-    enable_language(RC)
-endif()
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets, saves and network text")
-add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
-if(NOT MSVC)
-    # Keep each written floating-point operation: ARM otherwise contracts multiply/add to FMA.
-    add_compile_options(-ffp-contract=off -fno-fast-math)
-endif()
-
-# A first porting checkpoint: compile all game code without needing a renderer or platform backend.
-option(EI_CORE_ONLY "Compile only the game library (no runnable executable)" OFF)
-option(EI_PORT_CHECK_ONLY "Compile game and portable platform libraries without the renderer" OFF)
-if(EI_CORE_ONLY OR EI_PORT_CHECK_ONLY)
-    file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
-    add_library(ei_game STATIC ${EI_GAME_SOURCES})
-    target_include_directories(ei_game PRIVATE include src)
-    if(EI_CORE_ONLY)
-        return()
-    endif()
-    if(WIN32)
-        message(FATAL_ERROR "EI_PORT_CHECK_ONLY checks the POSIX/SDL backend; use the regular Windows build here")
-    endif()
-    include(cmake/port-check.cmake)
-    return()
-endif()
-
+# The native build off Windows (macOS: SDL3, sokol on Metal; docs/notes/macos.md) has its own targets.
 if(NOT WIN32)
     include(cmake/native.cmake)
     return()
 endif()
+enable_language(RC)
 
 # 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64 / verify-x64). The function vectors' replay
 # (tests/vectors) is 32-bit only; the harness builds for both (build.cmd verify-x64).
@@ -45,6 +17,8 @@ else()
     message(FATAL_ERROR "Build for 32-bit x86 or x64: use the x86 or x64 vcvars environment.")
 endif()
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # The debug build's containers are the release build's: the checked iterators' proxy is allocated by the
 # constructor, so a constinit std::vector global (the game-order exit functions' containers) fails to compile.
@@ -78,6 +52,11 @@ endforeach()
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
+# Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
+# network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
+set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
+add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
+
 # SSE2 floating point everywhere: the original's x87 maths at the main thread's 24-bit precision is float maths in
 # its order, with src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by an ulp (SV7d1).
@@ -99,12 +78,15 @@ endif()
 # The game code.
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
-# The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
-# The harness build turns on sokol's validation layer (messages go to ei-rebuild.log).
+# The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; on Windows
+# Direct3D 11, src/platform/win32/graphics_win32.cpp, which holds sokol's implementation). The backend and the
+# floating-point guard are built in here, not into ei_platform: the offline checks link the renderer without the game.
+# The harness build turns on sokol's validation layer (messages go to ei-rebuild.log) and the removable device.
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/win32/graphics_win32.cpp)
-target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
+set(EI_RENDER_PLATFORM_SOURCES src/platform/win32/graphics_win32.cpp src/platform/floating_point.cpp)
+add_library(ei_render STATIC ${EI_RENDER_SOURCES} ${EI_RENDER_PLATFORM_SOURCES})
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
+target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
@@ -117,8 +99,8 @@ endif()
 # imports, gameapi.h), the one place of the game's code that includes <windows.h>; the sound on SDL3's audio device
 # with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
-list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp)
-list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp
+     ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
 if(EI_HARNESS)
     list(APPEND EI_PLATFORM_SOURCES src/platform/win32/platform_win32_window.cpp)
 else()
@@ -206,6 +188,8 @@ if(EI_HARNESS)
     target_include_directories(ei_harness_shared PRIVATE include src)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
+    # The image's side reaches the Direct3D backend's removable device (src/platform/win32/graphics_win32.h).
+    target_include_directories(ei-rebuild PRIVATE third_party/sokol)
 endif()
 # The game code: a library, whole (every object, as if listed: the static objects' initialisers too).
 add_library(ei_game STATIC ${EI_GAME_SOURCES})
@@ -285,8 +269,8 @@ target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
 # a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
-add_executable(ei_ui_check tools/ui_check/ui_check.cpp)
-target_include_directories(ei_ui_check PRIVATE include src third_party/sokol)
+add_executable(ei_ui_check tools/ui_check/ui_check.cpp tests/render/glyph_cases.cpp)
+target_include_directories(ei_ui_check PRIVATE include src tests third_party/sokol)
 target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
 # Offline check of the performance overlay (render_perf, ticket R21) on a WARP device: its text, its pixels over a
 # back buffer, the GPU timestamps.

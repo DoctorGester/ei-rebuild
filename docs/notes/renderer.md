@@ -13,10 +13,7 @@ dgVoodoo for the harness's references (goldens, function vectors, widescreen fra
    2DintMMX's uses went in R28, and 3DfpFPU's projections are plain C++ in game code (`projection.cpp`, R31, section
    10). Results only need to be close (captures are compared with a tolerance); full determinism is out of scope.
 
-Backends: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11** (Windows) and **Metal**
-(macOS). Shared code in `src/render` owns passes, pipelines, buffers, presentation, gamma and cursors without OS
-branches. `src/platform/graphics.h` exposes native operations sokol leaves to its host; each backend has one
-implementation (`win32/graphics_win32.cpp`, `graphics_metal.mm`), including sokol's implementation. The renderer draws, in
+Backend: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11**. The new renderer draws, in
 the game's order, the terrain (ground and water pages), every mesh the game's own draws (figures, map objects, sky,
 interface sprites and 3D previews), the flat geometry (object shadows, selection markers, light decals), the
 interface windows' surfaces, the renderer's rectangles (rubber band, fades), the software cursor, the depth clears
@@ -25,43 +22,48 @@ hit points), the weather (after its builders draw) and the movies (also the play
 menu's and the save game's screen copy comes from the new frame. The game has no DirectDraw or Direct3D 7 device and no
 texture or surface holder of it is a DirectDraw object (section 9).
 
-Shaders are authored in annotated GLSL (`src/render/shaders`), collected by `shaders.glsl`. The shared
-`cmake/shaders.cmake` rule invokes sokol-shdc directly, generating HLSL5, Metal and GL 4.3 plus C++ uniform types
-and sokol descriptors in the build tree's `shaders/shaders.h`. Windows requests HLSL bytecode at build time;
-macOS uses Metal source. `render_shaders.cpp` compiles the generated implementation once and selects each
-program's descriptor. Pipeline code owns render state and vertex buffer formats, without duplicating shader
-reflection or native register declarations.
-
-The Windows device is made on a thread of its own from the image's start (`render::PrepareDevice`, called by
-standalone.cpp before WinMain; not with "removable") and taken at the renderer's first use. Windows driver calls
-preserve the game's floating-point control state through the graphics backend; Metal needs no such adjustment.
-`GpuGuard` serializes sokol access between the main thread and the cursor worker, including resource creation
-and retirement outside a frame's drawing.
+The shaders are described in "Shader authoring" below. The Direct3D 11 device is
+made on a thread of its own from the image's start (`render::PrepareDevice`, called by standalone.cpp before
+WinMain; not with "removable") and taken at the renderer's first use.
 
 ### Shader authoring
 
-Obtain the official sokol-shdc binary from `floooh/sokol-tools-bin`, revision
-`b975d5642093d62e76a1e088bdae945d6d8b8ff2` (matching the version verified here). Put it on PATH or in `build/tools/`:
-`bin/osx_arm64/sokol-shdc` on Apple Silicon, `bin/win32/sokol-shdc.exe` on Windows, `bin/linux/sokol-shdc` on Linux.
-The `EI_SHDC` environment variable (a full path) wins over everything; CMake also accepts
-`-DEI_SHDC=/absolute/path/to/sokol-shdc`. See docs/notes/macos.md for the macOS download command.
-Shader generation needs this one tool; no external GLSL converter or Windows SDK fxc step is involved.
+The shaders are GLSL 4.5 in sokol-shdc's annotated form, `src/render/shaders/*.glsl`. `shaders.glsl` includes the
+rest, and `cmake/shaders.cmake` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
+is compiled: hlsl5 for Direct3D 11 (to bytecode, so no compiler runs at start) and metal_macos for the macOS port.
+The compiler is `EI_SHDC`. build.cmd and play.cmd default it to `E:\bin\sokol-shdc\sokol-shdc.exe`, and the
+suites workflow sets the same.
 
-- Add vertex/fragment `@vs` / `@fs` blocks and an `@program`, and include the file from `shaders.glsl`. Shared
-  code uses `@block` / `@include_block`. Every included source is a dependency of the generated header.
-- Give uniform blocks, textures, samplers and attributes explicit binding/location numbers. A shared resource
-  name must have the same binding and type in every program. Use the generated `UB_`, `VIEW_`, `SMP_` and `ATTR_`
-  constants in the renderer. Samplers for integer textures and unfilterable floats are explicitly nonfiltering.
-- Use generated uniform structs. Copy engine lighting values field by field so uploads do not depend on
-  their memory layout. The mesh's operation codes are exact small floats, so its large float block
-  can be flattened for GL; shader arithmetic converts codes to integers. Cloud seeds remain signed integer
-  vectors in uniform storage, explicitly interpreted as unsigned words for the noise arithmetic.
-- The engine uses D3D clip depth [0,w]; vertex stages request `@glsl_options fixup_clipspace` for GL. Matrix4
-  is row-major in memory; shaders dot each uploaded row explicitly. `@ctype mat4 Matrix4` preserves that layout.
-- Test with `EI_RENDER_CHECKS=ON` and CTest on macOS, plus the Windows offline checks on Windows. The native
-  checks compile every Metal program, compare glyph pixels with a CPU oracle, clouds with HLSL reference
-  hashes, and canvas copies/packing and multisampled colour/depth with CPU expectations. They also cover
-  mip generation and device recovery. These are renderer checks; simulation goldens remain separate.
+The header gives:
+- each program `<program>_shader_desc(sg_query_backend())`, which `sg_make_shader` takes at its use;
+- each uniform block a `<block>_t` struct and a `UB_<block>` slot;
+- each texture and sampler a `VIEW_` / `SMP_` slot, and each vertex input an `ATTR_<program>_<name>` slot.
+
+`render_shaders.cpp` compiles the descriptions once (`SOKOL_SHDC_IMPL`), and `render_internal.h` includes the header.
+
+Rules (sokol-shdc's, or the shaders'):
+- **Bindings.** Every block, texture and sampler has `layout(binding = n)`. On Direct3D 11 that is its register.
+  A name used by several programs keeps one binding:
+  - the rectangle's vertex block `rect_params` is 0 (`rect.glsl`'s `rect_vs`, set by `ApplyRect`);
+  - a program's own fragment block is 1;
+  - the receivers' shared blocks are `shadow_params` 2, `scene_light_params` / `mesh_light_params` 3 and
+    `point_shadow_params` 4;
+  - their maps are `shadow_map` 3, `shadow_range` 4 and `point_shadow_map` 5 (`BindShadowMap`, `BindPointShadows`).
+  - the cursor thread's present (`platform::graphics::PresentAgain`) binds its cbuffers at the registers the
+    shader's description (`present_shader_desc`) gives.
+- **Block members.** Members are `vec4`, `ivec4`, `mat4` or arrays of them, never structs. An unsigned value goes in
+  an `int`, bit for bit.
+- **Indexing.** No variable index into a component of a uniform vector: copy the vector into a local first.
+- **Matrices.** `mat4` is `Matrix4` (`@ctype`), uploaded as it is in memory. A mat4's column k is the matrix's row k.
+- **Sample types.** A texture read with `texelFetch` / `textureGather` that is not filterable, and its sampler, are
+  named in `shaders.glsl`'s `@image_sample_type` / `@sampler_type` lines.
+- **Shared code.** Code shared between programs goes in an `@block` taken with `@include_block`. The rectangle
+  programs use `rect_vs` and the full-screen passes use `fullscreen_vs`.
+- **Device.** The device is feature level 11_0 (shader model 5; render.cpp asks for nothing lower). One
+  `texture2DMS` shader copies the depth at any sample count.
+
+A new shader is its `.glsl` file, an `@include` line in `shaders.glsl`, and `<program>_shader_desc` at its use.
+The build finds the file by itself. `tools/comments.py` reads the `.glsl` comments like the C++ ones.
 
 ## 1. Always on in the image (no DirectDraw fallback)
 
@@ -302,8 +304,8 @@ averages; the original's: at most 22 per channel, a cleared one 145+).
 **Screen copies on the GPU (R28a).** A surface the screen is copied into (CaptureScreen 005FD3D0: the escape menu's
 and the camp's backdrops 005F5320, the global map's pick picture 00630670, the quick save's copy 006570E0) keeps its
 pixels in its interface canvas only (`render_ui.cpp`, docs/notes/ui-native.md section 3; since P8 every window surface
-does): the copy is the canvas's `ps_copy` from the frame
-target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ps_grey` (the
+does): the copy is the canvas's `ui_copy_fs` from the frame
+target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ui_grey_fs` (the
 format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Copy 005FD440 draws the canvas into an
 R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
 channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row copy): the escape menu's 256x192
@@ -396,9 +398,13 @@ extra block: 32-bit 0xAARRGGBB with premultiplied alpha, rows from the top; "PNT
 pixels, where a group's first pixel has alpha 0 and is not 0 that word instead counts target bytes left as they are
 (2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
 decodes an image to RGBA8 once (shared by name while a texture holds it: `DecodeComposeImage`), and draws into a
-Direct3D 11 texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
+texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
 black, each image a rectangle drawn texel for texel (shader texture_compose.glsl) with premultiplied blending (ONE,
-INV_SRC_ALPHA, alpha too), then `GenerateMips`; the texture's view starts at level `mip` (the texture quality option),
+INV_SRC_ALPHA, alpha too), then the levels below, each drawn from the one above (`texture_mip`: a linear filter at
+the pixel's centre, the mean of four texels; MAC3g, in place of Direct3D's GenerateMips: the 231 frame captures of
+the vanilla runs the same). A pass may not read the image it draws into, so a level is drawn into a scratch image of half the size and
+copied from there: two small passes a level. The scratch and the level views are kept for the texture drawn last (the
+global map's clouds are drawn every frame). The texture's view starts at level `mip` (the texture quality option),
 so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
 once from the game's load (not inside a frame pass), with the present's lock held against the cursor thread
 (`GpuWorkAlone`). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
@@ -425,9 +431,9 @@ save window keeps the copy (`SaveLoadWindow::newPicture`) and writes shot.sav fr
 before. The clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
 a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
 random numbers are drawn as before), and `render::DrawClouds` each frame draws the texture from two frames, the blend
-and the 256-entry alpha ramp (texture_clouds.glsl `ps_clouds`: white, alpha ramp[(to x blend + from x (256 - blend))
+and the 256-entry alpha ramp (texture_clouds.glsl `texture_clouds_fs`: white, alpha ramp[(to x blend + from x (256 - blend))
 >> 8], 8-bit alpha now instead of the ramp's top 4 bits). A frame's 256 x 256 grey levels are built once by the GPU
-from its words (`ps_frame`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
+from its words (`texture_clouds_frame_fs`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
 the 3 x 3 smoothing in the 1024 cells' order, the octaves' bilinear sums and the byte store, integer for integer as
 the CPU code did. The step joins the texture's recipe (it covers the whole texture, so it replaces the last), so a new
 device draws the clouds again. Frames against the memory textures (4K, at one frozen moment): ui_saveload's `save` /
@@ -466,11 +472,11 @@ movie (the harness empties movie.ini's lists). Scenario render_movie_present (Pl
 game); 005DA400 runs in every new game; 005E5690 presents only with FpsIndependentCursor (render_cursor_present
 sets it).
 
-Shared helpers (render_internal.h): every read-back of a texture (the frame, the canvases, the composed levels, the
-harness build's upload / ramp / cursor checks, also the cursor thread's) goes through `StagingCopy`
-(render_staging.cpp: a CPU snapshot populated through the selected backend's transfer resources);
-`Channel` describes a pixel format's channel
-(its 8-bit value: `Widen`), `RectParams` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
+Shared helpers: every read-back of a texture (the frame, the canvases, the composed levels, the harness build's
+upload / ramp / cursor checks) goes through `platform::graphics::Readback` (graphics.h; on Direct3D 11 a staging
+texture kept and grown, copied into and mapped, then sokol's state cache reset); the cursor thread, which must not call
+sokol, maps the backend's `Staging` itself (graphics_win32.h). render_internal.h: `Channel` a pixel format's channel
+(its 8-bit value: `Widen`), `rect_params_t` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
 Images kept across frames (`render_blit.cpp`). The cursor (R32): each cursor picture (all its frames side by side)
@@ -643,13 +649,13 @@ is what to read it for.
 ### R9c1: a lost Direct3D 11 device made again
 
 - Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
-  DRIVER_INTERNAL_ERROR, `render_window.cpp`) and by `GetDeviceRemovedReason` at the end of every presented frame (a
-  loss nothing reported, e.g. minimised). Nothing more is drawn in that frame; at the end of `render::Present` (the
+  DRIVER_INTERNAL_ERROR) and by `GetDeviceRemovedReason` (a loss nothing reported, e.g. minimised): both are
+  `platform::graphics::Lost()` (graphics_win32.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
   frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
   made (`DropWindow`, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
-  `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and released, the device released (the log
-  gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
-  pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
+  `DropBlits`, `DropTextures`), then `sg_shutdown` and `platform::graphics::Stop` (the context cleared and released,
+  the device released; the log gives the references left: 0 in the runs), a new device (`Start`, up to five tries
+  200 ms apart), `sg_setup` and the pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
   not reset to the identity when the present pipeline is made), the interface canvases (`DropCanvases`: each made
   again and the commands drawn on it since it was last covered whole drawn again, P8) and the composed and drawn-into
   textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
@@ -659,27 +665,28 @@ is what to read it for.
   `SurfaceView` makes the image again from it at
   its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
   freed by dropping the DirectDraw textures.
-- Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the next swap chain Present report
-  DXGI_ERROR_DEVICE_REMOVED without calling it; the rest is the real path. The step waits until the device is made
+- Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the end of the next presented frame see a
+  loss (code 0: simulated) without one; the rest is the real path. The step waits until the device is made
   again and a frame presented on it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the
   main menu, in zone1 and in the camp (textures loaded after the first loss), the frame before and after the loss match
   (samecapture: 0 pixels over 8). A real removal: R9c5 below.
 
 ### R9c5: a real removal of the device (harness build only)
 
-- `removable` in EI_RENDER (the scenario's `render new,present,removable`; known only to the harness build,
-  `EI_RENDER_VALIDATION`) makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
+- `removable` in the harness's render step (the scenario's `render new,present,removable`; the harness passes it to
+  the backend, `platform::graphics::MakeRemovable` in graphics_win32.h, harness build only, `EI_RENDER_VALIDATION`)
+  makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
   default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
-  the gamma ramp check, the cursor presentation pass and every frame work on it as on the hardware device.
-- `render::RemoveDevice` (harness step `removedevice [seconds]`) asks for a removal; it happens right before the
-  next swap chain Present (`RemoveIfAsked`; without a swap chain at the end of the frame): the GPU is let finish
+  the gamma ramp check, the cursor's deferred context and every frame work on it as on the hardware device.
+- `platform::graphics::RequestRemoval` (harness step `removedevice [seconds]`) asks for a removal; it happens right
+  before the next swap chain Present (`RemoveIfAsked`): the GPU is let finish
   (an event query, at most 2 s), then `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and
   `GetDeviceRemovedReason` report DXGI_ERROR_DEVICE_REMOVED for real, in this process only (no driver reset, no TDR;
   other processes and the desktop are not touched). R9c1's path then releases everything (0 references left; the
   Direct3D 12 device and queue too, so the next `D3D12CreateDevice` gives a new device and not the removed one:
   Direct3D 12 devices are one per adapter while one lives) and makes a new removable device.
 - The step checks that the loss seen was that removal (not simulated, `GetDeviceRemovedReason` 887A0005) and that the
-  new device is removable again; `WindowPresents()` gives the last loss's result and reason.
+  new device is removable again; `WindowPresents()` gives the last loss's code (`Lost()`'s).
 - Rule from a real bug: removed with GPU work in flight, the old device's teardown crashed in a thread of
   d3d11on12.dll (a null fence in its command list manager) or of DXGI / the driver's user-mode part (nvwgf2um.dll), also
   in a small program that presented on its own (cloaked) window and released everything in order (10 runs of 10); with
@@ -702,8 +709,16 @@ Ours is a present from the cursor thread, not a hardware cursor (that would move
 holds its own still (005E67B0, the camera turned with the right button), is not scaled with the frame in a larger
 window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to captures). The design is in
 the header of `render_cursor.cpp`; the rules worth knowing:
-- The cursor thread reuses the normal sokol presentation pass under the same recursive GPU lock. The backend
-  opts into worker presentation: Windows supports it; Metal keeps SDL drawable acquisition on the main thread.
+- The cursor thread makes no sokol call: sokol is the main thread's alone (MAC3h). The main thread hands the graphics
+  backend the present's objects at the end of each present (`platform::graphics::KeepPresent`: its own references to
+  the raw objects of the pipeline, the frame target, the ramp, the cursor's picture and the sampler), and the cursor
+  thread asks it to draw them again (`PresentAgain`). On Direct3D 11 that is a deferred context executed with
+  RestoreContextState, so sokol's state cache stays right, with ID3D11Multithread protection on; on Metal it would be a
+  command buffer of its own on the queue and the layer's next drawable (Metal's objects may be used from any thread).
+  The other rule (MAC2's review, 3.4), the cursor thread calling sokol under one lock, needs every main-thread sokol
+  call (450 and more, lazy samplers and pipelines among them) under that lock and checked, sokol's frame advanced by
+  the cursor thread's commits, and a failure in a sokol path (render_window's `Fatal`) could end the game from the
+  cursor thread; this one leaves a missed turn on the lock at a frame shown half drawn, never sokol's state broken.
 - The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
   (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
   (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
@@ -712,7 +727,7 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   (`present.glsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
   with alpha of a half or more replace the frame's pixel; where the cursor touches the bilinear footprint the filter
   is done by hand over the composed pixels, so a scaled window filters the cursor with the frame as before). The cursor
-  thread runs the same draw (the same presentation pass) with its own cursor position over the frame target: no copy of the
+  thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
   frame (R16f; there was a whole-frame copy a frame, 33 MB of GPU traffic at 4K). So that the target is whole when it
   reads it, everything that draws into the frame target runs under the present lock (`EndFrame`, and `DrawPendingAlone`
   for the passes of a copy in the middle of a frame, SplitFrame) and `BeginWindowPresent` drops what the cursor thread
@@ -720,10 +735,11 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
   the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
 - The cursor's texels are the part `from` of its picture's image (section 8, R32): the cursor thread takes the
-  picture the last frame drew (`SetCursorSheet`, its shader view referenced) and presents only when the call names
-  that picture; DropCursorPresents and HolderGone let it go.
-- Harness build: every frame the cursor thread presents is read back from the back buffer and compared with the
-  frame target, the cursor's texels (read back from the picture's image) and the ramp as uploaded (one to one placement; "render: cursor between frames: N
+  picture the last frame drew (`SetCursorSheet`; handed to the backend with the present, again when it changes between
+  presents) and presents only when the call names that picture; DropCursorPresents and DropCursorSheet let it go.
+- Harness build: every frame the cursor thread presents is read back from the back buffer before it is shown
+  (`PresentReads`) and compared with the frame target, the cursor's texels (read back from the picture's image) and
+  the ramp as uploaded (one to one placement; "render: cursor between frames: N
   presented frames checked, M differed" / "render: MISMATCH cursor between frames"). The ramp check of the main
   thread's present (`CheckRamp`) leaves out the points around the cursor.
 
@@ -1072,8 +1088,8 @@ across runs; the goldens check the game state.
    was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
    render_options_shadows, ui_global_map_pick captured in place and `memorytextures remake` at one frozen moment, 8 /
    0.5% (largest channel difference 2). The memory textures are gone since R28b (section 7).
-3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
-   (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
+3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page is built once, all four quarters, into a pool of buffers written in place, only the changed ranges
+   (`platform::graphics::UpdateBuffer`: sokol writes a buffer only whole): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
    stream of their own) and absolute indices. A frame keeps the visible quarters of each page handed over
    (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is built again when its tile
    lists, records or animated tiles moved (pointers, sizes) or the game rebuilt the sector
@@ -1138,7 +1154,7 @@ across runs; the goldens check the game state.
    /Ob3 against /Ob2 (three rounds the same way): no gain beyond the noise (fight 18.3 / 18.7, town 6.9 / 7.0, zone1
    5.8 / 5.3 ms means), and one more fold (`SetTimeSpeedImpl` 0058EEE0's 1 / 15), so the build stays at /Ob2.
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
-   `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
+   `render_buffers.cpp` (`GpuPool`: buffers written in place by range (UpdateBuffer), a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh
    drawn through the figure part draws (DrawLit 005A7A70 and DrawPlain 005A7640, either through the device or a link
    figure's part) is kept under the mesh: its corners' model-space positions and texture coordinates (20 bytes), the
@@ -1402,7 +1418,7 @@ across runs; the goldens check the game state.
      = not Off over, and PreparePointShadows takes no light without it (`SceneLightCastsShadows`). Everything
      else keeps its point shadows: the torches (TorchObjectClientSpec: the fires, the lamps), the map's
      lights and the spell effects' (EffectPointLight, Off only at a negative range). Receivers, only what
-     is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `LightParams::shadowSlots`;
+     is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `scene_light_params_t::shadowSlots`;
      looked up moved 1.5 texels of its distance along the vertex normal; the ground casts none) and the figure
      parts' (`figure_light`: the mesh's light list carries the scene light's index from the hand-over,
      `SceneLightIndex`, mapped to its slot at the draw; the point in the landscape's space from the mesh's model
@@ -1461,7 +1477,7 @@ across runs; the goldens check the game state.
     the sun, any other object every face: R22 below) and darken by up to half (the old decal's alpha 0x80) before fog.
     **Soft edges (R16j2; the user: the map's shadows were much harder than the old ones, the town gate's).** PCSS,
     contact-hardening: after the casters two small passes make the map's depth range per 16 x 16-texel cell
-    (`shaders/shadow_reduce.glsl`: nearest and farthest texel, Gather, shader model 4.1; `shadow_dilate.glsl`: the same over the cells
+    (`shaders/shadow_reduce.glsl`: nearest and farthest texel, Gather; `shadow_dilate.glsl`: the same over the cells
     within the widest filter's reach and one cell more, 4 cells at 56-72 units, plus the cell's own nearest; one
     256 x 256 RGBA32F image, read filtered: R25 below). A receiver nearer than every depth around is lit, farther than every one shadowed (most pixels end
     there); near an edge the nearest depth around bounds the radius, and when that bound is wider than half a cell a
@@ -1570,8 +1586,9 @@ across runs; the goldens check the game state.
     shows the shadow alone (white lit, black at full strength), `shadowshift <n>` moves the map's origin by n
     x n/2 whole texels (the same texels on the world, other cells). Check: scenario render_shadows_shimmer
     (the user's save in tests/saves/shadow_corrupt; flora shadows on): frozen, the shadow view against the
-    same with `shadowshift 7`, more than 64 of 255 apart on at most 0.03% (Rebirth 0.013%, vanilla 0.006%;
-    with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
+    same with `shadowshift 7`, more than 64 of 255 apart on at most 0.04% (Rebirth 0.013%, vanilla 0.006% at 960x720 and 0.033%
+    at 1280x720, whose 16:9 view holds more foliage and soft edge; with the per-cell reads 0.051% and 0.016%: the check
+    catches the old reads on Rebirth's data only),
     and four frames at 8 ms for the eye.
 
 11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_mesh.cpp`,
@@ -1856,14 +1873,13 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
   are made as before).
 - **Off**: sync interval 0. Where the system supports tearing (`IDXGIFactory5::CheckFeatureSupport`
-  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in render_window.cpp, asked of the factory at each chain
+  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in graphics_win32.cpp, asked of the factory at each chain
   creation) the flip-model chain is made with `DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING` and every present carries
   `DXGI_PRESENT_ALLOW_TEARING`: without it a windowed flip-model chain stays composed and capped at the display's rate
   even at interval 0. Without support: interval 0 and no flags (it may still be capped by the compositor). `ResizeBuffers`
   takes the flags the chain was made with (`g_chainFlags`), and Present's flag follows them (the flag is only valid on a
-  chain made with it). Both present paths use the same values: render_window.cpp's `PresentWindow` and the cursor
-  thread's between-frames present (render_cursor.cpp; `WindowParts` carries the sync interval and flags, no longer a
-  bool). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor`.
+  chain made with it). Both present paths use the same values: the backend's `EndDrawable` and the cursor
+  thread's between-frames present (`PresentAgain`). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_win32.h).
 - **Nothing else relies on vsync pacing**: game time is the world updates (up to five of 0078FF34 ms per frame, see
   the timing line in section 3: vsync only changes how they group into frames); the cursor thread presents only after
   40 ms without a main-thread present, so unlocked frames never reach it; the overlay's frame time simply stops including
@@ -1897,14 +1913,18 @@ What each file does at large, moved from the files' headers.
 
 ### render_cursor.cpp: the cursor between frames
 
-The game's cursor thread (every 41 ms) hands moves to `render::CursorBetweenFrames`. It reuses `DrawToWindow`
-to present the last completed frame with the new cursor position, through the same gamma ramp and shaders as
-normal frames. Both threads serialize sokol access with `GpuGuard`; the main thread disables worker presents
-before drawing into the frame and enables them after a successful window present. Worker presents require a
-supported backend, an unchanged cursor sheet, an in-bounds rectangle and at least 40 ms since the main thread's
-last present. Windows supports them; Metal requires drawable acquisition on the main thread, so its cursor is
-presented with normal frames. No native deferred context or separate cursor pipeline is used. Diagnostic builds
-compare the result with CPU-composed frame, cursor and gamma pixels.
+The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md, section 9). The
+game's cursor thread (every 41 ms) drew the cursor straight onto the primary surface when it moved, so it kept
+moving while the main thread drew no frame (a long frame, a blocking load). Without DirectDraw the cursor thread
+hands the move here instead (render::CursorBetweenFrames): the last frame presented on the game window, which holds
+no cursor (the present draws it over the frame), is presented again with the cursor at its new place. The main
+thread keeps using sokol alone. The cursor thread makes no sokol call: the graphics backend draws the present again
+for it (`platform::graphics::PresentAgain`: the frame target and the cursor through the gamma ramp into the window's
+drawable, the draw the main thread's present makes, with the backend's own references to sokol's objects). The swap
+chain and the frame target are shared: the main thread's frame draw and present on the game window and the cursor
+thread's present take turns under one lock, and the main thread hands the backend what the cursor thread draws with
+at the end of each of its presents (`KeepPresent`; refused from when it begins the next frame's draws: the frame
+target is partly drawn until then).
 
 ### render_mesh.cpp: meshes
 
@@ -2067,7 +2087,7 @@ A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), a
 the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's lit colour times
 the cosine to it and each light's lit colour times its cosine and falloff, plus the emissive colour, at most 1. The
 crown: pulled towards its average colour, taken as the average over every direction a normal can face (the mean of
-max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1). The shadow map darkens it after (ps_main), as
+max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1). The shadow map darkens it after (mesh_fs), as
 it darkened the CPU-lit colours before. A light with a point shadow (point_shadow.glsl) adds only what reaches
 `land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
 compares from the unit's nearest distance to the light, on every face; any other only on faces turned to the light

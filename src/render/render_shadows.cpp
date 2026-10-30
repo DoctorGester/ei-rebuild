@@ -1,15 +1,15 @@
 // Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
+#include "../hook/log.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <optional>
 #include <unordered_map>
+#include <optional>
 #include <unordered_set>
 
 namespace render {
@@ -168,7 +168,8 @@ float g_nearestCaster = 1e30f;
 // --- GPU side ---------------------------------------------------------------------------------------
 
 // The casters' pipelines (CasterDraws): MeshLayout's position and texture coordinates in vertex buffers 0 and 1,
-// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.glsl's TEXCOORD1-5).
+// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.glsl's in_row0 ..
+// in_cut).
 constexpr int kInstanceBuffer = 2;
 constexpr int kInstanceAttrs = 5;
 static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
@@ -193,9 +194,7 @@ int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s = ShaderDescription(kCasterShader);
-    s.label = "ei-shadow-caster";
-    g_casterShader = sg_make_shader(&s);
+    g_casterShader = sg_make_shader(shadow_caster_shader_desc(sg_query_backend()));
     if (sg_query_shader_state(g_casterShader) != SG_RESOURCESTATE_VALID) {
         ei::Log("render: the shadow casters' shader could not be created (see the sokol messages above)");
         return false;
@@ -208,7 +207,7 @@ bool MakeCasterPipelines() {
         p.layout.buffers[kInstanceBuffer].stride = sizeof(CasterInstance);
         p.layout.buffers[kInstanceBuffer].step_func = SG_VERTEXSTEP_PER_INSTANCE;
         for (int k = 0; k < kInstanceAttrs; ++k) {   // the light matrix's rows, then the offsets and the cut
-            sg_vertex_attr_state& a = p.layout.attrs[2 + k];
+            sg_vertex_attr_state& a = p.layout.attrs[ATTR_shadow_caster_in_row0 + k];
             a.buffer_index = kInstanceBuffer;
             a.offset = 16 * k;
             a.format = SG_VERTEXFORMAT_FLOAT4;
@@ -234,9 +233,7 @@ bool MakeCasterPipelines() {
 // uniforms, the sun's direction in the fragment ones.
 bool MakeTerrainCasterPipeline() {
     if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s = ShaderDescription(kTerrainCasterShader);
-    s.label = "ei-shadow-terrain";
-    g_terrainCasterShader = sg_make_shader(&s);
+    g_terrainCasterShader = sg_make_shader(shadow_terrain_shader_desc(sg_query_backend()));
     sg_pipeline_desc p{};
     p.shader = g_terrainCasterShader;
     p.layout.buffers[0].stride = sizeof(TerrainCasterVertex);
@@ -320,12 +317,10 @@ sg_sampler RangeSampler() {
     return g_rangeLinear;
 }
 
-// A full-screen range pass into an RGBA32F image.
-bool MakeRangePipeline(ShaderProgram code, const char* label, sg_shader* shader, sg_pipeline* pipeline) {
+// A full-screen pass's shader (of `desc`: it reads view 0 with the point sampler) and pipeline into an RGBA32F image.
+bool MakeRangePipeline(const sg_shader_desc* desc, const char* label, sg_shader* shader, sg_pipeline* pipeline) {
     if (shader->id) return sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
-    sg_shader_desc s = ShaderDescription(code);
-    s.label = label;
-    *shader = sg_make_shader(&s);
+    *shader = sg_make_shader(desc);
     sg_pipeline_desc p{};
     p.shader = *shader;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
@@ -344,7 +339,8 @@ bool MakeRange(int size, const char* label, sg_image* image, sg_view* attachment
     return MakeColour(size, SG_PIXELFORMAT_RGBA32F, label, image, attachment, texture);
 }
 
-void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const int* uniforms, const char* label) {
+void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const shadow_dilate_params_t* dilate,
+               const char* label) {
     sg_pass pass{};
     pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
     pass.action.colors[0].store_action = SG_STOREACTION_STORE;
@@ -357,10 +353,7 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     b.views[0] = source;
     b.samplers[0] = PointSampler();
     sg_apply_bindings(&b);
-    if (uniforms) {
-        sg_range r{uniforms, 16};
-        sg_apply_uniforms(UB_shadow_dilate_params, &r);
-    }
+    if (dilate) sg_apply_uniforms(UB_shadow_dilate_params, SG_RANGE_REF(*dilate));
     sg_draw(0, 3, 1);
     sg_end_pass();
 }
@@ -384,29 +377,23 @@ void EnsureDummy() {
 // --- GPU time (harness build): timestamp queries around the frame's passes and the shadow pass ------
 
 #if defined(EI_RENDER_VALIDATION)
-struct GpuQueries {
-    platform::graphics::Timestamps timestamps;
-    bool pending = false;
-};
-GpuQueries g_queries[4];
-int g_querySlot = -1;
-void ReleaseQueries() {
-    for (auto& query : g_queries) {
-        query.timestamps.Release();
-        query.pending = false;
-    }
-    g_querySlot = -1;
+// Each frame's three stamps: the shadow pass's start and end, the frame's end.
+platform::graphics::GpuTimer g_timers[4];
+int g_timing = -1;   // the timer of the frame being drawn, -1: none
+
+void ReleaseTimers() {
+    for (platform::graphics::GpuTimer& timer : g_timers) timer.Release();
+    g_timing = -1;
 }
-void CollectQueries() {
-    for (auto& query : g_queries) {
-        if (!query.pending) continue;
-        std::vector<double> times;
-        if (!query.timestamps.Read(&times)) continue;
-        query.pending = false;
-        if (times.size() != 3) continue;
-        ++g_stats.gpuFrames;
-        g_stats.gpuShadowMs += times[1];
-        g_stats.gpuFrameMs += times[2];
+
+void CollectTimes() {
+    std::vector<double> times;
+    for (platform::graphics::GpuTimer& timer : g_timers) {
+        if (!timer.Read(&times) || times.size() < 3) continue;
+        FrameStats& s = g_stats;
+        ++s.gpuFrames;
+        s.gpuShadowMs += times[1];
+        s.gpuFrameMs += times[2];
     }
 }
 #endif
@@ -601,7 +588,7 @@ const Fit& FitMap(Frame& f) {
 }
 
 bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::shadowMs);
     const Fit& fit = FitMap(g_frame);
     if (!fit.ok) return false;
@@ -764,7 +751,7 @@ bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area) {
 
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     if (!g_fit.ok || g_fit.frame != FrameNumber()) return false;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     // The sphere's box in the map's space against the map's area across the light, and in front of
     // the ground's far side along it (nothing limits it towards the sun).
     const Vector3 c{sphere.x, sphere.y, sphere.z};
@@ -989,7 +976,7 @@ void PrepareShadows(Frame& f) {
     }
     FigureFronts(f);
 
-    ShadowParams p{};
+    shadow_params_t p{};
     p.on[0] = 1.0f;
     p.on[1] = kStrength;
     p.on[2] = g_shadowView ? 1.0f : 0.0f;
@@ -1025,18 +1012,14 @@ void PrepareShadows(Frame& f) {
 }
 
 void DrawShadowMap(Frame& f) {
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
 #if defined(EI_RENDER_VALIDATION)
-    CollectQueries();
-    g_querySlot = -1;
-    for (int k = 0; k < 4; ++k) {
-        auto& query = g_queries[k];
-        if (query.pending) continue;
-        if (query.timestamps.Begin()) {
-            g_querySlot = k;
-            query.timestamps.Stamp();
-        }
-        break;
+    CollectTimes();
+    g_timing = -1;
+    for (int k = 0; k < 4 && g_timing < 0; ++k) {
+        if (!g_timers[k].Begin()) continue;
+        g_timing = k;
+        g_timers[k].Stamp();
     }
 #endif
     EnsureDummy();
@@ -1048,8 +1031,10 @@ void DrawShadowMap(Frame& f) {
             MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
             (g_map.id ||
              MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
-            MakeRangePipeline(kReduceShader, "ei-shadow-cells", &g_reduceShader, &g_reducePipeline) &&
-            MakeRangePipeline(kDilateShader, "ei-shadow-range", &g_dilateShader, &g_dilatePipeline) &&
+            MakeRangePipeline(shadow_reduce_shader_desc(sg_query_backend()), "ei-shadow-cells", &g_reduceShader,
+                              &g_reducePipeline) &&
+            MakeRangePipeline(shadow_dilate_shader_desc(sg_query_backend()), "ei-shadow-range", &g_dilateShader,
+                              &g_dilatePipeline) &&
             (g_cells.id || MakeRange(kRangeSize, "ei-shadow-cells", &g_cells, &g_cellsAttachment, &g_cellsTexture)) &&
             (g_range.id || MakeRange(kRangeSize, "ei-shadow-range", &g_range, &g_rangeAttachment, &g_rangeTexture));
         if (!ok) {
@@ -1126,21 +1111,19 @@ void DrawShadowMap(Frame& f) {
             g_casterDraws.Sort(0, g_casterDraws.Count());
             if (g_casterDraws.Upload()) g_casterDraws.Draw(0, g_casterDraws.Count());
             if (TerrainCasterCount() != 0) {
-                Matrix4 light = g_fit.light;
-                sg_range vr{&light, sizeof(light)};
-                const float fs[4] = {g_fit.d.x, g_fit.d.y, g_fit.d.z, 0.0f};
+                const shadow_terrain_vs_params_t vs{g_fit.light};
+                const shadow_terrain_fs_params_t fs{{g_fit.d.x, g_fit.d.y, g_fit.d.z, 0.0f}};
                 sg_apply_pipeline(g_terrainCasterPipeline);
-                sg_apply_uniforms(UB_shadow_terrain_vs_params, &vr);
-                sg_range fr{fs, sizeof(fs)};
-                sg_apply_uniforms(UB_shadow_terrain_fs_params, &fr);
-                int draws = DrawTerrainCasters();
+                sg_apply_uniforms(UB_shadow_terrain_vs_params, SG_RANGE(vs));
+                sg_apply_uniforms(UB_shadow_terrain_fs_params, SG_RANGE(fs));
+                int draws = DrawTerrainCasters(g_terrainCasterPipeline);
                 g_stats.shadowDraws += static_cast<std::uint64_t>(draws);
                 g_info.terrainCasters = draws;
             }
             sg_end_pass();
             RangePass(g_reducePipeline, g_cellsAttachment, g_mapTexture, nullptr, "ei-shadow-cells");
-            const int around[4] = {g_cellsAround, kRangeSize - 1, 0, 0};
-            RangePass(g_dilatePipeline, g_rangeAttachment, g_cellsTexture, around, "ei-shadow-range");
+            const shadow_dilate_params_t around{{g_cellsAround, kRangeSize - 1, 0, 0}};
+            RangePass(g_dilatePipeline, g_rangeAttachment, g_cellsTexture, &around, "ei-shadow-range");
             g_info.casters = static_cast<int>(counted.size());
             // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
             std::unordered_map<const void*, bool> handedOver;
@@ -1156,41 +1139,36 @@ void DrawShadowMap(Frame& f) {
     perf::Enter(perf::Pass::Point);
     DrawPointShadows(f);
 #if defined(EI_RENDER_VALIDATION)
-    if (g_querySlot >= 0) g_queries[g_querySlot].timestamps.Stamp();
+    if (g_timing >= 0) g_timers[g_timing].Stamp();
 #endif
 }
 
 void ShadowFrameEnd() {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_querySlot < 0) return;
-    GpuQueries& q = g_queries[g_querySlot];
-    q.timestamps.Stamp();
-    q.timestamps.End();
-    q.pending = true;
-    g_querySlot = -1;
+    if (g_timing < 0) return;
+    g_timers[g_timing].Stamp();
+    g_timers[g_timing].End();
+    g_timing = -1;
 #endif
 }
 
-void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
-    if (receives && f.shadow.on) {
-        *params = f.shadow.params;
-    } else {
-        *params = ShadowParams{};
-    }
+const shadow_params_t& ShadowUniforms(const Frame& f, bool receives) {
+    static const shadow_params_t kNone{};
+    return receives && f.shadow.on ? f.shadow.params : kNone;
 }
 
-void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
+void BindShadowMap(sg_bindings& b) {
     bool on = g_mapTexture.id && g_rangeTexture.id && g_frame.shadow.on;
-    b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
-    b.samplers[samplerSlot] = ShadowCompareSampler();
+    b.views[VIEW_shadow_map] = on ? g_mapTexture : g_dummyTexture;
+    b.samplers[SMP_shadow_smp] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
-    b.views[viewSlot + 1] = on ? g_rangeTexture : g_rangeDummyTexture;
-    b.samplers[samplerSlot + 1] = RangeSampler();
+    b.views[VIEW_shadow_range] = on ? g_rangeTexture : g_rangeDummyTexture;
+    b.samplers[SMP_shadow_linear] = RangeSampler();
 }
 
 void DestroyShadows() {
 #if defined(EI_RENDER_VALIDATION)
-    ReleaseQueries();
+    ReleaseTimers();
 #endif
     DestroyPointShadows();
     g_casterDraws.Destroy();

@@ -44,8 +44,7 @@ smoothcheck plain smooth 0.002 0.2
 smoothorder check
 key f5
 waitline 15 Saved saveq
-vanilla checksave saveq smooth 32 0.02
-rebirth checksave saveq smooth centre 32 0.02
+checksave saveq smooth centre 32 0.02
 smoothorder before
 capture smooth_before
 smoothorder check

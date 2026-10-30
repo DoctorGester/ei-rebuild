@@ -158,7 +158,8 @@ facts follow.
 
 **Check.** `ei_ui_check` (build.cmd runs it after the vector replay; about 0.3 s on WARP; `--hardware` uses the GPU, `--verbose`
 prints each check and the difference maps). It plays render.cpp's part: its frame, `SplitFrame` and `RunCanvasesNow`
-are its own. It gates 64 checks exactly. Fills, frames, 1- and 2-px lines and pixels are compared with GDI drawing
+are its own. The glyph cases and the reference quantising are `tests/render/glyph_cases.{h,cpp}` (no platform code; a port's
+check program calls `glyph_cases::Run` the same way). It gates 64 checks exactly. Fills, frames, 1- and 2-px lines and pixels are compared with GDI drawing
 into a DIB section in 5:6:5, 5:5:5 and 8:8:8. Glyph runs (shadow then text over fills, clipping, underlines, Cyrillic) are
 compared with the CPU rule and `ComposeAgainstBlack`. Also checked: greying against 005FE440's formulas, screen copies against
 CopyFrameTo's, and five frame blits (keyed, stretched, a source part, split, hoisted). Any sokol warning or `ei::Log` line fails.
@@ -743,7 +744,8 @@ render target holding a surface's pixels widened to 8 bits a channel. Its comman
 and RunCanvasCommands draws them, outside any pass: render.cpp calls it at the start of DrawPending, so a canvas's
 drawing lands before the frame's next pass, and RunCanvasesNow for a read-back. Solid shapes are quads of a colour
 quantised on the CPU; a glyph run is three steps (its coverage into an R8 scratch target with MAX blending, a copy
-of what the canvas held there, the composition of the two into the canvas); greying works on a copy of the canvas;
+of what the canvas held there, the composition of the two into the canvas), each a pass; copies and an Image's
+pixels are drawn texel for texel (`ui_move`; the pixels as an image of their own); greying works on a copy of the canvas;
 the screen copy samples the frame target. Each command drawn joins its canvas's history (cleared when a command covers
 the canvas whole); a screen copy or a history past 256 commands is replaced by the canvas's pixels read back
 (Compact), and DropCanvases queues every canvas's history again for the new device. Every pixel the shaders write is quantised to the surface format, so a

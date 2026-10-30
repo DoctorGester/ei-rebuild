@@ -3,10 +3,10 @@
 // off every entry point returns at once.
 #include "render_perf.h"
 
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
+
+#include "../hook/log.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -52,29 +52,26 @@ std::deque<Sample<GpuValues>> g_gpu;
 bool g_inFrame = false;
 Pass g_pass = Pass::Ui;
 
-// ---- Timestamp queries --------------------------------------------------------------------------------------
+// ---- Timestamps -----------------------------------------------------------------------------------------------
 
-constexpr int kStamps = 64;   // a frame's; past them the last stamped pass takes the rest of the frame
-constexpr int kSets = 5;      // frames in flight
+// A frame's stamps; past them the last stamped pass takes the rest of the frame.
+constexpr int kStamps = platform::graphics::GpuTimer::kMostStamps;
+constexpr int kSets = 5;   // frames in flight
 
-struct FrameQueries {
-    platform::graphics::Timestamps timestamps;
-    Pass passes[kStamps]{};
-    int count = 0;
-    bool pending = false;
+struct FrameTimes {
+    platform::graphics::GpuTimer timer;
+    Pass passes[kStamps] = {};   // the pass from each stamp on
+    int count = 0;               // the stamps taken
 };
-FrameQueries g_sets[kSets];
-int g_open = -1;
-bool g_queriesFailed = false;
-void Stamp(FrameQueries& query, Pass pass) {
-    query.passes[query.count++] = pass;
-    query.timestamps.Stamp();
+FrameTimes g_sets[kSets];
+int g_open = -1;   // the set of the frame being drawn
+
+void Stamp(FrameTimes& set, Pass pass) {
+    set.passes[set.count] = pass;
+    set.timer.Stamp();
+    ++set.count;
 }
-void ReleaseSet(FrameQueries& query) {
-    query.timestamps.Release();
-    query.count = 0;
-    query.pending = false;
-}
+
 // The draws since the last change, to the pass they were made in.
 void CountDraws() {
     const std::uint64_t now = FrameDrawCount();
@@ -82,19 +79,20 @@ void CountDraws() {
     g_drawsCounted = now;
 }
 
+// The sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
 void Collect() {
-    for (auto& query : g_sets) {
-        if (!query.pending) continue;
-        std::vector<double> times;
-        if (!query.timestamps.Read(&times)) continue;
-        query.pending = false;
-        if (times.size() < 2) continue;
-        Sample<GpuValues> sample;
-        sample.when = Ticks();
-        sample.values[GpuTotal] = times.back();
+    std::vector<double> times;
+    for (FrameTimes& set : g_sets) {
+        if (!set.timer.Read(&times) || times.size() < 2) continue;
+        auto span = [&](std::size_t from, std::size_t to) {
+            return times[to] > times[from] ? times[to] - times[from] : 0.0;
+        };
+        Sample<GpuValues> s;
+        s.when = Ticks();
+        s.values[GpuTotal] = span(0, times.size() - 1);
         for (std::size_t k = 0; k + 1 < times.size(); ++k)
-            sample.values[GpuPasses + static_cast<int>(query.passes[k])] += times[k + 1] - times[k];
-        Keep(g_gpu, sample);
+            s.values[GpuPasses + static_cast<int>(set.passes[k])] += span(k, k + 1);
+        Keep(g_gpu, s);
     }
 }
 
@@ -178,9 +176,7 @@ long long g_lastText = 0;
 std::vector<std::string> g_lines;
 
 bool MakePipeline() {
-    sg_shader_desc s = ShaderDescription(kPerfOverlayShader);
-    s.label = "ei-perf-overlay";
-    g_shader = sg_make_shader(&s);
+    g_shader = sg_make_shader(perf_overlay_shader_desc(sg_query_backend()));
     sg_pipeline_desc p{};
     p.shader = g_shader;
     p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;   // the game window's back buffer (render_window.cpp)
@@ -267,36 +263,32 @@ void BeginGpuFrame() {
     g_inFrame = true;
     g_pass = Pass::Ui;
     g_drawsCounted = FrameDrawCount();
-    if (g_queriesFailed) return;
     Collect();
     for (int k = 0; k < kSets; ++k) {
-        auto& query = g_sets[k];
-        if (query.pending) continue;
-        if (!query.timestamps.Begin()) {
-            g_queriesFailed = true;
-            return;
-        }
+        FrameTimes& set = g_sets[k];
+        if (!set.timer.Begin()) continue;
         g_open = k;
-        query.count = 0;
-        Stamp(query, g_pass);
+        set.count = 0;
+        Stamp(set, g_pass);
         return;
     }
 }
+
 void Enter(Pass pass) {
     if (!g_inFrame || pass == g_pass) return;
     CountDraws();
     g_pass = pass;
-    if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);
+    if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);   // the last for EndGpuFrame
 }
+
 void EndGpuFrame() {
     if (!g_inFrame) return;
     CountDraws();
     g_inFrame = false;
     if (g_open < 0) return;
-    auto& query = g_sets[g_open];
-    Stamp(query, g_pass);
-    query.timestamps.End();
-    query.pending = true;
+    FrameTimes& set = g_sets[g_open];
+    Stamp(set, g_pass);
+    set.timer.End();
     g_open = -1;
 }
 
@@ -345,19 +337,17 @@ void Draw(int width, int height, const Rect& placed) {
     b.views[0] = g_view;
     b.samplers[0] = g_sampler;
     sg_apply_bindings(&b);
-    rect_params_t vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(UB_rect_params, &vr);
-    perf_overlay_params_t fs{{left, top, static_cast<float>(scale), 0.0f}};
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(UB_perf_overlay_params, &fr);
+    const rect_params_t vs{{left, top, right, bottom},
+                           {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    sg_apply_uniforms(UB_rect_params, SG_RANGE(vs));
+    const perf_overlay_params_t fs{{left, top, static_cast<float>(scale), 0.0f}};
+    sg_apply_uniforms(UB_perf_overlay_params, SG_RANGE(fs));
     sg_draw(0, 6, 1);
 }
 
 void Release() {
-    for (auto& query : g_sets) ReleaseSet(query);
+    for (FrameTimes& set : g_sets) set.timer.Release();
     g_open = -1;
-    g_queriesFailed = false;
     g_inFrame = false;
     DropImage();
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);

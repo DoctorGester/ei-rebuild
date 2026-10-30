@@ -1,9 +1,11 @@
-// The settings file's text, its values' text and its defaults (no file, no game): Document, the Parse / Text
-// functions of the values, Defaults. See settings.h; tests/vectors/replay_settings.cpp checks them without the game.
+// The settings file's text, its values' text, the catalog of what every setting does and the defaults (no file, no
+// game): Document, the Parse / Text functions of the values, Describe, Defaults. See settings.h;
+// tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings.h"
 
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cerrno>
@@ -12,7 +14,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <string>
+#include <vector>
 
 namespace settings {
 namespace {
@@ -218,6 +222,48 @@ bool ParseBool(std::string_view text, bool* value) {
     return true;
 }
 
+// ---- The catalog ----
+
+namespace {
+
+constexpr Described kCatalog[] = {
+#define EI_SETTING(section, name, defaultText, values, description) {section, name, defaultText, values, description},
+#include "settings_catalog.inc"
+#undef EI_SETTING
+};
+
+char Lower(char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; }
+
+// A catalog name against a setting's: without case; "<n>" takes one or more digits, "<name>" the whole rest.
+bool Matches(std::string_view pattern, std::string_view name) {
+    std::size_t p = 0, n = 0;
+    while (p < pattern.size()) {
+        if (pattern.substr(p) == "<name>") return n < name.size();
+        if (pattern.substr(p, 3) == "<n>") {
+            const std::size_t start = n;
+            while (n < name.size() && name[n] >= '0' && name[n] <= '9') ++n;
+            if (n == start) return false;
+            p += 3;
+            continue;
+        }
+        if (n >= name.size() || Lower(pattern[p]) != Lower(name[n])) return false;
+        ++p;
+        ++n;
+    }
+    return n == name.size();
+}
+
+} // namespace
+
+const Described* CatalogBegin() { return std::begin(kCatalog); }
+const Described* CatalogEnd() { return std::end(kCatalog); }
+
+const Described* Describe(std::string_view section, std::string_view name) {
+    for (const Described& row : kCatalog)
+        if (Same(row.section, section) && Matches(row.name, name)) return &row;
+    return nullptr;
+}
+
 // ---- The defaults ----
 
 namespace {
@@ -278,67 +324,95 @@ constexpr InstallInt kInstallGameInts[] = {
     {"Quest Light R", 120}, {"Quest Light G", 72}, {"Quest Light B", 120}, {"Quest Light Radius", 5},
 };
 
+// A setting's description as comment lines of at most kCommentWidth characters: the text, then its values in
+// parentheses (left out for true / false).
+constexpr std::size_t kCommentWidth = 108;
+std::vector<std::string> DescriptionLines(const Described& row) {
+    std::string text = row.description;
+    if (std::string_view(row.values) != "true / false") text += std::string(" (") + row.values + ")";
+    std::vector<std::string> lines;
+    std::string line;
+    std::size_t at = 0;
+    while (at < text.size()) {
+        std::size_t end = text.find(' ', at);
+        if (end == std::string::npos) end = text.size();
+        const std::string_view word(text.data() + at, end - at);
+        if (!line.empty() && line.size() + 1 + word.size() > kCommentWidth) {
+            lines.push_back(line);
+            line.clear();
+        }
+        if (!line.empty()) line += ' ';
+        line += word;
+        at = end + 1;
+    }
+    if (!line.empty()) lines.push_back(line);
+    return lines;
+}
+
 } // namespace
 
 Document Defaults(int width, int height) {
     Document d;
+    // Each line with its description above it; a pattern's (the camera shortcuts') above its first line only.
+    std::vector<const Described*> described;
+    auto set = [&](const char* section, const std::string& name, const std::string& value) {
+        const Described* row = Describe(section, name);
+        if (row && std::find(described.begin(), described.end(), row) == described.end()) {
+            described.push_back(row);
+            for (const std::string& line : DescriptionLines(*row)) d.Comment(section, line);
+        }
+        d.Set(section, name, value);
+    };
     d.Comment("", "Evil Islands settings (ei-rebuild.exe). Each [section] holds name = value lines: numbers, true or");
     d.Comment("", "false, text as it is (in \"quotes\" when it starts or ends with a space). Lines starting with ; or #");
     d.Comment("", "are comments. The game rewrites this file when it saves its options; delete it to get the defaults.");
+    d.Comment("", "The comment above a line says what it does; docs/settings.md lists every setting the game reads.");
 
-    d.Comment(kVideo, "FullScreen: a borderless window over the monitor (the display mode never changes).");
-    d.Set(kVideo, "VideoResolution", std::to_string(width) + "x" + std::to_string(height));
-    d.Set(kVideo, "FullScreen", BoolText(true));
-    d.Set(kVideo, "VideoColorDepthInBits", IntText(32));
-    d.Set(kVideo, "Antialiasing", BoolText(true));
-    d.Set(kVideo, "Mipmapping", BoolText(true));
-    d.Set(kVideo, "Filtering", IntText(2));        // trilinear
-    d.Set(kVideo, "TextureQuality", IntText(0));   // no mip level dropped (texture.cpp)
-    d.Set(kVideo, "ShowParticles", BoolText(true));
+    set(kVideo, "VideoResolution", std::to_string(width) + "x" + std::to_string(height));
+    set(kVideo, "FullScreen", BoolText(true));
+    set(kVideo, "Video", IntText(2));             // the movies, stretched to the screen's width (the installers' value)
+    set(kVideo, "VideoColorDepthInBits", IntText(32));
+    set(kVideo, "Mipmapping", BoolText(true));
+    set(kVideo, "Filtering", IntText(2));        // smoothed (1 is the same)
+    set(kVideo, "TextureQuality", IntText(0));   // no mip level dropped (texture.cpp)
 
-    d.Comment(kSound, "Volumes 0..100.");
-    d.Set(kSound, "Audio", BoolText(true));
-    for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) d.Set(kSound, volume, IntText(100));
+    set(kSound, "Audio", BoolText(true));
+    for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) set(kSound, volume, IntText(100));
 
-    d.Set(kShadows, "ShadowQuality", IntText(2));
-    for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
-        d.Set(kShadows, shadow, BoolText(true));
+    set(kShadows, "ShadowQuality", IntText(2));
+    for (const char* shadow : {"UnitShadow", "BuildingShadow", "FloraShadow"})
+        set(kShadows, shadow, BoolText(true));
 
-    // Rebirth's starter (EIStarter.exe 1.46) writes water waves on for its best landscape detail, 1000 for its most
-    // frequent relighting.
-    d.Set(kTerrain, "LightingFreq", IntText(1000));
-    for (const char* feature : {"EnableWaterWaves", "EnableDynamicLights", "EnableSelfShadowing", "EnableFootprints",
-                                "EnableBloodprints", "EnableFireprints"})
-        d.Set(kTerrain, feature, BoolText(true));
+    // Rebirth's starter (EIStarter.exe 1.46) writes water waves on for its best landscape detail.
+    for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableFootprints", "EnableBloodprints",
+                                "EnableFireprints"})
+        set(kTerrain, feature, BoolText(true));
 
     // The install's camera and game settings.
-    d.Set(kCamera, "CameraFlipXAxis", BoolText(false));
-    d.Set(kCamera, "CameraFlipYAxis", BoolText(false));
-    for (const InstallFloat& value : kInstallCamera) d.Set(kCamera, value.name, FloatText(value.value));
-    d.Set(kCamera, "CameraBorderScrollArea", IntText(1));
-    d.Set(kCamera, "CameraFrameSelectionSensetiveArea", IntText(30));
+    set(kCamera, "CameraFlipXAxis", BoolText(false));
+    set(kCamera, "CameraFlipYAxis", BoolText(false));
+    for (const InstallFloat& value : kInstallCamera) set(kCamera, value.name, FloatText(value.value));
+    set(kCamera, "CameraBorderScrollArea", IntText(1));
+    set(kCamera, "CameraFrameSelectionSensetiveArea", IntText(30));
     for (int shortcut = 0; shortcut < 4; ++shortcut)
         for (const InstallFloat& value : kInstallShortcut)
-            d.Set(kCamera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, FloatText(value.value));
-    d.Set(kGame, "UseSWCursors", BoolText(false));
-    for (const InstallInt& value : kInstallGameInts) d.Set(kGame, value.name, IntText(value.value));
-    d.Set(kGame, "ObjectsLightingCoeff", FloatText(2.0f));
-    d.Set(kGame, "DefaultMapName", "Zone1.mpr");
-    d.Set(kGame, "DefaultStreamingSound", "melody.mp3");
-    d.Set(kNetwork, "Master Server Name", "a3master.nival.com");
+            set(kCamera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, FloatText(value.value));
+    for (const InstallInt& value : kInstallGameInts) set(kGame, value.name, IntText(value.value));
+    set(kGame, "ObjectsLightingCoeff", FloatText(2.0f));
+    set(kGame, "DefaultMapName", "Zone1.mpr");
+    set(kGame, "DefaultStreamingSound", "melody.mp3");
+    set(kNetwork, "Master Server Name", "a3master.nival.com");
 
     // The renderer's (device_mesh.cpp).
-    d.Comment(kRenderer, "Msaa: the world's multisampling, 1 (off), 2, 4 or 8. Anisotropy: 1 (off) .. 16. PerfOverlay:");
-    d.Comment(kRenderer, "FPS, frame and GPU times, draws.");
-    d.Set(kRenderer, "VSync", BoolText(true));
-    d.Set(kRenderer, "Msaa", IntText(8));
-    d.Set(kRenderer, "Anisotropy", IntText(16));
-    d.Set(kRenderer, "PerfOverlay", BoolText(false));
+    set(kRenderer, "VSync", BoolText(true));
+    set(kRenderer, "Msaa", IntText(8));
+    set(kRenderer, "Anisotropy", IntText(16));
+    set(kRenderer, "PerfOverlay", BoolText(false));
 
     // Rebirth's patches (startup.cpp): none named, each takes the game folder's profile.
-    d.Comment(kPatches, "Rebirth's patches (docs/notes/rebirth.md), name = true or false. A patch not named here takes the");
-    d.Comment(kPatches, "game folder's profile: Rebirth's in a Rebirth install, else none. NPlayers,");
-    d.Comment(kPatches, "Pause: EI_Plugin's player count and pause mode. SecondMaster: a second master server, host[:port].");
+    d.Comment(kPatches, "Rebirth's patches, name = true or false (docs/settings.md lists them). A patch not named here takes");
+    d.Comment(kPatches, "the game folder's profile: Rebirth's in a Rebirth install, else none. NPlayers, Pause: EI_Plugin's");
+    d.Comment(kPatches, "player count and pause mode. SecondMaster: a second master server, host[:port].");
 
     // Rebirth's switches (mod_folders.cpp).
     d.Comment(kRebirth, "Read with Rebirth's mod folder patches on ([patches]). AddonPath: the mod's folder.");

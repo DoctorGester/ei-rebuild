@@ -7,6 +7,7 @@
 #include "platform/bink/bink_file.h"
 
 #include <cstring>
+#include <filesystem>
 #include <string>
 
 namespace platform::bink {
@@ -31,10 +32,10 @@ std::uint16_t Read16(const std::uint8_t* p) { return static_cast<std::uint16_t>(
 
 } // namespace
 
-bool File::Open(const char* path) try {
-    if (!stream.Open(path, FileMode::Read)) return false;
+bool File::Open(const char* path) {
+    stream.open(std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(path))), std::ios::binary);
     std::uint8_t header[kHeaderBytes];
-    if (stream.Read(header, kHeaderBytes) != kHeaderBytes || std::memcmp(header, "BIKi", 4) != 0) return false;
+    if (!stream.read(reinterpret_cast<char*>(header), kHeaderBytes) || std::memcmp(header, "BIKi", 4) != 0) return false;
     frameCount = Read32(header + 8);
     const std::uint32_t w = Read32(header + 20), h = Read32(header + 24);
     rate = Read32(header + 28);
@@ -48,7 +49,7 @@ bool File::Open(const char* path) try {
     height = static_cast<int>(h);
 
     std::vector<std::uint8_t> tracks(std::size_t{12} * audioTracks);
-    if (stream.Read(tracks.data(), static_cast<unsigned>(tracks.size())) != tracks.size()) return false;
+    if (!stream.read(reinterpret_cast<char*>(tracks.data()), static_cast<std::streamsize>(tracks.size()))) return false;
     if (audioTracks > 0) {
         const std::uint8_t* track = tracks.data() + 4 * audioTracks;
         const std::uint16_t trackRate = Read16(track), trackFlags = Read16(track + 2);
@@ -59,15 +60,13 @@ bool File::Open(const char* path) try {
     }
 
     std::vector<std::uint8_t> index(std::size_t{4} * (frameCount + 1));
-    if (stream.Read(index.data(), static_cast<unsigned>(index.size())) != index.size()) return false;
+    if (!stream.read(reinterpret_cast<char*>(index.data()), static_cast<std::streamsize>(index.size()))) return false;
     offsets.resize(frameCount + 1);
     for (unsigned i = 0; i <= frameCount; ++i) offsets[i] = Read32(index.data() + 4 * i);
     return true;
-} catch (const FileError&) {
-    return false;
 }
 
-bool File::ReadFrame(unsigned index, FramePackets& packets) try {
+bool File::ReadFrame(unsigned index, FramePackets& packets) {
     packets = {};
     if (index >= frameCount) return false;
     const std::uint32_t start = offsets[index] & ~1u, end = offsets[index + 1] & ~1u;
@@ -75,7 +74,9 @@ bool File::ReadFrame(unsigned index, FramePackets& packets) try {
     const std::size_t size = end - start;
     // Zeros after the packet: the bit readers may look a word past their end.
     buffer.assign(size + 8, 0);
-    if (!stream.ReadAt(start, buffer.data(), static_cast<unsigned>(size))) return false;
+    stream.clear();
+    stream.seekg(start);
+    if (!stream.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(size))) return false;
 
     std::size_t at = 0;
     for (unsigned track = 0; track < audioTracks; ++track) {
@@ -93,8 +94,6 @@ bool File::ReadFrame(unsigned index, FramePackets& packets) try {
     packets.video = buffer.data() + at;
     packets.videoBytes = size - at;
     return true;
-} catch (const FileError&) {
-    return false;
 }
 
 } // namespace platform::bink

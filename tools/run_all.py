@@ -676,15 +676,11 @@ def widescreen_check(jobs, out=None, root=ROOT, build=BUILD):
 
 def standalone_rebirth_flags(root=ROOT):
     """EI_REBIRTH for the standalone image on the Rebirth install: the patch names config/rebirth_profile.ini sets
-    true, comma-separated (S19). The scheduler runs main's run_all on every worker's checkout: one from before C66a has
-    config/ei_rebirth_standalone.ini instead (its names set to 1; C66b drops this once no such branch is left)."""
-    path, value = os.path.join(root, 'config', 'rebirth_profile.ini'), 'true'
-    if not os.path.exists(path):
-        path, value = os.path.join(root, 'config', 'ei_rebirth_standalone.ini'), '1'
+    true, comma-separated (S19)."""
     names = []
-    with open(path, encoding='utf-8') as f:
+    with open(os.path.join(root, 'config', 'rebirth_profile.ini'), encoding='utf-8') as f:
         for text in f:
-            m = re.match(r'\s*(\w+)\s*=\s*' + value + r'\s*$', text)
+            m = re.match(r'\s*(\w+)\s*=\s*true\s*$', text)
             if m and m.group(1) not in ('Default', 'NPlayers', 'Pause'):
                 names.append(m.group(1))
     return ','.join(names)

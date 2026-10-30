@@ -60,9 +60,9 @@ Read before changing code:
   failures, the window size and the groundview / clickground lines. Use it before re-recording anything: every
   changed golden needs a cause.
 - **Expected results on main** as of 2026-10-30 (goldens recorded from the image, H40):
-  - Image suite: 152 the same, 3 without a golden (the watchdogs).
-  - Rebirth suite: 32 the same.
-  - x64 suite: 152 the same, 3 without a golden.
+  - Image suite: 154 the same, 3 without a golden (the watchdogs).
+  - Rebirth suite (`--rebirth-only`): 29 the same.
+  - x64 suite: 154 the same, 3 without a golden.
   - A change that should not alter behaviour keeps every golden the same. An intended change re-records the
     affected goldens and says why in the commit.
 - **Limits:**
@@ -155,8 +155,11 @@ Next, in rough order:
    heap jitter). The recorded vectors and their replay stay. The tag `original-oracle` has everything removed.
 2. **W12** is merged (a32e6b8): one layout for every window. Vanilla image runs play at 960x720, Rebirth's at
    1280x720 with the wide layout; a scenario's `vanilla` / `rebirth` prefix on a window step picks one install.
-3. **C68**: Rebirth's bug fixes always on, plus the harmless options. Waits for W12.
-4. **C69**: `ei_settings.ini` explains itself, with comments and a generated `docs/settings.md`.
+3. **C68** is done: Rebirth's bug fixes, the scripting / console additions and three multiplayer patches are the
+   rebuilt code's own, and the whole map is drawn (no draw radii). Left as flags for later (user): MQClient,
+   DisableExitOnCrashReport, the mod-folder patches and EI_Plugin's features.
+4. **C69** is done: `src/game/settings_catalog.inc` describes every setting; new settings files carry the
+   descriptions; `docs/settings.md` is generated (`tools/gen_settings_doc.py`, in the build checks).
 5. **PL11c-f**: the rest of the platform simplification (see PL11's note). **PL11s**: delete the shared-opens
    check (the suites logged only read-while-read opens).
 6. PL9a, PL9b, PL12, C66b, C30, C30a1, R37a1 and R37e2: see `tickets.py show`.

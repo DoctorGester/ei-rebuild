@@ -428,8 +428,8 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   compiling the renderer's shaders 0.35 s, GetDxVersion's DirectDraw probing 0.45 s, the sound device open 0.3 s,
   the rest loading.
 - **Start-up cuts (SV10b)**, none in the game's code (the user: the sound open, the DirectX probe and the exe
-  check stay): the shaders are compiled at build time (fxc; docs/notes/renderer.md, "Shaders": the bytecode is
-  d3dcompiler_47's at run time to the byte but the recorded flags and the checksum, so frames do not change); the
+  check stay): the shaders are compiled at build time (fxc then, sokol-shdc since MAC3e: docs/notes/renderer.md,
+  "Shader authoring"); the
   harness found the main thread (harness_clock.cpp FindMainThread) in a toolhelp snapshot, which lists every thread
   of the machine (16,000 with the suite's games: 70-130 ms a run), now ntdll's NtGetNextThread over the process's
   own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei-rebuild.log in one write (each Log line is flushed:

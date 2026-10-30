@@ -3,11 +3,12 @@
 // that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
 // (The interface windows' canvases have their own blit, render_ui.cpp.)
-#include "../game/texture.h"
-#include "../hook/log.h"
-#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
+
+#include "../hook/log.h"
+
+#include "../game/texture.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -73,8 +74,7 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
          static_cast<float>(r.bottom)},
         {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
         {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(UB_solid_params, &vr);
+    sg_apply_uniforms(UB_solid_params, SG_RANGE(vs));
     sg_draw(0, 6, 1);
     CountDraw(sizeof(vs));
 }
@@ -125,18 +125,18 @@ void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, 
 #if defined(EI_RENDER_VALIDATION)
     long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
     if (!ReadBackDue(uploads++)) return;
-    StagingCopy copy;
-    if (copy.Map(image, 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
+    platform::graphics::Readback copy;
+    if (copy.Read(image, platform::Rect{0, 0, w, h})) {
         bool same = true;
         for (int y = 0; y < h && same; ++y)
-            same = std::memcmp(copy.Row(static_cast<unsigned>(y)), rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+            same = std::memcmp(copy.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
+                               static_cast<std::size_t>(w) * 4) == 0;
         ++g_uploadChecks;
         if (!same && g_uploadMismatches++ < 10)
             ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written",
                     use == ImageUse::Movie ? "movie" : "cursor", w, h);
     }
     copy.Release();
-    sg_reset_state_cache();
     if (g_uploadChecks % 20 == 1)
         ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
 #else
@@ -237,9 +237,7 @@ const CursorSheet* SheetOf(const void* holder, const void* mask, int maskBytes, 
 namespace detail {
 
 bool CreateBlitPipeline() {
-    sg_shader_desc s = ShaderDescription(kBlitShader);
-    s.label = "ei-image-blit";
-    g_blitShader = sg_make_shader(&s);
+    g_blitShader = sg_make_shader(blit_shader_desc(sg_query_backend()));
     sg_sampler_desc sd{};
     sd.min_filter = SG_FILTER_NEAREST;
     sd.mag_filter = SG_FILTER_NEAREST;
@@ -248,9 +246,7 @@ bool CreateBlitPipeline() {
     sd.label = "ei-image-blit";
     g_nearest = sg_make_sampler(&sd);
 
-    sg_shader_desc c = ShaderDescription(kSolidShader);
-    c.label = "ei-solid";
-    g_solidShader = sg_make_shader(&c);
+    g_solidShader = sg_make_shader(solid_shader_desc(sg_query_backend()));
     bool ok = true;
     for (int k = 0; k < kPipelineKinds; ++k) {
         g_pipelines[k] = MakePipeline(static_cast<PipelineKind>(k), 1);
@@ -278,8 +274,7 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
                       static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
                      {static_cast<float>(b.source.left), static_cast<float>(b.source.top),
                       static_cast<float>(b.textureWidth), static_cast<float>(b.textureHeight)}};
-    sg_range fr{&fs, sizeof(fs)};
-    sg_apply_uniforms(UB_blit_params, &fr);
+    sg_apply_uniforms(UB_blit_params, SG_RANGE(fs));
     sg_draw(0, 6, 1);
     CountDraw(sizeof(rect_params_t) + sizeof(fs));
 }
@@ -344,7 +339,7 @@ void RetireFrameImages() {
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
     Start();
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     CountImageRequest(ImageUse::Movie);
     g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
     for (std::size_t i = 3; i < g_movieScratch.size(); i += 4) g_movieScratch[i] = 255;
@@ -397,7 +392,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (from.left < 0 || from.top < 0 || from.right > picture->width || from.bottom > picture->height ||
         from.right <= from.left || from.bottom <= from.top)
         return;
-    GpuGuard gpu;
+    platform::FloatingPointGuard fpu;
     const CursorSheet* sheet = SheetOf(imageHolder, mask, maskBytes, *picture);
     if (!sheet) return;
     g_frame.cursor = BlitBatch{sheet->view, sheet->width, sheet->height, to, from};
