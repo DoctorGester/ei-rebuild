@@ -1,5 +1,5 @@
-// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle (WorldHandle) and
-// netSession (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
+// The worlds' player sources (player_source.h): the base's destructor, World::worldHandle (WorldHandle) and
+// netSession (netlink::DriverSession): their clones, shutdowns and destructors, and World::OpenSession. The
 // session's lists: drivers owning (SharedRef: DestroyOwned), holders plain (HeldRef: Release).
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -56,6 +56,6 @@ DriverSession::~DriverSession() {}
 
 } // namespace netlink
 
-void CWorld::OpenSession() { ShareAssignOwned(netSession, new DriverSession()); }
+void World::OpenSession() { ShareAssignOwned(netSession, new DriverSession()); }
 
-void CWorld::CloseSession() { DestroyOwned(netSession); }
+void World::CloseSession() { DestroyOwned(netSession); }

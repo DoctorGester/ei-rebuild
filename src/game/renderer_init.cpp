@@ -9,7 +9,7 @@
 #include "model.h"   // SceneRenderer, TransformPipeline, RenderHelper
 #include "options.h"
 #include "render/render_state.h"
-#include "spell.h"     // CLight, LightFactory
+#include "spell.h"     // Light, LightFactory
 #include "texture.h"   // TextureDevice
 #include "world.h"
 
@@ -133,7 +133,7 @@ void SetRenderState(const GameOptions* settings) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void AddDefaultLight(SceneRenderer* renderer) {
-    CLight* light = g_clientWorld.lightFactory->CreateLight(0x2E);
+    Light* light = g_clientWorld.lightFactory->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(colour, position);

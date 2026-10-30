@@ -3,7 +3,7 @@
 // CloseFile); with neither the fatal error "Can't load skeleton file" is returned. The data is a count and
 // that many (child, parent) length-prefixed names (read into strings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
-#include "figure_manager.h"       // CFigureManager, FigureModel
+#include "figure_manager.h"       // FigureManager, FigureModel
 #include "map_object_figures.h"   // FigureAnimationState, FigureBone
 
 #include "lib/crt.h"
@@ -17,7 +17,7 @@ namespace {
 
 } // namespace
 
-int CFigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_view name) {
+int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_view name) {
     FigureModel* model;
     {
         std::string key(name);
@@ -53,7 +53,7 @@ int CFigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_v
 // size out) or from the file "<bone's model name><bone's name>.bon" (the manager's GetFile with the size
 // out); none returns 0. 0x48 bytes go to one bone loader, other sizes to another, as {data, size}. The data
 // is not released here. Returns 1.
-int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
+int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     struct {
         void* data;
         std::uint32_t size;

@@ -139,13 +139,13 @@ void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
 
 // --- The figure manager -------------------------------------------------------------------------
 
-CFigureManager::CFigureManager() {}
+FigureManager::FigureManager() {}
 
-EngineObject* CFigureManager::NewObject(int objectType) {
+EngineObject* FigureManager::NewObject(int objectType) {
     return static_cast<EngineObject*>(::CreateFigureObject(objectType));
 }
 
-EngineObject* CFigureManager::CreateFigureObject(int newType, int newId) {
+EngineObject* FigureManager::CreateFigureObject(int newType, int newId) {
     EngineObject* object = BaseManager::CreateObject(newType, newId);
     const auto kind = static_cast<FigureObjectType>(newType);
     if (kind < FigureObjectType::SharedFigureMesh || kind > FigureObjectType::SkyObject || object == nullptr) return object;

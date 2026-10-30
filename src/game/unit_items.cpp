@@ -1,4 +1,4 @@
-// A unit's own items (units outside the party keep them in CUnit; party units' items live in the
+// A unit's own items (units outside the party keep them in Unit; party units' items live in the
 // player's records, unit.h): armour, the carried items array, releasing everything, and sending
 // the equipment to the controller. See unit.h and docs/notes/units.md.
 #include "unit.h"
@@ -19,7 +19,7 @@ constexpr int kPartStats = 4;
 
 
 
-void ReleaseSlots(CUnit* unit, Item** slots, int count) {
+void ReleaseSlots(Unit* unit, Item** slots, int count) {
     for (int i = 0; i < count; ++i) {
         Item* item = slots[i];
         slots[i] = nullptr;
@@ -31,7 +31,7 @@ void ReleaseSlots(CUnit* unit, Item** slots, int count) {
 
 // The unit prototype table's record named `name`.
 
-ItemArmor* CUnit::EquipArmour(Item* item) {
+ItemArmor* Unit::EquipArmour(Item* item) {
     if (!item) return nullptr;
     if (lib::RoundEven(item->condition) <= 0) return nullptr;    // broken
     ItemArmor* piece = AsArmor(item);
@@ -44,7 +44,7 @@ ItemArmor* CUnit::EquipArmour(Item* item) {
     return previous;
 }
 
-ItemArmor* CUnit::UnequipArmour(int slot) {
+ItemArmor* Unit::UnequipArmour(int slot) {
     ItemArmor* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
@@ -56,7 +56,7 @@ ItemArmor* CUnit::UnequipArmour(int slot) {
     return item;
 }
 
-void CUnit::ReleaseAllItems() {
+void Unit::ReleaseAllItems() {
     ReleaseSlots(this, weapons, 4);
     for (ItemArmor*& slot : armor) {
         ItemArmor* item = slot;
@@ -75,26 +75,26 @@ void CUnit::ReleaseAllItems() {
     carried.clear();
 }
 
-void CUnit::AddCarried(Item* item) {
+void Unit::AddCarried(Item* item) {
     item->AddRef();
     carried.push_back(item);
     MarkChanged(kPartEquipment);
 }
 
-int CUnit::RemoveCarried(int index) {
+int Unit::RemoveCarried(int index) {
     carried[index]->Release();
     carried.erase(carried.begin() + index);
     return static_cast<int>(std::ssize(carried));
 }
 
-void CUnit::SendEquipment() {
+void Unit::SendEquipment() {
     std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
     GetEquipmentIds(ids);
     Controller()->SetArmourModels(&ids[4]);
     Controller()->SetWeaponModels(&ids[0]);
 }
 
-std::uint32_t CUnit::SetSecondPrototypeByName(std::string_view prototypeName) {
+std::uint32_t Unit::SetSecondPrototypeByName(std::string_view prototypeName) {
     UnitPrototypeRecord* record = g_unitDatabase.prototypes.FindByName(prototypeName);
     if (!record) {
         secondPrototype = -1;
@@ -107,7 +107,7 @@ std::uint32_t CUnit::SetSecondPrototypeByName(std::string_view prototypeName) {
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
 
-int CUnit::SetSecondPrototypeIndex(int index) {
+int Unit::SetSecondPrototypeIndex(int index) {
     secondPrototype = index;
     return index;
 }

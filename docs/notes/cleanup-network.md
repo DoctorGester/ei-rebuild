@@ -36,17 +36,17 @@ qualified member).
 
 ## C2n: the remaining network files and the players
 
-- `ClientSession::parties` are `PartyStorage` (party_storage.h: a `lib::InPlace<CParty>`; every embedded party uses it);
+- `ClientSession::parties` are `PartyStorage` (party_storage.h: a `lib::InPlace<Party>`; every embedded party uses it);
   `TradeRecordNode` (three parties) is in `net_classes.h` and `tradeRecords` is typed. The party publish / apply (`net_client_party.cpp`)
   read our party's items (`items`, `Item::spell`, `type`, `unknown_18` the packed id, `Save` / `Load` slots 10 / 9) and the partner
   party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23); `PartyMessage::partyValue_` is `money`
-  (`CParty::Money()`). The object vector is a `std::vector<CEngineObject*>`.
-- `ApplyAwards` / the client tick go through `CPlayer` (`Party()->Money()`, `items`, `connection->state`) and `Item::IsSameAs` /
+  (`Party::Money()`). The object vector is a `std::vector<CEngineObject*>`.
+- `ApplyAwards` / the client tick go through `Player` (`Party()->Money()`, `items`, `connection->state`) and `Item::IsSameAs` /
   `GetClassId` / `Release`; kind 3 takes the first given item whose slot 14 returns 0 (checked against Ghidra, 0041CD80).
-- `PlayerConnection` has `state` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty` (the state bits the server's writers
-  clear, PlayerDirty in player_messages.h); `PlayerServer::player` and `PlayerClient::player` are `CPlayer*`. The writers reach the party variables
+- `PlayerConnection` has `state` (+0x20, both connection classes); `Player::unknown_130` is `dirty` (the state bits the server's writers
+  clear, PlayerDirty in player_messages.h); `PlayerServer::player` and `PlayerClient::player` are `Player*`. The writers reach the party variables
   (`Party()->variables`) and the game state (`sessionKind`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
-  world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge`
+  world server's zone header); `Player::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge`
   (+0x28; the FLD / FSTP copy is kept).
 - `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s file is a `platform::File`
   (`File()`). `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server) and asks the game server
@@ -71,7 +71,7 @@ qualified member).
 - The `ClientSession` / `ServerSession` / `ClientBase` lists are typed `std::vector` members, but the connections and the
   trade records (core.md, "Containers: the net lists").
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval` and the halves of `clock`): kept (no FPU load).
-- `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784
+- `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a Party's record array (`records + i * 0x784
   + 0x1C`). `net_server_awards.cpp` /
   `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14). `world_game.cpp`'s `AnnounceHost` builds a `HostMessage`
   by hand. `hash_tables_400.cpp`'s own view of the type registry (004368F0).
@@ -87,7 +87,7 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
 
 - `EngineObject` +0x18 is `prototypeId`: the database prototype (items: index << 16 | material; spells: index << 16; units: the plain
   index).
-- `CPlayer` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId`, +0x104 `lastScreen`, +0x108 `godMode`, +0x110 `lastTick`; `PlayerClient`
+- `Player` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId`, +0x104 `lastScreen`, +0x108 `godMode`, +0x110 `lastTick`; `PlayerClient`
   +0x84 is `localSession`. The login's +0x84 is the party id.
 - `PlayerServer` +0x24 `possessedId`: -1, or the Possession spell's target; the next party refresh sends possessedGroup and resets it.
   world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).

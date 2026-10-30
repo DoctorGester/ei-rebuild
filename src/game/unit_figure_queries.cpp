@@ -57,7 +57,7 @@ Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
 }
 } // namespace
 
-FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random) {
+FigureAnimation* Unit::FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random) {
     if (!IsUnitType(MapType())) return nullptr;
     if (FigureAnimation* entry = RandomAnimation(key, random)) return entry;
     std::uint32_t kind = key & kKindBits;
@@ -70,13 +70,13 @@ FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind, Animati
     return RandomAnimationOfKind(kind, random);
 }
 
-FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
+FigureAnimation* Unit::AnimationEntry(std::uint32_t key) {
     FigureAnimation* entry = AnimationAt(key);
     if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name);
     return entry;
 }
 
-float CUnit::BodyExtent() {
+float Unit::BodyExtent() {
     int part = FindPartIndex(kBodyPart);
     if (part < 0) {
         part = FindPartIndex(kChestPart);
@@ -88,7 +88,7 @@ float CUnit::BodyExtent() {
     return extentScale * std::sqrt(LengthSquared2DUnrounded(corner.y, corner.x));
 }
 
-double CUnit::GroundHeight(float x, float y) {
+double Unit::GroundHeight(float x, float y) {
     auto* world = OwningWorld();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
     // The world's double plus a float: one rounding.
@@ -97,7 +97,7 @@ double CUnit::GroundHeight(float x, float y) {
 }
 
 
-Vector3* CUnit::EffectPoint(Vector3* out) {
+Vector3* Unit::EffectPoint(Vector3* out) {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns
     // whatever the stack holds; zero gives the position there (docs/notes/units.md).
     Vector3 local = {0.0f, 0.0f, 0.0f};

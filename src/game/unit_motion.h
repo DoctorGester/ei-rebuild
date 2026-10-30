@@ -1,6 +1,6 @@
 #pragma once
 
-// A unit's trajectory (UnitMotion, CUnit::motion) and its parts: the points, the waypoints and the cubic
+// A unit's trajectory (UnitMotion, Unit::motion) and its parts: the points, the waypoints and the cubic
 // segments, sampled every tick for the unit's position, facing and speed. The order it follows (MotionOrder /
 // PathOrder) is in ai_map.h; ai_motion.h has the rest of the motion code. Kept apart so unit.h can hold the
 // motion as a member (ai_map.h includes unit.h).
@@ -10,7 +10,7 @@
 #include <vector>
 
 class ByteStream;
-class CWorld;
+class World;
 struct MotionOrder;
 struct PathOrder;
 
@@ -47,7 +47,7 @@ struct UnitMotion {
     // direction (x, y, 0), speed (0.1 if unchanged) and the path cell reached (-1 if none).
     // `turning` is set while the unit only turns. Returns false when the order is complete.
     // `world` resolves object ids for tracking orders (its ObjectWithId).
-    bool Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
+    bool Sample(World* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
                 float* speed, int* cellX, int* cellY);
     // Sample for a path order; `time` is relative to the order's start.
     bool SamplePath(float time, bool* turning, float* position, float* direction, float* speed, int* cellX,

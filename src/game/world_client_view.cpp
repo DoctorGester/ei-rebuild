@@ -33,7 +33,7 @@ float* StackTop(TransformPipeline* device, int index) {
 }
 
 
-void PushBack(std::vector<CMapObject*>& v, CMapObject* const& value) {
+void PushBack(std::vector<MapObject*>& v, MapObject* const& value) {
     v.push_back(value);
 }
 
@@ -52,8 +52,8 @@ void PushStackMatrix(TransformPipeline* device, int index, const float* matrix) 
     }
 }
 
-CObject3D* AsObject3D(CMapObject* object) { return object; }
-Object3DClientSpecific* ModelOf(CMapObject* object) {
+Object3D* AsObject3D(MapObject* object) { return object; }
+Object3DClientSpecific* ModelOf(MapObject* object) {
     return AsObject3D(object)->ClientSpecific();
 }
 
@@ -139,7 +139,7 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
+int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                                 char withScripted) {
     if (!object || !AsObject3D(object)->attached) return 0;
     TransformPipeline* device = g_sceneRenderer.pipeline;
@@ -163,7 +163,7 @@ int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float a
     }
     if (process) {
         // Object -> world matrix: the rotation with the position as the last column.
-        CObject3D* o3d = AsObject3D(object);
+        Object3D* o3d = AsObject3D(object);
         float* matrix = o3d->worldMatrix.m;
         static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
         matrix[3] = o3d->localPosition.x;
@@ -177,7 +177,7 @@ int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float a
         int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
         device->PopMatrix(TransformPipeline::kClipStack);
 
-        CMapObject* const& entry = object;
+        MapObject* const& entry = object;
         if (where != 2) {
             object->flags |= MapObjectFlag::Shown;
             // View-space position: x summed ZYX, y and z XYZ, each rounded.
@@ -243,15 +243,15 @@ Vector3* WorldClient::PickSurface(Vector3* out, int x, int y) {
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------
 
 // Plain globals (constructed and destroyed by the C++ runtime).
-std::vector<CMapObject*> g_touchedModels;
-std::vector<CMapObject*> g_shadowTrees;
-std::vector<CMapObject*> g_shadowUnits;
-std::vector<CMapObject*> g_shadowLevers;
-std::vector<CMapObject*> g_shadowOther;
-std::vector<CMapObject*> g_shadowBuildings;
-std::vector<CMapObject*> g_visibleTrees;
-std::vector<CMapObject*> g_visibleUnits;
-std::vector<CMapObject*> g_visibleLevers;
-std::vector<CMapObject*> g_visibleOther;
-std::vector<CMapObject*> g_visibleBuildings;
-std::vector<HeldRef<CMapObject>> g_deferredUnits;
+std::vector<MapObject*> g_touchedModels;
+std::vector<MapObject*> g_shadowTrees;
+std::vector<MapObject*> g_shadowUnits;
+std::vector<MapObject*> g_shadowLevers;
+std::vector<MapObject*> g_shadowOther;
+std::vector<MapObject*> g_shadowBuildings;
+std::vector<MapObject*> g_visibleTrees;
+std::vector<MapObject*> g_visibleUnits;
+std::vector<MapObject*> g_visibleLevers;
+std::vector<MapObject*> g_visibleOther;
+std::vector<MapObject*> g_visibleBuildings;
+std::vector<HeldRef<MapObject>> g_deferredUnits;

@@ -22,7 +22,7 @@ namespace net {
 namespace {
 
 // Player 0 of the world (the local player), or null.
-CPlayer* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
+Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 
 } // namespace
 
@@ -32,7 +32,7 @@ CPlayer* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 // removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
-    CPlayer* localPlayer = LocalPlayer();
+    Player* localPlayer = LocalPlayer();
     if (!localPlayer) return;
     for (auto& node : self->awards) {
         auto* award = node.Get();
@@ -108,7 +108,7 @@ void ClientSession::Tick(double dt) {
         }
     }
     if (self->awards.begin() == self->awards.end() || g_serverWorld.sessionKind != 3) return;
-    CPlayer* localPlayer = LocalPlayer();
+    Player* localPlayer = LocalPlayer();
     if (!localPlayer || localPlayer->connection->state != 1 || !g_serverWorld.zoneLoaded) return;
     ApplyAwards();
 }

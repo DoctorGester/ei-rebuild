@@ -80,26 +80,26 @@ float LevelValueOf(const UnitStats* stats, int skill) {
 }
 
 
-MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
+MapEffect EffectAt(const Unit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
     float value;
     value = std::bit_cast<float>(effect.value);
     return value;
 }
 
-UnitVitals* ServerVitals(CUnit* unit) {
+UnitVitals* ServerVitals(Unit* unit) {
     MapObjectServer* server = unit->ServerCompanion();
     return server->GetClassId() == ClassId::MapObjectServer ? &server->vitals : nullptr;
 }
 
 // strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k); 1 without a unit.
-float EffectScale(CUnit* unit, float k) {
+float EffectScale(Unit* unit, float k) {
     if (!unit) return 1.0f;
     float strengthen = unit->EffectValue(SpellType::Strengthen) * k + 1.0f;
     return strengthen / (unit->EffectValue(SpellType::Weaken) * k + 1.0f);
 }
 
-float ScaledAtLeastOne(CUnit* unit, float k, float value) {
+float ScaledAtLeastOne(Unit* unit, float k, float value) {
     float scaled = EffectScale(unit, k) * value;
     float one = 1.0f;
     float s = scaled;
@@ -135,7 +135,7 @@ void AddPending(UnitStats* stats, float gain) {
     }
 }
 
-void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
+void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, Unit* unit) {
     float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &stats->experience, &g_logicSettings.hpVal[2],
                                   &g_logicSettings.hpVal[4]);
     float scaled = curve * (stats->strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
@@ -157,7 +157,7 @@ float LevelWorth(int level) {
     return static_cast<float>(libcrt::CiPow(1.61, exponent)) * g_logicSettings.skillVal[0];
 }
 
-bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
+bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
     std::uint8_t old = levels[index];
@@ -183,7 +183,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
 
 // --- Regeneration ----------------------------------------------------------------------------
 
-bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
+bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
     int ticks = ++regenTicks;
     if (ticks < kRegenPeriod && ticks > 0) return false;
     bool changed = false;
@@ -321,15 +321,15 @@ float UnitStats::RateValue() {
     return (level * kPercentB + 1.0f) * arms * base;
 }
 
-float ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
+float ScaleDamageByEffects(Unit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
 
-float HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
+float HitPointEffectScale(Unit* unit) { return EffectScale(unit, kHitPointEffect); }
 
-float ScaleHitPointsByEffects(CUnit* unit, float value) {
+float ScaleHitPointsByEffects(Unit* unit, float value) {
     return ScaledAtLeastOne(unit, kHitPointEffect, value);
 }
 
-void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
+void UnitStats::RecomputeHitPoints(UnitVitals* vitals, Unit* unit) {
     if (IsTextKey(unit->id)) {
         vitals->maxHitPoints = HitPointCurve();
     } else {
@@ -343,7 +343,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     if (hitPoints > 0.0f) flags |= UnitStatsFlag::Alive;
 }
 
-void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
+void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     bool keyed = IsTextKey(unit->id);
     strength = strengthBase;
     intelligence = intelligenceBase;
@@ -449,20 +449,20 @@ void UnitStats::AddScaledExperience(float amount) { AddPending(this, Intelligenc
 
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
 
-void UnitStats::GainExperience(CUnit* unit, float amount) {
+void UnitStats::GainExperience(Unit* unit, float amount) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return;
     AddPending(this, IntelligenceFactor(&intelligence) * amount);
     RefreshMaxima(this, vitals, unit);
 }
 
-bool UnitStats::RaiseSkill(int skill, int amount, CUnit* unit) { return RaiseLevel(this, skills, skill, amount, unit); }
+bool UnitStats::RaiseSkill(int skill, int amount, Unit* unit) { return RaiseLevel(this, skills, skill, amount, unit); }
 
-bool UnitStats::RaiseAttribute(int index, int amount, CUnit* unit) {
+bool UnitStats::RaiseAttribute(int index, int amount, Unit* unit) {
     return RaiseLevel(this, attributes, index, amount, unit);
 }
 
-bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
+bool UnitStats::RaiseStrength(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
     strengthBase = pc24::Add(amount, strengthBase);   // the int exact, one rounding
@@ -482,7 +482,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     return true;
 }
 
-bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
+bool UnitStats::RaiseDexterity(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
     dexterityBase = pc24::Add(amount, dexterityBase);
@@ -510,7 +510,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     return true;
 }
 
-bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
+bool UnitStats::RaiseIntelligence(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
     intelligenceBase = pc24::Add(amount, intelligenceBase);

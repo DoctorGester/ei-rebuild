@@ -47,7 +47,7 @@ int PlayerClient::OnLoginAccepted() {
     int objectId;
     in.ReadValue(objectId);
     state = kStateLoggedIn;
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     static_cast<PlayerManager*>(currentPlayer->owner)->ChangeId(currentPlayer, objectId);
     return 1;
 }
@@ -80,7 +80,7 @@ int PlayerClient::OnCameraPlacement() {
 }
 
 int PlayerClient::OnGameState() {
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     currentPlayer->lastScreen = static_cast<std::uint32_t>(currentPlayer->sessionKind);
     int gameState;
     in.ReadValue(gameState);
@@ -152,7 +152,7 @@ int PlayerClient::OnItemValue() {
     in.ReadValue(objectId);
     float value;
     in.ReadValue(value);
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     Item* item = FindItem(currentPlayer->GetParty()->ItemFactory(), static_cast<unsigned>(objectId));
     if (item) {
         item->charge = value;
@@ -166,11 +166,11 @@ int PlayerClient::OnWeaponRemoved() {
     in.ReadValue(unitId);
     int index;
     in.ReadValue(index);
-    // The party (an embedded CParty) seen as its record array.
+    // The party (an embedded Party) seen as its record array.
     PartyUnitRecord* record = player->GetParty()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
-    if (CUnit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
+    if (Unit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
     return 1;
 }
 
@@ -204,10 +204,10 @@ int PlayerClient::OnUnitControl() {
 int PlayerClient::OnObjectChanged() {
     int objectId;
     in.ReadValue(objectId);
-    CPlayer::MapObjectMap& known = player->knownObjects;
+    Player::MapObjectMap& known = player->knownObjects;
     auto node = known.find(objectId);
     if (node == known.end()) return 0;
-    CMapObject* object = node->second;
+    MapObject* object = node->second;
     if (object->ReadState(1, &in) == 0) return 0;
     const ClassId classId = object->GetClassId();
     if (classId == ClassId::Building || classId == ClassId::Lever)
@@ -218,11 +218,11 @@ int PlayerClient::OnObjectChanged() {
 int PlayerClient::OnObjectRemoved() {
     int objectId;
     in.ReadValue(objectId);
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     if (auto unit = currentPlayer->units.find(objectId); unit != currentPlayer->units.end()) unit->second->SetPlayer(nullptr);
     auto node = currentPlayer->knownObjects.find(objectId);
     if (node == currentPlayer->knownObjects.end()) return 0;
-    CMapObject* object = node->second;
+    MapObject* object = node->second;
     currentPlayer->knownObjects.erase(objectId);
     object->flags |= MapObjectFlag::Removed;
     object->Release();
@@ -234,7 +234,7 @@ int PlayerClient::OnUnitDied() {
     int objectId;
     in.ReadValue(objectId);
     EngineObject* object = g_clientWorld.objectManager->FindObject(static_cast<unsigned>(objectId));
-    if (CUnit* unit = UnitOrNull(object)) unit->Controller()->Died();
+    if (Unit* unit = UnitOrNull(object)) unit->Controller()->Died();
     return 1;
 }
 
@@ -242,9 +242,9 @@ int PlayerClient::OnTimedObjectAdded() {
     int message[2];   // id, type
     in.Read(message, 8);
     const int objectId = message[0];
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     BaseManager* manager = currentPlayer->WorldContext()->TimedObjectManager();
-    auto* object = manager->CreateObjectAs<CEffect>(message[1], objectId);
+    auto* object = manager->CreateObjectAs<Effect>(message[1], objectId);
     if (!object) return 0;
     if (!object->Receive(0, &in)) return 0;
     if (objectId > currentPlayer->maxTimedId) currentPlayer->maxTimedId = objectId;
@@ -256,7 +256,7 @@ int PlayerClient::OnTimedObjectAdded() {
 int PlayerClient::OnTimedObjectChanged() {
     int objectId;
     in.ReadValue(objectId);
-    CPlayer::TimedObjectMap& known = player->knownTimed;
+    Player::TimedObjectMap& known = player->knownTimed;
     auto node = known.find(objectId);
     if (node == known.end()) return 0;
     return node->second->Receive(1, &in) != 0 ? 1 : 0;
@@ -265,10 +265,10 @@ int PlayerClient::OnTimedObjectChanged() {
 int PlayerClient::OnTimedObjectRemoved() {
     int objectId;
     in.ReadValue(objectId);
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     auto node = currentPlayer->knownTimed.find(objectId);
     if (node == currentPlayer->knownTimed.end()) return 0;
-    CEffect* object = node->second;
+    Effect* object = node->second;
     currentPlayer->knownTimed.erase(objectId);
     object->flags |= MapObjectFlag::Removed;
     object->Release();
@@ -287,8 +287,8 @@ int PlayerClient::OnWorldTime() {
     float values[2];   // time, speed
     in.Read(values, 8);
     WorldClient* world = &g_clientWorld;
-    world->CWorld::SetTimeSpeed(values[1]);
-    world->CWorld::SetTime(values[0]);
+    world->World::SetTimeSpeed(values[1]);
+    world->World::SetTime(values[0]);
     world->UpdateLighting();
     return 1;
 }
@@ -307,11 +307,11 @@ int PlayerClient::OnWorldStream() {
     return 1;
 }
 
-void PlayerClient::NotifyUnitChanged(CUnit* unit) {
+void PlayerClient::NotifyUnitChanged(Unit* unit) {
     if (unit->player) g_interface.OnUnitJoined(unit);
     else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
-    CParty* party = player->GetParty();
+    Party* party = player->GetParty();
     if (std::ssize(party->members) != 1 || static_cast<int>(party->members[0].unitId) != unit->id) return;
     auto* login = net::g_gameClient->player.Get();
     login->id = unit->player ? unit->id : -1;

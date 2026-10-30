@@ -42,7 +42,7 @@ void BattleScreen::ToggleMember(int index) {
 
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*currentParty); ++i) {
-        CUnit* member = unitAt(i);
+        Unit* member = unitAt(i);
         lib::SetAtGrow(chosen, lib::Count(chosen), member ? (member->flags & MapObjectFlag::Selected) : 0);
     }
     if (ui->shiftDown) {
@@ -67,7 +67,7 @@ void BattleScreen::ToggleMember(int index) {
             rest = turn.SetAxisAngle(axis, angle);
         }
         currentPortraits->slots[i].restB = *rest;
-        CUnit* member = unitAt(i);
+        Unit* member = unitAt(i);
         if (member && chosen[i] != 0) {
             g_clientWorld.Select(member);
             if (index == i) Speech(unitAt(i)->id, AckKind::Selected, nullptr);
@@ -81,7 +81,7 @@ void BattleScreen::ToggleMember(int index) {
             for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
                 if (i >= std::ssize(*currentParty)) continue;
                 PartyUnitRecord* record = &player->GetParty()->members[i];
-                CUnit* member = unitAt(i);
+                Unit* member = unitAt(i);
                 if (member->id == static_cast<int>(record->unitId))    // the record's unit id
                     record->selected = static_cast<std::uint8_t>((member->flags >> 4) & 1);
             }
@@ -95,19 +95,19 @@ void BattleScreen::ToggleMember(int index) {
 std::vector<int> BattleScreen::SelectedIndexes() const {
     std::vector<int> indexes;
     for (int i = 0; i < std::ssize(party); ++i) {
-        const CUnit* member = party[i];
+        const Unit* member = party[i];
         if (member && (member->flags & MapObjectFlag::Selected)) indexes.push_back(i);
     }
     return indexes;
 }
 
-void BattleScreen::AttackUnit(CUnit* target, bool ctrl) {
+void BattleScreen::AttackUnit(Unit* target, bool ctrl) {
     int kind = 0;
     while (kind < 6 && orderKeys[kind] == 0) ++kind;
 
-    std::vector<CUnit*> units;
+    std::vector<Unit*> units;
     for (int i : SelectedIndexes()) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         units.push_back(member);
         portraits->Wobble(i, kWobbleNod);
         if (target->Level() - member->Level() > 5) Speech(member->id, AckKind::BigAttack, nullptr);
@@ -115,8 +115,8 @@ void BattleScreen::AttackUnit(CUnit* target, bool ctrl) {
     if (!units.empty()) g_clientWorld.LocalView()->SendAttack(&units, target, kind, ctrl);
 }
 
-void BattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
-    std::vector<CUnit*> units;
+void BattleScreen::OrderDeadUnit(Unit* target, bool ctrl) {
+    std::vector<Unit*> units;
     for (int i : SelectedIndexes()) {
         units.push_back(party[i]);
         portraits->Wobble(i, kWobbleNod);
@@ -126,9 +126,9 @@ void BattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
 
 // --- the pending spell or quick item used --------------------------------------------------------
 
-void BattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
+void BattleScreen::UseOnUnit(Unit* target, bool quick, bool ctrl) {
     for (int i : SelectedIndexes()) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         bool able;
         if (!quick) {
             g_clientWorld.LocalView()->SendCastOnUnit(pendingSlot, member, target, ctrl);
@@ -144,9 +144,9 @@ void BattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
 }
 
 // The shift below stays for the later members.
-void BattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
+void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
     for (int i : SelectedIndexes()) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         if (member == unit) {
             Vector3 axis;
             unit->localRotation.AxisY(&axis);
@@ -172,7 +172,7 @@ void BattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
 // --- a unit's speech event -----------------------------------------------------------------------
 
 void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
-    CUnit* unit = UnitWithId(g_clientWorld.objectManager, unitId);
+    Unit* unit = UnitWithId(g_clientWorld.objectManager, unitId);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
                                      ? acks::SayNamedAck(unit, extra, kind == AckKind::ScenarioTalking)

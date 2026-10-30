@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <vector>
 
-class CPlayer;
+class Player;
 
 class PartyRecord : public RefCounted {
 public:
@@ -23,9 +23,9 @@ public:
     void Serialize(ChunkArchive* ar) override;
 
     std::string name;           // "" for the unnamed record
-    CParty party;               // destroyed before the name
+    Party party;               // destroyed before the name
 
-    CParty* GetParty() { return &party; }
+    Party* GetParty() { return &party; }
 };
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.
@@ -34,7 +34,7 @@ RefCounted* CreatePartyRecord();
 // The named records: counted pointers, then two strings.
 struct NamedPartyRecords {
     // The party of the first record named `name` (_mbscmp), else of the last unnamed record, else null.
-    CParty* Find(std::string_view name) const;
+    Party* Find(std::string_view name) const;
     // Appends a new record named `name`.
     void Add(const char* name);
     // Removes the records named `name`; after a removal the record moved into
@@ -51,10 +51,10 @@ struct NamedPartyRecords {
     // unnamed one when no record has the name). The record named currentName gets a copy of `party` (SaveParty /
     // LoadParty through a memory stream); then every record's party gets `party`'s variables, zone name and
     // +0x6C.
-    void BeginRedeploy(CParty* party);
+    void BeginRedeploy(Party* party);
     // `party` gets a copy of the record named requestedName, or is cleared (Clear(1, 0)) when
     // there is none; then currentName = requestedName.
-    void EndRedeploy(CParty* party);
+    void EndRedeploy(Party* party);
 };
 
 // New game: releases every record, empties the two strings, adds one unnamed record and gives its party the
@@ -71,4 +71,4 @@ int PartyNextId(int* out);
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
 // without "::") equal to the manager's current name (NamedPartyRecords::currentName) gives the player's own
 // party, any other the records' party of that owner (PartyRecordsFind). Null without a player.
-CParty* PartyForScript(CPlayer* player, std::string* name);
+Party* PartyForScript(Player* player, std::string* name);

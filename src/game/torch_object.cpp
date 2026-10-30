@@ -42,7 +42,7 @@ void TorchObject::Save(ByteStream* stream) { SaveTorch(stream); }
 
 void TorchObject::AttachTorchObject(EngineObject* object) {
     if (SideTypeOf(object) != SideObjectType::Torch) {
-        CMapObject::AttachObject(object);
+        MapObject::AttachObject(object);
         return;
     }
     TorchObjectSpec* old = spec;
@@ -53,7 +53,7 @@ void TorchObject::AttachTorchObject(EngineObject* object) {
 }
 
 void TorchObject::WriteTorchNetState() {
-    CMapObject::WriteNetState();
+    MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(kTorchField);
     if (!field) return;
     std::uint32_t value = spec->lightKind;
@@ -67,7 +67,7 @@ void TorchObject::WriteTorchNetState() {
 }
 
 std::uint32_t TorchObject::ReadTorchNetState(int first) {
-    std::uint32_t complete = CMapObject::ReadNetState(first);
+    std::uint32_t complete = MapObject::ReadNetState(first);
     DeltaField* field = netState.BeginField(kTorchField);
     if (!field) return complete;
     spec->ReadNetState(field);

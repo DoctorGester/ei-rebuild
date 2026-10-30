@@ -19,10 +19,10 @@
 #include "lib/vecmath.h"
 
 
-class CUnit;
+class Unit;
 class UnitServer;
 class EffectPointLight;
-class CEffectParticle;
+class EffectParticle;
 class EffectSound;
 class EffectLightning;
 
@@ -37,7 +37,7 @@ enum ScriptType : int {
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
     // Null for anything but a unit.
-    CUnit* AsUnit() const;
+    Unit* AsUnit() const;
     // The unit's server controller (lists what the unit sees), null for non-units.
     UnitServer* GetUnitPerception() const;
     void ReleaseIfDeleted();
@@ -69,9 +69,9 @@ public:
     void Insert(EngineObject* object);
     // Also empty slots.
     void RemoveDeleted();
-    void InsertAll(const std::vector<HeldRef<CUnit>>* list);
+    void InsertAll(const std::vector<HeldRef<Unit>>* list);
     // Replaces the list's contents (an AI memory list).
-    void CopyToList(std::vector<HeldRef<CUnit>>* list) const;
+    void CopyToList(std::vector<HeldRef<Unit>>* list) const;
     bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(ByteStream* stream);
@@ -222,7 +222,7 @@ struct ScriptParticleSource {
     // As the point light's.
     void Save(ByteStream* stream) const;
 
-    ScriptEffect<CEffectParticle> object;
+    ScriptEffect<EffectParticle> object;
     int id = 0;
     int deleteAfterMove = 0;
     int moving = 0;
@@ -263,7 +263,7 @@ struct ScriptLightning {
 // One particle type CreateParticleSource accepts (64 entries).
 struct ScriptParticleType {
     const char* name;
-    int type;               // CEffectParticle::type (0x2000..)
+    int type;               // EffectParticle::type (0x2000..)
     int lifetime;           // ticks, -1 forever
 };
 constexpr int kScriptParticleTypeCount = 64;

@@ -48,7 +48,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int Hoover::CollectLoot(CWorld* world, CUnit* cunit, std::vector<Item*>* drops, std::vector<Item*>* items, int* gold) {
+int Hoover::CollectLoot(World* world, Unit* cunit, std::vector<Item*>* drops, std::vector<Item*>* items, int* gold) {
     bool keyed = IsTextKey(cunit->id);
     if (cunit->flags & MapObjectFlag::LootTaken) return 0;
     ItemManager* manager = world->ItemFactory();

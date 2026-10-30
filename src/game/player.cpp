@@ -1,4 +1,4 @@
-// A world player (CPlayer): constructor and destructor,
+// A world player (Player): constructor and destructor,
 // Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
 // and docs/notes/objects.md ("Players").
 #include "item.h"
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-CPlayer::CPlayer() {
+Player::Player() {
     link = nullptr;
     maxObjectId = 0;
     maxUnitId = 0;
@@ -41,7 +41,7 @@ CPlayer::CPlayer() {
     lastScreen = 0;
 }
 
-CPlayer::~CPlayer() {
+Player::~Player() {
     DestroyPlayer();
     GetParty()->Destroy();
     recharging.clear();
@@ -58,14 +58,14 @@ int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t
     return game::FatalError(text);
 }
 
-const char* CPlayer::ClassName() { return "CPlayer"; }
-ClassId CPlayer::GetClassId() { return ClassId::Player; }
+const char* Player::ClassName() { return "CPlayer"; }
+ClassId Player::GetClassId() { return ClassId::Player; }
 
-void CPlayer::CreatePlayer() {
+void Player::CreatePlayer() {
     DestroyPlayer();
 }
 
-void CPlayer::DestroyPlayer() {
+void Player::DestroyPlayer() {
     recharging.clear();
     Clear();
     GetParty()->Destroy();
@@ -87,7 +87,7 @@ void CPlayer::DestroyPlayer() {
     lastScreen = 0;
 }
 
-void CPlayer::Clear() {
+void Player::Clear() {
     for (Item* item : items) item->Release();
     items.clear();
     ReleaseEach(knownTimed);
@@ -103,7 +103,7 @@ void CPlayer::Clear() {
     if (connection != nullptr) connection->ForgetSentObjects();
 }
 
-void CPlayer::SetConnection(PlayerConnection* newConnection) {
+void Player::SetConnection(PlayerConnection* newConnection) {
     if (connection != nullptr) {
         connection->player = nullptr;
         connection->Release();
@@ -115,7 +115,7 @@ void CPlayer::SetConnection(PlayerConnection* newConnection) {
     }
 }
 
-void CPlayer::SetPlayerId(int newId) { playerId = newId; }
+void Player::SetPlayerId(int newId) { playerId = newId; }
 
 namespace {
 
@@ -132,7 +132,7 @@ std::uint32_t ItemWord4C(Item* item) { return AsQuest(item)->questItemId; }
 // The first given item `match` accepts: the connection's lookup, the item out of the list and
 // released. 1, or 0 when there is none.
 template <typename Match>
-bool TakeFirst(CPlayer* player, Match match) {
+bool TakeFirst(Player* player, Match match) {
     auto node = std::ranges::find_if(player->items, match);
     if (node == player->items.end()) return false;
     EngineObject* item = *node;
@@ -144,7 +144,7 @@ bool TakeFirst(CPlayer* player, Match match) {
 
 } // namespace
 
-void CPlayer::Connect(netlink::NetLink* newLink) {
+void Player::Connect(netlink::NetLink* newLink) {
     if (link != nullptr) connection->Leave();
     Clear();
     if (link != nullptr) link->Disconnect();
@@ -154,14 +154,14 @@ void CPlayer::Connect(netlink::NetLink* newLink) {
     connection->ResetState();
 }
 
-void CPlayer::Disconnect() {
+void Player::Disconnect() {
     if (link != nullptr) connection->Leave();
     Clear();
     if (link != nullptr) link->Disconnect();
     DropLink(link);
 }
 
-void CPlayer::ForgetKnownObjects() {
+void Player::ForgetKnownObjects() {
     ReleaseEach(knownTimed);
     maxTimedId = 0;
     ReleaseEach(knownObjects);
@@ -170,13 +170,13 @@ void CPlayer::ForgetKnownObjects() {
     dirty = kPlayerDirtyAll;
 }
 
-bool CPlayer::IsLeader(const EngineObject* unit) {
+bool Player::IsLeader(const EngineObject* unit) {
     const std::vector<PartyUnitRecord>& members = GetParty()->members;
     if (std::ssize(members) == 0 || unit == nullptr) return false;
     return static_cast<std::uint32_t>(unit->id) == members[0].unitId;
 }
 
-void CPlayer::GiveItems(const std::vector<Item*>* given, int flag) {
+void Player::GiveItems(const std::vector<Item*>* given, int flag) {
     connection->ItemsGiven(given, flag);
     for (Item* item : *given) {
         item->AddRef();
@@ -184,34 +184,34 @@ void CPlayer::GiveItems(const std::vector<Item*>* given, int flag) {
     }
 }
 
-void CPlayer::TakeAllItems() {
+void Player::TakeAllItems() {
     connection->ItemsTaken();
     for (Item* item : items) item->Release();
     items.clear();
 }
 
-bool CPlayer::HasLoot(int kind) {
+bool Player::HasLoot(int kind) {
     for (Item* item : items)
         if (item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
     for (auto node = units.begin(); node != units.end() && node->second != nullptr; ++node) {
-        CUnit* unit = node->second;
+        Unit* unit = node->second;
         for (Item* item : unit->carried)
             if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
     }
     return false;
 }
 
-bool CPlayer::TakeLoot(int kind) {
+bool Player::TakeLoot(int kind) {
     return TakeFirst(this, [kind](Item* item) {
         return item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 
-bool CPlayer::TakeItem(int itemId) {
+bool Player::TakeItem(int itemId) {
     return TakeFirst(this, [itemId](Item* item) { return item->id == itemId; });
 }
 
-void CPlayer::AddUnit(CUnit* unit) {
+void Player::AddUnit(Unit* unit) {
     if (unit == nullptr) return;
     const int unitId = unit->id;
     if (units.contains(unitId)) return;
@@ -221,7 +221,7 @@ void CPlayer::AddUnit(CUnit* unit) {
     connection->UnitChanged(unit);
 }
 
-void CPlayer::RemoveUnit(CUnit* unit) {
+void Player::RemoveUnit(Unit* unit) {
     if (unit == nullptr) return;
     auto node = units.find(unit->id);
     if (node == units.end()) return;
@@ -230,22 +230,22 @@ void CPlayer::RemoveUnit(CUnit* unit) {
     connection->UnitChanged(unit);
 }
 
-void CPlayer::ItemUsed(EngineObject* item) {
+void Player::ItemUsed(EngineObject* item) {
     std::uint32_t itemId = static_cast<std::uint32_t>(item->id);
     if (!lib::Contains(recharging, itemId)) recharging.push_back(itemId);
     connection->ItemUsed(item);
 }
 
-CParty* CPlayer::AssignParty(CParty* source) {
+Party* Player::AssignParty(Party* source) {
     recharging.clear();
     return GetParty()->Assign(source);
 }
 
-void CPlayer::ReleaseTamedUnits() {
+void Player::ReleaseTamedUnits() {
     // A unit that leaves is erased here, so the walk steps on first. (The game's walk went on from the erased
     // node, reading freed memory.)
     for (auto node = units.begin(); node != units.end() && node->second != nullptr;) {
-        CUnit* unit = node->second;
+        Unit* unit = node->second;
         ++node;
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
     }

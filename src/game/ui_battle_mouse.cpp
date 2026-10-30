@@ -50,7 +50,7 @@ void BattleScreen::MouseMove(int buttons, int x, int y) {
     }
     // The (x, y) pair is read back through its address.
     Point point = {x, y};
-    CUnit* unit = g_clientWorld.UnitAt(&point);
+    Unit* unit = g_clientWorld.UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
 
@@ -74,7 +74,7 @@ void BattleScreen::LeftDown(int buttons, int x, int y) {
 // --- a unit's name line --------------------------------------------------------------------------
 
 // Each text is copied up to its first NUL.
-std::string BattleScreen::UnitName(CUnit* unit) {
+std::string BattleScreen::UnitName(Unit* unit) {
     TextManager* texts = g_clientWorld.texts;
     std::string name = unit->GetName();
     if (name.size() != 0) return name.c_str();

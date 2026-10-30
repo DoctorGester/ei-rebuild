@@ -18,17 +18,17 @@
 
 namespace {
 
-CObject3D* AsObject3D(EngineObject* object) { return static_cast<CObject3D*>(object); }
+Object3D* AsObject3D(EngineObject* object) { return static_cast<Object3D*>(object); }
 
 // The first part set's texture of a drawn object's model, null without one.
-const CTexture* RankTexture(Object3DClientSpecific* model) {
+const Texture* RankTexture(Object3DClientSpecific* model) {
     const TextureParts* rank = model->partSets[0];
     return rank ? rank->texture : nullptr;
 }
 
 // The texture's and the figure's order without their addresses: null first, then by name, a figure
 // then by its morph weights (their bits); 0 for the same keys.
-int CompareTextures(const CTexture* a, const CTexture* b) {
+int CompareTextures(const Texture* a, const Texture* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
     const char* aName = a->name.c_str();
     const char* bName = b->name.c_str();

@@ -29,7 +29,7 @@ std::uint32_t WeaponIn(const UnitClientSpecific* self, std::uint32_t slot) {
 } // namespace
 
 void UnitClientSpecific::GetAttackParams(AttackParams* out) {
-    CUnit* ownerObject = unit;
+    Unit* ownerObject = unit;
     UnitParams* params = &ownerObject->params;
     int keyed = IsTextKey(ownerObject->id);
     std::uint32_t weapon = WeaponIn(this, ownerObject->activeWeapon);

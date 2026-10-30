@@ -23,40 +23,40 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override {}
-    void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }
+    void UnitChanged(Unit* unit) override { NotifyUnitChanged(unit); }
     void ResetState() override { Clear(); }
     int Receive() override { return ReceiveMessages(); }
 
     // The local view's orders, queued for the server (out), each a type byte and a payload; all return 1.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
-    int SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run);
-    int SendGoTo(const std::vector<CUnit*>* units, const Vector3& to, int run);
+    int SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run);
+    int SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
-    int SendAttack(const std::vector<CUnit*>* units, EngineObject* target, int how, int ctrl);
+    int SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
-    int SendCastOnUnit(int slot, CUnit* caster, EngineObject* target, int ctrl);
-    int SendCastAtPoint(int slot, CUnit* caster, const Vector3& point, int ctrl);
+    int SendCastOnUnit(int slot, Unit* caster, EngineObject* target, int ctrl);
+    int SendCastAtPoint(int slot, Unit* caster, const Vector3& point, int ctrl);
     // The same with quick item `slot` (slot | 0x80000000); a potion (category 8) with a count above 0 loses
     // one at once.
-    int SendItemOnUnit(int slot, CUnit* user, EngineObject* target, int ctrl);
-    int SendItemAtPoint(int slot, CUnit* user, const Vector3& point, int ctrl);
+    int SendItemOnUnit(int slot, Unit* user, EngineObject* target, int ctrl);
+    int SendItemAtPoint(int slot, Unit* user, const Vector3& point, int ctrl);
     // 0x34 weapon slot / 0x35 movement mode: the unit's id and the value's low byte; the unit keeps the value
     // (pendingWeapon / moveMode2).
-    int SetWeapon(CUnit* unit, int slot);
-    int SetMoveMode(CUnit* unit, int mode);
-    // CUnit::SetFightAtWill(value), then 0x3B: the id and the value's low byte.
-    int SetUnitFightAtWill(CUnit* unit, int value);
+    int SetWeapon(Unit* unit, int slot);
+    int SetMoveMode(Unit* unit, int mode);
+    // Unit::SetFightAtWill(value), then 0x3B: the id and the value's low byte.
+    int SetUnitFightAtWill(Unit* unit, int value);
     // 0x39: the unit's id and the target's (-1 for none).
-    int SendFollow(CUnit* unit, EngineObject* target);
+    int SendFollow(Unit* unit, EngineObject* target);
     // 0x10: whether `value` (a byte) is set.
     int SendFlag10(std::uint8_t value);
     // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
     // (PlayerServer::OnUseOrder).
-    int SendUseOrder(CUnit* unit, EngineObject* target, int kind, int value, int flag);
+    int SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind UseSource::SearchBody, value -1.
-    int SendUseDead(const std::vector<CUnit*>* units, EngineObject* target, int flag);
-    // 0x50: the player's party saved without its variables (CParty::SaveParty, which draws an ISAAC key) as
+    int SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag);
+    // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
     int SendPartyUpdate();
     // The zone requests. When the client is between zones (state 3) they first return the local party
@@ -158,7 +158,7 @@ public:
     // Message 0x00. Login accepted: a dword, state 2, the player's owner gives the player that id
     // (PlayerManager::ChangeId).
     int OnLoginAccepted();
-    // Message 0x01. The player disconnects (CPlayer::Disconnect).
+    // Message 0x01. The player disconnects (Player::Disconnect).
     int OnDisconnect();
     // Message 0x04. A point and two dwords (heading, mode): the client world centres on the point; in the
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere
@@ -214,7 +214,7 @@ public:
     int OnWorldStream();
     // A unit joined (`player` set) or left the player: the interface is told; a multiplayer client whose party
     // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
-    void NotifyUnitChanged(CUnit* unit);
+    void NotifyUnitChanged(Unit* unit);
 
     // The base's state: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     using Handler = int (PlayerClient::*)();
@@ -222,7 +222,7 @@ public:
     MemoryStream in;                   // the server's messages being run
     MemoryStream out;                  // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
-    // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
+    // player whatever its id (Unit::ReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession;
     // The login sends the party first: the flow sets it once the local player took the requested party,
     // clears it for a new zone.

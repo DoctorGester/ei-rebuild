@@ -62,7 +62,7 @@ void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
 // ---- Units ------------------------------------------------------------------------------------
 
 void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
-    CParty party;   // one member
+    Party party;   // one member
     party.AddMember(game::kEmptyText, prototype, name);
     std::vector<PartyUnitRecord*> records;
     PartyUnitRecord* record = party.members.data();
@@ -130,11 +130,11 @@ void WorldServer::ClearMapObjects() {
 
 void WorldServer::SaveMapObjects(ByteStream* out) {
     for (auto& node : mapObjects.map) {
-        CMapObject* object = node.second;
+        MapObject* object = node.second;
         if (!object) break;
         int objectId = object->id;
         out->WriteValue(objectId);
-        CUnit* unit = UnitOrNull(object);
+        Unit* unit = UnitOrNull(object);
         const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(object->name);
         out->WriteString(prototype);
         object->Save(out);

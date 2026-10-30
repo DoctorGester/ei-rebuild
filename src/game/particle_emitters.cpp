@@ -1,6 +1,6 @@
 // Particle emit callbacks (of a ParticleSource) and the element array allocator.
 #include "effects.h"
-#include "map_object_figures.h"   // CObject3D
+#include "map_object_figures.h"   // Object3D
 
 #include "random.h"
 

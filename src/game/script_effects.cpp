@@ -19,7 +19,7 @@
 
 namespace {
 
-// The particle types CreateParticleSource accepts (the exe's table of 64: name, CEffectParticle type,
+// The particle types CreateParticleSource accepts (the exe's table of 64: name, EffectParticle type,
 // lifetime in ticks, -1 forever).
 constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
     {"AcidRay", 0x2012, -1},
@@ -215,10 +215,10 @@ void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
     if (source) source->object.reset();
     else source = &particles.emplace_back();
 
-    auto* newParticles = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
+    auto* newParticles = g_serverWorld.timedObjectManager->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
     newParticles->type = particleType;
     newParticles->localPosition = {f[1], f[2], f[3]};
-    source->object = ScriptEffect<CEffectParticle>(newParticles);
+    source->object = ScriptEffect<EffectParticle>(newParticles);
     newParticles->size = f[4];
     g_serverWorld.AddTimedObject(newParticles);
 

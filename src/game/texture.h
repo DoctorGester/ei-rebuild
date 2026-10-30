@@ -14,8 +14,8 @@
 #include <string>
 #include <vector>
 
-class CTexture;
-class CTextureManager;
+class Texture;
+class TextureManager;
 struct ClipBounds;
 class TransformPipeline;
 class DeviceMaterial;
@@ -56,7 +56,7 @@ public:
     // The holder the renderer draws the stage with. Returns 1.
     int BindSurface(int stage, Surface* holder);
     // A null texture binds none.
-    int BindTexture(int stage, CTexture* texture);
+    int BindTexture(int stage, Texture* texture);
     // A texture not looked up yet is found by its name among the texture manager's registered and cached
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
@@ -182,10 +182,10 @@ enum class TextureFlag : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<TextureFlag> = true;
 
 // Class id 6, "CTexture".
-class CTexture : public EngineObject {
+class Texture : public EngineObject {
 public:
-    CTexture();
-    ~CTexture() override;
+    Texture();
+    ~Texture() override;
 
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
@@ -223,16 +223,16 @@ public:
     std::uint32_t format;       // the texture format it is held in (TextureFormat); 0 none
     Ref<Surface> surface;
 
-    CTextureManager* Manager() const;
+    TextureManager* Manager() const;
 };
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
-int EnsureTextureLoaded(CTexture* texture);
+int EnsureTextureLoaded(Texture* texture);
 // Drops the texture `slot` holds, then takes the texture manager's texture of `kind` named `name`, made when
 // missing.
-void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name);
+void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name);
 
-// A texture the texture manager composes from layer textures on the GPU (CTextureManager::Compose): what the
+// A texture the texture manager composes from layer textures on the GPU (TextureManager::Compose): what the
 // original drew on the CPU into <data path>textures\<name>.mmp. `header` is that file's (format, size, levels, the
 // extra block's size), `extra` its extra block (the request's layer bytes), `layers` the layer textures, bottom first.
 struct ComposedTexture {
@@ -245,11 +245,11 @@ struct ComposedTexture {
 void ForgetComposedTextures();
 
 // Class id 0x26.
-class CTextureManager : public ResourceManager {
+class TextureManager : public ResourceManager {
 public:
 
-    CTextureManager();
-    ~CTextureManager() override;
+    TextureManager();
+    ~TextureManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "textures"
@@ -262,14 +262,14 @@ public:
     EngineObject* CreateObject(int type, int id) override;
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
     // `name` (Compose).
-    int LoadTexture(CTexture* texture);
+    int LoadTexture(Texture* texture);
     // From the composed texture `name`, else from the archives. Returns 0 (and an empty buffer) when neither
     // has it.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
     // A texture the game fills on the CPU, in the format of `kind` (Blank565, Blank1555, Blank4444;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.
-    CTexture* NewTexture(int width, int height, TextureKind kind);
+    Texture* NewTexture(int width, int height, TextureKind kind);
     // A registered texture with a TextureFlag::Cacheable bit goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
     int ReleaseObject(EngineObject* object) override;
@@ -279,11 +279,11 @@ public:
     // and a tenth of the local video memory for textures.
     void SetDevice(TextureDevice* device);
     // Taken out of the cache and registered again; null when there is none.
-    CTexture* TakeFromCache(int type, std::string_view name);
+    Texture* TakeFromCache(int type, std::string_view name);
     // The registered texture, else a cached one taken back as TakeFromCache does (but cachedBytes is not
     // lowered).
-    CTexture* FindTexture(std::string_view name);
-    CTexture* FindTypedTexture(int type, std::string_view name);
+    Texture* FindTexture(std::string_view name);
+    Texture* FindTypedTexture(int type, std::string_view name);
     void FreeCache();
     // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped,
     // one of another size is a fatal error (its result returned). Returns the layers found.
@@ -296,21 +296,21 @@ public:
     const ComposedTexture* FindComposed(std::string_view name);
 
     MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
-    CTexture* NewTextureOfType(int type);
+    Texture* NewTextureOfType(int type);
     // Given `name` either way (no null check). Not loaded.
-    CTexture* FindOrCreate(int type, std::string_view name);
+    Texture* FindOrCreate(int type, std::string_view name);
     // FindTexture(name) as it is; else FindOrCreate's texture, loaded.
-    CTexture* FindOrLoad(int type, std::string_view name);
+    Texture* FindOrLoad(int type, std::string_view name);
     // A tenth of the video memory the game saw on the card it ran on (dgVoodoo's 256 MB): the most the cache of
     // released textures holds.
     static constexpr int kCacheLimit = (256 << 20) / 10;
     // Deletes the oldest cached textures while the cache holds more than kCacheLimit.
     void TrimCache();
 
-    std::vector<CTexture*> cache;  // released textures kept for reuse, the oldest first
-    int cachedBytes;            // the cached textures' CTexture::uploadResult
+    std::vector<Texture*> cache;  // released textures kept for reuse, the oldest first
+    int cachedBytes;            // the cached textures' Texture::uploadResult
     TextureDevice* device;
     std::uint16_t mipLevel;     // first mip level to load
     int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
 };
-inline CTextureManager* CTexture::Manager() const { return static_cast<CTextureManager*>(owner); }
+inline TextureManager* Texture::Manager() const { return static_cast<TextureManager*>(owner); }

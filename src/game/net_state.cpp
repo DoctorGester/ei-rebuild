@@ -32,7 +32,7 @@ std::uint32_t SnapshotConsumed() {
 constexpr float kStatEpsilon = 1e-4f;
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
-float StatFraction(CUnit* unit, int k) {
+float StatFraction(Unit* unit, int k) {
     const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
     return static_cast<float>(part.current) / static_cast<float>(part.maximum);
 }
@@ -45,7 +45,7 @@ bool Exceeds(float v) {
 
 } // namespace
 
-void CMapObject::WriteNetState() {
+void MapObject::WriteNetState() {
     DeltaState* state = &netState;
     if (DeltaField* field = state->BeginField(0)) {
         field->WriteDelta(&packedVitals, 0x18);
@@ -74,9 +74,9 @@ void CMapObject::WriteNetState() {
     }
 }
 
-void CUnit::WriteNetState() {
-    CMapObject::WriteNetState();
-    CUnit* unit = this;
+void Unit::WriteNetState() {
+    MapObject::WriteNetState();
+    Unit* unit = this;
     DeltaState* state = &netState;
     if (DeltaField* field = state->BeginField(4)) {
         field->WriteDelta(&unit->params, 0x108);
@@ -127,7 +127,7 @@ void CUnit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(11)) {
-        CPlayer* target = unit->player;
+        Player* target = unit->player;
         std::uint32_t objectId = target ? static_cast<std::uint32_t>(target->id) : 0xFFFFFFFFu;
         PutWord(field, unit->relationsB & unit->relationsA);
         PutByte(field, static_cast<std::uint8_t>(unit->side));
@@ -145,7 +145,7 @@ void CUnit::WriteNetState() {
 }
 
 
-std::uint32_t CMapObject::ReadNetState(int first) {
+std::uint32_t MapObject::ReadNetState(int first) {
     DeltaState* state = &netState;
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
@@ -172,7 +172,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         Vector3 position;
         field->ReadDelta(&position, 0xC);
         field->ReadDelta(&localRotation, 0x10);
-        CWorld* world = OwningWorld();
+        World* world = OwningWorld();
         world->MoveObject(this, &position.x);
         PlaceOnGround(localPosition.z);
         complete &= SnapshotConsumed();
@@ -199,10 +199,10 @@ std::uint32_t CMapObject::ReadNetState(int first) {
     return complete;
 }
 
-std::uint32_t CUnit::ReadNetState(int first) {
-    CUnit* unit = this;
+std::uint32_t Unit::ReadNetState(int first) {
+    Unit* unit = this;
     float hpBefore = static_cast<float>(unit->packedVitals.hitPoints) / static_cast<float>(unit->packedVitals.maxHitPoints);
-    std::uint32_t complete = CMapObject::ReadNetState(first);
+    std::uint32_t complete = MapObject::ReadNetState(first);
     DeltaState* state = &netState;
     bool gotItems = false;
     bool changed = false;
@@ -314,23 +314,23 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->side, 1);
         int objectId;
         field->ReadDelta(&objectId, 4);
-        CPlayer* current = unit->player;
+        Player* current = unit->player;
         if (objectId == -1) {
             if (current) {
                 unit->player = nullptr;
                 current->RemoveUnit(unit);
-                if (CPlayer* now = unit->player) now->AddUnit(unit);
+                if (Player* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || current->id != objectId) {
             PlayerClient* view = unit->ClientWorld()->LocalView();
-            CPlayer* local = view->player;
+            Player* local = view->player;
             if ((local->id == objectId || view->localSession) && unit->player != local) {
-                CPlayer* old = unit->player;
+                Player* old = unit->player;
                 unit->player = local;
                 if (old) old->RemoveUnit(unit);
-                if (CPlayer* now = unit->player) now->AddUnit(unit);
+                if (Player* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }

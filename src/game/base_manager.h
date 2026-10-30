@@ -15,7 +15,7 @@
 
 
 struct FigureAnimation;
-class CManagerContext;
+class ManagerContext;
 
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by type, registers
 // them by id, saves and loads the registered ones, and keeps the objects released to it as spares of their type
@@ -40,7 +40,7 @@ public:
     void Save(ByteStream* stream) override;
 
     // Keeps the context and creates.
-    virtual void Init(CManagerContext* context);
+    virtual void Init(ManagerContext* context);
     // A new object of `type` (null when the type is unknown).
     virtual EngineObject* NewObject(int type) = 0;
     // Destroys and releases every object, then empties the registration tables.
@@ -70,7 +70,7 @@ public:
     ~BaseManager() override;
     EngineObject* FindObject(unsigned id) const;
     template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
-    void SetContext(CManagerContext* context);
+    void SetContext(ManagerContext* context);
     // The object registered under `id` leaves the registration tables (it stays alive
     // and keeps its id); returns it, or null.
     EngineObject* Unregister(int id);
@@ -106,9 +106,9 @@ public:
     int reservedA;                  // -1 when constructed, 0 after Create; nothing reads it
     int reservedB;                  // -1 when constructed, 300 after Create; nothing reads it
     int lastId;                     // id most recently registered (-1 when constructed)
-    CManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
+    ManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
     // context as the world, for the world's managers (a party's item manager has the party).
-    template <class WorldType = CWorld> WorldType* ContextAsWorld() const { return static_cast<WorldType*>(context); }
+    template <class WorldType = World> WorldType* ContextAsWorld() const { return static_cast<WorldType*>(context); }
 };
 
 // Walks a manager's objectList. While iterating it holds a reference on the manager (refCount + 1); the

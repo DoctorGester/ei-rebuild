@@ -27,7 +27,7 @@ constexpr float kThreshold = 15.0f;
 
 } // namespace
 
-bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
+bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCells chain;
     static SpiralCache spiral{0, -1.0f};
     int sizeClass = unit->sizeClass;

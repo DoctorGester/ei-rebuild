@@ -62,7 +62,7 @@ struct LocalUnitMotion {
 };
 
 
-void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
+void PathMessage(Unit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
     if (unit->player) unit->player->Server()->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
@@ -171,7 +171,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
 // --- Planning an order's way ---------------------------------------------------------------------
 
 bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
-    CPlayer* player = unit->player;
+    Player* player = unit->player;
     if (order->kind != UnitOrderKind::Use && !player) return true;
     float best = kFar;
     LocalMotionOrder route;
@@ -193,7 +193,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         int kind = order->kind == UnitOrderKind::Attack ? 2 : 1;
         if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
             std::uint32_t source = action.source;
-            CSpell* spell = nullptr;
+            Spell* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
                 Item* carrier = SpellCarrier(source);
@@ -221,7 +221,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         };
         if (!order->pointIsUseSpot) {
             AIPath path;
-            CMapObject* target = order->target;
+            MapObject* target = order->target;
             std::uint8_t savedFlag = 0;
             if (target) {
                 savedFlag = g_serverWorld.aiMap.refreshUnits;
@@ -260,7 +260,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
 void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
     WorldServer* world = ServerWorld();
     AIPath path;
-    std::vector<CUnit*> lifted = LiftNearby(point, static_cast<char>(moving));
+    std::vector<Unit*> lifted = LiftNearby(point, static_cast<char>(moving));
     int mode = unit->moveMode;
     SectorMap* sectors = &world->aiMap.sectorMap;
     AIMap* map = MapOf(world);
@@ -286,6 +286,6 @@ void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range
         unit->UpdateSizeClass();
         sectors->Add(unit);
     }
-    for (CUnit* other : lifted) sectors->Add(other);
+    for (Unit* other : lifted) sectors->Add(other);
     ReportPath(&path, found ? 1 : 0);
 }

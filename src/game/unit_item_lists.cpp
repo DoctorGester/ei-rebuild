@@ -1,4 +1,4 @@
-// CUnit::CollectItems: every item a unit holds and their spells as two lists, for the server controller's
+// Unit::CollectItems: every item a unit holds and their spells as two lists, for the server controller's
 // armour spell refresh. See unit.h.
 #include "unit.h"
 
@@ -9,7 +9,7 @@
 void ItemsAndSpells::Add(Item* item) {
     if (!item) return;
     items.push_back(item);
-    if (CSpell* spell = item->spell) spells.push_back(spell);
+    if (Spell* spell = item->spell) spells.push_back(spell);
 }
 
 namespace {
@@ -19,7 +19,7 @@ void AddSlots(ItemsAndSpells& held, Item* const* slots, int count) {
 }
 } // namespace
 
-ItemsAndSpells CUnit::CollectItems() {
+ItemsAndSpells Unit::CollectItems() {
     ItemsAndSpells held;
     AddSlots(held, weapons, 4);
     AddSlots(held, armor, 7);

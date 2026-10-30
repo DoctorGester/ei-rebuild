@@ -6,13 +6,13 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
 
 ## Declarations
 
-- `CampPages : ItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes`, `HeroUnit`), the controller slots are
-  called on `CUnit::Controller()`. `MpHeroScreen` has the item screens' two `ItemObjectCache`s (`models`, `textures`), `CUiEditField*` edit
+- `CampPages : ItemScreen`; its parties, panels and hero list are typed (`std::vector<Unit*> heroes`, `HeroUnit`), the controller slots are
+  called on `Unit::Controller()`. `MpHeroScreen` has the item screens' two `ItemObjectCache`s (`models`, `textures`), `CUiEditField*` edit
   windows and slot 52 `VirtualChooseFigure`.
 - `ItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
   spells) and `UnitStats` slots.
 - Sprites are `UiMesh` (derived from `FigureMesh`; `texture`, `plainColour_`, `flags`, `position`, `orientation_`, `tint`, `uOffset`,
-  `vOffset`, `visible`); window vtables are `UiWindow::vtable` / `inputVtable_`; texture memory is `CTexture::surface` (`Surface`, surface.h)
+  `vOffset`, `visible`); window vtables are `UiWindow::vtable` / `inputVtable_`; texture memory is `Texture::surface` (`Surface`, surface.h)
   locked through `IDirectDrawSurface7`. Surfaces are `UiSurface` (`flags`, `holder`, `kept`, `keptSize_`, `width`, `height`).
 - `Interface3D` names `pollTop` (+0x81), `disconnected` (+0x88), its backdrops (`backdrop`, `secondBackdrop`, `backdropMode`),
   `serverFlag`, the modifier flags (`ctrlDown`, `shiftDown`, `altDown`, `doubleClick`, `rightDown`), `messages`, `helpTopics`

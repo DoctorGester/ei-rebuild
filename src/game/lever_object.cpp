@@ -116,7 +116,7 @@ void LockKey::WriteTo(ByteStream* stream) const {
 }
 
 void Lever::WriteLeverNetState() {
-    CMapObject::WriteNetState();
+    MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return;
     EI_NAN_AUDIT(to, scale.y);
@@ -132,7 +132,7 @@ void Lever::WriteLeverNetState() {
 }
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
-    std::uint32_t complete = CMapObject::ReadNetState(first);
+    std::uint32_t complete = MapObject::ReadNetState(first);
     DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));

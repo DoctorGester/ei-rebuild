@@ -138,7 +138,7 @@ public:
     static Message* Create();
 
     std::vector<HeldRef<RefObject>> members;               // PartyMemberMessages
-    std::uint32_t money = 0;         // the offered party's money (CParty::Money)
+    std::uint32_t money = 0;         // the offered party's money (Party::Money)
     std::uint8_t accepted = 0;       // the partner's offer is accepted
     std::uint32_t acceptedRevision = 0;    // the partner's revision accepted
     std::uint32_t revision = 1;

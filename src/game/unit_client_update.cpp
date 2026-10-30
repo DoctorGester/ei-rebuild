@@ -35,7 +35,7 @@ bool SoundBusy(int handle) {
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
-void SetTalking(const CUnit* unit, bool talking) {
+void SetTalking(const Unit* unit, bool talking) {
     EngineObject* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
     if (talking) serverUnit->flags |= MapObjectFlag::Blocked;

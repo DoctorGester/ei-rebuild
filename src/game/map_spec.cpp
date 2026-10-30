@@ -158,7 +158,7 @@ void ObjectSpec::Remove() {
     Apply();
 }
 
-CMapObject* ObjectSpec::MadeMapObject() const { return static_cast<CMapObject*>(object); }
+MapObject* ObjectSpec::MadeMapObject() const { return static_cast<MapObject*>(object); }
 
 void ObjectSpec::Refresh() {
     if (object) MadeMapObject()->MarkChanged(2);
@@ -171,7 +171,7 @@ void ObjectSpec::Apply() {
     }
     g_serverWorld.aiMap.BeginRefresh();
     g_serverWorld.aiMap.sectorMap.Remove(MadeMapObject());
-    CMapObject* mapObject = MadeMapObject();
+    MapObject* mapObject = MadeMapObject();
     mapObject->localPosition = position;
     mapObject->localRotation = rotation;
     mapObject->SetFigureScale(&scale.x);

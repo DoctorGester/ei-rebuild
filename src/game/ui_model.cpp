@@ -1,5 +1,5 @@
 // A window's 3D model preview (UiModel, ui.h): its object's animations, parts and drawing. The
-// object is a CObject3D (map_object_figures.h). See docs/notes/ui.md, section 2.
+// object is a Object3D (map_object_figures.h). See docs/notes/ui.md, section 2.
 #include "map_object_shadow.h"
 #include "model.h"
 #include "ui.h"
@@ -45,13 +45,13 @@ UiModel::~UiModel() {
 
 // Animation `animation` of the object played.
 void UiModel::Play(SkillAnimation animation) {
-    CObject3D* currentObject = object;
+    Object3D* currentObject = object;
     currentObject->PlayAnimation(currentObject->FindSkillAnimation(animation));
 }
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void UiModel::Stop() {
-    CObject3D* currentObject = object;
+    Object3D* currentObject = object;
     std::string name(currentObject->name);
     currentObject->PlayAnimation(g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind));
 }
@@ -72,7 +72,7 @@ void UiModel::ShowAllParts(int show) {
 void UiModel::Draw(SceneRenderer* pass) {
     std::uint32_t saved = pass->colour;
     pass->SetColour(0xFFFFFFFF);
-    CObject3D* currentObject = object;
+    Object3D* currentObject = object;
     currentObject->flags |= MapObjectFlag::NoEdgeFade;
     currentObject->AdvanceTime(InterfaceClock());
     currentObject->DrawCollectDirty(pass);
@@ -82,7 +82,7 @@ void UiModel::Draw(SceneRenderer* pass) {
 
 void UiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = g_clientWorld.GetMapObjectManager();
-    auto* newObject = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
+    auto* newObject = manager->CreateObjectAs<Object3D>(MapObjectType::Creature, kPreviewId);
     object = newObject;
     newObject->AddRef();
     newObject->flags |= MapObjectFlag::Preview;

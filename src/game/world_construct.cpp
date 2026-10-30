@@ -11,7 +11,7 @@
 #include "registry.h"
 #include "script.h"
 #include "spell.h"         // SpellEffect: the missiles
-#include "texture.h"       // CTexture: the fog texture (ClientArrayManager)
+#include "texture.h"       // Texture: the fog texture (ClientArrayManager)
 
 #include <initializer_list>
 #include <new>

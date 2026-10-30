@@ -233,9 +233,9 @@ heap.
 | What | Original sites | Switch | Ticket |
 | --- | --- | --- | --- |
 | Units' update countdown from `id_ & 0xF`, not address bits | eight `SAR r,5 / AND r,0xF` sites (0058D4FA ... 00596BB1); ours `UpdateCountdownFor` | | SV1b |
-| UnitStats / UnitVitals stack copies zeroed | GiveDefaults, ApplyPrototype, BuildFromPrototype, CUnit / CMapObject::TakePrototype, CParty::AddMember (harness_leftovers) | `EI_LEFTOVERS=<hex family mask>` | SV7b3 |
+| UnitStats / UnitVitals stack copies zeroed | GiveDefaults, ApplyPrototype, BuildFromPrototype, Unit / MapObject::TakePrototype, Party::AddMember (harness_leftovers) | `EI_LEFTOVERS=<hex family mask>` | SV7b3 |
 | Server objects, map objects, Suspection / Fear modes, class templates allocated zeroed | NewObjectImpl 004D6970, CreateObject 00512730, AddSuspectionMode / AddFearMode and their constructors' callers, ClassTemplate::Construct's callers | same | SV7b2, SV7d3, SV7d4 |
-| View position zeroed (draw sort NaN) | CMapObject::Construct's CALL 0050E2F2 (bit 6) | same | S17a |
+| View position zeroed (draw sort NaN) | MapObject::Construct's CALL 0050E2F2 (bit 6) | same | S17a |
 | Particle source zeroed (emission point read before Attach) | NewParticleSource's operator new 004981CD (bit 7) | same | SV7b7 |
 | Lights zeroed (the sun's never-set position under water) | LightFactory::NewObjectImpl's operator new 0068DA7C (bit 8) | same | SV7b6a |
 | Path cells' speed word 0x200, terrain bits 0 | CALLs of SearchPathTo, BuildCells, Smooth (harness_path_cells) | | SV7d2 |
@@ -246,7 +246,7 @@ heap.
 | Draw lists by texture / figure name, then depth | 005740D0 and 00574390 jump to ours (both: mixed orders ran off the array) | | SV7b6 |
 | A client's player list refreshed by its binding too (an update's objects come in the server's ReplicaEntry address order; players before the binding were listed as nobody: the base screen's faces) | 0041E430 jumps to a stub (harness_address_order); scenario step `checkplayers` | | UB1 |
 | The shadow's turn undone exactly (no ulp drift per re-render) | CALLs 0051D479 / 0051D4E0 (harness_shadow_turn) | `EI_SHADOW_TURN=0` | SV7b4a |
-| The client effects draw from their own generator (`g_clientRandom`, seeded from the game's at CWorld::Create), not from ISAAC 007A9D40 or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the interface's flourishes | the generator operands of 91 client functions point at the harness's client generator, the rand() CALLs of 15 at a draw of it, Init's CALL 0055F165 seeds it (harness_client_effects; deterministic runs) | | R34a |
+| The client effects draw from their own generator (`g_clientRandom`, seeded from the game's at World::Create), not from ISAAC 007A9D40 or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the interface's flourishes | the generator operands of 91 client functions point at the harness's client generator, the rand() CALLs of 15 at a draw of it, Init's CALL 0055F165 seeds it (harness_client_effects; deterministic runs) | | R34a |
 | The terrain's sectors lit once, when built (ours: the edge fade at Build; no relight countdowns, no tick without tile animation) | SetSun's relighting 006C908F jumps to its epilogue; SectorAt's Ensure CALLs 006C8234 / 006C84BC light a built sector at once (harness_client_effects) | | R34a |
 | The client's idle animation picks (StartIdleAnimation's FindAnimation, as often as draw time restarts the idle) and the hero previews' start frames (CMpHeroScreen::MakePreview, CCampPages::Create) draw from the client generator; the server's animation picks keep rand(); DelayedProtectionCheck's unused rand() per new object (message 0x40) is gone | StartIdleAnimation's CALL 00535539 of FindAnimation raises a flag under which RandomAnimation's / RandomAnimationOfKind's rand() CALLs 005191E9 / 0051921A / 00519281 / 00519488 draw from the client generator; the generator operands of 0060C870 and 00616E20 point at it; 00455B50 returns at once (harness_client_effects; deterministic runs) | | R34c |
 
@@ -388,7 +388,7 @@ happen (the harness logs "share id" if one does).
 - **Transform positions** (SV7b6b): TransformObject's constructor (00453400) and its inlined copies leave
   localPosition / worldPosition (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
   camera (0040C8B0), terrain (in 00561E50), figure meshes and parts (005AABC0), sky (004D9110), scene meshes,
-  every effect (CEffect base), CObject3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
+  every effect (Effect base), Object3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
   Why: every effect's Reset zeroes the position in its constructor (ClearBase; EffectShowVisibility sets it from
   the seer before use), the terrain's reset sets it, the sky sets it before its matrix, the camera reads its own
   only when placed (else the focus), scene meshes and figure parts are zero-filled arrays, map objects and figures

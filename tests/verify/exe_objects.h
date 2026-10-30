@@ -224,9 +224,9 @@ using HashMap = HashTable<HashMapNode<K, V>>;
 EI_EXE_LAYOUT(sizeof(HashMap<int, int>) == 0x14);
 
 // The world's maps of objects by id: the map and the highest id put in.
-struct CMapObject;
+struct MapObject;
 struct ObjectIdMap {
-    HashMap<unsigned, CMapObject*> map;
+    HashMap<unsigned, MapObject*> map;
     int maxId;
 };
 EI_EXE_LAYOUT(sizeof(ObjectIdMap) == 0x18);
@@ -246,7 +246,7 @@ struct AILook;
 struct AIMode;
 struct AIReport;
 struct Item;
-struct CPlayer;
+struct Player;
 struct MotionPoint;
 struct MotionWaypoint;
 struct SharedObject;
@@ -293,15 +293,15 @@ struct Camera : TransformObject {
 EI_EXE_LAYOUT(sizeof(Camera) == 0x304 && offsetof(Camera, focus) == 0xE0 && offsetof(Camera, viewRotation) == 0xF4);
 
 // A texture (texture.h).
-struct CTexture : EngineObject {
+struct Texture : EngineObject {
     CString name;                           // +0x1C
     std::uint8_t unknown20[0x48];
 };
-EI_EXE_LAYOUT(sizeof(CTexture) == 0x68);
+EI_EXE_LAYOUT(sizeof(Texture) == 0x68);
 
 // A model's part set (map_object_shadow.h).
 struct TextureParts {
-    CTexture* texture;                      // +0x00
+    Texture* texture;                      // +0x00
     std::uint8_t unknown4[0x10];
 };
 EI_EXE_LAYOUT(sizeof(TextureParts) == 0x14);
@@ -325,7 +325,7 @@ struct LinkMesh {
 EI_EXE_LAYOUT(sizeof(LinkMesh) == 0xB0);
 
 // A figure in the world: its model's name and scale.
-struct CObject3D : TransformObject {
+struct Object3D : TransformObject {
     std::uint8_t unknown54[0x40];
     EngineObject* attached;                // +0x94
     std::uint8_t unknown98[0xC];
@@ -337,7 +337,7 @@ struct CObject3D : TransformObject {
     std::uint8_t unknownF4[0x7C];
     Object3DClientSpecific* ClientSpecific() const { return static_cast<Object3DClientSpecific*>(attached); }
 };
-EI_EXE_LAYOUT(sizeof(CObject3D) == 0x170);
+EI_EXE_LAYOUT(sizeof(Object3D) == 0x170);
 
 // An effect on a map object (map_object.h).
 struct MapEffect {
@@ -363,7 +363,7 @@ struct UnitVitalsPacked {
 EI_EXE_LAYOUT(sizeof(UnitVitalsPacked) == 0x18);
 
 // A map object (map_object.h): its server or client half, effects and sector cell.
-struct CMapObject : CObject3D {
+struct MapObject : Object3D {
     EngineObject* companion;               // +0x170
     int updateCountdown;                    // +0x174
     float animationSpeed;                   // +0x178
@@ -374,7 +374,7 @@ struct CMapObject : CObject3D {
     int sectorCellY;                        // +0x1BC
     std::uint8_t unknown1C0[0x78];
 };
-EI_EXE_LAYOUT(sizeof(CMapObject) == 0x238);
+EI_EXE_LAYOUT(sizeof(MapObject) == 0x238);
 
 // Hit points and mana (unit.h).
 struct UnitVitals {
@@ -423,13 +423,13 @@ struct UnitMotion {
 EI_EXE_LAYOUT(sizeof(UnitMotion) == 0xA4);
 
 // A unit (unit.h, class 0x50).
-struct CUnit : CMapObject {
+struct Unit : MapObject {
     CString scriptName;                     // +0x238
     std::uint8_t unknown23C[0x4];
     EngineObject* controller;              // +0x240
     std::uint32_t relationsA;               // +0x244
     std::uint32_t relationsB;               // +0x248
-    CPlayer* player;                        // +0x24C
+    Player* player;                        // +0x24C
     int side;                               // +0x250
     std::int8_t animationEntry;             // +0x254
     std::int8_t secondEntry;                // +0x255
@@ -453,13 +453,13 @@ struct CUnit : CMapObject {
     std::uint32_t altPassCosts;             // +0x43C
     std::uint8_t unknown440[0x9C];
 };
-EI_EXE_LAYOUT(sizeof(CUnit) == 0x4DC && offsetof(CUnit, motion) == 0x27C);
+EI_EXE_LAYOUT(sizeof(Unit) == 0x4DC && offsetof(Unit, motion) == 0x27C);
 
 // A unit controller's order (combat.h).
 struct UnitAction {
     int kind;                               // +0x00
     std::uint8_t unknown4[0x4];
-    CMapObject* target;                     // +0x08
+    MapObject* target;                     // +0x08
     std::uint8_t unknownC[0x18];
 };
 EI_EXE_LAYOUT(sizeof(UnitAction) == 0x24);
@@ -491,10 +491,10 @@ struct AIMemory {
     int noticedLevel;                       // +0x18
     int noticedDecay;                        // +0x1C
     std::uint8_t unknown20[0x4];
-    List<CUnit*> nearby;                    // +0x24
-    List<CUnit*> visible;                   // +0x40
+    List<Unit*> nearby;                    // +0x24
+    List<Unit*> visible;                   // +0x40
     std::uint8_t unknown5C[0x1C];
-    List<CUnit*> corpses;                   // +0x78
+    List<Unit*> corpses;                   // +0x78
     Vector<AIReport> reports;               // +0x94
     Vector<AIHeardCall> calls;              // +0xA8
     std::uint8_t seesEnemy;                 // +0xBC
@@ -508,8 +508,8 @@ struct AIBrain {
     int action;                             // +0x04
     AIMoveOrder move;                       // +0x08
     int actionTime;                         // +0x28
-    CMapObject* target;                     // +0x2C
-    CMapObject* seen;                       // +0x30
+    MapObject* target;                     // +0x2C
+    MapObject* seen;                       // +0x30
     std::uint8_t alerted;                   // +0x34
     std::int8_t alarm;                      // +0x35
     std::int8_t alarmSlot;                  // +0x36
@@ -559,16 +559,16 @@ EI_EXE_LAYOUT(sizeof(UnitServer) == 0xB20);
 EI_EXE_LAYOUT(offsetof(UnitServer, moveMode2) == 0x170 && offsetof(UnitServer, orderStopped) == 0x18C);
 
 // A timed effect (world_effect.h).
-struct CEffect : TransformObject {
+struct Effect : TransformObject {
     std::uint8_t unknown54[0x40];
     int startTick;                          // +0x94
     Vector3 velocity;                       // +0x98
     int moving;                             // +0xA4
     std::uint8_t unknownA8[0xA4];
 };
-EI_EXE_LAYOUT(sizeof(CEffect) == 0x14C);
+EI_EXE_LAYOUT(sizeof(Effect) == 0x14C);
 
-struct EffectSound : CEffect {
+struct EffectSound : Effect {
     std::uint8_t unknown14C[0x100];
     float volume;                           // +0x24C
     float radius;                           // +0x250
@@ -577,7 +577,7 @@ struct EffectSound : CEffect {
 };
 EI_EXE_LAYOUT(sizeof(EffectSound) == 0x264);
 
-struct CEffectParticle : CEffect {
+struct EffectParticle : Effect {
     std::uint8_t unknown14C[0xC];
     int type;                               // +0x158
     float size;                             // +0x15C
@@ -587,16 +587,16 @@ struct CEffectParticle : CEffect {
     std::uint8_t unknown178[0x4];
     int unitId;                             // +0x17C
 };
-EI_EXE_LAYOUT(sizeof(CEffectParticle) == 0x180);
+EI_EXE_LAYOUT(sizeof(EffectParticle) == 0x180);
 
-struct EffectPointLight : CEffect {
+struct EffectPointLight : Effect {
     Vector3 color;                          // +0x14C
     float range;                            // +0x158
     std::uint8_t unknown15C[0x8];
 };
 EI_EXE_LAYOUT(sizeof(EffectPointLight) == 0x164);
 
-struct EffectLightning : CEffect {
+struct EffectLightning : Effect {
     Vector3 from;                           // +0x14C
     Vector3 to;                             // +0x158
     std::uint8_t unknown164[0x8];
@@ -606,7 +606,7 @@ struct EffectLightning : CEffect {
 };
 EI_EXE_LAYOUT(sizeof(EffectLightning) == 0x178);
 
-struct EffectMissile : CEffect {
+struct EffectMissile : Effect {
     int arrived;                            // +0x14C
     int targetId;                           // +0x150
     std::uint8_t unknown154[0x4];
@@ -614,7 +614,7 @@ struct EffectMissile : CEffect {
 EI_EXE_LAYOUT(sizeof(EffectMissile) == 0x158);
 
 // A spell (spell.h).
-struct CSpell : EngineObject {
+struct Spell : EngineObject {
     std::uint8_t prototypeIndex;            // +0x1C
     std::uint8_t unknown1D[0x3];
     std::uint32_t duration;                 // +0x20
@@ -624,7 +624,7 @@ struct CSpell : EngineObject {
     std::uint32_t targetFlags;              // +0x3C
     std::uint8_t unknown40[0x1C];
 };
-EI_EXE_LAYOUT(sizeof(CSpell) == 0x5C);
+EI_EXE_LAYOUT(sizeof(Spell) == 0x5C);
 
 // A spell on its way or lasting (spell.h): the server world's missiles.
 struct SpellEffect {
@@ -632,19 +632,19 @@ struct SpellEffect {
     std::uint8_t unknown4[0x8];
     std::uint32_t flags;                    // +0x0C
     Vector3 position;                       // +0x10
-    CMapObject* target;                     // +0x1C
-    CUnit* caster;                          // +0x20
+    MapObject* target;                     // +0x1C
+    Unit* caster;                          // +0x20
     Vector3 targetPoint;                    // +0x24
     int state;                              // +0x30
-    CSpell spell;                           // +0x34
-    CEffect* visual;                        // +0x90
-    CEffect* sound;                         // +0x94
+    Spell spell;                           // +0x34
+    Effect* visual;                        // +0x90
+    Effect* sound;                         // +0x94
     EffectPointLight* light;               // +0x98
     std::uint8_t footprintStamped;          // +0x9C
     std::uint8_t unknown9D[0x3];
     int timer;                              // +0xA0
     std::uint8_t unknownA4[0x4];
-    const CSpell* HeldSpell() const { return &spell; }
+    const Spell* HeldSpell() const { return &spell; }
 };
 EI_EXE_LAYOUT(sizeof(SpellEffect) == 0xA8);
 
@@ -759,7 +759,7 @@ struct ScriptFxSource {
 EI_EXE_LAYOUT(sizeof(ScriptFxSource) == 0x34);
 
 struct ScriptParticleSource {
-    CEffectParticle* object;                // +0x00
+    EffectParticle* object;                // +0x00
     int id;                                 // +0x04
     std::uint8_t unknown8[0x4];
     int moving;                             // +0x0C
@@ -813,7 +813,7 @@ struct PartyUnitRecord {
 EI_EXE_LAYOUT(sizeof(PartyUnitRecord) == 0x784);
 
 // A party (party.h).
-struct CParty : EngineObject {
+struct Party : EngineObject {
     std::uint8_t unknown1C[0x10];
     Vector<PartyUnitRecord> members;        // +0x2C
     AlignedArray<Item*> items;             // +0x40
@@ -822,25 +822,25 @@ struct CParty : EngineObject {
     std::uint8_t unknown68[0x4];
     std::uint32_t entrance;                 // +0x6C
 };
-EI_EXE_LAYOUT(sizeof(CParty) == 0x70);
+EI_EXE_LAYOUT(sizeof(Party) == 0x70);
 
 // A player's connection, the base of its PlayerServer or PlayerClient (player_messages.h).
 struct PlayerConnection : EngineObject {
-    CPlayer* player;                        // +0x1C
+    Player* player;                        // +0x1C
     int state;                              // +0x20 1 in the world, 3 leaving the zone
 };
 EI_EXE_LAYOUT(sizeof(PlayerConnection) == 0x24);
 
 // A player (player_messages.h).
-struct CPlayer : EngineObject {
+struct Player : EngineObject {
     std::uint8_t unknown1C[0x4];
     PlayerConnection* connection;          // +0x20 its connection (counted)
     int playerId;                           // +0x24
-    HashMap<int, CMapObject*> knownObjects;// +0x28
+    HashMap<int, MapObject*> knownObjects;// +0x28
     std::uint8_t unknown3C[0x4];
-    HashMap<int, CUnit*> units;             // +0x40
+    HashMap<int, Unit*> units;             // +0x40
     std::uint8_t unknown54[0x1C];
-    CParty party;                           // +0x70
+    Party party;                           // +0x70
     List<Item*> items;                     // +0xE0
     int partyId;                            // +0xFC
     int sessionKind;                     // +0x100
@@ -850,9 +850,9 @@ struct CPlayer : EngineObject {
     int lastTick;                           // +0x110
     List<std::uint32_t> recharging;         // +0x114
     std::uint8_t unknown130[0x4];
-    CParty* GetParty() { return &party; }
+    Party* GetParty() { return &party; }
 };
-EI_EXE_LAYOUT(sizeof(CPlayer) == 0x134);
+EI_EXE_LAYOUT(sizeof(Player) == 0x134);
 
 // The world's players (player_manager.h).
 struct PlayerManager : EngineObject {
@@ -863,7 +863,7 @@ struct PlayerManager : EngineObject {
 EI_EXE_LAYOUT(sizeof(PlayerManager) == 0xB0);
 
 // What both worlds share (world.h).
-struct CWorld : EngineObject {
+struct World : EngineObject {
     float timeBase;                         // +0x1C
     float secondsPerTick;                   // +0x20
     std::uint8_t windDirection[12];         // +0x24
@@ -878,10 +878,10 @@ struct CWorld : EngineObject {
     std::uint8_t paused;                    // +0x6C
     std::uint8_t unknown6D[0x17];
 };
-EI_EXE_LAYOUT(sizeof(CWorld) == 0x84);
+EI_EXE_LAYOUT(sizeof(World) == 0x84);
 
 // The server world (world.h).
-struct WorldServer : CWorld {
+struct WorldServer : World {
     float nightLevel;                       // +0x84
     std::uint32_t weatherFactor;            // +0x88
     WorldAlarm alarms[5];                   // +0x8C
@@ -930,9 +930,9 @@ struct ScreenEntry {
 EI_EXE_LAYOUT(sizeof(ScreenEntry) == 0x18);
 
 // The client world (world.h).
-struct WorldClient : CWorld {
+struct WorldClient : World {
     std::uint8_t unknown84[0x34];
-    StlpList<CMapObject*> objects;          // +0xB8
+    StlpList<MapObject*> objects;          // +0xB8
     List<EngineObject*> dynamicObjects;    // +0xBC
     std::uint8_t unknownD8[0x18];
     StlpList<ScreenEntry> screenEntries;    // +0xF0 the window rectangles of the frame
@@ -1078,7 +1078,7 @@ EI_EXE_LAYOUT(sizeof(BriefingScreen) == 0x2A4);
 // An item (item.h).
 struct Item : EngineObject {
     std::uint8_t unknown1C[0x28];
-    CSpell* spell;                          // +0x44
+    Spell* spell;                          // +0x44
     std::uint8_t unknown48[0x4];
 };
 EI_EXE_LAYOUT(sizeof(Item) == 0x4C);
@@ -1269,7 +1269,7 @@ struct HudSpellColumn;
 // The battle screen (ui.h).
 struct BattleScreen {
     std::uint8_t unknown0[0x168];
-    Vector<CUnit*> party;                   // +0x168
+    Vector<Unit*> party;                   // +0x168
     int pendingAction;                      // +0x17C
     int pendingSlot;                        // +0x180
     int pendingItem;                        // +0x184
@@ -1293,7 +1293,7 @@ EI_EXE_LAYOUT(sizeof(HudQuickItemsEntry) == 0xC);
 struct HudQuickItems {
     std::uint8_t unknown0[0x150];
     int selected;                           // +0x150
-    CUnit* unit;                            // +0x154
+    Unit* unit;                            // +0x154
     Vector<HudQuickItemsEntry> entries;    // +0x158
     int regionItem[8];                      // +0x16C
     std::uint8_t unknown18C[0x14];
@@ -1306,7 +1306,7 @@ struct HudSpellColumn {
     std::uint8_t unknown0[0x14C];
     int count;                              // +0x14C
     int selected;                           // +0x150
-    CUnit* unit;                            // +0x154
+    Unit* unit;                            // +0x154
     std::uint8_t unknown158[0x14];
 };
 EI_EXE_LAYOUT(sizeof(HudSpellColumn) == 0x16C);

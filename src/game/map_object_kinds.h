@@ -9,7 +9,7 @@
 #include <cstdint>
 
 template <ClassId Id>
-class PlainMapObject : public CMapObject {
+class PlainMapObject : public MapObject {
 public:
     PlainMapObject();
     ~PlainMapObject() override;

@@ -108,7 +108,7 @@ extern acks::AckDatabase g_ackDatabase;
 namespace acks {
 
 // The unit says ack `kind` (see acks_db.cpp). Returns the speech given to the controller's Say, or null.
-const SpeechRecord* SayAck(CUnit* unit, AckKind kind);
+const SpeechRecord* SayAck(Unit* unit, AckKind kind);
 // The unit says its named speech `name` as kind 0x2A (0x2B with `alternate`). Returns it, or null.
-const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate);
+const SpeechRecord* SayNamedAck(Unit* unit, const char* name, bool alternate);
 } // namespace acks

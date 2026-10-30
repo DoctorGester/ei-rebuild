@@ -11,7 +11,7 @@
 namespace {
 
 // The local player's link when it is there and not detached (the dword +4's bit 31), else null.
-netlink::NetLink* ActiveLink(CPlayer* session) {
+netlink::NetLink* ActiveLink(Player* session) {
     netlink::NetLink* link = session->link;
     if (link && !(link->flags7 & RefCounted::kDetached)) return link;
     return nullptr;

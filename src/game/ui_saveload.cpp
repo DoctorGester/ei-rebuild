@@ -53,7 +53,7 @@ constexpr int kVisibleRows = 16;
 // --- Helpers -------------------------------------------------------------------------------------
 
 // The 256x192 5:6:5 picture `pixels` (`bytes` of it: whole rows) drawn into the top of `texture`.
-void DrawPicture(CTexture* texture, const void* pixels, std::uint32_t bytes) {
+void DrawPicture(Texture* texture, const void* pixels, std::uint32_t bytes) {
     const int rows = static_cast<int>(bytes / (kShotWidth * 2));
     const render::TextureImage picture{nullptr, pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
     if (rows > 0) render::DrawIntoTexture(texture->surface, &picture, 0, 0, kShotWidth, rows);
@@ -289,7 +289,7 @@ void SaveLoadWindow::FillEntries() {
         // The escape menu's 256x192 5:6:5 copy of the screen, or null.
         if (!ui->screenCopy.empty()) {
             const auto* copy = reinterpret_cast<const std::uint8_t*>(ui->screenCopy.data());
-            CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
+            Texture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
             dialog = shot;
             shot->AddRef();
             RemoveObjectAt(lib::Count(objects) - 1);

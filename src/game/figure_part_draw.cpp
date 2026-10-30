@@ -56,13 +56,13 @@ void Fill(std::vector<std::uint32_t>& values, std::uint32_t value) {
 struct Part {
     FigureMeshDrawer* node;
     TextureDevice* device;
-    const std::vector<CLight*>* lights;
+    const std::vector<Light*>* lights;
     Material* material;
     int alpha;
     Rect* rect;
-    CTexture* textureA;
-    CTexture* textureB;
-    LinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
+    Texture* textureA;
+    Texture* textureB;
+    LinkMesh* figure;        // the mesh owner's figure (Object3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 MaterialFlag::KeepSpecular
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
@@ -114,7 +114,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     } else {
         l.model = *part.device->pipeline->Top(3);
     }
-    if (const CLight* sun = g_sceneRenderer.sun) {
+    if (const Light* sun = g_sceneRenderer.sun) {
         l.sun = true;
         l.sunDirection = sun->direction;
         for (int k = 0; k < 3; ++k) l.sunColour[k] = sun->color[k];
@@ -133,7 +133,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.crown = options::g_options.floraSpecialLight != 0 && text::CompareIgnoringCase((part.node->mesh)->GetName(), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
-        const CLight* light = (*part.lights)[i];
+        const Light* light = (*part.lights)[i];
         g_partLights.push_back(render::MeshLightSource{light->localPosition, light->inverseRangeSquared,
                                                        {light->color[0], light->color[1], light->color[2]}});
     }
@@ -254,14 +254,14 @@ void DrawThroughFigure(Part& part) {
 // `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
 // the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
 // two-texture draw. Returns 1.
-int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<CLight*>* lights,
-                              Material* material, int alpha, Rect* rect, CTexture* textureA, CTexture* textureB) {
+int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* lights,
+                              Material* material, int alpha, Rect* rect, Texture* textureA, Texture* textureB) {
     FigureMesh* currentMesh = mesh;
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     TransformObject* ownerObject = mesh->object;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
-              ownerObject ? static_cast<LinkMesh*>(static_cast<CObject3D*>(ownerObject)->figure) : nullptr, 0};
+              ownerObject ? static_cast<LinkMesh*>(static_cast<Object3D*>(ownerObject)->figure) : nullptr, 0};
 
     int visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
     if (visibility == 2) return 1;

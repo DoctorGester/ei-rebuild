@@ -713,7 +713,7 @@ kinds given.
       the trader stock's five scratch vectors (item_stock.cpp; their initialisers 00698E50-00698F90 unused). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
       function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The plain globals are
       constructed before the static initialisers run and destroyed after their exit functions (the flow's and the
-      saved parties' CParty objects too). The databases
+      saved parties' Party objects too). The databases
       (spells, items, quests, acks, units, skills, maps) are plain globals since C50c1 (the resource switch assigns each
       a new empty one); their initialisers 00684360 / 006A6540 / 006ADF10 / 006D7080 / 005399F0 / 0051FAF0 / 0045E6C0
       and the folders' 0055E7E0 / 0055E860 are UNUSED_INITIALISERS (the guard byte 007AF438 went).
@@ -894,7 +894,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
 - **Mod folders** (S19b, src/game/mod_folders.{h,cpp}): Maps, ResOverride, CameraPatch, StreamPatch and MoviesPatch
   as addon.dll does them (rebirth.md, "Resources and paths"), active only in the image with the flag on. Sites:
   GetFile / ListFiles (plain bodies `GetFilePlain` / `ListFilesPlain`), OpenResource / Destroy,
-  CFigureManager::CreateWithArchives, LinkFigureLoader::Construct, CTextureManager / CMaterialManager::Create, the
+  FigureManager::CreateWithArchives, LinkFigureLoader::Construct, TextureManager / MaterialManager::Create, the
   nine maps-folder users, Camera::LoadPath, SwitchStream, the three BinkOpen calls. Checked by
   `rebirth_mod_folders` (a mod written by `tools/make_test_mod.py`, harness steps `addonpath` and `modfile`). Not
   covered by a run: StreamPatch, MoviesPatch, the extra / ignored archives, Maps' zone-table and quest sites (S19d).
@@ -1299,7 +1299,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 ### Rules from real bugs
 
 - A NaN in a sort key makes a comparator irreflexive and STLport's unguarded scans run off the array: the draw list
-  sort crashed in its comparator 00574300 (S17a: a shadow-only object's never-written view depth); CObject3D::Construct
+  sort crashed in its comparator 00574300 (S17a: a shadow-only object's never-written view depth); Object3D::Construct
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.

@@ -40,7 +40,7 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     e->ReleaseSound();
     e->ReleaseLight();
 
-    CUnit* target = TargetUnit(e);   // no null check
+    Unit* target = TargetUnit(e);   // no null check
     e->targetPoint = target->localPosition;
     Vector3 at;
     at = target->localPosition;
@@ -85,7 +85,7 @@ void FireballFlight(SpellEffect* e) {
         float curve;
         AreaCurve(&e->HeldSpell()->radius, &Prototype(e)->area, &curve);
         float size = MaxKeepB(curve, power);
-        CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
+        EffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
         float radius = e->HeldSpell()->radius;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
@@ -238,7 +238,7 @@ void Fireworks(SpellEffect* e) {
     if (ticks >= 0) {
         float wake = e->HeldSpell()->radius + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(e->position, wake);
-        for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
+        for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
             int duration = static_cast<int>(e->HeldSpell()->duration);
             int level = FrightLevel(&e->timer, &duration);
             ControllerOf(unit)->brain.memory.Notice(e->position, level, -1);
@@ -261,7 +261,7 @@ void Clairvoyance(SpellEffect* e) {
         auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &player->Server()->possessedGroup;
-            for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius))
+            for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius))
                 group->Insert(unit);
         }
         float wake = e->HeldSpell()->radius + ConstAt(worlddata::ImpactWakeMargin());
@@ -285,7 +285,7 @@ void Possession(SpellEffect* e) {
     }
     auto* player = e->caster->player;
     if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
-        CMapObject* target = e->target;
+        MapObject* target = e->target;
         UnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &player->Server()->possessedGroup;
         group->Insert(target);
@@ -417,8 +417,8 @@ void SpellEffect::UpdateLasting(SpellType type) {
     }
 }
 
-void SpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }
+void SpellEffect::ReleaseVisual() { Assign<Effect>(this, &visual, nullptr); }
 
-void SpellEffect::ReleaseSound() { Assign<CEffect>(this, &sound, nullptr); }
+void SpellEffect::ReleaseSound() { Assign<Effect>(this, &sound, nullptr); }
 
 void SpellEffect::ReleaseLight() { Assign<EffectPointLight>(this, &light, nullptr); }

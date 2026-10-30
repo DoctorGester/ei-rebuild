@@ -46,7 +46,7 @@ constexpr const char* kConstructorTopic = "constr";
 constexpr const char* kNoZone = "none";
 constexpr const char* kZoneVariablePrefix = "z.";
 
-constexpr int kFromCamp = 5;              // CPlayer::lastScreen
+constexpr int kFromCamp = 5;              // Player::lastScreen
 constexpr float kEdgeFade = 4.0f;
 constexpr std::uint32_t kDarkBackdrop = 0x80000000;
 constexpr std::uint32_t kTextBackdrop = 0xA0000000;
@@ -87,7 +87,7 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
 
 // A mover that took too long is put at its place, facing its direction, at once.
 void PlaceMover(BriefingMover* node) {
-    CUnit* unit = g_serverWorld.FindUnit(node->person->id);
+    Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
     UnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
@@ -100,12 +100,12 @@ void PlaceMover(BriefingMover* node) {
 
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
-    const CUnit* person = node->person;
+    const Unit* person = node->person;
     float dy = node->target.y - person->localPosition.y;
     float dx = node->target.x - person->localPosition.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
-    CUnit* unit = g_serverWorld.FindUnit(node->person->id);
+    Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->ServerController()->brain.TurnTowards(facing, 1.0f);
@@ -113,7 +113,7 @@ void StepWalking(BriefingMover* node) {
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
 void StepTurning(BriefingMover* node) {
-    const CUnit* person = node->person;
+    const Unit* person = node->person;
     Vector3 axis;
     person->localRotation.AxisY(&axis);
     float facingX = static_cast<float>(-axis.x);
@@ -132,7 +132,7 @@ void SetMeshesVisible(UiWindow* window, int visible, int first = 0) {
 }
 
 // The speaker's lips stop (UnitClientSpecific's blink: eyes open).
-void StopTalking(CUnit* speaker) {
+void StopTalking(Unit* speaker) {
     UnitClientSpecific* model = speaker->ClientController();
     model->blinks = 0;
     model->BlinkOpen(true);
@@ -346,7 +346,7 @@ void BriefingScreen::MarkPeople() {
 }
 
 void BriefingScreen::LeaveIfExitOpen() {
-    CParty* localParty = LocalPlayerData();
+    Party* localParty = LocalPlayerData();
     if (!exitPending || std::ssize(localParty->members) <= 0) return;
     std::string zone = GameExitTarget(exit);
     if (text::CompareIgnoringCase(zone, kNoZone) == 0) return;

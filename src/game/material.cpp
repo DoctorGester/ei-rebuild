@@ -1,4 +1,4 @@
-// The material (Material) and the material manager (CMaterialManager): material.h. See
+// The material (Material) and the material manager (MaterialManager): material.h. See
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
 
@@ -63,11 +63,11 @@ const char* Material::GetName() { return name.c_str(); }
 const char* Material::ClassName() { return kMaterialClassName; }
 ClassId Material::GetClassId() { return ClassId::Material; }
 
-CMaterialManager::CMaterialManager() {}
+MaterialManager::MaterialManager() {}
 
-CMaterialManager::~CMaterialManager() = default;
+MaterialManager::~MaterialManager() = default;
 
-void CMaterialManager::Create() {
+void MaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     BaseManager::Create();
@@ -92,13 +92,13 @@ void CMaterialManager::Create() {
     }
 }
 
-EngineObject* CMaterialManager::NewObject(int objectType) {
+EngineObject* MaterialManager::NewObject(int objectType) {
     auto* material = new Material();
     material->type = objectType;
     return material;
 }
 
-Material* CMaterialManager::NewMaterial(int materialType) {
+Material* MaterialManager::NewMaterial(int materialType) {
     auto* material = CreateObjectAs<Material>(materialType, -1);
     // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
@@ -107,15 +107,15 @@ Material* CMaterialManager::NewMaterial(int materialType) {
     return material;
 }
 
-int CMaterialManager::FillMaterial(Material* material, unsigned key) {
+int MaterialManager::FillMaterial(Material* material, unsigned key) {
     if (!material) return 0;
     material->colors = EnterKey(colors, key);
     return 1;
 }
 
-const char* CMaterialManager::ClassName() { return kManagerClassName; }
-ClassId CMaterialManager::GetClassId() { return ClassId::MaterialManager; }
-const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
+const char* MaterialManager::ClassName() { return kManagerClassName; }
+ClassId MaterialManager::GetClassId() { return ClassId::MaterialManager; }
+const char* MaterialManager::GetFolderName() { return kManagerFolder; }
 
 std::uint32_t Material::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;

@@ -7,7 +7,7 @@
 
 
 class ByteStream;
-class CUnit;
+class Unit;
 
 enum DiplomacyRelation : int {
     kRelationAllied = 0,
@@ -37,7 +37,7 @@ struct Diplomacy {
     // `attacker` attacked `victim`: unless the victim's player is allied with the
     // attacker's, the victim, then the members of the victim's party up to the first empty entry,
     // become hostile to the attacker's player.
-    void OnAttack(CUnit* attacker, CUnit* victim);
+    void OnAttack(Unit* attacker, Unit* victim);
 
     // Whether `player` is allied with `other` (bit other & 31 of row `player`; a player is allied with itself).
     bool IsAllied(int player, int other) const { return (allied[player] & (1u << (other & 31))) != 0; }

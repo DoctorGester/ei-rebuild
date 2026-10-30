@@ -21,11 +21,11 @@
 #include <cstdint>
 #include <vector>
 
-class CPlayer;
+class Player;
 class Item;
-class CUnit;
-class CMapObject;
-class CEffect;
+class Unit;
+class MapObject;
+class Effect;
 struct PathOrder;
 namespace netlink {
 class NetLink;
@@ -49,13 +49,13 @@ struct UnitPlacement {
     std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
 
-// A world player's connection to its client (CPlayer::connection): PlayerServer or PlayerClient.
+// A world player's connection to its client (Player::connection): PlayerServer or PlayerClient.
 class PlayerConnection : public EngineObject {
 public:
     ~PlayerConnection() override;
 
     virtual void ForgetSentObjects() = 0;   // server (sent objects, party units); client empty
-    virtual void UnitChanged(CUnit*) {}     // client (the unit's controller); server empty
+    virtual void UnitChanged(Unit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
     virtual void Leave() {}                 // server (state 3, flushed); client empty
     virtual void ItemsGiven(const std::vector<Item*>*, int) {}   // server; client empty
@@ -66,7 +66,7 @@ public:
     virtual void ItemUsed(EngineObject*) {}    // server (message 0x14); client empty
     virtual int Receive() = 0;              // server and client versions
 
-    CPlayer* player;    // the owner (set by CPlayer::SetConnection)
+    Player* player;    // the owner (set by Player::SetConnection)
     int state;          // both classes' state (1: joined / logged in; see each class); the harness reads it
 
 protected:
@@ -224,7 +224,7 @@ public:
     int OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
     // Message 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
     int OnFollow();
-    // Message 0x3B: a unit id, then a byte: CUnit::SetFightAtWill(signed byte) when the unit exists.
+    // Message 0x3B: a unit id, then a byte: Unit::SetFightAtWill(signed byte) when the unit exists.
     int OnFightAtWill();
     int OnLastPosition();      // Message 0x40: 8 bytes into lastPosition x, y
     // Message 0x00: the login (PlayerLoginMessage); 0 unless the state is 0 (after the read). A client version
@@ -295,9 +295,9 @@ bool IsPrintableText(const char* text);
 float UseOrderDistanceSquared(const Vector3& a, const Vector3& b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
-void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets);
+void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* offsets);
 
-// The bits of CPlayer::dirty: the state the server still has to send the player (WorldServer::SyncPlayer),
+// The bits of Player::dirty: the state the server still has to send the player (WorldServer::SyncPlayer),
 // each cleared by its message. kPlayerDirtyAll after a reset or a load.
 enum class PlayerDirty : std::uint32_t {
     Zone = 0x1,                 // message 0x02
@@ -310,20 +310,20 @@ enum class PlayerDirty : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<PlayerDirty> = true;
 inline constexpr std::uint32_t kPlayerDirtyAll = 0xFFFFFFFFu;
 
-// A world player (CPlayer). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
+// A world player (Player). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
 // layout asserts.
-class CPlayer final : public EngineObject {
+class Player final : public EngineObject {
 public:
     // The world objects the player knows, by id, each counted once: the map objects and the timed objects
     // (effects).
     // Walked in STLport's order: the units by the party's loops (combat_motion, object_diplomacy), the known objects by
     // the briefing's people list, the known timed objects by ReleaseEach (each release can destroy the effect).
-    using MapObjectMap = lib::HashMap<int, CMapObject*>;
-    using TimedObjectMap = lib::HashMap<int, CEffect*>;
-    using UnitMap = lib::HashMap<int, CUnit*>;
+    using MapObjectMap = lib::HashMap<int, MapObject*>;
+    using TimedObjectMap = lib::HashMap<int, Effect*>;
+    using UnitMap = lib::HashMap<int, Unit*>;
 
-    CPlayer();
-    ~CPlayer() override;
+    Player();
+    ~Player() override;
 
     void Create() override {
         CreatePlayer();
@@ -365,13 +365,13 @@ public:
     bool TakeItem(int id);
     // A unit not yet in units is counted, raises the max id and is put in; then the connection's
     // UnitChanged. Nothing for null or a known unit.
-    void AddUnit(CUnit* unit);
+    void AddUnit(Unit* unit);
     // A unit in units is erased, released and given to the connection's UnitChanged.
-    void RemoveUnit(CUnit* unit);
+    void RemoveUnit(Unit* unit);
     // The item's id joins the recharge list unless there; the connection's ItemUsed.
     void ItemUsed(EngineObject* item);
-    // The recharge list emptied, then the party assigned from `source` (CParty::Assign's result).
-    CParty* AssignParty(CParty* source);
+    // The recharge list emptied, then the party assigned from `source` (Party::Assign's result).
+    Party* AssignParty(Party* source);
     // Every unit at a taming stage leaves the player; the walk stops at a null entry.
     void ReleaseTamedUnits();
 
@@ -379,7 +379,7 @@ public:
     // whose tick returned 0, then the connection's TickDone.
     void Tick();
 
-    CParty* GetParty() { return &party; }
+    Party* GetParty() { return &party; }
     // The connection as the server's view of it (a PlayerServer on the server world, null for none).
     PlayerServer* Server() const { return static_cast<PlayerServer*>(connection); }
 
@@ -392,7 +392,7 @@ public:
     int maxUnitId;                              // highest id put in units
     TimedObjectMap knownTimed;                  // timed objects (effects) sent to the client
     int maxTimedId;
-    CParty party;
+    Party party;
     std::vector<Item*> items;          // items given to the player (counted)
     int partyId;                                // the party's key in the party manager; sent with the client's login
     int sessionKind;                         // 3: the client runs a setup on the controllers of new units

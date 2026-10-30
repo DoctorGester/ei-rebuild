@@ -20,15 +20,15 @@ using namespace ei::verify::exe;   // game.exe's generator and sectors: the patc
 
 constexpr std::uintptr_t kNext = 0x004667F0;                            // IsaacRandom::Next (plain RET)
 constexpr std::uintptr_t kInit = 0x0049F150;                            // IsaacRandom::Init (plain RET)
-constexpr std::uintptr_t kInitCall = 0x0055F165;                        // CWorld::Create's CALL of Init
+constexpr std::uintptr_t kInitCall = 0x0055F165;                        // World::Create's CALL of Init
 constexpr std::uintptr_t kRand = 0x006E77F7;                            // the CRT's rand()
 constexpr std::uintptr_t kEnsure = 0x006C3DD0;                          // SectorData::Ensure (wanted, terrain; RET 8)
 constexpr std::uintptr_t kEnsureCalls[] = {0x006C8234, 0x006C84BC};     // Terrain::SectorAt's
 constexpr std::uintptr_t kSetSunRelight = 0x006C908F;                   // SetSun: MOV EAX,[EBX+0x21C] (the interval)
 constexpr std::uintptr_t kSetSunReturn = 0x006C90C1;                    // SetSun's epilogue (POP EDI ...)
-constexpr std::uintptr_t kFindAnimation = 0x005301B0;                   // CUnit::FindAnimation (key, anyOfKind; RET 8)
+constexpr std::uintptr_t kFindAnimation = 0x005301B0;                   // Unit::FindAnimation (key, anyOfKind; RET 8)
 constexpr std::uintptr_t kIdleFindCall = 0x00535539;                    // CUnitClientSpecific::StartIdleAnimation's CALL of it
-// CObject3D::RandomAnimation's three CALLs of rand() and RandomAnimationOfKind's one (the server's picks share them).
+// Object3D::RandomAnimation's three CALLs of rand() and RandomAnimationOfKind's one (the server's picks share them).
 constexpr std::uintptr_t kAnimationRandCalls[] = {0x005191E9, 0x0051921A, 0x00519281, 0x00519488};
 constexpr std::uintptr_t kProtectionCheck = 0x00455B50;                 // DelayedProtectionCheck: CALL rand() first
 constexpr std::uint32_t kStageBuilt = 2;                                // SectorStage
@@ -159,7 +159,7 @@ const Range kRandFunctions[] = {
     {0x006D88E0, 0x006D8A40, 1, "PickEnvironmentSpeech"},
 };
 
-IsaacRandom g_client = {};   // the client generator (zero until CWorld::Create seeds it, as ours)
+IsaacRandom g_client = {};   // the client generator (zero until World::Create seeds it, as ours)
 bool g_idlePick = false;     // within StartIdleAnimation's FindAnimation: the animation picks draw from g_client
 
 std::uint32_t Word(std::uintptr_t at) {
@@ -238,7 +238,7 @@ int RetargetIdlePicks() {
     return patched;
 }
 
-// CWorld::Create's Init of the game's generator (ECX), then once the client generator's from its memory words
+// World::Create's Init of the game's generator (ECX), then once the client generator's from its memory words
 // (ours: g_clientRandom.InitFrom(g_random)).
 void __fastcall InitForOriginal(IsaacRandom* random) {
     using InitFn = void(__thiscall*)(IsaacRandom*);

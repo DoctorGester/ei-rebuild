@@ -10,7 +10,7 @@
 
 #include <vector>
 
-class CUnit;
+class Unit;
 
 namespace unitrecord {
 
@@ -59,7 +59,7 @@ static_assert(sizeof(UnitRecordStats) == 0xAC);
 class UnitRecord {
 public:
     // Applies the record to `unit`.
-    void ApplyTo(CUnit* unit);
+    void ApplyTo(Unit* unit);
 
     UnitRecordStats stats;          // +0x000 (chunk BBBB0004)
     // +0x0AC (chunks BBBB0005 ... BBBB0009) the item names: carried, quick items (worn; also CreateObject),

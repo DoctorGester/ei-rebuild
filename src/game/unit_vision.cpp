@@ -38,7 +38,7 @@ float UnitParams::VisionRange(float daylight) {
     return (day + (1.0f - daylight)) * perception[0];
 }
 
-void CUnit::AdvanceTime(float time) {
+void Unit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!IsTextKey(id)) return;
     float daylight = static_cast<float>(g_clientWorld.NightLevel());
@@ -48,8 +48,8 @@ void CUnit::AdvanceTime(float time) {
     g_clientWorld.MarkFootprintsInSight(&localPosition.x, range);
 }
 
-int CMapObject::SetVisibilityLevel(float level) {
-    CMapObject* slots = this;
+int MapObject::SetVisibilityLevel(float level) {
+    MapObject* slots = this;
     EI_NAN_AUDIT(level);
     if (level == 0.0f) return slots->SetVisibilityMode(0);
     if (level == 1.0f) return slots->SetVisibilityMode(1);

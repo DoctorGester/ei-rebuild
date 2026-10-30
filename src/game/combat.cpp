@@ -111,18 +111,18 @@ float DifficultyAttackFactor() {
     return g_logicSettings.attack[difficulty];
 }
 
-float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
+float ServerMana(const Unit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
-std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode; }
+std::uint8_t PlayerGodMode(const Player* player) { return player->godMode; }
 
 void AttackParamsOf(UnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // _ftol: truncated through 64 bits, the low half (0 for a NaN).
 int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
-float SpellDamage(const CSpell* spell) { return spell->damage; }
-float SpellRange(const CSpell* spell) { return spell->range; }
-float SpellCost(const CSpell* spell) { return spell->manaCost; }
+float SpellDamage(const Spell* spell) { return spell->damage; }
+float SpellRange(const Spell* spell) { return spell->range; }
+float SpellCost(const Spell* spell) { return spell->manaCost; }
 
 const char* HitLocationName(int location) {
     switch (static_cast<std::uint32_t>(location)) {
@@ -139,7 +139,7 @@ const char* HitLocationName(int location) {
 
 // What last damaged the unit: a weapon type, 0x10 + the attacker's prototype index, or 7 (elemental or no
 // attacker).
-std::int16_t& LastDamageSource(CUnit* unit) { return unit->params.lastHitSource; }
+std::int16_t& LastDamageSource(Unit* unit) { return unit->params.lastHitSource; }
 
 // One size class of the size computation: by the load first, then by `size`.
 std::int16_t SizeClassOf(float size, float load) {
@@ -176,7 +176,7 @@ bool UnitServer::AttacksFromRange() {
 }
 
 void UnitServer::GetDamageByType(DamageWords* out) {
-    CUnit* self = unit;
+    Unit* self = unit;
     ItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
         (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
@@ -199,7 +199,7 @@ void UnitServer::GetDamageByType(DamageWords* out) {
 }
 
 void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
-    CSpell* spell = SpellOfSource(source);
+    Spell* spell = SpellOfSource(source);
     *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(Truncate(SpellDamage(spell)));
@@ -225,7 +225,7 @@ bool UnitServer::IsScrollSource(std::uint32_t source) {
     return item->GetCategory() == QuickItemCategory::Potion;
 }
 
-CSpell* UnitServer::SpellOfSource(std::uint32_t source) {
+Spell* UnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return nullptr;
@@ -235,7 +235,7 @@ CSpell* UnitServer::SpellOfSource(std::uint32_t source) {
 
 bool UnitServer::IsFighting() {
     if (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn) {
-        CSpell* spell = nullptr;
+        Spell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
             if (item && item->GetClassId() == ClassId::ItemQuick && (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion))
@@ -260,13 +260,13 @@ bool UnitServer::CanCast(const AIOrder* order) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
         if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         if (!spell) return false;
         if (item->GetCategory() != QuickItemCategory::Wand) return true;
         // The charge against the cost: less (or unordered) refuses.
         return item->charge >= SpellCost(spell);
     }
-    CSpell* spell = unit->GetSpellObject(source);
+    Spell* spell = unit->GetSpellObject(source);
     if (!spell) return false;
     if (unit->player != nullptr) {
         float cost = SpellCost(spell);
@@ -292,11 +292,11 @@ bool UnitServer::GetMovePoint(float* out) {
 float UnitServer::ActionDistance(const AIOrder* order) {
     if (order->pointIsUseSpot) return kPointTwo;
     UnitOrderKind kind = order->kind;
-    CMapObject* target = order->target;
+    MapObject* target = order->target;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
         if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
         std::uint32_t source = order->source;
-        CSpell* spell;
+        Spell* spell;
         if (source & kQuickItemSource) {
             Item* carrier = SpellCarrier(source);
             if (!carrier) return kTen;
@@ -312,13 +312,13 @@ float UnitServer::ActionDistance(const AIOrder* order) {
             float part = target->Radius() * kPointThree;
             return unit->Radius() + part;
         }
-        if (CUnit* other = UnitOrNull(target)) {
+        if (Unit* other = UnitOrNull(target)) {
             return (unit->standingHeight + other->standingHeight) + kPointSix;
         }
         float own = unit->Radius();
         return (target->Radius() + own) - kPointOne;
     }
-    if (CUnit* other = UnitOrNull(target)) {
+    if (Unit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
         ItemWeapon* weapon = unit->ActiveWeapon();
@@ -334,7 +334,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
 
 bool UnitServer::CanReachTarget(const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return true;
-    CUnit* other = UnitOrNull(order->target);
+    Unit* other = UnitOrNull(order->target);
     if (!other) return true;
     if (other->IsDead() != 0) return true;
     if (other->sizeClass != 0) return true;
@@ -383,7 +383,7 @@ void UnitServer::EffectsChanged() {
 }
 
 void UnitServer::GetAttackParams(AttackParams* out) {
-    CUnit* self = unit;
+    Unit* self = unit;
     int keyed = IsTextKey(self->id);
     ItemWeapon* weapon = self->ActiveWeapon();
     if (keyed && weapon) {
@@ -435,8 +435,8 @@ float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     AttackParamsOf(attacker, &theirs);
     AttackParamsOf(this, &mine);
     float speedRatio = theirs.speed / (kSpeedScale * mine.speed);
-    const CUnit* self = unit;
-    const CUnit* other = attacker->unit;
+    const Unit* self = unit;
+    const Unit* other = attacker->unit;
     float dx = self->localPosition.x - other->localPosition.x;
     float dy = self->localPosition.y - other->localPosition.y;
     float dz = self->localPosition.z - other->localPosition.z;
@@ -459,7 +459,7 @@ float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     return MaxKeepB(0.0f, roll);
 }
 
-bool UnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
+bool UnitServer::ResolveHit(DamageInfo* hit, Unit* attacker) {
     float roll = kHitMark;
     if (!HasElementalDamage(hit)) {
         if (moveMode2.onGuard) hit->backstabFactor = 1.0f;
@@ -481,7 +481,7 @@ bool UnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
 }
 
 void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
-    CUnit* self = unit;
+    Unit* self = unit;
     int keyed = IsTextKey(self->id);
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = 1.0f;
@@ -523,7 +523,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     out->calledShot = static_cast<std::uint8_t>(calledShot);
 }
 
-bool UnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
+bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     WorldServer* world = ServerWorld();
     int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
@@ -549,7 +549,7 @@ bool UnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         console::EndLine(kCombatLog << " destHL=" << HitLocationName(hit->location));
     }
 
-    CPlayer* player = unit->player;
+    Player* player = unit->player;
     if (player) {
         if (PlayerGodMode(player) != 0) return false;
         if (source && source->player && player != source->player) return false;
@@ -588,7 +588,7 @@ bool UnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                         world->AwardExperience(nullptr, prototype->experienceValue);
                         return true;
                     }
-                    CPlayer* killer = source->player;
+                    Player* killer = source->player;
                     world->AwardExperience(killer, prototype->experienceValue);
                 }
             }
@@ -646,7 +646,7 @@ void UnitServer::UpdateMoveFactors() {
         moveFactors[0] = 0.0f;
     }
     if (state == UnitState::Acting && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
-        CSpell* spell = SpellOfSource(action.source);
+        Spell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
@@ -699,14 +699,14 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
 
 namespace {
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
-constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
+constexpr int kPartWeapons = 6;         // Unit::MarkChanged part
 
 
 // The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
 bool Usable(const Item* weapon) { return weapon && lib::RoundEven(weapon->condition) > 0; }
 } // namespace
 
-void UnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
+void UnitServer::ClaimHostility(Unit* claimant, std::uint32_t mask) {
     claimedHostile |= mask;
     std::string text;
     for (int player = 0; player < 32; ++player) {
@@ -788,7 +788,7 @@ namespace {
 // The defence factor of units without a player, per difficulty (options::g_options.difficulty).
 inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
-UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
+UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 
 } // namespace

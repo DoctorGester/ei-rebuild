@@ -110,7 +110,7 @@ void ParticleSpec::Apply() {
         if (type) MakeEffect(this);
         return;
     }
-    auto* particle = static_cast<CEffectParticle*>(effect);
+    auto* particle = static_cast<EffectParticle*>(effect);
     Transform()->localPosition = position;
     particle->size = scale;
     particle->type = type;

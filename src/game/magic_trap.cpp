@@ -29,7 +29,7 @@ namespace {
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside.
-bool StaysInside(MagicTrap* trap, CMapObject* unit) {
+bool StaysInside(MagicTrap* trap, MapObject* unit) {
     int count = lib::Count(trap->area);
     const TrapCircle* circle = trap->area.data();
     float x = unit->localPosition.x;
@@ -55,7 +55,7 @@ constexpr int kTailFieldCount = 4;
 
 
 // The spell, a counted reference: the new one's count raised before the old one is released.
-void SetSpell(MagicTrap* trap, CSpell* spell) {
+void SetSpell(MagicTrap* trap, Spell* spell) {
     trap->spell.Assign(spell);
 }
 
@@ -63,14 +63,14 @@ void SetSpell(MagicTrap* trap, CSpell* spell) {
 } // namespace
 
 void MagicTrap::UpdateVictims() {
-    std::erase_if(inside, [this](const HeldRef<CUnit>& unit) { return !StaysInside(this, unit); });
+    std::erase_if(inside, [this](const HeldRef<Unit>& unit) { return !StaysInside(this, unit); });
 
     if (!(flags & MapObjectFlag::Armed)) return;
     WorldServer* context = ServerWorld();
-    std::vector<CUnit*> found;
-    std::vector<CUnit*> newcomers;
+    std::vector<Unit*> found;
+    std::vector<Unit*> newcomers;
     FindTrapVictims(context, &area, sides, &found);
-    for (CUnit* unit : found) {
+    for (Unit* unit : found) {
         if (lib::Contains(inside, unit)) continue;
         inside.emplace_back(unit);
         newcomers.push_back(unit);
@@ -79,13 +79,13 @@ void MagicTrap::UpdateVictims() {
 }
 
 void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
-                                std::vector<CUnit*>* out) {
+                                std::vector<Unit*>* out) {
     out->clear();
     SectorMap* sectors = &context->aiMap.sectorMap;
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
-        for (CUnit* unit : sectors->FindUnitsInRadius(point, circle.radius)) {
+        for (Unit* unit : sectors->FindUnitsInRadius(point, circle.radius)) {
             if (unit->IsDead()) continue;
             int side = unit->side;
             if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32
@@ -93,7 +93,7 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, 
     }
 }
 
-void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
+void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition;
     Vector3 from = {origin.x, origin.y, origin.z};
@@ -108,8 +108,8 @@ void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
     } else {
         if (singleTarget != 0) {
             if (units->empty()) return;
-            CUnit* closest = nullptr;
-            for (CUnit* unit : *units) {
+            Unit* closest = nullptr;
+            for (Unit* unit : *units) {
                 float dx = unit->localPosition.x - origin.x;
                 float dy = unit->localPosition.y - origin.y;
                 float dz = unit->localPosition.z - origin.z;
@@ -120,15 +120,15 @@ void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
             units->clear();
             units->push_back(closest);
         }
-        for (CUnit* unit : *units) g_serverWorld.CastSpell(spell, nullptr, from, unit, unit->localPosition, 0);
+        for (Unit* unit : *units) g_serverWorld.CastSpell(spell, nullptr, from, unit, unit->localPosition, 0);
     }
     countdown = period;
 }
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    CSpellManager* manager = WorldContext()->GetSpellManager();
-    CSpell* made = manager->CreateSpellFromText(record->spell);
+    SpellManager* manager = WorldContext()->GetSpellManager();
+    Spell* made = manager->CreateSpellFromText(record->spell);
     spell.Assign(made);
     std::memcpy(&localPosition.x, &record->position, sizeof(record->position));    // bit for bit
 
@@ -177,7 +177,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
     for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
     value = lib::Count(inside);
     stream->WriteValue(value);
-    for (CUnit* unit : inside) SaveRef(unit, stream);
+    for (Unit* unit : inside) SaveRef(unit, stream);
     value = lib::Count(points);
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
@@ -189,11 +189,11 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
 
 void MagicTrap::LoadTrap(ByteStream* stream) {
     LoadMapObject(stream);
-    CSpellManager* manager = WorldContext()->GetSpellManager();
+    SpellManager* manager = WorldContext()->GetSpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
     stream->ReadValue(value);
-    SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<CSpell>(value));
+    SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<Spell>(value));
     stream->ReadValue(value);
     area.resize(value);
     for (int i = 0; i < std::ssize(area); ++i) stream->ReadValue(area[i]);
@@ -228,7 +228,7 @@ void MagicTrap::DestroyTrap() {
 }
 
 bool MagicTrap::RunTick() {
-    CMapObject::Update();
+    MapObject::Update();
     auto* world = WorldContext();
     if (!world->IsServer() || !spell) return true;
     if (period <= 0) {
@@ -242,7 +242,7 @@ bool MagicTrap::RunTick() {
 
 void MagicTrap::FireAtOccupants() {
     WorldServer* context = ServerWorld();
-    std::vector<CUnit*> found;
+    std::vector<Unit*> found;
     if (flags & MapObjectFlag::Armed) {
         FindTrapVictims(context, &area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);
@@ -250,6 +250,6 @@ void MagicTrap::FireAtOccupants() {
 }
 
 int MagicTrap::ForgetObject(EngineObject* object) {
-    std::erase_if(inside, [object](const HeldRef<CUnit>& unit) { return unit.Get() == object; });
+    std::erase_if(inside, [object](const HeldRef<Unit>& unit) { return unit.Get() == object; });
     return 0;
 }

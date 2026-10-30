@@ -28,7 +28,7 @@ bool g_undecodedLogged = false;
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-Surface* DecodedHolder(TextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
+Surface* DecodedHolder(TextureDevice* device, const Texture* texture, const MmpHeader* data, unsigned mip,
                        unsigned levels) {
     Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width), static_cast<int>(texture->height),
                                               TextureFormat(texture->format).bitsPerPixel);
@@ -44,7 +44,7 @@ Surface* DecodedHolder(TextureDevice* device, const CTexture* texture, const Mmp
 } // namespace
 
 
-void CTexture::MarkLoaded(const MmpHeader* header) {
+void Texture::MarkLoaded(const MmpHeader* header) {
     flags &= ~TextureFlag::AlphaBits;
     switch (header->alphaKind) {
     case 0: flags |= TextureFlag::Alpha0; break;
@@ -79,7 +79,7 @@ std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, uns
 }
 
 
-int CTexture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsigned mip) {
+int Texture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsigned mip) {
     if (flags & TextureFlag::Loaded) return 1;
     header->MipOffset(mip);   // the result is not used
 
@@ -110,7 +110,7 @@ int CTexture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsi
     return 1;
 }
 
-int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out) {
+int TextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out) {
     if (const ComposedTexture* composed = FindComposed(name)) {
         *out = composed->extra;
         return 1;

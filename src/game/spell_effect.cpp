@@ -20,7 +20,7 @@ constexpr float kTargetThreshold = 0.5f;
 constexpr float kWallHalfWidth = 1.0f;
 
 // The test of IsSpellTarget, inlined in the area loops.
-bool AcceptsAreaSpells(CUnit* unit) {
+bool AcceptsAreaSpells(Unit* unit) {
     if (unit->sizeClass != 0) return true;
     float value = unit->GetPrototype()->height;
     EI_NAN_AUDIT(value);
@@ -28,21 +28,21 @@ bool AcceptsAreaSpells(CUnit* unit) {
 }
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
-void Deliver(SpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
+void Deliver(SpellEffect* effect, DamageInfo* hit, MapObject* unit) {
     if (effect->caster && !effect->HeldSpell()->CanAffect(effect->caster, unit)) return;
-    CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
+    Unit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
     unit->ReceiveHit(hit, attacker, effect->caster);
 }
 } // namespace
 
-bool IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit); }
+bool IsSpellTarget(Unit* unit) { return AcceptsAreaSpells(unit); }
 
-void SpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
+void SpellEffect::HitUnit(DamageInfo* hit, MapObject* unit) { Deliver(this, hit, unit); }
 
 void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
-    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
+    for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
     }
@@ -61,8 +61,8 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
-        const CUnit* at = unit;
+    for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
+        const Unit* at = unit;
         float dz = at->localPosition.z - position.z;
         float dy = at->localPosition.y - position.y;
         float dx = at->localPosition.x - position.x;

@@ -9,7 +9,7 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "model.h"     // SceneRenderer, RenderHelper
-#include "texture.h"   // CTexture, CTextureManager
+#include "texture.h"   // Texture, TextureManager
 #include "ui.h"
 #include "unit.h"
 #include "unit_client_models.h"
@@ -152,7 +152,7 @@ WoundsMaterial::WoundsMaterial() {
 
 int Object3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    CTextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager;
     if (!woundsTexture) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
@@ -194,7 +194,7 @@ bool UnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
-    CTexture* texture = g_clientWorld.textureManager->FindOrCreate(kFaceTextureKind, name);
+    Texture* texture = g_clientWorld.textureManager->FindOrCreate(kFaceTextureKind, name);
     faceTexture.Assign(texture);
     g_clientWorld.textureManager->LoadTexture(faceTexture);
     if (faceTexture->flags & TextureFlag::Loaded) return true;

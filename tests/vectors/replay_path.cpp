@@ -2,8 +2,8 @@
 // and what they call (the local and block searches, the region map, the path lists, the order).
 //
 // The maps ("@AIMap") are kept here by id; a record's map is built from its saved map with the
-// record's differences. The unit is a CUnit-sized block with the recorded fields and a vtable whose
-// GetClassId gives the recorded class (CUnit::GetMoveSpeeds is defined here and gives the recorded
+// record's differences. The unit is a Unit-sized block with the recorded fields and a vtable whose
+// GetClassId gives the recorded class (Unit::GetMoveSpeeds is defined here and gives the recorded
 // speeds). The sector map's Add and Remove, which FindPath calls around its search, change nothing
 // here: FindPath's map was recorded with the unit already taken out.
 #include "../../src/game/ai_map.h"
@@ -43,16 +43,16 @@ void __fastcall UnitOtherSlot(void*) {
 
 constexpr int kGetClassIdSlot = 12;   // EngineObject (engine_object.h)
 void* g_unitVtable[96];
-alignas(16) unsigned char g_unitBytes[sizeof(CUnit)];
+alignas(16) unsigned char g_unitBytes[sizeof(Unit)];
 
-CUnit* MakeUnit(const UnitState& s) {
+Unit* MakeUnit(const UnitState& s) {
     g_unitState = s;
     for (void*& slot : g_unitVtable) slot = reinterpret_cast<void*>(&UnitOtherSlot);
     g_unitVtable[kGetClassIdSlot] = reinterpret_cast<void*>(&UnitClassId);
     std::memset(g_unitBytes, 0, sizeof(g_unitBytes));
     void* vtable = g_unitVtable;
     std::memcpy(g_unitBytes, &vtable, sizeof(vtable));
-    auto* unit = reinterpret_cast<CUnit*>(g_unitBytes);
+    auto* unit = reinterpret_cast<Unit*>(g_unitBytes);
     std::memcpy(&unit->localPosition, s.position, sizeof(s.position));
     std::memcpy(&unit->localRotation, s.orientation, sizeof(s.orientation));
     unit->sizeClass = s.sizeClass;
@@ -64,15 +64,15 @@ CUnit* MakeUnit(const UnitState& s) {
 } // namespace
 
 // unit.cpp is not linked: the speeds recorded with the call.
-void CUnit::GetMoveSpeeds(float* forward, float* backward) {
+void Unit::GetMoveSpeeds(float* forward, float* backward) {
     *forward = g_unitState.forwardSpeed;
     *backward = g_unitState.backwardSpeed;
 }
 
 // sector_map.cpp is not linked: FindPath's map was recorded with the unit taken out, and putting it
 // back changes nothing the search reads (IsPassableWithoutSelf, linked with ai_map.cpp, calls these).
-bool SectorMap::Add(CMapObject*) { return true; }
-bool SectorMap::Remove(CMapObject*) { return true; }
+bool SectorMap::Add(MapObject*) { return true; }
+bool SectorMap::Remove(MapObject*) { return true; }
 
 namespace {
 
@@ -490,7 +490,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
         static SavedMap empty;
         BuildMap(empty);
     }
-    CUnit* u = MakeUnit(unit);
+    Unit* u = MakeUnit(unit);
     g_serverWorld.tick = tick;    // the search reads the world tick the record gave
     bool actual = false;
     auto call = [&] { actual = g_map->FindPath(u, target, &path, range, minDistance); };
@@ -517,7 +517,7 @@ bool CheckPlan(Reader& r, char* d, std::size_t n) {
     std::vector<std::uint8_t> marks;
     if (!MarksAfter(r, marks)) return !r.ok();
     if (!r.ok()) return true;
-    CUnit* u = MakeUnit(unit);
+    Unit* u = MakeUnit(unit);
     bool actual = false;
     auto call = [&] { actual = g_map->PlanLongPath(u, args[0], args[1], args[2], args[3], &path, args[4], args[5]); };
     if (!Guarded(call, d, n, "PlanLongPath")) return false;
@@ -545,7 +545,7 @@ bool CheckSmooth(Reader& r, char* d, std::size_t n) {
     for (std::uint32_t i = 0; i < count * 2 && r.ok(); ++i) cells.push_back(r.Get<std::int16_t>());
     if (!r.ok()) return true;
     const int before = std::ssize(list);
-    CUnit* u = MakeUnit(unit);
+    Unit* u = MakeUnit(unit);
     int actual = 0;
     auto call = [&] { actual = g_map->smoother.Smooth(u, g_map, &list, startDirection, fraction); };
     if (!Guarded(call, d, n, "Smooth")) return false;

@@ -149,7 +149,7 @@ bool LinkMesh::FlatColours(const std::string* partName, std::uint32_t colour, st
 // (Material::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool LinkMesh::LightPart(const std::string* partName, const std::vector<CLight*>* lights, Material* material, int alpha,
+bool LinkMesh::LightPart(const std::string* partName, const std::vector<Light*>* lights, Material* material, int alpha,
                           std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) {
     auto node = ranges.find(*partName);
     if (node == ranges.end()) return false;

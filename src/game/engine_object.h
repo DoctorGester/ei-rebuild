@@ -108,9 +108,9 @@ enum class ClassId : int {
 };
 
 class BaseManager;
-class CManagerContext;
+class ManagerContext;
 class ByteStream;
-class CWorld;
+class World;
 class WorldClient;
 class WorldServer;
 
@@ -137,20 +137,20 @@ public:
     // Drops a reference without the release at zero, where the original did (sic): the object stays.
     void ForgetReference() { --refCount; }
 
-    CManagerContext* GetManagerContext() const;
+    ManagerContext* GetManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).
     // Templates so that the world's classes need to be complete only where they are used.
-    template <class WorldType = CWorld> WorldType* WorldContext() const { return static_cast<WorldType*>(GetManagerContext()); }
+    template <class WorldType = World> WorldType* WorldContext() const { return static_cast<WorldType*>(GetManagerContext()); }
     template <class WorldType = WorldServer> WorldType* ServerWorld() const { return WorldContext<WorldType>(); }
     template <class WorldType = WorldClient> WorldType* ClientWorld() const { return WorldContext<WorldType>(); }
     // The world the object belongs to, or null without a context.
-    CWorld* OwningWorld() const;
+    World* OwningWorld() const;
     BaseManager* SetOwner(BaseManager* owner);
 
     int refCount = 0;
     std::uint32_t flags = 0;
     int id = kNoObjectId;   // until a manager registers the object
-    int type = 0;           // class-specific kind (texture usage for CTexture)
+    int type = 0;           // class-specific kind (texture usage for Texture)
     BaseManager* owner = nullptr;
     // The database prototype: items pack its index (high word) with the material (low word), spells keep the
     // index in the high word, units the plain index.
@@ -161,7 +161,7 @@ public:
 // `world`'s map object manager.
 void SaveRef(const EngineObject* object, ByteStream* stream);
 template <typename T>
-void LoadRef(Ref<T>& ref, ByteStream* stream, CWorld* world);
+void LoadRef(Ref<T>& ref, ByteStream* stream, World* world);
 
 // A list or vector of counted object pointers emptied: each released (head first), then cleared.
 template <typename Container>

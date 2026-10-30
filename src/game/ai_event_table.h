@@ -26,14 +26,14 @@ struct AIViewer {
     void Update(UnitServer* owner, AIMemory* memory);
     // Every 8..11 updates (random): the units of the sector cells within the larger of the unit's two sight
     // ranges become the memory's nearby list (counted).
-    void Refresh(CUnit* self, AIMemory* memory);
+    void Refresh(Unit* self, AIMemory* memory);
     // Nearby units not yet visible (corpses not yet listed) that the unit sees: within sight range, inside
     // the view cone and the line of sight; or with peripheral vision; or sensed alive. Players' units see
     // everything; others only enemies.
-    void See(CUnit* self, AIMemory* memory);
+    void See(Unit* self, AIMemory* memory);
     // Raises the eye by the AI map's ground level of its cell and the unit's height parts and sets the facing
     // from the unit's orientation (once per update).
-    void Prepare(CUnit* self);
+    void Prepare(Unit* self);
     // A noise of `loudness` made by `source`'s unit at `at`: every unit within 50
     // of the point (the sector map) that is hostile to the source's unit, whose noticed level is below 900
     // and whose hearing (moveFactors[1] x perception[3]) times the loudness reaches past the distance hears a
@@ -56,7 +56,7 @@ struct AIViewer {
 // The cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
 // sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
 // height; within hearing all around; within the peripheral range in the front half.
-void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
+void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid);
 
 // An AI event: filed in its map cell's list for its side and in the time wheel's slot of the tick it expires.
 // Records come from the pool list (AIEventPool) and go back to the free list (chained through `next`).

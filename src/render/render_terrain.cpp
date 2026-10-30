@@ -69,7 +69,7 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 // so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     if (!s->owner || s->LayerPages() <= 0) return nullptr;
-    const std::vector<CTexture*>& textures = s->owner->pageTextures;
+    const std::vector<Texture*>& textures = s->owner->pageTextures;
     const int index = page % s->LayerPages();
     return index < std::ssize(textures) ? textures[index] : nullptr;
 }

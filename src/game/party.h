@@ -1,6 +1,6 @@
 #pragma once
 
-// CParty (class name "CParty", id 9): a party's data: its unit records, the items it owns, named variables,
+// Party (class name "CParty", id 9): a party's data: its unit records, the items it owns, named variables,
 // a zone name and its own item and spell managers and constructors. The player's inventory, the named party
 // records (party_records.h) and the camp's lists are parties. Its manager context getters
 // (manager_context.h) answer only the item and spell ones. See docs/notes/items_spells.md ("Party").
@@ -17,26 +17,26 @@
 
 
 class Item;
-class CItemConstructor;
+class ItemConstructor;
 struct ItemManager;
-class CParty;
-class CSpellConstructor;
-class CSpellManager;
+class Party;
+class SpellConstructor;
+class SpellManager;
 struct PartyUnitRecord;
 
-// The party whose records are being loaded (set by CParty::LoadParty around the records).
-inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
+// The party whose records are being loaded (set by Party::LoadParty around the records).
+inline Party* g_loadingParty = /*007C8344*/ {nullptr};
 
-class CParty : public CManagerContext {
+class Party : public ManagerContext {
 public:
     // Empty record and item arrays, an empty variable map, an empty zone name, no managers. The money and the
     // entrance are left as they are.
-    CParty();
+    Party();
     // A copy of `source`, as Assign makes it (it reads its source non-const: saving it
     // makes its managers when it has none).
-    explicit CParty(CParty& source);
-    ~CParty() override;
-    CParty& operator=(const CParty&) = delete;
+    explicit Party(Party& source);
+    ~Party() override;
+    Party& operator=(const Party&) = delete;
 
     // Makes and counts the party's own item manager and spell manager (attached to this
     // party), item constructor and spell constructor (created), then Clear(1, 0).
@@ -47,10 +47,10 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    CItemConstructor* GetItemConstructor() override;
-    CSpellConstructor* GetSpellConstructor() override;
+    ItemConstructor* GetItemConstructor() override;
+    SpellConstructor* GetSpellConstructor() override;
     ItemManager* ItemFactory() override;
-    CSpellManager* GetSpellManager() override;
+    SpellManager* GetSpellManager() override;
     // The item factory under the party's name.
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
     Item* CopyItem(Item* item) { return DuplicateItem(item); }
@@ -112,12 +112,12 @@ public:
     // 1, read back with the archive's version.
     void ArchiveParty(ChunkArchive* ar);
     // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
-    CParty* Assign(CParty* source);
+    Party* Assign(Party* source);
 
     ItemManager* itemManager = nullptr;
-    CItemConstructor* itemConstructor = nullptr;
-    CSpellManager* spellManager = nullptr;
-    CSpellConstructor* spellConstructor = nullptr;
+    ItemConstructor* itemConstructor = nullptr;
+    SpellManager* spellManager = nullptr;
+    SpellConstructor* spellConstructor = nullptr;
     std::vector<PartyUnitRecord> members;
     std::vector<Item*> items;
     int money;                  // the party's money (money; cleared by Clear, saved masked)

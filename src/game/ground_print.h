@@ -17,13 +17,13 @@
 #include <vector>
 
 class ByteStream;
-class CTexture;
+class Texture;
 struct VertexPacket;
 
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
     std::string name;
-    HeldRef<CTexture> texture;   // a HeldRef: the client world's print vectors move the prints
+    HeldRef<Texture> texture;   // a HeldRef: the client world's print vectors move the prints
 };
 
 // A scorch mark and the base of the other two.

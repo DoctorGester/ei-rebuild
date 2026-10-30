@@ -22,18 +22,18 @@
 namespace {
 
 // The local player record through the client's local view (no null checks).
-CPlayer* LocalPlayer() { return g_clientWorld.LocalView()->player; }
+Player* LocalPlayer() { return g_clientWorld.LocalView()->player; }
 
 // A player's named float variable (its party's variables).
-float Variable(CPlayer* player, std::string_view name) { return player->GetParty()->variables.Get(name); }
+float Variable(Player* player, std::string_view name) { return player->GetParty()->variables.Get(name); }
 
 } // namespace
 
 // ---- Sorting predicates --------------------------------------------------------------------------
 
 bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
-    CMapObject* first = manager->FindMapObject(a->objectId);
-    CMapObject* second = manager->FindMapObject(b->objectId);
+    MapObject* first = manager->FindMapObject(a->objectId);
+    MapObject* second = manager->FindMapObject(b->objectId);
     if (!first || !second) return false;
     // The matrix's row 2: the depth axis and its offset.
     const Vector3 normal{view[8], view[9], view[10]};
@@ -63,7 +63,7 @@ float GameTime() {
     return static_cast<float>(client->tick) + client->tickFraction;
 }
 
-CParty* LocalPlayerData() { return LocalPlayer()->GetParty(); }
+Party* LocalPlayerData() { return LocalPlayer()->GetParty(); }
 
 std::string LocalPlayerZone() { return LocalPlayer()->GetParty()->zone; }
 
@@ -71,7 +71,7 @@ float LocalPlayerVariable(std::string_view name) { return Variable(LocalPlayer()
 
 float PlayerZeroVariable(std::string_view name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
-    CPlayer* player = g_serverWorld.GetPlayer(0);
+    Player* player = g_serverWorld.GetPlayer(0);
     if (!player) return 0.0f;
     return Variable(player, name);
 }

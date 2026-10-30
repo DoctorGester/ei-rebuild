@@ -11,7 +11,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
-class CLight;
+class Light;
 struct QuestBriefingRecord;
 
 namespace worlddata {

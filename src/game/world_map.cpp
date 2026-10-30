@@ -77,14 +77,14 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     }
 
     PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+    for (Player* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = kPlayerDirtyAll;
     if (it.manager) --it.manager->refCount;
     zoneLoaded = 1;
     weather = 0;
     weatherStrength = 0.0f;
     it.manager = nullptr;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= PlayerDirty::Weather;
+    for (Player* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= PlayerDirty::Weather;
     if (it.manager) {
         --it.manager->refCount;
         it.manager = nullptr;
@@ -123,7 +123,7 @@ void WorldServer::ResetZone() {
 
     if (PlayerList()) {
         PlayerIterator it;
-        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        for (Player* player = it.First(PlayerList()); player; player = it.Next())
             player->Clear();
     }
 
@@ -152,7 +152,7 @@ void WorldServer::ResetZone() {
 void WorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player;
+    for (Player* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         player->Disconnect();
         PlayerList()->ReleasePlayer(player);
@@ -189,7 +189,7 @@ void WorldServer::SendFreshObjects() {
 
     // The map objects that are not part of the map itself: also kept in sentObjects.
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
-        CMapObject* object = node->second;
+        MapObject* object = node->second;
         unsigned objectId = static_cast<unsigned>(object->id);
         if (!mapObjects.map.contains(objectId)) continue;
         if (object->IsSynchronised()) continue;
@@ -198,7 +198,7 @@ void WorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = players->CreateSessionPlayer();
+    Player* temporary = players->CreateSessionPlayer();
     PlayerServer* state = temporary->Server();
     std::vector<EngineObject*> newObjects;
     for (EngineObject* object : fresh) {

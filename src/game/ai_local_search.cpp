@@ -254,13 +254,13 @@ bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
     return true;
 }
 
-void LocalSearch::SetUnit(CUnit* unit) {
+void LocalSearch::SetUnit(Unit* unit) {
     map->CostContextFor(unit, &costs);
     sizeClass = unit->sizeClass;
     level = static_cast<std::uint8_t>(StandingLevel(unit));
 }
 
-bool LocalSearch::Begin(CUnit* unit, int x0, int y0, int x1, int y1) {
+bool LocalSearch::Begin(Unit* unit, int x0, int y0, int x1, int y1) {
     SetUnit(unit);
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
@@ -333,7 +333,7 @@ void LocalSearch::RestoreLevels() {
     levelsSaved = false;
 }
 
-void AIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
+void AIMap::CostContextFor(Unit* unit, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
     out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;

@@ -273,7 +273,7 @@ void PutCallMap(Writer& w, const OriginalAIMap* map, std::uint8_t planes = kCall
     ReleaseSRWLockExclusive(&g_mapLock);
 }
 
-UnitState StateOf(exe::CUnit* unit) {
+UnitState StateOf(exe::Unit* unit) {
     auto s = Zeroed<UnitState>();
     s.classId = unit->GetClassId();
     std::memcpy(s.position, &unit->localPosition, sizeof(s.position));
@@ -281,8 +281,8 @@ UnitState StateOf(exe::CUnit* unit) {
     s.sizeClass = unit->sizeClass;
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;
-    // game.exe's CUnit::GetMoveSpeeds (0052F920; no side effects): the recording runs the original (H30).
-    ei::verify::OriginalCode<void(__thiscall*)(exe::CUnit*, float*, float*)>(0x0052F920)(unit, &s.forwardSpeed, &s.backwardSpeed);
+    // game.exe's Unit::GetMoveSpeeds (0052F920; no side effects): the recording runs the original (H30).
+    ei::verify::OriginalCode<void(__thiscall*)(exe::Unit*, float*, float*)>(0x0052F920)(unit, &s.forwardSpeed, &s.backwardSpeed);
     return s;
 }
 
@@ -330,9 +330,9 @@ struct PendingFind {
 thread_local PendingFind* t_find = nullptr;
 
 // 005BB350: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6).
-using FindPathFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::CUnit*, const Vector3*, OriginalPath*, float, float);
+using FindPathFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::Unit*, const Vector3*, OriginalPath*, float, float);
 FindPathFn s_findPath;
-bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::CUnit* unit, const Vector3* target, OriginalPath* path, float range,
+bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::Unit* unit, const Vector3* target, OriginalPath* path, float range,
                                float minDistance) {
     OfferTables();
     Writer head;
@@ -377,9 +377,9 @@ bool __fastcall RemoveRecord(void* self, void*, exe::EngineObject* object) {
 }
 
 // 005B9C90: PUSH -1; PUSH 0x00727B90 (7).
-using PlanFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::CUnit*, int, int, int, int, OriginalPath*, int, int);
+using PlanFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::Unit*, int, int, int, int, OriginalPath*, int, int);
 PlanFn s_plan;
-bool __fastcall PlanRecord(OriginalAIMap* self, void*, exe::CUnit* unit, int fromX, int fromY, int toX, int toY, OriginalPath* path,
+bool __fastcall PlanRecord(OriginalAIMap* self, void*, exe::Unit* unit, int fromX, int fromY, int toX, int toY, OriginalPath* path,
                            int retry, int maxCells) {
     OfferTables();
     if (t_find) ++t_find->plans;
@@ -405,9 +405,9 @@ bool __fastcall PlanRecord(OriginalAIMap* self, void*, exe::CUnit* unit, int fro
 
 // 005C46C0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xE0 (9). The original's rebuilt cells have stale stack
 // in their second dwords (SV7d2): only x and y are kept.
-using SmoothFn = int(__fastcall*)(void*, void*, exe::CUnit*, OriginalAIMap*, OriginalCells*, int, float);
+using SmoothFn = int(__fastcall*)(void*, void*, exe::Unit*, OriginalAIMap*, OriginalCells*, int, float);
 SmoothFn s_smooth;
-int __fastcall SmoothRecord(void* self, void*, exe::CUnit* unit, OriginalAIMap* map, OriginalCells* path,
+int __fastcall SmoothRecord(void* self, void*, exe::Unit* unit, OriginalAIMap* map, OriginalCells* path,
                             int startDirection, float fraction) {
     OfferTables();
     if (path->count > kMaxCells) return s_smooth(self, nullptr, unit, map, path, startDirection, fraction);

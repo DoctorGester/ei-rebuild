@@ -83,7 +83,7 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
     ScaleToSpeed(&velocity, &speed);
 
     float size = PowerScaled(e, worlddata::FireballScale());
-    CEffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), from, size, 1.0f, velocity, nullptr);   // the visual
+    EffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), from, size, 1.0f, velocity, nullptr);   // the visual
     if (e->caster) particle->unitId = e->caster->id;     // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(e->targetPoint);
@@ -273,7 +273,7 @@ Next StartVisionFog(SpellEffect* e) {
 Next StartHealing(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
-    CUnit* unit = TargetUnit(e);
+    Unit* unit = TargetUnit(e);
     unit->Controller()->Heal(e->HeldSpell()->damage);
     float size = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::Healing), kZeroVector, size, 1.0f, kZeroVector, unit);
@@ -416,7 +416,7 @@ void SpellEffect::Start(SpellType type) {
     UpdateFootprint(type, 1);
 }
 
-void SpellEffect::SetVisual(CEffect* object) {
+void SpellEffect::SetVisual(Effect* object) {
     Assign(this, &visual, object);
     world->AddTimedObject(visual);
 }
@@ -465,14 +465,14 @@ void SpellEffect::CreateArrow(const Vector3& from, EngineObject* missileTarget, 
         arrow->fromCaster = 1;
         arrow->casterId = caster->id;
     }
-    Assign<CEffect>(this, &visual, arrow);
+    Assign<Effect>(this, &visual, arrow);
     world->AddTimedObject(visual);
 }
 
-CEffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const Vector3& at, float size, float alpha,
+EffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const Vector3& at, float size, float alpha,
                                               const Vector3& velocity, EngineObject* attachTo) {
     ClassId classId = (ParticleTypeOf(particleType) == ParticleType::Tendril || ParticleTypeOf(particleType) == ParticleType::Link) ? ClassId::EffectWall : ClassId::EffectParticle;
-    auto* particle = CreateObject<CEffectParticle>(this, classId);   // a EffectWall for the walls
+    auto* particle = CreateObject<EffectParticle>(this, classId);   // a EffectWall for the walls
     particle->type = particleType;
     SetPosition(particle, at);
     particle->size = size;
@@ -480,7 +480,7 @@ CEffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const V
     particle->alpha = alpha;
     if (attachTo) particle->SetAttachedTo(attachTo->id);
     if (keep) {
-        Assign<CEffect>(this, &visual, particle);
+        Assign<Effect>(this, &visual, particle);
         world->AddTimedObject(visual);
     } else {
         world->AddTimedObject(particle);
@@ -488,7 +488,7 @@ CEffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const V
     return particle;
 }
 
-void SpellEffect::CreateLightning(const Vector3& from, CMapObject* boltTarget, EngineObject* source, float power,
+void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, EngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
     Vector3 to = boltTarget->localPosition;
@@ -498,7 +498,7 @@ void SpellEffect::CreateLightning(const Vector3& from, CMapObject* boltTarget, E
     bolt->SetEnds(from, to, power * ConstAt(worlddata::BoltWidthScale()));
     bolt->SetObjects(source ? source->id : -1, boltTarget->id);
     bolt->SetFlag(static_cast<unsigned char>(flag));
-    Assign<CEffect>(this, &visual, bolt);
+    Assign<Effect>(this, &visual, bolt);
     world->AddTimedObject(visual);
 }
 
@@ -533,7 +533,7 @@ void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity
             names.push_back(name);
         }
     }
-    Assign<CEffect>(this, &sound, effect);
+    Assign<Effect>(this, &sound, effect);
     world->AddTimedObject(effect);
 }
 
@@ -573,8 +573,8 @@ SpellEffect::~SpellEffect() {
     ReleaseLight();
 }
 
-void SpellEffect::Init(WorldServer* newWorld, CSpell* newSpell, CUnit* newCaster, const Vector3& newPosition,
-                        CMapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
+void SpellEffect::Init(WorldServer* newWorld, Spell* newSpell, Unit* newCaster, const Vector3& newPosition,
+                        MapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
     newSpell->CopyTo(HeldSpell());
     world = newWorld;
     position = newPosition;

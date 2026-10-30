@@ -357,12 +357,12 @@ void Camera::Update(float dt) {
     g_clientWorld.sounds->SetListener(&listener.x, &forward.x);
     if (flags & kPlaced) return;
 
-    CObject3D* target = g_clientWorld.objectManager->FindObjectAs<CObject3D>(static_cast<unsigned>(targetId));
+    Object3D* target = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(targetId));
     if (flags & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
             const TransformObject* t = target;
-            const CObject3D* body = target;
+            const Object3D* body = target;
             float lift = body->bounds.boxMax.z + body->bounds.center.z;
             localPosition.x = t->localPosition.x;
             localPosition.y = t->localPosition.y;
@@ -445,7 +445,7 @@ void Camera::Update(float dt) {
     float average, low, high;
     SampleTerrain(focus, options::g_options.cameraTerrainArea * 0.5f, options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea,
                   &average, &low, &high);
-    const CObject3D* body = target;
+    const Object3D* body = target;
     float ground = target ? body->localPosition.z : average;
     focus.z = ((ground + focusHeight) - focus.z) * kHeightLag + focus.z;
 

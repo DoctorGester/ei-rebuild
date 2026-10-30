@@ -54,7 +54,7 @@ void AddListWeight(float& weight, const std::vector<Item*>& list) {
 
 // --- The party's items --------------------------------------------------------------------------
 
-Item* CParty::AddItem(Item* item, int keepCount, int merge) {
+Item* Party::AddItem(Item* item, int keepCount, int merge) {
     if (!item) return nullptr;
     int count = ByteFlag(keepCount) ? static_cast<int>(item->count) : 1;
     if (ByteFlag(merge)) {
@@ -72,7 +72,7 @@ Item* CParty::AddItem(Item* item, int keepCount, int merge) {
     return copy;
 }
 
-Item* CParty::RemoveItem(Item* item, int all) {
+Item* Party::RemoveItem(Item* item, int all) {
     for (int i = 0; i < std::ssize(items); ++i) {
         if (items[i] != item) continue;
         Item* entry = items[i];
@@ -87,14 +87,14 @@ Item* CParty::RemoveItem(Item* item, int all) {
     return nullptr;
 }
 
-void CParty::RemoveQuestItems() {
+void Party::RemoveQuestItems() {
     for (int i = lib::Count(items) - 1; i >= 0; --i) {
         Item* item = items[i];
         if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
     }
 }
 
-void CParty::ReleaseAllItems() {
+void Party::ReleaseAllItems() {
     for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
     items.clear();
 }

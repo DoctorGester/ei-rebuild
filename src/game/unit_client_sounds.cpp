@@ -74,7 +74,7 @@ bool AllFootprintsShown() { return options::g_options.drawVisibleOnly == 0; }
 // on a NaN `now`).
 bool PassedFrame(int frame, float last, float now) { return frame > last && frame <= now; }
 
-void Shake(CUnit* unit) {
+void Shake(Unit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)

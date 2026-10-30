@@ -135,7 +135,7 @@ ItemTexts TextManager::GetItemTexts(Item* item) {
         break;
     }
     case ItemKind::Scroll:
-        if (CSpell* spell = item->spell) {
+        if (Spell* spell = item->spell) {
             key = std::string("spell ") + spell->GetPrototype()->code;
             kindKey = "item_spell";
         }
@@ -150,7 +150,7 @@ ItemTexts TextManager::GetItemTexts(Item* item) {
     ItemTexts texts;
     if (!key.empty()) ReadItemText(this, key, &texts);
     if (wand) {
-        if (CSpell* spell = item->spell) {
+        if (Spell* spell = item->spell) {
             std::string spellName = "Unknown";
             if (Open(std::string("spell ") + spell->GetPrototype()->code)) spellName = ReadLine(true);
             texts.name += ": " + spellName;

@@ -140,7 +140,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
    body assigns or calls, `// "ItemArmor"` after a `ClassName()` declaration.
 2. **The same comment twice.** A function commented at its declaration and again at its definition
    keeps one: the header's for what it does, the definition's only for a why the body needs.
-3. **Member-offset trailers and offsets in prose** (`// +0x1C ...`, "(CUnit +0x334)", "+0xCC").
+3. **Member-offset trailers and offsets in prose** (`// +0x1C ...`, "(Unit +0x334)", "+0xCC").
    Drop the offset; keep the words after it when they say something the member name does not, and
    name members instead of offsets (`scale.z`, not `+0xCC`). Offsets stay only where the layout is
    still real: the code reads by offset (options.h's `field` constants), or the bytes leave the process

@@ -58,7 +58,7 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 void UnitPickInput::LeftDown(int, int x, int y) {
     WorldClient* world = &g_clientWorld;
     const Point point = {x, y};
-    CUnit* unit = world->UnitAt2(&point);
+    Unit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {
         if (unit) {
             int n = lib::Count(picked);
@@ -72,14 +72,14 @@ void UnitPickInput::LeftDown(int, int x, int y) {
         for (int i = 0; i < std::ssize(picked); ++i) {
             auto* member = GameFindClientUnit(picked[i]);
             if (!member) continue;
-            std::vector<CUnit*> order{member};
+            std::vector<Unit*> order{member};
             world->LocalView()->SendWalk(&order, ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < std::ssize(picked); ++i) {
             auto* member = GameFindClientUnit(picked[i]);
             if (!member) continue;
-            std::vector<CUnit*> order{member};
+            std::vector<Unit*> order{member};
             world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);
         }
     }

@@ -174,7 +174,7 @@ render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, 
 void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
     Item* item = cell.item;
     UiMesh* model = CachedObject(&models, item->PictureName(), ItemModel);
-    CTexture* texture = CachedObject(&textures, item->FigureName(), ItemFigureTexture);
+    Texture* texture = CachedObject(&textures, item->FigureName(), ItemFigureTexture);
     if (!model || !texture) return;
 
     model->texture = texture;
@@ -207,7 +207,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         float dt = FrameTime();
         ItemTurn* turn = ItemTurnOf(item);
         ItemKind kind = item->Kind();
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         if (spell && (kind == ItemKind::Weapon || kind == ItemKind::Armor)) {
             int school = spell->GetPrototype()->school;
             if (school < 8)
@@ -253,7 +253,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
     model->Draw(pass);
     if (item->spell) render::g_renderState.specular = false;
 
-    CSpell* spell = item->spell;
+    Spell* spell = item->spell;
     if (item->Kind() == ItemKind::Scroll && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
@@ -351,7 +351,7 @@ HeroFaceNames FaceNames(const char* prototype) {
 void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
     const HeroFaceNames names = FaceNames(cell.prototype);
     UiMesh* model = CachedObject(&models, names.model, ItemModel);
-    CTexture* texture = CachedObject(&textures, names.texture, ItemFigureTexture);
+    Texture* texture = CachedObject(&textures, names.texture, ItemFigureTexture);
     if (!model || !texture) return;
 
     model->texture = texture;
@@ -379,9 +379,9 @@ void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
 
 // --- An item's figure texture -------------------------------------------------------------
 
-CTexture* ItemFigureTexture(std::string_view name) {
-    CTextureManager* manager = g_clientWorld.textureManager;
-    CTexture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
+Texture* ItemFigureTexture(std::string_view name) {
+    TextureManager* manager = g_clientWorld.textureManager;
+    Texture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
     texture->AddRef();
     const std::string file = std::string(name) + ".mmp";
@@ -402,9 +402,9 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 // --- An image into part of a texture -------------------------------------------------------
 
-bool UiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
+bool UiWindow::CopyImage(Texture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
-    CTextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager;
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
     const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));

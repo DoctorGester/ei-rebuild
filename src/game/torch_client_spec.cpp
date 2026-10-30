@@ -6,9 +6,9 @@
 #include "core_maths.h"
 #include "effects.h"   // ParticleSource, ParticleManager
 #include "game_singletons.h"
-#include "map_object.h"   // CMapObject::position
+#include "map_object.h"   // MapObject::position
 #include "sound.h"        // SoundManager
-#include "spell.h"        // CLight, LightFactory
+#include "spell.h"        // Light, LightFactory
 #include "terrain.h"
 #include "world.h"
 
@@ -31,7 +31,7 @@ const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 void ReleaseSource(ParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
-Vector3 AtTorch(const CMapObject* torch, const float* offset) {
+Vector3 AtTorch(const MapObject* torch, const float* offset) {
     return {torch->localPosition.x + offset[0], torch->localPosition.y + offset[1], torch->localPosition.z + offset[2]};
 }
 
@@ -128,7 +128,7 @@ void TorchObjectClientSpec::SetLightAt(const float* offset, float radius, const 
         g_clientWorld.terrain->RemoveLight(light);
         light.Reset();
     }
-    CLight* newLight = g_clientWorld.lightFactory->CreateLight(kPointLightClass);
+    Light* newLight = g_clientWorld.lightFactory->CreateLight(kPointLightClass);
     light.Assign(newLight);
     const Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(rgb, at);

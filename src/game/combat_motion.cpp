@@ -42,7 +42,7 @@ constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr float kHalfCell = 0.5f;
 
 
-UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
+UnitVitals& ServerVitals(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 void ShowHead(UnitServer* self) {
     AnimationSteps& queue = self->queue;
@@ -94,7 +94,7 @@ void FillIdle(UnitServer* self, AnimationSteps* steps) {
 }
 
 // A player's party, walked like the original's hash_map iteration.
-using PartyMap = CPlayer::UnitMap;
+using PartyMap = Player::UnitMap;
 
 // The two variants differ only in the state they set.
 void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
@@ -181,7 +181,7 @@ void UnitServer::PlayIdle() {
 
 void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     *steps = {};
-    CUnit* self = unit;
+    Unit* self = unit;
     std::uint32_t bits;
     switch (static_cast<std::uint32_t>(moveMode.mode)) {
     case 0: bits = 0x30000; break;
@@ -226,7 +226,7 @@ void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
 }
 
 AnimationSteps* UnitServer::NextAnimation() {
-    CUnit* self = unit;
+    Unit* self = unit;
     std::uint32_t key = WeaponAndModeBits(this);
     if (self->moveMode == 3) {
         key |= AnimationKeyOf(AnimationKind::Run);
@@ -379,7 +379,7 @@ bool UnitServer::ChangeMoveMode() {
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
         g_serverWorld.aiMap.sectorMap.Add(unit);
-        CUnit* self = unit;
+        Unit* self = unit;
         if (self->player) PlayerMessage(self->player->Server(), self, AckKind::CantChangePosition);
         return false;
     }
@@ -447,10 +447,10 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
     return true;
 }
 
-std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
+std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     WorldServer* world = ServerWorld();
-    CPlayer* player = unit->player;
-    std::vector<CUnit*> list;
+    Player* player = unit->player;
+    std::vector<Unit*> list;
     if (!player || player->sessionKind != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
@@ -460,7 +460,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
         const ScriptGroup* group = &player->Server()->partyUnits;
-        for (CUnit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
+        for (Unit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
             if (group->Contains(other) != 0) continue;
             sectors->Remove(other);
             list.push_back(other);
@@ -469,7 +469,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
     const PartyMap* party = &player->units;
     for (auto node = party->begin(); node != party->end(); ++node) {
-        CUnit* member = node->second;
+        Unit* member = node->second;
         if (!member) break;
         if (member == unit) continue;
         auto* controller = member->ServerController();
@@ -484,7 +484,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
 
 void UnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
-    CUnit* self = unit;
+    Unit* self = unit;
     const float* goal = &path->goal.x;
     // The path as a motion order for the message. The header is left uninitialised when the path is not partial
     // (the message does not read it for kind 3).
@@ -573,7 +573,7 @@ void UnitServer::ResyncWithUnit() {
 // --- Reset ---------------------------------------------------------------------------------------
 
 void UnitServer::ResetController() {
-    auto releaseRef = [](Ref<CMapObject>& ref) {
+    auto releaseRef = [](Ref<MapObject>& ref) {
         ref.Reset();
     };
     action.kind = UnitOrderKind::None;

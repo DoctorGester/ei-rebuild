@@ -12,8 +12,8 @@
 #include <string_view>
 #include <vector>
 
-class CSpell;
-class CSpellManager;
+class Spell;
+class SpellManager;
 
 // What an item built from `prototype` and `material` can hold: the level of spell (the prototype's magicLevel
 // plus the material's, unsigned, as a float) and the power (the prototype's charge plus the material's
@@ -30,9 +30,9 @@ std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const itemdb::ItemRe
 // runs are public for the trader stock, which creates the item before it draws the material (a cancelled draw
 // still uses up an object id): BeginCreateItem (the manager creates the empty item object), the records and
 // spell, then EndCreateItem, which fills the item from a record combining them (FillItem).
-class CItemConstructor : public EngineObject {
+class ItemConstructor : public EngineObject {
 public:
-    ~CItemConstructor() override;
+    ~ItemConstructor() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -45,7 +45,7 @@ public:
     // attached and `count` as its count. Null when the manager cannot create the item (after a fatal error the
     // game carries on from) or the build fails.
     Item* BuildItem(BaseManager* manager, ItemKind kind, itemdb::ItemRecordHead* prototype,
-                     itemdb::MaterialRecordHead* material = nullptr, CSpell* spell = nullptr, int count = 1);
+                     itemdb::MaterialRecordHead* material = nullptr, Spell* spell = nullptr, int count = 1);
 
     // Counts a reference to `manager`, dropping the previous one's (no release).
     void SetManager(BaseManager* manager);
@@ -65,7 +65,7 @@ public:
     itemdb::MaterialRecordHead* material = nullptr;
     itemdb::ItemRecordHead* prototype = nullptr;
     Ref<Item> item;
-    CSpell* spell = nullptr;            // not counted
+    Spell* spell = nullptr;            // not counted
     int count;                          // copied to the item's count; set by BeginCreateItem
 
 private:
@@ -104,7 +104,7 @@ struct ItemManager : ResourceManager {
 
     // A scroll ("spell container", kind ItemKind::Scroll) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).
-    Item* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
+    Item* CreateSpellItem(std::string_view spellText, SpellManager* spells);
 
     // The table's record names in table order: the materials' keys, the others' name.
     std::vector<std::string> ListMaterialNames();

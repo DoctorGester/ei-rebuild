@@ -40,7 +40,7 @@ bool TrapObject::RunTick() {
     if (!(flags & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
     auto* world = ServerWorld();
-    std::vector<CUnit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
+    std::vector<Unit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
     if ((flags & MapObjectFlag::ArmedFresh) && units.empty()) {
         flags &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {

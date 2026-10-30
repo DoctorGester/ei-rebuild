@@ -21,7 +21,7 @@ struct BriefingMover {
     Vector3 target;
     Vector3 direction;               // the facing at the target
     int state;                       // kDone, kWalking or kTurning
-    CUnit* person;                   // the client unit
+    Unit* person;                   // the client unit
     bool waited;                     // the dialogue waits for this one
     float time;                      // seconds on the way (Update gives up after 30)
 
@@ -32,7 +32,7 @@ struct BriefingMover {
 
 // A person taking part in the dialogue.
 struct BriefingSpeaker {
-    CUnit* unit;                     // the client unit
+    Unit* unit;                     // the client unit
     std::string name;               // as the dialogue's commands give it
 };
 
@@ -88,11 +88,11 @@ public:
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
     void MessageResult(int result) override;
-    void UnitLeft(CUnit* unit) override;
+    void UnitLeft(Unit* unit) override;
     // `unit` goes into party after the members whose unit records (the local player's) come before its record,
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
     // equal to 1 with three parts starts its topic (the third part) at once.
-    void UnitJoined(CUnit* unit) override;
+    void UnitJoined(Unit* unit) override;
     void GameOver(bool) override;
     // The interface command "briefing <name>": dialogue `name` starts at once.
     void ShowBriefing(std::string_view name) override;
@@ -140,10 +140,10 @@ public:
     void StartPhrases();
     // Talking: 3 for a third speaker, else a random one of 1, 6, 7, 8 for a human ("unhuma") and 1 for others;
     // listening a random one of 2, 0xA, 0xC, 0xD for a human and 2 for others (skill animations).
-    void PlaySpeakerAnimation(CUnit* unit, bool talking, bool third);
+    void PlaySpeakerAnimation(Unit* unit, bool talking, bool third);
     // From the unit's eyes around its facing turned by `angle`, `distance` away and `height` above; without a
     // unit the middle of the first two places, looked at across them. Sent to the server as message 0x0F.
-    void ViewSpeaker(CUnit* unit, float angle, float distance, float height);
+    void ViewSpeaker(Unit* unit, float angle, float distance, float height);
     // "#camera n" (1-12, others nothing): views of both (1, 5, 9), the leader (2, 6, 10), the person (3, 7, 11)
     // or the third speaker (4, 8, 12) from various angles; the other speakers are first sunk to height -100 in
     // 2, 3, 6, 7 and 12.
@@ -161,7 +161,7 @@ public:
     void FinishDialogue();
     // To `place` (its z is not read: the server unit's height is kept), facing `direction`. Unless `immediate`, a
     // server unit that is blocked (0x800000) does not move.
-    void MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited, bool immediate, bool run);
+    void MovePerson(Unit* unit, const Vector3& place, const Vector3& direction, bool waited, bool immediate, bool run);
     // "#show <name>": a person joins the speakers (the leader's server unit gets flag 0x40000000). Anything
     // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowItem(std::string_view name, int index);
@@ -179,10 +179,10 @@ public:
     std::string topic;               // the dialogue running
     int hoveredTopic = -1;                // or -1
     bool briefingStarted = false;            // a dialogue started by itself
-    std::vector<CUnit*> party;
-    CUnit* leader = nullptr;                   // the unit the camera follows (the hero speaker)
-    CUnit* person = nullptr;                   // the person the dialogue is with
-    CUnit* third = nullptr;                    // or null
+    std::vector<Unit*> party;
+    Unit* leader = nullptr;                   // the unit the camera follows (the hero speaker)
+    Unit* person = nullptr;                   // the person the dialogue is with
+    Unit* third = nullptr;                    // or null
     // [0] person, [1] leader, [2] third.
     Vector3 places[3] = {};
     Vector3 directions[3] = {};
@@ -197,7 +197,7 @@ public:
     std::string dialogueText;        // shown whole when skipped
     float phraseTime = 0.0f;                // time left of a phrase without a voice
     int voice = -1;                       // sound id, -1 none
-    CUnit* speaking = nullptr;                 // or null
+    Unit* speaking = nullptr;                 // or null
     UiScrollText* text = nullptr;
     UiScrollbar* topicBar = nullptr;
     int topicTop = 0;                    // first topic row shown
@@ -214,4 +214,4 @@ public:
     int chatActive;                  // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
-void SpeakerAnimationDone(CUnit* serverUnit);
+void SpeakerAnimationDone(Unit* serverUnit);

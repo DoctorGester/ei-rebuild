@@ -60,7 +60,7 @@ int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
 }
 
 void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
-    CPlayer* player;
+    Player* player;
     if (IsMultiplayerClient()) {
         player = g_clientWorld.LocalView()->player;
     } else {
@@ -80,7 +80,7 @@ void StoreStartFolder() {
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
 
 void GameSetConstructionVariable(std::uint32_t value) {
-    CPlayer* player = g_serverWorld.GetPlayer(0);
+    Player* player = g_serverWorld.GetPlayer(0);
     if (player) player->Server()->SetVariable(kConstructionVariable, value);
 }
 
@@ -156,7 +156,7 @@ int GamePlayMusic(const char* name) {
     return g_clientWorld.sounds->RequestStream(name ? name : DefaultMusic(), 4);
 }
 
-CUnit* GameFindClientUnit(int id) { return g_clientWorld.FindUnit(id); }
+Unit* GameFindClientUnit(int id) { return g_clientWorld.FindUnit(id); }
 
 void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour) {
     g_clientWorld.CreatePartyUnits(party, static_cast<char>(allArmour));
@@ -190,7 +190,7 @@ void GameRejoin() {
 }
 
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out) {
-    CPlayer* player = g_clientWorld.LocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     player->GetParty()->variables.CopyPrefixed(prefix, out);
 }
 

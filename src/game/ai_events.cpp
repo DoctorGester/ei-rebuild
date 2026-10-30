@@ -78,7 +78,7 @@ void AIEventTable::Advance(int now) {
 }
 
 void AIEventTable::ForgetUnit(UnitServer* controller) {
-    CUnit* unit = controller->unit;
+    Unit* unit = controller->unit;
     const int side = unit->side & kSideMask;
     const int id = unit->id;
     for (int slot = 0; slot < kWheelTicks; ++slot) {

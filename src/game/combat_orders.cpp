@@ -42,19 +42,19 @@ void ReleaseTarget(UnitAction* order) {
     order->target.Reset();
 }
 
-void SetTarget(UnitAction* order, CMapObject* target) {
+void SetTarget(UnitAction* order, MapObject* target) {
     if (target == order->target) return;
     order->target.Assign(target);
 }
 
-void TellParty(CUnit* unit, AckKind kind) {
+void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) PlayerMessage(unit->player->Server(), unit, kind);
 }
 
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
 // (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
 bool MayCast(UnitServer* self, std::uint32_t source) {
-    CSpell* spell;
+    Spell* spell;
     if (source & kQuickItemSource) {
         Item* carrier = self->SpellCarrier(source);
         if (!carrier) return !(self->unit->flags & MapObjectFlag::NoCasting);
@@ -76,7 +76,7 @@ void UnitServer::FinishCast() {
     WorldServer* world = ServerWorld();
     std::uint32_t source = action.source;
     Item* carrier = nullptr;
-    CSpell* spell;
+    Spell* spell;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != ClassId::ItemQuick) return;
@@ -135,7 +135,7 @@ void UnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 }
 
 void UnitServer::OrderMove(const Vector3& point, int run, int walk, float range) {
-    const CWorld* world = WorldContext();
+    const World* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = UnitOrderKind::Move;
     action2.point = point;
@@ -153,9 +153,9 @@ void UnitServer::OrderMove(const Vector3& point, int run, int walk, float range)
     PlanMove(point, walk, run, range);
 }
 
-void UnitServer::OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg) {
+void UnitServer::OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg) {
     if (!target || target == unit) return;
-    CUnit* victim = UnitOrNull(target);
+    Unit* victim = UnitOrNull(target);
     if (victim && location < 6) {
         UnitServer* controller = victim->ServerController();
         if (controller->stats.slots[location].kind != 3) location = 6;
@@ -167,7 +167,7 @@ void UnitServer::OrderAttack(CMapObject* target, int location, int calledShot, A
     action2.modifier = static_cast<std::uint8_t>(calledShot);
     // CanReachTarget inlined on the queued order.
     if (action2.kind == UnitOrderKind::Attack || action2.kind == UnitOrderKind::Use) {
-        CUnit* other = UnitOrNull(action2.target);
+        Unit* other = UnitOrNull(action2.target);
         if (other && other->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == UnitOrderKind::Attack) {
@@ -227,7 +227,7 @@ void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) ResetOrder(&action2);
 }
 
-void UnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
+void UnitServer::OrderCast(std::uint32_t source, MapObject* target, int run) {
     Vector3 aim;
     target->AimPoint(&aim);    // result unused (sic)
     if (source & kQuickItemSource) {

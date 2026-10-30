@@ -1,4 +1,4 @@
-// CUnit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
+// Unit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
 #include "base_manager.h"
 #include "item_manager.h"
 #include "unit.h"
@@ -43,7 +43,7 @@ UnitPrototypeRecord* PrototypeByName(std::string_view name) {
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
-Item* ReadItem(CUnit* unit, ByteStream* stream) {
+Item* ReadItem(Unit* unit, ByteStream* stream) {
     BaseManager* manager = unit->WorldContext()->ItemFactory();
     int id;
     stream->ReadValue(id);
@@ -53,11 +53,11 @@ Item* ReadItem(CUnit* unit, ByteStream* stream) {
     return item;
 }
 
-void ReadItems(CUnit* unit, ByteStream* stream, Item** slots, int count) {
+void ReadItems(Unit* unit, ByteStream* stream, Item** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
 // The worn armour: its ids name armour pieces.
-void ReadItems(CUnit* unit, ByteStream* stream, ItemArmor** slots, int count) {
+void ReadItems(Unit* unit, ByteStream* stream, ItemArmor** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
 }
 
@@ -65,15 +65,15 @@ void ReadItems(CUnit* unit, ByteStream* stream, ItemArmor** slots, int count) {
 
 
 // The unit's new owner: on a server world, player `id` (null when there is none).
-CPlayer* PlayerById(CUnit* unit, int id) {
-    CPlayer* player = nullptr;
+Player* PlayerById(Unit* unit, int id) {
+    Player* player = nullptr;
     if (unit->WorldContext()->GetClassId() == ClassId::WorldServer)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }
 } // namespace
 
-void CUnit::LoadUnit(ByteStream* stream) {
+void Unit::LoadUnit(ByteStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
     flags &= ~MapObjectFlag::Blocked;
@@ -81,7 +81,7 @@ void CUnit::LoadUnit(ByteStream* stream) {
     stream->ReadValue(relationsA);
     int playerId;
     stream->ReadValue(playerId);
-    CPlayer* newPlayer = PlayerById(this, playerId);
+    Player* newPlayer = PlayerById(this, playerId);
 
     stream->ReadValue(side);
     stream->ReadValue(animationEntry);
@@ -134,7 +134,7 @@ void CUnit::LoadUnit(ByteStream* stream) {
     secondPrototype = PrototypeIndexOf(second);
 }
 
-void CUnit::SaveUnit(ByteStream* stream) {
+void Unit::SaveUnit(ByteStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
     stream->WriteString(scriptName);

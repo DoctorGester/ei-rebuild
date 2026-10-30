@@ -415,7 +415,7 @@ struct MeshLighting {
     float ambientColour[3];        // SceneRenderer::SetColour's last
     float diffuseColour[4];        // the material's
     float emissiveColour[3];
-    float coefficient;             // the options' objects lighting coefficient (CLight::SetLitColors)
+    float coefficient;             // the options' objects lighting coefficient (Light::SetLitColors)
     bool crown;
     const MeshLightSource* lights;   // the lights within the object's reach (its draw's list)
     int lightCount;

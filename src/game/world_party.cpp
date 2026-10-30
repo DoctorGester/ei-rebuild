@@ -70,7 +70,7 @@ void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
-        CMapObject* object = node->second;
+        MapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int objectId = object->KeyId();
         if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, lib::Count(wanted), objectId);
@@ -92,7 +92,7 @@ void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item
     }
 }
 
-void WorldServer::RestorePlayerItems(CPlayer* player) {
+void WorldServer::RestorePlayerItems(Player* player) {
     std::vector<Item*> taken;
     if (sessionKind != kKindNetwork) {
         std::vector<Item*>* items = &player->GetParty()->items;
@@ -120,12 +120,12 @@ void WorldServer::RestorePlayerItems(CPlayer* player) {
     taken.clear();
 }
 
-void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
+void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
 
-    CParty* party = player->GetParty();
+    Party* party = player->GetParty();
     std::vector<PartyUnitRecord*> records{};
     for (int i = 0; i < std::ssize(party->members); ++i) {
         int index = lib::Count(records);
@@ -211,10 +211,10 @@ void WorldServer::AddCounted(EngineObject* item) {
     AddCountedTail(&counted, item);
 }
 
-void WorldServer::UseItemUp(CUnit* unit, Item* item) {
+void WorldServer::UseItemUp(Unit* unit, Item* item) {
     if (unit->player) {
         if (ItemLink* link = item->ServerLink()) {
-            CParty* party = unit->player->GetParty();
+            Party* party = unit->player->GetParty();
             if (party->Find(unit->id)) {
                 Item* source = FindItem(party->ItemFactory(), link->value);
                 if (source) --source->count;

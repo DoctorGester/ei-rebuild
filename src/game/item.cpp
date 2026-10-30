@@ -106,14 +106,14 @@ bool Item::IsSameAs(Item* other) {
         price != other->price || unreadValue != other->unreadValue)
         return false;
     if (magicLevel != other->magicLevel) return false;
-    const CSpell* currentSpell = spell;
-    const CSpell* otherSpell = other->spell;
+    const Spell* currentSpell = spell;
+    const Spell* otherSpell = other->spell;
     if (currentSpell == nullptr || otherSpell == nullptr) return currentSpell == otherSpell;
     if (currentSpell->prototypeId != otherSpell->prototypeId) return false;
     return std::memcmp(currentSpell->modifiers, otherSpell->modifiers, sizeof(currentSpell->modifiers)) == 0;
 }
 
-bool Item::CopyTo(Item* target, CSpellManager* spells) {
+bool Item::CopyTo(Item* target, SpellManager* spells) {
     if (target->type != type) return false;
     target->Destroy();
     target->prototypeId = prototypeId;
@@ -132,7 +132,7 @@ bool Item::CopyTo(Item* target, CSpellManager* spells) {
     return true;
 }
 
-Item* Item::Clone(CSpellManager* spells) {
+Item* Item::Clone(SpellManager* spells) {
     auto* copy = owner->CreateObjectAs<Item>(type, -1);
     if (CopyTo(copy, spells)) return copy;
     copy->AddRef();
@@ -150,10 +150,10 @@ void Item::Load(ByteStream* stream) {
     stream->ReadValue(weight);
     stream->ReadValue(price);
     stream->ReadValue(unreadValue);
-    CSpellManager* spells = WorldContext()->GetSpellManager();
+    SpellManager* spells = WorldContext()->GetSpellManager();
     std::int32_t objectId = 0;
     stream->ReadValue(objectId);
-    CSpell* newSpell = objectId == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(objectId));
+    Spell* newSpell = objectId == kNoObjectId ? nullptr : spells->FindObjectAs<Spell>(static_cast<unsigned>(objectId));
     spell.Assign(newSpell);
     stream->ReadValue(count);
     stream->ReadValue(magicLevel);
@@ -185,8 +185,8 @@ QuickItemCategory Item::GetCategory() {
     return prototype ? static_cast<QuickItemCategory>(prototype->category) : QuickItemCategory::NoPrototype;
 }
 
-void Item::AttachSpell(CSpell* newSpell) {
-    if (CSpell* previous = spell) price = price - std::bit_cast<float>(previous->price);
+void Item::AttachSpell(Spell* newSpell) {
+    if (Spell* previous = spell) price = price - std::bit_cast<float>(previous->price);
     spell.Assign(newSpell);
     if (spell) price = spell->price + price;
 }
@@ -263,7 +263,7 @@ bool ItemWeapon::IsSameAs(Item* item) {
     return true;
 }
 
-bool ItemWeapon::CopyTo(Item* target, CSpellManager* spells) {
+bool ItemWeapon::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     ItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
     weapon->actionValue = actionValue;
@@ -314,7 +314,7 @@ bool ItemArmor::IsSameAs(Item* item) {
            std::memcmp(layerMask, other->layerMask, sizeof(layerMask)) == 0;
 }
 
-bool ItemArmor::CopyTo(Item* target, CSpellManager* spells) {
+bool ItemArmor::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     auto* armor = AsArmor(target);
     std::memcpy(armor->absorb, absorb, sizeof(absorb));
@@ -351,7 +351,7 @@ bool ItemQuick::IsSameAs(Item* other) {
     return AsQuick(other)->actionValue == actionValue;
 }
 
-bool ItemQuick::CopyTo(Item* target, CSpellManager* spells) {
+bool ItemQuick::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     AsQuick(target)->actionValue = actionValue;
     return true;
@@ -389,7 +389,7 @@ bool ItemQuest::IsSameAs(Item* other) {
     return AsQuest(other)->questItemId == questItemId;
 }
 
-bool ItemQuest::CopyTo(Item* target, CSpellManager* spells) {
+bool ItemQuest::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     AsQuest(target)->questItemId = questItemId;
     return true;
@@ -445,7 +445,7 @@ bool ItemLoot::IsSameAs(Item* item) {
     return other->index == index;
 }
 
-bool ItemLoot::CopyTo(Item* target, CSpellManager* spells) {
+bool ItemLoot::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     auto* loot = AsLoot(target);
     loot->kind = kind;

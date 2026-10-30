@@ -19,7 +19,7 @@
 #include <vector>
 
 class ItemInfoPanel;
-class CTexture;
+class Texture;
 
 // The seven damage values against the last one: the threshold ("%d" when `integer`, else "%.1f"), the damage
 // kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it (or unordered).
@@ -35,7 +35,7 @@ DamageLists ItemDamageLists(const float* values, bool integer);
 // A new 256 x 256 texture (texture manager, format 0x20, counted) holding image "<name>.mmp" decoded and
 // packed to 1:5:5:5 at the bottom left (rows of 512 bytes), or white when there is no such image; null when
 // it cannot be made or locked.
-CTexture* ItemFigureTexture(std::string_view name);
+Texture* ItemFigureTexture(std::string_view name);
 // The model manager's object `name`, or a 100 x 100 interface sprite standing in for it; counted (one
 // reference for the caller).
 UiMesh* ItemModel(std::string_view name);
@@ -76,7 +76,7 @@ struct ItemObjectCache {
 };
 // Kept: the screens' two named caches of the one template.
 using ItemModelCache = ItemObjectCache<UiMesh>;        // the models (UiMesh)
-using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
+using ItemTextureCache = ItemObjectCache<Texture>;     // the model textures (ItemFigureTexture's)
 // platform::Milliseconds, for TrimItemCache (defined in ui_item_info.cpp, which includes platform/clock.h for it).
 std::uint32_t ItemCacheTime();
 // While the cache holds more than its limit: the least recently used entry (used before now) has
@@ -128,7 +128,7 @@ struct PartySkill {
     int mana = 0;
 };
 
-class CParty;
+class Party;
 class ItemScreen;
 // The item screens' icon window.
 class ItemIconWindow final : public UiWindow {
@@ -159,7 +159,7 @@ public:
     virtual void RefreshStats() {}
     virtual void NextHero() {}
     virtual void PreviousHero() {}
-    virtual CUnit* HeroUnit(int index);
+    virtual Unit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
     virtual void ChooseFigure(std::string_view) {}
     virtual float Weight();
@@ -177,15 +177,15 @@ public:
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).
     void CreateBase();
-    // Moves `item` into `to` (CParty::AddItem with the stack kept when `merge` and Shift are down, merging
+    // Moves `item` into `to` (Party::AddItem with the stack kept when `merge` and Shift are down, merging
     // with `merge`) and out of `from` (RemoveItem, all of the stack likewise); returns what `to` now holds.
     // With `limit` > 0 and at least that many items in `to`, only when `item` is the same (IsSameAs) as one
     // of its first `limit` items (else nothing, null). The unconditional move with `turning` gives the moved
     // item a turning state (made if missing) with its flag set.
-    Item* MoveItem(Item* item, CParty* to, CParty* from, int limit, bool merge, bool turning);
+    Item* MoveItem(Item* item, Party* to, Party* from, int limit, bool merge, bool turning);
     // Moves every item of `from` into `to` (whole stacks, merged); returns the last item `to` took, or null
     // when `from` was empty.
-    Item* ReturnAll(CParty* to, CParty* from);
+    Item* ReturnAll(Party* to, Party* from);
     ItemInfoPanel* descPanel = nullptr;
     Item* hoveredItem = nullptr;    // the item under the mouse (turns)
     ItemIconWindow* iconWindow = nullptr;
@@ -257,7 +257,7 @@ public:
     // The described item: the first of the list, or null.
     Item* FirstItem() { return itemParty.items.empty() ? nullptr : itemParty.items[0]; }
 
-    CParty itemParty;                // the described item's list
+    Party itemParty;                // the described item's list
     int x = 0;                       // layout position of the surface
     int y = 0;
     std::vector<std::string> itemTexts;     // "infoitem_0" .. "infoitem_44"

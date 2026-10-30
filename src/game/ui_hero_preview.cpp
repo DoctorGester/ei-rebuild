@@ -55,8 +55,8 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
 
 } // namespace
 
-void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide) {
-    CObject3D* model = hero;
+void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, float depth, bool wide) {
+    Object3D* model = hero;
     if (!model) return;
 
     // The whole depth buffer to the near plane, then the preview's rectangles to the far plane.

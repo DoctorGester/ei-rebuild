@@ -113,7 +113,7 @@ std::string BriefingVariable(const std::string& briefing) {
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
-    CPlayer* player = g_clientWorld.LocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
@@ -134,7 +134,7 @@ std::vector<std::string> g_questFiles;
 std::vector<std::string> g_questFolders;
 
 void GameFlow::ForgetBriefing(const char* briefing) {
-    CPlayer* player = g_clientWorld.LocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     player->GetParty()->variables.Remove(BriefingVariable(briefing));
 }
 

@@ -35,7 +35,7 @@ namespace {
 void ScriptDropEffect(EngineObject*) EI_UNLINKED("ScriptDropEffect")
 
 // script_runtime_helpers.cpp's AI map and console helpers (SectorMap::Add and Remove: replay_path.cpp).
-std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
+std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
 RefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
@@ -69,5 +69,5 @@ int libcrt::Rand() EI_UNLINKED("libcrt::Rand")
 int game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
 
 // The object lookup (world_server.cpp) and the sector map's Move (sector_map.cpp).
-CMapObject* WorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
-bool SectorMap::Move(CMapObject*, const Vector3&) EI_UNLINKED("CSectorMap::Move")
+MapObject* WorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
+bool SectorMap::Move(MapObject*, const Vector3&) EI_UNLINKED("CSectorMap::Move")

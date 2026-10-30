@@ -145,7 +145,7 @@ void BaseManager::Destroy() {
     context = nullptr;
 }
 
-void BaseManager::Init(CManagerContext* newContext) {
+void BaseManager::Init(ManagerContext* newContext) {
     context = newContext;
     Create();
 }
@@ -227,7 +227,7 @@ EngineObject* BaseManager::FindObject(unsigned objectId) const {
     return node != objects.end() ? node->second : nullptr;
 }
 
-void BaseManager::SetContext(CManagerContext* newContext) { context = newContext; }
+void BaseManager::SetContext(ManagerContext* newContext) { context = newContext; }
 
 EngineObject* BaseManager::Unregister(int objectId) {
     auto found = objects.find(static_cast<unsigned>(objectId));

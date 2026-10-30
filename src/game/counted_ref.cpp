@@ -11,7 +11,7 @@ constexpr int kNoObject = -1;
 }
 
 template <typename T>
-void LoadRef(Ref<T>& ref, ByteStream* stream, CWorld* world) {
+void LoadRef(Ref<T>& ref, ByteStream* stream, World* world) {
     int id;
     stream->ReadValue(id);
     if (id == kNoObject) {
@@ -28,12 +28,12 @@ void SaveRef(const EngineObject* object, ByteStream* stream) {
 }
 
 // The references loaded: the AI's map objects and units, the effects' figures.
-template void LoadRef(Ref<CMapObject>&, ByteStream*, CWorld*);
-template void LoadRef(Ref<CUnit>&, ByteStream*, CWorld*);
+template void LoadRef(Ref<MapObject>&, ByteStream*, World*);
+template void LoadRef(Ref<Unit>&, ByteStream*, World*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void CountedListLoad(HeldUnits* list, ByteStream* stream, CWorld* context) {
+void CountedListLoad(HeldUnits* list, ByteStream* stream, World* context) {
     int count;
     stream->ReadValue(count);
     while (count-- > 0) LoadRef(list->emplace_back(), stream, context);

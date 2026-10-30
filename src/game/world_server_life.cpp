@@ -33,7 +33,7 @@ constexpr float kWindStrength = 0.4f;
 
 void WorldServer::Create() {
     Destroy();
-    CWorld::Create();
+    World::Create();
     std::string folder = g_textFolder;
     bool opened;
     {
@@ -69,10 +69,10 @@ void WorldServer::Create() {
 
 void WorldServer::Destroy() {
     // Every player disconnected and released. The iterator drops its count of the player list when it goes out
-    // of scope: before CWorld::Destroy deletes the list.
+    // of scope: before World::Destroy deletes the list.
     if (PlayerList()) {
         PlayerIterator it;
-        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
             player->Disconnect();
             PlayerList()->ReleasePlayer(player);
         }
@@ -89,5 +89,5 @@ void WorldServer::Destroy() {
     messages.Close();
 
     exits = {};
-    CWorld::Destroy();
+    World::Destroy();
 }

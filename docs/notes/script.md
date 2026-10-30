@@ -289,7 +289,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   wrappers 004BA0A0..004BA100 (Move by address: Rebirth), ConsoleFloat's float output 004BA9D0 (`console::Stream << f`),
   `SceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
-  hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
+  hash_map<int, Party> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
   / `SerializePartyEntries` / `TemplateTable::Serialize` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
   `NamedPartyRecords::Serialize` 004A64B0, `PartyRecord::Serialize` 004A5AF0, `ClassTemplate::Serialize` 004A6C40
   (SaveLists 0069BAC0 by address). `BeginRedeploy` / `EndRedeploy` 004A6050 / 004A6360: Begin spreads the variables
@@ -386,7 +386,7 @@ Facts:
   third SetRamp argument is the fade speed.
 - `TransformPipeline` (model.h): the original's +0x0C held 3DfpFPU's object (ours has none since R31); 0059F030 (CFigure's destructor body) is
   `FigureDestructBodyOriginal` (originals_core.h); the figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are shared in
-  originals_world.h; 004A91B0 is `PartyMapAtOriginal` (originals_gameplay.h); 006617F0 `CParty::ArchiveParty`. Counted
+  originals_world.h; 004A91B0 is `PartyMapAtOriginal` (originals_gameplay.h); 006617F0 `Party::ArchiveParty`. Counted
   pointers are released through `RefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` (`PartyStorage`, party_storage.h).
   The archive on the stack: a plain `ChunkArchive` local (constructor 0053A7B0, destructor 004645A0, chunk_archive.cpp).
 

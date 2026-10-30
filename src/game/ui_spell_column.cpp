@@ -30,14 +30,14 @@ template <typename T> T Get(const void* base, int offset) {
 // The next spell's sprite (model `model`, picture `image`; Rebirth-patched), counted in a member.
 // An item's texts; the text of a key (the text manager).
 // A spell's prototype record (school, a flag that shows a number).
-const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
+const itemdb::SpellRecord* SpellPrototypeOf(Spell* spell) {
     return spell->GetPrototype();
 }
 
 
 } // namespace
 
-void HudSpellColumn::SetUnit(CUnit* newUnit) {
+void HudSpellColumn::SetUnit(Unit* newUnit) {
     std::string tip;
     std::string description;
     unit = newUnit;
@@ -58,7 +58,7 @@ void HudSpellColumn::SetUnit(CUnit* newUnit) {
         tip = g_clientWorld.texts->GetItemTexts(spell).name;
 
         // The spell's numbers below its name: one line per label of the panel's table.
-        CSpell* data = spell->spell;    // the spell item's spell
+        Spell* data = spell->spell;    // the spell item's spell
         if (data) {
             const std::vector<std::string>& currentLabels = labels;
             std::string line;

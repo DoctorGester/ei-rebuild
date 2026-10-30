@@ -28,7 +28,7 @@ const std::string& ModPath();
 void OnOpenResource(MappedResource* res, const std::string& path);
 // The destructor's entry (+2): `res` is forgotten.
 void OnDestroyResource(const MappedResource* res);
-// CMaterialManager::Create's entry (+8): loads the mod's archives (once).
+// MaterialManager::Create's entry (+8): loads the mod's archives (once).
 void LoadModArchives();
 // MappedResource::GetFile through addon: the mod's archives for this archive first, then the
 // archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.

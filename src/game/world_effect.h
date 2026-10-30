@@ -19,12 +19,12 @@
 
 class ScriptGroup;
 
-// The common base (abstract). The world's timed objects (CWorld::timedObjects) are reached through Reset,
+// The common base (abstract). The world's timed objects (World::timedObjects) are reached through Reset,
 // Radius and Position.
-class CEffect : public TransformObject {
+class Effect : public TransformObject {
 public:
-    CEffect();
-    ~CEffect() override;
+    Effect();
+    ~Effect() override;
 
     void Create() override;     // Reset, then a full Pack.
     void Destroy() override;   // Reset (a tail jump).
@@ -59,7 +59,7 @@ public:
 void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream);
 
 // A positional sound (class id 0x48).
-class EffectSound final : public CEffect {
+class EffectSound final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -84,7 +84,7 @@ public:
 };
 
 // A sequence of sounds picked at random (class id 99).
-class EffectSoundSeq final : public CEffect {
+class EffectSoundSeq final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -108,7 +108,7 @@ public:
 };
 
 // A looping ambient sound (class id 0x49).
-class EffectAmbientSound final : public CEffect {
+class EffectAmbientSound final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -131,7 +131,7 @@ public:
 };
 
 // A point light (class id 0x4B).
-class EffectPointLight final : public CEffect {
+class EffectPointLight final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -148,17 +148,17 @@ public:
 
     Vector3 color;
     float range;               // negative: LightFlag::Off on the light
-    Ref<CLight> light; // reference counted, null: none
+    Ref<Light> light; // reference counted, null: none
     std::uint32_t lightFlags; // LightFlag bits ored into the light's flags (saved)
 };
 
 // A particle source (class id 0x4A; CreateParticleSource).
-class CEffectParticle : public CEffect {
+class EffectParticle : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    CEffectParticle();
-    ~CEffectParticle() override;
+    EffectParticle();
+    ~EffectParticle() override;
     void Reset() override;
     Vector3* Position(const ScriptGroup* group) override;
     void Start(int update) override;
@@ -186,7 +186,7 @@ public:
 };
 
 // A particle wall (class id 0x5A; fire wall).
-class EffectWall final : public CEffectParticle {
+class EffectWall final : public EffectParticle {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -203,7 +203,7 @@ public:
 };
 
 // A lightning bolt between two points or objects (class id 0x4D).
-class EffectLightning final : public CEffect {
+class EffectLightning final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -232,7 +232,7 @@ public:
 
 // A missile homing on a world object (abstract base). Subclasses: EffectArrow (0x4E) and the class 0x5B
 // missile (twice as fast).
-class EffectMissile : public CEffect {
+class EffectMissile : public Effect {
 public:
     ~EffectMissile() override;
     // Aims the velocity at the target's centre at the missile speed (planar). 0 once within one step or
@@ -269,7 +269,7 @@ public:
     void Save(ByteStream* stream) override;
 
     // The embedded effects, built before the name and destroyed after it.
-    CEffectParticle particle;
+    EffectParticle particle;
     EffectPointLight light;
     EffectSound sound;
     std::string soundName;
@@ -299,7 +299,7 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    Ref<CMapObject> figure;    // client only: the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<MapObject> figure;    // client only: the figure object (a stuff object, class 0x38, counted), null: none
     int casterId;              // the shooter, -1: none
     DamageInfo hit;            // delivered on arrival (multiplier 1 after Reset)
 };
@@ -307,7 +307,7 @@ public:
 // What a unit sees, shown in the fog of war (clairvoyance, class id 0x5E, created by
 // SpellEffect::CreateParticle and Start). The server recomputes the seen squares from the seer's sight every
 // tick and sends them; the client reveals them in a fog object of its own.
-class EffectShowVisibility final : public CEffect {
+class EffectShowVisibility final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -333,7 +333,7 @@ public:
 // when it comes close, circles it and flies off to a perch again; the client's draw pass moves it every frame
 // (Update with the animation time). Its figure object (class 0x38, model "unmobi", texture "bird00") carries
 // a particle source (0x203C). Nothing is sent or saved (Load / Save are the base's, Pack / Start do nothing).
-class EffectMoshka final : public CEffect {
+class EffectMoshka final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -353,7 +353,7 @@ public:
     void Pack(DeltaField*) override {}            // nothing is sent
     void Start(int) override {}
 
-    Ref<CMapObject> bird;      // the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<MapObject> bird;      // the figure object (a stuff object, class 0x38, counted), null: none
     Ref<ParticleSource> source;    // null: none
     int followedId;            // world object id, -1: none
     float lastTime;            // Update's last `now`
@@ -367,7 +367,7 @@ public:
 // straight line for framesLeft ticks, carries a particle source (0x200A) and the looping sound
 // "nature\tornado\circle.wav"; on the server every 8th tick (while more than 20 remain) the units within 5
 // take a hit of 5 (damage type 6). The source stops emitting for the last 110 ticks.
-class EffectTornado final : public CEffect {
+class EffectTornado final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;

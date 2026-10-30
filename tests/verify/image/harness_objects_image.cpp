@@ -50,9 +50,9 @@ void FixedSeed(IsaacRandom& random) {
 }
 
 // The unit's slots (thiscall, RET 4) and a weapon's kind, for harness_hud_read.inc.
-Item* UnitQuickItem(CUnit* unit, std::uint32_t slot) { return unit->GetQuickItem(slot); }
-Item* UnitSpell(CUnit* unit, std::uint32_t slot) { return unit->GetSpell(slot); }
-ItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) { return unit->GetWeapon(slot); }
+Item* UnitQuickItem(Unit* unit, std::uint32_t slot) { return unit->GetQuickItem(slot); }
+Item* UnitSpell(Unit* unit, std::uint32_t slot) { return unit->GetSpell(slot); }
+ItemWeapon* UnitWeapon(Unit* unit, std::uint32_t slot) { return unit->GetWeapon(slot); }
 int WeaponType(ItemWeapon* weapon) { return weapon->GetType(); }
 
 #include "../harness_hud_read.inc"
@@ -144,7 +144,7 @@ int ScreenRect(void* world, int id, RECT* rect) {
 }
 int ObjectId(const void* object) { return static_cast<const EngineObject*>(object)->id; }
 std::uint32_t ObjectFlags(const void* object) { return static_cast<const EngineObject*>(object)->flags; }
-void* PlayerConnection(void* player) { return static_cast<CPlayer*>(player)->connection; }
+void* PlayerConnection(void* player) { return static_cast<Player*>(player)->connection; }
 int ConnectionState(void* connection) { return static_cast<::PlayerConnection*>(connection)->state; }
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
     auto* pages = static_cast<CampPages*>(static_cast<UiWindow*>(camp));
@@ -171,9 +171,9 @@ void BlinkClose(void* half) { static_cast<UnitClientSpecific*>(half)->BlinkClose
 bool UnitFaceHalves(std::vector<void*>* halves) {
     WorldClient* world = &g_clientWorld;
     if (!world) return false;
-    for (CMapObject* object : world->objects) {
+    for (MapObject* object : world->objects) {
         if (!object || object->GetClassId() != ClassId::Unit) continue;
-        auto* half = reinterpret_cast<UnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
+        auto* half = reinterpret_cast<UnitClientSpecific*>(static_cast<Unit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }
     return true;

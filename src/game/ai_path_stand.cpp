@@ -29,7 +29,7 @@ void FacingFromQuaternion(const float* q, float* out) {
 }
 
 // The common part; `time` is read after the reset (one variant passes the path's own start time).
-void StandAt(AIPath* path, const int* time, const CMapObject* object) {
+void StandAt(AIPath* path, const int* time, const MapObject* object) {
     path->cells.clear();
     path->Reset();
     path->targetX = 0.0f;
@@ -51,21 +51,21 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
 
 } // namespace
 
-void AIPath::StandAndTurn(int time, const CMapObject* unit, const Vector3& direction, std::uint32_t rateBits) {
+void AIPath::StandAndTurn(int time, const MapObject* unit, const Vector3& direction, std::uint32_t rateBits) {
     StandAt(this, &time, unit);
     SetTurn(direction, rateBits);
 }
 
-void AIPath::StandAndTrack(int time, const CMapObject* unit, int id, int from, int to) {
+void AIPath::StandAndTrack(int time, const MapObject* unit, int id, int from, int to) {
     StandAt(this, &time, unit);
     SetTrack(id, from, to);
 }
 
-void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3& direction, int fromTime, int toTime) {
+void AIPath::StandAndTurnUntil(int time, const MapObject* unit, const Vector3& direction, int fromTime, int toTime) {
     StandAt(this, &time, unit);
     SetTurnUntil(direction, fromTime, toTime);
 }
 
-void AIPath::StandStill(const CMapObject* unit) {
+void AIPath::StandStill(const MapObject* unit) {
     StandAt(this, &motionOrder.startTime, unit);
 }

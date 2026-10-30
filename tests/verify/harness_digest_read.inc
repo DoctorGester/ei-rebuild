@@ -6,7 +6,7 @@
 //   std::uint32_t ModeId(AIMode* mode)                   an AI mode's id (ModeKindId; 0 for none)
 //   bool IsSpellEffect(const SpellEffect* e)            whether a missile is a cast spell
 //   std::uint32_t MissileVtable(const SpellEffect* e)   a missile's table as game.exe's address
-//   int PartyItemCount(CParty* party)                    the number of items the party carries
+//   int PartyItemCount(Party* party)                    the number of items the party carries
 // The standard headers it uses come first (harness_digest_read.h). No pointers go into a record: objects are named by
 // their ids.
 
@@ -15,9 +15,9 @@ namespace {
 int IdOf(const EngineObject* object) { return object ? object->id : -1; }
 
 // The players of a player list in its order: a plain walk of its nodes.
-std::vector<CPlayer*> PlayersOf(PlayerManager* list) {
-    std::vector<CPlayer*> players;
-    for (auto* object : list->objectList) players.push_back(static_cast<CPlayer*>(object));
+std::vector<Player*> PlayersOf(PlayerManager* list) {
+    std::vector<Player*> players;
+    for (auto* object : list->objectList) players.push_back(static_cast<Player*>(object));
     return players;
 }
 
@@ -68,7 +68,7 @@ void ReadWorld(WorldServer* w, Builder& b) {
     }
 }
 
-void ReadPlayer(CPlayer* p, Builder& b) {
+void ReadPlayer(Player* p, Builder& b) {
     b.Int("id", p->playerId);
     b.Unsigned("partyId", p->partyId);
     b.Unsigned("sessionKind", p->sessionKind);
@@ -79,7 +79,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("ids", static_cast<int>(std::ssize(p->recharging)));
     b.Unsigned("units", static_cast<std::uint32_t>(p->units.size()));
     b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects.size()));
-    CParty* party = p->GetParty();
+    Party* party = p->GetParty();
     b.Unsigned("money", party->money);
     b.Int("partyItems", PartyItemCount(party));
     b.Int("members", static_cast<int>(std::ssize(party->members)));
@@ -91,7 +91,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }
 
-void ReadEffects(CMapObject* m, Builder& b) {
+void ReadEffects(MapObject* m, Builder& b) {
     b.Int("effects", static_cast<int>(std::ssize(m->effects)));
     for (int i = 0; i < static_cast<int>(std::ssize(m->effects)); ++i) {
         const auto& e = m->effects[i];
@@ -139,7 +139,7 @@ void ReadBrain(AIBrain& brain, Builder& b) {
 }
 
 // A unit's controller (a UnitServer, class 0x3E) and its AI brain.
-void ReadController(CUnit* u, Builder& b) {
+void ReadController(Unit* u, Builder& b) {
     EngineObject* controller = u->controller;
     if (!controller || ClassOf(controller) != kClassUnitServer) {
         b.Int("controller", controller ? ClassOf(controller) : -1);
@@ -160,7 +160,7 @@ void ReadController(CUnit* u, Builder& b) {
     ReadBrain(c->brain, b);
 }
 
-void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
+void ReadUnit(Unit* u, const std::map<const void*, int>& players, Builder& b) {
     auto owner = players.find(u->player);
     b.Int("player", u->player ? (owner != players.end() ? owner->second : -2) : -1);
     b.Int("side", u->side);
@@ -213,7 +213,7 @@ void ReadObject(EngineObject* o, bool mapObject, const std::map<const void*, int
     b.Int("type", o->type);
     b.Unsigned("prototype", o->prototypeId);
     if (!mapObject) return;
-    auto* m = static_cast<CMapObject*>(o);
+    auto* m = static_cast<MapObject*>(o);
     b.Vector("pos.x", "pos.y", "pos.z", m->localPosition);
     b.Float("rot.w", m->localRotation.w);
     b.Float("rot.x", m->localRotation.x);
@@ -233,15 +233,15 @@ void ReadObject(EngineObject* o, bool mapObject, const std::map<const void*, int
         b.Float("maxMana", v.maxMana);
         b.Int("regenTicks", v.regenTicks);
     }
-    if (classId == kClassUnit) ReadUnit(static_cast<CUnit*>(m), players, b);
+    if (classId == kClassUnit) ReadUnit(static_cast<Unit*>(m), players, b);
 }
 
 std::string Describe(EngineObject* o, bool mapObject) {
     std::string text = std::to_string(ClassOf(o));
     if (!mapObject) return text + " " + Text(o->ClassName());
-    auto* m = static_cast<CMapObject*>(o);
+    auto* m = static_cast<MapObject*>(o);
     text += std::string(" ") + Text(m->name);
-    if (ClassOf(o) == kClassUnit) text += std::string(" \"") + Text(static_cast<CUnit*>(m)->scriptName) + "\"";
+    if (ClassOf(o) == kClassUnit) text += std::string(" \"") + Text(static_cast<Unit*>(m)->scriptName) + "\"";
     return text;
 }
 
@@ -259,7 +259,7 @@ bool ReadTimed(EngineObject* o, Builder& b) {
     default:
         return false;
     }
-    auto* e = static_cast<CEffect*>(static_cast<TransformObject*>(o));
+    auto* e = static_cast<Effect*>(static_cast<TransformObject*>(o));
     b.Vector("pos.x", "pos.y", "pos.z", e->localPosition);
     b.Int("startTick", e->startTick);
     b.Int("moving", e->moving);
@@ -274,7 +274,7 @@ bool ReadTimed(EngineObject* o, Builder& b) {
     }
     case kClassParticle:
     case kClassWall: {
-        auto* particle = static_cast<CEffectParticle*>(e);
+        auto* particle = static_cast<EffectParticle*>(e);
         b.Int("particleType", particle->type);
         b.Float("size", particle->size);
         b.Int("attachedTo", particle->attachedTo);
@@ -487,16 +487,16 @@ void ReadScript(Script* s, Builder& b) {
 }
 
 // The client world (WorldClient, the drawing side): its clock and counts; its units go to "cunit<id>".
-void ReadClientWorld(WorldClient* c, Builder& b, std::vector<CUnit*>& units) {
+void ReadClientWorld(WorldClient* c, Builder& b, std::vector<Unit*>& units) {
     b.Int("tick", c->tick);
     b.Unsigned("paused", c->paused);
     b.Int("ticksRun", c->ticksRun);
     b.Float("tickFraction", c->tickFraction);
     b.Int("partyDanger", c->partyDanger);
     int objects = 0;
-    for (CMapObject* object : c->objects) {
+    for (MapObject* object : c->objects) {
         ++objects;
-        if (object && ClassOf(object) == kClassUnit) units.push_back(static_cast<CUnit*>(object));
+        if (object && ClassOf(object) == kClassUnit) units.push_back(static_cast<Unit*>(object));
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));
@@ -504,7 +504,7 @@ void ReadClientWorld(WorldClient* c, Builder& b, std::vector<CUnit*>& units) {
 }
 
 // A unit of the client world: what the screen shows (place, animation, the packed vitals).
-void ReadClientUnit(CUnit* u, Builder& b) {
+void ReadClientUnit(Unit* u, Builder& b) {
     b.Bits("flags", u->flags);
     b.Vector("pos.x", "pos.y", "pos.z", u->localPosition);
     b.Float("rot.w", u->localRotation.w);
@@ -585,7 +585,7 @@ void Read(void* server, Snapshot& s) {
 
     std::map<const void*, int> players;
     if (w->players) {
-        for (CPlayer* p : PlayersOf(w->players)) {
+        for (Player* p : PlayersOf(w->players)) {
             players[p] = p->playerId;
             b.entity = &Slot(s.state, {kPlayer, p->playerId});
             b.entity->description = "player";
@@ -631,11 +631,11 @@ void Read(void* server, Snapshot& s) {
     b.entity->description = "script";
     ReadScript(w->MainScript(), b);
 
-    std::vector<CUnit*> clientUnits;
+    std::vector<Unit*> clientUnits;
     b.entity = &Slot(s.state, {kClient, 0});
     b.entity->description = "client";
     ReadClientWorld(ClientWorld(), b, clientUnits);
-    for (CUnit* u : clientUnits) {
+    for (Unit* u : clientUnits) {
         b.entity = &Slot(s.state, {kClientUnit, u->id});
         b.entity->description = Describe(u, true);
         ReadClientUnit(u, b);
@@ -650,7 +650,7 @@ UnitNow UnitNowOf(void* server, int id) {
     for (auto n = objects.begin(); n != objects.end(); ++n)
         if (n->first == static_cast<unsigned>(id)) object = n->second;
     if (!object || ClassOf(object) != kClassUnit) return now;
-    auto* u = static_cast<CUnit*>(object);
+    auto* u = static_cast<Unit*>(object);
     now.found = true;
     now.dead = u->dead != 0;
     EngineObject* controller = u->controller;
@@ -665,9 +665,9 @@ UnitNow UnitNowOf(void* server, int id) {
 int LocalLeader(void* server, unsigned* money) {
     auto* w = static_cast<WorldServer*>(server);
     if (!w->players) return -1;
-    for (CPlayer* p : PlayersOf(w->players)) {
+    for (Player* p : PlayersOf(w->players)) {
         if (p->playerId != 0) continue;
-        CParty* party = p->GetParty();
+        Party* party = p->GetParty();
         if (money) *money = party->money;
         return !party->members.empty() ? static_cast<int>(party->members[0].unitId) : -1;
     }

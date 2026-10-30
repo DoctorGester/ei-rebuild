@@ -68,7 +68,7 @@ none may be devirtualised.
   `AIStream` 0 `DeletingDestruct` (the verify streams' overrides renamed).
 - `menu_rects` calls the owner's `BaseManager::GetFile` (slot 19), `text_reader` the archive's `MappedResource::GetFile` (slot 5),
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
-- `ParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
+- `ParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `Object3D::orientation`; the sound
   manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading` and `Current()->occurrence`.
 - `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats). bink_video.cpp's
   `SoundSystem` view is `SoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` was `PlayerClient::sendParty`

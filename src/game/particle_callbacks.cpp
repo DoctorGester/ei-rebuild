@@ -857,7 +857,7 @@ constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 
                                              255, 255, 255, 255, 255, 255, 255};
 
 // A figure part's world position.
-Vector3* FigurePartPosition(CObject3D* unit, Vector3* out, const FigureMesh* part) {
+Vector3* FigurePartPosition(Object3D* unit, Vector3* out, const FigureMesh* part) {
     unit->PartWorldPosition(&out->x, part);
     return out;
 }
@@ -3240,7 +3240,7 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
     Vector3 target;
     target = origin;
     if (attachedTo) {
-        const CObject3D* carrier = attachedTo;
+        const Object3D* carrier = attachedTo;
         const Quaternion& turn = carrier->localRotation;
         float w = turn.w, x = turn.x, y = turn.y, z = turn.z;
         float xx = x * x;
@@ -3431,7 +3431,7 @@ int ParticleSource::UpdateFeetCloud(Particle* p) {
 // right), else on its body, else on its position raised by `above.z`; without one on the source.
 void ParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && attachedTo->GetClassId() == ClassId::Unit) {
-        CObject3D* unit = attachedTo;
+        Object3D* unit = attachedTo;
         FigureMesh* part = unit->FindPartByPrefix(e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = unit->FindPartByPrefix(kBody);
         if (part) {
@@ -4007,7 +4007,7 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
 // the client tick), on the ground or platform under it, unless the point is where the last one was; the
 // point's index goes in frameTimer and the life is -10 (set by UpdateGlow).
 int ParticleSource::EmitGlow(Particle* p, int index) {
-    CObject3D* unit = attachedTo;
+    Object3D* unit = attachedTo;
     if (std::ssize(elements) == 0) {
         elements.resize(1);
         float* mark = &elements[0].glow.mark.x;
@@ -4087,7 +4087,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     p->pos.x = px;
     p->life = 20;
     p->velocity.x = Unsigned(Next()) * 1.3969838e-10f + 0.7f;
-    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit
+    auto* unit = static_cast<Unit*>(attachedTo);   // the carrier is taken as a unit
     if (!unit) {
         flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);

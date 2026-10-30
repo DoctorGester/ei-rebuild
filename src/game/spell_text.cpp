@@ -1,5 +1,5 @@
 // Spells from text: "healing{e2;e2}" as the scripts' CastSpellUnit / CastSpellPoint and
-// the potions' prototypes (CItemConstructor::FillItem) write them.
+// the potions' prototypes (ItemConstructor::FillItem) write them.
 #include "item_manager.h"
 #include "manager_context.h"
 #include "spell.h"
@@ -50,13 +50,13 @@ itemdb::SpellModifierRecord* FindModifier(std::string_view name) {
 
 } // namespace
 
-CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
+Spell* SpellManager::CreateSpellFromText(std::string_view source) {
     std::string text(source);
     std::vector<std::string> codes;
     ParseSpellText(text, codes);
 
-    CSpellConstructor* constructor = context->GetSpellConstructor();
-    if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
+    SpellConstructor* constructor = context->GetSpellConstructor();
+    if (!constructor) return game::FatalErrorAs<Spell>(kNoSpellConstructor);
     constructor->SetManager(this);
 
     itemdb::SpellRecord* prototype;
@@ -65,15 +65,15 @@ CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
         prototype = SpellNameMap()[key];
     }
     if (!constructor->BeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, text.c_str());
+        return game::FatalErrorAs<Spell>(kCantBegin, text.c_str());
 
     for (const std::string& code : codes) {
         if (code.empty()) continue;
         constructor->AddModifier(FindModifier(code));
     }
 
-    if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
-    CSpell* spell = constructor->container->spell.Clone(this);
+    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>(kCantEnd);
+    Spell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;
 }

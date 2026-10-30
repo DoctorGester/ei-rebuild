@@ -17,7 +17,7 @@ constexpr int kNoObject = -1;
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
 // manager; `id` keeps what the previous read left.
 template <class T>
-void LoadEffectObject(ByteStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
+void LoadEffectObject(ByteStream* stream, World* world, std::uint32_t& id, T*& field) {
     BaseManager* manager = world->TimedObjectManager();
     stream->ReadValue(id);
     T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
@@ -45,7 +45,7 @@ void SpellEffect::Load(ByteStream* stream) {
     std::uint32_t packed = 0;
     stream->ReadValue(packed);
     HeldSpell()->prototypeId = packed;
-    CWorld* server = world;
+    World* server = world;
     std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
     LoadEffectObject(stream, server, id, sound);

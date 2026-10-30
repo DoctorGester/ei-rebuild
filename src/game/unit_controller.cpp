@@ -5,7 +5,7 @@
 #include "lib/crt.h"
 #include "map_object.h"
 #include "player_messages.h"
-#include "texture.h"   // CTexture
+#include "texture.h"   // Texture
 #include "unit.h"
 #include "unit_client_models.h"
 
@@ -24,14 +24,14 @@ void ReleaseSlots(Item** slots, int count) {
 }
 } // namespace
 
-void CUnit::SetHostileMask(std::uint32_t mask) {
+void Unit::SetHostileMask(std::uint32_t mask) {
     relationsA = mask;
     Controller()->HostileMaskChanged();
     flags |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
-void CUnit::RefreshMotion() {
+void Unit::RefreshMotion() {
     PathOrder* path = Controller()->Path();
     path->ForgetObject(id);
     float speed, turnRate;
@@ -44,8 +44,8 @@ void CUnit::RefreshMotion() {
     MarkChanged(kPartPath);
 }
 
-void CUnit::SetPlayer(CPlayer* newPlayer) {
-    CPlayer* old = player;
+void Unit::SetPlayer(Player* newPlayer) {
+    Player* old = player;
     if (old == newPlayer) return;
     player = newPlayer;
     if (old) old->RemoveUnit(this);
@@ -54,7 +54,7 @@ void CUnit::SetPlayer(CPlayer* newPlayer) {
     if (controller) Controller()->PlayerChanged(newPlayer);
 }
 
-void CUnit::ReleaseUnit() {
+void Unit::ReleaseUnit() {
     // The map object's virtual here is empty.
     SetPlayer(nullptr);
     if (controller) controller->ClearState();
@@ -66,7 +66,7 @@ void CUnit::ReleaseUnit() {
     carried.clear();
 }
 
-void CUnit::DestroyUnit() {
+void Unit::DestroyUnit() {
     ClearState();
     DestroyMapObject();
     Reset();
@@ -105,7 +105,7 @@ int UnitController::FiguresLoaded() { return 1; }
 void UnitController::RefreshVitals(bool) {}
 bool UnitController::Heal(float) { return false; }
 
-bool UnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return false; }
+bool UnitController::TakeHit(DamageInfo*, Unit*, Unit*) { return false; }
 
 bool UnitController::WeaponAdded(std::uint32_t) { return false; }
 bool UnitController::RemoveWeaponModel(std::uint32_t) { return false; }

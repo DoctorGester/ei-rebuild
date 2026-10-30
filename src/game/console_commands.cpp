@@ -41,7 +41,7 @@ bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { retu
 bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-CPlayer* LocalPlayer() {
+Player* LocalPlayer() {
     return g_clientWorld.LocalView()->player;
 }
 
@@ -54,9 +54,9 @@ void SetConsoleRect(int left, int top, int right, int bottom) {
 
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
 // to the game flow's request 5 / 6 with the map name.
-template <void (GameFlow::*Request)(const char*, CParty*)>
+template <void (GameFlow::*Request)(const char*, Party*)>
 void RequestWithParty(std::vector<std::string>* args, const char* extra) {
-    CParty party;
+    Party party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = (*args)[0];
     (g_gameFlow.*Request)(map.c_str(), &party);
@@ -185,7 +185,7 @@ void Filter(std::vector<std::string>* args) {
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
 void ListVar(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("usage: listvar [Nplayer] <[output file name]>");
-    CPlayer* player;
+    Player* player;
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
@@ -215,7 +215,7 @@ void ListVar(std::vector<std::string>* args) {
 // Loadvar <player> <file>: sets the variables of each "name value" line.
 void LoadVar(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
+    Player* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -273,7 +273,7 @@ void Give(std::vector<std::string>* args) {
         PrintLine("give [NPlayer] money [NMoney]");
         return PrintLine("give [NPlayer] exp [NExp]");
     }
-    CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
+    Player* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -339,7 +339,7 @@ void Net(std::vector<std::string>* args) {
         LocalPlayer()->logTraffic = str::ToInt(value);
     }
     if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
-        if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt((*args)[1]);
+        if (Player* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt((*args)[1]);
     }
     if (text::CompareIgnoringCase((*args)[0], "time") == 0)
         app::g_showClientSpeed = str::ToInt((*args)[1]);
@@ -433,7 +433,7 @@ void Days(std::vector<std::string>* args) {
 }
 
 void PartyResend(std::vector<std::string>*) {
-    if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->Server()->ResendParty();
+    if (Player* player = g_serverWorld.GetPlayer(0)) player->Server()->ResendParty();
 }
 
 // Kick [name].

@@ -69,8 +69,8 @@ void BriefingScreen::MessageResult(int result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-void BriefingScreen::UnitJoined(CUnit* unit) {
-    CParty* player = LocalPlayerData();
+void BriefingScreen::UnitJoined(Unit* unit) {
+    Party* player = LocalPlayerData();
     int count = lib::Count(player->members);
     if (count == 0) return;
     int place = 0;
@@ -120,7 +120,7 @@ void BriefingScreen::UnitJoined(CUnit* unit) {
     }
 }
 
-void BriefingScreen::UnitLeft(CUnit* unit) {
+void BriefingScreen::UnitLeft(Unit* unit) {
     if (unit == leader) leader = nullptr;
     int count = lib::Count(party);
     int index = 0;

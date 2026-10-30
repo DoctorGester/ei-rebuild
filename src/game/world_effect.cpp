@@ -1,4 +1,4 @@
-// The effect base (CEffect) and the sound effects: EffectSound, EffectSoundSeq,
+// The effect base (Effect) and the sound effects: EffectSound, EffectSoundSeq,
 // EffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
 #include "world_effect.h"
 
@@ -21,7 +21,7 @@ namespace {
 
 // What every Reset does to the base part first: position, field streams, start tick, velocity, moving
 // flag and stamp.
-void ClearBase(CEffect* e) {
+void ClearBase(Effect* e) {
     e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
     EmptyField(&e->state);
     e->velocity = Vector3{0.0f, 0.0f, 0.0f};
@@ -31,7 +31,7 @@ void ClearBase(CEffect* e) {
 }
 
 // The local position moved by the velocity (each sum rounded to float, as stored).
-void MoveByVelocity(CEffect* e) {
+void MoveByVelocity(Effect* e) {
     float x = e->localPosition.x + e->velocity.x;
     float y = e->localPosition.y + e->velocity.y;
     float z = e->localPosition.z + e->velocity.z;
@@ -43,26 +43,26 @@ void MoveByVelocity(CEffect* e) {
 } // namespace
 
 
-void CEffect::SendFull() {
+void Effect::SendFull() {
     DeltaField* field = state.BeginWriteB(0);
     Pack(field);
     state.EndField();
 }
 
-void CEffect::SendDelta() {
+void Effect::SendDelta() {
     DeltaField* field = state.BeginWriteB(1);
     Pack(field);
     state.EndField();
 }
 
-int CEffect::Receive(int update, MemoryStream* reader) {
+int Effect::Receive(int update, MemoryStream* reader) {
     DeltaField* field = state.BeginReadB(update, reader);
     int result = Unpack(update, field);
     state.EndField();
     return result;
 }
 
-void CEffect::Reset() { ClearBase(this); }
+void Effect::Reset() { ClearBase(this); }
 
 void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream) {
     int count;
@@ -72,27 +72,27 @@ void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream) {
     }
 }
 
-void CEffect::MarkChanged() {
+void Effect::MarkChanged() {
     flags |= 2;
     changeStamp = g_serverWorld.updateCount;
 }
 
-void CEffect::Create() {
+void Effect::Create() {
     Reset();
     SendFull();
 }
 
-void CEffect::Destroy() { Reset(); }
+void Effect::Destroy() { Reset(); }
 
-void CEffect::SetVelocity(const Vector3& newVelocity) {
+void Effect::SetVelocity(const Vector3& newVelocity) {
     velocity = newVelocity;
     moving = IsMoving(velocity);
     MarkChanged();
 }
 
-Vector3* CEffect::Position(const ScriptGroup*) { return &localPosition; }
+Vector3* Effect::Position(const ScriptGroup*) { return &localPosition; }
 
-double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
+double Effect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 
 void EffectSound::Reset() {
@@ -322,7 +322,7 @@ namespace {
 
 // --- The effect base -----------------------------------------------------------------------------
 
-CEffect::CEffect() {
+Effect::Effect() {
     // Identity rotations (w first); the positions are not initialised.
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
@@ -331,9 +331,9 @@ CEffect::CEffect() {
     moving = 0;
 }
 
-CEffect::~CEffect() = default;
+Effect::~Effect() = default;
 
-bool CEffect::RunTick() { return true; }
+bool Effect::RunTick() { return true; }
 
 // --- The class names and ids (ClassName / GetClassId; the exe's strings) ------------------------------------
 
@@ -345,8 +345,8 @@ const char* EffectAmbientSound::ClassName() { return "CEffectAmbientSound"; }
 ClassId EffectAmbientSound::GetClassId() { return ClassId::EffectAmbientSound; }
 const char* EffectPointLight::ClassName() { return "CEffectPointLight"; }
 ClassId EffectPointLight::GetClassId() { return ClassId::EffectPointLight; }
-const char* CEffectParticle::ClassName() { return "CEffectParticle"; }
-ClassId CEffectParticle::GetClassId() { return ClassId::EffectParticle; }
+const char* EffectParticle::ClassName() { return "CEffectParticle"; }
+ClassId EffectParticle::GetClassId() { return ClassId::EffectParticle; }
 const char* EffectWall::ClassName() { return "CEffectWall"; }
 ClassId EffectWall::GetClassId() { return ClassId::EffectWall; }
 const char* EffectLightning::ClassName() { return "CEffectLightning"; }
@@ -389,13 +389,13 @@ EffectPointLight::EffectPointLight() {
 
 EffectPointLight::~EffectPointLight() { Reset(); }
 
-// --- CEffectParticle and EffectWall -------------------------------------------------------------
+// --- EffectParticle and EffectWall -------------------------------------------------------------
 
-CEffectParticle::CEffectParticle() {
+EffectParticle::EffectParticle() {
     Reset();
 }
 
-CEffectParticle::~CEffectParticle() { Reset(); }
+EffectParticle::~EffectParticle() { Reset(); }
 
 // The particle's constructor resets as the particle, then the wall resets as itself; the
 // destructors the other way round.
@@ -418,7 +418,7 @@ EngineObject* EffectManager::NewObject(int objectType) {
     switch (static_cast<ClassId>(objectType)) {
     case ClassId::EffectSound: object = new EffectSound(); break;
     case ClassId::EffectAmbientSound: object = new EffectAmbientSound(); break;
-    case ClassId::EffectParticle: object = new CEffectParticle(); break;
+    case ClassId::EffectParticle: object = new EffectParticle(); break;
     case ClassId::EffectPointLight: object = new EffectPointLight(); break;
     case ClassId::EffectLightning: object = new EffectLightning(); break;
     case ClassId::EffectArrow: object = new EffectArrow(); break;

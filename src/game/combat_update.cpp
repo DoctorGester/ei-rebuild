@@ -33,7 +33,7 @@
 void UpdateMotion(UnitServer*);
 namespace {
 
-constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags, cleared every update
+constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // Unit flags, cleared every update
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
@@ -47,7 +47,7 @@ constexpr float kSinkAcceleration = 0.01f;
 
 
 // The weapon slot the unit wants taken up when it differs from the active one.
-void SwitchWeaponIfWanted(CUnit* unit) {
+void SwitchWeaponIfWanted(Unit* unit) {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
 }
@@ -55,7 +55,7 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 // The unit's standing flag changed, re-registered on the sector map.
 void SetStandingFlag(UnitServer* self, int standing) {
     WorldServer* world = self->ServerWorld();
-    CUnit* unit = self->unit;
+    Unit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
     SectorMap* sectors = &world->aiMap.sectorMap;
     sectors->Remove(unit);
@@ -102,7 +102,7 @@ void UnitServer::DropEffectObject() {
 // --- The update ---------------------------------------------------------------------------------
 
 bool UnitServer::RunTick() {
-    CUnit* self = unit;
+    Unit* self = unit;
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
@@ -126,7 +126,7 @@ bool UnitServer::RunTick() {
             int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
-                CPlayer* player = unit->player;
+                Player* player = unit->player;
                 if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     bored = 0;
                 } else {
@@ -168,7 +168,7 @@ bool UnitServer::RunTick() {
     if (reported == 0 && queue.steps.empty()) {
         reported = 1;
         world->TellPartiesGone(unit);
-        CPlayer* player = unit->player;
+        Player* player = unit->player;
         unit->SetPlayer(nullptr);
         if (player && player->IsLeader(unit) != 0) {
             player->connection->LeaderDied();
@@ -425,7 +425,7 @@ void UnitServer::TickAction() {
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = g_serverWorld.timedObjectManager;
-            auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
+            auto* particle = objects->CreateObjectAs<EffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
             int kind = plan.castKind;
             particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
@@ -437,7 +437,7 @@ void UnitServer::TickAction() {
     }
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
-        CWorld* context = WorldContext();
+        World* context = WorldContext();
         Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         Vector3 direction;
         float speed;
@@ -482,11 +482,11 @@ bool UnitServer::ActionInReach() {
     if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::UseItem) return true;
     if (kind != UnitOrderKind::Attack && kind != UnitOrderKind::Use && kind != UnitOrderKind::CastOn) return false;
-    CMapObject* target = action.target;
+    MapObject* target = action.target;
     if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
     if (!target) {
         if (!cast) return false;
-        CSpell* spell = SpellOfSource(action.source);
+        Spell* spell = SpellOfSource(action.source);
         if (!spell) return false;
         if ((spell->targetFlags & SpellTargetFlag::AtPoint) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
@@ -526,7 +526,7 @@ void UnitServer::TickItemSpells() {
             healed = true;
         }
         UseItemCharge(item, spell->manaCost);
-        CUnit* self = unit;
+        Unit* self = unit;
         world->CastSpell(spell, self, self->localPosition, self, self->localPosition, 1);
         int countdown = static_cast<int>(spell->duration) - 3;
         entry.countdown = countdown;
@@ -544,7 +544,7 @@ void UnitServer::RefreshItemSpells() {
     for (ArmourSpell& entry : armourSpells) entry.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
     // item's spell (like the original).
-    CSpell* spell = nullptr;
+    Spell* spell = nullptr;
     for (Item* item : items) {
         if (item) spell = item->spell;
         if (!spell || (spell->targetFlags & SpellTargetFlag::ItemContinuous) == 0) continue;

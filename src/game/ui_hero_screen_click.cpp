@@ -422,7 +422,7 @@ void MpHeroScreen::RefreshStats() {
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, 0);
         previewModel->SetFigureScale(&hero->scaleX);
-        CUnit* unit = previewModel;
+        Unit* unit = previewModel;
         unit->SetFromStats(&HeroRecord()->stats);
 
         unit->Controller()->RefreshWounds();
@@ -523,7 +523,7 @@ void MpHeroScreen::AddNewHero() {
     hero->weaponIndex = !hero->weapons.empty() ? 0 : kNoWeaponSlot;
     if (!hero->spells.empty()) {
         auto* container = hero->spells[0];
-        CSpell* spell = container->spell;
+        Spell* spell = container->spell;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {
             LocalPlayerData()->AddItem(container, 0, 1);
             hero->RemoveSpell(container);

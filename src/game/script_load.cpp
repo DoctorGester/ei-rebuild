@@ -66,7 +66,7 @@ void LoadList(Container* list, ByteStream* stream, Read read) {
 // Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
 void LoadParticles(std::vector<ScriptParticleSource>* list, ByteStream* stream) {
     LoadList(list, stream, [stream](ScriptParticleSource& source) {
-        source.object = ScriptEffect<CEffectParticle>(FindById<CEffectParticle>(ReadInt(stream)));
+        source.object = ScriptEffect<EffectParticle>(FindById<EffectParticle>(ReadInt(stream)));
         stream->ReadValue(source.id);
         stream->ReadValue(source.deleteAfterMove);
         stream->ReadValue(source.moving);

@@ -112,7 +112,7 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
 // its environment speeches, only while the unit's animation is a run, walk or idle),
 // Scenario..Extra2 from table 2, Aggression..FightingRest from table 1 by the prototype's name, else by its
 // model's name; others say nothing. The speech is picked at random among those whose chance reaches a roll of 0..99.
-const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
+const SpeechRecord* SayAck(Unit* unit, AckKind kind) {
     if (!unit) return nullptr;
     if (kind == AckKind::StopSpeech) {
         unit->Controller()->StopSpeech();
@@ -175,7 +175,7 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
     return speech;
 }
 
-const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
+const SpeechRecord* SayNamedAck(Unit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
     auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;

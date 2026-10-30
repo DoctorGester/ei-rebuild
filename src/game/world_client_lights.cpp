@@ -101,7 +101,7 @@ float SunElevation(float hour) {
 }
 
 // The time of day in hours (fmod of the game time by 24).
-float HourOfDay(const CWorld* world) {
+float HourOfDay(const World* world) {
     return std::fmod(world->tick * world->secondsPerTick + world->timeBase, kHoursPerDay);
 }
 
@@ -135,7 +135,7 @@ int WorldClient::UpdateLighting() {
             frameAmbient.b = ambient[0].b;
         }
         skyAmbient = frameAmbient;
-        CLight* light = display->sun;
+        Light* light = display->sun;
         light->color[0] = sun.r;
         light->color[1] = sun.g;
         light->color[2] = sun.b;
@@ -190,7 +190,7 @@ int WorldClient::UpdateLighting() {
         frameAmbient.b = ambientColour.b;
     }
     skyAmbient = frameAmbient;
-    CLight* light = display->sun;
+    Light* light = display->sun;
     light->color[0] = sun.r;
     light->color[1] = sun.g;
     light->color[2] = sun.b;

@@ -20,8 +20,8 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
 // action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
 // UseAtPoint at the target's position, with `quick`.
-bool UseAtOnce(BattleScreen* screen, Interface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
-    CUnit* target = unit;
+bool UseAtOnce(BattleScreen* screen, Interface3D* ui, Unit* unit, Spell* spell, bool quick) {
+    Unit* target = unit;
     if (spell->IsOffensive()) {
         target = g_clientWorld.NearestVisibleUnit(unit);
         if (!target) {
@@ -84,7 +84,7 @@ void HudSpellColumn::Click(int index) {
     ui->PlayInterfaceSound(kSoundClick);
     Item* item = unit->GetSpell(index);
     if (!item) return;
-    CSpell* spell = item->spell;
+    Spell* spell = item->spell;
     if (!spell) return;
     owner->SetPendingAction((spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
 }
@@ -123,7 +123,7 @@ void HudQuickItems::Pick(int slot) {
     QuickItemCategory category = item->GetCategory();
     if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
     PendingAction mode = kPendingNone;
-    if (CSpell* spell = item->spell)
+    if (Spell* spell = item->spell)
         mode = (spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner->SetPendingAction(mode, slot, -1);
 }

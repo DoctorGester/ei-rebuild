@@ -49,7 +49,7 @@ bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
 PlayerServer* FirstPlayerState() {
-    CPlayer* player = g_serverWorld.GetPlayer(0);
+    Player* player = g_serverWorld.GetPlayer(0);
     return player ? player->Server() : nullptr;
 }
 
@@ -84,7 +84,7 @@ bool GSSetPlayerVar(Call* call) {
     int number = TruncateOrMin(Floats(call)[0]);
     float value = Floats(call)[1];
     const char* name = Text(call, 0);
-    CPlayer* player = g_serverWorld.GetPlayer(number);
+    Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
     player->Server()->SetVariable(name, Bits(value));
     return true;
@@ -95,7 +95,7 @@ bool GSSetPlayerVar(Call* call) {
 bool GSGetPlayerVar(Call* call) {
     int number = TruncateOrMin(Floats(call)[0]);
     const char* name = Text(call, 0);
-    CPlayer* player = g_serverWorld.GetPlayer(number);
+    Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
     *call->result.number = player->GetParty()->variables.Get(name);
     return true;
@@ -104,7 +104,7 @@ bool GSGetPlayerVar(Call* call) {
 // GiveExp(player, value): the world's experience award of `value` to the player (no check that
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
-    CPlayer* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
+    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
     g_serverWorld.AwardExperience(player, Floats(call)[1]);
     return true;
 }
@@ -115,7 +115,7 @@ bool GiveUnitExp(Call* call) {
     auto* data = UnitData(call->cmd->objectArgs[0]);
     if (!data) return InvalidArguments("GiveUnitExp");
     data->AddExperience(Floats(call)[0]);
-    CUnit* unit = data->unit;
+    Unit* unit = data->unit;
     if (auto* party = unit->player)
         if (PlayerServer* state = party->Server())
             state->SendPair18(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
@@ -135,7 +135,7 @@ bool StopCameraSave(Call*) {
 // ResetTarget(unit) (replaces the game's): the brain's alarm record at the brain's alarm slot
 // byte is applied again, after the perception memory is emptied.
 bool ResetTarget(Call* call) {
-    CUnit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
+    Unit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
     if (!unit) return InvalidArguments("ResetTarget");
     AIBrain* brain = &unit->ServerController()->brain;
     int index = brain->alarmSlot;
@@ -147,7 +147,7 @@ bool ResetTarget(Call* call) {
 
 bool SendCurrentParty(Call* call) {
     int number = TruncateOrMin(Floats(call)[0]);
-    CPlayer* player = g_serverWorld.GetPlayer(number);
+    Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
     player->Server()->ResendParty();
     return true;
@@ -156,11 +156,11 @@ bool SendCurrentParty(Call* call) {
 // Loot(player, unit): the player loots the dead unit, which is then removed.
 bool Loot(Call* call) {
     int number = TruncateOrMin(Floats(call)[0]);
-    CPlayer* player = g_serverWorld.GetPlayer(number);
+    Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
     EngineObject* object = ObjectArg(call, 0);
     if (!object) return Report("Loot", "Object doesn't exist");
-    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
     if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
     g_serverWorld.Loot(unit, player);
@@ -201,7 +201,7 @@ bool IsFileExists(Call* call) {
 // GSListPlayerVars(player): "<name> = <value>" for each of the player's variables, in the
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
-    CPlayer* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
+    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
     const NamedFloatTable& variables = player->GetParty()->variables;
     for (auto& node : variables) {
         std::string line;
@@ -217,7 +217,7 @@ bool GiveUnitWeapon(Call* call) {
     EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
-    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
     auto* item = AsWeapon(g_serverWorld.CreateItemNamed(name));
@@ -254,7 +254,7 @@ bool GiveUnitArmor(Call* call) {
     EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
-    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
     Item* item = g_serverWorld.CreateItemNamed(name);

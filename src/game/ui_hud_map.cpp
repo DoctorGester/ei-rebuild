@@ -161,7 +161,7 @@ private:
 
 // Frame of a unit that is not in the party: hostile when both relation masks have the local
 // side's bit. The special unit 0xA2C2A counts as hostile in zone gz20g whatever its relations.
-std::int16_t UnitFrame(const CUnit* unit) {
+std::int16_t UnitFrame(const Unit* unit) {
     int side = g_clientWorld.LocalView()->player->playerId;
     if (unit->id == kSpecialUnitId) {
         if (str::Compare(LocalPlayerZone(), "gz20g") == 0) return kFrameHostile;
@@ -172,7 +172,7 @@ std::int16_t UnitFrame(const CUnit* unit) {
 
 // The arrow of a unit at map position (x, y) (already zoomed), pointing along the unit's
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
-void PutArrow(VertexPacket& packet, const CUnit* unit, float x, float y) {
+void PutArrow(VertexPacket& packet, const Unit* unit, float x, float y) {
     const Quaternion* rotation = &unit->localRotation;
     // The rotated Y axis is computed twice, x taken from the first, y from the second (the function is
     // pure).
@@ -282,7 +282,7 @@ void HudMap::BuildMarkers() {
 
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
-        CUnit* unit = UnitWithId(objectManager, localView->partyUnitIds[i]);
+        Unit* unit = UnitWithId(objectManager, localView->partyUnitIds[i]);
         if (!unit || unit->IsDead()) {
             out.Hide();
             continue;
@@ -309,7 +309,7 @@ void HudMap::BuildMarkers() {
     for (int i = 0; i < markedCount; ++i, ++node) {
         if (node == marked.end()) break;
         out.BeginQuad();
-        CLight* light = markers->LightWithId(static_cast<unsigned>(*node));
+        Light* light = markers->LightWithId(static_cast<unsigned>(*node));
         float x, y;
         if (light && out.Place(light->localPosition.x, light->localPosition.y, &x, &y)) {
             out.PutSquare(x, y);
@@ -340,7 +340,7 @@ void HudMap::BuildMarkers() {
     if (IsMultiplayerClient()) {
         for (int i = 0; i < playerCount; ++i) {
             out.BeginQuad();
-            CUnit* unit = UnitWithId(objectManager, localView->otherUnitIds[i]);
+            Unit* unit = UnitWithId(objectManager, localView->otherUnitIds[i]);
             float x, y;
             if (unit && out.Place(unit->localPosition.x, unit->localPosition.y, &x, &y)) {
                 out.PutDiamond(x, y);

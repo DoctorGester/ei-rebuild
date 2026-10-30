@@ -80,7 +80,7 @@ Decide case by case whether the fixes layer fixes them (docs/cleanup-plan.md, "F
 - `MappedResource::CloseFile`: the write-failure message prints the data pointer as the file name.
 - `MappedResource::GetFile`: leaks the data buffer when the read fails.
 - `MappedResource::GetFile` on an in-memory archive does not report the size.
-- `CTextureManager::LoadTexture` / `LoadTextureFrom`: leak the file buffer when the .mmp header is
+- `TextureManager::LoadTexture` / `LoadTextureFrom`: leak the file buffer when the .mmp header is
   not recognised; the .bmp path reports format number 0 in its error message.
 - `LinkFigureLoader::AddArchive`: leaks the archive object when opening fails; its log message
   passes the path string object by value to `%s`.

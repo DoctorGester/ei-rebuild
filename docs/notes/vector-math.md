@@ -198,7 +198,7 @@ register choice, commuted FADD / FMUL operands, compare operand order with the s
 - Callees taking Vector3* / Quaternion*: Negate 00402200, QuaternionAxisX / Y / Z 0040D940 / 0040F560 / 0040D6B0 (originals_core.h),
   AIPathStartOriginal 005C7B00, MotionSample 005C7430, the AIMap lookups (originals_ai.h), MarkerDraw 00503A40, IsLit 006CB020
   (originals_effects.h), LightSet 0068D0A0; callers use LineOfSightOriginal / SectorMapMove. Others still get `&v.x`.
-- Field types now vecmath: `SectorPosition : Vector3`, `ProjectedVertex : Vector4` (device_buffers.h), `CObject3D`
+- Field types now vecmath: `SectorPosition : Vector3`, `ProjectedVertex : Vector4` (device_buffers.h), `Object3D`
   worldMatrix (its position / rotation fields are TransformObject's), UiMesh placement_ / scaleMatrix Matrix4, GlobalMap
   `position` Vector3 and `turn` Quaternion (w first), sound.h positions, script.h steps, the new renderer's matrices
   (`MeshDraw::matrix` is `const Matrix4*`, shaders' uniform blocks hold a `Matrix4 matrix`).

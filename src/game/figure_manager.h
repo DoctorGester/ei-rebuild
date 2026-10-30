@@ -29,10 +29,10 @@ constexpr int kMainMenuRects = 6;
 constexpr int kMenuRects = 11;
 extern Rect g_menuRects[kMenuRects];
 
-class CFigureManager : public ResourceManager {
+class FigureManager : public ResourceManager {
 public:
-    CFigureManager();
-    ~CFigureManager() override;
+    FigureManager();
+    ~FigureManager() override;
 
     // Create (Rebirth patches it; vanilla only): the base's Create, then the archives "figures.res" and
     // "menus.res" and the menus' rectangles.
@@ -63,7 +63,7 @@ public:
     FigureMesh* NewFigure(std::string_view name);
     // The empty figure object (no file read).
     FigureMesh* NewBlankFigure();
-    // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
+    // Object3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
     // `partName`; a null part faults, as in the original.
     FigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);
     // The bone's animation from "<model><bone><animation>.ast" into `animator`; 0 without an animation or the
@@ -73,11 +73,11 @@ public:
     std::unordered_map<std::string, FigureModel*> models;     // the cached models by name
 };
 
-// The figure manager of `object`'s world (every world's is a CFigureManager).
-inline CFigureManager* FigureManagerOf(const EngineObject* object) {
-    return static_cast<CFigureManager*>(object->WorldContext()->GetFigureManager());
+// The figure manager of `object`'s world (every world's is a FigureManager).
+inline FigureManager* FigureManagerOf(const EngineObject* object) {
+    return static_cast<FigureManager*>(object->WorldContext()->GetFigureManager());
 }
 // The figure manager that made `object` (a bone or an animation track, EngineObject::owner).
-inline CFigureManager* OwningFigureManager(const EngineObject* object) {
-    return static_cast<CFigureManager*>(object->owner);
+inline FigureManager* OwningFigureManager(const EngineObject* object) {
+    return static_cast<FigureManager*>(object->owner);
 }

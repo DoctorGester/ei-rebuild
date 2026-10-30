@@ -6,14 +6,14 @@ is still left. The units themselves are in `units.md`; the conventions are those
 
 ## Declarations
 
-- `CUnit : CMapObject` (novtable, `kVtableAddress` 0073EA8C). The layouts agreed at every offset, so CUnit's copies of
+- `Unit : MapObject` (novtable, `kVtableAddress` 0073EA8C). The layouts agreed at every offset, so Unit's copies of
   +0x000..+0x237 are gone:
-  - the prototype name is `CObject3D::name`, the figure's build `scale.y`, the old `animationCC` `scale.z`, the model
+  - the prototype name is `Object3D::name`, the figure's build `scale.y`, the old `animationCC` `scale.z`, the model
     height `defaultScale`, `animation1B4` `baseScale.z`;
-  - hit points and mana are `CMapObject::packedVitals` (`UnitVitalsPacked` moved to map_object.h), the effects are
+  - hit points and mana are `MapObject::packedVitals` (`UnitVitalsPacked` moved to map_object.h), the effects are
     `MapEffect` records;
-  - `MarkChanged` and `HasEffect` are CMapObject's (rewritten in map_object.cpp); `MapObject()` is the upcast.
-- CUnit's bodies of slots 18-51 are overrides (AdvanceTime, SetStunned, AcceptsAnimation, RecomputeScale,
+  - `MarkChanged` and `HasEffect` are MapObject's (rewritten in map_object.cpp); `MapObject()` is the upcast.
+- Unit's bodies of slots 18-51 are overrides (AdvanceTime, SetStunned, AcceptsAnimation, RecomputeScale,
   EffectsChanged, ApplyBaseScale, LoadFigures, AttachObject, StatsChanged, ScaleEffectChanged, SetStats,
   UpdateSizeClasses, PlaceOnGround, TakePrototype), each registered through a `...Hook` shim; calls that meant the body
   are qualified. `StandPoint` is not an override (it takes `float*`, the slot `Vector3*`).
@@ -22,7 +22,7 @@ is still left. The units themselves are in `units.md`; the conventions are those
 - Field names: `scriptName` is a `std::string`; +0x254..+0x260 `animationEntry`, `secondEntry`, `actionSound`,
   `animationStart`, `motionMode`, `pathTimeShift` (setters SetAnimationEntries / SetMotionMode / SetPathTimeShift);
   +0x270 `pendingWeapon`; +0x328 `unitRadius`; +0x4B0 `actionSpeeds[6]` (from `UnitModelRecord::actionSpeeds`).
-- 005327D0 is `CUnit::ActionSpeed(const FigureAnimation*)`: it reads the entry's key (bits 18-21, the action kind), not
+- 005327D0 is `Unit::ActionSpeed(const FigureAnimation*)`: it reads the entry's key (bits 18-21, the action kind), not
   a hit's damage type, so it is no longer ResistanceTo.
 - `SkillLevelRecord::Value()` (the exact FILD load of values[7]; three copies merged) and `WorthExponent()` (values[6]).
 - `unitrecord::UnitRecord` (unit_record.h) is the tail of a .mob unit record (`mapspec::UnitSpec::record`, +0x210,
@@ -30,25 +30,25 @@ is still left. The units themselves are in `units.md`; the conventions are those
   `applyStats` (chunk BBBB000A). ApplyTo (00477B00) writes the server companion's `vitals` and the controller's
   `stats` by name; 0046C2F0 is `UnitRecordDestruct`. The record's +0x54 copies 7 bytes into `UnitStats::damageWeights`
   (as the original does).
-- Duplicates merged: unit_save's ChangePlayer is `CUnit::SetPlayer`; the level value loads above.
+- Duplicates merged: unit_save's ChangePlayer is `Unit::SetPlayer`; the level value loads above.
 
 ## Left
 
-- `CUnit::player` is still `char*` (CPlayer, about 145 uses, with `PartyRecords` at +0x70 reached by arithmetic).
+- `Unit::player` is still `char*` (Player, about 145 uses, with `PartyRecords` at +0x70 reached by arithmetic).
 - `UnitStream` duplicates `ByteStream` (about 110 uses); unit_save converts with `AsStream`.
-- `UnitParams params` is CUnit's member at +0x330 and `UnitMotion motion` at +0x27C (unit_motion.h, which unit.h
+- `UnitParams params` is Unit's member at +0x330 and `UnitMotion motion` at +0x27C (unit_motion.h, which unit.h
   includes; ai_motion.h keeps OrderOf). The unit panel's "body parts" (+0x374) are the params' slots' kind / current /
   maximum (the maximum is unsigned: the panel, the wounds and the network fraction read it so).
 - `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists are `std::vector`s.
 - `UnequipArmour` / `ReleaseAllItems` call controller slot 27 as `ArmourTakenOff`: the original reads the vtable before
   the item's GetType, the virtual call after it; GetType reads the item only, so nothing can tell.
 - Item fields used as floats through the item family's names: condition `Item::condition` / `conditionMax` are floats
-  (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
+  (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count`, spell cost `Spell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
   a height (compared with 1.5 for size class 0). They belong to their families' tickets.
-- `CMapObjectManager` (unit_create.h) reads its world at +0xAC by hand.
-- Unknowns still unnamed in CUnit: `unknown_438` (copied to the party record's +0x780), `unknown_43C` (cell flag 0x80),
+- `MapObjectManager` (unit_create.h) reads its world at +0xAC by hand.
+- Unknowns still unnamed in Unit: `unknown_438` (copied to the party record's +0x780), `unknown_43C` (cell flag 0x80),
   `unknown_278` (slot 54, "large unit").
-- `CObject3D : TransformObject` was left (the shared fields have other names: a large rename).
+- `Object3D : TransformObject` was left (the shared fields have other names: a large rename).
 
 ## C2ms: map specs, unit stats, the fake unit, class templates
 
@@ -85,7 +85,7 @@ Every `unknown_XXX` member of unit.h, unit_db.h (+ unit_db_destroy.cpp), unit_ai
 unit_looks.h, item.h, unit_client_models.h, class_templates.h, unit_client_sounds.cpp, party*.h, item_stock.cpp,
 text_manager.h, ai_shape_cache.h, ai_refresh.cpp and unit_ai.cpp (172) is named or `unused_XXX`. Method: all of
 them renamed to unused_ and the verify build run with `-k 0`; each compile error is a use, named from its code.
-- Meanings worth knowing: CUnit +0x438 `fightAtWill` (the move panel's flag; PlayerMode attacks only at 1; the
+- Meanings worth knowing: Unit +0x438 `fightAtWill` (the move panel's flag; PlayerMode attacks only at 1; the
   party record keeps it at +0x780, SetUnknown438 / 0052E9B0 sets it); +0x278 `obstacle` (sector map, slot 54);
   +0x43C `altPassCosts` (set from the cell's flag 0x80 before a path search). UnitStats +0x60 `movementKind`
   (model field 5; 2 = on the water), +0x44 `sightCone`, +0x48 `peripheralRange` (prototype field 0x18). The
@@ -110,7 +110,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
 - **Members.** A shim's body moved into a member. The `<Slot>Impl` members (the body of a virtual slot as a distinct
   non-virtual member, the virtual declared and never defined) exist because a virtual could not be registered (rewrite
   guide rule 4); C28 folds them into real virtuals. Deleting destructors are `DeleteScalar` (slot 0, RET 4,
-  `flags` bit 0 frees; the precedent is `CMapObject::DeleteMapObject`); empty slots have distinct names (`IgnoreArgument`,
+  `flags` bit 0 frees; the precedent is `MapObject::DeleteMapObject`); empty slots have distinct names (`IgnoreArgument`,
   `ReturnZero`, `NothingMore`, ...). Overloaded names cannot be registered (Script::Load / Save became LoadState /
   SaveState). Slots that return a string build it in the caller's result: a member returning it by value is the same
   hidden-pointer ABI. Where a shim took a pointer the original dereferenced, the member takes a reference.

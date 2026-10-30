@@ -17,12 +17,12 @@
 #include <vector>
 
 class ParticleSource;
-class CTexture;
+class Texture;
 struct UnitPrototypeRecord;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
-void BlitMipChain(CTexture* target, const int* at, CTexture* source, const Rect* from);
+void BlitMipChain(Texture* target, const int* at, Texture* source, const Rect* from);
 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
@@ -124,7 +124,7 @@ public:
     // Composes the unit's skin texture through the texture manager from the skin layers and the textures
     // "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp", named "mo<id>p" /
     // "prot<prototype>p" (shorter when not `detailed`), the name into `target`. True when the texture was made of
-    // these layers already or is now (CTextureManager::Compose's result).
+    // these layers already or is now (TextureManager::Compose's result).
     bool ComposeSkin(int detailed, std::string* target);
 
     // The point the weapon in hand acts from: the node named by the weapon's model ("baserh3" without one) in the
@@ -169,7 +169,7 @@ public:
     // and secondEntry (queued behind it, or played alone); then the animation is advanced to `time` + 1 -
     // animationStart when that is above 0, the last time becoming animationStart plus it.
     void RestartAnimation(float time) override;
-    // Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind) for the weapon in
+    // Unless frozen, finds an idle animation (Unit::FindAnimation with any of the kind) for the weapon in
     // hand (bit of its prototype's type) or the natural weapon (when below 7), with 0x10000 for non-heroes
     // and 0x80580000 for secondEntry -2, picked from the client effects' generator (g_clientRandom); plays it
     // (`play`) or queues it.
@@ -269,7 +269,7 @@ public:
     std::deque<ClientSpeech> speech; // the speech queue
     std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];
-    Ref<CTexture> faceTexture;      // the face texture the blink changes
+    Ref<Texture> faceTexture;      // the face texture the blink changes
     std::uint8_t blinks;
     int blinkTimer;                 // ticks to the next blink change
     int eyesClosed;
@@ -287,4 +287,4 @@ struct ArmourPartNames {
 ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
                                        const std::vector<std::uint32_t>& weaponIds);
 
-inline UnitClientSpecific* CUnit::ClientController() const { return static_cast<UnitClientSpecific*>(controller); }
+inline UnitClientSpecific* Unit::ClientController() const { return static_cast<UnitClientSpecific*>(controller); }

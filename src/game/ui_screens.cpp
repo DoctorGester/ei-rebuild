@@ -336,7 +336,7 @@ int HeroManaUnits(UnitStats* stats) {
     return static_cast<int>(maximum / stats->Period20());
 }
 
-bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
+bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
     bool ok = true;
     int required = static_cast<int>(spell->skillNeeded);
     if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
@@ -461,7 +461,7 @@ void MpHeroScreen::TakeItem(Item* item, int takeMode) {
 
 bool MpHeroScreen::CanEquip(Item* item, int) {
     if (item->Kind() != ItemKind::Scroll) return true;
-    CSpell* spell = item->spell;
+    Spell* spell = item->spell;
     if (!spell) return true;
     return HeroCanUseSpell(&HeroRecord()->stats, spell);
 }

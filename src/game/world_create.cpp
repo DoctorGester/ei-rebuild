@@ -35,11 +35,11 @@ T* MakeNew() {
 }
 
 // A manager attached to the world, after the world holds it.
-void Attach(BaseManager* manager, CWorld* world) { manager->Init(world); }
+void Attach(BaseManager* manager, World* world) { manager->Init(world); }
 
 } // namespace
 
-void CWorld::Create() {
+void World::Create() {
     paused = 0;
     g_dataFolder = worlddata::ConfiguredDataPath();
     g_textFolder = worlddata::ConfiguredTextPath();
@@ -53,17 +53,17 @@ void CWorld::Create() {
 
     players = MakeNew<PlayerManager>();
     Attach(players, this);
-    objectManager = MakeNew<CMapObjectManager>();
+    objectManager = MakeNew<MapObjectManager>();
     Attach(objectManager, this);
-    figureManager = MakeNew<CFigureManager>();
+    figureManager = MakeNew<FigureManager>();
     Attach(figureManager, this);
     timedObjectManager = MakeNew<EffectManager>();
     Attach(timedObjectManager, this);
-    spellConstructor = MakeNew<CSpellConstructor>();
+    spellConstructor = MakeNew<SpellConstructor>();
     spellConstructor->Create();
-    spellManager = MakeNew<CSpellManager>();
+    spellManager = MakeNew<SpellManager>();
     Attach(spellManager, this);
-    itemConstructor = MakeNew<CItemConstructor>();
+    itemConstructor = MakeNew<ItemConstructor>();
     itemConstructor->Create();
     itemManager = MakeNew<ItemManager>();
     Attach(itemManager, this);
@@ -74,7 +74,7 @@ void CWorld::Create() {
     countdowns.entries.clear();
 }
 
-CWorld::CWorld() {
+World::World() {
     players = nullptr;
     figureManager = nullptr;
     objectManager = nullptr;
@@ -88,12 +88,12 @@ CWorld::CWorld() {
     secondsPerTick = 0.0f;
 }
 
-bool CWorld::RunTick() { return true; }
+bool World::RunTick() { return true; }
 
-CUnit* CWorld::FindUnit(int unitId) {
+Unit* World::FindUnit(int unitId) {
     return UnitOrNull(ObjectWithId(unitId));
 }
 
-CMapObject* CWorld::ObjectWithId(int objectId) {
+MapObject* World::ObjectWithId(int objectId) {
     return GetMapObjectManager()->FindMapObject(static_cast<unsigned>(objectId));
 }

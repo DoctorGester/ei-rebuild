@@ -72,7 +72,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     SceneMesh(kBackground)->visible = false;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
-    CUnit* unit = nullptr;
+    Unit* unit = nullptr;
     const char* name = nullptr;
     float size = 0.0f;     // the original leaves both unset without a unit (never read then)
     float height = 0.0f;
@@ -90,7 +90,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     surfaces[0]->Clear();
 
     if (unit && unit->AsObject3D()->attached) {
-        CObject3D* model = unit->AsObject3D();
+        Object3D* model = unit->AsObject3D();
         const bool drawn = bodyPart != kInfoPage;
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):

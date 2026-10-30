@@ -1,7 +1,7 @@
-// A texture from loose .bmp files (from CTexture::LoadBmp for a
-// textures\<name>.bmp in the game folder, which overrides the archived .mmp: CTextureManager::
+// A texture from loose .bmp files (from Texture::LoadBmp for a
+// textures\<name>.bmp in the game folder, which overrides the archived .mmp: TextureManager::
 // LoadTexture). The .bmp's 24-bit colours and, when there is an 8-bit a_<name>.bmp beside it, its
-// grey levels as alpha are drawn into a texture on the GPU (CTexture::TakeBlankHolder,
+// grey levels as alpha are drawn into a texture on the GPU (Texture::TakeBlankHolder,
 // render::DrawIntoTexture), which keeps what the texture's format keeps of the alpha. See
 // docs/notes/renderer.md (section 7).
 #include "texture.h"
@@ -49,7 +49,7 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // the surface's rows; here the rows and pixels past it are left out); a failed open of the alpha
 // file is silent. No texture format: the error for a surface that cannot be made (the staging
 // surface's: sizes zero) ends the game.
-int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath) {
+int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath) {
     if (flags & TextureFlag::Loaded) return 1;
     platform::File file;
     platform::File alphaFile;

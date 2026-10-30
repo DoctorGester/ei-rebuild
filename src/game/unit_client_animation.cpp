@@ -17,11 +17,11 @@
 
 namespace {
 constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags
-constexpr std::int8_t kModeSpecialIdle = -2;          // CUnit::secondEntry
-constexpr std::int8_t kNoEntry = -1;                  // CUnit::secondEntry
+constexpr std::int8_t kModeSpecialIdle = -2;          // Unit::secondEntry
+constexpr std::int8_t kNoEntry = -1;                  // Unit::secondEntry
 constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
-constexpr int kMotionPaused = 1;                      // CUnit::motionMode
+constexpr int kMotionPaused = 1;                      // Unit::motionMode
 constexpr int kMotionScaled = 2;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoPrototype = 0xFFFF;

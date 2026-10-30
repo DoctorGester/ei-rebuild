@@ -1,4 +1,4 @@
-// CManagerContext's own members (manager_context.h): the base Create and the copy of an item that
+// ManagerContext's own members (manager_context.h): the base Create and the copy of an item that
 // the party and the client world make (their DuplicateItem).
 #include "manager_context.h"
 
@@ -7,9 +7,9 @@
 
 #include <cstdint>
 
-void CManagerContext::Create() {}
+void ManagerContext::Create() {}
 
-Item* CManagerContext::MakeCopyOf(Item* item) {
+Item* ManagerContext::MakeCopyOf(Item* item) {
     std::uint32_t packed = item->prototypeId;
     Item* copy = ItemFactory()->MakeItem(item->Kind(), packed >> 16, packed & 0xFFFF);
     item->CopyTo(copy, GetSpellManager());

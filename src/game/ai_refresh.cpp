@@ -153,10 +153,10 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     centre.x = cx;
     centre.y = cy;
     SectorMap* sectors = &sectorMap;
-    std::vector<CUnit*> objects = sectors->FindUnitsInRadius(centre, radius);
-    for (CUnit* object : objects) sectors->Remove(object);
+    std::vector<Unit*> objects = sectors->FindUnitsInRadius(centre, radius);
+    for (Unit* object : objects) sectors->Remove(object);
     regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
-    for (CUnit* object : objects) sectors->Add(object);
+    for (Unit* object : objects) sectors->Add(object);
 }
 
 // ---- CellMark ---------------------------------------------------------------------------------

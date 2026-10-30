@@ -39,7 +39,7 @@ bool SameIds(const DressedUnitRecord& a, const DressedUnitRecord& b) {
 
 } // namespace
 
-void UnitSet::Add(CUnit* unit) {
+void UnitSet::Add(Unit* unit) {
     FiguredUnitRecord record;   // its vectors empty
     std::uint32_t prototype = unit->prototypeId & 0xFFFF;
     const Vector3 scale = unit->scale;

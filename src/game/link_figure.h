@@ -30,13 +30,13 @@ protected:
 
 // The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
-// for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
+// for type 0x45 and FigureManager::CreateFigureObject gives it to every new figure. A real virtual
 // class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
     int DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
-    int DrawLit(TextureDevice* device, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* rect,
-                CTexture* textureA, CTexture* textureB);
+    int DrawLit(TextureDevice* device, const std::vector<Light*>* lights, Material* material, int alpha, Rect* rect,
+                Texture* textureA, Texture* textureB);
     void DrawBounds(SceneRenderer* renderer);
 
     FigureMeshDrawer();
@@ -68,7 +68,7 @@ struct Surface;
 // map inserts it).
 struct LinkPartHeader {
     // The second / first dword after the FIG header: the part's FigureMesh::meshType and
-    // materialValue (an object's part copies them and the box, CObject3D::LoadPart).
+    // materialValue (an object's part copies them and the box, Object3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
@@ -117,13 +117,13 @@ public:
     virtual bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount) = 0;
     // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
-    // (CObject3D::figure): the first fills a flat part's colours and speculars, the second lights it
+    // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
     // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
     // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
     // was drawn. `u`, `v` are members of the mesh.
     virtual bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                              std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
-    virtual bool LightPart(const std::string* name, const std::vector<CLight*>* lights, Material* material, int alpha,
+    virtual bool LightPart(const std::string* name, const std::vector<Light*>* lights, Material* material, int alpha,
                            std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
     virtual int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                               std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
@@ -171,7 +171,7 @@ public:
                      std::uint16_t** indices, int* vertexCount, int* indexCount) override;
     bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
-    bool LightPart(const std::string* name, const std::vector<CLight*>* lights, Material* material, int alpha,
+    bool LightPart(const std::string* name, const std::vector<Light*>* lights, Material* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
     int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,

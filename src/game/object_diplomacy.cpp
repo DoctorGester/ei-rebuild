@@ -2,7 +2,7 @@
 
 #include "core_streams.h"
 #include "object.h"
-#include "player_messages.h"   // CPlayer::units
+#include "player_messages.h"   // Player::units
 #include "unit.h"
 
 #include "world.h"
@@ -40,7 +40,7 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
     ObjectListIterator it;
     it.manager = nullptr;
     for (EngineObject* object = it.First(g_serverWorld.objectManager); object; object = it.Next()) {
-        CUnit* unit = UnitOrNull(object);
+        Unit* unit = UnitOrNull(object);
         if (!unit) continue;
         if (unit->side != player) continue;
         std::uint32_t mask = unit->relationsA;
@@ -70,17 +70,17 @@ void Diplomacy::WriteTo(ByteStream* stream) {
     stream->Write(hostile, sizeof(hostile));
 }
 
-void Diplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
+void Diplomacy::OnAttack(Unit* attacker, Unit* victim) {
     if (!attacker || !victim) return;
     if (IsAllied(victim->side, attacker->side)) return;
     victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
     victim->flags |= MapObjectFlag::RelationsChanged;
     // The victim's party: the player's units, walked in iterator order.
-    const CPlayer* party = victim->player;
+    const Player* party = victim->player;
     if (!party) return;
-    const CPlayer::UnitMap* members = &party->units;
+    const Player::UnitMap* members = &party->units;
     for (auto node = members->begin(); node != members->end() && node->second; ++node) {
-        CUnit* unit = node->second;
+        Unit* unit = node->second;
         unit->AddHostileMask(unit->relationsA | Bit(attacker->side));
     }
 }

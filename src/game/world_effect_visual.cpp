@@ -1,4 +1,4 @@
-// The visible effects: EffectPointLight, CEffectParticle, EffectWall, EffectLightning. See
+// The visible effects: EffectPointLight, EffectParticle, EffectWall, EffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
@@ -28,7 +28,7 @@ namespace {
 
 
 
-void ClearBase(CEffect* e) {
+void ClearBase(Effect* e) {
     e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
     EmptyField(&e->state);
     e->velocity = Vector3{0.0f, 0.0f, 0.0f};
@@ -38,15 +38,15 @@ void ClearBase(CEffect* e) {
 }
 
 // The light's range fields: range, range^2 and 1 / range^2.
-void SetLightRange(CLight* light, std::uint32_t rangeBits) {
+void SetLightRange(Light* light, std::uint32_t rangeBits) {
     light->range = std::bit_cast<float>(rangeBits);
     const float square = light->range * light->range;
     light->rangeSquared = square;
     light->inverseRangeSquared = 1.0f / square;
 }
 
-std::uint32_t& LightFlags(CLight* light) { return light->flags; }
-Vector3& LightPosition(CLight* light) { return light->localPosition; }
+std::uint32_t& LightFlags(Light* light) { return light->flags; }
+Vector3& LightPosition(Light* light) { return light->localPosition; }
 
 // The particle tick's step towards the target, in x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
@@ -205,7 +205,7 @@ void EffectPointLight::Save(ByteStream* stream) {
 double EffectPointLight::LightRadius() { return ConstAt(worlddata::DefaultRadius()) + range; }
 
 
-void CEffectParticle::Reset() {
+void EffectParticle::Reset() {
     ClearBase(this);
     if (source != nullptr) {
         source->Stop();
@@ -220,9 +220,9 @@ void CEffectParticle::Reset() {
     unitId = -1;
 }
 
-Vector3* CEffectParticle::Position(const ScriptGroup* group) {
+Vector3* EffectParticle::Position(const ScriptGroup* group) {
     if (attachedTo == -1) return &localPosition;
-    CMapObject* object = WorldContext()->ObjectWithId(attachedTo);
+    MapObject* object = WorldContext()->ObjectWithId(attachedTo);
     if (object == nullptr) return &localPosition;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
@@ -241,7 +241,7 @@ Vector3* CEffectParticle::Position(const ScriptGroup* group) {
     return &worldPosition;
 }
 
-void CEffectParticle::Start(int update) {
+void EffectParticle::Start(int update) {
     if (update == 0 && source != nullptr) {
         source->Stop();
         source.Reset();
@@ -249,7 +249,7 @@ void CEffectParticle::Start(int update) {
     Spawn();
 }
 
-int CEffectParticle::Unpack(int update, DeltaField* field) {
+int EffectParticle::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     field->ReadDelta(&startTick, 4);
@@ -265,7 +265,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
     if (unitId != -1) {
-        CUnit* unit = OwningWorld()->FindUnit(unitId);
+        Unit* unit = OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) {
             Vector3 point;
             position = *unit->EffectPoint(&point);
@@ -276,7 +276,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectParticle::Spawn() {
+void EffectParticle::Spawn() {
     if (source != nullptr) {
         // Already running: follow the effect.
         source->localPosition = localPosition;
@@ -322,7 +322,7 @@ void CEffectParticle::Spawn() {
     }
 }
 
-void CEffectParticle::Pack(DeltaField* field) {
+void EffectParticle::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     int value = startTick;
@@ -339,28 +339,28 @@ void CEffectParticle::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(typeParam));
 }
 
-void CEffectParticle::SetAttachedTo(int objectId) {
+void EffectParticle::SetAttachedTo(int objectId) {
     attachedTo = objectId;
     MarkChanged();
 }
 
-void CEffectParticle::SetSize(float newSize) {
+void EffectParticle::SetSize(float newSize) {
     size = newSize;
     MarkChanged();
 }
 
-void CEffectParticle::SetColors(float newAlpha, float newTypeParam) {
+void EffectParticle::SetColors(float newAlpha, float newTypeParam) {
     alpha = newAlpha;
     typeParam = newTypeParam;
     MarkChanged();
 }
 
-void CEffectParticle::SetTarget(const Vector3& newTarget) {
+void EffectParticle::SetTarget(const Vector3& newTarget) {
     target = newTarget;
     MarkChanged();
 }
 
-void CEffectParticle::Attach() {
+void EffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
     // Without a source this goes on and reads through the null pointer, like the original.
     if (source != nullptr) {
@@ -371,14 +371,14 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    CObject3D* object = g_clientWorld.objectManager->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo));
+    Object3D* object = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(attachedTo));
     Vector3 saved;
     saved = source->localPosition;
     source->Attach(object);
     if (object == nullptr) source->localPosition = saved;
 }
 
-void CEffectParticle::Load(ByteStream* stream) {
+void EffectParticle::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(type);
     stream->ReadValue(size);
@@ -394,7 +394,7 @@ void CEffectParticle::Load(ByteStream* stream) {
     stream->ReadValue(typeParam);
 }
 
-void CEffectParticle::Save(ByteStream* stream) {
+void EffectParticle::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     stream->WriteValue(type);
     stream->WriteValue(size);
@@ -407,7 +407,7 @@ void CEffectParticle::Save(ByteStream* stream) {
     stream->WriteValue(typeParam);
 }
 
-bool CEffectParticle::RunTick() {
+bool EffectParticle::RunTick() {
     unitId = -1;
     if (moving != 0) {
         Vector3 d;
@@ -464,7 +464,7 @@ void EffectWall::SetDirection(const Vector3& newDirection) {
 }
 
 int EffectWall::Unpack(int update, DeltaField* field) {
-    if (CEffectParticle::Unpack(update, field) == 0) return 0;
+    if (EffectParticle::Unpack(update, field) == 0) return 0;
     field->ReadFloat16x3(&direction.x);
     if (!SnapshotReadToEnd()) return 0;
     if (source != nullptr) source->extent = direction;
@@ -499,12 +499,12 @@ void EffectWall::Pack(DeltaField* field) {
 }
 
 void EffectWall::Load(ByteStream* stream) {
-    CEffectParticle::Load(stream);
+    EffectParticle::Load(stream);
     stream->ReadValue(direction);
 }
 
 void EffectWall::Save(ByteStream* stream) {
-    CEffectParticle::Save(stream);
+    EffectParticle::Save(stream);
     stream->WriteValue(direction);
 }
 
@@ -521,12 +521,12 @@ void EffectLightning::Reset() {
 }
 
 void EffectLightning::UpdateEnds() {
-    CMapObject* target = OwningWorld()->ObjectWithId(toObject);
+    MapObject* target = OwningWorld()->ObjectWithId(toObject);
     if (target != nullptr) {
         to = target->localPosition;
         to.z = to.z + ConstAt(worlddata::OneRef());
     }
-    CUnit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
+    Unit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
     if (source != nullptr && WorldContext()->IsServer() == 0) {
         Vector3 point;
         from = *source->EffectPoint(&point);

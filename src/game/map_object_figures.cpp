@@ -1,4 +1,4 @@
-// The 3D object base under CMapObject: loading the figure's parts, rescaling them and their
+// The 3D object base under MapObject: loading the figure's parts, rescaling them and their
 // bounding box; its lifetime, Create / Destroy, effect sources, attached half and small virtuals. See
 // map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
@@ -16,7 +16,7 @@
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "map_object_shadow.h"   // WoundsMaterial: the client half's
 #include "model.h"               // RenderPreset: the wounds material's
-#include "world.h"   // CWorld: the figure manager and cache
+#include "world.h"   // World: the figure manager and cache
 
 #include <bit>
 #include <concepts>
@@ -71,7 +71,7 @@ void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
 
 } // namespace
 
-void CObject3D::ComputeBounds() {
+void Object3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < std::ssize(parts); ++i) {
         FigureMesh* part = parts[i];
@@ -106,7 +106,7 @@ void CObject3D::ComputeBounds() {
     bounds.center.z = centerZ;
 }
 
-void CObject3D::SetFigureScale(const float* newScale) {
+void Object3D::SetFigureScale(const float* newScale) {
     EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
     if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
         return;
@@ -135,7 +135,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
     ComputeBounds();
 }
 
-void CObject3D::LoadFigures() {
+void Object3D::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
     {
         std::string key(name);
@@ -151,12 +151,12 @@ void CObject3D::LoadFigures() {
 
 // --- Lifetime ------------------------------------------------------------------------------------
 
-void CObject3D::ClearBounds() {
+void Object3D::ClearBounds() {
     std::memset(&bounds, 0, sizeof(bounds));
     eyeHeight = 0;
 }
 
-CObject3D::CObject3D() {
+Object3D::Object3D() {
     localRotation.SetIdentity();
     worldRotation.SetIdentity();
     ClearBounds();
@@ -171,7 +171,7 @@ CObject3D::CObject3D() {
 }
 
 // The name is destroyed after the body, then EngineObject's part.
-CObject3D::~CObject3D() {
+Object3D::~Object3D() {
     Destroy3D();
     figure.Reset();
     lib::FreeStorage(parts);
@@ -184,7 +184,7 @@ namespace {
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 } // namespace
 
-void CObject3D::Create3D() {
+void Object3D::Create3D() {
     localPosition = {};
     localRotation = kIdentityOrientation;
     attached = nullptr;
@@ -197,7 +197,7 @@ void CObject3D::Create3D() {
     std::vector<FootprintPart>().swap(partBoxes);
 }
 
-void CObject3D::Destroy3D() {
+void Object3D::Destroy3D() {
     figure.Reset();
     RemoveAllEffectSources();
     if (animation) {
@@ -217,13 +217,13 @@ void CObject3D::Destroy3D() {
     flags = 0;
 }
 
-void CObject3D::AddEffectSource(ParticleSource* source) {
+void Object3D::AddEffectSource(ParticleSource* source) {
     if (std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get) != effectSources.end()) return;
     effectSources.emplace_back(source);
     if (source) source->Attach(this);
 }
 
-void CObject3D::RemoveEffectSource(ParticleSource* source) {
+void Object3D::RemoveEffectSource(ParticleSource* source) {
     auto node = std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get);
     if (node == effectSources.end()) return;
     HeldRef<ParticleSource> held = std::move(*node);   // released after the detach
@@ -235,16 +235,16 @@ void CObject3D::RemoveEffectSource(ParticleSource* source) {
 // effect sources and the drawing slots.
 
 // The same body as the base's.
-void CObject3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
+void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
 
 // TransformObject's functions, called directly.
-void CObject3D::SaveTransform(platform::File* file) { TransformObject::SaveTransform(file); }
+void Object3D::SaveTransform(platform::File* file) { TransformObject::SaveTransform(file); }
 
-void CObject3D::LoadTransform(platform::File* file) { TransformObject::LoadTransform(file); }
+void Object3D::LoadTransform(platform::File* file) { TransformObject::LoadTransform(file); }
 
 // The parts are copied uncounted, as the original copies the pointers: the old ones are dropped without a release
 // and the copies take no reference.
-void CObject3D::CopyFigure(const CObject3D* other) {
+void Object3D::CopyFigure(const Object3D* other) {
     for (HeldRef<FigureMesh>& part : parts) part.Take();
     parts = other->parts;
     for (FigureMesh* part : parts)
@@ -252,7 +252,7 @@ void CObject3D::CopyFigure(const CObject3D* other) {
     TransformObject::CopyTransform(*other);
 }
 
-void CObject3D::AttachSpecific(EngineObject* half) {
+void Object3D::AttachSpecific(EngineObject* half) {
     if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
     if (attached) {
         attached->object = nullptr;
@@ -263,37 +263,37 @@ void CObject3D::AttachSpecific(EngineObject* half) {
     attached->AddRef();
 }
 
-void CObject3D::RemoveAllEffectSources() {
+void Object3D::RemoveAllEffectSources() {
     while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
 }
 
-int CObject3D::DrawFigure(SceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
+int Object3D::DrawFigure(SceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
 
-int CObject3D::DrawCollectDirty(SceneRenderer* context) {
+int Object3D::DrawCollectDirty(SceneRenderer* context) {
     rects::SetEmpty(&dirtyRect);
     return attached ? attached->DrawParts(context, &dirtyRect) : 1;
 }
 
-int CObject3D::DrawFigureShadow(SceneRenderer* context) { return attached ? attached->DrawPartsShadow(context) : 1; }
+int Object3D::DrawFigureShadow(SceneRenderer* context) { return attached ? attached->DrawPartsShadow(context) : 1; }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-bool CObject3D::AcceptsAnimation(const FigureAnimation*) { return true; }
-void CObject3D::AttachObject(EngineObject* object) {
+bool Object3D::AcceptsAnimation(const FigureAnimation*) { return true; }
+void Object3D::AttachObject(EngineObject* object) {
     AttachSpecific(object);
 }
-bool CObject3D::InvisibleSlot() { return false; }
-void CObject3D::AdvanceTime(float) {}
+bool Object3D::InvisibleSlot() { return false; }
+void Object3D::AdvanceTime(float) {}
 
 // --- The attached half and animation state, and the setters that reach every part --------------------
 
 namespace {
 constexpr float kFirstFrame = 0.0f;
 
-FigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
+FigureMesh* PartAt(const Object3D* object, int index) { return object->parts[index]; }
 } // namespace
 
-void CObject3D::SetSpecific(Object3DSpecific* half) {
+void Object3D::SetSpecific(Object3DSpecific* half) {
     if (attached) {
         attached->object = nullptr;
         attached->Release();
@@ -305,23 +305,23 @@ void CObject3D::SetSpecific(Object3DSpecific* half) {
     }
 }
 
-void CObject3D::SetPartFlags(std::uint32_t mask) {
+void Object3D::SetPartFlags(std::uint32_t mask) {
     for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags |= mask;
 }
 
-void CObject3D::ClearPartFlags(std::uint32_t mask) {
+void Object3D::ClearPartFlags(std::uint32_t mask) {
     for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags &= ~mask;
 }
 
-void CObject3D::SetPartsFlatColour(std::uint32_t value) {
+void Object3D::SetPartsFlatColour(std::uint32_t value) {
     for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatColour = value;
 }
 
-void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
+void Object3D::SetPartsFlatSpecular(std::uint32_t value) {
     for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular = value;
 }
 
-void CObject3D::SetAnimationState(FigureAnimationState* state) {
+void Object3D::SetAnimationState(FigureAnimationState* state) {
     if (animation) {
         animation->owner = nullptr;
         animation->Release();
@@ -333,16 +333,16 @@ void CObject3D::SetAnimationState(FigureAnimationState* state) {
     }
 }
 
-void CObject3D::PlayAnimation(FigureAnimation* figureAnimation) {
+void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int CObject3D::AttachPartMesh(EngineObject* part) {
+int Object3D::AttachPartMesh(EngineObject* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }
 
-void CObject3D::RestartPose() {
+void Object3D::RestartPose() {
     if (!animation) return;
     animation->SetTime(kFirstFrame);
     animation->PlaceIfChanged();

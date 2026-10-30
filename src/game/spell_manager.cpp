@@ -34,8 +34,8 @@ SpellSequence::~SpellSequence() {
     }
 }
 
-CSpell* CSpellManager::CreateSpellObject(int newId) {
-    auto* spell = CreateObjectAs<CSpell>(SpellObjectType::Spell, -1);
+Spell* SpellManager::CreateSpellObject(int newId) {
+    auto* spell = CreateObjectAs<Spell>(SpellObjectType::Spell, -1);
     if (newId == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(newId);
     const std::uint32_t low = packed & 0xFFFF;
@@ -58,16 +58,16 @@ CSpell* CSpellManager::CreateSpellObject(int newId) {
     return spell;
 }
 
-EngineObject* CSpellManager::NewObject(int objectType) {
+EngineObject* SpellManager::NewObject(int objectType) {
     switch (static_cast<SpellObjectType>(objectType)) {
-    case SpellObjectType::Spell: return new CSpell();
+    case SpellObjectType::Spell: return new Spell();
     case SpellObjectType::Container: return new SpellContainer();
     default: break;
     }
     return nullptr;
 }
 
-void CSpellManager::Destroy() {
+void SpellManager::Destroy() {
     for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
@@ -77,11 +77,11 @@ void CSpellManager::Destroy() {
     ResourceManager::Destroy();
 }
 
-CSpellManager::CSpellManager() {
+SpellManager::SpellManager() {
     maxSequenceKey = 0;
 }
 
-CSpellManager::~CSpellManager() {
+SpellManager::~SpellManager() {
     for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
@@ -91,12 +91,12 @@ CSpellManager::~CSpellManager() {
     ResourceManager::Destroy();
 }
 
-const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
-ClassId CSpellManager::GetClassId() { return ClassId::SpellManager; }
-const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
+const char* SpellManager::ClassName() { return kSpellManagerClassName; }
+ClassId SpellManager::GetClassId() { return ClassId::SpellManager; }
+const char* SpellManager::GetFolderName() { return kSpellManagerFolder; }
 
-std::vector<std::string> CSpellManager::ListSpellNames() { return ListRecordNames(g_spellDatabase.spells); }
-std::vector<std::string> CSpellManager::ListModifierNames() { return ListRecordNames(g_spellDatabase.modifiers); }
+std::vector<std::string> SpellManager::ListSpellNames() { return ListRecordNames(g_spellDatabase.spells); }
+std::vector<std::string> SpellManager::ListModifierNames() { return ListRecordNames(g_spellDatabase.modifiers); }
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.

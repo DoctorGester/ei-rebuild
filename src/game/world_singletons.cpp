@@ -4,7 +4,7 @@
 #include "game_singletons.h"
 
 #include "effects.h"          // ParticleManager
-#include "figure_manager.h"   // CFigureManager
+#include "figure_manager.h"   // FigureManager
 #include "model.h"            // SceneRenderer
 #include "spell.h"            // LightFactory
 #include "world.h"

@@ -11,7 +11,7 @@ sight), `ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.c
 ## How a unit moves (the per-tick path)
 
 The unit movement tick 00547890 (controller `this`, outside the range) for a moving unit:
-`UnitMotion::Sample` (005C7430) on the trajectory at CUnit + 0x27C with the controller's order
+`UnitMotion::Sample` (005C7430) on the trajectory at Unit + 0x27C with the controller's order
 (controller + 0x3C, the AIPath) and the world time gives the next position, direction and speed;
 `SectorMap::Remove`; `CanStandAtFromHere` at the new cell; `BlockingUnitAt` (005B7BB0) when it
 cannot stand there; `SectorMap::Add`; then `SectorMap::Move` (Rebirth-patched), which lifts and
@@ -105,7 +105,7 @@ By file:
   005C4C20), `ai_path_state.cpp` (AIPath::WriteState / ReadState 005C7DB0 / 005C7FC0, the order and steps on a delta field).
 - Motion: `ai_motion.cpp` (UnitMotion::Sample 005C7430, SamplePath 005C6FC0, Build 005C67D0, AssignCells, Subdivide(Segment),
   LimitSpeeds, MotionCubic::Fit, AIPath Start / Reset / Clear / SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime /
-  Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at CUnit + 0x27C),
+  Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at Unit + 0x27C),
   `ai_movement.cpp` (BlockingUnitAt 005B7BB0, UnitShape 005B8350, CostContext 005B9510, StandsOnCheapCell 005BA5A0,
   AIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, FogGrid::Grow 005C8D40 (Include stays the forwarder)),
   `ai_unit_layer.cpp` (UnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).

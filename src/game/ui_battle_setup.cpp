@@ -82,7 +82,7 @@ void BattleScreen::CreateScreen() {
     } else {
         // A new game: the local player's first hero.
         if (std::ssize(LocalPlayerData()->members) > 0) {
-            CParty* player = LocalPlayerData();
+            Party* player = LocalPlayerData();
             int index = lib::Count(heroes);
             std::uint32_t hero = player->members[0].unitId;
             heroes.resize(index + 1);
@@ -244,7 +244,7 @@ void BattleScreen::ItemsPicked(const std::vector<Item*>& items, int money, bool 
     RefreshSelection();
 }
 
-void BattleScreen::UnitLeft(CUnit* unit) {
+void BattleScreen::UnitLeft(Unit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
         if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
@@ -289,13 +289,13 @@ void BattleScreen::MarkPortrait(int index) {
     currentPortraits->slots[index].restB = *turn.SetAxisAngle(axis, SelectedFaceAngle());
 }
 
-void BattleScreen::UnitJoined(CUnit* unit) {
+void BattleScreen::UnitJoined(Unit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
         if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
         return;
     }
-    CParty* player = LocalPlayerData();
+    Party* player = LocalPlayerData();
     auto& currentParty = party;
     // The unit's place: after the party units whose records come before its record.
     int place = 0;

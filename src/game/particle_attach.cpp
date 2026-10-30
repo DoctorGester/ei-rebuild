@@ -1,7 +1,7 @@
 // Particle sources that follow an object (A-S4): Attach, the attachment point
 // and its part lookup, the attachment offset and StopAndClear
 //. Names are provisional.
-// The object a source follows is a CObject3D (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
+// The object a source follows is a Object3D (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
 // unit sits on the part attachPoint names; otherwise on top of the object's bounds.
 #include "effects.h"
 
@@ -33,7 +33,7 @@ void ParticleSource::ReleaseAllParticles() {
     particles.clear();
 }
 
-Vector3* ParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* prefix) {
+Vector3* ParticleSource::PartPoint(Vector3* out, Object3D* object, const char* prefix) {
     FigureMesh* part = object->FindPartByPrefix(prefix);
     if (!part) part = object->FindPartByPrefix("bd");
     if (part) {
@@ -48,7 +48,7 @@ Vector3* ParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* 
     return out;
 }
 
-Vector3* ParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
+Vector3* ParticleSource::AttachmentPoint(Vector3* out, Object3D* object) {
     if (!object) {
         out->x = 0.0f;
         out->y = 0.0f;
@@ -61,7 +61,7 @@ Vector3* ParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     }
     const auto point = static_cast<std::uint32_t>(attachPoint);
     if (object->GetClassId() == ClassId::Unit && point <= 12) {
-        if (point == 0) return static_cast<CUnit*>(object)->EffectPoint(out);
+        if (point == 0) return static_cast<Unit*>(object)->EffectPoint(out);
         PartPoint(out, object, kPartNames[point]);
         if (point == 2) out->z = out->z + 1.0f;
         return out;
@@ -75,7 +75,7 @@ Vector3* ParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
 }
 
 Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
-    CObject3D* object = attachedTo;
+    Object3D* object = attachedTo;
     if (!object) {
         out->x = 0.0f;
         out->y = 0.0f;
@@ -98,8 +98,8 @@ Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     return out;
 }
 
-void ParticleSource::Attach(CObject3D* object) {
-    CObject3D* old = attachedTo;
+void ParticleSource::Attach(Object3D* object) {
+    Object3D* old = attachedTo;
     if (old == object) {
         if (!old) origin = localPosition;
         return;

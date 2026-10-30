@@ -35,7 +35,7 @@ bool IsHostileType(SpellType type) {
 
 } // namespace
 
-void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
+void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObject* target,
                                  const Vector3& to, int extra) {
     const Vector3& aim = target ? target->localPosition : to;
     Vector3 end;
@@ -52,7 +52,7 @@ void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMap
     if (missile->Update()) {
         projectiles.emplace_back(missile);
     }
-    CUnit* victim = UnitOrNull(target);
+    Unit* victim = UnitOrNull(target);
     if (victim && caster) {
         if (IsHostileType(spell->Type())) {
             victim->ServerController()->brain.SetSeen(caster);
@@ -63,7 +63,7 @@ void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMap
     }
 }
 
-void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
+void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, MapObject* target,
                              const Vector3& to, int extra) {
     if (!spell) return;
     if (sessionKind != kKindSinglePlayer && caster) return;
@@ -79,7 +79,7 @@ void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, C
     // Several targets: the units around the caster (or `from`), the requested target first.
     PlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     if (caster) {
-        if (CPlayer* ownerObject = caster->player) heroes = ownerObject->Server();
+        if (Player* ownerObject = caster->player) heroes = ownerObject->Server();
     }
     if ((targetFlags & SpellTargetFlag::AtPoint) && !(targetFlags & SpellTargetFlag::ItemContinuous)) {
         --targets;
@@ -88,19 +88,19 @@ void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, C
     Vector3 center;
     center = caster ? caster->localPosition : from;
     float radius = spell->range;
-    std::vector<CUnit*> units = aiMap.sectorMap.FindUnitsInRadius(center, radius);
-    if (CUnit* targetUnit = UnitOrNull(target)) {
+    std::vector<Unit*> units = aiMap.sectorMap.FindUnitsInRadius(center, radius);
+    if (Unit* targetUnit = UnitOrNull(target)) {
         if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
         units.insert(units.begin(), targetUnit);
     }
 
     while (targets > 0) {
         if (units.empty()) break;
-        CUnit* best = nullptr;
+        Unit* best = nullptr;
         std::ptrdiff_t bestIndex = 0;
         std::uint32_t bestBits = kFarAway;
         for (std::ptrdiff_t i = 0; i < std::ssize(units);) {
-            CUnit* unit = units[i];
+            Unit* unit = units[i];
             if (unit->IsDead()) {
                 units.erase(units.begin() + i);
                 continue;

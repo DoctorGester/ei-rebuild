@@ -60,7 +60,7 @@ struct MeshBuffers {
     int indexCount;
 };
 
-class CObject3D;
+class Object3D;
 class FigureMesh;
 
 struct FigureMeshDrawer;
@@ -69,14 +69,14 @@ inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
 // The material a figure part is drawn with (the draw's fourth argument) is a Material: MaterialFlag::KeepSpecular
 // keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
-// (CLight::SetLitColors) and the GPU lighting adds colors.emissive (render::MeshLighting).
+// (Light::SetLitColors) and the GPU lighting adds colors.emissive (render::MeshLighting).
 class Material;
 
-class CLight;
+class Light;
 
 // The bits of EngineObject::flags on a figure mesh (a part of an object's figure).
 enum class FigureMeshFlag : std::uint32_t {
-    Stationary = 0x8,   // a part of a non-unit object's figure (CObject3D::LoadFigures, the client's figure creation);
+    Stationary = 0x8,   // a part of a non-unit object's figure (Object3D::LoadFigures, the client's figure creation);
                         // nothing reads it
     Lit = 0x10,         // the colours are lit and kept: the draw lights the part only without it (the sky mesh has it
                         // from the start); a non-static object's draw clears it on every part
@@ -87,7 +87,7 @@ enum class FigureMeshFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<FigureMeshFlag> = true;
 
-// The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived (by the figure manager's type): 0x41
+// The figure meshes' base ("CFigure"): the parts of an object's figure (Object3D::parts). Derived (by the figure manager's type): 0x41
 // SharedFigureMesh, 0x42 PlainFigureMesh, 0x43 UiMesh (ui.h), 0x44 SkyObject (sky_object.h).
 class FigureMesh : public TransformObject {
 public:
@@ -121,7 +121,7 @@ public:
     // Fits box.bounds around the vertices; nothing without vertices.
     void FitVertexBounds();
 
-    // Called for every part of a CObject3D: grows the world-space box [min, max] by the 8 corners of this part's
+    // Called for every part of a Object3D: grows the world-space box [min, max] by the 8 corners of this part's
     // box (box.bounds) transformed by its matrix; nothing when the position is 1e4 or more from the origin.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
@@ -160,14 +160,14 @@ public:
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix;
     FigureMeshDrawer* drawer;
-    TransformObject* object;           // the owner whose figure may draw the mesh: a CObject3D, or an interface window (UiWindow)
+    TransformObject* object;           // the owner whose figure may draw the mesh: a Object3D, or an interface window (UiWindow)
     MeshBuffers buffers;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.
     float textureOffsetU;
     float textureOffsetV;
     // every colour / specular of a flat mesh (FigureMeshFlag::Flat); set for every part of an object by
-    // CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
+    // Object3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
     std::uint32_t flatColour;
     std::uint32_t flatSpecular;
     // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
@@ -178,7 +178,7 @@ public:
     std::vector<std::uint32_t> colorsA;    // one per normal (lit colours)
     std::vector<std::uint32_t> colorsB;    // one per normal
     // from the file header (before meshType): the material value of the mesh (the number in its
-    // material group's name). An object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
+    // material group's name). An object's part takes both from its piece's LinkPartHeader (Object3D::LoadPart).
     std::uint32_t materialValue;
     std::uint32_t meshType;             // from the file header; 13..16: animated
     Vector3 center;
@@ -186,7 +186,7 @@ public:
     Vector3 boxMax;
     float radius;
     // the part's box: a FootprintPart, copied whole from the piece's LinkPartHeader
-    // (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
+    // (Object3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
     // is the piece's place in the figure, the radius the blood's size.
     FootprintPart box;                  // bounds and the part's position when it was loaded (cleared with the bounds)
     std::vector<VertexPacket> vertices;

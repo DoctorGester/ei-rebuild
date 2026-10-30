@@ -80,7 +80,7 @@ std::uint32_t WeaponBit(UnitServer* self) {
     return natural < kNoNaturalWeapon ? AnimationWeaponBit(natural) : 0u;
 }
 
-bool HasRangedWeapon(CUnit* unit) {
+bool HasRangedWeapon(Unit* unit) {
     ItemWeapon* weapon = unit->ActiveWeapon();
     return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
 }
@@ -89,7 +89,7 @@ bool HasRangedWeapon(CUnit* unit) {
 // Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
 // zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated (_ftol:
 // through 64 bits, the low half, 0 for a NaN).
-int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
+int EntryTicks(Unit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
     float frameCount = static_cast<float>(static_cast<double>(entry->*frames));
@@ -99,7 +99,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
 
 // Key bits of the mode being left (the movement bits) / entered (a Cross animation's number: 4, 3, 2, 5 for modes 0,
 // 1, 2, 4; 1 for a hero's own walk: mode 2 without onGuard).
-std::uint32_t LeaveBits(const MoveModeState* from, const CUnit* unit) {
+std::uint32_t LeaveBits(const MoveModeState* from, const Unit* unit) {
     switch (from->mode) {
     case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
     case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
@@ -110,7 +110,7 @@ std::uint32_t LeaveBits(const MoveModeState* from, const CUnit* unit) {
     }
 }
 
-std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
+std::uint32_t EnterBits(const MoveModeState* to, const Unit* unit) {
     switch (to->mode) {
     case 0: return AnimationNumberBits(4);
     case 1: return AnimationNumberBits(3);
@@ -346,8 +346,8 @@ void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderK
 
 // --- Attacks ---------------------------------------------------------------------------------
 
-void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
-    CUnit* victim = UnitOrNull(target);   // the target is set
+void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, MapObject* target) {
+    Unit* victim = UnitOrNull(target);   // the target is set
     if (!victim) {
         plan->hitLocation = 1;
         BuildOrderSteps(steps, duration, UnitOrderKind::Attack, kKeyNoTarget);
@@ -460,9 +460,9 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     if (unit->MapType() != MapObjectType::Hero) {
         // Other creatures strike low at targets that reach further than the distance between them.
         float myRadius = unit->Radius();
-        CMapObject* other = order.target;
+        MapObject* other = order.target;
         float span = other->Radius() + myRadius;
-        if (CUnit* otherUnit = UnitOrNull(other)) {
+        if (Unit* otherUnit = UnitOrNull(other)) {
             float scale = (stats.reachHeightScale + 1.0f) * myRadius;
             span = otherUnit->standingHeight + scale;
         }

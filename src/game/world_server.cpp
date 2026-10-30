@@ -56,14 +56,14 @@ void ObjectIdMap::Set(const unsigned& key, EngineObject* const& value) {
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
-CMapObject* WorldServer::FindObject(unsigned objectId) {
+MapObject* WorldServer::FindObject(unsigned objectId) {
     auto node = objects.map.find(objectId);
     return node != objects.map.end() ? node->second : nullptr;
 }
 
-CPlayer* WorldServer::GetPlayer(int playerId) {
+Player* WorldServer::GetPlayer(int playerId) {
     PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+    for (Player* player = it.First(PlayerList()); player; player = it.Next())
         if (player->playerId == playerId) return player;
     return nullptr;
 }
@@ -79,12 +79,12 @@ float WorldServer::GridHeight(float x, float y) {
 }
 
 int WorldServer::CountLivingMercs(int unitId) {
-    CPlayer* player = GetPlayer(unitId);
+    Player* player = GetPlayer(unitId);
     if (!player) return 0;
     int living = 0;
     for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
         unsigned memberId = player->GetParty()->members[i].unitId;
-        CUnit* unit = FindUnit(static_cast<int>(memberId));
+        Unit* unit = FindUnit(static_cast<int>(memberId));
         if (unit && unit->IsDead() == 0) ++living;
     }
     return living - 1;
@@ -110,7 +110,7 @@ void WorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
 
 void WorldServer::MarkPlayersDirty(std::uint32_t mask) {
     PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+    for (Player* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty |= mask;
 }
 
@@ -131,9 +131,9 @@ void WorldServer::SetWeather(int newWeather, float strength) {
     MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
 }
 
-void CWorld::SetPaused(std::uint8_t value) { paused = value; }
+void World::SetPaused(std::uint8_t value) { paused = value; }
 
-void CWorld::SetServerPaused(std::uint8_t value) {
+void World::SetServerPaused(std::uint8_t value) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) && ei::rebirth::PluginPause() == 3) return;
     SetPaused(value);
 }
@@ -143,7 +143,7 @@ const ZoneExit* WorldServer::FindZoneExit(int index) const {
     return &exits[index];
 }
 
-void WorldServer::AddTimedObject(CEffect* effect) {
+void WorldServer::AddTimedObject(Effect* effect) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
     effect->startTick = tick;
     effect->AddRef();
@@ -164,7 +164,7 @@ void WorldServer::RemoveTimedObject(unsigned objectId) {
 
 int WorldServer::UpdateCountdownFor(const EngineObject* object) { return (object->id & 0xF) + 0x80; }
 
-void WorldServer::AddToUpdateMap(CMapObject* unit) {
+void WorldServer::AddToUpdateMap(MapObject* unit) {
     // The unit's update slot.
     unit->updateCountdown = UpdateCountdownFor(unit);
     unsigned unitId = static_cast<unsigned>(unit->id);
@@ -175,11 +175,11 @@ void WorldServer::AddToUpdateMap(CMapObject* unit) {
 
 void WorldServer::RemoveObject(unsigned objectId) {
     auto found = objects.map.find(objectId);
-    CMapObject* const* slot = found != objects.map.end() ? &found->second : nullptr;
+    MapObject* const* slot = found != objects.map.end() ? &found->second : nullptr;
     // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
     // pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
-    CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
+    MapObject* object = *static_cast<MapObject* const volatile*>(slot);
     if (!object) return;
     if (object->GetClassId() != ClassId::MagicTrap) aiMap.sectorMap.Remove(*slot);    // magic traps are not in it
 
@@ -194,7 +194,7 @@ void WorldServer::RemoveObject(unsigned objectId) {
     }
 
     object->ClearState();   // it leaves the server
-    CUnit* unit = UnitOrNull(object);
+    Unit* unit = UnitOrNull(object);
     object->AddRef();   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
     object->flags |= MapObjectFlag::Removed;
@@ -212,7 +212,7 @@ void WorldServer::RemoveObject(unsigned objectId) {
     }
     {
         PlayerIterator playerIt;
-        for (CPlayer* player = playerIt.First(PlayerList()); player; player = playerIt.Next())
+        for (Player* player = playerIt.First(PlayerList()); player; player = playerIt.Next())
             player->Server()->ForgetObject(object);
         object->Release();
         object->Release();

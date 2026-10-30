@@ -64,7 +64,7 @@ constexpr const char* kZoneVariablePrefix = "z.";
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(EngineObject* person) {
-    CUnit* unit = g_serverWorld.FindUnit(person->id);
+    Unit* unit = g_serverWorld.FindUnit(person->id);
     if (!unit || !unit->controller) return true;
     UnitServer* controller = unit->ServerController();
     return (controller->action.kind == UnitOrderKind::Stop || controller->action.kind == UnitOrderKind::Idle) &&
@@ -72,7 +72,7 @@ bool CanTalk(EngineObject* person) {
 }
 
 
-bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
+bool IsPerson(MapObject* object) { return object && object->IsDead() == 0; }
 
 } // namespace
 
@@ -82,7 +82,7 @@ static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader) return;
-    CUnit* unit = g_serverWorld.FindUnit(screen->leader->id);
+    Unit* unit = g_serverWorld.FindUnit(screen->leader->id);
     if (!unit || (unit->flags & MapObjectFlag::Blocked)) return;
     unit->ServerController()->brain.Walk(point, run);
 }
@@ -98,7 +98,7 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
     switch (state) {
     case 0: {
         Point point = {x, y};
-        CUnit* object = g_clientWorld.UnitAt2(&point);
+        Unit* object = g_clientWorld.UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 ui->PlayInterfaceSound(kClickSound);
@@ -156,7 +156,7 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     if (ui->rightDown || state != 0) return;
 
     Point point = {x, y};
-    CUnit* object = g_clientWorld.UnitAt2(&point);
+    Unit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         int objectId = object->id;
         if (IsMultiplayerClient() && leader && leader->id == objectId) return;
@@ -201,7 +201,7 @@ void BriefingScreen::LeftDouble(int buttons, int x, int y) {
         return;
     }
     Point point = {x, y};
-    CUnit* object = g_clientWorld.UnitAt2(&point);
+    Unit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
             if (mover.person->id == object->id) return;
@@ -219,7 +219,7 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
         return;
     }
     if (leader && !noWalk) {
-        CUnit* unit = g_serverWorld.FindUnit(leader->id);
+        Unit* unit = g_serverWorld.FindUnit(leader->id);
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) unit->ServerController()->brain.StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)

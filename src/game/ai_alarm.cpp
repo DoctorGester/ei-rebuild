@@ -26,7 +26,7 @@ static void StepAlarmOf(AIAlarm* state, UnitServer* owner) {
         if (state->pending > state->level) {
             state->active = state->pending;
             state->timer = 20;
-            CUnit* unit = server->unit;
+            Unit* unit = server->unit;
             kAlarmLog << "Unit " << static_cast<long>(unit->id) << " acknowledges with ";
             const char* what;
             switch (state->active) {
@@ -54,7 +54,7 @@ static void StepAlarmOf(AIAlarm* state, UnitServer* owner) {
     }
     int side = server->unit->side;
     for (auto& node : server->brain.memory.nearby) {
-        CUnit* member = node;
+        Unit* member = node;
         if (!world->diplomacy.IsAllied(side, member->side)) continue;
         AIRemark& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;

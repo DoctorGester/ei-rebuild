@@ -167,7 +167,7 @@ void HudPortraits::Rebuild(bool wide) {
     slots.clear();
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
-        CUnit* unit = owner->party[i];
+        Unit* unit = owner->party[i];
         const int skin = unit->GetPrototype()->skin;
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;

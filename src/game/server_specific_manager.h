@@ -14,7 +14,7 @@
 #include <string>
 
 class ByteStream;
-class CMapObject;
+class MapObject;
 struct DeltaField;
 
 class ServerSpecificManager : public BaseManager {
@@ -76,7 +76,7 @@ public:
     // effects and warms the particles up.
     void ReadNetState(DeltaField* field);
 
-    CMapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
+    MapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
     std::uint32_t lightKind;    // the light's kind (SetLight; saved and sent)
     std::string name;
     float values[6];            // Create: 1, 10, 1, 1, 1, 1

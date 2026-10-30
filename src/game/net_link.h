@@ -162,7 +162,7 @@ public:
     Ref<net::Connection> player;
 };
 
-// The network session (made by CWorld::OpenSession): a player source with two lists of drivers.
+// The network session (made by World::OpenSession): a player source with two lists of drivers.
 class DriverSession final : public PlayerSource {
 public:
     DriverSession();

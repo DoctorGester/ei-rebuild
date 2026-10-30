@@ -32,7 +32,7 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 // motion's direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally animationSpeed
 // from the motion's speed and the figure's current animation.
 static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
-    CUnit* unit = self->unit;
+    Unit* unit = self->unit;
     if (unit->flags & MapObjectFlag::Preview) return;
     float toCells = 2.0f;
     Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
@@ -42,7 +42,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     float speed;
     int cellX, cellY;
     bool turning;
-    CWorld* world = self->OwningWorld();
+    World* world = self->OwningWorld();
     unit->motion.Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
     float toWorld = 0.5f;

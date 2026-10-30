@@ -6,12 +6,12 @@
 #include "effects.h"   // RainSnow
 #include "texture.h"
 #include "model.h"     // SceneRenderer
-#include "world.h"     // CWorld
+#include "world.h"     // World
 
 // Returns what the rain / snow draw returned, 1 when there is nothing to draw, 0 without
 // a world or with an unknown mode.
 int RainSnow::Draw(SceneRenderer* renderer) {
-    CWorld* currentWorld = world;
+    World* currentWorld = world;
     if (!currentWorld) return 0;
     if (this->mode == 0) return 1;
     UpdateFade(static_cast<float>(currentWorld->tick));

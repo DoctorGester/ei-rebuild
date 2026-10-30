@@ -67,7 +67,7 @@ int CastDelayTicks(float distanceSq, float flight) {
 
 // The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a
 // quick item source has no carrier (the original returns there).
-bool OrderSpell(UnitServer* self, std::uint32_t source, CSpell** spell) {
+bool OrderSpell(UnitServer* self, std::uint32_t source, Spell** spell) {
     if (source & kQuickItemSource) {
         Item* carrier = self->SpellCarrier(source);
         if (!carrier) return false;
@@ -86,7 +86,7 @@ bool OutOfSightRange(UnitServer* self, const float* point) {
     float rangeValue = range;
     float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;
-    CUnit* unit = self->unit;
+    Unit* unit = self->unit;
     float dy = unit->localPosition.y - point[1];
     float dx = unit->localPosition.x - point[0];
     EI_NAN_AUDIT(reach, dx, dy);
@@ -97,7 +97,7 @@ bool OutOfSightRange(UnitServer* self, const float* point) {
 // and `point` at `time`: within 0.1..0.9 along the way (in units of the squared distance, sic)
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const float* point, int time) {
-    CUnit* unit = self->unit;
+    Unit* unit = self->unit;
     float dx = point[0] - unit->localPosition.x;
     float dy = point[1] - unit->localPosition.y;
     float dz = point[2] - unit->localPosition.z;
@@ -113,7 +113,7 @@ bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const float* point,
 
     // The units the brain lists as nearby.
     for (auto node = self->brain.memory.nearby.begin(); node != self->brain.memory.nearby.end();) {
-        CUnit* other = *node;
+        Unit* other = *node;
         ++node;
         if (other == order->target) continue;
         if (other->IsDead() != 0) continue;
@@ -145,14 +145,14 @@ bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
 
 // The quick item or spell value the cast animation is built with: the spell's castTime scaled by
 // 15 / stats.rate (unscaled when that is 0), rounded.
-int CastValue(UnitServer* self, CSpell* spell) {
+int CastValue(UnitServer* self, Spell* spell) {
     float scale = self->stats.rate;
     if (scale != 0.0f) scale = kFifteen / scale;   // a NaN stays the same NaN
     float value = pc24::Mul(static_cast<double>(spell->castTime), scale);   // the dword exact, one rounding
     return lib::RoundEven(value);
 }
 
-void FillCastKind(OrderPlan* plan, CSpell* spell) {
+void FillCastKind(OrderPlan* plan, Spell* spell) {
     plan->isCast = 1;
     if (!spell) {
         plan->castKind = kCastKindNone;
@@ -172,16 +172,16 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
 bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     if (order->pointIsUseSpot) return false;
     WorldServer* world = ServerWorld();
-    CMapObject* target = order->target;
+    MapObject* target = order->target;
 
     if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
-        CSpell* spell;
+        Spell* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (spell->GetPrototype()->needsSight == 0) return false;
         out->point.x = out->point.y = out->point.z = 0.0f;
         out->minDistanceSq = 0.0f;
         out->unit = nullptr;
-        if (CUnit* other = UnitOrNull(target)) {
+        if (Unit* other = UnitOrNull(target)) {
             out->unit = other;
             float reach = unit->standingHeight + other->standingHeight + kPointThree;
             out->minDistanceSq = reach * reach;
@@ -194,7 +194,7 @@ bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
         return true;
     }
 
-    CUnit* targetUnit = UnitOrNull(target);
+    Unit* targetUnit = UnitOrNull(target);
     if (!targetUnit) return false;
     out->point.x = out->point.y = out->point.z = 0.0f;
     out->minDistanceSq = kNearSq;
@@ -247,7 +247,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     Vector3 origin;
     std::memcpy(&origin, &unit->localPosition.x, sizeof(origin));
     int now = OwningWorld()->tick;
-    CSpell* spell = nullptr;
+    Spell* spell = nullptr;
 
     if (order->pointIsUseSpot) {
         float distance = ActionDistance(order);
@@ -296,7 +296,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     int ticks = lib::RoundEven(halfTurn) + 3;
 
     bool predict = false;
-    CUnit* targetUnit = nullptr;
+    Unit* targetUnit = nullptr;
     int castDelay = 0;
 
     Vector3 aim;
@@ -317,7 +317,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         reachSq = range * range;
         outerSq = reachSq;
     } else {
-        float speed = static_cast<float>(targetUnit->MoveSpeed());   // CUnit::MoveSpeed: a float
+        float speed = static_cast<float>(targetUnit->MoveSpeed());   // Unit::MoveSpeed: a float
         reachSq = range * range;
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
@@ -343,7 +343,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;
-            CSpell* missile;
+            Spell* missile;
             if (OrderSpell(this, order->source, &missile) && missile &&
                 (missile->targetFlags & SpellTargetFlag::AtPoint)) {
                 float flight = missile->speed;
@@ -412,7 +412,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
 bool UnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan{};
-    CMapObject* target = order->target;
+    MapObject* target = order->target;
     if (IsUnit(target)) target->flags |= MapObjectFlag::Planned;
     bool result = PlanAction(order, &plan);
     if (IsUnit(target)) target->flags &= ~MapObjectFlag::Planned;

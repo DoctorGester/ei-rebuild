@@ -7,7 +7,7 @@
 #include "ref.h"
 #include "device_material.h"   // DeviceMaterial, MaterialStage
 #include "engine_object.h"
-#include "map_object_figures.h"   // CObject3D, Object3DSpecific (the base half)
+#include "map_object_figures.h"   // Object3D, Object3DSpecific (the base half)
 #include "material.h"             // Material
 #include "maths.h"
 #include "model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
@@ -40,7 +40,7 @@ struct TextureParts {
     TextureParts(const TextureParts&) = delete;
     TextureParts& operator=(const TextureParts&) = delete;
 
-    CTexture* texture;
+    Texture* texture;
     std::vector<PartGroup*> groups;   // owned
 };
 
@@ -117,7 +117,7 @@ public:
     // The texture of kind `kind`: one of `textures`, else a new one of the client world for a new part set,
     // the first for the skin kinds (1, 3, 4, 6-9, 0xB, 0xD-0x10), the second for any other; an existing set
     // only has its texture's kind changed. Trees (MapObjectType::Tree) flag the texture 0x2000.
-    CTexture* FindOrAddTexture(int kind);
+    Texture* FindOrAddTexture(int kind);
     // The material of kind `material` in the set whose texture has kind `texture`: its group's, else a new
     // one of the client world in a new group. Null when no set has the texture.
     Material* FindOrAddMaterial(int texture, int material);
@@ -125,7 +125,7 @@ public:
     Material* FindMaterial(int texture, int material);
     // `texture` replaces the one of its kind in `textures` (referenced; the old one released) and in the part
     // set of that kind. Returns the old texture, or null.
-    CTexture* ReplaceTexture(CTexture* texture);
+    Texture* ReplaceTexture(Texture* texture);
     // The skin names become `first` / `second`; for each that is not null or "none" (any case) the part set's
     // texture is replaced by the texture manager's of that kind and name or else renamed and loaded. Returns 1.
     int SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second);
@@ -150,13 +150,13 @@ public:
     // The two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key),
     // the second a hero's simple skin (UnitClientSpecific).
     TextureParts* partSets[2];
-    std::vector<CTexture*> textures;     // the sets' textures (counted)
+    std::vector<Texture*> textures;     // the sets' textures (counted)
     std::vector<Material*> materials;   // the groups' materials (counted): fade-in, tints
     int materialCursor;             // the iteration's index, -1 when there are none
     bool shadowMade;                // the sphere fitted since Create / ClearShadow
     ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
     Rect drawnRect;                 // the screen area of the dirty parts Draw drew
-    Ref<CTexture> woundsTexture;    // the wounds texture (ShowWounds loads it)
+    Ref<Texture> woundsTexture;    // the wounds texture (ShowWounds loads it)
     Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     std::string skinName;          // the first set's texture name (SetSkins)
     std::string secondSkinName;    // the second set's
@@ -168,7 +168,7 @@ public:
 // Whether the game shows `object`'s shadow (shadows on for its kind, the object shown and not invisible) and,
 // when it does, how strongly it casts in the new renderer's shadow map (*strength: 1, a unit as far as it has
 // faded in). Reads only; the shadow draw and the casters outside the view share it.
-bool ShadowCastStrength(CObject3D* object, float* strength);
+bool ShadowCastStrength(Object3D* object, float* strength);
 
 // The material that draws a wounds texture (made when the wounds are first shown): blending on, source
 // factor the source alpha, destination factor its inverse, the renderer helper's preset 4, two stages.
@@ -179,4 +179,4 @@ struct WoundsMaterial final : DeviceMaterial {
 
 inline void Object3DClientSpecific::ClearWoundsMaterial() { woundsMaterial.Reset(); }
 
-inline Object3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<Object3DClientSpecific*>(attached); }
+inline Object3DClientSpecific* Object3D::ClientSpecific() const { return static_cast<Object3DClientSpecific*>(attached); }

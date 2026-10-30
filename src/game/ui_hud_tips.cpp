@@ -20,7 +20,7 @@
 
 // --- The weapon bar's unit -----------------------------------------------------------
 
-void HudWeaponBar::SetUnit(CUnit* newUnit) {
+void HudWeaponBar::SetUnit(Unit* newUnit) {
     std::string tip;
     std::string description;
     std::string line;
@@ -63,7 +63,7 @@ void HudWeaponBar::SetUnit(CUnit* newUnit) {
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
-        if (CSpell* spell = weapon->spell) {
+        if (Spell* spell = weapon->spell) {
             description = "Unknown";
             if (g_clientWorld.texts->TextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
                 description = g_clientWorld.texts->ReadLine(true);
@@ -85,7 +85,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
     if (!item) return text;
     text = g_clientWorld.texts->GetItemTexts(item).name;
     std::string line;
-    CSpell* data = item->spell;
+    Spell* data = item->spell;
     if (!data) return text;
     const float one = 1.0f;
     const float pi = 3.1415927f;
@@ -155,7 +155,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
 
 // --- The action column's unit --------------------------------------------------------
 
-void HudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
+void HudActionColumn::SetUnit(Unit* newUnit, bool extra) {
     unit = newUnit;
     ClearSceneObjects();
     actions.clear();
@@ -166,7 +166,7 @@ void HudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
         AddAction("initqi1item", "skill0011", -1);
         regions[count - 1]->SetTip(0x290E, 0x1C);
     }
-    CUnit* shown = unit;
+    Unit* shown = unit;
     if (!shown) return;
 
     // The science button (the original loops once over a switch of three buttons).

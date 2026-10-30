@@ -28,12 +28,12 @@ constexpr const char* kOrcFemale = "unorfe";
 constexpr const char* kMoli = "unmoli";
 
 // `a` regards `b`'s side as hostile. The shift count is taken mod 32, like SHL.
-bool Regards(const CUnit* unit, const CUnit* other) {
+bool Regards(const Unit* unit, const Unit* other) {
     return (unit->relationsA & ((1u << (other->side & 31)) & unit->relationsB)) != 0;
 }
 } // namespace
 
-void CSpell::Create() {
+void Spell::Create() {
     speed = 0;
     range = 0;
     targetCount = 0;
@@ -46,7 +46,7 @@ void CSpell::Create() {
     std::memset(modifiers, 0, sizeof(modifiers));
 }
 
-void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
+void Spell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed = prototype->speed;
     range = prototype->range;
     if (prototype->targetKind == 'u') {
@@ -68,18 +68,18 @@ void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     std::memset(modifiers, 0, sizeof(modifiers));
 }
 
-itemdb::SpellRecord* CSpell::GetPrototype() {
+itemdb::SpellRecord* Spell::GetPrototype() {
     return SpellAt(prototypeId >> 16);
 }
 
-int CSpell::GetModifierCount() {
+int Spell::GetModifierCount() {
     for (int i = 0; i < 8; ++i) {
         if (modifiers[i] == 0) return i;
     }
     return 8;
 }
 
-bool CSpell::HasCastFlagModifier() {
+bool Spell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
         std::int8_t entry = modifiers[i];
         if (entry == 0) break;
@@ -92,7 +92,7 @@ bool CSpell::HasCastFlagModifier() {
     return false;
 }
 
-int CSpell::GetDamageType() {
+int Spell::GetDamageType() {
     switch (Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::FireWall: case SpellType::RickMagic:
         return 3;
@@ -106,7 +106,7 @@ int CSpell::GetDamageType() {
     }
 }
 
-bool CSpell::IsOffensive() {
+bool Spell::IsOffensive() {
     switch (Type()) {
     case SpellType::FireArrow: case SpellType::Lightning: case SpellType::AcidRay: case SpellType::Fireball:
     case SpellType::InvokeLightning: case SpellType::AcidColumn: case SpellType::FireWall:
@@ -122,15 +122,15 @@ bool CSpell::IsOffensive() {
 }
 // Site #0 of FixSpellSelfCasting; site #1 is in BattleScreen::SelectUnit.
 
-bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
+bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     std::uint32_t restricted = targetFlags & kSpellTargetRestrictions;
     if (restricted == 0) return true;
     if (!target || target->GetClassId() != ClassId::Unit) return false;
 
     // The target is a unit (tested above).
-    const CUnit* unit = static_cast<const CUnit*>(target);
+    const Unit* unit = static_cast<const Unit*>(target);
     if (caster) {
-        const CUnit* source = caster;
+        const Unit* source = caster;
         bool hostile = Regards(source, unit) || Regards(unit, source);
         if ((restricted & SpellTargetFlag::FriendsOnly) && hostile) return false;
         if ((restricted & SpellTargetFlag::EnemiesOnly) && !hostile) return false;
@@ -152,7 +152,7 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     out->backstabFactor = 1.0f;
     out->calledShot = 0;
 
-    const CSpell* record = HeldSpell();
+    const Spell* record = HeldSpell();
     switch (record->Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
         out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
@@ -177,7 +177,7 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     }
 }
 
-float CLight::GetIntensityAt(const Vector3& point) {
+float Light::GetIntensityAt(const Vector3& point) {
     if (type != kPointLight) {
         return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
     }
@@ -220,7 +220,7 @@ char* SpellModifierCodeByName(std::string_view name) {
 
 // --- The spell's effect record, lifetime, class name and id ---------------------------------------
 
-MapEffect CSpell::EffectRecord() const {
+MapEffect Spell::EffectRecord() const {
     MapEffect record;
     record.type = prototypeIndex;
     record.power = effectPower;
@@ -230,7 +230,7 @@ MapEffect CSpell::EffectRecord() const {
     return record;
 }
 
-void CSpell::SetEffect(const MapEffect& record) {
+void Spell::SetEffect(const MapEffect& record) {
     prototypeIndex = record.type;
     effectPower = record.power;
     duration = static_cast<std::uint32_t>(record.ticksLeft);
@@ -238,7 +238,7 @@ void CSpell::SetEffect(const MapEffect& record) {
     radius = std::bit_cast<float>(record.strength);
 }
 
-CSpell::CSpell() {
+Spell::Spell() {
     prototypeIndex = 0;
     effectPower = 0;
     duration = 0;
@@ -256,10 +256,10 @@ CSpell::CSpell() {
     std::memset(modifiers, 0, sizeof(modifiers));
 }
 
-CSpell::~CSpell() { CSpell::Destroy(); }
+Spell::~Spell() { Spell::Destroy(); }
 
-const char* CSpell::ClassName() { return "CSpell"; }
-ClassId CSpell::GetClassId() { return ClassId::Spell; }
+const char* Spell::ClassName() { return "CSpell"; }
+ClassId Spell::GetClassId() { return ClassId::Spell; }
 
 // --- An effect's tick ----------------------------------------------------------------------------
 

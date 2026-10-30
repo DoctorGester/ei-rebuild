@@ -1,4 +1,4 @@
-// Stealing an item from a unit. See unit.h (CUnit::TakeRandomItem) and
+// Stealing an item from a unit. See unit.h (Unit::TakeRandomItem) and
 // docs/notes/units.md ("Creation, databases, save").
 #include "random.h"
 #include "unit.h"
@@ -11,7 +11,7 @@ constexpr int kPartItems = 5;     // MarkChanged part
 
 } // namespace
 
-Item* CUnit::TakeRandomItem() {
+Item* Unit::TakeRandomItem() {
     if (!carried.empty()) {
         // The first carried item, the rest moved down.
         Item* item = carried.front();

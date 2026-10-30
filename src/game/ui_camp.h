@@ -261,7 +261,7 @@ public:
     // Camp page `page` (1-21).
     void TopicClicked(int page) override;
     // Not checked.
-    CUnit* HeroUnit(int index) override { return heroes[index]; }
+    Unit* HeroUnit(int index) override { return heroes[index]; }
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
     PartySkill BestPartySkill(int school) override;
@@ -336,14 +336,14 @@ public:
     bool itemConstructor = false;    // the item constructor's pages are offered
     ClassTemplate* constructor = nullptr;    // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
-    std::vector<CUnit*> heroes;
+    std::vector<Unit*> heroes;
     int hero = -1;                   // the hero shown
     // The constructors' parts and what they made.
-    CParty* itemParts[3] = {};
-    CParty* itemResults = nullptr;
-    CParty* itemExtra = nullptr;
-    CParty* spellParts[3] = {};
-    CParty* spellResults = nullptr;
+    Party* itemParts[3] = {};
+    Party* itemResults = nullptr;
+    Party* itemExtra = nullptr;
+    Party* spellParts[3] = {};
+    Party* spellResults = nullptr;
     HeroStatsPanel* statsPanel = nullptr;
     ItemInfoPanel* helpPanel = nullptr;
     UiItemStrip* itemStrip = nullptr;
@@ -491,14 +491,14 @@ public:
 class ConstructorPage : public UiItemPanel {
 public:
     using UiItemPanel::UiItemPanel;
-    void BuildItemMaker(CParty* slots);
+    void BuildItemMaker(Party* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
     void Draw(SceneRenderer* pass) override;
     // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
     // container (0x10), from 3 material region - 3 (0xF).
     Item* ItemAt(int x, int y, int* topic) override;
 
-    CParty* slots = nullptr;
+    Party* slots = nullptr;
     float pulse = 0.0f;              // the highlight's time
 };
 class SpellMakerPage : public ConstructorPage {
@@ -507,7 +507,7 @@ public:
     // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
     // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
     Item* ItemAt(int x, int y, int* topic) override;
-    void BuildSpellMaker(CParty* slots);
+    void BuildSpellMaker(Party* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the
     // next part goes.

@@ -77,7 +77,7 @@ bool Passed(std::uint32_t frame, float last, float now) {
 }
 
 // "<prototype name><texture>.mmp" into `texture`.
-void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
+void AddPrototypePrefix(const Unit* unit, std::string& texture) {
     std::string named = unit->name + std::string(texture);
     std::string withExtension = named + ".mmp";
     texture = withExtension;
@@ -87,7 +87,7 @@ void AddTexture(SkinRequest& request, const std::string& texture) {
     request.textures.push_back(texture);
 }
 
-void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
+void AddArmourTexture(SkinRequest& request, const Unit* unit, std::string& texture, std::uint32_t id) {
     texture = ArmorModelName(PrototypeIndex(id), MaterialIndex(id));
     AddPrototypePrefix(unit, texture);
     AddTexture(request, texture);
@@ -96,7 +96,7 @@ void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& text
 // The layer texture names and the two keys of a skin.
 void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
                       std::string& prototypeKey, std::string& texture) {
-    const CUnit* unit = self->unit;
+    const Unit* unit = self->unit;
     int id = unit->id;
     if (!detailed) {
         unitKey = std::format("mo{}s", id);
@@ -153,7 +153,7 @@ bool UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
-    CFigureManager* manager = g_clientWorld.figureManager;
+    FigureManager* manager = g_clientWorld.figureManager;
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return true;
 
@@ -392,7 +392,7 @@ std::vector<SkinLayer> UnitClientSpecific::BuildSkinLayers(int detailed) {
 }
 
 bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
-    CTextureManager* textureManager = g_clientWorld.textureManager;
+    TextureManager* textureManager = g_clientWorld.textureManager;
     bool result;
     {
         std::string unitKey;

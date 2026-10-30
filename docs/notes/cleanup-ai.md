@@ -22,13 +22,13 @@ the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vecto
   `const AIOrder*`, so nothing reads past it. The brain's action point and looks are one `AIMoveOrder move` (+0x008; 00545B20 clears it).
 - **UnitShapeCache** (`ai_shape_cache.h`) is a novtable class whose slot 0 is `CreateShape`; `UnitShapeHandle` is `ShapeCacheHandle`; the shape map
   is a `std::unordered_map<float, SharedRef<RefObject>>`. **FootprintCellSet** holds its cells in a `std::vector<FootprintCell>`.
-- **Virtual slots used.** CMapObject: `KeepsMapFlag` (43, returns bool, AL), `PositionAt` (52), `AimPoint` (53), `IsLargeUnit` (54), `IsDead` (55).
-  CWorld: `ObjectWithId` (40). ByteStream: `Read` / `Write` (path save). RefCounted's deleting destructor through `delete` (the original's inlined
+- **Virtual slots used.** MapObject: `KeepsMapFlag` (43, returns bool, AL), `PositionAt` (52), `AimPoint` (53), `IsLargeUnit` (54), `IsDead` (55).
+  World: `ObjectWithId` (40). ByteStream: `Read` / `Write` (path save). RefCounted's deleting destructor through `delete` (the original's inlined
   release).
 - **Part names in CollectFootprint** come from the server companion's string array (`MapObjectServer` +0x80) or the object's own, read as
   `std::vector<std::string>` members in `unit.h` and `map_object_figures.h`.
-- **The party in danger** (`PartyInDanger`, `unit_ai_modes.cpp`) is `CPlayer::connection` -> `PlayerServer::danger == InDanger`.
-  `CUnit::player` is still `char*` (`unit.h`).
+- **The party in danger** (`PartyInDanger`, `unit_ai_modes.cpp`) is `Player::connection` -> `PlayerServer::danger == InDanger`.
+  `Unit::player` is still `char*` (`unit.h`).
 
 ## Left
 
@@ -43,6 +43,6 @@ the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vecto
   `unknown_0F4` (the nearby list; renaming it touches `player_sync.cpp`).
 - Hand-laid fields that remain: the water grid fields, `bridgeHeights` as bytes, the `__fastcall` layer Set / Merge
   shims in `ai_unit_layer.h`, `SmoothPath`'s fraction passed as raw bits (it is stored to memory before the octant's x87 work; a float parameter
-  would change when it is stored and pushed), and the `CStringArray` layouts in `MapObjectServer` and `CObject3D` (other areas).
-- Counted object references are `Ref<T>` fields (ref.h): `PlayerMode::leader` is a `Ref<CUnit>` (Assign / Reset on the field,
+  would change when it is stored and pushed), and the `CStringArray` layouts in `MapObjectServer` and `Object3D` (other areas).
+- Counted object references are `Ref<T>` fields (ref.h): `PlayerMode::leader` is a `Ref<Unit>` (Assign / Reset on the field,
   `LoadRef` / `SaveRef` from engine_object.h). `Ref<T>::Of` remains for list nodes that are plain pointers.

@@ -33,13 +33,13 @@ struct MaterialEntry {
 
 // The bits of EngineObject::flags on a material.
 enum class MaterialFlag : std::uint32_t {
-    Keyed = 0x8,            // set by CMaterialManager::NewMaterial (its colours from the table by type); nothing reads it
+    Keyed = 0x8,            // set by MaterialManager::NewMaterial (its colours from the table by type); nothing reads it
     KeepSpecular = 0x10,    // a figure part drawn with it keeps its speculars (draw flag 8; the stun / light pulses set it)
 };
 template <> inline constexpr bool lib::kBitFlags<MaterialFlag> = true;
 
 // A material (class id 5, "Material"; material.cpp), made by the material manager (the world's
-// pointer, CMaterialManager::NewMaterial; the file's vectors are the ambient, diffuse and specular
+// pointer, MaterialManager::NewMaterial; the file's vectors are the ambient, diffuse and specular
 // colours, the power and the diffuse alpha). It is also the material a figure part is drawn with. Names
 // provisional. A real virtual class: the compiler makes its vtable.
 class Material : public EngineObject {
@@ -70,11 +70,11 @@ public:
 // The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's pointer;
 // material.cpp): a resource manager of Material objects with a table of colours by key (filled by
 // its Create, Rebirth-patched). A real virtual class: the compiler makes its vtable.
-class CMaterialManager : public ResourceManager {
+class MaterialManager : public ResourceManager {
 public:
 
-    CMaterialManager();
-    ~CMaterialManager() override;
+    MaterialManager();
+    ~MaterialManager() override;
     const char* ClassName() override;   // 11: "CMaterialManager"
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"

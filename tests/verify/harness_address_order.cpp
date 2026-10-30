@@ -100,12 +100,12 @@ void __fastcall OnBindingForOriginal(net::ClientSession* self, RefObject* bindin
 // The draw lists' order by name, as ours (address_order::DrawBefore, src/game/address_order.cpp): the first part
 // set's texture (null first, then by name), then the figure (null first, then by name and morph weights), then the
 // view depth as the original.
-const CTexture* RankTexture(const Object3DClientSpecific* model) {
+const Texture* RankTexture(const Object3DClientSpecific* model) {
     const TextureParts* rank = model->partSets[0];
     return rank ? rank->texture : nullptr;
 }
 
-int CompareTextures(const CTexture* a, const CTexture* b) {
+int CompareTextures(const Texture* a, const Texture* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
     const char* aName = a->name;
     const char* bName = b->name;
@@ -126,8 +126,8 @@ int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
 
 bool DrawBefore(EngineObject* a, EngineObject* b) {
     if (!a || !b) return false;
-    const auto* objectA = static_cast<const CObject3D*>(a);
-    const auto* objectB = static_cast<const CObject3D*>(b);
+    const auto* objectA = static_cast<const Object3D*>(a);
+    const auto* objectB = static_cast<const Object3D*>(b);
     const Object3DClientSpecific* groupA = objectA->ClientSpecific();
     const Object3DClientSpecific* groupB = objectB->ClientSpecific();
     if (!groupA || !groupB) return false;

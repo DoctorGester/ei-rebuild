@@ -54,8 +54,8 @@ bool SnapshotReadToEnd() {
 
 int EffectMissile::Steer() {
     int flying = 1;
-    CWorld* world = OwningWorld();
-    CMapObject* target = world->ObjectWithId(targetId);
+    World* world = OwningWorld();
+    MapObject* target = world->ObjectWithId(targetId);
     if (target == nullptr) {
         velocity = Vector3{0.0f, 0.0f, 0.0f};
         flying = 0;
@@ -110,7 +110,7 @@ bool EffectArrow::RunTick() {
 }
 
 void EffectMissile::Reset() {
-    CEffect::Reset();
+    Effect::Reset();
     arrived = 0;
     targetId = -1;
     fromCaster = 0;
@@ -260,11 +260,11 @@ bool EffectArrowFigure::RunTick() {
     localPosition.y = localPosition.y + velocity.y;
     localPosition.z = localPosition.z + velocity.z;
     if (!WorldContext()->IsServer()) MoveParts();
-    CWorld* world = OwningWorld();
+    World* world = OwningWorld();
     if (arrived != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
-        CMapObject* target = world->ObjectWithId(targetId);
-        CUnit* caster = world->FindUnit(casterId);
+        MapObject* target = world->ObjectWithId(targetId);
+        Unit* caster = world->FindUnit(casterId);
         if (target != nullptr) target->ReceiveHit(&hit, caster, caster);
     }
     return arrived == 0;
@@ -284,11 +284,11 @@ void EffectArrowFigure::Start(int update) {
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
     int objectId = g_clientWorld.nextClientObjectId--;
-    auto* object = g_clientWorld.objectManager->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, objectId);
+    auto* object = g_clientWorld.objectManager->CreateObjectAs<MapObject>(MapObjectType::StuffObject, objectId);
     figure.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
-    CObject3D* currentFigure = figure;
+    Object3D* currentFigure = figure;
     Object3DClientSpecific* attached = currentFigure->ClientSpecific();
     currentFigure->localPosition = localPosition;
     std::vector<std::string> parts;

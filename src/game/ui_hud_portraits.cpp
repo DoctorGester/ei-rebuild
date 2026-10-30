@@ -126,7 +126,7 @@ void HudPortraits::Update() {
         // Objects 5i+1 .. 5i+5, read afresh each time (replacing the face model may move the array).
         auto object = [this, i](int k) { return sceneObjects[i * 5 + k]; };
         HudPortraitSlot& slot = slots[i];
-        CUnit* unit = owner->party[i];
+        Unit* unit = owner->party[i];
 
         // Health bar (object 5i+2) and mana bar (5i+3).
         int hitPoints = unit->packedVitals.hitPoints < 0 ? 0 : unit->packedVitals.hitPoints;

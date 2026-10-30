@@ -45,7 +45,7 @@ extern LeverRecordTable g_leverTable;   // lever_table.cpp
 // Levers ("CLeverObject", class id 0x5D); gates are levers too (zone1's "VGate"). scale.y is the shown
 // position (0..1), scale.z a second animation value that scales the spots' distance; flags 0x80000
 // disables the lever (EnableLever 0). See docs/notes/units.md ("Levers").
-class Lever : public CMapObject {
+class Lever : public MapObject {
 public:
     Lever();
     ~Lever() override;

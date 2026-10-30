@@ -317,14 +317,14 @@ void SuspectionMode::Save(ByteStream* stream) {
 
 int AggressionMode::Evaluate(AIBrain* brain) {
     chosen.object = nullptr;
-    CUnit* self = brain->owner->unit;
+    Unit* self = brain->owner->unit;
     if (fixed) {
         if (enemy && enemy->IsDead()) {
             enemy.Reset();
             return kPriorityNone;
         }
         // Without an enemy yet: the seen object, unless it is an ally, the unit itself or reported.
-        CMapObject* seen = brain->seen;
+        MapObject* seen = brain->seen;
         if (!enemy && seen && !brain->IsAlliedUnit(seen) && seen != self && !brain->memory.reports.Contains(seen))
             enemy.Assign(seen);
         if (!enemy) return kPriorityNone;
@@ -332,7 +332,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             enemy.Reset();
             return kPriorityNone;
         }
-        auto* unit = static_cast<CUnit*>(enemy.Get());
+        auto* unit = static_cast<Unit*>(enemy.Get());
         if (!brain->memory.CanTrack(self, unit)) return kPriorityNone;
         chosen = {kWeaponPart, unit};
         return kPriorityFight;
@@ -391,7 +391,7 @@ void AggressionMode::Save(ByteStream* stream) {
 
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (!brain->memory.corpses.empty()) {
-        HeldRef<CUnit> corpse = std::move(brain->memory.corpses.front());   // the list's reference, now ours
+        HeldRef<Unit> corpse = std::move(brain->memory.corpses.front());   // the list's reference, now ours
         brain->memory.corpses.erase(brain->memory.corpses.begin());
         brain->memory.Notice(corpse->localPosition, kNoticeCorpseLevel, kNoticeCorpseDecay);
     }
@@ -436,7 +436,7 @@ void FearMode::Save(ByteStream* stream) {
 // --- Player --------------------------------------------------------------------------------------
 
 void PlayerMode::Execute(AIBrain* brain) {
-    CUnit* unit = brain->owner->unit;
+    Unit* unit = brain->owner->unit;
     bool danger = PartyInDanger(unit);
     if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(AckKind::AttackedInDefence);
 
@@ -508,25 +508,25 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bo
     brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot) {
-    CUnit* self = brain->owner->unit;
+void PlayerMode::CommandAttack(AIBrain* brain, MapObject* object, int how, int calledShot) {
+    Unit* self = brain->owner->unit;
     if (object == self) return;
     state = kStateFollow;
     target.Assign(object);
     // A unit without a player does not attack a unit it cannot keep track of.
-    CUnit* unit = UnitOrNull(object);
+    Unit* unit = UnitOrNull(object);
     if (!self->player && unit && !brain->memory.CanTrack(self, unit)) return;
     brain->action = AIBrain::kActionAttack;
     brain->target.Assign(object);
     brain->owner->OrderAttack(brain->target, how, calledShot, AckKind::Attack);
 }
 
-void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, bool run) {
+void PlayerMode::CommandUse(AIBrain* brain, MapObject* object, UseSource kind, int spot, bool run) {
     state = kStateFollow;
     brain->UseOn(object, kind, spot, run);
 }
 
-void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
+void PlayerMode::CommandCast(AIBrain* brain, int spell, MapObject* object) {
     state = kStateFollow;
     brain->CastOn(spell, object, runs);
 }
@@ -536,16 +536,16 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3& at) {
     brain->CastAt(spell, at, runs);
 }
 
-void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
-    CUnit* self = brain->owner->unit;
+void PlayerMode::SetLeader(AIBrain* brain, Unit* newLeader) {
+    Unit* self = brain->owner->unit;
     if (newLeader == self) {
         leader.Reset();
         return;
     }
     // Following a unit that (through its leaders) follows this one: this unit stops following.
-    for (CUnit* unit = newLeader; unit;) {
+    for (Unit* unit = newLeader; unit;) {
         PlayerMode* mode = unit->ServerController()->brain.FindPlayerMode();
-        CUnit* next = mode ? mode->leader.Get() : nullptr;
+        Unit* next = mode ? mode->leader.Get() : nullptr;
         if (next == self) {
             if (PlayerMode* own = brain->FindPlayerMode()) own->SetLeader(brain, nullptr);
             break;
@@ -631,7 +631,7 @@ bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 // A flight point 5 from the enemy's side of the unit and within 3 of it at random, accepted when a
 // path there is not too roundabout and the order check from the path's end (at most 1 from the
 // point) lets the unit attack `enemy` from there.
-bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
+bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
     Vector3 away{dx, dy, foe.z - me.z};
     float length = LengthZXY(away);
@@ -672,11 +672,11 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 
 int FearMode::Evaluate(AIBrain* brain) {
     UnitServer* owner = brain->owner;
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     // The sum rounded first, then the product, as the original (not spread * 2/3 + 1).
     float grown = spread + spread + kThree;
     spread = grown * kThird;
-    if (CMapObject* seen = brain->seen) {
+    if (MapObject* seen = brain->seen) {
         const Vector3* at = &seen->localPosition;
         brain->memory.Notice(*at, kNoticeSeenLevel, kNoticeSeenDecay);
         const Vector3* me = &brain->owner->unit->localPosition;
@@ -689,7 +689,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
 
     // A unit that fights from a distance keeps away from its nearest enemy.
-    CUnit* enemy = brain->memory.NearestEnemy(self);
+    Unit* enemy = brain->memory.NearestEnemy(self);
     if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
@@ -725,7 +725,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         float best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
         for (auto& node : brain->memory.visible) {
-            CUnit* other = node;
+            Unit* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition;
             float oy = me->y - other->localPosition.y;
@@ -764,7 +764,7 @@ void FearMode::Execute(AIBrain* brain) {
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
     Vector3 from{brain->memory.noticedX, brain->memory.noticedY, 0.0f};
     if (brain->memory.seesEnemy) {
-        if (CUnit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
+        if (Unit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
             from = enemy->localPosition;
             brain->CallAllies(enemy->localPosition);
         }
@@ -851,7 +851,7 @@ void FearMode::Execute(AIBrain* brain) {
 // targets, the party itself and whether the unit's followers keep up.
 
 namespace {
-constexpr int kStandby = 1;                                     // CUnit::fightAtWill: may fight
+constexpr int kStandby = 1;                                     // Unit::fightAtWill: may fight
 constexpr float kReachScale = 1.1f;
 static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
@@ -860,27 +860,27 @@ static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
-CUnit* LeaderOf(const CUnit* unit) {
+Unit* LeaderOf(const Unit* unit) {
     AIBrain* brain = &unit->ServerController()->brain;
-    CMapObject* leader = nullptr;
+    MapObject* leader = nullptr;
     if (auto* mode = brain->FindPlayerMode()) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
-    return static_cast<CUnit*>(leader);
+    return static_cast<Unit*>(leader);
 }
 } // namespace
 
-bool PartyInDanger(const CUnit* unit) {
-    CPlayer* player = unit->player;
+bool PartyInDanger(const Unit* unit) {
+    Player* player = unit->player;
     return player && player->Server()->danger == PlayerServer::PartyDanger::InDanger;
 }
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
-    CUnit* unit = brain->owner->unit;
+    Unit* unit = brain->owner->unit;
     if (unit->fightAtWill != kStandby) return;
 
     // The commanded target first, when it can be reached from here.
     if (target && target->IsDead() == 0) {
-        AITargetChoice choice{kWeaponPart, static_cast<CUnit*>(target.Get())};   // taken as a unit
+        AITargetChoice choice{kWeaponPart, static_cast<Unit*>(target.Get())};   // taken as a unit
         if (brain->CanReach(&choice, true)) {
             brain->AttackTarget(target);
             return;
@@ -896,7 +896,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     UnitList candidates = brain->memory.FindEnemiesNear(unit, point, radius);
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
-    std::erase_if(candidates, [unit](CUnit* other) {
+    std::erase_if(candidates, [unit](Unit* other) {
         UnitServer* control = other->ServerController();
         float sight = control->moveFactors[3] * control->stats.perception[0].current;
         float hearing = control->stats.perception[2].current;
@@ -912,7 +912,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     AITargetChoice best = brain->Choose(&candidates, unit->localPosition, false, false);
     unit->flags &= ~MapObjectFlag::ChoosingTarget;
 
-    CUnit* chosen = best.object;
+    Unit* chosen = best.object;
     if (chosen) {
         if (!PartyInDanger(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
@@ -935,14 +935,14 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 }
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
-    CUnit* unit = brain->owner->unit;
+    Unit* unit = brain->owner->unit;
     UnitList nearby = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;
         ++node;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = &other->ServerController()->brain;
-        auto* foe = static_cast<CUnit*>(theirs->target.Get());
+        auto* foe = static_cast<Unit*>(theirs->target.Get());
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != ClassId::Unit)
             continue;
@@ -953,14 +953,14 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
 
 UnitList PlayerMode::CollectParty(AIBrain* brain) {
     UnitList party;
-    CUnit* unit = brain->owner->unit;
+    Unit* unit = brain->owner->unit;
     if (!unit) return party;
     party.push_back(unit);
-    CPlayer* player = unit->player;
+    Player* player = unit->player;
     if (!player) return party;
     // The chain of leaders above the unit.
-    for (const CUnit* member = unit;;) {
-        CUnit* above = LeaderOf(member);
+    for (const Unit* member = unit;;) {
+        Unit* above = LeaderOf(member);
         if (!above || lib::Contains(party, above)) break;
         party.push_back(above);
         member = above;
@@ -970,8 +970,8 @@ UnitList PlayerMode::CollectParty(AIBrain* brain) {
     do {
         added = false;
         for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
-            CUnit* member = node->second;
-            CUnit* followed = LeaderOf(member);
+            Unit* member = node->second;
+            Unit* followed = LeaderOf(member);
             if (!lib::Contains(party, followed) || lib::Contains(party, member)) continue;
             party.push_back(member);
             added = true;
@@ -982,11 +982,11 @@ UnitList PlayerMode::CollectParty(AIBrain* brain) {
 
 bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     float slack = moving ? kMovingSlack : kStandingSlack;
-    CUnit* unit = brain->owner->unit;
-    CPlayer* player = unit->player;
+    Unit* unit = brain->owner->unit;
+    Player* player = unit->player;
     if (!player) return true;
     for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
-        CUnit* member = node->second;
+        Unit* member = node->second;
         PlayerMode* mode = member->ServerController()->brain.FindPlayerMode();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
@@ -1109,9 +1109,9 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
     if (map->SlopeAt(*out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(*out, self->standingHeight * kAllySpace);
-    for (CUnit* other : units) {
+    for (Unit* other : units) {
         if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return false;
     }
 
@@ -1145,9 +1145,9 @@ void AIBrain::UpdateFollow() {
     if (followTimer++ < kFollowWait) return;
 
     float farSq = g_logicSettings.followMaxDist * g_logicSettings.followMaxDist;
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     float nearSq = g_logicSettings.followMinDist * g_logicSettings.followMinDist;
-    auto* leader = static_cast<CUnit*>(target.Get());
+    auto* leader = static_cast<Unit*>(target.Get());
     Vector3 toLeader{leader->localPosition.x - self->localPosition.x, leader->localPosition.y - self->localPosition.y,
                      leader->localPosition.z - self->localPosition.z};
     int now = g_serverWorld.tick;
@@ -1260,7 +1260,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3& from, const Vector3& t
     float dx = from.x - to.x;
     float dy = from.y - to.y;
     float dz = from.z - to.z;
-    CUnit* unit = brain->owner->unit;
+    Unit* unit = brain->owner->unit;
     Vector3 saved = unit->localPosition;
     float range = 2.0f * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     g_serverWorld.aiMap.sectorMap.Move(unit, from);

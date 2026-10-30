@@ -5,7 +5,7 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "object.h"
-#include "spell.h"                // CLight, TheLightFactory
+#include "spell.h"                // Light, TheLightFactory
 #include "terrain.h"
 #include "texture.h"              // RenderDeviceObject
 #include "world.h"                // WorldClient
@@ -31,7 +31,7 @@ constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
-bool InReach(const CObject3D* object, const CLight* light) {
+bool InReach(const Object3D* object, const Light* light) {
     const Vector3& at = light->localPosition;
     float dx = object->localPosition.x - at.x;
     float dy = object->localPosition.y - at.y;
@@ -46,7 +46,7 @@ bool PartTooFar(const FigureMesh* part) {
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.
-void Finish(ObjectListIterator& lights, std::vector<CLight*>& list) {
+void Finish(ObjectListIterator& lights, std::vector<Light*>& list) {
     if (lights.manager) {
         lights.manager->ForgetReference();
         lights.manager = nullptr;
@@ -79,10 +79,10 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     if (object->animation) object->animation->UpdatePose();
 
     // The lights within reach (the list starts with room for 16).
-    std::vector<CLight*> list;
+    std::vector<Light*> list;
     list.reserve(0x10);
-    ObjectListIteratorOf<CLight> lights{};
-    CLight* light = lights.First(g_clientWorld.lightFactory);
+    ObjectListIteratorOf<Light> lights{};
+    Light* light = lights.First(g_clientWorld.lightFactory);
     for (; light; light = lights.Next()) {
         if (context->sun == light) continue;
         if (!InReach(object, light)) continue;

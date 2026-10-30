@@ -38,18 +38,18 @@ constexpr int kPartEquipment = 5;
 
 float ItemWeight(const Item* item) { return item->Weight(); }
 
-float SpellCost(const CSpell* spell) { return spell->manaCost; }
+float SpellCost(const Spell* spell) { return spell->manaCost; }
 
 // The party of the unit's player.
-CParty* RecordsOf(CPlayer* player) { return player->GetParty(); }
+Party* RecordsOf(Player* player) { return player->GetParty(); }
 
 // The units of a player's party have a client-specific controller; their items live in the player's inventory
 // records.
-bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == ClassId::UnitClientSpecific; }
+bool IsPartyUnit(Unit* unit) { return unit->controller->GetClassId() == ClassId::UnitClientSpecific; }
 
 // Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
 // already there (whatever its slot), -1 when full.
-int AddToSlots(CUnit* unit, Item** slots, std::uint32_t count, Item* item) {
+int AddToSlots(Unit* unit, Item** slots, std::uint32_t count, Item* item) {
     for (std::uint32_t i = 0; i < count; ++i) {
         if (slots[i] == item) return 1;
         if (!slots[i]) {
@@ -62,7 +62,7 @@ int AddToSlots(CUnit* unit, Item** slots, std::uint32_t count, Item* item) {
     return -1;
 }
 
-void RemoveFromSlots(CUnit* unit, Item** slots, std::uint32_t slot) {
+void RemoveFromSlots(Unit* unit, Item** slots, std::uint32_t slot) {
     if (slot >= 4) return;
     Item* item = slots[slot];
     slots[slot] = nullptr;
@@ -71,7 +71,7 @@ void RemoveFromSlots(CUnit* unit, Item** slots, std::uint32_t slot) {
 }
 
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
-float ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
+float ModeSpeedOf(const Unit* unit, std::uint32_t mode) {
     float base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;
     std::uint8_t speed;
     switch (mode) {
@@ -89,7 +89,7 @@ float ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
 
 // --- Sides -----------------------------------------------------------------------------------
 
-void CUnit::AddHostileMask(std::uint32_t mask) {
+void Unit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
     if (relationsA == merged) return;
     relationsA = merged;
@@ -97,29 +97,29 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     MarkChanged(kPartRelations);
 }
 
-void CUnit::SetRelationsB(std::uint32_t mask) {
+void Unit::SetRelationsB(std::uint32_t mask) {
     relationsB = mask;
     MarkChanged(kPartRelations);
 }
 
-void CUnit::SetSide(int value) {
+void Unit::SetSide(int value) {
     side = value;
     flags |= MapObjectFlag::RelationsChanged;
     if (controller) MarkChanged(kPartRelations);
 }
 
-bool CUnit::IsHostileTo(const CUnit* other) {
+bool Unit::IsHostileTo(const Unit* other) {
     return ((1u << (other->side & 31)) & relationsB & relationsA) != 0;
 }
 
 // --- Simple state setters --------------------------------------------------------------------
 
-void CUnit::SetFightAtWill(int value) {
+void Unit::SetFightAtWill(int value) {
     fightAtWill = value;
     MarkChanged(13);
 }
 
-void CUnit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound) {
+void Unit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound) {
     animationEntry = entry;
     secondEntry = second;
     actionSound = sound;
@@ -127,25 +127,25 @@ void CUnit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start
     MarkChanged(8);
 }
 
-void CUnit::SetMotionMode(int value) {
+void Unit::SetMotionMode(int value) {
     if (motionMode == value) return;
     motionMode = value;
     MarkChanged(7);
 }
 
-void CUnit::SetPathTimeShift(int value) {
+void Unit::SetPathTimeShift(int value) {
     if (pathTimeShift == value) return;
     pathTimeShift = value;
     MarkChanged(7);
 }
 
-void CUnit::SetMoveModes(int mode, int mode2) {
+void Unit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;
     moveMode2 = mode2;
     MarkChanged(6);
 }
 
-void CUnit::ShowHelmet(bool show) {
+void Unit::ShowHelmet(bool show) {
     if (show) {
         flags &= ~MapObjectFlag::HelmetHidden;
     } else {
@@ -154,7 +154,7 @@ void CUnit::ShowHelmet(bool show) {
     MarkChanged(5);
 }
 
-std::uint32_t CUnit::SetStunned(int on) {
+std::uint32_t Unit::SetStunned(int on) {
     if (on) {
         flags |= MapObjectFlag::Frozen;
     } else {
@@ -165,7 +165,7 @@ std::uint32_t CUnit::SetStunned(int on) {
 
 // --- Equipment -------------------------------------------------------------------------------
 
-void CUnit::GetEquipmentIds(std::uint32_t* out) {
+void Unit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
         out[i] = weapons[i] ? weapons[i]->prototypeId : 0xFFFFFFFFu;
     }
@@ -174,26 +174,26 @@ void CUnit::GetEquipmentIds(std::uint32_t* out) {
     }
 }
 
-int CUnit::AddWeapon(Item* item) {
+int Unit::AddWeapon(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, weapons, 4, item);
 }
 
-int CUnit::AddQuickItem(Item* item) {
+int Unit::AddQuickItem(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, quickItems, 4, item);
 }
 
-int CUnit::AddSpell(Item* item) {
+int Unit::AddSpell(Item* item) {
     // No null check here: a null item "is already there" at the first empty slot (returns 1).
     return AddToSlots(this, spells, 8, item);
 }
 
-void CUnit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, slot); }
+void Unit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, slot); }
 
-void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
+void Unit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
 
-ItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
+ItemWeapon* Unit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -203,7 +203,7 @@ ItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
 }
 
-Item* CUnit::GetQuickItem(std::uint32_t slot) {
+Item* Unit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -215,7 +215,7 @@ Item* CUnit::GetQuickItem(std::uint32_t slot) {
     return slot < 4 ? quickItems[slot] : nullptr;
 }
 
-Item* CUnit::GetSpell(std::uint32_t slot) {
+Item* Unit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -225,7 +225,7 @@ Item* CUnit::GetSpell(std::uint32_t slot) {
     return slot < 8 ? spells[slot] : nullptr;
 }
 
-CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
+Spell* Unit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -237,7 +237,7 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     return spells[slot]->spell;
 }
 
-float CUnit::TotalItemWeight() {
+float Unit::TotalItemWeight() {
     float total = 0.0f;
     for (Item* item : weapons) {
         if (item) total += ItemWeight(item);
@@ -254,10 +254,10 @@ float CUnit::TotalItemWeight() {
     return total;
 }
 
-bool CUnit::CanCastSpell(std::uint32_t slot) {
+bool Unit::CanCastSpell(std::uint32_t slot) {
     if (slot >= 8) return false;
     if (HasEffect(SpellType::Feeblemind)) return false;
-    CSpell* spell = GetSpellObject(slot);
+    Spell* spell = GetSpellObject(slot);
     if (!spell) return false;
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
@@ -266,7 +266,7 @@ bool CUnit::CanCastSpell(std::uint32_t slot) {
     return !(available < needed);   // a NaN cost can cast
 }
 
-bool CUnit::CanUseQuickItem(std::uint32_t slot) {
+bool Unit::CanUseQuickItem(std::uint32_t slot) {
     Item* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != ClassId::ItemQuick) return false;
     Item* item = object;
@@ -280,7 +280,7 @@ bool CUnit::CanUseQuickItem(std::uint32_t slot) {
 
 // --- Movement --------------------------------------------------------------------------------
 
-void CUnit::GetMoveSpeeds(float* forward, float* backward) {
+void Unit::GetMoveSpeeds(float* forward, float* backward) {
     float base = static_cast<float>(params.baseSpeed) * kSpeedByteScale;
     *forward = base;
     *backward = base;
@@ -305,11 +305,11 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     *backward = g_logicSettings.rotateSpeedMult * *backward;
 }
 
-float CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
+float Unit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
 
-float CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
+float Unit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
 
-float CUnit::ScaledValue(float value) {
+float Unit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
     if (flags & MapObjectFlag::ChoosingTarget) {
         float capped = MinKeepA(value, kTen);   // NaN is kept
@@ -318,12 +318,12 @@ float CUnit::ScaledValue(float value) {
     return kNoPlayerValue;
 }
 
-float CUnit::BaseSpeed() {
+float Unit::BaseSpeed() {
     if (lib::Has(bounds.flags, BoundsFlag::Box)) return bounds.boxMax.z * kFastSpeedScale;
     return pc24::Mul(bounds.radius, kWalkSpeedScale) + bounds.center.z;
 }
 
-float CUnit::ModeSpeed() {
+float Unit::ModeSpeed() {
     float speed = BaseSpeed();
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
@@ -334,19 +334,19 @@ float CUnit::ModeSpeed() {
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId); }
+UnitPrototypeRecord* Unit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId); }
 
-UnitModelRecord* CUnit::GetPrototypeModel() {
+UnitModelRecord* Unit::GetPrototypeModel() {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId);
     if (!prototype) return nullptr;
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 
-UnitPrototypeRecord* CUnit::GetSecondPrototype() {
+UnitPrototypeRecord* Unit::GetSecondPrototype() {
     return unitdb::PrototypeRecord(static_cast<std::uint32_t>(secondPrototype));
 }
 
-std::uint32_t CUnit::SetSecondPrototype(const UnitPrototypeRecord* record) {
+std::uint32_t Unit::SetSecondPrototype(const UnitPrototypeRecord* record) {
     int offset = unitdb::PrototypeByteOffset(record);
     secondPrototype = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
     return offset < 0 ? 1u : 0u;   // the sign of the unadjusted quotient
@@ -354,7 +354,7 @@ std::uint32_t CUnit::SetSecondPrototype(const UnitPrototypeRecord* record) {
 
 // --- Combat ----------------------------------------------------------------------------------
 
-float CUnit::ActionSpeed(const FigureAnimation* entry) {
+float Unit::ActionSpeed(const FigureAnimation* entry) {
     switch (entry->Kind()) {
     case AnimationKind::Attack:
         return actionSpeeds[0];
@@ -372,7 +372,7 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     }
 }
 
-bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
+bool Unit::AcceptsAnimation(const FigureAnimation* entry) {
     if (MapType() != MapObjectType::Hero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
@@ -380,7 +380,7 @@ bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
     return (entry->flags & required) == required;
 }
 
-float CUnit::AnimationRatio() {
+float Unit::AnimationRatio() {
     float denominator = AnimationFactor(baseScale.z);
     return AnimationFactor(scale.z) / denominator;
 }
@@ -403,7 +403,7 @@ bool MapObjectClientSpecific::IsOverkilled() {
 // --- The class name and id, the motion given its speeds, the player test, twice the height above the
 // centre and a worn armour piece.
 
-void CUnit::SetMotionSpeeds(float speed, float turnRate) {
+void Unit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();
     path->ForgetObject(id);
     UnitMotion* unitMotion = &motion;
@@ -413,23 +413,23 @@ void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     unitMotion->Build(path);
 }
 
-bool CUnit::HasPlayer() const { return player != nullptr; }
+bool Unit::HasPlayer() const { return player != nullptr; }
 
-float CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
+float Unit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
 
 
-ItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
+ItemArmor* Unit::WornItem(int slot) const { return armor[slot]; }
 
 // --- Hits, forgotten objects and the script name ----------------------------------------------------
 
-void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
+void Unit::ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster) {
     Controller()->TakeHit(hit, attacker, caster);
 }
 
 // Nothing reads the result.
-int CUnit::ForgetObject(EngineObject* object) {
+int Unit::ForgetObject(EngineObject* object) {
     Controller()->ObjectDeleted(object);
     return 0;
 }
 
-void CUnit::SetScriptName(std::string_view newName) { scriptName = newName; }
+void Unit::SetScriptName(std::string_view newName) { scriptName = newName; }

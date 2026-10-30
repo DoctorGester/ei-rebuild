@@ -1,4 +1,4 @@
-// CUnit's own virtuals: the per-tick update and the virtuals that pass map object
+// Unit's own virtuals: the per-tick update and the virtuals that pass map object
 // events on to the unit's controller, plus standing on the ground. See unit.h and docs/notes/units.md.
 #include "combat.h"
 #include "map_object.h"
@@ -20,31 +20,31 @@ constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 // The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots run are
 // called directly.
 
-void CUnit::Tick() {
+void Unit::Tick() {
     controller->RunTick();
     Update();
 }
 
-void CUnit::RecomputeScale() {
-    CMapObject::RecomputeScale();
+void Unit::RecomputeScale() {
+    MapObject::RecomputeScale();
     Controller()->Resettle();
 }
 
-void CUnit::EffectsChanged() {
+void Unit::EffectsChanged() {
     Controller()->EffectsChanged();
 }
 
-void CUnit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
+void Unit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
 
-void CUnit::LoadFigures() {
+void Unit::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
-    CObject3D::LoadFigures();
+    Object3D::LoadFigures();
     Controller()->FiguresLoaded();
 }
 
-void CUnit::AttachObject(EngineObject* object) {
+void Unit::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::Unit) {
-        CMapObject::AttachObject(object);
+        MapObject::AttachObject(object);
         return;
     }
     if (controller) {
@@ -56,31 +56,31 @@ void CUnit::AttachObject(EngineObject* object) {
     controller->AddRef();
 }
 
-int CUnit::StatsChanged() {
+int Unit::StatsChanged() {
     PackVitals();
     if (controller) Controller()->RepackStats();
     return 1;
 }
 
-void CUnit::ScaleEffectChanged(bool scaleEffect) {
+void Unit::ScaleEffectChanged(bool scaleEffect) {
     if (controller) Controller()->RefreshVitals(scaleEffect);
 }
 
-void CUnit::SetStats(const UnitStats* stats) {
+void Unit::SetStats(const UnitStats* stats) {
     ClassId classId = controller->GetClassId();
     if (classId != ClassId::UnitServer) return;
     ServerController()->SetStats(stats);
 }
 
-void CUnit::UpdateSizeClasses() {
+void Unit::UpdateSizeClasses() {
     Controller()->UpdateSizeClasses();
 }
 
-float* CUnit::StandPoint(float* out) {
+float* Unit::StandPoint(float* out) {
     float x = localPosition.x;
     float y = localPosition.y;
     float lift = ModeSpeed();   // inlined
-    CWorld* world = OwningWorld();
+    World* world = OwningWorld();
     double height;   // the world's double, or the surface plus z (one rounding each)
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
@@ -97,11 +97,11 @@ float* CUnit::StandPoint(float* out) {
     return out;
 }
 
-void CUnit::PlaceOnGround(float offset) {
+void Unit::PlaceOnGround(float offset) {
     float x = localPosition.x;
     float y = localPosition.y;
     heightOffset = offset;
-    CWorld* world = OwningWorld();
+    World* world = OwningWorld();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
             localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
@@ -113,7 +113,7 @@ void CUnit::PlaceOnGround(float offset) {
     }
 }
 
-void CUnit::SetFromStats(UnitStats* stats) {
+void Unit::SetFromStats(UnitStats* stats) {
     stats->Pack(&params);
     float curve = stats->HitPointCurve();
     float limit = ScaleHitPointsByEffects(this, curve);
@@ -123,7 +123,7 @@ void CUnit::SetFromStats(UnitStats* stats) {
 
 }
 
-int CUnit::Level() {
+int Unit::Level() {
     if (IsTextKey(id)) return Controller()->Level();
     const auto* prototype =
         unitdb::PrototypeRecord(prototypeId);
@@ -132,30 +132,30 @@ int CUnit::Level() {
 
 // --- The virtuals -------------------------------------------------------------
 
-void CUnit::Destroy() { DestroyUnit(); }
-void CUnit::ClearState() { ReleaseUnit(); }
-bool CUnit::RunTick() {
+void Unit::Destroy() { DestroyUnit(); }
+void Unit::ClearState() { ReleaseUnit(); }
+bool Unit::RunTick() {
     Tick();
     return true;
 }
-const char* CUnit::GetName() { return scriptName.c_str(); }
-void CUnit::Load(ByteStream* stream) { LoadUnit(stream); }
-void CUnit::Save(ByteStream* stream) { SaveUnit(stream); }
-const char* CUnit::ClassName() { return kUnitClassName; }
-ClassId CUnit::GetClassId() { return ClassId::Unit; }
-bool CUnit::IsSynchronised() { return true; }
-Vector3* CUnit::EyePoint(Vector3* out) {
+const char* Unit::GetName() { return scriptName.c_str(); }
+void Unit::Load(ByteStream* stream) { LoadUnit(stream); }
+void Unit::Save(ByteStream* stream) { SaveUnit(stream); }
+const char* Unit::ClassName() { return kUnitClassName; }
+ClassId Unit::GetClassId() { return ClassId::Unit; }
+bool Unit::IsSynchronised() { return true; }
+Vector3* Unit::EyePoint(Vector3* out) {
     StandPoint(&out->x);
     return out;
 }
-bool CUnit::IsLargeUnit() { return obstacle != 0; }
-bool CUnit::IsDead() { return dead; }
-void CUnit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
-void CUnit::RefreshWounds() { Controller()->RefreshWounds(); }
-double CUnit::MoveSpeed() {
+bool Unit::IsLargeUnit() { return obstacle != 0; }
+bool Unit::IsDead() { return dead; }
+void Unit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
+void Unit::RefreshWounds() { Controller()->RefreshWounds(); }
+double Unit::MoveSpeed() {
     float forward;
     float backward;
     GetMoveSpeeds(&forward, &backward);
     return forward;
 }
-float CUnit::Radius() { return unitRadius; }
+float Unit::Radius() { return unitRadius; }

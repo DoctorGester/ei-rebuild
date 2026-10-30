@@ -212,7 +212,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         bar->Highlight(slot, true);
         bar->selected = slot;
         ui->PlayInterfaceSound(kSoundWeapon);
-        CUnit* unit = bar->unit;
+        Unit* unit = bar->unit;
         if (!unit) return;
         g_clientWorld.LocalView()->SetWeapon(unit, slot);
         return;
@@ -269,7 +269,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         ui->PlayInterfaceSound(kSoundOnOff);
         for (int i = 0; i < std::ssize(party); ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = party[i]) g_clientWorld.Select(unit);
+            if (Unit* unit = party[i]) g_clientWorld.Select(unit);
         }
         if (!party.empty() && party[0]) Speech(party[0]->id, AckKind::Selected, nullptr);
         RefreshSelection();

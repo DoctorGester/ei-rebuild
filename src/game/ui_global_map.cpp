@@ -78,7 +78,7 @@ public:
         return centre + map->turn.Rotate(local);
     }
     void Turn(UiMesh* sprite) const { sprite->localRotation = map->turn; }
-    CTexture* MapTexture(int index) const { return map->objects[index]; }
+    Texture* MapTexture(int index) const { return map->objects[index]; }
 
     UiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
         UiMesh* sprite = map->AddSprite(figure);

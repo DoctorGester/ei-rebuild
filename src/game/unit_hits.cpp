@@ -53,13 +53,13 @@ constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1,
 // The hit log: the rpg stream.
 constexpr console::Stream& kHitLog = console::g_rpgLogOut;
 
-void Remark(CUnit* unit, AckKind kind) {
+void Remark(Unit* unit, AckKind kind) {
     if (unit->controller->GetClassId() == ClassId::UnitServer) unit->ServerController()->Shout(kind);
 }
 
 } // namespace
 
-void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
+void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= 0.0f) return;
     float before = item->condition;
@@ -81,7 +81,7 @@ void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKi
     if (condition < t) Remark(unit, wornRemark);
 }
 
-void WearArmour(CUnit* unit, int location, int layer, float amount) {
+void WearArmour(Unit* unit, int location, int layer, float amount) {
     if (!IsTextKey(unit->id) || layer == 0) return;
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;
@@ -101,7 +101,7 @@ void WearArmour(CUnit* unit, int location, int layer, float amount) {
     WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
 }
 
-int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
+int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
     bool keyed = IsTextKey(unit->id);
     int damaged = 0;
     UnitStatSlot& slot = slots[hit->location];
@@ -155,7 +155,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     return damaged;
 }
 
-int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
+int UnitStats::ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= UnitStatsFlag::Head;
     EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
@@ -212,7 +212,7 @@ void UnitVitals::TakeHit(const DamageInfo* hit) {
     hitPoints = MaxKeepB(f, hp);
 }
 
-bool CUnit::IsBehind(const CMapObject* t) {
+bool Unit::IsBehind(const MapObject* t) {
     if (!player) return false;
     float dx = t->localPosition.x - localPosition.x;
     float dy = t->localPosition.y - localPosition.y;

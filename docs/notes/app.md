@@ -74,7 +74,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   defaults, every object of the object manager 007AF5F8 given rand() * 0x1000 / 0x7FFF % 0x1000 as its companion
   (0050E8F0) and as its specific half (005161A0)). Nothing in the exe adds to the list, so the scramble never runs; ours
   has none of it (R34c: the draw only shifted the game's rand(), the harness makes the original's return at once).
-- 00455950 `EngineObject::World` (the manager context's slot 13, `CManagerContext::ThisWorld`, now declared with its
+- 00455950 `EngineObject::World` (the manager context's slot 13, `ManagerContext::ThisWorld`, now declared with its
   result; null without a context) side by side, on every unit's updates; 00457720 `EngineObject::ReleaseAndDelete` (one
   reference less, `delete` at zero) ours only.
 - 0045EA00 `MapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's

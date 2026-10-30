@@ -15,7 +15,7 @@ const NamedPartyRecords* RecordList() { return &g_partyManager.records; }
 
 } // namespace
 
-CParty* PartyForScript(CPlayer* player, std::string* name) {
+Party* PartyForScript(Player* player, std::string* name) {
     if (!player) return nullptr;
     std::string owner;
     int split = str::Find(*name, "::");

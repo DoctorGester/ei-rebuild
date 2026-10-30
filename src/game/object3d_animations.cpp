@@ -1,4 +1,4 @@
-// Random animations of a 3D object's figure (CObject3D::RandomAnimation and RandomAnimationOfKind; units'
+// Random animations of a 3D object's figure (Object3D::RandomAnimation and RandomAnimationOfKind; units'
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -19,7 +19,7 @@ int RandomBelow(AnimationRandom random, int n) {
 
 } // namespace
 
-FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key, AnimationRandom random) {
+FigureAnimation* Object3D::RandomAnimation(std::uint32_t key, AnimationRandom random) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
@@ -51,7 +51,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key, AnimationRandom r
     return picked;
 }
 
-FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key, AnimationRandom random) {
+FigureAnimation* Object3D::RandomAnimationOfKind(std::uint32_t key, AnimationRandom random) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};

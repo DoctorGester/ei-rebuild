@@ -43,7 +43,7 @@ void ReadRandom(Builder& b) {
     b.Bits("crt.rand", libcrt::RandState());
 }
 
-int PartyItemCount(CParty* party) { return static_cast<int>(party->items.size()); }
+int PartyItemCount(Party* party) { return static_cast<int>(party->items.size()); }
 
 // An AI mode's id: its kind's (ModeKindId, by GetType: the kinds' order with Follow's 10 last), else its table's
 // address (none: 0).

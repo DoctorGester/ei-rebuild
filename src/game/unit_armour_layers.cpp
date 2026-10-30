@@ -22,7 +22,7 @@ constexpr int kBodySlot = 1;
 constexpr int kLayerThere = 2;          // UnitStatLayer::state from which a layer counts
 constexpr int kLayerAdded = 3;
 constexpr int kQuickItems = 4;
-constexpr int kArmourSlots = 7;         // CUnit::armor
+constexpr int kArmourSlots = 7;         // Unit::armor
 
 // For each armour type, the three body slots it covers (kNoSlot: none).
 constexpr int kArmourCoverage[7][3] = /*0073E048*/ {{0, 7, 7}, {1, 2, 3}, {7, 4, 5}, {1, 2, 3}, {7, 4, 5}, {7, 4, 5}, {7, 2, 3}};
@@ -45,7 +45,7 @@ void UnitStats::AddArmourLayer(ItemArmor* piece) {
     }
 }
 
-void UnitStats::RebuildArmourLayers(CUnit* unit) {
+void UnitStats::RebuildArmourLayers(Unit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
         ItemArmor* piece = unit->armor[i];
@@ -55,7 +55,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
     }
 }
 
-void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out) {
+void UnitStats::PackBodyProtection(Unit* unit, const UnitVitals* vitals, DamageWords* out) {
     bool keyed = IsTextKey(unit->id);
     int top = keyed ? 2 : 0;
     const UnitStatSlot& body = slots[kBodySlot];
@@ -68,7 +68,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
     }
 }
 
-float UnitStats::AttributeWithItems(int index, CUnit* unit) {
+float UnitStats::AttributeWithItems(int index, Unit* unit) {
     if (!IsTextKey(unit->id)) return attributes[index];    // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {

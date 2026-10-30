@@ -41,8 +41,8 @@ bool IsZero(float value) {
 
 } // namespace
 
-void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
-    auto unitDead = [](CUnit* u) { return u->IsDead(); };
+void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
+    auto unitDead = [](Unit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = g_clientWorld.PickSurface(&out, x, y);
@@ -50,9 +50,9 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
     auto objectAt = [x, y]() {
         Point point = {x, y};
-        return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
+        return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
     };
-    auto unitPosition = [](CUnit* u) {
+    auto unitPosition = [](Unit* u) {
         Vector3 at;
         at = u->localPosition;
         return at;
@@ -76,10 +76,10 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
 
     int count = lib::Count(party);
     if (count <= 0) return;
-    CUnit* first = nullptr;
+    Unit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < count; ++i) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         if (!first) first = member;
         ++selected;
@@ -118,7 +118,7 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             break;
         }
         {
-            CUnit* object = objectAt();
+            Unit* object = objectAt();
             if (object && object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 &&
                 selected == 1) {
                 shape = kCursorUse;
@@ -175,12 +175,12 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         break;
     }
     case kPendingItemOnObject: {
-        CUnit* target = unit ? unit : objectAt();
+        Unit* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }
     case kPendingKeyOnObject: {
-        CUnit* target = unit ? unit : objectAt();
+        Unit* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey) != 0)
                     ? kCursorUse
                     : kCursorNo;
@@ -198,7 +198,7 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             if (!member) shape = kCursorOrder;
             break;
         }
-        CUnit* target = objectAt();
+        Unit* target = objectAt();
         shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }

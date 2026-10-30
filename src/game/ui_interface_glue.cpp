@@ -78,11 +78,11 @@ void Interface3D::OnItemsPicked(const std::vector<Item*>& items, int money, bool
     if (!stack.empty()) ScreenOf(stack.back())->ItemsPicked(items, money, crippled);
 }
 
-void Interface3D::OnUnitJoined(CUnit* unit) {
+void Interface3D::OnUnitJoined(Unit* unit) {
     if (!stack.empty()) ScreenOf(stack.back())->UnitJoined(unit);
 }
 
-void Interface3D::OnUnitLeft(CUnit* unit) {
+void Interface3D::OnUnitLeft(Unit* unit) {
     if (!stack.empty()) ScreenOf(stack.back())->UnitLeft(unit);
 }
 
@@ -102,7 +102,7 @@ void Interface3D::OnChatLine(const char* text) {
     root->AddLine(text);
 }
 
-void Interface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
+void Interface3D::OnExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
     if (!stack.empty()) ScreenOf(stack.back())->ExchangeDone(partyB, partyA, partyC);
 }
 

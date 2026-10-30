@@ -62,13 +62,13 @@ constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
-void ReadUnits(MemoryStream& in, std::vector<CUnit*>* units) {
+void ReadUnits(MemoryStream& in, std::vector<Unit*>* units) {
     int count = 0;
     in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
         int id = 0;
         in.ReadValue(id);
-        CUnit* unit = g_serverWorld.FindUnit(id);
+        Unit* unit = g_serverWorld.FindUnit(id);
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, lib::Count(*units), unit);
     }
 }
@@ -76,7 +76,7 @@ void ReadUnits(MemoryStream& in, std::vector<CUnit*>* units) {
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, bool, bool, const Vector3&);
 int MoveUnits(MoveCommand command) {
     MemoryStream& in = g_receivedMessages;
-    std::vector<CUnit*> units{};
+    std::vector<Unit*> units{};
     std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
     int run = 0;
@@ -109,12 +109,12 @@ MemoryStream g_receivedMessages;
 // --- The leader died ----------------------------------------------------------------------
 
 void PlayerServer::OnLeaderDied() {
-    CPlayer* currentPlayer = player;
-    CParty* party = currentPlayer->GetParty();
+    Player* currentPlayer = player;
+    Party* party = currentPlayer->GetParty();
     if (!IsMultiplayerClient()) {
         std::uint8_t messageType = kMessageGameOver;
         out.WriteValue(messageType);
-        CUnit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
+        Unit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         return;
     }
@@ -127,7 +127,7 @@ void PlayerServer::OnLeaderDied() {
         int lost = lib::RoundEven(static_cast<float>(party->money) * g_logicSettings.lostMoney);
         party->money -= lost;
         oldId = static_cast<int>(party->members[0].unitId);
-        CUnit* hero = g_serverWorld.FindUnit(oldId);
+        Unit* hero = g_serverWorld.FindUnit(oldId);
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
@@ -158,12 +158,12 @@ void PlayerServer::OnLeaderDied() {
         g_serverWorld.Redeploy(currentPlayer, nullptr, 1);
         partyDeployed = 1;
     }
-    CUnit* revived = g_serverWorld.FindUnit(newId);
-    CUnit* dead = g_serverWorld.FindUnit(oldId);
+    Unit* revived = g_serverWorld.FindUnit(newId);
+    Unit* dead = g_serverWorld.FindUnit(oldId);
     if (!revived || !dead) return;
     HeldUnits& known = revived->ServerController()->brain.memory.seenCorpses;
     for (auto node = dead->ServerController()->brain.memory.seenCorpses.begin(); node != dead->ServerController()->brain.memory.seenCorpses.end();) {
-        CUnit* object = *node;
+        Unit* object = *node;
         ++node;
         if (object && object->GetClassId() == ClassId::Unit && !lib::Contains(known, object)) known.push_back(object);
     }
@@ -185,13 +185,13 @@ Vector3* AIPath::TargetPoint(Vector3* out) const {
 
 int PlayerServer::OnUseOrder() {
     MemoryStream& in = g_receivedMessages;
-    std::vector<CUnit*> units{};
+    std::vector<Unit*> units{};
     int count = 0;
     in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
         int objectId = 0;
         in.ReadValue(objectId);
-        CUnit* unit = g_serverWorld.FindUnit(objectId);
+        Unit* unit = g_serverWorld.FindUnit(objectId);
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, lib::Count(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;
@@ -202,9 +202,9 @@ int PlayerServer::OnUseOrder() {
     in.ReadValue(objectId);
     const UseSource kind = static_cast<UseSource>(skillWord);
     // A map object (the use order's target), or null.
-    CMapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId));
+    MapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId));
 
-    CUnit* chosen = nullptr;
+    Unit* chosen = nullptr;
     if (std::ssize(units) >= 2) {
         AIPath path;
         AIOrder order;
@@ -212,11 +212,11 @@ int PlayerServer::OnUseOrder() {
         order.MakeUse(object, kind);
         Vector3 aim;
         order.AimPoint(&aim);
-        CUnit* first = nullptr;
+        Unit* first = nullptr;
         bool accepted = false;
         while (!units.empty()) {
             float best = kFarAway;
-            CUnit* nearest = nullptr;
+            Unit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
                 const float distance = UseOrderDistanceSquared(aim, units[i]->localPosition);
@@ -265,7 +265,7 @@ int PlayerServer::OnUseOrder() {
 
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
-void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets) {
+void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* offsets) {
     int count = lib::Count(*units);
     if (count < 1) return;
     if (count == 1) {
@@ -300,11 +300,11 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
 
 void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state != 1) return;
-    CPlayer* currentPlayer = player;
-    CParty* party = currentPlayer->GetParty();
+    Player* currentPlayer = player;
+    Party* party = currentPlayer->GetParty();
     int campaign = g_serverWorld.sessionKind;
     if (campaign == 1 || campaign == 3) {
-        CUnit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
+        Unit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
             if (!IsMultiplayerClient()) return;
@@ -366,7 +366,7 @@ int PlayerServer::OnTakeExit() {
 int PlayerServer::OnJoined() {
     if (state != 2) return 0;
     state = 1;
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     currentPlayer->sessionKind = currentPlayer->ServerWorld()->sessionKind;
     g_serverWorld.Redeploy(currentPlayer, &placements, 1);
     currentPlayer->dirty |= PlayerDirty::GameState;
@@ -388,8 +388,8 @@ int PlayerServer::OnBriefingDone() {
 }
 
 int PlayerServer::OnNewParty() {
-    CParty local;
-    CParty* party = &local;
+    Party local;
+    Party* party = &local;
     party->LoadParty(&g_receivedMessages, 1);
     if (std::ssize(party->members) != 1) return 0;
     int* key = &player->partyId;
@@ -417,13 +417,13 @@ int PlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int PlayerServer::OnAttack() {
     MemoryStream& in = g_receivedMessages;
-    std::vector<CUnit*> units{};
+    std::vector<Unit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
     in.ReadValue(ctrl);
     in.ReadValue(how);
     in.ReadValue(objectId);
-    if (CMapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId))) {
+    if (MapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = &units[i]->ServerController()->brain;
             if (PlayerMode* mode = brain->FindPlayerMode())
@@ -462,7 +462,7 @@ int PlayerServer::OnLogin() {
     login.partyId = 0;
     g_receivedMessages.ReadValue(login);
     if (state != 0) return 0;
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     if (login.version != kClientVersion) {
         int length = 0x100;
         char format[0x100];
@@ -479,7 +479,7 @@ int PlayerServer::OnLogin() {
     if (!IsPrintableText(login.password)) return 0;
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
-    CParty* party = currentPlayer->GetParty();
+    Party* party = currentPlayer->GetParty();
     switch (g_serverWorld.gameResult) {
     case 1:
         g_partyManager.EndRedeploy(party);
@@ -517,7 +517,7 @@ void PlayerServer::SendPartyUpdate() {
 
 void PlayerServer::ResendParty() {
     if (state != 1 || !partyDeployed) return;
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     console::EndLine(console::g_netLogOut << kResendingParty << currentPlayer->playerId);
     g_serverWorld.SyncPartyRecords(currentPlayer);
     SendParty();

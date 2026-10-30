@@ -26,7 +26,7 @@ constexpr float kTenth = 0.1f;
 constexpr float kThreeQuarters = 0.75f;
 constexpr float kHalf = 0.5f;
 
-PlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
+PlayerServer* PlayerMessages(const Player* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
 bool IsBroken(const Item* item) {
@@ -69,8 +69,8 @@ void UnitServer::Shout(AckKind kind) {
 
 // --- Broken equipment -------------------------------------------------------------------------
 
-void CUnit::DropBrokenEquipment() {
-    CPlayer* ownerObject = player;
+void Unit::DropBrokenEquipment() {
+    Player* ownerObject = player;
     if (!ownerObject) return;   // the empty list's destructor has nothing to free
     std::vector<Item*> broken{};
     PlayerServer* messages = PlayerMessages(ownerObject);
@@ -121,7 +121,7 @@ void CUnit::DropBrokenEquipment() {
 
 // --- The unit's lifetime ---------------------------------------------------------------------------
 
-CUnit::CUnit() {
+Unit::Unit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
     UnitMotion* m = &motion;
     // (The segment part's constructor only returns it.)
@@ -136,7 +136,7 @@ CUnit::CUnit() {
     Reset();
 }
 
-void CUnit::Reset() {
+void Unit::Reset() {
     scriptName.clear();
     secondPrototype = -1;
     heightOffset = 0.0f;
@@ -175,7 +175,7 @@ void CUnit::Reset() {
     fightAtWill = 1;
 }
 
-CUnit::~CUnit() {
+Unit::~Unit() {
     // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
     // the object's).
     ReleaseUnit();

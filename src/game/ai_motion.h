@@ -1,7 +1,7 @@
 #pragma once
 
 // A unit's motion: the order its controller gives (MotionOrder, the header of AIPath; ai_map.h) and
-// the trajectory the unit follows (UnitMotion, CUnit + 0x27C; unit_motion.h), sampled every tick
+// the trajectory the unit follows (UnitMotion, Unit + 0x27C; unit_motion.h), sampled every tick
 // for the unit's position, facing and speed. Names provisional.
 
 #include "ai_map.h"

@@ -53,7 +53,7 @@ struct UnitPrototypeRecord {
     std::string soundFolder;       // 8 (when set, the action sounds come from here, not the model's)
     float hitPoints;                // 9
     float mana;                     // 10
-    std::uint32_t level;            // 0x29 (CUnit::Level of a unit without a text key)
+    std::uint32_t level;            // 0x29 (Unit::Level of a unit without a text key)
     float experienceValue;          // 0x2B the experience its death awards
     float protectionScale;          // 11
     float attackCategory;           // 12 (UnitStats::attackCategory)
@@ -123,7 +123,7 @@ struct UnitModelRecord {
     std::uint32_t movementKind;         // 5 (UnitStats::movementKind)
     float angle;                    // 6 (degrees)
     float modeSpeeds[4];            // 7
-    float actionSpeeds[6];          // 0x24 (copied to CUnit::actionSpeeds)
+    float actionSpeeds[6];          // 0x24 (copied to Unit::actionSpeeds)
     float reachHeightScale;          // 8 (UnitStats::reachHeightScale)
     std::uint32_t sizeClass;        // 9
     std::uint32_t sizeClassSmall;   // 10

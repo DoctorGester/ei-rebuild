@@ -291,7 +291,7 @@ map_escmenu frames, ui_compare and `ei_ui_check` ("picture", "lost").
 No texture has memory the game writes (R28b): .mmp textures have only their decoded copy; the composed ones, the
 textures 00691D80 makes (kinds 0x1E, 0x20, 0x21) and the .bmp textures only the texture the GPU drew. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
-**Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format`: 0x5650, 0x5551,
+**Texture formats (R27b).** A texture keeps the id of the format it is held in (`Texture::format`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
 offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `TextureFormat(id)` gives an RGB one's
 `render::PixelFormat` (bits and channel masks, render.h; the interface canvases take the same type). An .mmp file
@@ -309,10 +309,10 @@ holder's decoded or GPU-drawn texture only (white for none). The shadow textures
 
 | Address | Name / change |
 |---|---|
-| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | texture square from header->width (height not read): `TakeBlankHolder`, a `NewDecodedTextureHolder` with `render::BlankTexture` (R28, R28b), the alpha as the format keeps it (5:6:5 opaque, 1:5:5:5 one bit, 4:4:4:4 all); the 1:5:5:5 atlases one level, the others their levels made after each draw (as the memory textures had; the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
-| 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the texture formats 5650 / 5551 / 4444 (always there: the original's "Can't find texture format %d." is gone); another kind gets none and 0068F6C0 throws; its texture through 0068F6C0 |
+| 0068F6C0 `Texture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | texture square from header->width (height not read): `TakeBlankHolder`, a `NewDecodedTextureHolder` with `render::BlankTexture` (R28, R28b), the alpha as the format keeps it (5:6:5 opaque, 1:5:5:5 one bit, 4:4:4:4 all); the 1:5:5:5 atlases one level, the others their levels made after each draw (as the memory textures had; the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
+| 00691D80 `TextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the texture formats 5650 / 5551 / 4444 (always there: the original's "Can't find texture format %d." is gone); another kind gets none and 0068F6C0 throws; its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface`, 00690FC0 `LockPixels`, 00691030 `UnlockPixels` | not ported (R26): only the 64x64 shadow texture used them, which the shadow map replaced (section 13) |
-| 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` takes the file's levels (DXT1..DXT5 as their blocks; 8888, 4444, 5551, 5650 decoded by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
+| 00690430 `Texture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` takes the file's levels (DXT1..DXT5 as their blocks; 8888, 4444, 5551, 5650 decoded by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0), drawn into a blank texture (`TakeBlankHolder`, `DrawIntoTexture`; R28b: 8-bit colours instead of the format's 16 bits); reached only by render_loose_bmp (no .bmp in the installs); loops over the width then the height (a non-square .bmp overran the surface; the pixels past it are left out) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
 
@@ -361,7 +361,7 @@ open again; the original's run the same).
 
 **Textures composed on the GPU (R28, `render_compose.cpp`).** `render::ComposeTexture(holder, size, mip, levels,
 images)` makes a texture from images drawn over each other: the unit skins and wounds textures
-(CTextureManager::Compose, items_spells.md "Composed textures"). Each image is an .mmp file's pixels after its header and
+(TextureManager::Compose, items_spells.md "Composed textures"). Each image is an .mmp file's pixels after its header and
 extra block: 32-bit 0xAARRGGBB with premultiplied alpha, rows from the top; "PNT3" files are packed: groups of four
 pixels, where a group's first pixel has alpha 0 and is not 0 that word instead counts target bytes left as they are
 (2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
@@ -509,7 +509,7 @@ no stand-in for any of them (R27c):
 - What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
   the material presets take every stage of their states (`RenderHelper::Record`: eight stages, every texture
   operation); the texture manager loads textures up to their size (`limitTo512` 0: 4096-pixel textures) and caches
-  released ones up to a tenth of 256 MB (`CTextureManager::kCacheLimit`); mipmapping stays as the options say (the
+  released ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
   free non-local video memory without sound, is 1 there (`GameMain`).
@@ -1291,7 +1291,7 @@ across runs; the goldens check the game state.
      rules (ShadeSun, LightVertex: ambient times one less the water's loss, the sun's facing over the material's
      colour, each point light's falloff, its specular part into the specular word) from the vertex normals and
      material colours. None of the game's vertex lighting runs on the CPU (R26, R34): ShadeSun 006C36B0,
-     LightVertex 006C31C0, CLight::AddDirectional 0068D310, the sun's ray march SunReaches 006C92C0 and the
+     LightVertex 006C31C0, Light::AddDirectional 0068D310, the sun's ray march SunReaches 006C92C0 and the
      landscape's per-vertex light lists (their 16-byte node pool at 007C8840) and light areas are not ported. The
      landscape keeps only the table of shown point lights (`Terrain::lights`, by id, held: AddLight / RemoveLight),
      which the hand-over reads. `SectorData::Build` writes each vertex's edge fade into its specular word (the fog
@@ -1354,7 +1354,7 @@ across runs; the goldens check the game state.
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour` is saved:
      GroundPrint::Save); the sky's lighting (SkyObject::Light, small; a candidate); the sun's reference in the
      part's light list; the terrain's edge fade (the fog factor, also read by the
-     figures' draws and the ground prints). The CLight fields only the device read (world position, local
+     figures' draws and the ground prints). The Light fields only the device read (world position, local
      direction, lit colours) are no longer written.
    - **Looks that changed (the user's review).** Point lights cast no shadow (until R16i1, below): the town's fires
      light the inside of the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel
@@ -1630,8 +1630,8 @@ of the 0.5-1.6 ms hand-over).
 - Scenario `render_loose_bmp` (vanilla golden from three agreeing original runs): `# prepare: make_loose_bmp.py`
   writes `textures\Zone1000..Zone1007.bmp` (24-bit, four quadrants: red and green above, blue and yellow below) and
   an 8-bit `a_<name>.bmp` ramp for each into the run's overlay (the install has no `textures\*.bmp`; the harness's
-  FindFirstFile / CreateFile redirection finds them). `CTextureManager::LoadTexture` 006922A0 then loads zone 1's
-  terrain pages through CTexture::LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> Dib Construct / Read / Size /
+  FindFirstFile / CreateFile redirection finds them). `TextureManager::LoadTexture` 006922A0 then loads zone 1's
+  terrain pages through Texture::LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> Dib Construct / Read / Size /
   MakePalette. The pages are format 5:6:5 (no alpha), so the alpha file is read and its depth checked but its bytes
   are unused; a texture of an alpha kind (types 1-4, 8, 6, 13) is not loaded from a .bmp by any scenario yet.
 - Pixels: `hues <frame> <least> <most>` (`capture::HueShares`; skipped in the original's run) needs each of the four

@@ -52,7 +52,7 @@ constexpr int kVersionRecordText6 = 0x6B;
 
 int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
-void CopyThrough(CParty* target, CParty* source) {
+void CopyThrough(Party* target, Party* source) {
     // Through an empty memory stream, freed afterwards.
     MemoryStream copy;
     source->SaveParty(&copy, 1);
@@ -118,7 +118,7 @@ void PartyUnitRecord::Save(ByteStream* stream) {
     stream->WriteString(texts[6]);
 }
 
-void CParty::LoadParty(ByteStream* stream, int loadVariables) {
+void Party::LoadParty(ByteStream* stream, int loadVariables) {
     if (itemManager == nullptr) Create();
     g_loadingParty = this;
     Clear(loadVariables, 0);
@@ -146,7 +146,7 @@ void CParty::LoadParty(ByteStream* stream, int loadVariables) {
     spellManager->ReleaseUnused();
 }
 
-void CParty::SaveParty(ByteStream* stream, int saveVariables) {
+void Party::SaveParty(ByteStream* stream, int saveVariables) {
     if (itemManager == nullptr) Create();
     stream->WriteString(zone);
     stream->WriteValue(entrance);
@@ -164,17 +164,17 @@ void CParty::SaveParty(ByteStream* stream, int saveVariables) {
     stream->WriteValue(key);
 }
 
-CParty* CParty::Assign(CParty* source) {
+Party* Party::Assign(Party* source) {
     Clear(1, 0);
     CopyThrough(this, source);
     return this;
 }
 
-CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
+Party::Party(Party& source) : Party() { CopyThrough(this, &source); }
 
 // --- The party as a stream field of an archive --------------------------------------
 
-void CParty::ArchiveParty(ChunkArchive* ar) {
+void Party::ArchiveParty(ChunkArchive* ar) {
     constexpr int kStreamField = 1;
     MemoryStream held;
     if (ar->loading) {

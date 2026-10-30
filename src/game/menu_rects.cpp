@@ -37,7 +37,7 @@ constexpr MenuRect kRects[] = {
 
 } // namespace
 
-int CFigureManager::LoadMenuRects(Rect* rects) {
+int FigureManager::LoadMenuRects(Rect* rects) {
     FileRegistry reg;
     // The manager's GetFile: the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);

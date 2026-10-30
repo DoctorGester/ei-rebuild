@@ -45,7 +45,7 @@ static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(
 
 void WriteType(MemoryStream& out, std::uint8_t type) { out.WriteValue(type); }
 
-void WriteUnits(MemoryStream& out, const std::vector<CUnit*>* units) {
+void WriteUnits(MemoryStream& out, const std::vector<Unit*>* units) {
     int count = lib::Count(*units);
     out.WriteValue(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
@@ -54,7 +54,7 @@ void WriteUnits(MemoryStream& out, const std::vector<CUnit*>* units) {
     }
 }
 
-int SendMove(MemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3& to, int run) {
+int SendMove(MemoryStream& out, std::uint8_t type, const std::vector<Unit*>* units, const Vector3& to, int run) {
     WriteType(out, type);
     WriteUnits(out, units);
     out.WriteValue(run);
@@ -63,21 +63,21 @@ int SendMove(MemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* un
 }
 
 // A potion used from a quick slot is counted off at once.
-void SpendPotion(CUnit* user, int slot) {
+void SpendPotion(Unit* user, int slot) {
     auto* item = user->GetQuickItem(static_cast<std::uint32_t>(slot));
     if (item && static_cast<int>(item->count) > 0 && item->GetCategory() == QuickItemCategory::Potion) --item->count;
 }
 
 } // namespace
 
-int PlayerClient::SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run) {
+int PlayerClient::SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run) {
     return SendMove(out, kWalk, units, to, run);
 }
-int PlayerClient::SendGoTo(const std::vector<CUnit*>* units, const Vector3& to, int run) {
+int PlayerClient::SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run) {
     return SendMove(out, kGoTo, units, to, run);
 }
 
-int PlayerClient::SendAttack(const std::vector<CUnit*>* units, EngineObject* target, int how, int ctrl) {
+int PlayerClient::SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl) {
     WriteType(out, kAttack);
     WriteUnits(out, units);
     out.WriteValue(ctrl);
@@ -87,21 +87,21 @@ int PlayerClient::SendAttack(const std::vector<CUnit*>* units, EngineObject* tar
     return 1;
 }
 
-int PlayerClient::SendCastOnUnit(int slot, CUnit* caster, EngineObject* target, int ctrl) {
+int PlayerClient::SendCastOnUnit(int slot, Unit* caster, EngineObject* target, int ctrl) {
     OnUnitBlock block{static_cast<std::uint32_t>(slot), caster->id, target->id, static_cast<std::uint8_t>(ctrl)};
     WriteType(out, kCastOnUnit);
     out.WriteValue(block);
     return 1;
 }
 
-int PlayerClient::SendCastAtPoint(int slot, CUnit* caster, const Vector3& point, int ctrl) {
+int PlayerClient::SendCastAtPoint(int slot, Unit* caster, const Vector3& point, int ctrl) {
     AtPointBlock block{static_cast<std::uint32_t>(slot), caster->id, point, static_cast<std::uint8_t>(ctrl)};
     WriteType(out, kCastAtPoint);
     out.WriteValue(block);
     return 1;
 }
 
-int PlayerClient::SendItemOnUnit(int slot, CUnit* user, EngineObject* target, int ctrl) {
+int PlayerClient::SendItemOnUnit(int slot, Unit* user, EngineObject* target, int ctrl) {
     SpendPotion(user, slot);
     OnUnitBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id, target->id,
                       static_cast<std::uint8_t>(ctrl)};
@@ -110,7 +110,7 @@ int PlayerClient::SendItemOnUnit(int slot, CUnit* user, EngineObject* target, in
     return 1;
 }
 
-int PlayerClient::SendItemAtPoint(int slot, CUnit* user, const Vector3& point, int ctrl) {
+int PlayerClient::SendItemAtPoint(int slot, Unit* user, const Vector3& point, int ctrl) {
     SpendPotion(user, slot);
     AtPointBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id, point,
                        static_cast<std::uint8_t>(ctrl)};
@@ -119,7 +119,7 @@ int PlayerClient::SendItemAtPoint(int slot, CUnit* user, const Vector3& point, i
     return 1;
 }
 
-int PlayerClient::SetWeapon(CUnit* unit, int slot) {
+int PlayerClient::SetWeapon(Unit* unit, int slot) {
     UnitByteBlock block{unit->id, static_cast<std::uint8_t>(slot)};
     WriteType(out, kWeapon);
     out.WriteValue(block);
@@ -127,7 +127,7 @@ int PlayerClient::SetWeapon(CUnit* unit, int slot) {
     return 1;
 }
 
-int PlayerClient::SetMoveMode(CUnit* unit, int mode) {
+int PlayerClient::SetMoveMode(Unit* unit, int mode) {
     WriteType(out, kMoveMode);
     UnitByteBlock block{unit->id, static_cast<std::uint8_t>(mode)};
     out.WriteValue(block);
@@ -135,7 +135,7 @@ int PlayerClient::SetMoveMode(CUnit* unit, int mode) {
     return 1;
 }
 
-int PlayerClient::SetUnitFightAtWill(CUnit* unit, int value) {
+int PlayerClient::SetUnitFightAtWill(Unit* unit, int value) {
     unit->SetFightAtWill(value);
     WriteType(out, kFightAtWill);
     int unitId = unit->id;
@@ -145,7 +145,7 @@ int PlayerClient::SetUnitFightAtWill(CUnit* unit, int value) {
     return 1;
 }
 
-int PlayerClient::SendFollow(CUnit* unit, EngineObject* target) {
+int PlayerClient::SendFollow(Unit* unit, EngineObject* target) {
     int ids[2] = {unit->id, target ? target->id : kNoObjectId};
     WriteType(out, kFollow);
     out.Write(ids, sizeof(ids));
@@ -159,7 +159,7 @@ int PlayerClient::SendFlag10(std::uint8_t value) {
     return 1;
 }
 
-int PlayerClient::SendUseOrder(CUnit* unit, EngineObject* target, int kind, int value, int flag) {
+int PlayerClient::SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag) {
     WriteType(out, kUseOrder);
     int count = 1;
     out.WriteValue(count);
@@ -173,7 +173,7 @@ int PlayerClient::SendUseOrder(CUnit* unit, EngineObject* target, int kind, int 
     return 1;
 }
 
-int PlayerClient::SendUseDead(const std::vector<CUnit*>* units, EngineObject* target, int flag) {
+int PlayerClient::SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag) {
     WriteType(out, kUseOrder);
     WriteUnits(out, units);
     out.WriteValue(flag);

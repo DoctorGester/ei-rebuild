@@ -96,7 +96,7 @@ std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return var
 
 
 // The smaller of the unit's two horizontal extents (the select keeps above.y for NaN).
-float SmallerExtent(const CUnit* unit) {
+float SmallerExtent(const Unit* unit) {
     float y = unit->bounds.boxMax.y;
     float x = unit->bounds.boxMax.x;
     return MinKeepA(y, x);
@@ -117,7 +117,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const UnitClientSpecific* self,
 }
 
 // The weapon class of the last hit.
-std::uint8_t HitSoundKind(CUnit* unit) {
+std::uint8_t HitSoundKind(Unit* unit) {
     std::uint16_t weapon = static_cast<std::uint16_t>(unit->params.lastHitSource);
     if (weapon < kFirstPrototypeWeapon) return static_cast<std::uint8_t>(weapon);
     const auto* prototype = unitdb::PrototypeRecord(weapon - kFirstPrototypeWeapon);

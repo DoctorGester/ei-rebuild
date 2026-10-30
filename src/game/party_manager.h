@@ -25,10 +25,10 @@ struct PartyManagerEntry {
 };
 
 // The parties by key, walked in the game's order (the save's chunks).
-using PartyMap = lib::HashMap<int, CParty>;
+using PartyMap = lib::HashMap<int, Party>;
 // The party under `key`, made when missing as the game's operator[] made it: a new party, a copy of it for the
-// pair and a copy of that in the map (each copy runs CParty::Create through its save and load).
-CParty* PartyAt(PartyMap& parties, int key);
+// pair and a copy of that in the map (each copy runs Party::Create through its save and load).
+Party* PartyAt(PartyMap& parties, int key);
 
 struct PartyManager {
     PartyMap parties;                           // (LoadParty / StoreParty)
@@ -44,12 +44,12 @@ struct PartyManager {
     // it to `to` as a sized block (ByteStream::WriteSized).
     void Save(MemoryStream* to);
     // The records' BeginRedeploy / EndRedeploy the script's redeploy.
-    void BeginRedeploy(CParty* party);
-    void EndRedeploy(CParty* party);
+    void BeginRedeploy(Party* party);
+    void EndRedeploy(Party* party);
     // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
     // the key is not stored. The login's name and password are not read.
-    bool LoadParty(const int* key, CParty* target) const;
+    bool LoadParty(const int* key, Party* target) const;
     // Copies `source` into the party stored under the key (PartyAt creates it when missing; the copy
     // reads `source` non-const). True.
-    void StoreParty(const int* key, CParty* source);
+    void StoreParty(const int* key, Party* source);
 };

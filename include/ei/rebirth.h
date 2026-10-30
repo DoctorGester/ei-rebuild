@@ -57,7 +57,7 @@ void SetPluginNPlayers(int players);
 
 // EI_Plugin.ini [CONFIG] Pause, the mode EI_Plugin's Pause feature (Patch::EiPluginPause) runs in: 1 every
 // pause and resume announced (the leader only), 2 also by any player, 3 no pause at all (default 1 until
-// the start-up has read the settings; PlayerServer::OnPause, CWorld::SetPaused).
+// the start-up has read the settings; PlayerServer::OnPause, World::SetPaused).
 int PluginPause();
 void SetPluginPause(int mode);
 

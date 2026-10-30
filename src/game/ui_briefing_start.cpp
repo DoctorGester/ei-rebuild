@@ -48,7 +48,7 @@ constexpr int kCampScreen = 5;
 constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
 
-Vector3 Facing(const CUnit* unit) {
+Vector3 Facing(const Unit* unit) {
     Vector3 axis;
     unit->localRotation.AxisY(&axis);
     return Vector3{-axis.x, -axis.y, -axis.z};
@@ -73,7 +73,7 @@ void Normalise(Vector3* v) {
 
 // The first mover of `person` is dropped; its target goes to `place` / `direction` unless the
 // dialogue waited for it.
-void DropMover(std::vector<BriefingMover>& movers, const CUnit* person, Vector3* place, Vector3* direction) {
+void DropMover(std::vector<BriefingMover>& movers, const Unit* person, Vector3* place, Vector3* direction) {
     for (auto node = movers.begin(); node != movers.end(); ++node) {
         if (node->person != person) continue;
         if (!node->waited) {
@@ -142,7 +142,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     Vector3& leaderPlace = places[1];
     Vector3& newThirdPlace = places[2];
     // The one who stands still and the one who walks up to it (2.5 + viewDistance away, in front).
-    CUnit* standing = noWalk ? leader : person;
+    Unit* standing = noWalk ? leader : person;
     Vector3& standingPlace = noWalk ? leaderPlace : personPlace;
     Vector3& walkingPlace = noWalk ? personPlace : leaderPlace;
     Vector3 axis;
@@ -212,7 +212,7 @@ void BriefingScreen::FinishDialogue() {
     ClearShownItems();
 
     for (const BriefingSpeaker& speaker : speakers) {
-        CUnit* unit = speaker.unit;
+        Unit* unit = speaker.unit;
         PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id);
         UnitClientSpecific* model = unit->ClientController();
