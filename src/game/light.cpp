@@ -4,6 +4,7 @@
 #include "spell.h"
 
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <cfloat>
@@ -18,6 +19,9 @@ constexpr int kLightDefault = 0x2E;
 constexpr int kLightPoint = 0x31;
 constexpr int kKindPoint = 1;
 constexpr int kKindDirectional = 3;
+constexpr float kLumaRed = 0.3f;
+constexpr float kLumaGreen = 0.6f;
+constexpr float kLumaBlue = 0.1f;
 
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 
@@ -119,3 +123,19 @@ EngineObject* LightFactory::CreateObject(int newType, int newId) {
 
 const char* LightFactory::ClassName() { return "CLightManager"; }
 ClassId LightFactory::GetClassId() { return ClassId::LightFactory; }
+
+float Light::GetIntensityAt(const Vector3& point) {
+    if (type != kLightPoint) {
+        return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
+    }
+    float dx = point.x - localPosition.x;
+    float dy = point.y - localPosition.y;
+    float dz = point.z - localPosition.z;
+    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+    EI_NAN_AUDIT(distanceSquared, rangeSquared);
+    if (distanceSquared < rangeSquared) {
+        return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *
+               (1.0f - distanceSquared * inverseRangeSquared);
+    }
+    return 0.0f;
+}

@@ -1,6 +1,8 @@
 #include "spell.h"
-#include "unit.h"
 
+#include "core_streams.h"
+#include "map_object.h"
+#include "unit.h"
 #include "ei/rebirth.h"
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
@@ -8,16 +10,12 @@
 
 #include <bit>
 #include <cfloat>
+#include <cstdint>
 #include <cstring>
 
 using namespace itemdb;
 
 namespace {
-constexpr int kPointLight = 0x31;
-constexpr float kLumaRed = 0.3f;
-constexpr float kLumaGreen = 0.6f;
-constexpr float kLumaBlue = 0.1f;
-constexpr float kSplitDamage = 4.0f;
 
 // Prototype names of the races the target flags exclude (SpellTargetFlag NoHumans .. NoMoli).
 constexpr const char* kHumanMale = "unhuma";
@@ -144,55 +142,6 @@ bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     return true;
 }
 
-void SpellEffect::GetDamage(DamageInfo* out) {
-    std::memset(out, 0, sizeof(*out));
-    out->location = 6;
-    out->multiplier = 1.0f;
-    out->attackRoll = FLT_MAX;
-    out->backstabFactor = 1.0f;
-    out->calledShot = 0;
-
-    const Spell* record = HeldSpell();
-    switch (record->Type()) {
-    case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
-        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
-    case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::CurseMagic:
-        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
-    case SpellType::AcidRay:
-        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
-    case SpellType::AcidColumn: case SpellType::AcidFog:
-        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
-    case SpellType::FireWall: case SpellType::Campfire:
-        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
-    case SpellType::LightningWall:
-        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
-    default:
-        break;
-    }
-
-    int targets = static_cast<int>(record->duration);
-    if (targets > 1) {
-        out->multiplier = kSplitDamage / static_cast<float>(targets);
-        out->amount = kSplitDamage / static_cast<float>(static_cast<int>(record->duration)) * out->amount;
-    }
-}
-
-float Light::GetIntensityAt(const Vector3& point) {
-    if (type != kPointLight) {
-        return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
-    }
-    float dx = point.x - localPosition.x;
-    float dy = point.y - localPosition.y;
-    float dz = point.z - localPosition.z;
-    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
-    EI_NAN_AUDIT(distanceSquared, rangeSquared);
-    if (distanceSquared < rangeSquared) {
-        return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *
-               (1.0f - distanceSquared * inverseRangeSquared);
-    }
-    return 0.0f;
-}
-
 char* SpellCodeByName(std::string_view name) {
     const SpellTable& spells = g_spellDatabase.spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
@@ -266,4 +215,82 @@ ClassId Spell::GetClassId() { return ClassId::Spell; }
 int MapEffect::Tick() {
     --ticksLeft;
     return ticksLeft > 0 ? 1 : 0;
+}
+
+void Spell::Destroy() {
+    ClearState();
+    std::memset(modifiers, 0, sizeof(modifiers));
+}
+
+void Spell::CopyTo(Spell* target) {
+    target->Destroy();
+    std::memcpy(&target->prototypeIndex, &prototypeIndex, 0x54 - 0x1C);
+    std::memset(target->modifiers, 0, sizeof(target->modifiers));
+    for (int i = 0; i < 8; ++i) {
+        if (modifiers[i] == 0) break;
+        target->modifiers[i] = modifiers[i];
+    }
+    target->prototypeId = prototypeId;
+}
+
+Spell* Spell::Clone(SpellManager* manager) {
+    Spell* spell = manager->CreateSpellObject(-1);
+    CopyTo(spell);
+    return spell;
+}
+
+// --- Saving and loading ------------------------------------------------------------------------------
+
+// Saving and loading a spell (Spell's Load / Save) and an active effect record (MapEffect, which
+// the map objects' Load / Save call for each of their effects).
+
+void MapEffect::Load(ByteStream* stream) {
+    stream->ReadValue(type);
+    stream->ReadValue(power);
+    stream->ReadValue(ticksLeft);
+    stream->ReadValue(value);
+    stream->ReadValue(strength);
+}
+
+void MapEffect::Save(ByteStream* stream) const {
+    stream->WriteValue(type);
+    stream->WriteValue(power);
+    stream->WriteValue(ticksLeft);
+    stream->WriteValue(value);
+    stream->WriteValue(strength);
+}
+
+void Spell::Load(ByteStream* stream) {
+    std::memset(modifiers, 0, sizeof(modifiers));
+    MapEffect record = EffectRecord();
+    record.Load(stream);
+    SetEffect(record);
+    stream->ReadValue(speed);
+    stream->ReadValue(range);
+    stream->ReadValue(targetCount);
+    stream->ReadValue(targetFlags);
+    stream->ReadValue(manaCost);
+    stream->ReadValue(complexity);
+    stream->ReadValue(price);
+    stream->ReadValue(castTime);
+    stream->Read(modifiers, sizeof(modifiers));
+    std::uint32_t stateFlags = 0;
+    stream->ReadValue(stateFlags);
+    flags = stateFlags;
+    stream->ReadValue(skillNeeded);
+}
+
+void Spell::Save(ByteStream* stream) {
+    EffectRecord().Save(stream);
+    stream->WriteValue(speed);
+    stream->WriteValue(range);
+    stream->WriteValue(targetCount);
+    stream->WriteValue(targetFlags);
+    stream->WriteValue(manaCost);
+    stream->WriteValue(complexity);
+    stream->WriteValue(price);
+    stream->WriteValue(castTime);
+    stream->Write(modifiers, sizeof(modifiers));
+    stream->WriteValue(flags);
+    stream->WriteValue(skillNeeded);
 }
