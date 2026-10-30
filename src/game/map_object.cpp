@@ -322,16 +322,19 @@ bool MapObject::AcceptsKey(const LockKey*) { return false; }
 bool MapObject::KeepsMapFlag() { return true; }
 std::vector<Vector3> MapObject::UseSpots(float) { return {}; }
 std::uint32_t MapObject::SetStunned(int) { return 0; }
-Vector3* MapObject::EyePoint(Vector3* out) {
-    GroundPoint(&out->x);
+Vector3 MapObject::EyePoint() {
+    Vector3 out;
+    GroundPoint(&out.x);
     return out;
 }
-Vector3* MapObject::PositionAt(Vector3* out, int) {
-    GetPosition(&out->x);
+Vector3 MapObject::PositionAt(int) {
+    Vector3 out;
+    GetPosition(&out.x);
     return out;
 }
-Vector3* MapObject::AimPoint(Vector3* out) {
-    GetPosition2(&out->x);
+Vector3 MapObject::AimPoint() {
+    Vector3 out;
+    GetPosition2(&out.x);
     return out;
 }
 bool MapObject::IsLargeUnit() { return false; }

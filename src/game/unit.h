@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -106,10 +107,10 @@ struct UnitParams {
     // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01).
     float VisionRange(float daylight);
 
-    // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) the body slots'
+    // The seven protection values the unit panel shows: for text-key units (`keyed`) the body slots'
     // protection weighted by kSlotWeights and the packed vitals' protection added; others get the packed protection
     // times the difficulty factor.
-    void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
+    std::array<float, 7> ProtectionBlock(const struct UnitVitalsPacked* vitals, std::uint8_t keyed);
 };
 static_assert(offsetof(UnitParams, intelligence) == 0x0E);
 static_assert(offsetof(UnitParams, combat) == 0x18);
@@ -220,12 +221,12 @@ public:
     ClassId GetClassId() override;
     bool IsSynchronised() override;
     void ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster) override;
-    Vector3* EyePoint(Vector3* out) override;
+    Vector3 EyePoint() override;
     std::uint32_t ReadNetState(int first) override;
     void WriteNetState() override;
     // The position predicted along the path at world time `time`, the point the animation acts on.
-    Vector3* PositionAt(Vector3* out, int time) override;
-    Vector3* AimPoint(Vector3* out) override;
+    Vector3 PositionAt(int time) override;
+    Vector3 AimPoint() override;
     bool IsLargeUnit() override;
     bool IsDead() override;
     // The controller's ForgetObject; nothing reads the result (0).
@@ -263,8 +264,8 @@ public:
     // Sets (stunned) or clears flags bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
 
-    // Writes the item ids of the 4 weapons and then of the 7 armour pieces to `out` (-1 for an empty slot).
-    void GetEquipmentIds(std::uint32_t* out);
+    // The item ids of the 4 weapons and then of the 7 armour pieces (-1 for an empty slot).
+    std::array<std::uint32_t, 11> GetEquipmentIds();
 
     // Whether the unit can cast the spell in slot `slot` (0..7): false with no spell there, with the
     // feeblemind effect on it, or with too little mana.
@@ -435,7 +436,7 @@ public:
     // "rh3"), another unit's weapon point (the controller's) turned by the orientation, or else its position
     // plus the bounding box centre. The server and a hero without the part rotate uninitialised stack (see
     // the notes).
-    Vector3* EffectPoint(Vector3* out);
+    Vector3 EffectPoint();
 
     // Sets the hostile mask (relationsA), tells the controller, sets flags 0x80000 and marks part 11 changed.
     void SetHostileMask(std::uint32_t mask);
@@ -500,7 +501,7 @@ public:
     ItemArmor* armor[7];           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
     float actionSpeeds[6];          // per action kind (ActionSpeed; from the model record)
-    float exposure[5];             // any at most 2 (or NaN) asks for a party refresh
+    std::array<float, 5> exposure;             // any at most 2 (or NaN) asks for a party refresh
 };
 
 inline Unit* UnitOrNull(EngineObject* object) {

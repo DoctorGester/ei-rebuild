@@ -128,9 +128,7 @@ void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
         BaseManager* factory = world->TimedObjectManager();
         auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(kMissileObject, -1);
         if (!arrow) return;
-        Vector3 position;
-        const Vector3* from = unit->EyePoint(&position);
-        arrow->localPosition = *from;
+        arrow->localPosition = unit->EyePoint();
         arrow->SetTarget(target->id);
         arrow->fromCaster = 1;
         arrow->casterId = unit->id;
@@ -155,9 +153,7 @@ void UnitServer::TriggerWeaponSpell(MapObject* target) {
     if (cost > weapon->charge) return;
     UseItemCharge(weapon, cost);
     Unit* self = unit;
-    Vector3 point;
-    const Vector3* at = target->AimPoint(&point);
-    g_serverWorld.CastSpell(spell, self, self->localPosition, target, *at, 0);
+    g_serverWorld.CastSpell(spell, self, self->localPosition, target, target->AimPoint(), 0);
 }
 
 void UnitServer::TriggerItemSpells(char onHit) {

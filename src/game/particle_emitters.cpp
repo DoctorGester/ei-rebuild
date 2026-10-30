@@ -214,9 +214,8 @@ Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
 // leaves nothing), scaled to the ring's radius (much smaller for a negative size), around the
 // emission point, at the ring's height.
 void PlaceModifierPoints(ParticleSource* s) {
-    Vector3 unused;
     float radius;
-    s->AttachmentOffset(&unused, &radius);
+    s->AttachmentOffset(&radius);
     s->spreadMin.x = radius;
     float twice = radius + radius;
     Vector3 axis = ModifierAxis(s, twice);

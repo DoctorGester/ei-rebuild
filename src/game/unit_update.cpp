@@ -144,8 +144,9 @@ void Unit::Save(ByteStream* stream) { SaveUnit(stream); }
 const char* Unit::ClassName() { return kUnitClassName; }
 ClassId Unit::GetClassId() { return ClassId::Unit; }
 bool Unit::IsSynchronised() { return true; }
-Vector3* Unit::EyePoint(Vector3* out) {
-    StandPoint(&out->x);
+Vector3 Unit::EyePoint() {
+    Vector3 out;
+    StandPoint(&out.x);
     return out;
 }
 bool Unit::IsLargeUnit() { return obstacle != 0; }

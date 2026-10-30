@@ -67,8 +67,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
             world->Select(unit);
             return;
         }
-        Vector3 ground;
-        world->PickGround(&ground, x, y);
+        Vector3 ground = world->PickGround(x, y);
         for (int i = 0; i < std::ssize(picked); ++i) {
             auto* member = g_clientWorld.FindUnit(picked[i]);
             if (!member) continue;

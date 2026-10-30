@@ -26,7 +26,7 @@ public:
     virtual void SaveTransform(platform::File* file);
     virtual void LoadTransform(platform::File* file);
 
-    void WorldMatrix(float* m) const;                    // 4x4 world matrix
+    Matrix4 WorldMatrix() const;                         // 4x4 world matrix
     void TiltTowards(const Vector3& target);             // down axis a tenth towards target
     void TurnTowards(const Vector3& target);             // forward axis onto target
     void RollTowards(const Vector3& dir);                // down axis towards dir about forward

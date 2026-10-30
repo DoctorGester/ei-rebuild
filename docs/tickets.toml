@@ -6709,6 +6709,13 @@ model = "sonnet"
 note = "From V30 (build/reviews/v30c_*.md): settings_key.cpp:94 GetString over-reads a hand-edited hex(1): value with no terminator (terminate in the parser); lib/rounding.h Truncate relies on MSVC's 64-bit conversion for NaN / out of range (pin the result explicitly, same values); tests/verify/harness_addon.cpp LoadFlags passes a GetModuleFileNameA path to rebirth.cpp's UTF-8 reader (use the W call and convert; harness key: --no-hooks suite once); ui_connect_screen.cpp:605's address-book key draws g_random (client-only: g_clientRandom; goldens may move, one re-record if so, per the client random rule); verify-x64's five C4702 in tests/verify/harness_starter.cpp 177-186 (x64 NoOriginalCode stubs)."
 
 [[ticket]]
+id = "C52e"
+title = "C52 rest 5: out-parameters still left after C52d"
+group = "cleanup"
+depends = ["C52d"]
+note = "Left on purpose: ParticleSource::AttachmentOffset (returns the offset, radius still through float*; a struct of both would touch 14 callers), GetMovePoint / FindStandPoint / WeaponPoint (conditional writes that keep the caller's value), FindVariable (bool plus two ints), LightningSegment::SampleNoise (fills the global noise buffers), Unit motion Sample / SamplePath (nine outputs; a result struct), GetBounds users that wanted the initial {10000,0,10000,0} (none: the function sets all four)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

@@ -87,7 +87,7 @@ bool EffectMoshka::RunTick() {
     return false;
 }
 
-Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
+Vector3 EffectMoshka::FindPerch(const Vector3& from) {
     Vector3 eye = from;
     eye.z = static_cast<float>(eye.z + kEyeHeight);
     float perchHeight = kPerchHeight;
@@ -103,8 +103,7 @@ Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
         perchHeight = perchHeight + kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
     }
-    *out = perch;
-    return out;
+    return perch;
 }
 
 void EffectMoshka::Update(float now) {
@@ -154,8 +153,7 @@ void EffectMoshka::Update(float now) {
         target.y = pc24::Mul(pc24::Sin(flightAngle), kCircleRadius) + followed.y;
     } else if (state == kPerched) {
         if (timeUp) {
-            Vector3 perch;
-            FindPerch(&perch, followed);
+            Vector3 perch = FindPerch(followed);
             state = kFlyingOff;
             timer = kFlyingOffFrames;
             localPosition = perch;
@@ -221,8 +219,7 @@ void EffectMoshka::Follow(int objectId) {
     // figure is made, like the original.
     Object3D* currentBird = bird;
     Object3DClientSpecific* attached = currentBird->ClientSpecific();
-    Vector3 perch;
-    FindPerch(&perch, followed->localPosition);
+    Vector3 perch = FindPerch(followed->localPosition);
     currentBird->localPosition = perch;
     std::vector<std::string> parts;
     currentBird->MakeFigure(model, &parts, 1);

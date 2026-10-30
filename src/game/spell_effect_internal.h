@@ -171,8 +171,6 @@ inline std::uint32_t Bits(const float& f) {
 }
 
 inline bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
-// Where the object sees from into `scratch`.
-inline Vector3* EyePointOf(MapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
 // A unit's server half (Unit::controller).
 inline UnitServer* ControllerOf(Unit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).

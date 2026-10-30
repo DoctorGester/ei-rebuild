@@ -106,7 +106,7 @@ void Unit::LoadUnit(ByteStream* stream) {
     ReadItems(this, stream, quickItems, 4);
     ReadItems(this, stream, spells, 8);
     ReadItems(this, stream, armor, 7);
-    stream->Read(exposure, sizeof(exposure));
+    stream->Read(exposure.data(), sizeof(exposure));
     StatsChanged();
     SetPlayer(newPlayer);   // inlined
 
@@ -162,7 +162,7 @@ void Unit::SaveUnit(ByteStream* stream) {
     WriteItemIds(stream, quickItems, 4);
     WriteItemIds(stream, spells, 8);
     WriteItemIds(stream, armor, 7);
-    stream->Write(exposure, sizeof(exposure));
+    stream->Write(exposure.data(), sizeof(exposure));
     stream->WriteValue(relationsB);
     stream->WriteValue(static_cast<int>(std::ssize(carried)));
     WriteItemIds(stream, carried.data(), static_cast<int>(std::ssize(carried)));

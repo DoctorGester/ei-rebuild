@@ -123,7 +123,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
     float distance = ActionDistance(order);
     float reachSq = distance * distance;
     if (!order->target) aim = order->point;
-    else order->target->AimPoint(&aim);
+    else aim = order->target->AimPoint();
     float t = 0.0f;
     for (;;) {
         float time = pc24::Add(static_cast<double>(pathOrder->startTime), t);   // the int exact, one rounding
@@ -149,9 +149,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         // In reach: done unless a line of sight is needed and missing from here.
         if (!canSee) break;
         if (sight.unit) {
-            Vector3 eye;
-            const float* at = &sight.unit->EyePoint(&eye)->x;
-            lib::LoadBytes(sight.point, at);
+            sight.point = sight.unit->EyePoint();
             sight.unit = nullptr;
         }
         float sy = sight.point.y - position.y;
@@ -177,7 +175,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     LocalMotionOrder route;
     Vector3 point;
     if (!order->target) point = order->point;
-    else order->target->AimPoint(&point);
+    else point = order->target->AimPoint();
     bool ok;
     if (!FindUseSpot(order, &route)) {
         PathMessage(unit, &route, &point.x, 3, 1, kFar);
@@ -206,13 +204,12 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
-            Vector3 destination;
-            const Vector3* at = route.Destination(&destination);
+            Vector3 at = route.Destination();
             if (!CanReachTarget(order)) return false;
             float x = unit->localPosition.x, y = unit->localPosition.y, z = unit->localPosition.z;
-            unit->localPosition.x = at->x;
-            unit->localPosition.y = at->y;
-            unit->localPosition.z = at->z;
+            unit->localPosition.x = at.x;
+            unit->localPosition.y = at.y;
+            unit->localPosition.z = at.z;
             bool can = CanPlanAction(order);
             unit->localPosition.x = x;
             unit->localPosition.y = y;

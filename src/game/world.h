@@ -848,9 +848,9 @@ public:
     int CollectVisible(MapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                        char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
-    // terrain height (Terrain::HeightAt). Returns out (x, y, z).
-    Vector3* PickGround(Vector3* out, int x, int y);
-    Vector3* PickSurface(Vector3* out, int x, int y);
+    // terrain height (Terrain::HeightAt).
+    Vector3 PickGround(int x, int y);
+    Vector3 PickSurface(int x, int y);
 
     // Files an object in the client's maps (objects, objectGrid, heroes for heroes with a text-key id; the
     // dynamic lists for IsSynchronised objects; platform items for classes 0x54 / 0x5D); units fade in

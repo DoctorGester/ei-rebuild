@@ -168,14 +168,14 @@ public:
     void SetEffectCount(int count);
     virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags
     virtual int SetVisibilityMode(int mode);    // hands it to the companion
-    virtual Vector3* EyePoint(Vector3* out);        // where the object sees from (GroundPoint)
+    virtual Vector3 EyePoint();        // where the object sees from (GroundPoint)
     virtual std::uint32_t ReadNetState(int first);   // (units override)
     virtual void WriteNetState();      // (units override)
     // z = ground height at (x, y) + `offset`.
     virtual void PlaceOnGround(float offset);
     // Where the object is at world time `time` (units: along their path; other objects ignore the time).
-    virtual Vector3* PositionAt(Vector3* out, int time);
-    virtual Vector3* AimPoint(Vector3* out);        // GetPosition2
+    virtual Vector3 PositionAt(int time);
+    virtual Vector3 AimPoint();        // GetPosition2
     virtual bool IsLargeUnit();                      // 0; units their own
     virtual bool IsDead();                           // non-zero when dead or gone
     // `object` is going away (the world server's RemoveObject tells every object). Empty (0); units: the

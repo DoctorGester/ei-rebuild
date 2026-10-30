@@ -97,7 +97,7 @@ double Unit::GroundHeight(float x, float y) {
 }
 
 
-Vector3* Unit::EffectPoint(Vector3* out) {
+Vector3 Unit::EffectPoint() {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns
     // whatever the stack holds; zero gives the position there (docs/notes/units.md).
     Vector3 local = {0.0f, 0.0f, 0.0f};
@@ -107,21 +107,12 @@ Vector3* Unit::EffectPoint(Vector3* out) {
             if (FigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 PartWorldPosition(&at.x, hand);
-                out->x = at.x;
-                out->y = at.y;
-                out->z = at.z;
-                return out;
+                return at;
             }
         } else if (!ClientController()->WeaponPoint(&local)) {
-            out->x = localPosition.x + bounds.center.x;
-            out->y = localPosition.y + bounds.center.y;
-            out->z = localPosition.z + bounds.center.z;
-            return out;
+            return {localPosition.x + bounds.center.x, localPosition.y + bounds.center.y, localPosition.z + bounds.center.z};
         }
     }
     Vector3 turned = RotateVector(localRotation, local);
-    out->x = turned.x + localPosition.x;
-    out->y = turned.y + localPosition.y;
-    out->z = turned.z + localPosition.z;
-    return out;
+    return {turned.x + localPosition.x, turned.y + localPosition.y, turned.z + localPosition.z};
 }

@@ -18,19 +18,14 @@ namespace {
 constexpr int kOrderPath = 2;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-void CopyPosition(Vector3* out, const Unit* unit) { *out = unit->localPosition; }
-
 } // namespace
 
 // A dead unit gives its action point; otherwise a unit following a path order (kind 2) without flag
 // 0x8000000 gives its motion's position at `time`, and any other its position.
-static Vector3* PredictPosition(Unit* unit, Vector3* out, int time) {
+static Vector3 PredictPosition(Unit* unit, int time) {
     // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
     PathOrder* path = unit->Controller()->Path();
-    if (unit->IsDead()) {
-        unit->AimPoint(out);
-        return out;
-    }
+    if (unit->IsDead()) return unit->AimPoint();
     MotionOrder* order = &path->motionOrder;
     if (order->kind == kOrderPath && !(unit->flags & MapObjectFlag::Planned)) {
         float toCells = 2.0f;
@@ -44,24 +39,17 @@ static Vector3* PredictPosition(Unit* unit, Vector3* out, int time) {
         unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = 0.5f;
-        out->x = toWorld * position.x;
-        out->y = toWorld * position.y;
-        out->z = position.z;
-        return out;
+        return {toWorld * position.x, toWorld * position.y, position.z};
     }
-    CopyPosition(out, unit);
-    return out;
+    return unit->localPosition;
 }
 
-// Returns `out` (the callers use it). For a dead unit, the point the unit's current animation acts on: a death
+// For a dead unit, the point the unit's current animation acts on: a death
 // animation offsets the position along the orientation away from its BlowSide: Back -Y, Front +Y by the
 // box's max Y, MinusX +X, PlusX -X by its max X. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
-static Vector3* ActionPoint(Unit* unit, Vector3* out) {
-    if (!unit->IsDead()) {
-        CopyPosition(out, unit);
-        return out;
-    }
+static Vector3 ActionPoint(Unit* unit) {
+    if (!unit->IsDead()) return unit->localPosition;
     auto index = static_cast<std::uint8_t>(unit->animationEntry);
     Vector3 offset = {0.0f, 0.0f, 0.0f};
     const FigureAnimation* entry = unit->AnimationAt(index);
@@ -92,16 +80,10 @@ static Vector3* ActionPoint(Unit* unit, Vector3* out) {
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->localPosition.x, offset.y + unit->localPosition.y, offset.z + unit->localPosition.z};
-        if (!world->aiMap.IsPassableForClass(3, point)) {
-            CopyPosition(out, unit);
-            return out;
-        }
+        if (!world->aiMap.IsPassableForClass(3, point)) return unit->localPosition;
     }
-    out->x = offset.x + unit->localPosition.x;
-    out->y = offset.y + unit->localPosition.y;
-    out->z = offset.z + unit->localPosition.z;
-    return out;
+    return {offset.x + unit->localPosition.x, offset.y + unit->localPosition.y, offset.z + unit->localPosition.z};
 }
 
-Vector3* Unit::PositionAt(Vector3* out, int time) { return PredictPosition(this, out, time); }
-Vector3* Unit::AimPoint(Vector3* out) { return ActionPoint(this, out); }
+Vector3 Unit::PositionAt(int time) { return PredictPosition(this, time); }
+Vector3 Unit::AimPoint() { return ActionPoint(this); }

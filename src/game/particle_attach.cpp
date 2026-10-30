@@ -20,12 +20,6 @@ namespace {
 const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
                                     "body00", "body01", "body02", "body03", "body04"};
 
-void SetPosition(Vector3* out, const float* p) {
-    out->x = p[0];
-    out->y = p[1];
-    out->z = p[2];
-}
-
 } // namespace
 
 void ParticleSource::ReleaseAllParticles() {
@@ -33,55 +27,37 @@ void ParticleSource::ReleaseAllParticles() {
     particles.clear();
 }
 
-Vector3* ParticleSource::PartPoint(Vector3* out, Object3D* object, const char* prefix) {
+Vector3 ParticleSource::PartPoint(Object3D* object, const char* prefix) {
     FigureMesh* part = object->FindPartByPrefix(prefix);
     if (!part) part = object->FindPartByPrefix("bd");
     if (part) {
         Vector3 point;
         object->PartWorldPosition(&point.x, part);
-        *out = point;
-        return out;
+        return point;
     }
-    out->x = object->localPosition.x;
-    out->y = object->localPosition.y;
-    out->z = object->localPosition.z + object->bounds.boxMax.z;
-    return out;
+    return {object->localPosition.x, object->localPosition.y, object->localPosition.z + object->bounds.boxMax.z};
 }
 
-Vector3* ParticleSource::AttachmentPoint(Vector3* out, Object3D* object) {
-    if (!object) {
-        out->x = 0.0f;
-        out->y = 0.0f;
-        out->z = 0.0f;
-        return out;
-    }
-    if (!(flags & ParticleSourceFlag::OnPart)) {
-        SetPosition(out, &object->localPosition.x);
-        return out;
-    }
+Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
+    if (!object) return {0.0f, 0.0f, 0.0f};
+    if (!(flags & ParticleSourceFlag::OnPart)) return object->localPosition;
     const auto point = static_cast<std::uint32_t>(attachPoint);
     if (object->GetClassId() == ClassId::Unit && point <= 12) {
-        if (point == 0) return static_cast<Unit*>(object)->EffectPoint(out);
-        PartPoint(out, object, kPartNames[point]);
-        if (point == 2) out->z = out->z + 1.0f;
-        return out;
+        if (point == 0) return static_cast<Unit*>(object)->EffectPoint();
+        Vector3 at = PartPoint(object, kPartNames[point]);
+        if (point == 2) at.z = at.z + 1.0f;
+        return at;
     }
     float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
                                                                   : object->bounds.boxMax.z - object->bounds.boxMin.z;
-    out->x = object->localPosition.x;
-    out->y = object->localPosition.y;
-    out->z = rise + object->localPosition.z;
-    return out;
+    return {object->localPosition.x, object->localPosition.y, rise + object->localPosition.z};
 }
 
-Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
+Vector3 ParticleSource::AttachmentOffset(float* radius) {
     Object3D* object = attachedTo;
     if (!object) {
-        out->x = 0.0f;
-        out->y = 0.0f;
-        out->z = 0.0f;
         *radius = 0.1f;
-        return out;
+        return {0.0f, 0.0f, 0.0f};
     }
     object->ComputeBounds();
     if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
@@ -92,10 +68,7 @@ Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
         float dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
         *radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5f;
     }
-    out->x = 0.0f;
-    out->y = 0.0f;
-    out->z = object->bounds.center.z;
-    return out;
+    return {0.0f, 0.0f, object->bounds.center.z};
 }
 
 void ParticleSource::Attach(Object3D* object) {
@@ -108,8 +81,7 @@ void ParticleSource::Attach(Object3D* object) {
     if (old) {
         if (!object) {
             // Let go where the source is: the attachment point becomes part of the position.
-            Vector3 point;
-            AttachmentPoint(&point, old);
+            Vector3 point = AttachmentPoint(old);
             float x = point.x + localPosition.x;
             float y = localPosition.y + point.y;
             float z = localPosition.z + point.z;
@@ -128,9 +100,7 @@ void ParticleSource::Attach(Object3D* object) {
     object->ComputeBounds();
     // Adds the source and calls Attach(object) again (already attached: nothing).
     attachedTo->AddEffectSource(this);
-    Vector3 point;
-    AttachmentPoint(&point, attachedTo);
-    origin = point;
+    origin = AttachmentPoint(attachedTo);
 }
 
 void ParticleSource::StopAndClear() {

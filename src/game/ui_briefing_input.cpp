@@ -77,9 +77,7 @@ bool IsPerson(MapObject* object) { return object && object->IsDead() == 0; }
 
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
-    Vector3 picked;
-    Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
-    Vector3 point{p->x, p->y, p->z};
+    Vector3 point = g_clientWorld.PickSurface(x, y);
     if (!screen->leader) return;
     Unit* unit = g_serverWorld.FindUnit(screen->leader->id);
     if (!unit || (unit->flags & MapObjectFlag::Blocked)) return;
@@ -174,9 +172,7 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
         label->Show();
         return;
     }
-    Vector3 picked;
-    Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
-    Vector3 ground{p->x, p->y, p->z};
+    Vector3 ground = g_clientWorld.PickSurface(x, y);
     int newExit = 0;
     if (!g_clientWorld.FindExitAt(&ground.x, &newExit)) return;
     std::string zone = g_clientWorld.ExitTarget(exit);

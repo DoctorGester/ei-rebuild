@@ -69,8 +69,8 @@ struct AIOrder {
     void MakeUse(MapObject* object, UseSource what);
     // `source` read as a use order's skill (kind Use).
     UseSource Skill() const { return static_cast<UseSource>(source); }
-    // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
-    Vector3* AimPoint(Vector3* out) const;
+    // Where the order aims: the object's AimPoint, or `point` without an object.
+    Vector3 AimPoint() const;
 
     UnitOrderKind kind = UnitOrderKind::None;
     std::uint32_t source = 0;       // the body part of an attack (kAttackAllParts), the spell of a cast, the UseSource of a use
@@ -581,10 +581,10 @@ struct AIMemory {
     // visible list's head (both counted); each logged.
     void ForceSee(Unit* self, Unit* object);
     void SeeCorpse(Unit* self, Unit* corpse);
-    // The unit's exposure to the living hostile units nearby into `out` (Unit::exposure): per kind the
+    // The unit's exposure to the living hostile units nearby (Unit::exposure): per kind the
     // smallest distance / range ratio, at most 3 (a zero range counts 3). [0] sight (scaled by the line of
     // sight between the eyes, only within range), [4], [1], [2] three other ranges; [3] stays 3.
-    void MeasureExposure(UnitServer* self, float* out);
+    std::array<float, 5> MeasureExposure(UnitServer* self);
     // From / to a save: the four object lists (appended to on load), the noticed point, level and countdown,
     // the reports, the heard calls (point, delay, text, hostileMask) and the noticed decay (-1 until read).
     void Load(ByteStream* stream);

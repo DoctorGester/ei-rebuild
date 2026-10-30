@@ -267,8 +267,7 @@ int EffectParticle::Unpack(int update, DeltaField* field) {
     if (unitId != -1) {
         Unit* unit = OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) {
-            Vector3 point;
-            position = *unit->EffectPoint(&point);
+            position = unit->EffectPoint();
         }
     }
     localPosition = position;
@@ -528,8 +527,7 @@ void EffectLightning::UpdateEnds() {
     }
     Unit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
     if (source != nullptr && WorldContext()->IsServer() == 0) {
-        Vector3 point;
-        from = *source->EffectPoint(&point);
+        from = source->EffectPoint();
     }
 }
 

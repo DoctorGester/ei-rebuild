@@ -6,19 +6,16 @@
 // could spill and round) is needed. The vector operators are vecmath.h's: one operation per component,
 // rounded when stored, the whole result computed before `*out` is written (out may alias an input).
 
-Vector3* AddVectors(Vector3* out, const Vector3& a, const Vector3& b) {
-    *out = a + b;
-    return out;
+Vector3 AddVectors(const Vector3& a, const Vector3& b) {
+    return a + b;
 }
 
-Vector3* NegateVector(Vector3* out, const Vector3& v) {
-    *out = -v;
-    return out;
+Vector3 NegateVector(const Vector3& v) {
+    return -v;
 }
 
-Vector3* ScaleVector(Vector3* out, const Vector3& v, float s) {
-    *out = s * v;
-    return out;
+Vector3 ScaleVector(const Vector3& v, float s) {
+    return s * v;
 }
 
 const Vector3* Vector3::AddInPlace(const Vector3& v) {

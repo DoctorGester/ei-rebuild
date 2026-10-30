@@ -65,9 +65,8 @@ bool SetUpCasting(ParticleSource* s) {
         game::DebugLog(NoCarrierCasting());
         return false;
     }
-    Vector3 offset;
     float radius;
-    s->AttachmentOffset(&offset, &radius);
+    Vector3 offset = s->AttachmentOffset(&radius);
     radius = radius * EI_POINT_EIGHT;
     float scale = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
@@ -144,9 +143,8 @@ bool FollowCarrier(ParticleSource* s) {
         game::DebugLog(NoCarrierSphere());
         return false;
     }
-    Vector3 offset;
     float radius;
-    s->AttachmentOffset(&offset, &radius);
+    Vector3 offset = s->AttachmentOffset(&radius);
     radius = radius * EI_SPHERE_RADIUS;
     float height;
     height = offset.z;
@@ -211,9 +209,8 @@ constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's las
 // tick (Healing also sets the flame growth). Each ring counts down from `countdown`.
 void PlaceRings(ParticleSource* s, int countdown) {
     float step = ei::kRadiansPerDegree * (EI_FULL_TURN / s->emitCount);
-    Vector3 offset;
     float radius;
-    s->AttachmentOffset(&offset, &radius);
+    Vector3 offset = s->AttachmentOffset(&radius);
     float fullRadius = radius;
     float angle = 0.0f;
     offset.z = offset.z - fullRadius;
@@ -329,9 +326,8 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
     float orbit, carrier;     // the orbit radius and the carrier's radius
     int k = lib::Count(s->elements);
     if (k == 0) {
-        Vector3 offset;
         float radius;
-        s->AttachmentOffset(&offset, &radius);
+        Vector3 offset = s->AttachmentOffset(&radius);
         carrier = radius;
         orbit = radius * EI_HALF_C;
     } else {
@@ -537,9 +533,7 @@ void ChooseShowerRays(ParticleSource* s) {
         float length = std::sqrt(lengthSquared);
         Vector3 v;
         v.Construct(x, y, z);
-        Vector3 direction;
-        DivideVector(&direction, v, length);
-        s->elements[i].pos = direction;
+        s->elements[i].pos = v / length;
         s->elements[i].ray.age = 0;
     }
 }
@@ -612,9 +606,8 @@ bool SetUpColumn(ParticleSource* s) {
         game::DebugLog(NoCarrierCasting());
         return false;
     }
-    Vector3 offset;
     float radius;
-    s->AttachmentOffset(&offset, &radius);
+    Vector3 offset = s->AttachmentOffset(&radius);
     float height = radius + radius;
     float foot = -offset.z - height * EI_COLUMN_FOOT;
     radius = radius * EI_COLUMN_RADIUS;
@@ -714,9 +707,8 @@ constexpr std::int32_t kCylinderAlpha[32] = /*0078AB18*/ {0, 32, 64, 128, 255, 2
 
 // The stars on the carrier's orbit (the first emission).
 void SetUpCylinder(ParticleSource* s) {
-    Vector3 offset;
     float radius;
-    s->AttachmentOffset(&offset, &radius);
+    Vector3 offset = s->AttachmentOffset(&radius);
     float turn = (EI_CYL_TURN * EI_CYL_PI) * EI_CYL_TURN_SCALE;
     if (ParticleTypeOf(s->type) == ParticleType::Cylinder2) turn = -turn;
     float c = std::cos(turn);
@@ -857,9 +849,10 @@ constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 
                                              255, 255, 255, 255, 255, 255, 255};
 
 // A figure part's world position.
-Vector3* FigurePartPosition(Object3D* unit, Vector3* out, const FigureMesh* part) {
-    unit->PartWorldPosition(&out->x, part);
-    return out;
+Vector3 FigurePartPosition(Object3D* unit, const FigureMesh* part) {
+    Vector3 at;
+    unit->PartWorldPosition(&at.x, part);
+    return at;
 }
 
 const char* kLeftFoot = "ll3";
@@ -1081,8 +1074,7 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
         float t = -(DotUnrounded<Sum3::ZYX>(m, p->velocity) / speed);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
-        Vector3 along;
-        SubtractVectors(&offset, p->velocity, *ScaleVector(&along, m, t));
+        offset = p->velocity - ScaleVector(m, t);
     } else {
         offset = p->velocity;
     }
@@ -1573,9 +1565,7 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     float sized = g * (EI_BLAST_POINT_THREE - u * EI_BLAST_POINT_15) *
                    (e->fragment.radius * EI_BLAST_SEVENTH + EI_BLAST_POINT_THREE);
     p->size = sized * e->fragment.sizeFactor * size;
-    Vector3 drift;
-    ScaleVector(&drift, e->fragment.velocity, size);
-    p->velocity = drift;
+    p->velocity = ScaleVector(e->fragment.velocity, size);
     return 1;
 }
 
@@ -2162,9 +2152,8 @@ int ParticleSource::EmitStench(Particle* p, int) {
             game::DebugLog(NoCarrierGas());
             return 0;
         }
-        Vector3 offset;
         float radius;
-        AttachmentOffset(&offset, &radius);
+        Vector3 offset = AttachmentOffset(&radius);
         float r = radius;
         float gasRadius = r * EI_GAS_RADIUS;
         float carrierHeight = r + r;
@@ -2725,9 +2714,8 @@ int ParticleSource::UpdateArrowSmoke(Particle* p) {
 int ParticleSource::EmitBanshee(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         elements.resize(1);
-        Vector3 offset;
         float radius;
-        AttachmentOffset(&offset, &radius);
+        Vector3 offset = AttachmentOffset(&radius);
         float tall = radius * EI_BANSHEE_TALL;
         float widen = radius * EI_BANSHEE_WIDEN;
         height = widen + widen;
@@ -2937,8 +2925,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     float length = std::sqrt(lengthSquared);
     Vector3 v;
     v.Construct(x, y, z);
-    Vector3 direction;
-    DivideVector(&direction, v, length);
+    Vector3 direction = v / length;
     float k = speed * size * speed * 0.2f;
     p->drift.x = direction.x * k;
     p->drift.y = direction.y * k;
@@ -3435,9 +3422,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
         FigureMesh* part = unit->FindPartByPrefix(e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = unit->FindPartByPrefix(kBody);
         if (part) {
-            Vector3 at;
-            FigurePartPosition(unit, &at, part);
-            e->pos = at;
+            e->pos = FigurePartPosition(unit, part);
         } else {
             const float* place = &unit->localPosition.x;
             float raise = unit->bounds.boxMax.z;
@@ -3447,8 +3432,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
     } else {
         e->pos = origin;
     }
-    Vector3 offset;
-    AttachmentOffset(&offset, &e->foot.radius);
+    AttachmentOffset(&e->foot.radius);
     e->foot.countdown = 0;
 }
 
@@ -3863,8 +3847,7 @@ int ParticleSource::EmitStartTrans(Particle* p, int) {
         float length = std::sqrt(lengthSquared);
         Vector3 v;
         v.Construct(x, y, z);
-        Vector3 direction;
-        DivideVector(&direction, v, length);
+        Vector3 direction = v / length;
         float s = size;
         p->velocity.x = direction.x * s;
         p->velocity.y = direction.y * s;
@@ -4025,8 +4008,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     }
     if (!unit) return 0;
     if (index > typeParam) return 0;
-    Vector3 scratch;
-    Vector3 point = *Carrier(unit)->PositionAt(&scratch, index + g_clientWorld.tick);
+    Vector3 point = Carrier(unit)->PositionAt(index + g_clientWorld.tick);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     elements[0].glow.mark = point;
@@ -4058,9 +4040,8 @@ void ParticleSource::TickGlow(ParticleElement*) {
 // ticks, else one; once the carrier is gone (nothing emitted) or it is dead (IsDead) the source stops and lets
 // it go.
 int ParticleSource::EmitStun(Particle* p, int) {
-    Vector3 offset;
     float radius;
-    AttachmentOffset(&offset, &radius);
+    Vector3 offset = AttachmentOffset(&radius);
     p->color = 0xFFFFFF;
     p->frame = 3;
     float x, y, z;

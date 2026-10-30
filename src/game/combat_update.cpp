@@ -121,7 +121,7 @@ bool UnitServer::RunTick() {
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
-            brain.memory.MeasureExposure(this, unit->exposure);
+            unit->exposure = brain.memory.MeasureExposure(this);
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
@@ -493,10 +493,9 @@ bool UnitServer::ActionInReach() {
         if (kind != UnitOrderKind::Use) return false;
         if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
-    Vector3 where;
-    const float* at = &target->PositionAt(&where, currentPlan.endTime)->x;
-    float dx = at[0] - unit->localPosition.x;
-    float dy = at[1] - unit->localPosition.y;
+    Vector3 at = target->PositionAt(currentPlan.endTime);
+    float dx = at.x - unit->localPosition.x;
+    float dy = at.y - unit->localPosition.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);
     EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer

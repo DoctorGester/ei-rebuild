@@ -195,8 +195,7 @@ int WorldClient::Render() {
         render::ShadowSun(direction);
     }
     HandOverSceneLights(this);
-    Matrix4 view;
-    view::ViewMatrix(view.m, drawn.position, drawn.rotation);
+    Matrix4 view = view::ViewMatrix(drawn.position, drawn.rotation);
     PopMatrix(device->stacks[kStackView]);
     PushMatrix(device->stacks[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;

@@ -383,8 +383,7 @@ void FigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* mi
     double distance = LengthSquaredXYZ(localPosition);
     if (distance > kFarLimit) return;
 
-    Matrix4 m = {};
-    WorldMatrix(m.m);
+    Matrix4 m = WorldMatrix();
 
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
     // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner

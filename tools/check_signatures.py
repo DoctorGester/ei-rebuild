@@ -161,7 +161,14 @@ def arg_bytes(und):
     if not m:
         return None
     sizes = [param_size(p) for p in split_params(m.group(1))]
-    return None if None in sizes else sum(sizes)
+    if None in sizes:
+        return None
+    # A struct larger than eight bytes returned by value (Vector3) comes back through a hidden pointer, which the
+    # original's out-pointer parameter stands for.
+    r = re.search(r'(?:^|\s)(?:struct|class)\s+([\w:<>, ]+?)\s+__(?:thiscall|stdcall|fastcall|cdecl)\b', und)
+    if r and r.group(1) not in ('Vector2', 'POINT', 'SIZE'):
+        sizes.append(4)
+    return sum(sizes)
 
 
 def declarations(map_paths=MAPS):

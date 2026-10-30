@@ -176,11 +176,8 @@ float UseOrderDistanceSquared(const Vector3& a, const Vector3& b) {
     return vecmath::DistanceSquared<Sum3::ZYX>(a, b);
 }
 
-Vector3* AIPath::TargetPoint(Vector3* out) const {
-    out->z = 0.0f;
-    out->x = 0.5f * targetX;
-    out->y = 0.5f * targetY;
-    return out;
+Vector3 AIPath::TargetPoint() const {
+    return {0.5f * targetX, 0.5f * targetY, 0.0f};
 }
 
 int PlayerServer::OnUseOrder() {
@@ -210,8 +207,7 @@ int PlayerServer::OnUseOrder() {
         AIOrder order;
         order.Clear();
         order.MakeUse(object, kind);
-        Vector3 aim;
-        order.AimPoint(&aim);
+        Vector3 aim = order.AimPoint();
         Unit* first = nullptr;
         bool accepted = false;
         while (!units.empty()) {
@@ -237,8 +233,7 @@ int PlayerServer::OnUseOrder() {
             }
             Vector3 from;
             if (g_serverWorld.aiMap.FindPath(nearest, aim, &path, kPathRange, 0.0f)) {
-                Vector3 end;
-                from = *path.TargetPoint(&end);
+                from = path.TargetPoint();
             } else {
                 from = nearest->localPosition;
             }

@@ -364,9 +364,9 @@ bool CheckProtectionBlock(const ProtectionCall& v, char* d, std::size_t n) {
         options::g_options.difficulty = v.difficulty;
         g_logicSettings.absorption[v.difficulty] = v.factor;
     }
+    const auto block = params.ProtectionBlock(&vitals, v.keyed);
     float out[7];
-    std::memset(out, 0xCD, sizeof(out));
-    params.ProtectionBlock(&vitals, out, v.keyed);
+    std::memcpy(out, block.data(), sizeof(out));
     if (Same(out, v.out)) return true;
     int k = 0;
     while (Same(out[k], v.out[k])) ++k;

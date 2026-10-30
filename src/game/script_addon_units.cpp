@@ -114,8 +114,7 @@ bool GetArmor(Call* call) {
         *call->result.number = sum;
     } else {
         Unit* unit = data->unit;
-        float block[7];
-        unit->params.ProtectionBlock(&unit->packedVitals, block, static_cast<unsigned char>(unit->id >= 1000000000 ? 1 : 0));
+        auto block = unit->params.ProtectionBlock(&unit->packedVitals, static_cast<unsigned char>(unit->id >= 1000000000 ? 1 : 0));
         *call->result.number = block[part];
     }
     return true;
