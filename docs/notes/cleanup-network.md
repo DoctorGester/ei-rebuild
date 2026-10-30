@@ -28,8 +28,7 @@ qualified member).
   `NewMessageMemory<T>()` is the inlined operator new with the count dword cleared before the null check; `SessionBase::AddHandlerFor<T>(channel,
   handler)` builds the prototype with `T::Construct`.
 - `net_link.h`: `FileStream : ByteStream` (0073C8D8; the slot 3 and slot 6 bodies return the CFile's seek result, so they are the non-virtual `SeekFrom` /
-  `Restart`, registered directly; `Open` / `Close` replace four inlined copies), `NetLink : RefObject` (slots 4-12, `Construct`, `ConstructCopyOf`, `Destruct`,
-  `OpenRecording`, `CloseRecording`, `Record`), `LoopbackLink`, `ReplayLink`, `FramedLink` (adds slot 13 `SendBytes`), `DriverLink` (`player` a
+  `Restart`, registered directly; `Open` / `Close` replace four inlined copies), `NetLink : RefObject` (slots 4-12, `Construct`, `ConstructCopyOf`, `Destruct`), `LoopbackLink`, `FramedLink` (adds slot 13 `SendBytes`), `DriverLink` (`player` a
   `Connection*`), `DriverSession` with `Pump` / `Start` members. Slots 4 / 5 / 6 / 13 are declared `bool` (some bodies set only AL), the hooks of bodies that
   returned an int still return 0 / 1 as an int. `net_coder.h` `GameBuffer`: novtable, slots 0-6 declared only (ReserveRead, ReserveWrite, Commit, ReadMore,
   WriteMore, deleting destructor, Seek); `InitView` replaces the aggregate-built views; copies are byte copies, vtable included.

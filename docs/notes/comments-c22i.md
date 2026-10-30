@@ -56,12 +56,11 @@ provisional; see docs/notes/network.md and
 docs/notes/cleanup-network.md.
 Class map (vtables):
   FileStream (0x1C): a ByteStream over a `platform::File` (the original: an MFC CFile). Save files go through it
-            (world_game.cpp, ui_saveload.cpp), and the links record their messages with it.
-  NetLink (0x28, abstract): the recording flags and the recording file.
+            (world_game.cpp, ui_saveload.cpp), and the connection screen's address book.
+  NetLink (0x28 in game.exe, abstract): the base of the links.
   LoopbackLink (0x30): two of them joined to each other, the single-player
             link between the local client and the server. Send puts a copy of the stream on the
             peer's queue, Receive takes the front of its own.
-  ReplayLink (0x44): plays back a recording message by message.
   FramedLink (0x50, abstract): the received bytes in a memory stream, each message a
             4-byte length and its bytes; Send frames the message and hands it to slot 13.
   DriverLink (0x54): a FramedLink over a network connection's reliable streams.

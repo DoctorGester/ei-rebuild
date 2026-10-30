@@ -16,7 +16,7 @@
 #include <type_traits>
 
 // The engine's abstract byte stream. The save game, the network messages and the chunk archives are memory
-// streams behind it; the message recordings are file streams.
+// streams behind it.
 class ByteStream {
 public:
     ByteStream();
