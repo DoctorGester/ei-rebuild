@@ -31,16 +31,25 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   `ninja -t deps` lists every object's project headers. On a machine other builds share, compare the CPU time of
   the whole ninja run (a job object's accounting), not its wall time: three alternating clean verify builds gave
   1,443-1,479 s before the header diet below and 1,312-1,318 s after (-10%; wall ~55 -> ~50 s), a touched
-  `game/unit.h` 1,035 -> 945 s.
+  `game/unit.h` 1,035 -> 945 s. When other workers' suites and builds share the machine even that varies by ~12%
+  (three trees alternating, clean release: 1,122-1,270 s CPU and 62-99 s wall for each): too coarse for a change
+  of ~1%. Time the affected objects instead: each object's cl.exe process times (one process: the front and back
+  ends are DLLs in it), the trees in turn, the median of 9 (H33d's scratch `per_file.py`). A job object started
+  after the process (`AssignProcessToJobObject` on a running cl) can miss children and gives low outliers.
 - Header diet: a header that only holds or passes RECT / POINT / SIZE / HWND / HANDLE / CRITICAL_SECTION includes
   `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2 s); a file that calls Windows
   or uses its constants includes `<windows.h>` itself, and `lib/gameapi.h` (windows.h, mmsystem, shellapi, objbase,
-  dsound, ~140 dynamic initialisers) only where it calls `gameapi::`. ~210 of ~750 objects still reach windows.h,
-  140 gameapi.h. Left: `game/ui.h` (160 objects) keeps windows.h because its member `PlaySound` is a mmsystem.h
-  macro (every file sees `PlaySoundA`; without windows.h first the names would differ); `game/ui_item_info.h` keeps
-  gameapi.h for `TrimItemCache`'s `gameapi::timeGetTime` (a template body).
-- `lib/import_table.h`, `import_prototypes.h` and `gameapi.h` are in the harness's reference key (run_all
-  `harness_files`): a change there replays every original run. Leave them as they are for build time.
+  dsound) only where it calls `gameapi::`. 91 of ~690 objects reach windows.h through a project header (most through
+  `game/system_text.h` and the device headers), 85 gameapi.h. `game/ui.h` takes win_types.h since its member
+  `PlaySound` (a mmsystem.h macro name) is `PlayInterfaceSound`, and `game/ui_item_info.h` no gameapi.h
+  (`TrimItemCache` calls `ItemCacheTime`, ui_item_info.cpp): 199 -> 91 objects reaching windows.h, 138 -> 83
+  gameapi.h; per object ~0.15-0.3 s CPU (ui_spin, ui_stats_buttons, ui_item_strip_setup), ~20 s of a clean build.
+- gameapi.h's slot imports are `extern` references bound once in the generated gameapi.cpp (init_seg(lib)), not
+  `inline auto&` references whose dynamic initialiser every including object compiled: 0-0.07 s per object (thread,
+  calendar, random), a few s of a clean build; the call code is the same.
+- `lib/import_table.h` and `import_prototypes.h` are in the harness's reference key (run_all `harness_files`,
+  through hook/paths.cpp and tests/verify/harness_imports.h): a change there replays every original run. gameapi.h
+  and gameapi.cpp are not (no file of game.exe's side includes them).
 - An include change can change how MSVC inlines `std::basic_string` members, as the precompiled header did: model.h
   without `script.h` changed ~25 objects, party.h without `map_object_figures.h` 3. Check each include change with a
   per-function `dumpbin /disasm` comparison of the objects (only `__LINE__` immediates may differ).
@@ -122,7 +131,7 @@ they were at the split) and calls game.exe's virtuals at game.exe's slots, and r
 (tests/verify/image). A cleanup that reorders, retypes or renames members of ours (C14a and later) changes neither
 the original's runs nor the reference cache's key (tools/check_harness_key.py); when a cleanup renames a member, the
 view may keep the old name. Of src/ game.exe's side still builds from src/hook (but standalone_main.cpp), rebirth.cpp,
-image_data.cpp with image_cells.inc, game_data.h, gameapi.h with import_table.h, and intro_sort.h.
+game_data.h, import_table.h with import_prototypes.h, and intro_sort.h (check_harness_key.py lists them).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
