@@ -186,7 +186,7 @@ the two cannot be stacked per file.
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
   camera keys and mouse), the briefing (camera moves, phrase timing), device_object (sets the 24-bit precision),
-  the terrain's heights, sectors and loading. C30e moved renderer_init, device_object, device_shadow, ui_briefing,
+  the terrain's heights, sectors and loading (moved in C30e14). C30e moved renderer_init, device_object, device_shadow, ui_briefing,
   ui_briefing_keys, ui_briefing_topics and ui_hud_pick: their objects do no float arithmetic (the picking maths they
   call is in the files left).
 - **Hit tests in whole pixels (C30a3):** the item and figure strips went back to x87 in C30a because the figure strip's
@@ -365,8 +365,9 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   where a NaN or a value beyond the int range can arrive (the low half; 0 for NaN, as `_ftol`: all 2^32 floats
   compared), else `static_cast<int>`; `x87::CopyBits` -> `=` (SSE2 copies keep a signalling NaN's bits);
   `x87::FromUnsigned` -> `static_cast<double>` (exact on SSE2).
-- **the chop rounding** (terrain_sector's `ScopedRounding` around the edge fade) sets only the x87 control word: on
-  SSE2 the truncation is written per operation or MXCSR is set around the loop (C30e14).
+- **the chop rounding**: none left. The original truncates the terrain's edge fade under chop rounding; the image's
+  `EdgeFade` (terrain_shadow, SSE2 since C30c) rounds to nearest with `std::lround`, so the x87 word that
+  terrain_sector's Build still set around it changed nothing, and went in C30e14 (with `x87::ScopedRounding`).
 - **53-bit code**: before the device exists (start-up: options, registry, settings, the first files read) the main
   thread runs at 53 bits, where the original's double maths is SSE2's double maths: such code stays double. The other
   threads (the MP3 stream, the cursor, the master server lookup) are SSE2 already or do no float maths.
@@ -459,7 +460,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
 | C30e12 (done) client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
 | C30e13 (done; camera.cpp: C30e13a) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
-| C30e14 terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
+| C30e14 (done) terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
 **C30e1 (network, sessions, settings; 30 files, all moved).** The network clocks: `net::Pump` passes at most 5000
@@ -660,6 +661,31 @@ of 277 M, mostly -0 against +0, once the exponential itself underflows; with wid
 lifting such a product back into the normal range, and the operands or the exponential out of range); added to the
 camera's height (metres) it changes nothing. With a nonzero sum (later shakes) 0 of 300 M differ.
 
+**C30e14 (terrain; 5 files, all moved).** Two precisions: `Terrain::Create` (the sine table, `BuildWavePhases`) runs
+from `WorldClient::Create` at start-up, before the device, at 53 bits, so its double maths stays double (SSE2's double
+maths is the FPU's there): the sine table is `pc24::Round(pc24::Sin(i * kPiDouble / 256))` (FSIN's 64 bits stored),
+the wave phases keep their double locals and the four corners' sum is written in double (the x87 code summed the
+floats at 53 bits; float adds differ at PC24 in every table tested). The rest runs at PC24 (map and sector loads,
+heights, the sector maps, `SetWaves` from scripts): float maths in the original's order (the sector bounds, vertex
+positions from the bytes, normals, water depths and levels, `SurfaceHeight`, the materials; the double constants
+1/126, 1/65534 and 0.001 were float values: float constants). Through pc24: SetWaveStrength's step, the game CRT's
+arc sine (its 64-bit result; SSE2 code stores it to a double) plus the turn, `Add(CiAsin(1 - s), kPi * turn)`, and the
+UV tables' 1 / tiles per row and side / tile size (`Div` on the ints). `x87::fistp` -> `lib::RoundEven` (cells, sector
+bounds, heights' cell), `Ftol` -> int64 truncation (the material's opacity byte: a NaN from the file gives 0), and
+the chop scope around Build's edge fade removed (above: nothing x87 ran under it since C30c). In the SSE2 objects:
+PlaneHeight's degenerate-triangle average `(z0 + z1 + z2) * 1/3` is an FADD, FADD, FMUL chain on its ST0 return value
+(PC24 on the main thread, as the original) and SurfaceHeight's last add an FADD; SetWaveStrength's clamp
+`s >= 0 ? s : 0` compiles to MAXSS (a -0 strength gives +0 glow and height where the x87 kept -0; C30e17). Equivalence
+test (C30e14's `eq/`: HEAD's forms built /arch:IA32 against the new, at PC24 or PC53 as each runs; whole runs under 5
+minutes each): the sine table at PC53 (512, 0 differ; at PC24 266 would), the wave phases at PC53 (48,000 tables, 0;
+at PC24 all would), every float in [0, 1] as the arc sine's argument plus the turn (1,065 M, 0), SetWaveStrength
+(24 M game, 0; 24 M wide: only -0 strengths and directions whose squares or parts leave a float's range), every 4th
+float through the material values (0 but the exponent range), 1 / every positive int and 4096^2 + 24 M wide margins
+(0), every height times 12,288 ranges and every offset at 4096 x 33 grid columns (0), every normal field (0), the
+water depth and level, sector bounds, plane and surface heights (24 M each, half wide: 0 but NaN payloads and the
+exponent range; 4 of 12 M wide plane heights with coordinates from 2^-120 to 2^108 in one triangle are NaN on SSE2),
+every float's sector cell (0) and the spiral distances at both precisions (0).
+
 ### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
@@ -677,9 +703,8 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
   `RightAngleCosine`'s `g_pi * g_perDegree` is a 24-bit product at PC24 (cos of float 90 degrees) and an exact one in SSE2;
   `world timeSpeed` 59.9999962 becomes 60.0. About 1270 double locals, 1040 `static_cast<double>` and 3370 `D()` promotions
   (27 files) are such registers.
-- Also: x87 intermediates have a 15-bit exponent; NaN payloads propagate differently; the terrain's edge fade's chop rounding
-  (`SectorData::Light` in terrain_sector.cpp) sets the x87 control word only, so SSE arithmetic there would round to nearest
-  (an SSE2 build has to set MXCSR there too).
+- Also: x87 intermediates have a 15-bit exponent; NaN payloads propagate differently; the terrain's edge fade was truncated
+  under chop rounding (the image's rounds to nearest since C30c).
 
 **Helper families, one at a time on `/arch:IA32`** (everything else as today; 110 goldens, ei_vectors 0 in every row):
 

@@ -59,8 +59,6 @@ endif()
 set(EI_X87_GAME_SOURCES
     # C30e13a: Camera::ApplyView's FPATAN of a float and _hypot's double
     game/camera
-    # C30e14: terrain
-    game/sector_map game/sector_spiral game/terrain game/terrain_landscape game/terrain_sector
     # C30e15: the main loop and the game CRT
     game/app_main lib/crt_x87)
 list(TRANSFORM EI_X87_GAME_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/\\1.cpp")

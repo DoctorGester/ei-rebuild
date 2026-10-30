@@ -11,10 +11,11 @@
 #include "world.h"
 #include "random.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -52,7 +53,7 @@ namespace {
 // A sector bound: the value rounded to nearest, divided by 32 towards zero, clamped to 0..count - 1 in this
 // order (a map without sectors gives -1).
 int SectorBound(float value, int count) {
-    int sector = x87::fistp(value) / kSectorCells;
+    int sector = lib::RoundEven(value) / kSectorCells;
     if (sector < 0) return 0;
     if (sector > count - 1) return count - 1;
     return sector;
@@ -100,7 +101,7 @@ constexpr std::uint32_t kMapMagic = 0xCE4AF672;
 constexpr int kExtraTextures = kExtraPages * kExtraPageTextures;   // after the map's own
 constexpr int kExtraClass = 0xF;
 constexpr float kMarginPixels = 8.0f;
-constexpr double kByteScale = 255.0;
+constexpr float kByteScale = 255.0f;
 
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
@@ -274,7 +275,8 @@ void Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
-    for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
+    // Before the device exists (the main thread at 53 bits): the angle in double maths, FSIN's result stored.
+    for (int i = 0; i < 512; ++i) sine[i] = pc24::Round(pc24::Sin(i * kPiDouble * kSineStep));
     localPosition = kZeroPosition;
     localRotation = kIdentityRotation;
 }
@@ -343,7 +345,9 @@ void Terrain::BuildWavePhases() {
         phases[i] = average;
         phases[i + kSectorRow - 1] = average;
     }
-    float corners = (((phases[kLastRow] + phases[kSectorVertices - 1]) + phases[kSectorRow - 1]) + phases[0]) * 0.25f;
+    // The four summed at 53 bits (Create runs before the device), then stored once.
+    const float corners = static_cast<float>(
+        (((static_cast<double>(phases[kLastRow]) + phases[kSectorVertices - 1]) + phases[kSectorRow - 1]) + phases[0]) * 0.25);
     phases[0] = corners;
     phases[kSectorRow - 1] = corners;
     phases[kSectorVertices - 1] = corners;
@@ -356,11 +360,12 @@ void Terrain::SetWaveStrength(float strength) {
     waveGlow = strength;
     waveHeight = kWaveHeightScale * strength;
     waveSpeed = kWaveSpeedScale * strength;
-    double step = libcrt::CiAsin(1.0f - strength) + kPi * kWaveStepTurn;
+    // The game CRT's arc sine (its 64-bit result) plus the turn, one 24-bit rounding.
+    const float step = pc24::Add(libcrt::CiAsin(1.0f - strength), kPi * kWaveStepTurn);
     float length = LengthXYZ(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
-    waveDirection.x = static_cast<float>(kWaveDirectionScale * waveDirection.x * step);
-    waveDirection.y = static_cast<float>(kWaveDirectionScale * waveDirection.y * step);
+    waveDirection.x = kWaveDirectionScale * waveDirection.x * step;
+    waveDirection.y = kWaveDirectionScale * waveDirection.y * step;
 }
 
 void Terrain::SetWaves(const Vector3& direction, float strength) {
@@ -447,11 +452,12 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
         material.kind = source.kind;
         material.waveColour = source.colour;
         material.opacity = source.opacity;
-        material.absorption = static_cast<float>(1.0 / static_cast<float>(1.0 - source.opacity));
-        material.opacityByte = static_cast<std::uint8_t>(libcrt::Ftol(static_cast<float>(material.opacity * kByteScale)));
-        material.colour.x = MinKeepA(1.0f, static_cast<float>(static_cast<double>(source.light) * material.waveColour.x));
-        material.colour.y = MinKeepA(1.0f, static_cast<float>(static_cast<double>(source.light) * material.waveColour.y));
-        material.colour.z = MinKeepA(1.0f, static_cast<float>(static_cast<double>(source.light) * material.waveColour.z));
+        material.absorption = 1.0f / (1.0f - source.opacity);
+        // Truncated through 64 bits (a NaN opacity from the file gives 0, as the game CRT's _ftol).
+        material.opacityByte = static_cast<std::uint8_t>(static_cast<std::int64_t>(material.opacity * kByteScale));
+        material.colour.x = MinKeepA(1.0f, source.light * material.waveColour.x);
+        material.colour.y = MinKeepA(1.0f, source.light * material.waveColour.y);
+        material.colour.z = MinKeepA(1.0f, source.light * material.waveColour.z);
         material.priority = source.priority;
         material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;
@@ -473,8 +479,9 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
 
 void Terrain::BuildUvTables(int tileSize) {
     // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
-    const float tileSide = static_cast<float>(1.0 / tilesPerRow);
-    const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
+    // The exact quotients of the ints, rounded once (an int past 2^24 is not rounded to a float first).
+    const float tileSide = pc24::Div(1.0, tilesPerRow);
+    const float margin = pc24::Div(tileSide, tileSize) * kMarginPixels;
     for (int rotation = 0; rotation < 4; ++rotation) {
         uvTables[rotation].assign(static_cast<std::size_t>(perPage), TileUv{});
         int index = 0;
@@ -515,7 +522,7 @@ std::span<float> Terrain::SectorWaterLevels(int sx, int sy) {
 
 void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= std::ssize(materials)) return;
-    float change = static_cast<float>(level - materials[material].level);
+    const float change = level - materials[material].level;
     materials[material].level = change + materials[material].level;
     for (std::size_t i = material; i < waterLevels.size(); i += materials.size()) waterLevels[i] = change + waterLevels[i];
 }

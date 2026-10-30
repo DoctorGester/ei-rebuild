@@ -1257,8 +1257,8 @@ game, the `--no-hooks` suite) keeps the registry.
     cost and the bits.
   - fmod (_CIfmod 006E95AA, fmod 006E95A0), modf 006EAD0B, floor and ceil alone kept every golden and are the host's
     (std::fmod and so on).
-  - _controlfp 006EBBB4 has no port of its own (C20r): its one caller, `SectorData::Light`, sets chop rounding on the x87
-    word and restores it (SV10k below).
+  - _controlfp 006EBBB4 has no port: its one caller, `SectorData::Light`, set chop rounding around the CPU lighting,
+    which is gone (R34a); the edge fade Build writes rounds to nearest (SV10k below).
   - `libcrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
     truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
     where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
@@ -1288,12 +1288,10 @@ game, the `--no-hooks` suite) keeps the registry.
   61,547 / 786,725 cases at 027F. No call site depends on lrint's 0: Usable / the armour layers test > 0, the tornado clamps
   below 0, the armour's int16 store keeps 0; the script ids (a NaN id now takes the next negative id, as 004BD347 does),
   delays, steps and AI cells follow the original. Goldens the same.
-- **_controlfp without the UCRT (SV10k, C20r)**: game.exe's one call outside the CRT, terrain lighting's
-  `_controlfp(_RC_CHOP, _MCW_RC)` and the restore around `SectorData::Light`, is FNSTCW (`x87::ControlWord`), the
-  rounding bits set to chop and FLDCW (`x87::SetControlWord`) when that changes the word, then the saved word loaded
-  back. The original converts the word to the CRT's abstract form and back (006EBBB4 / 006EBC2A / 006EBCBC); the round
-  trip keeps every bit the FPU keeps except a reserved precision 01 (it becomes 64 bits), which nothing sets. The
-  UCRT's `__control87_2` cost 0.2-0.4% of the town and fight under terrain lighting; neither form is in the profile.
+- **_controlfp (SV10k, C20r, C30e14)**: game.exe's one call outside the CRT, terrain lighting's
+  `_controlfp(_RC_CHOP, _MCW_RC)` and the restore around `SectorData::Light` (006EBBB4 / 006EBC2A / 006EBCBC), has no
+  port: the CPU lighting is gone (R34a), and the edge fade that Build writes instead is SSE2 code rounding to nearest
+  (`std::lround`, C30c), which the x87 word does not reach; C30e14 removed the scoped chop word left around it.
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):
