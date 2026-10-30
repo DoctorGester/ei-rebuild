@@ -4,15 +4,18 @@
 // count the device gives and the two copies between the targets where the frame changes from one to the other
 // (the frame target's colour and depth into every sample before a world run that follows interface draws;
 // sample 0 of the multisampled depth into the frame target's depth after a world run).
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 namespace render {
 
@@ -76,6 +79,7 @@ void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
 namespace detail {
 
 int SupportedSamples(ID3D11Device* device) {
+#if defined(_WIN32)
     for (int samples = kSmoothSamples; samples > 1; samples /= 2) {
         UINT colour = 0, depth = 0;
         // kColourFormat (RGBA8) and kDepthFormat (sokol's DEPTH: a D32_FLOAT view of R32_TYPELESS).
@@ -85,6 +89,9 @@ int SupportedSamples(ID3D11Device* device) {
             return samples;
     }
     return 1;
+#else
+    return NativeSampleCount();
+#endif
 }
 
 bool PrepareSmoothCopies(int samples) {

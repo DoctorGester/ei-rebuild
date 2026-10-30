@@ -9,7 +9,6 @@
 #define SDL_MAIN_HANDLED   // SDL_main.h only for SDL_RegisterApp: the program keeps its own entry
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -524,12 +523,14 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (Destroy)
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");           // mouse events only over the window, as Windows gave them
     // The window class's name (FindClassWindow finds a running game by it); SDL counts double clicks itself.
+#if defined(_WIN32)
     SDL_RegisterApp(className, 0, instance);
+#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
         DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
 }
 
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height) {
+NativeWindow CreateGameWindow(NativeInstance, const char* title, int& width, int& height) {
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, 0);
@@ -538,10 +539,19 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, true);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
+#if defined(__APPLE__)
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
+#endif
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;
+#if defined(_WIN32)
     g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#else
+    g_native = g_window;
+    SDL_GetWindowSizeInPixels(g_window, &width, &height);
+#endif
     SDL_StartTextInput(g_window);
     return g_native;
 }

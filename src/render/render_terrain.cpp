@@ -12,10 +12,16 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#if defined(_WIN32)
 #include <d3d11.h>
+#endif
 #include <unordered_map>
 #include <vector>
+#if defined(_WIN32)
 #include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 namespace render {
 
@@ -956,13 +962,12 @@ void UploadTerrainCasters() {
     }
 }
 
-int DrawTerrainCasters(sg_pipeline pipeline) {
+int DrawTerrainCasters() {
     if (g_frameCasters.empty()) return 0;
     sg_bindings b{};
     g_casterPool.Bind(b);
     b.vertex_buffers[1] = sg_buffer{};   // the colours: not read
     if (!b.vertex_buffers[0].id) return 0;
-    sg_apply_pipeline(pipeline);
     sg_apply_bindings(&b);
     int draws = 0;
     for (const SectorCaster* c : g_frameCasters) {

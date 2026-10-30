@@ -52,7 +52,7 @@ char g_text[32];
 
 // The setting split into host and port (the port kDefaultPort when it names none).
 void SplitSetting() {
-    strncpy_s(g_host, ei::rebirth::PluginSecondMaster(), _TRUNCATE);
+    std::snprintf(g_host, sizeof(g_host), "%s", ei::rebirth::PluginSecondMaster());
     g_port = kDefaultPort;
     if (char* colon = std::strchr(g_host, ':')) {
         *colon = '\0';

@@ -2,7 +2,6 @@
 // screenshot per frame while recording a movie) and the intro movies (the list read from an .ini
 // file, each played, the screen cleared before and after). See docs/notes/app.md.
 #include "app.h"
-
 #include "bink_video.h"
 #include "chunk_archive.h"
 #include "core_refcount.h"
@@ -12,20 +11,21 @@
 #include "ini_file.h"
 #include "lever.h"
 #include "model.h"
+#include "platform/platform.h"
 #include "texture.h"   // TextureDevice, Surface
 #include "ui.h"
 #include "ui_cursor.h"
-#include "ei/main_loop.h"
+
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "platform/platform.h"
+
+#include "ei/main_loop.h"
 
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
-#include <unknwn.h>
 #include <vector>
 
 namespace app {

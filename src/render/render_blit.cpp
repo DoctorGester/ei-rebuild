@@ -3,15 +3,18 @@
 // that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
 // (The interface windows' canvases have their own blit, render_ui.cpp.)
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 #include "../game/texture.h"
 
@@ -141,7 +144,7 @@ void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, 
     long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
     if (!ReadBackDue(uploads++)) return;
     StagingCopy copy;
-    if (copy.Map(D3DContext(), D3DTexture(image), 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
+    if (copy.Map(image, 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
         bool same = true;
         for (int y = 0; y < h && same; ++y)
             same = std::memcmp(copy.Row(static_cast<unsigned>(y)), rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;

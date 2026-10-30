@@ -5,6 +5,7 @@
 
 #include "settings.h"
 
+#include "lib/rounding.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
@@ -13,10 +14,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <new>
 #include <string>
-#include <format>
-#include "lib/rounding.h"
 
 namespace options {
 namespace {
@@ -332,6 +332,8 @@ void GameOptions::Load() {
         }
     }
     l.Read(kVideoValues);
+    windowWidth = resolutionX;
+    windowHeight = resolutionY;
     joystick = GetInt(kGame, "Joystick", 0);
     l.Read(kValues);
     l.ReadCameraFlip(cameraFlipX, "CameraFlipXAxis");
@@ -356,7 +358,8 @@ void GameOptions::Save() {
     Saver s(this);
     s.Write(kPathValues);
     s.Write(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
-    SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
+    SetString(kVideo, "VideoResolution",
+              std::format("{}x{}", windowWidth ? windowWidth : resolutionX, windowHeight ? windowHeight : resolutionY));
     s.Write(kVideoValues);
     SetBool(kGame, "Joystick", false);
     s.Write(kValues);

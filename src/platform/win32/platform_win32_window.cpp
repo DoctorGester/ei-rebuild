@@ -4,17 +4,15 @@
 // window messages and the frame steps in PeekMessageA, its own mouse). Built into the harness's builds (verify,
 // verify-x64, asan) in place of src/platform/sdl/platform_sdl.cpp; the other areas are platform_win32.cpp's.
 #include "platform/platform.h"
-
 #include "platform/win32/gameapi.h"
 #include "platform/win32/platform_win32.h"
 
 #include <windows.h>
 
 #define DIRECTINPUT_VERSION 0x0700
-#include <dinput.h>
-
 #include <cstdint>
 #include <cstring>
+#include <dinput.h>
 #include <memory>
 #include <process.h>
 #include <string>
@@ -222,7 +220,7 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     g_classAtom = gameapi::RegisterClassExA(&windowClass);
 }
 
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height) {
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height) {
     return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, width,
                                     height, nullptr, nullptr, static_cast<HINSTANCE>(instance), nullptr);
 }

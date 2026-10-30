@@ -53,6 +53,7 @@ public:
     int driverIndex;                 // DrawingTarget: the Direct3D driver (-1: the first hardware one)
     int resolutionX;                 // VideoResolution
     int resolutionY;
+    int windowWidth = 0, windowHeight = 0;   // configured window points, before the backing pixel size is known
     int colourDepth;                 // VideoColorDepthInBits
     int zBufferDepth;                // VideoZBufferDepthInBits
     int refreshRate;                 // VideoRefreshRate

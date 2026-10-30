@@ -3,9 +3,10 @@
 // The Bink 1 container (revision i): the header, the frame index and each frame's packets, read from the file a
 // frame at a time.
 
+#include "platform/platform.h"
+
 #include <cstddef>
 #include <cstdint>
-#include <fstream>
 #include <vector>
 
 namespace platform::bink {
@@ -41,7 +42,7 @@ public:
     bool ReadFrame(unsigned index, FramePackets& packets);
 
 private:
-    std::ifstream stream;
+    platform::File stream;
     int width = 0;
     int height = 0;
     unsigned frameCount = 0;

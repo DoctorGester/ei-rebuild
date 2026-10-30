@@ -1,14 +1,18 @@
 // The interface's 2D canvases (render_ui.h). See docs/notes/ui-native.md, "Source file overviews".
 #include "render_ui.h"
+
+#include "../hook/log.h"
 #include "render_internal.h"
 #include "render_text.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -170,7 +174,9 @@ std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
 sg_buffer g_vertices{};
 std::size_t g_vertexCapacity = 0;
 
+#if defined(_WIN32)
 ID3D11DeviceContext* Context() { return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context())); }
+#endif
 
 // A shader of ui_canvas.hlsl: the vertex parameters, the fragment parameters, `textures` texture views
 // (t0, t1) loaded directly (a non-filtering sampler paired with each, as sokol wants), and for the glyph
@@ -347,11 +353,16 @@ void ApplyFs(const UiParams& fs) {
 
 // `r` of the canvas's image copied into g_under at (0, row).
 void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
+#if defined(_WIN32)
     ID3D11Texture2D* from = D3DTexture(canvas.gpu.image);
     ID3D11Texture2D* to = D3DTexture(g_under.image);
     if (!from || !to) return;
-    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
-    Context()->CopySubresourceRegion(to, 0, 0, static_cast<UINT>(row), 0, from, 0, &box);
+    D3D11_BOX box{static_cast<unsigned>(r.left),  static_cast<unsigned>(r.top),    0,
+                  static_cast<unsigned>(r.right), static_cast<unsigned>(r.bottom), 1};
+    Context()->CopySubresourceRegion(to, 0, 0, static_cast<unsigned>(row), 0, from, 0, &box);
+#else
+    NativeCopyImage(canvas.gpu.image, g_under.image, r, 0, row);
+#endif
 }
 
 // The canvas's image of its size, all black.
@@ -552,11 +563,16 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
 
 // An Image's pixels written into the canvas's texture.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
+#if defined(_WIN32)
     ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
     if (!texture) return;
     const Rect& r = op.rect;
-    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
-    Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(), static_cast<UINT>(r.right - r.left) * 4u, 0);
+    D3D11_BOX box{static_cast<unsigned>(r.left),  static_cast<unsigned>(r.top),    0,
+                  static_cast<unsigned>(r.right), static_cast<unsigned>(r.bottom), 1};
+    Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(), static_cast<unsigned>(r.right - r.left) * 4u, 0);
+#else
+    NativeWriteImage(canvas.gpu.image, op.rect, op.pixels.data(), (op.rect.right - op.rect.left) * 4);
+#endif
 }
 
 void DrawGrey(const CanvasState& canvas) {
@@ -603,16 +619,16 @@ void Remember(CanvasState& canvas, Op&& op) {
 // A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
 void Compact(const void* holder, CanvasState& canvas) {
     canvas.copied = false;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    const UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return;
+    sg_image texture = canvas.gpu.image;
+    const unsigned w = static_cast<unsigned>(canvas.width), h = static_cast<unsigned>(canvas.height);
+    if (!g_staging.Map(texture, 0, 0, w, h)) return;
     Op op;
     op.kind = Op::Pixels;
     op.holder = holder;
     op.canvas = canvas.id;
     op.rect = Rect{0, 0, canvas.width, canvas.height};
     op.pixels.resize(static_cast<std::size_t>(w) * h);
-    for (UINT y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
+    for (unsigned y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
         std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y), w * 4u);
     UnmapRegion(g_staging);
     canvas.history.clear();
@@ -835,14 +851,14 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     const CanvasState& canvas = it->second;
     FpuGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return false;
+    sg_image texture = canvas.gpu.image;
+    unsigned w = static_cast<unsigned>(canvas.width), h = static_cast<unsigned>(canvas.height);
+    if (!g_staging.Map(texture, 0, 0, w, h)) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
-    for (UINT y = 0; y < h; ++y) {
+    for (unsigned y = 0; y < h; ++y) {
         const std::uint8_t* row = g_staging.Row(y);
         std::uint32_t* out = rgb->data() + static_cast<std::size_t>(y) * w;
-        for (UINT x = 0; x < w; ++x)   // RGBA8
+        for (unsigned x = 0; x < w; ++x)   // RGBA8
             out[x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
     }
     UnmapRegion(g_staging);
@@ -860,8 +876,8 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
     FpuGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    if (!g_staging.Map(Context(), texture, static_cast<UINT>(x), static_cast<UINT>(y), 1, 1)) return false;
+    sg_image texture = canvas.gpu.image;
+    if (!g_staging.Map(texture, static_cast<unsigned>(x), static_cast<unsigned>(y), 1, 1)) return false;
     const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
     UnmapRegion(g_staging);
@@ -893,9 +909,8 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     ApplyFs(fs);
     sg_draw(0, 6, 1);
     sg_end_pass();
-    ID3D11Texture2D* texture = D3DTexture(g_picture.image);
-    if (!g_pictureStaging.Map(Context(), texture, 0, 0, static_cast<UINT>(width), static_cast<UINT>(height)))
-        return false;
+    sg_image texture = g_picture.image;
+    if (!g_pictureStaging.Map(texture, 0, 0, static_cast<unsigned>(width), static_cast<unsigned>(height))) return false;
     for (int y = 0; y < height; ++y)
         std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width),
                     g_pictureStaging.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(width) * sizeof(std::uint16_t));

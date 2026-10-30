@@ -4,10 +4,17 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
 #include <d3d11.h>
+#include <windows.h>
 
 namespace render::detail {
+
+bool StagingCopy::Map(sg_image source) {
+    return Map(source, 0, 0, sg_query_image_width(source), sg_query_image_height(source));
+}
+bool StagingCopy::Map(sg_image source, unsigned left, unsigned top, unsigned w, unsigned h) {
+    return Map(D3DContext(), D3DTexture(source), left, top, w, h);
+}
 
 bool StagingCopy::Map(ID3D11DeviceContext* deviceContext, ID3D11Texture2D* source) {
     if (!source) return false;

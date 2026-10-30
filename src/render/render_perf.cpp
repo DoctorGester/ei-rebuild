@@ -3,17 +3,21 @@
 // off every entry point returns at once.
 #include "render_perf.h"
 
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <deque>
 
@@ -29,20 +33,8 @@ bool g_on = false;
 
 // ---- Time --------------------------------------------------------------------------------------------------
 
-long long Now() {
-    LARGE_INTEGER now{};
-    QueryPerformanceCounter(&now);
-    return now.QuadPart;
-}
-
-double MsPerTick() {
-    static const double ms = [] {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        return frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
-    }();
-    return ms;
-}
+long long Now() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
+double MsPerTick() { return 1000.0 * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den; }
 
 // One second of samples: each with the time it was taken (performance counter ticks).
 template <int N>
@@ -79,6 +71,7 @@ Pass g_pass = Pass::Ui;
 constexpr int kStamps = 64;   // a frame's; past them the last stamped pass takes the rest of the frame
 constexpr int kSets = 5;      // frames in flight
 
+#if defined(_WIN32)
 struct FrameQueries {
     ID3D11Query* disjoint = nullptr;
     ID3D11Query* stamps[kStamps] = {};
@@ -116,6 +109,8 @@ void Stamp(FrameQueries& q, Pass pass) {
     ++q.count;
 }
 
+#endif
+
 // The draws since the last change, to the pass they were made in.
 void CountDraws() {
     const std::uint64_t now = FrameDrawCount();
@@ -124,6 +119,7 @@ void CountDraws() {
 }
 
 // The closed sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
+#if defined(_WIN32)
 void Collect() {
     ID3D11DeviceContext* context = D3DContext();
     for (FrameQueries& q : g_sets) {
@@ -146,6 +142,8 @@ void Collect() {
         Keep(g_gpu, s);
     }
 }
+
+#endif
 
 // ---- The font ------------------------------------------------------------------------------------------------
 
@@ -342,6 +340,7 @@ void BeginGpuFrame() {
     g_inFrame = true;
     g_pass = Pass::Ui;
     g_drawsCounted = FrameDrawCount();
+#if defined(_WIN32)
     if (g_queriesFailed || !D3DContext()) return;
     Collect();
     for (int k = 0; k < kSets; ++k) {
@@ -359,25 +358,31 @@ void BeginGpuFrame() {
         Stamp(q, g_pass);
         return;
     }
+#endif
 }
 
 void Enter(Pass pass) {
     if (!g_inFrame || pass == g_pass) return;
     CountDraws();
     g_pass = pass;
-    if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);   // the last for EndGpuFrame
+#if defined(_WIN32)
+    if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);
+#endif
+    //   // the last for EndGpuFrame
 }
 
 void EndGpuFrame() {
     if (!g_inFrame) return;
     CountDraws();
     g_inFrame = false;
+#if defined(_WIN32)
     if (g_open < 0) return;
     FrameQueries& q = g_sets[g_open];
     Stamp(q, g_pass);
     D3DContext()->End(q.disjoint);
     q.pending = true;
     g_open = -1;
+#endif
 }
 
 CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Now() : 0) {}
@@ -435,10 +440,14 @@ void Draw(int width, int height, const Rect& placed) {
 }
 
 void Release() {
+#if defined(_WIN32)
     for (FrameQueries& q : g_sets) ReleaseSet(q);
+#endif
+#if defined(_WIN32)
     g_open = -1;
-    g_inFrame = false;
     g_queriesFailed = false;
+#endif
+    g_inFrame = false;
     DropImage();
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
     if (g_shader.id) sg_destroy_shader(g_shader);

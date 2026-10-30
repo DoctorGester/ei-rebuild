@@ -9,23 +9,24 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
-#include "lib/rounding.h"
+#include "lib/compiler.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <new>
-#include <string>
 #include "lib/in_place.h"
 #include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <bit>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -220,7 +221,7 @@ constexpr float kQuarter = 0.25f;
 
 // A vertex's height in world units: the altitude times the map's highest point times the altitude unit, in that
 // order.
-__forceinline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
+EI_FORCE_INLINE float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
     return static_cast<float>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
 

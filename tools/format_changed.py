@@ -10,12 +10,13 @@ usage: python tools/format_changed.py [--base REV] [--check] [file ...]
 import difflib
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CLANG_FORMAT = pathlib.Path(r'E:\bin\vs\buildtools\VC\Tools\Llvm\bin\clang-format.exe')
-SUFFIXES = ('.h', '.cpp', '.inc')
+CLANG_FORMAT = shutil.which('clang-format') or r'E:\bin\vs\buildtools\VC\Tools\Llvm\bin\clang-format.exe'
+SUFFIXES = ('.h', '.cpp', '.inc', '.mm')
 
 
 def git(*args):

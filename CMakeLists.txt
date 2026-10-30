@@ -1,5 +1,39 @@
 cmake_minimum_required(VERSION 3.24)
-project(EvilIslands CXX RC)
+project(EvilIslands CXX)
+if(WIN32)
+    enable_language(RC)
+endif()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets, saves and network text")
+add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
+if(NOT MSVC)
+    # Keep each written floating-point operation: ARM otherwise contracts multiply/add to FMA.
+    add_compile_options(-ffp-contract=off -fno-fast-math)
+endif()
+
+# A first porting checkpoint: compile all game code without needing a renderer or platform backend.
+option(EI_CORE_ONLY "Compile only the game library (no runnable executable)" OFF)
+option(EI_PORT_CHECK_ONLY "Compile game and portable platform libraries without the renderer" OFF)
+if(EI_CORE_ONLY OR EI_PORT_CHECK_ONLY)
+    file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
+    add_library(ei_game STATIC ${EI_GAME_SOURCES})
+    target_include_directories(ei_game PRIVATE include src)
+    if(EI_CORE_ONLY)
+        return()
+    endif()
+    if(WIN32)
+        message(FATAL_ERROR "EI_PORT_CHECK_ONLY checks the POSIX/SDL backend; use the regular Windows build here")
+    endif()
+    include(cmake/port-check.cmake)
+    return()
+endif()
+
+if(NOT WIN32)
+    include(cmake/native.cmake)
+    return()
+endif()
 
 # 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64 / verify-x64). The harness's game.exe side
 # (ei_harness.dll, src/hook's game.exe side), ei_launch and the function vectors (tests/vectors) are 32-bit only: they
@@ -12,8 +46,6 @@ else()
     message(FATAL_ERROR "Build for 32-bit x86 or x64: use the x86 or x64 vcvars environment.")
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # The debug build's containers are the release build's: the checked iterators' proxy is allocated by the
 # constructor, so a constinit std::vector global (the game-order exit functions' containers) fails to compile.
@@ -48,11 +80,6 @@ foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_U
 endforeach()
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
-
-# Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
-# network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
-set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
-add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 
 # SSE2 floating point everywhere: the original's x87 maths at the main thread's 24-bit precision is float maths in
 # its order, with src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").

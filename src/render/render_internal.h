@@ -9,9 +9,9 @@
 
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <span>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 class TextureDevice;
@@ -62,6 +62,7 @@ StagePatch PatchOf(const void* holder);
 // Compiled from src/render/shaders/*.hlsl at build time (CMakeLists.txt's ei_shader).
 struct ShaderBytecode {
     sg_range vs, ps;
+    const sg_shader_desc* (*descriptor)(sg_backend) = nullptr;
 };
 extern const ShaderBytecode kBlitShader, kSolidShader;
 extern const ShaderBytecode kMeshShader;
@@ -306,6 +307,7 @@ struct Frame {
 extern Frame g_frame;   // the frame being built
 std::uint32_t FrameNumber();
 std::uint32_t CommitNumber();
+void CommitGpu();
 
 // Added when it differs from the last one.
 int AddMatrix(const Matrix4& m);
@@ -332,6 +334,8 @@ inline ID3D11Texture2D* D3DTexture(sg_image image) {
 // Touches no sokol state; a read on the main thread resets sokol's state cache after it.
 class StagingCopy {
 public:
+    bool Map(sg_image source);
+    bool Map(sg_image source, unsigned left, unsigned top, unsigned width, unsigned height);
     // The whole level / `width` x `height` texels from (left, top); mapped until Unmap. False, nothing mapped, for no
     // source or when the copy cannot be made or mapped.
     bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source);
@@ -345,9 +349,13 @@ public:
     void Release();
 
 private:
+#if defined(_WIN32)
     ID3D11Texture2D* texture = nullptr;
     unsigned width = 0, height = 0, format = 0;
     ID3D11DeviceContext* context = nullptr;    // while mapped
+#else
+    std::vector<std::uint8_t> storage;
+#endif
     const std::uint8_t* data = nullptr;
     std::size_t pitch = 0;
     unsigned mappedWidth = 0, mappedHeight = 0;
@@ -505,8 +513,16 @@ public:
 
 private:
     struct Buffer {
-        sg_buffer buffer{};
+        mutable sg_buffer buffer{};
+#if defined(_WIN32)
         ID3D11Buffer* d3d = nullptr;   // sokol holds the reference
+#else
+        mutable std::vector<std::uint8_t> shadow;
+        bool index = false;
+        mutable bool dirty = false;
+        mutable std::uint32_t uploaded = 0xFFFFFFFFu;
+        void Flush() const;
+#endif
         bool Make(std::size_t bytes, bool index, const char* label);
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // destroyed after the frame's commit
@@ -538,8 +554,8 @@ void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
-// The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
-// 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
+// The ground's casters (render::ShadowTerrainSector). The caller applies the pipeline and uniforms;
+// vertex buffer 0 holds TerrainCasterVertex, with 32-bit indices.
 struct TerrainCasterVertex {
     Vector3 position;
     Vector3 normal;
@@ -547,7 +563,7 @@ struct TerrainCasterVertex {
 static_assert(sizeof(TerrainCasterVertex) == 24);
 std::size_t TerrainCasterCount();
 void UploadTerrainCasters();
-int DrawTerrainCasters(sg_pipeline pipeline);
+int DrawTerrainCasters();
 void TerrainCastersDone();
 void DropTerrainCasters();
 

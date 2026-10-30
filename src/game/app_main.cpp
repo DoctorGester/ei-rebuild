@@ -1,13 +1,16 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
-#include "bink_video.h"
-#include "engine_object.h"
-#include "app.h"
+#include "../hook/log.h"
 #include "acks_db.h"
-#include "asset_text.h"
+#include "app.h"
 #include "app_helpers.h"
+#include "asset_text.h"
+#include "bink_video.h"
 #include "camera.h"
 #include "class_templates.h"
 #include "console.h"
+#include "engine_object.h"
+#include "game_data.h"
+#include "game_singletons.h"
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"
@@ -16,40 +19,38 @@
 #include "object_tables.h"
 #include "options.h"
 #include "party_records.h"
+#include "platform/platform.h"
 #include "quest_records.h"
 #include "sound.h"
+#include "text_split.h"
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ui_widescreen.h"
 #include "unit_db.h"
 #include "world.h"
+#include "world_data.h"
+#include "world_glue.h"
+
+#include "lib/crt.h"
+#include "lib/path.h"
+#include "lib/pc24.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
+#include "lib/vecmath.h"
 
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
-#include "lib/crt.h"
-#include "lib/pc24.h"
-#include "platform/platform.h"
-#include "lib/text_case.h"
-#include "text_split.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include "lib/str.h"
-#include "lib/vecmath.h"
-#include "world_glue.h"
-#include "../hook/log.h"
-#include "game_data.h"
-#include "game_singletons.h"
-#include "world_data.h"
-
-#include <cmath>
-#include <cstdlib>
 
 #include <bit>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <format>
+#include <string>
 
 using options::GameOptions;
 
@@ -184,17 +185,12 @@ struct PathParts {
 
 // "<drive>\." of `path`: the root the volume calls take.
 void DriveRoot(const char* path, PathParts& parts) {
-#pragma warning(suppress : 4996)
-    _splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
+    lib::SplitPath(path, parts.drive, parts.directory, parts.name, parts.extension);
     std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 
 // The free bytes on the drive of `folder`; 0 when unknown.
-double FreeDiskSpace(const char* folder) {
-    PathParts parts;
-    DriveRoot(folder, parts);
-    return platform::FreeDiskSpace(parts.drive);
-}
+double FreeDiskSpace(const char* folder) { return platform::FreeDiskSpace(folder); }
 
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
@@ -252,9 +248,8 @@ void CreateRenderer() {
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 }
 
-// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
-// the disc folder's text pointer (see the caller).
-std::uintptr_t OpenSound() {
+// The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes.
+void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
@@ -280,7 +275,6 @@ std::uintptr_t OpenSound() {
     g_clientWorld.sounds->SetSpeechVolume(options->audioSpeech);
     g_clientWorld.sounds->SetMusicVolume(options->audioStreaming);
     g_clientWorld.sounds->panDirect = options->reverseStereo != 0;
-    return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
@@ -554,7 +548,6 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
         g_logicSettings.Load(settings);
     }
     options->Load();
-    widescreen::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
     g_serverWorld.Create();
@@ -571,16 +564,12 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     g_instance = instance;
     g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY);
     if (!g_mainWindow) return 0;
+    widescreen::Configure(options->resolutionX, options->resolutionY);
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);
 
-    // "The interface takes the input" is carried in one byte and set after every pass. Before
-    // the first pass it holds the top byte of stack memory that start-up used last for the disc
-    // folder's text (with sound) or for the free non-local video memory (without; dgVoodoo's 256 MB,
-    // whose top byte is not zero): a message that waits before the first pass goes to the interface
-    // when that byte is not zero.
     CreateRenderer();
-    const bool interfaceTakesInput = options->audio ? (OpenSound() >> 24) != 0 : true;
+    if (options->audio) OpenSound();
 
     PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
@@ -595,7 +584,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     StartFirstMap();
     g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 
-    const int result = RunMainLoop(interfaceTakesInput);
+    const int result = RunMainLoop(true);
     ShutDown();
     return result;
 }

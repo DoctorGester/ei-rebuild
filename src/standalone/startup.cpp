@@ -1,10 +1,13 @@
 // The standalone image's start-up actions and its Rebirth flags (docs/notes/standalone.md, "The drop-in exe").
-#include "ei/hook.h"
-#include "ei/rebirth.h"
 #include "game/settings.h"
 #include "hook/log.h"
 #include "hook/rebirth_hook.h"
 #include "platform/platform.h"
+
+#include "lib/text_case.h"
+
+#include "ei/hook.h"
+#include "ei/rebirth.h"
 
 #include <cstring>
 #include <string>
@@ -48,9 +51,11 @@ void ApplyPatchSetting(const ::settings::Document::Line& line) {
     rebirth::Patch patch;
     int number = 0;
     bool on = false;
-    if (_stricmp(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value.c_str());
-    else if (_stricmp(name, "NPlayers") == 0 && ::settings::ParseInt(value, &number)) rebirth::SetPluginNPlayers(number);
-    else if (_stricmp(name, "Pause") == 0 && ::settings::ParseInt(value, &number)) rebirth::SetPluginPause(number);
+    if (text::CompareIgnoringCase(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value.c_str());
+    else if (text::CompareIgnoringCase(name, "NPlayers") == 0 && ::settings::ParseInt(value, &number))
+        rebirth::SetPluginNPlayers(number);
+    else if (text::CompareIgnoringCase(name, "Pause") == 0 && ::settings::ParseInt(value, &number))
+        rebirth::SetPluginPause(number);
     else if (rebirth::FromName(name, &patch) && ::settings::ParseBool(value, &on)) rebirth::Set(patch, on);
     else Log("Rebirth: [%s] %s = %s is not understood: left out", ::settings::kPatches, name, value.c_str());
 }
@@ -88,7 +93,7 @@ void LoadRebirthSettings() {
     rebirth_hook::LogFlags();
 }
 
-} // namespace
+}   // namespace
 
 StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
     g_startupActions = &entry;
@@ -102,4 +107,4 @@ void RunStartupActions() {
     }
 }
 
-} // namespace ei
+}   // namespace ei

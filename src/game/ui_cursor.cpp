@@ -6,12 +6,14 @@
 
 #include "game_singletons.h"
 #include "model.h"
+#include "platform/platform.h"
+#include "render/render.h"
 #include "surface.h"
 #include "texture.h"
 #include "world.h"
+
+#include "lib/compiler.h"
 #include "lib/crt.h"
-#include "platform/platform.h"
-#include "render/render.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -134,7 +136,7 @@ void CursorThread(Cursor* self) {
 }
 
 // The procedure platform::Thread starts (the cursor as its parameter): CursorThread, then exit code 0.
-unsigned __stdcall CursorThreadEntry(void* cursor) {
+unsigned EI_THREAD_CALL CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<Cursor*>(cursor));
     return 0;
 }

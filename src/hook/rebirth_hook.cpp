@@ -31,7 +31,7 @@ void LogFlags() {
         n += std::snprintf(line + n, sizeof(line) - n, " %s", rebirth::Name(static_cast<Patch>(i)));
         ++count;
     }
-    if (count == 0) strcat_s(line, " none");
+    if (count == 0) std::snprintf(line + n, sizeof(line) - n, " none");
     Log("%s", line);
 }
 

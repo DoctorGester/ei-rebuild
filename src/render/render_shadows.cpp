@@ -1,20 +1,23 @@
 // Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace render {
@@ -1212,7 +1215,7 @@ void DrawShadowMap(Frame& f) {
                 sg_apply_uniforms(0, &vr);
                 sg_range fr{fs, sizeof(fs)};
                 sg_apply_uniforms(1, &fr);
-                int draws = DrawTerrainCasters(g_terrainCasterPipeline);
+                int draws = DrawTerrainCasters();
                 g_stats.shadowDraws += static_cast<std::uint64_t>(draws);
                 g_info.terrainCasters = draws;
             }

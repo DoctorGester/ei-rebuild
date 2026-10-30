@@ -1,26 +1,27 @@
 // WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
-#include "model.h"
-#include "options.h"
-#include "world.h"
-
 #include "core_maths.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
+#include "model.h"
 #include "object_tables.h"
-#include "lib/containers.h"
+#include "options.h"
 #include "terrain.h"
+#include "world.h"
+#include "world_data.h"
+
+#include "lib/compiler.h"
+#include "lib/containers.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/vecmath.h"
 
 #include <cmath>
 #include <cstring>
 #include <memory>
 #include <vector>
-#include "lib/float_select.h"
-#include "lib/nan_audit.h"
-#include "lib/pc24.h"
-#include "lib/vecmath.h"
-#include "world_data.h"
 
 namespace {
 
@@ -58,7 +59,7 @@ Object3DClientSpecific* ModelOf(MapObject* object) {
 }
 
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
-__forceinline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
+EI_FORCE_INLINE float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>

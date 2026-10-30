@@ -2,39 +2,40 @@
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
 // reproduces addon's ExtendedServerName sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does
 // its patches.
-#include "net_classes.h"
-#include "options.h"
 #include "asset_text.h"
-#include "ui.h"
-#include "ui_screens.h"
-#include "game_strings.h"
-
 #include "chunk_archive.h"
 #include "core_transform.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "net_classes.h"
 #include "net_coder.h"
 #include "net_link.h"
 #include "net_second_master.h"
+#include "options.h"
 #include "party.h"
+#include "platform/platform.h"
 #include "random.h"
+#include "text_manager.h"
+#include "ui.h"
+#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
-#include "text_manager.h"
+#include "world_glue.h"
+
+#include "lib/compiler.h"
+#include "lib/crt.h"
+#include "lib/intro_sort.h"
+#include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
-#include "platform/platform.h"
-#include "lib/intro_sort.h"
+
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include "lib/str.h"
-#include "lib/vecmath.h"
-#include "world_glue.h"
-#include "game_singletons.h"
-
 #include <memory>
 #include <new>
+#include <string>
 
 namespace net {
 int MasterLinkTick(net::MasterLink*);
@@ -125,7 +126,7 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it
 // fits before `end`, otherwise through the buffer's virtual call. Not inlined, so it is called through the
 // buffer's own vtable.
-__declspec(noinline) void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
+EI_NOINLINE void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
     if (buffer->cur + size > buffer->end) {
         buffer->WriteMore(from, size);
         return;

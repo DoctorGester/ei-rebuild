@@ -5,13 +5,16 @@
 // MXCSR's default rounding, which nothing changes. (std::lround rounds halves away from zero; std::lrint reads the FP
 // environment on every call.)
 
-#include <xmmintrin.h>
-
+#include <cmath>
 #include <cstdint>
+#include <limits>
 
 namespace lib {
 
-inline int RoundEven(float value) { return _mm_cvtss_si32(_mm_set_ss(value)); }
+inline int RoundEven(float value) {
+    if (!(value >= -2147483648.0f && value < 2147483648.0f)) return INT32_MIN;
+    return static_cast<int>(std::nearbyint(value));
+}
 
 // A float or double truncated as the original's _ftol does: through a 64-bit integer, keeping its low half. A NaN or
 // a value outside the 64-bit range gives 0 (the conversion's 0x8000000000000000 has a zero low half; a cast to int

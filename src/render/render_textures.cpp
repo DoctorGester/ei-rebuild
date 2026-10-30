@@ -2,15 +2,18 @@
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
 // device. Also the cursor pictures' pixels as RGBA8 (render::PictureFromMmp).
+#include "../hook/log.h"
 #include "render_internal.h"
 #include "render_ui.h"
 
-#include "../hook/log.h"
-
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <windows.h>
+#if defined(_WIN32)
 #include <d3d11.h>
+#include <windows.h>
+#else
+#include "render_native.h"
+#endif
 
 #include "../game/texture.h"
 

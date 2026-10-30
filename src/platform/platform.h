@@ -9,10 +9,12 @@
 // in src/platform/bink.
 
 #include "lib/bytes.h"
+#include "lib/compiler.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -86,6 +88,8 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 std::uint32_t PageSize();
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
+// Fresh seed material from the operating system's entropy source.
+void RandomWords(std::span<std::uint32_t> words);
 // The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness), straight from the
 // system, not the slots the harness fixes; both stay as they are when it cannot tell.
 void PrimaryDesktopSize(int* width, int* height);
@@ -300,7 +304,7 @@ int IniInt(const char* section, const char* key, int defaultValue, const char* p
 // Worker threads and events. A lock is a std::recursive_mutex (a critical section is
 // recursive); a thread's end is waited for with a Signal, whose calls stay on the import slots the harness traces.
 
-using ThreadProcedure = unsigned(__stdcall*)(void* parameter);
+using ThreadProcedure = unsigned(EI_THREAD_CALL*)(void* parameter);
 
 // A thread made as MFC's AfxBeginThread did: created suspended, the priority set (SetThreadPriority's values: 2 is
 // the highest), then running. It ends when the procedure returns. Closing it (or destroying the object) lets go of
@@ -443,8 +447,8 @@ std::uint32_t WindowProcess(NativeWindow window);
 // Brings another program's window to the front, restored from the task bar, unless it is in front already.
 void BringToFront(NativeWindow window);
 // The game window: a popup of the registered class at the screen's top left, `width` x `height`; null when it could
-// not be made.
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height);
+// not be made. The requested dimensions are window points; on success they become the backing size in pixels.
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height);
 // Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
 void ShowGameWindow(NativeWindow window, int show);
 bool IsMinimized(NativeWindow window);

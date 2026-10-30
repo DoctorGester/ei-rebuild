@@ -2,27 +2,23 @@
 // listing, and the MMIOResource constructors and destructors (ResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
-#include "lib/text_case.h"
-#include "resource.h"
 #include "resource_stream.h"
+
 #include "mod_folders.h"
-#include <cstdint>
-#include <cstring>
-#include <string>
+#include "platform/platform.h"
+#include "resource.h"
 
 #include "lib/crt.h"
-#include "platform/platform.h"
+#include "lib/path.h"
+#include "lib/text_case.h"
 
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <new>
+#include <string>
 
 namespace {
-
-// CRT and library routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) {
-#pragma warning(suppress : 4996)
-    _splitpath(path, drive, dir, name, ext);
-}
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -112,8 +108,8 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
             char nameDir[0x100], patternDir[0x100];
             char nameBase[0x100], patternBase[0x100];
             char nameExt[0x100], patternExt[0x100];
-            SplitPath(name, nameDrive, nameDir, nameBase, nameExt);
-            SplitPath(pattern, patternDrive, patternDir, patternBase, patternExt);
+            lib::SplitPath(name, nameDrive, nameDir, nameBase, nameExt);
+            lib::SplitPath(pattern, patternDrive, patternDir, patternBase, patternExt);
             if (!PartMatches(nameDrive, patternDrive) || !PartMatches(nameDir, patternDir)) continue;
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;

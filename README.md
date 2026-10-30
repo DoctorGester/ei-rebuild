@@ -58,6 +58,10 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 
 ## Build
 
+An experimental native macOS build uses SDL3 and sokol's Metal backend. See
+[the macOS build and verification notes](docs/notes/macos.md) for dependencies, compile checkpoints and a bounded
+run against a separate game-data folder. The Windows scenario harness has not yet been ported.
+
 ```
 build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
 build.cmd verify         the game with the test harness linked in, and ei_harness.dll (the harness for the original
