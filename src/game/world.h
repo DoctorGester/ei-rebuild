@@ -495,8 +495,6 @@ public:
     std::vector<ZoneExit> exits;
     std::uint8_t loaded;                  // 0 while LoadSave runs
     MapObjectIdMap updateMap;
-    // SendZone also sends the player its start (at its first unit) when set; nothing in the game sets it.
-    std::uint8_t sendsStartPosition;
     // CreateObject makes objects answering IsSynchronised, sounds, lights and particle sources only with
     // loadedFresh set, the other map objects only with keepsState set; a refused object is released.
     std::uint8_t loadedFresh;             // the zone is not loaded from a save
@@ -1116,10 +1114,10 @@ struct GameFlow {
     void StartClient();
     void JoinServer(const net::NetAddress* address, const char* password);
     // The flow's requests: the state (state) the flow's update acts on next, the zone or save name
-    // (requestTarget), requestArg and, for 5 and 6, a copy of a party (requestParty).
+    // (requestTarget) and, for 5 and 6, a copy of a party (requestParty).
     void RequestState3();
-    void RequestLoad(std::string_view name, char flag);                   // 2, requestArg = flag != 0
-    void RequestZoneChange(std::string_view zone, int entrance);          // 4, requestArg = entrance
+    void RequestLoad(std::string_view name);                              // 2
+    void RequestZoneChange(std::string_view zone);                        // 4
     void RequestPartyZone5(const char* zone, CParty* party);
     void RequestPartyZone6(const char* zone, CParty* party);
     void DisconnectClient();
@@ -1135,8 +1133,7 @@ struct GameFlow {
     void StartNewGame();
     // Acts on the pending request (state, then cleared): the zone being left is saved, the interface
     // closes its windows, the zone is torn down and the resource database follows the network state;
-    // then 1 main menu, 2 load the save named in requestTarget (two ticks first; autoplay with
-    // requestArg), 3 new game (StartNewGame), 4 the zone in requestTarget, 5 / 6 multiplayer zone
+    // then 1 main menu, 2 load the save named in requestTarget (two ticks first), 3 new game (StartNewGame), 4 the zone in requestTarget, 5 / 6 multiplayer zone
     // changes with the party copy in requestParty. Ends with the network pump.
     void ProcessRequest();
     // The resource database follows `network`: "databaseLMP.res" in a network game, else "database.res".
@@ -1169,7 +1166,6 @@ struct GameFlow {
     int state = 0;                        // the pending request (1..6; ProcessRequest runs it)
     std::string requestTarget;            // the request's zone or save name
     CParty requestParty;
-    int requestArg = 0;                   // the entrance (4) or the load flag (2)
     std::string multiplayerZone;          // the multiplayer zone (SwitchMultiplayerZone)
     char zoneSwitchStarted = 0;           // set by SwitchMultiplayerZone, cleared by the game's start
 };

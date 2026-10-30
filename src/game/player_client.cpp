@@ -98,7 +98,6 @@ constexpr int kPathParticles = static_cast<int>(ParticleType::ShapeChange);
 constexpr int kMarkerParticles = static_cast<int>(ParticleType::GroundDust1);     // 0x203B with the flag
 constexpr float kMarkerSpeedA = 0.5f;
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
-constexpr std::uint8_t kRequestRecording = 2;
 
 // Path markers are shown.
 bool MarkersShown() { return options::g_options.drawPath != 0; }
@@ -280,9 +279,9 @@ int PlayerClient::OnDeleteVariable() {
 
 int PlayerClient::OnZoneChange() {
     std::string zone = in.ReadString();
-    int entrance;
+    int entrance;   // the server's entrance number: the zone start takes none
     in.ReadValue(entrance);
-    g_gameFlow.RequestZoneChange(zone, entrance);
+    g_gameFlow.RequestZoneChange(zone);
     return 1;
 }
 
@@ -467,18 +466,6 @@ int PlayerClient::OnStringEvent() {
     std::string text = in.ReadString();
     g_interface.OnStringEvent(text);
     return 1;
-}
-
-void PlayerClient::StartRecording(const char* path) {
-    netlink::NetLink* link = player->link;
-    if (link == nullptr) return;
-    WriteByte(&out, kRequestRecording);
-    link->OpenRecording(path);
-}
-
-void PlayerClient::StopRecording() {
-    netlink::NetLink* link = player->link;
-    if (link != nullptr) link->CloseRecording();
 }
 
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------

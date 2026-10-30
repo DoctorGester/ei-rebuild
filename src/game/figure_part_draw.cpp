@@ -47,8 +47,8 @@ void TickTime(float* out) {
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
-    for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
+void Fill(std::vector<std::uint32_t>& values, std::uint32_t value) {
+    for (int i = 0; i < std::ssize(values); ++i) values[i] = value;
 }
 
 // --- The part --------------------------------------------------------------------------------------

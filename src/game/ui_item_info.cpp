@@ -48,8 +48,8 @@ int PowFtol(float base, float exponent, float subtrahend, float scale) {
 // b + a truncated; ScaledFtol the same of a * scale.
 int SumFtol(float a, float b) { return static_cast<int>(b + a); }
 int SumFtolScaled(float a, float b, float scale) { return static_cast<int>((b + a) * scale); }
-int ScaledFtol(float a, float scale) { return static_cast<int>(a * scale); }
-int DifferenceFtol(float a, float subtrahend) { return static_cast<int>(a - subtrahend); }
+int ScaledFtol(float value, float scale) { return static_cast<int>(value * scale); }
+int DifferenceFtol(float minuend, float subtrahend) { return static_cast<int>(minuend - subtrahend); }
 // value * factor * scale in that order, stored as float.
 float ArmourValue(float value, float factor, float scale) {
     return value * factor * scale;

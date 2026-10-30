@@ -27,9 +27,9 @@ std::uint32_t Word(const std::uint8_t* p) {
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
 // The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
-std::uint32_t BufferLength(GameBuffer& b) {
-    if (b.cur > b.high) b.high = b.cur;
-    return static_cast<std::uint32_t>(b.PositionOf(b.high));
+std::uint32_t BufferLength(GameBuffer& buffer) {
+    if (buffer.cur > buffer.high) buffer.high = buffer.cur;
+    return static_cast<std::uint32_t>(buffer.PositionOf(buffer.high));
 }
 
 // A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace

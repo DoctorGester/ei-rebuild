@@ -32,8 +32,6 @@ PartyRecord* NewRecord() {
     return record;
 }
 
-const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
-
 // The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
 // non-const.
 CParty* FindParty(const PartyMap& parties, int key) {
@@ -60,8 +58,8 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 CParty* NamedPartyRecords::Find(std::string_view name) const {
     CParty* unnamed = nullptr;
     for (PartyRecord* record : records) {
-        if (str::Compare(NameOf(record), name) == 0) return record->Party();
-        if (str::Compare(NameOf(record), game::kEmptyText) == 0) unnamed = record->Party();
+        if (str::Compare(record->name.c_str(), name) == 0) return record->Party();
+        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->Party();
     }
     return unnamed;
 }
@@ -74,7 +72,7 @@ void NamedPartyRecords::Add(const char* name) {
 
 void NamedPartyRecords::Remove(const char* name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (str::Compare(NameOf(records[i]), name) != 0) continue;
+        if (str::Compare(records[i]->name.c_str(), name) != 0) continue;
         // The index still advances, so the record moved into slot i is not tested (original behaviour).
         records.erase(records.begin() + i);
     }

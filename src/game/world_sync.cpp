@@ -224,17 +224,6 @@ int WorldServer::SendZone(CPlayer* player) {
         units.Write(&message);
 
         result = state->SendState02(&message);
-        if (result != 0 && sendsStartPosition != 0) {
-            result = 1;
-            if (player->units.size() != 0) {
-                // The player starts at its first unit, on the ground there.
-                const float* at = &player->units.begin()->second->localPosition.x;
-                Vector3 start;
-                lib::LoadBytes(start, at);
-                start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = state->SendPosition04(start, 0, sessionKind);
-            }
-        }
         if (result != 0) player->connection->ItemsGiven(&player->items, 0);
     }
     return result;

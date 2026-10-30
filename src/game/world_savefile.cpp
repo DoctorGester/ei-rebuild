@@ -18,18 +18,18 @@ int VersionOf(const ByteStream* stream) { return static_cast<int>(stream->versio
 // The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
 
-void UpdateHigh(GameBuffer& b) {
-    if (b.cur > b.high) b.high = b.cur;
+void UpdateHigh(GameBuffer& buffer) {
+    if (buffer.cur > buffer.high) buffer.high = buffer.cur;
 }
-std::int32_t Length(GameBuffer& b) {
-    UpdateHigh(b);
-    return b.PositionOf(b.high);
+std::int32_t Length(GameBuffer& buffer) {
+    UpdateHigh(buffer);
+    return buffer.PositionOf(buffer.high);
 }
 // Seek to `at` from the start, growing when past the end.
-void SeekTo(GrowingBuffer& b, std::int32_t at) {
-    UpdateHigh(b);
-    b.cur = b.begin + at;
-    if (b.cur > b.end) BufferSeek(&b, at);
+void SeekTo(GrowingBuffer& buffer, std::int32_t at) {
+    UpdateHigh(buffer);
+    buffer.cur = buffer.begin + at;
+    if (buffer.cur > buffer.end) BufferSeek(&buffer, at);
 }
 
 std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {

@@ -28,8 +28,8 @@ constexpr const char* kOrcFemale = "unorfe";
 constexpr const char* kMoli = "unmoli";
 
 // `a` regards `b`'s side as hostile. The shift count is taken mod 32, like SHL.
-bool Regards(const CUnit* a, const CUnit* b) {
-    return (a->relationsA & ((1u << (b->side & 31)) & a->relationsB)) != 0;
+bool Regards(const CUnit* unit, const CUnit* other) {
+    return (unit->relationsA & ((1u << (other->side & 31)) & unit->relationsB)) != 0;
 }
 } // namespace
 

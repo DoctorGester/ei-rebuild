@@ -69,7 +69,7 @@ CMaterialManager::~CMaterialManager() = default;
 
 void CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     BaseManager::Create();
     const std::string folder = g_textFolder;
     AddArchive((folder + "materials.res"));

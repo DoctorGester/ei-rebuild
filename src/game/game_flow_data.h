@@ -64,7 +64,6 @@ constexpr const char* kMenuMob = "ZoneMainMenuNew.mob";
 constexpr const char* kExecAutoexec = "exec autoexec.cfg";
 constexpr const char* kResourcesSingle = "database.res";
 constexpr const char* kResourcesNetwork = "databaseLMP.res";
-constexpr const char* kAutoplay = "autoplay.apl";
 constexpr const char* kLoadedText = "Loaded ";
 
 // ---- After starting the sessions ---------------------------------------------------------------

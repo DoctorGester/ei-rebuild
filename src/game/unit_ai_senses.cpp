@@ -309,10 +309,10 @@ const float kFar = 1e30f;
 
 
 // (a - b) squared in 3D, summed z, then x, then y.
-float Distance2(const CUnit* a, const float* b) {
-    float dx = a->localPosition.x - b[0];
-    float dy = a->localPosition.y - b[1];
-    float dz = a->localPosition.z - b[2];
+float Distance2(const CUnit* unit, const float* point) {
+    float dx = unit->localPosition.x - point[0];
+    float dy = unit->localPosition.y - point[1];
+    float dz = unit->localPosition.z - point[2];
     return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 

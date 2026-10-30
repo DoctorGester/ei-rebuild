@@ -60,12 +60,12 @@ void UiContainer::Show(bool show) {
 
 // --- Input dispatch ----------------------------------------------------------------------------
 
-void UiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
+void UiContainer::Dispatch(int slot, int first, int second, int third, bool atPoint) {
     UiContainer* self = this;
     handled = false;
     for (auto& side : self->inputs) {
         side->handled = false;
-        side->Event(slot, a, b, c);
+        side->Event(slot, first, second, third);
         if (side->handled) {
             handled = true;
             return;
@@ -74,10 +74,10 @@ void UiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
     for (int i = 0; i < std::ssize(self->children); ++i) {
         UiWindow* child = self->children[i];
         if (!child->enabled) continue;
-        if (atPoint && !child->ContainsPoint(b, c)) continue;
+        if (atPoint && !child->ContainsPoint(second, third)) continue;
         child = self->children[i];
         child->handled = false;
-        child->Input()->Event(slot, a, b, c);
+        child->Input()->Event(slot, first, second, third);
         if (self->children[i]->handled) {
             handled = true;
             return;

@@ -20,9 +20,9 @@ namespace {
 float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
 
 // The reliable stream's size (the buffer's high mark follows its position first).
-std::int32_t ReliableSize(GameBuffer* b) {
-    if (b->cur > b->high) b->high = b->cur;
-    return b->PositionOf(b->high);
+std::int32_t ReliableSize(GameBuffer* buffer) {
+    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
+    return buffer->PositionOf(buffer->high);
 }
 
 constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample

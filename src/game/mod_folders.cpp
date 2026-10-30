@@ -219,8 +219,6 @@ bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a 
 
 } // namespace
 
-bool Active(Patch p) { return ei::rebirth::Enabled(p); }
-
 const std::string& ModPath() {
     static const std::string path =
         WithSlash(StarterValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", ""));
@@ -299,7 +297,7 @@ const std::vector<std::string>& TextureArchives() { return Config().textures; }
 
 
 void SelectMaps(std::string_view name, MapsSite site) {
-    if (!Active(Patch::Maps)) return;
+    if (!ei::rebirth::Enabled(Patch::Maps)) return;
     Lock lock;
     const MapsListing& maps = Maps();
     if (site == MapsSite::ZoneTable) {

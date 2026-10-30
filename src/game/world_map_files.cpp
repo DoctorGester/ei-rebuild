@@ -19,7 +19,7 @@ namespace {
 const char* MapsFolderName() { return "maps\\"; }
 
 // Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
-bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
+bool ModMaps() { return ei::rebirth::Enabled(ei::rebirth::Patch::Maps); }
 
 } // namespace
 

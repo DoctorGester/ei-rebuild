@@ -26,7 +26,6 @@ namespace {
 
 // The variables table (object_tables.cpp).
 void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
 void Write(MemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(MemoryStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -82,7 +81,7 @@ void PlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
 }
 
 void PlayerServer::SetVariableMax(std::string_view name, float value) {
-    float stored = VariableGet(Variables(player), name);
+    float stored = Variables(player)->Get(name);
     float current = stored;
     std::uint32_t currentBits, valueBits;
     currentBits = std::bit_cast<std::uint32_t>(current);
@@ -121,17 +120,17 @@ int PlayerServer::SendState02(MemoryStream* zone) {
     return 1;
 }
 
-int PlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
+int PlayerServer::SendState70(std::uint8_t weather, std::uint16_t strength) {
     player->dirty &= ~PlayerDirty::Weather;
-    std::uint8_t payload[3] = {a, static_cast<std::uint8_t>(b), static_cast<std::uint8_t>(b >> 8)};
+    std::uint8_t payload[3] = {weather, static_cast<std::uint8_t>(strength), static_cast<std::uint8_t>(strength >> 8)};
     WriteByte(&out, 0x70);
     Write(&out, payload, 3);
     return 1;
 }
 
-int PlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
+int PlayerServer::SendState71(std::uint32_t time, std::uint32_t speed) {
     player->dirty &= ~PlayerDirty::Time;
-    std::uint32_t payload[2] = {a, b};
+    std::uint32_t payload[2] = {time, speed};
     WriteByte(&out, 0x71);
     Write(&out, payload, 8);
     return 1;
@@ -152,11 +151,11 @@ void PlayerServer::SendState73(const WaterTweens* source) {
     player->dirty &= ~PlayerDirty::Countdowns;
 }
 
-int PlayerServer::SendPosition04(const Vector3& at, std::uint32_t a, std::uint32_t b) {
+int PlayerServer::SendPosition04(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind) {
     WriteByte(&out, 0x04);
     Write(&out, &at, 12);
-    WriteDword(&out, a);
-    WriteDword(&out, b);
+    WriteDword(&out, startValue);
+    WriteDword(&out, sessionKind);
     lastPosition = at;
     return 1;
 }
@@ -182,10 +181,10 @@ void PlayerServer::SendObject0A(const EngineObject* object) {
     WriteDword(&out, ObjectId(object));
 }
 
-void PlayerServer::SendPair16(std::uint32_t a, std::uint32_t b) {
+void PlayerServer::SendPair16(std::uint32_t unitId, std::uint32_t index) {
     WriteByte(&out, 0x16);
-    WriteDword(&out, a);
-    WriteDword(&out, b);
+    WriteDword(&out, unitId);
+    WriteDword(&out, index);
 }
 
 void PlayerServer::SendObject14(const EngineObject* object) {
@@ -204,10 +203,10 @@ void PlayerServer::SendValue15(std::uint32_t value) {
     WriteDword(&out, value);
 }
 
-void PlayerServer::SendPair18(std::uint32_t a, std::uint32_t b) {
+void PlayerServer::SendPair18(std::uint32_t unitId, std::uint32_t value) {
     WriteByte(&out, 0x18);
-    WriteDword(&out, a);
-    WriteDword(&out, b);
+    WriteDword(&out, unitId);
+    WriteDword(&out, value);
 }
 
 void PlayerServer::SendObject43(const EngineObject* object) {

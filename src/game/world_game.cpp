@@ -564,7 +564,6 @@ void GameFlow::BeginMultiplayerGame() {
     g_partyManager.BeginRedeploy(GlobalParty());
     state = 4;    // load the zone
     requestTarget = MultiplayerZone();
-    requestArg = 0;
     zoneSwitchStarted = 0;
     net::g_gameClient->player.Get()->state = 1;
     ++net::g_gameClient->player.Get()->version;
@@ -632,16 +631,14 @@ void GameFlow::CloseSessions() {
 // and 6.
 void GameFlow::RequestState3() { state = 3; }
 
-void GameFlow::RequestLoad(std::string_view name, char flag) {
+void GameFlow::RequestLoad(std::string_view name) {
     state = 2;
     requestTarget = name;
-    requestArg = flag != 0;
 }
 
-void GameFlow::RequestZoneChange(std::string_view zone, int entrance) {
+void GameFlow::RequestZoneChange(std::string_view zone) {
     state = 4;
     requestTarget = zone;
-    requestArg = entrance;
 }
 
 void GameFlow::RequestPartyZone5(const char* zone, CParty* party) {
@@ -1054,16 +1051,6 @@ void GameFlow::ProcessRequest() {
         clientWorld->RunTick();
         g_serverWorld.Update();
         LoadGame(requestTarget);
-        if (requestArg) {
-            const char* autoplay = kAutoplay;
-            if (autoplay) {
-                ClientWorldLocalView(clientWorld)->StartRecording(autoplay);
-                g_serverWorld.sendsStartPosition = 1;
-            } else {
-                ClientWorldLocalView(clientWorld)->StopRecording();
-                g_serverWorld.sendsStartPosition = 0;
-            }
-        }
         break;
     case kStateNewGame:
         // The same steps as the matching start function (inlined here), Rebirth's AutoExec #3 included.

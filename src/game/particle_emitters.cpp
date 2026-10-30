@@ -22,8 +22,6 @@ namespace {
 // A random word as a float.
 float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 
-float Range(float min, float max) { return g_clientRandom.Range(min, max); }
-
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
 constexpr float kTwoPi = 6.28318f;
@@ -49,8 +47,8 @@ static_assert(std::bit_cast<std::uint32_t>(kTwoPi) == 0x40C90FD0u);
 // One point of a new bolt: a random offset (none for point 0) around the source, on the ground,
 // with a fork direction.
 void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
-    float radius = Range(0.0f, 1.0f);
-    float angle = Range(0.0f, kTwoPi);
+    float radius = g_clientRandom.Range(0.0f, 1.0f);
+    float angle = g_clientRandom.Range(0.0f, kTwoPi);
     float dx = std::sin(angle) * radius;
     float dy = std::cos(angle) * radius;
     dir.x = dx;
@@ -120,7 +118,7 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     float vx, vy;
     for (int tries = 10;;) {
         vx = Unsigned(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-        float y = Range(-1.0f, 1.0f);
+        float y = g_clientRandom.Range(-1.0f, 1.0f);
         vy = y;
         if (y * vy + vx * vx < EI_ONE) break;   // random: never NaN
         if (!(--tries > 0)) break;
@@ -182,8 +180,6 @@ int EmitSpark(ParticleSource* s, Particle* p) {
 
 constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
-
-void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
 // raise or lower the ring (spreadMin.x holds the height).
@@ -346,7 +342,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
         p->state = index;
         p->pos = points[index].pos;
         p->size = 1.0f;
-        SetBits(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
+        lib::StoreBytes(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
         p->life = 25;
         return 1;
     }

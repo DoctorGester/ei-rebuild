@@ -42,7 +42,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 void CFigureManager::Create() {
     BaseManager::Create();
     // Rebirth's ResOverride: the mod's figure archives come first.
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path);
     }
     std::string folder = g_textFolder;

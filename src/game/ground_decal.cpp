@@ -43,49 +43,49 @@ void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, f
     out->v = (dq * p->v - dp * q->v) * scale;
 }
 
-int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) {
+int ClipTriangle(DecalVertex* tri, DecalVertex* out, float distA, float distB, float distC) {
     DecalVertex* v0 = &tri[0];
     DecalVertex* v1 = &tri[1];
     DecalVertex* v2 = &tri[2];
     DecalVertex first, second;
-    switch (Inside(a) + Inside(b) * 2 + Inside(c) * 4) {
+    switch (Inside(distA) + Inside(distB) * 2 + Inside(distC) * 4) {
     case 1:   // only v0 inside
-        Interpolate(v0, v1, &first, a, b);
-        Interpolate(v0, v2, &second, a, c);
+        Interpolate(v0, v1, &first, distA, distB);
+        Interpolate(v0, v2, &second, distA, distC);
         CopyVertex(v1, &first);
         CopyVertex(v2, &second);
         return 1;
     case 2:   // only v1
-        Interpolate(v0, v1, &first, a, b);
-        Interpolate(v1, v2, &second, b, c);
+        Interpolate(v0, v1, &first, distA, distB);
+        Interpolate(v1, v2, &second, distB, distC);
         CopyVertex(v0, &first);
         CopyVertex(v2, &second);
         return 1;
     case 3:   // v0 and v1
-        Interpolate(v1, v2, &first, b, c);
-        Interpolate(v0, v2, &second, a, c);
+        Interpolate(v1, v2, &first, distB, distC);
+        Interpolate(v0, v2, &second, distA, distC);
         CopyVertex(v2, &second);
         CopyVertex(&out[0], v1);
         CopyVertex(&out[1], &first);
         CopyVertex(&out[2], &second);
         return 2;
     case 4:   // only v2
-        Interpolate(v1, v2, &first, b, c);
-        Interpolate(v0, v2, &second, a, c);
+        Interpolate(v1, v2, &first, distB, distC);
+        Interpolate(v0, v2, &second, distA, distC);
         CopyVertex(v1, &first);
         CopyVertex(v0, &second);
         return 1;
     case 5:   // v0 and v2
-        Interpolate(v0, v1, &first, a, b);
-        Interpolate(v1, v2, &second, b, c);
+        Interpolate(v0, v1, &first, distA, distB);
+        Interpolate(v1, v2, &second, distB, distC);
         CopyVertex(v1, &second);
         CopyVertex(&out[0], v0);
         CopyVertex(&out[1], &first);
         CopyVertex(&out[2], &second);
         return 2;
     case 6:   // v1 and v2
-        Interpolate(v0, v1, &first, a, b);
-        Interpolate(v0, v2, &second, a, c);
+        Interpolate(v0, v1, &first, distA, distB);
+        Interpolate(v0, v2, &second, distA, distC);
         CopyVertex(v0, &second);
         CopyVertex(&out[0], v1);
         CopyVertex(&out[1], &second);

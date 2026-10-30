@@ -43,7 +43,7 @@ MappedResource::MappedResource() {
 
 MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
     MappedResource::FreeAllFiles();   // called directly, not through the vtable
     archive.Close();
     entries = nullptr;
@@ -62,7 +62,7 @@ void MappedResource::Flush() {}   // 4
 bool MappedResource::OpenResource(const std::string& path, bool forWriting) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable = forWriting;
     if (!archive.Open(path, (forWriting ? platform::File::modeReadWrite : platform::File::modeRead) | platform::File::shareDenyNone |
@@ -117,7 +117,7 @@ void MappedResource::CloseResource() {
 
 // Rebirth's ResOverride sends every call to addon.
 void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);
 }
 

@@ -40,7 +40,7 @@ Vector3 Sub(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x
 Vector3 Add(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x + b.x), static_cast<float>(a.y + b.y), static_cast<float>(a.z + b.z)}; }
 Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), static_cast<float>(a.y * s), static_cast<float>(a.z * s)}; }
 // a + (b - a) * s, written (b - a) * s + a as the original evaluates it.
-Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
+Vector3 LerpStored(const Vector3& from, const Vector3& to, float s) { return Add(Scale(Sub(to, from), s), from); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
 // lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).

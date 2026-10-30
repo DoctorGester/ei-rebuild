@@ -78,7 +78,7 @@ same, `world_sync.cpp` added / kept / removed).
   saves\current (`ClearSaveFolder` 0057AAB0) and starts zone1 through 0057C460; kind 2 (load) calls 0057ABA0. Requests acted
   on by the flow's update 005800C0: 2 load (005816D0), 3 (005816C0), 4 go to a zone (00581700, also BeginMultiplayerGame), 5
   / 6 with a party copy (00581730 / 00581760). GameFlow (world.h): state +0, requestTarget +4, requestParty +8,
-  requestArg +0x78, multiplayerZone +0x7C, zoneSwitchStarted +0x80.
+  multiplayerZone +0x7C, zoneSwitchStarted +0x80 (original offsets).
 - **NewZone** 00595480 (Rebirth, not rewritten): checks map / .mob paths, reads the AI graph (00596140), clears alarms, then
   `LoadMap` 00595C70 loads the terrain when the map changed (005B43C0) and either tears the zone down (same .mob) or
   `ResetZone` 0058B250; marks every player dirty; then `LoadMapObjects` 00596030 for the .mob and `SendFreshObjects` 005951A0

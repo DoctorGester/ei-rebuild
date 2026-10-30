@@ -54,15 +54,15 @@ bool IsZero(float value) {
 bool IsBlack(const LightColour& c) { return IsZero(c.r) && IsZero(c.g) && IsZero(c.b); }
 
 // (b - a) * t + a, stored as a float.
-float Lerp(float a, float b, float t) {
-    float value = (b - a) * t + a;
+float Lerp(float from, float to, float t) {
+    float value = (to - from) * t + from;
     return value;
 }
-LightColour Lerp(const LightColour& a, const LightColour& b, float t) {
+LightColour Lerp(const LightColour& from, const LightColour& to, float t) {
     LightColour c;
-    c.r = Lerp(a.r, b.r, t);
-    c.g = Lerp(a.g, b.g, t);
-    c.b = Lerp(a.b, b.b, t);
+    c.r = Lerp(from.r, to.r, t);
+    c.g = Lerp(from.g, to.g, t);
+    c.b = Lerp(from.b, to.b, t);
     c.a = 0.0f;
     return c;
 }

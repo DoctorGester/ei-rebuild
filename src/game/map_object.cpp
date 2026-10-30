@@ -32,9 +32,6 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
-// The world's GridHeightAt: the height at (x, y), a double (a float added to it as the x87 adds: pc24::Add).
-double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
-
 // The change stamp: the world's update count.
 int UpdateCount(const CWorld* world) { return world->updateCount; }
 
@@ -183,7 +180,7 @@ float* CMapObject::GroundPoint(float* out) {
     float x = localPosition.x + bounds.center.x;    // each stored to a float local
     float y = localPosition.y + bounds.center.y;
     float z = localPosition.z + bounds.center.z;
-    double height = GroundHeight(World(), x, y);
+    double height = World()->GridHeightAt(x, y);
     out[0] = x;
     out[1] = y;
     out[2] = pc24::Add(height, z);
@@ -191,7 +188,7 @@ float* CMapObject::GroundPoint(float* out) {
 }
 
 void CMapObject::PlaceOnGround(float offset) {
-    double height = GroundHeight(World(), localPosition.x, localPosition.y);
+    double height = World()->GridHeightAt(localPosition.x, localPosition.y);
     localPosition.z = pc24::Add(height, offset);
 }
 

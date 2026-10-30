@@ -448,7 +448,7 @@ struct UiInputSide {
     virtual void KeyUp(int, int, int) {}
     virtual void Wheel(int flags, int delta, int x, int y);
     // Events 2-11 by number (the containers' dispatch).
-    void Event(int slot, int a, int b, int c);
+    void Event(int slot, int first, int second, int third);
 
     Interface3D* ui;
     bool handled;                    // set by a handler that used the event
@@ -1164,7 +1164,7 @@ public:
 
 private:
     // `atPoint` limits the children to those holding (b, c).
-    void Dispatch(int slot, int a, int b, int c, bool atPoint);
+    void Dispatch(int slot, int first, int second, int third, bool atPoint);
 };
 // A window on the interface's stack as the screen it is (every window pushed there is a container).
 inline UiContainer* ScreenOf(UiWindow* window) { return static_cast<UiContainer*>(window); }

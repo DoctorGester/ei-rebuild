@@ -61,7 +61,7 @@ struct UnitMotion {
     // Splits every waypoint segment into points, one per path cell.
     void Subdivide();
     // Adds the points of the segment from `a` to `b` covering `cells` path cells.
-    void SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint* b, int cells, float startOffset,
+    void SubdivideSegment(const MotionWaypoint* from, const MotionWaypoint* to, int cells, float startOffset,
                           float endOffset, int* stepIndex);
     // Slows the points down where the turn to the next one takes longer than the way.
     void LimitSpeeds(float turnRate);

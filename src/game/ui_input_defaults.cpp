@@ -6,19 +6,19 @@ void UiInputSide::LeftDouble(int buttons, int x, int y) { LeftDown(buttons, x, y
 
 void UiInputSide::RightDouble(int buttons, int x, int y) { RightDown(buttons, x, y); }
 
-void UiInputSide::Event(int slot, int a, int b, int c) {
+void UiInputSide::Event(int slot, int first, int second, int third) {
     switch (slot) {
     case kEventDeactivate: Deactivate(); break;
-    case kEventLeftDown: LeftDown(a, b, c); break;
-    case kEventLeftUp: LeftUp(a, b, c); break;
-    case kEventMouseMove: MouseMove(a, b, c); break;
-    case kEventRightDown: RightDown(a, b, c); break;
-    case kEventRightUp: RightUp(a, b, c); break;
-    case kEventLeftDouble: LeftDouble(a, b, c); break;
-    case kEventRightDouble: RightDouble(a, b, c); break;
-    case kEventKeyDown: KeyDown(a, b, c); break;
-    case kEventChar: Char(a, b, c); break;
-    case kEventKeyUp: KeyUp(a, b, c); break;
+    case kEventLeftDown: LeftDown(first, second, third); break;
+    case kEventLeftUp: LeftUp(first, second, third); break;
+    case kEventMouseMove: MouseMove(first, second, third); break;
+    case kEventRightDown: RightDown(first, second, third); break;
+    case kEventRightUp: RightUp(first, second, third); break;
+    case kEventLeftDouble: LeftDouble(first, second, third); break;
+    case kEventRightDouble: RightDouble(first, second, third); break;
+    case kEventKeyDown: KeyDown(first, second, third); break;
+    case kEventChar: Char(first, second, third); break;
+    case kEventKeyUp: KeyUp(first, second, third); break;
     default: break;
     }
 }
