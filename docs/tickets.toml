@@ -6106,6 +6106,12 @@ group = "harness"
 note = "From H33a. lib/gameapi.h's ~140 'inline auto& X = ei::Imports().X' references are dynamic initialisers compiled in every file that includes it (~0.1 s back end each, 140 objects; dropped at link). gen_iat.py generates it and it is in the harness's reference key (a change replays the original's runs). Options: one definition in a .cpp (extern references; mind static-initialisation order), or calls through ei::Imports().X directly. Changes the call code: goldens."
 
 [[ticket]]
+id = "H33f"
+title = "windows.h only where Windows is called: gameapi.h without the import prototypes, direct includes cut"
+group = "harness"
+note = "User 2026-10-30 asked why windows.h is everywhere. lib/gameapi.h (78 files) includes import_table.h / import_prototypes.h, the original's Win32 imports typed by their prototypes, so windows.h, mmsystem.h, shellapi.h, objbase.h and dsound.h reach every caller. Make gameapi.h expose the calls without the SDK headers (own declarations over lib/win_types.h, or the table kept to the few .cpp files that fill or call it), then audit the 62 direct windows.h includes (game 31, render 14, hook 8, standalone 5, lib 4): keep it only where Windows is really called (registry, sockets, files, window, DirectDraw), ideally a small platform layer; the rest take lib/win_types.h. Measure the clean build like H33a. gameapi.h / gen_iat.py are in the harness's reference key: goldens."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
