@@ -1,6 +1,6 @@
 #pragma once
 
-// The original's x87 maths for code built for SSE2. From the D3D device's creation the main thread runs the FPU at
+// The original's x87 maths in SSE2 code. From the D3D device's creation the original's main thread ran the FPU at
 // 24-bit precision control (PC24): an x87 add, subtract, multiply or divide rounds its exact result once to a float
 // significand, which float maths reproduces when both operands are floats. It does not when an operand is wider:
 // a double constant (FLD qword keeps its 53 bits), or the result of FSIN, FCOS, FPATAN or FYL2X (64 bits, the precision
@@ -11,11 +11,11 @@
 // a float (FSTP dword); the operations take two of them, round the exact result once to 24 bits (ties to even), and
 // store that:
 //
-//   float c = static_cast<float>(x87::fcos(a))       ->  float c = pc24::Round(pc24::Cos(a))
-//   x87::fcos(a) * radius + from.x                   ->  pc24::Mul(pc24::Cos(a), radius) + from.x
-//   x87::fpatan(y, x) - heading                      ->  pc24::Sub(pc24::Atan2(y, x), heading)
-//   static_cast<double>(x) * 0.001 (a double)        ->  pc24::Mul(x, 0.001)
-//   x87::fexp(t) (VC6's inline exp)                  ->  pc24::Exp(t)
+//   FCOS of a, stored as a float                     ->  float c = pc24::Round(pc24::Cos(a))
+//   FCOS of a, times radius, plus from.x             ->  pc24::Mul(pc24::Cos(a), radius) + from.x
+//   FPATAN of y and x, minus heading                 ->  pc24::Sub(pc24::Atan2(y, x), heading)
+//   x times the double constant 0.001                ->  pc24::Mul(x, 0.001)
+//   VC6's inline exp of t                            ->  pc24::Exp(t)
 //
 // Exactness (the equivalence tests in docs/notes/cleanup-tooling.md, "The x87 files to SSE2"): an operation on floats and
 // doubles is exact by construction (two-sum / two-product, then one rounding); Exp is VC6's sequence step by step;
@@ -24,8 +24,6 @@
 // Arguments are floats (the callers' arguments are PC24 results); Sin, Cos and Atan2 take doubles, which a float
 // converts to exactly, for the FPU's loads of a stored double. Results beyond a float's range (the FPU's registers
 // keep a 15-bit exponent) give the float the store would.
-//
-// Built for SSE2 only (pc24.cpp), out of line: an x87 object may call them too.
 
 namespace pc24 {
 
@@ -55,6 +53,17 @@ Unrounded Log10(float x);
 // VC6's inline exp at PC24: x times FLDL2E rounded to 24 bits, FRNDINT, F2XM1 of the fraction plus 1 rounded to 24
 // bits, FSCALE.
 float Exp(float x);
+
+// The game CRT's pow at PC24 (_CIpow), in two steps. FYL2X: y log2 x rounded to 64 bits, for a positive finite
+// x and a finite y (beyond 2^60 in size the product unrounded).
+Unrounded Log2Times(double y, double x);
+// 2^t as factor 2^exponent: the exponent t to the nearest integer (FRNDINT), the factor 2^(t - exponent) with the
+// fraction and 1 + (2^f - 1) each rounded to 24 bits (FSUBR, F2XM1, FLD1 FADDP); FSCALE is the caller's. |t| < 2^31.
+struct PowerOfTwo {
+    float factor;
+    int exponent;
+};
+PowerOfTwo TwoToThe(Unrounded t);
 
 // A register stored as a float (FSTP dword: one rounding, also into the denormals).
 float Round(Unrounded value);

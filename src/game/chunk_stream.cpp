@@ -7,7 +7,6 @@
 
 #include "lib/file_io.h"
 #include "mob_script_decoder.h"
-#include "ei/x87.h"
 #include "lib/str.h"
 
 #include <bit>

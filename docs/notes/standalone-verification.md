@@ -372,9 +372,9 @@ happen (the harness logs "share id" if one does).
 ## 8. Rules from real differences
 
 - **Float grouping** (SV7d1, SV7d1a): `/fp:fast` regrouped `(30x + 10) / 31` into `x * (30/31) + 10/31`, which settles
-  on another fixed point (9.99999714 against 10.0). The project builds `/arch:IA32 /fp:precise`; precise calls the
-  modern CRT for sqrt / sin / cos / atan2 / exp / log, so rewrites use `std::sqrt` (FSQRT at the precision control here; a float argument cast to double first) and `x87::fsin / fcos / fpatan / fexp / flog /
-  flog10` as VC6 inlined them.
+  on another fixed point (9.99999714 against 10.0). The project builds `/arch:SSE2 /fp:precise`; the original's
+  FSIN / FCOS / FPATAN / FYL2X and VC6's inline exp are `lib/pc24.h`'s (their 64-bit results, then the 24-bit
+  rounding of the operation that used them), plain float maths the rest (rewrite guide rule 7).
 - **Constant products** the original computes at run time (FLD; FMUL / FDIV) round to 24 bits there; the compiler folds
   them to doubles. `tools/check_fp_fold.py` (removed in C25d) failed on x87 constants the original never loaded (terrain::Sine's
   256 / pi, the briefing's and the lighting's pi / 180 are floats now; the double pi / 180 moved three menu units by

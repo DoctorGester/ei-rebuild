@@ -12,7 +12,7 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 | Tool | What it catches |
 |---|---|
 | `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs); a recorder not at a known function start, or a second one at an address |
-| `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control) in the x87 code: use `x87::FromUnsigned` (the SSE2 code is left out, "SSE2 build" below); in the SSE2 sources an `x87::` helper, `libcrt::Ftol` or `D()` (C30c) |
+| `check_x87.py` | in the game sources (src/game, src/lib, src/render) an `x87::` helper, a `libcrt::Ftol` or a `D()` register (C30c): the build is SSE2 throughout, the original's x87 maths is plain float maths or `lib/pc24.h` ("The x87 files to SSE2" below) |
 | `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or the rewrite an `EI_RECORD` names (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other functions are free (argument order is not checked) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | the cleanup artefact counts (below) |
@@ -155,8 +155,10 @@ game_data.h, import_table.h with import_prototypes.h, and intro_sort.h (check_ha
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
-C12 and C12a took `__asm` blocks in `src/` from 221 to 3 and left one `float_control` pair. The build is `/fp:precise` on x87. The rules the
-conversions follow (they keep the goldens and `ei_vectors` unchanged):
+C12 and C12a took `__asm` blocks in `src/` from 221 to 3 and left one `float_control` pair; C30e15 took the last ones
+(render's `AddOnX87`, vecmath.h's pair, the `x87::` helpers' asm with include/ei/x87.h): `check_cleanup` counts 0 of
+each. The rules below were the x87 build's (`/fp:precise` on x87); since C30e15 the build is SSE2 and the rules are the
+rewrite guide's rule 7 and "The x87 files to SSE2" below. Kept for the transcriptions they explain:
 
 - A `double` local or a `double` expression stands for an unrounded register: at 24-bit (main thread) and 53-bit precision control,
   storing an x87 result to a double changes nothing. Promote at the first operation (`static_cast<double>(a) - b`); `static_cast<float>`
@@ -174,8 +176,9 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
 - Sums over vector components use the `lib/vecmath.h` Unrounded helpers (`LengthSquared2DUnrounded`, `DotUnrounded<Sum3::...>`), which
   `check_cleanup` asks for.
 
-`vecmath.h`'s `float_control(precise, on)` pair was redundant under `/fp:precise` (0 of 723 objects compiled differently without it)
-and is gone; the `precise, off` pair around the Unrounded helpers stays (39 objects differ without it). The long transcriptions
+`vecmath.h`'s `float_control` pairs are gone (`precise, on` was redundant under `/fp:precise`; `precise, off` around the
+Unrounded helpers went in C30e15, when nothing was x87 code any more: no function of the release objects changed). The
+long transcriptions
 (`InvertModelMatrix`, `CrownBlend` in figure_part_draw, `EmitFirstSection`, `EmitSection` in renderer_strip; C12a) are C++ whose
 object code does the same operations with the same rounding points: a value the original keeps on the FPU stack across a loop or a
 reload is a `double` local (CrownBlend's unrounded red average for the first colour, `double redTarget = red` then the rounded one),
@@ -184,32 +187,23 @@ and a float the original reloads after storing is read back from the float. Chec
 for every `static_cast<float>`. The register / stack shims
 `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick) went in C12b: their callers are
 ours on the standalone, so the helper's flag is passed whole (the constructor reads its low byte), the codec's close is a plain
-`__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `include/ei/x87.h` and `src/hook` (the hook framework) and
-`src/lib/crt_x87.cpp` (Hypot's x87 addition of a NaN) keep theirs by design.
+`__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `src/hook` (the hook
+framework, game.exe's side) keeps its `__asm` by design.
 
 ## SSE2 build
 
 ### The drawing-only code on SSE2 (C30a)
 
-The build is split by file: the renderer (`ei_render`) and the game code (src/game, src/lib) but CMakeLists'
-`EI_X87_GAME_SOURCES` (`ei_sse2`) build with `/arch:SSE2`; the x87 list, the harness and the vector replays stay
-`/arch:IA32`. C30a put the drawing-only code on SSE2 (the interface, particles and effects, weather, sky, lightning,
-the terrain's draw passes, waves and ambience, decals and prints, the old renderer's glue, textures and surfaces, the
-music and the unit sound names); C30e inverted the lists and moved the files without float arithmetic (below). One
-compile option chooses (`$<TARGET_PROPERTY:EI_SSE2>`): cl warns (D9025) when a second `/arch` overrides the first, so
-the two cannot be stacked per file.
-- **Why a whole-archive library:** an inline function kept out of line in both an SSE2 and an x87 object is one COMDAT,
-  and the linker takes the first object's copy. `ei_sse2` is linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_sse2>`: every
-  object kept (static initialisers too), all read after ei_hook's own, so the x87 code always gets its x87 copy. An
-  OBJECT library or `$<TARGET_OBJECTS>` puts its objects first on Ninja's link line: the wrong way round.
-- **Checked (verify build, 2026-10-29):** of the 9,448 functions the map takes from SSE2 objects none is also defined
-  by an x87 object, and no SSE2 object loads or resets the x87 control word (FLDCW, FNINIT, `_control87`) other than
-  render.cpp's `FpuGuard` putting back a saved word: SSE2 code leaves the main thread's 24-bit precision alone, and calls
-  into x87 code see it unchanged. (One-off script: dumpbin /disasm and /symbols over the objects plus ei_hook.map.)
-  Since C30e device_object is an SSE2 object: its `__control87_2(_PC_24, _MCW_PC, &x87, nullptr)` sets the x87
-  precision (the D3D7 device's), as before, and leaves MXCSR alone.
-- `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
-  their 2^32 is SSE arithmetic, not a FADD at the precision control).
+Since C30e15 every game file and the renderer build with `/arch:SSE2 /fp:precise` (CMakeLists' `add_compile_options`;
+the harness and the vector replays too). Before that the build was split by file (`EI_X87_GAME_SOURCES` on
+`/arch:IA32`, the rest in the `ei_sse2` library); C30a put the drawing-only code on SSE2 (the interface, particles and
+effects, weather, sky, lightning, the terrain's draw passes, waves and ambience, decals and prints, the old renderer's
+glue, textures and surfaces, the music and the unit sound names), C30e moved the rest batch by batch (below).
+- **One library, whole archive:** the game code is `ei_game`, linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>` (every
+  object kept, static initialisers too). The split needed it for a second reason, gone with the split: an inline
+  function kept out of line in an SSE2 and an x87 object is one COMDAT, and the linker takes the first object's copy.
+- No game object loads or resets the x87 control word but device_object (PC24) and render.cpp's `FpuGuard`
+  ("The control word" below).
 - **What C30a kept x87 and why** (moved by C30e12, C30e13 and C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
@@ -307,8 +301,8 @@ an `x87::` helper (but the control word render.cpp's `FpuGuard` puts back), a `l
 
 ### The x87 files to SSE2 (C30e)
 
-The rest of the game code moves to SSE2 by C30a2's method, in the batches below; `EI_X87_GAME_SOURCES` lists what is
-left, grouped by the ticket that moves it (a file split from one of these joins its group).
+The rest of the game code moved to SSE2 by C30a2's method, in the batches below; C30e15 moved the last two files and
+removed the x87 build (`EI_X87_GAME_SOURCES`, `/arch:IA32`, include/ei/x87.h).
 
 **The method.** From the D3D device's creation (device_object) the original runs the main thread at 24-bit precision
 control (PC24): every x87 add, subtract, multiply, divide and square root rounds once to a float significand, as the
@@ -382,27 +376,24 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   compiler may do the next float operation there (`pc24::Exp(...) - 0.2f` is an FSUB). One such operation on two floats
   gives the SSE form's float at any precision control; a chain (spell_effect_internal.h's `LightRiseScaled`: FDIVR then
   FMUL) relies on the main thread's PC24, as the original does.
-- **ei_vectors** compiles its game sources for x87 (`/arch:IA32`): a batch whose file is in its list and calls `pc24::`
-  adds src/lib/pc24.cpp to it built for SSE2 (pc24.cpp's `#error` says when it is not).
-- **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_x87.cpp) stay x87 code that SSE2 code calls:
-  they load their own control word and round at the caller's precision (`MathControlWord::Round`, the main thread's
-  PC24 whoever calls), so an SSE2 caller passing the same values gets the same double back. crt_x87.cpp itself moves
-  last (C30e15). The host CRT's `std::pow` in x87 code (`__CIpow`: player_client, unit_skill_price) is the UCRT's x87
-  pow; under SSE2 it is the UCRT's SSE2 pow: an equivalence test decides whether it can be plain `std::pow`.
+- **ei_vectors** builds its game sources as the game does (SSE2, one executable since C30e15); its replays keep their
+  FLDCW of the recorded word (007F): the x87 operations MSVC leaves on ST0 results round at it.
+- **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_maths.cpp, SSE2 since C30e15): the original's
+  sequences at the main thread's PC24 through `lib/pc24.h` and exact double-double / integer steps (C30e15 below).
+  The host CRT's `std::pow` (player_client) is the UCRT's SSE2 pow, equal to the x87 build's `__CIpow` there.
 - **helpers**: `x87::fistp` / `RoundToInt` -> `lib::RoundEven` (CVTSS2SI: ties to even, 0x80000000 for a NaN, an
   infinity or out of range, as the x87 form: all 2^32 floats compared); `libcrt::Ftol` -> `static_cast<int>(static_cast<std::int64_t>(x))`
   where a NaN or a value beyond the int range can arrive (the low half; 0 for NaN, as `_ftol`: all 2^32 floats
   compared), else `static_cast<int>`; `x87::CopyBits` -> `=` (SSE2 copies keep a signalling NaN's bits);
   `x87::FromUnsigned` -> `static_cast<double>` (exact on SSE2).
-- **the chop rounding**: none left. The original truncates the terrain's edge fade under chop rounding; the image's
-  `EdgeFade` (terrain_shadow, SSE2 since C30c) rounds to nearest with `std::lround`, so the x87 word that
-  terrain_sector's Build still set around it changed nothing, and went in C30e14 (with `x87::ScopedRounding`).
+- **the chop rounding**: none. The original truncates the terrain's edge fade under chop rounding
+  (`SectorData::Build`); the image's `EdgeFade` (terrain_shadow) rounds to nearest with `std::lround` for every
+  caller. C30e15 tried truncation for the sector build: terrain_water_waves' golden (recorded from the image) differs in
+  the water sectors' speculars from record 0 (town_waves, zone1_waves), so the image keeps rounding to nearest; the
+  speculars are the shader's input, not game state.
 - **53-bit code**: before the device exists (start-up: options, registry, settings, the first files read) the main
   thread runs at 53 bits, where the original's double maths is SSE2's double maths: such code stays double. The other
   threads (the MP3 stream, the cursor, the master server lookup) are SSE2 already or do no float maths.
-- **headers**: a moved file inlines its own SSE2 copies of the header helpers (vecmath.h, unit.h, world.h,
-  spell_effect_internal.h); their out-of-line copies come from x87 objects first (whole-archive
-  order). Float helpers are the same either way; a double one is converted with its last x87 caller, or before.
 - **per batch**: the survey scripts below on the batch's objects before and after (no x87 instruction left, no SSE
   arithmetic but what the review allows), goldens unchanged on the verify suite and `--rebirth-only`, an equivalence
   test for every helper, check_x87 0.
@@ -490,7 +481,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e12 (done) client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
 | C30e13, C30e13a (done) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
 | C30e14 (done) terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
-| C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
+| C30e15 (done) main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
 **C30e1 (network, sessions, settings; 30 files, all moved).** The network clocks: `net::Pump` passes at most 5000
 ms times 2^-10, a float value, so every `Tick(double dt)` adds and subtracts floats; the double members that hold
@@ -506,8 +497,8 @@ k)`: the SSE2 call gives the same 256 doubles as the x87 build's `__CIpow`, so i
 start-up:** options' loader runs before the device exists (53-bit: its `value * 255` and `value * (1 / 255)` stay
 double maths), the saver at shut-down after it (24-bit: `value * 255` is a float product), so the two now have their
 own helpers (`LoadedTimes255`, `SavedTimes255`); `Ftol` truncates through int64. **ei_vectors** builds each game
-file as the game does: the files of `EI_X87_GAME_SOURCES` in the executable, the rest in `ei_vectors_sse2` linked
-whole after it (Range's vectors, all recorded at control word 007F, replay against the SSE2 code). Equivalence test
+file as the game does (one SSE2 executable since C30e15; until then the x87 files in the executable, the rest linked
+whole after it): Range's vectors, all recorded at control word 007F, replay against the SSE2 code. Equivalence test
 (C30e1's `eq/`, each old expression built /arch:IA32 at PC24 against the new): `RoundedProduct` (now `pc24::Mul`) and
 `RoundedQuotient` (now `pc24::Div`) 2^28 cases each (random and built on float ties: 36 M and 33 M where double then float differs),
 Range for every draw of three ranges and 2^28 random, `ScaledExperience` 2^28 (each of the 256 powers), the map's
@@ -717,6 +708,53 @@ water depth and level, sector bounds, plane and surface heights (24 M each, half
 exponent range; 4 of 12 M wide plane heights with coordinates from 2^-120 to 2^108 in one triangle are NaN on SSE2),
 every float's sector cell (0) and the spiral distances at both precisions (0).
 
+**C30e15 (main loop, game CRT; the last two files).** app_main's frame timing runs on the main thread at PC24 (the
+start-up's disk space before the device, at 53 bits: plain doubles): the camera's seconds (`pc24::Mul` of the
+milliseconds, a uint as a double, and the double constant), the speed's VC6 inline exp (`pc24::Exp`), the frame
+length (`pc24::Div(1000.0, fps)`, then `std::ceil`), the client backlog (`pc24::Add(pc24::Mul(elapsed, speed),
+backlog)`), the tick fraction and the balance (`Div`, `Sub`), the recorded tick times (`Add` of the int tick and the
+fraction); `Step` (a volatile double store) and `x87::FromUnsigned` went. crt_x87.cpp is `crt_maths.cpp`, SSE2 code
+without `__asm`: acos / asin are `pc24::Add` / `Sub` of 1 and x, the float root, then FPATAN's register stored to a
+double (`pc24::Atan2(...).hi`: hi is the 64-bit value rounded to 53 bits; `hi + lo` compiled to an x87 FADD into the
+return register, at PC24); pow is `pc24::Log2Times` (FYL2X: y log2 x rounded to 64 bits) and `pc24::TwoToThe`
+(FRNDINT ties to even, the fraction and 1 + (2^f - 1) rounded to 24 bits), FSCALE by the bits; _hypot's 64-bit steps
+(quotient, 1 + t^2, root, product, each stored to a double: the double rounding RN53(RN64(v)) moves hi only when hi
+is odd and |lo| reaches ulp (1/2 - 2^-12)) are exact remainders, 32-bit-limb integer squares and an integer-adjusted
+root. NaNs: _hypot's FLD x, FADD y (a signalling y loses to a quiet x); _CIpow's FADDP of its operands as the caller
+loaded them (both quiet: the larger significand, of equal ones the positive). Then the x87 build went: `/arch:IA32`,
+`EI_X87_GAME_SOURCES` and the `EI_SSE2` property, the ei_vectors split, include/ei/x87.h, `libcrt::Ftol`, vecmath.h's
+`float_control` pair and Atan2, render's `AddOnX87`, the start-up's FNSTCW log, check_x87's object half. The release
+objects' x87 instructions 7,947 -> 7,077, their arithmetic and control-word ones 610 -> 474 (app_main 73 -> 0, the
+game CRT 59 -> 1, render.cpp 2 -> 0); what is left is MSVC's operations on values returned in ST0 ("The control
+word" below), among them crt_maths' `MovingSize` and pc24's `Scale` (a power of two times a short value: exact). Equivalence test (C30e15's `eq/`: HEAD's
+crt_x87.cpp and app_main forms built /arch:IA32 against the new, plus the original's pow core as `__asm`, every
+thread at 007F; `eq all 100`, 3 min): every float through acos and asin (2^32 each: 6,896 and 2,188 differ in the
+double's last bit, 0 once rounded to a float), 100 M random doubles in (-1, 1) (1,419, 0 as floats); the differing
+ones are where this CPU's FPATAN is an ulp off at 64 bits next to a 53-bit tie (acos of 0x1.8d5002p-53: the true
+value is 1024.48 64-bit units below hi, FPATAN gives 1025). pow with the game's bases, random positive and wide
+operands (also y below 2^-960, which `Round64` now scales), negative bases, specials: 310 M cases, 0 differ from
+HEAD's port and 0 from the original's instructions; _hypot game, wide, short-significand (64-bit ties), tiny and
+special operands 310 M, 0 differ but NaN against NaN (11 of the 676 special pairs, a signalling y: HEAD's port took
+the larger significand); 10 M NaN pairs (6 M with a signalling NaN) against FLD x, FADD y and FLD x, FLD y, FADDP: 0
+differ. app_main: every uint32 millisecond count, every float balance, every int fps, 100 M backlogs, fractions,
+balances and tick times (game and wide): 0 differ. The double users of CiAcos (the camera's arc, quaternion's Slerp,
+core_transform_math, world_units) can see the last-bit cases above.
+
+### The control word
+
+The image keeps the main thread at 24-bit precision from the device's creation (device_object's
+`__control87_2(_PC_24, _MCW_PC)`, the word 007F Direct3D 7 left in the original) although no game file is x87 code:
+- MSVC's SSE2 code still does x87 arithmetic on a float or double returned on the x87 stack (the x86 calling
+  convention): the release objects hold about 470 such operations (FMUL, FADD, FADDP, FDIVR ...: `pc24::Exp(...) -
+  0.2f`, `LightRiseScaled`'s FDIVR then FMUL, `PlaneHeight`'s `(z0 + z1 + z2) * 1/3`). One operation on two floats
+  gives the float at any precision; a chain or a double operand gives the original's value only at PC24, as the
+  original computed it.
+- The UCRT's `log2`, `exp2` and `cbrt` follow the precision control (sin, cos, pow, atan2, hypot, acos, asin, exp,
+  log, floor, fmod, frexp, ldexp, fma, lround, lrint, atof do not: C30e15's scratch test at 007F and 027F).
+- Miles and Bink ran under the original's word; their mixing and decoding are not checked at 53 bits.
+render.cpp's `FpuGuard` puts the word back (only when it changed) around the renderer's library calls. The vector
+recorders' FNSTCW and the harness's control-word trace are game.exe's side and stay.
+
 ### Selects on `>=` / `<=` (lib/float_select.h, C30e17)
 
 MSVC (/fp:precise, SSE2) compiles `a >= b ? a : b` to MAXSS and `a >= b ? b : a` to MINSS (the `<=` forms likewise),
@@ -845,12 +883,12 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `RemoveOutdatedEffects` (disassembled): the value test is TEST AH,1 (C0, plain with audit), the strength test
   TEST AH,5 / JP (IEEE: the removal under `distance < 0.001`, exact). Stay: sector_map's FixMoveObject test (addon's
   IEEE test, as `Max` / `Min`), the integer, pointer and flag `!(...)` tests, `NotOlder` (save times are integers),
-  crt_x87's pow range test (plain `>=`: never NaN there, NaN arguments return first). The new renderer's own guards
+  crt_maths' pow range test (plain `>=`: never NaN there, NaN arguments return first). The new renderer's own guards
   (render_shadows) are plain. Goldens 111 the same, no audit line in any run.
 - **Complete.** No `IsNaN` / `CompareStatus` term, NaN-keeping helper, equal-or-NaN or differs form, or negated
   float comparison is left, except the kept ones named above with their reasons (ai_path's free-cell scale,
   `HealSlots`, `unit_skill_price`, the loop breaks `if (!(gap > limit)) break;` / terrain_decal's settle, addon's
-  IEEE tests, script_addon's CVTTSD2SI emulation). A NaN bit test stays only in `lib/nan_audit.h` and the CRT emulation (`crt_x87`).
+  IEEE tests, script_addon's CVTTSD2SI emulation). A NaN bit test stays only in `lib/nan_audit.h` and the CRT emulation (`crt_maths`).
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
 menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in

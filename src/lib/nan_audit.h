@@ -5,17 +5,17 @@
 // unordered result as "equal" or "less". No NaN reaches those comparisons in the scenario suite; one
 // that does is a bug upstream. EI_NAN_AUDIT(values...) next to such a comparison logs to ei-rebuild.log,
 // once per site, when one of the values is NaN, in the verify and debug builds; in release it is
-// nothing. Code whose purpose is detecting NaN (data checks) tests it itself (x87::IsNaN).
-
-#include "ei/x87.h"
+// nothing. Code whose purpose is detecting NaN (data checks) tests it itself (std::isnan).
 
 #if defined(EI_NAN_AUDIT_LOG)
 #include "hook/log.h"
 
+#include <cmath>
+
 namespace ei::nanaudit {
 template <class... T>
 bool AnyNaN(T... values) {
-    return (x87::IsNaN(values) || ...);
+    return (std::isnan(values) || ...);
 }
 } // namespace ei::nanaudit
 

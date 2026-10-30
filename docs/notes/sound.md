@@ -114,7 +114,7 @@ dwords 007440E4/007440E8.
 
 ### Floating point (SSE2 since C30a2)
 
-`sound_manager.cpp` is float maths built for SSE2 (not in CMakeLists' `EI_X87_GAME_SOURCES`). What of it reaches game
+`sound_manager.cpp` is float maths built for SSE2, as all the game code is. What of it reaches game
 state is whether a voice is taken: a speech's Play2D (priority 1, unit_client_speech) answers -1 when all 15 voices
 play at priority 1 or above, and its handle keeps or ends the unit's talking flag. Which voices play follows from
 - Play3D's level (`UpdatePositional`: a one-shot at level 0 takes no voice);
