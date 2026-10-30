@@ -496,7 +496,7 @@ void MeshPass(void* device) {
         }
     }
     if (g_pending.indexCount > 0) {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = g_pending.matrix;
         batch.firstIndex = g_pending.firstIndex;
@@ -573,7 +573,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
@@ -621,7 +621,7 @@ void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;

@@ -6,6 +6,7 @@
 #include "sokol_gfx.h"
 
 #include "lib/vecmath.h"
+#include "platform/graphics.h"
 
 // The shaders' uniform structs, bind slots and descriptions (cmake/shaders.cmake): after sokol_gfx.h and Matrix4.
 // Their blocks are copied by sg_apply_uniforms, so they are not 16-byte aligned (that would pad the frame's structs
@@ -23,12 +24,6 @@
 
 class TextureDevice;
 struct ID3D11Buffer;
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct ID3D11RenderTargetView;
-struct ID3D11Texture2D;
-struct IDXGISwapChain1;
-struct IDXGIFactory2;
 
 namespace render::detail {
 
@@ -275,39 +270,6 @@ void Start();
 // logged and shown in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not.
 // There is no other way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
-ID3D11Device* D3DDevice();
-ID3D11DeviceContext* D3DContext();
-// The Direct3D 11 texture of a sokol image (no reference taken); null for none.
-inline ID3D11Texture2D* D3DTexture(sg_image image) {
-    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
-}
-
-// A texture's first level, or a region of it, read back: copied into a CPU-readable staging texture of its format
-// and mapped (render_staging.cpp). The staging texture is kept for the next read (made again for a larger region or
-// another format) until Release, which every holder calls (no destructor: some are globals that outlive the device).
-// Touches no sokol state; a read on the main thread resets sokol's state cache after it.
-class StagingCopy {
-public:
-    // The whole level / `width` x `height` texels from (left, top); mapped until Unmap. False, nothing mapped, for no
-    // source or when the copy cannot be made or mapped.
-    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source);
-    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned width,
-             unsigned height);
-    // The mapped region's size and row y (the source's texel format).
-    unsigned Width() const { return mappedWidth; }
-    unsigned Height() const { return mappedHeight; }
-    const std::uint8_t* Row(unsigned y) const { return data + static_cast<std::size_t>(y) * pitch; }
-    void Unmap();
-    void Release();
-
-private:
-    ID3D11Texture2D* texture = nullptr;
-    unsigned width = 0, height = 0, format = 0;
-    ID3D11DeviceContext* context = nullptr;    // while mapped
-    const std::uint8_t* data = nullptr;
-    std::size_t pitch = 0;
-    unsigned mappedWidth = 0, mappedHeight = 0;
-};
 
 // `r` on a `width` x `height` target as the rectangle shaders' vertex uniforms (shaders/rect.glsl).
 inline void ApplyRect(const Rect& r, int width, int height) {
@@ -343,15 +305,12 @@ struct Channel {
 sg_image FrameImage();
 sg_view FrameTexture();
 bool FrameSize(int* width, int* height);
-// The frame into the window's swap chain through the gamma ramp, `cursor` (null: none) over it, then Present.
-// False: nothing to present into.
+// The frame into the window's drawable through the gamma ramp, `cursor` (null: none) over it; PresentWindow, after
+// the frame's commit, shows it. False: nothing to present into / nothing presented.
 bool DrawToWindow(const BlitBatch* cursor);
-void PresentWindow();
-// What the last DrawToWindow drew with, for the cursor thread's presents. Raw pointers, no references taken;
-// false when there is no swap chain.
+bool PresentWindow();
+// What the last DrawToWindow drew with, for the cursor thread's presents; false when there is no drawable.
 struct WindowParts {
-    IDXGISwapChain1* chain;
-    ID3D11RenderTargetView* view;
     sg_shader shader;
     sg_pipeline pipeline;
     sg_view frame;
@@ -360,29 +319,12 @@ struct WindowParts {
     int clientWidth, clientHeight;
     int frameWidth, frameHeight;
     Rect placed;
-    std::uint32_t syncInterval;
-    std::uint32_t presentFlags;
 };
 bool CurrentWindowParts(WindowParts* parts);
-// The vertical blank switch's rules (tools/perf_check checks them).
-bool TearingSupported(IDXGIFactory2* factory);
-std::uint32_t ChainFlagsFor(bool allowTearing, bool tearingSupported);
-std::uint32_t SyncIntervalFor(bool vsync);
-std::uint32_t PresentFlagsFor(bool vsync, std::uint32_t chainFlags);
-// Releases the swap chain and everything the window module made on the device (before sg_shutdown); the next
-// DrawToWindow makes them on the new device.
+// Releases everything the window module made on the device (before sg_shutdown); the next DrawToWindow makes them
+// on the new device.
 void DropWindow();
-// A lost device (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG, a driver error) was seen: everything is made again
-// at the end of the frame. `reason`: GetDeviceRemovedReason then (S_OK for render::LoseDevice's).
-// DeviceIsLost: seen and not made again yet.
-void ReportDeviceLost(long result, long reason);
-bool DeviceIsLost();
-// True once after render::LoseDevice.
-bool TakeSimulatedLoss();
 #if defined(EI_RENDER_VALIDATION)
-// After render::RemoveDevice: removes the device now (once), right before the window's Present, or at the end
-// of the frame without one.
-void RemoveIfAsked();
 // Whether the verify build's GPU read-backs (a stall each) run for the `count`th of their kind: the first
 // kReadBackAlways, then every 16th, and every one with "checkall" in EI_RENDER.
 constexpr long kReadBackAlways = 64;
@@ -766,9 +708,9 @@ public:
 // The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
 // the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into
 // the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent takes the
-// references the cursor thread draws with. ProtectDevice: the cursor thread's command list runs on the
-// immediate context. DropCursorPresents releases everything before the device goes.
-void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context);
+// references the cursor thread draws with. ProtectDevice (after sg_setup): the cursor thread's command list runs on
+// the immediate context. DropCursorPresents releases everything before the device goes.
+void ProtectDevice();
 void BeginWindowPresent();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
@@ -786,19 +728,6 @@ void DestroyTextures();
 // by RemakeComposed.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
-// Puts the floating-point control state back after calls into the driver: the x87 control word on 32-bit (the
-// game's main thread runs at 24-bit precision, docs/notes/rebirth.md), the SSE control and status word (MXCSR) on x64.
-class FpuGuard {
-public:
-    FpuGuard();
-    ~FpuGuard();
-    FpuGuard(const FpuGuard&) = delete;
-    FpuGuard& operator=(const FpuGuard&) = delete;
-
-private:
-    unsigned int saved;
-};
-
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 
@@ -806,9 +735,7 @@ constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 // multisampled target resolved into the frame target. PassSampleCount: the sample count of the pass being
 // drawn; every pipeline drawing into it is made for it.
 int PassSampleCount();
-// The most samples up to kSmoothSamples the device renders kColourFormat and kDepthFormat with (1: none).
-constexpr int kSmoothSamples = 8;
-int SupportedSamples(ID3D11Device* device);
+constexpr int kSmoothSamples = 8;   // the most the render quality asks for
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample.

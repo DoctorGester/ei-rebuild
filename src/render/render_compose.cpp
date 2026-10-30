@@ -7,6 +7,8 @@
 
 #include "../hook/log.h"
 
+#include "platform/win32/graphics_win32.h"
+
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -304,10 +306,10 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
     }
     if (recipe.levels > 1) {
         // The levels below the first, from it (a box filter).
-        ID3D11Texture2D* texture = D3DTexture(target);
+        ID3D11Texture2D* texture = platform::graphics::Texture(target);
         ID3D11ShaderResourceView* all = nullptr;
-        if (texture && SUCCEEDED(D3DDevice()->CreateShaderResourceView(texture, nullptr, &all))) {
-            D3DContext()->GenerateMips(all);
+        if (texture && SUCCEEDED(platform::graphics::Device()->CreateShaderResourceView(texture, nullptr, &all))) {
+            platform::graphics::Context()->GenerateMips(all);
             all->Release();
         }
     }
@@ -344,8 +346,7 @@ bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view) {
     if (!EnsurePipelines() || recipe.width <= 0 || recipe.height <= 0 || recipe.levels < 1 ||
         recipe.firstLevel >= recipe.levels)
         return false;
-    ID3D11Device* device = D3DDevice();
-    if (!device) return false;
+    ID3D11Device* device = platform::graphics::Device();
     D3D11_TEXTURE2D_DESC d{};
     d.Width = static_cast<UINT>(recipe.width);
     d.Height = static_cast<UINT>(recipe.height);
@@ -434,15 +435,14 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         sg_apply_uniforms(UB_texture_compose_params, SG_RANGE(fs));
         sg_draw(0, 6, 1);
         sg_end_pass();
-        StagingCopy copy;
-        if (copy.Map(D3DContext(), D3DTexture(target))) {
+        platform::graphics::Readback copy;
+        if (copy.Read(target, platform::Rect{0, 0, width, height})) {
             rgba->resize(static_cast<std::size_t>(width) * height * 4);
             for (int y = 0; y < height; ++y)
-                std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(static_cast<unsigned>(y)),
+                std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(y),
                             static_cast<std::size_t>(width) * 4);
             read = true;
         }
-        copy.Release();
     }
     sg_destroy_view(attachment);
     sg_destroy_image(target);

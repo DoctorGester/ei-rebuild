@@ -233,15 +233,16 @@
 //                             identity (one to one only; fails on a difference). Fails after
 //                             <seconds> or when the swap chain failed
 //   losedevice [seconds]      the new renderer acts as if its Direct3D 11 device were lost at the
-//                             next present (render::LoseDevice) and makes the device, the swap
-//                             chain and every image again; waits (default 10 s) until it has, and
-//                             presenting on the game window, until a frame is presented on the new
-//                             device. Fails on a timeout or when the new renderer gave up
-//   removedevice [seconds]    as losedevice, but the device is removed for real (render::RemoveDevice:
-//                             ID3D12Device5::RemoveDevice on the Direct3D 12 device under a device made
-//                             through D3D11On12; the scenario's "render" step names "removable").
-//                             Also fails when the loss seen was not that removal (GetDeviceRemovedReason
-//                             DXGI_ERROR_DEVICE_REMOVED) or the new device is not removable again
+//                             end of the next presented frame (render::LoseDevice) and makes the
+//                             device, the swap chain and every image again; waits (default 10 s) until
+//                             it has, and presenting on the game window, until a frame is presented on
+//                             the new device. Fails on a timeout or when the new renderer gave up
+//   removedevice [seconds]    as losedevice, but the device is removed for real right before the next
+//                             present (platform::graphics::RequestRemoval: ID3D12Device5::RemoveDevice
+//                             on the Direct3D 12 device under a device made through D3D11On12; the
+//                             scenario's "render" step names "removable"). Also fails when the loss
+//                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
+//                             is not removable again
 //   mouseglide <ms> <x0> <y0> <x1> <y1>
 //                             move the harness's mouse (what the game's GetCursorPos reads) from
 //                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
@@ -2521,19 +2522,18 @@ void RunSteps() {
         bool presented = now.presents > now.presentsAtRecovery;
         const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented) {
-            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
-                verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
-                static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
-                " presents on the game window");
+            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX%s) presents on the "
+                "game window", verb, now.deviceLosses, now.deviceRecoveries,
+                static_cast<unsigned long>(now.lastLossCode), now.lastLossCode ? "" : ", simulated");
 
             // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
             // device removable again.
-            if (g_newDeviceRemoved &&
-                (now.lastLossSimulated || now.lastLossReason != DXGI_ERROR_DEVICE_REMOVED || !now.removable)) {
+            const auto removed = static_cast<std::uint32_t>(DXGI_ERROR_DEVICE_REMOVED);
+            if (g_newDeviceRemoved && (now.lastLossCode != removed || !now.removable)) {
                 char what[200];
-                std::snprintf(what, sizeof(what), "removedevice: not a real removal (reason %08lX, simulated %d) or the new device "
-                              "is not removable (%d)", static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated,
-                              now.removable);
+                std::snprintf(what, sizeof(what),
+                              "removedevice: not a real removal (the loss %08lX) or the new device is not removable (%d)",
+                              static_cast<unsigned long>(now.lastLossCode), now.removable);
                 Log("harness: %s", what);
                 g_failures.push_back(what);
             }

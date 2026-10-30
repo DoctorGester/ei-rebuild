@@ -5,6 +5,8 @@
 
 #include "../hook/log.h"
 
+#include "platform/win32/graphics_win32.h"
+
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -160,8 +162,6 @@ std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
 sg_buffer g_vertices{};
 std::size_t g_vertexCapacity = 0;
 
-ID3D11DeviceContext* Context() { return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context())); }
-
 // A pipeline drawing into a canvas (RGBA8), the coverage scratch (R8, MAX blending) or the 5:6:5 picture
 // (R16UI), no depth.
 sg_pipeline MakeCanvasPipeline(sg_shader shader, sg_pixel_format format, const char* label) {
@@ -300,11 +300,11 @@ void ApplyFs(const ui_params_t& fs) { sg_apply_uniforms(UB_ui_params, SG_RANGE(f
 
 // `r` of the canvas's image copied into g_under at (0, row).
 void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
-    ID3D11Texture2D* from = D3DTexture(canvas.gpu.image);
-    ID3D11Texture2D* to = D3DTexture(g_under.image);
+    ID3D11Texture2D* from = platform::graphics::Texture(canvas.gpu.image);
+    ID3D11Texture2D* to = platform::graphics::Texture(g_under.image);
     if (!from || !to) return;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
-    Context()->CopySubresourceRegion(to, 0, 0, static_cast<UINT>(row), 0, from, 0, &box);
+    platform::graphics::Context()->CopySubresourceRegion(to, 0, 0, static_cast<UINT>(row), 0, from, 0, &box);
 }
 
 // The canvas's image of its size, all black.
@@ -504,11 +504,12 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
 
 // An Image's pixels written into the canvas's texture.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
+    ID3D11Texture2D* texture = platform::graphics::Texture(canvas.gpu.image);
     if (!texture) return;
     const Rect& r = op.rect;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
-    Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(), static_cast<UINT>(r.right - r.left) * 4u, 0);
+    platform::graphics::Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(),
+                                                     static_cast<UINT>(r.right - r.left) * 4u, 0);
 }
 
 void DrawGrey(const CanvasState& canvas) {
@@ -532,14 +533,9 @@ CanvasState* Find(const void* holder, unsigned id) {
     return it != g_canvases.end() && it->second.id == id ? &it->second : nullptr;
 }
 
-// Staging copies for the read-backs, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Mapped under the
-// present's lock (GpuWorkAlone); UnmapRegion after reading.
-StagingCopy g_staging, g_pictureStaging;
-
-void UnmapRegion(StagingCopy& s) {
-    s.Unmap();
-    sg_reset_state_cache();
-}
+// The read-backs' copies, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Read under the present's
+// lock (GpuWorkAlone); unmapped after reading.
+platform::graphics::Readback g_staging, g_pictureStaging;
 
 // `op`, just drawn on `canvas`, joins its history. One that covers the canvas whole (its making, a fill or
 // picture of all of it) starts the history again. A screen copy is not kept (the frame it copied is gone on a new
@@ -555,18 +551,18 @@ void Remember(CanvasState& canvas, Op&& op) {
 // A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
 void Compact(const void* holder, CanvasState& canvas) {
     canvas.copied = false;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    const UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return;
+    const int w = canvas.width, h = canvas.height;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return;
     Op op;
     op.kind = Op::Pixels;
     op.holder = holder;
     op.canvas = canvas.id;
     op.rect = Rect{0, 0, canvas.width, canvas.height};
     op.pixels.resize(static_cast<std::size_t>(w) * h);
-    for (UINT y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
-        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y), w * 4u);
-    UnmapRegion(g_staging);
+    for (int y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
+        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y),
+                    static_cast<std::size_t>(w) * 4);
+    g_staging.Unmap();
     canvas.history.clear();
     canvas.history.push_back(std::move(op));
 }
@@ -785,19 +781,18 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return false;
+    const int w = canvas.width, h = canvas.height;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
-    for (UINT y = 0; y < h; ++y) {
+    for (int y = 0; y < h; ++y) {
         const std::uint8_t* row = g_staging.Row(y);
         std::uint32_t* out = rgb->data() + static_cast<std::size_t>(y) * w;
-        for (UINT x = 0; x < w; ++x)   // RGBA8
+        for (int x = 0; x < w; ++x)   // RGBA8
             out[x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
     }
-    UnmapRegion(g_staging);
+    g_staging.Unmap();
     if (width) *width = canvas.width;
     if (height) *height = canvas.height;
     return true;
@@ -810,13 +805,12 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    if (!g_staging.Map(Context(), texture, static_cast<UINT>(x), static_cast<UINT>(y), 1, 1)) return false;
+    if (!g_staging.Read(canvas.gpu.image, platform::Rect{x, y, x + 1, y + 1})) return false;
     const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
-    UnmapRegion(g_staging);
+    g_staging.Unmap();
     return true;
 }
 
@@ -826,7 +820,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.texture.id || !EnsurePipelines()) return false;
     const CanvasState& canvas = it->second;
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     GpuWorkAlone alone;
     if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
     BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
@@ -845,13 +839,11 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     ApplyFs(fs);
     sg_draw(0, 6, 1);
     sg_end_pass();
-    ID3D11Texture2D* texture = D3DTexture(g_picture.image);
-    if (!g_pictureStaging.Map(Context(), texture, 0, 0, static_cast<UINT>(width), static_cast<UINT>(height)))
-        return false;
+    if (!g_pictureStaging.Read(g_picture.image, platform::Rect{0, 0, width, height})) return false;
     for (int y = 0; y < height; ++y)
-        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width),
-                    g_pictureStaging.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(width) * sizeof(std::uint16_t));
-    UnmapRegion(g_pictureStaging);
+        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width), g_pictureStaging.Row(y),
+                    static_cast<std::size_t>(width) * sizeof(std::uint16_t));
+    g_pictureStaging.Unmap();
     return true;
 }
 
@@ -934,7 +926,7 @@ void RunCanvasCommands() {
     }
     g_queue.clear();
     if (readBack) {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         for (auto& [holder, canvas] : g_canvases)
             if ((canvas.copied || canvas.history.size() > kMaxHistory) && canvas.gpu.image.id) Compact(holder, canvas);
     }

@@ -8,11 +8,6 @@
 
 #include "../hook/log.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <deque>
@@ -57,46 +52,24 @@ std::deque<Sample<GpuValues>> g_gpu;
 bool g_inFrame = false;
 Pass g_pass = Pass::Ui;
 
-// ---- Timestamp queries --------------------------------------------------------------------------------------
+// ---- Timestamps -----------------------------------------------------------------------------------------------
 
-constexpr int kStamps = 64;   // a frame's; past them the last stamped pass takes the rest of the frame
-constexpr int kSets = 5;      // frames in flight
+// A frame's stamps; past them the last stamped pass takes the rest of the frame.
+constexpr int kStamps = platform::graphics::GpuTimer::kMostStamps;
+constexpr int kSets = 5;   // frames in flight
 
-struct FrameQueries {
-    ID3D11Query* disjoint = nullptr;
-    ID3D11Query* stamps[kStamps] = {};
+struct FrameTimes {
+    platform::graphics::GpuTimer timer;
     Pass passes[kStamps] = {};   // the pass from each stamp on
     int count = 0;               // the stamps taken
-    bool pending = false;        // closed, its results not read yet
 };
-FrameQueries g_sets[kSets];
-int g_open = -1;            // the set of the frame being drawn
-bool g_queriesFailed = false;
+FrameTimes g_sets[kSets];
+int g_open = -1;   // the set of the frame being drawn
 
-bool MakeSet(FrameQueries& q) {
-    ID3D11Device* device = D3DDevice();
-    if (!device) return false;
-    D3D11_QUERY_DESC desc{D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
-    if (FAILED(device->CreateQuery(&desc, &q.disjoint))) return false;
-    desc.Query = D3D11_QUERY_TIMESTAMP;
-    for (ID3D11Query*& s : q.stamps)
-        if (FAILED(device->CreateQuery(&desc, &s))) return false;
-    return true;
-}
-
-void ReleaseSet(FrameQueries& q) {
-    if (q.disjoint) q.disjoint->Release();
-    for (ID3D11Query*& s : q.stamps) {
-        if (s) s->Release();
-        s = nullptr;
-    }
-    q = FrameQueries{};
-}
-
-void Stamp(FrameQueries& q, Pass pass) {
-    q.passes[q.count] = pass;
-    D3DContext()->End(q.stamps[q.count]);
-    ++q.count;
+void Stamp(FrameTimes& set, Pass pass) {
+    set.passes[set.count] = pass;
+    set.timer.Stamp();
+    ++set.count;
 }
 
 // The draws since the last change, to the pass they were made in.
@@ -106,26 +79,19 @@ void CountDraws() {
     g_drawsCounted = now;
 }
 
-// The closed sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
+// The sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
 void Collect() {
-    ID3D11DeviceContext* context = D3DContext();
-    for (FrameQueries& q : g_sets) {
-        if (!q.pending) continue;
-        D3D11_QUERY_DATA_TIMESTAMP_DISJOINT d{};
-        if (context->GetData(q.disjoint, &d, sizeof(d), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK) continue;
-        UINT64 t[kStamps] = {};
-        bool ready = true;
-        for (int k = 0; k < q.count && ready; ++k)
-            ready = context->GetData(q.stamps[k], &t[k], sizeof(t[k]), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK;
-        if (!ready) continue;
-        q.pending = false;
-        if (d.Disjoint || d.Frequency == 0 || q.count < 2) continue;
-        double ms = 1000.0 / static_cast<double>(d.Frequency);
-        auto span = [&](int from, int to) { return t[to] > t[from] ? static_cast<double>(t[to] - t[from]) * ms : 0.0; };
+    std::vector<double> times;
+    for (FrameTimes& set : g_sets) {
+        if (!set.timer.Read(&times) || times.size() < 2) continue;
+        auto span = [&](std::size_t from, std::size_t to) {
+            return times[to] > times[from] ? times[to] - times[from] : 0.0;
+        };
         Sample<GpuValues> s;
         s.when = Ticks();
-        s.values[GpuTotal] = span(0, q.count - 1);
-        for (int k = 0; k + 1 < q.count; ++k) s.values[GpuPasses + static_cast<int>(q.passes[k])] += span(k, k + 1);
+        s.values[GpuTotal] = span(0, times.size() - 1);
+        for (std::size_t k = 0; k + 1 < times.size(); ++k)
+            s.values[GpuPasses + static_cast<int>(set.passes[k])] += span(k, k + 1);
         Keep(g_gpu, s);
     }
 }
@@ -297,21 +263,13 @@ void BeginGpuFrame() {
     g_inFrame = true;
     g_pass = Pass::Ui;
     g_drawsCounted = FrameDrawCount();
-    if (g_queriesFailed || !D3DContext()) return;
     Collect();
     for (int k = 0; k < kSets; ++k) {
-        FrameQueries& q = g_sets[k];
-        if (q.pending) continue;
-        if (!q.disjoint && !MakeSet(q)) {
-            ReleaseSet(q);
-            g_queriesFailed = true;
-            ei::Log("render: the performance overlay has no GPU timestamps (CreateQuery failed)");
-            return;
-        }
+        FrameTimes& set = g_sets[k];
+        if (!set.timer.Begin()) continue;
         g_open = k;
-        q.count = 0;
-        D3DContext()->Begin(q.disjoint);
-        Stamp(q, g_pass);
+        set.count = 0;
+        Stamp(set, g_pass);
         return;
     }
 }
@@ -328,10 +286,9 @@ void EndGpuFrame() {
     CountDraws();
     g_inFrame = false;
     if (g_open < 0) return;
-    FrameQueries& q = g_sets[g_open];
-    Stamp(q, g_pass);
-    D3DContext()->End(q.disjoint);
-    q.pending = true;
+    FrameTimes& set = g_sets[g_open];
+    Stamp(set, g_pass);
+    set.timer.End();
     g_open = -1;
 }
 
@@ -389,10 +346,9 @@ void Draw(int width, int height, const Rect& placed) {
 }
 
 void Release() {
-    for (FrameQueries& q : g_sets) ReleaseSet(q);
+    for (FrameTimes& set : g_sets) set.timer.Release();
     g_open = -1;
     g_inFrame = false;
-    g_queriesFailed = false;
     DropImage();
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
     if (g_shader.id) sg_destroy_shader(g_shader);

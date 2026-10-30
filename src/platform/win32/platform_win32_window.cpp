@@ -313,6 +313,14 @@ bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
     return true;
 }
 
+bool WindowPixelSize(NativeWindow window, int* width, int* height) {
+    RECT client{};
+    if (!window || !GetClientRect(static_cast<HWND>(window), &client)) return false;
+    *width = client.right - client.left;
+    *height = client.bottom - client.top;
+    return *width > 0 && *height > 0;
+}
+
 // ---- Events ------------------------------------------------------------------------------------------------------
 
 bool EventWaits() {

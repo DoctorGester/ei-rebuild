@@ -72,10 +72,13 @@ endif()
 # The game code.
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
-# The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
-# The harness build turns on sokol's validation layer (messages go to ei-rebuild.log).
+# The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; on Windows
+# Direct3D 11, src/platform/win32/graphics_win32.cpp, which holds sokol's implementation). The backend and the
+# floating-point guard are built in here, not into ei_platform: the offline checks link the renderer without the game.
+# The harness build turns on sokol's validation layer (messages go to ei-rebuild.log) and the removable device.
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES})
+set(EI_RENDER_PLATFORM_SOURCES src/platform/win32/graphics_win32.cpp src/platform/floating_point.cpp)
+add_library(ei_render STATIC ${EI_RENDER_SOURCES} ${EI_RENDER_PLATFORM_SOURCES})
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
@@ -90,7 +93,8 @@ endif()
 # imports, gameapi.h), the one place of the game's code that includes <windows.h>; the sound on SDL3's audio device
 # with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
-list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp
+     ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
 if(EI_HARNESS)
     list(APPEND EI_PLATFORM_SOURCES src/platform/win32/platform_win32_window.cpp)
 else()
@@ -178,6 +182,8 @@ if(EI_HARNESS)
     target_include_directories(ei_harness_shared PRIVATE include src)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
+    # The image's side reaches the Direct3D backend's removable device (src/platform/win32/graphics_win32.h).
+    target_include_directories(ei-rebuild PRIVATE third_party/sokol)
 endif()
 # The game code: a library, whole (every object, as if listed: the static objects' initialisers too).
 add_library(ei_game STATIC ${EI_GAME_SOURCES})

@@ -5,6 +5,7 @@
 #include "render_internal.h"
 
 #include "../hook/log.h"
+#include "platform/win32/graphics_win32.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -177,7 +178,7 @@ bool Refused(Refusal why) {
 // channel off by more than one counts as a difference); kept for the harness (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
-StagingCopy g_readback[3];   // the back buffer, the frame and the cursor's part of its picture
+platform::graphics::Staging g_readback[3];   // the back buffer, the frame and the cursor's part of its picture
 
 ID3D11Texture2D* TextureOf(ID3D11View* view) {
     ID3D11Resource* resource = nullptr;
@@ -195,23 +196,22 @@ void CheckPresented(const Kit& kit, const Rect& to, const Rect& from, ID3D11Shad
         kit.clientWidth != kit.frameWidth || kit.clientHeight != kit.frameHeight)
         return;
     ID3D11Texture2D* sources[3] = {TextureOf(kit.back), TextureOf(kit.frame), TextureOf(sheet)};
-    const auto w = static_cast<unsigned>(kit.frameWidth), h = static_cast<unsigned>(kit.frameHeight);
-    if (sources[0] && sources[1] && sources[2] && g_readback[0].Map(kit.context, sources[0], 0, 0, w, h) &&
-        g_readback[1].Map(kit.context, sources[1], 0, 0, w, h) &&
-        g_readback[2].Map(kit.context, sources[2], static_cast<unsigned>(from.left), static_cast<unsigned>(from.top),
-                          static_cast<unsigned>(from.right - from.left), static_cast<unsigned>(from.bottom - from.top))) {
+    const platform::Rect whole{0, 0, kit.frameWidth, kit.frameHeight};
+    if (sources[0] && sources[1] && sources[2] && g_readback[0].Map(kit.context, sources[0], whole) &&
+        g_readback[1].Map(kit.context, sources[1], whole) &&
+        g_readback[2].Map(kit.context, sources[2], platform::Rect{from.left, from.top, from.right, from.bottom})) {
         int width = kit.frameWidth, height = kit.frameHeight;
         int differing = 0;
         g_lastBgr.resize(static_cast<std::size_t>(width) * height * 3);
         const std::uint8_t* table = kit.rampTable;
         for (int y = 0; y < height; ++y) {
-            const std::uint8_t* b = g_readback[0].Row(static_cast<unsigned>(y));   // B, G, R, A
-            const std::uint8_t* f = g_readback[1].Row(static_cast<unsigned>(y));   // R, G, B, A
+            const std::uint8_t* b = g_readback[0].Row(y);   // B, G, R, A
+            const std::uint8_t* f = g_readback[1].Row(y);   // R, G, B, A
             std::uint8_t* out = &g_lastBgr[static_cast<std::size_t>(y) * width * 3];
             for (int x = 0; x < width; ++x) {
                 const std::uint8_t* want = f + x * 4;
                 if (x >= to.left && x < to.right && y >= to.top && y < to.bottom) {
-                    const std::uint8_t* t = g_readback[2].Row(static_cast<unsigned>(y - to.top)) + (x - to.left) * 4;
+                    const std::uint8_t* t = g_readback[2].Row(y - to.top) + (x - to.left) * 4;
                     if (t[3] >= 128) want = t;
                 }
                 int wantB = table[want[2] * 4 + 2], wantG = table[want[1] * 4 + 1], wantR = table[want[0] * 4 + 0];
@@ -235,7 +235,7 @@ void CheckPresented(const Kit& kit, const Rect& to, const Rect& from, ID3D11Shad
             ei::Log("render: cursor between frames: %d presented frames checked, %d differed", g_info.checks, g_info.mismatches);
         }
     }
-    for (StagingCopy& r : g_readback) r.Unmap();
+    for (platform::graphics::Staging& r : g_readback) r.Unmap();
     for (ID3D11Texture2D* t : sources)
         if (t) t->Release();
 }
@@ -316,9 +316,11 @@ void DropCursorSheet(const void* holder) {
     if (g_sheet.holder == holder) DropSheet();
 }
 
-void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context) {
+void ProtectDevice() {
     Hold hold(g_presentLock);
     g_protected = false;
+    ID3D11Device* device = platform::graphics::Device();
+    ID3D11DeviceContext* context = platform::graphics::Context();
     ID3D11Multithread* multithread = nullptr;
     if (context && SUCCEEDED(context->QueryInterface(__uuidof(ID3D11Multithread), reinterpret_cast<void**>(&multithread)))) {
         multithread->SetMultithreadProtected(TRUE);
@@ -337,11 +339,12 @@ void BeginWindowPresent() {
 void EndWindowPresent(bool presented) {
     if (presented) g_lastPresent = GetTickCount64();
     WindowParts window{};
-    if (presented && g_protected && CurrentWindowParts(&window)) {
-        g_kit.device = Referenced<ID3D11Device>(D3DDevice());
-        g_kit.context = Referenced<ID3D11DeviceContext>(D3DContext());
-        g_kit.chain = Referenced<IDXGISwapChain1>(window.chain);
-        g_kit.back = Referenced<ID3D11RenderTargetView>(window.view);
+    platform::graphics::Chain chain{};
+    if (presented && g_protected && CurrentWindowParts(&window) && platform::graphics::CurrentChain(&chain)) {
+        g_kit.device = Referenced<ID3D11Device>(platform::graphics::Device());
+        g_kit.context = Referenced<ID3D11DeviceContext>(platform::graphics::Context());
+        g_kit.chain = Referenced<IDXGISwapChain1>(chain.chain);
+        g_kit.back = Referenced<ID3D11RenderTargetView>(chain.view);
         g_kit.frame = Referenced<ID3D11ShaderResourceView>(sg_d3d11_query_view_info(window.frame).srv);
         g_kit.ramp = Referenced<ID3D11ShaderResourceView>(sg_d3d11_query_view_info(window.ramp).srv);
         g_kit.linear = Referenced<ID3D11SamplerState>(sg_d3d11_query_sampler_info(LinearSampler()).smp);
@@ -352,8 +355,8 @@ void EndWindowPresent(bool presented) {
         g_kit.frameHeight = window.frameHeight;
         g_kit.rampTable = window.rampTable;
         g_kit.placed = window.placed;
-        g_kit.syncInterval = window.syncInterval;
-        g_kit.presentFlags = window.presentFlags;
+        g_kit.syncInterval = chain.syncInterval;
+        g_kit.presentFlags = chain.presentFlags;
         g_kit.valid = pipelines && g_kit.device && g_kit.context && g_kit.frame && g_kit.ramp && g_kit.linear;
         if (!g_kit.valid) DropKit();
     }
@@ -365,7 +368,7 @@ void DropCursorPresents() {
     DropKit();
     Release(g_deferred);
 #if defined(EI_RENDER_VALIDATION)
-    for (StagingCopy& r : g_readback) r.Release();
+    for (platform::graphics::Staging& r : g_readback) r.Release();
 #endif
     g_protected = false;
     Hold sheet(g_sheetLock);
@@ -391,7 +394,7 @@ bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& 
         // The cursor's rectangle is clipped to its bounds by the game; kept inside the frame.
         Refused(Refusal::Outside);
     } else {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         presented = PresentWithCursor(g_kit, to, from, sheet);
         if (!presented) DropKit();   // until the main thread's next present
     }

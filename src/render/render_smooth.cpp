@@ -1,18 +1,13 @@
 // The render quality's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
 // commands into a multisampled colour and depth target and resolves the colour into the frame target at the
-// end of each such pass; the interface draws into the frame target as without the option. Here: the sample
-// count the device gives and the two copies between the targets where the frame changes from one to the other
-// (the frame target's colour and depth into every sample before a world run that follows interface draws;
-// sample 0 of the multisampled depth into the frame target's depth after a world run).
+// end of each such pass; the interface draws into the frame target as without the option. Here: the two copies
+// between the targets where the frame changes from one to the other (the frame target's colour and depth into every
+// sample before a world run that follows interface draws; sample 0 of the multisampled depth into the frame target's
+// depth after a world run).
 #include "render.h"
 #include "render_internal.h"
 
 #include "../hook/log.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
 
 namespace render {
 
@@ -52,18 +47,6 @@ void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
 } // namespace
 
 namespace detail {
-
-int SupportedSamples(ID3D11Device* device) {
-    for (int samples = kSmoothSamples; samples > 1; samples /= 2) {
-        UINT colour = 0, depth = 0;
-        // kColourFormat (RGBA8) and kDepthFormat (sokol's DEPTH: a D32_FLOAT view of R32_TYPELESS).
-        if (SUCCEEDED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, static_cast<UINT>(samples), &colour)) &&
-            SUCCEEDED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT, static_cast<UINT>(samples), &depth)) &&
-            colour > 0 && depth > 0)
-            return samples;
-    }
-    return 1;
-}
 
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;

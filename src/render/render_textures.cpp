@@ -7,11 +7,6 @@
 
 #include "../hook/log.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-
 #include "../game/texture.h"
 
 #include <cstdio>
@@ -604,7 +599,7 @@ namespace render {
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data) return false;
     detail::Start();
-    detail::FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
 }
@@ -613,7 +608,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     using namespace detail;
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = recipe->height = size;
@@ -640,7 +635,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
     using namespace detail;
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = width;
@@ -653,7 +648,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
     using namespace detail;
     Start();
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     ComposeStep step;
     step.over = false;
@@ -668,7 +663,7 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     using namespace detail;
     Start();
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto clouds = std::make_shared<CloudsDraw>();
     clouds->from = from;
@@ -719,7 +714,7 @@ void HolderGone(const void* holder) {
 
 void PictureFromMmp(const void* holder, const void* data) {
     if (!holder || !data) return;
-    detail::FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     detail::PictureFromMmpData(holder, data);
 }
 
