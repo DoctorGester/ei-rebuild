@@ -52,7 +52,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ## The patches
 
-*Implemented* = reproduced behind its flag (details: "Implemented patches: exact details"); where it lives is in the CSV. *Disabled here* = addon logs it as disabled in this install.
+*Implemented* = reproduced (behind its flag, but for the bug fixes) (details: "Implemented patches: exact details"); where it lives is in the CSV. *Disabled here* = addon logs it as disabled in this install.
 
 ### Bug fixes (10 applied, single player; all implemented)
 
@@ -61,7 +61,9 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 - **FixSpellEffectsOverflow**: (#1) `MapObject::AddEffect` (0050F1E0, slot 45) refuses a 21st effect and, after adding an effect lasting more
   than one tick, removes every older effect of the same type and end flag whose +0x0C is within 0.001, that lasts no longer and whose value
   is not higher. (#0) a hook in `WorldServer::UpdateUnits` (0058D670, at 0058D82E) counts every effect down one tick on objects that are
-  asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0).
+  asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0). Ours since C68: the
+  renewal and the sleeping count-down, without the cap of 20 (dropping a 21st effect was a bug of its own; the limit is the network's byte,
+  255) and without addon's skip of the record after each removal.
 - **FixProgressNames**: the loading movie (00595080) picks progres2.bik for "gipat2", progres5.bik for "jigran".
 - **FixSpellSelfCasting**: (#0) `Spell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `BattleScreen::SelectUnit`
   (00638EF0) always passes 0 as the flag to 00637500 when casting on a clicked unit.
@@ -211,8 +213,8 @@ computes at 53 bits in both installs (Rebirth does not raise the precision). Ret
 ### The flags
 
 `include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
-feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original, bugs included). Defaults: the bug fixes on, the
-rest off ("One test profile"). Sources, in order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the
+feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original). The bug fixes are no flags since C68: the
+rewritten code always has them and their names are only parsed. The rest is off by default ("One test profile"). Sources, in order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the
 exe's folder: Rebirth's, `config/rebirth_profile.ini` with EI_Plugin.ini's players and pause mode, where `starter\addon.dll` or `EI_Plugin.asi` is, else
 the bug fixes and WideScreen; none when `EI_REBIRTH` is set); the settings file's `[patches]` (ei_settings.ini, `Name = true|false`, and `NPlayers`,
 `Pause`, `SecondMaster`; the defaults name none, so every patch follows the folder until the player names it); the `EI_REBIRTH`
@@ -220,18 +222,25 @@ environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06,
 `EI_REBIRTH` (ei_launch: `defaults` when the caller gave none; run_all: the Rebirth profile's names on the Rebirth install), so they take no folder's
 profile and stay independent of the install's EI_Plugin.ini. There was a separate ei_rebirth.ini until C66a; there is no conversion from it. The flags (`src/lib/rebirth.cpp`)
 are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
+`config/rebirth_profile.ini` no longer names the fixes.
 
 ### One test profile (SV9)
 
 User 2026-10-20: Rebirth's obvious bug fixes are the standalone's defaults; scripting / console additions stay flags, off, decided later. The kind of each patch is
 the second argument in `include/ei/rebirth_patches.inc` and the `standalone` column of the CSV:
-- **on** (11): the ten single-player bug fixes and FixProcessLogin (a multiplayer repair ours always had).
-- **flag** (44, off): WideScreen and the draw radii (rendering; our renderer supersedes), the scripting / console patches, the mod-folder and Config* patches,
-  SavesPath, the multiplayer features (ExtendedServerName, MQClient, MPSpeedControl, PlayerNumbers, SetDefaultRate, MPConsole, MpZone, ChatLog),
-  the mod content switches (Menu*Disable, PreventZone1Animation, ForceShowTutorial), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and
-  every EI_Plugin feature (Briefings and Fixes repair multiplayer, but the recording below cannot load EI_Plugin.asi: Miles loads it from the install's folder).
-- **dropped** (9): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
-  EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs); the flags stay, nothing implements them.
+- **always** (15; the fixes `on` until C68): the ten single-player bug fixes, FixProcessLogin (a multiplayer repair ours always had) and four additions
+  that only add what nothing used before (ImproveConsole, NewStringEvents, AutoExec, PersistentGlobalVars). Unconditional code since C68 (user
+  2026-10-30), with no flag: not in `rebirth_patches.inc`.
+- **flag** (21, off): the draw radii (rendering), the scripting / console patches that change what existing scripts or the console do
+  (AllowScriptArgsInLoops, AllowScriptsInMainMenu, AddNewConsoleCommands, AddNewScriptCommands: each moved a golden when on, C68), the mod-folder patches, the multiplayer features (ExtendedServerName,
+  MQClient, MPSpeedControl, PlayerNumbers), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and EI_Plugin's active features
+  (NPlayers, Pause, NewMaster, Briefings, Fixes).
+- **dropped** (10): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
+  EiPluginGraphGen, EiPluginUnload, NivalRegistry: one settings file serves both installs) and WideScreen (the layout follows the window, W12). No flag
+  since C68.
+- **none** (18): implemented nowhere and no flag since C68: the mod config options (SavesPath, MpZone, ChatLog, Menu*Disable, PreventZone1Animation,
+  ForceShowTutorial, Config*), SetDefaultRate and MPConsole (disabled in this install) and EI_Plugin's inactive features (PK, AutoAim, Test, Scripts).
+A settings file, profile or spec naming a patch with no flag logs it and leaves it out.
 
 **Recording "original + fixes"** (until H40, the goldens' source then; `tests/verify/harness_addon.{h,cpp}`, the tag original-oracle): addon.dll has no switch per patch (its main table applies every entry; apply functions
 only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_harness.dll) into every

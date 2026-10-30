@@ -43,7 +43,7 @@ struct ReduceCall {
     std::uint32_t pad;
     double result;
 };
-struct OpensCall {         // LockKey::Opens (Rebirth's FixLeversActivate off)
+struct OpensCall {         // LockKey::Opens (the original's, without FixLeversActivate; the 8 recorded calls give the same with it)
     LockKey key, lock;
     std::int32_t result;
 };

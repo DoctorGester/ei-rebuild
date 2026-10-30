@@ -20,7 +20,6 @@
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
@@ -246,10 +245,9 @@ void Interface3D::OnStringEvent(std::string_view event) {
     std::string text(event);
     words = text::SplitWords(text, ' ');
     str::MakeLower(words[0]);
-    // Rebirth's NewStringEvents: "gameover [title [text]]" plays
-    // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
-    // game_over_msg).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && str::Compare(words[0], "gameover") == 0) {
+    // "gameover [title [text]]" plays buttons\gameover.wav and shows a message window (the texts default to the keys
+    // game_over and game_over_msg; Rebirth's NewStringEvents).
+    if (str::Compare(words[0], "gameover") == 0) {
         GameStopSounds(1);
         GameStopAmbience();
         PlayInterfaceSound("buttons\\gameover.wav");

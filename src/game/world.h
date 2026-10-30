@@ -307,11 +307,10 @@ public:
     // script command queues and then the units.
     void Tick(char force);
     // Runs the objects: in the update-map mode the units in the update map, each counting down to sleep, else every
-    // map object; then the counted objects. Rebirth's FixSpellEffectsOverflow first ticks the effects of sleeping
-    // objects (TickSleepingEffects).
+    // map object; then the counted objects. The effects of sleeping objects are ticked first (TickSleepingEffects).
     void UpdateUnits();
-    // Rebirth's FixSpellEffectsOverflow #0: counts the effects of sleeping map objects down and wakes
-    // those with an expired one.
+    // Counts the effects of sleeping map objects down and wakes those with an expired one (Rebirth's
+    // FixSpellEffectsOverflow #0).
     void TickSleepingEffects();
     // Puts every unit in the sectors within `radius` of `position` (x, y) in the update map.
     void WakeUnitsAround(const Vector3& position, float radius);

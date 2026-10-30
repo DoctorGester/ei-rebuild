@@ -107,24 +107,24 @@ LandscapeDrawRadius,addon,0056A02D,4,00569E40+1ED,widescreen/rendering,yes,(at 5
 LandscapeDrawRadius,addon,0056A0B9,4,00569E40+279,widescreen/rendering,yes,(at 56A0B8)push 0x42c80000,operand replaced,flag,implemented: new rewrite CWorldClient::Render 00569E40 (src/game/world_client_draw.cpp),
 AllowScriptArgsInLoops,addon,004D1614,7,004D1330+2E4,scripting/console,yes,"mov dword ptr [esp + 0xdc], eax",JMP to a stub: the recursive LoadCommands call for the loop body gets the caller's locals ([esp+0x19C]) as its 4th argument instead of 0,flag,implemented: CScript::LoadCommands (src/game/script_parse_load.cpp),
 AllowScriptsInMainMenu,addon,0057C69F,5,0057C460+23F,scripting/console,yes,"mov edi, 4","JMP to a stub (addon 10017FC6): MOV EDI,4; MOV DWORD [007B00C0],1 (CWorldServer+0x160); back to 0057C6A4",flag,implemented: new rewrite GameFlow::StartZone 0057C460 (src/game/world_game.cpp),
-FixLeversActivate,addon,00522AB6,9,00522A80+36,bug fix,yes,"cmp eax, edx; (+2)pop esi; (+3)sbb eax, eax; (+5)inc eax; (+6)ret 4",JMP to a stub: lock level 0 -> key level + 1; else signed key level >= lock level (vanilla: SBB/INC unsigned compare),on,implemented: LockKey::Opens (src/game/unit_stats.cpp),
-FixSpellEffectsOverflow,addon,0058D82E,10,0058D670+1BE,bug fix,yes,"lea edx, [esp + 0x14]; (+4)lea ecx, [ebp + 0x104]","context hook before the original instructions: for each map object (007C2D00 = the server 007AFF60 + 0x12DA0) that is referenced, not flagged 1, has effects, a companion (+0x170) and +0x174 <= 0 (asleep), every effect's ticks are counted down; if one ran out the object goes back into the update map (0058D5D0), whose update removes it",on,implemented: new rewrite CWorldServer::UpdateUnits 0058D670 (TickSleepingEffects; src/game/world_tick.cpp),
-FixSpellEffectsOverflow,addon,0050F1E0,5,0050F1E0+0,bug fix,yes,"push ebx; (+1)push ebp; (+2)mov ebp, ecx; (+4)push esi",function replaced (thiscall adapter to addon 100181D5): at most 20 effects; the original adds; then older duplicates of an effect lasting > 1 tick are removed,on,implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp),
-FixProgressNames,addon,00595130,10,00595080+B0,bug fix,yes,"mov dword ptr [0x791ee0], 0x790a70","context hook after the original MOV (progres.bik): allod gipat2 -> progres2.bik, jigran -> progres5.bik",on,implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world_zone.cpp),
+FixLeversActivate,addon,00522AB6,9,00522A80+36,bug fix,yes,"cmp eax, edx; (+2)pop esi; (+3)sbb eax, eax; (+5)inc eax; (+6)ret 4",JMP to a stub: lock level 0 -> key level + 1; else signed key level >= lock level (vanilla: SBB/INC unsigned compare),always,implemented: LockKey::Opens (src/game/unit_stats.cpp),
+FixSpellEffectsOverflow,addon,0058D82E,10,0058D670+1BE,bug fix,yes,"lea edx, [esp + 0x14]; (+4)lea ecx, [ebp + 0x104]","context hook before the original instructions: for each map object (007C2D00 = the server 007AFF60 + 0x12DA0) that is referenced, not flagged 1, has effects, a companion (+0x170) and +0x174 <= 0 (asleep), every effect's ticks are counted down; if one ran out the object goes back into the update map (0058D5D0), whose update removes it",always,implemented: new rewrite CWorldServer::UpdateUnits 0058D670 (TickSleepingEffects; src/game/world_tick.cpp),
+FixSpellEffectsOverflow,addon,0050F1E0,5,0050F1E0+0,bug fix,yes,"push ebx; (+1)push ebp; (+2)mov ebp, ecx; (+4)push esi",function replaced (thiscall adapter to addon 100181D5): at most 20 effects; the original adds; then older duplicates of an effect lasting > 1 tick are removed,always,implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp),
+FixProgressNames,addon,00595130,10,00595080+B0,bug fix,yes,"mov dword ptr [0x791ee0], 0x790a70","context hook after the original MOV (progres.bik): allod gipat2 -> progres2.bik, jigran -> progres5.bik",always,implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world_zone.cpp),
 AddNewConsoleCommands,addon,006360DF,5,00636020+BF,scripting/console,yes,call 0x600ef0,"call replaced (addon 100162D7): while nogui asks for it, every panel of the battle screen gets SetEnabled(GUI shown, 0) (006002A0), then the original 00600EF0",flag,implemented: Execute 005DC620 (src/game/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui_battle.cpp); commands in src/game/console_addon.cpp,
 AddNewConsoleCommands,addon,005DD565,5,005DC620+F45,scripting/console,yes,"sete cl; (+3)cmp al, 0x40","context hook: registers help (wrapped), addon, execs, listgvar, drawall in 007C7B38 and nogui in 007C7B28",flag,implemented: Execute 005DC620 (src/game/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui_battle.cpp); commands in src/game/console_addon.cpp,
-ImproveConsole,addon,005E44DD,6,005E44A0+3D,scripting/console,yes,"lea edi, [esi + 0x24]; (+3)lea ebp, [esi + 0xc]",context hook: a line equal to the last history entry skips the history add (to 005E4503),flag,implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp),
-ImproveConsole,addon,005E46CF,5,005E44A0+22F,scripting/console,yes,"mov al, byte ptr [esi + 0x78]; (+3)test al, al",context hook: Ctrl+A/C/X/V on the input line (clipboard),flag,implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp),
-NewStringEvents,addon,005F80EF,5,005F8070+7F,scripting/console,yes,"add esp, 8; (+3)test eax, eax","context hook: event ""gameover"" -> sound and game over message, then 005F8259",flag,implemented: new rewrite CInterface3D::OnStringEvent 005F8070 (src/game/ui_interface_input.cpp),
-FixSpellSelfCasting,addon,0068B770,6,0068B770+0,bug fix,yes,"mov eax, dword ptr [ecx + 0x18]; (+3)shr eax, 0x10",function replaced (thiscall adapter to addon 100185DC): offensive table extended to types 0x28 and 0x29,on,implemented: CSpell::IsOffensive (src/game/spell.cpp),
-FixSpellSelfCasting,addon,00639447,3,00638EF0+557,bug fix,yes,"mov cl, byte ptr [eax + 0x7f]","MOV CL,0; NOP (the argument from +0x7F of the selected spell becomes 0)",on,implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_hud.cpp),
-FixMoveObject,addon,005C11D0,6,005C11D0+0,bug fix,yes,"push ebp; (+1)mov ebp, esp; (+3)sub esp, 0x20","function replaced (thiscall adapter to addon 10018EF1): x < 0 or y < 0 or NaN -> false, else the original (failures logged)",on,implemented: CSectorMap::Move (src/game/sector_map.cpp),
-FixAddMapObject,addon,00592F68,5,005927C0+7A8,bug fix,yes,"mov esi, dword ptr [esi + 8]; (+3)add edx, ecx","context hook: ESI null -> log and ESI = 0, else ESI = [ESI+8]; EDX += ECX",on,implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world_units.cpp),
-FixPlaingBattleMusicFromAntimagic,addon,0054B5F6,2,0054B580+76,bug fix,yes,"cmp eax, 0x1a","JMP short +8 over CMP EAX,0x1A (type 0x1A no longer returns 1)",on,implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp),
-FixRepairPrice,addon,0060FADC,6,0060FAB0+2C,bug fix,yes,fld dword ptr [esi + 0x20]; (+3)fdiv dword ptr [esi + 0x24],"context hook: wear = clamp(1 - max(durability,0) / max(maximum,0), 0, 1) stored at [esp+0x14]; EAX = [ESI], ECX = ESI; to 0060FAF0",on,implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp),
-FixRemoveMapObject,addon,00593615,8,005935C0+55,bug fix,yes,"mov dword ptr [esp + 0x4c], 0",context hook: object id not found -> log and jump to the epilogue 005939C7,on,implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world_server.cpp),
-FixCreateItem,addon,006ACBBD,6,006AC970+24D,bug fix,yes,"mov edx, dword ptr [esp + 0x40]; (+4)mov eax, dword ptr [edx]","context hook: no prototype -> log ""GiveItem: can't find prototype"" and go to the failure exit 006ACBD1 (no FatalError)",on,implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp),
-FixCreateItem,addon,006ACCD0,5,006AC970+360,bug fix,yes,"mov ecx, dword ptr [esp + 0x60]; (+4)push ecx",context hook: invalid prototype or material -> log and go to 006ACBD1 (no FatalError),on,implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp),
+ImproveConsole,addon,005E44DD,6,005E44A0+3D,scripting/console,yes,"lea edi, [esi + 0x24]; (+3)lea ebp, [esi + 0xc]",context hook: a line equal to the last history entry skips the history add (to 005E4503),always,implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp),
+ImproveConsole,addon,005E46CF,5,005E44A0+22F,scripting/console,yes,"mov al, byte ptr [esi + 0x78]; (+3)test al, al",context hook: Ctrl+A/C/X/V on the input line (clipboard),always,implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp),
+NewStringEvents,addon,005F80EF,5,005F8070+7F,scripting/console,yes,"add esp, 8; (+3)test eax, eax","context hook: event ""gameover"" -> sound and game over message, then 005F8259",always,implemented: new rewrite CInterface3D::OnStringEvent 005F8070 (src/game/ui_interface_input.cpp),
+FixSpellSelfCasting,addon,0068B770,6,0068B770+0,bug fix,yes,"mov eax, dword ptr [ecx + 0x18]; (+3)shr eax, 0x10",function replaced (thiscall adapter to addon 100185DC): offensive table extended to types 0x28 and 0x29,always,implemented: CSpell::IsOffensive (src/game/spell.cpp),
+FixSpellSelfCasting,addon,00639447,3,00638EF0+557,bug fix,yes,"mov cl, byte ptr [eax + 0x7f]","MOV CL,0; NOP (the argument from +0x7F of the selected spell becomes 0)",always,implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_hud.cpp),
+FixMoveObject,addon,005C11D0,6,005C11D0+0,bug fix,yes,"push ebp; (+1)mov ebp, esp; (+3)sub esp, 0x20","function replaced (thiscall adapter to addon 10018EF1): x < 0 or y < 0 or NaN -> false, else the original (failures logged)",always,implemented: CSectorMap::Move (src/game/sector_map.cpp),
+FixAddMapObject,addon,00592F68,5,005927C0+7A8,bug fix,yes,"mov esi, dword ptr [esi + 8]; (+3)add edx, ecx","context hook: ESI null -> log and ESI = 0, else ESI = [ESI+8]; EDX += ECX",always,implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world_units.cpp),
+FixPlaingBattleMusicFromAntimagic,addon,0054B5F6,2,0054B580+76,bug fix,yes,"cmp eax, 0x1a","JMP short +8 over CMP EAX,0x1A (type 0x1A no longer returns 1)",always,implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp),
+FixRepairPrice,addon,0060FADC,6,0060FAB0+2C,bug fix,yes,fld dword ptr [esi + 0x20]; (+3)fdiv dword ptr [esi + 0x24],"context hook: wear = clamp(1 - max(durability,0) / max(maximum,0), 0, 1) stored at [esp+0x14]; EAX = [ESI], ECX = ESI; to 0060FAF0",always,implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp),
+FixRemoveMapObject,addon,00593615,8,005935C0+55,bug fix,yes,"mov dword ptr [esp + 0x4c], 0",context hook: object id not found -> log and jump to the epilogue 005939C7,always,implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world_server.cpp),
+FixCreateItem,addon,006ACBBD,6,006AC970+24D,bug fix,yes,"mov edx, dword ptr [esp + 0x40]; (+4)mov eax, dword ptr [edx]","context hook: no prototype -> log ""GiveItem: can't find prototype"" and go to the failure exit 006ACBD1 (no FatalError)",always,implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp),
+FixCreateItem,addon,006ACCD0,5,006AC970+360,bug fix,yes,"mov ecx, dword ptr [esp + 0x60]; (+4)push ecx",context hook: invalid prototype or material -> log and go to 006ACBD1 (no FatalError),always,implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp),
 DisableExitOnCrashReport,addon,004800A7,5,00480080+27,infrastructure,yes,call 0x4560d0,context hook replacing the message box call 004560D0: the text goes to addon.log,flag,implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced),
 DisableExitOnCrashReport,addon,004800C9,9,00480080+49,infrastructure,yes,jl 0x4800d2; (+2)push -1; (+4)call 0x6e8da7,9 NOPs: the error counter test and exit(-1),flag,implemented: new rewrite FatalError 00480080 (src/game/app.cpp),
 DisableExitOnCrashReport,addon,00564330,5,005641F0+140,infrastructure,yes,call 0x665a10,5 NOPs: CALL 00665A10 before the FatalError,flag,implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp),
@@ -141,9 +141,9 @@ ExtendedServerName,addon,0061DC9E,5,0061D780+51E,multiplayer,no,call 0x5fde20,ca
 ExtendedServerName,addon,0061DC7F,5,0061D780+4FF,multiplayer,no,call 0x5fde20,call redirected to addon code,flag,not started,
 ExtendedServerName,addon,0061E009,5,0061D780+889,multiplayer,no,call 0x5fde20,call redirected to addon code,flag,not started,
 NivalRegistry,addon,004568EA,4,00456440+4AA,resources/paths,yes,(at 4568E9)push 0x7848a8,PUSH operand 007848A8 -> addon's key string,dropped,"dropped: the image keeps one settings file for both installs (src/game/settings.h); hooked Rebirth runs keep the original WinMain",
-AutoExec,addon,0057ABE1,5,0057ABA0+41,scripting/console,yes,call 0x5dc620,"CALL 005DC620 -> addon 1001DF57 (runs the Console AutoExec lines, then 005DC620)",flag,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
-AutoExec,addon,0057BD30,5,0057BD10+20,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,flag,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
-AutoExec,addon,0057C9A3,5,0057C700+2A3,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,flag,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
+AutoExec,addon,0057ABE1,5,0057ABA0+41,scripting/console,yes,call 0x5dc620,"CALL 005DC620 -> addon 1001DF57 (runs the Console AutoExec lines, then 005DC620)",always,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
+AutoExec,addon,0057BD30,5,0057BD10+20,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,always,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
+AutoExec,addon,0057C9A3,5,0057C700+2A3,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,always,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
 MQClient,addon,0041ED36,1,0041ECC0+76,multiplayer,no,(at 41ED35)jne 0x41ed46,operand replaced,flag,implemented: ClientOnFileChunk 0041ECC0 (src/game/net_client_handlers.cpp),
 MQClient,addon,0041ED40,6,0041ECC0+80,multiplayer,no,je 0x41eefb,JMP to addon code (the replaced instructions are redone there),flag,implemented: ClientOnFileChunk 0041ECC0 (src/game/net_client_handlers.cpp),
 MPSpeedControl,addon,0063A6D4,6,0063A560+174,multiplayer,no,jne 0x63b4c4,JMP to addon code (the replaced instructions are redone there),flag,implemented: BattleScreenKeyDown 0063A560 (src/game/ui_battle_input.cpp),
@@ -176,10 +176,10 @@ AddNewScriptCommands,addon,004D4204,4,004D41C0+44,scripting/console,yes,"(at 4D4
 AddNewScriptCommands,addon,004D4212,4,004D41C0+52,scripting/console,yes,"(at 4D4211)mov eax, 0x78bca0",operand replaced,flag,not needed: 004D41C0 is the dead script dumper,
 AddNewScriptCommands,addon,004D460C,4,004D41C0+44C,scripting/console,yes,"(at 4D460B)mov eax, 0x78bca0",operand replaced,flag,not needed: 004D41C0 is the dead script dumper,
 AddNewScriptCommands,addon,004CF4A2,6,004CF470+32,scripting/console,yes,"lea ecx, [esi + 0x1ec]",JMP to addon code (the replaced instructions are redone there),flag,implemented as no-op: the hook only copies the error to addon.log,
-PersistentGlobalVars,addon,00663083,6,00662FB0+D3,scripting/console,yes,jne 0x663129,JNE target moved from 00663129 to 0066316C: the inlined clear of the loaded records' variables is skipped,flag,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
-PersistentGlobalVars,addon,00663170,7,00662FB0+1C0,scripting/console,yes,"mov dword ptr [esp + 0x80], ebx",context hook (mode 0: the replaced count = 0 is dropped): addon 1001E3C1 clears the table keeping the gvar. entries,flag,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
-PersistentGlobalVars,addon,0057EB25,5,0057EB10+15,scripting/console,yes,call 0x461540,CALL 00461540 -> addon 1001E3C1 (the table cleared keeping the gvar. entries),flag,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
-PersistentGlobalVars,addon,00580177,5,005800C0+B7,scripting/console,yes,call 0x461540,CALL 00461540 -> addon 1001E3C1,flag,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
+PersistentGlobalVars,addon,00663083,6,00662FB0+D3,scripting/console,yes,jne 0x663129,JNE target moved from 00663129 to 0066316C: the inlined clear of the loaded records' variables is skipped,always,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
+PersistentGlobalVars,addon,00663170,7,00662FB0+1C0,scripting/console,yes,"mov dword ptr [esp + 0x80], ebx",context hook (mode 0: the replaced count = 0 is dropped): addon 1001E3C1 clears the table keeping the gvar. entries,always,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
+PersistentGlobalVars,addon,0057EB25,5,0057EB10+15,scripting/console,yes,call 0x461540,CALL 00461540 -> addon 1001E3C1 (the table cleared keeping the gvar. entries),always,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
+PersistentGlobalVars,addon,00580177,5,005800C0+B7,scripting/console,yes,call 0x461540,CALL 00461540 -> addon 1001E3C1,always,"implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon's container order in src/game/persistent_globals.cpp",
 Maps,addon,005954CE,5,00595480+4E,resources/paths,yes,"lea ecx, [esp + 0x18]; (+4)push ecx",JMP to addon code (the replaced instructions are redone there),flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
 Maps,addon,0059553C,6,00595480+BC,resources/paths,yes,"lea eax, [esp + 0x20]; (+4)mov ecx, esi",JMP to addon code (the replaced instructions are redone there),flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
 Maps,addon,00595BE8,5,00595BA0+48,resources/paths,yes,"lea edx, [esp + 8]; (+4)push edx",JMP to addon code (the replaced instructions are redone there),flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
@@ -217,55 +217,55 @@ ResOverride,addon,007432F4,4,data,resources/paths,yes,401b6700,data overwritten,
 MoviesPatch,addon,0073B720,4,data,resources/paths,yes,36063800,import slot binkw32!_BinkOpen@8 -> addon,flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
 CameraPatch,addon,0040ED42,5,0040ECD0+72,resources/paths,yes,call 0x7011e8,call redirected to addon code,flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
 StreamPatch,addon,006BB628,5,006BB3A0+288,resources/paths,yes,call 0x700b9f,call redirected to addon code,flag,implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders,
-FixProcessLogin,addon,004433D6,5,00443080+356,multiplayer,no,"push edx; (+1)mov dword ptr [esp + 0x54], ecx",JMP to a stub: clears [edx+0x18] then runs the two instructions,on,implemented: ServerBase::OnLoginImpl 00443080 (src/game/net_lobby.cpp; ours always clears the age),
+FixProcessLogin,addon,004433D6,5,00443080+356,multiplayer,no,"push edx; (+1)mov dword ptr [esp + 0x54], ecx",JMP to a stub: clears [edx+0x18] then runs the two instructions,always,implemented: ServerBase::OnLoginImpl 00443080 (src/game/net_lobby.cpp; ours always clears the age),
 SetEiPluginMode,addon,0073AF10,4,data,infrastructure,no,00000000,mode word 0xAADD0080 for EI_Plugin.asi,dropped,not started,
-FixRepairPrice,addon,0060FB87,5,0060FAB0+D7,bug fix,yes,fmul dword ptr [edi + ebx*4 + 0x21c],"JMP to a stub written directly (no addon.log line): FMUL as before, then for kind 7 FADD the repair cost (to 0060FB92) instead of the FSUB at 0060FB8E",on,implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp),
+FixRepairPrice,addon,0060FB87,5,0060FAB0+D7,bug fix,yes,fmul dword ptr [edi + ebx*4 + 0x21c],"JMP to a stub written directly (no addon.log line): FMUL as before, then for kind 7 FADD the repair cost (to 0060FB92) instead of the FSUB at 0060FB8E",always,implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp),
 GameExeDebug,addon,0044C470,6,0044C470+0,infrastructure,no,,disabled here: JMP to addon's debug log writer,dropped,n/a: disabled in this install,
 CommandLine,addon,004565D4,6,00456440+194,infrastructure,no,,disabled here: JMP 004567D5 and NOPs,dropped,n/a: disabled in this install,
-SetDefaultRate,addon,00783E34,4,data,multiplayer,no,2500,disabled here: the default network rate,flag,n/a: disabled in this install,
-MPConsole,addon,005DD558,5,005DC620+F38,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MPConsole,addon,005DD780,5,005DC620+1160,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MenuMultiDisable,addon,00633234,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MenuMultiDisable,addon,0063353C,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MenuSingleDisable,addon,00633220,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MenuSingleDisable,addon,00633224,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MenuSingleDisable,addon,00633528,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MenuSingleDisable,addon,0063352C,4,data,infrastructure,no,,disabled here,flag,n/a: disabled in this install,
-MpZone,addon,0057F6B9,4,0057F560+159,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MpZone,addon,0057F6C2,4,0057F560+162,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MpZone,addon,0057F6E6,4,0057F560+186,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MpZone,addon,0057F6EB,4,0057F560+18B,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-MpZone,addon,0057F71D,4,0057F560+1BD,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-PreventZone1Animation,addon,0058FA13,2,0058EF20+AF3,infrastructure,yes,,disabled here,flag,n/a: disabled in this install,
-ChatLog,addon,0041B25B,5,0041B1C0+9B,multiplayer,no,,disabled here,flag,n/a: disabled in this install,
-ConfigMusicReg,addon,006B477E,5,006B4710+6E,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-ConfigStreamSNReg,addon,006BAE8B,5,006BAE20+6B,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-ForceShowTutorial,addon,0045C028,6,0045B210+E18,infrastructure,yes,,disabled here,flag,n/a: disabled in this install,
-ForceShowTutorial,addon,00652663,6,006524A0+1C3,infrastructure,yes,,disabled here,flag,n/a: disabled in this install,
-ConfigMovieIni,addon,004582DB,5,00458270+6B,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-ConfigLightsIni,addon,005639BE,5,00563930+8E,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-ConfigTutorialIni,addon,005F4D9C,5,005F4990+40C,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-ConfigTutorialIni,addon,005F5048,5,005F4F90+B8,resources/paths,no,,disabled here,flag,n/a: disabled in this install,
-SavesPath,addon,00456C5F,4,00456440+81F,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,00456C8C,4,00456440+84C,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057A290,4,0057A060+230,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057A813,4,0057A780+93,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057AC6C,4,0057ABA0+CC,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057B4AE,4,0057B3B0+FE,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057BD51,4,0057BD10+41,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057BE90,4,0057BDF0+A0,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057C9C4,4,0057C700+2C4,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057ED85,4,0057ED60+25,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057AC4E,4,0057ABA0+AE,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057B498,4,0057B3B0+E8,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,0057BC65,4,0057BC30+35,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,flag,n/a: disabled in this install,
-SavesPath,addon,00655677,5,00655550+127,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,00656EF6,5,00656E10+E6,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,006572ED,5,006570E0+20D,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,006575F4,5,006575B0+44,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,00655B97,5,00655B20+77,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,00655D7E,5,00655D40+3E,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
-SavesPath,addon,00615622,5,00613EA0+1782,resources/paths,no,call,disabled here: CALL redirected,flag,n/a: disabled in this install,
+SetDefaultRate,addon,00783E34,4,data,multiplayer,no,2500,disabled here: the default network rate,none,n/a: disabled in this install,
+MPConsole,addon,005DD558,5,005DC620+F38,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MPConsole,addon,005DD780,5,005DC620+1160,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MenuMultiDisable,addon,00633234,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MenuMultiDisable,addon,0063353C,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MenuSingleDisable,addon,00633220,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MenuSingleDisable,addon,00633224,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MenuSingleDisable,addon,00633528,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MenuSingleDisable,addon,0063352C,4,data,infrastructure,no,,disabled here,none,n/a: disabled in this install,
+MpZone,addon,0057F6B9,4,0057F560+159,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MpZone,addon,0057F6C2,4,0057F560+162,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MpZone,addon,0057F6E6,4,0057F560+186,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MpZone,addon,0057F6EB,4,0057F560+18B,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+MpZone,addon,0057F71D,4,0057F560+1BD,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+PreventZone1Animation,addon,0058FA13,2,0058EF20+AF3,infrastructure,yes,,disabled here,none,n/a: disabled in this install,
+ChatLog,addon,0041B25B,5,0041B1C0+9B,multiplayer,no,,disabled here,none,n/a: disabled in this install,
+ConfigMusicReg,addon,006B477E,5,006B4710+6E,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+ConfigStreamSNReg,addon,006BAE8B,5,006BAE20+6B,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+ForceShowTutorial,addon,0045C028,6,0045B210+E18,infrastructure,yes,,disabled here,none,n/a: disabled in this install,
+ForceShowTutorial,addon,00652663,6,006524A0+1C3,infrastructure,yes,,disabled here,none,n/a: disabled in this install,
+ConfigMovieIni,addon,004582DB,5,00458270+6B,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+ConfigLightsIni,addon,005639BE,5,00563930+8E,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+ConfigTutorialIni,addon,005F4D9C,5,005F4990+40C,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+ConfigTutorialIni,addon,005F5048,5,005F4F90+B8,resources/paths,no,,disabled here,none,n/a: disabled in this install,
+SavesPath,addon,00456C5F,4,00456440+81F,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,00456C8C,4,00456440+84C,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057A290,4,0057A060+230,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057A813,4,0057A780+93,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057AC6C,4,0057ABA0+CC,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057B4AE,4,0057B3B0+FE,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057BD51,4,0057BD10+41,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057BE90,4,0057BDF0+A0,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057C9C4,4,0057C700+2C4,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057ED85,4,0057ED60+25,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057AC4E,4,0057ABA0+AE,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057B498,4,0057B3B0+E8,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,0057BC65,4,0057BC30+35,resources/paths,no,operand 007AF460 (the saves path),disabled here: string pointer,none,n/a: disabled in this install,
+SavesPath,addon,00655677,5,00655550+127,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,00656EF6,5,00656E10+E6,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,006572ED,5,006570E0+20D,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,006575F4,5,006575B0+44,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,00655B97,5,00655B20+77,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,00655D7E,5,00655D40+3E,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
+SavesPath,addon,00615622,5,00613EA0+1782,resources/paths,no,call,disabled here: CALL redirected,none,n/a: disabled in this install,
 EiPluginInit,EI_Plugin,006B6272,5,006B6040+232,infrastructure,no,,CALL into the plugin after AIL_startup,dropped,active here; not started,always
 EiPluginInit,EI_Plugin,0073AF20,4,data,infrastructure,no,,marker,dropped,active here; not started,always
 EiPluginNPlayers,EI_Plugin,0061BB82,1,0061B2C0+8C2,multiplayer,no,,player count - 1,flag,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),always
@@ -285,19 +285,19 @@ EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,flag,active here;
 EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",flag,active here (written with Pause=2 only); implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
 EiPluginPause,EI_Plugin,0066FB2C,1,0066FAC0+6C,multiplayer,no,,JMP short,flag,inactive here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause3
 EiPluginPause,EI_Plugin,005942C0,4,005942C0+0,multiplayer,no,,RET 4 at the start of CWorldServer::SetUnknown6C (rewritten),flag,inactive here; implemented: CWorld::SetServerPaused 005942C0 (src/game/world_server.cpp),pause3
-EiPluginAutoAim,EI_Plugin,00637209,1,00637190+79,multiplayer,no,,0,flag,inactive here; not started,always
-EiPluginAutoAim,EI_Plugin,005D45BD,1,005D4170+44D,multiplayer,no,,0,flag,inactive here; not started,always
+EiPluginAutoAim,EI_Plugin,00637209,1,00637190+79,multiplayer,no,,0,none,inactive here; not started,always
+EiPluginAutoAim,EI_Plugin,005D45BD,1,005D4170+44D,multiplayer,no,,0,none,inactive here; not started,always
 EiPluginGraphGen,EI_Plugin,005955DD,5,00595480+15D,infrastructure,no,,CALL into the plugin (00595480 NewZone),dropped,inactive here; not started,always
-EiPluginTest,EI_Plugin,0065C9A8,2,0065C930+78,infrastructure,no,,bytes 5E 75,flag,inactive here; not started,always
-EiPluginTest,EI_Plugin,00664BBC,5,00664B70+4C,infrastructure,no,,CALL into the plugin,flag,inactive here; not started,always
-EiPluginTest,EI_Plugin,00553FB3,4,00553F40+73,infrastructure,no,,call target in CUnitServer::TakeHit (rewritten),flag,inactive here; not started,withtest
+EiPluginTest,EI_Plugin,0065C9A8,2,0065C930+78,infrastructure,no,,bytes 5E 75,none,inactive here; not started,always
+EiPluginTest,EI_Plugin,00664BBC,5,00664B70+4C,infrastructure,no,,CALL into the plugin,none,inactive here; not started,always
+EiPluginTest,EI_Plugin,00553FB3,4,00553F40+73,infrastructure,no,,call target in CUnitServer::TakeHit (rewritten),none,inactive here; not started,withtest
 EiPluginNewMaster,EI_Plugin,006330A9,5,00632D70+339,multiplayer,no,,CALL into the plugin,flag,"active here; implemented: CMainMenu::LeftDown 00632D70 (src/game/ui_layouts.cpp; the look-up of net_second_master.cpp, ours from the setting SecondMaster, not Test's part)",newmaster|test
 EiPluginNewMaster,EI_Plugin,0045D330,42,0045C560+DD0,multiplayer,no,,NOPs: GameOptions::SaveToRegistry (rewritten) does not save the Master Server Name,flag,active here; implemented: GameOptions::SaveToRegistry 0045C560 (src/game/options.cpp),always
 EiPluginNewMaster,EI_Plugin,0041ACB7,2,0041ACA0+17,multiplayer,no,,NOPs,flag,active here; implemented: ServerSession::OnMasterImpl 0041ACA0 (src/game/net_server.cpp),always
 EiPluginNewMaster,EI_Plugin,0041ABDA,5,0041AA10+1CA,multiplayer,no,,CALL into the plugin,flag,active here; implemented: ServerSession::AnnounceToMaster 0041AA10 (src/game/net_server.cpp; the copy of net_second_master.cpp),always
 EiPluginNewMaster,EI_Plugin,0061D138,5,0061D0D0+68,multiplayer,no,,CALL into the plugin,flag,"active here; implemented: CMpConnectScreen::MasterRequest 0061D0D0 (src/game/ui_connect_screen.cpp; the probe of net_second_master.cpp, with SecondMaster set only)",always
 EiPluginNewMaster,EI_Plugin,00440F9F,5,00440DE0+1BF,multiplayer,no,,CALL into the plugin,flag,active here; implemented: MasterLinkTick 00440DE0 (src/game/net_socket_driver.cpp),always
-EiPluginScripts,EI_Plugin,0066C1C2,5,0066C180+42,scripting/console,no,,CALL into the plugin (addon's PlayerNumbers instead here),flag,inactive here; not started,always
+EiPluginScripts,EI_Plugin,0066C1C2,5,0066C180+42,scripting/console,no,,CALL into the plugin (addon's PlayerNumbers instead here),none,inactive here; not started,always
 EiPluginBriefings,EI_Plugin,005920FF,25,00592090+6F,multiplayer,no,,code replaced,flag,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
 EiPluginBriefings,EI_Plugin,005920C3,1,00592090+33,multiplayer,no,,jump offset +0x14,flag,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
 EiPluginBriefings,EI_Plugin,005920D5,1,00592090+45,multiplayer,no,,jump offset +0x14,flag,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
@@ -313,9 +313,9 @@ EiPluginFixes,EI_Plugin,005F1401,1,005F13A0+61,multiplayer,partly,,JMP short,fla
 EiPluginFixes,EI_Plugin,00536132,6,00536100+32,multiplayer,partly,,NOPs,flag,active here; implemented: CUnitClientSpecific::RefreshSkins 00536100 (src/game/unit_client_models.cpp; W4b),always
 EiPluginFixes,EI_Plugin,006093B7,5,006091C0+1F7,multiplayer,partly,,JMP into the plugin,flag,"active here; implemented: CChatWindow::ShowPlayers 006091C0 (src/game/ui_chat_window.cpp; W4b: the prototype fallback, src/game/plugin_fixes.h)",always
 EiPluginFixes,EI_Plugin,00640C97,5,006407E0+4B7,multiplayer,partly,,JMP into the plugin,flag,active here; implemented: CHudPortraits::Rebuild 006407E0 (src/game/ui_hud_portraits.cpp; W4b: the prototype fallback),always
-EiPluginPK,EI_Plugin,00554144,1,00553F40+204,multiplayer,no,,JMP short in CUnitServer::TakeHit (rewritten),flag,inactive here; not started,always
-EiPluginPK,EI_Plugin,0054D9F0,6,0054D960+90,multiplayer,no,,NOPs in CUnitServer::ExecuteOrder (rewritten),flag,inactive here; not started,always
-EiPluginPK,EI_Plugin,0058E2C4,7,0058DFF0+2D4,multiplayer,no,,bytes,flag,inactive here; not started,always
-EiPluginPK,EI_Plugin,0058BB3B,6,0058B750+3EB,multiplayer,no,,bytes,flag,inactive here; not started,always
-EiPluginPK,EI_Plugin,0058BAB9,6,0058B750+369,multiplayer,no,,bytes,flag,inactive here; not started,always
+EiPluginPK,EI_Plugin,00554144,1,00553F40+204,multiplayer,no,,JMP short in CUnitServer::TakeHit (rewritten),none,inactive here; not started,always
+EiPluginPK,EI_Plugin,0054D9F0,6,0054D960+90,multiplayer,no,,NOPs in CUnitServer::ExecuteOrder (rewritten),none,inactive here; not started,always
+EiPluginPK,EI_Plugin,0058E2C4,7,0058DFF0+2D4,multiplayer,no,,bytes,none,inactive here; not started,always
+EiPluginPK,EI_Plugin,0058BB3B,6,0058B750+3EB,multiplayer,no,,bytes,none,inactive here; not started,always
+EiPluginPK,EI_Plugin,0058BAB9,6,0058B750+369,multiplayer,no,,bytes,none,inactive here; not started,always
 EiPluginUnload,EI_Plugin,00455991,5,00455980+11,infrastructure,no,,written at unload,dropped,inactive here; not started,never

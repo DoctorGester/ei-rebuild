@@ -150,9 +150,9 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {
         Item* item = shown[i];
-        if (!item || slots == 9) continue;
+        if (!item || priceKind == PriceKind::None) continue;
         if (!owner->CanEquip(item, mode)) continue;       // whether the strip's mode takes the item
-        text = str::Format(kNumber, owner->Price(item, slots));     // the number shown under it
+        text = str::Format(kNumber, owner->Price(item, priceKind));     // the number shown under it
         Rect area = cellRect(i);
         numbers->DrawTextIn(text, &area, 1, 0xA7D7E4, 1, 1);
     }
@@ -296,7 +296,7 @@ void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
     regions[1]->SetTip(0x4FB1);
     AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true));
     AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true));
-    slots = 9;
+    priceKind = PriceKind::None;
     source = newSource;
 }
 

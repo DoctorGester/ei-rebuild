@@ -41,7 +41,6 @@
 #include <string>
 #include "lib/text_case.h"
 
-#include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
@@ -467,17 +466,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
                 std::string key(prototypeName);
                 prototype = unitdb::PrototypeNamed(key);
             }
-            unsigned index;
-            if (prototype) {
-                index = static_cast<unsigned>(prototype->modelIndex);
-            } else {
-                // Rebirth's FixAddMapObject (context hook): no prototype record is logged ("Invalid unit's prototype") and
-                // index 0 used. Vanilla reads through the null record (and crashes).
-                if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixAddMapObject))
-                    index = *reinterpret_cast<const volatile unsigned*>(reinterpret_cast<std::uintptr_t>(prototype) + 8);
-                else
-                    index = 0;
-            }
+            // No prototype record: model 0 (Rebirth's FixAddMapObject; the original read through the null record).
+            const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;
             auto* model = unitdb::ModelRecord(index);
             std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
             object->MarkChanged(5);

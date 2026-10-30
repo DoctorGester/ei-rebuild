@@ -39,7 +39,7 @@ test suite plays out exactly as on the original: the same world state and the sa
 - Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
-- Rebirth's bug fixes and widescreen are on by default, even on GOG data; `ei_settings.ini`'s `[patches]` turns them off.
+- Rebirth's bug fixes and its widescreen layout are always on, even on GOG data.
 
 The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
 Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets.md`.

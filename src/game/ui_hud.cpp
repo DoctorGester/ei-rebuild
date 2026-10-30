@@ -679,9 +679,8 @@ void BattleScreen::SelectUnit(Unit* unit, int x, int y) {
         return;
     case kPendingSpellOnUnit:
         if (!unit || unitDead(unit) || !first) return;
-        // The original passes the Ctrl flag as UseOnUnit's `quick`; Rebirth's FixSpellSelfCasting #1 (MOV CL,0)
-        // passes false.
-        UseOnUnit(unit, ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? false : ctrl, false);
+        // `quick` false (Rebirth's FixSpellSelfCasting; the original passed the Ctrl flag).
+        UseOnUnit(unit, false, false);
         return;
     case kPendingSpellAtPoint:
     case kPendingQuickAtPoint: {

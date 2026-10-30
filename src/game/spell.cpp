@@ -3,7 +3,6 @@
 #include "core_streams.h"
 #include "map_object.h"
 #include "unit.h"
-#include "ei/rebirth.h"
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
@@ -111,9 +110,8 @@ bool Spell::IsOffensive() {
     case SpellType::LightningWall: case SpellType::AcidFog:
     case SpellType::Lichdom: case SpellType::Stench: case SpellType::Stun: case SpellType::Weaken:
     case SpellType::Feeblemind: case SpellType::Slow: case SpellType::Charm: case SpellType::Shrink:
+    case SpellType::RickMagic: case SpellType::CurseMagic:   // Rebirth's FixSpellSelfCasting (the original: not offensive)
         return true;
-    case SpellType::RickMagic: case SpellType::CurseMagic:
-        return ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting);
     default:
         return false;
     }

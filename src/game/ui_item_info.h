@@ -128,6 +128,15 @@ struct PartySkill {
     int mana = 0;
 };
 
+// A camp deal's price: the index of the camp's weight for it (ClassTemplate::weights, CampPages::priceWeights). The
+// constructors trade, make and take apart spells (0-3) and items (4-7); None shows no price (an item strip).
+enum class PriceKind : int {
+    SpellBuy, SpellSell, SpellMake, SpellApart,
+    ItemBuy, ItemSell, ItemMake, ItemApart,
+    Repair,
+    None,
+};
+
 class Party;
 class ItemScreen;
 // The item screens' icon window.
@@ -163,7 +172,7 @@ public:
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
     virtual void ChooseFigure(std::string_view) {}
     virtual float Weight();
-    virtual int Price(Item* item, int kind);
+    virtual int Price(Item* item, PriceKind kind);
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a
     // spell container, and a shade over items the strip's mode cannot take (CanEquip).

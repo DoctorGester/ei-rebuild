@@ -5,10 +5,10 @@
 // (docs/notes/rebirth.md lists all of them). Rewritten code reproduces a patch behind a flag named
 // exactly as addon.log names the patch, so a Rebirth patch maps 1:1 to a flag:
 //
-//     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) { ...patched behaviour... }
+//     if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) { ...patched behaviour... }
 //
-// Defaults (user 2026-10-20): Rebirth's bug fixes (Kind::Fix in rebirth_patches.inc) are on, every
-// other flag is off; each can be switched either way. Every flag is off until Reset, which the standalone image's
+// Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour (C68) and have no flag. Every
+// flag is off by default and can be switched either way. Every flag is off until Reset, which the standalone image's
 // start-up calls once, before any rewritten code runs (src/standalone/startup.cpp; ei_vectors.exe, which replays the
 // original's vectors, never does): the defaults, then the game folder's profile (Rebirth's in a Rebirth install:
 // config/rebirth_profile.ini; a launch that names its flags in EI_REBIRTH takes none), then the settings file's
@@ -19,7 +19,7 @@
 // ei_settings.ini (a comment is a line of its own: the rest of a value line is its value):
 //     [patches]
 //     ; any name from rebirth_patches.inc, true or false (absent: the profile's)
-//     FixLeversActivate = false
+//     AllowScriptsInMainMenu = true
 //     ; EI_Plugin's player count and pause mode (absent: the profile's)
 //     NPlayers = 7
 //     Pause = 1
@@ -32,7 +32,7 @@
 namespace ei::rebirth {
 
 enum class Patch : std::uint8_t {
-#define EI_REBIRTH_PATCH(name, kind) name,
+#define EI_REBIRTH_PATCH(name) name,
 #include "rebirth_patches.inc"
 #undef EI_REBIRTH_PATCH
     Count
@@ -48,11 +48,6 @@ inline bool Enabled(Patch p) { return detail::g_enabled[static_cast<int>(p)]; }
 
 void Set(Patch p, bool on);
 
-// What a patch is in the standalone (rebirth_patches.inc): a bug fix on by default, a flag off by
-// default, or Rebirth's own infrastructure the rebuild drops.
-enum class Kind : std::uint8_t { Fix, Flag, Dropped };
-Kind KindOf(Patch p);
-inline bool DefaultOn(Patch p) { return KindOf(p) == Kind::Fix; }
 
 // The player count EI_Plugin's NPlayers feature (Patch::EiPluginNPlayers) is configured with
 // (EI_Plugin.ini [CONFIG] NPlayers; the plugin's default 7 until the start-up has read the settings).

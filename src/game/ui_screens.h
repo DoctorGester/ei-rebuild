@@ -107,7 +107,7 @@ public:
     int filter;                 // 0 items, 1 spells, 2 armour
     std::vector<Item*> list;           // the visible items
     std::vector<Item*>* source; // all the items (a party's item list, PartyItemArray)
-    int slots;                  // 9
+    PriceKind priceKind;        // the price shown under each item (None: no price)
 };
 
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.

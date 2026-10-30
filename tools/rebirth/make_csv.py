@@ -411,12 +411,15 @@ for patch, a, n, var, summ in PLUGIN:
 GROUP = {'bugfix': 'bug fix', 'widescreen': 'widescreen/rendering', 'rendering': 'widescreen/rendering',
          'scripting': 'scripting/console', 'console': 'scripting/console', 'multiplayer': 'multiplayer',
          'resources': 'resources/paths', 'infrastructure': 'infrastructure', 'content': 'infrastructure'}
-# The standalone's kind of each patch (SV9): include/ei/rebirth_patches.inc's second argument.
-KINDS = dict(re.findall(r'EI_REBIRTH_PATCH\((\w+), (\w+)\)',
+# The standalone's kind of each patch (SV9): a flag when include/ei/rebirth_patches.inc names it; a patch no longer in
+# it (C68: always the rebuilt code's, dropped or implemented nowhere) keeps the CSV's.
+FORMER = {r['patch']: r['standalone'] for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'),
+                                                                     encoding='utf-8'))}
+KINDS = dict.fromkeys(re.findall(r'EI_REBIRTH_PATCH\((\w+)\)',
                         open(os.path.join(ROOT, 'include', 'ei', 'rebirth_patches.inc'), encoding='utf-8').read()))
 for r in rows:
     r['category'] = GROUP[r['category']]
-    r['standalone'] = {'Fix': 'on', 'Flag': 'flag', 'Dropped': 'dropped'}[KINDS[r['patch']]]
+    r['standalone'] = 'flag' if r['patch'] in KINDS else FORMER.get(r['patch'], 'none')
 with open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), 'w', newline='', encoding='utf-8') as f:
     w = csv.DictWriter(f, fieldnames=['patch', 'source', 'site', 'size', 'function', 'category', 'single_player',
                                       'original', 'summary', 'standalone', 'status', 'variant'], lineterminator='\n')

@@ -94,7 +94,7 @@ std::string Step() {
     if (rebirthInstall) {
         if (!RebirthProfileFlags(expected, &ini)) return "dropin: cannot read config/rebirth_profile.ini (" + ini + ")";
     } else {
-        for (int i = 0; i < rebirth::kPatchCount; ++i) expected[i] = rebirth::DefaultOn(static_cast<Patch>(i));
+        for (bool& on : expected) on = false;   // every flag off by default
     }
     std::string wrong;
     int on = 0;

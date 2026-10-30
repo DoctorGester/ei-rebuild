@@ -1,11 +1,10 @@
 #include "random.h"
 
-#include "platform/platform.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>
-#include <string>
+#include <random>
 
 #include "lib/return_address.h"
 
@@ -20,20 +19,6 @@ IsaacRandom::DrawObserver g_drawObserver;
 // The 2^-32 scale of Range. The original's double constant has its last bit set (2^-32 + 2^-64, sic), but times a
 // 24-bit product rounded to 24 bits that bit never shows.
 constexpr float kRangeScale = 0x1p-32f;
-
-// The search strings: the drive's files and the sub-directory suffix.
-constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
-const char* SubdirectoryPattern() { return "\\*.*"; }
-
-constexpr unsigned long kMinimumFileSize = 0x800;
-constexpr int kSeedBytes = 0x400;
-
-// The game's 284-byte path buffer on its stack.
-constexpr int kPathBuffer = 0x11C;
-
-// rand() % 512 as the game computes it (rand() is never negative).
-int RandomBelow512() { return libcrt::Rand() & 0x1FF; }
-
 
 // The reference ISAAC mix of the eight randinit words.
 struct InitMix {
@@ -121,78 +106,18 @@ void IsaacRandom::Refill() {
     aa = a;
 }
 
-int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
-    platform::FileFind finder;
-    bool more = finder.FindFile(pattern);
-    while (more) {
-        more = finder.FindNext();
-        if (finder.IsDots()) continue;
-        if (finder.IsSystem() || finder.IsHidden()) continue;
-        if (finder.IsDirectory()) {
-            int found;
-            {
-                // The game's string result calls (GetFilePath, operator+) construct these.
-                std::string path = finder.GetFilePath();
-                std::string sub = path + SubdirectoryPattern();
-                found = FindSeedFile(out, sub.c_str(), target, counter);
-            }
-            if (found == 1) return 1;
-            continue;
-        }
-        if (*counter >= target) {
-            if (finder.GetLength() >= kMinimumFileSize) {
-                std::string path = finder.GetFilePath();
-                const char* text = path.c_str();
-                std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the game
-                return 1;
-            }
-            --*counter;
-        }
-        ++*counter;
-    }
-    return 0;
-}
-
-// A failed open, seek or read of the file clears `ok`: Open and ReadAt report the failure, so nothing throws. Kept: when the first search counts exactly one file, rand() % 0 faults as in
-// the game.
+// The seed material only has to be unpredictable: the system's random source fills it, and seeds the CRT's rand() too
+// (its other users draw from it). The original read 1 KB at a random offset of a random file on C:\ (a depth-first
+// walk of the drive, up to 512 files deep) xored with rand() seeded from the clock, retrying while the bytes were all
+// zero; with exactly one file found its second search divided by zero.
 void IsaacRandom::Seed() {
     if (g_seedHook) {
         g_seedHook(*this);
         return;
     }
-    char path[kPathBuffer];
-    libcrt::Srand(platform::Milliseconds());
-    int ok = 0;
-    while (!ok) {
-        int counter = 0;
-        if (!FindSeedFile(path, kSeedSearchPattern, RandomBelow512() + 1, &counter)) {
-            int r = libcrt::Rand();
-            int files = counter;
-            counter = 0;
-            if (!FindSeedFile(path, kSeedSearchPattern, r % (files - 1) + 1, &counter)) continue;
-        }
-        ok = 1;
-        platform::File file;
-        if (file.Open(path, platform::FileMode::Read)) {
-            libcrt::Srand(platform::Milliseconds());
-            long offset = kSeedBytes - RandomBelow512();
-            if (!file.ReadAt(offset, results, kSeedBytes)) ok = 0;
-            file.Close();
-        } else {
-            ok = 0;
-        }
-        bool zero = true;
-        for (std::uint32_t word : results)
-            if (word != 0) {
-                zero = false;
-                break;
-            }
-        if (zero) {
-            ok = 0;
-            platform::Sleep(10);
-        }
-        for (std::uint32_t& word : results) word ^= static_cast<std::uint32_t>(libcrt::Rand());
-    }
+    std::random_device device;
+    for (std::uint32_t& word : results) word = device();
+    libcrt::Srand(device());
 }
 
 void IsaacRandom::Init() {

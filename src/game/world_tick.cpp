@@ -15,7 +15,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
-#include "ei/rebirth.h"
 #include "lib/rounding.h"
 
 #include <cstdlib>
@@ -133,7 +132,7 @@ void WorldServer::UpdateUnits() {
             if (object->flags & MapObjectFlag::Removed) removedIds.push_back(static_cast<unsigned>(object->id));
         }
     } else {
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
+        TickSleepingEffects();   // Rebirth's FixSpellEffectsOverflow
         // The units in the update map; a unit whose countdown runs out goes to sleep (leaves the map) unless its
         // controller is busy, which restarts the countdown.
         auto& awake = updateMap.map;
@@ -166,9 +165,9 @@ void WorldServer::UpdateUnits() {
 }
 
 void WorldServer::TickSleepingEffects() {
-    // Rebirth (a context hook): every map object that is referenced, not flagged for removal, has effects and a
-    // companion, and is asleep gets one tick taken off each effect; when one runs out, the object goes back into
-    // the update map, whose update removes it.
+    // Every map object that is referenced, not flagged for removal, has effects and a companion, and is asleep gets
+    // one tick taken off each effect; when one runs out, the object goes back into the update map, whose update
+    // removes it (Rebirth's FixSpellEffectsOverflow: the original's sleeping objects kept their effects forever).
     for (const auto& [objectId, object] : mapObjects.map) {
         if ((object->flags & MapObjectFlag::Removed) || object->refCount == 0 || std::ssize(object->effects) == 0) continue;
         if (object->updateCountdown > 0 || !object->companion) continue;

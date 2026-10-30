@@ -1,7 +1,6 @@
 #include "ai_map.h"
 #include "sector_map.h"
 
-#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
@@ -159,10 +158,8 @@ std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float r
 }
 
 bool SectorMap::Move(MapObject* object, const Vector3& position) {
-    // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
-    // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
-        return false;
+    // No move to a negative (or NaN) x or y (Rebirth's FixMoveObject).
+    if (!(position.x >= 0.0f) || !(position.y >= 0.0f)) return false;
     Vector3& current = object->localPosition;
     int cellX = lib::RoundEven(2.0f * position.x - 0.5f);
     int cellY = lib::RoundEven(2.0f * position.y - 0.5f);

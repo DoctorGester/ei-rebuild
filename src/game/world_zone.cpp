@@ -22,7 +22,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "ei/rebirth.h"
 
 #include <cstdint>
 #include <cstring>
@@ -164,10 +163,9 @@ void SelectLoadingMovie(std::optional<std::string_view> zone) {
         app::g_loadingMovieName = "progres4.bik";
         if (!suslanger) {
             app::g_loadingMovieName = "progres.bik";
-            if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod, "gipat2")) app::g_loadingMovieName = "progres2.bik";
-                else if (SameName(allod, "jigran")) app::g_loadingMovieName = kProgres5;
-            }
+            // Rebirth's FixProgressNames: gipat2 and jigran get their own movies.
+            if (SameName(allod, "gipat2")) app::g_loadingMovieName = "progres2.bik";
+            else if (SameName(allod, "jigran")) app::g_loadingMovieName = kProgres5;
         }
     }
     if (zone) {

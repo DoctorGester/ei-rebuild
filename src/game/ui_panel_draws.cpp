@@ -126,7 +126,7 @@ void RepairGrid::Draw(SceneRenderer* pass) {
             surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
         Rect r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawTextIn(std::format("{}", owner->Price(item, 8)), &r, 1, kTextColour, 1, 1);
+        surface->DrawTextIn(std::format("{}", owner->Price(item, PriceKind::Repair)), &r, 1, kTextColour, 1, 1);
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);

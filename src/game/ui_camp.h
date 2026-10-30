@@ -283,11 +283,10 @@ public:
     // Keeps what the constructor makes in spellMade (itemMade); true when it can be made.
     bool CanMakeSpell();
     bool CanMakeItem();
-    // The item's base price times the camp's multiplier for deal `kind`; weapons and armour also lose the
-    // repair cost of their wear. A repair (kind 8) costs at least 1, or 0 for an unworn item. Rebirth's
-    // FixRepairPrice clamps the wear to [0, 1] and adds the repair cost instead of subtracting it when an
-    // item is taken apart (kind 7).
-    int Price(Item* item, int kind) override;
+    // The item's base price times the camp's weight for deal `kind`; weapons and armour also lose the repair cost
+    // of their wear, or gain it when taken apart (Rebirth's FixRepairPrice). A repair costs at least 1, or 0 for an
+    // unworn item.
+    int Price(Item* item, PriceKind kind) override;
     // Also finds what is under the mouse for the description panel.
     void Draw(SceneRenderer* pass) override;
     // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
@@ -443,7 +442,7 @@ class TradeGrid : public UiItemPanel {
 public:
     using UiItemPanel::UiItemPanel;
     void Draw(SceneRenderer* pass) override;
-    // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one); the
+    // `spells` chooses the price kinds (the spell constructor's buy / sell, or the item one's); the
     // exchange window's grid (`exchange`) shows no prices.
     void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
     // Regions 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
@@ -452,8 +451,8 @@ public:
 
     std::vector<Item*>* bought = nullptr;
     std::vector<Item*>* sold = nullptr;
-    int buyKind = 0;
-    int sellKind = 0;
+    PriceKind buyKind = PriceKind::SpellBuy;
+    PriceKind sellKind = PriceKind::SpellBuy;
     bool exchange = false;
 };
 
