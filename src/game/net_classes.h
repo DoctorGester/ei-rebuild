@@ -11,7 +11,7 @@
 #include "lib/bytes.h"
 #include "lib/in_place.h"
 #include "net_coder.h"
-#include "platform/net.h"
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>

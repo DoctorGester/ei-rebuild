@@ -3,9 +3,7 @@
 
 #include "ei/hook.h"
 #include "hook/log.h"
-#include "platform/files.h"
-#include "platform/paths.h"
-#include "platform/system.h"
+#include "platform/platform.h"
 
 #include <mutex>
 #include <string>

@@ -12,11 +12,10 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "platform/cursor.h"
+#include "platform/platform.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/str.h"
-#include "platform/keys.h"
 
 #include <cmath>
 #include <cstring>

@@ -9,7 +9,7 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include <cstdint>
 #include <string>
 #include "game_singletons.h"

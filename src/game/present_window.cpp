@@ -6,8 +6,7 @@
 #include "model.h"
 
 #include "../hook/log.h"
-#include "platform/cursor.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 namespace present_window {

@@ -10,9 +10,7 @@
 #include "texture.h"
 #include "world.h"
 #include "lib/crt.h"
-#include "platform/clock.h"
-#include "platform/cursor.h"
-#include "platform/thread.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 #include <cstdint>

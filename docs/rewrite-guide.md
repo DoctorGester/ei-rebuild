@@ -40,10 +40,10 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O),
   `containers.h` (helpers for the std::vector the engine's arrays are), `hash_map.h` (STLport's walk order),
-  `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `platform/file.h`,
+  `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `platform/platform.h`,
   `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports our code calls; generated: the
-  ones the harness or the image routes go through the image's import slots; declared by `win_api.h` over
-  `platform/win32/win_types.h`, so no windows.h). Containers and strings are standard
+  ones the harness or the image routes go through the image's import slots; declared by `platform/win32/win_api.h` over
+  the SDK's basic types, so no windows.h). Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
 - `src/platform/`: the game's calls of the operating system by area (clock, message box, paths, ...), no SDK types;
   `src/platform/win32/` implements them and is the only game-side place that includes windows.h or calls

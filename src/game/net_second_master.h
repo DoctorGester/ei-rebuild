@@ -3,7 +3,7 @@
 // More: docs/notes/comments-c22i.md, "net_second_master.h".
 #pragma once
 
-#include "platform/net.h"
+#include "platform/platform.h"
 
 class GameBuffer;
 

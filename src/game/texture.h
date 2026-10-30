@@ -9,7 +9,7 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 
 #include <string>
 #include <vector>

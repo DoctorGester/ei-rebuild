@@ -77,7 +77,7 @@ struct ItemObjectCache {
 // Kept: the screens' two named caches of the one template.
 using ItemModelCache = ItemObjectCache<UiMesh>;        // the models (UiMesh)
 using ItemTextureCache = ItemObjectCache<Texture>;     // the model textures (ItemFigureTexture's)
-// platform::Milliseconds, for TrimItemCache (defined in ui_item_info.cpp, which includes platform/clock.h for it).
+// platform::Milliseconds, for TrimItemCache (defined in ui_item_info.cpp, which includes platform/platform.h for it).
 std::uint32_t ItemCacheTime();
 // While the cache holds more than its limit: the least recently used entry (used before now) has
 // its object released and is erased. Spins while every entry was used at or after now.

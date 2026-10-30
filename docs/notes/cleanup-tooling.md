@@ -37,11 +37,11 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   ends are DLLs in it), the trees in turn, the median of 9 (H33d's scratch `per_file.py`). A job object started
   after the process (`AssignProcessToJobObject` on a running cl) can miss children and gives low outliers.
 - Header diet: a header that only holds or passes a rectangle, point or size includes `lib/rect.h` (our own `Rect`,
-  `Point`, `Size`); the declarations of Windows functions (`lib/win_api.h`) include platform/win32/win_types.h
+  `Point`, `Size`); the declarations of Windows functions (`platform/win32/win_api.h`) include the SDK's basic types
   (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
-  file that calls Windows includes `<windows.h>`. `lib/gameapi.h` names only the imports our code calls, declared
-  over win_types.h (`lib/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
-  `gameapi::` gets no SDK header. The key codes are platform/keys.h's, the text format bits render/text_format.h's
+  file that calls Windows includes `<windows.h>`. `platform/win32/gameapi.h` names only the imports our code calls, declared
+  over those types (`platform/win32/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
+  `gameapi::` gets no SDK header. The key codes are platform/platform.h's, the text format bits render/text_format.h's
   and the settings file's value types and results settings_file.h's (no winuser.h or `<winerror.h>`). Release objects reaching windows.h
   (directly or through a project header; ninja's deps drop the SDK's own headers, so count by the project files
   that include it): 199 -> 160 (H33d: ui.h's `PlaySound` member renamed, ui_item_info.h without gameapi.h) -> 67
@@ -51,15 +51,15 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   1.25 -> 1.25: ~0.17 s each, ~15 s of a clean build's ~1,300 s. What still includes windows.h calls Windows: the
   window, messages and input (app, app_main, present_window, bink_video, ui_console_window's clipboard,
   ui_edit_field, ui_font), files and mappings (file_io, resource_stream's mmio, settings_file), threads and waits
-  (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, system_text), sockets
+  (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, platform_win32's UTF-8 routes), sockets
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
   (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
   import_prototypes.h (the harness key: game.exe's side).
-- Files go through `platform/file.h` (no SDK header): File (Seek's `File::begin` / `current` / `end`; ReadAt / WriteAt,
+- Files go through `platform/platform.h` (no SDK header): File (Seek's `File::begin` / `current` / `end`; ReadAt / WriteAt,
   a seek and an exact read or write that return false instead of throwing, as the archive and the seed file
   checked SetFilePointer and ReadFile; the osNoBuffer / osRandomAccess open flags), FileMapping (the mapped
   archives) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
-  `platform::IsFile` / `platform::FolderEntries` (platform/files.h), the UTF-8 calls directly: addon.dll called its own imports,
+  `platform::IsFile` / `platform::FolderEntries` (platform/platform.h), the UTF-8 calls directly: addon.dll called its own imports,
   which the harness's read redirection (the game's slots only) leaves alone, so they must not move onto File /
   FileFind. A member type change (MappedFile, held by FileRegistry, held by WorldServer and SoundManager) moves
   their members: a per-function `dumpbin` comparison then differs in displacements, so compare with hex

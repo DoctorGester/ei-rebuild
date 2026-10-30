@@ -20,7 +20,7 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 
 #include <algorithm>
 #include <bit>

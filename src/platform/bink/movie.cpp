@@ -1,9 +1,8 @@
-// The movie backend (platform/video.h) on the Bink 1 decoder: frames read and decoded on demand, converted to RGB
+// The movie backend (platform/platform.h) on the Bink 1 decoder: frames read and decoded on demand, converted to RGB
 // when copied, due at the movie's own rate on a real-time clock; the sound track decoded with the frames and played
 // as a stream of the audio output.
-#include "platform/video.h"
+#include "platform/platform.h"
 
-#include "platform/audio.h"
 #include "platform/bink/bink_audio.h"
 #include "platform/bink/bink_file.h"
 #include "platform/bink/bink_video.h"

@@ -5,8 +5,7 @@
 // the first is a blank id 0). See docs/notes/ui.md section 8.
 #include "console.h"
 
-#include "platform/file.h"
-#include "platform/keyboard.h"
+#include "platform/platform.h"
 #include <cstring>
 #include <string>
 #include "lib/text_case.h"

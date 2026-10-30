@@ -6,7 +6,7 @@
 // docs/notes/core.md.
 
 #include "maths.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

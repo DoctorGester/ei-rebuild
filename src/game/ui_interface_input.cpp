@@ -25,8 +25,7 @@
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/str.h"
-#include "platform/clock.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 #include "render/render_state.h"
 
 #include <cstdint>

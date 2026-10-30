@@ -15,7 +15,7 @@
 #include "world.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <bit>
 #include <cmath>

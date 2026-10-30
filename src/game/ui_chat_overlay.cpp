@@ -10,10 +10,9 @@
 
 #include "ei/rebirth.h"
 #include "lib/containers.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/str.h"
 #include "render/text_format.h"
-#include "platform/keys.h"
 
 #include <algorithm>
 #include <cstring>

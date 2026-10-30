@@ -18,8 +18,7 @@
 #include "ei/main_loop.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "platform/clock.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstdio>

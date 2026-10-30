@@ -41,14 +41,10 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "platform/file.h"
-#include "lib/gameapi.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "platform/clock.h"
-#include "platform/files.h"
-#include "platform/net.h"
 
 #include "ei/rebirth.h"
 

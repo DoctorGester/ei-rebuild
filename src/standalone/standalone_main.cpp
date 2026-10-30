@@ -9,9 +9,7 @@
 #include "standalone/static_init.h"
 #include "game/settings_file.h"
 #include "lib/crt.h"
-#include "platform/paths.h"
-#include "platform/system.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 #include <cstdlib>

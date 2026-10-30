@@ -25,7 +25,7 @@
 #include "render/render_state.h"
 
 #include "lib/containers.h"
-#include "platform/cursor.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/str.h"

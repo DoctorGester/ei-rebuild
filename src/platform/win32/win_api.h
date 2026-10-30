@@ -1,15 +1,25 @@
 #pragma once
 
-// The Windows functions lib/gameapi.h names, declared as the Windows SDK declares them (C linkage, imported,
-// WINAPI) over platform/win32/win_types.h's types, so that a file calling only these through gameapi:: needs no <windows.h>
-// (~0.2 s of every file that includes it). A structure a call only points to is declared by its SDK tag.
-// tools/gen_iat.py reads the names: a Windows import our code calls as gameapi::X is declared here (it stops
-// otherwise). lib/gameapi.cpp sees these and the SDK's together, so a declaration that differs from the SDK's does
-// not compile.
+// The Windows functions gameapi.h names, declared as the Windows SDK declares them (C linkage, imported, WINAPI) over
+// the SDK's basic types (windef.h: RECT, POINT, SIZE, HWND, HANDLE, DWORD, WPARAM, ...; minwinbase.h:
+// CRITICAL_SECTION), so that a file calling only these through gameapi:: needs no <windows.h> (~0.2 s of every file
+// that includes it). A structure a call only points to is declared by its SDK tag. tools/gen_iat.py reads the names: a
+// Windows import our code calls as gameapi::X is declared here (it stops otherwise). gameapi.cpp sees these and the
+// SDK's together, so a declaration that differs from the SDK's does not compile.
 
 #include <cstdarg>
 
-#include "platform/win32/win_types.h"
+// windows.h names the target the same way before its own includes.
+#include <sdkddkver.h>
+
+#if defined(_M_IX86) && !defined(_X86_)
+#define _X86_
+#elif defined(_M_X64) && !defined(_AMD64_)
+#define _AMD64_
+#endif
+
+#include <windef.h>
+#include <minwinbase.h>
 
 struct _BY_HANDLE_FILE_INFORMATION;
 struct _GUID;

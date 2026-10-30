@@ -13,7 +13,7 @@
 #include "world_data.h"
 
 #include "lib/crt.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

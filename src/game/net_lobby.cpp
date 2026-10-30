@@ -14,7 +14,7 @@
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 
 #include <bit>

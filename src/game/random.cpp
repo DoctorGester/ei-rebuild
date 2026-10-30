@@ -1,9 +1,7 @@
 #include "random.h"
 
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
-#include "platform/clock.h"
 #include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>

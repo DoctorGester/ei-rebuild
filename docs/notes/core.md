@@ -155,7 +155,7 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores
   pending bits), 4 Size, 5 Position, 6 Clear 00417350, 7 CopyFrom 004A55D0. `Resize` 004A54D0 keeps the
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
-- `FileStream` (0073C8D8, 0x1C): a ByteStream over a `platform::File` (src/platform/file.h; the original: an MFC `CFile` at
+- `FileStream` (0073C8D8, 0x1C): a ByteStream over a `platform::File` (src/platform/platform.h; the original: an MFC `CFile` at
   +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
   Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
   (platform::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).

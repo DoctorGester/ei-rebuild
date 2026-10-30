@@ -13,7 +13,7 @@
 #include "world_glue.h"
 #include "game_singletons.h"
 #include "lib/containers.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 
 #include <vector>
 

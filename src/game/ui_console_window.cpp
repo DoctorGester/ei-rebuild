@@ -14,8 +14,7 @@
 
 #include <cstring>
 #include <string>
-#include "platform/keys.h"
-#include "platform/clipboard.h"
+#include "platform/platform.h"
 
 namespace console {
 

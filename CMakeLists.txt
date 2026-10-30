@@ -73,12 +73,11 @@ if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
-# The platform layer (docs/notes/platform.md): the game's calls of the operating system by area (src/platform/*.h),
-# implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>; the
-# parts every system shares in src/platform; the sound on miniaudio (third_party/miniaudio) in src/platform/miniaudio;
-# the movies on the Bink decoder in src/platform/bink.
-file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/miniaudio/*.cpp
-     src/platform/bink/*.cpp)
+# The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h),
+# implemented for Windows in src/platform/win32 (with game.exe's imports, gameapi.h), the one place of the game's code
+# that includes <windows.h>; the sound on miniaudio (third_party/miniaudio) in src/platform/audio_miniaudio.cpp; the
+# movies on the Bink decoder in src/platform/bink.
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
@@ -292,7 +291,6 @@ set(EI_VECTORS_GAME_SOURCES
     src/lib/crt.cpp
     src/lib/crt_format.cpp
     src/lib/crt_maths.cpp
-    src/lib/gameapi.cpp
     src/lib/hash_map.cpp
     src/lib/pc24.cpp
     src/lib/rebirth.cpp

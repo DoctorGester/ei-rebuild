@@ -15,8 +15,7 @@
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
-#include "platform/file.h"
-#include "platform/files.h"
+#include "platform/platform.h"
 
 #include <bit>
 #include <cstdint>

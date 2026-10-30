@@ -141,7 +141,7 @@ each step green on the goldens and removing a measured tie:
   `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
   SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with handles
   `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*` declared only, Bink: game.exe's slots, which
-  the harness patches in game.exe's runs; the image calls neither: platform/audio.h, video.h), Winsock 1.1 with SOCKET as
+  the harness patches in game.exe's runs; the image calls neither: platform/platform.h, video.h), Winsock 1.1 with SOCKET as
   `std::uintptr_t`, DirectInput, DirectDraw, the common controls, comdlg32, the print
   spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
@@ -150,7 +150,7 @@ each step green on the goldens and removing a measured tie:
   voice timers and its output are such);
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` was sealed in S18f (76 raw uses -> 0).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
-  routes it (the `TEXT_ROUTE` list of platform/win32/system_text.cpp), the
+  routes it (the `TEXT_ROUTE` list of platform/win32/platform_win32.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
   saves, profile reads, clocks, Winsock) or our code takes it by address (`&gameapi::X`; none since S22c).
   **gameapi.h** (H33f) holds only the imports our code calls (`gameapi::X` in src/ or tests/: gen_iat.py's
@@ -160,8 +160,8 @@ each step green on the goldens and removing a measured tie:
   `extern ei::import_fn::X& X;`, bound once in gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the
   table is resolved, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
   of ~140 objects); the other 57 are `using ::X;`, the Windows function through the exe's own imports
-  (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/lib/win_api.h, as the SDK
-  declares them (C linkage, dllimport, WINAPI) over platform/win32/win_types.h with the structures they point to by tag
+  (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/platform/win32/win_api.h, as the SDK
+  declares them (C linkage, dllimport, WINAPI) over the SDK's basic types (windef.h, minwinbase.h) with the structures they point to by tag
   (tagMSG, _SYSTEM_INFO, ...); gen_iat.py stops on a called one it lacks. gameapi.cpp includes import_table.h
   (windows.h, mmsystem, shellapi, objbase, dsound) too, so a declaration that differs from the SDK's or a copied
   prototype from import_prototypes.h's does not compile (C2733, C4273). So a file that calls only gameapi:: needs no
@@ -180,7 +180,7 @@ each step green on the goldens and removing a measured tie:
   DirectInputCreateEx (the image's harness takes the seam `g_directInputObserver`). Our code calls each as the Windows
   function or not at all. Rebirth's only import slot patch (MoviesPatch,
   BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp, at OpenMovie); Winsock stays table
-  calls. Miles and Bink are not called at all: sound and movies go through platform/audio.h and platform/video.h
+  calls. Miles and Bink are not called at all: sound and movies go through platform/platform.h
   (docs/notes/platform.md, "Audio and video"), so neither mss32.dll nor binkw32.dll loads.
   DirectSound's enumerator is not called (PL6: the audio output picks its own device); DirectInputCreateEx is the System32 dinput.dll's
   export, loaded by input_mouse.cpp (S22b: the SDK has no import library of DirectInput 7's dinput.dll, and a static
@@ -223,7 +223,7 @@ each step green on the goldens and removing a measured tie:
   | all | 504 | 109 | 24 | 0 | 395 |
 
   The table loads WSOCK32, WINMM, KERNEL32 and USER32 (the last three are the exe's own imports anyway). Not loaded:
-  mss32, binkw32 and DSOUND (PL6: no call of ours; platform/audio.h and video.h), DDRAW (the renderer creates no
+  mss32, binkw32 and DSOUND (PL6: no call of ours; platform/platform.h and video.h), DDRAW (the renderer creates no
   DirectDraw object: both slots, DirectDrawCreateEx and DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll
   in the game folder stays out of the image), DINPUT (S22b: input_mouse.cpp loads System32's), GDI32 and ADVAPI32
   (S22c: their slots were the harness's only, now game.exe's own routes), comdlg32, WINSPOOL, SHELL32, COMCTL32, ole32.
@@ -811,7 +811,7 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   thread, GDI, DC, handle-map and state classes (CWinApp, CWnd, CCmdTarget, CDC, CGdiObject, CHandleMap, _AFX_*_STATE,
   ...), the old iostream classes, 0073B98C, 0073BFAC, 0073D860 / 0073D888, 0074019C and 00740244 (small bases and
   locals of game.exe's inlined code) and the dead code's tables. Our code does the same work with other classes: the
-  game's files are `platform::File`, `platform::TextFile` and `platform::FileFind` (src/platform/file.h; a failed call throws
+  game's files are `platform::File`, `platform::TextFile` and `platform::FileFind` (src/platform/platform.h; a failed call throws
   `platform::FileError`), its fonts, pens and brushes `lib/gdi.h`'s, its threads `lib::StartThread`. 0073B984's ~140 readers
   compare a hash table's prime pointer with the end of `__stl_prime_list` (0073B914 + 28 dwords), the same address: no
   read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable field points at it;
@@ -1161,10 +1161,10 @@ game, the `--no-hooks` suite) keeps the registry.
   characters before it; %B (no conversion) writes nothing where VC6 wrote the previous conversion's text again.
   atof and sscanf are the host CRT's (C26: goldens and the atof vectors the same); callers use std::atof / sscanf_s.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
-  install redirection and a mod's hooks apply. `platform::OpenFile` (src/platform/file.h; fopen's r / w / a, +, b / t) opens
+  install redirection and a mod's hooks apply. `platform::OpenFile` (src/platform/platform.h; fopen's r / w / a, +, b / t) opens
   with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
   the callers (sysmsg.txt, BufferedFile, platform::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
-  it. The game's CFile, CStdioFile and CFileFind uses are platform/file.h's `platform::File` (a Win32 handle from CreateFileA,
+  it. The game's CFile, CStdioFile and CFileFind uses are platform/platform.h's `platform::File` (a Win32 handle from CreateFileA,
   MFC's open flags), `platform::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `platform::FileFind`
   (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
   pattern's folder through GetFullPathNameA, as CFileFind's root).
@@ -1242,7 +1242,7 @@ game, the `--no-hooks` suite) keeps the registry.
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller). Our
 code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files platform::File /
-TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads platform/thread.h.
+TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads platform/platform.h.
 - **CString**: the static initialisers of CString's four fixed allocators (00700718 .. 007007AB, 007C8B80 ..
   007C8B08) and of the temporary DCs' and GDI objects' CFixedAlloc (007C8D18 / 007C8CF0) are gen_static_init.py's
   UNUSED_INITIALISERS. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the real MakeUpper,
@@ -1319,7 +1319,7 @@ scenario (tests/coverage/coverage.csv).
 
 ## 3. Runtime: MFC, STLport, CRT later
 
-The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: platform/file.h,
+The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: platform/platform.h,
 gdi.h, thread.h, calendar.h, hash_map.h, intro_sort.h, str.h); linking real MFC would tie the build to Windows
 (platform.md).
 
@@ -1387,7 +1387,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U2: the system boundary
 
-- **Where**: src/platform/win32/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
+- **Where**: src/platform/win32/platform_win32.h. The image's import slot of each ANSI call that takes or gives text holds its
   UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
   resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). The list holds the reached
   slots only (H33f): the routes and versions of slots no call reaches went (LoadStringA, LoadLibraryA,
@@ -1408,7 +1408,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   resolved (24 routed)" (the reached slots).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
-  clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder
+  clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (platform_win32.cpp) takes the current folder
   through the slot.
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
 - **Not routed**: the profile calls (`IniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
@@ -1422,7 +1422,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U4: typing
 
-- **The window is a Unicode one** (system_text.h): the image's slot of `RegisterClassExA` registers the class wide
+- **The window is a Unicode one** (platform_win32.h): the image's slot of `RegisterClassExA` registers the class wide
   (`text::utf8::RegisterClassExA`), and the slots of `DefWindowProcA`, `GetMessageA`, `PeekMessageA` and
   `DispatchMessageA` take the wide calls themselves (the same arguments). Retrieval and dispatch must both be wide:
   a message taken with an A call is converted to the ANSI code page whatever the window. So WM_CHAR carries a
@@ -1445,7 +1445,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U3: drawing and measuring
 
-- **Wide text calls** (system_text.h): the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
+- **Wide text calls** (platform_win32.h): the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
   `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else
   ANSI-code-page bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face
   name to `CreateFontIndirectW`). Every interface text draw (the import slot of DrawTextA, called on the surfaces' plain HDCs: the surfaces'
@@ -1555,7 +1555,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 `ei-rebuild.exe` is the whole game: dropped into an original game folder (GOG's vanilla 1.06 or Rebirth's) it plays
 from there, started from anywhere, with no ei_launch, no DLL of ours and no file of ours beside it.
 - **What a play needs** (release build): the exe alone. From the game folder, as game.exe used them: the data (res,
-  maps, camera, movies, stream, ...); no DLL of the game's (no Miles, Bink or `*.asi`: platform/audio.h and video.h,
+  maps, camera, movies, stream, ...); no DLL of the game's (no Miles, Bink or `*.asi`: platform/platform.h and video.h,
   PL6). Built in: the shaders (fxc bytecode headers, CMakeLists.txt), the interface fonts
   (render_fonts.cpp), game.exe's import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
@@ -1606,8 +1606,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   refuses `EI_HARNESS` there; it runs in game.exe), ei_vectors (its recordings are game.exe's) and ei_launch (it
   starts game.exe and reads its threads). build_checks.py `--x64` runs every check but the function vectors. No
   `/arch:SSE2` (x64 has it always).
-- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through platform/audio.h and
-  platform/video.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
+- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through platform/platform.h and
+  platform/platform.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
 - **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
   layout (net_coder.h's buffers, ScriptKeyword), the PC24 control word
   (device_mesh.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
@@ -1730,7 +1730,7 @@ a trap that names its import until the run ends (OnTrap; `--check` fails on an u
 other static constructor of the exe (init_seg(compiler)), after entering the game folder (EnterGameFolder): the
 harness takes import slots in its own.
 
-### platform/file.h
+### platform/platform.h
 
 The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
 redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a

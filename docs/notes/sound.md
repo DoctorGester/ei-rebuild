@@ -4,7 +4,7 @@ Files: `src/game/sound.h` (layouts, static_asserts), `sound_manager.cpp`, `sound
 `tests/verify/verify_sound.cpp` (counters taken under an SRW lock: the fader wrapper runs on the
 stream thread); scenario `tests/scenarios/sound.txt`.
 
-The image plays through the platform's audio output (`src/platform/audio.h`; docs/notes/platform.md, "Audio and
+The image plays through the platform's audio output (`src/platform/platform.h`; docs/notes/platform.md, "Audio and
 video"), not Miles: voices, the music's double-buffered stream and the MP3 decoders. A voice's end is timed by its
 wave's length on the game's clock and delivered by the main loop after the frame's time, as the harness delivered
 Miles' callbacks in game.exe's runs. The map below is game.exe's (Miles, DirectSound, the unused MIDI part); the

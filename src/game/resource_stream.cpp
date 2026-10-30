@@ -11,7 +11,7 @@
 #include <string>
 
 #include "lib/crt.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <cstdlib>
 #include <new>

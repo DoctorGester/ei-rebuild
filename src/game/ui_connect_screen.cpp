@@ -22,7 +22,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/intro_sort.h"
 #include <cmath>
 #include <cstdint>
@@ -32,7 +32,6 @@
 #include "lib/vecmath.h"
 #include "world_glue.h"
 #include "game_singletons.h"
-#include "platform/keys.h"
 
 #include <memory>
 #include <new>
