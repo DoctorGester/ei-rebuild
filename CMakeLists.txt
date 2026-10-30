@@ -59,8 +59,6 @@ endif()
 set(EI_X87_GAME_SOURCES
     # C30e8a: UnitMotion::Build's FPATAN of FSIN's and FCOS's results stored as doubles
     game/ai_motion
-    # C30e9: unit AI
-    game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
     # C30e12: client units and world
     game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
     game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client

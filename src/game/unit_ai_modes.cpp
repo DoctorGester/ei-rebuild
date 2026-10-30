@@ -3,10 +3,11 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "core_maths.h"
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -74,8 +75,7 @@ void AIMode::Execute(AIBrain* brain) {
 void AIMode::Enter(AIBrain* brain) {
     brain->StopAction();
     std::uint32_t roll = g_random.Next();
-    volatile std::int64_t wide = roll;             // the zero-extended value
-    brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
+    brain->decay = pc24::Mul(static_cast<double>(roll), kDecayRandomScale) + kDecayBase;
     brain->owner->moveMode2.onGuard = 0;
 }
 
@@ -114,10 +114,10 @@ void GuardMode::Execute(AIBrain* brain) {
     // A radius of 0 leaves the direction unscaled.
     EI_NAN_AUDIT(radius);
     if (radius != 0.0f) {
-        double scale = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)) / radius * 0.5f;
-        direction.x = static_cast<float>(dx * scale);
-        direction.y = static_cast<float>(direction.y * scale);
-        direction.z = static_cast<float>(direction.z * scale);
+        float scale = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) / radius * 0.5f;
+        direction.x = dx * scale;
+        direction.y = direction.y * scale;
+        direction.z = direction.z * scale;
     }
     bool farLook = g_random.Next() % 11 == 0;
     brain->PlanLooks(&order, direction, wander, farLook);
@@ -244,15 +244,15 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
 
 void SuspectionMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) {
-        double dy = point.y - brain->move.point.y;      // kept on the FPU stack
-        double dx = point.x - brain->move.point.x;
+        float dy = point.y - brain->move.point.y;
+        float dx = point.x - brain->move.point.x;
         // A new move only when the distance is greater.
         EI_NAN_AUDIT(dx, dy);
         if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
             const Vector3& at = brain->owner->unit->localPosition;
-            double ux = at.x - point.x;
-            double uy = at.y - point.y;
-            double uz = at.z - point.z;
+            float ux = at.x - point.x;
+            float uy = at.y - point.y;
+            float uz = at.z - point.z;
             EI_NAN_AUDIT(ux, uy, uz);
             if (LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz) < kCloseSq) level -= 5;
             return;
@@ -603,11 +603,13 @@ static_assert(std::bit_cast<std::uint32_t>(kDistanceDivisor) == 0x3D042108u);
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
 constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
-constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 1 / 2^32
+// A random word times a span times the double 2^-32 (1 + 2^-32): the product's float times it rounds to the float
+// times 2^-32.
+constexpr float kRandomUnit = 0x1p-32f;
 
-bool IsZero(double v) {
+bool IsZero(float v) {
     EI_NAN_AUDIT(v);
-    return v == 0.0;
+    return v == 0.0f;
 }
 
 bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
@@ -617,37 +619,36 @@ bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 // point) lets the unit attack `enemy` from there.
 bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
-    Vector3 away{dx, dy, static_cast<float>(static_cast<double>(foe.z) - me.z)};
-    double length = LengthZXY(away);
+    Vector3 away{dx, dy, foe.z - me.z};
+    float length = LengthZXY(away);
     if (!IsZero(length)) {
-        double scale = kFlightStep / length;
-        away.x = static_cast<float>(scale * away.x);
-        away.y = static_cast<float>(away.y * scale);
-        away.z = static_cast<float>(away.z * scale);
+        float scale = kFlightStep / length;
+        away.x = scale * away.x;
+        away.y = away.y * scale;
+        away.z = away.z * scale;
     }
     IsaacRandom& random = g_random;
-    float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
-    float jitterY = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
+    float jitterX = pc24::Mul(static_cast<double>(random.Next()), kRandomSix) - kThree;
+    float jitterY = pc24::Mul(static_cast<double>(random.Next()), kRandomSix) - kThree;
     Vector3 back = me - away;
-    Vector3 dest{static_cast<float>(static_cast<double>(back.x) + jitterX), static_cast<float>(static_cast<double>(back.y) + jitterY), back.z};
+    Vector3 dest{back.x + jitterX, back.y + jitterY, back.z};
 
     AIPath path;
-    double way = DistanceZXY(dest, me);
-    float wayRounded = static_cast<float>(way);
-    float range = static_cast<float>(way * kThree + kRangeBase);
+    float way = DistanceZXY(dest, me);
+    float range = way * kThree + kRangeBase;
     if (!g_serverWorld.aiMap.FindPath(self, dest, &path, range, kMinDistance)) return false;
-    double scale = 0.5;
-    double limit = 1.0f / scale * wayRounded * kSmoothingScale;
+    float scale = 0.5f;
+    float limit = 1.0f / scale * way * kSmoothingScale;
     EI_NAN_AUDIT(limit);
-    if (limit < static_cast<double>(path.smoothing)) return false;
-    Vector3 end{static_cast<float>(scale * path.targetX), static_cast<float>(scale * path.targetY), 0.0f};
+    if (static_cast<double>(limit) < static_cast<double>(path.smoothing)) return false;   // the int compared exactly
+    Vector3 end{scale * path.targetX, scale * path.targetY, 0.0f};
 
     AIOrder order;
     order.MakeAttack(enemy);
     if (!brain->owner->CanReachAndPlanFrom(&order, end)) return false;
-    double ex = static_cast<double>(dest.x) - end.x;
-    double ey = static_cast<double>(dest.y) - end.y;
-    double ez = static_cast<double>(dest.z) - end.z;
+    float ex = dest.x - end.x;
+    float ey = dest.y - end.y;
+    float ez = dest.z - end.z;
     EI_NAN_AUDIT(ex, ey, ez);
     if (LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) >= 1.0f) return false;
     *out = dest;
@@ -658,18 +659,17 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 int FearMode::Evaluate(AIBrain* brain) {
     UnitServer* owner = brain->owner;
     CUnit* self = owner->unit;
-    // The sum rounded first, as the main thread's 24-bit FPU does (under /fp:fast MSVC
-    // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
-    float grown = static_cast<float>(static_cast<double>(spread) + spread + kThree);
-    spread = static_cast<float>(static_cast<double>(grown) * kThird);
+    // The sum rounded first, then the product, as the original (not spread * 2/3 + 1).
+    float grown = spread + spread + kThree;
+    spread = grown * kThird;
     if (CMapObject* seen = brain->seen) {
         const Vector3* at = &seen->localPosition;
         brain->memory.Notice(*at, kNoticeSeenLevel, kNoticeSeenDecay);
         const Vector3* me = &brain->owner->unit->localPosition;
-        float x = static_cast<float>(static_cast<double>(me->x) - at->x);
-        float y = static_cast<float>(static_cast<double>(me->y) - at->y);
-        float z = static_cast<float>(static_cast<double>(me->z) - at->z);
-        float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
+        float x = me->x - at->x;
+        float y = me->y - at->y;
+        float z = me->z - at->z;
+        float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)) * kSeenScale;
         // The larger of the two; an unordered pair takes the new one.
         distance = distance >= reach ? distance : reach;
     }
@@ -683,12 +683,12 @@ int FearMode::Evaluate(AIBrain* brain) {
         float range = aggressive ? g_logicSettings.rangedRunDist : g_logicSettings.rangedAttackDist;
         Vector3 me = self->localPosition;
         Vector3 foe = enemy->localPosition;
-        double dx = static_cast<double>(foe.x) - me.x;
-        double dy = static_cast<double>(foe.y) - me.y;
-        if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
+        float dx = foe.x - me.x;
+        float dy = foe.y - me.y;
+        if (range * range > LengthSquared2DUnrounded(dx, dy)) {
             if (brain->owner->action.kind == UnitOrderKind::Move || brain->owner->action2.kind == UnitOrderKind::Move) return kFlee;
             Vector3 flight;
-            if (FindFlightPoint(brain, self, enemy, me, foe, static_cast<float>(dx), static_cast<float>(dy), &flight)) {
+            if (FindFlightPoint(brain, self, enemy, me, foe, dx, dy, &flight)) {
                 fleePoint = flight;
                 fleePoint.z = 1.0f;
                 return kFlee;
@@ -708,21 +708,21 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     if (watchful) {
         // The nearest player unit in sight (2D).
-        double best = kFar;
+        float best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
         for (auto& node : brain->memory.visible) {
             CUnit* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition;
-            double oy = static_cast<double>(me->y) - other->localPosition.y;
-            double ox = static_cast<double>(me->x) - other->localPosition.x;
-            double d2 = LengthSquared2DUnrounded(ox, oy);
+            float oy = me->y - other->localPosition.y;
+            float ox = me->x - other->localPosition.x;
+            float d2 = LengthSquared2DUnrounded(ox, oy);
             if (d2 < best) {
                 nearest = other->localPosition;
-                best = static_cast<float>(d2);
+                best = d2;
             }
         }
-        if (best < static_cast<double>(distance) * distance)
+        if (best < distance * distance)
             brain->memory.Notice(nearest, kNoticeSeenLevel, kNoticeSeenDecay);
     }
     shelter.x = kUnsetCoordinate;
@@ -730,15 +730,15 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (brain->memory.noticedLevel > kCalmLevel) {
         if (brain->current == this) return brain->memory.noticedLevel / 6;
         const Vector3* me = &brain->owner->unit->localPosition;
-        double nx = static_cast<double>(me->x) - brain->memory.noticedX;
-        double ny = static_cast<double>(me->y) - brain->memory.noticedY;
-        double z = me->z;   // not a difference: the memory keeps no z
-        if (static_cast<double>(distance) * distance > z * z + ny * ny + nx * nx) return brain->memory.noticedLevel / 6;
+        float nx = me->x - brain->memory.noticedX;
+        float ny = me->y - brain->memory.noticedY;
+        float z = me->z;   // not a difference: the memory keeps no z
+        if (distance * distance > z * z + ny * ny + nx * nx) return brain->memory.noticedLevel / 6;
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
-    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + kDefaultDistance);
-    distance = static_cast<float>(static_cast<double>(weighted) * kDistanceDivisor);
+    float weighted = distance * kDistanceWeight + kDefaultDistance;
+    distance = weighted * kDistanceDivisor;
     return kPriorityNone;
 }
 
@@ -763,49 +763,49 @@ void FearMode::Execute(AIBrain* brain) {
         brain->memory.noticedDecay = 0;
     }
 
-    double near2 = DistanceSquaredZYX(*here, from);
-    if (static_cast<double>(distance) * distance > near2 && brain->owner->action.kind != UnitOrderKind::Move &&
+    float near2 = DistanceSquaredZYX(*here, from);
+    if (distance * distance > near2 && brain->owner->action.kind != UnitOrderKind::Move &&
         brain->owner->action2.kind != UnitOrderKind::Move) {
         Vector3 dest;
         if (!IsZero(fleePoint.z)) {
             dest = fleePoint;
             fleePoint.z = 0.0f;
         } else {
-            double vx = static_cast<double>(from.x) - here->x;
-            double vy = static_cast<double>(from.y) - here->y;
-            double vz = static_cast<double>(from.z) - here->z;
-            Vector3 step{static_cast<float>(vx), static_cast<float>(vy), static_cast<float>(vz)};
-            float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
-            float limit = static_cast<float>(static_cast<double>(distance) * kSpreadScale);
+            float vx = from.x - here->x;
+            float vy = from.y - here->y;
+            float vz = from.z - here->z;
+            Vector3 step{vx, vy, vz};
+            float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz));
+            float limit = distance * kSpreadScale;
             // The smaller of the two.
             EI_NAN_AUDIT(spread, limit);
             float width = spread < limit ? spread : limit;
             spread = width;
             if (!IsZero(length)) {
-                double scale = kFlightStep / length;
-                step.x = static_cast<float>(scale * step.x);
-                step.y = static_cast<float>(step.y * scale);
-                step.z = static_cast<float>(step.z * scale);
+                float scale = kFlightStep / length;
+                step.x = scale * step.x;
+                step.y = step.y * scale;
+                step.z = step.z * scale;
             }
-            float low = static_cast<float>(-static_cast<double>(width));
+            float low = -width;
             IsaacRandom& random = g_random;
-            float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low);
-            double jitterY = x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low;
-            float backZ = static_cast<float>(static_cast<double>(here->z) - step.z);
-            double backY = static_cast<double>(here->y) - step.y;
-            float backX = static_cast<float>(static_cast<double>(here->x) - step.x);
-            dest.x = static_cast<float>(static_cast<double>(backX) + jitterX);
-            dest.y = static_cast<float>(backY + jitterY);
+            float jitterX = pc24::Mul(static_cast<double>(random.Next()), width - low) * kRandomUnit + low;
+            float jitterY = pc24::Mul(static_cast<double>(random.Next()), width - low) * kRandomUnit + low;
+            float backZ = here->z - step.z;
+            float backY = here->y - step.y;
+            float backX = here->x - step.x;
+            dest.x = backX + jitterX;
+            dest.y = backY + jitterY;
             dest.z = backZ;
         }
         AIPath path;
-        double way = DistanceZYX(dest, *here);
-        float range = static_cast<float>(way * kThree + kRangeBase);
+        float way = DistanceZYX(dest, *here);
+        float range = way * kThree + kRangeBase;
         if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(dest, 0, 0, kMoveTime);
         }
-        spread = static_cast<float>(static_cast<double>(spread) + spread);
+        spread = spread + spread;
     }
 
     if (brain->action == AIBrain::kActionNone) {
@@ -820,12 +820,12 @@ void FearMode::Execute(AIBrain* brain) {
             order.point = brain->owner->unit->localPosition;
             Vector3 v = from - *here;
             Vector3 direction = v;
-            double length = LengthXYZ(v);
+            float length = LengthXYZ(v);
             if (!IsZero(length)) {
-                double twice = length + length;
-                direction.x = static_cast<float>(v.x / twice);
-                direction.y = static_cast<float>(v.y / twice);
-                direction.z = static_cast<float>(v.z / twice);
+                float twice = length + length;
+                direction.x = v.x / twice;
+                direction.y = v.y / twice;
+                direction.z = v.z / twice;
             }
             brain->PlanLooks(&order, direction, kNoWander, false);
             brain->StartMove(&order);
@@ -884,13 +884,13 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
     std::erase_if(candidates, [unit](CUnit* other) {
         UnitServer* control = other->ServerController();
-        float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
+        float sight = control->moveFactors[3] * control->stats.perception[0].current;
         float hearing = control->stats.perception[2].current;
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
-        double limit = static_cast<double>(reach) * kReachScale;
-        double dy = static_cast<double>(other->localPosition.y) - unit->localPosition.y;
-        double dx = static_cast<double>(other->localPosition.x) - unit->localPosition.x;
+        float limit = reach * kReachScale;
+        float dy = other->localPosition.y - unit->localPosition.y;
+        float dx = other->localPosition.x - unit->localPosition.x;
         return limit * limit < LengthSquared2DUnrounded(dx, dy);
     });
     AddPartyTargets(brain, &candidates);
@@ -976,10 +976,10 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         PlayerMode* mode = member->ServerController()->brain.FindPlayerMode();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
-        double dx = static_cast<double>(member->localPosition.x) - unit->localPosition.x;
-        double dy = static_cast<double>(member->localPosition.y) - unit->localPosition.y;
-        double dz = static_cast<double>(member->localPosition.z) - unit->localPosition.z;
-        double limit = static_cast<double>(g_logicSettings.followMaxDist) * slack + 1.0f;
+        float dx = member->localPosition.x - unit->localPosition.x;
+        float dy = member->localPosition.y - unit->localPosition.y;
+        float dz = member->localPosition.z - unit->localPosition.z;
+        float limit = g_logicSettings.followMaxDist * slack + 1.0f;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;
     }
@@ -996,8 +996,8 @@ constexpr float kDefaultWander = 40.0f;
 constexpr float kMinWaitFraction = 0.25f;
 // A random word to an angle in [0, 6.3).
 constexpr double kAngleScale = std::bit_cast<double>(0x3E19333340193333ull);
-// A random word to [0, 1) (2^-32 and a little).
-constexpr double kUnitScale = std::bit_cast<double>(0x3DF0000000100000ull);
+// A random word to [0, 1): the double 2^-32 (1 + 2^-32), which a float times rounds to the float times 2^-32.
+constexpr float kUnitScale = 0x1p-32f;
 constexpr const char kHumanPrefix[] = "unhu";
 
 constexpr float kMaxSlope = 0.3f;
@@ -1032,38 +1032,38 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
     IsaacRandom* random = (&g_random);
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
-    eye.z = static_cast<float>(g_serverWorld.aiMap.TopHeightAt(eye) + kEyeHeight);
-    if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
+    eye.z = g_serverWorld.aiMap.TopHeightAt(eye) + kEyeHeight;
+    if (wander >= 0.0f) wander = wander * kWanderScale;
     else wander = kDefaultWander;   // also NaN
     if (farGoal) {
         if (owner->moveMode2.onGuard || owner->unit->name.starts_with(std::string_view(kHumanPrefix, 4))) {
             farGoal = false;
         } else {
-            wander = static_cast<float>(static_cast<float>(count) * wander);
+            wander = static_cast<float>(count) * wander;
             count = 1;
         }
     }
 
-    float minWait = static_cast<float>(wander * kMinWaitFraction);
+    float minWait = wander * kMinWaitFraction;
     for (; count > 0; --count) {
         int tries = 5;
         float dx, dy, wait;
         for (;;) {
-            float angle = static_cast<float>(x87::FromUnsigned(random->Next()) * kAngleScale);
-            double roll = x87::FromUnsigned(random->Next());
-            wait = static_cast<float>((wander - minWait) * roll * kUnitScale + minWait);
-            float sine = static_cast<float>(x87::fsin(angle));
-            dx = static_cast<float>(x87::fcos(angle) + direction.x);
-            dy = static_cast<float>(sine + direction.y);
+            float angle = pc24::Mul(static_cast<double>(random->Next()), kAngleScale);
+            std::uint32_t roll = random->Next();
+            wait = pc24::Mul(wander - minWait, static_cast<double>(roll)) * kUnitScale + minWait;
+            float sine = pc24::Round(pc24::Sin(angle));
+            dx = pc24::Add(pc24::Cos(angle), direction.x);
+            dy = sine + direction.y;
             if (tries-- < 0) break;
-            Vector3 reach{static_cast<float>(dx + dx), static_cast<float>(dy + dy), static_cast<float>(direction.z + direction.z)};
-            Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
+            Vector3 reach{dx + dx, dy + dy, direction.z + direction.z};
+            Vector3 to{reach.x + eye.x, reach.y + eye.y, reach.z + eye.z};
             float sight = g_serverWorld.aiMap.LineOfSight(eye, to);
             EI_NAN_AUDIT(sight);
             if (sight == 1.0f) break;
         }
         AILook look{};
-        look.angle = static_cast<float>(x87::fpatan(dy, dx));
+        look.angle = pc24::Round(pc24::Atan2(dy, dx));
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;
@@ -1078,18 +1078,18 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
     }
     IsaacRandom* random = (&g_random);
     float low = -radius;
-    float dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
-    double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
-    float radiusSq = static_cast<float>(radius * radius);
+    float dx = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
+    float dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
+    float radiusSq = radius * radius;
     for (int tries = 9;;) {
         EI_NAN_AUDIT(dy, dx, radiusSq);
-        if (LengthSquared2DUnrounded<double>(dy, dx) <= radiusSq) break;
-        dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
-        dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
+        if (LengthSquared2DUnrounded(dy, dx) <= radiusSq) break;
+        dx = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
+        dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
         if (--tries < 0) break;
     }
-    out->x = static_cast<float>(dx + point.x);
-    out->y = static_cast<float>(dy + point.y);
+    out->x = dx + point.x;
+    out->y = dy + point.y;
     out->z = 0.0f;
     AIMap* map = &g_serverWorld.aiMap;
     if (map->SlopeAt(*out) > kMaxSlope) return false;
@@ -1104,18 +1104,18 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
     bool result = true;
     {
         AIPath path;
-        double ux = self->localPosition.x - out->x;
-        double uy = self->localPosition.y - out->y;
-        double uz = self->localPosition.z - out->z;
-        float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
-        float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
+        float ux = self->localPosition.x - out->x;
+        float uy = self->localPosition.y - out->y;
+        float uz = self->localPosition.z - out->z;
+        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz));
+        float range = distance * kRangePerDistance + kRangeBase;
         bool found = map->FindPath(self, *out, &path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         EI_NAN_AUDIT(distance);
-        if (!found || 2.0f * distance * kDetourFactor < static_cast<double>(path.smoothing)) {
+        if (!found || static_cast<double>(2.0f * distance * kDetourFactor) < static_cast<double>(path.smoothing)) {
             result = false;
-            long cooldown = x87::RoundToInt(static_cast<float>(distance * kCooldownPerDistance));
-            standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
+            int cooldown = lib::RoundEven(distance * kCooldownPerDistance);
+            standCooldown = (std::min)(cooldown, kMaxCooldown);
         }
     }
     units.clear();
@@ -1130,29 +1130,28 @@ void AIBrain::UpdateFollow() {
     }
     if (followTimer++ < kFollowWait) return;
 
-    float farSq = static_cast<float>(g_logicSettings.followMaxDist * g_logicSettings.followMaxDist);
+    float farSq = g_logicSettings.followMaxDist * g_logicSettings.followMaxDist;
     CUnit* self = owner->unit;
-    float nearSq = static_cast<float>(g_logicSettings.followMinDist * g_logicSettings.followMinDist);
+    float nearSq = g_logicSettings.followMinDist * g_logicSettings.followMinDist;
     auto* leader = static_cast<CUnit*>(target.Get());
-    Vector3 toLeader{static_cast<float>(leader->localPosition.x - self->localPosition.x), static_cast<float>(leader->localPosition.y - self->localPosition.y),
-                     static_cast<float>(leader->localPosition.z - self->localPosition.z)};
+    Vector3 toLeader{leader->localPosition.x - self->localPosition.x, leader->localPosition.y - self->localPosition.y,
+                     leader->localPosition.z - self->localPosition.z};
     int now = g_serverWorld.tick;
-    float distance = static_cast<float>(
-        std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
+    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(toLeader.x, toLeader.y, toLeader.z));
     UnitServer* leaderController = leader->ServerController();
-    float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
+    float walkTime = distance * kRangePerDistance + kRangeBase;
 
     if (leaderController->action.kind != UnitOrderKind::Move && leaderController->action2.kind != UnitOrderKind::Move) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
         EI_NAN_AUDIT(distance, nearSq);
-        if (static_cast<double>(distance) * distance < nearSq) {
+        if (distance * distance < nearSq) {
             owner->Idle();
             return;
         }
         Vector3 goal;
         if (!owner->GetMovePoint(&goal.x)) goal = self->localPosition;
-        double gx = goal.x - leader->localPosition.x;
-        double gy = goal.y - leader->localPosition.y;
+        float gx = goal.x - leader->localPosition.x;
+        float gy = goal.y - leader->localPosition.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
             owner->OrderMove(leader->localPosition, 0, 0, walkTime);
             followTimer = 0;
@@ -1165,13 +1164,13 @@ void AIBrain::UpdateFollow() {
     owner->GetMovePoint(&goal.x);
     Vector3 soon;
     leader->PositionAt(&soon, now + kLeaderAhead);
-    double sx = self->localPosition.x - soon.x;
-    double sy = self->localPosition.y - soon.y;
-    double soonSq = LengthSquared2DUnrounded(sx, sy);
-    if (soonSq >= static_cast<double>(distance) * distance || soonSq >= nearSq) {
+    float sx = self->localPosition.x - soon.x;
+    float sy = self->localPosition.y - soon.y;
+    float soonSq = LengthSquared2DUnrounded(sx, sy);
+    if (soonSq >= distance * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
-        double fx = soon.x - goal.x;
-        double fy = soon.y - goal.y;
+        float fx = soon.x - goal.x;
+        float fy = soon.y - goal.y;
         if (LengthSquared2DUnrounded(fy, fx) > farSq) {
             owner->OrderMove(soon, 0, 0, walkTime);
             followTimer = kFollowPause;
@@ -1181,56 +1180,56 @@ void AIBrain::UpdateFollow() {
 
     // The leader comes this way: find the moment it passes closest; when it passes within reach,
     // step aside of its way.
-    float best = static_cast<float>(soonSq);
+    float best = soonSq;
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later;
         leader->PositionAt(&later, now + ahead);
-        double lx = self->localPosition.x - later.x;
-        double ly = self->localPosition.y - later.y;
-        double laterSq = LengthSquared2DUnrounded(lx, ly);
+        float lx = self->localPosition.x - later.x;
+        float ly = self->localPosition.y - later.y;
+        float laterSq = LengthSquared2DUnrounded(lx, ly);
         if (laterSq > best) return;
         EI_NAN_AUDIT(laterSq);
         if (laterSq < kOnTheWaySq) break;
-        best = static_cast<float>(laterSq);
+        best = laterSq;
         if (++ahead >= kLeaderLastStep) return;
     }
 
     Vector3 passing;
     leader->PositionAt(&passing, now + kLeaderSide);
-    double along = passing.y - leader->localPosition.y;
-    float across = static_cast<float>(passing.x - leader->localPosition.x);
-    Vector3 side{static_cast<float>(-along), across, 0.0f};
-    double lengthSq = static_cast<double>(side.y) * side.y + along * along;
+    float along = passing.y - leader->localPosition.y;
+    float across = passing.x - leader->localPosition.x;
+    Vector3 side{-along, across, 0.0f};
+    float lengthSq = side.y * side.y + along * along;
     EI_NAN_AUDIT(lengthSq);
-    if (lengthSq <= 0.0) return;
-    double scale = kSideOffset / std::sqrt(lengthSq);
-    side.x = static_cast<float>(scale * -along);
-    side.y = static_cast<float>(scale * side.y);
-    side.z = static_cast<float>(side.z * scale);
-    double ux = self->localPosition.x - leader->localPosition.x;
-    double uy = self->localPosition.y - leader->localPosition.y;
-    double uz = self->localPosition.z - leader->localPosition.z;
+    if (lengthSq <= 0.0f) return;
+    float scale = kSideOffset / std::sqrt(lengthSq);
+    side.x = scale * -along;
+    side.y = scale * side.y;
+    side.z = side.z * scale;
+    float ux = self->localPosition.x - leader->localPosition.x;
+    float uy = self->localPosition.y - leader->localPosition.y;
+    float uz = self->localPosition.z - leader->localPosition.z;
     EI_NAN_AUDIT(side.x, side.y, side.z, ux, uy, uz);
-    if (DotUnrounded<Sum3::ZYX, double>(side.x, side.y, side.z, ux, uy, uz) < 0.0) {
+    if (DotUnrounded<Sum3::ZYX>(side.x, side.y, side.z, ux, uy, uz) < 0.0f) {
         side.x = -side.x;
         side.y = -side.y;
         side.z = -side.z;
     }
 
     AIPath path;
-    Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
+    Vector3 aside{passing.x + side.x, passing.y + side.y, side.z + passing.z};
     g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
-    double half = 0.5;
-    float targetY = static_cast<float>(half * path.targetY);
-    float offY = static_cast<float>(aside.y - targetY);
-    double offX = aside.x - half * path.targetX;
+    float half = 0.5f;
+    float targetY = half * path.targetY;
+    float offY = aside.y - targetY;
+    float offX = aside.x - half * path.targetX;
     EI_NAN_AUDIT(offX, offY);
-    if (LengthSquared2DUnrounded<double>(offX, offY) < kReachedSq) {
+    if (LengthSquared2DUnrounded(offX, offY) < kReachedSq) {
         owner->OrderMove(aside, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
-        double px = goal.x - passing.x;
-        double py = goal.y - passing.y;
+        float px = goal.x - passing.x;
+        float py = goal.y - passing.y;
         if (LengthSquared2DUnrounded(px, py) > 0.5f) {
             owner->OrderMove(passing, 0, 0, kPassTime);
             followTimer = kFollowPause;
@@ -1239,17 +1238,17 @@ void AIBrain::UpdateFollow() {
 }
 
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3& from, const Vector3& to) {
-    double fy = from.y - to.y;
-    double fx = from.x - to.x;
+    float fy = from.y - to.y;
+    float fx = from.x - to.x;
     EI_NAN_AUDIT(fx, fy);
     if (LengthSquared2DUnrounded(fx, fy) < kSamePointSq) return false;
     AIPath path;
-    double dx = from.x - to.x;
-    double dy = from.y - to.y;
-    double dz = from.z - to.z;
+    float dx = from.x - to.x;
+    float dy = from.y - to.y;
+    float dz = from.z - to.z;
     CUnit* unit = brain->owner->unit;
     Vector3 saved = unit->localPosition;
-    float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+    float range = 2.0f * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     g_serverWorld.aiMap.sectorMap.Move(unit, from);
     bool found = g_serverWorld.aiMap.FindPath(unit, to, &path, range, 0.0f);
     g_serverWorld.aiMap.sectorMap.Move(unit, saved);
@@ -1270,10 +1269,10 @@ void AIMoveOrder::Clear() {
 void PatrolMode::AppendPoint(const Vector3& position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
     float cell = 0.5f;
-    long ix = x87::RoundToInt(static_cast<float>(1.0f / cell * position.x));
-    long iy = x87::RoundToInt(static_cast<float>(1.0f / cell * position.y));
-    float x = static_cast<float>((static_cast<float>(ix) + 0.5f) * cell);
-    float y = static_cast<float>((static_cast<float>(iy) + 0.5f) * cell);
+    int ix = lib::RoundEven(1.0f / cell * position.x);
+    int iy = lib::RoundEven(1.0f / cell * position.y);
+    float x = (static_cast<float>(ix) + 0.5f) * cell;
+    float y = (static_cast<float>(iy) + 0.5f) * cell;
     int index = std::ssize(points);
     points.resize(index + 1);
     PatrolPoint& added = points[index];
