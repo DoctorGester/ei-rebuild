@@ -263,8 +263,8 @@ target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
 # a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
-add_executable(ei_ui_check tools/ui_check/ui_check.cpp)
-target_include_directories(ei_ui_check PRIVATE include src third_party/sokol)
+add_executable(ei_ui_check tools/ui_check/ui_check.cpp tests/render/glyph_cases.cpp)
+target_include_directories(ei_ui_check PRIVATE include src tests third_party/sokol)
 target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
 # Offline check of the performance overlay (render_perf, ticket R21) on a WARP device: its text, its pixels over a
 # back buffer, the GPU timestamps.

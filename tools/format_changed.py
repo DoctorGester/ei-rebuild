@@ -5,7 +5,7 @@ breaks all over a file nobody meant to touch).
 usage: python tools/format_changed.py [--base REV] [--check] [file ...]
   --base REV  the revision the change is measured against (default HEAD: the uncommitted change)
   --check     list the files that would change; write nothing
-  no files    every .h / .cpp / .inc that differs from the base
+  no files    every .h / .cpp / .inc / .mm that differs from the base
 """
 import difflib
 import pathlib
@@ -15,7 +15,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CLANG_FORMAT = pathlib.Path(r'E:\bin\vs\buildtools\VC\Tools\Llvm\bin\clang-format.exe')
-SUFFIXES = ('.h', '.cpp', '.inc')
+SUFFIXES = ('.h', '.cpp', '.inc', '.mm')
 
 
 def git(*args):
