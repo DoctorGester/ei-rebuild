@@ -6124,6 +6124,13 @@ group = "harness"
 note = "User 2026-10-30 asked where win_api.h's USER32 rectangle imports are used. SetRect, SetRectEmpty, CopyRect, IsRectEmpty, PtInRect, OffsetRect, IntersectRect and UnionRect have ~72 calls in 34 game files: UI layout (OffsetRect row stepping in ui_options, ui_hud_panels, ui_objectives, ui_help_page...), menu rects, figure / map object dirty rects (map_object_draw, figure_part_draw*, object3d_halves), cursor and blit clipping (ui_cursor_setup, ui_surface_blit), bink_video. They are plain integer maths over RECT: replace them with a lib/rect.h of our own (a Rect with the same layout or RECT itself) keeping USER32's exact edge rules: IsRectEmpty is right <= left or bottom <= top; IntersectRect and UnionRect write an all-zero rect when the result is empty and UnionRect ignores an empty operand; PtInRect excludes right and bottom; SetRect / OffsetRect do no normalising. Then drop the 8 imports from gen_iat's reached list (win_api.h, gameapi.h, image_imports.inc), the dashboard's import count follows. Goldens unchanged (hit tests and dirty rects are in them). Coordinate with C20u if it is still moving the import slots."
 
 [[ticket]]
+id = "H35"
+title = "test_resolve_crash: the disk-full stack check depends on map layout"
+group = "harness"
+model = "sonnet"
+note = "From C59b: tools/test_resolve_crash.py RealRun.test_disk_full_stack fails on main too (different error per build): it asserts symbol names along the resolved stack that move with code layout (C59b's tree resolves _main -> StandaloneMain -> atexit destructor instead of ending at CxxThrowException). The scenario itself passes. Make the assertion layout-independent (e.g. a frame inside the disk-full path anywhere on the stack) and check it on the current build."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -6714,6 +6721,13 @@ title = "C52 rest 5: out-parameters still left after C52d"
 group = "cleanup"
 depends = ["C52d"]
 note = "Left on purpose: ParticleSource::AttachmentOffset (returns the offset, radius still through float*; a struct of both would touch 14 callers), GetMovePoint / FindStandPoint / WeaponPoint (conditional writes that keep the caller's value), FindVariable (bool plus two ints), LightningSegment::SampleNoise (fills the global noise buffers), Unit motion Sample / SamplePath (nine outputs; a result struct), GetBounds users that wanted the initial {10000,0,10000,0} (none: the function sets all four)."
+
+[[ticket]]
+id = "C59c"
+title = "Feature grouping, third pass: ui_mesh_*, ui_surface_*, unit_params_* and other thin files"
+group = "cleanup"
+model = "sonnet"
+note = "Left by C59b (src/game 737 -> 711 files): still thin by the original's address order: ui_mesh_*, ui_surface_*, unit_params_* and others. Moves only, no signature changes; run alone between other workers. C59b's scripts (mv.py etc.) are in the scratchpad C59b folder."
 
 [[ticket]]
 id = "PL6b"
