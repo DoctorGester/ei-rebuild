@@ -14,7 +14,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 #include "platform/cursor.h"
 #include "platform/message_box.h"
 #include "platform/paths.h"
@@ -164,7 +164,7 @@ std::intptr_t DispatchInput(const platform::Event& received) {
         return Handled();
     }
     case EventType::SystemKeyDown:
-        if (event.key == VK_F4 && (event.keyFlags & platform::kKeyAltDown)) {
+        if (event.key == platform::kKeyF4 && (event.keyFlags & platform::kKeyAltDown)) {
             if (g_quitAllowed != 0) platform::PostQuit(0);
             return Handled();
         }
@@ -175,7 +175,7 @@ std::intptr_t DispatchInput(const platform::Event& received) {
         console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
                                                << static_cast<long>((static_cast<unsigned>(event.keyFlags) << 16) |
                                                                     static_cast<unsigned>(event.repeat)));
-        if (event.key == VK_TAB && (event.keyFlags & platform::kKeyAltDown)) {   // Alt+Tab: as if the window was deactivated
+        if (event.key == platform::kKeyTab && (event.keyFlags & platform::kKeyAltDown)) {   // Alt+Tab: as if the window was deactivated
             OnActivate(platform::Activation::Inactive, platform::IsMinimized(g_mainWindow));
             return Handled();
         }

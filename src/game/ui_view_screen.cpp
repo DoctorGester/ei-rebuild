@@ -13,7 +13,7 @@
 #include "world_glue.h"
 #include "game_singletons.h"
 #include "lib/containers.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <vector>
 
@@ -91,13 +91,13 @@ void UnitPickInput::RightDown(int, int, int) {
 }
 
 void UnitPickInput::KeyDown(int key, int, int) {
-    if (key == VK_CONTROL) {
+    if (key == platform::kKeyControl) {
         g_cursor.SetShape(kCursorCtrl);
-    } else if (key == VK_SPACE) {
+    } else if (key == platform::kKeySpace) {
         GameSetServerPaused(g_serverWorld.paused == 0);
     }
 }
 
 void UnitPickInput::KeyUp(int key, int, int) {
-    if (key == VK_CONTROL) g_cursor.SetShape(kCursorNormal);
+    if (key == platform::kKeyControl) g_cursor.SetShape(kCursorNormal);
 }

@@ -31,7 +31,7 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 #include <format>
 
 namespace {
@@ -854,11 +854,11 @@ void ItemInfoPanel::Describe(Item* item) {
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
 void ItemInfoPanel::KeyDown(int key, int, int modifiers) {
-    if (key == VK_CONTROL && !(modifiers & 0x4000) && FirstItem()) DescribeItem();
+    if (key == platform::kKeyControl && !(modifiers & 0x4000) && FirstItem()) DescribeItem();
 }
 
 void ItemInfoPanel::KeyUp(int key, int, int) {
-    if (key == VK_CONTROL && FirstItem()) DescribeItem();
+    if (key == platform::kKeyControl && FirstItem()) DescribeItem();
 }
 
 void ItemInfoPanel::Build(int atX, int atY) {

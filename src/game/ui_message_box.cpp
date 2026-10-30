@@ -11,7 +11,7 @@
 #include "bink_video.h"
 #include "game_singletons.h"
 #include "options.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <cstring>
 
@@ -70,7 +70,7 @@ void MessageWindow::LeftDown(int buttons, int x, int y) {
 void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
-    if (key == VK_RETURN) {
+    if (key == platform::kKeyReturn) {
         if (result == kExitResult) {
             PlayExitMovieAndQuit();
         } else {
@@ -78,7 +78,7 @@ void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
             ui->PlayInterfaceSound(OkSound());
             ui->SetPendingValue(result | kAnswerOk);
         }
-    } else if (key == VK_ESCAPE) {
+    } else if (key == platform::kKeyEscape) {
         ui->PlayInterfaceSound(CancelSound());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {
@@ -118,11 +118,11 @@ void DifficultyBox::LeftDown(int, int x, int y) {
 void DifficultyBox::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
-    if (key == VK_RETURN) {
+    if (key == platform::kKeyReturn) {
         options::g_options.difficulty = easy;
         ui->PlayInterfaceSound(OkSound());
         ui->SetPendingValue(result | kAnswerOk);
-    } else if (key == VK_ESCAPE) {
+    } else if (key == platform::kKeyEscape) {
         ui->PlayInterfaceSound(CancelSound());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {

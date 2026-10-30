@@ -180,7 +180,7 @@ public:
     // A typed character (WM_CHAR): nothing for the key under Esc; the shown console's OnChar, else a
     // multiplayer client's open chat line, else the top window.
     void OnChar(int key, int repeat, int flags);
-    // A key released: VK_SHIFT / VK_CONTROL / VK_MENU clear their modifier flags; then the shown
+    // A key released: platform::kKeyShift / platform::kKeyControl / platform::kKeyMenu clear their modifier flags; then the shown
     // console's OnKeyUp, else the top window.
     void OnKeyUp(int key, int repeat, int flags);
     // Closes every window, top first.

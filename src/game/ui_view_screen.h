@@ -22,7 +22,7 @@ struct UnitPickInput final : UiInputSide {
     void LeftDown(int buttons, int x, int y) override;
     // The list emptied (storage freed), the world's selection cleared.
     void RightDown(int buttons, int x, int y) override;
-    // Ctrl (VK_CONTROL) shows cursor 1; Space toggles the server
+    // Ctrl (platform::kKeyControl) shows cursor 1; Space toggles the server
     // flag.
     void KeyDown(int key, int repeat, int flags) override;
     // Ctrl released: cursor 0.

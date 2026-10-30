@@ -14,7 +14,7 @@
 
 #include <cstring>
 #include <string>
-#include "lib/win_user.h"
+#include "platform/keys.h"
 #include "platform/clipboard.h"
 
 namespace console {
@@ -77,19 +77,19 @@ void ConsoleWindow::Show(bool newShown) {
 // Up/Down step through the entered commands; Delete removes the selection or the next character.
 void ConsoleWindow::OnKeyDown(int key, int, int) {
     switch (key) {
-    case VK_SHIFT:
+    case platform::kKeyShift:
         shift = true;
         return;
-    case VK_CONTROL:
+    case platform::kKeyControl:
         ctrl = true;
         return;
-    case VK_PRIOR:
+    case platform::kKeyPageUp:
         scroll = ctrl ? scroll + visibleLines : scroll + 1;
         break;
-    case VK_NEXT:
+    case platform::kKeyPageDown:
         scroll = ctrl ? scroll - visibleLines : scroll - 1;
         break;
-    case VK_END:
+    case platform::kKeyEnd:
         if (!ctrl) {
             caret = lib::Count(input);
             if (!shift) anchor = caret;
@@ -98,7 +98,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         }
         scroll = 0;
         break;
-    case VK_HOME:
+    case platform::kKeyHome:
         if (!ctrl) {
             caret = 0;
             if (!shift) anchor = 0;
@@ -110,15 +110,15 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             scroll = first < 0 ? 0 : first;
         }
         break;
-    case VK_LEFT:
-    case VK_RIGHT:   // by character
-        caret = key == VK_LEFT ? ::text::PreviousCharacter(input, caret) : ::text::NextCharacter(input, caret);
+    case platform::kKeyLeft:
+    case platform::kKeyRight:   // by character
+        caret = key == platform::kKeyLeft ? ::text::PreviousCharacter(input, caret) : ::text::NextCharacter(input, caret);
         if (!shift) anchor = caret;
         DrawInput();
         return;
-    case VK_UP:
-    case VK_DOWN:
-        if (key == VK_UP) {
+    case platform::kKeyUp:
+    case platform::kKeyDown:
+        if (key == platform::kKeyUp) {
             if (commandIndex < static_cast<int>(commands.size())) ++commandIndex;
         } else if (commandIndex >= 0) {
             --commandIndex;
@@ -131,7 +131,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         anchor = caret;
         DrawInput();
         return;
-    case VK_DELETE:
+    case platform::kKeyDelete:
         if (anchor == caret) {
             if (caret < static_cast<int>(input.size())) {
                 std::string rest = str::Mid(input, ::text::NextCharacter(input, caret));

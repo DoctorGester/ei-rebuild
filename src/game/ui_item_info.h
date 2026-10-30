@@ -243,7 +243,7 @@ public:
     void ShowHelp(int topic);
     // Describes `item` (null: nothing) unless it is already the described one (IsSameAs).
     void Describe(Item* item);
-    // Ctrl (VK_CONTROL) pressed (not a repeat) or released redraws the described item, so that the
+    // Ctrl (platform::kKeyControl) pressed (not a repeat) or released redraws the described item, so that the
     // carried spell is shown while it is held.
     void KeyDown(int key, int repeat, int flags) override;
     void KeyUp(int key, int repeat, int flags) override;

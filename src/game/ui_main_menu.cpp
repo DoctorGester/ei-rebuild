@@ -26,7 +26,7 @@
 #include "game_singletons.h"
 #include "model.h"
 #include "figure_manager.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 
 namespace {
@@ -204,6 +204,6 @@ void MainMenu::MouseMove(int buttons, int x, int y) {
 
 void MainMenu::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
-    if (key != VK_ESCAPE) return;
+    if (key != platform::kKeyEscape) return;
     ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
 }

@@ -51,7 +51,7 @@ unsigned long QualitySetting(const char* name, unsigned long fallback) {
 
 } // namespace
 
-TextureDevice::TextureDevice(HWND newWindow, bool newFullScreen, int width, int height, int newBitsPerPixel)
+TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScreen, int width, int height, int newBitsPerPixel)
     : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow), bitsPerPixel(newBitsPerPixel) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
     // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).

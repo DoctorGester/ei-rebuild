@@ -13,6 +13,7 @@
 #include "platform/clock.h"
 #include "lib/str.h"
 #include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <algorithm>
 #include <cstring>
@@ -205,33 +206,33 @@ void ChatOverlay::KeyDown(int key, int, int) {
     if (!chatOpen) return;
     handled = true;
     switch (key) {
-    case VK_BACK: {   // by character, as Delete and the caret's steps
+    case platform::kKeyBack: {   // by character, as Delete and the caret's steps
         if (caret <= 0) break;
         const int previous = text::PreviousCharacter(typed, caret);
         typed = str::Left(typed, previous) + str::Mid(typed, caret);
         caret = previous;
         break;
     }
-    case VK_RETURN:
+    case platform::kKeyReturn:
         if (typed.size() != 0 && IsMultiplayerClient()) SendSay(typed);
         chatOpen = false;
         break;
-    case VK_ESCAPE:
+    case platform::kKeyEscape:
         chatOpen = false;
         break;
-    case VK_END:
+    case platform::kKeyEnd:
         caret = lib::Count(typed);
         break;
-    case VK_HOME:
+    case platform::kKeyHome:
         caret = 0;
         break;
-    case VK_LEFT:
+    case platform::kKeyLeft:
         caret = text::PreviousCharacter(typed, caret);
         break;
-    case VK_RIGHT:
+    case platform::kKeyRight:
         caret = text::NextCharacter(typed, caret);
         break;
-    case VK_DELETE:
+    case platform::kKeyDelete:
         if (caret >= static_cast<int>(typed.size())) break;
         typed = str::Left(typed, caret) + str::Mid(typed, text::NextCharacter(typed, caret));
         break;
@@ -243,7 +244,7 @@ void ChatOverlay::KeyDown(int key, int, int) {
 
 void ChatOverlay::Char(int key, int, int) {
     if (!chatOpen) return;
-    if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
+    if (key == platform::kKeyBack || key == platform::kKeyTab || key == platform::kKeyReturn || key == platform::kKeyEscape) return;
     std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger

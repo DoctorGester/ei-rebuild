@@ -537,7 +537,7 @@ void ReleaseMouseAtExit() {
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeInstance g_instance = /*0079BC24*/ {};
-HWND g_mainWindow = /*0079BC28*/ {};
+platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_activationChanged = /*0079BC5D*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
@@ -580,8 +580,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     std::string folder;
     CreateFolders(folder);
     g_instance = instance;
-    g_mainWindow = static_cast<HWND>(
-        platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY));
+    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY);
     if (!g_mainWindow) return 0;
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);
@@ -599,7 +598,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
-    g_mouse->Setup(g_mainWindow, static_cast<HINSTANCE>(instance));
+    g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
     SetUpCursors(options->fpsIndependentCursor != 0, g_mouse, 0);
     g_interface.Create(g_sceneRenderer.device);

@@ -3,7 +3,7 @@ through src/platform (its Windows implementation in src/platform/win32); the ren
 keeps its own Windows calls.
 
 This lists the files under src/ outside src/platform, src/render and src/hook (the harness's hook framework) that still
-include <windows.h> or call game.exe's imports (`gameapi::X`, comments left out), and fails when one is not in
+include a Windows system header (<windows.h>, <dinput.h>, <wingdi.h>, <mmsystem.h>, ...) or call game.exe's imports (`gameapi::X`, comments left out), and fails when one is not in
 config/platform_files.txt: a file may leave the list, not join it. Run with --update after a move onto the platform
 layer to drop the files that no longer need to be listed (it never adds one).
 
@@ -14,7 +14,12 @@ import glob, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LISTED = os.path.join(ROOT, 'config', 'platform_files.txt')
 OUTSIDE = ('src/platform/', 'src/render/', 'src/hook/')
-WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"]windows\.h[">]', re.M | re.I)
+# <windows.h> and the system's other headers (the SDK's, DirectX's and the C runtime's Windows parts): game code gets
+# what it needs from src/platform.
+SYSTEM_HEADERS = (r'windows|windowsx|winsock2?|ws2tcpip|wingdi|winuser|winbase|winnt|windef|winerror|mmsystem|mmreg|'
+                  r'mmeapi|msacm|dinput|dsound|ddraw|d3d\w*|dxgi\w*|dwmapi|shellapi|shlobj|commctrl|commdlg|imm|'
+                  r'objbase|ole2|oleauto|comdef|process|io|direct|tlhelp32|psapi|dbghelp|intrin|ddk\w*')
+WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + r')\.h[">]', re.M | re.I)
 IMPORT_CALL = re.compile(r'\bgameapi::\w')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
@@ -25,7 +30,7 @@ def counted(path):
 
 
 def calls_windows(text):
-    """Whether a file's text includes <windows.h> or calls an import as gameapi::X."""
+    """Whether a file's text includes a Windows system header or calls an import as gameapi::X."""
     code = COMMENT.sub('', text)
     return bool(WINDOWS_H.search(code) or IMPORT_CALL.search(code))
 
@@ -53,7 +58,7 @@ def main(argv):
         return 0
     problems = [p for p in now if p not in listed]
     for p in problems:
-        print(f'{p}: includes <windows.h> or calls gameapi::; go through src/platform (docs/notes/platform.md)')
+        print(f'{p}: includes a Windows system header or calls gameapi::; go through src/platform (docs/notes/platform.md)')
     print(f'platform: {len(now)} files outside src/platform and src/render call Windows; {len(problems)} problem(s)')
     return 1 if problems else 0
 

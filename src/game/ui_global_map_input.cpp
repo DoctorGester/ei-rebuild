@@ -16,7 +16,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <cmath>
 #include <cstring>
@@ -157,7 +157,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
 
 void GlobalMap::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
-    if (key == VK_ESCAPE) {
+    if (key == platform::kKeyEscape) {
         ui->PushWindow(new EscMenu(ui), true, true);
         handled = true;
     }

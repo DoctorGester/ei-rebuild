@@ -21,14 +21,17 @@ implementation folder; game code does not change.
 - A call that never used a slot stays direct: code from another module that read the real clock
   (net_second_master.cpp's `GetTickCount`) must not start reading the harness's.
 - `tools/check_platform.py` (build.cmd, through tools/build_checks.py) lists the files under `src/` outside
-  `src/platform`, `src/render` and `src/hook` (the harness's hook framework) that include `<windows.h>` or call
-  `gameapi::` (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
+  `src/platform`, `src/render` and `src/hook` (the harness's hook framework) that include `<windows.h>` or another
+  system header (`<dinput.h>`, `<wingdi.h>`, `<mmsystem.h>`, `<winsock2.h>`, `<process.h>`, ...: the script lists them) or
+  call `gameapi::` (comments left out). A file not in `config/platform_files.txt` fails the build; after moving a file's
   calls run `python tools/check_platform.py --update` (the list only shrinks). The dashboard shows the count
   (`platform_files`, "Files calling Windows"): 97 before the layer, 78 after the first areas, 61 after the window
-  and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b).
+  and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
+  `gameapi::` only; widened to the other system headers (PL2a) it counted 12 more files (win_types.h, win_user.h,
+  dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57.
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
-  shared header holds one (app.h's `g_mainWindow`, texture.h's device window; `HWND` comes from lib/win_types.h, not
-  `<windows.h>`).
+  shared header holds one (`HWND` comes from lib/win_types.h, not `<windows.h>`). app.h's `g_mainWindow` and
+  texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
 
 ## Areas
 
@@ -46,6 +49,9 @@ implementation folder; game code does not change.
 | `cursor.h` | the cursor's shape, its position in game points (`MapCursorPoints` for the scaled frame) | the GetCursor / SetCursor / GetCursorPos / SetCursorPos slots (the harness's own mouse) |
 | `keyboard.h` | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)` | the GetKeyNameTextA (UTF-8 route) and keyboard layout slots |
 | `clipboard.h` | `CopyText`, `ClipboardText` (Rebirth's console) | direct |
+| `thread.h` | `Thread` (created suspended, priority set, resumed), `Signal` (an auto-reset event: `Create`, `Set`, `Wait`, `Close`); locks are `std::recursive_mutex` | the SetThreadPriority / ResumeThread / CreateEventA / SetEvent / WaitForSingleObject (the harness's clocks) / CloseHandle slots; `_beginthreadex` direct |
+| `keys.h` | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
+| `mouse.h` | `MouseDevice`: the mouse's motion (`Open`, `SetActive`, `Read`, `Close`), failures reported to the caller's `MouseReport` | DirectInput 7 of the system's dinput.dll, loaded directly (the harness observes the object: `g_directInputObserver`) |
 | `net.h` | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `Start` / `Stop`, `LastError()` as our `Error` | the WSOCK32 slots (19 of its 22 imports; `WSAGetLastError` direct, game.exe does not import it) |
 
 The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
@@ -145,20 +151,20 @@ src/platform/win32's window, cursor and keyboard files; the game code does not c
 - The frame scaled into the window: present_window.cpp maps mouse events (`MouseToGame`) and gives the cursor calls
   its mapping with `platform::MapCursorPoints` at each present (it replaced the GetCursorPos / SetCursorPos slots
   before); every game call of the cursor's position goes through platform/cursor.h.
-- Key codes stay the virtual-key values (lib/win_user.h's VK_ constants, which the bindings file and the options keep);
-  a port gives its key events the same values.
+- Key codes stay the virtual-key values, as `platform::kKey...` constants (platform/keys.h; the bindings file and the
+  options keep the values); a port gives its key events the same values.
 
 ## Left for the next areas
 
 - standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
 - The renderer's QueryPerformanceCounter / Frequency (render.cpp, render_perf.cpp, render_textures.cpp) stay its own.
-- The key codes as our own constants (a platform/keys.h in place of lib/win_user.h's VK_ values in about 20 ui
-  files), and `g_mainWindow` / the device's window as `platform::NativeWindow` (app.h, texture.h, the sound and
-  renderer start-up): PL2a.
+- The key codes in bink_video.cpp (`VK_ESCAPE`, `VK_SPACE`) go with PL6.
 - resource_stream.cpp's `mmio*` (sound files) and its FindFirstFileA for the file size (PL6 moves them with the
   audio).
-- PL4, threads: lib/thread.cpp, the critical sections and events of sound_manager.cpp, ui_cursor_frame.cpp,
-  ui_cursor_setup.cpp.
+- Threads: sound_manager.cpp's critical sections (`std::recursive_mutex`), events and music thread
+  (`platform::Thread`, `platform::Signal`; lib/thread.h's `StartThread` wraps `Thread` until then) and sound.h's
+  `CRITICAL_SECTION` / `HANDLE` members, which keep win_types.h's `CRITICAL_SECTION`. The renderer's own threads and
+  lock (render.cpp, render_cursor.cpp) stay its own.
 - PL6, audio and video: sound_manager.cpp (Miles, `DirectSoundEnumerateA`), bink_video.cpp (Bink).
 - Rectangles (`SetRect`, `OffsetRect`, `IntersectRect`, ... in about 30 ui and figure files) go to our own functions
   (H33h), not to the layer; `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) to the CRT's formatting.

@@ -6,17 +6,15 @@
 #include "texture.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include "platform/cursor.h"
 #include "platform/clock.h"
 #include <cstdint>
 #include <memory>
 #include <string>
-#include "lib/thread.h"
+#include "platform/thread.h"
 #include "game_singletons.h"
 
 #include <cstdlib>
-#include <windows.h>
 
 namespace {
 
@@ -27,6 +25,15 @@ constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
 constexpr int kModeNoThread = 1;
 constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
 constexpr DWORD kFramePeriod = 125;         // ms per frame of an animated cursor
+
+// `rect` cut to `bounds`; all zero when they do not meet.
+void CutToBounds(RECT& rect, const RECT& bounds) {
+    if (rect.left < bounds.left) rect.left = bounds.left;
+    if (rect.top < bounds.top) rect.top = bounds.top;
+    if (rect.right > bounds.right) rect.right = bounds.right;
+    if (rect.bottom > bounds.bottom) rect.bottom = bounds.bottom;
+    if (rect.left >= rect.right || rect.top >= rect.bottom) rect = RECT{};
+}
 
 // A holder pointer emptied, then its old holder released.
 void ReleaseHolder(Surface*& slot) {
@@ -56,12 +63,12 @@ void Cursor::Init(TextureDevice* newDevice, int newMode, DirectInputMouse* newMo
     motion.y = 0;
     image = nullptr;
     imageSpare = 0;
-    thread = nullptr;
+    thread.Close();
     shape = -1;
     imageShown = true;
     enabled = true;
     mode = 0;
-    stopped = gameapi::CreateEventA(nullptr, FALSE, FALSE, nullptr);
+    stopped.Create();
     mode = newMode;
     mouse = newMouse;
     TextureDevice* old = device;
@@ -82,10 +89,8 @@ CursorImage::~CursorImage() {
     if (holder) holder->Release();
 }
 
-Cursor::Cursor() { gameapi::InitializeCriticalSection(&lock); }
 
 Cursor::~Cursor() {
-    gameapi::DeleteCriticalSection(&lock);
     if (device) device->Release();
 }
 
@@ -95,57 +100,56 @@ Cursor g_cursor;
 int Cursor::SetShape(int newShape) {
     const int previous = shape;
     if (previous == -1 || !enabled) return -1;
-    gameapi::EnterCriticalSection(&lock);
+    lock.lock();
     shape = newShape;
     image = images[newShape];
     ShowFrame(this);
-    gameapi::LeaveCriticalSection(&lock);
+    lock.unlock();
     return previous;
 }
 
 void Cursor::ShowImage(bool shown) {
     if (!enabled) return;
-    gameapi::EnterCriticalSection(&lock);
+    lock.lock();
     imageShown = shown;
-    gameapi::LeaveCriticalSection(&lock);
+    lock.unlock();
 }
 
 void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
-    gameapi::EnterCriticalSection(&lock);
+    lock.lock();
     held = newHeld;
-    gameapi::LeaveCriticalSection(&lock);
+    lock.unlock();
 }
 
 void Cursor::TakeLock() {
-    if (enabled && mode == kModeLocked) gameapi::EnterCriticalSection(&lock);
+    if (enabled && mode == kModeLocked) lock.lock();
 }
 
 void Cursor::ReleaseLock() {
-    if (enabled && mode == kModeLocked) gameapi::LeaveCriticalSection(&lock);
+    if (enabled && mode == kModeLocked) lock.unlock();
 }
 
 void Cursor::Start() {
     shape = 0;
     if (!enabled) return;
-    gameapi::EnterCriticalSection(&lock);
+    lock.lock();
     shape = 0;
     image = images[0];
     ShowFrame(this);
-    gameapi::LeaveCriticalSection(&lock);
+    lock.unlock();
     if (!enabled || mode == kModeNoThread) return;
     stop = 0;
-    thread = lib::StartThread(CursorThreadEntry, this, kThreadPriority);
+    thread.Start(CursorThreadEntry, this, kThreadPriority);
 }
 
 void Cursor::Shutdown() {
-    if (thread) {
+    if (thread.Started()) {
         stop = 1;
-        gameapi::WaitForSingleObject(stopped, INFINITE);
-        gameapi::CloseHandle(thread);
+        stopped.Wait();
+        thread.Close();
     }
-    gameapi::CloseHandle(stopped);
-    stopped = nullptr;
+    stopped.Close();
     for (int i = 0; i < std::ssize(images); ++i) {
         ReleaseHolder(images[i]->holder);
         delete images[i];
@@ -160,7 +164,7 @@ void Cursor::Shutdown() {
     motion.y = 0;
     image = nullptr;
     imageSpare = 0;
-    thread = nullptr;
+    thread.Close();
     shape = -1;
     mode = 0;
     enabled = false;
@@ -173,7 +177,7 @@ bool Cursor::UpdatePosition() {
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;
 
-    const LONG* state = mouse->Poll();
+    const std::int32_t* state = mouse->Poll();
     motion.x += state[0];
     motion.y += state[1];
     POINT point;
@@ -198,7 +202,7 @@ bool Cursor::UpdatePosition() {
     rect.top = top;
     rect.right = from.right - from.left + left;
     rect.bottom = from.bottom - from.top + top;
-    gameapi::IntersectRect(&rect, &rect, &bounds);
+    CutToBounds(rect, bounds);
     from.left = from.left + rect.left - left;
     from.top = from.top + rect.top - top;
     from.right = rect.right - rect.left + from.left;

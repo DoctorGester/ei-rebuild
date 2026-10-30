@@ -37,7 +37,7 @@ extern DirectInputMouse* g_mouse;
 // whether a device was named on the command line; the loading screen's movie file. g_mainWindow is the game window.
 extern char g_windowTitle[256];
 extern platform::NativeInstance g_instance;
-extern HWND g_mainWindow;
+extern platform::NativeWindow g_mainWindow;
 extern std::uint8_t g_active;
 extern std::uint8_t g_activationChanged;
 extern std::uint8_t g_interfaceHasScreen;

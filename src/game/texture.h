@@ -9,6 +9,7 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/win_types.h"
+#include "platform/window.h"
 
 #include <string>
 #include <vector>
@@ -62,12 +63,12 @@ public:
 
     // Starts the new renderer (its failure ends the game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on
     // `window`.
-    TextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
+    TextureDevice(platform::NativeWindow window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~TextureDevice() override;
 
     bool fullScreen = false;    // the window covers the monitor
     RECT screen = {};           // (0, 0, width, height): the screen's size
-    HWND window = nullptr;
+    platform::NativeWindow window = nullptr;
     int bitsPerPixel = 32;      // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     TransformPipeline* pipeline = nullptr;
     Surface* stageSurfaces[8] = {};    // the holder bound to each texture stage

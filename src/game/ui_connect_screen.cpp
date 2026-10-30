@@ -32,7 +32,7 @@
 #include "lib/vecmath.h"
 #include "world_glue.h"
 #include "game_singletons.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <memory>
 #include <new>
@@ -290,20 +290,20 @@ void MpConnectScreen::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     int step;
     switch (key) {
-    case VK_RETURN:
+    case platform::kKeyReturn:
         Connect();
         handled = true;
         return;
-    case VK_ESCAPE:
+    case platform::kKeyEscape:
         ui->PlayInterfaceSound(kCancelSound);
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
         return;
-    case VK_UP: step = -1; break;
-    case VK_DOWN: step = 1; break;
-    case VK_PRIOR: step = -kRows; break;
-    case VK_NEXT: step = kRows; break;
+    case platform::kKeyUp: step = -1; break;
+    case platform::kKeyDown: step = 1; break;
+    case platform::kKeyPageUp: step = -kRows; break;
+    case platform::kKeyPageDown: step = kRows; break;
     default: return;
     }
     ui->PlayInterfaceSound(kSelectSound);

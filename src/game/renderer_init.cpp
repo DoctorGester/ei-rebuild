@@ -157,7 +157,7 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
-    TextureDevice* newDevice = new TextureDevice(static_cast<HWND>(window), settings->fullScreen != 0,
+    TextureDevice* newDevice = new TextureDevice(window, settings->fullScreen != 0,
                                                 settings->resolutionX, settings->resolutionY, settings->colourDepth);
     device.Assign(newDevice);
     DeviceSetPipeline(&device->pipeline, pipeline);

@@ -1,7 +1,10 @@
 # The files that still call Windows outside the platform layer (tools/check_platform.py).
+src/game/app_main.cpp
 src/game/asset_text.cpp
 src/game/bink_video.cpp
+src/game/core_memory_stream.cpp
 src/game/device_bounds.cpp
+src/game/dib.h
 src/game/dx_errors.cpp
 src/game/figure_part_draw.cpp
 src/game/figure_part_draw_plain.cpp
@@ -9,14 +12,16 @@ src/game/link_figure.cpp
 src/game/map_object_draw.cpp
 src/game/map_object_figures.cpp
 src/game/menu_rects.cpp
+src/game/mod_folders.cpp
 src/game/object3d_halves.cpp
+src/game/random.cpp
 src/game/resource_stream.cpp
 src/game/script_parse.cpp
+src/game/settings_document.cpp
+src/game/settings_file.cpp
 src/game/sound_manager.cpp
 src/game/system_text.cpp
 src/game/ui_connect_list.cpp
-src/game/ui_cursor_frame.cpp
-src/game/ui_cursor_setup.cpp
 src/game/ui_help_page.cpp
 src/game/ui_hero_panels.cpp
 src/game/ui_hero_screen.cpp
@@ -39,11 +44,15 @@ src/game/ui_text.cpp
 src/game/ui_text_draw.cpp
 src/game/ui_tooltip.cpp
 src/game/ui_trade_panel.cpp
+src/game/ui_widescreen.cpp
 src/game/ui_window.cpp
+src/game/win_registry.cpp
+src/lib/crt.cpp
 src/lib/import_prototypes.h
 src/lib/import_table.h
 src/lib/rebirth.cpp
-src/lib/thread.cpp
+src/lib/win_types.h
+src/lib/win_user.h
 src/standalone/host.cpp
 src/standalone/image_imports.cpp
 src/standalone/standalone_main.cpp

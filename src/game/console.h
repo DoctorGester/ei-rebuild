@@ -113,7 +113,7 @@ public:
     void Show(bool shown);                     // creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys
     void OnChar(int key, int repeat, int flags);      // typed characters, Enter, Escape
-    void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift / ctrl
+    void OnKeyUp(int key, int repeat, int flags);     // platform::kKeyShift / platform::kKeyControl clear shift / ctrl
     void DrawLines();                          // the lines above the input line
     void DrawInput();                          // the input line, selection and caret
     // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.

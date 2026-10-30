@@ -74,7 +74,7 @@ CursorState Cursor() {
     const ::Cursor* cursor = &g_cursor;
     CursorState state;
     state.mode = cursor->mode;
-    state.thread = cursor->thread != nullptr;
+    state.thread = cursor->thread.Started();
     state.imageShown = cursor->imageShown;
     if (const CursorImage* image = cursor->image) {
         state.image = true;

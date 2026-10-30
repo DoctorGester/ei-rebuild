@@ -10,7 +10,7 @@
 #include "world_glue.h"
 
 #include "lib/text_case.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <bit>
 #include <cstring>
@@ -56,19 +56,19 @@ void OpenObjectives(Interface3D* ui) {
 
 void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
     if (chatActive) {
-        if (key == VK_ESCAPE) chatActive = 0;
+        if (key == platform::kKeyEscape) chatActive = 0;
         return;
     }
     UiContainer::KeyDown(key, repeat, modifiers);
     switch (key) {
-    case VK_BACK:
+    case platform::kKeyBack:
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
             handled = true;
             return;
         }
         break;
-    case VK_RETURN:
+    case platform::kKeyReturn:
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
         } else if (state == 3) {
@@ -80,7 +80,7 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         }
         handled = true;
         return;
-    case VK_ESCAPE:
+    case platform::kKeyEscape:
         if (state == 0) {
             ui->PushWindow(new EscMenu(ui), true, true);
         } else if (state == 3) {
@@ -96,7 +96,7 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         }
         handled = true;
         return;
-    case VK_SPACE:
+    case platform::kKeySpace:
         if (state == 3) {
             ui->PlayInterfaceSound(kClickSound);
             NextPhrase(false);

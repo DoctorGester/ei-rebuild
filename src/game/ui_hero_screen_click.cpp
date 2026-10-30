@@ -23,7 +23,7 @@
 #include "platform/files.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -142,7 +142,7 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
     int heroStep = 0;
     int voiceStep = 0;
     switch (key) {
-    case VK_RETURN:
+    case platform::kKeyReturn:
         if (renaming)
             FinishRename();
         else if (mode == kModeList)
@@ -153,7 +153,7 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
             CreateHero();
         handled = true;
         return;
-    case VK_ESCAPE:
+    case platform::kKeyEscape:
         if (renaming) {
             CloseRenameEdit();
             DrawHeroList();
@@ -167,19 +167,19 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
         }
         handled = true;
         return;
-    case VK_PRIOR:
+    case platform::kKeyPageUp:
         heroStep = -10;
         voiceStep = -11;
         break;
-    case VK_NEXT:
+    case platform::kKeyPageDown:
         heroStep = 10;
         voiceStep = 11;
         break;
-    case VK_UP:
+    case platform::kKeyUp:
         heroStep = -1;
         voiceStep = -1;
         break;
-    case VK_DOWN:
+    case platform::kKeyDown:
         heroStep = 1;
         voiceStep = 1;
         break;

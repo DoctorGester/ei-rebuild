@@ -13,7 +13,7 @@
 #include "world.h"
 #include "render/render_state.h"
 #include "lib/str.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <cmath>
 
@@ -130,14 +130,14 @@ void HelpWindow::LeftDown(int buttons, int x, int y) {
 
 void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
-    if (key == VK_RETURN && page < static_cast<int>(lines.size()) - 1) {
+    if (key == platform::kKeyReturn && page < static_cast<int>(lines.size()) - 1) {
         ui->PlayInterfaceSound(kNextSound);
         ++page;
         ShowPage();
         handled = true;
         return;
     }
-    if (key != VK_RETURN && key != VK_ESCAPE && g_keyActions[modifiers & 0x1FF] != kHelpAction) return;
+    if (key != platform::kKeyReturn && key != platform::kKeyEscape && g_keyActions[modifiers & 0x1FF] != kHelpAction) return;
     Finish();
     handled = true;
 }

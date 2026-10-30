@@ -11,7 +11,7 @@
 #include "world.h"
 
 #include "game_singletons.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 UiInputSide* Interface3D::MouseTarget() const {
     if (mouseCapture) return static_cast<UiInputSide*>(mouseCapture);
@@ -82,11 +82,11 @@ void Interface3D::OnChar(int key, int repeat, int flags) {
 }
 
 void Interface3D::OnKeyUp(int key, int repeat, int flags) {
-    if (key == VK_SHIFT)
+    if (key == platform::kKeyShift)
         shiftDown = 0;
-    else if (key == VK_CONTROL)
+    else if (key == platform::kKeyControl)
         ctrlDown = false;
-    else if (key == VK_MENU)
+    else if (key == platform::kKeyMenu)
         altDown = false;
     if (console->shown) {
         console->OnKeyUp(key, repeat, flags);
@@ -96,9 +96,9 @@ void Interface3D::OnKeyUp(int key, int repeat, int flags) {
 }
 
 void console::ConsoleWindow::OnKeyUp(int key, int, int) {
-    if (key == VK_SHIFT)
+    if (key == platform::kKeyShift)
         shift = false;
-    else if (key == VK_CONTROL)
+    else if (key == platform::kKeyControl)
         ctrl = false;
 }
 

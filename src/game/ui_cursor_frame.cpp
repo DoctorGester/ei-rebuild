@@ -7,7 +7,6 @@
 #include "texture.h"
 #include "game_singletons.h"
 
-#include "lib/gameapi.h"
 #include "platform/clock.h"
 #include "render/render.h"
 
@@ -28,14 +27,14 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
 // frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
 void MoveBetweenFrames(Cursor* self) {
-    gameapi::EnterCriticalSection(&self->lock);
+    self->lock.lock();
     const bool moved = self->UpdatePosition();
     if (self->imageShown && moved) {
         CursorImage* image = self->image;
         render::CursorBetweenFrames(image->holder, image->saved.data(), ToRender(self->from), ToRender(self->rect));
         self->drawn = self->rect;
     }
-    gameapi::LeaveCriticalSection(&self->lock);
+    self->lock.unlock();
 }
 
 } // namespace
@@ -46,7 +45,7 @@ void CursorDrawFrame(Cursor* self) {
     if (!self->enabled) return;
     self->UpdatePosition();
     RECT* rect = &self->rect;
-    if (gameapi::IsRectEmpty(rect)) return;
+    if (rect->left >= rect->right || rect->top >= rect->bottom) return;
     if (!self->imageShown) return;
     CursorImage* image = self->image;
     render::Cursor(image->holder, image->saved.data(), ToRender(self->from), ToRender(*rect));
@@ -59,10 +58,10 @@ void CursorDrawFrame(Cursor* self) {
 // the end the event `stopped` is set.
 void CursorThread(Cursor* self) {
     if (!self->enabled) return;
-    gameapi::EnterCriticalSection(&self->lock);
+    self->lock.lock();
     self->UpdatePosition();
     self->drawn = self->rect;
-    gameapi::LeaveCriticalSection(&self->lock);
+    self->lock.unlock();
     DWORD last = platform::Milliseconds();
     while (!self->stop) {
         DWORD now = platform::Milliseconds();
@@ -74,10 +73,10 @@ void CursorThread(Cursor* self) {
         if (!SoftwareCursor()) continue;
         MoveBetweenFrames(self);
     }
-    gameapi::SetEvent(self->stopped);
+    self->stopped.Set();
 }
 
-// The procedure lib::StartThread starts (the cursor as its parameter): CursorThread, then exit code 0.
+// The procedure platform::Thread starts (the cursor as its parameter): CursorThread, then exit code 0.
 unsigned __stdcall CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<Cursor*>(cursor));
     return 0;

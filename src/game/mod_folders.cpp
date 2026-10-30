@@ -18,6 +18,7 @@
 #include <string>
 
 #include <map>
+#include <mutex>
 #include <set>
 
 #include <winerror.h>
@@ -31,18 +32,14 @@ using ei::rebirth::Patch;
 // archives; the layer's maps state shares it.
 class Lock {
 public:
-    Lock() { EnterCriticalSection(Section()); }
-    ~Lock() { LeaveCriticalSection(Section()); }
+    Lock() { Section()->lock(); }
+    ~Lock() { Section()->unlock(); }
     Lock(const Lock&) = delete;
     Lock& operator=(const Lock&) = delete;
 
 private:
-    static CRITICAL_SECTION* Section() {
-        static CRITICAL_SECTION* section = [] {
-            auto* s = new CRITICAL_SECTION;
-            InitializeCriticalSection(s);
-            return s;
-        }();
+    static std::recursive_mutex* Section() {
+        static std::recursive_mutex* section = new std::recursive_mutex;
         return section;
     }
 };

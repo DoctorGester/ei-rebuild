@@ -31,7 +31,7 @@ namespace {
 
 using namespace detail;
 
-HWND GameWindow() { return app::g_mainWindow; }
+HWND GameWindow() { return static_cast<HWND>(app::g_mainWindow); }
 
 IDXGISwapChain1* g_chain = nullptr;
 ID3D11RenderTargetView* g_view = nullptr;

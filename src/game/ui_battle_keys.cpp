@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 namespace {
 
@@ -93,16 +93,16 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     if (portraitMode != 0) {
-        if (key == VK_ESCAPE) portraitMode = 0;
+        if (key == platform::kKeyEscape) portraitMode = 0;
         return;
     }
-    if (key == VK_RETURN) {
+    if (key == platform::kKeyReturn) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
             handled = true;
             return;
         }
-    } else if (key == VK_BACK) {
+    } else if (key == platform::kKeyBack) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
             handled = true;
@@ -113,7 +113,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     if (handled) return;
     if (modifiers & kKeyRepeated) return;
 
-    if (key == VK_ESCAPE) {
+    if (key == platform::kKeyEscape) {
         if (pendingAction != kPendingNone) {
             // The pending action is dropped with every panel's highlight.
             SetPendingAction(kPendingNone, -1, -1);

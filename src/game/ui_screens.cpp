@@ -20,7 +20,7 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 #include <algorithm>
 #include <bit>
@@ -519,7 +519,7 @@ void EscMenu::MouseMove(int modifiers, int x, int y) {
 
 void EscMenu::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
-    if (key == VK_ESCAPE) {
+    if (key == platform::kKeyEscape) {
         ui->PlayInterfaceSound(kSoundMenuOk);
         ui->SetPendingValue(0);
         handled = true;
@@ -547,7 +547,7 @@ void CreditsScreen::Close() {
 void CreditsScreen::LeftDown(int, int, int) { Close(); }
 
 void CreditsScreen::KeyDown(int key, int, int) {
-    if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
+    if (key == platform::kKeyReturn || key == platform::kKeyEscape || key == platform::kKeySpace) Close();
 }
 
 // --- ExchangeScreen --------------------------------------------------------------------------
@@ -556,15 +556,15 @@ void ExchangeScreen::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
     switch (key) {
-    case VK_BACK:
+    case platform::kKeyBack:
         ui->ChatKeyBackspace();
         handled = true;
         break;
-    case VK_RETURN:
+    case platform::kKeyReturn:
         ui->ChatKeyEnter();
         handled = true;
         break;
-    case VK_ESCAPE:
+    case platform::kKeyEscape:
         net::ClientDropParty(net::g_gameClient);
         handled = true;
         break;

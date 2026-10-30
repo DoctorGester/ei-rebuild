@@ -7,7 +7,7 @@
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
-#include "lib/win_user.h"
+#include "platform/keys.h"
 
 namespace {
 
@@ -73,13 +73,13 @@ void CampPages::LeftUp(int buttons, int x, int y) {
 }
 
 void CampPages::KeyDown(int key, int repeat, int modifiers) {
-    if (key == VK_ESCAPE) {
+    if (key == platform::kKeyEscape) {
         ShowPage(kLeavePage);
         handled = true;
         return;
     }
-    if ((key == VK_BACK || key == VK_RETURN) && IsMultiplayerClient()) {
-        if (key == VK_BACK)
+    if ((key == platform::kKeyBack || key == platform::kKeyReturn) && IsMultiplayerClient()) {
+        if (key == platform::kKeyBack)
             ui->ChatKeyBackspace();
         else
             ui->ChatKeyEnter();

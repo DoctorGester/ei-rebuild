@@ -6,9 +6,12 @@
 
 #include "lib/containers.h"
 #include "lib/win_types.h"
+#include "platform/mouse.h"
+#include "platform/thread.h"
+#include "platform/window.h"
 
 #include <cstdint>
-
+#include <mutex>
 #include <vector>
 
 class TextureDevice;
@@ -18,14 +21,7 @@ inline LONG g_cursorWidth = /*007C7C90*/ 32;
 inline LONG g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
 
-struct IDirectInput7A;
-struct IDirectInputDevice7A;
-
 unsigned __stdcall CursorThreadEntry(void* cursor);
-
-// The harness's view of the DirectInput object (verify builds): DirectInputMouse::Setup passes it each one it
-// makes, before the mouse device. In game.exe's runs the harness routes the original's import slot instead.
-extern void (*g_directInputObserver)(IDirectInput7A* input);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class DirectInputMouse final {
@@ -36,25 +32,20 @@ public:
     DirectInputMouse(const DirectInputMouse&) = delete;
     DirectInputMouse& operator=(const DirectInputMouse&) = delete;
 
-    // DirectInput 7 for `instance`, its system mouse device with the mouse data format, non-exclusive in the
-    // background for `window`, acquired (a failed Acquire is reported and passed over). Each other failure is
-    // reported (FatalErrorCode) and gives its result as 0 / 1.
-    int Setup(HWND window, HINSTANCE instance);
+    // The mouse device for `window` and `instance` (platform::MouseDevice::Open). A failure is reported
+    // (FatalErrorCode, except a failed Acquire, which is passed over) and gives its result as 0 / 1.
+    int Setup(platform::NativeWindow window, platform::NativeInstance instance);
     void Shutdown();
     // Acquires or unacquires the device with the window's activation; 0 without a device, the report's result
     // as 0 / 1 when Acquire fails.
     int SetActive(bool active);
-    // Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the read fails) into the object
-    // and returns it. The argument is not read.
-    const LONG* Poll();
-    // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, as a DIDATAFORMAT), our own
-    // copy; the objects name the game's GUID_XAxis / YAxis / ZAxis.
-    static const void* MouseDataFormat();
+    // Reads the device state (x, y and wheel motion, buttons; zeroed when the read fails) into the object and
+    // returns it.
+    const std::int32_t* Poll();
 
     std::uint32_t references = 0;            // the count of holders (WinMain keeps one)
-    IDirectInput7A* input = nullptr;         // counted
-    IDirectInputDevice7A* device = nullptr; // counted
-    LONG state[4];
+    platform::MouseDevice device;
+    std::int32_t state[4];
 };
 
 // The cursor's image (one per cursor shape): its surface holder (the picture: `frames` square frames side by
@@ -79,9 +70,9 @@ struct CursorImage {
 
 class Cursor {
 public:
-    // Not enabled, no device; the lock made.
-    Cursor();
-    // The lock deleted, the device released.
+    // Not enabled, no device.
+    Cursor() = default;
+    // The device released.
     ~Cursor();
     Cursor(const Cursor&) = delete;
     Cursor& operator=(const Cursor&) = delete;
@@ -94,7 +85,7 @@ public:
     void TakeLock();
     void ReleaseLock();
     // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread started
-    // (lib::StartThread at priority 2).
+    // (platform::Thread at priority 2).
     void Start();
     // Ends the drawing thread (stop, then waits for `stopped`), closes the event, releases and frees every
     // shape and empties the list, releases the surfaces and the device and resets the fields (not enabled,
@@ -118,7 +109,7 @@ public:
     CursorImage* image = nullptr;
     std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
     int shape = 0;                   // the shape SetShape selected
-    HANDLE stopped = nullptr;        // set when the cursor thread ends
+    platform::Signal stopped;         // set when the cursor thread ends
     RECT drawn = {};                 // the rectangle drawn last
     RECT rect = {};                  // the cursor's screen rectangle
     RECT from = {};                  // the part of the image shown
@@ -130,9 +121,9 @@ public:
     bool held = false;               // the cursor stays at heldPosition
     bool enabled = false;            // the cursor exists (created)
     DWORD frameTime = 0;             // when the image's frame last stepped
-    HANDLE thread = nullptr;         // the drawing thread (lib::StartThread), or null
+    platform::Thread thread;         // the drawing thread, when started
     int stop = 0;                    // asks the cursor thread to end
-    CRITICAL_SECTION lock;
+    std::recursive_mutex lock;
 };
 // The software cursor drawn into the render target before the present.
 void CursorDrawFrame(Cursor* self);
