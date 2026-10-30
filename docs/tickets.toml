@@ -6865,3 +6865,10 @@ title = "Platform remainder for a non-Windows port: paths, key names, keyboard l
 group = "port"
 depends = ["PL9"]
 note = "After PL9 these stay Windows in every build because SDL3 has no equivalent with the same results (docs/notes/platform.md, 'SDL3 and the harness'): ProgramPath / ExePath / UserDataFolder / SetCurrentFolder (SDL's pref path is roaming and creates its folder; its base path is the folder, not the file), KeyName (GetKeyNameText in the layout's language), ActivateKeyboardLayout, IsLetter (IsCharAlphaW), FindClassWindow / WindowProcess / BringToFront (the one-instance check by window class), DebugOutput, the files, .ini files and sockets on game.exe's slots. For a Linux / macOS port each needs a plain C++ or POSIX version (std::filesystem paths, XDG data folder, our own key-name table, a lock file for one instance, BSD sockets as platform::net already mirrors). Plan only when a port is scheduled."
+
+[[ticket]]
+id = "PL12"
+title = "The harness drives the SDL path in the image's runs (platform_win32_window.cpp goes)"
+group = "port"
+depends = ["PL9a"]
+note = "PL10 review (build/reviews/pl10_platform.md, section 6): an image-side seam in the platform (events injected as platform::Event, the frame step at the game's EventWaits site, the two clocks / Sleep / thread join, cursor position, mouse motion, the one-instance check and the message box settable by tests/verify/image) so the harness's image runs use platform_sdl.cpp. Deletes platform_win32_window.cpp, DirectInput and g_directInputObserver, Event::native / DefaultHandling. Every golden needs re-checking against game.exe's references (events a pump earlier or later); keep the two clocks distinct. After PL9a and PL11."
