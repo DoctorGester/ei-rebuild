@@ -76,9 +76,9 @@ endif()
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system by area (src/platform/*.h),
 # implemented for Windows in src/platform/win32, the one place of the game's code that includes <windows.h>; the
 # parts every system shares in src/platform; the sound on miniaudio (third_party/miniaudio) in src/platform/miniaudio;
-# the movies without pictures in src/platform/null.
+# the movies on the Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/miniaudio/*.cpp
-     src/platform/null/*.cpp)
+     src/platform/bink/*.cpp)
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows

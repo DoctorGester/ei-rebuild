@@ -60,8 +60,8 @@ implementation folder; game code does not change.
 | `keys.h` | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
 | `mouse.h` | `MouseDevice`: the mouse's motion (`Open`, `SetActive`, `Read`, `Close`), failures reported to the caller's `MouseReport` | DirectInput 7 of the system's dinput.dll, loaded directly (the harness observes the object: `g_directInputObserver`) |
 | `net.h` | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `Start` / `Stop`, `LastError()` as our `Error` | the WSOCK32 slots (19 of its 22 imports; `WSAGetLastError` direct, game.exe does not import it) |
-| `audio.h` | the output, voices (waves from memory, end callbacks), the music's double-buffered stream, the MP3 decoders | none: `null/audio.cpp` (silent, timed); A1 adds a real one |
-| `video.h` | Bink 1 movies a frame at a time into a CPU buffer | none: `null/video.cpp` (black frames, timed); A2 adds a decoder |
+| `audio.h` | the output, voices (waves from memory, end callbacks), the music's double-buffered stream, the MP3 decoders | none: miniaudio (`src/platform/miniaudio`) |
+| `video.h` | Bink 1 movies a frame at a time into a CPU buffer | none: our Bink 1 decoder (`src/platform/bink`) |
 
 The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
 `Select` leaves only the ready sockets in its sets, so MasterLinkTick's failure check after a select that found the
@@ -171,8 +171,7 @@ Miles (mss32.dll) and Bink (binkw32.dll) are gone from both builds (user 2026-10
 DSOUND's `DirectSoundEnumerateA`) is reached, so neither DLL loads, nor the `*.asi` providers Miles loaded (mp3dec.asi;
 Rebirth's EI_Plugin.asi, which the image kept out anyway: its features are Rebirth flags of our code). Game code calls
 `platform/audio.h`, implemented on miniaudio (`src/platform/miniaudio`, third_party/miniaudio: its device and its
-dr_wav / dr_mp3 decoders), and `platform/video.h`, today the null backend in `src/platform/null`, which A2 (our Bink 1
-decoder) replaces. `src/platform/audio_formats.cpp` (wave headers, the length rule, the MP3 frame scan) is shared by
+dr_wav / dr_mp3 decoders), and `platform/video.h`, implemented on our own Bink 1 decoder (`src/platform/bink`). `src/platform/audio_formats.cpp` (wave headers, the length rule, the MP3 frame scan) is shared by
 every backend.
 
 ### What the game reads back
@@ -253,7 +252,7 @@ every backend.
   every 5 s window of a 60 s tail.
 - The stream: the halves are mixed straight from the caller's buffers (it writes a half only once ReadyHalf gave it)
   at each half's format (`SetStreamFormat` applies to the halves queued after it), 16 bits signed or 8 unsigned, any
-  rate. More than one stream can play (A2's movie sound can take one of its own).
+  rate. More than one stream can play (a movie's sound takes one of its own).
 - MP3: `OpenMp3` reads the whole file and decodes it with dr_mp3 (`DecodeMp3` in whole frames; `RewindMp3` seeks to
   the start); `DecodeMp3File` as above. Both run in every build, the harness's runs included.
 - All the mixer's state (voices' sounds, streams) is under one lock; the device's thread takes it once a period. The
@@ -277,19 +276,48 @@ every backend.
   WASAPI device, the first voice and sound, and 206 voices at the close; a `sound` scenario run with a DebugView-style
   listener showed no device and no audio session opened. Goldens: 122 + 24 (Rebirth) the same.
 
-### The null video backend
+### Movies
 
-- A Bink 1 file opens with its size, frame count and rate from its header ("BIK", frames at +8, width +20,
-  height +24, rate +28 / +32); frames come black at the movie's rate. Movies play as long as with pictures
-  (Esc skips them) and the script's PlayMovie still stops the sounds first, as with Bink.
+The backend is our own Bink 1 decoder (`src/platform/bink`): `bink_file` the container (the header, the frame index,
+a frame's packets read from the file when it is decoded), `bink_video` the video, `bink_audio` the sound,
+`bink_tables` the format's constant tables, `bit_reader` the bit order, `movie.cpp` video.h. It was written from the
+format's descriptions (multimedia.cx: Bink Container, Bink Video, Bink Audio; Kostya Shishkov's notes), with the game's
+binkw32.dll studied for what they leave out (the tables are its numbers). FFmpeg's sources were never read (the exe is
+MIT and links nothing of FFmpeg's); FFmpeg ran only offline as the oracle.
 
-### For A2
-
-- A2 implements video.h with our Bink 1 decoder (src/platform/bink/): the same header and frame numbering, frames as
-  R, G, B, X into `CopyFrame`'s buffer, `Waiting` from the movie's rate on a real-time clock, the sound track (when
-  `Open`'s `sound`) through the audio output: a `Stream` of its own (`CreateStream`, `SetStreamFormat` at the track's
-  rate and channels, 16 bits, halves queued as `ReadyHalf` frees them; the mixer resamples), `SetVolume` 0..32768
-  mapped to the stream's 0..127.
+- What it plays: Bink 1 revision i ("BIKi") with video flags 0, the first sound track when it is the RDFT variant.
+  That is every movie the installs ship: 46 distinct files (vanilla 640x272 and 800x600, Rebirth's 1920x816 /
+  1080 / 960, LostInAstral's; sound 44.1 or 22.05 kHz stereo, many without). Other revisions, alpha, grayscale and
+  the scaled / interlaced modes do not open (`Open` gives null: the game logs "Can't open"); a DCT track plays
+  silent (none ships, and binkw32 1.0 the game came with has no DCT decoder).
+- The video: per frame the luma's size word, then the planes Y, V, U (V comes first), each from a 32-bit word of its
+  own; 8x8 blocks with the bundles and prefix codes as the format describes. The frame before the first is all 0
+  bytes; a motion vector is kept inside the plane. Frames as R, G, B, 255 by BT.601 limited range with RAD's 15-bit
+  tables (each term truncated), a chroma sample per 2x2 pixels.
+- The sound: transform frames of 2048 samples a channel at 44.1 kHz (1024 at 22.05), the channels interleaved in one
+  real transform; a frame's first sixteenth is blended with the frame before's tail, each frame clipped to 16 bits
+  before the blend (RAD's order). A packet gives as many samples as its header says (the last frame of the track is
+  cut there). The transform is computed in double.
+- Playback: `DecodeFrame` decodes in order (the last frame on to the first too: the titles loop with their sound
+  going on); a jump (`GoToFrame` past the next frame, the loading screen) decodes from the keyframe at or before the
+  frame, or on from the decoded one when that is nearer, without those frames' sound. `Waiting` is due the movie's
+  frame time per `Advance` after `Open`, on std::chrono::steady_clock.
+- The sound plays when `Open`'s `sound` and the output gives a stream (`CreateStream`): the frames' samples are queued
+  as they decode (Bink's first frame carries a lead of several frames) and handed to the stream in halves of
+  `MinimumHalfBytes` (87 ms) whenever `ReadyHalf` frees one (in `Waiting` and `DecodeFrame`); the rest goes once the
+  last frame is decoded. Format: the track's rate and channels, 16 bits; `SetVolume` 0..32768 maps linearly to the
+  stream's 0..127 (127 until set). Video and sound each keep their own clock: no resync after a stall of the game.
+- Cost (x64 release, one core): a 1920x816 frame about 4 ms, an 800x600 one about 1.3 ms; the sound about 1% of
+  real time.
+- How it was checked (scratch tool and ffmpeg 9.0.2, gyan.dev's essentials build, both outside the repository; a sweep
+  takes 2 minutes): on all 46 files every frame's YUV (ffmpeg `-pix_fmt yuv420p -f framemd5`) is identical, 16113
+  frames. The sound of the 27 files with a track matches ffmpeg's s16 within 1 (about 96.7% of the samples exact:
+  ffmpeg decodes in float and converts float samples to 16 bits); larger differences only inside the blended frame
+  starts of loud passages (ffmpeg blends before clipping), at most 726 samples of a file; ffmpeg gives the
+  last transform frame whole (up to one frame more at the end). RGB against ffmpeg's rgb0: within 2 per channel,
+  mean 0.65 (swscale's own rounding).
+- Harness runs: the output has no device but gives streams, so a movie's sound decodes and its halves wait on the
+  game's clock; movies pace on the real-time clock as before. The goldens did not move.
 
 ## Left for the next areas
 
@@ -351,6 +379,6 @@ header because windows.h defines the macros.
 | Window, messages, cursor, input | USER32 (151 imports), DINPUT (1) | sokol_app planned (PL2) |
 | 2D text and surfaces | GDI32 (83) | the native interface (P track) replaces GDI |
 | Rendering | DDRAW, D3D7 through COM | isolated: sokol_gfx behind the DDraw7 / D3D7 boundary |
-| Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | none since PL6 (null backends); A1 / A2 the real ones |
+| Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | none since PL6: miniaudio, our Bink 1 decoder |
 | Network | WSOCK32 (22, by ordinal) | BSD sockets map almost 1:1 (PL5) |
 | Files, threads, time | KERNEL32 (159), WINMM (5), ADVAPI32 (11) | PL3, PL4; time done here |
