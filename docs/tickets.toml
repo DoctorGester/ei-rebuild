@@ -7033,3 +7033,11 @@ title = "Windowed mode: no minimise on focus loss (user decision)"
 group = "port"
 depends = ["MAC3j"]
 note = "MAC3j made the windowed mode a decorated, movable window. The game still minimises its window whenever it is deactivated (app.cpp OnActivate, Inactive: platform::Minimize), the full-screen behaviour of the original: in a window, clicking another program hides the game. Ask the user whether the windowed mode should only pause (cursor, mouse, sound as now) and stay visible; if so, minimise only when full screen. Also try the release build (SDL window) windowed at the desktop's size by hand: MAC3j checked the harness's window only (it cannot run the release exe without touching an install)."
+
+[[ticket]]
+id = "MAC3r"
+title = "macos-port: merge main back after MAC3a-d, MAC3i, MAC3j"
+group = "port"
+model = "opus"
+depends = ["MAC3j"]
+note = "Merge current main into macos-port and adapt the branch's macOS code to what main took, so only macOS-specific differences remain in those files. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the macOS build cannot be built here, so the user checks it on the Mac."
