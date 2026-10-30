@@ -9,23 +9,23 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
+#include "lib/rounding.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <string>
 #include "lib/in_place.h"
 #include "lib/pc24.h"
-#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <bit>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <new>
-#include <string>
 #include <vector>
 
 namespace {

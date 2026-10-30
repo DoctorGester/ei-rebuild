@@ -1,13 +1,16 @@
 // The settings file's text, its values' text and its defaults (no file, no game): Document, the Parse / Text
 // functions of the values, Defaults. See settings.h; tests/vectors/replay_settings.cpp checks them without the game.
-#include "platform/platform.h"
 #include "settings.h"
 
 #include "lib/text_case.h"
 
 #include <array>
+#include <cctype>
+#include <cerrno>
 #include <charconv>
+#include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -187,7 +190,25 @@ bool ParseInt(std::string_view text, int* value) {
 
 bool ParseFloat(std::string_view text, float* value) {
     if (!text.empty() && text.front() == '+') text.remove_prefix(1);
-    return platform::ParseFloat(text, value);
+    float number = 0;
+#if defined(__cpp_lib_to_chars)
+    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
+    if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size()) return false;
+#else
+    // No float from_chars in the library (Apple's libc++): strtof in the C locale the game keeps, refusing what
+    // from_chars refuses (a leading space or plus, hexadecimal, out of range; subnormals are in range).
+    if (text.empty() || text.front() == '+' || std::isspace(static_cast<unsigned char>(text.front()))) return false;
+    const std::size_t sign = text.front() == '-' ? 1 : 0;
+    if (text.size() > sign + 1 && text[sign] == '0' && (text[sign + 1] == 'x' || text[sign + 1] == 'X')) return false;
+    const std::string terminated(text);
+    char* end = nullptr;
+    errno = 0;
+    number = std::strtof(terminated.c_str(), &end);
+    if (end != terminated.c_str() + terminated.size() || (errno == ERANGE && (number == 0.0f || std::isinf(number))))
+        return false;
+#endif
+    *value = number;
+    return true;
 }
 
 bool ParseBool(std::string_view text, bool* value) {
@@ -316,15 +337,12 @@ Document Defaults(int width, int height) {
 
     // Rebirth's patches (startup.cpp): none named, each takes the game folder's profile.
     d.Comment(kPatches, "Rebirth's patches (docs/notes/rebirth.md), name = true or false. A patch not named here takes the");
-    d.Comment(kPatches, "game folder's profile: Rebirth's in a Rebirth install, else the bug fixes. NPlayers,");
+    d.Comment(kPatches, "game folder's profile: Rebirth's in a Rebirth install, else none. NPlayers,");
     d.Comment(kPatches, "Pause: EI_Plugin's player count and pause mode. SecondMaster: a second master server, host[:port].");
 
-    // Rebirth's switches (world_client_draw.cpp, mod_folders.cpp).
-    d.Comment(kRebirth, "Read with Rebirth's patches on ([patches]). The draw radii: 100 is the original's. AddonPath:");
-    d.Comment(kRebirth, "the mod's folder.");
-    d.Set(kRebirth, "ObjectsDrawRadius", IntText(5376));
-    d.Set(kRebirth, "LandscapeDrawRadius", IntText(5376));
-    d.Comment(kAutoExec, "Console lines run before autoexec.cfg with Rebirth's AutoExec flag, one per line: 1 = <command>.");
+    // Rebirth's switches (mod_folders.cpp).
+    d.Comment(kRebirth, "Read with Rebirth's mod folder patches on ([patches]). AddonPath: the mod's folder.");
+    d.Comment(kAutoExec, "Console lines run before autoexec.cfg, one per line: 1 = <command>.");
     return d;
 }
 

@@ -9,7 +9,6 @@
 
 #include "net_classes.h"
 
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include <cstddef>
@@ -40,14 +39,12 @@ constexpr int kTipUnlisted = 0x9EA4, kTipPassword = 0x9EA5;
 constexpr int kNewGameType = 4;
 constexpr int kGameTypes = 4;
 
-// ExtendedServerName (the addon's replacement of the draw calls'
-// constants): vanilla / extended.
+// Rebirth's ExtendedServerName layout (the original's: 265, 270, 220, 239).
 struct Layout {
     int rowRight, lineRight, rowLeftPing;
     float selectionX;
 };
-constexpr Layout kVanillaLayout{265, 270, 220, 239.0f};
-constexpr Layout kExtendedLayout{278, 283, 233, 244.75f};
+constexpr Layout kLayout{278, 283, 233, 244.75f};
 constexpr int kFormatEllipsis = 0x18000;   // DT_END_ELLIPSIS | DT_MODIFYSTRING
 constexpr std::size_t kExtendedTextSize = 90;
 constexpr int kExtendedNameRight = 140;    // the servers' names are drawn within this column
@@ -100,8 +97,7 @@ void MpConnectScreen::DrawListVanilla() {
     }
     newGameTips = newGame;
 
-    const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
-    const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
+    const Layout& layout = kLayout;
     std::string text;
     UiSurface* surface = surfaces[0];
     surface->Clear();
@@ -152,18 +148,11 @@ void MpConnectScreen::DrawListVanilla() {
         if (index == 0) {
             // The new game: its name as typed.
             text = std::format("{} {}", label(7), nameEdit->text);
-            if (extended)
-                DrawEllipsis(surface, text, &row, kFormatNoPrefix);
-            else
-                DrawLabel(surface, text, &row, kFormatNoPrefix);
+            DrawEllipsis(surface, text, &row, kFormatNoPrefix);
         } else {
-            if (extended) {
-                Rect nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
-                nameRect.right = kExtendedNameRight;
-                DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
-            } else {
-                DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
-            }
+            Rect nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
+            nameRect.right = kExtendedNameRight;
+            DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
             row.left = 142;
             text = std::format("{}/{}", entry.players, entry.maxPlayers);
             DrawLabel(surface, text, &row, 0);
@@ -210,14 +199,10 @@ void MpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, label(17), &row, 0);
         } else {
             text = std::format("{} {}", label(0), entry.name);
-            if (extended) {
-                // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
-                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, g_connectTextColour, 0, 1);
-                row.top += lines * kRowHeight - kRowHeight;
-                row.bottom += lines * kRowHeight - kRowHeight;
-            } else {
-                DrawLabel(surface, text, &row, 0);
-            }
+            // Wrapped over up to three lines; the rectangle moves down by the extra lines.
+            const int nameLines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, g_connectTextColour, 0, 1);
+            row.top += nameLines * kRowHeight - kRowHeight;
+            row.bottom += nameLines * kRowHeight - kRowHeight;
             Down(&row);
             text = std::format("{} {} / {}", label(1), entry.players, entry.maxPlayers);
             DrawLabel(surface, text, &row, 0);

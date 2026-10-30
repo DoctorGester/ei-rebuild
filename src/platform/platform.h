@@ -45,8 +45,9 @@ struct DateTime {
 };
 // The local date and time now.
 DateTime LocalTime();
-// strftime of a saved timestamp's local time, up to 127 characters; empty when unavailable or too long.
-std::string FormatLocalTime(std::int32_t seconds, const char* format);
+// strftime of the local time of `seconds` since 1970 UTC (a save's date, the log's time of day) in at most 127
+// characters; empty when it has no local time or does not fit.
+std::string FormatLocalTime(std::int64_t seconds, const char* format);
 
 // ==== Output for a developer =========================================================================================
 
@@ -88,9 +89,6 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 std::uint32_t PageSize();
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
-// A complete decimal float in the C locale, including inf/nan; no leading plus, whitespace or hex syntax.
-// Leaves `value` untouched on failure.
-bool ParseFloat(std::string_view text, float* value);
 // The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness), straight from the
 // system, not the slots the harness fixes; both stay as they are when it cannot tell.
 void PrimaryDesktopSize(int* width, int* height);
@@ -445,9 +443,12 @@ NativeWindow FindClassWindow(const char* className, const char* title);
 std::uint32_t WindowProcess(NativeWindow window);
 // Brings another program's window to the front, restored from the task bar, unless it is in front already.
 void BringToFront(NativeWindow window);
-// The game window; null when it could not be made. SDL decorates and centres windowed games, while full screen
-// uses a borderless window. Requested dimensions are client points; on success they become backing pixels.
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height, bool fullScreen);
+// The game window of the registered class, its client area `width` x `height` (the configured resolution, which the
+// game keeps whatever the window gets). Full screen: a borderless window at the screen's top left (CoverMonitor puts it
+// over its monitor). Windowed: a decorated window the player can move and resize, centred in the primary monitor's
+// work area; a client area that would not fit there is made smaller, so no row is off-screen (the renderer scales the
+// frame into it). Null when it could not be made.
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height, bool fullScreen);
 // Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
 void ShowGameWindow(NativeWindow window, int show);
 bool IsMinimized(NativeWindow window);
@@ -853,39 +854,18 @@ void SetVolume(Movie* movie, int volume);   // 0..32768
 
 } // namespace platform
 
-// Trace observers capture their caller before adding a platform frame. These helpers must be inlined even
-// in debug builds; ordinary game functions do not need compiler-specific inlining or stack intrinsics.
+// ==== Caller capture =================================================================================================
+
+// For the observers that note who called (the harness's records). Used in a function's body: EI_RETURN_ADDRESS() is
+// that function's return address, EI_CALLER_FRAME() the stack from the word that holds it (the observers scan on
+// from there). Macros, not functions: the debug build inlines nothing, and a helper would return into itself.
 #if defined(_MSC_VER)
-extern "C" void* _ReturnAddress();
+extern "C" void* _ReturnAddress();            // declared as <intrin.h> declares them, without the rest of it
 extern "C" void* _AddressOfReturnAddress();
 #pragma intrinsic(_ReturnAddress, _AddressOfReturnAddress)
-#define EI_PLATFORM_INLINE __forceinline
+#define EI_RETURN_ADDRESS() _ReturnAddress()
+#define EI_CALLER_FRAME() static_cast<void* const*>(_AddressOfReturnAddress())
 #else
-#define EI_PLATFORM_INLINE inline __attribute__((always_inline))
+#define EI_RETURN_ADDRESS() __builtin_extract_return_addr(__builtin_return_address(0))
+#define EI_CALLER_FRAME() (static_cast<void* const*>(__builtin_frame_address(0)) + 1)
 #endif
-
-namespace platform {
-
-EI_PLATFORM_INLINE void* ReturnAddress() {
-#if defined(_MSC_VER)
-    return _ReturnAddress();
-#else
-    return __builtin_extract_return_addr(__builtin_return_address(0));
-#endif
-}
-
-// The Windows harness scans 64 stack words beginning at the caller's return address. Other ABIs expose
-// the direct caller followed by zeros. The supplied words remain valid only during the observer call.
-template <class Observer, class... Arguments>
-EI_PLATFORM_INLINE void ObserveCallers(Observer observer, Arguments... arguments) {
-#if defined(_MSC_VER)
-    observer(arguments..., static_cast<void* const*>(_AddressOfReturnAddress()));
-#else
-    void* callers[64] = {ReturnAddress()};
-    observer(arguments..., callers);
-#endif
-}
-
-}   // namespace platform
-
-#undef EI_PLATFORM_INLINE

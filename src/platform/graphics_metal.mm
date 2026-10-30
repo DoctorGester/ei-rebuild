@@ -197,7 +197,7 @@ bool ReadDrawable(unsigned x, unsigned y, unsigned width, unsigned height, std::
 }
 
 bool WindowSize(void* window, int* width, int* height) {
-    return window && SDL_GetWindowSize(static_cast<SDL_Window*>(window), width, height);
+    return window && SDL_GetWindowSizeInPixels(static_cast<SDL_Window*>(window), width, height);
 }
 
 void PrepareDevice(bool) {}

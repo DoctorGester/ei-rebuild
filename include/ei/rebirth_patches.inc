@@ -9,20 +9,11 @@
 //
 // The order is part of nothing: flags are looked up by name.
 //
-// Every flag is off by default (scripting / console additions, mod folders, rendering, multiplayer features,
-// EI_Plugin's features). The scripting and console additions that only add what nothing used before (ImproveConsole,
-// NewStringEvents, AutoExec, PersistentGlobalVars) are the rebuilt code's own since C68 and have no flag either.
-EI_REBIRTH_PATCH(ObjectsDrawRadius)
-EI_REBIRTH_PATCH(LandscapeDrawRadius)
-EI_REBIRTH_PATCH(AllowScriptArgsInLoops)
-EI_REBIRTH_PATCH(AllowScriptsInMainMenu)
-EI_REBIRTH_PATCH(AddNewConsoleCommands)
+// Every flag is off by default (mod folders, multiplayer features, EI_Plugin's features). The scripting and console
+// additions, the longer server names, the player numbers, the speed keys in multiplayer and the draw radii (the
+// whole map is drawn) are the rebuilt code's own since C68 and have no flag either.
 EI_REBIRTH_PATCH(DisableExitOnCrashReport)
-EI_REBIRTH_PATCH(ExtendedServerName)
 EI_REBIRTH_PATCH(MQClient)
-EI_REBIRTH_PATCH(MPSpeedControl)
-EI_REBIRTH_PATCH(PlayerNumbers)
-EI_REBIRTH_PATCH(AddNewScriptCommands)
 EI_REBIRTH_PATCH(Maps)
 EI_REBIRTH_PATCH(ResOverride)
 EI_REBIRTH_PATCH(MoviesPatch)

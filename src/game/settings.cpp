@@ -1,12 +1,10 @@
 // The standalone's settings file and its typed accessors. See settings.h.
 #include "settings.h"
 
-#include "hook/log.h"
-#include "platform/platform.h"
-
-#include "lib/text_case.h"
-
 #include "ei/hook.h"
+#include "hook/log.h"
+#include "lib/text_case.h"
+#include "platform/platform.h"
 
 #include <mutex>
 #include <string>
@@ -228,7 +226,7 @@ std::vector<std::string> GetValues(const char* section) {
     Load(s);
     std::vector<std::string> values;
     for (const Document::Section& found : s.document.sections) {
-        if (text::CompareIgnoringCase(found.name.c_str(), section) != 0) continue;
+        if (text::CompareIgnoringCase(found.name, section) != 0) continue;
         for (const Document::Line& line : found.lines)
             if (!line.name.empty()) values.push_back(line.value);
     }
@@ -241,7 +239,7 @@ std::vector<Document::Line> GetLines(const char* section) {
     Load(s);
     std::vector<Document::Line> lines;
     for (const Document::Section& found : s.document.sections) {
-        if (text::CompareIgnoringCase(found.name.c_str(), section) != 0) continue;
+        if (text::CompareIgnoringCase(found.name, section) != 0) continue;
         for (const Document::Line& line : found.lines)
             if (!line.name.empty()) lines.push_back(line);
     }

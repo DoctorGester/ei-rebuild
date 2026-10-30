@@ -81,9 +81,13 @@ launcher while testing, so the installed data is left untouched.
   `win32/graphics_win32.cpp`). Texture copies, readback and mip generation use the native API where this sokol
   revision has no equivalent API. Metal shares sokol's command queue and flushes only pending command buffers;
   empty commits otherwise rotate uniform storage without a fence and corrupt overlapping glyph draws.
-- Retina windows request high pixel density. Window/input coordinates remain SDL points; render targets and font
-  rasterization use backing pixels. A 1280x800-point window was verified at 2560x1600 pixels, including menu and
-  tutorial clicks. Saved resolution retains points, avoiding size doubling after a restart.
+- Retina windows request high pixel density, and the game sees pixels only: platform_sdl.cpp makes the window
+  VideoResolution / the display's content scale in points (1280x800 points for 2560x1600 on a 2x display), so its
+  drawable holds the configured resolution, and scales mouse positions, motion, ScreenToClient / ClientToScreen and
+  the cursor position by the window's pixel density. Nothing is written back to the settings. Native 2x is
+  VideoResolution 2560x1600.
+- Apple's libc++ has no float `std::from_chars`: settings_document.cpp's `ParseFloat` reads with `strtof` (the C
+  locale) where the library does not define `__cpp_lib_to_chars`, refusing what from_chars refuses.
 - `port_platform` covers path folding, file/mapping behavior, INI updates, single-instance exclusion, UDP,
   math edge cases, thread callbacks, caller capture and the existing 20,000+ settings checks. `port_render` runs
   the same 29 glyph cases as the Windows canvas checker, against its CPU pixel oracle: Cyrillic, shadows, clipping,
@@ -98,7 +102,7 @@ launcher while testing, so the installed data is left untouched.
 
 ## Remaining verification and features
 
-Windows builds and goldens must still be rerun after the shared compiler/renderer changes. The SDL scenario
+The SDL scenario
 harness and Linux GL runtime remain unfinished; no claim of simulation equivalence across compilers follows from
 these native checks. Fullscreen, resizing across displays, Intel Macs, multiplayer, long play sessions and movie
 playback still need coverage. The native cursor is presented with normal frames; optional between-frame cursor

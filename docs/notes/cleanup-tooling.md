@@ -221,7 +221,7 @@ glue, textures and surfaces, the music and the unit sound names), C30e moved the
   sound_manager.cpp is on SSE2 since C30a2 because those are basic float operations on floats and small
   integers: the original's 24-bit (PC24) x87 results, which float maths reproduces exactly (docs/notes/sound.md,
   "Floating point"). This is the way to move such a file: show that each decision is +, -, *, /, sqrt and compares
-  on floats in the original's order, then round with FISTP's ties to even (`_mm_cvtss_si32`, not `std::lround`). The
+  on floats in the original's order, then round with FISTP's ties to even (`lib::RoundEven`, not `std::lround`). The
   callers' maths (positions, radii, ambience volumes: terrain_ambience, unit_client_effects) is on SSE2: it can move a
   3D sound's level across 0 only at an exact boundary, and only matters when all 15 voices are taken. Sample lengths
   (`WaveLength`) are kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual
@@ -374,7 +374,7 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
 - **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_maths.cpp, SSE2 since C30e15): the original's
   sequences at the main thread's PC24 through `lib/pc24.h` and exact double-double / integer steps (C30e15 below).
   The host CRT's `std::pow` (player_client) is the UCRT's SSE2 pow, equal to the x87 build's `__CIpow` there.
-- **helpers**: `x87::fistp` / `RoundToInt` -> `lib::RoundEven` (CVTSS2SI: ties to even, 0x80000000 for a NaN, an
+- **helpers**: `x87::fistp` / `RoundToInt` -> `lib::RoundEven` (as CVTSS2SI: ties to even, 0x80000000 for a NaN, an
   infinity or out of range, as the x87 form: all 2^32 floats compared); `libcrt::Ftol` -> `static_cast<int>(static_cast<std::int64_t>(x))`
   where a NaN or a value beyond the int range can arrive (the low half; 0 for NaN, as `_ftol`: all 2^32 floats
   compared), else `static_cast<int>`; `x87::CopyBits` -> `=` (SSE2 copies keep a signalling NaN's bits);
@@ -455,8 +455,8 @@ far below 2^24. Kept double: `GroundHeight` / `StandPoint`'s world height and th
 threshold compare. ei_vectors builds unit_stats / unit_params_* / unit_skill_price for x87 still, with pc24.cpp in
 `ei_vectors_sse2` (C30e1's split) and crt_x87.cpp for `CiPow`.
 
-**Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
-Each one focused area, one worker session, after C30e4 where it has a transcendental:
+**The batches** (all done since C30e15; at the survey: 209 files, 57,575 lines; source counts `double` 1,640, `D(` 472,
+`x87::` 358, `Ftol(` 120). Each one focused area, one worker session, after C30e4 where it has a transcendental:
 
 | Ticket | Files | Lines | What keeps it x87 |
 |---|---|---|---|
@@ -744,9 +744,9 @@ The image keeps the main thread at 24-bit precision from the device's creation (
   original computed it.
 - The UCRT's `log2`, `exp2` and `cbrt` follow the precision control (sin, cos, pow, atan2, hypot, acos, asin, exp,
   log, floor, fmod, frexp, ldexp, fma, lround, lrint, atof do not: C30e15's scratch test at 007F and 027F).
-- Miles and Bink ran under the original's word; their mixing and decoding are not checked at 53 bits.
-render.cpp's `FpuGuard` puts the word back (only when it changed) around the renderer's library calls. The vector
-recorders' FNSTCW and the harness's control-word trace are game.exe's side and stay.
+No DLL with x87 code is loaded any more (sound and Bink are our own code). render.cpp's `FpuGuard` puts the word
+back (only when it changed) around the renderer's library calls; the x64 build guards MXCSR the same way. The
+harness's control-word trace (TraceFpu) logs a change.
 
 ### Selects on `>=` / `<=` (lib/float_select.h, C30e17)
 

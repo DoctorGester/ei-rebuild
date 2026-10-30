@@ -113,7 +113,7 @@ int Rand() {
     unsigned& seed = RandSeed();
     seed = seed * 214013u + 2531011u;
     const int value = static_cast<int>((seed >> 16) & 0x7FFF);
-    if (g_randObserver) g_randObserver(value, platform::ReturnAddress());
+    if (g_randObserver) g_randObserver(value, EI_RETURN_ADDRESS());
     return value;
 }
 

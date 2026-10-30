@@ -886,6 +886,9 @@ void AIBrain::HearAlarm(int slot) {
 void AIBrain::ResetBehaviour() {
     memory.Reset();
     int slot = alarmSlot;
+    // A unit without behaviour records (the party's) has nothing to apply: the game read past the list and
+    // could crash (Rebirth's ResetTarget reports it instead).
+    if (slot < 0 || slot >= std::ssize(alarmRecords)) return;
     ApplyBehaviour(&alarmRecords[slot], slot);
 }
 

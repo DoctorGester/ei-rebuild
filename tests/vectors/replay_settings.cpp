@@ -95,6 +95,7 @@ void Floats() {
     CHECK(settings::ParseFloat("3", &value) && value == 3.0f);
     CHECK(settings::ParseFloat("+0.5", &value) && value == 0.5f);
     CHECK(!settings::ParseFloat("", &value) && !settings::ParseFloat("1.5x", &value) && !settings::ParseFloat("true", &value));
+    // No second sign, white space, hex or out-of-range value; a failed parse leaves the value as it was.
     for (const char* bad : {"++1", " 1", "\t1", "1 ", "0x1p0", "-0x1p0", "1e100", "1e-1000"}) {
         value = 7.0f;
         CHECK_MSG(!settings::ParseFloat(bad, &value) && value == 7.0f, bad);
@@ -223,8 +224,7 @@ void Defaults() {
     is("renderer", "Anisotropy", "16");
     is("renderer", "PerfOverlay", "false");
     CHECK(!document.Find("rebirth", "WideScreen"));   // no switch: the layout follows the window
-    is("rebirth", "ObjectsDrawRadius", "5376");
-    is("rebirth", "LandscapeDrawRadius", "5376");
+    CHECK(!document.Find("rebirth", "ObjectsDrawRadius") && !document.Find("rebirth", "LandscapeDrawRadius"));   // the whole map
     // Left out: the game's and Rebirth's own defaults.
     CHECK(!document.Find("paths", "Work path") && !document.Find("game", "ShowTutorial") && !document.Find("rebirth", "AddonPath"));
     // Rebirth's patches: a comment only, each patch the game folder's profile.

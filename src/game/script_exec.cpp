@@ -287,11 +287,8 @@ bool ScriptRun::Execute(Script* script) {
         for (int i = 0; i < std::ssize(cmd->subCalls); ++i)
             cmd->CalcParameters(script, &vars, &cmd->subCalls[i]);
         cont = 1;
-        bool done = false;
-        if (scriptaddon::Enabled()) {
-            scriptaddon::Call call{cmd, script, nullptr, &cont, this};
-            done = scriptaddon::Dispatch(&call);
-        }
+        scriptaddon::Call call{cmd, script, nullptr, &cont, this};   // Rebirth's AddNewScriptCommands
+        const bool done = scriptaddon::Dispatch(&call);
 
         const float* f = cmd->floatArgs.data();
         const ScriptFunction function = done ? ScriptFunction::None : static_cast<ScriptFunction>(cmd->id);

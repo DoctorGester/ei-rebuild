@@ -171,9 +171,6 @@ bool DrawToWindow(const BlitBatch* cursor, bool overlay) {
         else if (platform::graphics::DeviceError()[0]) Fatal("Cannot present: %s", platform::graphics::DeviceError());
         return false;
     }
-    clientWidth = drawable.width;
-    clientHeight = drawable.height;
-    placed = Placed(clientWidth, clientHeight, frameWidth, frameHeight);
     if (g_rampDirty) {
         sg_image_data data{};
         data.mip_levels[0] = sg_range{g_ramp, sizeof(g_ramp)};

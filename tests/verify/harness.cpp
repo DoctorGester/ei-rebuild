@@ -176,6 +176,7 @@
 //                             the camera's motion frame by frame and its checks (harness_camera.h, R18, R35a)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
+//   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
@@ -2951,6 +2952,12 @@ void RunSteps() {
             else clock::SetFrameTime(std::strtoul(s.argument.c_str(), nullptr, 10));
         } else if (camera_trace::UsedBy(s.verb)) {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
+        } else if (s.verb == "checktick") {
+            const unsigned want = std::strtoul(s.argument.c_str(), nullptr, 10);
+            Log("harness: checktick: the update period is %u ms (wanted %u)", TickLength(), want);
+            if (TickLength() != want)
+                g_failures.push_back("checktick: the update period is " + std::to_string(TickLength()) + " ms, not " +
+                                     std::to_string(want));
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) TickLength() = g_heldTickLength;
@@ -2982,11 +2989,10 @@ void RunSteps() {
             if (!found) g_failures.push_back("expected console output '" + s.argument + "'");
             g_expectFrom = g_console.size();
         } else if (s.verb == "expectlog") {
-            char logPath[MAX_PATH];
-            ei::OutputPath("ei-rebuild.log", logPath);
+            const std::string logPath = ei::OutputPath("ei-rebuild.log");
             std::string text;   // the log without the harness's own echoes of its steps
             FILE* log = nullptr;
-            if ((log = _fsopen(logPath, "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
+            if ((log = _fsopen(logPath.c_str(), "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
                 char line[4096];
                 while (std::fgets(line, sizeof(line), log))
                     if (!std::strstr(line, "harness: ")) text += line;
@@ -3471,8 +3477,8 @@ std::string FocusStep(const std::string& argument) {
     return "focus needs off or on";
 }
 
-// windowsize <width> <height>: the game window resized (it is a WS_POPUP: its size is the client
-// area's), as the user or a display change could; the switch-over scales the frame into it.
+// windowsize <width> <height>: the game window's client area resized, as the user or a display change could; the
+// renderer scales the frame into it.
 std::string WindowSizeStep(const std::string& argument) {
     int width = 0, height = 0;
     if (sscanf_s(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
@@ -3480,6 +3486,11 @@ std::string WindowSizeStep(const std::string& argument) {
     HWND window = GameWindow();
     if (!window) return "windowsize: no game window yet";
     Log("harness: windowsize %dx%d", width, height);
+    RECT outer{}, client{};
+    GetWindowRect(window, &outer);
+    GetClientRect(window, &client);
+    width += outer.right - outer.left - client.right;   // the borders and the title bar, if any
+    height += outer.bottom - outer.top - client.bottom;
     SetWindowPos(window, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
     return "";
 }
@@ -3494,7 +3505,11 @@ void KeepGameWindowActive() {
     if (!g_gameWindowProc) {
         g_gameWindowProc = reinterpret_cast<WNDPROC>(
             SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
-        Log("harness: the game window stays active when it loses focus");
+        RECT outer{}, client{};
+        GetWindowRect(window, &outer);
+        GetClientRect(window, &client);
+        Log("harness: the game window stays active when it loses focus; window (%ld,%ld)-(%ld,%ld), client %ldx%ld",
+            outer.left, outer.top, outer.right, outer.bottom, client.right, client.bottom);
     }
     ActivateWithoutForeground(window);
 }
@@ -3680,7 +3695,7 @@ struct Harness {
         if (n == 0 || n >= MAX_PATH) return;
         // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
         // tell a run whose harness never started from one that is still going.
-        ei::OutputPath("harness_report.txt", g_reportPath);
+        strcpy_s(g_reportPath, ei::OutputPath("harness_report.txt").c_str());
         FILE* report = nullptr;
         fopen_s(&report, g_reportPath, "w");
         if (!LoadScenario(path)) {

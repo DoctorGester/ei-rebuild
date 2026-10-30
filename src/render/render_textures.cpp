@@ -8,7 +8,6 @@
 #include "render_internal.h"
 #include "render_ui.h"
 
-#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <iterator>
@@ -239,12 +238,9 @@ struct MmpImageCounts {
     std::uint64_t bytes = 0, mostHeld = 0;
     long long ticks = 0;
     ~MmpImageCounts() {
-
-        ei::Log("render: .mmp textures at exit: %ld made, %llu KB uploaded, at most %llu KB held at once, %.1f ms "
-                "making them",
+        ei::Log("render: .mmp textures at exit: %ld made, %llu KB uploaded, at most %llu KB held at once, %.1f ms making them",
                 made, static_cast<unsigned long long>(bytes / 1024), static_cast<unsigned long long>(mostHeld / 1024),
-                static_cast<double>(ticks) * 1000.0 * std::chrono::steady_clock::period::num /
-                    std::chrono::steady_clock::period::den);
+                static_cast<double>(ticks) * kMsPerTick);
     }
 } g_mmpImageCounts;
 
@@ -428,7 +424,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
         return false;
     }
 #if defined(EI_RENDER_VALIDATION)
-    const auto started = std::chrono::steady_clock::now();
+    const long long started = Ticks();
 #endif
     MmpLevels read;
     std::uint32_t first = 0, end = 0;
@@ -447,7 +443,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     source.levels = levels;
     bool made = StoreMmp(holder, std::move(read), std::move(source));
 #if defined(EI_RENDER_VALIDATION)
-    CountMmpImage(holder, (std::chrono::steady_clock::now() - started).count());
+    CountMmpImage(holder, Ticks() - started);
 #endif
     return made;
 }

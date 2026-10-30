@@ -13,7 +13,6 @@
 #include "render/render.h"
 
 #include <cstdlib>
-#include <mbctype.h>
 #include <windows.h>
 
 #include <cstdint>
@@ -138,10 +137,7 @@ int StandaloneMain(bool run, const char* arguments) {
         return 1;
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs the
-    // functions the initialisers registered with atexit). The multibyte code page (__initmbctable, game.exe's C
-    // initialiser) is the CRT's, set at its own start-up; here a single-byte one, so _splitpath sees no lead bytes
-    // whatever the system's ANSI code page (the text is UTF-8).
-    _setmbcp(_MB_CP_SBCS);
+    // functions the initialisers registered with atexit).
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();

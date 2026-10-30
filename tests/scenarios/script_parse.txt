@@ -64,9 +64,12 @@ console #Add(1 2)
 expect Script error: Expected ','
 console #Add(1)
 expect Script error: Not enough parameters
+# Add takes any number of arguments since C68 (Rebirth's AddNewScriptCommands); the game's "Too much
+# parameters" is tested with IsEqual below.
 console #Add(1,2,3)
-# Rebirth changes this check itself (its own parser patch), so only vanilla prints the message.
-vanilla expect Script error: Too much parameters
+expect 6
+console #IsEqual(1,2,3)
+expect Script error: Too much parameters
 console #Add(GetLeader(),1)
 expect Script error: Parameter of type float expected
 console #IsEqualString(1,"a")

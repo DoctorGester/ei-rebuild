@@ -1,26 +1,26 @@
 // WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
+#include "model.h"
+#include "options.h"
+#include "world.h"
+
 #include "core_maths.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
-#include "model.h"
 #include "object_tables.h"
-#include "options.h"
-#include "terrain.h"
-#include "world.h"
-#include "world_data.h"
-
 #include "lib/containers.h"
-#include "lib/float_select.h"
-#include "lib/nan_audit.h"
-#include "lib/pc24.h"
-#include "lib/vecmath.h"
+#include "terrain.h"
 
 #include <cmath>
 #include <cstring>
 #include <memory>
 #include <vector>
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/vecmath.h"
+#include "world_data.h"
 
 namespace {
 

@@ -4,13 +4,13 @@
 // and the music state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
-#include "platform/platform.h"
 #include "registry.h"
 #include "resource_stream.h"
 
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>

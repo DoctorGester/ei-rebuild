@@ -2,12 +2,12 @@
 
 // The software mouse cursor (docs/notes/ui.md, "Cursor").
 
-#include "platform/platform.h"
+#include <cstddef>
 
 #include "lib/containers.h"
 #include "lib/rect.h"
+#include "platform/platform.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <vector>

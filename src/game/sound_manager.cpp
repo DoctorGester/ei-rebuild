@@ -10,26 +10,25 @@
 // operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
 #include "game_strings.h"
-#include "mod_folders.h"
-#include "platform/platform.h"
-#include "random.h"
-#include "sound.h"
-
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
+#include "mod_folders.h"
+#include "random.h"
+#include "sound.h"
 
 #include <bit>
 #include <cmath>
+#include <mutex>
 #include <concepts>
 #include <cstring>
 #include <memory>
-#include <mutex>
 #include <new>
 #include <string>
 #include <vector>

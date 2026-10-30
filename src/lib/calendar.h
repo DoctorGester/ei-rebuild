@@ -1,7 +1,7 @@
 #pragma once
 
 // The game's dates as a 32-bit time_t (seconds since 1970 UTC; the saves' info.sav keeps one), as MFC's CTime had
-// them: made with the C library's mktime.
+// them: made with the C library's mktime (platform::FormatLocalTime writes them).
 
 #include <cstdint>
 

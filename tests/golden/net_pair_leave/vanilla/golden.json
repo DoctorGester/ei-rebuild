@@ -2,11 +2,11 @@
   "scenario": "net_pair_leave",
   "install": "vanilla",
   "recorded": "2026-10-30",
-  "commit": "c92e57b",
+  "commit": "c1b726e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "W12: vanilla runs in the 4:3 window (960x720); the desktop scenarios' vanilla runs too",
+  "repeated_in": 2,
+  "reason": "C68: the main menu's script runs (AllowScriptsInMainMenu folded: its start-block run ends, record 0 of every run); addon's console commands in help (console); Add takes any argument count and IsEqual tests too many (script_parse); ResetTarget without behaviour records applies nothing (rebirth_flags); the whole map drawn (no draw radii: far units' client animation start / orientation, idle animations in bz1g, four more water sectors animated). Diffs: runs 41102852197 and 41107997893.",
   "source": "image"
 }

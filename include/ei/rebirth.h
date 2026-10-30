@@ -5,7 +5,7 @@
 // (docs/notes/rebirth.md lists all of them). Rewritten code reproduces a patch behind a flag named
 // exactly as addon.log names the patch, so a Rebirth patch maps 1:1 to a flag:
 //
-//     if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) { ...patched behaviour... }
+//     if (ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)) { ...patched behaviour... }
 //
 // Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour (C68) and have no flag. Every
 // flag is off by default and can be switched either way. Every flag is off until Reset, which the standalone image's
@@ -19,7 +19,7 @@
 // ei_settings.ini (a comment is a line of its own: the rest of a value line is its value):
 //     [patches]
 //     ; any name from rebirth_patches.inc, true or false (absent: the profile's)
-//     AllowScriptsInMainMenu = true
+//     CameraPatch = true
 //     ; EI_Plugin's player count and pause mode (absent: the profile's)
 //     NPlayers = 7
 //     Pause = 1
@@ -28,6 +28,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 namespace ei::rebirth {
 
@@ -64,8 +66,8 @@ void SetPluginPause(int mode);
 // hat.gipath.org:28004): "host[:port]" (port 28004 when left out), from the settings file's [patches]
 // SecondMaster or a spec's "SecondMaster=<address>". Empty (the default, and every harness run that
 // does not name one): no second master at all, the game's own code (net_second_master.h).
-const char* PluginSecondMaster();
-void SetPluginSecondMaster(const char* address);
+const std::string& PluginSecondMaster();
+void SetPluginSecondMaster(std::string_view address);
 
 const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);

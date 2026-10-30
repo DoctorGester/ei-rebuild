@@ -9,6 +9,8 @@
 #define SDL_MAIN_HANDLED   // SDL_main.h only for SDL_RegisterApp: the program keeps its own entry
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -418,14 +420,24 @@ int Buttons() {
     return g_buttons | ((mod & SDL_KMOD_SHIFT) ? kMouseShift : 0) | ((mod & SDL_KMOD_CTRL) ? kMouseControl : 0);
 }
 
-int Whole(float coordinate) { return static_cast<int>(std::floor(coordinate)); }
+// Pixels a window point holds: SDL's mouse and window coordinates are points, the game's (its input, its frame, the
+// renderer's drawable) pixels. On macOS a point is 2 pixels on Retina; elsewhere 1.
+float PixelsPerPoint() {
+#if defined(__APPLE__)
+    if (const float density = g_window ? SDL_GetWindowPixelDensity(g_window) : 0.0f; density > 0.0f) return density;
+#endif
+    return 1.0f;
+}
+
+// A coordinate in points as whole pixels.
+int Pixels(float points) { return static_cast<int>(std::floor(points * PixelsPerPoint())); }
 
 void QueueMouse(EventType type, float x, float y) {
     Event event;
     event.type = type;
     event.buttons = Buttons();
-    event.x = static_cast<std::int16_t>(Whole(x));
-    event.y = static_cast<std::int16_t>(Whole(y));
+    event.x = static_cast<std::int16_t>(Pixels(x));
+    event.y = static_cast<std::int16_t>(Pixels(y));
     Queue(event);
 }
 
@@ -455,8 +467,8 @@ void TakeWheel(const SDL_MouseWheelEvent& w) {
     event.type = EventType::Wheel;
     event.buttons = Buttons();
     event.wheelDelta = delta;
-    event.x = static_cast<std::int16_t>(Whole(w.mouse_x) + left);
-    event.y = static_cast<std::int16_t>(Whole(w.mouse_y) + top);
+    event.x = static_cast<std::int16_t>(Pixels(w.mouse_x + static_cast<float>(left)));
+    event.y = static_cast<std::int16_t>(Pixels(w.mouse_y + static_cast<float>(top)));
     Queue(event);
 }
 
@@ -468,8 +480,8 @@ void Take(const SDL_Event& e) {
     case SDL_EVENT_KEY_UP: TakeKey(e.key); break;
     case SDL_EVENT_TEXT_INPUT: TakeText(e.text.text); break;
     case SDL_EVENT_MOUSE_MOTION:
-        g_motionX += Whole(e.motion.xrel);
-        g_motionY += Whole(e.motion.yrel);
+        g_motionX += Pixels(e.motion.xrel);
+        g_motionY += Pixels(e.motion.yrel);
         QueueMouse(EventType::MouseMove, e.motion.x, e.motion.y);
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -530,14 +542,22 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
         DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
 }
 
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int& width, int& height, bool fullScreen) {
+NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
+#if defined(__APPLE__)
+    // The window in points, so that its drawable holds `width` x `height` pixels (on Retina half as many points).
+    if (const float scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay()); scale > 0.0f) {
+        width = static_cast<int>(std::lround(static_cast<float>(width) / scale));
+        height = static_cast<int>(std::lround(static_cast<float>(height) / scale));
+    }
+#endif
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, fullScreen ? 0 : SDL_WINDOWPOS_CENTERED);
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, fullScreen ? 0 : SDL_WINDOWPOS_CENTERED);
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, 0);
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, 0);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
 #if defined(__APPLE__)
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);
@@ -546,11 +566,20 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int& width, int
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;
+    SDL_Rect work{};
+    if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
+        int top = 0, left = 0, bottom = 0, right = 0;   // the borders and the title bar (none where SDL cannot tell)
+        SDL_GetWindowBordersSize(g_window, &top, &left, &bottom, &right);
+        width = std::min(width, work.w - left - right);
+        height = std::min(height, work.h - top - bottom);
+        SDL_SetWindowSize(g_window, width, height);
+        SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - width) / 2,
+                              work.y + top + (work.h - top - bottom - height) / 2);
+    }
 #if defined(_WIN32)
     g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #else
     g_native = g_window;
-    SDL_GetWindowSizeInPixels(g_window, &width, &height);
 #endif
     SDL_StartTextInput(g_window);
     return g_native;
@@ -579,15 +608,15 @@ void RepaintDesktop() {}
 void ScreenToClient(NativeWindow window, Point* point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x -= left;
-    point->y -= top;
+    point->x -= Pixels(static_cast<float>(left));
+    point->y -= Pixels(static_cast<float>(top));
 }
 
 void ClientToScreen(NativeWindow window, Point* point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x += left;
-    point->y += top;
+    point->x += Pixels(static_cast<float>(left));
+    point->y += Pixels(static_cast<float>(top));
 }
 
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
@@ -682,7 +711,7 @@ void MapCursorPoints(PointMap toGame, PointMap toScreen) {
 bool CursorPosition(Point* at) {
     float x = 0.0f, y = 0.0f;
     SDL_GetGlobalMouseState(&x, &y);
-    Point point{Whole(x), Whole(y)};
+    Point point{Pixels(x), Pixels(y)};
     if (g_toGame) g_toGame(&point);
     *at = point;
     return true;
@@ -690,7 +719,7 @@ bool CursorPosition(Point* at) {
 
 void SetCursorPosition(Point at) {
     if (g_toScreen) g_toScreen(&at);
-    SDL_WarpMouseGlobal(static_cast<float>(at.x), static_cast<float>(at.y));
+    SDL_WarpMouseGlobal(static_cast<float>(at.x) / PixelsPerPoint(), static_cast<float>(at.y) / PixelsPerPoint());
 }
 
 // ==== The mouse ======================================================================================================

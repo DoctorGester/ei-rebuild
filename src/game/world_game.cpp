@@ -46,7 +46,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "ei/rebirth.h"
 
 #include <algorithm>
 #include <bit>
@@ -936,8 +935,8 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         int hour = now.hour;
         g_serverWorld.SetTime(static_cast<float>(minute) * 0.016666668f + static_cast<float>(hour));
         result = kResultMainMenu;
-        // Rebirth's AllowScriptsInMainMenu: the first script command queue runs in the menu too.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) g_serverWorld.scriptsActive = 1;
+        // The first script command queue runs in the menu too (Rebirth's AllowScriptsInMainMenu).
+        g_serverWorld.scriptsActive = 1;
     } else if (mode == kModeEndOfGame) {
         result = kResultPlaying;
     } else {

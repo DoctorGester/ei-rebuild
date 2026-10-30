@@ -1,16 +1,13 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
-#include "../hook/log.h"
-#include "acks_db.h"
-#include "app.h"
-#include "app_helpers.h"
-#include "asset_text.h"
 #include "bink_video.h"
+#include "engine_object.h"
+#include "app.h"
+#include "acks_db.h"
+#include "asset_text.h"
+#include "app_helpers.h"
 #include "camera.h"
 #include "class_templates.h"
 #include "console.h"
-#include "engine_object.h"
-#include "game_data.h"
-#include "game_singletons.h"
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"
@@ -19,38 +16,41 @@
 #include "object_tables.h"
 #include "options.h"
 #include "party_records.h"
-#include "platform/platform.h"
 #include "quest_records.h"
 #include "sound.h"
-#include "text_split.h"
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ui_widescreen.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_data.h"
-#include "world_glue.h"
-
-#include "lib/crt.h"
-#include "lib/path.h"
-#include "lib/pc24.h"
-#include "lib/str.h"
-#include "lib/text_case.h"
-#include "lib/vecmath.h"
 
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
-
-#include <bit>
-#include <cmath>
+#include "lib/crt.h"
+#include "lib/pc24.h"
+#include "platform/platform.h"
+#include "lib/text_case.h"
+#include "text_split.h"
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <format>
 #include <string>
+#include <string_view>
+#include "lib/str.h"
+#include "lib/vecmath.h"
+#include "world_glue.h"
+#include "../hook/log.h"
+#include "game_data.h"
+#include "game_singletons.h"
+#include "world_data.h"
+
+#include <cmath>
+#include <cstdlib>
+
+#include <bit>
+#include <cstdio>
+#include <format>
 
 using options::GameOptions;
 
@@ -176,21 +176,10 @@ void RegisterWindowClass(platform::NativeInstance instance) {
     std::exit(-1);
 }
 
-struct PathParts {
-    char drive[0x80];
-    char directory[0x400];
-    char name[0x80];
-    char extension[0x80];
-};
-
 // "<drive>\." of `path`: the root the volume calls take.
-void DriveRoot(const char* path, PathParts& parts) {
-    lib::SplitPath(path, parts.drive, parts.directory, parts.name, parts.extension);
-    std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
+std::string DriveRoot(std::string_view path) {
+    return std::string(path.size() >= 2 && path[1] == ':' ? path.substr(0, 2) : "") + "\\.";
 }
-
-// The free bytes on the drive of `folder`; 0 when unknown.
-double FreeDiskSpace(const char* folder) { return platform::FreeDiskSpace(folder); }
 
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
@@ -204,12 +193,11 @@ bool WarningAccepted(const std::string& text) {
 bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = g_discFolder;
     std::string dataFolder = g_dataFolder;
-    const double freeBytes = FreeDiskSpace(dataFolder.c_str());
+    const double freeBytes = platform::FreeDiskSpace(dataFolder.c_str());
     if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
     if (str::Compare(dataFolder, discFolder) != 0) {
-        PathParts parts;
-        DriveRoot(discFolder.c_str(), parts);
-        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(parts.drive)) != 0) {
+        const std::string root = DriveRoot(discFolder.c_str());
+        while (str::Compare(options::g_options.cdLabels[1], platform::VolumeLabel(root.c_str())) != 0) {
             if (!WarningAccepted(messages[kInsertDisc])) return false;
         }
     }
@@ -549,6 +537,9 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
         g_logicSettings.Load(settings);
     }
     options->Load();
+    // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
+    // smaller client area (a work area too small for it), and the renderer scales the frame into it.
+    widescreen::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
     g_serverWorld.Create();
@@ -566,7 +557,6 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY,
                                               options->fullScreen != 0);
     if (!g_mainWindow) return 0;
-    widescreen::Configure(options->resolutionX, options->resolutionY);
     platform::ShowGameWindow(g_mainWindow, show);
     platform::SetCursor(nullptr);
 

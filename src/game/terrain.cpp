@@ -260,7 +260,7 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
 
 // --- Passes ------------------------------------------------------------------------------------------
 
-// The landscape's draw passes (terrain.h), called by the client's draw after Terrain::SetVisibleSectors:
+// The landscape's draw passes (terrain.h), called by the client's draw after Terrain::ShowAllSectors:
 // the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
 // renderer's pipeline, prepares every visible sector (the clip test of the sector and its quarters)
 // and hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles
@@ -271,7 +271,7 @@ namespace {
 
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
-// Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is there once built.
+// Calls `visit(sector)` for every visible sector (ShowAllSectors' rows and columns) that is there once built.
 template <typename Visit>
 void ForVisibleSectors(Terrain* terrain, Visit visit) {
     const Terrain::SectorRect& visible = terrain->visible;

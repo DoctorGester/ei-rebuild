@@ -105,8 +105,9 @@ public:
     // The ground height at (x, y), raised to the water surface where it is under water.
     float SurfaceHeight(float x, float y);
 
-    // A square of sectors: each bound is (coordinate -/+ radius - 0.5) rounded to nearest / 32, clamped to the map.
-    void SetVisibleSectors(float x, float y, float radius);
+    // Every sector of the map is visible (the passes clip-test each one). The game took a square of sectors around
+    // the camera, 100 units each way; Rebirth's LandscapeDrawRadius widened it to the whole map.
+    void ShowAllSectors();
 
     // The ambient sounds, the waves, then the animation of each drawn visible sector. Returns true.
     bool RunTick() override;
@@ -134,7 +135,7 @@ public:
     // Sector (sx, sy)'s pending water level change per material.
     std::span<float> SectorWaterLevels(int sx, int sy);
 
-    // The visible sectors (SetVisibleSectors): columns firstX..lastX of rows firstY..lastY.
+    // The visible sectors (ShowAllSectors): columns firstX..lastX of rows firstY..lastY.
     struct SectorRect {
         int firstX = 0, firstY = 0, lastX = -1, lastY = -1;
     };

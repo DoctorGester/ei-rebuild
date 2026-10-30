@@ -26,7 +26,7 @@ void RemoveIfAsked();
 int Removals();
 constexpr long kDeviceRemoved = static_cast<std::int32_t>(0x887A0005u);
 
-// Window dimensions are client points for input. AcquireDrawable returns backing-pixel dimensions.
+// The window's client area in pixels: the drawable AcquireDrawable gives has the same size.
 bool WindowSize(void* window, int* width, int* height);
 bool AcquireDrawable(void* window, bool vsync, bool allowTearing, sg_swapchain* drawable);
 bool PresentDrawable(bool vsync);

@@ -3,26 +3,26 @@
 // window's first surface. Rebirth's WideScreen patches it (the caret's points scaled without the margin),
 // which this reproduces behind the flag. Rebirth-patched callees: the surface's text, the text extent, the
 // point scaling and the sprite's Place. See ui.h (SaveLoadWindow) and docs/notes/items_spells.md.
-#include "game_singletons.h"
-#include "platform/platform.h"
-#include "render/text_format.h"
-#include "text_manager.h"   // TextManager
 #include "ui.h"
+
+#include "text_manager.h"       // TextManager
+#include "game_singletons.h"
 #include "world.h"
 #include "world_glue.h"
 
+#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
+#include "platform/platform.h"
+#include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-
-#include "ei/rebirth.h"
+#include "render/text_format.h"
 
 #include <cstdint>
 #include <cstring>
-#include <string>
 
 namespace {
 

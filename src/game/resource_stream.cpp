@@ -2,23 +2,43 @@
 // listing, and the MMIOResource constructors and destructors (ResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
-#include "resource_stream.h"
-
-#include "mod_folders.h"
-#include "platform/platform.h"
+#include "lib/text_case.h"
 #include "resource.h"
+#include "resource_stream.h"
+#include "mod_folders.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <string_view>
 
 #include "lib/crt.h"
-#include "lib/path.h"
-#include "lib/text_case.h"
+#include "platform/platform.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <new>
-#include <string>
 
 namespace {
+
+// A name's parts as _splitpath gives them: the drive ("C:"), the folder up to its last separator (either slash), the
+// name, and the extension from the name's last dot.
+struct PathParts {
+    std::string drive, directory, name, extension;
+};
+
+PathParts SplitPath(std::string_view path) {
+    PathParts parts;
+    if (path.size() >= 2 && path[1] == ':') {
+        parts.drive = path.substr(0, 2);
+        path.remove_prefix(2);
+    }
+    const std::size_t folderEnd = path.find_last_of("\\/") + 1;   // 0 without a separator
+    parts.directory = path.substr(0, folderEnd);
+    path.remove_prefix(folderEnd);
+    const std::size_t dot = path.find_last_of('.');
+    parts.name = path.substr(0, dot);
+    if (dot != std::string_view::npos) parts.extension = path.substr(dot);
+    return parts;
+}
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -104,15 +124,15 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
         std::memcpy(name, names + entry.nameOffset, entry.nameLength);
         name[entry.nameLength] = '\0';
         if (pattern != nullptr) {
-            char nameDrive[4], patternDrive[4];
-            char nameDir[0x100], patternDir[0x100];
-            char nameBase[0x100], patternBase[0x100];
-            char nameExt[0x100], patternExt[0x100];
-            lib::SplitPath(name, nameDrive, nameDir, nameBase, nameExt);
-            lib::SplitPath(pattern, patternDrive, patternDir, patternBase, patternExt);
-            if (!PartMatches(nameDrive, patternDrive) || !PartMatches(nameDir, patternDir)) continue;
+            const PathParts nameParts = SplitPath(name);
+            const PathParts patternParts = SplitPath(pattern);
+            if (!PartMatches(nameParts.drive.c_str(), patternParts.drive.c_str()) ||
+                !PartMatches(nameParts.directory.c_str(), patternParts.directory.c_str()))
+                continue;
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
-            if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
+            if (WildcardMatch(nameParts.name.c_str(), patternParts.name.c_str(), 0) == 0 ||
+                WildcardMatch(nameParts.extension.c_str(), patternParts.extension.c_str(), 1) == 0)
+                continue;
         }
         fileNames.push_back(name);
     }

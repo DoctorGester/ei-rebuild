@@ -1,13 +1,11 @@
 // The standalone image's start-up actions and its Rebirth flags (docs/notes/standalone.md, "The drop-in exe").
+#include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "game/settings.h"
 #include "hook/log.h"
 #include "hook/rebirth_hook.h"
-#include "platform/platform.h"
-
 #include "lib/text_case.h"
-
-#include "ei/hook.h"
-#include "ei/rebirth.h"
+#include "platform/platform.h"
 
 #include <cstring>
 #include <string>
@@ -51,7 +49,7 @@ void ApplyPatchSetting(const ::settings::Document::Line& line) {
     rebirth::Patch patch;
     int number = 0;
     bool on = false;
-    if (text::CompareIgnoringCase(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value.c_str());
+    if (text::CompareIgnoringCase(name, "SecondMaster") == 0) rebirth::SetPluginSecondMaster(value);
     else if (text::CompareIgnoringCase(name, "NPlayers") == 0 && ::settings::ParseInt(value, &number))
         rebirth::SetPluginNPlayers(number);
     else if (text::CompareIgnoringCase(name, "Pause") == 0 && ::settings::ParseInt(value, &number))
@@ -88,12 +86,12 @@ void LoadRebirthSettings() {
     const std::vector<::settings::Document::Line> lines = ::settings::GetLines(::settings::kPatches);
     for (const ::settings::Document::Line& line : lines) ApplyPatchSetting(line);
     if (!lines.empty()) rebirth::ApplyOverrides();
-    if (const char* master = rebirth::PluginSecondMaster(); master[0])
-        Log("Rebirth: NewMaster's second master server: %s", master);
+    if (const std::string& master = rebirth::PluginSecondMaster(); !master.empty())
+        Log("Rebirth: NewMaster's second master server: %s", master.c_str());
     rebirth_hook::LogFlags();
 }
 
-}   // namespace
+} // namespace
 
 StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
     g_startupActions = &entry;
@@ -107,4 +105,4 @@ void RunStartupActions() {
     }
 }
 
-}   // namespace ei
+} // namespace ei

@@ -24,7 +24,6 @@
 #include "unit_db.h"
 #include "world.h"
 #include "world_glue.h"
-#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -212,7 +211,6 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     case kActionNormalSpeed:
     case kActionFastSpeed: {
         if (g_clientWorld.paused) return;
-        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->SetSpeed(action == kActionFastSpeed);
         return;
     }

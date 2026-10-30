@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash D6EE1045 n 68
 + world world
 world tick 20
 world updates 20
@@ -41,7 +41,7 @@ world exits 0
 world gameResult 4
 world lastRainBoltTick 0
 world zoneLoaded 1
-world scriptsActive 0
+world scriptsActive 1
 world start.x 0.0
 world start.y 0.0
 world start.z 0.0
@@ -317,8 +317,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run D19ED846
-script #runs 8F0E1077
+script #runs F80920E1
 + client client
 client tick 20
 client paused 0
@@ -344,7 +343,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 595DFFAE n 68
+@ 1 update 40 frame 7 tick 20 zone - hash 3C02EF2A n 68
 world updates 40
 world paused 1
 client tick 21
@@ -355,16 +354,16 @@ cunit129 #place 3302A9EB
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-@ 2 update 60 frame 11 tick 20 zone - hash 61E5F2D6 n 68
+@ 2 update 60 frame 11 tick 20 zone - hash 58FBCD90 n 68
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash D950D994 n 68
+@ 3 update 80 frame 15 tick 20 zone - hash 57662978 n 68
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash F9DE8E40 n 68
+@ 4 update 100 frame 19 tick 20 zone - hash 80B8E8BB n 68
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash 07CA7F2D n 68
+@ 5 update 120 frame 23 tick 20 zone - hash 5B461994 n 68
 world updates 120
 client ticksRun 117
 @ 6 update 140 frame 27 tick 40 zone gz1g hash 5AC6BDAE n 791
@@ -378,7 +377,6 @@ world windStrength 0x3E4CCCCD
 world nightLevel 0x3F800000
 world exits 2
 world gameResult 1
-world scriptsActive 1
 world sessionKind 1
 world objects 778
 world mapObjects 55
@@ -2313,7 +2311,7 @@ client ticksRun 182
 @ 16 update 340 frame 67 tick 65 zone gz1g hash 0B9B48DB n 791
 world updates 340
 client ticksRun 202
-@ 17 update 360 frame 71 tick 77 zone gz1g hash E00B7AE2 n 790
+@ 17 update 360 frame 71 tick 77 zone gz1g hash 9E51CF88 n 790
 world tick 77
 world updates 360
 world objects 777
@@ -2364,17 +2362,17 @@ cunit1804 #unit 5772E82F
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit AE85C484
+cunit1100011214 #unit 32BAE0C8
 cunit1100011214 #vitals 54F14E8E
-@ 18 update 380 frame 75 tick 77 zone gz1g hash 842740C4 n 790
+@ 18 update 380 frame 75 tick 77 zone gz1g hash FA7DF5AE n 790
 world updates 380
 client ticksRun 242
-@ 19 update 400 frame 79 tick 77 zone gz1g hash 5AAF2938 n 790
+@ 19 update 400 frame 79 tick 77 zone gz1g hash 24F59C52 n 790
 world updates 400
 client ticksRun 262
-@ 20 update 420 frame 83 tick 77 zone gz1g hash 21676D43 n 790
+@ 20 update 420 frame 83 tick 77 zone gz1g hash 5F3DD829 n 790
 world updates 420
 client ticksRun 282
-@ 21 update 440 frame 87 tick 77 zone gz1g hash F57B6F6C n 790
+@ 21 update 440 frame 87 tick 77 zone gz1g hash 8B21DA06 n 790
 world updates 440
 client ticksRun 302

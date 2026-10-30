@@ -6,13 +6,12 @@
 
 #include "game_singletons.h"
 #include "model.h"
-#include "platform/platform.h"
-#include "render/render.h"
 #include "surface.h"
 #include "texture.h"
 #include "world.h"
-
 #include "lib/crt.h"
+#include "platform/platform.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstdlib>

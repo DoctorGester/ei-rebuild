@@ -2,20 +2,18 @@
 // those of SDL3 (src/platform/sdl; in the harness's builds platform_win32_window.cpp), the sound and the movies. Most
 // calls go through game.exe's import slots (gameapi::X), as the game made them: the harness's routes and the image's
 // UTF-8 routes are in those slots. A call that never went through a slot calls the system directly.
-// clang-format off
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
-// clang-format on
 
-#include "platform/win32/platform_win32.h"
-
-#include "hook/log.h"   // the shared opens' check (temporary)
 #include "platform/platform.h"
-#include "platform/win32/gameapi.h"
 
+#include "platform/win32/gameapi.h"
+#include "platform/win32/platform_win32.h"
+#include "hook/log.h"   // the shared opens' check (temporary)
 #include "lib/text_case.h"
 
+#include <windows.h>
+
 #include <algorithm>
-#include <charconv>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -24,7 +22,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <windows.h>
 
 #pragma comment(lib, "ws2_32.lib")   // WSAGetLastError, which game.exe does not import
 
@@ -57,6 +54,23 @@ std::string Utf8(std::wstring_view wide) {
 } // namespace
 
 } // namespace platform::win32
+
+// ==== Clocks =========================================================================================================
+
+// The C library's local time (the clocks themselves are the window layer's: platform_sdl.cpp,
+// platform_win32_window.cpp).
+
+namespace platform {
+
+std::string FormatLocalTime(std::int64_t seconds, const char* format) {
+    char text[128];
+    std::tm local{};
+    const std::time_t time = seconds;
+    if (localtime_s(&local, &time) != 0 || std::strftime(text, sizeof(text), format, &local) == 0) text[0] = '\0';
+    return text;
+}
+
+} // namespace platform
 
 // ==== Output for a developer =========================================================================================
 
@@ -1064,24 +1078,3 @@ LPSTR WINAPI CharLowerA(LPSTR text) { return ChangeCase(text, LowerCodePoint, Lo
 } // namespace utf8
 
 } // namespace text
-
-namespace platform {
-
-std::string FormatLocalTime(std::int32_t seconds, const char* format) {
-    char buffer[128];
-    std::tm at{};
-    const std::time_t value = seconds;
-    const bool valid = localtime_s(&at, &value) == 0;
-    if (!valid || !std::strftime(buffer, sizeof(buffer), format, &at)) buffer[0] = '\0';
-    return buffer;
-}
-
-bool ParseFloat(std::string_view text, float* value) {
-    float number = 0;
-    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
-    if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size()) return false;
-    *value = number;
-    return true;
-}
-
-}   // namespace platform

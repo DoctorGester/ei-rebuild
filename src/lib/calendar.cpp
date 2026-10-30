@@ -16,6 +16,7 @@ std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int se
     at.tm_mon = month - 1;
     at.tm_year = year - 1900;
     at.tm_isdst = -1;
+    // _mktime32's range: -1 before 1970 and after 2038.
     const std::time_t time = std::mktime(&at);
     return time < 0 || time > INT32_MAX ? -1 : static_cast<std::int32_t>(time);
 }

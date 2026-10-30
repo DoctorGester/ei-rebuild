@@ -31,8 +31,7 @@ COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 PLATFORM_CONDITION = re.compile(
     r'^\s*#\s*(?:if|elif|ifdef|ifndef|define|undef)\b[^\n]*\b(?:_WIN32|_WIN64|_MSC_VER|__APPLE__|__linux__|__unix__|'
     r'__GNUC__|__clang__|__aarch64__|__x86_64__|SOKOL_D3D11|SOKOL_METAL|SOKOL_GLCORE|SOKOL_GLES3|SOKOL_WGPU)\b', re.M)
-COMPILER_ANNOTATION = re.compile(r'\b(?:EI_FORCE_INLINE|EI_NOINLINE|EI_THREAD_CALL|EI_RETURN_ADDRESS|'
-                                 r'__forceinline|__declspec|__attribute__|__stdcall|_ReturnAddress|_AddressOfReturnAddress)\b')
+COMPILER_ANNOTATION = re.compile(r'\b(?:__forceinline|__declspec|__attribute__|__stdcall|_ReturnAddress|_AddressOfReturnAddress)\b')
 BACKEND_CALL = re.compile(r'\bsg_(?:d3d11|mtl|gl)_\w+\s*\(')
 
 

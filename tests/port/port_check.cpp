@@ -2,7 +2,6 @@
 #include "platform/platform.h"
 
 #include "lib/float_select.h"
-#include "lib/path.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -25,18 +24,12 @@ void Check(bool ok, const char* message) {
         std::exit(1);
     }
 }
+// The first word of EI_CALLER_FRAME() is the function's return address, EI_RETURN_ADDRESS() (the observers scan on).
+[[gnu::noinline]] bool CallerCaptured() { return EI_CALLER_FRAME()[0] == EI_RETURN_ADDRESS(); }
 }
 int main() {
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
-    bool observed = false;
-    platform::ObserveCallers(
-        [&](const void* expected, void* const* callers) {
-            Check(expected && callers[0] == expected, "observer captures its caller without a platform frame");
-            for (int i = 1; i < 64; ++i) Check(callers[i] == nullptr, "unused caller words are zero");
-            observed = true;
-        },
-        platform::ReturnAddress());
-    Check(observed, "caller observer invoked");
+    Check(CallerCaptured(), "caller frame starts at the return address");
     Check(platform::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');
     Check(platform::FormatLocalTime(0, tooLong.c_str()).empty(), "reject oversized saved timestamp text");
@@ -90,11 +83,6 @@ int main() {
     Check(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0,
           "second instance sees lock owner");
 
-    char drive[4], dir[64], name[64], ext[16];
-    lib::SplitPath("C:\\Res/sub\\Database.res", drive, dir, name, ext);
-    Check(std::string(drive) == "C:" && std::string(dir) == "\\Res/sub\\" && std::string(name) == "Database" &&
-              std::string(ext) == ".res",
-          "asset path split");
     Check(lib::RoundEven(0.5f) == 0 && lib::RoundEven(1.5f) == 2 && lib::RoundEven(-2.5f) == -2, "round ties to even");
     Check(lib::RoundEven(std::numeric_limits<float>::quiet_NaN()) == INT32_MIN, "round NaN sentinel");
     Check(lib::RoundEven(2147483648.0f) == INT32_MIN, "round overflow sentinel");

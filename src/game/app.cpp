@@ -138,8 +138,7 @@ std::intptr_t HandleWindowEvent(const platform::Event& event) {
 }
 
 std::intptr_t DispatchInput(const platform::Event& received) {
-    // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
-    // (present_window.h; unchanged otherwise).
+    // The mouse's coordinates as the frame's (present_window.h).
     platform::Event event = received;
     present_window::MouseToGame(&event);
     Interface3D* input = &g_interface;

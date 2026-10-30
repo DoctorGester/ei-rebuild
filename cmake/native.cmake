@@ -36,7 +36,7 @@ foreach(font LiberationSerif LiberationMono)
 endforeach()
 target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 
-add_executable(ei-rebuild src/standalone/posix/host.cpp src/standalone/posix/runtime.cpp
+add_executable(ei-rebuild src/standalone/posix/host.cpp src/hook/log.cpp
     src/standalone/startup.cpp src/standalone/static_init.cpp src/standalone/static_exit.cpp src/hook/rebirth_hook.cpp)
 set_target_properties(ei-rebuild PROPERTIES MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_GUI_IDENTIFIER org.eirebuild.game MACOSX_BUNDLE_BUNDLE_NAME "Evil Islands")
@@ -51,7 +51,7 @@ endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
 
-add_executable(ei_render_check tests/port/render_check.cpp src/standalone/posix/runtime.cpp
+add_executable(ei_render_check tests/port/render_check.cpp src/hook/log.cpp
     src/standalone/startup.cpp src/standalone/static_init.cpp src/standalone/static_exit.cpp src/hook/rebirth_hook.cpp)
 target_include_directories(ei_render_check PRIVATE include src third_party/sokol ${CMAKE_BINARY_DIR}/config)
 target_link_libraries(ei_render_check PRIVATE ei_render ei_platform "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")

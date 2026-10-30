@@ -678,7 +678,7 @@ struct AIBrain {
     // The world alarm `slot` was raised: the behaviour record of that slot is applied (the first always, the
     // others only when enabled) and the owner's voice raises remark 7. Nothing for a slot without a record.
     void HearAlarm(int slot);
-    // The perception memory emptied, then the behaviour record of alarmSlot applied again.
+    // The perception memory emptied, then the behaviour record of alarmSlot applied again (none without records).
     void ResetBehaviour();
 
     // The best {part, object} to attack or help: the current attack scored first, then (without `alliesOnly`)

@@ -1,6 +1,6 @@
 // Replay of the "script" family (script_vectors.h) against src/game/script_parse.cpp. The keyword table
 // and the lexer's strings are ours, compared with the "@ScriptKeywords" fixture; the character classes are
-// text_case.h's; Rebirth's AddNewScriptCommands is off (the vectors are vanilla).
+// text_case.h's; the lexer with the game's own keyword table (the vectors are vanilla).
 #include "script_vectors.h"
 #include "vectors.h"
 
@@ -213,13 +213,12 @@ int Script::Error(Script* script, int line, int code, const char* format, ...) {
     return 0;
 }
 
-// Rebirth's AddNewScriptCommands stays off in the replay (script_addon.cpp needs the script runtime):
-// the lexer asks Enabled() only.
+// The lexer with the game's own keyword table and match rule, as the vectors were recorded (script_addon.cpp, Rebirth's
+// AddNewScriptCommands, needs the script runtime): the classification of the game's tokens.
 namespace scriptaddon {
-bool Enabled() { return false; }
-const ScriptKeyword* Table() { std::abort(); }
-bool RejectsMatch(const char*, char) { std::abort(); }
-void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
+const ScriptKeyword* Table() { return kScriptKeywords; }
+bool RejectsMatch(const char*, char) { return false; }
+void SignatureStep(SSCCmd*, const char**, int) {}   // the game's signatures have no '?' or '+'
 }
 
 // Script::LoadFile's file reader (script_exec_helpers.cpp needs the game's files): not replayed.

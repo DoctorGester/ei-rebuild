@@ -4,8 +4,6 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -25,15 +23,23 @@ static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 
 int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
-char g_secondMaster[256];
-char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
+
+// Function statics: the harness queues its specs before this file's static constructors may have run.
+std::string& SecondMaster() {
+    static std::string address;
+    return address;
+}
+std::string& Queued() {
+    static std::string specs;
+    return specs;
+}
 
 void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
 }
 
 void SetDefaults() { SetAll(false); }
-}   // namespace
+} // namespace
 
 void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
 
@@ -43,10 +49,8 @@ void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
 int PluginPause() { return g_pluginPause; }
 void SetPluginPause(int mode) { g_pluginPause = mode; }
 
-const char* PluginSecondMaster() { return g_secondMaster; }
-void SetPluginSecondMaster(const char* address) {
-    std::snprintf(g_secondMaster, sizeof(g_secondMaster), "%s", address);
-}
+const std::string& PluginSecondMaster() { return SecondMaster(); }
+void SetPluginSecondMaster(std::string_view address) { SecondMaster() = address; }
 
 const char* Name(Patch p) { return kNames[static_cast<int>(p)]; }
 
@@ -93,25 +97,22 @@ bool ApplySpec(const char* spec) {
 }
 
 void QueueSpec(const char* spec) {
-    const std::size_t used = std::strlen(g_queued);
-    const std::size_t added = std::strlen(spec);
-    if (used + added + 2 > sizeof(g_queued)) std::abort();
-    std::memcpy(g_queued + used, spec, added);
-    std::memcpy(g_queued + used + added, ";", 2);
+    Queued() += spec;
+    Queued() += ';';
 }
 
 void Reset(const char* profile) {
     SetDefaults();
     g_pluginNPlayers = 7;
     g_pluginPause = 1;
-    g_secondMaster[0] = 0;
+    SecondMaster().clear();
     if (profile) ApplySpec(profile);
 }
 
 void ApplyOverrides() {
     const std::string environment = platform::EnvironmentVariable("EI_REBIRTH");
     if (!environment.empty()) ApplySpec(environment.c_str());
-    ApplySpec(g_queued);
+    ApplySpec(Queued().c_str());
 }
 
-}   // namespace ei::rebirth
+} // namespace ei::rebirth

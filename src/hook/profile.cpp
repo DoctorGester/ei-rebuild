@@ -13,14 +13,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "psapi.lib")
 
 namespace ei {
-
-void OutputPath(const char* name, char* out);
 
 namespace {
 
@@ -59,10 +58,9 @@ void WriteModules(FILE* f, std::vector<HMODULE>& known) {
 }
 
 DWORD WINAPI Sampler(void*) {
-    char path[MAX_PATH];
-    OutputPath("profile.txt", path);
+    const std::string path = OutputPath("profile.txt");
     FILE* f = nullptr;
-    if (fopen_s(&f, path, "w") || !f) return 0;
+    if (fopen_s(&f, path.c_str(), "w") || !f) return 0;
     timeBeginPeriod(1);
     LARGE_INTEGER frequency, start, now;
     QueryPerformanceFrequency(&frequency);

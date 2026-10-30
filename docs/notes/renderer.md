@@ -542,7 +542,7 @@ no stand-in for any of them (R27c):
   released ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
-  free non-local video memory without sound, is always 1 (`RunMainLoop`).
+  free non-local video memory without sound, is always 1 (`RunMainLoop`; app.md).
 - No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which
   the renderer draws with), the interface's depth clears go to `render::ClearDepth`
@@ -589,7 +589,10 @@ no stand-in for any of them (R27c):
   from each present in device_draw.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
   scales the frame the same way; a resolution below the desktop's shows in the window.
-- The game's mouse coordinates when the frame does not fill the window one to one: the cursor's position (the
+- Windowed (FullScreen 0; platform::CreateGameWindow, the same on SDL's window and the harness's): a decorated,
+  movable, resizable window centred in the primary monitor's work area, its client area the resolution's, made
+  smaller when the window would not fit the work area (the frame is scaled into it; MAC3j, user 2026-10-30).
+- The game's mouse coordinates, always mapped to frame pixels: the cursor's position (the
   cursor 005E52E0, the global map 0062F050 take screen coordinates as a window at 0, 0 the resolution's size) through
   platform::MapCursorPoints; the mouse events (client positions) and the wheel's (screen) mapped at the top of the
   input dispatcher (00457970, app.cpp).
@@ -1118,7 +1121,7 @@ across runs; the goldens check the game state.
    `terrain_water_waves` (`waterwaves 1` before newgame; the digest's `water` group, a scenario's `digest water`
    line: per cached sector hashes of the water layer's positions and speculars, every record) and its golden of the
    original, the same before and after.
-   **R16c4 FISTP inlined (done; now `lib::RoundEven`, CVTSS2SI, since the SSE2 build).** `x87::fistp` / `RoundToInt` were `__forceinline` functions
+   **R16c4 FISTP inlined (done; now `lib::RoundEven`, plain float maths, since the SSE2 build).** `x87::fistp` / `RoundToInt` were `__forceinline` functions
    with an `__asm` FLD / FISTP instead of naked calls (the same instructions and control word; every one of the ~220
    sites inlines it: no call relocation to them is left in any object), and Animate's helpers `Sine`, `Byte`,
    `SignClear` are `inline` (the build's `/Ob1` inlines only functions marked so). Measured A/B/C in one run

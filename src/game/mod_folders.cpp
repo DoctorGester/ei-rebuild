@@ -3,24 +3,25 @@
 // by their addresses in addon.dll v0.12.4.2 (image base 10000000).
 #include "mod_folders.h"
 
-#include "platform/platform.h"
 #include "registry.h"
 #include "resource.h"
 #include "settings.h"
-
 #include "lib/text_case.h"
 
-#include "ei/hook.h"
+#include "platform/platform.h"
 
+#include "ei/hook.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
+#include <string>
+
 #include <map>
 #include <mutex>
-#include <new>
 #include <set>
-#include <string>
+
 
 namespace modfolders {
 namespace {

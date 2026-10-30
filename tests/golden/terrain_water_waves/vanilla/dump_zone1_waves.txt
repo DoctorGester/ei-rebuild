@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump zone1_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 18 update 365 frame 73 tick 365 zone gz1g hash 34557A95 n 821
+@ 18 update 365 frame 73 tick 365 zone gz1g hash B8136B42 n 825
 + world world
 world tick 365
 world updates 365
@@ -1949,6 +1949,22 @@ water1 speculars 0x62462C95
 water2 water 1089
 water2 positions 0xCBDF21CD
 water2 speculars 0x62462C95
++ water3 sector 3 0
+water3 water 973
+water3 positions 0x5E1E840E
+water3 speculars 0x0EE0C575
++ water4 sector 4 0
+water4 water 1039
+water4 positions 0x339A24AF
+water4 speculars 0x34A50745
++ water5 sector 5 0
+water5 water 1089
+water5 positions 0x6C3D7CDB
+water5 speculars 0x62462C95
++ water6 sector 6 0
+water6 water 221
+water6 positions 0xACA6B27D
+water6 speculars 0x05EB6645
 + water1000 sector 0 1
 water1000 water 1089
 water1000 positions 0x153D731D

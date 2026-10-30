@@ -4,15 +4,18 @@
 // window messages and the frame steps in PeekMessageA, its own mouse). Built into the harness's builds (verify,
 // verify-x64, asan) in place of src/platform/sdl/platform_sdl.cpp; the other areas are platform_win32.cpp's.
 #include "platform/platform.h"
+
 #include "platform/win32/gameapi.h"
 #include "platform/win32/platform_win32.h"
 
 #include <windows.h>
 
 #define DIRECTINPUT_VERSION 0x0700
+#include <dinput.h>
+
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <dinput.h>
 #include <memory>
 #include <process.h>
 #include <string>
@@ -60,25 +63,29 @@ MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption,
 namespace platform {
 
 namespace {
+
+// What a new thread runs, handed to it on the heap: the thread may begin after Start has returned.
 struct ThreadStart {
     ThreadProcedure procedure;
     void* parameter;
 };
 
+// The game's procedure under _beginthreadex's calling convention.
 unsigned __stdcall RunThread(void* data) {
     const ThreadStart start = *static_cast<ThreadStart*>(data);
     delete static_cast<ThreadStart*>(data);
     return start.procedure(start.parameter);
 }
-}
+
+} // namespace
 
 bool Thread::Start(ThreadProcedure procedure, void* parameter, int priority) {
     Close();
-    auto start = std::make_unique<ThreadStart>(ThreadStart{procedure, parameter});
+    auto start = std::make_unique<ThreadStart>(procedure, parameter);
     unsigned id = 0;
     HANDLE thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, RunThread, start.get(), CREATE_SUSPENDED, &id));
     if (!thread) return false;
-    start.release();   // the suspended thread takes ownership before it runs
+    start.release();   // RunThread deletes it
     gameapi::SetThreadPriority(thread, priority);
     gameapi::ResumeThread(thread);
     handle = thread;
@@ -187,6 +194,8 @@ Event Translate(HWND window, UINT id, WPARAM first, LPARAM second) {
         event.wheelDelta = static_cast<short>(HIWORD(first));
         break;
     case WM_PAINT: event.type = EventType::Paint; break;
+    // The player closes the window: the game decides, as on WM_DESTROY (the window stays until the game ends).
+    case WM_CLOSE:
     case WM_DESTROY: event.type = EventType::Destroy; break;
     case WM_ACTIVATE:
         event.type = EventType::Activate;
@@ -235,9 +244,24 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     g_classAtom = gameapi::RegisterClassExA(&windowClass);
 }
 
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height, bool) {
-    return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, width,
-                                    height, nullptr, nullptr, static_cast<HINSTANCE>(instance), nullptr);
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height, bool fullScreen) {
+    const DWORD style = (fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_CLIPSIBLINGS;
+    RECT frame{};   // the borders and the title bar around an empty client area
+    AdjustWindowRectEx(&frame, style, FALSE, 0);
+    width += frame.right - frame.left;
+    height += frame.bottom - frame.top;
+    int left = 0, top = 0;
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (!fullScreen && GetMonitorInfoA(MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &info)) {
+        const RECT& work = info.rcWork;
+        width = std::min<int>(width, work.right - work.left);
+        height = std::min<int>(height, work.bottom - work.top);
+        left = work.left + (work.right - work.left - width) / 2;
+        top = work.top + (work.bottom - work.top - height) / 2;
+    }
+    return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, style, left, top, width, height, nullptr,
+                                    nullptr, static_cast<HINSTANCE>(instance), nullptr);
 }
 
 void ShowGameWindow(NativeWindow window, int show) {

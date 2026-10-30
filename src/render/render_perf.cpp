@@ -9,7 +9,6 @@
 #include "render_internal.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cstdio>
 #include <deque>
 
@@ -23,12 +22,7 @@ using namespace detail;
 
 bool g_on = false;
 
-// ---- Time --------------------------------------------------------------------------------------------------
-
-long long Now() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
-double MsPerTick() { return 1000.0 * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den; }
-
-// One second of samples: each with the time it was taken (performance counter ticks).
+// One second of samples: each with the time it was taken (Ticks).
 template <int N>
 struct Sample {
     long long when = 0;
@@ -38,7 +32,7 @@ struct Sample {
 template <int N>
 void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     samples.push_back(s);
-    long long second = static_cast<long long>(1000.0 / MsPerTick());
+    constexpr long long second = static_cast<long long>(1000.0 / kMsPerTick);
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
 }
 
@@ -96,7 +90,7 @@ void Collect() {
         query.pending = false;
         if (times.size() < 2) continue;
         Sample<GpuValues> sample;
-        sample.when = Now();
+        sample.when = Ticks();
         sample.values[GpuTotal] = times.back();
         for (std::size_t k = 0; k + 1 < times.size(); ++k)
             sample.values[GpuPasses + static_cast<int>(query.passes[k])] += times[k + 1] - times[k];
@@ -249,8 +243,8 @@ bool UploadText() {
 
 // The text made again from the last second's numbers (every kRefreshMs: readable, and cheap).
 void RefreshText() {
-    long long now = Now();
-    if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * MsPerTick() < kRefreshMs) return;
+    long long now = Ticks();
+    if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
     g_lastText = now;
     std::vector<std::string> lines = Lines(Current());
     if (lines == g_lines && !g_pixels.empty()) return;
@@ -306,23 +300,23 @@ void EndGpuFrame() {
     g_open = -1;
 }
 
-CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Now() : 0) {}
+CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Ticks() : 0) {}
 
 CpuTimer::~CpuTimer() { Stop(); }
 
 void CpuTimer::Stop() {
     if (!start) return;
-    g_cpu[static_cast<int>(part)] += static_cast<double>(Now() - start) * MsPerTick();
+    g_cpu[static_cast<int>(part)] += static_cast<double>(Ticks() - start) * kMsPerTick;
     start = 0;
 }
 
 void FrameDone() {
     if (!g_on) return;
-    long long now = Now();
+    long long now = Ticks();
     if (g_lastPresent) {
         Sample<FrameValues> s;
         s.when = now;
-        s.values[Interval] = static_cast<double>(now - g_lastPresent) * MsPerTick();
+        s.values[Interval] = static_cast<double>(now - g_lastPresent) * kMsPerTick;
         s.values[SubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
         s.values[ShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
         for (int p = 0; p < kPasses; ++p) s.values[FrameDraws + p] = g_draws[p];

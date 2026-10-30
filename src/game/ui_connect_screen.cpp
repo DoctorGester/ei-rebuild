@@ -2,39 +2,39 @@
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
 // reproduces addon's ExtendedServerName sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does
 // its patches.
+#include "net_classes.h"
+#include "options.h"
 #include "asset_text.h"
+#include "ui.h"
+#include "ui_screens.h"
+#include "game_strings.h"
+
 #include "chunk_archive.h"
 #include "core_transform.h"
-#include "game_singletons.h"
-#include "game_strings.h"
-#include "net_classes.h"
 #include "net_coder.h"
 #include "net_link.h"
 #include "net_second_master.h"
-#include "options.h"
 #include "party.h"
-#include "platform/platform.h"
 #include "random.h"
-#include "text_manager.h"
-#include "ui.h"
-#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
-#include "world_glue.h"
-
-#include "lib/crt.h"
-#include "lib/intro_sort.h"
-#include "lib/str.h"
-#include "lib/vecmath.h"
+#include "text_manager.h"
 
 #include "ei/rebirth.h"
-
+#include "lib/crt.h"
+#include "platform/platform.h"
+#include "lib/intro_sort.h"
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include "lib/str.h"
+#include "lib/vecmath.h"
+#include "world_glue.h"
+#include "game_singletons.h"
+
 #include <memory>
 #include <new>
-#include <string>
 
 namespace net {
 int MasterLinkTick(net::MasterLink*);
@@ -122,7 +122,8 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
     return surface;
 }
 
-// Writes in place when there is room; otherwise asks the buffer to grow.
+// A write the way the box's constructor inlines it: in place (marking the buffer written) when it
+// fits before `end`, otherwise through the buffer's virtual call.
 void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
     if (buffer->cur + size > buffer->end) {
         buffer->WriteMore(from, size);
@@ -500,9 +501,8 @@ void MpConnectScreen::CreateScreen() {
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    // ExtendedServerName: the selection's right edge 370 -> 381.5.
-    const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
-    plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
+    // The selection's right edge (Rebirth's ExtendedServerName; the original's 370).
+    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
     {
         UiMesh* arrow = AddBlankSprite();
@@ -550,7 +550,7 @@ void MpConnectScreen::CreateScreen() {
         const int players = ei::rebirth::PluginNPlayers();
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
-        const int right = extended ? kExtendedFieldRight : 650;
+        const int right = kExtendedFieldRight;
         playersSlider = new UiSlider(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
         AddChild(playersSlider);
         Rect area{450, 196, right, 206};
@@ -559,14 +559,11 @@ void MpConnectScreen::CreateScreen() {
         maxPlayers = 6;
     }
     {
-        nameEdit = new UiEditField(ui, Rect{450, 144, extended ? kExtendedFieldRight : 650, 160});
+        nameEdit = new UiEditField(ui, Rect{450, 144, kExtendedFieldRight, 160});
         AddChild(nameEdit);
-        // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
-        // below still stops at 10).
-        if (extended)
-            nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
-        else
-            nameEdit->SetLook(3, 0, 1, kNameLength, g_connectTextColour, kCaretColour);
+        // The classes 15, font 0, at most 50 characters (Rebirth's ExtendedServerName; the original's 3, 1, 10). The
+        // name taken from the hero below still stops at 10.
+        nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
     std::string name = LocalPlayerData()->members[0].texts[0];

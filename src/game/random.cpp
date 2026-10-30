@@ -4,7 +4,6 @@
 
 #include "lib/crt.h"
 #include "lib/pc24.h"
-
 #include <cstdint>
 #include <cstring>
 #include <random>
@@ -59,7 +58,7 @@ std::uint32_t IsaacRandom::Next() {
         count = 255;
     }
     const std::uint32_t value = results[count];
-    if (g_drawObserver) g_drawObserver(*this, value, platform::ReturnAddress());
+    if (g_drawObserver) g_drawObserver(*this, value, EI_RETURN_ADDRESS());
     return value;
 }
 
