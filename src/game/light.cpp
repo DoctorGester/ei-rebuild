@@ -1,4 +1,4 @@
-// Lights and the light manager: CLight's lifetime and setters, LightFactory ("CLightManager")
+// Lights and the light manager: Light's lifetime and setters, LightFactory ("CLightManager")
 // lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "core_transform.h"
 #include "spell.h"
@@ -28,12 +28,12 @@ float Lit(float base, float amount, float color) {
 
 } // namespace
 
-// --- CLight --------------------------------------------------------------------------------------
+// --- Light --------------------------------------------------------------------------------------
 
-CLight::CLight() {
+Light::Light() {
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation.SetIdentity();
-    std::memset(&kind, 0, offsetof(CLight, rangeSquared) - offsetof(CLight, kind));
+    std::memset(&kind, 0, offsetof(Light, rangeSquared) - offsetof(Light, kind));
     // The root of FLT_MAX and its square (2^128 - 2^105, one below FLT_MAX).
     const float root = std::sqrt(FLT_MAX);
     const float squared = root * root;
@@ -42,9 +42,9 @@ CLight::CLight() {
     inverseRangeSquared = 1.0f / squared;
 }
 
-CLight::~CLight() = default;
+Light::~Light() = default;
 
-void CLight::SetPoint(const Vector3& newColor, const Vector3& position) {
+void Light::SetPoint(const Vector3& newColor, const Vector3& position) {
     kind = kKindPoint;
     color[0] = newColor.x;
     color[1] = newColor.y;
@@ -54,7 +54,7 @@ void CLight::SetPoint(const Vector3& newColor, const Vector3& position) {
     flags |= LightFlag::Changed;
 }
 
-void CLight::SetDirectional(const Vector3& newColor, const Vector3& newDirection) {
+void Light::SetDirectional(const Vector3& newColor, const Vector3& newDirection) {
     kind = kKindDirectional;
     color[0] = newColor.x;
     color[1] = newColor.y;
@@ -65,7 +65,7 @@ void CLight::SetDirectional(const Vector3& newColor, const Vector3& newDirection
     flags |= LightFlag::Changed;
 }
 
-void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
+void Light::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
                       float distance) const {
     const float falloff = 1.0f - distance * inverseRangeSquared * distance;
     if (falloff < 0.0f) {
@@ -83,10 +83,10 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
     out->z = blue;
 }
 
-void CLight::Create() {}
-void CLight::Destroy() { flags &= ~LightFlag::Active; }
-const char* CLight::ClassName() { return "CLight"; }
-ClassId CLight::GetClassId() { return ClassId::Light; }
+void Light::Create() {}
+void Light::Destroy() { flags &= ~LightFlag::Active; }
+const char* Light::ClassName() { return "CLight"; }
+ClassId Light::GetClassId() { return ClassId::Light; }
 
 // --- LightFactory -------------------------------------------------------------------------------
 
@@ -106,7 +106,7 @@ EngineObject* LightFactory::NewObject(int objectType) {
     // Allocated zeroed: the constructor leaves the transform's positions, and nothing sets a
     // directional light's localPosition (the game's terrain lighting read its z under water, so heap
     // leftovers there, a NaN, darkened the shallow water's sun light by the heap's history).
-    auto* light = new (kZeroed) CLight();
+    auto* light = new (kZeroed) Light();
     light->type = objectType;
     return light;
 }

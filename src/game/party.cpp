@@ -26,42 +26,42 @@ void ReleaseItems(const std::vector<Item*>& items) {
 
 } // namespace
 
-CParty::CParty() = default;
+Party::Party() = default;
 
-CParty::~CParty() {
+Party::~Party() {
     Clear(1, 1);
-    CParty::Destroy();
+    Party::Destroy();
 }
 
-const char* CParty::ClassName() { return "CParty"; }
-ClassId CParty::GetClassId() { return ClassId::Party; }
+const char* Party::ClassName() { return "CParty"; }
+ClassId Party::GetClassId() { return ClassId::Party; }
 
-CItemConstructor* CParty::ItemConstructor() { return itemConstructor; }
-CSpellConstructor* CParty::SpellConstructor() { return spellConstructor; }
-ItemManager* CParty::ItemFactory() { return itemManager; }
-CSpellManager* CParty::SpellManager() { return spellManager; }
+ItemConstructor* Party::GetItemConstructor() { return itemConstructor; }
+SpellConstructor* Party::GetSpellConstructor() { return spellConstructor; }
+ItemManager* Party::ItemFactory() { return itemManager; }
+SpellManager* Party::GetSpellManager() { return spellManager; }
 
-void CParty::Create() {
+void Party::Create() {
     itemManager = new ItemManager();
     itemManager->AddRef();    // not tested for null
     itemManager->Init(this);
 
-    spellManager = new CSpellManager();
+    spellManager = new SpellManager();
     spellManager->AddRef();
     spellManager->Init(this);
 
-    itemConstructor = new CItemConstructor();
+    itemConstructor = new ItemConstructor();
     itemConstructor->AddRef();
     itemConstructor->Create();
 
-    spellConstructor = new CSpellConstructor();
+    spellConstructor = new SpellConstructor();
     spellConstructor->AddRef();
     spellConstructor->Create();
 
     Clear(1, 0);
 }
 
-void CParty::Destroy() {
+void Party::Destroy() {
     members.clear();
     ReleaseItems(items);
     items.clear();
@@ -71,7 +71,7 @@ void CParty::Destroy() {
     Drop(spellManager);
 }
 
-void CParty::Clear(int clearVariables, int keepSpells) {
+void Party::Clear(int clearVariables, int keepSpells) {
     ReleaseItems(items);
     items.clear();
     if (itemManager != nullptr) itemManager->DestroyAll();

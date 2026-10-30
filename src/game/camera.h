@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-class CObject3D;
+class Object3D;
 
 // Zoom distance limits of one camera mode. Inside [min, max] the distance moves freely; between
 // max and hardMax (min and hardMin) it eases back; beyond the hard limits it is cut.

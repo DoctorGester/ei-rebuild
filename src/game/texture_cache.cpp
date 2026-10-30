@@ -20,9 +20,9 @@ namespace {
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
 // EngineObject::Release, its caller, returns it but no caller reads it).
-int CTextureManager::ReleaseObject(EngineObject* object) {
+int TextureManager::ReleaseObject(EngineObject* object) {
     if (!object || object->refCount != 0) return 0;
-    auto* texture = static_cast<CTexture*>(object);
+    auto* texture = static_cast<Texture*>(object);
     if (auto node = objects.find(static_cast<unsigned>(object->id)); node != objects.end()) {
         Unregister(node->second->id);
         if (object->flags & TextureFlag::Cacheable) {
@@ -36,10 +36,10 @@ int CTextureManager::ReleaseObject(EngineObject* object) {
     return RemoveObject(object);
 }
 
-CTexture* CTextureManager::TakeFromCache(int textureType, std::string_view name) {
-    auto node = std::ranges::find_if(cache, [&](const CTexture* texture) { return texture->type == textureType && texture->name == name; });
+Texture* TextureManager::TakeFromCache(int textureType, std::string_view name) {
+    auto node = std::ranges::find_if(cache, [&](const Texture* texture) { return texture->type == textureType && texture->name == name; });
     if (node == cache.end()) return nullptr;
-    CTexture* texture = *node;
+    Texture* texture = *node;
     cache.erase(node);
     cachedBytes -= texture->uploadResult;
     RegisterInstant(texture);
@@ -48,17 +48,17 @@ CTexture* CTextureManager::TakeFromCache(int textureType, std::string_view name)
 
 // Details kept: a texture taken back from the cache here is not subtracted from
 // cachedBytes (the by-type lookup does subtract it).
-CTexture* CTextureManager::FindTexture(std::string_view name) {
-    ObjectListIteratorOf<CTexture> registered{};
-    CTexture* found = nullptr;
-    for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
+Texture* TextureManager::FindTexture(std::string_view name) {
+    ObjectListIteratorOf<Texture> registered{};
+    Texture* found = nullptr;
+    for (Texture* texture = registered.First(this); texture; texture = registered.Next()) {
         if (texture->name == name) {
             found = texture;
             break;
         }
     }
     if (!found) {
-        auto node = std::ranges::find_if(cache, [&](const CTexture* texture) { return texture->name == name; });
+        auto node = std::ranges::find_if(cache, [&](const Texture* texture) { return texture->name == name; });
         if (node != cache.end()) {
             found = *node;
             cache.erase(node);
@@ -69,10 +69,10 @@ CTexture* CTextureManager::FindTexture(std::string_view name) {
     return found;
 }
 
-CTexture* CTextureManager::FindTypedTexture(int textureType, std::string_view name) {
-    ObjectListIteratorOf<CTexture> registered{};
-    CTexture* found = nullptr;
-    for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
+Texture* TextureManager::FindTypedTexture(int textureType, std::string_view name) {
+    ObjectListIteratorOf<Texture> registered{};
+    Texture* found = nullptr;
+    for (Texture* texture = registered.First(this); texture; texture = registered.Next()) {
         if (texture->type == textureType && texture->name == name) {
             found = texture;
             break;
@@ -83,9 +83,9 @@ CTexture* CTextureManager::FindTypedTexture(int textureType, std::string_view na
     return found;
 }
 
-void CTextureManager::FreeCache() {
+void TextureManager::FreeCache() {
     for (auto node = cache.begin(); node != cache.end();) {
-        CTexture* texture = *node;
+        Texture* texture = *node;
         ++node;
         if (texture) delete texture;
     }

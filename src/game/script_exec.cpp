@@ -72,7 +72,7 @@ EngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object;
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
 
 UnitServer* UnitStateArg(const SSCCmd* cmd) {
-    CUnit* unit = cmd->objectArgs[0]->AsUnit();
+    Unit* unit = cmd->objectArgs[0]->AsUnit();
     return unit ? unit->ServerController() : nullptr;
 }
 
@@ -112,7 +112,7 @@ void SetLoopCounter(const SSCCmd* cmd, int i) { *cmd->objectArgs[0] = (*cmd->gro
 int& ForDepth(Script* script) { return script->forDepth; }
 
 void SetCP(const SSCCmd* cmd, bool fast) {
-    CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
+    MapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data();
     AIMap* map = &g_serverWorld.aiMap;
@@ -120,7 +120,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, point);
-        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
+        if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
         return;
@@ -128,7 +128,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float oldZ = Position(object)->z;
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, point);
-    if (CUnit* unit = UnitOrNull(object)) {
+    if (Unit* unit = UnitOrNull(object)) {
         unit->ServerController()->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
@@ -137,9 +137,9 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     float radius = object->bounds.radius + object->bounds.radius;
-    std::vector<CUnit*> units = map->FindUnitsInRadius(*Position(object), radius);
-    for (CUnit* unit : units) map->RemoveFromSectors(unit);
-    for (CUnit* unit : units) {
+    std::vector<Unit*> units = map->FindUnitsInRadius(*Position(object), radius);
+    for (Unit* unit : units) map->RemoveFromSectors(unit);
+    for (Unit* unit : units) {
         Vector3 free;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
@@ -162,7 +162,7 @@ void GiveSkill(const SSCCmd* cmd) {
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
         if (text::CompareIgnoringCase(Text(cmd, 0), kNames[i]) != 0) continue;
-        CUnit* owner = state->unit;
+        Unit* owner = state->unit;
         int value = lib::Truncate(cmd->floatArgs[0]);
         UnitStats* stats = StatsOf(state);
         if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
@@ -171,16 +171,16 @@ void GiveSkill(const SSCCmd* cmd) {
 }
 
 void RedeployParty(const SSCCmd* cmd) {
-    CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(cmd->floatArgs[0]));
+    Player* player = g_serverWorld.GetPlayer(lib::Truncate(cmd->floatArgs[0]));
     if (!player) return;
     PlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
     g_serverWorld.CollectParty(player, &slots);
-    CParty* party = player->Party();
+    Party* party = player->GetParty();
     g_partyManager.BeginRedeploy(party);
     g_partyManager.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
-    const std::vector<PartyUnitRecord>& members = player->Party()->members;
+    const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
     state->SendParty();
     player->Server()->lastPosition.z = -1313.0f;
@@ -189,8 +189,8 @@ void RedeployParty(const SSCCmd* cmd) {
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!g_serverWorld.GetPlayer(lib::Truncate(cmd->floatArgs[0]))) return;
-    CParty* from = g_partyManager.records.Find(Text(cmd, 0));
-    CParty* to = g_partyManager.records.Find(Text(cmd, 1));
+    Party* from = g_partyManager.records.Find(Text(cmd, 0));
+    Party* to = g_partyManager.records.Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
         while (!to->items.empty()) to->RemoveItem(to->items[0], 1);
@@ -219,13 +219,13 @@ void PlayMovie(const SSCCmd* cmd) {
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
-    CSpell* spell = g_serverWorld.spellManager->CreateSpellFromText(Text(cmd, 0));
+    Spell* spell = g_serverWorld.spellManager->CreateSpellFromText(Text(cmd, 0));
     if (spell) spell->AddRef();
     if (spell) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
-            CMapObject* target = ObjectSlots(Arg(cmd, 0));
+            MapObject* target = ObjectSlots(Arg(cmd, 0));
             if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
@@ -310,7 +310,7 @@ bool ScriptRun::Execute(Script* script) {
             if (IsZero(f[0])) cont = 0;
             break;
         case ScriptFunction::SleepUntilIdle: {   // SleepUntilIdle(unit): while the brain has an action
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (unit && unit->ServerController()->brain.action != 0) cont = 0;
             break;
         }
@@ -435,7 +435,7 @@ bool ScriptRun::Execute(Script* script) {
             g_serverWorld.players->SendTextToAll(Text(cmd, 0));
             break;
         case ScriptFunction::GodMode: {   // GodMode(player, on)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (player) player->godMode = static_cast<std::uint8_t>(lib::Truncate(f[1]));
             break;
         }
@@ -575,14 +575,14 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::SetPlayer: {   // SetPlayer(unit, player)
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             unit->SetHostileMask(g_serverWorld.diplomacy.GetHostileMask(lib::Truncate(f[0])));
             unit->SetSide(lib::Truncate(f[0]));
             break;
         }
         case ScriptFunction::SetEnemy: {   // SetEnemy(unit, player): adds the player to the hostile mask
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             int player = lib::Truncate(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | unit->relationsA;
@@ -611,20 +611,20 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::AddUnitUnderControl: {   // AddUnitUnderControl(player, unit)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (player && unit) unit->SetPlayer(player);
             break;
         }
         case ScriptFunction::RemoveUnitFromControl: {   // RemoveUnitFromControl(player, unit)
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (unit) unit->SetPlayer(nullptr);
             break;
         }
         case ScriptFunction::SetSpellAggression:   // SetSpellAggression(unit, value): does nothing
             break;
         case ScriptFunction::RemoveQuestItem: {   // RemoveQuestItem(unit, id): the first quest item with the id
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             int count = lib::Count(unit->carried);
             int id = lib::Truncate(f[0]);
@@ -638,14 +638,14 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::GiveUnitQuestItem: {   // GiveUnitQuestItem(unit, item)
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             Item* item = g_serverWorld.CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == ClassId::ItemQuest) unit->AddCarried(item);
             break;
         }
         case ScriptFunction::GiveUnitSpell: {   // GiveUnitSpell(unit, spell)
-            CUnit* unit = cmd->objectArgs[0]->AsUnit();
+            Unit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             Item* spell = g_serverWorld.CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
@@ -662,7 +662,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GiveIntelligence: {
             UnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
             if (!state) break;
-            CUnit* owner = state->unit;
+            Unit* owner = state->unit;
             int value = lib::Truncate(f[0]);
             UnitStats* stats = StatsOf(state);
             if (function == ScriptFunction::GiveStrength) stats->RaiseStrength(value, owner);
@@ -702,7 +702,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::Attack: {   // Attack(unit, target)
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            CMapObject* target = ObjectSlots(Arg(cmd, 1));
+            MapObject* target = ObjectSlots(Arg(cmd, 1));
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
@@ -797,7 +797,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            CMapObject* leader = ObjectSlots(Arg(cmd, 1));
+            MapObject* leader = ObjectSlots(Arg(cmd, 1));
             BrainOf(state)->AddMode(std::make_unique<FollowMode>(leader));
             break;
         }
@@ -892,7 +892,7 @@ bool ScriptRun::Execute(Script* script) {
                 GSSetVarMultiplayer(cmd);
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (player) player->Server()->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
             break;
         }
@@ -903,19 +903,19 @@ bool ScriptRun::Execute(Script* script) {
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             if (setMax) player->Server()->SetVariableMax(Text(cmd, 0), f[1]);
             else player->Server()->DeleteVariable(Text(cmd, 0));
             break;
         }
         case ScriptFunction::PlayMusic: {   // PlayMusic(player, name)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (player) player->Server()->SendText0D(Text(cmd, 0));
             break;
         }
         case ScriptFunction::LeaveToZone: {   // LeaveToZone(player, zone, point)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (player) player->Server()->LeaveToZone(Text(cmd, 0), lib::Truncate(f[1]));
             break;
         }
@@ -924,10 +924,10 @@ bool ScriptRun::Execute(Script* script) {
             break;
         case ScriptFunction::AddUnitToParty:     // AddUnitToParty(player, party.unit, prototype)
         case ScriptFunction::RemoveUnitFromParty: {   // RemoveUnitFromParty(player, party.unit)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             std::string name = cmd->stringArgs[0];
-            CParty* records = PartyForScript(player, &name);
+            Party* records = PartyForScript(player, &name);
             if (records) {
                 if (function == ScriptFunction::AddUnitToParty)
                     records->AddMember(name, Text(cmd, 1), game::kEmptyText);
@@ -938,12 +938,12 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::CopyItems:     // CopyItems(player, from, to)
         case ScriptFunction::CopyStats: {   // CopyStats(player, from, to)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             std::string from = cmd->stringArgs[0];
             std::string to = cmd->stringArgs[1];
-            CParty* fromRecords = PartyForScript(player, &from);
-            CParty* toRecords = PartyForScript(player, &to);
+            Party* fromRecords = PartyForScript(player, &from);
+            Party* toRecords = PartyForScript(player, &to);
             PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from));
             PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to));
             if (source && target) {
@@ -976,16 +976,16 @@ bool ScriptRun::Execute(Script* script) {
             CopyLoot(cmd, true);
             break;
         case ScriptFunction::GiveMoney: {   // GiveMoney(player, amount)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             std::vector<Item*> items;
-            player->Party()->money += lib::Truncate(f[1]);
+            player->GetParty()->money += lib::Truncate(f[1]);
             player->GiveItems(&items, 0);
             break;
         }
         case ScriptFunction::GiveQuestItem:     // GiveQuestItem(player, item)
         case ScriptFunction::GiveItem: {   // GiveItem(player, item)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             std::vector<Item*> items;
             Item* item = g_serverWorld.CreateItemNamed(Text(cmd, 0));
@@ -996,7 +996,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::EraseQuestItem: {   // EraseQuestItem(player, id)
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (player) player->TakeLoot(lib::Truncate(f[1]));
             break;
         }
@@ -1020,7 +1020,7 @@ bool ScriptRun::Execute(Script* script) {
                 }
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+            Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
             if (!player) break;
             QuestRecord* quest = g_questDatabase.FindQuest(Text(cmd, 0));
             if (!quest) break;

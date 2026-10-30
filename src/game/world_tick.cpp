@@ -26,7 +26,7 @@ namespace {
 
 // SectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
 // map.
-std::vector<CUnit*>* SectorUnits(SectorMap* map, int x, int y) {
+std::vector<Unit*>* SectorUnits(SectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
 }
@@ -82,7 +82,7 @@ void WorldServer::WakeUnitsAround(const Vector3& position, float radius) {
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
-        for (CUnit* unit : *units) AddToUpdateMap(unit);
+        for (Unit* unit : *units) AddToUpdateMap(unit);
     }
 }
 
@@ -99,8 +99,8 @@ void WorldServer::InvokeAlarm(int index, const float* point, char force) {
     // Every AI unit without a player hears it; the walk stops at an empty entry.
     auto& newObjects = objects.map;
     for (auto node = newObjects.begin(); node != newObjects.end() && node->second; ++node) {
-        CMapObject* object = node->second;
-        if (CUnit* unit = UnitOrNull(object)) {
+        MapObject* object = node->second;
+        if (Unit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = &unit->ServerController()->brain;
                 brain->HearAlarm(index);
@@ -141,7 +141,7 @@ void WorldServer::UpdateUnits() {
             EngineObject* object = node->second;
             object->RunTick();
             if (object->flags & MapObjectFlag::Removed) removedIds.push_back(static_cast<unsigned>(object->id));
-            CUnit* unit = UnitOrNull(object);
+            Unit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             const UnitServer* controller = unit->ServerController();

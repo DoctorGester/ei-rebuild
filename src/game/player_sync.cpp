@@ -88,7 +88,7 @@ void Forget(Map& map, int id) {
     map.erase(id);
 }
 
-int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCount; }
+int WorldUpdateCount(Player* player) { return player->ServerWorld()->updateCount; }
 
 // SendItemsGiven.
 constexpr std::uint8_t kMessageItemStates = 0x05;
@@ -102,7 +102,7 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
 }
 
 // SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
-// objects (CEffect). The next element as that class; the loops read the data pointer once.
+// objects (Effect). The next element as that class; the loops read the data pointer once.
 template <typename T>
 T* NextAs(EngineObject* const*& next) {
     return static_cast<T*>(*next++);
@@ -120,7 +120,7 @@ void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
     WriteByte(&out, kMessageItemStates);
     out.WriteStream(&states);
     WriteByte(&out, kMessageItemsGiven);
-    WriteDword(&out, static_cast<std::uint32_t>(player->Party()->money));
+    WriteDword(&out, static_cast<std::uint32_t>(player->GetParty()->money));
     WriteByte(&out, static_cast<std::uint8_t>(flag));
     for (Item* item : *items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
     WriteDword(&out, 0xFFFFFFFFu);
@@ -146,7 +146,7 @@ int PlayerServer::Flush() {
 int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
     EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextAs<CMapObject>(next);
+        auto* object = NextAs<MapObject>(next);
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
                                    object->prototypeId, object->flags};
@@ -173,7 +173,7 @@ int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
         WriteDword(&out, prototype);
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
         WriteStateStream(&out, &object->netState.header[0]);
-        CPlayer* currentPlayer = player;
+        Player* currentPlayer = player;
         Keep(currentPlayer->knownObjects, currentPlayer->maxObjectId, object);
     }
     return 1;
@@ -183,7 +183,7 @@ int PlayerServer::SendObjectsChanged(const std::vector<EngineObject*>* objects) 
     EngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player);
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextAs<CMapObject>(next);
+        auto* object = NextAs<MapObject>(next);
         if (object->changeStamp != stamp) continue;
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out, kMessageObjectChanged);
@@ -209,7 +209,7 @@ int PlayerServer::SendObjectsRemoved(const std::vector<EngineObject*>* objects) 
 int PlayerServer::SendTimedAdded(const std::vector<EngineObject*>* objects) {
     EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* effect = NextAs<CEffect>(next);
+        auto* effect = NextAs<Effect>(next);
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
         header[1] = static_cast<std::uint32_t>(effect->GetClassId());
@@ -217,7 +217,7 @@ int PlayerServer::SendTimedAdded(const std::vector<EngineObject*>* objects) {
         WriteByte(&out, kMessageTimedAdded);
         out.Write(header, sizeof(header));
         WriteStateStream(&out, &effect->state.out[0]);
-        CPlayer* currentPlayer = player;
+        Player* currentPlayer = player;
         Keep(currentPlayer->knownTimed, currentPlayer->maxTimedId, effect);
     }
     return 1;
@@ -227,7 +227,7 @@ int PlayerServer::SendTimedChanged(const std::vector<EngineObject*>* objects) {
     EngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player);
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* effect = NextAs<CEffect>(next);
+        auto* effect = NextAs<Effect>(next);
         if (effect->changeStamp != stamp) continue;
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         WriteByte(&out, kMessageTimedChanged);
@@ -252,14 +252,14 @@ int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
 // The original calls SendObject14 of this object for each item.
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
-        ResourceManager* items = player->Party()->ItemFactory();
+        ResourceManager* items = player->GetParty()->ItemFactory();
         if (EngineObject* item = items->FindObject(objectId)) SendObject14(item);
     }
 }
 
 int PlayerServer::SendPartyState() {
     danger = PartyDanger::Safe;
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     const float low = kLowLevel;
     for (auto node = currentPlayer->units.begin(); node != currentPlayer->units.end() && node->second; ++node) {
         const float* levels = node->second->exposure;
@@ -280,7 +280,7 @@ int PlayerServer::SendPartyState() {
             if (unit->ServerController()->IsFighting()) danger = PartyDanger::InDanger;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto node = unit->ServerController()->brain.memory.nearby.begin(); node != unit->ServerController()->brain.memory.nearby.end();) {
-                CUnit* other = *node;
+                Unit* other = *node;
                 ++node;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
                 if (other->ServerController()->brain.AggressionEnemy() == unit) danger = PartyDanger::InDanger;
@@ -292,15 +292,15 @@ int PlayerServer::SendPartyState() {
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
-    if (IsMultiplayerClient() && std::ssize(currentPlayer->Party()->members) == 1)
-        g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->Party()->members[0].unitId), &shared);
+    if (IsMultiplayerClient() && std::ssize(currentPlayer->GetParty()->members) == 1)
+        g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->GetParty()->members[0].unitId), &shared);
     WriteDword(&out, static_cast<std::uint32_t>(shared.size()));
     for (const ScriptObjectRef& member : shared) WriteDword(&out, static_cast<std::uint32_t>(member.AsUnit()->id));
     return 1;
 }
 
 int PlayerServer::ForgetObject(EngineObject* object) {
-    CPlayer::MapObjectMap& known = player->knownObjects;
+    Player::MapObjectMap& known = player->knownObjects;
     if (known.contains(object->id)) {
         Forget(known, object->id);
         object->Release();
@@ -322,7 +322,7 @@ bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contain
 
 void PlayerServer::SendParty() {
     MemoryStream party;
-    player->Party()->SaveParty(&party, 1);
+    player->GetParty()->SaveParty(&party, 1);
     WriteByte(&out, kMessageParty);
     out.WriteSized(&party);
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
@@ -359,10 +359,10 @@ int PlayerServer::ReceiveMessages() {
 void PlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
     ScriptGroup party = possessedGroup;
-    CPlayer::UnitMap& units = player->units;
+    Player::UnitMap& units = player->units;
     if (possessedId == kNoPartyCopy) {
         for (auto node = units.begin(); node != units.end() && node->second; ++node) {
-            CUnit* unit = node->second;
+            Unit* unit = node->second;
             party.Insert(unit);
             AIBrain* brain = &unit->ServerController()->brain;
             party.InsertAll(&brain->memory.visible);

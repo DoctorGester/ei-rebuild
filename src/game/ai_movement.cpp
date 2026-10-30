@@ -33,12 +33,12 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
 
 } // namespace
 
-CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
+Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
     float unitHeight = unit->standingHeight;
-    std::vector<CUnit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
+    std::vector<Unit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
 
-    CUnit* blocker = nullptr;
-    for (CUnit* other : nearby) {
+    Unit* blocker = nullptr;
+    for (Unit* other : nearby) {
         if (other == unit) continue;
         float reach = other->standingHeight + unitHeight;
         float dy = position.y - other->localPosition.y;
@@ -87,7 +87,7 @@ const int* AIMap::CostContext(int sizeClass, PassCostContext* out) {
     return out->climb;
 }
 
-void AIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
+void AIMap::SetStepSpeeds(Unit* unit, PathCells* steps) {
     // The original also asks the unit for its movement speeds twice and divides by one of them, but never uses
     // the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
@@ -119,7 +119,7 @@ void AIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
     }
 }
 
-bool AIMap::StandsOnCheapCell(CUnit* unit) {
+bool AIMap::StandsOnCheapCell(Unit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds and ignores them.

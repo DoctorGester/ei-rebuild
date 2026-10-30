@@ -249,7 +249,7 @@ int UnitMotion::Clear() {
     return 0;
 }
 
-bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position,
+bool UnitMotion::Sample(World* world, MotionOrder* order, float time, bool* turning, float* position,
                         float* direction, float* speedOut, int* cellX, int* cellY) {
     *cellX = -1;
     *cellY = -1;
@@ -277,7 +277,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
     case 2:
         return SamplePath(pc24::Sub(time, start), turning, position, direction, speedOut, cellX, cellY);
     case 3: {
-        CMapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
+        MapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
         if (!object) {
             FaceAngle(order->angle, direction);
             return true;

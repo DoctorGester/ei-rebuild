@@ -182,7 +182,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     return record->Value();
 }
 
-float WeaponBonus(CUnit* unit, int skill) {
+float WeaponBonus(Unit* unit, int skill) {
     Item* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return 0.0f;
     const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
@@ -206,9 +206,9 @@ constexpr FactoryEntry Make(MapObjectType type) {
     return {type, [] () -> EngineObject* { return new (kZeroed) T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
-    Make<CUnit>(MapObjectType::Hero),
-    Make<CUnit>(MapObjectType::Creature),
-    Make<CUnit>(MapObjectType::UnitSpare),
+    Make<Unit>(MapObjectType::Hero),
+    Make<Unit>(MapObjectType::Creature),
+    Make<Unit>(MapObjectType::UnitSpare),
     Make<CTree>(MapObjectType::Tree),
     Make<CBuilding>(MapObjectType::Building),
     Make<CStone>(MapObjectType::Stone),
@@ -233,7 +233,7 @@ UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
 
 // --- Builders ---------------------------------------------------------------------------------
 
-void CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
+void MapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
         vitals->hitPoints = kThousand;
         vitals->maxHitPoints = kThousand;
@@ -279,7 +279,7 @@ void CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     }
 }
 
-int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, std::string_view name) {
+int MapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, std::string_view name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) {
         SetDefaults(vitals, stats);
@@ -490,7 +490,7 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     HealSlots(newMaximum, heal);
 }
 
-float UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
+float UnitStats::WeaponSkillBonus(int type, Unit* unit) {
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
@@ -541,7 +541,7 @@ bool UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1;
 }
 
-void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& name) {
+void MapObjectManager::ApplyPrototype(MapObject* object, const std::string& name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
     UnitStats stats{};
     const UnitPrototypeRecord* prototype = FindPrototype(name);
@@ -565,11 +565,11 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
-        object->CMapObject::SetServerData(&vitals);
+        object->MapObject::SetServerData(&vitals);
         object->SetStats(&stats);
         float lift = -model->height;
 
-        CObject3D* figure = object;
+        Object3D* figure = object;
         figure->defaultScale.x = 0.0f;
         figure->defaultScale.y = lift;
         figure->defaultScale.z = 0.0f;
@@ -589,7 +589,7 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
 
 // Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
 // motion's turn fields, which the saves write.
-EngineObject* CMapObjectManager::NewObject(int objectType) {
+EngineObject* MapObjectManager::NewObject(int objectType) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.type != static_cast<MapObjectType>(objectType)) continue;
         return entry.create();

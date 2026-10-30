@@ -35,7 +35,7 @@ namespace {
 // meanwhile and released after.
 Item* CountedClone(Item* item) {
     if (item) item->AddRef();
-    Item* copy = item->Clone(item->WorldContext()->SpellManager());
+    Item* copy = item->Clone(item->WorldContext()->GetSpellManager());
     copy->AddRef();
     return copy;
 }
@@ -57,7 +57,7 @@ bool Named(const std::string& name) {
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.
-void CopyList(std::vector<Item*>& list, const std::vector<Item*>& source, CParty* party) {
+void CopyList(std::vector<Item*>& list, const std::vector<Item*>& source, Party* party) {
     list.resize(std::ssize(source));
     for (int i = 0; i < std::ssize(source); ++i) {
         Item* item = source[i];
@@ -76,7 +76,7 @@ constexpr float kOpened = 1.0f;
 } // namespace
 
 
-void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party) {
+void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, Party* party) {
     ClearItems();
     CopyList(weapons, source->weapons, party);
     CopyList(quickItems, source->quickItems, party);
@@ -84,7 +84,7 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
     CopyList(spells, source->spells, party);
 }
 
-PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
+PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
     if (!itemManager) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
@@ -99,7 +99,7 @@ PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view proto
     return record;
 }
 
-void CParty::FillFromPrototype(PartyUnitRecord* record) {
+void Party::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
@@ -125,7 +125,7 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
-        CSpellManager* spellOwner = SpellManager();
+        SpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         Item* copy = CountedClone(spell);
         std::vector<Item*>& list = record->spells;
@@ -137,7 +137,7 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->texts[6] = record->texts[5];
 }
 
-bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
+bool Party::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
     for (std::vector<Item*>* list : {&record->spells, &record->weapons}) {
         while (!list->empty()) {
@@ -150,7 +150,7 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
-        CSpellManager* spellOwner = SpellManager();
+        SpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);
@@ -175,7 +175,7 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
     return true;
 }
 
-bool CParty::RemoveMember(int key) {
+bool Party::RemoveMember(int key) {
     for (int i = 0; i < std::ssize(members); ++i) {
         if (static_cast<int>(members[i].unitId) != key) continue;
         members.erase(members.begin() + i);
@@ -184,7 +184,7 @@ bool CParty::RemoveMember(int key) {
     return false;
 }
 
-void CParty::OpenEdgeExits() {
+void Party::OpenEdgeExits() {
     std::string variable;
     MapRecord* newZone = g_mapDatabase.FindMap(zone);
     if (newZone == nullptr || newZone->kind != kZoneKindEdge) return;

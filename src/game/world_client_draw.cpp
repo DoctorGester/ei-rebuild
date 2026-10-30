@@ -20,7 +20,7 @@
 #include "renderer_lines.h"
 #include "settings_file.h"
 #include "sky_object.h"
-#include "spell.h"   // CLight
+#include "spell.h"   // Light
 #include "terrain.h"
 #include "texture.h"
 #include "ui.h"
@@ -92,7 +92,7 @@ float LandscapeDrawRadius() {
     return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
 }
 
-void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
+void VectorClear(std::vector<MapObject*>* v) { v->clear(); }
 
 // The object margin around the camera when collecting what to draw (100.0).
 constexpr float kObjectsDrawMargin = 100.0f;
@@ -131,28 +131,28 @@ float AnimationTime() {
 // comparator compares the texture and the figure by address; ours by name: address_order::DrawBefore).
 // Objects with the same keys are drawn in the game's sort's order.
 void SortByModel(FrameList list) {
-    std::vector<CMapObject*>& v = FrameObjects(list);
+    std::vector<MapObject*>& v = FrameObjects(list);
     lib::IntroSort(v.data(), v.data() + v.size(),
-                   [](CMapObject* a, CMapObject* b) { return address_order::DrawBefore(a, b); });
+                   [](MapObject* a, MapObject* b) { return address_order::DrawBefore(a, b); });
 }
 
 template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
-    for (CMapObject* object : FrameObjects(list)) draw(object);
+    for (MapObject* object : FrameObjects(list)) draw(object);
 }
 // The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
-constexpr auto kDraw = [](CMapObject* object) {
+constexpr auto kDraw = [](MapObject* object) {
     render::BeginCaster(object, false);
     object->DrawFigure(&g_sceneRenderer);
     render::EndCaster();
 };
-constexpr auto kDrawUnit = [](CMapObject* object) {
+constexpr auto kDrawUnit = [](MapObject* object) {
     render::BeginCaster(object, true);
     object->DrawCollectDirty(&g_sceneRenderer);
     render::EndCaster();
 };
-constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
+constexpr auto kDrawShadow = [](MapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 
 // Draws every print of a ground print vector.
 template <typename T>
@@ -164,9 +164,9 @@ void DrawLightEffects(std::vector<T>& prints) {
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
-int QueueScreenEntry(CMapObject* object, std::vector<ScreenEntry>* queued) {
+int QueueScreenEntry(MapObject* object, std::vector<ScreenEntry>* queued) {
     if (!(object->flags & MapObjectFlag::Shown) || (object->flags & MapObjectFlag::NotDrawn)) return 0;
-    const CObject3D* figure = object;
+    const Object3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id);
@@ -330,7 +330,7 @@ int WorldClient::DrawPass() {
     int touched = 0;
     auto* sector = &objectGrid.rows[sy0][sx0];
     while (sector) {
-        for (CMapObject* object : *sector) touched += CollectVisible(object, view, animTime, now, 0, 0);
+        for (MapObject* object : *sector) touched += CollectVisible(object, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX;
         if (x > rangeLastX) {
             rangeX = rangeFirstX;
@@ -339,21 +339,21 @@ int WorldClient::DrawPass() {
         }
         sector = &objectGrid.rows[rangeY][rangeX];
     }
-    for (CMapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
+    for (MapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
-    for (CMapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
+    for (MapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
-    std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
+    std::vector<MapObject*>& models = FrameObjects(FrameList::TouchedModels);
     if (models.begin() != models.end()) {
         // The most recently used first; the models used in the same frame stay in the game's sort's order.
-        lib::IntroSort(models.data(), models.data() + models.size(), [](CMapObject* a, CMapObject* b) {
+        lib::IntroSort(models.data(), models.data() + models.size(), [](MapObject* a, MapObject* b) {
             return b->ClientSpecific()->touchTime < a->ClientSpecific()->touchTime;
         });
         int count = touched >> 3;
         if (count < 10) count = 10;
-        for (CMapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
-            CMapObject* object = *p++;
+        for (MapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
+            MapObject* object = *p++;
             object->flags &= ~MapObjectFlag::Static;
         }
     }
@@ -376,8 +376,8 @@ int WorldClient::DrawPass() {
         state.alphaReference = 0xC8;
         DrawEach(FrameList::VisibleOther, kDraw);
         DrawEach(FrameList::VisibleLevers, kDrawUnit);
-        CMapObject** end = FrameObjects(FrameList::VisibleLevers).data() + FrameObjects(FrameList::VisibleLevers).size();
-        for (CMapObject** p = FrameObjects(FrameList::VisibleLevers).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
+        MapObject** end = FrameObjects(FrameList::VisibleLevers).data() + FrameObjects(FrameList::VisibleLevers).size();
+        for (MapObject** p = FrameObjects(FrameList::VisibleLevers).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
         DrawEach(FrameList::VisibleBuildings, kDraw);
         DrawEach(FrameList::VisibleTrees, kDraw);
     }
@@ -386,8 +386,8 @@ int WorldClient::DrawPass() {
         state.alphaReference = 10;
         state.stages[0].combiner = kAlphaPassStage;
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
-        CMapObject** end = FrameObjects(FrameList::VisibleUnits).data() + FrameObjects(FrameList::VisibleUnits).size();
-        for (CMapObject** p = FrameObjects(FrameList::VisibleUnits).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
+        MapObject** end = FrameObjects(FrameList::VisibleUnits).data() + FrameObjects(FrameList::VisibleUnits).size();
+        for (MapObject** p = FrameObjects(FrameList::VisibleUnits).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
     }
 
     // Light effects (three lists of the client, each behind its setting).
@@ -441,10 +441,10 @@ int WorldClient::DrawPass() {
     if (!selected.empty() && options::g_options.selectionType == 1 && (flags & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer.SetTexture(0, nullptr);
-        CMapObjectManager* manager = objectManager;
+        MapObjectManager* manager = objectManager;
         // In order: a living object's marker drawn, a dead one unselected and its id erased.
         std::erase_if(selected, [manager](int objectId) {
-            auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(objectId));
+            auto* object = manager->FindObjectAs<MapObject>(static_cast<unsigned>(objectId));
             if (!object) return false;
             if (object->IsDead() == 0) {
                 Vector3 point;

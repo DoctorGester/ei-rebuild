@@ -15,8 +15,8 @@
 #include "lib/hash_map.h"
 
 class Item;
-class CParty;
-class CSpell;
+class Party;
+class Spell;
 class ByteStream;
 
 // A material entry: the material record, the count range of a material stack, and the units left for weapons
@@ -42,9 +42,9 @@ inline constexpr int kMaxSpellModifiers = 8;
 
 struct ItemStock {
     // The owner `party` and class index 0; baseLevels and scrollLevels are not written.
-    explicit ItemStock(CParty* party) : party(party) {}
+    explicit ItemStock(Party* party) : party(party) {}
 
-    CParty* party;                  // the template's party object (its item constructor and item manager)
+    Party* party;                  // the template's party object (its item constructor and item manager)
     int classIndex = 0;             // bit of the records' class masks
     std::vector<itemdb::ItemRecordHead*> armors;
     std::vector<itemdb::ItemRecordHead*> weapons;
@@ -127,7 +127,7 @@ struct ItemStock {
     // kMaxSpellModifiers; then each optional modifier, while fewer, half the time (ISAAC) when it fits the
     // budget; then the repeated modifier while it fits and fewer (a kind 'm' one scales the cost and stops
     // once the cost is not above the base cost). The spells built from them (may be null), held.
-    std::vector<HeldRef<CSpell>> GenerateSpells(const float* levels, unsigned threshold);
+    std::vector<HeldRef<Spell>> GenerateSpells(const float* levels, unsigned threshold);
 
     // Reads five counted name lists from `stream` and appends the records they name, unless already listed:
     // armors, weapons, quick items (names lower-cased, unknown ones skipped); then material entries (name

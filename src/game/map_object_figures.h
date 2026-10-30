@@ -1,6 +1,6 @@
 #pragma once
 
-// The 3D object base under CMapObject: the object's figure (a model resource shared through the figure
+// The 3D object base under MapObject: the object's figure (a model resource shared through the figure
 // manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the figure
 // was built for. See docs/notes/map_objects.md ("Figures").
 
@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-class CObject3D;
+class Object3D;
 class ParticleSource;
 class SceneRenderer;
 
@@ -149,7 +149,7 @@ enum class SkillAnimation : int {
 };
 
 // The side a blow came from (UnitServer::HitDirection), bits 0x1C00000 of a death animation's flags (and of the
-// key a unit asks for). In the unit's axes, whose Y points backwards; the death animation's point (CUnit's action
+// key a unit asks for). In the unit's axes, whose Y points backwards; the death animation's point (Unit's action
 // point) lies away from the blow: +Y for Front, -Y for Back, +X for MinusX, -X for PlusX. Which of X's sides is
 // the unit's left the code does not say.
 enum class BlowSide : std::uint32_t {
@@ -189,7 +189,7 @@ static_assert(offsetof(FigureAnimation, soundFrame) == 0x44);
 static_assert(sizeof(FigureAnimation) == 0x58);
 
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager returns it
-// (BaseManager::GetFile), kept in CObject3D::animations.
+// (BaseManager::GetFile), kept in Object3D::animations.
 struct AnimationDatabase {
     std::uint8_t unused_00[4];
     std::uint32_t count;            // animations
@@ -215,7 +215,7 @@ struct AnimationDatabase {
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
-// The side-specific half of a 3D object (CObject3D::attached): Object3DClientSpecific (class id 0x37) on
+// The side-specific half of a 3D object (Object3D::attached): Object3DClientSpecific (class id 0x37) on
 // the client, Object3DServer (0x38, stubs) on the server.
 class Object3DSpecific;
 class Object3DClientSpecific;
@@ -250,7 +250,7 @@ public:
     virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
-    CObject3D* object;              // the object it belongs to
+    Object3D* object;              // the object it belongs to
 };
 
 // The server's half: no parts, nothing drawn.
@@ -314,7 +314,7 @@ struct FigureBone : EngineObject {
     void InterpolatePrism(const float** stream);
 };
 
-// The figure's animation state (CObject3D's animation member): the skeleton's bones, the animation playing
+// The figure's animation state (Object3D's animation member): the skeleton's bones, the animation playing
 // and the queue behind it, the frame reached.
 class FigureAnimationState : public EngineObject {
 public:
@@ -382,7 +382,7 @@ public:
     // Returns 1.
     int LoadBoneTracks(MappedResource* part, const FigureAnimation* animation);
 
-    CObject3D* owner;
+    Object3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
     std::vector<FigureBone*> bones;   // LinkBone adds
     FigureAnimation* current;       // the animation playing, or null
@@ -390,7 +390,7 @@ public:
     std::deque<FigureAnimation*> queue;
     float time;                     // the frame reached
     // Called each time an animation's end is passed, or null.
-    void(*onEnd)(CObject3D* owner);
+    void(*onEnd)(Object3D* owner);
     float morphS;                   // the figure's morph coefficients (Rescale; bones copy them)
     float morphT;
     float morphU;
@@ -399,9 +399,9 @@ public:
 
 // The 3D object: a transform object with a figure, its parts and their animation (abstract: class name and
 // id are pure). WorldClient's CollectVisible sets its world position to the position in view space.
-class CObject3D : public TransformObject {
+class Object3D : public TransformObject {
 public:
-    ~CObject3D() override;
+    ~Object3D() override;
     // type as the map object factory's type.
     MapObjectType MapType() const { return static_cast<MapObjectType>(type); }
     void Create() override { Create3D(); }
@@ -411,13 +411,13 @@ public:
     void CombineRotation(const Quaternion& parent) override;
     void SaveTransform(platform::File* file) override;
     void LoadTransform(platform::File* file) override;
-    // Whether the object may play the animation entry (FigureAnimation); any here, CUnit overrides it.
+    // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
-    // AttachSpecific. CMapObject and units override it.
+    // AttachSpecific. MapObject and units override it.
     virtual void AttachObject(EngineObject* object);
     // Takes `other`'s parts (the array copied, no references taken) and its transform
     // (TransformObject::CopyTransform).
-    virtual void CopyFigure(const CObject3D* other);
+    virtual void CopyFigure(const Object3D* other);
     // Whether the object is invisible: false here; map objects override it.
     virtual bool InvisibleSlot();
     // Draw the figure / draw it and collect its screen rectangle / draw its shadow with the scene context (the
@@ -561,5 +561,5 @@ public:
     std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
 
 protected:
-    CObject3D();
+    Object3D();
 };

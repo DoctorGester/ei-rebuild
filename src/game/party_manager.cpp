@@ -40,9 +40,9 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
     ar->LeaveChunk();
 }
 
-// `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
+// `to` becomes a copy of `from` (with variables) through a memory stream, as Party::Assign without its Clear
 // inlines it.
-void CopyParty(CParty* to, CParty* from) {
+void CopyParty(Party* to, Party* from) {
     MemoryStream local;
     from->SaveParty(&local, 1);
     local.MemoryStream::Seek(0);
@@ -83,7 +83,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
                 Field(1, &key);
                 LeaveChunk();
             }
-            CParty* party = PartyAt(*parties, key);
+            Party* party = PartyAt(*parties, key);
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();
@@ -146,7 +146,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 void PartyRecord::Serialize(ChunkArchive* ar) {
     MemoryStream local;
     ar->StringField(1, &name);
-    CParty* p = Party();
+    Party* p = GetParty();
     if (!ar->loading) {
         p->SaveParty(&local, 1);
         ar->StreamField(2, &local);
@@ -163,8 +163,8 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(3, &sellsSpells);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
     MemoryStream local;
-    CParty* itemsParty = ItemsParty();
-    CParty* spellsParty = SpellsParty();
+    Party* itemsParty = ItemsParty();
+    Party* spellsParty = SpellsParty();
     if (!ar->loading) {
         itemsParty->SaveParty(&local, 0);
         spellsParty->SaveParty(&local, 0);
@@ -182,20 +182,20 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(6, &restockDue);
 }
 
-void NamedPartyRecords::BeginRedeploy(CParty* party) {
-    if (CParty* found = Find(currentName)) CopyParty(found, party);
+void NamedPartyRecords::BeginRedeploy(Party* party) {
+    if (Party* found = Find(currentName)) CopyParty(found, party);
     NamedFloatTable variables(party->variables);
     std::string zone = party->zone;
     for (PartyRecord* record : records) {
-        CParty* target = record->Party();
+        Party* target = record->GetParty();
         target->variables = variables;
         target->zone = zone;
         target->entrance = party->entrance;
     }
 }
 
-void NamedPartyRecords::EndRedeploy(CParty* party) {
-    if (CParty* found = Find(requestedName)) CopyParty(party, found);
+void NamedPartyRecords::EndRedeploy(Party* party) {
+    if (Party* found = Find(requestedName)) CopyParty(party, found);
     else party->Clear(1, 0);
     currentName = requestedName;
 }

@@ -40,7 +40,7 @@ bool PassesFilter(EngineObject* object, bool units, bool others, bool living) {
 template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
     Vector3 point = {x, y, 0.0f};
-    for (CUnit* unit : g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(point, radius)) visit(unit);
+    for (Unit* unit : g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(point, radius)) visit(unit);
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.
@@ -67,9 +67,9 @@ bool GetPlayerOfUnit(Call* call) {
     *call->result.number = -1.0f;
     EngineObject* unit = ObjectArg(call, 0)->object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
-    CUnit* asUnit = UnitOrNull(unit);
+    Unit* asUnit = UnitOrNull(unit);
     if (!asUnit) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id);
-    CPlayer* party = asUnit->player;
+    Player* party = asUnit->player;
     if (!party) return Report("GetPlayerOfUnit", "Unit doesn't have associated player: ID = %d", unit->id);
     *call->result.number = static_cast<float>(party->playerId);
     return true;
@@ -113,7 +113,7 @@ bool GetArmor(Call* call) {
         for (int i = 0; i < 3; ++i) sum = slot.layers[i].absorb[part] + sum;
         *call->result.number = sum;
     } else {
-        CUnit* unit = data->unit;
+        Unit* unit = data->unit;
         float block[7];
         unit->params.ProtectionBlock(&unit->packedVitals, block, static_cast<unsigned char>(unit->id >= 1000000000 ? 1 : 0));
         *call->result.number = block[part];
@@ -271,7 +271,7 @@ bool GetObjectsOnMap(Call* call) {
 bool IsPlayer(Call* call) {
     *call->result.number = 0.0f;
     EngineObject* unit = ObjectArg(call, 0)->object;
-    CUnit* asUnit = UnitOrNull(unit);
+    Unit* asUnit = UnitOrNull(unit);
     if (asUnit && asUnit->id >= 1000000000 && asUnit->player) *call->result.number = 1.0f;
     return true;
 }

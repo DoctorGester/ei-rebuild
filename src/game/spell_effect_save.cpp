@@ -17,7 +17,7 @@ constexpr int kNoObject = -1;
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
 // manager; `id` keeps what the previous read left.
 template <class T>
-void LoadEffectObject(ByteStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
+void LoadEffectObject(ByteStream* stream, World* world, std::uint32_t& id, T*& field) {
     BaseManager* manager = world->TimedObjectManager();
     stream->ReadValue(id);
     T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
@@ -41,11 +41,11 @@ void SpellEffect::Load(ByteStream* stream) {
     LoadRef(target, stream, world);
     stream->ReadValue(targetPoint);
     stream->ReadValue(state);
-    Spell()->Load(stream);
+    HeldSpell()->Load(stream);
     std::uint32_t packed = 0;
     stream->ReadValue(packed);
-    Spell()->prototypeId = packed;
-    CWorld* server = world;
+    HeldSpell()->prototypeId = packed;
+    World* server = world;
     std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
     LoadEffectObject(stream, server, id, sound);
@@ -53,7 +53,7 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
-    UpdateFootprint(Spell()->Type(), 1);
+    UpdateFootprint(HeldSpell()->Type(), 1);
 }
 
 void SpellEffect::Save(ByteStream* stream) {
@@ -62,8 +62,8 @@ void SpellEffect::Save(ByteStream* stream) {
     SaveRef(target, stream);
     stream->WriteValue(targetPoint);
     stream->WriteValue(state);
-    Spell()->Save(stream);
-    stream->WriteValue(Spell()->prototypeId);
+    HeldSpell()->Save(stream);
+    stream->WriteValue(HeldSpell()->prototypeId);
     SaveEffectObject(stream, visual);
     SaveEffectObject(stream, sound);
     SaveEffectObject(stream, light);

@@ -60,7 +60,7 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   follows the heap layout.
 - **rebirth_flags** fails on the original by design (its `rebirthflags` steps need our code). Ours
   did not repeat: the units of a group were listed in a different order from run to run (`Peasans :
-  group = <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`), an order by heap address,
+  group = <Unit:1884>, <Unit:702>, <Unit:699>`, then `..., 699, 702`), an order by heap address,
   which the repeatable heap above fixed. The other difference was the scenario's own:
   `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its arguments (5,
   1.#INF or a NaN); the scenario now only checks that it is not below 0 (SV1b), which a NaN fails too
@@ -119,7 +119,7 @@ NaN ranges go to the original alone and are logged; mismatches now log keys and 
 The algorithm was rechecked step by step against 005740D0, 00574390, 00577FC0 and 00577730
 (median of three, unguarded partition, recursion on the right part, depth limit, heap fallback,
 insertion threshold 16) with no difference found. Answered by S17a: the NaN depths are heap
-leftovers of objects listed only for their shadow before they were ever in view (CObject3D::Construct
+leftovers of objects listed only for their shadow before they were ever in view (Object3D::Construct
 leaves +0x28); zeroed in ours and, through a harness site, in the original (docs/notes/standalone.md).
 
 - Original bug (fix candidate): UnitClientSpecific::Level (00539160) returns INT_MIN for a unit with 0 experience (FISTP of ln 0 = -inf). Kept for now; see units.md.

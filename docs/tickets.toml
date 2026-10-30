@@ -6695,6 +6695,13 @@ depends = ["C52c"]
 note = "Done in C52c: SampleTerrain, Quaternion::AxisX/Y/Z, TakeZoneQuestItems, LoadLooks, LoadAttackOptions, ReadSavedStrings, ReadUnitLooks, DeltaField ReadPosition / ReadPosition2D / ReadRanged / ReadFloat16 / ReadFloat16x3, CWorld::GetTime, GetScale, UiMesh::GetPlacement, PlatformSet::SurfacePlane, CUnit::GetMoveSpeeds, ShadowCastStrength, PartyNextId; GetGamma deleted (no caller). Kept on purpose: CollectVisible (no out-parameter), StoreParty / CollectParty / Redeploy (the caller's placements list is appended to and null means none), UnitStats::GetFactors (the vector replay checks the aliased call), LocalSearch::Best (x, y keep their old values when nothing is open), MobFile::ReadChunks (fills records, diplomacy and scripts and returns the flag), GameBuffer::ReadString (bool plus a string that keeps its value on failure), CalcFloat / CalcString (the addon dispatch writes through the result pointer, some cases leave it unset), render ReadFrame / ReadPixels / ReadCursorPresent (the harness boundary: tests/verify/image_side.h and image_absent.cpp, a harness change), ui_camp Build / ui_screens Setup (item lists the dialog reads and edits). Not looked at: Vector3* F(Vector3* out) returning the pointer (PickGround, PickSurface, EyePoint, AimPoint, PositionAt, AttachmentPoint, FindPerch, AddVectors family: ~40 functions, virtuals included), the in-out arrays (WorldMatrix, ViewMatrix, ProtectionBlock, GetEquipmentIds, MeasureExposure, GetBounds), SampleNoise, GetMovePoint, FindVariable, FindStandPoint, WeaponPoint, Sample / SamplePath in unit_motion.h."
 
 [[ticket]]
+id = "C59b"
+title = "Second feature-grouping pass: merge the thinly split files (unit_client_*, spell_*, ui_battle_*, texture_*, object3d_*)"
+group = "cleanup"
+depends = ["C59a"]
+note = "Part (2) of C59a. C59 removed every *_slots / *_lifetime / small_* file and cut unit_ai_* from 15 to 4 files; still split thin by the original's address order: unit_client_* (12 files), spell_* (11), ui_battle_* (8), texture_* (8), object3d_* (4) next to map_object_figures.cpp (the 3D object base). Merge where one feature is split thin; audit single members sitting in another subsystem's file beyond the grab-bags. Moves only, no signature changes; run alone between other workers (conflicts with everything)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

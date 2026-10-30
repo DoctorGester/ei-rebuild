@@ -66,7 +66,7 @@ EffectTornado::~EffectTornado() {
 }
 
 void EffectTornado::Reset() {
-    CEffect::Reset();
+    Effect::Reset();
     if (source != nullptr) source->StopAndClear();
     if (sound != -1) g_clientWorld.sounds->StopSound(sound);
     sound = -1;
@@ -102,11 +102,11 @@ bool EffectTornado::RunTick() {
         if (sound != -1) g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, kSoundNear, kSoundFar);
     }
     if (framesLeft <= kStopEmittingTicks && source != nullptr) source->Stop();
-    CWorld* world = WorldContext();
+    World* world = WorldContext();
     if (world->IsServer() && framesLeft > kHurtUntil && (framesLeft & (kHurtEvery - 1)) == 0) {
-        std::vector<CUnit*> units = ServerWorld()->aiMap.sectorMap.FindUnitsInRadius(localPosition, kHurtRadius);
+        std::vector<Unit*> units = ServerWorld()->aiMap.sectorMap.FindUnitsInRadius(localPosition, kHurtRadius);
         DamageInfo hit = TornadoHit();
-        for (CUnit* unit : units) {
+        for (Unit* unit : units) {
             if (unit->player != nullptr) unit->Controller()->TakeHit(&hit, nullptr, nullptr);
         }
     }

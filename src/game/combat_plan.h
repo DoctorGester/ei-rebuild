@@ -15,6 +15,6 @@ struct SightTarget {
     Vector3 point;              // the point to see (a target unit's is filled in later)
     float minDistanceSq;        // closer than this needs no line of sight
     float eyeHeight;            // the viewer's eye height above the ground
-    CUnit* unit;                // the target unit, or null for a point
+    Unit* unit;                // the target unit, or null for a point
 };
 

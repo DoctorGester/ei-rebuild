@@ -128,7 +128,7 @@ Object3DClientSpecific::~Object3DClientSpecific() { Object3DClientSpecific::Dest
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 
-CTexture* Object3DClientSpecific::FindOrAddTexture(int kind) {
+Texture* Object3DClientSpecific::FindOrAddTexture(int kind) {
     for (int i = 0; i < std::ssize(textures); ++i)
         if (textures[i]->type == kind) return textures[i];
     int k = IsPrimaryKind(kind) ? 0 : 1;
@@ -225,9 +225,9 @@ FigureMesh* Object3DClientSpecific::RemoveFromPartSets(const char* name) {
     return RemoveFromGroups(this, part) ? part : nullptr;
 }
 
-CTexture* Object3DClientSpecific::ReplaceTexture(CTexture* replacement) {
+Texture* Object3DClientSpecific::ReplaceTexture(Texture* replacement) {
     if (!replacement) return nullptr;
-    CTexture* old = nullptr;
+    Texture* old = nullptr;
     for (int i = 0; i < std::ssize(textures); ++i) {
         if (textures[i]->type != replacement->type) continue;
         old = textures[i];
@@ -247,7 +247,7 @@ CTexture* Object3DClientSpecific::ReplaceTexture(CTexture* replacement) {
 // --- Skins and materials --------------------------------------------------------------------------
 
 int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
-    CTextureManager* manager = WorldContext()->TextureManager();
+    TextureManager* manager = WorldContext()->GetTextureManager();
     skinName = first.value_or("");   // (an absent name was the empty text)
     secondSkinName = second.value_or("");
     const std::optional<std::string_view> names[2] = {first, second};
@@ -265,7 +265,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
         }
         set = partSets[k];
         if (!set || !set->texture) continue;
-        CTexture* skin = set->texture;
+        Texture* skin = set->texture;
         skin->name = name;
         manager->LoadTexture(skin);
     }
@@ -273,7 +273,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
 }
 
 void Object3DClientSpecific::ApplyMaterials() {
-    CMaterialManager* manager = WorldContext()->MaterialManager();
+    MaterialManager* manager = WorldContext()->GetMaterialManager();
     if (materials.empty()) {
         materialCursor = -1;
     } else {

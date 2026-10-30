@@ -90,8 +90,8 @@ public:
     // "SmtgLight", or the "Demon" pair).
     void Start(const Vector3& from, const Vector3& to, float power, bool demon);
 
-    Ref<CTexture> texture;
-    Ref<CTexture> glowTexture;
+    Ref<Texture> texture;
+    Ref<Texture> glowTexture;
     // The bounds the renderer clips by: flags 3 once set, the box relative to the centre.
     ClipBounds bounds;
     Vector3 boundsSpare;                // cleared with the bounds, never read

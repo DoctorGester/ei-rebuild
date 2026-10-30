@@ -11,14 +11,14 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 - **CWorldServer**: `diplomacy` is a `Diplomacy` embedded at +0x12C64 (users pass `&diplomacy` or read `allied`). `aiMap.events` is the
   `AIEventTable` (world.h includes unit_ai.h). The object sets a player is sent are `std::vector<CEngineObject*>`
   (world_object_sets.cpp): the radix sort takes the address apart through `AddressWord`, the merge compares by `std::less` on the pointers.
-- **Virtual slots used instead of VCall.** CWorld: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
-  CMapObject: `ReceiveHit` 31, `ApplyScience` 41, `EyePoint` 48, `PositionAt` 52, `AimPoint` 53, `IsLargeUnit` 54, `IsDead` 55, `ForgetObject` 56,
+- **Virtual slots used instead of VCall.** World: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
+  MapObject: `ReceiveHit` 31, `ApplyScience` 41, `EyePoint` 48, `PositionAt` 52, `AimPoint` 53, `IsLargeUnit` 54, `IsDead` 55, `ForgetObject` 56,
   `UpdateMoveFactors` 57, `MoveSpeed` 59, `Radius` 60. Also BaseManager `CreateObject`, ByteStream `Read` / `Write`,
-  Item `GetUse`, CParty `ItemManager`, PlayerSource `TakeNew` / `Query`, EngineObject `ClearState` / `Release`, SpellEffect `DeletingDestructor`.
-- **Members instead of offsets:** `CEffect::startTick` (timed objects), `CParty::Money()` (player gold), `PlayerServer::partyUnits`,
-  `AIBrain::visible` / `unknown_37`, `UnitServer::stats`, `TextManager::cursor`, `CWorld::worldHandle`, `WorldServer::hoover`,
-  `CPlayer::units` / `Server()`.
-- **AddUnitToServer's record builder** (`world_zone.cpp`) is storage for a `CParty`. Its record is the party's first `PartyUnitRecord`, and the
+  Item `GetUse`, Party `ItemManager`, PlayerSource `TakeNew` / `Query`, EngineObject `ClearState` / `Release`, SpellEffect `DeletingDestructor`.
+- **Members instead of offsets:** `Effect::startTick` (timed objects), `Party::Money()` (player gold), `PlayerServer::partyUnits`,
+  `AIBrain::visible` / `unknown_37`, `UnitServer::stats`, `TextManager::cursor`, `World::worldHandle`, `WorldServer::hoover`,
+  `Player::units` / `Server()`.
+- **AddUnitToServer's record builder** (`world_zone.cpp`) is storage for a `Party`. Its record is the party's first `PartyUnitRecord`, and the
   unit id goes in `unknown_01C`. `world.h` still counts `ObjectIdMap`, `PlatformSet` and `UnitSet` as per-file container structs: they are game
   structures built on the shared templates, not container layouts.
 
@@ -28,7 +28,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
   + 0x1C / 0x34 / 0x38` (mana) and `world[0x6C]`), `world_server.cpp` (the game server record +0x30, +4), `world_briefing.cpp` (the variable
   event's record +8, +0x0C, +0x18).
 - Types: `ApplyScience` (slot 41) is declared with two ints (the use record and the unit). Slot 54 is `IsLargeUnit`, though the planner reads it as
-  "moving". The multi-target spells search units within CSpell `range` (+0x34), up to `targetCount`. `CMapObject::updateCountdown` (+0x174) is the
+  "moving". The multi-target spells search units within Spell `range` (+0x34), up to `targetCount`. `MapObject::updateCountdown` (+0x174) is the
   unit's update slot. The controller is reached through `reinterpret_cast` to `UnitController` / `UnitServer`; these two declarations overlap and
   should become one. `FiguredUnitRecord` does not derive from `DressedUnitRecord` (its head shares the layout, and Write is called on it through a
   cast); `RecordPtrArray` is still a `uint8_t*` array. `ZoneExit` (object_tables.h) is the one exit record: the map database's zone records,
@@ -40,7 +40,7 @@ A gap became a name when src reads or writes it through the class, else `unused_
 - `WorldServer::sendsStartPosition` (+0x11C) and the autoplay recording request (`PlayerClient::StartRecording` / `StopRecording`, `RequestLoad`'s flag) were dead and are gone.
 - `UnitServer::aiPresence` (+0x918) holds 005C9770's result, which is `AIViewer::StepNoise` and always returns 0: the presence record is never
   written and `AIEventPresence` is speculative.
-- `CPlayer` +0x108 is god mode (`CPlayer::godMode`); `PlayerClient` +0x84 is the local session.
+- `Player` +0x108 is god mode (`Player::godMode`); `PlayerClient` +0x84 is the local session.
 - Written, never read: `WorldClient::lightingMark`, `UnitServer::orderStopped` (saved too), `DamageInfo::weaponValue`.
 - Methods renamed with their fields: `SetCave`, `SetClimate`, `SetWeather` (the forwarders `WorldSetCave`, `WorldSetClimate`, `GameSetWeather`); the
   save version constant `kVersionRainBoltTick`.
@@ -55,7 +55,7 @@ A gap became a name when src reads or writes it through the class, else `unused_
 ## C21 batch 23 (2026-10-22)
 
 - SyncPlayer's four static arrays are vectors; the player
-  state's Send* functions take each element as the pass's class through `NextAs<CMapObject>` / `NextAs<CEffect>` (player_sync.cpp:
+  state's Send* functions take each element as the pass's class through `NextAs<MapObject>` / `NextAs<Effect>` (player_sync.cpp:
   the same arrays carry map objects, then timed objects).
 - `WorldServer::ReadAIGraph` writes a `CStream*`; the picking sort's `DepthLess::manager` is a `CBaseManager*`; the selection
-  markers look their objects up with `objectManager->FindObjectAs<CMapObject>` (the 00403F40 forwarder is gone).
+  markers look their objects up with `objectManager->FindObjectAs<MapObject>` (the 00403F40 forwarder is gone).

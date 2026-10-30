@@ -1,5 +1,5 @@
 // Create of map objects, units and torches: the map object's Create, then the object's number of network
-// fields. See unit.h (CUnit::Create), torch.h (TorchObject::Create) and docs/notes/units.md
+// fields. See unit.h (Unit::Create), torch.h (TorchObject::Create) and docs/notes/units.md
 // ("Creation, databases, save").
 #include "map_object.h"
 #include "game_strings.h"
@@ -18,9 +18,9 @@ constexpr int kUnitNetFields = 14;
 constexpr int kTorchNetFields = 5;
 
 constexpr int kMapObjectNetFields = 4;
-constexpr int kInitialCountdown = 5;      // CMapObject::updateCountdown
+constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
 
-void DetachCompanion(CMapObject* object) {
+void DetachCompanion(MapObject* object) {
     if (EngineObject* companion = object->companion) {
         CompanionOwner(companion) = nullptr;
         companion->Release();
@@ -30,9 +30,9 @@ void DetachCompanion(CMapObject* object) {
 
 } // namespace
 
-// --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
+// --- MapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
-void CMapObject::CreateMapObject() {
+void MapObject::CreateMapObject() {
     Create3D();
     DetachCompanion(this);
     packedVitals.Reset();
@@ -47,7 +47,7 @@ void CMapObject::CreateMapObject() {
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
 }
 
-void CMapObject::DestroyMapObject() {
+void MapObject::DestroyMapObject() {
     SetEffectCount(0);
     DetachCompanion(this);
     Destroy3D();
@@ -55,10 +55,10 @@ void CMapObject::DestroyMapObject() {
 
 // --- Units and torches -----------------------------------------------------------------------------
 
-void CUnit::Create() {
+void Unit::Create() {
     CreateMapObject();
     Reset();
-    MapObject()->netState.SetFieldCount(kUnitNetFields);
+    AsMapObject()->netState.SetFieldCount(kUnitNetFields);
 }
 
 void TorchObject::Create() {

@@ -71,7 +71,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
-        CMapObject* object = node->second;
+        MapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int objectId = object->KeyId();
         if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, lib::Count(wanted), objectId);
@@ -94,10 +94,10 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
     return taken;
 }
 
-void WorldServer::RestorePlayerItems(CPlayer* player) {
+void WorldServer::RestorePlayerItems(Player* player) {
     std::vector<Item*> taken;
     if (sessionKind != kKindNetwork) {
-        std::vector<Item*>* items = &player->Party()->items;
+        std::vector<Item*>* items = &player->GetParty()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
             for (int i = 0; i < std::ssize(*items); ++i) taken.push_back(ItemAt(items, i));
@@ -122,12 +122,12 @@ void WorldServer::RestorePlayerItems(CPlayer* player) {
     taken.clear();
 }
 
-void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
+void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
 
-    CParty* party = player->Party();
+    Party* party = player->GetParty();
     std::vector<PartyUnitRecord*> records{};
     for (int i = 0; i < std::ssize(party->members); ++i) {
         int index = lib::Count(records);
@@ -189,7 +189,7 @@ Item* WorldServer::CopyItem(Item* source) {
     ItemKind itemKind = source->Kind();
     ItemManager* factory = ItemFactory();
     Item* copy = factory->MakeItem(itemKind, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
-    source->CopyTo(copy, SpellManager());
+    source->CopyTo(copy, GetSpellManager());
     copy->charge = source->charge;
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge;
@@ -205,7 +205,7 @@ Item* WorldServer::CreateItemNamed(const char* name) { return g_serverWorld.item
 
 Item* WorldServer::CreateSpellNamed(const char* name) {
     ItemManager* manager = g_serverWorld.itemManager;    // read first
-    return manager->CreateSpellItem(name, SpellManager());
+    return manager->CreateSpellItem(name, GetSpellManager());
 }
 
 void WorldServer::AddCounted(EngineObject* item) {
@@ -213,10 +213,10 @@ void WorldServer::AddCounted(EngineObject* item) {
     AddCountedTail(&counted, item);
 }
 
-void WorldServer::UseItemUp(CUnit* unit, Item* item) {
+void WorldServer::UseItemUp(Unit* unit, Item* item) {
     if (unit->player) {
         if (ItemLink* link = item->ServerLink()) {
-            CParty* party = unit->player->Party();
+            Party* party = unit->player->GetParty();
             if (party->Find(unit->id)) {
                 Item* source = FindItem(party->ItemFactory(), link->value);
                 if (source) --source->count;

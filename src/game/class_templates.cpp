@@ -54,7 +54,7 @@ void AddTemplate(std::vector<HeldRef<ClassTemplate>>* v, int type, std::uint8_t 
 void ClassTemplateFill(ClassTemplate* t) {
     std::vector<std::string> names;
     ItemManager* items = t->ItemsParty()->ItemFactory();
-    CSpellManager* spells = t->SpellsParty()->SpellManager();
+    SpellManager* spells = t->SpellsParty()->GetSpellManager();
 
     itemdb::ItemDatabase& db = g_itemDatabase;
     names = items->ListWeaponNames();

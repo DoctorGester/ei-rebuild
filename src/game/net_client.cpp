@@ -15,7 +15,7 @@ namespace net {
 namespace {
 
 // The embedded party's constructor.
-void PartyConstruct(lib::InPlace<CParty>* party) { new (party->Get()) CParty(); }
+void PartyConstruct(lib::InPlace<Party>* party) { new (party->Get()) Party(); }
 
 template <typename T, typename Function>
 void RegisterInline(ClientSession* client, int channel, Function handler) {

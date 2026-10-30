@@ -61,7 +61,7 @@ struct ClipBounds {
 
 // A box of an object's model that blocks the AI map: the part's bounds with the part's position when it was
 // loaded. A figure mesh has one (FigureMesh::box), copied whole from the piece's header into the object's
-// part boxes (CObject3D::partBoxes).
+// part boxes (Object3D::partBoxes).
 struct FootprintPart {
 
     ClipBounds bounds;      // flags: also the part's occluder kind and transparency; the centre is the part's offset
@@ -77,7 +77,7 @@ struct MatrixStack {
 
 struct TLVertex;
 struct LightningPoint;
-class CLight;
+class Light;
 
 // A screen-facing sprite's centre and size (SceneRenderer::DrawSprites' points).
 struct SpritePoint {
@@ -170,7 +170,7 @@ class TextureDevice;
 namespace options {
 class GameOptions;
 }
-class CTexture;
+class Texture;
 class FigureMesh;
 class Material;
 struct LineBatch;
@@ -267,11 +267,11 @@ public:
     // Sets SRCBLEND, then DESTBLEND.
     int SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
-    int SetTexture(int stage, CTexture* texture);
+    int SetTexture(int stage, Texture* texture);
     // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(FigureMesh* figure, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* screen, CTexture* textureA,
-                      CTexture* textureB);
+    int DrawFigureLit(FigureMesh* figure, const std::vector<Light*>* lights, Material* material, int alpha, Rect* screen, Texture* textureA,
+                      Texture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on.
@@ -301,21 +301,21 @@ public:
     bool RestoreSurfaces();
 
     // Makes sure `texture` is loaded and binds it to `stage`.
-    int BindLoadedTexture(int stage, CTexture* texture);
+    int BindLoadedTexture(int stage, Texture* texture);
     // The fog (and clear) colour from r, g, b in 0..1 (each rounded to the nearest integer), stored and set
     // through SetFogColourState.
     void SetFogColour(float r, float g, float b);
     // The sun becomes `light` (counted; the old one released).
-    void SetSun(CLight* light);
+    void SetSun(Light* light);
     // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
-    void SetSunAndAmbient(CLight* light, float r, float g, float b);
+    void SetSunAndAmbient(Light* light, float r, float g, float b);
 
     std::uint32_t flags = 0;                   // bit 0: the software cursor option; bit 1 set by the creation
     Ref<TransformPipeline> pipeline;
     std::uint32_t fogColour = 0;               // also the colour the frame is cleared with
     std::uint32_t colour = 0;                  // the draw colour
     // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
-    Ref<CLight> sun;
+    Ref<Light> sun;
     Ref<TextureDevice> device;                // the device object
     Ref<RenderHelper> helper;
     // The display settings SetGamma last applied, as given.
@@ -359,7 +359,7 @@ struct LinkArchive {
 };
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
-// missing), and the animations read from the last by name. CFigureManager::models and the link figure
+// missing), and the animations read from the last by name. FigureManager::models and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
     // An empty animation map, then the three archives as new CMMIOResources.

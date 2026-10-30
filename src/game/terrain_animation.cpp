@@ -153,7 +153,7 @@ void SectorData::AnimateWaves() {
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
 
-void Terrain::SetSun(CLight* light, const Vector4* colour) {
+void Terrain::SetSun(Light* light, const Vector4* colour) {
     ambient = *colour;
     sun = light;
 }

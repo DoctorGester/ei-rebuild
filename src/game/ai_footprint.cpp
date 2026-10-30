@@ -91,7 +91,7 @@ void FootprintCellSet::GetBounds(int* bounds) const {
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-bool AIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
+bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
     float* matrix = object->worldMatrix.m;
     object->localRotation.ToMatrix((float*)matrix);
@@ -216,13 +216,13 @@ void AIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
     if (!(dirty.maxY > maxY)) dirty.maxY = maxY;
 }
 
-bool AIMap::MarkFootprint(CMapObject* object, bool remove) {
+bool AIMap::MarkFootprint(MapObject* object, bool remove) {
     int cellX = WorldToCell(object->localPosition.x);
     int cellY = WorldToCell(object->localPosition.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
-    if (CUnit* unit = UnitOrNull(object)) {
+    if (Unit* unit = UnitOrNull(object)) {
         if (unit->IsDead()) return true;
         auto* shape = static_cast<const UnitShape*>(ShapeForHeight(unit->standingHeight));
         if (!shape) return true;

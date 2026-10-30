@@ -1,5 +1,5 @@
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
-// ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
+// ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Rewritten").
 #include "item.h"
 #include "item_manager.h"
 #include "unit_create.h"
@@ -22,7 +22,7 @@ namespace {
 
 // Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
 // still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
-// names); the item manager's item by name (item_manager.cpp); FatalError (app.cpp); CUnit's EquipArmour /
+// names); the item manager's item by name (item_manager.cpp); FatalError (app.cpp); Unit's EquipArmour /
 // AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
 // context) is not defined here.
 
@@ -43,9 +43,9 @@ Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string&
 }
 } // namespace
 
-int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const std::string& name) {
-    CWorld* world = ContextAsWorld();
-    CSpellManager* spellOwner = world->SpellManager();   // passed on to the spell factory
+int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name) {
+    World* world = ContextAsWorld();
+    SpellManager* spellOwner = world->GetSpellManager();   // passed on to the spell factory
     ItemManager* items = world->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
     if (!prototype) {

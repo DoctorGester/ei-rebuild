@@ -39,30 +39,30 @@ std::optional<SideObjectType> ThirdHalfOf(MapObjectType type) {
 
 // --- Lifetime and class slots ---------------------------------------------------------------------
 
-CMapObjectManager::CMapObjectManager() {}
+MapObjectManager::MapObjectManager() {}
 
-CMapObjectManager::~CMapObjectManager() {}
+MapObjectManager::~MapObjectManager() {}
 
-const char* CMapObjectManager::GetFolderName() { return kFolderName; }
-const char* CMapObjectManager::ClassName() { return kClassName; }
-ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-EngineObject* CMapObjectManager::CreateObject(int newType, int newId) { return CreateMapObject(newType, newId); }
+const char* MapObjectManager::GetFolderName() { return kFolderName; }
+const char* MapObjectManager::ClassName() { return kClassName; }
+ClassId MapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
+EngineObject* MapObjectManager::CreateObject(int newType, int newId) { return CreateMapObject(newType, newId); }
 
-void CMapObjectManager::Create() {
+void MapObjectManager::Create() {
     std::string folder = g_textFolder;
     BaseManager::Create();
     AddArchive((folder + "database.res"));
 }
 
-CMapObject* CMapObjectManager::FindMapObject(unsigned objectId) const { return FindObjectAs<CMapObject>(objectId); }
+MapObject* MapObjectManager::FindMapObject(unsigned objectId) const { return FindObjectAs<MapObject>(objectId); }
 
-EngineObject* CMapObjectManager::CreateMapObject(int newType, int newId) {
+EngineObject* MapObjectManager::CreateMapObject(int newType, int newId) {
     ResourceManager* manager = this;
     const auto kind = static_cast<MapObjectType>(newType);
     // The base's CreateObject, not the virtual (that one is this function's caller).
-    auto* object = static_cast<CMapObject*>(BaseManager::CreateObject(newType, newId));
+    auto* object = static_cast<MapObject*>(BaseManager::CreateObject(newType, newId));
     if (!object) return nullptr;
-    auto* figures = manager->ContextAsWorld()->FigureManager();
+    auto* figures = manager->ContextAsWorld()->GetFigureManager();
     object->SetAnimationState(figures->CreateObjectAs<FigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
     BaseManager* halves = manager->ContextAsWorld()->SpecificManager();
     object->AttachObject(halves->CreateObjectAs<EngineObject>(SideObjectType::Object3D, kNoObjectId));
@@ -71,7 +71,7 @@ EngineObject* CMapObjectManager::CreateMapObject(int newType, int newId) {
     return object;
 }
 
-FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
+FigureAnimation* MapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb"), nullptr));
     if (!database) {
         game::DebugLog(kNoDatabaseText, *figure);
@@ -87,7 +87,7 @@ FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std
     return nullptr;
 }
 
-void CMapObjectManager::GiveDefaults(CMapObject* object) {
+void MapObjectManager::GiveDefaults(MapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the shares and factors,
     // fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not what the stack held: a determinism
     // fix. The original's were WorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,

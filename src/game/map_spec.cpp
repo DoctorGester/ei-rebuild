@@ -158,10 +158,10 @@ void ObjectSpec::Remove() {
     Apply();
 }
 
-CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(object); }
+MapObject* ObjectSpec::MadeMapObject() const { return static_cast<MapObject*>(object); }
 
 void ObjectSpec::Refresh() {
-    if (object) MapObject()->MarkChanged(2);
+    if (object) MadeMapObject()->MarkChanged(2);
 }
 
 void ObjectSpec::Apply() {
@@ -170,8 +170,8 @@ void ObjectSpec::Apply() {
         return;
     }
     g_serverWorld.aiMap.BeginRefresh();
-    g_serverWorld.aiMap.sectorMap.Remove(MapObject());
-    CMapObject* mapObject = MapObject();
+    g_serverWorld.aiMap.sectorMap.Remove(MadeMapObject());
+    MapObject* mapObject = MadeMapObject();
     mapObject->localPosition = position;
     mapObject->localRotation = rotation;
     mapObject->SetFigureScale(&scale.x);
@@ -180,9 +180,9 @@ void ObjectSpec::Apply() {
     std::uint32_t& flags = mapObject->flags;
     if (!visible) flags |= 8;
     else flags &= ~8u;
-    MapObject()->MarkChanged(2);
-    MapObject()->MarkChanged(1);
-    g_serverWorld.aiMap.sectorMap.Add(MapObject());
+    MadeMapObject()->MarkChanged(2);
+    MadeMapObject()->MarkChanged(1);
+    g_serverWorld.aiMap.sectorMap.Add(MadeMapObject());
     g_serverWorld.aiMap.EndRefresh();
 }
 

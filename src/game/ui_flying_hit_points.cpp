@@ -82,8 +82,8 @@ struct QuadBuffer {
 
 // Where the unit was drawn: the screen rectangle of its first "hd", "bd" or "hp" part's own mesh
 // (part flag 0x40), else the unit's; null when it has none of those parts.
-const Rect* UnitScreenRect(CUnit* unit) {
-    CObject3D* object = unit->Object3D();
+const Rect* UnitScreenRect(Unit* unit) {
+    Object3D* object = unit->AsObject3D();
     FigureMesh* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
     if (!part) return nullptr;

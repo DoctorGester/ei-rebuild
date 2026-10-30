@@ -105,7 +105,7 @@ void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its E
 int ScreenRect(void* world, int id, RECT* rect);
 int ObjectId(const void* object);               // a EngineObject's id (what PickAt2 and UnitAt give)
 std::uint32_t ObjectFlags(const void* object);  // its flags
-void* PlayerConnection(void* player);           // a CPlayer's connection (PlayerServer / PlayerClient)
+void* PlayerConnection(void* player);           // a Player's connection (PlayerServer / PlayerClient)
 int ConnectionState(void* connection);          // its state
 // The camp `camp` (the window on top, CampPages): its page and its item strip's source items (null ones too) with
 // their types (EngineObject::type); false without a source.

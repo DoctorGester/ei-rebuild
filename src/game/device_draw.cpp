@@ -20,7 +20,7 @@
 namespace {
 
 DeviceMaterial* CurrentMaterial(TextureDevice* device) { return device->material; }
-Surface* TextureSurface(CTexture* texture) { return texture->surface; }
+Surface* TextureSurface(Texture* texture) { return texture->surface; }
 
 // The material's blend: blending on with its factors.
 void SetMaterialBlend(const DeviceMaterial* material) {
@@ -38,7 +38,7 @@ void SetSinglePassStage(TextureDevice* device, int stage, MaterialStage& s) {
         return;
     }
     if (!s.name.empty()) {
-        CTexture* texture = g_clientWorld.textureManager->FindTexture(s.name.data());
+        Texture* texture = g_clientWorld.textureManager->FindTexture(s.name.data());
         EngineObject* old = s.texture;
         s.texture = texture;
         if (texture) texture->AddRef();

@@ -60,8 +60,8 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
 }
 
 // An item list of the constructors: made through its factory (not checked).
-CParty* NewItemList() {
-    CParty* list = new CParty();
+Party* NewItemList() {
+    Party* list = new Party();
     list->Create();
     return list;
 }
@@ -262,7 +262,7 @@ void CampPages::BuildPages() {
     heroTurn = 0.0f;
     turning = 0;
     std::vector<PartyUnitRecord*> records;
-    CParty* player = LocalPlayerData();
+    Party* player = LocalPlayerData();
     const int count = lib::Count(player->members);
     for (PartyUnitRecord& record : player->members) {
         record.unitId += kRecordBias;

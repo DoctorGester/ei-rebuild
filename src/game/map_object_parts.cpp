@@ -34,18 +34,18 @@ int IndexOf(const Parts& parts, const FigureMesh* part) {
 }
 } // namespace
 
-FigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
+FigureMesh* Object3D::FindPartByPrefix(std::string_view prefix) {
     // The original asks for the name twice; the parts return the same string both times.
     auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     return FirstPart(parts, startsWith);
 }
 
-FigureMesh* CObject3D::FindPart(std::string_view partName) {
+FigureMesh* Object3D::FindPart(std::string_view partName) {
     auto named = [partName](FigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
     return FirstPart(parts, named);
 }
 
-int CObject3D::RemovePart(FigureMesh* part) {
+int Object3D::RemovePart(FigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index < 0) return 0;
@@ -57,14 +57,14 @@ int CObject3D::RemovePart(FigureMesh* part) {
     return 1;
 }
 
-FigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
+FigureMesh* Object3D::RemovePartNamed(std::string_view partName) {
     FigureMesh* part = FindPart(partName);
     if (!part) return nullptr;
     RemovePart(part);
     return part;
 }
 
-float* CObject3D::PartWorldPosition(float* out, const FigureMesh* part) {
+float* Object3D::PartWorldPosition(float* out, const FigureMesh* part) {
     const Vector3 figureScale = attached->GetScale();
     const float scaleX = figureScale.x, scaleY = figureScale.y, scaleZ = figureScale.z;
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
@@ -90,7 +90,7 @@ float* CObject3D::PartWorldPosition(float* out, const FigureMesh* part) {
 
 // --- The animation database -------------------------------------------------------------------
 
-AnimationDatabase* CObject3D::Animations() {
+AnimationDatabase* Object3D::Animations() {
     if (!animations && owner) {
         std::string file = name;
         file += ".adb";
@@ -99,13 +99,13 @@ AnimationDatabase* CObject3D::Animations() {
     return animations;
 }
 
-FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
+FigureAnimation* Object3D::AnimationAt(std::uint32_t key) {
     if (!Animations()) return nullptr;
     std::uint32_t index = static_cast<std::uint8_t>(key);   // the entry's index is the low byte
     return index < animations->count ? &animations->animations[index] : nullptr;
 }
 
-FigureAnimation* CObject3D::FindSkillAnimation(SkillAnimation number) {
+FigureAnimation* Object3D::FindSkillAnimation(SkillAnimation number) {
     if (!Animations()) return nullptr;
     std::uint32_t wanted = AnimationNumberBits(static_cast<int>(number));
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
@@ -116,12 +116,12 @@ FigureAnimation* CObject3D::FindSkillAnimation(SkillAnimation number) {
     return nullptr;
 }
 
-float CObject3D::AnimationFactor(float time) {
+float Object3D::AnimationFactor(float time) {
     if (GetClassId() != ClassId::Unit || !Animations()) return 1.0f;
     return animations->TimeFactor(time);
 }
 
-int CObject3D::FindPartIndex(std::string_view partName) {
+int Object3D::FindPartIndex(std::string_view partName) {
     for (std::size_t i = 0; i < partNames.size(); ++i)
         if (str::Compare(partNames[i], partName) == 0) return static_cast<int>(i);
     return -1;

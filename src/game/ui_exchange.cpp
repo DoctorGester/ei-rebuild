@@ -117,8 +117,8 @@ void ExchangeScreen::LeftDown(int buttons, int x, int y) {
 
 // --- the exchange went through -------------------------------------------------------------------
 
-void ExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    CParty* local = LocalPlayerData();
+void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
+    Party* local = LocalPlayerData();
     local->ReleaseAllItems();
     ReturnAll(local, partyC);
     ReturnAll(local, partyB);
@@ -154,7 +154,7 @@ void ExchangeScreen::CreateScreen() {
     iconWindow->PlaceBars(300);
 
     // The scratch party (not checked), our offer cleared, the partner's.
-    scratch = new CParty();
+    scratch = new Party();
     scratch->Create();
     net::ClientSession* client = net::g_gameClient;
     ownOffer = client->parties[0].Get();

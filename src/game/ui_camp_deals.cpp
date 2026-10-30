@@ -41,13 +41,13 @@ enum CampPage {
 std::uint32_t PrototypeIndex(const EngineObject* object) { return object->prototypeId >> 16; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
-void ReturnToStrip(CampPages* camp, CParty* to, CParty* list, UiItemStrip* strip) {
+void ReturnToStrip(CampPages* camp, Party* to, Party* list, UiItemStrip* strip) {
     Item* last = camp->ReturnAll(to, list);
     strip->ScrollToItem(last);
 }
 
 // The made spell or item replaces the results: every result removed, the made one added and dropped.
-void TakeMade(CParty* results, Ref<Item>& made) {
+void TakeMade(Party* results, Ref<Item>& made) {
     while (!results->items.empty()) results->RemoveItem(results->items[0], 0);
     results->AddItem(made, 0, 0);
     made.Reset();
@@ -55,23 +55,23 @@ void TakeMade(CParty* results, Ref<Item>& made) {
 
 // Every result moved back: made items to the constructor's first list and strip, the others to the
 // player and the item strip.
-void ReturnResults(CampPages* camp, CParty* results, CParty* constructorList, UiItemStrip* constructorStrip) {
+void ReturnResults(CampPages* camp, Party* results, Party* constructorList, UiItemStrip* constructorStrip) {
     while (!results->items.empty()) {
         Item* item = results->items[0];
         bool made = IsMade(item);
-        CParty* to = made ? constructorList : LocalPlayerData();
+        Party* to = made ? constructorList : LocalPlayerData();
         Item* moved = camp->MoveItem(item, to, results, 0, true, false);
         (made ? constructorStrip : camp->itemStrip)->ScrollToItem(moved);
     }
 }
 
 // A new item named `name` from the results' item manager as loot (null when none is made).
-ItemLoot* NewLoot(CParty* results, std::string_view name) {
+ItemLoot* NewLoot(Party* results, std::string_view name) {
     return AsLoot(results->ItemFactory()->CreateItem(name));
 }
 // `item` (not checked for null) added to the results, counted while it is added; its record index set first
 // when `index` is given.
-void AddLoot(CParty* results, ItemLoot* item, std::optional<std::uint32_t> index) {
+void AddLoot(Party* results, ItemLoot* item, std::optional<std::uint32_t> index) {
     item->AddRef();
     if (index) item->index = *index;
     results->AddItem(item, 0, 0);
@@ -90,7 +90,7 @@ const char* InstructionName(ItemKind itemClass) {
 
 // The spell constructor's third list: each item repaired, its spell's (container), spell's or
 // modifier's record added to the template's spell stock.
-void StockSpells(CampPages* camp, CParty* list) {
+void StockSpells(CampPages* camp, Party* list) {
     ItemStock* stock = &camp->constructor->magic;
     for (Item* item : list->items) {
         item->Repair();
@@ -106,7 +106,7 @@ void StockSpells(CampPages* camp, CParty* list) {
 // The item constructor's third list, from the end: each item repaired; weapons, armour and quick
 // items that can be taken apart and blueprint parts add their record to the template's stock;
 // loot priced by itself (LootKind::Self) leaves the list.
-void StockItems(CampPages* camp, CParty* list) {
+void StockItems(CampPages* camp, Party* list) {
     ItemStock* stock = &camp->constructor->allowed;
     for (int i = lib::Count(list->items) - 1; i >= 0; --i) {
         Item* item = list->items[i];
@@ -134,7 +134,7 @@ void StockItems(CampPages* camp, CParty* list) {
     }
 }
 
-void RepairAll(CParty* list) {
+void RepairAll(Party* list) {
     for (Item* item : list->items) item->Repair();
 }
 
@@ -143,7 +143,7 @@ void RepairAll(CParty* list) {
 // --- a spell container taken apart ---------------------------------------------------------------
 
 void CampPages::DeconstructSpell() {
-    CParty* results = spellResults;
+    Party* results = spellResults;
     Ref<Item> copy;
     copy.Assign(results->CopyItem(results->items[0]));
     results->RemoveItem(results->items[0], 0);
@@ -156,7 +156,7 @@ void CampPages::DeconstructSpell() {
 // --- an item taken apart -------------------------------------------------------------------------
 
 void CampPages::DeconstructItem() {
-    CParty* results = itemResults;
+    Party* results = itemResults;
     Ref<Item> copy;
     copy.Assign(results->CopyItem(results->items[0]));
     results->RemoveItem(results->items[0], 0);
@@ -176,7 +176,7 @@ void CampPages::DeconstructItem() {
         Ref<Item> container;
         container.Assign(results->ItemFactory()->MakeItem(ItemKind::Scroll, index, 0));
         if (container) {
-            container->AttachSpell(copy->spell->Clone(results->SpellManager()));
+            container->AttachSpell(copy->spell->Clone(results->GetSpellManager()));
             results->AddItem(container, 0, 0);
         }
     }
@@ -198,7 +198,7 @@ void CampPages::DoAction() {
         trade->Settle(true, false);
         return;
     case kSpellTrade:
-        constructor->SpellsParty()->SpellManager();
+        constructor->SpellsParty()->GetSpellManager();
         StockSpells(this, spellParts[2]);
         ReturnToStrip(this, spellParts[0], spellParts[2], spellStrip);
         ReturnToStrip(this, LocalPlayerData(), spellParts[1], itemStrip);

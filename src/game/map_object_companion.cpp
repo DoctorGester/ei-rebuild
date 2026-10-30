@@ -11,7 +11,7 @@
 #include "random.h"
 #include "sound.h"
 #include "terrain.h"
-#include "spell.h"    // CLight
+#include "spell.h"    // Light
 #include "unit.h"
 #include "world.h"
 
@@ -115,12 +115,12 @@ bool MapObjectClientSpecific::RunTick() {
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
-    CLight* lamp = light;
+    Light* lamp = light;
     if (lamp && !(lamp->flags & LightFlag::Hidden)) {
         Vector3 lightPosition;
         lib::LoadBytes(lightPosition, &lamp->localPosition.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
-        CMapObject* followed = CompanionOwner(this);
+        MapObject* followed = CompanionOwner(this);
         float dx = lightPosition.x - followed->localPosition.x;
         float dy = lightPosition.y - followed->localPosition.y;
         float dz = lightZ - followed->localPosition.z;
@@ -158,11 +158,11 @@ MapObjectClientSpecific::~MapObjectClientSpecific() {
     particles.clear();
     if (light) {
         light->flags &= ~LightFlag::Held;
-        if (CLight* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
+        if (Light* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
             shown->flags |= LightFlag::Hidden;
             g_clientWorld.terrain->RemoveLight(light);
-            if (CUnit* unit = Unit()) {
-                if (Object3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
+            if (Unit* unit = OwnerUnit()) {
+                if (Object3DSpecific* half = unit->AsObject3D()->attached) half->SetLit(false);
             }
         }
         int lightId = light->id;
@@ -220,9 +220,9 @@ const char* MapObjectClientSpecific::ClassName() { return kClientClassName; }
 ClassId MapObjectClientSpecific::GetClassId() { return ClassId::MapObjectClientSpecific; }
 
 // The client companion's particle records.
-EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
-EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
-EffectParticle::~EffectParticle() = default;
+ParticleRecord::ParticleRecord(ParticleRecord&&) noexcept = default;
+ParticleRecord& ParticleRecord::operator=(ParticleRecord&&) noexcept = default;
+ParticleRecord::~ParticleRecord() = default;
 
 const char* MapObjectServer::ClassName() { return kServerClassName; }
 ClassId MapObjectServer::GetClassId() { return ClassId::MapObjectServer; }

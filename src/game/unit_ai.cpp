@@ -84,8 +84,8 @@ void AIBrain::Think() {
     decay = (decay * kDecayScale + 1.0f) * kDecayDivisor;
     memory.Update(owner);
 
-    CUnit* unit = owner->unit;
-    memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](CUnit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
+    Unit* unit = owner->unit;
+    memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](Unit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
 
     if (owner->state == UnitState::Acting) return;
     if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = true;
@@ -178,14 +178,14 @@ PatrolMode* AIBrain::FindPatrolMode() { return static_cast<PatrolMode*>(FindMode
 
 PlayerMode* AIBrain::FindPlayerMode() { return static_cast<PlayerMode*>(FindMode(AIModeType::Player)); }
 
-CMapObject* AIBrain::LeaderOrFollowed() {
-    CMapObject* leader = nullptr;
+MapObject* AIBrain::LeaderOrFollowed() {
+    MapObject* leader = nullptr;
     if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;
     if (!leader && action == kActionFollow) return target;
     return leader;
 }
 
-CMapObject* AIBrain::AggressionEnemy() {
+MapObject* AIBrain::AggressionEnemy() {
     AIMode* mode = FindMode(AIModeType::Aggression);
     return mode && mode == current ? static_cast<AggressionMode*>(mode)->enemy.Get() : nullptr;
 }
@@ -216,7 +216,7 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
 }
 
 bool AIBrain::IsAlliedUnit(EngineObject* object) {
-    CUnit* unit = UnitOrNull(object);
+    Unit* unit = UnitOrNull(object);
     return unit && g_serverWorld.diplomacy.IsAllied(owner->unit->side, unit->side);
 }
 
@@ -239,7 +239,7 @@ void AIBrain::OnObjectDeleted(EngineObject* object) {
 void AIBrain::UpdateMove() {
     if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
     if (owner->orderStopped) {
-        CUnit* unit = owner->unit;
+        Unit* unit = owner->unit;
         float dy = move.point.y - unit->localPosition.y;
         float dx = move.point.x - unit->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
@@ -277,7 +277,7 @@ void AIBrain::UpdateAttack() {
         return;
     }
     // A unit without a player gives up a unit it can no longer keep track of and remembers where it was.
-    CUnit* unit = UnitOrNull(target);
+    Unit* unit = UnitOrNull(target);
     if (unit && !owner->unit->player && !memory.CanTrack(owner->unit, unit)) {
         memory.Notice(target->localPosition, kNoticeSeenLevel, kNoticeSeenDecay);
         action = kActionNone;
@@ -294,7 +294,7 @@ void AIBrain::StopAction() {
     action = kActionNone;
 }
 
-void AIBrain::AttackTarget(CMapObject* object) {
+void AIBrain::AttackTarget(MapObject* object) {
     action = kActionAttack;
     target.Assign(object);
     AckKind flags = AckKind::DecidedToAttack;
@@ -306,7 +306,7 @@ void AIBrain::AttackTarget(CMapObject* object) {
     owner->OrderAttack(target, kAttackAllParts, 0, flags);
 }
 
-void AIBrain::UseOn(CMapObject* object, UseSource kind, int spot, int run) {
+void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
     if (!object) return;
     action = kActionUse;
     target.Reset();
@@ -353,19 +353,19 @@ void AIBrain::CastAt(int spell, const Vector3& point, int run) {
     owner->OrderCastAt(spell, point, run);
 }
 
-void AIBrain::CastOn(int spell, CMapObject* object, int run) {
+void AIBrain::CastOn(int spell, MapObject* object, int run) {
     if (!owner->IsScrollSource(spell)) action = kActionCast;
     target.Assign(object);
     actionTime = spell;
     owner->OrderCast(spell, object, run);
 }
 
-void AIBrain::Follow(CMapObject* object) {
+void AIBrain::Follow(MapObject* object) {
     action = kActionFollow;
     target.Assign(object);
 }
 
-void AIBrain::SetSeen(CMapObject* object) {
+void AIBrain::SetSeen(MapObject* object) {
     seen.Assign(object);
     if (!object) {
         CallAllies(owner->unit->localPosition);
@@ -373,7 +373,7 @@ void AIBrain::SetSeen(CMapObject* object) {
         CallAllies(object->localPosition);
     }
     if (!alerted && alertMode == 1) alerted = true;
-    if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
+    if (Unit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
 }
 
 // --- The brain's mode list, state resets and save games --------------------------------------------------
@@ -390,7 +390,7 @@ void AddAlertModes(AIBrain* brain) {
 
 // Removes every element holding `object`, head first.
 void RemoveAllOf(HeldUnits& list, EngineObject* object) {
-    std::erase_if(list, [object](const HeldRef<CUnit>& unit) { return unit.Get() == object; });
+    std::erase_if(list, [object](const HeldRef<Unit>& unit) { return unit.Get() == object; });
 }
 
 // A new mode of `type` as Load constructs it before reading its data. Null for an unknown type (9, or above 10).
@@ -508,7 +508,7 @@ void AIBrain::StandardSentry(const Vector3& point) {
 // --- Calls for help -------------------------------------------------------------------------------
 
 void AIBrain::CallAllies(const Vector3& point) {
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(self->localPosition, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
@@ -555,7 +555,7 @@ void AIMemory::Forget(EngineObject* object) {
     reports.Forget(object);
 }
 
-void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
+void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
     for (auto call = calls.begin(); call != calls.end();) {
         if (--call->delay >= 0) {
             ++call;
@@ -591,12 +591,12 @@ void AIMemory::Update(UnitServer* who) {
     noticedLevel += noticedDecay;
 }
 
-bool AIMemory::CanTrack(CUnit* self, CUnit* other) {
+bool AIMemory::CanTrack(Unit* self, Unit* other) {
     if (self->side == other->side || self->player == other->player) return true;
     return lib::Contains(visible, other);
 }
 
-void AIReports::Report(CMapObject* object, int ticks) {
+void AIReports::Report(MapObject* object, int ticks) {
     if (!object) return;
     for (AIReport& entry : reports) {
         if (entry.object == object) {
@@ -737,7 +737,7 @@ void AIBrain::LookAround() {
 }
 
 void AIBrain::ApplyAttack(const AITargetChoice* choice) {
-    CUnit* object = choice->object;
+    Unit* object = choice->object;
     if (!object) return;
     AITargetChoice now = CurrentAttack();
     if (object == now.object && choice->part == now.part) return;
@@ -896,7 +896,7 @@ namespace {
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
     stream->WriteValue(static_cast<std::int32_t>(list.size()));
-    for (const HeldRef<CUnit>& unit : list) SaveRef(unit, stream);
+    for (const HeldRef<Unit>& unit : list) SaveRef(unit, stream);
 }
 } // namespace
 

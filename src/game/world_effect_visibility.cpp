@@ -61,8 +61,8 @@ void EffectShowVisibility::Pack(DeltaField* field) {
 
 bool EffectShowVisibility::RunTick() {
     if (!WorldContext()->IsServer()) return true;
-    CUnit* seer = World()->FindUnit(seerId);
-    CUnit* observer = World()->FindUnit(observerId);
+    Unit* seer = OwningWorld()->FindUnit(seerId);
+    Unit* observer = OwningWorld()->FindUnit(observerId);
     if (seer == nullptr || observer == nullptr) return false;
     std::memcpy(&localPosition, &seer->localPosition.x, sizeof(Vector3));
     // The squares `seer` sees, with `observer`'s skills.

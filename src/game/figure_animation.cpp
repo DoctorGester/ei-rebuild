@@ -12,7 +12,7 @@ namespace {
 
 } // namespace
 
-int CFigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
+int FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
                                        const FigureAnimation* animation) {
     if (!animation) return figure->ClearBoneTracks();
     std::string key(modelName);

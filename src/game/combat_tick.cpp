@@ -56,13 +56,13 @@ constexpr int kWeaponCrossbow = 6;
 
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
-bool IsUnit(CMapObject* object) { return object && object->GetClassId() == ClassId::Unit; }
+bool IsUnit(MapObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
 bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
 
-float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
+float PrototypeHeight(Unit* unit) { return unit->GetPrototype()->height; }
 
-void TellParty(CUnit* unit, AckKind kind) {
+void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) unit->player->Server()->SendObject0B(unit, kind);
 }
 
@@ -77,7 +77,7 @@ void ClearAction(UnitAction* order) {
 // standing on its own) is too high to reach, else whether the action can be planned.
 bool CanStillDo(UnitServer* self, UnitAction* order) {
     if (order->kind == UnitOrderKind::Attack || order->kind == UnitOrderKind::Use) {
-        CUnit* other = UnitOrNull(order->target);
+        Unit* other = UnitOrNull(order->target);
         if (other && !other->IsDead()) {
             if (other->sizeClass == 0 && !(order->kind == UnitOrderKind::Attack && self->HasRangedWeapon())) {
                 float height = PrototypeHeight(other) + other->localPosition.z;
@@ -106,7 +106,7 @@ void StandIdle(UnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
         if (self->queue.steps.empty() && self->queue.extra == -1) {
-            int now = self->World()->tick;
+            int now = self->OwningWorld()->tick;
             idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }
         self->PlaySteps(idle);
@@ -138,7 +138,7 @@ int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
 }
 
 // As an inlining caller has it.
-void SetModeInline(CUnit* unit, int mode) {
+void SetModeInline(Unit* unit, int mode) {
     if (unit->moveMode2 == mode) return;
     unit->moveMode2 = mode;
     unit->MarkChanged(kPartMoveModes);
@@ -146,7 +146,7 @@ void SetModeInline(CUnit* unit, int mode) {
 
 bool OutOfReachUp(UnitServer* self, const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return false;
-    CUnit* other = UnitOrNull(order->target);
+    Unit* other = UnitOrNull(order->target);
     if (!other || other->IsDead()) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == UnitOrderKind::Attack && self->HasRangedWeapon()) return false;
@@ -211,7 +211,7 @@ void UnitServer::SyncMoveModes() {
 void UnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
-    CMapObject* target = action2.target;
+    MapObject* target = action2.target;
     if (target != action.target) {
         action.target.Assign(target);
     }
@@ -259,11 +259,11 @@ bool UnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    std::vector<CUnit*> lifted = LiftNearby(action.point, action.source != 0);
+    std::vector<Unit*> lifted = LiftNearby(action.point, action.source != 0);
     AIMap* map = &ServerWorld()->aiMap;
     unit->altPassCosts = map->InWaterAt(unit->localPosition);
     bool found = PathTo(action.point, action.point.z);
-    for (CUnit* other : lifted) world->aiMap.sectorMap.Add(other);
+    for (Unit* other : lifted) world->aiMap.sectorMap.Add(other);
     bool arrived = false;
     if (action.param) {
         action.param = 0;
@@ -352,7 +352,7 @@ bool UnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
         return true;
@@ -415,10 +415,10 @@ void UnitServer::UpdateOrders() {
 }
 
 void UnitServer::ContinueAction() {
-    CMapObject* target = action.target;
+    MapObject* target = action.target;
     bool seen = true;
-    CPlayer* player = unit->player;
-    if (player && IsUnit(target) && !brain.memory.CanTrack(unit, static_cast<CUnit*>(target)))
+    Player* player = unit->player;
+    if (player && IsUnit(target) && !brain.memory.CanTrack(unit, static_cast<Unit*>(target)))
         seen = player->Server()->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
@@ -426,7 +426,7 @@ void UnitServer::ContinueAction() {
     if (!(cast && (unit->flags & MapObjectFlag::NoCasting))) {
         if (!action.target) {
             if (cast) {
-                CSpell* spell = SpellOfSource(action.source);
+                Spell* spell = SpellOfSource(action.source);
                 carryOn = spell && (spell->targetFlags & SpellTargetFlag::AtPoint);
             }
         } else if (!action.target->IsDead()) {
@@ -482,7 +482,7 @@ bool UnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point)
 }
 
 void UnitServer::ExecuteOrder() {
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     searchingTarget = 0;
     if (nextAttackTime > now && action.kind == UnitOrderKind::Attack) {
         ApproachTarget();
@@ -542,12 +542,12 @@ void UnitServer::ExecuteOrder() {
             stop = true;
         } else {
             bool fresh = true;
-            if (CUnit* other = UnitOrNull(action.target)) {
+            if (Unit* other = UnitOrNull(action.target)) {
                 auto* theirs = other->ServerController();
                 if (theirs->action.target == unit) fresh = false;
             }
             bool missed = false;
-            if (CUnit* victim = action.kind == UnitOrderKind::Attack ? UnitOrNull(action.target) : nullptr) {
+            if (Unit* victim = action.kind == UnitOrderKind::Attack ? UnitOrNull(action.target) : nullptr) {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
                 auto* defender = victim->ServerController();
@@ -570,9 +570,9 @@ void UnitServer::ExecuteOrder() {
 // --- Closing in --------------------------------------------------------------------------------
 
 void UnitServer::ApproachTarget() {
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     unit->altPassCosts = 1;
-    CMapObject* target = action.target;
+    MapObject* target = action.target;
 
     if (action.pointIsUseSpot || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
@@ -628,7 +628,7 @@ void UnitServer::ApproachTarget() {
             offset.x = p[0] - unit->localPosition.x;
             offset.y = p[1] - unit->localPosition.y;
             offset.z = p[2] - unit->localPosition.z;
-            float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // CUnit::MoveSpeed: a float
+            float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // Unit::MoveSpeed: a float
             if (closing > 0.0f) {
                 float distance = LengthXYZ(offset);
                 float ticks = (distance - reach) / closing;
@@ -642,9 +642,9 @@ void UnitServer::ApproachTarget() {
     if (!(state == UnitState::Stopped || state == UnitState::Turning) && interceptTime - now >= kAttackLead) return;
 
     // Chase: the target, or the unit the party leader is attacking it with.
-    CMapObject* chased = target;
+    MapObject* chased = target;
     if (followsLeader) {
-        CUnit* leader = followedLeader;
+        Unit* leader = followedLeader;
         auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
             (theirs->action.kind == UnitOrderKind::Attack || theirs->action.kind == UnitOrderKind::CastAt || theirs->action.kind == UnitOrderKind::CastOn) &&
@@ -666,7 +666,7 @@ void UnitServer::ApproachTarget() {
     float closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
-        auto* other = static_cast<CUnit*>(chased);
+        auto* other = static_cast<Unit*>(chased);
         float vx = other->localPosition.x - unit->localPosition.x;
         float vy = other->localPosition.y - unit->localPosition.y;
         float vz = other->localPosition.z - unit->localPosition.z;
@@ -732,7 +732,7 @@ void UnitServer::ApproachTarget() {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();
-        int time = World()->tick;
+        int time = OwningWorld()->tick;
         Vector3 axis = unit->localRotation.AxisY();
         Vector3 back;
         back.x = -axis.x;

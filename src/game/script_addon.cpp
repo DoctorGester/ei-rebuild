@@ -186,7 +186,7 @@ bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit
 
 UnitServer* UnitData(const ScriptObjectRef* ref) {
     if (!ref) return nullptr;
-    CUnit* unit = UnitOrNull(ref->object);
+    Unit* unit = UnitOrNull(ref->object);
     return unit ? unit->ServerController() : nullptr;
 }
 

@@ -59,7 +59,7 @@ void BackToMainMenu(Interface3D* ui) {
 // data pointer).
 std::string& MpHeroName(int index) {
     auto* hero = g_savedParties.Hero(index);
-    return hero->Party()->members.data()->texts[0];
+    return hero->GetParty()->members.data()->texts[0];
 }
 
 // The rename's title on surface 3: 130 x 16 pixels.
@@ -422,7 +422,7 @@ void MpHeroScreen::RefreshStats() {
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, 0);
         previewModel->SetFigureScale(&hero->scaleX);
-        CUnit* unit = previewModel;
+        Unit* unit = previewModel;
         unit->SetFromStats(&HeroRecord()->stats);
 
         unit->Controller()->RefreshWounds();
@@ -463,7 +463,7 @@ void MpHeroScreen::ShowFirstEquipment() {
 MpHeroRecord::MpHeroRecord() {}
 MpHeroRecord::MpHeroRecord(const MpHeroRecord& other) : party(const_cast<MpHeroRecord&>(other).party), file(other.file) {}
 MpHeroRecord& MpHeroRecord::operator=(const MpHeroRecord& other) {
-    Party()->Assign(const_cast<MpHeroRecord&>(other).Party());
+    GetParty()->Assign(const_cast<MpHeroRecord&>(other).GetParty());
     file = other.file;
     return *this;
 }
@@ -499,7 +499,7 @@ void MpHeroScreen::MessageResult(int result) {
     if (result == kAnswerOk) DeleteHero();
     if (IsHero(heroIndex)) {
         MpHeroRecord* hero = g_savedParties.Hero(heroIndex);
-        hero->Party()->Assign(LocalPlayerData());
+        hero->GetParty()->Assign(LocalPlayerData());
         hero->WriteFile(g_savedParties.folder);
     }
     SetMode(kModeList);
@@ -523,7 +523,7 @@ void MpHeroScreen::AddNewHero() {
     hero->weaponIndex = !hero->weapons.empty() ? 0 : kNoWeaponSlot;
     if (!hero->spells.empty()) {
         auto* container = hero->spells[0];
-        CSpell* spell = container->spell;
+        Spell* spell = container->spell;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {
             LocalPlayerData()->AddItem(container, 0, 1);
             hero->RemoveSpell(container);
@@ -544,7 +544,7 @@ void MpHeroScreen::AddNewHero() {
 
     const int highest = HighestFileNumber(std::format("{}*.mp", g_savedParties.folder));
     record->file = std::format("{}.mp", highest + 1);
-    record->Party()->Assign(LocalPlayerData());
+    record->GetParty()->Assign(LocalPlayerData());
     record->WriteFile(g_savedParties.folder);
     RefreshHeroScroll();
     DrawHeroList();

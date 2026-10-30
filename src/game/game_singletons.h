@@ -14,13 +14,13 @@ class WorldClient;
 class WorldServer;
 class TextManager;
 class BaseManager;
-struct CMapObjectManager;
-class CTextureManager;
-class CFigureManager;
+struct MapObjectManager;
+class TextureManager;
+class FigureManager;
 class ParticleManager;
 class LightFactory;
 namespace terrain { class Terrain; }
-class CMaterialManager;
+class MaterialManager;
 struct SoundManager;
 struct MusicSystem;
 class TextureDevice;

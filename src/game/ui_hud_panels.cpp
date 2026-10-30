@@ -64,7 +64,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 
 // --- Unit panel ----------------------------------------------------------------------------------
 
-void HudUnitPanel::ShowHealth(CUnit* unit) {
+void HudUnitPanel::ShowHealth(Unit* unit) {
     SceneMesh(11)->visible = true;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
@@ -83,7 +83,7 @@ void HudUnitPanel::ShowHealth(CUnit* unit) {
     }
 }
 
-void HudUnitPanel::ShowParts(CUnit* unit) {
+void HudUnitPanel::ShowParts(Unit* unit) {
     // Label positions of the six parts.
     static constexpr int kLabelX[6] = {50, 50, 95, 5, 95, 5};
     static constexpr int kLabelY[6] = {35, 105, 70, 70, 140, 140};
@@ -123,7 +123,7 @@ void HudMovePanel::ToggleFlag() {
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
     for (int i = 0; i < std::ssize(owner->party); ++i) {
-        CUnit* unit = owner->party[i];
+        Unit* unit = owner->party[i];
         if (!(unit->flags & MapObjectFlag::Selected)) continue;
         if (common == -1)
             common = unit->fightAtWill;
@@ -132,7 +132,7 @@ void HudMovePanel::ToggleFlag() {
     }
     int value = !owner->party.empty() && common == 1 ? 0 : 1;
     for (int i = 0; i < std::ssize(owner->party); ++i) {
-        CUnit* unit = owner->party[i];
+        Unit* unit = owner->party[i];
         if (unit->flags & MapObjectFlag::Selected) g_clientWorld.LocalView()->SetUnitFightAtWill(unit, value);
     }
     flag = value;
@@ -142,7 +142,7 @@ void HudMovePanel::ToggleFlag() {
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
 
-void HudUnitPanel::ShowEffects(CUnit* unit) {
+void HudUnitPanel::ShowEffects(Unit* unit) {
     constexpr int kPlaces = 6;
     constexpr int kMoreMark = 9;      // scene object: there are more effects than places
     constexpr int kFirstIcon = 26;    // scene objects 26..31, one per listed effect
@@ -256,7 +256,7 @@ void HudTopPanel::ShowItems() {
     TextManager* texts = g_clientWorld.texts;
     // A local list of the world's copies.
     std::vector<Item*> merged{};
-    CPlayer* player = g_clientWorld.LocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     std::string line;
     std::string format;
     for (auto node = player->items.begin(); node != player->items.end();) {

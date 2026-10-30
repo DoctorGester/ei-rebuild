@@ -193,7 +193,7 @@ void MpHeroScreen::DrawHeroList() {
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
-        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->Party()->members[0].texts[0], &area, 1, kListColour,
+        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], &area, 1, kListColour,
                             kListFormat, 1);
         rects::Offset(&area, 0, 24);
     }
@@ -265,7 +265,7 @@ void MpHeroScreen::ShowHero(int index) {
     heroIndex = -1;
     if (index >= 0 && index < g_savedParties.Count()) {
         heroIndex = index;
-        player->Assign(g_savedParties.Hero(index)->Party());
+        player->Assign(g_savedParties.Hero(index)->GetParty());
         g_savedParties.Select(g_savedParties.Hero(index));
     }
     MakePreview(true);

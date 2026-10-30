@@ -140,13 +140,13 @@ Vector3 MatrixRows::Transform(const Vector3& v) const { return TransformColumnNo
 
 // ---- Units and players ---------------------------------------------------------------------------
 
-CUnit* WorldClient::NearestVisibleUnit(CUnit* unit) {
+Unit* WorldClient::NearestVisibleUnit(Unit* unit) {
     PlayerClient* view = LocalView();
     if (!view || !unit) return nullptr;
     float best = 1e38f;
-    CUnit* nearest = nullptr;
+    Unit* nearest = nullptr;
     for (int i = 0; i < std::ssize(view->partyUnitIds); ++i) {
-        CUnit* found = FindUnit(view->partyUnitIds[i]);
+        Unit* found = FindUnit(view->partyUnitIds[i]);
         if (!found || found->GetClassId() != ClassId::Unit) continue;
         if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
@@ -163,7 +163,7 @@ CUnit* WorldClient::NearestVisibleUnit(CUnit* unit) {
     return nearest;
 }
 
-FootprintPart* CObject3D::PartBox(int index) {
+FootprintPart* Object3D::PartBox(int index) {
     return &parts[index]->box;
 }
 
@@ -207,7 +207,7 @@ constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
-void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
+void SessionDisconnect(Player* session) { session->Disconnect(); }
 
 // One print vector ticked in order: the prints whose tick returns 0 are erased.
 template <typename T>
@@ -251,7 +251,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
     inExit->clear();
     for (int i = 0; i < std::ssize(*records); ++i) {
         PartyUnitRecord* record = (*records)[i];
-        CUnit* found =
+        Unit* found =
             FindUnit(static_cast<int>(record->unitId));
         if (!found || found->IsDead() != 0) continue;
         ++living;
@@ -272,7 +272,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
 void WorldClient::SummonBird() {
     if (!bird) bird = new EffectMoshka();
     bird->Reset();
-    auto* leader = session->Party()->members.data();
+    auto* leader = session->GetParty()->members.data();
     bird->Follow(static_cast<int>(leader->unitId));
 }
 
@@ -282,7 +282,7 @@ void WorldClient::OnQuestVariable(std::string_view variable, float value) {
     const int length = lib::Count(name);
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
     name = str::Right(name, length - second - 1);
-    for (CMapObject* object : objects) {
+    for (MapObject* object : objects) {
         if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
@@ -299,8 +299,8 @@ std::string WorldClient::ObjectVariableName(std::string_view name) {
 }
 
 void WorldClient::ApplyObjectVariables() {
-    NamedFloatTable* variables = &session->Party()->variables;
-    for (CMapObject* object : objects) {
+    NamedFloatTable* variables = &session->GetParty()->variables;
+    for (MapObject* object : objects) {
         const std::string& name = object->name2;
         if (name.empty()) continue;
         object->SetVisibilityLevel(variables->Get(ObjectVariableName(name)));
@@ -316,7 +316,7 @@ float* WorldClient::ExitCentre(float* out, int index) {
     return out;
 }
 
-std::uint32_t WorldClient::EnvironmentFlags(CUnit* unit) {
+std::uint32_t WorldClient::EnvironmentFlags(Unit* unit) {
     std::uint32_t stateFlags = 0;
     switch (static_cast<std::uint32_t>(unit->moveMode2)) {
     case 0: stateFlags = lib::Bits(EnvironmentFlag::MoveMode0); break;
@@ -357,7 +357,7 @@ bool WorldClient::RunTick() {
     if (WorldHandle* source = worldHandle.Get()) source->Pump();
     if (ClientHandle* source = handle.Get()) source->Pump();
     if (netlink::DriverSession* driver = netSession.Get()) driver->PumpDrivers(net::g_gameClient);
-    if (CPlayer* currentSession = session) {
+    if (Player* currentSession = session) {
         PlayerConnection* view = currentSession->connection;
         if (!paused) currentSession->Tick();
         if (view->Receive() == 0) {
@@ -376,7 +376,7 @@ bool WorldClient::RunTick() {
         for (auto node = dynamicObjects.begin(); node != dynamicObjects.end();) {
             auto current = node;
             ++node;
-            CMapObject* object = *current;
+            MapObject* object = *current;
             if (object->RunTick()) continue;
             auto key = static_cast<std::uint32_t>(object->id);
             if (auto found = dynamicNodes.find(key); found != dynamicNodes.end()) {
@@ -411,11 +411,11 @@ bool WorldClient::RunTick() {
                 lightLevelsCountdown = options::g_options.shadowLightingFreq;
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
-                CLight* sun = g_sceneRenderer.sun;
+                Light* sun = g_sceneRenderer.sun;
                 for (BloodPrint& effect : bloodPrints) {
                     float level = sun->GetIntensityAt(worlddata::kOrigin);
-                    ObjectListIteratorOf<CLight> lights{};
-                    for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
+                    ObjectListIteratorOf<Light> lights{};
+                    for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags & LightFlag::Hidden)) continue;
                         float nodeX = effect.position.x, nodeY = effect.position.y;
                         float dy = light->localPosition.y - nodeY;
@@ -437,7 +437,7 @@ bool WorldClient::RunTick() {
             }
         }
     }
-    if (tick % 32 == 0) TextureManager()->TrimCache();
+    if (tick % 32 == 0) GetTextureManager()->TrimCache();
     EndWalk(objectsIt);
     return true;
 }
@@ -455,19 +455,19 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 // material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
 
 const char* WorldClient::TexturePath() { return texturePath.c_str(); }
-CMaterialManager* WorldClient::MaterialManager() { return materialManager; }
-CTextureManager* WorldClient::TextureManager() { return textureManager; }
+MaterialManager* WorldClient::GetMaterialManager() { return materialManager; }
+TextureManager* WorldClient::GetTextureManager() { return textureManager; }
 BaseManager* WorldClient::ClientLightManager() { return lightFactory; }
 ParticleManager* WorldClient::ClientParticleManager() { return particleManager; }
 
-void WorldClient::MoveObject(CMapObject* object, const float* position) {
+void WorldClient::MoveObject(MapObject* object, const float* position) {
     objectGrid.Move(object, position);
 }
-void WorldClient::MoveObject2(CMapObject* object, const float* position) {
+void WorldClient::MoveObject2(MapObject* object, const float* position) {
     secondGrid.Move(object, position);
 }
 
-CTexture* WorldClient::NewTexture(int textureType) {
+Texture* WorldClient::NewTexture(int textureType) {
     if (!textureManager) return nullptr;
     return textureManager->NewTextureOfType(textureType);
 }

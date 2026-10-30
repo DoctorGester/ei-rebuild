@@ -44,12 +44,12 @@ bool IsZero(float v) {
 }
 
 // "Unit <self> <text> <other>" (no line end).
-console::Stream& LogPair(CUnit* self, const char* text, EngineObject* other) {
+console::Stream& LogPair(Unit* self, const char* text, EngineObject* other) {
     return kAiLog << "Unit " << self->id << text << other->id;
 }
 
 // The noticed point taken over without Notice's checks.
-void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
+void NoticeAt(AIMemory* memory, Unit* at, int level, int decay) {
     memory->noticedX = at->localPosition.x;
     memory->noticedLevel = level;
     memory->noticedY = at->localPosition.y;
@@ -58,7 +58,7 @@ void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
 
 } // namespace
 
-void AIViewer::Prepare(CUnit* self) {
+void AIViewer::Prepare(Unit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
         eye.z = static_cast<float>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z;
     eye.z = self->bounds.boxMax.z * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z;
@@ -67,7 +67,7 @@ void AIViewer::Prepare(CUnit* self) {
     facing = -axis;
 }
 
-void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
+void AIViewer::Refresh(Unit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
     self->flags |= kFlagNearbyListed;
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
@@ -81,9 +81,9 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     const std::int16_t* offsets = memory->sightCells.Get(reach * kSightCellsFactor * kSectorScale, &count);
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
-        std::vector<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        std::vector<Unit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
-        for (CUnit* other : *units) {
+        for (Unit* other : *units) {
             if (other != self) memory->nearby.push_back(other);
         }
     }
@@ -92,12 +92,12 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     std::ranges::reverse(memory->nearby);
 }
 
-void AIViewer::See(CUnit* self, AIMemory* memory) {
+void AIViewer::See(Unit* self, AIMemory* memory) {
     UnitServer* ours = self->ServerController();
     bool seesAll = self->player != nullptr || (self->flags & MapObjectFlag::SeeAll) != 0;
     self->flags &= ~MapObjectFlag::SeeAll;
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
-        CUnit* other = *node;
+        Unit* other = *node;
         ++node;
         bool dead = other->IsDead();
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
@@ -161,8 +161,8 @@ namespace {
 
 // Whether `owner`'s unit still sees the visible unit `other`. A dead one is not seen: it is recorded as a corpse
 // first (twice in the seen corpses when allied, as the original does).
-bool StillSees(UnitServer* owner, AIMemory* memory, CUnit* other, float reachFactor) {
-    CUnit* self = owner->unit;
+bool StillSees(UnitServer* owner, AIMemory* memory, Unit* other, float reachFactor) {
+    Unit* self = owner->unit;
     Vector3 d{other->localPosition.x - self->localPosition.x, other->localPosition.y - self->localPosition.y,
               other->localPosition.z - self->localPosition.z};
     float distance = LengthZYX(d);
@@ -191,7 +191,7 @@ bool StillSees(UnitServer* owner, AIMemory* memory, CUnit* other, float reachFac
 } // namespace
 
 void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
     float reachFactor = hasPlayer ? 1.0f : kNonPlayerReach;
     if (!self) return;
@@ -203,7 +203,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     Refresh(self, memory);
     HeldUnits& visible = memory->visible;
     for (std::size_t i = 0; i < visible.size();) {
-        CUnit* other = visible[i];
+        Unit* other = visible[i];
         if (StillSees(owner, memory, other, reachFactor)) {
             ++i;
             continue;
@@ -216,7 +216,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     See(self, memory);
 }
 
-void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
+void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid) {
     Vector3 axis = seer->localRotation.AxisY();
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
@@ -271,9 +271,9 @@ void AIMemory::HearCall(const Vector3& point, int delay, std::string_view text) 
 void AIMemory::AddClaim(std::uint32_t mask, int delay, std::string_view text) { calls.AddClaim(mask, delay, text); }
 
 void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector3& at) {
-    CUnit* unit = source->unit;
+    Unit* unit = source->unit;
     UnitList units = map->sectorMap.FindUnitsInRadius(at, kNoiseRadius);
-    for (CUnit* other : units) {
+    for (Unit* other : units) {
         if (!other->IsHostileTo(unit)) continue;
         UnitServer* control = other->ServerController();
         AIBrain* brain = &control->brain;
@@ -308,7 +308,7 @@ const float kFar = 1e30f;
 
 
 // (a - b) squared in 3D, summed z, then x, then y.
-float Distance2(const CUnit* unit, const float* point) {
+float Distance2(const Unit* unit, const float* point) {
     float dx = unit->localPosition.x - point[0];
     float dy = unit->localPosition.y - point[1];
     float dz = unit->localPosition.z - point[2];
@@ -330,27 +330,27 @@ void KeepLower(float& slot, float value) { slot = MinKeepA(value, slot); }
 
 } // namespace
 
-UnitList AIMemory::FindEnemies(CUnit* self) {
+UnitList AIMemory::FindEnemies(Unit* self) {
     UnitList out;
     for (auto& node : visible) {
-        CUnit* other = node;
+        Unit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead() || reports.Contains(other)) continue;
         out.push_back(other);
     }
     return out;
 }
 
-UnitList AIMemory::FindEnemiesNear(CUnit* self, const Vector3& point, float radius) {
+UnitList AIMemory::FindEnemiesNear(Unit* self, const Vector3& point, float radius) {
     UnitList out;
     float radius2 = radius > 0.0f ? radius * radius : -1.0f;
     for (auto& node : visible) {
-        CUnit* other = node;
+        Unit* other = node;
         if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
         if (Distance2(other, &point.x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
-            CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
+            Unit* enemy = UnitOrNull(theirs->AggressionEnemy());
             if (enemy && !g_serverWorld.diplomacy.IsAllied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
@@ -359,11 +359,11 @@ UnitList AIMemory::FindEnemiesNear(CUnit* self, const Vector3& point, float radi
     return out;
 }
 
-CUnit* AIMemory::NearestEnemy(CUnit* self) {
-    CUnit* nearest = nullptr;
+Unit* AIMemory::NearestEnemy(Unit* self) {
+    Unit* nearest = nullptr;
     float best = kFar;
     for (auto& node : visible) {
-        CUnit* other = node;
+        Unit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead()) continue;
         float dx = self->localPosition.x - other->localPosition.x;
         float dy = self->localPosition.y - other->localPosition.y;
@@ -378,9 +378,9 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     return nearest;
 }
 
-void AIMemory::ForceSee(CUnit* self, CUnit* object) {
+void AIMemory::ForceSee(Unit* self, Unit* object) {
     if (lib::Contains(visible, object)) return;
-    CUnit* other = object;
+    Unit* other = object;
     UnitServer* theirs = other->ServerController();
     UnitServer* ours = self->ServerController();
     float dx = self->localPosition.x - other->localPosition.x;
@@ -407,7 +407,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     }
 }
 
-void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
+void AIMemory::SeeCorpse(Unit* self, Unit* corpse) {
     console::EndLine(kAiLog << "Unit " << self->id << " sees corpse of unit " << corpse->id);
     seenCorpses.push_back(corpse);
     if (g_serverWorld.diplomacy.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
@@ -415,11 +415,11 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
 
 void AIMemory::MeasureExposure(UnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
-    CUnit* unit = self->unit;
+    Unit* unit = self->unit;
     Vector3 eye;
     unit->EyePoint(&eye);
     for (auto& node : nearby) {
-        CUnit* other = node;
+        Unit* other = node;
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
         UnitServer* theirs = other->ServerController();
         float dx = other->localPosition.x - unit->localPosition.x;

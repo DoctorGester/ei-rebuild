@@ -167,7 +167,7 @@ Watched FindUnit() {
     exe::WorldClient* c = exe::ClientWorld();
     if (!c->objects.head) return found;
     for (auto* n = c->objects.First(); n != c->objects.End(); n = n->next) {
-        exe::CMapObject* object = n->data;
+        exe::MapObject* object = n->data;
         if (object && static_cast<unsigned>(object->id) == g_id && digest::ClassOf(object) == digest::kClassUnit) {
             found.unit = object;
             found.flags = &object->flags;

@@ -202,15 +202,15 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
-        if (CUnit* unit = UnitOrNull(o)) *result = pc24::Add(unit->GroundHeight(x, y), z);   // (o is not null)
+        if (Unit* unit = UnitOrNull(o)) *result = pc24::Add(unit->GroundHeight(x, y), z);   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }
     case ScriptFunction::GetLootItemsCount:
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->Party()->money);
+        Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->GetParty()->money);
         return;
     }
     case ScriptFunction::WasLooted: {
@@ -272,7 +272,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::IsEnemy: { // IsEnemy(unit, player)
-        CUnit* unit = UnitOrNull(objectArgs[0]->object);
+        Unit* unit = UnitOrNull(objectArgs[0]->object);
         *result = 0.0f;
         if (!unit) return;
         int player = lib::Truncate(f[0]);
@@ -282,13 +282,13 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetPlayer: {
-        CUnit* unit = UnitOrNull(objectArgs[0]->object);
+        Unit* unit = UnitOrNull(objectArgs[0]->object);
         *result = 0.0f;
         if (unit) *result = static_cast<float>(unit->side);
         return;
     }
     case ScriptFunction::GetAIClass: { // GetAIClass (the unit's size class)
-        CUnit* unit = UnitOrNull(objectArgs[0]->object);
+        Unit* unit = UnitOrNull(objectArgs[0]->object);
         *result = kMinusOne;
         if (unit) *result = static_cast<float>(unit->sizeClass);
         return;
@@ -390,7 +390,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsPlayerInDanger:
     case ScriptFunction::IsPlayerInSafety: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+        Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
         if (!player) return;
         PlayerServer::PartyDanger danger = player->Server()->danger;
         if (function == ScriptFunction::IsPlayerInDanger ? danger == PlayerServer::PartyDanger::InDanger
@@ -409,8 +409,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (player) *result = player->Party()->variables.Get(stringArgs[0]);
+        Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+        if (player) *result = player->GetParty()->variables.Get(stringArgs[0]);
         return;
     }
     case ScriptFunction::IsCameraPlaying:
@@ -442,7 +442,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         EngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (!o) return;
-        CPlayer* player = g_serverWorld.GetPlayer(0);
+        Player* player = g_serverWorld.GetPlayer(0);
         if (!player) return;
         *result = static_cast<float>(player->Server()->partyUnits.Contains(o) ? 1 : 0);
         return;
@@ -504,10 +504,10 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         return;
     }
     case ScriptFunction::GetUnitOfPlayer: { // GetUnitOfPlayer(player, index)
-        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
+        Player* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
         EngineObject* o = nullptr;
         if (player) {
-            const std::vector<PartyUnitRecord>& members = player->Party()->members;
+            const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
             int index = lib::RoundEven(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
                 o = g_serverWorld.FindUnit(static_cast<int>(members[index].unitId));
@@ -537,9 +537,9 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
             unitId = server->LeaderId();
         } else {
             unitId = 0x3B9AF5CE;
-            CPlayer* player = g_serverWorld.GetPlayer(0);
-            if (player && std::ssize(player->Party()->members) > 0)
-                unitId = static_cast<int>(player->Party()->members[0].unitId);
+            Player* player = g_serverWorld.GetPlayer(0);
+            if (player && std::ssize(player->GetParty()->members) > 0)
+                unitId = static_cast<int>(player->GetParty()->members[0].unitId);
         }
         (*result)->object = g_serverWorld.FindObject(unitId);
         return;
@@ -575,7 +575,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     case ScriptFunction::UnitSee: { // UnitSee(unit)
         group->Clear();
-        CUnit* unit = objectArgs[0]->AsUnit();
+        Unit* unit = objectArgs[0]->AsUnit();
         if (!unit) break;
         if (UnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         break;
@@ -583,7 +583,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     case ScriptFunction::GroupSee: { // GroupSee(group): what its units see
         group->Clear();
         for (const ScriptObjectRef& member : *groupArgs[0]) {
-            CUnit* unit = member.AsUnit();
+            Unit* unit = member.AsUnit();
             if (!unit) continue;
             if (UnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         }
@@ -592,13 +592,13 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
         EI_NAN_AUDIT(floatArgs[0]);
         for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
-            CUnit* unit = UnitOrNull(o);
+            Unit* unit = UnitOrNull(o);
             if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }
         break;
     }
     case ScriptFunction::PlayerSee: { // PlayerSee(player): the player's seen objects, its units and what they see
-        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
+        Player* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
         if (!player) {
             (*result)->Clear();
             break;
@@ -606,7 +606,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         **result = player->Server()->possessedGroup;
         const auto& units = player->units;
         for (auto& node : units) {
-            CUnit* unit = node.second;
+            Unit* unit = node.second;
             if (!unit) break;
             (*result)->Insert(unit);
             InsertSeen(*result, unit->ServerController());

@@ -17,9 +17,9 @@
 #include <string>
 #include <vector>
 
-class CLight;
-class CParty;
-class CPlayer;
+class Light;
+class Party;
+class Player;
 struct UnitStats;
 
 // The bits of UnitStats::flags; UnitParams::flags sends the low byte to the clients, whose net state shows a
@@ -120,7 +120,7 @@ static_assert(sizeof(UnitParams) == 0x108);
 
 struct PathOrder;
 struct SpeechRecord;
-class CUnit;
+class Unit;
 class UnitServer;
 class UnitClientSpecific;
 
@@ -145,7 +145,7 @@ public:
     virtual void PlayerChanged(void*) {}
     virtual void RefreshVitals(bool withHitPoints);
     // Either unit may be null.
-    virtual bool TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
+    virtual bool TakeHit(DamageInfo* hit, Unit* attacker, Unit* source);
     virtual bool Heal(float amount);
     virtual void RepackStats() {}
     virtual void UpdateSizeClasses() {}
@@ -190,7 +190,7 @@ public:
     virtual void StopSpeech() {}
     virtual void MoveFactorsChanged() {}
 
-    CUnit* unit;   // the unit it controls (CUnit::AttachCompanion sets and clears it)
+    Unit* unit;   // the unit it controls (Unit::AttachCompanion sets and clears it)
 };
 
 // Items and the spells they carry, gathered in order.
@@ -199,15 +199,15 @@ struct ItemsAndSpells {
     void Add(Item* item);
 
     std::vector<Item*> items;
-    std::vector<CSpell*> spells;
+    std::vector<Spell*> spells;
 };
 
-// The prototype name is CObject3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)
-// CMapObject::packedVitals.
-class CUnit : public CMapObject {
+// The prototype name is Object3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)
+// MapObject::packedVitals.
+class Unit : public MapObject {
 public:
-    CUnit();
-    ~CUnit() override;
+    Unit();
+    ~Unit() override;
 
     void Create() override;
     void Destroy() override;
@@ -219,7 +219,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     bool IsSynchronised() override;
-    void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) override;
+    void ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster) override;
     Vector3* EyePoint(Vector3* out) override;
     std::uint32_t ReadNetState(int first) override;
     void WriteNetState() override;
@@ -247,7 +247,7 @@ public:
     void SetSide(int side);
     // Non-zero when this unit regards `other`'s side as hostile (the bit of other's side in both relation
     // masks).
-    bool IsHostileTo(const CUnit* other);
+    bool IsHostileTo(const Unit* other);
 
     // Marks part 13.
     void SetFightAtWill(int value);
@@ -314,7 +314,7 @@ public:
     ItemWeapon* ActiveWeapon() { return GetWeapon(activeWeapon); }   // the weapon in slot activeWeapon
     Item* GetQuickItem(std::uint32_t slot);
     Item* GetSpell(std::uint32_t slot);
-    CSpell* GetSpellObject(std::uint32_t slot);
+    Spell* GetSpellObject(std::uint32_t slot);
 
     // The unit's speed factor for the action of animation `entry` (its key's bits 18-21: 0x80000 attack,
     // 0xC0000 cast, 0x240000 mode transition heroes: the global 0x40000 skill; others 1). Animation steps
@@ -357,7 +357,7 @@ public:
 
     // For units with a player and no bow or crossbow in hand: is this unit behind `target` (the direction to
     // it against the target's facing below -0.5)? 0/1.
-    bool IsBehind(const CMapObject* target);
+    bool IsBehind(const MapObject* target);
 
     // Puts armour piece `item` (condition rounding above 0) into the armour slot of its type (referenced; the
     // controller's ArmourPutOn gets its id) and releases the piece that was there. Returns that piece (null
@@ -444,7 +444,7 @@ public:
     void RefreshMotion();
     // Moves the unit to `newPlayer` (nothing when it is the current one): the old player loses it, the new one gains
     // it, part 11 is marked and the controller hears of it.
-    void SetPlayer(CPlayer* newPlayer);
+    void SetPlayer(Player* newPlayer);
     // As RefreshMotion with the speeds given (the motion's speed scale and base turn rate) and no part
     // marked.
     void SetMotionSpeeds(float speed, float turnRate);
@@ -461,14 +461,14 @@ public:
     UnitController* Controller() const { return static_cast<UnitController*>(controller); }
     UnitServer* ServerController() const;
     UnitClientSpecific* ClientController() const;
-    CMapObject* MapObject() { return this; }
+    MapObject* AsMapObject() { return this; }
 
     std::string scriptName;        // network field 9
     int secondPrototype;              // a second prototype index (-1 none)
     EngineObject* controller;      // (the script code calls it the perception object)
     std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // / bit s set
-    CPlayer* player;
+    Player* player;
     int side;
     // The animation entries (FigureAnimation::index) the unit shows: -1 none; the second -2 for the special idle. The
     // client's RestartAnimation plays them.
@@ -503,13 +503,13 @@ public:
     float exposure[5];             // any at most 2 (or NaN) asks for a party refresh
 };
 
-inline CUnit* UnitOrNull(EngineObject* object) {
-    return object && object->GetClassId() == ClassId::Unit ? static_cast<CUnit*>(object) : nullptr;
+inline Unit* UnitOrNull(EngineObject* object) {
+    return object && object->GetClassId() == ClassId::Unit ? static_cast<Unit*>(object) : nullptr;
 }
 
 // The object registered under a unit's id (the party's and the players' unit ids, a unit's speech), or null; taken as
 // a unit without a class test.
-inline CUnit* UnitWithId(const BaseManager* objects, unsigned id) { return objects->FindObjectAs<CUnit>(id); }
+inline Unit* UnitWithId(const BaseManager* objects, unsigned id) { return objects->FindObjectAs<Unit>(id); }
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // EngineObject::flags
 
@@ -557,7 +557,7 @@ static_assert(offsetof(UnitStatPair, current) == 4);
 struct UnitVitals {
     // Every 15th call mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns 1 when
     // something may have changed.
-    bool Regenerate(UnitStats* stats, CUnit* unit, char inCombat);
+    bool Regenerate(UnitStats* stats, Unit* unit, char inCombat);
     // A hit on a map object that is not a creature: each damage type beyond the protection comes off the hit
     // points, not below -5 times the maximum.
     void TakeHit(const DamageInfo* hit);
@@ -616,9 +616,9 @@ struct UnitStats {
 
     // Recomputes the current values from the bases, the skill levels, the unit's effects, the carried weight and the
     // slots; writes the maxima and hit points into `vitals`.
-    void Recompute(UnitVitals* vitals, CUnit* unit);
+    void Recompute(UnitVitals* vitals, Unit* unit);
     // Only the hit point maximum and the hit points (and UnitStatsFlag::Alive when they are above 0).
-    void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
+    void RecomputeHitPoints(UnitVitals* vitals, Unit* unit);
     // Heals the working-or-disabled slots below their maximum by `amount`, spread by their factors over `scale` (the
     // unit's maximum); a slot back above 0.001 works again.
     void HealSlots(float scale, float amount);
@@ -652,30 +652,30 @@ struct UnitStats {
     void TakePendingExperience(float amount);
     // For a unit with a server object: AddScaledExperience, then the maxima of its vitals from the curves
     // (the slots scaled along) and its hit points.
-    void GainExperience(CUnit* unit, float amount);
+    void GainExperience(Unit* unit, float amount);
     // Script GiveSkill: raises skill `skill` / attribute `index` by the low byte of `amount`; what the new
     // level is worth over the old one (the 1.61 ^ level curve, truncated) is booked as experience and as
     // spent experience. Then the maxima and Recompute. False when the unit has no server object.
-    bool RaiseSkill(int skill, int amount, CUnit* unit);
-    bool RaiseAttribute(int index, int amount, CUnit* unit);
+    bool RaiseSkill(int skill, int amount, Unit* unit);
+    bool RaiseAttribute(int index, int amount, Unit* unit);
     // GiveStrength / GiveDexterity / GiveIntelligence: the base value grows by `amount`, the maxima are recomputed
     // (each its own way), strength makes the unit 0.2 wider and dexterity 0.2 less high, then Recompute. False when
     // the unit has no server object.
-    bool RaiseStrength(int amount, CUnit* unit);
-    bool RaiseDexterity(int amount, CUnit* unit);
-    bool RaiseIntelligence(int amount, CUnit* unit);
+    bool RaiseStrength(int amount, Unit* unit);
+    bool RaiseDexterity(int amount, Unit* unit);
+    bool RaiseIntelligence(int amount, Unit* unit);
     float SkillLevelValueCopy(int skill);
 
     // Applies `hit` (from `weapon`'s attack, may be null): UnitStatsFlag Head / Electrical, the
     // vitals' protection (scaled by the difficulty for units without a player), wear of the
     // weapon, then the hit location's slot (DamageSlot) or, for location 6, every slot by its
     // share. Returns whether a slot took damage (0 when nothing passed the protection).
-    int ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon);
+    int ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon);
     // The slot of the hit's location takes each damage type through its armour layers
     // (text-key units; each layer's armour piece wears), the weapon wears, a slot may be
     // severed (-5 times its maximum) or disabled; every damage type is logged (stream).
     // Then the hit points. Returns whether any damage passed.
-    int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon);
+    int DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon);
 
     // The current values from the bases plus the skills (15: perception[1] by its percentage; 23-25: the stats;
     // unknown_044 = -2), the slot maxima from the hit point curve (current values clamped to them), `load`,
@@ -688,7 +688,7 @@ struct UnitStats {
     // The attack skill for weapon type `type` (0-4 use skill 0, 5 and 6 skill 1, 8 the bonused skill 0;
     // others 0): for text-key units the skill byte, the weapon prototype's bonus and the stat the skill's
     // name starts with minus 25, plus the level value of skill `type`.
-    float WeaponSkillBonus(int type, CUnit* unit);
+    float WeaponSkillBonus(int type, Unit* unit);
     // Can the unit learn skill level `record` of the skill database: learnable, the three stats at least the
     // record's, the required attribute and skill level present unless named "none" or empty, no known level
     // of the same skill id in another skill, and the record's own level above the one known. 0/1.
@@ -716,15 +716,15 @@ struct UnitStats {
     // first slot, another for the others), its layerMask the piece's mask and its state 3.
     void AddArmourLayer(ItemArmor* piece);
     // Zeroes layers 1 and 2 of every slot, then adds each piece `unit` wears whose condition rounds above 0.
-    void RebuildArmourLayers(CUnit* unit);
+    void RebuildArmourLayers(Unit* unit);
     // Out[1..7]: each damage type's protection (vitals' current value) plus the body slot's layers that are
     // there (state >= 2; layers 2, 1, 0 for text-key units, else layer 0), rounded to nearest. out[0] is left
     // alone.
-    void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out);
+    void PackBodyProtection(Unit* unit, const UnitVitals* vitals, DamageWords* out);
     // Attribute `index` for skill checks: the attribute byte for units without a text key; otherwise the
     // attribute with its stat bonus (stat - 25; 0 for other indices) plus the largest bonus of the unit's
     // quick items.
-    float AttributeWithItems(int index, CUnit* unit);
+    float AttributeWithItems(int index, Unit* unit);
     // The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3 (schools 0-2), 4 (3-4)
     // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25.
     float SpellSchoolSkill(int school);
@@ -821,7 +821,7 @@ struct PartyUnitRecord {
 
     // ClearItems, then each of the four lists sized to `source`'s and filled with `party`'s copies of its items, each
     // with the source item's count and a reference.
-    void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
+    void CopyItemsFrom(const PartyUnitRecord* source, Party* party);
     // The weights of the entries of the four lists added up (empty entries skipped).
     float CarriedWeight() const;
 
@@ -852,20 +852,20 @@ struct PartyUnitRecord {
 
 // Wears `item` by `amount` (shared by its count pieces); the owner says `brokenRemark` when its condition
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
-void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark);
+void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKind wornRemark);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by
 // `amount`.
-void WearArmour(CUnit* unit, int location, int layer, float amount);
+void WearArmour(Unit* unit, int location, int layer, float amount);
 // The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
 float WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1: (1 +
 // strengthen * k) / (1 + weaken * k), 1 without a unit.
-float ScaleDamageByEffects(CUnit* unit, float value);
+float ScaleDamageByEffects(Unit* unit, float value);
 // The scale itself with k = 0.005.
-float HitPointEffectScale(CUnit* unit);
+float HitPointEffectScale(Unit* unit);
 // `value` scaled with k = 0.005, at least 1.
-float ScaleHitPointsByEffects(CUnit* unit, float value);
+float ScaleHitPointsByEffects(Unit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 
@@ -908,17 +908,17 @@ public:
     std::string skinTexture;
     std::vector<std::string> strings;
 };
-inline MapObjectServer* CMapObject::ServerCompanion() const { return static_cast<MapObjectServer*>(companion); }
+inline MapObjectServer* MapObject::ServerCompanion() const { return static_cast<MapObjectServer*>(companion); }
 
 class ParticleSource;
 
 // One effect particle record of the client companion.
-struct EffectParticle {
+struct ParticleRecord {
     // Out of line (map_object_companion.cpp): releasing the source needs the complete ParticleSource.
-    EffectParticle() = default;
-    EffectParticle(EffectParticle&&) noexcept;
-    EffectParticle& operator=(EffectParticle&&) noexcept;
-    ~EffectParticle();
+    ParticleRecord() = default;
+    ParticleRecord(ParticleRecord&&) noexcept;
+    ParticleRecord& operator=(ParticleRecord&&) noexcept;
+    ~ParticleRecord();
 
     SpellType type{};                   // the effect type
     int power = 0x10;                   // the effect's power byte
@@ -990,14 +990,14 @@ public:
     // Everything released: particles, light, no object.
     void Destroy() override;
 
-    CUnit* Unit() const { return static_cast<CUnit*>(owner); }
+    Unit* OwnerUnit() const { return static_cast<Unit*>(owner); }
 
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
-    std::vector<EffectParticle> particles;  // the effect particles
+    std::vector<ParticleRecord> particles;  // the effect particles
     std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
-    Ref<CLight> light;       // counted
+    Ref<Light> light;       // counted
     int endSound;           // the end sound's handle (-1 none)
 };
-inline MapObjectClientSpecific* CMapObject::ClientCompanion() const { return static_cast<MapObjectClientSpecific*>(companion); }
+inline MapObjectClientSpecific* MapObject::ClientCompanion() const { return static_cast<MapObjectClientSpecific*>(companion); }
 

@@ -66,17 +66,17 @@ bool OutOfView(const float* point, const PlayerServer* state) {
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into the collected array.
-EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServer* state, EngineObject** out) {
+EngineObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, EngineObject** out) {
     if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
-            CMapObject* object = node->second;
+            MapObject* object = node->second;
             if (object->MapType() == kTypeNoSync) continue;
             if (!OutOfView(&object->localPosition.x, state)) {
                 *out++ = object;
                 continue;
             }
-            if (CUnit* unit = UnitOrNull(object); unit && unit->player == player) *out++ = object;
+            if (Unit* unit = UnitOrNull(object); unit && unit->player == player) *out++ = object;
         }
         return out;
     }
@@ -84,12 +84,12 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
     MapObjectIdMap& source = world->sessionKind == kKindSinglePlayer ? world->otherMapObjects : world->mapObjects;
     if (world->sessionKind == kKindNoRangeTest) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
-            CMapObject* object = node->second;
+            MapObject* object = node->second;
             if (object->MapType() != kTypeNoSync && !(object->flags & MapObjectFlag::Invisible)) *out++ = object;
         }
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
-            CMapObject* object = node->second;
+            MapObject* object = node->second;
             if (object->MapType() != kTypeNoSync && !OutOfView(&object->localPosition.x, state)) *out++ = object;
         }
     }
@@ -104,13 +104,13 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
     auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
-        CUnit* unit = node->second;
+        Unit* unit = node->second;
         auto* controller = unit->ServerController();
         float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
         float minimum = controller->stats.perception[2].current;
         float range = MaxKeepB(perception, minimum);   // branch-free select
         float radius = range * kHearingScale + kHearingMargin;
-        for (CUnit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
+        for (Unit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
     }
     return out;
 }
@@ -120,7 +120,7 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
 EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, EngineObject** out) {
     for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
         EngineObject* object = node->second;
-        auto* timed = static_cast<CEffect*>(object);
+        auto* timed = static_cast<Effect*>(object);
         const Vector3* position = timed->Position(&state->partyUnits);
         float dx = position->x - state->lastPosition.x;
         float dy = position->y - state->lastPosition.y;
@@ -134,7 +134,7 @@ EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, Engi
 
 } // namespace
 
-int WorldServer::SyncPlayer(CPlayer* player) {
+int WorldServer::SyncPlayer(Player* player) {
     PlayerServer* state = player->Server();
     if (state->state == kModePlaying && zoneLoaded != 0) {
         std::uint32_t dirty = player->dirty;
@@ -197,7 +197,7 @@ int WorldServer::SyncPlayer(CPlayer* player) {
     return state->Flush();
 }
 
-int WorldServer::SendZone(CPlayer* player) {
+int WorldServer::SendZone(Player* player) {
     MemoryStream message;
 
     PlayerServer* state = player->Server();
@@ -218,7 +218,7 @@ int WorldServer::SendZone(CPlayer* player) {
 
         UnitSet units;
         for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node)
-            if (CUnit* unit = UnitOrNull(node->second)) units.Add(unit);
+            if (Unit* unit = UnitOrNull(node->second)) units.Add(unit);
         units.Write(&message);
 
         result = state->SendState02(&message);

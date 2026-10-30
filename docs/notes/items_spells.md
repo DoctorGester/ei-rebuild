@@ -108,14 +108,14 @@ their record fields (the quest item takes the head's +0x6C).
 
 ## Item parts, constructor and names
 
-`WeaponModelParts`, `AppendWeaponModelParts` (S into scratch), `Item::AttachSpell`/`SetSpell` (O), `CItemConstructor`
+`WeaponModelParts`, `AppendWeaponModelParts` (S into scratch), `Item::AttachSpell`/`SetSpell` (O), `ItemConstructor`
 (006A5B20-006A5D30: destructor body, Reset, Detach, SetManager, SetItem, Begin/EndCreateItem, Cancel, SetMaterial /
 SetPrototype / SetSpellObject, Build; O), the per-class `ModelName / FirstListName / FigureName / PictureName` (slots 17-20;
-S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `CSpellManager::CreateSpellFromText` 00689030 (spell_text.cpp, O),
+S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `SpellManager::CreateSpellFromText` 00689030 (spell_text.cpp, O),
 `ItemManager::MakeItem` 006AD000 (item_manager.cpp; ItemManager derives ResourceManager, context slot 16 on
-CManagerContext; O).
+ManagerContext; O).
 
-- Making an item: `CItemConstructor::BuildItem(manager, kind, prototype, material, spell, count)` runs the original's
+- Making an item: `ItemConstructor::BuildItem(manager, kind, prototype, material, spell, count)` runs the original's
   sequence (SetManager, BeginCreateItem, the records, EndCreateItem, SetManager(null)) in one call. Only the trader
   stock's GenerateItems still runs the steps itself: it creates the item before it draws the material, and a cancelled
   draw has used up an object id (moving the creation after the draw would shift every later item id). Object ids are
@@ -139,7 +139,7 @@ CManagerContext; O).
 ## Party item lists and CopyTo (O, counts and order checked)
 
 `Item::Clone` (0069FF70, RET 4, spell manager), `CopyTo` (slot 15's base body, RET 8; the per-class overrides return 0 for
-another kind, else 1), `CParty::AddItem` 00661DB0 (RET 0xC; flags read as bytes) / `RemoveItem`, `RemoveQuestItems` (the
+another kind, else 1), `Party::AddItem` 00661DB0 (RET 0xC; flags read as bytes) / `RemoveItem`, `RemoveQuestItems` (the
 list minus class 0x14; every new game), `ReleaseAllItems` (multiplayer exchange only; callers keep their forwarders),
 `PartyUnitRecord::AddWeapon / AddQuickItem / AddArmor / AddSpell` and the four Removes (lists +0x730 / +0x740 / +0x750 /
 +0x760).
@@ -147,20 +147,20 @@ list minus class 0x14; every new game), `ReleaseAllItems` (multiplayer exchange 
 Clone = the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15; on failure the new item gets a
 reference and is released. CopyTo (item.cpp) destroys the target, gives it the packed id, condition..magicLevel
 (the floats bit for bit through `x87::CopyBits`, as the original's dword copy: a loaded item's values may be any bit
-pattern), a CSpell::Clone (0068B410) of the attached spell or none, count 1; the overrides add their own fields the same
+pattern), a Spell::Clone (0068B410) of the attached spell or none, count 1; the overrides add their own fields the same
 way. The
-record adds clone with the world's spell manager (CWorld slot 22, 0055EBA0: +0x4C). The party's adds merge with a held item
+record adds clone with the world's spell manager (World slot 22, 0055EBA0: +0x4C). The party's adds merge with a held item
 that is the same (slot 14), else the party's slot 24 (0055E940: the factory makes the item, the source copies itself into it)
 gives the copy; array growth is AlignedPtrArray::SetSize (00519D70). Reached by ui_camp (0060FCA0 / 0060FE40 / 0060E900),
 trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
 
 ## Party records and the party object (party.h)
 
-Verification: `PartyUnitRecord::Construct`, `ConstructPartyUnitRecords` (stdcall: zero, then construct each), CParty /
-CItemConstructor / CSpellConstructor::Construct are S on seeded scratch (the party's variable map: bucket count and
-emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4),
-`Serialize` (MFC's CArray::Serialize: a vtable slot only, no caller; gone with CArchive), CParty
-destructor / Create / Destroy / Clear (RET 8) and `CSpellManager::Construct` (an empty map of
+Verification: `PartyUnitRecord::Construct`, `ConstructPartyUnitRecords` (stdcall: zero, then construct each), Party /
+ItemConstructor / SpellConstructor::Construct are S on seeded scratch (the party's variable map: bucket count and
+emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (Party +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4),
+`Serialize` (MFC's CArray::Serialize: a vtable slot only, no caller; gone with CArchive), Party
+destructor / Create / Destroy / Clear (RET 8) and `SpellManager::Construct` (an empty map of
 193 buckets at +0xBC) are O. Record Load / Save, `LoadParty` / `SaveParty` (RET 8; the flag covers the variables; SaveParty
 draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party_save.cpp`): saves S into a scratch
 memory stream; record Load round-trips through Save; the rest O. `party_members.cpp` (O; party_records, ui_hero_screen
@@ -175,7 +175,7 @@ old file is moved to temp.mp around the write), `SavedParties::SaveAll` (folder 
 written), `SavedParties::Destruct` (static destructor of 007C82A0 at exit).
 
 A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.2, height 1.0, +0x770 2, +0x774 0, +0x778 0,
-+0x77C -1, +0x780 1 (the destructor sets the same). CParty (0x70): +0x1C item manager (0xBC, ResourceManager, vtable
++0x77C -1, +0x780 1 (the destructor sets the same). Party (0x70): +0x1C item manager (0xBC, ResourceManager, vtable
 0073F25C), +0x20 item constructor, +0x24 spell manager (0xD4), +0x28 spell constructor (getters: slots 18, 16, 22, 17), +0x2C
 records, +0x40 items, +0x50, +0x54 hash_map<CString, float> variables, +0x68 zone name, +0x6C. Create attaches both managers
 to the party (slot 13), so the party is the context of its items (Item::LoadItem's slot 22 finds the party's spell manager).
@@ -200,7 +200,7 @@ record +0x04): 0x3004 `weapon NAME MATERIAL` (kind text item_weapon), 0x3005 `ar
 5 only: item_wand, name + ": " + spell name, "Unknown" without text), 0x3007 by +0x4C: 0 `litem NAME` (table 007C8778,
 item_loot), 1 `material MATERIAL` (+0x54, item_material), 2 by +0x50: 0-2 `instr NAME` (weapon / armor / quick record +0x54:
 item_weapon_shape, item_armor_shape_upper / _lower, item_wand_shape), 3 `spell ` + spell record +0x04 CString
-(item_prototype), 4 `modifier ` + modifier record +0x04 (inline code; item_modifier); 0x3008 `spell ` + its CSpell's prototype
+(item_prototype), 4 `modifier ` + modifier record +0x04 (inline code; item_modifier); 0x3008 `spell ` + its Spell's prototype
 +0x04 (item_spell); 0x3009 `questitem NAME` (table 007C8758, item_quest). The kind text is looked up as `string <kind key>`;
 the display name is `format_item1` (kind, name) or `format_item2` (kind, name, count) when the item's +0x48 stack count is
 above 1.
@@ -226,19 +226,19 @@ files from MappedResource::GetFile (reference counts only grow, twice as fast in
   `ClearModifiers`/`CopyTo` S, `Clone` O; `GetDamage` S into a scratch DamageInfo; constructors S on scratch copies, destructors
   O; `CodeIndexedTable::FindByCode` 0068C820 / 0068C920 (the index's operator[], unknown codes filed with null; S: ours, then
   the original finds the same entry, skipped when its resize would rehash); `LoadSpell`/`SaveSpell` (0068B860 / 0068B920) and
-  `MapEffect::Load/Save` (spell_save; +0x1C..+0x2F is a MapEffect, `CSpell::Effect()`) S (saves captured, loads replayed into
-  the object's old copy; ui_saveload, world_load); `CLight::GetIntensityAt` 0068D730 (the original starts with a 4-byte CMP +
+  `MapEffect::Load/Save` (spell_save; +0x1C..+0x2F is a MapEffect, `Spell::Effect()`) S (saves captured, loads replayed into
+  the object's old copy; ui_saveload, world_load); `Light::GetIntensityAt` 0068D730 (the original starts with a 4-byte CMP +
   JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly) P and `SetLitColors` S;
   `SpellContainer` Reset/Shutdown/NameField/AddModifier/AllowsModifier/Build (Build S on bytes +0x48..+0x8C and the code
-  string); `CSpellManager::NewContainer/CreateSpell`, `CSpellConstructor` Reset/Detach/SetManager/BeginConstruct/
+  string); `SpellManager::NewContainer/CreateSpell`, `SpellConstructor` Reset/Detach/SetManager/BeginConstruct/
   EndConstruct/AddModifier O.
 
 **Cast chain.** `CastSpellUnit("healing{e2;e2}", ...)` and the other text casts go through CreateSpellFromText (00689030;
 text before `{` is the prototype, `;`-separated codes are modifier names), then as CreateSpell 00689310 does with records:
-the context's (manager +0xAC) slot 17 gives the CSpellConstructor; SetManager(this); BeginConstruct (a new container from
+the context's (manager +0xAC) slot 17 gives the SpellConstructor; SetManager(this); BeginConstruct (a new container from
 manager slot 23, class 0x3003); AddModifier per modifier (at most 8 in CreateSpell), accepted when AllowsModifier says so
 (prototype flag bytes +0x78 r, +0x79 t, +0x7A a, +0x7B e, +0x7C d; other letters always), after which the spell is rebuilt;
-EndConstruct rebuilds once more; CSpell::Clone makes the result; SetManager(null). **Build (0068BF60)** recomputes the
+EndConstruct rebuilds once more; Spell::Clone makes the result; SetManager(null). **Build (0068BF60)** recomputes the
 container's spell from scratch each time (offset mapping and modifier letters a, e, m, r, d, t, fe/ff/fg/fh/fl/fo, ic/it in
 `spell_cast.cpp`); the code string is sorted (insertion sort here, introsort in the original: same bytes). SpellEffect +0x54
 is this spell's duration (named `targetCount`; for attack spells it may be a target count), +0x58 effect (`damage`), +0x5C
@@ -250,19 +250,19 @@ prototype kind is neither 'u' nor 't', so they accumulate across rebuilds until 
 becomes code 0, which sorts first and empties the modifier list; BeginConstruct writes the prototype into the new container
 without checking the manager returned one; the container's AddModifier reports a null record as "Invalid rune" (007959F0).
 
-Not rewritten: 0068D310, 0068D450, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
+Not rewritten: 0068D310, 0068D450, 0068D5A0 (Light colour contributions: a 4-float colour by value whose 4th component is
 uninitialised stack, cannot be compared bit for bit; AddDirectional/AddPoint 0068D310 / 0068D5A0 are P with r, g, b CheckNear:
 base + colour x scale x factor, clamped at 1, the alpha not written when lit); STLport helpers 0068C500..0068CD50, the
 Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers: 00684180 / 00684280 / 006842E0 / 00684310 /
 006838E0.
 
 **Spell manager, containers, lights (A-H23; spell_manager.cpp, light.cpp; wrappers verify_spell_manager / verify_light).**
-CSpellManager: 00688EC0 CreateSpellObject, 00688CD0 NewObject (slot 14), 00688B30 / 00688B40 Create / Destroy,
+SpellManager: 00688EC0 CreateSpellObject, 00688CD0 NewObject (slot 14), 00688B30 / 00688B40 Create / Destroy,
 `SpellSequence::Destruct` 006886F0. The +0xBC map holds `SpellSequence`s (containers by the low half of a packed id);
 nothing fills it (CreateSpellObject's only caller, Clone, passes -1), so the id path is kept as written: low half 0 inits
 from the prototype, else FatalError without a sequence, and a new entry's null container faults in CopyTo. Destroy deletes
 sequences without freeing their bucket arrays (leak kept); every walk stops at the first null value. SpellContainer: +0x8C
-is an (always empty) CString. CLight (0x134; the first 0x54 bytes are a TransformObject): 0068CED0 constructor (range
+is an (always empty) CString. Light (0x134; the first 0x54 bytes are a TransformObject): 0068CED0 constructor (range
 sqrt(FLT_MAX): at 24-bit precision the square is 2^128 - 2^105; CheckNear), 0068D010 SetPoint, 0068D0A0 SetDirectional (also
 TiltTowards). LightFactory ("CLightManager", 0xD8): 0068DA40 NewObject (0x2E / 0x31, else DebugLog), 0068DAD0 CreateObject
 (clears flags bit 7, no null check). Allocating and releasing functions are O; the light's constructor and setters S on
@@ -273,7 +273,7 @@ scratch copies; names P.
 `spells.txt`: healing, six buffs, lightning, arrow, acid ray, fireball, fire wall, acid fog. `spells_cast.txt`: inv_lit (light
 strike), acid_column, litnwall (light wall), clairvoyence, vision_fog (names from the maps' .mob).
 
-`SpellEffect` (vtable 0074399C, 0xA8 bytes; world.h calls it `Projectile`) is one cast spell and embeds its CSpell at +0x34.
+`SpellEffect` (vtable 0074399C, 0xA8 bytes; world.h calls it `Projectile`) is one cast spell and embeds its Spell at +0x34.
 +0x08 world (sector map at +0x170 + 0x124), +0x0C bit 0 "caster not credited", +0x10 position, +0x1C target, +0x20 caster.
 The world server ticks `Update` (0067E6D0); +0x30 is the state: 0 casting (`Start` 0067F870, 9 KB, a switch on the prototype
 index +0x4C >> 16), 1 missile in flight (`UpdateMissile` 00681BB0), 2 lasting (`UpdateLasting` 00682650), else it ends
@@ -294,7 +294,7 @@ prototype's effect (+0x2C) compares equal to 0 (NaN included); clamps select flo
 FYL2X / F2XM1 / FSCALE with 0.33 from the double at 007439A8 (naked `ClampPowCore`, `PowerCore`). The fireball blast uses
 the same curve on `(r*r*pi) / prototype area`.
 
-Hits: HitUnit (006835B0) skips units the spell may not affect (only checked with a caster) and calls CUnit slot 31 (the
+Hits: HitUnit (006835B0) skips units the spell may not affect (only checked with a caster) and calls Unit slot 31 (the
 controller's TakeHit); HitUnitsInRadius (00683600, fireball) and HitUnitsAlong (00683730, fire wall, every 4th tick) collect
 units (FindUnitsInRadius 005C0BD0 into a stack CPtrList, vtable 0073D454) and hit those IsSpellTarget (00681B80, P) accepts
 (size class set, or unit prototype +0x24 below 0.5); the wall only those within 0.5 of the vertical plane through the
@@ -342,10 +342,10 @@ vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 
 ## Textures: mmp and composed (texture_mmp, texture_compose)
 
-Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset` P; `CTextureManager::Compose` 00693180 (RET 0x1C) O;
+Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset` P; `TextureManager::Compose` 00693180 (RET 0x1C) O;
 `FillSurface` 0068FA10 (O: result = FilledBytes over the chain), `CopyToSurface`, `ConvertToSurface` (8888 to 16 bits),
 `UnpackToSurface` (DXT through the converter's slot 10): S (the original fills, levels read back and overwritten, ours fills,
-compared; texture_fill); `CTextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
+compared; texture_fill); `TextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
 block's `AlignedArray<uint8_t>::SetSize` 00694300 S on a copy; `SetDevice` 006913A0 (texture.cpp; quality 0079BCDC to the mip
 level, the 512 limit off (the device's 4096-pixel textures; R27c: constant), the cache limit a tenth of 256 MB (`kCacheLimit`); world_client_setup calls it by address; S with
 references undone between the runs); `ForgetComposedTextures` (the original's DeleteComposedTextures 006916F0 deleted
@@ -354,7 +354,7 @@ every <data path>textures\*.mmp; the image keeps no such file);
 
 ### Composed textures
 
-CTextureManager::Compose (texture_compose.cpp): a party unit's skins ("mo<n>p" / "prot<n>p" 256 square and "mo<n>s" /
+TextureManager::Compose (texture_compose.cpp): a party unit's skins ("mo<n>p" / "prot<n>p" 256 square and "mo<n>s" /
 "prot<n>s" 128, 1:5:5:5, three levels) and its wounds texture ("mo<n>w", the wounded parts' "<unit><part>w<level>.mmp"
 overlays, 128 for a hero and 64 for others, 4:4:4:4, three levels) are drawn from layer textures on the GPU
 (render::ComposeTexture, R28; renderer.md section 7). The texture manager keeps what each one is made of under its name,
@@ -365,7 +365,7 @@ DrawLayers: 2DintMMX slot 5 per layer, a premultiplied "over"), converted each l
 (1); when `name` has none and differs from the fallback name, the fallback's is tried (and taken, made anew, when it does
 not exist either); no layer textures forgets it (0); a missing layer is skipped (logged), one of another size is
 FatalError's result. LoadTexture looks for it where the original read the file (after the archives), LoadMmpExtra
-first. The texture's holder has no memory: `CTexture::CreateComposed` hands the layers' file pixels to the renderer,
+first. The texture's holder has no memory: `Texture::CreateComposed` hands the layers' file pixels to the renderer,
 which decodes them (32-bit premultiplied, "PNT3" run-length packed) and draws them over transparent black, the
 levels below made by the GPU (a plain box filter: the original's alpha +128 per level is not kept), the colours kept
 at 8 bits a channel (the original's 1:5:5:5 / 4:4:4:4 cut is gone). `ForgetComposedTextures` (map load, texture
@@ -470,7 +470,7 @@ unwritten for an empty text. Risks: the constructor wrappers are ours only; Layo
 ## Materials (A-H24; material.cpp, verify_material: S = against the original on a scratch copy)
 
 Material constructor (names "none", alpha 1, an empty deque; colours unwritten; S), destructor body and slot 0 (O), slots 2
-(reset, 1), 3 (deque emptied), 11, 12 (P); CMaterialManager constructor (colour table of NextPrime(100) buckets), destructor
+(reset, 1), 3 (deque emptied), 11, 12 (P); MaterialManager constructor (colour table of NextPrime(100) buckets), destructor
 body, slot 0, NewObject (slot 14), NewMaterial (slot 23, flags 8, the table's colours for type; O), FillMaterial (RET 8; S),
 slots 25 "materials", 11, 12 (P).
 
@@ -480,37 +480,37 @@ table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is en
 and pops them) are a `std::vector<MaterialEntry>` now. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:
 NewMaterial returns null on a failed creation (the original faults).
 
-**Small slots and copies (A-H24).** The name / id slots (11 / 12) of CParty, the twelve CEffect* classes
-(world_effect.cpp), CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+**Small slots and copies (A-H24).** The name / id slots (11 / 12) of Party, the twelve Effect* classes
+(world_effect.cpp), Spell, Texture, the six CItem* classes and ItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
 manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party.cpp, O):
 `CArray<PartyUnitRecord>` destructor body / slot 0, DestructElements, the record's deleting destructor; ui_hero_screen_click.cpp:
 MpHeroRecord's deleting destructor, copy() of hero records (Assign each). Byte-identical copies registered beside their
 rewrites: 00664910 / 00671240 AllocateDwords, 0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes):
-CParty's slots 0065F4B0..0065F550, 00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
+Party's slots 0065F4B0..0065F550, 00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
 
 ## A-H25
 
 Smaller ports (names in the code; V as above), grouped by what they are:
 - Lists and creation: `ItemManager::ListMaterialNames/ListWeaponNames/ListArmorNames/ListQuickItemNames` and
-  `CSpellManager::ListSpellNames/ListModifierNames` (`this` unused; every new game through 004A7080; S, texts compared),
-  `ItemManager::CreateSpellItem` (the scroll of a spell text, O), `MagicCapacityOf` (CItemConstructor::MagicCapacity; trader_stock; S on
+  `SpellManager::ListSpellNames/ListModifierNames` (`this` unused; every new game through 004A7080; S, texts compared),
+  `ItemManager::CreateSpellItem` (the scroll of a spell text, O), `MagicCapacityOf` (ItemConstructor::MagicCapacity; trader_stock; S on
   scratch floats), the item records' slot 0 (kinds 0x3004 / 5 / 6 / 9 / 7; P), `ItemStock::AddArmor / AddWeapon / AddQuickItem /
   AddSpell / AddModifier / AddMaterial` (`push_back`; O: present once, size +1 only when new), the item
   manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest;
-  O), `CItemConstructor::DeletingDestruct`, `RecordTableAt<Stride>` (armour 0x88, quick 0x80, 0x7C, 0x78; P),
+  O), `ItemConstructor::DeletingDestruct`, `RecordTableAt<Stride>` (armour 0x88, quick 0x80, 0x7C, 0x78; P),
   `WeaponModelName` / `WeaponRecordModelName` (P texts; the second compared only for weapon types 0..6, beyond them the
   original reads past its code table), `ItemScroll::PictureName` ("initqi1item"), `ItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `SpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
-  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture.cpp; S; SetFormat8888 00693910 had no caller: R30a), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
-  DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
+  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture.cpp; S; SetFormat8888 00693910 had no caller: R30a), `Texture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
+  DestructBody / DeletingDestruct (O), `TextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
   Reset, default RunTick, ReadSavedStrings (effects.md; O, RunTick P, constructor and ReadSavedStrings S).
 - Records: `QuestBriefingTable::Add`
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through
   their addresses; O), `PartyUnitRecord::CarriedWeight` (Item +0x34 is the weight; weapons, quick items, spells, armour in
-  one running float sum; P with CheckNear), `CParty::ArchiveParty` (a memory stream as the archive's stream field 1; loading
+  one running float sum; P with CheckNear), `Party::ArchiveParty` (a memory stream as the archive's stream field 1; loading
   takes the archive's version; O), `SavedParties::Select` (world.h: the multiplayer heroes at 007C82A0, a `std::vector<MpHeroRecord>` and the party outside a game; no scenario opens
   the hero screen; O), `PlayerClient::AppendReceived` (appends a stream to the received one, read position kept; O).
 - Input and UI: `DirectInputMouse::Setup / Shutdown / SetActive / Poll` (input_mouse.cpp; the game's own GUID copies and
@@ -560,7 +560,7 @@ V: S side by side, O ours only. Behaviour is in the code (file in brackets); the
 obvious.
 
 - 0066C180 `PlayerManager::CreateSessionPlayer` (player_manager.cpp; O): a player 0x300A with a connection 0x49 of the
-  world's specific manager, refCount + 1, player id 0. 00691500 `CTextureManager::Create` (slot 2,
+  world's specific manager, refCount + 1, player id 0. 00691500 `TextureManager::Create` (slot 2,
   texture.cpp; O): "textures.res", "redress.res", "menus.res" of the text folder (007AF45C) all tried, 1 only
   when all three opened. 006B7110 `SoundManager::ListWaveFiles` (sound_manager.cpp; S): runs on the game's main
   thread (only caller 0053A8E0, UnitDatabase::CountSoundFiles).
@@ -570,7 +570,7 @@ obvious.
   item_db.cpp;
   006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` (model_db_open.cpp; models.md); 006AE3A0
   `QuestDatabase::Load` (quest_db_open.cpp; the database at 007C87A8 is `QuestDatabase` in quest_records.h: quests + index,
-  briefings + index). 0068E640 `CMaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of
+  briefings + index). 0068E640 `MaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of
   the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 /
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
 - HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `HudClock::LeftUp`
@@ -631,7 +631,7 @@ unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestro
 addresses so that their wrappers run. The folder-only loads (quests, prints, acks) open "database.res" but report
 "databases.res" when that fails; the serialisers' unused third argument is whatever the original's stack held (null in ours);
 ItemDatabase / SpellDatabase / AckDatabase file a repeated key over the earlier record (operator[]);
-CMaterialManager::Create ignores AddArchive's result and calls CloseFile with null for a missing file. Float notes (rule 7):
+MaterialManager::Create ignores AddArchive's result and calls CloseFile with null for a missing file. Float notes (rule 7):
 the slides compare on the FPU stack in the original; an offset on a rounding edge may differ by one for a frame (the wrappers
 allow it and then skip the layout comparison).
 

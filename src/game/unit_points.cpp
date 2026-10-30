@@ -1,4 +1,4 @@
-// Two CUnit virtuals giving points of the unit: the position predicted along its
+// Two Unit virtuals giving points of the unit: the position predicted along its
 // path and the point its current animation acts on. See docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -18,13 +18,13 @@ namespace {
 constexpr int kOrderPath = 2;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition; }
+void CopyPosition(Vector3* out, const Unit* unit) { *out = unit->localPosition; }
 
 } // namespace
 
 // A dead unit gives its action point; otherwise a unit following a path order (kind 2) without flag
 // 0x8000000 gives its motion's position at `time`, and any other its position.
-static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
+static Vector3* PredictPosition(Unit* unit, Vector3* out, int time) {
     // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
     PathOrder* path = unit->Controller()->Path();
     if (unit->IsDead()) {
@@ -41,7 +41,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        unit->motion.Sample(unit->World(), order, static_cast<float>(time), &turning,
+        unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = 0.5f;
         out->x = toWorld * position.x;
@@ -57,7 +57,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
 // animation offsets the position along the orientation away from its BlowSide: Back -Y, Front +Y by the
 // box's max Y, MinusX +X, PlusX -X by its max X. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
-static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
+static Vector3* ActionPoint(Unit* unit, Vector3* out) {
     if (!unit->IsDead()) {
         CopyPosition(out, unit);
         return out;
@@ -103,5 +103,5 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     return out;
 }
 
-Vector3* CUnit::PositionAt(Vector3* out, int time) { return PredictPosition(this, out, time); }
-Vector3* CUnit::AimPoint(Vector3* out) { return ActionPoint(this, out); }
+Vector3* Unit::PositionAt(Vector3* out, int time) { return PredictPosition(this, out, time); }
+Vector3* Unit::AimPoint(Vector3* out) { return ActionPoint(this, out); }

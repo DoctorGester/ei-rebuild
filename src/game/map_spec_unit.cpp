@@ -196,14 +196,14 @@ UnitSpec::UnitSpec() {
 
 UnitSpec::~UnitSpec() = default;
 
-CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
+Unit* ObjectSpec::MadeUnit() const { return static_cast<Unit*>(object); }
 
 void UnitSpec::Apply() {
     if (!object) {
         g_serverWorld.CreateObject(this);
         return;
     }
-    CUnit* unit = Unit();
+    Unit* unit = MadeUnit();
     g_serverWorld.aiMap.sectorMap.Move(unit, position);
     g_serverWorld.aiMap.TurnObject(unit, &rotation);
     unit->localRotation = rotation;

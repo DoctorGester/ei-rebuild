@@ -42,7 +42,7 @@ constexpr int kLevelDifferenceLimit = 25;
 
 // The speed shown: the speed of the mode (mode 3) for a unit outside the group, else of the current one,
 // times 7.5.
-double ShownSpeed(CUnit* unit, bool outsideGroup) {
+double ShownSpeed(Unit* unit, bool outsideGroup) {
     const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return speed * 7.5f;
 }
@@ -67,10 +67,10 @@ struct Panel {
 };
 
 // Whether `unit` is not in the group (the battle screen's party).
-bool OutsideGroup(HudUnitPanel* self, CUnit* unit) {
+bool OutsideGroup(HudUnitPanel* self, Unit* unit) {
     BattleScreen* group = self->owner;
     int count = lib::Count(group->party);
-    CUnit** units = group->party.data();
+    Unit** units = group->party.data();
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;
     }
@@ -79,7 +79,7 @@ bool OutsideGroup(HudUnitPanel* self, CUnit* unit) {
 
 } // namespace
 
-void HudUnitPanel::DrawUnitInfo(CUnit* unit) {
+void HudUnitPanel::DrawUnitInfo(Unit* unit) {
     TextManager* clientWorldTexts = g_clientWorld.texts;
     UnitParams* params = &unit->params;
     std::string suffix;
@@ -143,7 +143,7 @@ void HudUnitPanel::DrawUnitInfo(CUnit* unit) {
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         BattleScreen* group = owner;
         if (!group->party.empty()) {
-            CUnit* leader = group->party[0];
+            Unit* leader = group->party[0];
             int difference = unit->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {
                 suffix = str::Format(kStronger, kLevelDifferenceLimit);

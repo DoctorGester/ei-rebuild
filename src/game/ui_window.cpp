@@ -43,7 +43,7 @@ constexpr const char* kClassName = "Sorry, no other way.";
 
 // A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
 Material* NewGlowMaterial(float value) {
-    CMaterialManager* materials = g_clientWorld.materialManager;
+    MaterialManager* materials = g_clientWorld.materialManager;
     Material* material = materials->NewMaterial(0x16);
     materials->FillMaterial(material, 0x16);
     material->colors.emissive.x = value;
@@ -186,13 +186,13 @@ void UiWindow::SetEnabled(bool newEnabled, bool notify) {
     if (notify) Show(newEnabled);
 }
 
-void UiWindow::AddObject(CTexture* texture) {
+void UiWindow::AddObject(Texture* texture) {
     if (!texture) return;
     objects.push_back(texture);
     texture->AddRef();
 }
 
-void UiWindow::RemoveObject(CTexture* texture) {
+void UiWindow::RemoveObject(Texture* texture) {
     if (!texture) return;
     for (int i = 0; i < std::ssize(objects); ++i) {
         if (objects[i] == texture) {
@@ -255,9 +255,9 @@ void UiWindow::ClearSurfaces() {
     surfaces.clear();
 }
 
-CTexture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
-    CTextureManager* manager = g_clientWorld.textureManager;
-    CTexture* texture = manager->FindOrCreate(static_cast<int>(kind), name);
+Texture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
+    TextureManager* manager = g_clientWorld.textureManager;
+    Texture* texture = manager->FindOrCreate(static_cast<int>(kind), name);
     if (!texture) return nullptr;
     int loaded = manager->LoadTexture(texture);
     if (!loaded) return nullptr;
@@ -266,8 +266,8 @@ CTexture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     return texture;
 }
 
-CTexture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
-    CTexture* texture = g_clientWorld.textureManager->NewTexture(width, height, kind);
+Texture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
+    Texture* texture = g_clientWorld.textureManager->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = lib::Count(objects);
     objects.resize(index + 1);

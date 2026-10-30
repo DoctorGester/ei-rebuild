@@ -1,6 +1,6 @@
 // The figure model's destructor (FigureModel, model.h). Every cached animation is deleted, the map cleared,
 // each archive closed (CloseResource) and deleted, then the map destroyed. See docs/notes/models.md.
-#include "figure_manager.h"   // CFigureManager, FigureModel
+#include "figure_manager.h"   // FigureManager, FigureModel
 
 
 #include <cstdint>
@@ -20,7 +20,7 @@ FigureModel::~FigureModel() {
 
 // The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
 // cleared and its buckets freed (the map's inline destructor), then the base destructor.
-CFigureManager::~CFigureManager() {
+FigureManager::~FigureManager() {
     for (auto& [name, model] : models) {
         delete model;
     }

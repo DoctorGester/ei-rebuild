@@ -240,10 +240,10 @@ struct AIPath : PathOrder {
     AIPath() { Clear(); }
     void LoadPath(ByteStream* stream);
     void SavePath(ByteStream* stream);
-    void StandAndTurn(int time, const CMapObject* unit, const Vector3& direction, std::uint32_t rateBits);
-    void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
-    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3& direction, int fromTime, int toTime);
-    void StandStill(const CMapObject* unit);
+    void StandAndTurn(int time, const MapObject* unit, const Vector3& direction, std::uint32_t rateBits);
+    void StandAndTrack(int time, const MapObject* unit, int id, int from, int to);
+    void StandAndTurnUntil(int time, const MapObject* unit, const Vector3& direction, int fromTime, int toTime);
+    void StandStill(const MapObject* unit);
     void Clear();
     // The path as a motion order in `out` (its step list constructed): the order, the steps; and for an order that
     // follows steps (kind 2) the rest of the path appended, repeats removed, every step's speed 0x200 and the
@@ -323,9 +323,9 @@ struct LocalSearch {
     // Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
     // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
     bool PlaceWindow(int x0, int y0, int x1, int y1);
-    void SetUnit(CUnit* unit);
+    void SetUnit(Unit* unit);
     // Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
-    bool Begin(CUnit* unit, int x0, int y0, int x1, int y1);
+    bool Begin(Unit* unit, int x0, int y0, int x1, int y1);
     // Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
     // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
     bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
@@ -541,7 +541,7 @@ struct PathSmoother {
     // step costs, a turn cost against `startDirection` (1..8) and the previous step, and diagonal end states
     // charged (1 - fraction) * 2048. While a pass finds a cheaper path the cells are rebuilt from the tail
     // along it and the pass repeats. Returns the last pass's cost.
-    int Smooth(CUnit* unit, AIMap* map, PathCells* path, int startDirection, float fraction);
+    int Smooth(Unit* unit, AIMap* map, PathCells* path, int startDirection, float fraction);
     // The states of the next cell (fresh nodes from the pool) from those of the current one through `table`.
     void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
@@ -558,7 +558,7 @@ struct UnitLayerNode {
     UnitLayerNode* next;        // next in the bucket, or in the free list
     int key;                    // (block y << 16) + block x, blocks of 4 cells
     std::int8_t levels[16];     // rows of 4
-    CUnit* owner;
+    Unit* owner;
 };
 
 // The unit occupancy layers of AIMap (small units and large units): every unit on the map is stamped as a
@@ -575,10 +575,10 @@ public:
 
     // Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
     // (x, y): one node per non-empty 4x4 block, each announced through Merge.
-    void Add(CUnit* unit, const UnitShape* shape, int x, int y);
+    void Add(Unit* unit, const UnitShape* shape, int x, int y);
     // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
-    void Remove(CUnit* unit, int x, int y);
+    void Remove(Unit* unit, int x, int y);
     std::list<UnitLayerNode> nodes;     // every node made: a list, the buckets and free list point into it as it grows
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
@@ -666,51 +666,51 @@ public:
 
     // refreshUnits = the low byte of `on`; returns the old byte.
     std::uint8_t SetRefreshUnits(int on);
-    bool AddToSectors(CMapObject* object);
-    bool RemoveFromSectors(CMapObject* object);
+    bool AddToSectors(MapObject* object);
+    bool RemoveFromSectors(MapObject* object);
     // SectorMap::Move (Rebirth patches it).
-    bool MoveInSectors(CMapObject* object, const Vector3& position);
-    std::vector<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
+    bool MoveInSectors(MapObject* object, const Vector3& position);
+    std::vector<Unit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).
-    bool CanStandAt(CUnit* unit, int x, int y, int* reason);
+    bool CanStandAt(Unit* unit, int x, int y, int* reason);
 
     // Like CanStandAt, but a cell no worse than the one the unit is on is also accepted.
-    bool CanStandAtFromHere(CUnit* unit, int x, int y, int* reason);
+    bool CanStandAtFromHere(Unit* unit, int x, int y, int* reason);
 
     // IsPassable at the cell of world `position`, with the unit's own footprint lifted
     // (the unit is taken out of the sector map and put back).
-    bool IsPassableWithoutSelf(CUnit* unit, const Vector3& position);
+    bool IsPassableWithoutSelf(Unit* unit, const Vector3& position);
 
-    bool IsUnitCellPassable(CUnit* unit);
+    bool IsUnitCellPassable(Unit* unit);
 
     // Is the cell at world `position` passable for size class `sizeClass` (0..7)?
     bool IsPassableForClass(std::uint8_t sizeClass, const Vector3& position);
 
     // Can the unit leave its cell: is the cell or one of its 8 neighbours passable and
     // reachable with a positive climb cost?
-    bool CanLeaveCell(CUnit* unit);
+    bool CanLeaveCell(Unit* unit);
 
     // Moves `target` to the nearest cell (spiralling out from it) where `unit` can stand and that lies in the
     // unit's region; false if there is none. `target` is unchanged when its own cell qualifies.
-    bool FindFreeCellNear(CUnit* unit, const Vector3& from, Vector3* target);
+    bool FindFreeCellNear(Unit* unit, const Vector3& from, Vector3* target);
 
     // Moves `target` (world in, half-cell units out) to a cell `unit` can stand on: the
     // target cell itself, else the first good cell walking back towards the unit, at least
     // `minDistance` from the target. With `sameRegion`, only cells that reach the unit's region.
-    bool SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance);
+    bool SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDistance);
 
-    bool FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance);
+    bool FindPath(Unit* unit, const Vector3& target, AIPath* path, float range, float minDistance);
     // The long-range plan from cell (fromX, fromY) to (toX, toY): region chain,
     // local-search legs between the regions' representative cells, then the cells into path->cells. On a failed
     // leg: aim at the best reached cell when it is far enough from the start, else (with `retry`) exclude the
     // region and plan again.
-    bool PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
+    bool PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
     // Searches again if the last search failed and nothing is left, else moves on; true at the path's end.
-    bool ContinuePath(CUnit* unit, AIPath* path);
+    bool ContinuePath(Unit* unit, AIPath* path);
     // Moves up to 32 cells from the path into the steps and points the unit at the next one.
-    void AdvancePath(CUnit* unit, AIPath* path);
+    void AdvancePath(Unit* unit, AIPath* path);
 
     // Visibility from `from` to `to` (world positions): 0 when terrain blocks the line,
     // else the product of the transparencies of the objects it passes (at least 0.0001).
@@ -728,7 +728,7 @@ public:
     bool HasSpellAreaAt(const Vector3& position);
     // Material index (0..31) of the cell at `position`, -1 outside the map.
     int MaterialAt(const Vector3& position);
-    void TurnObject(CMapObject* object, const Quaternion* rotation);
+    void TurnObject(MapObject* object, const Quaternion* rotation);
     // The cell's terrain type (AITerrainType); the first one outside the map.
     AITerrainType* MaterialRecordAt(const Vector3& position);
     // Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.
@@ -736,9 +736,9 @@ public:
 
     // Stamps (remove = false) or clears (remove = true) the object's footprint in the
     // grid; false if it does not fit. Units go to the unit occupancy layers instead.
-    bool MarkFootprint(CMapObject* object, bool remove);
+    bool MarkFootprint(MapObject* object, bool remove);
     // The footprint of a non-unit object into `footprint` and `bridges` (parts flagged 0x400); true with a bridge.
-    bool CollectFootprint(CMapObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
+    bool CollectFootprint(MapObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
     // Applies a footprint to the occluder grid (stamp, undone if a cell fails) or clears it.
     bool ApplyFootprint(FootprintCellSet* set, bool remove);
     // Stamps a footprint and refreshes the passability around it; `tick` (the world's) becomes footprintTick.
@@ -752,17 +752,17 @@ public:
     // Occupancy shape for standing height `height` rounded up to tenths (cached; null at 0.2 or below).
     void* ShapeForHeight(float standingHeight);
     // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
-    CUnit* BlockingUnitAt(CUnit* unit, const Vector3& position);
+    Unit* BlockingUnitAt(Unit* unit, const Vector3& position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
-    void SetStepSpeeds(CUnit* unit, PathCells* steps);
+    void SetStepSpeeds(Unit* unit, PathCells* steps);
     // The passability cost tables for size class `sizeClass`; returns the climb table's middle.
     const int* CostContext(int sizeClass, struct PassCostContext* out);
-    // CostContext for `unit`: its size class, speeds and the alternative table with CUnit::altPassCosts.
-    void CostContextFor(CUnit* unit, struct PassCostContext* out);
+    // CostContext for `unit`: its size class, speeds and the alternative table with Unit::altPassCosts.
+    void CostContextFor(Unit* unit, struct PassCostContext* out);
     // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a SpellArea occluder is
     // evaluated at the size class's level.) Only the low byte of the result is set when the unit is outside the
     // map.
-    bool StandsOnCheapCell(CUnit* unit);
+    bool StandsOnCheapCell(Unit* unit);
     // Marks in `grid` the cells within `radius` of `eye` that it sees: inside the cone around `look` (cos >=
     // `cosLimit`; none when cosLimit <= -1) and, unless `targetHeight` is below -100, with a line of sight to
     // the cell's ground raised by `targetHeight` that reaches at least `radius` * visibility.
@@ -809,7 +809,7 @@ public:
     std::uint8_t refreshUnits = 0;      // non-zero: a refresh also re-registers the units around it
     AIDirtyRect dirty;                  // the area to refresh when batching ends
     int passCosts[16];                  // cost per passability nibble (1/1024)
-    int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set
+    int passCostsAlt[16];               // the same for units with Unit::altPassCosts set
     int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
     // Per size class: the cost of a height step between neighbouring cells, indexed from the middle (negative
     // steps down, positive up): 1023 costs in 1/1024, -1 for a step that cannot be taken (AIMap::Load fills them).
@@ -860,4 +860,4 @@ void FillAreaLists(AIMap* map);
 // returns only the low byte 0 (the rest of the result is the argument), reproduced here.
 int LevelForSizeClass(int sizeClass);
 // Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
-int StandingLevel(const CUnit* unit);
+int StandingLevel(const Unit* unit);

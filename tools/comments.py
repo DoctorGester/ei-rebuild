@@ -68,7 +68,7 @@ BANNED_COMMON = re.compile(
     r"|\b[Tt]he (?:[\w:]+'s? |[\w:]+' )?inlined\b"
     r"|\bvtable slots?\b|\bvirtual slots?\b"
     r"|\b(?:its|their|the|renderer|input|stream|world's|context's|loader's|helper's|DLL's|connection's|manager's|"
-    r"CSpell|CItem|UnitClientSpecific|CFigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
+    r"Spell|CItem|UnitClientSpecific|FigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
     r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]")
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
@@ -83,7 +83,7 @@ ORIGINAL_RX = re.compile(r'(?i)\bthe original\b|\bgame\.exe\b')
 # The removal pass's kinds (docs/comment-guide.md, "Removal pass"), counted by `stats --kinds`. Each is a
 # candidate count, not a verdict: the pass reads the comment and decides.
 OFFSET_TRAILER = re.compile(r'//\s*\+0x[0-9A-Fa-f]+\b')                      # int x;   // +0x1C ...
-OFFSET_MENTION = re.compile(r'\+\s?0x[0-9A-Fa-f]+\b')                        # "... (CUnit +0x334) ..."
+OFFSET_MENTION = re.compile(r'\+\s?0x[0-9A-Fa-f]+\b')                        # "... (Unit +0x334) ..."
 SLOT_MENTION = re.compile(r'(?i)\bslots?\s+\d+|\bvtable slot')               # "slot 9", "(vtable slot 2)"
 NUMBER_TRAILER = re.compile(r'//\s*~?-?[\d.]+(?:\s*/\s*\d+)?f?(?:\s*:.*)?')   # virtual ...;   // 26   /   0.8f;   // 0.8
 RULER_BARE = re.compile(r'//[-=*#_~/ ]{3,}')                                 # // ------------

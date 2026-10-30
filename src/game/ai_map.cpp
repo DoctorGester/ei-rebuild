@@ -43,7 +43,7 @@ int LevelForSizeClass(int sizeClass) {
     return PositiveOrZero(lib::RoundEven((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
 }
 
-int StandingLevel(const CUnit* unit) {
+int StandingLevel(const Unit* unit) {
     return PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
 }
 
@@ -54,7 +54,7 @@ int BridgeHeights::HeightAt(short x, short y) const {
 
 // --- Cell queries --------------------------------------------------------------------------------
 
-bool AIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
+bool AIMap::CanStandAt(Unit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     if (unit->GetClassId() == ClassId::Unit) {
         int level = lib::RoundEven((2.0f - unit->standingHeight) * 16.0f);
@@ -68,7 +68,7 @@ bool AIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
     return true;
 }
 
-bool AIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
+bool AIMap::CanStandAtFromHere(Unit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     int level = PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
@@ -87,7 +87,7 @@ bool AIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     return true;
 }
 
-bool AIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3& position) {
+bool AIMap::IsPassableWithoutSelf(Unit* unit, const Vector3& position) {
     if (unit->GetClassId() != ClassId::Unit) return true;
     sectorMap.Remove(unit);
     int y = WorldToCell(position.y);
@@ -102,7 +102,7 @@ bool AIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3& position) {
     return passable;
 }
 
-bool AIMap::IsUnitCellPassable(CUnit* unit) {
+bool AIMap::IsUnitCellPassable(Unit* unit) {
     int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return cells[y][x].Passability(unit->sizeClass * 4) != 0;
@@ -114,7 +114,7 @@ bool AIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3& position) 
     return cells[y][x].Passability(sizeClass * 4) != 0;
 }
 
-bool AIMap::CanLeaveCell(CUnit* unit) {
+bool AIMap::CanLeaveCell(Unit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
@@ -200,7 +200,7 @@ AITerrainType* AIMap::MaterialRecordAt(const Vector3& position) {
     return materials.data() + occluder::Type(occluders[y][x]);
 }
 
-void AIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
+void AIMap::TurnObject(MapObject* object, const Quaternion* rotation) {
     SectorMap* map = &sectorMap;
     map->Remove(object);
     object->localRotation = *rotation;
@@ -303,7 +303,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
     return SpiralOffsets();
 }
 
-bool AIMap::FindFreeCellNear(CUnit* unit, const Vector3& from, Vector3* target) {
+bool AIMap::FindFreeCellNear(Unit* unit, const Vector3& from, Vector3* target) {
     static SpiralCache cache{0, -1.0f};
 
     int sizeClass = unit->sizeClass;

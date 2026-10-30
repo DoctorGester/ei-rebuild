@@ -14,9 +14,9 @@
 #include <string>
 #include <vector>
 
-class CLight;
+class Light;
 class SceneRenderer;
-class CTexture;
+class Texture;
 class DecalBuilder;
 struct VertexPacket;
 
@@ -81,9 +81,9 @@ public:
 
     // The shown point lights (`lights`, the GPU lighting's). Nothing happens before a map is loaded.
     // Registers the light by id (held).
-    void AddLight(CLight* light);
+    void AddLight(Light* light);
     // Takes the light off the table and releases it (also one that was not registered, as the game does).
-    void RemoveLight(CLight* light);
+    void RemoveLight(Light* light);
 
     // The change is added to the material and to every sector's level table. Nothing for a material the map
     // does not have.
@@ -112,7 +112,7 @@ public:
     bool RunTick() override;
 
     // The sun and the ambient colour (the GPU lighting's).
-    void SetSun(CLight* sun, const Vector4* ambient);
+    void SetSun(Light* sun, const Vector4* ambient);
     // Clears LandscapeFlag::Ambience and stops the loops.
     void StopAmbience();
     // Slides the decal quad along the builder's slope until its lowest point meets the lowest ground vertex
@@ -147,7 +147,7 @@ public:
     static constexpr int kSoundClasses = 16;
 
     LandscapeFlag landscapeFlags;
-    std::vector<CTexture*> pageTextures;     // held
+    std::vector<Texture*> pageTextures;     // held
     std::string mapName;
     bool mapLoaded;                 // nothing is drawn or lit while false
     int sectorsX;                   // map size in sectors
@@ -171,8 +171,8 @@ public:
     std::vector<SectorData*> sectorCache;      // most recently used first
     int frame;
     Vector4 ambient;
-    CLight* sun;
-    lib::HashMap<int, CLight*> lights;   // by id, held
+    Light* sun;
+    lib::HashMap<int, Light*> lights;   // by id, held
     Vector3 waveDirection;          // unit vector; x, y: the waves' travel
     float waveHeight;
     float waveGlow;                 // scales the crests' specular colour

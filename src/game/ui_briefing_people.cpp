@@ -62,7 +62,7 @@ Vector3 Normalised(const Vector3& v) {
 } // namespace
 
 
-void BriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
+void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3& direction, bool waited,
                                  bool immediately, bool run) {
     auto* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
@@ -142,7 +142,7 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
     }
     std::string image;
     image = str::Format(kItemImageFormat, record->number);
-    CTexture* texture = CreateTexture(0x100, 0x100, TextureKind::Blank1555);
+    Texture* texture = CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture = texture;
     item->Place(x, y, kItemDepth);

@@ -12,7 +12,7 @@
 
 class TorchObjectSpec;
 
-class TorchObject : public CMapObject {
+class TorchObject : public MapObject {
 public:
     TorchObject();
     // The spec released (the pointer kept), then the map object's destructor.

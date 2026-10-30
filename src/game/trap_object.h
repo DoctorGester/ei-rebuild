@@ -14,7 +14,7 @@
 
 struct LockKey;
 
-class TrapObject : public CMapObject {
+class TrapObject : public MapObject {
 public:
     TrapObject();
 

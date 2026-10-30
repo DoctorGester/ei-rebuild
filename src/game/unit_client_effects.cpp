@@ -96,7 +96,7 @@ std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return var
 
 
 // The smaller of the unit's two horizontal extents (the select keeps above.y for NaN).
-float SmallerExtent(const CUnit* unit) {
+float SmallerExtent(const Unit* unit) {
     float y = unit->bounds.boxMax.y;
     float x = unit->bounds.boxMax.x;
     return MinKeepA(y, x);
@@ -117,7 +117,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const UnitClientSpecific* self,
 }
 
 // The weapon class of the last hit.
-std::uint8_t HitSoundKind(CUnit* unit) {
+std::uint8_t HitSoundKind(Unit* unit) {
     std::uint16_t weapon = static_cast<std::uint16_t>(unit->params.lastHitSource);
     if (weapon < kFirstPrototypeWeapon) return static_cast<std::uint8_t>(weapon);
     const auto* prototype = unitdb::PrototypeRecord(weapon - kFirstPrototypeWeapon);
@@ -188,13 +188,13 @@ void UnitClientSpecific::Wound() {
     source->alpha = kSparkAlpha;
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
-    auto* half = unit->Object3D()->ClientSpecific();
+    auto* half = unit->AsObject3D()->ClientSpecific();
     if (flashCountdown == 0) half->SetMaterialsLit(true);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 
 void UnitClientSpecific::Died() {
-    unit->MapObject()->ClientCompanion()->HideLight();
+    unit->AsMapObject()->ClientCompanion()->HideLight();
     std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
@@ -218,5 +218,5 @@ void UnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight.radius, false);
+    unit->AsMapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight.radius, false);
 }

@@ -307,7 +307,7 @@ the entries instead of building the temporary vector). `Continue` builds `MpConn
 attribute sum vs 00741C98 equal or unordered, a name. `Draw` previews at depth 553 / 400; `Update` turns by fmod 007C7F10 and
 tints the create button; `Destroy` is the destructor body (vtable 0074214C slot 0 00633240 calls it). `AddNewHero` writes file
 "<highest *.mp title + 1>.mp" (00619920 when full; `RefreshHeroScroll` shared with DeleteHero); `MessageResult` 0x10001
-deletes in mode 9. `DrawHeroList`: a hero record is a CParty whose first member's text 0 is the name. `MakePreview` (RET 4;
+deletes in mode 9. `DrawHeroList`: a hero record is a Party whose first member's text 0 is the name. `MakePreview` (RET 4;
 skill animation 0x21 (SkillAnimation::Special14) from a random frame, controller slot 14 `RestartAnimation(float)`). The original's forwarders
 `RenameAt` / `PlayVoiceAt` / `ContinueAt` / `CreateHeroAt` are the member calls.
 
@@ -498,7 +498,7 @@ Hazards and facts:
   part records (+0x374, 0x1C bytes) with label positions from 00742434 / 0074244C. ToggleFlag's third frame value 0.48046875 is
   unreachable. Texts go through DrawText 005FDE20 and Place 005E6FA0 by address.
 - Top panel: `ShowItems` builds page 1: "format_money" with the local party's +0x50 when above 0, then the local player's item
-  list (CPlayer::items +0xE0) merged by kind (slot 14) into the client world's copies (0055E940), one FormatItemName line each, the
+  list (Player::items +0xE0) merged by kind (slot 14) into the client world's copies (0055E940), one FormatItemName line each, the
   copies released; into the log when page 1 is up. The original builds lines with CString operator+ temporaries; ours appends to
   one CString.
 
@@ -881,7 +881,7 @@ original's order.
 
 The save / load window's saving, its entry list and the selected save's picture. See ui.h
 (SaveLoadWindow) and docs/notes/renderer.md (sections 6 and 7). The window shows two 256x256 5:6:5 textures (a
-CTexture with its holder): objects[1], into which ShowPicture draws the selected save's shot.sav (256x192
+Texture with its holder): objects[1], into which ShowPicture draws the selected save's shot.sav (256x192
 pixels), and dialog, which FillEntries draws from the escape menu's 256x192 copy of the
 screen for the new save of a save window. Both are drawn into on the GPU (render::DrawIntoTexture, the 0x18000
 bytes as stored: 5:6:5 rows of 512 bytes, at the texture's top; the rows a short shot.sav lacks keep the last

@@ -109,17 +109,17 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   default standard under the same `/FI`. One site does not build (`world_server.cpp`, a volatile
   pointer-to-pointer CONST cast); the scan lists the rest.
 - Downcasts that stay should go through one named accessor where the class is known by construction
-  (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
+  (`MapObject::ServerCompanion()`, `Unit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
   unit's id, `LightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
   `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
-  map object; `CWorld::ObjectWithId` and `WorldServer::FindObject` already return `CMapObject*`, and the server
-  world's id maps but `timedObjects` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
+  map object; `World::ObjectWithId` and `WorldServer::FindObject` already return `MapObject*`, and the server
+  world's id maps but `timedObjects` are `MapObjectIdMap`s of `MapObject*`; a network session's message
   lists are `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>` (core_refcount.h, ref.h: `element.Get()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
-  the owning figure manager; `CMapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
-  `CUnit::Controller()` for the controller's own slots (also from inside UnitClientSpecific, which is not
+  the owning figure manager; `MapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
+  `Unit::Controller()` for the controller's own slots (also from inside UnitClientSpecific, which is not
   declared as a UnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share;
-  `CTexture::Manager()` / `ParticleSource::Manager()` for the owning manager; particle_common.h's `Carrier(object)`
-  for the attached object's map object slots; `AsQuest` / `AsArmor` on a `CItem*` (CPlayer::items holds `CItem*`)),
+  `Texture::Manager()` / `ParticleSource::Manager()` for the owning manager; particle_common.h's `Carrier(object)`
+  for the attached object's map object slots; `AsQuest` / `AsArmor` on a `CItem*` (Player::items holds `CItem*`)),
   not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.
@@ -425,10 +425,10 @@ minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (
 interpolation, track lerps, scale steps, light reach and the companion light's distance are float maths in the
 original's order (the double locals were PC24 registers); the ground height (`GridHeightAt`, a double) plus a float and
 the animation time minus the frame count (a uint32 as a double) go through `pc24::Add` / `Sub`. `AnimationDatabase::TimeFactor`
-(map_object_figures.h, inlined in figure_bones' x87 object too) and `CObject3D::AnimationFactor` return float: at PC24
+(map_object_figures.h, inlined in figure_bones' x87 object too) and `Object3D::AnimationFactor` return float: at PC24
 their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track's key frame), `modf` on the float.
 Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),
-`CMapObject::MoveSpeed`'s double return (a virtual of the units; a constant here).
+`MapObject::MoveSpeed`'s double return (a virtual of the units; a constant here).
 
 **C30e2 (scripts; 10 files).** Script arguments come from mission data, so NaN, infinities and huge values are
 plausible. The truncations (`Ftol`, 72 calls): the game's `_ftol` is `Truncate` (script_eval, script_exec, addon's
@@ -566,7 +566,7 @@ pick times 0.01, `CastValue`'s cast time, `AttackInterval`'s base, `RefreshVital
 tick), the double ground and surface heights plus a float (`CanActFrom`, `FindSightTarget`, `BuildAttackSteps`,
 `TimeUntilAction`, `SpellHasLineOfSight`). A drawn int doubled (the attack roll) and a tick count halved (the plan's
 outer reach) round once on the FPU: the int rounded to a float, then doubled or halved, is the same float.
-`CUnit::MoveSpeed` (a double virtual) returns a float, used as one. Kept double: `StartMove`'s 0.02 (`lengthSq < 0.02`
+`Unit::MoveSpeed` (a double virtual) returns a float, used as one. Kept double: `StartMove`'s 0.02 (`lengthSq < 0.02`
 compares with the double; 0.02f is below it) and the int-to-float compares (`ResolveHit`, `TakeHit`, the chase's
 lead), all exact. `x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `Ftol` -> int64 truncation (`Truncate`).
 `TimeUntilAction` returns float. Equivalence test (C30e10a's `eq/`, `combat`: the x87 sequences at PC24 against the
@@ -580,7 +580,7 @@ tornado's step, the view and hearing ranges, the exit centres, the experience we
 dot (`DotZYX`), the hero-start and spell-target distances; `VariableGet` returns float). Through `pc24`: a random
 word (FromUnsigned's FILD is exact) times a wide double constant (the bird's flight angle, the tornado's speed, the
 scorch angle, the weather's map point, offsets, bolt and spread: `pc24::Mul(double(word), c)`); the world tick, an
-int past 2^24 in long games, times the seconds per tick (`CWorld::Elapsed`; `CWorld::TimeOfDay` is fmod(Elapsed() +
+int past 2^24 in long games, times the seconds per tick (`World::Elapsed`; `World::TimeOfDay` is fmod(Elapsed() +
 timeBase, 24), exact, for the time functions, `GameServerTimeOfDay`; the save's player times) and plus the tick
 fraction (the camera path); 1 / the time-scale option and the rate times the double 1/15; a height
 (`RawSurfaceHeightAt`, a double virtual) plus or minus a float (missile, particle, spell missile, rain bolt); an

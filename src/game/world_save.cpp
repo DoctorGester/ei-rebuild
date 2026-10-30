@@ -71,7 +71,7 @@ T ReadAs(ByteStream* stream) {
 void RelocateStrandedUnits(WorldServer* world) {
     std::vector<int> stranded;
     for (auto& node : world->objects.map) {
-        CUnit* unit = UnitOrNull(node.second);
+        Unit* unit = UnitOrNull(node.second);
         if (!unit) continue;
         if (world->aiMap.CanLeaveCell(unit)) continue;
         int id = unit->id;
@@ -80,7 +80,7 @@ void RelocateStrandedUnits(WorldServer* world) {
         stranded[index] = id;
     }
     for (int i = 0; i < std::ssize(stranded); ++i) {
-        CUnit* unit = world->FindUnit(stranded[i]);
+        Unit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id > kTextKeyIdMin) {
             world->aiMap.sectorMap.Remove(unit);
             Vector3 from = unit->localPosition;
@@ -98,10 +98,10 @@ void RelocateStrandedUnits(WorldServer* world) {
 // The players' part of the save (in the player list's order).
 void LoadPlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
-    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
+    for (Player* player = it.First(world->PlayerList()); player; player = it.Next()) {
         PlayerServer* state = player->Server();
         stream->ReadValue(player->partyId);
-        player->Party()->LoadParty(stream, 1);
+        player->GetParty()->LoadParty(stream, 1);
         player->lastTick = world->tick;
         stream->ReadValue(player->sessionKind);
         BaseManager* items = world->ItemFactory();
@@ -134,9 +134,9 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
 // The players' part of the save (what LoadPlayers reads).
 void SavePlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
-    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
+    for (Player* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->WriteValue(player->partyId);
-        player->Party()->SaveParty(stream, 1);
+        player->GetParty()->SaveParty(stream, 1);
         stream->WriteValue(player->sessionKind);
         for (Item* item : player->items) stream->WriteValue(item->id);
         stream->WriteValue(-1);
@@ -169,11 +169,11 @@ void WorldServer::UpdatePlayerTimes(float offset) {
     const char* name = game::GTimeText();
     int now = tick;
     PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+    for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
-        float current = player->Party()->variables.Get(name);
+        float current = player->GetParty()->variables.Get(name);
         float value = pc24::Mul(static_cast<double>(elapsed), secondsPerTick) + offset + current;
         player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
@@ -183,7 +183,7 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
     for (;;) {
         int objectId = ReadAs<int>(stream);
         if (objectId == -1) return;
-        CMapObject* object = objectManager->FindMapObject(objectId);
+        MapObject* object = objectManager->FindMapObject(objectId);
         if (stream->version >= kVersionMapObjectName) {
             std::string name;
             name = stream->ReadString();
@@ -207,7 +207,7 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
         if (!object->name2.empty())
             namedObjects.Set(static_cast<unsigned>(object->id), object);
 
-        if (CUnit* unit = UnitOrNull(object)) {
+        if (Unit* unit = UnitOrNull(object)) {
             // The unit's six dwords come from its prototype's model record. A prototype or model out of range is
             // read through null.
             auto* prototype = unitdb::PrototypeRecord(unit->prototypeId);
@@ -221,7 +221,7 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
         for (int i = 0; i < parts; ++i)
             if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
 
-        CUnit* unit = UnitOrNull(object);
+        Unit* unit = UnitOrNull(object);
         if (unit && !unit->ServerController()->brain.alwaysUpdated)
             continue;   // a unit whose controller does not ask for updates
         AddToUpdateMap(object);
@@ -239,7 +239,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     scriptsActive = 0;
     if (PlayerList()) {
         PlayerIterator it;
-        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult = 1;
             scriptsActive = 1;
             player->Clear();
@@ -258,7 +258,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
-        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        for (Player* player = it.First(PlayerList()); player; player = it.Next())
             player->dirty = kPlayerDirtyAll;
     }
 
@@ -313,7 +313,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
                 if (objectId == -1) break;
                 EngineObject* object = timedObjectManager->FindObject(objectId);
                 object->AddRef();
-                static_cast<CEffect*>(object)->MarkChanged();
+                static_cast<Effect*>(object)->MarkChanged();
                 timedObjects.Set(static_cast<unsigned>(object->id), object);
             }
 
@@ -533,7 +533,7 @@ void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vec
 
 void WorldServer::PrepareSave() {
     for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node) {
-        CUnit* unit = UnitOrNull(node->second);
+        Unit* unit = UnitOrNull(node->second);
         if (!unit || unit->IsDead()) continue;
         UnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();

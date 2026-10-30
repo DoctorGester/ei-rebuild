@@ -34,7 +34,7 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 004667F0, `Refill` 0049EE70, `Init` 0049F150 (the generator is at 007A9D40), `Seed` 0049F660 (1 KB of a random file on drive C, xored with
 `rand()`; A-S10), `FindSeedFile` 0049F4B0 (its recursive CFileFind walk).
 
-The client effects' generator `g_clientRandom` (random.h, R34a) is ours: a second ISAAC that `CWorld::Create` seeds right after
+The client effects' generator `g_clientRandom` (random.h, R34a) is ours: a second ISAAC that `World::Create` seeds right after
 the game's (`InitFrom`: Init with the game's memory words as the seed, no file, no `rand()`), drawn by every effect whose result
 only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`; the client's idle animation picks
 through `AnimationRandom::Client`, R34c, the server's keep `rand()`). The list of the moved sites and how they
@@ -96,15 +96,15 @@ File `core_refcount.cpp`, `core_refcount.h`.
   fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI brain's `modes` are a
   `std::vector<std::unique_ptr<AIMode>>` (AddMode and Load append the new mode; `current` points at a mode object,
   never into the vector).
-- Item's `spell` (Ref<CSpell>) and `link` (Ref<RefObject>: the server's ItemLink or the interface's ItemTurn) are
-  Refs. CObject3D's `parts` are a `std::vector<HeldRef<FigureMesh>>` whose references the original never releases
+- Item's `spell` (Ref<Spell>) and `link` (Ref<RefObject>: the server's ItemLink or the interface's ItemTurn) are
+  Refs. Object3D's `parts` are a `std::vector<HeldRef<FigureMesh>>` whose references the original never releases
   through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
   reference forgotten again), Destroy3D takes each and forgets its reference, RemovePart takes the element and releases
   it after the detach.
 - The game client's `info`, `binding`, `map` and `trade` are plain `Ref<T>` (the handlers Assign / Reset; the
   destructor resets them in the original's order between the lists' clears).
 - Not merged: `ScriptEffect<T>` (its reset removes the timed object first).
-- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources and the joined links
+- Counted lists outside the interface: the world's missiles, a Object3D's effect sources and the joined links
   (TakeNew) are lists of `HeldRef`, the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses,
   corpses) vectors of them; a removal that must release after a later step moves the element out first
   (RemoveEffectSource detaches before the release). The candidate and party lists the AI builds on the stack hold no
@@ -323,14 +323,14 @@ instantiations were, for reading game.exe (config/library.csv names them):
     to look.
   - A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
     error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
-    member: the factory's allocation sizes are `sizeof(T)` (heap corruption C0000374 once CUnit and CMapObject grew),
+    member: the factory's allocation sizes are `sizeof(T)` (heap corruption C0000374 once Unit and MapObject grew),
     structs that pad up to an offset (`unused_000[0xE8]`) over another class are the same hazard (`CameraSettings`
     read the options' camera block through a `reinterpret_cast` and the camera distance was 0 once GameOptions grew),
     and so are element counts taken from a byte difference (the hero screen counted its voices as
     `(end - begin bytes) >> 3`): grep `reinterpret_cast<...*>(` of the object's pointer, `>> 3`, `/ 0x..` and
-    `reinterpret_cast<char*>(...end())` near the class's containers. A class held by value grows with its member (CParty
-    sits in CPlayer, ClassTemplate, PartyRecord, ClientSession and TradeRecord through
-    `lib::InPlace<CParty>`, in MpHeroRecord as a plain member): grep the embedders too.
+    `reinterpret_cast<char*>(...end())` near the class's containers. A class held by value grows with its member (Party
+    sits in Player, ClassTemplate, PartyRecord, ClientSession and TradeRecord through
+    `lib::InPlace<Party>`, in MpHeroRecord as a plain member): grep the embedders too.
   - Casts hide retypes: a `std::string*` compiles through a cast or a `void*` parameter and is then read as another
     string layout (`ComposeSkin`'s `void*` target crashed in every scenario with a hero); a function returning a
     `const T&` of a retyped member can return a reference to a temporary (`RecordMob` / `RecordMap` handed
@@ -364,7 +364,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   as stack bytes (save entries, connect list rows, trade rows, bindings): the fields are written before they are read.
   `resize()` value-initialises slots where the original kept stale ones: a site that reads a slot before writing it
   differs.
-- Walks that erase the entry they stand on step first (`next = std::next(node)`; CPlayer::ReleaseTamedUnits: the game's
+- Walks that erase the entry they stand on step first (`next = std::next(node)`; Player::ReleaseTamedUnits: the game's
   walk read the freed node); remove(value) is an explicit walk that erases as it goes (the original destroyed each
   element on the way, std::list::remove defers that). "No node" is a value-initialised iterator (`{}`).
 - Elements that move: an element holding a std::string or counted pointer has real special members (a move for
@@ -387,7 +387,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   archive's loaded objects, the held particles, the fog cells, the .mob reader's records, the deferred sounds, the
   terrain lights, the named floats (party and player variables: saved, listed and walked in it), the item stock's
   recipes (the walk feeds its random rolls), the unit prototypes by name (EI_Plugin's fallback reads bucket heads),
-  the party manager's parties (`HashMap<int, CParty>`, saved chunk by chunk), UnitSet's tables (Write's walk is the
+  the party manager's parties (`HashMap<int, Party>`, saved chunk by chunk), UnitSet's tables (Write's walk is the
   zone message's bytes). Release / delete walks of counted objects stay too: a destructor releases counted members
   (a particle source's texture) into other managers' spare lists, which later creations reuse in order.
 - An int-keyed lib::HashMap whose keys all stay below its bucket count (193) and that never grows past it walks
@@ -422,8 +422,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - A copy with side effects keeps the original's copies: a saved hero's (MpHeroRecord) copy loads its party again,
   drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is added
   (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a blank's copy.
-  Without it the multiplayer goldens differ (the hero's #unit and the random state). A CParty copy runs its save and
-  load (CParty::Create), so the copies are kept; `TradeRecord` holds its three CParty by value with a copy that copies
+  Without it the multiplayer goldens differ (the hero's #unit and the random state). A Party copy runs its save and
+  load (Party::Create), so the copies are kept; `TradeRecord` holds its three Party by value with a copy that copies
   them in order, and RecordTrade adds a record as insert(end()) did: a blank, copied into the list, the blank destroyed
   before the parties are assigned.
 
@@ -440,12 +440,12 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 ## Containers: the record and held lists (C14s)
 
-- The sector grids' cells (`std::vector<HeldRef<CMapObject>>`, world.h), the client's heroes and the frame's deferred
+- The sector grids' cells (`std::vector<HeldRef<MapObject>>`, world.h), the client's heroes and the frame's deferred
   units (the same type): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
   (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
   `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
   frees both grids where the original did (the second grid still holds objects then). The client's filed objects
-  (`std::vector<CMapObject*>`) keep their reference by hand: the original's destructor freed that list without
+  (`std::vector<MapObject*>`) keep their reference by hand: the original's destructor freed that list without
   releasing (Destroy has released and emptied it by then). CollectVisible files one object; DrawPass walks the cells,
   the deferred units and the heroes (a first pass only appends units to the deferred vector, the later passes add
   nothing).

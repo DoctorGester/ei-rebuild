@@ -131,7 +131,7 @@ constexpr int kMaxCatchUpTicks = 1000;
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world catch up with
 // the time spent away (one tick per elapsed unit, at most 1000, waking the units around the entrance).
 // Returns LoadSave's result, 0 when the file cannot be opened or is corrupt.
-int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone, std::string& folder,
+int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, std::string& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables;
     folder = str::Format(kCurrentFolder, DataFolderText());
@@ -206,7 +206,7 @@ void AnnounceHost(const char* zone) {
 // game state request to the server (a change goes out with a new version).
 int ServerPlayerCount() { return static_cast<int>(g_serverWorld.players->objects.size()); }
 
-CParty* GlobalParty() { return g_savedParties.outsideGame.Party(); }
+Party* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 constexpr int kCommandBriefing = 1;
@@ -306,10 +306,10 @@ int GameFlow::SaveGame(const std::string& slot) {
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
     if (g_serverWorld.sessionKind == 4) {
-        if (CPlayer* player = g_serverWorld.GetPlayer(0))
-            g_partyManager.BeginRedeploy(player->Party());
+        if (Player* player = g_serverWorld.GetPlayer(0))
+            g_partyManager.BeginRedeploy(player->GetParty());
     }
-    CParty records;
+    Party records;
     g_partyManager.EndRedeploy(&records);
     std::string currentMap;
     currentMap = FindZone(records.zone)->allod;
@@ -364,7 +364,7 @@ int GameFlow::SaveGame(const std::string& slot) {
 // Enters the party's zone: plays the pending "movie", restores the zone from saves\current when it was
 // visited (zs.<zone>), otherwise loads it fresh (NewZone; gz6g picks its frozen or thawed map), then the
 // zone's scripts and its exits. Returns 0 on failure, else the restore's result (1 for a fresh zone).
-int EnterZone(CParty* records) {
+int EnterZone(Party* records) {
     FileStream file;
     int result = 1;
     std::string folder;
@@ -489,7 +489,7 @@ int StartNetworkZone(const std::string& zone) {
 // The counterpart of the zone load: saves the current zone into saves\current\<zone>.sav (SaveWorld, header
 // 0x102) and records in the party's variables that it was visited (zs.<zone> = 1) and when it was left
 // (zt.<zone> = gtime). Returns 1, 0 when the file cannot be written (after FatalError).
-int LeaveZone(CParty* records) {
+int LeaveZone(Party* records) {
     FileStream file;
     std::string path;
     std::string zone = g_serverWorld.zoneName;
@@ -530,8 +530,8 @@ int LeaveZone(CParty* records) {
 // ---- The multiplayer flag -----------------------------------------------------------------------
 
 void GameFlow::UpdateMultiplayerVariable() {
-    CPlayer* player = g_clientWorld.LocalView()->player;
-    NamedFloatTable* variables = &player->Party()->variables;
+    Player* player = g_clientWorld.LocalView()->player;
+    NamedFloatTable* variables = &player->GetParty()->variables;
     if (!IsLive(net::g_gameClient)) return;
     auto set = [variables](bool on) {
         if (on) variables->Set(kMultiplayerVariable, 1.0f);
@@ -570,8 +570,8 @@ void GameFlow::BeginMultiplayerGame() {
 
 void GameFlow::ReturnLocalParty() {
     if (!IsLive(net::g_gameClient)) return;
-    CPlayer* player = g_clientWorld.LocalView()->player;
-    CParty* party = player->Party();
+    Player* player = g_clientWorld.LocalView()->player;
+    Party* party = player->GetParty();
     GlobalParty()->Assign(party);
     g_partyManager.BeginRedeploy(party);
     // The global party record written into the heroes' folder.
@@ -637,13 +637,13 @@ void GameFlow::RequestZoneChange(std::string_view zone) {
     requestTarget = zone;
 }
 
-void GameFlow::RequestPartyZone5(const char* zone, CParty* party) {
+void GameFlow::RequestPartyZone5(const char* zone, Party* party) {
     state = 5;
     requestTarget = zone;
     RequestParty()->Assign(party);
 }
 
-void GameFlow::RequestPartyZone6(const char* zone, CParty* party) {
+void GameFlow::RequestPartyZone6(const char* zone, Party* party) {
     state = 6;
     requestTarget = zone;
     RequestParty()->Assign(party);
@@ -744,11 +744,11 @@ void GameFlow::SwitchMultiplayerZone() {
             in.cur = begin;
         }
     }
-    CParty records;
-    CPlayer* player = g_serverWorld.GetPlayer(0);
+    Party records;
+    Player* player = g_serverWorld.GetPlayer(0);
     if (player && player->Server()->partyDeployed) {
         g_serverWorld.SyncPartyRecords(player);
-        records.Assign(player->Party());
+        records.Assign(player->GetParty());
         g_serverWorld.ClearPlayerItems(player);
     } else {
         records.Assign(GlobalParty());
@@ -821,7 +821,7 @@ void WorldServer::AcceptNewPlayers(PlayerSource* lobby) {
     if (gameResult == 0) return;
     lobby->TakeNew(&joined);
     for (netlink::NetLink* connection : joined) {
-        CPlayer* player = players->CreateSessionPlayer();
+        Player* player = players->CreateSessionPlayer();
         player->Connect(connection);
         player->dirty = kPlayerDirtyAll;
         player->sessionKind = sessionKind;
@@ -949,7 +949,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         result = kResultPlaying;
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
-        CParty records;
+        Party records;
         g_partyManager.EndRedeploy(&records);
         EnterZone(&records);
         g_partyManager.BeginRedeploy(&records);
@@ -978,7 +978,7 @@ void GameFlow::StartNewGame() {
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
-    CParty records;
+    Party records;
     g_partyManager.EndRedeploy(&records);
     StartZone(records.zone, 0);
 }
@@ -1019,13 +1019,13 @@ void GameFlow::ProcessRequest() {
     if (currentState == 0) return;
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (g_serverWorld.gameResult == 1 && (g_serverWorld.sessionKind == 1 || g_serverWorld.sessionKind == 3) && currentState == kStateZone) {
-        CParty records;
+        Party records;
         g_partyManager.EndRedeploy(&records);
         ::LeaveZone(&records);
         g_partyManager.BeginRedeploy(&records);
     }
     if (g_serverWorld.gameResult == 2 && g_serverWorld.sessionKind == 1 && currentState == kStateZone) {
-        CParty records;
+        Party records;
         ::LeaveZone(&records);
     }
     g_interface.CloseAll();
@@ -1056,7 +1056,7 @@ void GameFlow::ProcessRequest() {
         StartZone(requestTarget, 0);
         break;
     case kStatePartyZone: {
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        Player* player = ClientWorldLocalView(clientWorld)->player;
         player->AssignParty(RequestParty());
         g_serverWorld.TeardownZone();
         if (!clientWorld->JoinGameClient()) {
@@ -1072,7 +1072,7 @@ void GameFlow::ProcessRequest() {
     }
     case kStateNetworkZone: {
         StartNetworkZone(requestTarget);
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        Player* player = ClientWorldLocalView(clientWorld)->player;
         player->AssignParty(RequestParty());
         clientWorld->SetPlayer(g_serverWorld.worldHandle.Get());
         ClientWorldLocalView(clientWorld)->sendParty = 1;
@@ -1131,7 +1131,7 @@ int GameFlow::LoadGame(const std::string& slot) {
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
-    CParty records;
+    Party records;
     g_partyManager.EndRedeploy(&records);
     std::string currentMap;
     currentMap = FindZone(records.zone)->allod;
@@ -1242,8 +1242,8 @@ void GameFlow::UpdateFromServer() {
         g_questFiles.clear();
     }
     auto* clientWorld = &g_clientWorld;
-    CPlayer* player = ClientWorldLocalView(clientWorld)->player;
-    NamedFloatTable* variables = &player->Party()->variables;
+    Player* player = ClientWorldLocalView(clientWorld)->player;
+    NamedFloatTable* variables = &player->GetParty()->variables;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
     float construction = variables->Get(kConstructionVariable);
@@ -1350,7 +1350,7 @@ void SavedParties::Reload() {
         MpHeroRecord* entry = &read;
         entry->file = finder.GetFileName();
         if (entry->ReadFile(folder)) {
-            NamedFloatTable* variables = &entry->Party()->variables;
+            NamedFloatTable* variables = &entry->GetParty()->variables;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the clear is skipped and the table is cleared
                 // keeping its "gvar." entries.
@@ -1358,7 +1358,7 @@ void SavedParties::Reload() {
             } else {
                 variables->clear();
             }
-            if (std::ssize(entry->Party()->members) == 1) {
+            if (std::ssize(entry->GetParty()->members) == 1) {
                 ReserveOne();
                 entries.push_back(read);
             }

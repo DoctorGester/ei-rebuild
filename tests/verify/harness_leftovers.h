@@ -15,15 +15,15 @@
 // zeroes the block first and then calls the original target.
 //
 // Sites: GiveDefaults 00513630, ApplyPrototype 00513B60 (no prototype), BuildFromPrototype 005136D0
-// (its callers' copies), CUnit::TakePrototype 0052EB70, CMapObject::TakePrototype 0050E9B0, and
-// CParty::AddMember 006628D0's stack record (0x784 bytes, whose statistics BuildNpcStats 00513DA0
+// (its callers' copies), Unit::TakePrototype 0052EB70, MapObject::TakePrototype 0050E9B0, and
+// Party::AddMember 006628D0's stack record (0x784 bytes, whose statistics BuildNpcStats 00513DA0
 // fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
 // live in objects (UnitServer::ResetController 00546480, the MapObjectServer lifetime
 // 00515610..005157E0); their objects start zeroed instead (below).
 //
 // Heap blocks whose constructors leave fields (SV7b2, SV7d3, SV7d4): the objects of the two factories
 // (ServerSpecificManager::NewObject 004D6970: UnitServer's waitFrame, which ResolveBlocker
-// reads; CMapObjectManager::CreateObject 00512730: a unit's exposure and motion turn fields) are
+// reads; MapObjectManager::CreateObject 00512730: a unit's exposure and motion turn fields) are
 // allocated zeroed (each operator new call redirected), and so are the Suspection and Fear modes
 // (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /
 // 005D2850 from ApplyBehaviour 005D6630 and the script zero their fields first): Evaluate 005D1E90
@@ -32,10 +32,10 @@
 // ClearFields). These families are patched only with EI_NO_HOOKS=1: every site sits in a function ours
 // replaces, and a harness patch in a body makes InstallHooks leave the rewrite out.
 //
-// Also (S17a) CObject3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
+// Also (S17a) Object3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
 // read for an object listed only for its shadow before it was ever in view (a NaN there makes
 // UnitOrderLess irreflexive and STLport's unguarded scans run off the list). Ours zeroes it; its one
-// caller, CMapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
+// caller, MapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
 // after the original's construction (EI_LEFTOVERS family bit 6).
 //
 // And (SV7b7) NewParticleSource 004981B0's source is allocated zeroed (its operator new CALL at 004981CD,

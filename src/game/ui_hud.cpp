@@ -108,7 +108,7 @@ void HudWeaponBar::LeftUp(int, int x, int y) {
     selected = region;
     ui->PlayInterfaceSound(kSoundWeapon);
     // No check for a missing local view here (like the original).
-    if (CUnit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
+    if (Unit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
 }
 
 void HudWeaponBar::MouseMove(int, int x, int y) {
@@ -117,7 +117,7 @@ void HudWeaponBar::MouseMove(int, int x, int y) {
 }
 
 void HudWeaponBar::Update() {
-    CUnit* currentUnit = unit;
+    Unit* currentUnit = unit;
     if (!currentUnit || selected == currentUnit->pendingWeapon) return;
     Highlight(selected, false);
     selected = unit->pendingWeapon;
@@ -475,7 +475,7 @@ void HudMovePanel::SetMode(int newMode) {
     if (!view) return;
     if (newMode >= 0 && newMode < 4) {
         ui->PlayInterfaceSound(kSoundClick);
-        for (CUnit* unit : owner->party) {
+        for (Unit* unit : owner->party) {
             if (unit->flags & MapObjectFlag::Selected) view->SetMoveMode(unit, newMode);
         }
     }
@@ -516,9 +516,9 @@ void HudMovePanel::Update() {
     int newMode = -1;
     int newFlag = -1;
     int count = lib::Count(owner->party);
-    CUnit** units = owner->party.data();
+    Unit** units = owner->party.data();
     for (int i = 0; i < count; ++i) {
-        CUnit* unit = units[i];
+        Unit* unit = units[i];
         if (!(unit->flags & MapObjectFlag::Selected)) continue;
         if (newMode == -1)
             newMode = unit->moveMode2;
@@ -577,32 +577,32 @@ void HudTopPanel::Wheel(int, int, int x, int y) {
 
 // --- BattleScreen::SelectUnit --------------------------------------------------------
 
-void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
+void BattleScreen::SelectUnit(Unit* unit, int x, int y) {
     const bool ctrl = ui->doubleClick;
-    auto unitDead = [](CUnit* u) { return u->IsDead(); };
+    auto unitDead = [](Unit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = g_clientWorld.PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
-    auto unitPosition = [](CUnit* u) { return u->localPosition; };
+    auto unitPosition = [](Unit* u) { return u->localPosition; };
     auto objectAt = [x, y]() {
         Point point = {x, y};
-        return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
+        return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
     };
     // The portrait of member `index` nods after a short random delay.
     auto flash = [this](int index) { portraits->Wobble(index, kWobbleNod); };
-    auto order = [this, ctrl](CUnit* first, CUnit* target, int kind, int value) {
+    auto order = [this, ctrl](Unit* first, Unit* target, int kind, int value) {
         g_clientWorld.LocalView()->SendUseOrder(first, target, kind, value, ctrl);
     };
 
-    CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
+    Unit* living = (unit && !unitDead(unit)) ? unit : nullptr;
     int count = lib::Count(party);
     int firstIndex = -1;
-    CUnit* first = nullptr;
+    Unit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < count; ++i) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         if (!first) {
             first = member;
@@ -666,7 +666,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             OrderAt(unitPosition(unit), false, ctrl);
             return;
         }
-        if (CUnit* object = objectAt()) {
+        if (Unit* object = objectAt()) {
             if (object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 && selected == 1) {
                 order(first, object, 0, -1);
                 flash(firstIndex);
@@ -705,7 +705,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case kPendingItemOnObject:
     case kPendingKeyOnObject: {
-        CUnit* target = unit ? unit : objectAt();
+        Unit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (target->IsUsable() == 0) return;
         if (pendingAction == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
@@ -717,7 +717,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case kPendingFollow: {   // every selected member follows the unit
         if (!unit || unitDead(unit)) return;
         for (int i = 0; i < std::ssize(party); ++i) {
-            CUnit* member = party[i];
+            Unit* member = party[i];
             if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
             g_clientWorld.LocalView()->SendFollow(member, unit);
             Speech(party[i]->id, AckKind::Follow, nullptr);
@@ -727,7 +727,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
     case kPendingOrder: {   // a unit outside the party, or the object under the mouse
-        CUnit* target = unit ? unit : objectAt();
+        Unit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
             for (int i = 0; i < std::ssize(party); ++i)
@@ -779,7 +779,7 @@ void HudQuickItems::LeftUp(int, int x, int y) {
 void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     int selected = 0;
     for (int i = 0; i < std::ssize(party); ++i) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         if (member && (member->flags & MapObjectFlag::Selected)) ++selected;
     }
 
@@ -804,9 +804,9 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    std::vector<CUnit*> units;
+    std::vector<Unit*> units;
     for (int i = 0; i < std::ssize(party); ++i) {
-        CUnit* member = party[i];
+        Unit* member = party[i];
         if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         units.push_back(member);
         portraits->Wobble(i, kWobbleNod);

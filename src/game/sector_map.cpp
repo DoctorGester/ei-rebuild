@@ -71,14 +71,14 @@ SectorMap::SectorMap() {
 
 SectorMap::~SectorMap() = default;
 
-bool SectorMap::Add(CMapObject* object) {
+bool SectorMap::Add(MapObject* object) {
     int cellX = lib::RoundEven(2.0f * object->localPosition.x - 0.5f);
     int cellY = lib::RoundEven(2.0f * object->localPosition.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    if (CUnit* unit = UnitOrNull(object)) sector.units.push_back(unit);
+    if (Unit* unit = UnitOrNull(object)) sector.units.push_back(unit);
     else sector.objects.push_back(object);
 
     bool fits = aiMap->MarkFootprint(object, false);
@@ -92,7 +92,7 @@ bool SectorMap::Add(CMapObject* object) {
 
     // Does not fit: take it out of the list again.
     Sector& again = sectors[width * sy + sx];
-    if (CUnit* unit = UnitOrNull(object)) {
+    if (Unit* unit = UnitOrNull(object)) {
         if (auto node = std::ranges::find(again.units, unit); node != again.units.end()) again.units.erase(node);
     } else {
         if (auto node = std::ranges::find(again.objects, object); node != again.objects.end()) again.objects.erase(node);
@@ -100,17 +100,17 @@ bool SectorMap::Add(CMapObject* object) {
     return false;
 }
 
-std::vector<CUnit*>* SectorMap::UnitsAt(int sx, int sy) {
+std::vector<Unit*>* SectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
 
-bool SectorMap::Remove(CMapObject* object) {
+bool SectorMap::Remove(MapObject* object) {
     int sx = object->sectorCellX / 32, sy = object->sectorCellY / 32;
     if (sx >= width || sy >= height) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    if (CUnit* unit = UnitOrNull(object)) {
+    if (Unit* unit = UnitOrNull(object)) {
         auto node = std::ranges::find(sector.units, unit);
         if (node == sector.units.end()) return false;
         sector.units.erase(node);
@@ -129,8 +129,8 @@ bool SectorMap::Remove(CMapObject* object) {
     return cleared;
 }
 
-std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
-    std::vector<CUnit*> result;
+std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
+    std::vector<Unit*> result;
     const SectorSpiral& spiral = SectorSpiralTables();
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
     const std::int16_t* offset = &spiral.offsets.data()->x;
@@ -147,7 +147,7 @@ std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float 
         int gx = offset[0] + sx, gy = offset[1] + sy;
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
         Sector& sector = grid->sectors[grid->width * gy + gx];
-        for (CUnit* unit : sector.units) {
+        for (Unit* unit : sector.units) {
             float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
@@ -158,7 +158,7 @@ std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float 
     return result;
 }
 
-bool SectorMap::Move(CMapObject* object, const Vector3& position) {
+bool SectorMap::Move(MapObject* object, const Vector3& position) {
     // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
@@ -189,7 +189,7 @@ bool SectorMap::Move(CMapObject* object, const Vector3& position) {
     if (changesSector) {
         Sector& from = sectors[width * oldSy + oldSx];
         Sector& to = sectors[width * newSy + newSx];
-        if (CUnit* unit = UnitOrNull(object)) {
+        if (Unit* unit = UnitOrNull(object)) {
             if (auto node = std::ranges::find(from.units, unit); node != from.units.end()) from.units.erase(node);
             to.units.push_back(unit);
         } else {

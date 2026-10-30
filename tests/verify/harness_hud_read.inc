@@ -1,6 +1,6 @@
 // "hudstate" (harness.cpp, HudState): the battle screen's state logged, over either side's classes. Compiled twice:
 // in harness.cpp over game.exe's views (exe_objects.h) and in image/harness_objects_image.cpp over our classes. The
-// including file defines UnitQuickItem, UnitSpell, UnitWeapon (the unit's slots, CUnit 00531920 / 005319A0 /
+// including file defines UnitQuickItem, UnitSpell, UnitWeapon (the unit's slots, Unit 00531920 / 005319A0 /
 // 005318B0) and WeaponType (ItemWeapon::GetType 006A07F0) for its side.
 //
 // Logs the pending action (pendingAction, pendingSlot, pendingItem), each party member's selection (flags 0x10)
@@ -12,7 +12,7 @@ std::string HudStateOf(void* window, const std::string& argument) {
     Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window, battle->pendingAction,
         battle->pendingSlot, battle->pendingItem, std::ssize(battle->party));
     for (int i = 0; i < std::ssize(battle->party) && i < 8; ++i) {
-        CUnit* member = battle->party[i];
+        Unit* member = battle->party[i];
         if (!member) continue;
         void* quick[4];
         for (int s = 0; s < 4; ++s) quick[s] = UnitQuickItem(member, s);
@@ -42,11 +42,11 @@ std::string HudStateOf(void* window, const std::string& argument) {
         Log("harness: hudstate: spell column unit %p, %d spells, highlight %d", static_cast<void*>(spells->unit), spells->count,
             spells->selected);
         // Each spell slot of the column's unit: the spell's prototype index and target flags.
-        if (CUnit* unit = spells->unit) {
+        if (Unit* unit = spells->unit) {
             for (unsigned s = 0; s < 8; ++s) {
                 Item* item = UnitSpell(unit, s);
                 if (!item) continue;
-                auto* spell = static_cast<CSpell*>(item->spell);
+                auto* spell = static_cast<Spell*>(item->spell);
                 Log("harness: hudstate: spell slot %u item %p, prototype %d, flags %08X", s, item,
                     spell ? spell->prototypeIndex : -1, spell ? spell->targetFlags : 0);
             }

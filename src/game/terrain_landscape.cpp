@@ -222,7 +222,7 @@ void Terrain::ClearMap() {
     StopAmbientLoops();
     for (SectorData* sector : sectorCache) delete sector;
     sectorCache.clear();
-    for (CTexture* texture : pageTextures) texture->Release();
+    for (Texture* texture : pageTextures) texture->Release();
     pageTextures.clear();
     archive.CloseResource();
     sectorGrid.clear();
@@ -355,7 +355,7 @@ int Terrain::SetupPages(int count) {
             if (!g_clientWorld.textureManager->HasFile((name + ".mmp"))) return 1;
             pageTextures.push_back(nullptr);
         }
-        CTexture* texture = g_clientWorld.textureManager->FindOrCreate(kPageTexture, name);
+        Texture* texture = g_clientWorld.textureManager->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         texture->AddRef();
         if (!g_clientWorld.textureManager->LoadTexture(pageTextures[i])) return 0;
@@ -469,13 +469,13 @@ void Terrain::BuildUvTables(int tileSize) {
 
 // ---- The point lights, water levels, tile texture coordinates -----------------------------------------
 
-void Terrain::AddLight(CLight* light) {
+void Terrain::AddLight(Light* light) {
     if (!mapLoaded) return;
     light->AddRef();
     lights[light->id] = light;
 }
 
-void Terrain::RemoveLight(CLight* light) {
+void Terrain::RemoveLight(Light* light) {
     if (!mapLoaded) return;
     lights.erase(light->id);
     light->Release();

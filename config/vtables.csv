@@ -216,16 +216,16 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073DA40,3,,game,0050AF40 0050B1D0 0050C5F0 0050C730 0050DBC0,007005E3,BoneListClass,-,CList (a figure bone's children and an animation state's bones); stored only by game.exe (ours is a std::list)
 0073DA4C,13,,game,0050C5F0 0050C730,0050C710,FigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DA80,3,,game,0050C5F0 0050C730 0050DE30,007005E3,AnimationStateListClass,-,CList (an animation state's queue); stored only by game.exe (ours is a std::list)
-0073DAA0,61,,game,0050E2D0 0050E660,0050E560,CMapObject,src/game/map_object.h,"CMapObject's own table (slots 11, 12 _purecall)"
+0073DAA0,61,,game,0050E2D0 0050E660,0050E560,MapObject,src/game/map_object.h,"MapObject's own table (slots 11, 12 _purecall)"
 0073DB94,3,,game,0050E2D0 0050E580 0050E660 0050FBC0,007005E3,DeltaFieldArrayClass,-,CArray<DeltaField> (a map object's network records); stored only by game.exe (ours is a std::vector)
 0073DBA0,3,,game,0050E2D0 0050E660 0050FFB0 00510B80 005112A0,007005E3,EffectArrayClass,-,CArray (a map object's effects); stored only by game.exe (ours is a std::vector)
 0073DBEC,20,,game,00510450 00510560,00510540,MapObjectClientSpecific,src/game/unit.h,the map objects' client companion
 0073DC3C,3,,game,00510450 00510560 00511E00,007005E3,EffectSoundArrayClass,-,CArray (a map object's effect sounds); stored only by game.exe (ours is a std::vector)
 0073DC48,3,,game,00510450 00510560 00511BB0,007005E3,EffectObjectArrayClass,-,CArray (a map object client's effect records); stored only by game.exe (ours is a std::vector)
 0073DC54,20,,game,00510560 00510730 00515610 00515720,00510710,MapObjectCompanion,src/game/map_object.h,the map object companions' base
-0073DCD8,26,,game,005125E0 00512650,00512630,CMapObjectManager,src/game/unit_create.h,
+0073DCD8,26,,game,005125E0 00512650,00512630,MapObjectManager,src/game/unit_create.h,
 0073DD6C,21,,game,00515610 00515720,00515700,MapObjectServer,src/game/unit.h,the map objects' server companion
-0073DDD4,5,,game,00515BD0 00515D70,00515D50,CObject3D,src/game/map_object_figures.h,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
+0073DDD4,5,,game,00515BD0 00515D70,00515D50,Object3D,src/game/map_object_figures.h,"Object3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
 0073DE40,3,,game,00515BD0 00515D70 00519B30,007005E3,FrameArrayClass,-,CArray (a 3D object's frames); stored only by game.exe (ours is a std::vector)
 0073DE4C,3,,game,00515BD0 00515D70 00519870,007005E3,Object3DListClass,-,CList (a 3D object's effect sources); stored only by game.exe (ours is a std::list)
 0073DE90,27,,game,0051AB00 0051AD90,0051AD70,Object3DClientSpecific,src/game/map_object_shadow.h,a 3D object's client half
@@ -245,8 +245,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073E850,54,,game,0064F400,00402CE0,TorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
 0073E954,14,,game,0052D0D0 0052D1D0,0052D1B0,TorchObjectClientSpec,src/game/torch_client_spec.h,
 0073E98C,5,,game,0052D1D0,0052D610,TorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
-0073EA8C,5,,game,0052E110 0052E310,0052E2A0,CUnit,src/game/unit.h,
-0073EAA0,57,,game,0052E310,0052E740,CUnit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
+0073EA8C,5,,game,0052E110 0052E310,0052E2A0,Unit,src/game/unit.h,
+0073EAA0,57,,game,0052E310,0052E740,Unit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
 0073EB84,3,,game,0052E110 0052E310 005331C0,007005E3,CarriedArrayClass,-,CArray (a unit's carried objects); stored only by game.exe (ours is a std::vector)
 0073EB90,3,,game,0052E110 00556810,007005E3,MotionWaypointArrayClass,-,CArray (a unit motion's waypoints; derived from 0073EBB4); stored only by game.exe (ours is a std::vector)
 0073EB9C,3,,game,0052E110 0054E250,007005E3,MotionPointsClass,-,CArray (a unit motion's points; derived from 0073EBA8); stored only by game.exe (ours is a std::vector)
@@ -273,7 +273,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F0F8,13,,game,00551EC0 00551F50 00552000 005520D0 00552180 005D3760 005D6630 005D8310,005520B0,PlayerMode,src/game/unit_ai.h,the Player AI mode
 0073F12C,3,,game,005528F0 00558470 005942D0,007005E3,LootListClass,-,CList (the loot lists); stored only by game.exe (ours is a std::list)
 0073F140,3,,game,00556830,007005E3,MemoryObjectArrayClass,-,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots; stored only by game.exe (ours is a std::vector)
-0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,CWorld,src/game/world.h,the worlds' base (CWorld)
+0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,World,src/game/world.h,the worlds' base (World)
 0073F234,3,,game,0055EAB0 0055EC80 0055EE20 005604B0,007005E3,CountdownArrayClass,-,CArray (the world's countdowns); stored only by game.exe (ours is a std::vector)
 0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,WorldHandle,src/game/world.h,the server world's counted helper (a player source)
 0073F25C,26,,game,0055EE40 0055F400 006614F0,0055F3E0,ItemManager,src/game/item_manager.h,
@@ -327,7 +327,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,-,CArray (a sector's occluders; after the sector's one-slot table 0073FADC); stored only by game.exe (ours is a std::vector)
 0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
-0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,CFigureManager,src/game/figure_manager.h,
+0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/game/figure_manager.h,
 0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
@@ -483,9 +483,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742F64,25,,game,0065E320,0065E4D0,UiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
 00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui_screens.h,the titles' scrolling text surface (CUiScrollingSurface)
 00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
-00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,CParty,src/game/party.h,the party (CParty)
-0074306C,27,,game,00661050 006613C0,006611B0,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)
-00743104,13,,game,00664BF0 00664E20,00664E00,CPlayer,src/game/player_messages.h,a world player (CPlayer)
+00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,Party,src/game/party.h,the party (Party)
+0074306C,27,,game,00661050 006613C0,006611B0,ManagerContext,src/game/manager_context.h,Party's base (the manager context's getters null)
+00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/player_messages.h,a world player (Player)
 00743138,3,,game,00664BF0 00664E20 00665FF0,007005E3,PlayerListClass,-,CList (a player's list); stored only by game.exe (ours is a std::list)
 00743180,24,,game,00666D10 00666FD0,00666FB0,PlayerClient,src/game/player_client.h,a player's client side (CPlayerClient)
 007431E0,24,,game,00666D10 00666EC0 00666FD0 0066C540 0066C770,00666F70,PlayerConnection,src/game/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
@@ -498,13 +498,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743338,26,,game,00674D90 00674DF0,00674DD0,ResourceManager,src/game/resource_manager.h,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
 007433EC,24,,game,00675DD0 006760A0 0067AE30 0067B1C0,00676080,EffectSound,src/game/world_effect.h,positional sound
 0074344C,24,,game,00676760 00676980,00676960,EffectSoundSeq,src/game/world_effect.h,sound sequence
-007434AC,24,,game,00676760 00677510 0067B050 0067C340,00676910,CEffect,src/game/world_effect.h,the effects' abstract base
+007434AC,24,,game,00676760 00677510 0067B050 0067C340,00676910,Effect,src/game/world_effect.h,the effects' abstract base
 0074350C,24,,game,00677510 006776E0,006776C0,EffectAmbientSound,src/game/world_effect.h,ambient sound
 0074356C,18,,game,00677D30 00677FC0 0067AE30 0067B1C0,00677FA0,EffectPointLight,src/game/world_effect.h,point light
 007435B4,7,,game,00677FC0 0067B1C0,006780C0,EffectPointLight,src/game/world_effect.h,the tail of 0074356C (the destructors call slot 18 through the table's memory)
-007435D0,2,,game,006787B0 00678990 006797E0 006799E0 0067AE30 0067B1C0,00678970,CEffectParticle,src/game/world_effect.h,particle source
-007435D8,16,,game,005E1680,00675D10,CEffectParticle,src/game/world_effect.h,the tail of 007435D0 (a byte match in 005E1680's FDIV operand)
-00743618,6,,game,00678990 006799E0 0067B1C0,00678A90,CEffectParticle,src/game/world_effect.h,the tail of 007435D8 (the destructors call slot 18 through the table's memory)
+007435D0,2,,game,006787B0 00678990 006797E0 006799E0 0067AE30 0067B1C0,00678970,EffectParticle,src/game/world_effect.h,particle source
+007435D8,16,,game,005E1680,00675D10,EffectParticle,src/game/world_effect.h,the tail of 007435D0 (a byte match in 005E1680's FDIV operand)
+00743618,6,,game,00678990 006799E0 0067B1C0,00678A90,EffectParticle,src/game/world_effect.h,the tail of 007435D8 (the destructors call slot 18 through the table's memory)
 00743630,18,,game,006797E0 006799E0,006799C0,EffectWall,src/game/world_effect.h,particle wall
 00743678,6,,game,006799E0,00679AF0,EffectWall,src/game/world_effect.h,the tail of 00743630 (the destructors call slot 18 through the table's memory)
 00743690,18,,game,00679FC0 0067A0B0,0067A090,EffectLightning,src/game/world_effect.h,lightning bolt
@@ -517,20 +517,20 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0074387C,24,,game,0067C950 0067CAF0,0067CAD0,EffectMoshka,src/game/world_effect.h,the client's bird
 007438F8,24,,game,0067D670 0067D800,0067D7E0,EffectTornado,src/game/world_effect.h,tornado
 0074399C,2,,game,0067E510 0067E5D0,0067E5B0,SpellEffect,src/game/spell.h,the cast spell (the harness's digest recognises it by its class in the image)
-007439C8,13,,game,00683FF0 006840A0,00684080,CSpellConstructor,src/game/spell.h,spell constructor
-00743A14,26,,game,00688840 00688990,00688970,CSpellManager,src/game/spell.h,
-00743A94,5,,game,0068B1F0 0068B2C0 0068BA80 0068BC50,0068B2A0,CSpell,src/game/spell.h,spell
-00743AA8,8,,game,0068B2C0 0068BC50,00402CC0,CSpell,src/game/spell.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
+007439C8,13,,game,00683FF0 006840A0,00684080,SpellConstructor,src/game/spell.h,spell constructor
+00743A14,26,,game,00688840 00688990,00688970,SpellManager,src/game/spell.h,
+00743A94,5,,game,0068B1F0 0068B2C0 0068BA80 0068BC50,0068B2A0,Spell,src/game/spell.h,spell
+00743AA8,8,,game,0068B2C0 0068BC50,00402CC0,Spell,src/game/spell.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
 00743AC8,5,,game,0068BA80 0068BC50,0068BC30,SpellContainer,src/game/spell.h,spell container
 00743ADC,3,,game,0068BC50,0068BE20,SpellContainer,src/game/spell.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
 00743AE8,5,,lib,006E81C2,00402CF0,SpellContainer,src/game/spell.h,the tail of 00743ADC (a byte match in 006E81C2)
-00743AFC,18,,game,0068CED0,0068CFC0,CLight,src/game/spell.h,light
+00743AFC,18,,game,0068CED0,0068CFC0,Light,src/game/spell.h,light
 00743B50,25,,game,0068D850 0068D990,0068D970,LightFactory,src/game/spell.h,
 00743BB4,13,,game,0068DBC0 0068DE30,0068DD20,Material,src/game/material.h,
-00743C38,26,,game,0068E3F0 0068E540 0068E640,0068E520,CMaterialManager,src/game/material.h,
-00743CB0,26,,game,00691140 00691250,00691230,CTextureManager,src/game/texture.h,
+00743C38,26,,game,0068E3F0 0068E540 0068E640,0068E520,MaterialManager,src/game/material.h,
+00743CB0,26,,game,00691140 00691250,00691230,TextureManager,src/game/texture.h,
 00743D18,3,,game,00691140 00691250 00694160,007005E3,TextureListClass,-,CList (the texture manager's list); stored only by game.exe (ours is a std::list)
-00743D24,13,,game,00691810 00691950,00691930,CTexture,src/game/texture.h,
+00743D24,13,,game,00691810 00691950,00691930,Texture,src/game/texture.h,
 00743DA4,22,,game,0069FCA0 0069FD70 006A05B0 006A2FC0 006A3B30 006A4420 006A4A00 006A5740,0069FD30,Item,src/game/item.h,item (the base)
 00743DFC,22,,game,006A0540,006A0590,ItemWeapon,src/game/item.h,weapon
 00743E54,22,,game,006A2F20,006A2FA0,ItemArmor,src/game/item.h,armour
@@ -538,7 +538,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743F04,22,,game,006A43A0,006A4400,ItemQuest,src/game/item.h,quest item
 00743F5C,22,,game,006A49A0,006A49E0,ItemLoot,src/game/item.h,loot
 00743FB4,22,,game,006A56E0,006A5720,ItemScroll,src/game/item.h,scroll
-00744020,13,,game,006A5AB0 006A5B20,006A5B00,CItemConstructor,src/game/item_manager.h,item constructor
+00744020,13,,game,006A5AB0 006A5B20,006A5B00,ItemConstructor,src/game/item_manager.h,item constructor
 00744054,1,,game,006A5D60 006A8790 006A9B00 006AAED0 006AC520 006AC640,006A6470,LootItemRecord,src/game/item_db.h,a loot item record
 00744058,1,,game,006A5D60 006A85A0 006A9830 006AAB80 006AC240 006AC3B0,006A6460,QuestItemRecord,src/game/item_db.h,a quest item record
 0074405C,1,,game,006A5D60 006A83F0 006A9420 006AA8D0 006ABF60 006AC0D0,006A6450,QuickItemRecord,src/game/item_db.h,a quick item record

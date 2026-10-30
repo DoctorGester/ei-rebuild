@@ -41,7 +41,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-int SceneRenderer::BindLoadedTexture(int stage, CTexture* texture) {
+int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
     EnsureTextureLoaded(texture);
     return SetTexture(stage, texture);
 }

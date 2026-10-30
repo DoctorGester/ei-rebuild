@@ -100,7 +100,7 @@ const char* SoundFolder(SpellType type) {
 }
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
-void SpawnRing(CMapObject* owner, SpellType type, float size, bool negate) {
+void SpawnRing(MapObject* owner, SpellType type, float size, bool negate) {
     ParticleSource* ring = g_clientWorld.particleManager->CreateSource(type == SpellType::Strengthen || type == SpellType::Weaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
@@ -122,7 +122,7 @@ float RingSize(SpellType type, int power) {
 int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
-bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, SpellType type) {
+bool OtherRecordOfType(const std::vector<ParticleRecord>& particles, int index, SpellType type) {
     for (int i = 0; i < std::ssize(particles); ++i)
         if (i != index && particles[i].type == type) return true;
     return false;
@@ -137,7 +137,7 @@ constexpr float kLightHeight = 2.0f;
 // The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::g_options.questLight.red; }
 
-Object3DSpecific* SideHalf(CMapObject* owner) {
+Object3DSpecific* SideHalf(MapObject* owner) {
     return owner->attached;
 }
 
@@ -189,7 +189,7 @@ void MapObjectClientSpecific::EffectsChanged(bool first) {
 }
 
 void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
-    CMapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = CompanionOwner(this);
     // The effects, those of the merging types once each with the highest power.
     std::vector<MapEffect> wanted;
     if (std::ssize(mapObject->effects) > 0) {
@@ -217,7 +217,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         // The same effect at the same power keeps its record.
         bool kept = false;
         for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            EffectParticle& record = particles[i];
+            ParticleRecord& record = particles[i];
             if (!record.present && record.type == spellType && record.power == power) {
                 record.present = 1;
                 kept = true;
@@ -226,7 +226,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         if (kept) continue;
         // A source of the same type takes the new power.
         for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            EffectParticle& record = particles[i];
+            ParticleRecord& record = particles[i];
             if (!record.present && record.type == spellType && record.source) {
                 record.power = power;
                 ParticleSource* source = particles[i].source;
@@ -237,7 +237,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         }
         if (kept) continue;
 
-        EffectParticle added = {};
+        ParticleRecord added = {};
         added.type = spellType;
         added.power = power;
         added.present = 1;
@@ -271,7 +271,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
     }
 
     for (int i = 0; i < std::ssize(particles); ++i) {
-        EffectParticle* record = &particles[i];
+        ParticleRecord* record = &particles[i];
         if (record->present) continue;
         switch (record->type) {
         case SpellType::Stun:
@@ -301,7 +301,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
 }
 
 void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
-    CMapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = CompanionOwner(this);
     // The effect types, once each.
     SpellType types[256];
     int typeCount = 0;
@@ -337,7 +337,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
     for (int i = 0; i < std::ssize(sounds); ++i) {
         EffectSoundRecord* record = &sounds[i];
         if (record->present) continue;
-        CMapObject* target = CompanionOwner(this);
+        MapObject* target = CompanionOwner(this);
         bool alive = !target->IsDead();
         PlayEffectSound(alive, record, &target->localPosition.x, record->kind, "\\end.wav");
         sounds.erase(sounds.begin() + i);
@@ -363,7 +363,7 @@ void MapObjectClientSpecific::HideLight() {
     if (!light || (light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags |= LightFlag::Hidden;
     g_clientWorld.terrain->RemoveLight(light);
-    CMapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(false);
 }
 
@@ -371,7 +371,7 @@ void MapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags &= ~LightFlag::Hidden;
     g_clientWorld.terrain->AddLight(light);
-    CMapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(true);
 }
 
@@ -380,8 +380,8 @@ void MapObjectClientSpecific::CreateLight(const float* colour, float radius, boo
     light.Assign(g_clientWorld.lightFactory->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(rgb, rgb);
-    CMapObject* mapObject = CompanionOwner(this);
-    CLight* point = light;
+    MapObject* mapObject = CompanionOwner(this);
+    Light* point = light;
     point->localPosition.x = mapObject->localPosition.x;
     point->localPosition.y = mapObject->localPosition.y;
     point->localPosition.z = kLightHeight + mapObject->localPosition.z;

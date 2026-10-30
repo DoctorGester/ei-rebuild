@@ -386,7 +386,7 @@ void ItemInfoPanel::DescribeItem() {
     if (kind != ItemKind::Quest) w.Number(0, static_cast<int>(item->Weight()));
 
     if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) {
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         int spellValue = spell ? static_cast<int>(spell->skillNeeded) : 0;
         w.Number(2, static_cast<int>(item->chargeMax));
         w.line = std::format("{} {}/{}", w.T(14), spellValue, static_cast<int>(item->magicLevel));
@@ -451,7 +451,7 @@ tail:
         w.Down();
         w.Down();
         if (kind != ItemKind::Weapon) w.Down();
-        CSpell* spell;
+        Spell* spell;
         if ((kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) &&
             (spell = item->spell) != nullptr) {
             text = "Unknown";
@@ -615,7 +615,7 @@ void ItemInfoPanel::DescribeQuickItem() {
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
-    if (CSpell* spell = item->spell) {
+    if (Spell* spell = item->spell) {
         bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
         SpellLevelLine(w, known, known ? static_cast<int>(spell->damage) : 0);
         DurationLine(w, spell->duration);
@@ -626,7 +626,7 @@ void ItemInfoPanel::DescribeQuickItem() {
 
 void ItemInfoPanel::DescribeCarriedSpell() {
     Item* item = FirstItem();
-    CSpell* spell = item ? item->spell.Get() : nullptr;
+    Spell* spell = item ? item->spell.Get() : nullptr;
     if (!spell) {
         return;
     }

@@ -60,7 +60,7 @@ constexpr float kQuarter = 0.25f;
 constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
-void Sink(CUnit* unit) {
+void Sink(Unit* unit) {
     if (unit) GameSetUnitHeight(unit->id, kSunk);
 }
 
@@ -103,7 +103,7 @@ void BriefingScreen::StartPhrases() {
     NextPhrase(false);
 }
 
-void BriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdPerson) {
+void BriefingScreen::PlaySpeakerAnimation(Unit* unit, bool talking, bool thirdPerson) {
     // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, kHumanPrototype) == 0;
     SkillAnimation number;
@@ -120,7 +120,7 @@ void BriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdP
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
     controller->actionDone = SpeakerAnimationDone;
-    if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
+    if (FigureAnimation* animation = unit->AsObject3D()->FindSkillAnimation(number))
         controller->PlayAnimation(animation->name);
 }
 
@@ -128,7 +128,7 @@ void BriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdP
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
 // briefing screen unchecked; the count is read again after each call.
-void SpeakerAnimationDone(CUnit* serverUnit) {
+void SpeakerAnimationDone(Unit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = g_clientWorld.FindUnit(serverUnit->id);
     if (!unit) return;
@@ -137,7 +137,7 @@ void SpeakerAnimationDone(CUnit* serverUnit) {
         if (screen->speakers[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
 
-void BriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
+void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float height) {
     float cosAngle = pc24::Round(pc24::Cos(angle));
     float sinAngle = pc24::Round(pc24::Sin(angle));
     Vector3 eye{};
@@ -199,7 +199,7 @@ void BriefingScreen::ViewPreset(int preset) {
     float dx = places[kLeaderPlace].x - places[kPersonPlace].x;
     float dy = places[kLeaderPlace].y - places[kPersonPlace].y;
     float apart = std::sqrt(LengthSquared2DUnrounded(dy, dx));
-    auto view = [this](CUnit* unit, float angle, float distance, float height) {
+    auto view = [this](Unit* unit, float angle, float distance, float height) {
         ViewSpeaker(unit, angle, distance, height);
     };
     switch (preset) {

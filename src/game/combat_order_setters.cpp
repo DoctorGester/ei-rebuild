@@ -30,7 +30,7 @@ constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);
 
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
 // `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
-void QueueUse(UnitServer* self, CMapObject* target, UseSource source, int spot, int run, AckKind shout) {
+void QueueUse(UnitServer* self, MapObject* target, UseSource source, int spot, int run, AckKind shout) {
     UnitAction& order = self->action2;
     order.Reset();
     order.kind = UnitOrderKind::Use;
@@ -72,33 +72,33 @@ void UnitServer::SetWantedWeapon(int slot) {
     unit->pendingWeapon = slot;
 }
 
-void UnitServer::OrderSteal(CMapObject* target, int run) {
+void UnitServer::OrderSteal(MapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     QueueUse(this, target, UseSource::Steal, 0, run, AckKind::Steal);
 }
 
-void UnitServer::OrderTame(CMapObject* target, int run) {
+void UnitServer::OrderTame(MapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
-    auto* other = static_cast<CUnit*>(target);
+    auto* other = static_cast<Unit*>(target);
     if (other->player == unit->player || other->prototypeId == kUntameable) return;
     QueueUse(this, target, UseSource::Tame, 0, run, AckKind::UseObject);
 }
 
-void UnitServer::OrderUse(CMapObject* target, int spot, int run) {
+void UnitServer::OrderUse(MapObject* target, int spot, int run) {
     if (!target) return;
     QueueUse(this, target, UseSource::Use, spot, run, AckKind::UseObject);
 }
 
-void UnitServer::OrderSearchBody(CMapObject* target, int run) {
+void UnitServer::OrderSearchBody(MapObject* target, int run) {
     if (!target || target->IsDead() == 0 || target == unit) return;
     QueueUse(this, target, UseSource::SearchBody, 0, run, AckKind::Loot);
 }
 
-bool UnitServer::TargetBusy(CMapObject* target) {
+bool UnitServer::TargetBusy(MapObject* target) {
     if (target->flags & MapObjectFlag::Shared) return !g_serverWorld.IsObjectShared(target->id, unit->id);
     AIBrain* ai = &brain;
     for (auto& node : ai->memory.nearby) {
-        CUnit* other = node;
+        Unit* other = node;
         if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;
@@ -114,7 +114,7 @@ void UnitServer::PlayAnimation(const char* name) {
     {
         std::string figure = unit->name;
         auto* world = WorldContext();
-        entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
+        entry = (world->GetMapObjectManager())->FindFigureAnimation(figure, name);
     }
     if (!entry) return;
     action2.Reset();

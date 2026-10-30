@@ -185,7 +185,7 @@ void MainMenu::MessageResult(int result) {
 // --- The mouse move and the keys -------------------------------------------
 
 void MainMenu::MouseMove(int buttons, int x, int y) {
-    if (auto* stones = g_clientWorld.objectManager->FindObjectAs<CObject3D>(kStonesObject)) {
+    if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
         if (region != hovered) {

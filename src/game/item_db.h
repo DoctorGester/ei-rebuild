@@ -71,7 +71,7 @@ struct SpellRecord {
     int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;
     float mana;
-    // fields 6-14: what CSpell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
+    // fields 6-14: what Spell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
     // info shows.
     std::uint32_t complexity;           // +1 per modifier in the spell
     float speed;                        // missile speed (the item info's "power")
@@ -81,7 +81,7 @@ struct SpellRecord {
     std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
     std::uint32_t targetCount;
     std::uint32_t duration;             // ticks
-    std::uint32_t castTime;             // CSpell::castTime (UnitServer::CastValue: ticks of the cast animation)
+    std::uint32_t castTime;             // Spell::castTime (UnitServer::CastValue: ticks of the cast animation)
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
     std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
@@ -131,7 +131,7 @@ struct SpellModifierRecord {
 // item constructor (on the game's heap).
 class ItemRecordHead {
 public:
-    // The item kind the record makes (CItemConstructor::BeginCreateItem's kind).
+    // The item kind the record makes (ItemConstructor::BeginCreateItem's kind).
     virtual ItemKind Kind() = 0;
 
     virtual ~ItemRecordHead() = default;
@@ -228,7 +228,7 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t actionValue;              // ItemQuick::actionValue
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::FillItem)
+    std::string spellText;                // the spell text of a QuickItemCategory::Potion item (ItemConstructor::FillItem)
     std::uint8_t attributeBonus[3] = {};   // per attribute (UnitStats::AttributeWithItems)
 };
 

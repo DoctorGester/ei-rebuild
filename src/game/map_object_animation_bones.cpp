@@ -25,7 +25,7 @@ FigureMesh* AsMesh(EngineObject* part) { return static_cast<FigureMesh*>(part); 
 // The root places the skeleton (through its address) at the owner's time factor at its scale z times its
 // default scale.
 void PlaceRoot(FigureAnimationState* state) {
-    CObject3D* owner = state->owner;
+    Object3D* owner = state->owner;
     float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin;
     origin.z = factor * owner->defaultScale.z;

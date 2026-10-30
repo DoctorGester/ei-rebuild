@@ -25,8 +25,8 @@ constexpr int kSkinUnits = 0x100;
 
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
-CTexture* SkinOf(CUnit* unit) {
-    auto* half = unit->Object3D()->ClientSpecific();
+Texture* SkinOf(Unit* unit) {
+    auto* half = unit->AsObject3D()->ClientSpecific();
     if (!half->partSets[0]) return nullptr;
     return half->partSets[0]->texture;
 }
@@ -39,7 +39,7 @@ struct EyeFrame {
     int at[2];
 };
 
-EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord* model) {
+EyeFrame Frame(const Texture* skin, const Texture* face, const UnitModelRecord* model) {
     EyeFrame frame;
     frame.scale = static_cast<float>(static_cast<double>(skin->width) * kEyeUnit);
     int eyeHeight = static_cast<int>(model->eyeHeight);
@@ -56,7 +56,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 // The game blitted `from` of `source` to the rectangle of its size at `at` of `target`, then on each next level of
 // both mip chains with each of the eight edges halved (SAR), until either had no further level. Ours hands the
 // first level's rectangles to the renderer, which shows them over the skin in its shader on every level.
-void BlitMipChain(CTexture* target, const int* at, CTexture* source, const Rect* from) {
+void BlitMipChain(Texture* target, const int* at, Texture* source, const Rect* from) {
     const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
     render::TexturePatch(target->surface, to, source->surface, rectangle);
@@ -65,10 +65,10 @@ void BlitMipChain(CTexture* target, const int* at, CTexture* source, const Rect*
 void UnitClientSpecific::BlinkClose(bool force) {
     if (!faceTexture) return;
     if (!force && eyesClosed == 1) return;
-    CTexture* skin = SkinOf(unit);
+    Texture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = unit->GetPrototypeModel();
-    CTexture* face = faceTexture;
+    Texture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
@@ -81,10 +81,10 @@ void UnitClientSpecific::BlinkClose(bool force) {
 void UnitClientSpecific::BlinkOpen(bool force) {
     if (!faceTexture) return;
     if (!force && eyesClosed == 0) return;
-    CTexture* skin = SkinOf(unit);
+    Texture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = unit->GetPrototypeModel();
-    CTexture* face = faceTexture;
+    Texture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);

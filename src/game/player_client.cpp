@@ -84,7 +84,7 @@ constexpr int kNumberExperience = 8;
 // The experience shown for `amount`: amount times 1.04 ^ (intelligence - 25), the double power times the float
 // rounded once to a float (the original's multiply at 24-bit precision), then to the nearest integer. std::pow
 // here gives the same 256 doubles as the x87 build's (an equivalence test, docs/notes/cleanup-tooling.md).
-int ScaledExperience(const CUnit* unit, float amount) {
+int ScaledExperience(const Unit* unit, float amount) {
     const double power = std::pow(1.04, static_cast<float>(unit->params.intelligence) - 25.0f);
     return lib::RoundEven(pc24::Mul(amount, power));
 }
@@ -140,7 +140,7 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
-void RemovePartNamed(CObject3D* object, const char* name) {
+void RemovePartNamed(Object3D* object, const char* name) {
     if (FigureMesh* part = object->FindPart(name)) object->RemovePart(part);
 }
 
@@ -182,7 +182,7 @@ bool PlayerClient::Pump() {
         if (link == nullptr || !link->Connected()) return true;
         if (sendParty) {
             WriteByte(&out, kRequestParty);
-            player->Party()->SaveParty(&out, 1);
+            player->GetParty()->SaveParty(&out, 1);
         }
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
@@ -257,7 +257,7 @@ int PlayerClient::OnSetVariable() {
     std::string name = in.ReadString();
     std::uint32_t value;
     in.ReadValue(value);
-    NamedFloatTable& variables = player->Party()->variables;
+    NamedFloatTable& variables = player->GetParty()->variables;
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
@@ -269,7 +269,7 @@ int PlayerClient::OnSetVariable() {
 
 int PlayerClient::OnDeleteVariable() {
     std::string name = in.ReadString();
-    player->Party()->variables.Remove(name);
+    player->GetParty()->variables.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
         g_clientWorld.OnQuestVariable(name, 0.0f);
@@ -330,9 +330,9 @@ int PlayerClient::OnQuestItemsChanged() {
 int PlayerClient::OnExperienceAll() {
     float amount;
     in.ReadValue(amount);
-    CPlayer::UnitMap& units = player->units;
+    Player::UnitMap& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
-        CUnit* unit = node->second;
+        Unit* unit = node->second;
         g_clientWorld.ShowNumber(unit->id, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
@@ -352,7 +352,7 @@ int PlayerClient::OnExperience() {
 
 int PlayerClient::OnItemsReceived() {
     std::vector<Item*> items;
-    int& money = player->Party()->money;
+    int& money = player->GetParty()->money;
     int before = money;
     in.ReadValue(money);
     std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
@@ -378,7 +378,7 @@ int PlayerClient::OnItemsReceived() {
 }
 
 int PlayerClient::OnParty() {
-    CParty* party = player->Party();
+    Party* party = player->GetParty();
     NamedFloatTable saved(party->variables);
     {
         MemoryStream block;
@@ -410,7 +410,7 @@ int PlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->Party()->LoadParty(&block, 0);
+    if (in.ok) player->GetParty()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -429,7 +429,7 @@ int PlayerClient::OnPathMarker() {
     float value;
     in.ReadValue(value);
     if (kind != kKindNoPath) {
-        auto* walker = g_clientWorld.objectManager->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
+        auto* walker = g_clientWorld.objectManager->CreateObjectAs<Unit>(MapObjectType::Hero, -1);
         walker->AddRef();
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
@@ -456,7 +456,7 @@ int PlayerClient::OnPathMarker() {
         auto* marker = g_clientWorld.particleManager->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition = at;
         EngineObject* ownerObject = player;
-        CUnit* unit = ownerObject->WorldContext()->FindUnit(unitId);
+        Unit* unit = ownerObject->WorldContext()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     return 1;
@@ -499,10 +499,10 @@ int PlayerClient::OnNewObject() {
     in.ReadValue(prototypeValue);
 
     auto* world = player->WorldContext();
-    CMapObject* created = world->objectManager->CreateObjectAs<CMapObject>(static_cast<MapObjectType>(header.type), header.id);
+    MapObject* created = world->objectManager->CreateObjectAs<MapObject>(static_cast<MapObjectType>(header.type), header.id);
     if (created == nullptr) return 0;
-    CMapObject* object = created;
-    CObject3D* figure = object;
+    MapObject* object = created;
+    Object3D* figure = object;
     object->name = model;
     bool isUnit = created->GetClassId() == ClassId::Unit;
     created->prototypeId = header.prototype;
@@ -511,7 +511,7 @@ int PlayerClient::OnNewObject() {
     object->ApplyBaseScale();
     object->name2 = secondName.c_str();
     if (isUnit) {
-        CUnit* unit = UnitOrNull(created);
+        Unit* unit = UnitOrNull(created);
         const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(header.prototype);
         auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
         unit->defaultScale.x = 0.0f;
@@ -566,11 +566,11 @@ int PlayerClient::OnNewObject() {
     if (isUnit) created->SetScriptName(scriptName);
 
     // The player keeps it, counted.
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     if (header.id > currentPlayer->maxObjectId) currentPlayer->maxObjectId = header.id;
     currentPlayer->knownObjects[header.id] = object;
     created->AddRef();
-    if (CUnit* unit = UnitOrNull(created))
+    if (Unit* unit = UnitOrNull(created))
         object->TakePrototype(unit->GetPrototype()->name);
     else
         object->TakePrototype(model);
@@ -579,10 +579,10 @@ int PlayerClient::OnNewObject() {
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);
-        object->SetVisibilityLevel(currentPlayer->Party()->variables.Get(variable));
+        object->SetVisibilityLevel(currentPlayer->GetParty()->variables.Get(variable));
     }
     if (currentPlayer->sessionKind == kSessionClient) {
-        if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
+        if (Unit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
     }
     return 1;
 }
@@ -639,10 +639,10 @@ ClassId PlayerClient::GetClassId() { return ClassId::PlayerClient; }
 // --- The party state ---------------------------------------------------------------------
 
 int PlayerClient::OnPartyState() {
-    CPlayer* currentPlayer = player;
+    Player* currentPlayer = player;
     for (int i = 0; i < std::ssize(partyUnitIds); ++i) {
         g_partyIdSet.insert(partyUnitIds[i]);
-        CUnit* unit = currentPlayer->WorldContext()->FindUnit(partyUnitIds[i]);
+        Unit* unit = currentPlayer->WorldContext()->FindUnit(partyUnitIds[i]);
         if (unit != nullptr) unit->flags &= ~MapObjectFlag::InParty;
     }
 

@@ -41,7 +41,7 @@ const BlankFormat* FormatOfKind(TextureKind kind) {
 } // namespace
 
 
-void CTexture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeight, bool mipmapped) {
+void Texture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeight, bool mipmapped) {
     const render::PixelFormat pixelFormat = TextureFormat(format);
     // Without a format (another kind's texture) the error for a surface that cannot be made ends the game.
     Surface* holder = pixelFormat.bitsPerPixel ? NewDecodedTextureHolder(device, newWidth, newHeight, pixelFormat.bitsPerPixel) : nullptr;
@@ -53,7 +53,7 @@ void CTexture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeigh
     surface.Assign(holder);
 }
 
-int CTexture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
+int Texture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
     // A square of header->width (the height is not read). The atlases keep one level, as the original's every blank
     // texture (a level below would mix neighbouring cells); the others get their levels made after each draw.
     const auto size = static_cast<int>(header->width);
@@ -63,8 +63,8 @@ int CTexture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
     return 1;
 }
 
-CTexture* CTextureManager::NewTexture(int width, int height, TextureKind kind) {
-    CTexture* texture = NewTextureOfType(static_cast<int>(kind));
+Texture* TextureManager::NewTexture(int width, int height, TextureKind kind) {
+    Texture* texture = NewTextureOfType(static_cast<int>(kind));
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     texture->width = static_cast<std::uint32_t>(width);

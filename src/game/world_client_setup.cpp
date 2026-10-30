@@ -93,13 +93,13 @@ int WorldClient::LoadLights(const std::string& file) {
 }
 
 void WorldClient::SetUpGraphics(TextureDevice* device) {
-    TextureManager()->SetDevice(device);
+    GetTextureManager()->SetDevice(device);
     LoadSky();
     numbers = new FlyingHitPoints();
-    auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
+    auto* texture = GetTextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         numbers->texture.Assign(texture);
-        TextureManager()->LoadTexture(texture);
+        GetTextureManager()->LoadTexture(texture);
         texture->flags |= TextureFlag::Keep;
     }
     LinkFigureLoader* loader;
@@ -116,7 +116,7 @@ void WorldClient::SetUpGraphics(TextureDevice* device) {
 void WorldClient::LoadSky() {
     if (skyDome) return;
     skyDome = new Sky();
-    auto* figures = FigureManager();
+    auto* figures = GetFigureManager();
     auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
     object->name = SkyPartName();
@@ -130,6 +130,6 @@ void WorldClient::LoadSky() {
     object->LoadFromMemory(&data);
     object->flags |= FigureMeshFlag::Lit;
     skyDome->object.Assign(object);
-    EngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
+    EngineObject* material = GetMaterialManager()->NewMaterial(kSkyMaterialType);
     skyDome->material.Assign(material);
 }

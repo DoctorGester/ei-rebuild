@@ -73,7 +73,7 @@ EffectMoshka::EffectMoshka() {
 EffectMoshka::~EffectMoshka() { Reset(); }
 
 void EffectMoshka::Reset() {
-    CEffect::Reset();
+    Effect::Reset();
     if (bird != nullptr) g_clientWorld.RemoveObject(bird->id);
     if (source != nullptr) source->Stop();
     source.Reset();
@@ -109,10 +109,10 @@ Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
 
 void EffectMoshka::Update(float now) {
     if (bird == nullptr) return;
-    CMapObject* followedObject = g_clientWorld.ObjectWithId(followedId);
+    MapObject* followedObject = g_clientWorld.ObjectWithId(followedId);
     if (followedObject == nullptr) return;
     const Vector3& followed = followedObject->localPosition;
-    CObject3D* currentBird = bird;
+    Object3D* currentBird = bird;
     Vector3 birdAt;
     birdAt = currentBird->localPosition;
 
@@ -210,16 +210,16 @@ void EffectMoshka::Update(float now) {
 
 void EffectMoshka::Follow(int objectId) {
     followedId = objectId;
-    CMapObject* followed = g_clientWorld.ObjectWithId(objectId);
+    MapObject* followed = g_clientWorld.ObjectWithId(objectId);
     if (followed == nullptr) return;
     std::string model = game::MoshkaModelText();
     std::string texture = game::MoshkaTextureText();
     int birdId = g_clientWorld.nextClientObjectId--;
-    auto* object = g_clientWorld.objectManager->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, birdId);
+    auto* object = g_clientWorld.objectManager->CreateObjectAs<MapObject>(MapObjectType::StuffObject, birdId);
     bird.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
-    CObject3D* currentBird = bird;
+    Object3D* currentBird = bird;
     Object3DClientSpecific* attached = currentBird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, followed->localPosition);

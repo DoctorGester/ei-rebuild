@@ -5,7 +5,7 @@
 //
 // EI_WATCH_CUNIT=<id>: which code writes a client unit's orientation. After each world update,
 // while the client world has a unit with that id, the main thread's four debug registers watch its
-// orientation quaternion (CUnit +0x34, one register per component, writes only); every write is a
+// orientation quaternion (Unit +0x34, one register per component, writes only); every write is a
 // line: the world update, the code after the writing instruction, the four components as bit
 // patterns and the first return addresses on the stack. Two runs' files are compared line by line.
 // EI_WATCH_CUNIT=<id>,flags watches the unit's flags (+0x08) instead, logging the writes that

@@ -48,7 +48,7 @@ std::vector<HeldRef<RefObject>>::iterator FindSameMessage(std::vector<HeldRef<Re
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
 void ClientPublishParty(ClientSession* self) {
-    CParty* party = self->parties[0].Get();
+    Party* party = self->parties[0].Get();
     // Read again at each use.
     auto state = [self] { return self->party.Get(); };
     if (!state()) return;
@@ -64,7 +64,7 @@ void ClientPublishParty(ClientSession* self) {
         ByteStream* stream = &message->stream;
         Item* item = party->items[i];
         stream->Clear();
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         if (spell) {
             WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->id));
             WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->type));
@@ -128,7 +128,7 @@ void ClientApplyParty(ClientSession* self) {
         if (StreamOf(message)->Size() == 0) return;
     }
 
-    CParty* party = self->parties[1].Get();
+    Party* party = self->parties[1].Get();
     party->Clear(1, 0);
     party->money = static_cast<int>(remote->money);
     std::vector<EngineObject*> items;   // each holds a reference
@@ -141,7 +141,7 @@ void ClientApplyParty(ClientSession* self) {
         if (id > 0) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
-            EngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
+            EngineObject* spell = party->GetSpellManager()->CreateObject(static_cast<int>(type), id);
             spell->prototypeId = packedId;
             spell->Load(stream);
         }

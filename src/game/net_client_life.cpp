@@ -11,8 +11,8 @@ namespace net {
 
 // The client base's part and the session base follow (their destructors).
 ClientSession::~ClientSession() {
-    parties[1].Get()->CParty::~CParty();
-    parties[0].Get()->CParty::~CParty();
+    parties[1].Get()->Party::~Party();
+    parties[0].Get()->Party::~Party();
     trade.Reset();
     tradeRecords.clear();    // here, where the original destroys it
     offers.clear();

@@ -26,7 +26,7 @@
 
 struct VertexPacket;
 
-// The particle source / effect types (EngineObject::type of a ParticleSource and a CEffectParticle). The names
+// The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
 // are the script table's (script_effects.cpp kScriptParticleTypes) and the texture SetupType returns; a type neither
 // names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),
 // GroundDust1 / 2, TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the
@@ -368,7 +368,7 @@ static_assert(offsetof(ParticleElement, trans.count) == 0x1C && offsetof(Particl
 static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(ParticleElement, word[9]) == 0x30);
 
 class ParticleSource;
-class CObject3D;
+class Object3D;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class ParticleManager;
@@ -597,24 +597,24 @@ public:
     void StartEmitting();                           // Emitting and KeepAlive on
     void Stop();                                    // bits 0 and 2 off, detach
 
-    // Follow `object` (a CObject3D, or null to let go): the old object
+    // Follow `object` (a Object3D, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
-    void Attach(CObject3D* object);
+    void Attach(Object3D* object);
     // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
     // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
     // position.
-    Vector3* AttachmentPoint(Vector3* out, CObject3D* object);
+    Vector3* AttachmentPoint(Vector3* out, Object3D* object);
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
     // raised by the bounds' upper z extent.
-    Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);
+    Vector3* PartPoint(Vector3* out, Object3D* object, const char* prefix);
     // Every particle back to the pool, emission off (Emitting and KeepAlive cleared), detached.
     void StopAndClear();
     void ReleaseAllParticles();
 
     // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
     // table).
-    CObject3D* attachedTo;          // the object followed, null: none
+    Object3D* attachedTo;          // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
     Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)
@@ -656,7 +656,7 @@ public:
     EmitCallback emitFn;
     UpdateCallback updateFn;
     ElementCallback elementFn;
-    Ref<CTexture> texture;
+    Ref<Texture> texture;
 };
 
 // The class factory's creator; the register arguments are unused.
@@ -709,7 +709,7 @@ public:
     int BuildSnow(SceneRenderer* renderer);
     void DrawParticles(SceneRenderer* renderer, int vertexCount);
 
-    Ref<CTexture> texture;            // "RainSnow"
+    Ref<Texture> texture;            // "RainSnow"
     class WorldClient* world;      // the client world (set after construction)
     int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.

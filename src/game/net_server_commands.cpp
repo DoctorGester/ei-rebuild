@@ -39,7 +39,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
     for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->ConnectionRef().Get() != connection) continue;
-        auto* player = binding->Player();
+        auto* player = binding->PlayerInfo();
         if (IsLive(player) && player->host) return true;
     }
     return false;

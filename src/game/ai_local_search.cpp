@@ -254,13 +254,13 @@ bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
     return true;
 }
 
-void LocalSearch::SetUnit(CUnit* unit) {
+void LocalSearch::SetUnit(Unit* unit) {
     map->CostContextFor(unit, &costs);
     sizeClass = unit->sizeClass;
     level = static_cast<std::uint8_t>(StandingLevel(unit));
 }
 
-bool LocalSearch::Begin(CUnit* unit, int x0, int y0, int x1, int y1) {
+bool LocalSearch::Begin(Unit* unit, int x0, int y0, int x1, int y1) {
     SetUnit(unit);
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
@@ -333,7 +333,7 @@ void LocalSearch::RestoreLevels() {
     levelsSaved = false;
 }
 
-void AIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
+void AIMap::CostContextFor(Unit* unit, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
     out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;
@@ -341,7 +341,7 @@ void AIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data() + std::ssize(climb) / 2;
     out->costs = passCosts;
-    const CUnit::MoveSpeeds speeds = unit->GetMoveSpeeds();
+    const Unit::MoveSpeeds speeds = unit->GetMoveSpeeds();
     out->forwardSpeed = speeds.forward;
     out->backwardSpeed = speeds.turn;
     out->costs = unit->altPassCosts ? passCostsAlt : passCosts;

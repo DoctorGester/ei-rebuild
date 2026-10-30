@@ -15,7 +15,7 @@ struct ArchiveEntry {
     ArchiveEntry(const ArchiveEntry& e) : name(e.name), resource(e.resource) {}
 };
 
-// Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
+// Base of the managers that load their data from archives (TextureManager, FigureManager, ...):
 // BaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder
 // name. Name provisional. resource_manager.cpp.
 class ResourceManager : public BaseManager {
@@ -35,7 +35,7 @@ public:
     // figure and material managers' too).
     virtual const char* GetFolderName() = 0;
 
-    // CFigureManager's AddArchive virtual with memory-mapped archives.
+    // FigureManager's AddArchive virtual with memory-mapped archives.
     bool AddMmioArchive(const std::string& path);
 
     ~ResourceManager() override;

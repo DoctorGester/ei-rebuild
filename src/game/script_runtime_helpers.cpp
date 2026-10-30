@@ -17,15 +17,15 @@ std::uint8_t AIMap::SetRefreshUnits(int on) {
     return old;
 }
 
-bool AIMap::AddToSectors(CMapObject* object) { return Sectors(this)->Add(object); }
+bool AIMap::AddToSectors(MapObject* object) { return Sectors(this)->Add(object); }
 
-bool AIMap::RemoveFromSectors(CMapObject* object) { return Sectors(this)->Remove(object); }
+bool AIMap::RemoveFromSectors(MapObject* object) { return Sectors(this)->Remove(object); }
 
-bool AIMap::MoveInSectors(CMapObject* object, const Vector3& position) {
+bool AIMap::MoveInSectors(MapObject* object, const Vector3& position) {
     return Sectors(this)->Move(object, position);
 }
 
-std::vector<CUnit*> AIMap::FindUnitsInRadius(const Vector3& position, float radius) {
+std::vector<Unit*> AIMap::FindUnitsInRadius(const Vector3& position, float radius) {
     return Sectors(this)->FindUnitsInRadius(position, radius);
 }
 

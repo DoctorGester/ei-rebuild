@@ -21,7 +21,7 @@
 #include <vector>
 
 struct LeverRecord;
-class CParty;
+class Party;
 struct PartyManagerEntry;
 struct PrintRecord;
 struct PrintRecord2;
@@ -116,8 +116,8 @@ public:
 
     // The party manager's chunks. Loading empties the container
     // first and takes one record per chunk 1. The parties by key (party_manager.h, PartyMap): per party a chunk
-    // 1 (field 1: the key) and a chunk 2 (CParty::ArchiveParty); loading inserts each key (PartyAt).
-    void SerializeParties(int id, lib::HashMap<int, CParty>* parties);
+    // 1 (field 1: the key) and a chunk 2 (Party::ArchiveParty); loading inserts each key (PartyAt).
+    void SerializeParties(int id, lib::HashMap<int, Party>* parties);
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries);

@@ -22,7 +22,7 @@ namespace {
 
 } // namespace
 
-bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
+bool WorldServer::Loot(Unit* unit, Player* player) {
     std::vector<Item*> items;
     std::vector<Item*> second;
     int gold;
@@ -53,7 +53,7 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
         }
         // The entry's references go with the items (the original frees the node without releasing them).
         for (HeldRef<Item>& item : node->objects) items.push_back(item.Take());
-        player->Party()->money += static_cast<int>(node->money);
+        player->GetParty()->money += static_cast<int>(node->money);
         player->GiveItems(&items, 0);
         list.erase(node);
         abandon();
@@ -66,10 +66,10 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
     }
     if (IsMultiplayerClient()) {
         // Quest items go to player 0.
-        CPlayer* first = nullptr;
+        Player* first = nullptr;
         {
             PlayerIterator it;
-            for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
+            for (Player* p = it.First(PlayerList()); p; p = it.Next()) {
                 if (p->playerId == 0) {
                     first = p;
                     break;
@@ -88,7 +88,7 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
                 item->Release();
         }
     }
-    player->Party()->money += gold;
+    player->GetParty()->money += gold;
     player->GiveItems(&items, 0);
     for (Item* item : items)
         item->Release();
@@ -102,10 +102,10 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
 void WorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
     auto node = objects.map.begin();
-    CPlayer* local = nullptr;
+    Player* local = nullptr;
     {
         PlayerIterator it;
-        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        for (Player* player = it.First(PlayerList()); player; player = it.Next())
             if (player->playerId == 0) {
                 local = player;
                 break;
@@ -116,7 +116,7 @@ void WorldServer::LootDeadUnits() {
     std::vector<unsigned> dead;
     for (; node != objects.map.end(); ++node) {
         EngineObject* object = node->second;
-        CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
+        Unit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             g_serverWorld.Loot(unit, local);
             dead.push_back(static_cast<unsigned>(object->id));

@@ -29,8 +29,8 @@ namespace spellfx {
 
 // --- Slots ---------------------------------------------------------------------------------------
 
-constexpr double (CWorld::*kGridHeight)(float, float) = &CWorld::GridHeightAt;
-constexpr double (CWorld::*kRawSurfaceHeight)(float, float) = &CWorld::RawSurfaceHeightAt;
+constexpr double (World::*kGridHeight)(float, float) = &World::GridHeightAt;
+constexpr double (World::*kRawSurfaceHeight)(float, float) = &World::RawSurfaceHeightAt;
 
 constexpr std::uint32_t kPointLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
@@ -104,22 +104,22 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
 }
 
 // A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height, a double.
-inline double WorldHeight(CWorld* world, double (CWorld::*height)(float, float), float x, float y) {
+inline double WorldHeight(World* world, double (World::*height)(float, float), float x, float y) {
     return (world->*height)(x, y);
 }
 
 // *out = height + *add, rounded once.
-inline void HeightPlus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* add, float* out) {
+inline void HeightPlus(World* world, double (World::*height)(float, float), float x, float y, const float* add, float* out) {
     *out = pc24::Add(WorldHeight(world, height, x, y), *add);
 }
 
 // The same with height - *sub.
-inline void HeightMinus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* sub, float* out) {
+inline void HeightMinus(World* world, double (World::*height)(float, float), float x, float y, const float* sub, float* out) {
     *out = pc24::Sub(WorldHeight(world, height, x, y), *sub);
 }
 
 // The lightning's end: *out = height + *a * *b.
-inline void HeightPlusProduct(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* a, const float* b,
+inline void HeightPlusProduct(World* world, double (World::*height)(float, float), float x, float y, const float* a, const float* b,
                               float* out) {
     *out = pc24::Add(WorldHeight(world, height, x, y), *a * *b);
 }
@@ -172,11 +172,11 @@ inline std::uint32_t Bits(const float& f) {
 
 inline bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 // Where the object sees from into `scratch`.
-inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
-// A unit's server half (CUnit::controller).
-inline UnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
+inline Vector3* EyePointOf(MapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
+// A unit's server half (Unit::controller).
+inline UnitServer* ControllerOf(Unit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).
-inline CUnit* TargetUnit(SpellEffect* e) { return static_cast<CUnit*>(e->target.Get()); }
+inline Unit* TargetUnit(SpellEffect* e) { return static_cast<Unit*>(e->target.Get()); }
 
 // From the world's timed object manager.
 template <class T>
@@ -200,7 +200,7 @@ inline void SetPosition(TransformObject* object, const Vector3& position) {
 }
 
 // The fields of the spell prototype the casts read.
-inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->Spell()->GetPrototype(); }
+inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->HeldSpell()->GetPrototype(); }
 inline Vector3 PrototypeColor(SpellEffect* e) {
     Vector3 color;
     std::memcpy(&color, &Prototype(e)->extraValues[0], 12);
@@ -214,12 +214,12 @@ inline float PrototypeRange(SpellEffect* e) {
 
 inline float Power(SpellEffect* e) {
     float out;
-    PowerToFloat(&e->Spell()->damage, &Prototype(e)->damage, &out);
+    PowerToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, &out);
     return out;
 }
 inline float PowerScaled(SpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->Spell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
     return out;
 }
 
@@ -248,17 +248,17 @@ inline float LightRiseScaled(SpellEffect* e, const float& scale) {
 inline void HitAreaTargets(SpellEffect* e) {
     DamageInfo hit;
     e->GetDamage(&hit);
-    for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius)) {
+    for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
 }
 
-inline float GroundPlus(SpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* add) {
+inline float GroundPlus(SpellEffect* e, double (World::*height)(float, float), const Vector3& at, const float* add) {
     float out;
     HeightPlus(e->world, height, at.x, at.y, add, &out);
     return out;
 }
-inline float GroundMinus(SpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* sub) {
+inline float GroundMinus(SpellEffect* e, double (World::*height)(float, float), const Vector3& at, const float* sub) {
     float out;
     HeightMinus(e->world, height, at.x, at.y, sub, &out);
     return out;

@@ -51,12 +51,12 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
     return LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz) > *limit;
 }
 
-bool SpeedBelow(CMapObject* object, const float* than) {
+bool SpeedBelow(MapObject* object, const float* than) {
     EI_NAN_AUDIT(object->MoveSpeed(), *than);
     return object->MoveSpeed() < *than;
 }
 
-void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
+void SpeedOf(MapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
 
 // *value -= *rate * the drain step (a double: the product rounds once); true when the result is below 0.
 bool Drain(float* value, const float* rate) {
@@ -77,7 +77,7 @@ constexpr int kBlockedWait = 2;
 
 // The counted "waiting for" link (followsLeader / followedLeader: the fields the chase uses for the leader it
 // follows).
-void SetWaitingFor(UnitServer* c, CUnit* blocker) {
+void SetWaitingFor(UnitServer* c, Unit* blocker) {
     c->followsLeader = 1;
     c->followedLeader.Assign(blocker);
 }
@@ -88,7 +88,7 @@ void ClearWaitingFor(UnitServer* controller) {
 
 void SetObstacle(UnitServer* c, int obstacle) {
     WorldServer* world = c->ServerWorld();
-    CUnit* unit = c->unit;
+    Unit* unit = c->unit;
     if (static_cast<int>(unit->obstacle) == obstacle) return;
     world->aiMap.sectorMap.Remove(unit);
     c->unit->obstacle = static_cast<std::uint32_t>(obstacle);
@@ -98,7 +98,7 @@ void SetObstacle(UnitServer* c, int obstacle) {
 
 void QueueNextAnimation(UnitServer* c) {
     *&c->queue = *c->NextAnimation();
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
+    if (c->queue.extra == -1) c->queue.extra = c->OwningWorld()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
     c->movingAnimation = 1;
@@ -128,7 +128,7 @@ void HitWhileMoving(UnitServer* c) {
         const FigureAnimation* entry = c->unit->AnimationEntry(key);
         if (entry && entry->Kind() == AnimationKind::Hit) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(c->queue.extra);
-            if (ends > static_cast<std::uint32_t>(c->World()->tick)) return;
+            if (ends > static_cast<std::uint32_t>(c->OwningWorld()->tick)) return;
         }
     }
     AnimationSteps current;
@@ -147,7 +147,7 @@ void HitWhileMoving(UnitServer* c) {
         }
     }
     c->queue = fall;
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
+    if (c->queue.extra == -1) c->queue.extra = c->OwningWorld()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
 }
@@ -155,9 +155,9 @@ void HitWhileMoving(UnitServer* c) {
 // The unit blocking the step: whether to wait for it (2), give way and replan around it (1), or
 // neither (0, then the unit stays). Sets `liftBlocker` when the units around the step must be
 // lifted while replanning.
-int ResolveBlocker(UnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
-    CUnit* self = c->unit;
-    CPlayer* selfPlayer = self->player;
+int ResolveBlocker(UnitServer* c, Unit* blocker, bool* liftBlocker, int reason) {
+    Unit* self = c->unit;
+    Player* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
         blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld.tick < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
@@ -170,7 +170,7 @@ int ResolveBlocker(UnitServer* c, CUnit* blocker, bool* liftBlocker, int reason)
                       isAction(other->action.kind) && other->action.target == c->action.target &&
                       blocker->sizeClass == self->sizeClass && other->state != UnitState::Acting;
     if (sameAttack) {
-        CMapObject* target = c->action.target;
+        MapObject* target = c->action.target;
         sameAttack = FartherThan(&target->localPosition.x, &self->localPosition.x, &worlddata::QueueWaitLimitRef());
     }
     if (sameAttack) {
@@ -178,7 +178,7 @@ int ResolveBlocker(UnitServer* c, CUnit* blocker, bool* liftBlocker, int reason)
         // circle back to this unit, which breaks the circle and replans.
         UnitServer* link = other;
         while (link->followsLeader) {
-            CUnit* waitsFor = link->followedLeader;
+            Unit* waitsFor = link->followedLeader;
             if (!waitsFor) break;
             if (waitsFor == self) {
                 ClearWaitingFor(other);
@@ -203,11 +203,11 @@ int ResolveBlocker(UnitServer* c, CUnit* blocker, bool* liftBlocker, int reason)
 // The motion is over: a path with no cells left (`reached`) stops facing its way; otherwise the path
 // continues or, at its end, the unit stops facing its way.
 void MotionOver(UnitServer* c, WorldServer* world) {
-    CUnit* unit = c->unit;
+    Unit* unit = c->unit;
     if (c->motion.reached) {
         std::uint8_t wasFlag = c->motion.failed == 1;
         c->motion.Clear();
-        int time = c->World()->tick;
+        int time = c->OwningWorld()->tick;
         Vector3 axis, back;
         axis = c->unit->localRotation.AxisY();
         Vector3* facing = NegateVector(&back, axis);
@@ -219,7 +219,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
     }
     if (!world->aiMap.ContinuePath(unit, &c->motion)) {
         c->motion.Clear();
-        int time = c->World()->tick;
+        int time = c->OwningWorld()->tick;
         Vector3 axis, back;
         axis = c->unit->localRotation.AxisY();
         Vector3* facing = NegateVector(&back, axis);
@@ -275,10 +275,10 @@ void Replan(UnitServer* c, WorldServer* world, bool liftBlocker, const Vector3& 
 // by the maximum times a factor per tick; out of breath they stop running (message 0x1D).
 // Then the tick's end.
 void Exhaustion(UnitServer* c) {
-    CUnit* unit = c->unit;
+    Unit* unit = c->unit;
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
-    CPlayer* player = unit->player;
+    Player* player = unit->player;
     if (c->moveMode.wasMode3 && player && player->godMode == 0 && g_serverWorld.sessionKind != 3) {
         UnitVitals& vitals = unit->ServerCompanion()->vitals;
         float* stamina = &vitals.mana;
@@ -352,7 +352,7 @@ void UpdateMotion(UnitServer* c) {
         sectors->Remove(c->unit);
         canStand = world->aiMap.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = world->aiMap.BlockingUnitAt(c->unit, position);
+            Unit* blocker = world->aiMap.BlockingUnitAt(c->unit, position);
             if (!blocker) {
                 canStand = true;
             } else {

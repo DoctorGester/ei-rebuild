@@ -26,8 +26,8 @@ public:
     // Both stocks take the kSchoolCount base and scroll levels.
     void SetLevels(const float* base, const float* scroll);
 
-    CParty* ItemsParty() { return &items; }
-    CParty* SpellsParty() { return &spells; }
+    Party* ItemsParty() { return &items; }
+    Party* SpellsParty() { return &spells; }
 
     int type = -1;                  // class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t sellsItems = 0;    // the constructor's trader sells items (ClassTemplateGenerateItems)
@@ -36,8 +36,8 @@ public:
     std::uint8_t weightsTail[4] = {};   // field 4's tenth dword (archived with weights)
     std::uint8_t restockDue = 1;    // set by the constructor and by a quest completion; the camp restocks and clears it
     // the party objects (ItemsParty / SpellsParty).
-    CParty items;
-    CParty spells;
+    Party items;
+    Party spells;
     ItemStock allowed{&items};      // everything the class may use
     ItemStock magic{&spells};       // the same layout: spells and modifiers only
 };

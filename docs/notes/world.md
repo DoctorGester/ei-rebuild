@@ -17,14 +17,14 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   seconds per tick +0x20 + base +0x1C modulo the day length: before 6 or from 22 h). Slot 27 ground height (server 00594220
   from its coarse grid at +0x280C, client 00563F70 from the terrain), slot 28 surface height (client 00564070 =
   `TerrainOwner::SurfaceHeight`; TerrainOwner is WorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with
-  ground / surface height. CWorld +0x5C is `RefPtr worldHandle`; +0x68 / +0x6C / +0x70 (updateCount, unknown6C_,
+  ground / surface height. World +0x5C is `RefPtr worldHandle`; +0x68 / +0x6C / +0x70 (updateCount, unknown6C_,
   countdowns) are shared by both worlds.
 - Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C / 007AFCA8 game clock,
   007AFFC4 server tick, 007AFE20 the game flow, 007AFEA4 / 007AFEA5 interface / client glue, 007AFFB4 item manager, 007AFFA8
   effect manager, 007AF788 briefing texts. Named in world_data.h / game_flow_data.h.
-- Player list: reference-counted, walked with 00404920 (begin; takes a count) / 00404960 (next). `CPlayer::dirty`
+- Player list: reference-counted, walked with 00404920 (begin; takes a count) / 00404960 (next). `Player::dirty`
   (+0x130): bits 2 / 4 / 8 weather-like settings, time, a 0..1 value set by 0058EE20; 0x20 countdowns; +0xC4 are the named
-  float variables ("gtime" ...); +0x40 units; +0x70 the party (CParty).
+  float variables ("gtime" ...); +0x40 units; +0x70 the party (Party).
 - `ObjectIdMap` = STLport `hash_map<unsigned, T*>` plus the highest key (+0x14). Server maps: +0x104 units to update
   (inserting sets unit +0x174 to `((unit >> 5) & 15) + 0x80`), +0x12D70 every object by id, +0x12DA0 map objects saved with
   the zone, +0x12DB8 non-unit map objects, +0x12DD0 named objects, +0x12DE8 timed objects (spells / effects stamped with the
@@ -35,14 +35,14 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   `WakeUnitsAround` uses its own `SpiralCache` 007AFF08), +0x138 game result, +0x160 enables the first command queue, +0x6C
   paused, +0x12D64 game kind (1 single player, 3 no range test, 4 network), +0x12D68 / +0x12D6C .mob / map name. Zone exits
   are 0x3C-byte records (rectangle +0x14, rotation +0x24, target CString +0x28 "none" = no exit, entrance +0x2C).
-- Client: session +0x20C (a `CPlayer`, `WorldClient::session`; +0x20 its connection, the local view, a PlayerClient: `Client()`; view +0x1C local
-  CPlayer), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29, +0xF0 screen entries (id, RECT),
+- Client: session +0x20C (a `Player`, `WorldClient::session`; +0x20 its connection, the local view, a PlayerClient: `Client()`; view +0x1C local
+  Player), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29, +0xF0 screen entries (id, RECT),
   ticksRun +0x6EC (Segment counts it), tickFraction +0x6F0. Sector grids (+0x120 objects, +0x150 second; slot 41 005618A0
   / 42 005618C0 move an object in them): cells of 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so
   negatives land outside), each an STLport list of counted object pointers; the grid at 007AF6D8 (moved by 0067BEF0 /
   0067CEF0) holds hundreds of entries per cell near effects. Platforms (+0x1D4 `PlatformSet`, 0x4C-byte records):
   `SurfaceHeight` projects the point onto each plane along z and keeps the highest z (margin 0.5), `Contains` tests (x, y)
-  (margin 0.1), `AddBox` keeps only faces with normal z >= 0.8. Segment's light grey levels walk CLight objects (0068D730).
+  (margin 0.1), `AddBox` keeps only faces with normal z >= 0.8. Segment's light grey levels walk Light objects (0068D730).
 - Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 / s / 15
   (0: stopped, also for NaN; negative: the setting 0079BE5C). Wind: direction +0x24, strength +0x30 (ChangeWind clamps it).
 
@@ -205,7 +205,7 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
   gives the same bits for finite data except that a -0.0 may come out +0.0; nothing compares the sign of these zeros.
 - The morph itself, with the original's per-component roundings (VC6 register allocation; patterns from a symbolic x87
   trace), is left only in `MorphFigureBounds` / `MorphFigureBounds6`: the figure loader's part bounds
-  (`CFigureManager::LoadFigureBounds`) with the unit's real weights.
+  (`FigureManager::LoadFigureBounds`) with the unit's real weights.
 - No scenario of its own: every zone load reaches the FIG loaders (the sky dome); the old-format loaders and
   `MorphFigureBounds6` run only for figures without a FIG header (possibly none in the data).
 
@@ -259,7 +259,7 @@ be here are gone. Where things live: `world_server.cpp` (lookups, setters, objec
 Facts a worker needs that the code comments do not say:
 
 - Rebirth-patched (rewrite guide rule 9): MapsFolder 0055E990, MapPath 00595BA0, MapFileExists 005812F0, WriteMapFile 005813A0,
-  CFigureManager::CreateWithArchives 005AA510, AIEventTable::Setup 005C9310, WorldServer::NewZone 00595480,
+  FigureManager::CreateWithArchives 005AA510, AIEventTable::Setup 005C9310, WorldServer::NewZone 00595480,
   GameFlow::BuildZoneTable 0057F560, LoadZoneQuests 005809D0, WorldClient::LoadZone 00567AB0, AIMap::Load 005B43C0, the
   Bink loading movie close 005DA3C0.
 - Zone start: `AIEventTable::Setup` sizes the grid 1 - ftol(size x -0.125) each way, zeroes the cells and copies "normal.dat"
@@ -301,27 +301,27 @@ Facts a worker needs that the code comments do not say:
   (player_client.cpp), `AIMapLoad` (world_map.cpp).
 - In the overlap with the units area and left to it (units.md / combat.md): 00545FD0, 005461E0, 00546200, 0054E5D0, 00558840.
 - Compiler-generated lifetime code is in library.csv: the WorldServer constructor 00589ED0, destructor 0058AAD0, member
-  destructors 0058A140 / 0058A450, CWorld's 0055EC80, the database globals' constructors, destructors and resets
+  destructors 0058A140 / 0058A450, World's 0055EC80, the database globals' constructors, destructors and resets
   0057CBE0-0057E510 (18), WorldClient's 005612F0 / 00561B00 (its destructor calls our `Teardown`). Left: the coder classes
   00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by 005809D0; script.md "Buffered file streams").
 
 ## Cleanup left and unverified points
 
 - Declarations found in cleanup: MapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h
-  CEffect's slots 18-20, Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
-  PlayerServer::danger, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction; WorldServer
+  Effect's slots 18-20, Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
+  PlayerServer::danger, GetAIClass reads Unit::sizeClass, GameTime's fraction is tickFraction; WorldServer
   sentObjects (+0x12D88) and zoneHeader (+0x12E00, a MemoryStream built by 0041DD70 in 00589ED0, called through a
-  CStream* so the slot dispatch stays), MainScript() (the Script at +0x12874; globals holds "Heroes"); CPlayer link
+  CStream* so the slot dispatch stays), MainScript() (the Script at +0x12874; globals holds "Heroes"); Player link
   (+0x1C) / connection (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
   0073F530. script_exec's callees are call-only `...Calls` facades.
-- Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::worldHandle: on the server the pending connection source
+- Left: world_game.cpp's `At<int>(World(), 0x5C)` (World::worldHandle: on the server the pending connection source
   world_update.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;
   ClientSetPlayer 00566CE0, declared with an int, passes it to 004782E0 as a link): needs a class and the forwarder retyped
   (app.cpp shares it); its two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, the literal-address accessors (GameMode, Campaign,
   ...) that belong in game_flow_data.h; world_quests' GameFtol `__asm`; world_client_draw.cpp's six x87 `__asm` helpers;
   world_client_view.cpp's own draw-queue view (007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` /
   `g_deferredUnits`.
-- 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
+- 00564AF0 (`Object3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads Object3D::parts +0xD0 /
   +0xD4 and the always empty second part array +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
   +0x1D4: an engine object, then an CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
 - bird (+0x1B0) is the EffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine

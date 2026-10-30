@@ -62,7 +62,7 @@ std::uint32_t MmpHeader::HeldFormat() const {
     return 0;
 }
 
-int CTextureManager::LoadTexture(CTexture* texture) {
+int TextureManager::LoadTexture(Texture* texture) {
     if (!texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
         return 0;
@@ -109,7 +109,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     return 1;
 }
 
-void CTextureManager::SetDevice(TextureDevice* newDevice) {
+void TextureManager::SetDevice(TextureDevice* newDevice) {
     TextureDevice* old = device;
     device = newDevice;
     if (newDevice) newDevice->AddRef();
@@ -128,8 +128,8 @@ void CTextureManager::SetDevice(TextureDevice* newDevice) {
     limitTo512 = 0;    // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
 }
 
-EngineObject* CTextureManager::NewObject(int textureType) {
-    auto* texture = new CTexture();
+EngineObject* TextureManager::NewObject(int textureType) {
+    auto* texture = new Texture();
     texture->type = textureType;
     return texture;
 }
@@ -167,17 +167,17 @@ void MmpHeader::SetFormat4444() {
 
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
-void DropSurface(CTexture* texture) {
+void DropSurface(Texture* texture) {
     texture->surface.Reset();
 }
 
 } // namespace
 
-const char* CTexture::GetName() { return name.c_str(); }
-const char* CTexture::ClassName() { return "CTexture"; }
-ClassId CTexture::GetClassId() { return ClassId::Texture; }
+const char* Texture::GetName() { return name.c_str(); }
+const char* Texture::ClassName() { return "CTexture"; }
+ClassId Texture::GetClassId() { return ClassId::Texture; }
 
-void CTexture::Create() {
+void Texture::Create() {
     name.clear();
     DropSurface(this);
     height = 0;
@@ -187,12 +187,12 @@ void CTexture::Create() {
     extra.clear();
 }
 
-void CTexture::Destroy() {
+void Texture::Destroy() {
     DropSurface(this);
     flags = 0;
 }
 
-CTexture::CTexture() {
+Texture::Texture() {
     name.clear();
     DropSurface(this);
     height = 0;
@@ -203,34 +203,34 @@ CTexture::CTexture() {
 }
 
 // The name goes after the body (its destructor), then EngineObject's.
-CTexture::~CTexture() {
+Texture::~Texture() {
     DropSurface(this);
     flags = 0;
 }
 
-MmpHeader* CTextureManager::GetFileData(std::string_view name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
+MmpHeader* TextureManager::GetFileData(std::string_view name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
 
-CTexture* CTextureManager::NewTextureOfType(int textureType) { return CreateObjectAs<CTexture>(textureType, -1); }
+Texture* TextureManager::NewTextureOfType(int textureType) { return CreateObjectAs<Texture>(textureType, -1); }
 
-CTexture* CTextureManager::FindOrCreate(int textureType, std::string_view name) {
-    CTexture* texture = FindTypedTexture(textureType, name);
+Texture* TextureManager::FindOrCreate(int textureType, std::string_view name) {
+    Texture* texture = FindTypedTexture(textureType, name);
     if (!texture) texture = NewTextureOfType(textureType);
     texture->name = name;
     return texture;
 }
 
-CTexture* CTextureManager::FindOrLoad(int textureType, std::string_view name) {
-    if (CTexture* found = FindTexture(name)) return found;
-    CTexture* texture = FindTypedTexture(textureType, name);
+Texture* TextureManager::FindOrLoad(int textureType, std::string_view name) {
+    if (Texture* found = FindTexture(name)) return found;
+    Texture* texture = FindTypedTexture(textureType, name);
     if (!texture) texture = NewTextureOfType(textureType);
     texture->name = name;
     LoadTexture(texture);
     return texture;
 }
 
-void CTextureManager::TrimCache() {
+void TextureManager::TrimCache() {
     while (cachedBytes > kCacheLimit && !cache.empty()) {
-        CTexture* texture = cache.front();
+        Texture* texture = cache.front();
         cache.erase(cache.begin());
         cachedBytes -= texture->uploadResult;
         delete texture;
@@ -256,7 +256,7 @@ TextureFlag CreateFlag(int type) {
 
 } // namespace
 
-CTextureManager::CTextureManager() {
+TextureManager::TextureManager() {
     device = nullptr;
     cachedBytes = 0;
     mipLevel = 0;
@@ -264,9 +264,9 @@ CTextureManager::CTextureManager() {
 }
 
 // The part Destroy and the destructor share: the cache, the composed textures and the device.
-static void ReleaseTextures(CTextureManager* manager) {
+static void ReleaseTextures(TextureManager* manager) {
     for (auto node = manager->cache.begin(); node != manager->cache.end();) {
-        CTexture* texture = *node;
+        Texture* texture = *node;
         ++node;
         texture->Destroy();
         if (texture) delete texture;
@@ -279,7 +279,7 @@ static void ReleaseTextures(CTextureManager* manager) {
     if (device) device->Release();
 }
 
-void CTextureManager::Create() {
+void TextureManager::Create() {
     BaseManager::Create();
     ForgetComposedTextures();
     const std::string folder = g_textFolder;
@@ -295,12 +295,12 @@ void CTextureManager::Create() {
     }
 }
 
-void CTextureManager::Destroy() {
+void TextureManager::Destroy() {
     ReleaseTextures(this);
     ResourceManager::Destroy();
 }
 
-CTextureManager::~CTextureManager() {
+TextureManager::~TextureManager() {
     ReleaseTextures(this);
     ResourceManager::Destroy();
     SetDevice(nullptr);
@@ -308,12 +308,12 @@ CTextureManager::~CTextureManager() {
     cache.clear();
 }
 
-EngineObject* CTextureManager::CreateObject(int newType, int newId) {
+EngineObject* TextureManager::CreateObject(int newType, int newId) {
     EngineObject* object = BaseManager::CreateObject(newType, newId);
     object->flags |= CreateFlag(newType);
     return object;
 }
 
-const char* CTextureManager::ClassName() { return kClassName; }
-ClassId CTextureManager::GetClassId() { return ClassId::TextureManager; }
-const char* CTextureManager::GetFolderName() { return kFolder; }
+const char* TextureManager::ClassName() { return kClassName; }
+ClassId TextureManager::GetClassId() { return ClassId::TextureManager; }
+const char* TextureManager::GetFolderName() { return kFolder; }

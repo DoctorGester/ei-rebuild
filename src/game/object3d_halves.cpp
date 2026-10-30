@@ -30,7 +30,7 @@ constexpr int kOutsideView = 2;
 int Setting(const int& setting) { return static_cast<const volatile int&>(setting); }
 
 // The switch for the class of `object`.
-int ShadowSwitchOf(CObject3D* object) {
+int ShadowSwitchOf(Object3D* object) {
     ClassId classId = object->GetClassId();
     if (classId == ClassId::Unit) return Setting(options::g_options.unitShadow);
     if (classId == ClassId::Tree) return Setting(options::g_options.floraShadow);
@@ -106,7 +106,7 @@ WoundsMaterial::~WoundsMaterial() { preset.Reset(); }
 Vector3 Object3DClientSpecific::GetScale() { return {figureScale.x, figureScale.y, figureScale.z}; }
 
 void Object3DClientSpecific::RegisterPartMaterials() {
-    CMaterialManager* manager = WorldContext()->MaterialManager();
+    MaterialManager* manager = WorldContext()->GetMaterialManager();
     if (materials.empty()) return;
     materialCursor = 0;
     for (Material* material = materials[0]; material;) {
@@ -136,7 +136,7 @@ int Object3DClientSpecific::BoundsContainPoint(const std::int32_t* point) {
 }
 
 int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
-    CObject3D* target = object;
+    Object3D* target = object;
     if (!(target->flags & MapObjectFlag::Shown)) return 0;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
@@ -147,7 +147,7 @@ int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
 }
 
 int Object3DClientSpecific::PartRectsMeet(const Rect* rect) {
-    CObject3D* target = object;
+    Object3D* target = object;
     if (!(target->flags & MapObjectFlag::Shown)) return 0;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
@@ -163,7 +163,7 @@ FigureMesh* Object3DClientSpecific::FindPart(std::string_view name) { return obj
 
 FigureMesh* Object3DClientSpecific::FindPartOfType(int partType) { return object->FindPartOfType(partType); }
 
-FigureMesh* CObject3D::FindPartOfType(int partType) {
+FigureMesh* Object3D::FindPartOfType(int partType) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i]->type == partType) return parts[i];
     return nullptr;

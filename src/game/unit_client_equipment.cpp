@@ -20,10 +20,10 @@ constexpr int kArmourSlots = 7;
 constexpr int kWeaponSlots = 4;
 
 // The skin texture of a part set, or null.
-CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
+Texture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
 
 // `texture` takes `name` and is loaded again (the common tail).
-void Reload(CTexture* texture, const std::string& name) {
+void Reload(Texture* texture, const std::string& name) {
     texture->name = name;
     texture->flags &= ~TextureFlag::Loaded;
     texture->Manager()->LoadTexture(texture);
@@ -31,7 +31,7 @@ void Reload(CTexture* texture, const std::string& name) {
 
 // The test: a new skin, or a name that differs from the texture's (the texture read
 // unchecked when `checkTexture` is false).
-bool NeedsReload(bool composed, CTexture* texture, const std::string& name, bool checkTexture) {
+bool NeedsReload(bool composed, Texture* texture, const std::string& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
     return str::Compare(name,
@@ -43,18 +43,18 @@ void UnitClientSpecific::RefreshEquipment() {
     std::string name;
     // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
     if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return;
-    auto* half = unit->Object3D()->ClientSpecific();
-    CTexture* detailed = SkinTexture(half->partSets[0]);
+    auto* half = unit->AsObject3D()->ClientSpecific();
+    Texture* detailed = SkinTexture(half->partSets[0]);
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
-    CTexture* simple = SkinTexture(half->partSets[1]);
+    Texture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
 }
 
 int UnitClientSpecific::RefreshModel() {
     if (unit->MapType() != MapObjectType::Hero) return 1;
     std::string name;
-    auto* half = unit->Object3D()->ClientSpecific();
-    CTexture* simple = SkinTexture(half->partSets[1]);
+    auto* half = unit->AsObject3D()->ClientSpecific();
+    Texture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }

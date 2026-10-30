@@ -159,7 +159,7 @@ bool MobFile::Load(int keepIds) {
         auto* object = static_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && str::Compare(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
-            auto* controller = object->Unit()->ServerController();
+            auto* controller = object->MadeUnit()->ServerController();
             controller->brain.SetAlarmRecords(static_cast<UnitSpec*>(spec)->behaviour, kBehaviourCount);
         }
         delete spec;

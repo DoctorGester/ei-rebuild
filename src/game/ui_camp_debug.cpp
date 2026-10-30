@@ -23,7 +23,7 @@ constexpr std::uint32_t kInstructionCount = 10;
 constexpr std::uint32_t kMaterialCount = 20;
 
 // The list's copy of `item`: counted for the call, added (keeping its count, merged), released.
-void AddCounted(CParty* list, Item* item) {
+void AddCounted(Party* list, Item* item) {
     item->AddRef();
     list->AddItem(item, 1, 1);
     item->Release();
@@ -31,7 +31,7 @@ void AddCounted(CParty* list, Item* item) {
 
 // An item named `name` from the list's item manager (not checked for null) with
 // record index `index` and count `count`, added.
-void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
+void AddNamed(Party* list, const char* name, std::uint32_t index, std::uint32_t count) {
     auto* item = AsLoot(list->ItemFactory()->CreateItem(name));
     item->index = index;
     item->count = count;
@@ -40,7 +40,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 
 // One item of class `kind` for `record` in every material whose soundName names the record's material class,
 // made by the list's item constructor with `manager`. A material index out of the table reads through null.
-void AddInMaterials(CParty* list, ResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
+void AddInMaterials(Party* list, ResourceManager* manager, ItemConstructor* maker, itemdb::ItemRecordHead* record,
                     ItemKind kind, int materials) {
     for (int j = 0; j < materials; ++j) {
         if (text::CompareIgnoringCase(itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName, record->materialClass) != 0)
@@ -61,14 +61,14 @@ void CampPages::DebugFill() {
     std::vector<std::string> materials = g_clientWorld.itemManager->ListMaterialNames();
     const int materialCount = static_cast<int>(materials.size());
 
-    if (CParty* items = itemParts[0]) {
+    if (Party* items = itemParts[0]) {
         items->Clear(1, 0);
 
         names = g_clientWorld.itemManager->ListWeaponNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, "Instruction Weapon", static_cast<std::uint32_t>(i), kInstructionCount);
             ResourceManager* manager = items->ItemFactory();
-            CItemConstructor* maker = items->ItemConstructor();
+            ItemConstructor* maker = items->GetItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
             AddInMaterials(items, manager, maker, weapon, ItemKind::Weapon, materialCount);
         }
@@ -79,7 +79,7 @@ void CampPages::DebugFill() {
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
             if (NameHas(armor, "prototype")) continue;
             AddNamed(items, "Instruction Armor", static_cast<std::uint32_t>(i), kInstructionCount);
-            CItemConstructor* maker = items->ItemConstructor();
+            ItemConstructor* maker = items->GetItemConstructor();
             AddInMaterials(items, manager, maker, armor, ItemKind::Armor, materialCount);
         }
 
@@ -99,7 +99,7 @@ void CampPages::DebugFill() {
         }
     }
 
-    if (CParty* spells = spellParts[0]) {
+    if (Party* spells = spellParts[0]) {
         spells->Clear(1, 0);
         names = g_clientWorld.spellManager->ListModifierNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i)

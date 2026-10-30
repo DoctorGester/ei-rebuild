@@ -40,7 +40,7 @@ bool BlockInMap(const AIMap* map, const UnitLayerNode* block, int* x, int* y) {
 
 } // namespace
 
-void UnitLayer::Add(CUnit* unit, const UnitShape* shape, int x, int y) {
+void UnitLayer::Add(Unit* unit, const UnitShape* shape, int x, int y) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};
     std::uint8_t* row = grid + (x & 3) + (y & 3) * 20;
@@ -66,7 +66,7 @@ void UnitLayer::Add(CUnit* unit, const UnitShape* shape, int x, int y) {
     freeNodes = node;
 }
 
-void UnitLayer::Remove(CUnit* unit, int x, int y) {
+void UnitLayer::Remove(Unit* unit, int x, int y) {
     int firstY = y >> 2, firstX = x >> 2;
     for (int by = firstY; by < firstY + 5; ++by) {
         for (int bx = firstX; bx < firstX + 5; ++bx) {

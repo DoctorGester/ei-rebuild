@@ -3,7 +3,7 @@
 ## Missiles and visibility (world_effect_missile.cpp, world_effect_visibility.cpp)
 
 EffectMissile (abstract, vtable 00743754, 0x158): +0x14C arrived, +0x150 target id, +0x154 "from caster".
-EffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a CEffectParticle (+0x158), EffectPointLight (+0x2D8) and
+EffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a EffectParticle (+0x158), EffectPointLight (+0x2D8) and
 EffectSound (+0x43C), then the sound name CString +0x6A0, light colour / range, particle type / size, caster id
 +0x6BC. Steer (0067AAB0, shared with class 0x5B, which doubles the speed 0.6667) aims at the target's
 +0x1C position with z + above.z / 2 + center.z; arrived when the planar distance is below one step (or NaN).
@@ -11,16 +11,16 @@ On a client the missile is kept 1 above the world's slot 28 height. Tick moves, 
 (slot 24, Start(1) each). Start copies the settings into the parts (light velocity (0.0001, 0, 0), flags 0x840,
 sound radius 30, looping) and starts them. Scenario spells (arrow, acid ray). SpellEffect::Update calls Start /
 UpdateMissile directly and the factory constructs effects directly, so those wrappers (and constructor wrappers) never
-count; Tick / Pack / Unpack go through the vtables. CWorld has slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId);
-CMapObject +0x144 is the extent.
+count; Tick / Pack / Unpack go through the vtables. World has slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId);
+MapObject +0x144 is the extent.
 
 Rewritten (grep the address): `Steer` 0067AAB0, SetTarget 0067AC70, Tick 0067AC90, Reset 0067AD10, MoveParts 0067B450, Start 0067B4E0, Unpack 0067B690,
 Pack 0067B800, Save 0067B9A0, Load 0067B8E0, constructor 0067AE30, destructor 0067B1C0, deleting destructor 0067B1A0; EffectSoundSeq Start
 00676C00 and Unpack 00676FD0 (+ ten pickers 00676DD0..00676F90; world_effect_sequence.cpp); EffectAmbientSound constructor 00677510,
 destructor 006776E0 (Reset inline, then again), deleting destructor 006776C0; effect factory EffectNewObject 0067E170 (manager slot 14, RET 4;
 world_effect.cpp). Also 0067AA00 (EffectMissile::Reset, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it),
-00675FB0 / 0067B390 (CEffect's destructor, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
-(CEffect's constructor out of line), 00676900 (CEffect::RunTick: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
+00675FB0 / 0067B390 (Effect's destructor, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
+(Effect's constructor out of line), 00676900 (Effect::RunTick: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
 reaches the first five.
 Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
 
@@ -77,7 +77,7 @@ release, unwind only). No scenario starts weather with a tornado yet.
 - The server drops a blocked unit's orders, casts included (0066FFF0), so `spells_hero` waits for the intro script's
   `BlockUnit` (flag 0x800000), lifts it and waits for the arrow to hurt either wolf; every newgame scenario shows 3
   CastSpell (point lights). `ui_battle_spells` blocks the hero the same way (only checks that UseOnUnit is reached).
-- A party unit's spells come from its player's party record (GetSpell 005319A0), not CUnit::AddSpell (00531820), so
+- A party unit's spells come from its player's party record (GetSpell 005319A0), not Unit::AddSpell (00531820), so
   GiveUnitSpell never reaches the hero's column. The scenario gives "spell container[...]" items (GiveItem) and puts
   them on in the camp's magic page (page 1; CanEquip 006100E0 wants the school skill, hence GiveSkill). "Or" is a Rebirth
   addon function (vanilla: "Parameter of type float expected"). hudstate logs the column unit's spell slots.

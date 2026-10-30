@@ -51,12 +51,12 @@ void SetPixelFormat(MmpHeader& header, std::uint32_t format) {
 
 void ForgetComposedTextures() { g_composed.clear(); }
 
-const ComposedTexture* CTextureManager::FindComposed(std::string_view name) {
+const ComposedTexture* TextureManager::FindComposed(std::string_view name) {
     auto found = g_composed.find(Key(name));
     return found == g_composed.end() ? nullptr : &found->second;
 }
 
-int CTextureManager::FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found) {
+int TextureManager::FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found) {
     int count = 0;
     for (const std::string& name : *names) {
         MmpHeader* data = GetFileData(name);
@@ -77,7 +77,7 @@ int CTextureManager::FindLayers(const std::vector<std::string>* names, int width
 // when `name` has none. One made from the request's layer bytes is reused (1). Otherwise, without layer textures,
 // the composed texture is forgotten (0); else it is made anew (`request->flags` texels square, `mipCount` levels in
 // `format`) from the layer textures found (1; 0 when none is).
-int CTextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
+int TextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
                              const std::string* fallback, unsigned mipCount, std::uint32_t format) {
     std::string key = *name;
     *out = *name;
@@ -113,7 +113,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     return 1;
 }
 
-int CTexture::CreateComposed(TextureDevice* device, const ComposedTexture& composed, unsigned mip) {
+int Texture::CreateComposed(TextureDevice* device, const ComposedTexture& composed, unsigned mip) {
     if (flags & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;
@@ -124,7 +124,7 @@ int CTexture::CreateComposed(TextureDevice* device, const ComposedTexture& compo
                                               TextureFormat(format).bitsPerPixel);
     if (!holder) ThrowSurfaceNotMade(0, 0);
     // The layers' pixels from the archives, drawn over each other by the GPU.
-    CTextureManager* manager = Manager();
+    TextureManager* manager = Manager();
     std::vector<render::TextureImage> images;
     std::vector<void*> files;
     for (const std::string& layer : composed.layers) {

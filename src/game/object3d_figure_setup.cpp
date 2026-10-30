@@ -1,4 +1,4 @@
-// CObject3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
+// Object3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
 // levers, map objects with animations; called by the zone loader, the world's object setup, Lever::SetState
 // and the unit controller): the state takes the model, one box and one name per animated part, and the
 // object's bounds around the boxes. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
@@ -37,8 +37,8 @@ constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create 
 
 } // namespace
 
-void CObject3D::SetUpAnimatedFigure(std::string_view model) {
-    CFigureManager* manager = FigureManagerOf(this);
+void Object3D::SetUpAnimatedFigure(std::string_view model) {
+    FigureManager* manager = FigureManagerOf(this);
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
     if (animation) {
@@ -106,7 +106,7 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
 
 // --- Bounds of the placed parts -----------------------------------------------------------------
 
-void CObject3D::UpdatePartBounds() {
+void Object3D::UpdatePartBounds() {
     if (!(flags & MapObjectFlag::FiguresLoaded)) return;
     float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
@@ -135,7 +135,7 @@ void CObject3D::UpdatePartBounds() {
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
-std::vector<FigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefix) {
+std::vector<FigureMesh*> Object3D::CollectPartsByPrefix(std::string_view prefix) {
     std::vector<FigureMesh*> found;
     // The game asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
@@ -149,8 +149,8 @@ std::vector<FigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefix
 
 // --- Loading single parts ---------------------------------------------------------------------
 
-FigureMesh* CObject3D::LoadPart(std::string_view partName) {
-    CFigureManager* manager = FigureManagerOf(this);
+FigureMesh* Object3D::LoadPart(std::string_view partName) {
+    FigureManager* manager = FigureManagerOf(this);
     FigureMesh* part = manager->NewPart(name, partName, flags & MapObjectFlag::Detached);
     if (!part) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
@@ -192,8 +192,8 @@ FigureMesh* CObject3D::LoadPart(std::string_view partName) {
     return part;
 }
 
-int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
-    CFigureManager* manager = FigureManagerOf(this);
+int Object3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
+    FigureManager* manager = FigureManagerOf(this);
     {
         std::string key(model);
         manager->FindModel(&key);   // loads and caches the model
@@ -208,7 +208,7 @@ int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>*
 
 // --- Building the figure ----------------------------------------------------------------------
 
-int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* names, std::uint32_t arg) {
+int Object3D::MakeFigure(std::string_view model, std::vector<std::string>* names, std::uint32_t arg) {
     name = model;
     if (animation) {
         animation->Rescale(scale.x, scale.y, scale.z);

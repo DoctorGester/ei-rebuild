@@ -5,7 +5,7 @@ Code: `object.*` (EngineObject helpers, TransformObject / Hoover constructor bod
 `hoover_loot.cpp`, `player*.cpp`, `party.h`. Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `objects_more.txt` (lightning
 bolts, power 5 / 0 / -7, then the lightning spell on a wolf); every other scenario loads zone1, which reaches scene, options, map
 database, unit record and (via 0058B750 every world tick) player message code. Network, table and application functions of the
-range are in `network.md`, `app.md` and `core.md`; the party (CParty, party records, item lists) in `items_spells.md`.
+range are in `network.md`, `app.md` and `core.md`; the party (Party, party records, item lists) in `items_spells.md`.
 
 ## Address map
 
@@ -21,8 +21,8 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
 | 00461360-004613A0, 00461C10-00461CA0, 004621A0-00462A00, 00462F70 | text keys; Hoover; CInventory (vtable 0073C474, slots 16-21 shared with Item); key -> command table |
 | 00466190-00468A00 | Lightning (0073C550), LightningManager (0073F5B8) |
 | 00469630-0046F160 | map-editor object specs (base vtable 0073C5C4; magic trap 0073C650, fire 0073C620, particle source 0073C758, light 0073C788, sound 0073C7B8) saved through the chunked stream 0042BF50 |
-| 0065F4B0-00661F30, 006620F0-00662AC0 | **CParty** (vtable 00743000, 54 slots; second interface +0x2C; member list +0x40 / +0x44); party records (0x784 bytes per unit; `PartyRecords::Find` 006621B0) |
-| 00664DE0-00666170 | **CPlayer** (vtable 00743104, 16 slots): per tick 00665DE0 (ticks the objects listed at +0x114, dropping gone / finished ones, then slot 21 of the connection at +0x20) |
+| 0065F4B0-00661F30, 006620F0-00662AC0 | **Party** (vtable 00743000, 54 slots; second interface +0x2C; member list +0x40 / +0x44); party records (0x784 bytes per unit; `PartyRecords::Find` 006621B0) |
+| 00664DE0-00666170 | **Player** (vtable 00743104, 16 slots): per tick 00665DE0 (ticks the objects listed at +0x114, dropping gone / finished ones, then slot 21 of the connection at +0x20) |
 | 00666EE0-0066C700 | **CPlayerClient** (vtable 00743180, 48 slots; receive slot 14 00667BA0 packet dispatcher; 00667EC0 creates an object the server announced: multiplayer only; single-player model selection is in 00535CB0, 005381B0, 00536670, 00568800) |
 | 0066C730-00671080 | **CPlayerServer** (vtable 00743280, 24 slots): per tick 0066E130, send slot 17 0066E430 / 0066E7D0, variables / state 0066EE10..0066F310, receive slot 20 0066F4C0, handlers 0066F840-00671060 |
 | 00471B10, 00477B00 | scene reader; `UnitRecord::ApplyTo` |
@@ -33,12 +33,12 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   manager; the manager's +0xAC (`BaseManager::context`) is what `ManagerContext` returns (00455950 calls its slot 13). Base vtable
   0073B8E0 (13 slots), restored by 00455930. `ObjectListIterator` {manager, position} walks a manager's CPtrList at +0x34 (00404920
   / 00404960); the world object manager is the pointer at 007AFFA0.
-- CUnit (0073EA8C, 77 slots): slot 7 GetName (+0x238 CString), 29 / 43 true, 31 / 56 / 57 / 58 forward to the
+- Unit (0073EA8C, 77 slots): slot 7 GetName (+0x238 CString), 29 / 43 true, 31 / 56 / 57 / 58 forward to the
   controller at +0x240 (its slots 20, 42, 53, 31), 47 forwards to +0x170 slot 19, 54 returns +0x278 ("large unit"), 55 +0x274 (skip
   unit layers), 59 calls 0052F920, 60 float +0x328, 61 assigns the name. CFigure slot 7 GetName = +0x120 (also SkyObject,
-  CI3DFigure). CUnit +0x244 hostile mask (bit p: hostile to player p; set by 0052E970, or-ed by
+  CI3DFigure). Unit +0x244 hostile mask (bit p: hostile to player p; set by 0052E970, or-ed by
   0052E940, both also set flags 0x80000), +0x24C party (members in a hash_map at +0x40). CMapObjectVirtuals slots 30
-  ApplyBaseScale, 34 TakePrototype, 61 SetScriptName; `CUnit::modelHeight` (+0xF4).
+  ApplyBaseScale, 34 TakePrototype, 61 SetScriptName; `Unit::modelHeight` (+0xF4).
 - Diplomacy (global 007C2BC4, 0x100 bytes): `allied[32]` (+0), `hostile[32]` (+0x80), bit q of row p; relation codes 0 allied, 1
   neutral, 2 hostile (script GetDiplomacy maps them to 1 / 0 / -1). MemoryStream (vtable 0073BD90, 0x28 bytes): +5 ok, +0x10 grow
   step, +0x18 data, +0x20 read position, +0x24 end; slot 1 Read (004A5380), slot 2 Write. MapDatabase (global 0079BF00, ctor
@@ -54,7 +54,7 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   00471B10): dead in game.exe (no shipped data makes a class 0x39 object, nothing calls slot 62, no .amf exists; reasoning in
   standalone-verification.md, SV5c), so C35l deleted it from ours with its helpers, the skeleton bones (CAnimationNode),
   the array and map classes only it used, and the data it read (the zero vectors and identity rotations, now
-  config/unread_data.csv). The map object factory makes nothing for class 0x39: `CMapObjectManager::NewObject` returns null as
+  config/unread_data.csv). The map object factory makes nothing for class 0x39: `MapObjectManager::NewObject` returns null as
   for any unknown class, and `CreateMapObject` returns null with it. The original's functions are rows of config/dead_code.csv.
 - **Options**: ~120 values under HKCU\<path>\<subkey> through the game's registry helper (006972A0-006988A0); the writer uses the
   setter matching each getter (00697D40 int, 00697CA0 dword, 00697E80 floats as REG_BINARY bits, 00697FC0 strings). 00458870
@@ -92,13 +92,13 @@ original (`stolenBytes` 0).
 
 ## Players (player*.cpp)
 
-Layout: CPlayer (the world player, `player_messages.h`, 0x134 bytes) +0x1C link, +0x24 id, +0x28 / +0x58 hash_maps of the map /
+Layout: Player (the world player, `player_messages.h`, 0x134 bytes) +0x1C link, +0x24 id, +0x28 / +0x58 hash_maps of the map /
 timed objects the client knows (each counted once; +0x3C / +0x6C the highest id), +0x40 the player's units (hash_map; max id
-+0x54), +0x70..+0xE0 an embedded CParty (slot 18 its item manager), +0xE0 the given items (CPtrList of counted items), +0x100
++0x54), +0x70..+0xE0 an embedded Party (slot 18 its item manager), +0xE0 the given items (CPtrList of counted items), +0x100
 `sessionKind`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
 `PlayerConnection` (its own vtable 007431E0) names the connection's slots 13..23 and is the C++ base of PlayerServer (00743280) and
 PlayerClient (00743180, not 00743188: Pump is slot 6, ReceiveMessages slot 23); their slot bodies have their own names
-(`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `CPlayer::Server()` and `WorldClient::LocalView()`
+(`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `Player::Server()` and `WorldClient::LocalView()`
 are the static_casts of `connection`. PlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
 (`CArray<UnitPlacement>`, SetSize 0059C3D0 = `PlacementsSetSizeOriginal` in originals_gameplay.h), +0x88 / +0x28B0 send /
 receive coders, +0x50D8 / +0x50E8 sent object arrays, +0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer.
@@ -109,14 +109,14 @@ addresses (40 client types, 25 server types), so rewritten handlers run through 
 originals_world.h.
 
 The "changed" senders compare the object's stamp with the world's update count; a pending delta (flags bit 1) is written first
-(0050EA70 for map objects, `CEffect::SendDelta` for timed ones). world_sync.cpp names the six senders by the DiffObjectSets output
+(0050EA70 for map objects, `Effect::SendDelta` for timed ones). world_sync.cpp names the six senders by the DiffObjectSets output
 they get: its "Kept" array gets the removals, "Removed" the changes. Receive errors go through 00664B70 (fatal) with the previous
 and current type. `UnitServer::IsFighting` (0054B580) is Rebirth-patched: called through its address.
 `WorldServer::CollectSharedObjects` (00594A30) takes the player id first (multiplayer only).
 
 Rewritten (grep the address; the per-function table is gone). Facts a worker needs:
-- `player.cpp` and friends: CPlayer Construct 00664BF0 (newgame), class name "CPlayer" (00794CA4), id 0xF; CreatePlayer returns 1;
-  `AddUnit` / `RemoveUnit` come from `CUnit::SetPlayer`; AssignParty returns CParty::Assign's result; ReleaseTamedUnits (UnitController
+- `player.cpp` and friends: Player Construct 00664BF0 (newgame), class name "Player" (00794CA4), id 0xF; CreatePlayer returns 1;
+  `AddUnit` / `RemoveUnit` come from `Unit::SetPlayer`; AssignParty returns Party::Assign's result; ReleaseTamedUnits (UnitController
   slot 39 is TamingStage); `PlayerMessageError` 00664B70 is `__fastcall` (format, previous type in DL, type; FatalError through
   00480080). `CreateClient` 00667230 / `CreateServer` 0066C9A0 fill the handler tables (256 handlers; client state 0; server
   timer 900..1800). PlayerServer class id 0x3B; Leave (slot 16) does CollectParty when deployed, SendParty in multiplayer, sends
@@ -164,7 +164,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   -1), SendLeave04 (state 3), SendResume (0x09), SendPartyUpdate (0x50, SaveParty draws an ISAAC key), TakeExit (0x03), RequestZone
   (0x06), Rejoin (state 3 only: ReturnLocalParty, 0x50, 0x05, state 2); the zone requests return the stream position (004A53F0's EAX).
 
-Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags bit 1 set, so the original's second run would
+Verify rule for the changed-sender wrappers: `Effect::SendDelta` leaves flags bit 1 set, so the original's second run would
 pack the effects again against snapshots ours just updated. The wrapper runs ours, restores the stream, runs the original with
 flags bit 1 cleared on every listed object, puts the flags back and compares (skipped when ours grew the stream or an effect
 is listed twice).
@@ -173,8 +173,8 @@ Kept: the login's two 64-byte text buffers are sent with uninitialised bytes aft
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its
 `objectManager` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
 with the object made and unreleased; OnLeaderDied in a network game with a party of more than one record reads two
-uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt
-in library.csv); the AIPath is destroyed through 00546100; CPlayer::Clear's unit loop stops at the first map entry without a
+uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `CArray<Unit*>` (vtable 007402AC; 00671200 RemoveAt
+in library.csv); the AIPath is destroyed through 00546100; Player::Clear's unit loop stops at the first map entry without a
 unit; the constructor's maps keep their uninitialised functor bytes; HasLoot reads +0x4C of every carried item whatever its
 class; ReleaseTamedUnits (like Clear's sibling walks) goes on from the node of a unit SetPlayer has just erased, reading the
 freed node; Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test; 0066D730 (message 0x12)
@@ -238,7 +238,7 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 | 0x37 | 00670810 | 3 | refused: returns 0 |
 | 0x38 | 00670A40 | 80 | two dwords, the first looked up as a unit (0055FB00); result unused |
 | 0x39 | 00670A90 | 132 | follow: {unit id, leader id}; with the unit, the leader (may be null) and a Player mode: 005D3DE0 (Follow); no dead test |
-| 0x3B | 0066FB70 | 96 | a unit id and a byte: CUnit::SetUnknown438 (0052E9B0) with the signed byte |
+| 0x3B | 0066FB70 | 96 | a unit id and a byte: Unit::SetUnknown438 (0052E9B0) with the signed byte |
 | 0x40 | 00670B20 | 51 | 8 bytes into this +0x38 / +0x3C |
 
 A-H23 rewrote 0x01, 0x04, 0x10, 0x32-0x35, 0x38, 0x39, 0x3B, 0x40 (player_server_orders.cpp; wrappers ours only in
@@ -270,7 +270,7 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   00445810; `__stl_hash_string` 00460BA0; CArray / CMap members in 0044F000-00455400, 0045E130-004607E0, 00463000-00465000,
   00476430, 00476640, 004773F0, 00477270, 00476050; the player classes' 006632B0-00664D00, 0066A280 (unwind-only DeltaField
   destructor), 0066B320-0066B510 / 0066BAD0; 0066BE00 is a copy of 0047B940) and trivial bodies too short for the 5-byte jump.
-  Pure forwarders to another object's virtual (CUnit slots 31, 47, 56-58, 00455950): a side-by-side check would call the target
+  Pure forwarders to another object's virtual (Unit slots 31, 47, 56-58, 00455950): a side-by-side check would call the target
   twice.
 - Never run (no references): 00466270, 0045E8B0, 0045E960, 0046F1F0 (older copy of 00471B10), 00459100 and 0045A380 (options from
   / to a .reg file), 00466E60 (copy of `Reset`).

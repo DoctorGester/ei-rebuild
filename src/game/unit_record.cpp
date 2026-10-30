@@ -21,7 +21,7 @@ Item* CreateItem(ItemManager* factory, std::string_view name) {   // patched by 
     return factory->CreateItem(name);
 }
 
-void AddItems(const UnitRecord& record, CUnit* unit, ItemManager* factory) {
+void AddItems(const UnitRecord& record, Unit* unit, ItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])
         unit->AddQuickItem(CreateItem(factory, name));
     for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name));
@@ -29,10 +29,10 @@ void AddItems(const UnitRecord& record, CUnit* unit, ItemManager* factory) {
 
 } // namespace
 
-void UnitRecord::ApplyTo(CUnit* target) {
+void UnitRecord::ApplyTo(Unit* target) {
     const UnitRecordStats& r = stats;
     ItemManager* factory = g_serverWorld.itemManager;
-    CUnit* unit = target;
+    Unit* unit = target;
     const float k0 = 0.0f;
     EI_NAN_AUDIT(r.speed, r.rate);
     bool noStats = r.speed == k0 && r.maxHitPoints == 0 && r.rate == k0;

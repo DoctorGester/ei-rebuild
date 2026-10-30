@@ -18,12 +18,12 @@ class RenderPreset;
 // A texture stage of a material: copied with the texture gaining a reference, destroyed by releasing the texture and
 // freeing the name.
 struct MaterialStage {
-    explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {}
+    explicit MaterialStage(Texture* stageTexture) : name("", ""), texture(stageTexture) {}
     MaterialStage(const MaterialStage&) = default;
     MaterialStage& operator=(const MaterialStage&) = delete;
 
     std::string name;               // the texture's name (empty for the wounds stages)
-    HeldRef<CTexture> texture;      // looked up by name on first use
+    HeldRef<Texture> texture;      // looked up by name on first use
 };
 
 // A device material (counted; deleted at its last reference). Made by the game's code (the wounds material,

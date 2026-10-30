@@ -50,7 +50,7 @@ SkyObject::~SkyObject() {  }
 const char* SkyObject::ClassName() { return kClassName; }
 ClassId SkyObject::GetClassId() { return ClassId::SkyObject; }
 
-void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
+void SkyObject::ApplyLight(const float* direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
@@ -87,8 +87,8 @@ void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light
     render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps
 }
 
-void Sky::Light(const float* direction, SkyColour ambient, SkyColour light) {
-    if (object) object->Light(direction, ambient, light);
+void Sky::ApplyLight(const float* direction, SkyColour ambient, SkyColour light) {
+    if (object) object->ApplyLight(direction, ambient, light);
 }
 
 Sky::Sky() {

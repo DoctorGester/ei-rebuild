@@ -14,8 +14,8 @@
 #include <vector>
 
 struct FigureAnimation;
-class CUnit;
-class CMapObject;
+class Unit;
+class MapObject;
 struct UnitStats;
 struct UnitVitals;
 struct UnitPrototypeRecord;
@@ -74,9 +74,9 @@ void BuildNpcStats(UnitStats* stats, const std::string& name);
 MapObjectType PrototypeObjectClass(std::string_view name);
 
 // The map object manager ("map objects", class id 0x2D).
-struct CMapObjectManager : ResourceManager {
-    CMapObjectManager();
-    ~CMapObjectManager() override;
+struct MapObjectManager : ResourceManager {
+    MapObjectManager();
+    ~MapObjectManager() override;
     void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -86,14 +86,14 @@ struct CMapObjectManager : ResourceManager {
     const char* GetFolderName() override;                   // "map objects"
 
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
-    int GiveStartingEquipment(CUnit* unit, const std::string& name);
+    int GiveStartingEquipment(Unit* unit, const std::string& name);
 
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.
     EngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
-    CMapObject* FindMapObject(unsigned id) const;
+    MapObject* FindMapObject(unsigned id) const;
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above kAnimationVariantBits
     // and, of the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).
@@ -101,7 +101,7 @@ struct CMapObjectManager : ResourceManager {
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
     // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(false) and no prototype
     // index.
-    void GiveDefaults(CMapObject* object);
+    void GiveDefaults(MapObject* object);
 
     // The builders of a creature's starting statistics from its prototype; the map objects call them on their
     // owner.
@@ -118,11 +118,11 @@ struct CMapObjectManager : ResourceManager {
     // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
     // ScaleEffectChanged(false), index 0 and a debug message.
-    void ApplyPrototype(CMapObject* object, const std::string& name);
+    void ApplyPrototype(MapObject* object, const std::string& name);
 };
 
-inline CMapObjectManager* MapObjectManagerOf(const EngineObject* object) {
-    return static_cast<CMapObjectManager*>(object->owner);
+inline MapObjectManager* MapObjectManagerOf(const EngineObject* object) {
+    return static_cast<MapObjectManager*>(object->owner);
 }
 
 namespace unitdb {

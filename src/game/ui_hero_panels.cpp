@@ -46,8 +46,8 @@ void BuildCellGrid(UiWindow* window) {
         float pictureDepth = depth + depth;
         int bottom = top + 100;
         for (int left = 200; left < 600; left += 100) {
-            CTexture** textures = window->objects.data();
-            CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
+            Texture** textures = window->objects.data();
+            Texture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
             UiMesh* picture = window->AddBlankSprite();
@@ -159,7 +159,7 @@ void HeroStatsPanel::DrawStats() {
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
-    CUnit* unit = owner->HeroUnit(heroIndex);
+    Unit* unit = owner->HeroUnit(heroIndex);
     std::string line;
     std::string text;
     TextManager* clientWorldTexts = g_clientWorld.texts;
@@ -431,7 +431,7 @@ void HeroQuickStrip::Build(bool top) {
 
 // --- The constructors' second pages ---------------------------------------------------------------
 
-void SpellMakerPage::BuildSpellMaker(CParty* party) {
+void SpellMakerPage::BuildSpellMaker(Party* party) {
     rect = Rect{200, 100, 600, 500};
     mode = 6;
     slots = party;
@@ -452,7 +452,7 @@ void SpellMakerPage::BuildSpellMaker(CParty* party) {
     }
 }
 
-void ConstructorPage::BuildItemMaker(CParty* party) {
+void ConstructorPage::BuildItemMaker(Party* party) {
     rect = Rect{200, 100, 600, 500};
     mode = 7;
     slots = party;
@@ -483,7 +483,7 @@ constexpr int kTopicItemContainer = 0x10;
 
 // The `nth` (from 0) of the slots' items that `matches`, or null.
 template <typename Predicate>
-Item* NthSlot(CParty* slots, int nth, Predicate matches) {
+Item* NthSlot(Party* slots, int nth, Predicate matches) {
     const auto& items = slots->items;
     int found = 0;
     for (int i = 0; i < std::ssize(items); ++i) {

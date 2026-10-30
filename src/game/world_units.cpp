@@ -148,7 +148,7 @@ void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n);
 
 } // namespace
 
-void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
+void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                                std::vector<UnitPlacement>* placements) {
     // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
@@ -207,9 +207,9 @@ void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* re
             PlaceInLine(message, position, rotation, i);
         }
 
-        CUnit* unit = FindUnit(CreateObject(message));
+        Unit* unit = FindUnit(CreateObject(message));
         if (!unit) continue;
-        CMapObject* slots = unit;
+        MapObject* slots = unit;
 
         // A player-controlled AI, standing on a free cell near the requested position.
         UnitServer* controller = unit->ServerController();
@@ -268,7 +268,7 @@ void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* re
     if (sessionKind == kKindSinglePlayer) {
         for (int i = 0; i < std::ssize(*records); ++i) {
             auto* record = (*records)[i];
-            CUnit* unit = FindUnit(static_cast<int>(record->unitId));
+            Unit* unit = FindUnit(static_cast<int>(record->unitId));
             if (!unit) continue;
             UnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
@@ -284,7 +284,7 @@ void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* re
     if (player) MainScript()->Load(&script, 1);
 }
 
-void WorldServer::UseQuickItem(CUnit* unit) {
+void WorldServer::UseQuickItem(Unit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
     message.kind = kQuickEffectType;
@@ -308,12 +308,12 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
     auto created = [this, spec]<class T>(std::type_identity<T>) {
-        return MapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
+        return GetMapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
-    auto allowed = [this](CMapObject* object) {
+    auto allowed = [this](MapObject* object) {
         return (object->IsSynchronised() ? loadedFresh : keepsState) != 0;
     };
-    auto refuse = [](CMapObject* object) {
+    auto refuse = [](MapObject* object) {
         object->AddRef();
         object->Release();
         return -1;
@@ -323,21 +323,21 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         companion->skinTexture = spec->skinTexture;
         companion->strings = spec->parts;
     };
-    auto race = [spec](CMapObject* object) {
+    auto race = [spec](MapObject* object) {
         object->AddRef();
         const std::string_view prototype = spec->kind == 5 ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
                                                            : std::string_view(spec->primaryTexture);
         object->TakePrototype(prototype);
         object->WriteFullState();
     };
-    auto place = [spec](CMapObject* object) {
+    auto place = [spec](MapObject* object) {
         object->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         object->ApplyBaseScale();
         Copy(&object->localPosition.x, &spec->position, 12);
         Copy(&object->localRotation, &spec->rotation, 16);
     };
-    auto timed = [this](CEffect* object) {
+    auto timed = [this](Effect* object) {
         object->startTick = tick;
         object->AddRef();
         object->MarkChanged();
@@ -345,7 +345,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         return object->id;
     };
     BaseManager* timedManager = timedObjectManager;
-    CMapObjectManager* newObjectManager = MapObjectManager();
+    MapObjectManager* newObjectManager = GetMapObjectManager();
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
@@ -365,7 +365,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;
-            CSpell* spell = SpellManager()->CreateSpellFromText(worlddata::CampfireText());
+            Spell* spell = GetSpellManager()->CreateSpellFromText(worlddata::CampfireText());
             if (spell) spell->AddRef();
             CastSpell(spell, nullptr, at, nullptr, at, 0);
             if (spell) spell->Release();
@@ -387,7 +387,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(4);
         if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
         newObjectManager->GiveDefaults(object);
-        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
+        if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         object->SetUpAnimatedFigure(spec->texture);
         objectId = object->id;
         objects.Set(static_cast<unsigned>(objectId), object);
@@ -425,15 +425,15 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     case 5:
     case 8:
     case 9: {   // map objects, units (5) and levers (8)
-        CUnit* unit = nullptr;
+        Unit* unit = nullptr;
         Lever* lever = nullptr;
-        CMapObject* object;
+        MapObject* object;
         if (base.kind == 5)
-            object = unit = created(std::type_identity<CUnit>{});
+            object = unit = created(std::type_identity<Unit>{});
         else if (base.kind == 8)
             object = lever = created(std::type_identity<Lever>{});
         else
-            object = created(std::type_identity<CMapObject>{});
+            object = created(std::type_identity<MapObject>{});
         if (spec->shadow) object->flags |= MapObjectFlag::Synchronised;
         if (str::Compare(spec->model,
                             game::kEmptyText) != 0)
@@ -497,7 +497,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
         object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();
-        if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
+        if (Unit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects.Set(static_cast<unsigned>(object->id), object);
         mapObjects.Set(static_cast<unsigned>(object->id), object);
         if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
@@ -548,7 +548,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     case 4: {   // a particle source
         if (!loadedFresh) return -1;
         auto* particleSpec = static_cast<mapspec::ParticleSpec*>(message);
-        auto* particle = timedManager->CreateObjectAs<CEffectParticle>(kTimedParticle, base.id);
+        auto* particle = timedManager->CreateObjectAs<EffectParticle>(kTimedParticle, base.id);
         Copy(&particle->localPosition, &base.position, 12);
         Copy(&particle->type, &particleSpec->type, 4);
         Copy(&particle->size, &particleSpec->scale, 4);

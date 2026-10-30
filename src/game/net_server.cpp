@@ -67,7 +67,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         for (auto& n : bindings) {
             auto* binding = n.Get();
             if (binding->ConnectionRef().Get() != g_currentConnection) continue;
-            record = binding->Player();
+            record = binding->PlayerInfo();
             if (record->host) hosting = true;
             PushReplicated(*out, binding, 2);
         }

@@ -154,7 +154,7 @@ public:
 int HeroSchoolSkill(UnitStats* stats, int school);
 int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (required skill, mana cost).
-bool HeroCanUseSpell(UnitStats* stats, CSpell* spell);
+bool HeroCanUseSpell(UnitStats* stats, Spell* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
@@ -268,7 +268,7 @@ public:
     int heroIndex;              // selected hero
     UiScrollbar* heroScroll;   // scroll bar of the hero list
     int heroTop;                // first row shown
-    CUnit* previewModel;        // the hero's figure shown by the preview
+    Unit* previewModel;        // the hero's figure shown by the preview
     Item* weapon;
     Item* quickItem;
     Item* spellContainer;
@@ -566,7 +566,7 @@ public:
     // The exchange went through: the local party's items are released, every item of `partyC`, then of
     // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
     // goes back to the world.
-    void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override;
+    void ExchangeDone(Party* partyB, Party* partyA, Party* partyC) override;
     // Mode 1 (the strip): the put_on sound, `item` moves from the local party into our offer (MoveItem with
     // limit 8, merging) and the offer is published. Mode 5 (the grid), only for an item of our offer: the
     // put_off sound, the item moves back to the local party, the strip scrolls to what the party now holds and
@@ -594,9 +594,9 @@ public:
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
     void LeftDown(int buttons, int x, int y) override;
 
-    CParty* scratch;                 // a party of the screen's own (made by Create, deleted by Close)
-    CParty* partnerOffer;            // the client's parties[1]
-    CParty* ownOffer;                // the client's parties[0]
+    Party* scratch;                 // a party of the screen's own (made by Create, deleted by Close)
+    Party* partnerOffer;            // the client's parties[1]
+    Party* ownOffer;                // the client's parties[0]
     UiItemStrip* strip;             // the local party's items (forwarding strip, mode 1)
     FigureStrip* figures;           // the players (figure strip)
     TradeGrid* grid;                // the two offers (mode 5)

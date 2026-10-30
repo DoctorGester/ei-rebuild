@@ -34,7 +34,7 @@ Item* ReadItem(ByteStream* stream, const BaseManager* items) {
     stream->ReadValue(id);
     return id == -1 ? nullptr : FindItem(items, id);
 }
-CUnit* ReadUnit(ByteStream* stream, const BaseManager* objects) {
+Unit* ReadUnit(ByteStream* stream, const BaseManager* objects) {
     int id;
     stream->ReadValue(id);
     return id == -1 ? nullptr : UnitWithId(objects, id);

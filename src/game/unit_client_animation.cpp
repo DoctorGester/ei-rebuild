@@ -17,11 +17,11 @@
 
 namespace {
 constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags
-constexpr std::int8_t kModeSpecialIdle = -2;          // CUnit::secondEntry
-constexpr std::int8_t kNoEntry = -1;                  // CUnit::secondEntry
+constexpr std::int8_t kModeSpecialIdle = -2;          // Unit::secondEntry
+constexpr std::int8_t kNoEntry = -1;                  // Unit::secondEntry
 constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
-constexpr int kMotionPaused = 1;                      // CUnit::motionMode
+constexpr int kMotionPaused = 1;                      // Unit::motionMode
 constexpr int kMotionScaled = 2;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoPrototype = 0xFFFF;
@@ -68,26 +68,26 @@ void UnitClientSpecific::AdvanceTime(float time) {
     if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
-        World()->MoveObject(unit, &position.x);
+        OwningWorld()->MoveObject(unit, &position.x);
         return;
     }
     if (step > kLongStep) step = static_cast<float>(g_clientRandom.Next() % kLongStepSpread + 500u);
     lastTime = time;
     if (unit->InvisibleSlot()) unit->ClientSpecific()->InvisiblePulse(step);
-    if (unit->MapObject()->IsStunned()) unit->ClientSpecific()->StunnedPulse(step);
+    if (unit->AsMapObject()->IsStunned()) unit->ClientSpecific()->StunnedPulse(step);
     if (unit->pathTimeShift == 0) PlaceOnPath(time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {
         float scaled = step * unit->animationSpeed;
         step = scaled;
     }
-    FigureAnimationState* state = unit->Object3D()->animation;
+    FigureAnimationState* state = unit->AsObject3D()->animation;
     if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
 
 void UnitClientSpecific::RestartAnimation(float time) {
     if (unit->flags & kFlagFrozen) return;
-    FigureAnimationState* state = unit->Object3D()->animation;
+    FigureAnimationState* state = unit->AsObject3D()->animation;
     state->queue.clear();
     if (unit->secondEntry == kModeSpecialIdle) {
         StartIdleAnimation(1);
@@ -98,20 +98,20 @@ void UnitClientSpecific::RestartAnimation(float time) {
             first = unit->AnimationEntry(static_cast<std::uint8_t>(unit->animationEntry));
         if (unit->secondEntry != kNoEntry)
             second = unit->AnimationEntry(static_cast<std::uint8_t>(unit->secondEntry));
-        if (first) unit->Object3D()->animation->Play(first);
+        if (first) unit->AsObject3D()->animation->Play(first);
         if (second) {
-            if (!first) unit->Object3D()->animation->Play(second);
-            else unit->Object3D()->animation->Queue(second);
+            if (!first) unit->AsObject3D()->animation->Play(second);
+            else unit->AsObject3D()->animation->Queue(second);
         }
     }
     int start = unit->animationStart;
     float stored = pc24::Sub(time + 1.0f, static_cast<double>(start));   // stored as a float
     float step = stored;
-    state = unit->Object3D()->animation;
+    state = unit->AsObject3D()->animation;
     if (step > 0.0f && state) {
         lastTime = pc24::Add(static_cast<double>(start), step);
         state->Advance(step);
-        state = unit->Object3D()->animation;
+        state = unit->AsObject3D()->animation;
         lastAnimationTime = state->time;
         lastAnimation = state->current;
         return;
@@ -138,6 +138,6 @@ void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
     FigureAnimation* animation = unit->FindAnimation(key, 1, AnimationRandom::Client);
     if (!animation) return;
-    if (play) unit->Object3D()->animation->Play(animation);
-    else unit->Object3D()->animation->Queue(animation);
+    if (play) unit->AsObject3D()->animation->Play(animation);
+    else unit->AsObject3D()->animation->Queue(animation);
 }

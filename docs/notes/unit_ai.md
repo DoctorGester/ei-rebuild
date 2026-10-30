@@ -20,7 +20,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
 | 005D6F90-005D7F80 | actions: follow, move, attack, setters, FindStandPoint |
 | 005D8310-005DBF70 | brain Load / Save, CList / CArray template instantiations and EH funclets |
 
-- Entry: the unit controller (CUnit + 0x240) embeds the brain at +0x980; its tick 00552300 calls `AIBrain::Think`
+- Entry: the unit controller (Unit + 0x240) embeds the brain at +0x980; its tick 00552300 calls `AIBrain::Think`
   (005D53B0). The original's modes are 16-bit-refcounted (+4 INC word, released through 0040A3A0); ours are owned by
   the brain (`AIBrain::modes`, `std::unique_ptr`; `current` points at the one in charge). The script's UM* commands (SSCCmd::Execute cases 0x24-0x31, 0xC7-0xCA) build modes and add them with 005D5F60.
 - The brain's perception memory is the sub-object at +0xD0, `AIMemory` (005CB0F0 and 005CB700.. take it as `this`;
@@ -82,7 +82,7 @@ address in its source comment; the per-function table that used to be here is go
 - `unit_ai_senses.cpp` (`AIMemory`; Notice, Forget, Update, CanTrack and AIReports in `unit_ai.cpp`): CallAllies
   005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReports Report / Contains (+0x94), Update 005CB700
   (each Think), CanTrack 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
-  forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse
+  forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into Unit + 0x4C8), SeeCorpse
   005CBE90 (OnDamaged). `unit_ai_senses.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
   show-visibility effect). `unit_ai_senses.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the

@@ -1,4 +1,4 @@
-// Saving and loading the map object part of every map object (CMapObject Load / Save) and its
+// Saving and loading the map object part of every map object (MapObject Load / Save) and its
 // server companion's (MapObjectServer Load / Save). See map_object.h and docs/notes/map_objects.md.
 #include "map_object.h"
 
@@ -16,7 +16,7 @@ namespace {
 
 } // namespace
 
-void CMapObject::LoadMapObject(ByteStream* stream) {
+void MapObject::LoadMapObject(ByteStream* stream) {
     companion->Load(stream);
     stream->ReadValue(animationSpeed);
     stream->Read(&localPosition.x, 3 * sizeof(float));
@@ -34,7 +34,7 @@ void CMapObject::LoadMapObject(ByteStream* stream) {
     if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
-void CMapObject::SaveMapObject(ByteStream* stream) {
+void MapObject::SaveMapObject(ByteStream* stream) {
     companion->Save(stream);
     float speed = animationSpeed;
     stream->WriteValue(speed);

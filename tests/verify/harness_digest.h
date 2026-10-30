@@ -63,7 +63,7 @@ struct UnitNow {
     bool idle = false;      // its controller has no action (no walk, no attack) and it has no path
     float experience = 0;
 };
-UnitNow Unit(int id);
+UnitNow UnitNowOf(int id);
 // Player 0's (the local player's) first party member's unit id, or -1; `money` its party's money.
 int LocalLeader(unsigned* money = nullptr);
 

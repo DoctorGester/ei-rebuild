@@ -11,23 +11,23 @@
 
 namespace {
 
-constexpr int kPlayerType = 0x300A;      // a CPlayer
+constexpr int kPlayerType = 0x300A;      // a Player
 
 // Walks every player of `manager`, as the original's iterator does (the manager counted
 // while it walks).
 template <typename F> void ForEachPlayer(PlayerManager* manager, F f) {
     PlayerIterator it;
-    for (CPlayer* player = it.First(manager); player; player = it.Next()) f(player);
+    for (Player* player = it.First(manager); player; player = it.Next()) f(player);
 }
 
-// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of CPlayer::SetPlayerId):
+// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of Player::SetPlayerId):
 // the player gets the highest number of the server world's other players + 1 (signed), or `id` when
 // there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
-int NextPlayerNumber(CPlayer* self, int id) {
+int NextPlayerNumber(Player* self, int id) {
     PlayerManager* players = g_serverWorld.PlayerList();
     if (!players) return id;
     int highest = -1;
-    ForEachPlayer(players, [&](CPlayer* other) {
+    ForEachPlayer(players, [&](Player* other) {
         if (other == self) return;
         const int number = other->playerId;
         if (number > highest) highest = number;
@@ -40,13 +40,13 @@ int NextPlayerNumber(CPlayer* self, int id) {
 EngineObject* PlayerManager::NewObject(int playerType) { return NewPlayer(playerType); }
 
 EngineObject* PlayerManager::NewPlayer(int playerType) {
-    CPlayer* player = new CPlayer();
+    Player* player = new Player();
     player->type = playerType;
     return player;
 }
 
-CPlayer* PlayerManager::CreateSessionPlayer() {
-    auto* player = static_cast<CPlayer*>(BaseManager::CreateObject(kPlayerType, -1));
+Player* PlayerManager::CreateSessionPlayer() {
+    auto* player = static_cast<Player*>(BaseManager::CreateObject(kPlayerType, -1));
     if (!player) return nullptr;
     BaseManager* specific = ContextAsWorld()->SpecificManager();
     player->SetConnection(specific->CreateObjectAs<PlayerConnection>(SideObjectType::Player, -1));
@@ -68,11 +68,11 @@ void PlayerManager::ChangeId(EngineObject* object, int newId) {
 }
 
 void PlayerManager::SendValueToAll(int value) {
-    ForEachPlayer(this, [&](CPlayer* player) { player->Server()->SendValue12(value); });
+    ForEachPlayer(this, [&](Player* player) { player->Server()->SendValue12(value); });
 }
 
 void PlayerManager::SendTextToAll(const char* text) {
-    ForEachPlayer(this, [&](CPlayer* player) {
+    ForEachPlayer(this, [&](Player* player) {
         player->Server()->SendText13(text);
     });
 }

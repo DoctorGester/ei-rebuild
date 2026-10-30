@@ -227,7 +227,7 @@ enum CallPlanes : std::uint8_t {
 
 // ---- The unit and the path -------------------------------------------------------------------------
 
-// What the searches read of the unit (CUnit, its CMapObject and its movement speeds).
+// What the searches read of the unit (Unit, its MapObject and its movement speeds).
 struct UnitState {
     std::int32_t classId;
     float position[3];
@@ -235,7 +235,7 @@ struct UnitState {
     std::int32_t sizeClass;
     float standingHeight;
     std::uint32_t altPassCosts;
-    float forwardSpeed, backwardSpeed;   // CUnit::GetMoveSpeeds
+    float forwardSpeed, backwardSpeed;   // Unit::GetMoveSpeeds
 };
 static_assert(sizeof(UnitState) == 52);
 

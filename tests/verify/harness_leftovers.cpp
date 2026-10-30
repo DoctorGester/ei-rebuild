@@ -30,7 +30,7 @@ constexpr std::uintptr_t kOperatorNew = 0x007005AF;
 constexpr std::uintptr_t kSuspectionConstruct = 0x004BA610;   // ScriptSuspectionModeConstruct
 constexpr std::uintptr_t kFearConstruct = 0x005D2850;         // FearMode::Construct
 constexpr std::uintptr_t kTemplateConstruct = 0x004A6580;     // ClassTemplate::Construct
-constexpr std::uintptr_t kObject3DConstruct = 0x00515BD0;     // CObject3D::Construct
+constexpr std::uintptr_t kObject3DConstruct = 0x00515BD0;     // Object3D::Construct
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
@@ -42,7 +42,7 @@ int __fastcall ZeroedStatsReset(UnitStats* stats) {
     return OriginalCode<int(__thiscall*)(UnitStats*)>(kStatsReset)(stats);
 }
 
-// CMapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
+// MapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
 // without touching the vitals, which are then packed.
 int __fastcall ZeroedVitalsBuild(void* builder, void*, UnitVitals* vitals, UnitStats* stats,
                                  const char* name) {
@@ -51,7 +51,7 @@ int __fastcall ZeroedVitalsBuild(void* builder, void*, UnitVitals* vitals, UnitS
     return OriginalCode<BuildFn>(kBuildFromPrototype)(builder, vitals, stats, name);
 }
 
-// CParty::AddMember's stack record, whose statistics BuildNpcStats fills (its reset leaves some).
+// Party::AddMember's stack record, whose statistics BuildNpcStats fills (its reset leaves some).
 PartyUnitRecord* __fastcall ZeroedRecordConstruct(PartyUnitRecord* record) {
     std::memset(record, 0, sizeof(PartyUnitRecord));
     return OriginalCode<PartyUnitRecord*(__thiscall*)(PartyUnitRecord*)>(kPartyRecordConstruct)(record);
@@ -84,11 +84,11 @@ ClassTemplate* __fastcall ZeroedTemplateConstruct(ClassTemplate* t) {
     return OriginalCode<TemplateConstructFn>(kTemplateConstruct)(t);
 }
 
-// CMapObject::Construct's call of CObject3D::Construct: the view position, which the constructor
+// MapObject::Construct's call of Object3D::Construct: the view position, which the constructor
 // leaves and the draw sorts read for objects listed only for their shadow, starts at zero as in ours
 // (S17a; zeroed after the construction).
-CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
-    CObject3D* result = OriginalCode<CObject3D*(__fastcall*)(CObject3D*)>(kObject3DConstruct)(object);
+Object3D* __fastcall ZeroedViewConstruct(Object3D* object) {
+    Object3D* result = OriginalCode<Object3D*(__fastcall*)(Object3D*)>(kObject3DConstruct)(object);
     std::memset(&object->worldPosition, 0, sizeof(object->worldPosition));
     return result;
 }
@@ -135,10 +135,10 @@ const Site kSites[] = {
     {0x00513BC9, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
     {0x00513776, kVitalsReset, reinterpret_cast<const void*>(&ZeroedVitalsReset), kStatsCopies},   // BuildFromPrototype 005136D0
     {0x0051377D, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
-    {0x0052EB81, kVitalsReset, reinterpret_cast<const void*>(&ZeroedVitalsReset), kStatsCopies},   // CUnit::TakePrototype 0052EB70
+    {0x0052EB81, kVitalsReset, reinterpret_cast<const void*>(&ZeroedVitalsReset), kStatsCopies},   // Unit::TakePrototype 0052EB70
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
-    {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild), kStatsCopies},   // CMapObject::TakePrototype
-    {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct), kStatsCopies},   // CParty::AddMember
+    {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild), kStatsCopies},   // MapObject::TakePrototype
+    {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct), kStatsCopies},   // Party::AddMember
     // ServerSpecificManager::NewObject 004D6970: the player server, the 3D object server,
     // MapObjectServer, UnitServer (its waitFrame +0x93C, which ResolveBlocker reads) and the torch spec.
     {0x004D69A2, kOperatorNew, kNew, kServerObjects},
@@ -146,7 +146,7 @@ const Site kSites[] = {
     {0x004D6A13, kOperatorNew, kNew, kServerObjects},
     {0x004D6A4F, kOperatorNew, kNew, kServerObjects},
     {0x004D6A88, kOperatorNew, kNew, kServerObjects},
-    // CMapObjectManager::CreateObject 00512730: units (0x32..0x34 share one call), trees, buildings,
+    // MapObjectManager::CreateObject 00512730: units (0x32..0x34 share one call), trees, buildings,
     // stones, stuff, the fake unit, torches, magic traps, levers, 0x300D and trap objects.
     {0x00512772, kOperatorNew, kNew, kMapObjects},
     {0x005127AB, kOperatorNew, kNew, kMapObjects},
@@ -190,7 +190,7 @@ const Site kSites[] = {
     {0x004A7CFE, kTemplateConstruct, kTemplateZeroed, kTemplates},
     {0x004A7DDA, kTemplateConstruct, kTemplateZeroed, kTemplates},
     {0x00457886, kTemplateConstruct, kTemplateZeroed, kTemplates},
-    // CMapObject::Construct 0050E2D0's call of CObject3D::Construct (S17a).
+    // MapObject::Construct 0050E2D0's call of Object3D::Construct (S17a).
     {0x0050E2F2, kObject3DConstruct, reinterpret_cast<const void*>(&ZeroedViewConstruct), kViewPositions},
     // NewParticleSource 004981B0 (SV7b7): the first Tick reads the emission point (+0x98), which nothing sets
     // before Attach.

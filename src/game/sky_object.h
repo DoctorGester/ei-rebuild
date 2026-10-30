@@ -35,7 +35,7 @@ public:
     // others get it with alpha 0xFF and a specular of alpha haze * 255 and `light` * max(0,
     // normal . direction)^2 * 150. Components truncated (_ftol). The colours
     // are the mesh's colorsA (diffuse) and colorsB (specular), one per vertex.
-    void Light(const float* direction, SkyColour ambient, SkyColour light);
+    void ApplyLight(const float* direction, SkyColour ambient, SkyColour light);
 
     // The mesh's fields (FigureMesh): worldMatrix the world matrix Sky::Draw builds, name
     // "nask0", directory emptied by LoadSky, the vertices and normals four per packet.
@@ -58,9 +58,9 @@ struct Sky {
 
     Ref<SkyObject> object;   // null until the zone's sky is loaded
     Ref<EngineObject> material;   // type 0x12, by WorldClient::LoadSky
-    Ref<CTexture> texture;  // texture holder
+    Ref<Texture> texture;  // texture holder
     int turns;            // 1 when constructed
 
-    // Object->Light(...) when there is an object.
-    void Light(const float* direction, SkyColour ambient, SkyColour light);
+    // Object->ApplyLight(...) when there is an object.
+    void ApplyLight(const float* direction, SkyColour ambient, SkyColour light);
 };

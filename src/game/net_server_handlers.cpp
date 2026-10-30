@@ -89,7 +89,7 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
         if (binding->ConnectionRef().Get() != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7 & RefCounted::kDetached) return;
-        auto* player = binding->Player();
+        auto* player = binding->PlayerInfo();
         std::string line;
         line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());
         server->Announce(line, nullptr);

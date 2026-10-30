@@ -108,7 +108,7 @@ ItemTurn* ItemTurn::Clone() {
 
 // --- Moving items between lists ----------------------------------------------------
 
-Item* ItemScreen::MoveItem(Item* item, CParty* to, CParty* from, int limit, bool merge, bool turning) {
+Item* ItemScreen::MoveItem(Item* item, Party* to, Party* from, int limit, bool merge, bool turning) {
     bool whole = merge && ui->shiftDown != 0;
     if (limit > 0 && std::ssize(to->items) >= limit) {
         for (int i = 0; i < limit; ++i) {
@@ -130,7 +130,7 @@ Item* ItemScreen::MoveItem(Item* item, CParty* to, CParty* from, int limit, bool
     return moved;
 }
 
-Item* ItemScreen::ReturnAll(CParty* to, CParty* from) {
+Item* ItemScreen::ReturnAll(Party* to, Party* from) {
     Item* moved = nullptr;
     while (!from->items.empty()) {
         Item* first = from->items[0];
@@ -146,7 +146,7 @@ bool ItemScreen::CanEquip(Item*, int) { return false; }
 
 PartySkill ItemScreen::BestPartySkill(int) { return {}; }
 
-CUnit* ItemScreen::HeroUnit(int) { return nullptr; }
+Unit* ItemScreen::HeroUnit(int) { return nullptr; }
 
 float ItemScreen::Weight() { return 0.0f; }
 

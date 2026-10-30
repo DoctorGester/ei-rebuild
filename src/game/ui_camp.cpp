@@ -39,7 +39,7 @@ namespace {
 
 // `results` is re-read every time: a made item goes to `owner` and into `strip`, the others to the local
 // player and into the item strip.
-void TakeResults(CampPages* camp, CParty* const& results, CParty* owner, UiItemStrip* strip) {
+void TakeResults(CampPages* camp, Party* const& results, Party* owner, UiItemStrip* strip) {
     while (!results->items.empty()) {
         Item* item = results->items[0];
         if (IsMade(item))
@@ -114,7 +114,7 @@ void RebuildArmourLayers(PartyUnitRecord* hero) {
 }
 
 // Whether `list` holds `item`.
-bool ListHolds(CParty* list, const Item* item) {
+bool ListHolds(Party* list, const Item* item) {
     return std::ranges::find(list->items, item) != list->items.end();
 }
 
@@ -131,7 +131,7 @@ float TurnedBy(float seconds, float turn, bool backwards) {
 // records).
 template <typename Step>
 int FindHero(int start, Step step) {
-    CParty* party = LocalPlayerData();
+    Party* party = LocalPlayerData();
     int i = start;
     for (int tries = 0;;) {
         int count = lib::Count(party->members);
@@ -303,7 +303,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
     case 1: {   // trade: a spell container only for a hero who can cast its spell
         if (mode != 1) return true;
         if (!IsSpellContainer(item)) return false;
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         PartyUnitRecord* heroRecord = HeroRecord();
         return HeroCanUseSpell(&heroRecord->stats, spell);
 
@@ -380,7 +380,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade) return false;
-        CSpell* spell = item->spell;
+        Spell* spell = item->spell;
         if (!spell) return false;
         if (itemMade->Kind() != ItemKind::Quick && !spell->HasCastFlagModifier()) return false;
         if (spell->skillNeeded > itemMade->magicLevel) return false;
@@ -409,7 +409,7 @@ void CampPages::UpdateAction() {
     actionShown = false;
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
-    auto tradeWith = [&](CParty* bought, int buyKind, CParty* sold, int sellKind, const char* text) {
+    auto tradeWith = [&](Party* bought, int buyKind, Party* sold, int sellKind, const char* text) {
         if (bought->items.empty() && sold->items.empty()) return;
         action = text;
         actionEnabled = true;
@@ -419,7 +419,7 @@ void CampPages::UpdateAction() {
     };
     // A constructor's page: its slots' cost; a finished item in the slots is taken apart,
     // otherwise the constructor makes what the slots allow.
-    auto construct = [&](Ref<Item>& made, CParty* slots, int slotKind, int recordKind, int apartKind,
+    auto construct = [&](Ref<Item>& made, Party* slots, int slotKind, int recordKind, int apartKind,
                          bool (*isFinished)(const Item*), bool (*isMaterial)(const Item*),
                          bool (CampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
         made.Reset();
@@ -586,9 +586,9 @@ void CampPages::Draw(SceneRenderer* pass) {
 // --- what the constructors would make ------------------------------------------------------------
 
 bool CampPages::CanMakeSpell() {
-    CSpellConstructor* maker = spellResults->SpellConstructor();
+    SpellConstructor* maker = spellResults->GetSpellConstructor();
     ItemManager* factory = spellResults->ItemFactory();
-    CSpellManager* manager = spellResults->SpellManager();
+    SpellManager* manager = spellResults->GetSpellManager();
     const itemdb::SpellRecord* spell = nullptr;
     // The modifiers are kept in an 8-entry stack array (more would overwrite its
     // frame; CanEquip allows at most eight).
@@ -618,7 +618,7 @@ bool CampPages::CanMakeSpell() {
         maker->SetManager(nullptr);
         return false;
     }
-    CSpell* made = maker->container->spell.Clone(manager);
+    Spell* made = maker->container->spell.Clone(manager);
     maker->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
@@ -632,11 +632,11 @@ bool CampPages::CanMakeSpell() {
 }
 
 bool CampPages::CanMakeItem() {
-    CItemConstructor* maker = itemResults->ItemConstructor();
+    ItemConstructor* maker = itemResults->GetItemConstructor();
     ResourceManager* factory = itemResults->ItemFactory();
-    CSpellManager* manager = itemResults->SpellManager();
+    SpellManager* manager = itemResults->GetSpellManager();
     itemdb::ItemRecordHead* part = nullptr;
-    Ref<CSpell> spell;   // a copy of the container's spell, released on the way out
+    Ref<Spell> spell;   // a copy of the container's spell, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
     ItemKind itemKind{};         // uninitialised until a part sets it
@@ -690,7 +690,7 @@ void CampPages::CloseScreen() {
     helpPanel->Describe(nullptr);
     descPanel->Describe(nullptr);
     // The first of each constructor's lists (the class template's) is not touched here.
-    for (CParty* list : {spellParts[1], spellParts[2], spellResults, itemParts[1], itemParts[2], itemResults,
+    for (Party* list : {spellParts[1], spellParts[2], spellResults, itemParts[1], itemParts[2], itemResults,
                          itemExtra}) {
         list->Destroy();
         delete list;
@@ -832,11 +832,11 @@ void CampPages::TakeItem(Item* item, int mode) {
         return;
     }
     // Back to the player's items and the item strip (from `list`).
-    auto toPlayer = [&](Item* it, CParty* list) {
+    auto toPlayer = [&](Item* it, Party* list) {
         itemStrip->ScrollToItem(MoveItem(it, LocalPlayerData(), list, 0, true, false));
     };
     // A made item back to the constructor's parts and its strip, the others to the player.
-    auto back = [&](Item* it, CParty* ownerParty, CParty* list, UiItemStrip* strip) {
+    auto back = [&](Item* it, Party* ownerParty, Party* list, UiItemStrip* strip) {
         if (IsMade(it))
             strip->ScrollToItem(MoveItem(it, ownerParty, list, 0, true, false));
         else
@@ -933,7 +933,7 @@ void CampPages::TakeItem(Item* item, int mode) {
 
 void CampPages::RefreshWeapons() {
     PartyUnitRecord* heroRecord = HeroRecord();
-    CUnit* unit = heroes[hero];
+    Unit* unit = heroes[hero];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < std::ssize(heroRecord->weapons); ++i)
@@ -979,7 +979,7 @@ void CampPages::PreviousHero() {
 }
 
 void CampPages::ShowHero() {
-    CUnit* unit = heroes[hero];
+    Unit* unit = heroes[hero];
     TextManager* table = g_clientWorld.texts;
     std::string name;
     std::string own = unit->GetName();

@@ -23,7 +23,7 @@ constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementK
 
 } // namespace
 
-void CUnit::UpdateSizeClass() {
+void Unit::UpdateSizeClass() {
     Controller()->UpdateMoveFactors();   // the server's controller; empty on the others
     if (controller->GetClassId() != ClassId::UnitServer) {
         sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;

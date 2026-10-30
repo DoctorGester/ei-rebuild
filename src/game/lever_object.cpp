@@ -63,14 +63,14 @@ bool Lever::RunTick() {
     float t = pc24::Sub(endTick, static_cast<double>(g_clientWorld.tick)) * rate;
     if (t > 0.0f) {
         shown.y = to - (to - from) * t;
-        Object3D()->SetFigureScale(&shown.x);
+        AsObject3D()->SetFigureScale(&shown.x);
         g_clientWorld.RefreshPlatforms(this);
         return true;
     }
     EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
         shown.y = to;
-        Object3D()->SetFigureScale(&shown.x);
+        AsObject3D()->SetFigureScale(&shown.x);
         g_clientWorld.RefreshPlatforms(this);
     }
     return false;
@@ -116,7 +116,7 @@ void LockKey::WriteTo(ByteStream* stream) const {
 }
 
 void Lever::WriteLeverNetState() {
-    CMapObject::WriteNetState();
+    MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return;
     EI_NAN_AUDIT(to, scale.y);
@@ -132,7 +132,7 @@ void Lever::WriteLeverNetState() {
 }
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
-    std::uint32_t complete = CMapObject::ReadNetState(first);
+    std::uint32_t complete = MapObject::ReadNetState(first);
     DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));

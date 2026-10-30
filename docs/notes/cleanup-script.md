@@ -12,12 +12,12 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 - The parser's `VarsAt` / `DefinitionAt` / `TokenListAt` views are typed `__fastcall` forwarders (`VarsFindVariable`, `VarsHasVariable`,
   `VarsAppendFrom`, `VarsResetValues`, `VarsClear`, `DefinitionReset`, `TokensDestruct`), still through the original addresses as the file's header
   asks.
-- A unit's controller (+0x240) is `CUnit::controller`; the addon's death test is `CMapObject::IsDead` (slot 55, a real virtual call: `jmp
+- A unit's controller (+0x240) is `Unit::controller`; the addon's death test is `MapObject::IsDead` (slot 55, a real virtual call: `jmp
   [eax+0DCh]`); CreatePointLight's light comes from `BaseManager::CreateObject` (slot 23, `[vtable+5Ch]`) of the world's timed-object manager
   (`WorldServer()->timedObjectManager`, 007AFFA8).
 - Console: the interface is `Interface3D` (`SetConsoleRect`, `SetConsoleHistory`, `ShowFps`, `ConsoleAddText`, `fade->Start`),
   the debug display switches are `WorldClient::Show* / Hide*`, the world is `WorldServer()` (`LootDeadUnits`; players through the shared
-  `WorldGetPlayer`), a player is `CPlayer` (`Server()`, `Party()->members` / `variables` / `Money()`, `logTraffic` +0x10C), the local player is
+  `WorldGetPlayer`), a player is `Player` (`Server()`, `Party()->members` / `variables` / `Money()`, `logTraffic` +0x10C), the local player is
   `LocalView()->player`, the network client is `net::GameClient()` (active unless `flags7 & kDetached`; the host test reads
   `BindingMessage::PlayerRef()` as a `PlayerMessage::host`), the frame timer is `SceneRenderer::FrameTime` (slot 6).
 - The original's CTime (006FE3BB `Construct`) is lib/calendar.h and CString::FormatV (006FDC12) `str::Format`; `ConsoleStreambuf::StreambufConstruct` /

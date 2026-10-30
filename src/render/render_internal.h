@@ -115,7 +115,7 @@ struct TerrainPiece {
 };
 
 struct TerrainBatch {
-    const void* texture;      // the game's CTexture
+    const void* texture;      // the game's Texture
     bool water;               // the water pass (alpha from the vertex colour)
     int matrix;               // index into Frame::matrices
     int firstPiece;           // into Frame::terrainPieces
@@ -214,7 +214,7 @@ struct LightParams {
 static_assert(sizeof(LightParams) == 80 + kMostSceneLights * 36);
 void LightUniforms(LightParams* params);
 // The kept point lights, laid out as LightParams::points. SceneLightIndex: the kept light at `position`
-// exactly (the same CLight's), -1 none.
+// exactly (the same Light's), -1 none.
 const float (*SceneLightPoints(int* count))[2][4];
 // The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
 bool SceneLightCastsShadows(int k);
@@ -737,7 +737,7 @@ void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
 
-// A CTexture or a texture's holder (Surface) as a texture view with its mip levels: what was decoded or drawn for it;
+// A Texture or a texture's holder (Surface) as a texture view with its mip levels: what was decoded or drawn for it;
 // white when there is none. Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);

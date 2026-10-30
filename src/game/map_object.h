@@ -5,7 +5,7 @@
 // MapObjectClientSpecific (0x3A) on the client; both point back at the object.
 
 #include "engine_object.h"
-#include "map_object_figures.h"   // CObject3D, the base
+#include "map_object_figures.h"   // Object3D, the base
 #include "maths.h"
 #include "net_delta.h"          // DeltaState
 
@@ -104,9 +104,9 @@ struct UnitStats;
 struct LockKey;
 
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
-class CMapObject : public CObject3D {
+class MapObject : public Object3D {
 public:
-    ~CMapObject() override;
+    ~MapObject() override;
     void Create() override { CreateMapObject(); }
     void Destroy() override { DestroyMapObject(); }
     void ClearState() override {}
@@ -116,7 +116,7 @@ public:
     }
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to CObject3D's (which
+    // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to Object3D's (which
     // takes SideObjectType::Object3D). Units override it.
     void AttachObject(EngineObject* object) override;
     bool InvisibleSlot() override;
@@ -132,7 +132,7 @@ public:
     // The scale becomes the base scale (units override it).
     virtual void ApplyBaseScale();
     // A hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other objects ignore it).
-    virtual void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster);
+    virtual void ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster);
     virtual int StatsChanged();        // PackVitals (units override); 1
     // Nothing (units hand the argument to their controller's vitals virtual).
     virtual void ScaleEffectChanged(bool scaleEffect);
@@ -195,7 +195,7 @@ public:
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
     bool HasEffect(SpellType type);
 
-    // The per-tick update: lets the companion update. CUnit's update calls it after its controller's.
+    // The per-tick update: lets the companion update. Unit's update calls it after its controller's.
     void Update();
 
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
@@ -254,7 +254,7 @@ public:
     std::uint32_t ReadState(int first, MemoryStream* reader);
     std::string* SetSecondName(const char* text);
 
-    CObject3D* Object3D() { return this; }
+    Object3D* AsObject3D() { return this; }
 
 
     MapObjectCompanion* companion; // MapObjectServer / MapObjectClientSpecific
@@ -265,7 +265,7 @@ public:
     // World updates until the object's effects are next looked at (5 after Create; the server world's update map
     // sets it).
     int updateCountdown;
-    float animationSpeed;           // the animation's speed factor (CUnit::animationSpeed; 1 after Create)
+    float animationSpeed;           // the animation's speed factor (Unit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // hit points, maximum, mana, maximum
     std::vector<MapEffect> effects; // (SetEffectCount is its SetSize)
     std::string name2;
@@ -277,7 +277,7 @@ public:
                                     // per part: MarkChanged)
 
 protected:
-    CMapObject();
+    MapObject();
 };
 
 // A map object's companion (MapObjectServer / MapObjectClientSpecific derive from it).
@@ -304,14 +304,14 @@ public:
     // The client's sets the object's light mode; the server's is empty.
     virtual void SetLightMode(int) {}
 
-    CMapObject* owner;              // the map object (CMapObject::AttachCompanion sets it)
+    MapObject* owner;              // the map object (MapObject::AttachCompanion sets it)
 };
 inline MapObjectCompanion* CompanionSlots(EngineObject* companion) {
     return static_cast<MapObjectCompanion*>(companion);
 }
 
 // An engine object known to be a map object (a unit, a lever, a trap ...): its slots and fields.
-inline CMapObject* ObjectSlots(EngineObject* object) { return static_cast<CMapObject*>(object); }
+inline MapObject* ObjectSlots(EngineObject* object) { return static_cast<MapObject*>(object); }
 
 // The companion's back pointer.
-inline CMapObject*& CompanionOwner(EngineObject* companion) { return CompanionSlots(companion)->owner; }
+inline MapObject*& CompanionOwner(EngineObject* companion) { return CompanionSlots(companion)->owner; }

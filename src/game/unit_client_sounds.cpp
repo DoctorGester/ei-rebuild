@@ -74,7 +74,7 @@ bool AllFootprintsShown() { return options::g_options.drawVisibleOnly == 0; }
 // on a NaN `now`).
 bool PassedFrame(int frame, float last, float now) { return frame > last && frame <= now; }
 
-void Shake(CUnit* unit) {
+void Shake(Unit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
@@ -160,7 +160,7 @@ std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation
 // --- Playing them --------------------------------------------------------------------------------
 
 void UnitClientSpecific::PlayStepSounds() {
-    const FigureAnimationState* state = unit->Object3D()->animation;
+    const FigureAnimationState* state = unit->AsObject3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
     Vector3 position{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
@@ -241,10 +241,10 @@ void UnitClientSpecific::PlayStepSounds() {
         if (model->swapFeet) left = left == 0;
         char partName[16];
         std::snprintf(partName, sizeof(partName), left ? "ll%d" : "rl%d", part);
-        FigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
+        FigureMesh* foot = unit->AsObject3D()->FindPartByPrefix(partName);
         if (!foot) break;
         Vector3 footAt;
-        unit->Object3D()->PartWorldPosition(&footAt.x, foot);
+        unit->AsObject3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing = unit->localRotation.AxisY();
         float length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays

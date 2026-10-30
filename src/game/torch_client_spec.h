@@ -17,7 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CLight;
+class Light;
 class ParticleSource;
 
 class TorchObjectClientSpec : public TorchObjectSpec {
@@ -63,7 +63,7 @@ public:
     // it, with far distance values[1] * 5.
     void SetSound(const char* name);
 
-    Ref<CLight> light;
+    Ref<Light> light;
     ParticleSource* particles;     // counted
     int sound;                      // the looping sound's handle, 0 when none
 };

@@ -135,7 +135,7 @@ std::string CheckChatWrap(const std::string&) { Absent(__func__); }
 
 namespace ei::verify::digest::image_side {
 void Read(void*, Snapshot&) { Absent(__func__); }
-UnitNow Unit(void*, int) { Absent(__func__); }
+UnitNow UnitNowOf(void*, int) { Absent(__func__); }
 int LocalLeader(void*, unsigned*) { Absent(__func__); }
 void NoteAddresses(void*) { Absent(__func__); }
 } // namespace ei::verify::digest::image_side

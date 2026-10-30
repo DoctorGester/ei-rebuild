@@ -42,7 +42,7 @@ constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr float kHalfCell = 0.5f;
 
 
-UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
+UnitVitals& ServerVitals(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 void ShowHead(UnitServer* self) {
     AnimationSteps& queue = self->queue;
@@ -55,7 +55,7 @@ void ShowHead(UnitServer* self) {
 // rotation), then stands (0) and is Stopped.
 void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
-    int now = self->World()->tick;
+    int now = self->OwningWorld()->tick;
     Vector3 axis = self->unit->localRotation.AxisY();
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
@@ -93,7 +93,7 @@ void FillIdle(UnitServer* self, AnimationSteps* steps) {
 }
 
 // A player's party, walked like the original's hash_map iteration.
-using PartyMap = CPlayer::UnitMap;
+using PartyMap = Player::UnitMap;
 
 // The two variants differ only in the state they set.
 void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
@@ -105,7 +105,7 @@ void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
     self->PopFinishedSteps();
     ShowHead(self);
     self->motion.Clear();
-    int now = self->World()->tick;
+    int now = self->OwningWorld()->tick;
     Vector3 axis = self->unit->localRotation.AxisY();
     Vector3 back = -axis;
     if (self->motion.Start(self->unit->localPosition, back, now)) self->unit->RefreshMotion();
@@ -135,7 +135,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 
 bool UnitServer::CanReactFor(int ticks) {
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
-        World()->tick + ticks > nextAttackTime)
+        OwningWorld()->tick + ticks > nextAttackTime)
         return false;
     return true;
 }
@@ -179,7 +179,7 @@ void UnitServer::PlayIdle() {
 
 void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     *steps = {};
-    CUnit* self = unit;
+    Unit* self = unit;
     std::uint32_t bits;
     switch (static_cast<std::uint32_t>(moveMode.mode)) {
     case 0: bits = 0x30000; break;
@@ -224,7 +224,7 @@ void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
 }
 
 AnimationSteps* UnitServer::NextAnimation() {
-    CUnit* self = unit;
+    Unit* self = unit;
     std::uint32_t key = WeaponAndModeBits(this);
     if (self->moveMode == 3) {
         key |= AnimationKeyOf(AnimationKind::Run);
@@ -282,11 +282,11 @@ void UnitServer::StartAction(char follow, char stepFlags) {
     state = UnitState::Acting;
     actingCheckTime = WorldContext()->tick + 10;
     if (plan.targetId == -1) {
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         motion.StandAndTurnUntil(now, unit, plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         motion.StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
@@ -377,7 +377,7 @@ bool UnitServer::ChangeMoveMode() {
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
         g_serverWorld.aiMap.sectorMap.Add(unit);
-        CUnit* self = unit;
+        Unit* self = unit;
         if (self->player) PlayerMessage(self->player->Server(), self, AckKind::CantChangePosition);
         return false;
     }
@@ -445,10 +445,10 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
     return true;
 }
 
-std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
+std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     WorldServer* world = ServerWorld();
-    CPlayer* player = unit->player;
-    std::vector<CUnit*> list;
+    Player* player = unit->player;
+    std::vector<Unit*> list;
     if (!player || player->sessionKind != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
@@ -458,7 +458,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
         const ScriptGroup* group = &player->Server()->partyUnits;
-        for (CUnit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
+        for (Unit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
             if (group->Contains(other) != 0) continue;
             sectors->Remove(other);
             list.push_back(other);
@@ -467,7 +467,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
     const PartyMap* party = &player->units;
     for (auto node = party->begin(); node != party->end(); ++node) {
-        CUnit* member = node->second;
+        Unit* member = node->second;
         if (!member) break;
         if (member == unit) continue;
         auto* controller = member->ServerController();
@@ -482,7 +482,7 @@ std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
 
 void UnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
-    CUnit* self = unit;
+    Unit* self = unit;
     const float* goal = &path->goal.x;
     // The path as a motion order for the message. The header is left uninitialised when the path is not partial
     // (the message does not read it for kind 3).
@@ -535,7 +535,7 @@ void UnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
     motion.Clear();
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     Vector3 axis = unit->localRotation.AxisY();
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
@@ -557,7 +557,7 @@ void UnitServer::ResyncWithUnit() {
     if (!queue.SameAs(&idleAnimation)) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (queue.steps.empty() && queue.extra == -1)
-            idleAnimation.extra = World()->tick - static_cast<int>(g_random.Next() % 0x33);
+            idleAnimation.extra = OwningWorld()->tick - static_cast<int>(g_random.Next() % 0x33);
         queue = idleAnimation;
         StartQueueIfUnset();
         PopFinishedSteps();
@@ -570,7 +570,7 @@ void UnitServer::ResyncWithUnit() {
 // --- Reset ---------------------------------------------------------------------------------------
 
 void UnitServer::ResetController() {
-    auto releaseRef = [](Ref<CMapObject>& ref) {
+    auto releaseRef = [](Ref<MapObject>& ref) {
         ref.Reset();
     };
     action.kind = UnitOrderKind::None;

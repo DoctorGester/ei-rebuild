@@ -4,8 +4,8 @@
 #include "figure_mesh.h"   // VertexPacket, MeshCorner
 #include "ground_decal.h"
 #include "link_figure.h"          // LinkMesh
-#include "map_object.h"           // CMapObject (ObjectWithId)
-#include "map_object_figures.h"   // CObject3D
+#include "map_object.h"           // MapObject (ObjectWithId)
+#include "map_object_figures.h"   // Object3D
 #include "model.h"                // TransformPipeline, ScenePipeline
 #include "render/render.h"
 #include "terrain.h"
@@ -100,7 +100,7 @@ void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, f
     TransformPipeline* pipeline = g_sceneRenderer.pipeline;
     PartData data;
     for (const Platform& face : platforms.list) {
-        CObject3D* object = ObjectWithId(face.id);
+        Object3D* object = ObjectWithId(face.id);
         if (!object) continue;
         // The object's bounding sphere about its origin, then about its centre.
         if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))

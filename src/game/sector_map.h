@@ -11,8 +11,8 @@
 #include <vector>
 
 class AIMap;
-class CMapObject;
-class CUnit;
+class MapObject;
+class Unit;
 
 // The kind of an AI map occluder (the occluder word's bits 9-11, FootprintCell, SectorOccluder): a figure part's
 // comes from its name (BoundsFlag). Every occluder dims lines of sight by its transparency (AIMap::LineOfSight);
@@ -57,8 +57,8 @@ struct Sector {
     // Puts record `index` on the free list.
     void FreeOccluder(int index);
 
-    std::vector<CMapObject*> objects;    // non-unit objects
-    std::vector<CUnit*> units;
+    std::vector<MapObject*> objects;    // non-unit objects
+    std::vector<Unit*> units;
     int freeOccluder;                            // head of the free records (-1 none)
     std::vector<SectorOccluder> occluders;
 };
@@ -102,22 +102,22 @@ public:
 
     // Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
-    bool Add(CMapObject* object);
+    bool Add(MapObject* object);
 
     // The units within `radius` of `position`. The original inserts each match at the head of its list, so the
     // result runs from the last sector of the spiral back to the nearest, each sector's units last first.
-    std::vector<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
+    std::vector<Unit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
     // first refuses a position with x or y below 0 (or NaN).
-    bool Move(CMapObject* object, const Vector3& position);
+    bool Move(MapObject* object, const Vector3& position);
 
     // The unit list of sector (sx, sy), null outside the map.
-    std::vector<CUnit*>* UnitsAt(int sx, int sy);
+    std::vector<Unit*>* UnitsAt(int sx, int sy);
 
     // Unregisters `object` from the sector it was added to and clears its footprint.
-    bool Remove(CMapObject* object);
+    bool Remove(MapObject* object);
 
     // Called by AIMap::Load. Sizes the map for a cell grid: width and
     // height in sectors (cells / 32, rounded towards zero), `added` 0, the sector array set to

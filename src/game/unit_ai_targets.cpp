@@ -48,7 +48,7 @@ constexpr float kSmallHeight = 0.5f;            // prototypes below this height 
 
 // An area attack's damage: summed over the group members within the option's radius of the candidate (NaN
 // distances count).
-std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* candidate) {
+std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, Unit* candidate) {
     std::uint32_t sum = 0;
     if (group->empty()) return sum;
     float radius2 = option->radius * option->radius;
@@ -64,7 +64,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* 
 // A scored {part, object} the choice keeps.
 struct Scored {
     int part;
-    CUnit* object;
+    Unit* object;
     float score;
 };
 
@@ -98,21 +98,21 @@ void AIOrder::Clear() {
     pointIsUseSpot = false;
 }
 
-void AIOrder::MakeAttack(CMapObject* object) {
+void AIOrder::MakeAttack(MapObject* object) {
     Clear();
     kind = UnitOrderKind::Attack;
     source = kAttackAllParts;
     target.Assign(object);
 }
 
-void AIOrder::MakeCast(int spell, CMapObject* object) {
+void AIOrder::MakeCast(int spell, MapObject* object) {
     Clear();
     kind = UnitOrderKind::CastOn;
     target.Assign(object);
     source = static_cast<std::uint32_t>(spell);
 }
 
-void AIOrder::MakeUse(CMapObject* object, UseSource use) {
+void AIOrder::MakeUse(MapObject* object, UseSource use) {
     Clear();
     kind = UnitOrderKind::Use;
     target.Assign(object);
@@ -130,12 +130,12 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 
 bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     AIPath path;
-    CUnit* self = owner->unit;
-    CUnit* object = choice->object;
+    Unit* self = owner->unit;
+    Unit* object = choice->object;
     int part = choice->part;
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
-        CSpell* spell = self->GetSpellObject(part);
+        Spell* spell = self->GetSpellObject(part);
         if (spell && (spell->targetFlags & SpellTargetFlag::AtPoint) && object->sizeClass == 0 &&
             object->GetPrototype()->height >= kSmallHeight)
             return false;
@@ -178,9 +178,9 @@ const AIAttackOption* AIAttention::FindOption(int part) const {
 }
 
 bool AIBrain::IsUsable(const AITargetChoice* choice) {
-    CUnit* object = choice->object;
+    Unit* object = choice->object;
     if (!object) return true;
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     const AIAttackOption* option = attention.FindOption(choice->part);
     if (!option) return false;
     if (option->kind != AIOptionKind::AreaAttack && option->kind != AIOptionKind::LastingArea) return true;
@@ -188,7 +188,7 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     if (self->sizeClass == 0 && self->GetPrototype()->height >= kSmallHeight) return true;
     Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
-        CUnit* other = node;
+        Unit* other = node;
         float dy = at.y - other->localPosition.y;
         float dx = at.x - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
@@ -208,7 +208,7 @@ namespace {
 // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25 per unit of
 // distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for
 // attacks. -1e30 when it cannot apply.
-float Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* current, CUnit* candidate, float threshold,
+float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* current, Unit* candidate, float threshold,
              const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
     UnitServer* control = candidate->ServerController();
@@ -295,9 +295,9 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
     if (spells.empty() && (candidates->empty() || weapons.empty())) return {};
     AITargetChoice attack = CurrentAttack();
     if (!IsUsable(&attack)) attack.object = nullptr;
-    CUnit* held = attack.object;
+    Unit* held = attack.object;
     float best = kFloorScore;
-    CUnit* self = owner->unit;
+    Unit* self = owner->unit;
     if (held) {
         if (candidates->size() == 1 && spells.empty()) return attack;
         const AIAttackOption* option = attention.FindOption(attack.part);
@@ -329,7 +329,7 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         UnitList allies;
         allies.push_back(self);
         for (auto& node : memory.nearby) {
-            CUnit* other = node;
+            Unit* other = node;
             if (other->IsDead() == 0 && !memory.reports.Contains(other) && g_serverWorld.diplomacy.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
@@ -358,7 +358,7 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         }
         if (chosen < 0) return choice;
         if (choice.object == attack.object && choice.part == attack.part) return choice;
-        CUnit* object = choice.object;
+        Unit* object = choice.object;
         if (IsUsable(&choice)) {
             // Allies only: a target off the path must be in reach from here.
             bool allowed = !alliesOnly || IsNearPath(object->localPosition, kPathNear) ||
@@ -399,7 +399,7 @@ float OptionWeight(const AIAttackOption*);
 float OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 
 // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
-AIOptionKind SpellKind(const CSpell* spell) {
+AIOptionKind SpellKind(const Spell* spell) {
     if (!spell) return AIOptionKind::Weapon;
     unsigned type = static_cast<unsigned>(spell->Type());
     return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
@@ -456,7 +456,7 @@ void AIAttackOption::Save(ByteStream* stream) const {
     stream->WriteValue(damage);
 }
 
-void AIAttention::Build(CUnit* unit) {
+void AIAttention::Build(Unit* unit) {
     auto* server = unit->ServerController();
     weapons.clear();
     spells.clear();
@@ -468,7 +468,7 @@ void AIAttention::Build(CUnit* unit) {
             weapons.push_back(option);
         }
         for (std::uint32_t slot = 0; slot < 8; ++slot) {
-            const CSpell* spell = unit->GetSpellObject(slot);
+            const Spell* spell = unit->GetSpellObject(slot);
             if (!spell) continue;
             AIOptionKind kind = SpellKind(spell);
             if (kind == AIOptionKind::Unused) continue;

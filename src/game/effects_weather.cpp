@@ -213,7 +213,7 @@ void VisibilityFog::Reveal(const FogGrid* grid) {
             cell->pos.x = (Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f;
             r = g_clientRandom.Next();
             cell->pos.y = (Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f;
-            float ground = static_cast<float>(World()->SurfaceHeightAt(cell->pos.x, cell->pos.y));
+            float ground = static_cast<float>(OwningWorld()->SurfaceHeightAt(cell->pos.x, cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = ground + 0.5f;
             cell->frame = static_cast<std::int8_t>(g_clientRandom.Next() % 15);

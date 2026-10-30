@@ -80,7 +80,7 @@ constexpr int kViewPerson = 3;
 constexpr int kViewThird = 4;
 
 // The speaker's eyes: blinking (`blinks`), or open.
-void SetBlink(CUnit* unit, std::uint8_t blinks) {
+void SetBlink(Unit* unit, std::uint8_t blinks) {
     UnitClientSpecific* model = unit->ClientController();
     model->blinks = blinks;
     if (!blinks) model->BlinkOpen(true);
@@ -261,7 +261,7 @@ void BriefingScreen::NextPhrase(bool skip) {
         for (std::size_t i = 0; i < speakers.size(); ++i) {
             if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) continue;
             if (view) {
-                CUnit* target;
+                Unit* target;
                 switch (preset) {
                 case kViewLeader: target = leader; break;
                 case kViewPerson: target = person; break;
@@ -274,7 +274,7 @@ void BriefingScreen::NextPhrase(bool skip) {
             } else {
                 int chosen = preset;
                 if (chosen < 1) {
-                    CUnit* unit = speakers[i].unit;
+                    Unit* unit = speakers[i].unit;
                     if (firstPhrase)
                         chosen = kViewBoth;
                     else if (unit == leader)
@@ -292,7 +292,7 @@ void BriefingScreen::NextPhrase(bool skip) {
     // The speaker talks, the others listen.
     if (!skip && spoke) {
         for (std::size_t i = 0; i < speakers.size(); ++i) {
-            CUnit* unit = speakers[i].unit;
+            Unit* unit = speakers[i].unit;
             if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) {
                 PlaySpeakerAnimation(unit, false, false);
                 SetBlink(unit, 0);
@@ -303,7 +303,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerAnimationDone;
-                    if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(static_cast<SkillAnimation>(animation)))
+                    if (FigureAnimation* played = unit->AsObject3D()->FindSkillAnimation(static_cast<SkillAnimation>(animation)))
                         controller->PlayAnimation(played->name);
                 }
             } else {

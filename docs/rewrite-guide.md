@@ -86,7 +86,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    A heap helper the original freed by hand that becomes a local with a destructor (PlayerIterator drops its
    count of the player list) runs that destructor at the end of its scope, not where the original freed it:
    scope it so it ends before anything it holds is deleted (WorldServer::Destroy's iterator outlived the
-   list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). A std::vector is
+   list World::Destroy deletes and decremented the freed block, a flaky heap crash at quit). A std::vector is
    read and written within its size: STLport code that read the popped element through end() (IdPool::Allocate) or
    let a helper write past the size into the spare capacity (the sprite clipper's vertices) is undefined on a
    std::vector, so resize it first; `build.cmd asan` (docs/notes/harness.md) finds these. Containers are
@@ -185,8 +185,8 @@ does not need a second pass:
   objects come from `new T` (rule 6), not a `static_cast` of a raw block (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
-  `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
-  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `UiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
+  `itemdb::RecordAs<T>`, and a manager's context is a `ManagerContext` (World, Party; its
+  slots 19, 20 and 22 return `MapObjectManager*`, `CPlayerManager*` and `SpellManager*`); a window surface is drawn on through `UiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
   per-file view struct derived from it. A window class that shares another's layout derives from
   it (UiItemStrip : UiItemPanel, MpHeroScreen : ItemScreen) instead of holding a `UiWindow
   window` member and being punned; the item panels' owner is the ItemScreen. A container's input

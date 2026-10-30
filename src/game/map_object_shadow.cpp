@@ -11,8 +11,8 @@
 #include "object.h"
 #include "options.h"
 #include "render/render.h"
-#include "spell.h"                // CLight
-#include "unit.h"                 // CUnit
+#include "spell.h"                // Light
+#include "unit.h"                 // Unit
 #include "unit_client_models.h"   // UnitClientSpecific
 #include "world.h"   // g_clientWorld
 
@@ -54,7 +54,7 @@ static_assert(std::bit_cast<std::uint32_t>(kTiltSlope) == 0xBEBA5A47u);
 constexpr float kMinimumTilt = kPi / 180.0f * 20.0f;   // radians
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red.
-float Brightness(const CLight* light) {
+float Brightness(const Light* light) {
     float blue = light->color[2] * kBlue;
     float green = light->color[1] * kGreen;
     float red = light->color[0] * kRed;
@@ -63,7 +63,7 @@ float Brightness(const CLight* light) {
 
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
-bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
+bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     const Vector3& at = object->localPosition;
     const Vector3& from = light->localPosition;
     float dx = at.x - from.x;
@@ -94,7 +94,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
 }
 
 // A directional light's share: its direction times its brightness.
-void DirectionalShare(CLight* light, Vector3* out) {
+void DirectionalShare(Light* light, Vector3* out) {
     float brightness = Brightness(light);
     out->z = brightness * light->direction.z;
     out->y = brightness * light->direction.y;
@@ -132,8 +132,8 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     // The lights reaching the object.
     Vector3 sum;
     sum = kDefaultLight;
-    ObjectListIteratorOf<CLight> lights{};
-    for (CLight* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
+    ObjectListIteratorOf<Light> lights{};
+    for (Light* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
         if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
         if (light->type == kTypePointLight) {
@@ -150,7 +150,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     LightDirection(sum, &direction);
     self->flags &= ~kFlagRefresh;
 
-    const CObject3D* object = self->object;
+    const Object3D* object = self->object;
     const ClipBounds& bounds = object->bounds;
     ClipBounds& sphere = self->sphere;
     if (!(bounds.flags & static_cast<std::uint32_t>(BoundsFlag::Sphere))) {
@@ -197,12 +197,12 @@ void FitShadowSphere(Object3DClientSpecific* self) {
 
 // --- The shadow -------------------------------------------------------------------------------
 
-std::optional<float> ShadowCastStrength(CObject3D* object) {
+std::optional<float> ShadowCastStrength(Object3D* object) {
     if (options::g_options.shadowQuality <= 0) return std::nullopt;
     if (!ShadowSwitch(object->GetClassId())) return std::nullopt;
     if (object->flags & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return std::nullopt;
     if (object->InvisibleSlot()) return std::nullopt;
-    if (CUnit* unit = UnitOrNull(object)) return unit->ClientController()->fadeIn;
+    if (Unit* unit = UnitOrNull(object)) return unit->ClientController()->fadeIn;
     return 1.0f;
 }
 

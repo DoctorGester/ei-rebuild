@@ -46,10 +46,10 @@ Diplomacy* DiplomacyOf(WorldServer* world) { return &world->diplomacy; }
 
 // OnDamaged's search of the party (the player's units, walked as the list's begin() and operator++ do): the
 // first member that is not `self`; a null member ends it.
-CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
+Unit* FirstOtherPartyMember(Player* player, const Unit* self) {
     const auto& map = player->units;
     for (auto& node : map) {
-        CUnit* member = node.second;
+        Unit* member = node.second;
         if (!member) return nullptr;
         if (member != self) return member;
     }
@@ -59,7 +59,7 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 } // namespace
 
 // Player messages: message `code` about `unit`.
-void PlayerMessage(PlayerServer* messages, CUnit* unit, AckKind kind) {
+void PlayerMessage(PlayerServer* messages, Unit* unit, AckKind kind) {
     messages->SendObject0B(unit, kind);
 }
 
@@ -78,7 +78,7 @@ void UnitServer::FinishAction(int location) {
     switch (action.kind) {
     case UnitOrderKind::Attack: {
         DeliverAttack(action.target, &pendingHit);
-        CUnit* target = UnitOrNull(action.target);
+        Unit* target = UnitOrNull(action.target);
         if (!target) return;
         if (location >= 6) return;
         // The kind of the target's body slot `location`: 3 means it can still be aimed at (OrderAttack aims at "all"
@@ -121,7 +121,7 @@ void UnitServer::FinishAction(int location) {
     if (action2.kind == UnitOrderKind::None) Idle();
 }
 
-void UnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
+void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
     WorldServer* world = ServerWorld();
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
@@ -146,7 +146,7 @@ void UnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     }
 }
 
-void UnitServer::TriggerWeaponSpell(CMapObject* target) {
+void UnitServer::TriggerWeaponSpell(MapObject* target) {
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
     auto* spell = weapon->spell.Get();
@@ -154,7 +154,7 @@ void UnitServer::TriggerWeaponSpell(CMapObject* target) {
     float cost = spell->manaCost;
     if (cost > weapon->charge) return;
     UseItemCharge(weapon, cost);
-    CUnit* self = unit;
+    Unit* self = unit;
     Vector3 point;
     const Vector3* at = target->AimPoint(&point);
     g_serverWorld.CastSpell(spell, self, self->localPosition, target, *at, 0);
@@ -171,7 +171,7 @@ void UnitServer::TriggerItemSpells(char onHit) {
         bool fires = spell->Type() == SpellType::Healing ? onHit == 0 : onHit != 0;   // healing: when not hit
         if (!fires) continue;
         UseItemCharge(item, cost);
-        CUnit* self = unit;
+        Unit* self = unit;
         g_serverWorld.CastSpell(spell, self, self->localPosition, self, self->localPosition, 0);
     }
 }
@@ -184,7 +184,7 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
     auto* player = unit->player;
     const ItemLink* link = item->ServerLink();
     if (!player || !link) return;
-    ResourceManager* items = player->Party()->ItemFactory();
+    ResourceManager* items = player->GetParty()->ItemFactory();
     Item* copy = FindItem(items, link->value);
     if (!copy) return;
     copy->charge = item->charge;
@@ -200,10 +200,10 @@ bool UnitServer::Heal(float amount) {
     return true;
 }
 
-BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
+BlowSide UnitServer::HitDirection(Unit* attacker, int hitKind) {
     if (!attacker) return BlowSide::None;
     if (hitKind) return BlowSide::None;
-    const CUnit* self = unit;
+    const Unit* self = unit;
     float dx = attacker->localPosition.x - self->localPosition.x;
     float dy = attacker->localPosition.y - self->localPosition.y;
     float dz = attacker->localPosition.z - self->localPosition.z;
@@ -218,14 +218,14 @@ BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
     return front > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
 
-void UnitServer::WitnessMurder(const HeldUnits* witnesses, CUnit* victim, CUnit* murderer) {
+void UnitServer::WitnessMurder(const HeldUnits* witnesses, Unit* victim, Unit* murderer) {
     WorldServer* world = ServerWorld();
     Diplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
     auto node = witnesses->begin();
     if (node == witnesses->end()) return;
     do {
-        CUnit* other = *node;
+        Unit* other = *node;
         ++node;
         if (!diplomacy->IsAllied(other->side, side)) continue;
         other->flags |= MapObjectFlag::SeeAll;
@@ -255,10 +255,10 @@ void UnitServer::PropagateHostility() {
     int side = unit->side;
     auto node = brain.memory.nearby.begin();
     while (node != brain.memory.nearby.end()) {
-        CUnit* other = *node;
+        Unit* other = *node;
         ++node;
         if (!diplomacy->IsAllied(side, other->side)) continue;
-        CUnit* self = unit;
+        Unit* self = unit;
         float dx = other->localPosition.x - self->localPosition.x;
         float dy = other->localPosition.y - self->localPosition.y;
         float distance = LengthSquared2DUnrounded(dy, dx);
@@ -275,7 +275,7 @@ void UnitServer::PropagateHostility() {
     }
 }
 
-void UnitServer::OnDamaged(CUnit* attacker, int hitKind) {
+void UnitServer::OnDamaged(Unit* attacker, int hitKind) {
     WorldServer* world = ServerWorld();
     if (unit->MapType() < MapObjectType::Hero || unit->MapType() > MapObjectType::Building) {
         unit->flags |= MapObjectFlag::Removed;
@@ -294,7 +294,7 @@ void UnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 
     if (attacker) {
         if (attacker->player) {
-            CUnit* killer = attacker->ServerController()->unit;
+            Unit* killer = attacker->ServerController()->unit;
             if (killer->player)
                 PlayerMessage(killer->player->Server(), killer, AckKind::Kill);
         } else if (unit->player) {
@@ -317,19 +317,19 @@ void UnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     frozen = 0;
     PlayAnimationOrder(animation);
     world->aiMap.events.ForgetUnit(this);
-    if (CPlayer* player = unit->player) {
-        if (CUnit* member = FirstOtherPartyMember(player, unit))
+    if (Player* player = unit->player) {
+        if (Unit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
         if (IsMultiplayerClient()) unit->flags |= MapObjectFlag::Shared;
     }
 }
 
-void UnitServer::UseSkill(CMapObject* target) {
+void UnitServer::UseSkill(MapObject* target) {
     WorldServer* world = ServerWorld();
     if (action.kind == UnitOrderKind::Use && action.Skill() == UseSource::SearchBody) {
-        CUnit* looted = UnitOrNull(target);
+        Unit* looted = UnitOrNull(target);
         if (!looted) return;
-        if (CPlayer* player = unit->player) g_serverWorld.Loot(looted, player);
+        if (Player* player = unit->player) g_serverWorld.Loot(looted, player);
         g_serverWorld.RemoveObject(target->id);
         float loudness = stats.conspicuity[3].current * kSkillNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
@@ -337,7 +337,7 @@ void UnitServer::UseSkill(CMapObject* target) {
     }
     UseSource skill = action.Skill();
     if (skill != UseSource::Steal && skill != UseSource::Use) return;
-    CUnit* other = UnitOrNull(target);
+    Unit* other = UnitOrNull(target);
     float mine = stats.AttributeWithItems(0, unit);
     float theirs = 0;
     if (other) theirs = other->ServerController()->stats.AttributeWithItems(0, other);
@@ -377,14 +377,14 @@ void UnitServer::UseSkill(CMapObject* target) {
         Item* item = other->TakeRandomItem();
         if (item) {
             console::EndLine(kCombatLog << "Item has been stolen from");
-            if (CPlayer* player = unit->player) {
+            if (Player* player = unit->player) {
                 std::vector<Item*> list{item};
                 player->GiveItems(&list, 0);
             }
             item->Release();
             return;
         }
-        CPlayer* player = unit->player;
+        Player* player = unit->player;
         if (player && world->Loot(other, player)) return;
         if (!unit->player) return;
         message = AckKind::StealFailed;
@@ -401,7 +401,7 @@ void UnitServer::UseSkill(CMapObject* target) {
     default:
         return;
     }
-    CUnit* self = unit;
+    Unit* self = unit;
     PlayerMessage(self->player->Server(), self, message);
 }
 

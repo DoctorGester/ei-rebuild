@@ -80,13 +80,13 @@ Facts not in the code comments:
   time; the original's transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40
   LightMesh (ours: the pipeline's SetViewportSize, SetDepthRange and `projection`; the sun and ambient go to the GPU
   lighting only).
-- **Layouts** (C9): the figure at CObject3D +0xF0 is a `LinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
+- **Layouts** (C9): the figure at Object3D +0xF0 is a `LinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the FigureMesh, +0x20 its screen rect);
-  FigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a TransformObject) +0x28 worldPosition / +0x108 position / direction
+  FigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; Light (a TransformObject) +0x28 worldPosition / +0x108 position / direction
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `LightFactory` (spell.h). FigurePart (map_object_figures.h)
-  and FigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads were `VertexPacket`s (gone with the projection, R37f), the texture's name `CTexture::Name()`. (The
+  and FigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads were `VertexPacket`s (gone with the projection, R37f), the texture's name `Texture::Name()`. (The
   shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
-  controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are (C14e / C14h: vectors) of
+  controller through `static_cast<Unit*>` (Unit : MapObject : Object3D). The work buffers are (C14e / C14h: vectors) of
   `Vector2` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
   004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees took them typed (C9d: ProjectFlat, 004F4680 and
   005A0CD0 `Vector2*`; all gone with the shadow's projection, R37f).
@@ -94,7 +94,7 @@ Facts not in the code comments:
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
   (0051CE60), the renderer (00503A40) and 006CEDE0.
 - **Figure parts**: mesh +8 flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing
-  more, not even the finishing call), 0x10 lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
+  more, not even the finishing call), 0x10 lit, 0x100 flat colours; +0x98 owner (Object3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
   (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled 0.6 of the way (0073CDE0) to the
   average. The plain variant (005A7640) clears the drawn flag only after the hidden test, has its own moved-positions static
   (007C2E60, guard 007C2E70, freed by 005A7A50; ours a plain global) and sets the drawn flag whenever the draw did not return 2.
@@ -267,7 +267,7 @@ handlers 0056CE30 / 0056CE10; ours are plain globals (C50b). The platform pass w
 adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
 (`kDecalStack`), transforms the part's packets with the top (`ToClip`; the original passed the transposed top to
 3DfpFPU's slot 26) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
-(kept; ours starts from no part data). The parts are used as CObject3D-like scene nodes (+0x34 orientation, +0x54 matrix),
+(kept; ours starts from no part data). The parts are used as Object3D-like scene nodes (+0x34 orientation, +0x54 matrix),
 which FigurePart's declaration contradicts (C9).
 
 ProjectDecal's pushes on stack 14 are inlined in the original and multiply through 004D9880 (`MatrixMultiply`), not PushMatrix

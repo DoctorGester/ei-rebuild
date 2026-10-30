@@ -1,4 +1,4 @@
-// Saving and loading a spell (CSpell's Load / Save) and an active effect record (MapEffect, which
+// Saving and loading a spell (Spell's Load / Save) and an active effect record (MapEffect, which
 // the map objects' Load / Save call for each of their effects).
 #include "spell.h"
 
@@ -24,9 +24,9 @@ void MapEffect::Save(ByteStream* stream) const {
     stream->WriteValue(strength);
 }
 
-void CSpell::Load(ByteStream* stream) {
+void Spell::Load(ByteStream* stream) {
     std::memset(modifiers, 0, sizeof(modifiers));
-    MapEffect record = Effect();
+    MapEffect record = EffectRecord();
     record.Load(stream);
     SetEffect(record);
     stream->ReadValue(speed);
@@ -44,8 +44,8 @@ void CSpell::Load(ByteStream* stream) {
     stream->ReadValue(skillNeeded);
 }
 
-void CSpell::Save(ByteStream* stream) {
-    Effect().Save(stream);
+void Spell::Save(ByteStream* stream) {
+    EffectRecord().Save(stream);
     stream->WriteValue(speed);
     stream->WriteValue(range);
     stream->WriteValue(targetCount);

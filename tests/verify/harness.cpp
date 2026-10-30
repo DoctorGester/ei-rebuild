@@ -494,7 +494,7 @@ void* LocalWorldPlayer() {
 void* LocalConnection() {
     void* player = LocalWorldPlayer();
     if (!player) return nullptr;
-    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection;
+    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::Player*>(player)->connection;
 }
 int ConnectionState(void* connection) {
     return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::PlayerConnection*>(connection)->state;
@@ -633,7 +633,7 @@ float g_awardExperience = 0;
 unsigned g_awardMoney = 0;
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
 void AwardFrom() {
-    const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&g_awardMoney));
+    const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&g_awardMoney));
     g_awardExperience = unit.experience;
 }
 // A pending "peerwait": the other game's signal and when to give up (harness_pair.h).
@@ -1961,9 +1961,9 @@ bool ExeUnitFaceHalves(std::vector<void*>* halves) {
     const exe::WorldClient* world = exe::ClientWorld();
     if (!world->objects.head) return false;
     for (auto* node = world->objects.First(); node != world->objects.End(); node = node->next) {
-        exe::CMapObject* object = node->data;
+        exe::MapObject* object = node->data;
         if (!object || digest::ClassOf(object) != digest::kClassUnit) continue;
-        auto* half = reinterpret_cast<exe::UnitClientSpecific*>(static_cast<exe::CUnit*>(object)->controller);
+        auto* half = reinterpret_cast<exe::UnitClientSpecific*>(static_cast<exe::Unit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }
     return true;
@@ -2069,7 +2069,7 @@ std::string LookAt(const std::string& argument) {
 
 // --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
 // Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
-// party member's selection (flags 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
+// party member's selection (flags 0x10) and quick items (Unit::GetQuickItem 00531920, slots
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
@@ -2077,14 +2077,14 @@ std::string LookAt(const std::string& argument) {
 // kind are game.exe's own (its GetType 006A07F0: ours reads our named item database, C18k4, which game.exe never fills).
 namespace exe_hud {
 using namespace exe;
-Item* UnitQuickItem(CUnit* unit, std::uint32_t slot) {   // 00531920
-    return OriginalCode<Item*(__thiscall*)(CUnit*, std::uint32_t)>(0x00531920)(unit, slot);
+Item* UnitQuickItem(Unit* unit, std::uint32_t slot) {   // 00531920
+    return OriginalCode<Item*(__thiscall*)(Unit*, std::uint32_t)>(0x00531920)(unit, slot);
 }
-Item* UnitSpell(CUnit* unit, std::uint32_t slot) {   // 005319A0
-    return OriginalCode<Item*(__thiscall*)(CUnit*, std::uint32_t)>(0x005319A0)(unit, slot);
+Item* UnitSpell(Unit* unit, std::uint32_t slot) {   // 005319A0
+    return OriginalCode<Item*(__thiscall*)(Unit*, std::uint32_t)>(0x005319A0)(unit, slot);
 }
-ItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) {   // 005318B0
-    return OriginalCode<ItemWeapon*(__thiscall*)(CUnit*, std::uint32_t)>(0x005318B0)(unit, slot);
+ItemWeapon* UnitWeapon(Unit* unit, std::uint32_t slot) {   // 005318B0
+    return OriginalCode<ItemWeapon*(__thiscall*)(Unit*, std::uint32_t)>(0x005318B0)(unit, slot);
 }
 int WeaponType(ItemWeapon* weapon) { return reinterpret_cast<int(__thiscall*)(ItemWeapon*)>(0x006A07F0)(weapon); }
 #include "harness_hud_read.inc"
@@ -2985,7 +2985,7 @@ void RunSteps() {
         bool done = false;
         if (g_worldWait == WorldWait::Idle) {
             const int leader = digest::LocalLeader();
-            const digest::UnitNow unit = digest::Unit(leader);
+            const digest::UnitNow unit = digest::UnitNowOf(leader);
             if (!unit.found || unit.dead || !unit.idle) g_idleFrom = kNotReady;
             else if (g_idleFrom == kNotReady) g_idleFrom = g_frames;
             done = g_idleFrom != kNotReady && g_frames >= g_idleFrom + g_idleFrames;
@@ -2994,14 +2994,14 @@ void RunSteps() {
         } else if (g_worldWait == WorldWait::Dead) {
             std::string alive;
             for (int id : g_deadIds) {
-                const digest::UnitNow unit = digest::Unit(id);
+                const digest::UnitNow unit = digest::UnitNowOf(id);
                 if (unit.found && !unit.dead) alive += " " + std::to_string(id);
             }
             done = alive.empty();
             what = "waitdead (alive:" + alive + ")";
         } else {
             unsigned money = 0;
-            const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&money));
+            const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&money));
             done = unit.found && (unit.experience != g_awardExperience || money != g_awardMoney);
             char text[160];
             std::snprintf(text, sizeof(text), "waitaward (experience %.1f -> %.1f, money %u -> %u)", g_awardExperience,

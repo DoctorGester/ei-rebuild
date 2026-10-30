@@ -14,7 +14,7 @@
 namespace {
 
 // Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
-void HandOver(const std::vector<Item*>& list, CParty* party) {
+void HandOver(const std::vector<Item*>& list, Party* party) {
     for (Item* item : list) {
         party->AddItem(item, 1, 1);
         item->Release();

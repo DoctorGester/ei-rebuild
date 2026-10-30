@@ -57,7 +57,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
     {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenWrite, 0);
-        Party()->SaveParty(&streams.data, 1);
+        GetParty()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, &streams.data);
     }
     platform::RemoveFile(TempFile(folder).c_str());
@@ -67,7 +67,7 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
     LocalStreams streams;
     streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, &streams.file)) return false;
-    Party()->LoadParty(&streams.data, 1);
+    GetParty()->LoadParty(&streams.data, 1);
     return streams.data.ok != 0;
 }
 

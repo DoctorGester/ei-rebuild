@@ -27,7 +27,7 @@
 
 namespace {
 
-constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags
+constexpr std::uint32_t kBoundsValid = 1 | 2;           // Object3D::boundsFlags
 constexpr float kNearSquared = 1e9f;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
 constexpr int kSectorShift = 4;                         // 16-unit sectors
@@ -65,7 +65,7 @@ float LargestScale(const Vector3& s) {
 
 // The object's bounding sphere in the world (its bounds' centre through its placement and extra
 // scale, the radius by the largest scale); false without valid bounds.
-bool WorldSphere(const CObject3D* object, const Matrix4& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
+bool WorldSphere(const Object3D* object, const Matrix4& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
     if ((object->bounds.flags & kBoundsValid) != kBoundsValid) return false;
     const Vector3& center = object->bounds.center;
     const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
@@ -75,7 +75,7 @@ bool WorldSphere(const CObject3D* object, const Matrix4& world, const Vector3& s
 }
 
 // The top of an object's sphere, without its rotation: a bound for the ground rectangle's sweep.
-float TopOf(const CObject3D* object, const Vector3& scale) {
+float TopOf(const Object3D* object, const Vector3& scale) {
     const Vector3& center = object->bounds.center;
     const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
     return object->localPosition.z + std::sqrt(LengthSquared<Sum3::XYZ>(c)) + object->bounds.radius * LargestScale(scale);
@@ -103,7 +103,7 @@ const float* MovedPositions(const VertexPacket* positions, int packets, const st
 
 // Hands over the parts of `object` that were not drawn this frame, placed by `world` (and the extra
 // scale), each with its part set's texture.
-void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix4& world) {
+void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4& world) {
     static std::vector<VertexPacket> moved;
     Matrix4 objectMatrix = world;
     const Vector3& scale = half->figureScale;
@@ -185,7 +185,7 @@ const HighestObject& Highest(const WorldClient* world) {
     for (std::uint32_t y = 0; y < grid.height; ++y)
         for (std::uint32_t x = 0; x < grid.width; ++x) {
             const auto& cell = grid.rows[y][x];
-            for (const CMapObject* object : cell) {
+            for (const MapObject* object : cell) {
                 if (!object || !object->attached || (object->bounds.flags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
                 top = (std::max)(top, TopOf(object, scale));
@@ -201,13 +201,13 @@ const HighestObject& Highest(const WorldClient* world) {
 
 void HandOverSceneLights(WorldClient* world) {
     terrain::Terrain* terrain = world->terrain;
-    CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
+    Light* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
     points.clear();
     if (terrain && terrain->mapLoaded) {
         for (auto& node : terrain->lights) {
-            const CLight* light = node.second;
+            const Light* light = node.second;
             if (!light) continue;
             render::ScenePointLight p{};
             p.position = light->localPosition;
@@ -280,7 +280,7 @@ void HandOverOutsideCasters(WorldClient* world) {
     for (std::uint32_t y = firstY; y <= lastY; ++y)
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
             const auto& list = grid.rows[y][x];
-            for (CMapObject* object : list) {
+            for (MapObject* object : list) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == ClassId::Unit;
                 if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;

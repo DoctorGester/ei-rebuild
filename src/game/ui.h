@@ -30,14 +30,14 @@ inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
 inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 namespace console { class ConsoleWindow; }
-class CParty;
+class Party;
 
 class UiWindow;
 class ChatOverlay;
 struct UiInputSide;
 class UiMesh;
 struct Surface;
-class CTexture;
+class Texture;
 class TextureDevice;
 class UiSurface;
 class ItemScreen;
@@ -153,12 +153,12 @@ public:
     // picked up, a unit joined / left the party, the game lost, a unit speaks, the players changed, an
     // exchange between players ended; SaveWindowState has the bottom window save its state.
     void OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled);
-    void OnUnitJoined(CUnit* unit);
-    void OnUnitLeft(CUnit* unit);
+    void OnUnitJoined(Unit* unit);
+    void OnUnitLeft(Unit* unit);
     void OnGameLost();
     void OnUnitSpeech(int id, AckKind kind);
     void OnPlayersChanged(int added);
-    void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
+    void OnExchangeDone(Party* partyB, Party* partyA, Party* partyC);
     void SaveWindowState();
     void OnChatLine(const char* text);
     // The save / load window's status text, drawn in green on a cleared surface over (0, 280)-(800, 320)
@@ -409,7 +409,7 @@ public:
     // Plays the figure's rest pose (the object manager's object named like the figure).
     void Stop();
 
-    CObject3D* object = nullptr;
+    Object3D* object = nullptr;
 };
 
 // An input side: a window's own (UiWindow's second base) or a separate handler a container keeps in its
@@ -496,8 +496,8 @@ public:
     void SetEnabled(bool enabled, bool notify = true);
 
     // Takes a reference (null is ignored).
-    void AddObject(CTexture* texture);
-    void RemoveObject(CTexture* texture);
+    void AddObject(Texture* texture);
+    void RemoveObject(Texture* texture);
     void RemoveObjectAt(int index);
     void ClearObjects();
 
@@ -532,18 +532,18 @@ public:
     void DrawBase(SceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`
     // clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
-    void DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide);
+    void DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, float depth, bool wide);
     // Copies the top-left width x height of image "<name>.mmp" (decoded as imageWidth x imageHeight) into
     // `texture`'s 256-wide 1:5:5:5 surface at (x, y), or white without such an image. Returns whether the
     // image exists (false also when the lock fails).
-    bool CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
+    bool CopyImage(Texture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y);
     // The texture manager's texture `name` of `kind` (found or made), loaded and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but not
     // loaded is kept by the manager).
-    CTexture* LoadTexture(std::string_view name, TextureKind kind);
+    Texture* LoadTexture(std::string_view name, TextureKind kind);
     // A new CPU-filled texture (flag 0x40000) kept with the referenced objects; null when none is made.
-    CTexture* CreateTexture(int width, int height, TextureKind kind);
+    Texture* CreateTexture(int width, int height, TextureKind kind);
     // Object `name` of the model manager added to the scene objects with the black material and the first
     // referenced object as its texture; null when the manager makes none. AddBlankSprite: a new UiMesh.
     UiMesh* AddSprite(std::string_view name);
@@ -556,7 +556,7 @@ public:
     EngineObject* blackMaterial = nullptr;   // given to every sprite (AddSprite)
     EngineObject* whiteMaterial = nullptr;
     EngineObject* heldObject = nullptr;      // released by the destructor (writer not identified)
-    std::vector<CTexture*> objects;             // the referenced textures
+    std::vector<Texture*> objects;             // the referenced textures
     std::vector<EngineObject*> sceneObjects;
     std::vector<UiSurface*> surfaces;
     std::vector<UiRegion*> regions;
@@ -652,12 +652,12 @@ public:
     // screen (a plain rectangle without one); shown not highlighted.
     void AddWeapon(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per weapon, then the unit's current weapon highlighted.
-    void SetUnit(CUnit* unit);
+    void SetUnit(Unit* unit);
 
     BattleScreen* owner;
     int count;                       // slots in use
     int selected;
-    CUnit* unit;
+    Unit* unit;
     std::vector<std::string> labels;    // the tooltip's labels
 };
 
@@ -699,7 +699,7 @@ public:
     void AddItem(std::string_view model, std::string_view image);
     // The unit's four quick items in the bottom row (sprites Rebirth-patched); for the local player's unit
     // up to four of the player's ItemKind::Quest items in the top row.
-    void SetUnit(CUnit* unit);
+    void SetUnit(Unit* unit);
 
     struct Entry {
         bool own;                    // one of the unit's quick items (else the player's)
@@ -710,7 +710,7 @@ public:
     BattleScreen* owner;
     int shownCount;                  // sprites added (the shown entries)
     int selected;
-    CUnit* unit;
+    Unit* unit;
     std::vector<Entry> entries;
     int regionItem[8];
     std::vector<std::string> labels;    // the tooltip's labels
@@ -738,12 +738,12 @@ public:
     // The next button at the bottom, the ones so far moved up a step; selected = its index.
     void AddSpell(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per spell slot that holds one.
-    void SetUnit(CUnit* unit);
+    void SetUnit(Unit* unit);
 
     BattleScreen* owner;
     int count;                       // sprites added
     int selected;
-    CUnit* unit;
+    Unit* unit;
     std::vector<std::string> labels;    // the tooltip's labels
 };
 
@@ -764,12 +764,12 @@ public:
     // The next button, above the ones so far; selected = its index.
     void AddAction(std::string_view model, std::string_view image, int action);
     // With `extra` first a "skill0011" button; with a unit the science button.
-    void SetUnit(CUnit* unit, bool extra);
+    void SetUnit(Unit* unit, bool extra);
 
     BattleScreen* owner;
     int count;                       // buttons added
     int selected;
-    CUnit* unit;
+    Unit* unit;
     std::vector<std::uint32_t> actions;            // the buttons' actions (0 science, -1 follow)
     std::vector<std::string> labels;    // the tooltip's labels
 };
@@ -901,7 +901,7 @@ public:
     float& ScaleY() { return scaleMatrix.m[5]; }
     float& ScaleZ() { return scaleMatrix.m[10]; }
     EngineObject* material;         // the window's black material
-    CTexture* texture;               // one of the window's referenced textures
+    Texture* texture;               // one of the window's referenced textures
 };
 
 inline UiMesh* AsUiMesh(EngineObject* object) { return static_cast<UiMesh*>(object); }
@@ -970,11 +970,11 @@ public:
     HudUnitPanel(Interface3D* ui, BattleScreen* owner);
     // The info page's lines for `unit`: hit points, mana, speed, vision, attack, defence, damage, rate,
     // protection and, for a unit outside the party, its level against the leader's.
-    void DrawUnitInfo(CUnit* unit);
+    void DrawUnitInfo(Unit* unit);
     // The mana bar only for a party unit.
-    void ShowHealth(CUnit* unit);
+    void ShowHealth(Unit* unit);
     // The name of each present part and, for state 3, its durability bar.
-    void ShowParts(CUnit* unit);
+    void ShowParts(Unit* unit);
     void LeftDown(int buttons, int x, int y) override;
     void LeftUp(int buttons, int x, int y) override;
     void MouseMove(int buttons, int x, int y) override;
@@ -982,7 +982,7 @@ public:
     // The battle screen's keys call it after setting bodyPart.
     void ShowBodyPart();
     // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
-    void ShowEffects(CUnit* unit);
+    void ShowEffects(Unit* unit);
     // Rebirth-patched (WideScreen behind its flag). The parts at the current slide offset.
     void Layout();
     // Rebirth-patched (WideScreen behind its flag). Every frame: the slide (as the map's); a dead hover unit
@@ -997,8 +997,8 @@ public:
     void Draw(SceneRenderer* pass) override;
 
     BattleScreen* owner;
-    CUnit* shownUnit;                // the first selected unit (RefreshSelection), or null
-    CUnit* hoverUnit;                // the unit under the mouse (HoverUnit), or null
+    Unit* shownUnit;                // the first selected unit (RefreshSelection), or null
+    Unit* hoverUnit;                // the unit under the mouse (HoverUnit), or null
     // The model's view for the selected unit [0] and the hover unit [1], from the units' prototypes (the
     // battle screen copies them as dwords).
     float viewHeight[2];             // how far up the panel the model stands, in units of its size
@@ -1127,15 +1127,15 @@ public:
     virtual void CloseScreen();
     virtual void MessageResult(int) {}                                 // the value a window above left pending when it closed
     virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
-    virtual void UnitJoined(CUnit*) {}
-    virtual void UnitLeft(CUnit*) {}
+    virtual void UnitJoined(Unit*) {}
+    virtual void UnitLeft(Unit*) {}
     virtual void GameOver(bool) {}
     virtual void Speech(int, AckKind, char*) {}                        // a unit speaks
     virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
     virtual void ShowBriefing(std::string_view) {}                          // a "briefing <name>" string event
     virtual bool ReadyToStopPolling() { return false; }                // whether the interface may stop asking (pollTop)
     virtual void PlayersChanged(int) {}
-    virtual void ExchangeDone(CParty*, CParty*, CParty*) {}            // an exchange ended
+    virtual void ExchangeDone(Party*, Party*, Party*) {}            // an exchange ended
     virtual void PlayerList(int) {}                                    // the player list for kicking (1) or banning (2)
     virtual void DebugFill() {}                                        // the console's "give <player> assortment"
     virtual void SaveState() {}                                        // the window's part of a save game
@@ -1197,9 +1197,9 @@ public:
     // and 6 spell on an object, 7 follow, 8 order on an object) or the modifier keys; with nobody selected
     // it selects the clicked member. Rebirth's FixSpellSelfCasting #1 drops the Ctrl flag of a spell on a
     // unit.
-    void SelectUnit(CUnit* unit, int x, int y);
+    void SelectUnit(Unit* unit, int x, int y);
     // The unit panel's hover unit, and with party members selected the cursor for what a click would do.
-    void HoverUnit(CUnit* unit, int x, int y);
+    void HoverUnit(Unit* unit, int x, int y);
     // Orders the selected party units to the point (`goTo`: with a modifier, else a walk); a point on a zone
     // exit whose "z.<zone>" variable is not 1 is remembered (exitPending).
     void OrderAt(Vector3 point, bool goTo, bool run);
@@ -1237,7 +1237,7 @@ public:
     void Wheel(int flags, int delta, int x, int y) override;
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
-    std::string UnitName(CUnit* unit);
+    std::string UnitName(Unit* unit);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
     void QuestVariable(std::string_view name, float value) override;
@@ -1252,15 +1252,15 @@ public:
     std::vector<int> SelectedIndexes() const;
     // The order kind is the first order key held (6 for none); a member more than five levels below the
     // target speaks (speech event 10).
-    void AttackUnit(CUnit* target, bool ctrl);
+    void AttackUnit(Unit* target, bool ctrl);
     // The same for a dead `target` (no kind, no levels).
-    void OrderDeadUnit(CUnit* target, bool ctrl);
+    void OrderDeadUnit(Unit* target, bool ctrl);
     // The pending spell (or with `quick` the quick item) used on `target` by each selected member; the
     // pending action is dropped after.
-    void UseOnUnit(CUnit* target, bool quick, bool ctrl);
+    void UseOnUnit(Unit* target, bool quick, bool ctrl);
     // The same at the point. For the member that is `unit` itself the point first moves 0.1 behind it, for
     // it and the members after it.
-    void UseAtPoint(Vector3 point, CUnit* unit, bool quick);
+    void UseAtPoint(Vector3 point, Unit* unit, bool quick);
     // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
     // face, the kinds NoWayToAttack..Injured shake its portrait.
     void Speech(int id, AckKind kind, char* extra) override;
@@ -1271,7 +1271,7 @@ public:
     bool ReadyToStopPolling() override;
     void ItemsPicked(const std::vector<Item*>& items, int money, bool crippled) override;
     // A network client instead empties the top panel's page-0 text.
-    void UnitLeft(CUnit* unit) override;
+    void UnitLeft(Unit* unit) override;
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
     // player's first value, the top panel's page-0 text with its zero, exitPending (a byte), pendingExit.
     void SaveState() override;
@@ -1279,7 +1279,7 @@ public:
     // first and the record's selection byte decides; otherwise it is appended, not selected. A unit among
     // heroes (the save's selection) is taken out and selected. A network client instead empties the top
     // panel's page-0 text.
-    void UnitJoined(CUnit* unit) override;
+    void UnitJoined(Unit* unit) override;
     // Also turns the face's rest orientation about -x by kHudQuarterTurn / 7.
     void MarkPortrait(int index);
     // 0x10001 (the "leave_zone" question) leaves through pendingExit; 0x20001 (game over: load) opens the
@@ -1301,7 +1301,7 @@ public:
     };
 
     int spare;                       // nothing reads it
-    std::vector<CUnit*> party;       // shown as portraits
+    std::vector<Unit*> party;       // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
     PendingAction pendingAction;
@@ -1576,7 +1576,7 @@ public:
     bool sliding;                    // sliding in; input is ignored meanwhile
     float slide;                     // 0..1
     UiScrollbar* scrollbar;
-    CTexture* dialog;                // the save window's picture of the game for the new save
+    Texture* dialog;                // the save window's picture of the game for the new save
     std::vector<std::uint8_t> newPicture;    // dialog's pixels (256x192 5:6:5), written to the new save's shot.sav
     std::string name;               // the save name being edited
     bool nameTyped;

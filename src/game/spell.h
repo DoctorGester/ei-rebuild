@@ -1,6 +1,6 @@
 #pragma once
 
-// Spells: prototypes in the spell database (item_db.h), CSpell instances built from them plus up to eight
+// Spells: prototypes in the spell database (item_db.h), Spell instances built from them plus up to eight
 // modifiers, and the spell effects that turn them into damage.
 
 #include "base_manager.h"
@@ -20,14 +20,14 @@
 
 class ByteStream;
 class WorldServer;
-class CUnit;
-class CMapObject;
+class Unit;
+class MapObject;
 struct MapEffect;
-class CEffect;
-class CEffectParticle;
+class Effect;
+class EffectParticle;
 class EffectPointLight;
 
-// The spell types: the spell prototype index (the order of the spell database in database.res, CSpell's
+// The spell types: the spell prototype index (the order of the spell database in database.res, Spell's
 // prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
 // prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
 // 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
@@ -77,7 +77,7 @@ enum class SpellType : int {
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
 };
 
-// The bits of CSpell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
+// The bits of Spell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
 // modifiers "f?" set them; a spell with none and one target is a single missile); "it" / "ic" (the cast-flag
 // modifiers, HasCastFlagModifier) say when an item casts it; the prototype's targetKind sets the aim. The races
 // are the unit prototypes' names (spell.cpp; the goblin's reading is provisional).
@@ -99,10 +99,10 @@ inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 1
 
 // A spell instance ("CSpell", class id 0x4F). prototypeId of EngineObject is the packed id: spell
 // prototype index << 16.
-class CSpell : public EngineObject {
+class Spell : public EngineObject {
 public:
-    CSpell();
-    ~CSpell() override;
+    Spell();
+    ~Spell() override;
 
     void Create() override;
     void Destroy() override;
@@ -135,17 +135,17 @@ public:
     bool IsOffensive();
 
     // By the target flags in the low 16 bits of flags; either may be null.
-    bool CanAffect(const CUnit* caster, CMapObject* target) const;
+    bool CanAffect(const Unit* caster, MapObject* target) const;
 
     // `target`'s Destroy runs first.
-    void CopyTo(CSpell* target);
+    void CopyTo(Spell* target);
 
-    CSpell* Clone(class CSpellManager* manager);
+    Spell* Clone(class SpellManager* manager);
 
     // The spell's first fields are an active effect record (map_object.h), which a buff copies: its type, power,
-    // ticks (duration), value (damage) and strength (radius). Effect() builds the record, SetEffect() stores one
+    // ticks (duration), value (damage) and strength (radius). EffectRecord() builds the record, SetEffect() stores one
     // (its `ending` is not kept).
-    MapEffect Effect() const;
+    MapEffect EffectRecord() const;
     void SetEffect(const MapEffect& record);
 
     std::uint8_t prototypeIndex;
@@ -181,7 +181,7 @@ struct DamageInfo {
 static_assert(sizeof(DamageInfo) == 0x3C);
 
 // A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
-// CSpell it applies; the spell's duration is also the number of targets the damage is split between, and the
+// Spell it applies; the spell's duration is also the number of targets the damage is split between, and the
 // lasting effects' ticks.
 class SpellEffect final : public RefCounted {
 public:
@@ -191,9 +191,9 @@ public:
     // Split between the targets when there are several.
     void GetDamage(DamageInfo* out);
 
-    // When the spell may affect `unit` (no caster, or CSpell::CanAffect). The attacker is the caster unless
+    // When the spell may affect `unit` (no caster, or Spell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
-    void HitUnit(DamageInfo* hit, CMapObject* unit);
+    void HitUnit(DamageInfo* hit, MapObject* unit);
 
     // Every unit within `radius` of `position` that IsSpellTarget accepts and the spell may affect.
     void HitUnitsInRadius();
@@ -206,7 +206,7 @@ public:
     // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
     void Start(SpellType type);
     // The old visual leaves the world's timed objects and is released.
-    void SetVisual(CEffect* visual);
+    void SetVisual(Effect* visual);
     // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
     // Nothing without a visual or for other types.
     void UpdateFootprint(SpellType type, int stamp);
@@ -215,10 +215,10 @@ public:
                      const Vector3& color, float range);
     // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
     // timed objects.
-    CEffectParticle* CreateParticle(int keep, int particleType, const Vector3& position, float size, float alpha,
+    EffectParticle* CreateParticle(int keep, int particleType, const Vector3& position, float size, float alpha,
                                     const Vector3& velocity, EngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
-    void CreateLightning(const Vector3& from, CMapObject* target, EngineObject* source, float power, int flag);
+    void CreateLightning(const Vector3& from, MapObject* target, EngineObject* source, float power, int flag);
     // A one-shot sound effect (the effect does not keep it).
     void CreateSound(const char* name, const Vector3& position, const Vector3& velocity, float volume, float radius);
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
@@ -238,7 +238,7 @@ public:
     void ReleaseSound();
     void ReleaseLight();
 
-    void Init(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& position, CMapObject* target,
+    void Init(WorldServer* world, Spell* spell, Unit* caster, const Vector3& position, MapObject* target,
               const Vector3& targetPoint, std::uint8_t newSilentEnd);
     // 0 when `object` is the target (the world then drops the effect).
     bool Forget(EngineObject* object);
@@ -252,13 +252,13 @@ public:
     WorldServer* world = nullptr;
     std::uint32_t flags = 0;    // bit 0: the caster gets no credit for the hit
     Vector3 position{};
-    Ref<CMapObject> target; // a unit or another map object
-    Ref<CUnit> caster;      // null for traps and scripts
+    Ref<MapObject> target; // a unit or another map object
+    Ref<Unit> caster;      // null for traps and scripts
     Vector3 targetPoint;
     int state;                  // 0 casting, 1 missile, 2 lasting, else ends
-    CSpell spell;
-    CEffect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
-    CEffect* sound = nullptr;             // a sound or a sound sequence (counted)
+    Spell spell;
+    Effect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
+    Effect* sound = nullptr;             // a sound or a sound sequence (counted)
     EffectPointLight* light = nullptr;   // counted
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
@@ -267,16 +267,16 @@ public:
     // The visual as the effect class its spell type creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
-    CSpell* Spell() { return &spell; }
-    const CSpell* Spell() const { return &spell; }
+    Spell* HeldSpell() { return &spell; }
+    const Spell* HeldSpell() const { return &spell; }
 };
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
 // (or NaN).
-bool IsSpellTarget(CUnit* unit);
+bool IsSpellTarget(Unit* unit);
 
 // A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
-// so far, and the CSpell that Build computes from them.
+// so far, and the Spell that Build computes from them.
 class SpellContainer : public EngineObject {
 public:
     // The name and the spell are destroyed after the string, where the game destroys them before it.
@@ -306,7 +306,7 @@ public:
     const itemdb::SpellRecord* prototype;
     std::vector<itemdb::SpellModifierRecord*> modifiers;
     std::string codes;              // modifier index + 1 per modifier
-    CSpell spell;
+    Spell spell;
     std::string name;              // always empty
 };
 
@@ -323,15 +323,15 @@ struct SpellSequence {
 
 // The spell manager's object types (CreateObject / type).
 enum class SpellObjectType : int {
-    Spell = 0x3002,      // CSpell
+    Spell = 0x3002,      // Spell
     Container = 0x3003,  // SpellContainer
 };
 
 // The spell manager; context gives the spell constructor.
-class CSpellManager : public ResourceManager {
+class SpellManager : public ResourceManager {
 public:
-    CSpellManager();
-    ~CSpellManager() override;
+    SpellManager();
+    ~SpellManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "spells"
@@ -341,20 +341,20 @@ public:
     // For an id other than -1 the spell takes it as its packed id: low half 0 initialises it from prototype
     // (id >> 16) (null when out of range); otherwise the sequence of the high half gives the container to
     // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
-    CSpell* CreateSpellObject(int id);
+    Spell* CreateSpellObject(int id);
     // The sequences' tables' bucket arrays leak.
     void Destroy() override;
-    // A CSpell (0x3002) or SpellContainer (0x3003); else null.
+    // A Spell (0x3002) or SpellContainer (0x3003); else null.
     EngineObject* NewObject(int type) override;
 
     // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
     // result.
-    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers);
+    Spell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers);
 
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map
     // with a null record. Returns the new spell, or a fatal error's result.
-    CSpell* CreateSpellFromText(std::string_view text);
+    Spell* CreateSpellFromText(std::string_view text);
 
     // `this` is not used.
     std::vector<std::string> ListSpellNames();
@@ -366,10 +366,10 @@ public:
     std::uint32_t maxSequenceKey;    // the largest key asked for
 };
 
-class CSpellConstructor : public EngineObject {
+class SpellConstructor : public EngineObject {
 public:
-    CSpellConstructor();
-    ~CSpellConstructor() override;
+    SpellConstructor();
+    ~SpellConstructor() override;
 
     // Releases the container and forgets the manager. Returns 1.
     void Create() override;
@@ -379,7 +379,7 @@ public:
     ClassId GetClassId() override;
 
     // Counts a reference to `manager` that is never released.
-    void SetManager(CSpellManager* manager);
+    void SetManager(SpellManager* manager);
 
     // Returns 1, or a fatal error's result without a manager or prototype.
     bool BeginConstruct(const itemdb::SpellRecord* prototype);
@@ -390,7 +390,7 @@ public:
     // Rebuilds when the prototype accepts it.
     bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
-    CSpellManager* manager;         // counted but never released
+    SpellManager* manager;         // counted but never released
     Ref<SpellContainer> container;
 };
 
@@ -412,14 +412,14 @@ template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
 
 // A light. type 0x31 is a point light. localPosition is the light's position (where a directional light is
 // drawn from); worldPosition holds it in the space of the mesh being lit.
-class CLight : public TransformObject {
+class Light : public TransformObject {
 public:
     // Luminance of the colour, falling off with the squared distance for point lights.
     float GetIntensityAt(const Vector3& point);
 
     // The range is sqrt(FLT_MAX).
-    CLight();
-    ~CLight() override;
+    Light();
+    ~Light() override;
     void Create() override;
     void Destroy() override;                // LightFlag::Active cleared
     const char* ClassName() override;
@@ -459,8 +459,8 @@ public:
     EngineObject* NewObject(int type) override;
     // LightFlag::Hidden cleared (no null check).
     EngineObject* CreateObject(int type, int id) override;
-    CLight* LightWithId(unsigned lightId) const { return FindObjectAs<CLight>(lightId); }
-    CLight* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<CLight>(lightType, lightId); }
+    Light* LightWithId(unsigned lightId) const { return FindObjectAs<Light>(lightId); }
+    Light* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<Light>(lightType, lightId); }
 
     EngineObject* held;            // released by the destructor
     std::vector<int> litIds;

@@ -22,14 +22,14 @@ constexpr int kStatTaming = 2;
 
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
-void UndoIfTamedBy(UnitServer* self, CUnit* tamer) {
+void UndoIfTamedBy(UnitServer* self, Unit* tamer) {
     int side = self->tameStage == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) self->UndoTaming();
 }
 
 } // namespace
 
-bool UnitServer::TryTame(CUnit* tamer, float roll) {
+bool UnitServer::TryTame(Unit* tamer, float roll) {
     float bonus = stats.AttributeWithItems(kStatTaming, unit);
     int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
@@ -39,7 +39,7 @@ bool UnitServer::TryTame(CUnit* tamer, float roll) {
         ServerWorld()->diplomacy.OnAttack(tamer, unit);
         return false;
     }
-    CPlayer* tamerPlayer = tamer->player;
+    Player* tamerPlayer = tamer->player;
     switch (tameStage) {
     case 0:
         unit->SetRelationsB(~(1u << (tamer->side & 31)));

@@ -38,7 +38,7 @@ void StoreStartFolder();
 #include <vector>
 
 class PlayerClient;
-class CUnit;
+class Unit;
 struct PartyUnitRecord;
 class TextManager;
 
@@ -79,7 +79,7 @@ void GameStopAmbience();
 void GameStartAmbience();
 // The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's result.
 int GamePlayMusic(const char* name);
-CUnit* GameFindClientUnit(int id);
+Unit* GameFindClientUnit(int id);
 void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour);
 void GameRemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
 int GameFindExitAt(const float* point, int* index);

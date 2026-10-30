@@ -8,8 +8,8 @@
 #include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"     // SceneRenderer
 #include "renderer_lines.h"
-#include "spell.h"     // CLight
-#include "texture.h"   // TextureDevice, CTexture
+#include "spell.h"     // Light
+#include "texture.h"   // TextureDevice, Texture
 #include "ui.h"
 #include "world.h"
 
@@ -74,9 +74,9 @@ void SceneRenderer::SetColour(std::uint32_t newColour) {
 
 const float* AmbientColour() { return g_ambientColour; }
 
-void SceneRenderer::SetSun(CLight* light) { sun.Assign(light); }
+void SceneRenderer::SetSun(Light* light) { sun.Assign(light); }
 
-void SceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
+void SceneRenderer::SetSunAndAmbient(Light* light, float r, float g, float b) {
     SetSun(light);
     // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(std::lround(r * kColourScale));
@@ -98,7 +98,7 @@ void SceneRenderer::DestroyRenderer() {
 }
 
 // The holder is stored (the new renderer draws with it); no device lock.
-int SceneRenderer::SetTexture(int stage, CTexture* texture) {
+int SceneRenderer::SetTexture(int stage, Texture* texture) {
     device->stageSurfaces[stage] = texture ? texture->surface.Get() : nullptr;
     return 1;
 }
@@ -110,8 +110,8 @@ int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, R
     return mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
-int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* screen,
-                                  CTexture* textureA, CTexture* textureB) {
+int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>* lights, Material* material, int alpha, Rect* screen,
+                                  Texture* textureA, Texture* textureB) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
 }
@@ -121,13 +121,13 @@ bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 
 // --- Texture holders -----------------------------------------------------------------------------
 
-int EnsureTextureLoaded(CTexture* texture) {
+int EnsureTextureLoaded(Texture* texture) {
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags & TextureFlag::Loaded) return 1;
     return g_clientWorld.textureManager->LoadTexture(texture);
 }
 
-void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name) {
+void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name) {
     slot.Reset();
     auto* manager = g_clientWorld.textureManager;
     auto* found = manager->FindTypedTexture(kind, name);

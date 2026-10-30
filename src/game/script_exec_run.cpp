@@ -31,7 +31,7 @@ bool IsZero(float value) {
 }
 
 // An effect object took a new position.
-void EffectMoved(EngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
+void EffectMoved(EngineObject* object) { static_cast<Effect*>(object)->MarkChanged(); }
 
 // An FX source's offset on one axis: random * (r - (-r)) * (1 / (2^32 - 1)) + (-r), with the random value loaded
 // whole; the double 1 / (2^32 - 1) = 2^-32 (1 + 2^-32) rounds the rounded product to the product times 2^-32: the

@@ -34,9 +34,9 @@ PartyRecord* NewRecord() {
 
 // The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
 // non-const.
-CParty* FindParty(const PartyMap& parties, int key) {
+Party* FindParty(const PartyMap& parties, int key) {
     auto found = parties.find(key);
-    return found != parties.end() ? const_cast<CParty*>(&found->second) : nullptr;
+    return found != parties.end() ? const_cast<Party*>(&found->second) : nullptr;
 }
 
 } // namespace
@@ -48,18 +48,18 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 
     list->records.emplace_back(NewRecord());
 
-    CParty* party = list->records.front()->Party();
+    Party* party = list->records.front()->GetParty();
     party->AddMember(kHero, kHumanHero, game::kEmptyText);
     party->zone = kFirstZone;
     party->entrance = 0;
     party->variables.Set(kGameTime, kSix);
 }
 
-CParty* NamedPartyRecords::Find(std::string_view name) const {
-    CParty* unnamed = nullptr;
+Party* NamedPartyRecords::Find(std::string_view name) const {
+    Party* unnamed = nullptr;
     for (PartyRecord* record : records) {
-        if (str::Compare(record->name.c_str(), name) == 0) return record->Party();
-        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->Party();
+        if (str::Compare(record->name.c_str(), name) == 0) return record->GetParty();
+        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->GetParty();
     }
     return unnamed;
 }
@@ -80,9 +80,9 @@ void NamedPartyRecords::Remove(const char* name) {
 
 // ---- The party manager -----------------------------------------------------------------
 
-CParty* PartyAt(PartyMap& parties, int key) {
-    CParty made;
-    CParty pair(made);
+Party* PartyAt(PartyMap& parties, int key) {
+    Party made;
+    Party pair(made);
     return &parties.try_emplace(key, pair).first->second;
 }
 
@@ -96,27 +96,27 @@ void PartyManagerNewGameFour(PartyManager* manager) {
     manager->templates.Build(1);
 }
 
-void PartyManager::BeginRedeploy(CParty* party) { records.BeginRedeploy(party); }
+void PartyManager::BeginRedeploy(Party* party) { records.BeginRedeploy(party); }
 
-void PartyManager::EndRedeploy(CParty* party) { records.EndRedeploy(party); }
+void PartyManager::EndRedeploy(Party* party) { records.EndRedeploy(party); }
 
 int g_nextPartyId = /*0078B0E8*/ 1;
 
 int PartyNextId() { return g_nextPartyId++; }
 
-bool PartyManager::LoadParty(const int* key, CParty* target) const {
+bool PartyManager::LoadParty(const int* key, Party* target) const {
     if (*key == 0) {
         target->Clear(1, 0);
         return true;
     }
-    CParty* stored = FindParty(parties, *key);
+    Party* stored = FindParty(parties, *key);
     if (!stored) return false;
     target->Assign(stored);
     return true;
 }
 
-void PartyManager::StoreParty(const int* key, CParty* source) {
-    CParty* value = FindParty(parties, *key);
+void PartyManager::StoreParty(const int* key, Party* source) {
+    Party* value = FindParty(parties, *key);
     if (!value) value = PartyAt(parties, *key);
     value->Assign(source);
 }

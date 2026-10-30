@@ -57,7 +57,7 @@ extern IsaacRandom g_random;
 // animated tiles and ambient sounds, particles, lightning shapes, sound picks, decals, the interface's
 // flourishes) and whose count follows frames, the camera or what was drawn. The game drew them from g_random or
 // rand(); apart, the game's draws no longer depend on them. Seeded from g_random's state when that is seeded
-// (CWorld::Create); before that it draws from the zero state, as g_random does unseeded.
+// (World::Create); before that it draws from the zero state, as g_random does unseeded.
 extern IsaacRandom g_clientRandom;
 
 // A draw of g_clientRandom in rand()'s range (0..0x7FFF), for the client effects that drew rand().

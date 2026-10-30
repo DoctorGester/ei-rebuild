@@ -18,16 +18,16 @@ constexpr double kHoursPerSecond = 1.0 / 15.0;  // as the game counts its speed
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
-float CWorld::Elapsed() const { return pc24::Mul(static_cast<double>(tick), secondsPerTick); }
+float World::Elapsed() const { return pc24::Mul(static_cast<double>(tick), secondsPerTick); }
 
-float CWorld::TimeOfDay() const { return std::fmod(Elapsed() + timeBase, kHoursPerDay); }
+float World::TimeOfDay() const { return std::fmod(Elapsed() + timeBase, kHoursPerDay); }
 
-void CWorld::SetTime(float hours) {
+void World::SetTime(float hours) {
     float elapsed = std::fmod(Elapsed(), kHoursPerDay);
     timeBase = hours - elapsed;
 }
 
-void CWorld::SetTimeSpeed(float speed) {
+void World::SetTimeSpeed(float speed) {
     // The time of day now, stored as a float before the speed changes.
     float now = TimeOfDay();
     if (speed > 0.0f) secondsPerTick = 1.0f / speed;
@@ -37,21 +37,21 @@ void CWorld::SetTimeSpeed(float speed) {
     SetTime(now);
 }
 
-double CWorld::NightLevel() {
+double World::NightLevel() {
     float hours = TimeOfDay();
     if (hours > 20.0f) return (hours - 20.0f) * 0.25f;
     if (hours >= 8.0f) return 0.0;
     return 1.0;   // also NaN
 }
 
-bool CWorld::IsNight() {
+bool World::IsNight() {
     float hours = TimeOfDay();
     if (hours >= 22.0f) return true;
     if (hours >= 6.0f) return false;
     return true;   // also NaN
 }
 
-CWorld::Clock CWorld::GetTime() {
+World::Clock World::GetTime() {
     Clock clock;
     clock.hours = TimeOfDay();
     // 1 / (seconds per tick * 15), the product formed first.
@@ -60,21 +60,21 @@ CWorld::Clock CWorld::GetTime() {
     return clock;
 }
 
-void CWorld::SetWind(const Vector3& direction, float strength) {
+void World::SetWind(const Vector3& direction, float strength) {
     std::memcpy(windDirection, &direction, sizeof(windDirection));
     windStrength = std::bit_cast<std::uint32_t>(strength);
 }
 
 void WorldServer::SetTime(float hours) {
     if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTime(hours);
+    World::SetTime(hours);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
 void WorldServer::SetTimeSpeed(float speed) {
     if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTimeSpeed(speed);
+    World::SetTimeSpeed(speed);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }

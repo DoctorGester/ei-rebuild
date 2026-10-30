@@ -10,7 +10,7 @@ animation code each tick, so any scenario with units reaches it.
 ## Address map
 
 Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, ClassName 005460C0; abstract base vtable
-0073EDBC; constructor 00545580, 0xB20 bytes), the server-side unit controller at CUnit + 0x240.
+0073EDBC; constructor 00545580, 0xB20 bytes), the server-side unit controller at Unit + 0x240.
 
 | Range | Contents |
 |---|---|
@@ -54,7 +54,7 @@ map_object_figures.h, names from database.res's *.adb): weapon bit (1 << type, n
 0x10000 / 0x8000) | action bits (0x90000 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000
 skill, 0xC0000 cast, 0x240000 mode transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or
 0x80000000 looped. A step is {animation, 0xFF, 0, uninitialised, duration, +8}; duration = entry frames (+0x20; +0x40 the
-action's moment) over the unit's speed factor for it (005327D0), truncated. CUnit +0x350 (the last damage source) is
+action's moment) over the unit's speed factor for it (005327D0), truncated. Unit +0x350 (the last damage source) is
 UnitParams::unknown_20.
 
 ### The hit
@@ -69,7 +69,7 @@ FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll (00
 - distance penalty + speed ratio (not for a backstab)), r uniform in 0..round(spread), minus 25 for a called shot at the
 head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit logs ("Unit 12
 was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot"; combat.txt `expect`s
-parts of it), refuses it for protected players, applies it (UnitStats::ApplyHit 005254B0), records the source at CUnit
+parts of it), refuses it for protected players, applies it (UnitStats::ApplyHit 005254B0), records the source at Unit
 +0x350, recomputes stats and calls OnDamaged (00553AC0). A miss makes the victim hostile (Diplomacy::OnAttack) and
 remembered. AttackParams (slot 50, 00555A00): text-key units use the weapon's stats plus the weapon skill bonus (00526C70),
 others their stats scaled by difficulty (0052E0D0); no defence with a bow or crossbow.
@@ -89,13 +89,13 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
   the action; else ApproachTarget closes in (wait when in reach, else a path to where the target will be in 2..64 ticks).
 - The animation code (00549160) calls FinishAction(location) at the order's moment (00549EC0): kind 3 DeliverAttack (bows /
   crossbows: the world's object factory creates missile 0x5B with the 0x3C-byte hit at +0x160, registered with
-  AddTimedObject; otherwise the target's CUnit slot 31 forwards the hit to its TakeHit at once; then the weapon's spell and
+  AddTimedObject; otherwise the target's Unit slot 31 forwards the hit to its TakeHit at once; then the weapon's spell and
   a noise of 2 x CombatStats +0xFC when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier pays
   from its charge, a party unit pays mana Period20 x cost), 6 UseSkill, 10 the quick item of category 2 is applied by the
   world (0058ECE0). Item spells fire when the item's charge covers the cost (NaN fires); UseItemCharge 00552C60 copies the
   charge to the party's item copy (player + 0x70).
 - Planning a route (0054E600): a use order goes to the reachable spot its target offers (slot 44 / 60) within 0073EF28;
-  otherwise the path is searched with the target lifted off the sector map (path flag 007B00D2 cleared, CUnit +0x43C = 1),
+  otherwise the path is searched with the target lifted off the sector map (path flag 007B00D2 cleared, Unit +0x43C = 1),
   turned into a motion order (005B22C0), and TimeUntilAction (motion simulated in steps of 5 ticks) goes to the player's
   path message (0066D490). Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
 
@@ -127,7 +127,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
 - World::CreateManagers (0055EE40, from the client init 00561E50 and the server's 0058AE10) makes and references the world's
   managers at +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48, +0x50 (00683FF0), +0x4C (00688840),
   +0x58 (006A5AB0), +0x54 (ResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458,
-  then IsaacRandom::Init and 006D43E0 on +0x70. CWorld::Destroy (0055F8E0, base slot 3): spell objects get slot 5
+  then IsaacRandom::Init and 006D43E0 on +0x70. World::Destroy (0055F8E0, base slot 3): spell objects get slot 5
   (ClearState), managers deleted whatever their counts.
 
 ### Floating point and verification patterns
@@ -190,12 +190,12 @@ here is gone. What it covered, by file:
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
   100000000, types 6 / 8).
-- World managers: CWorld::Create 0055EE40, CWorld::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
+- World managers: World::Create 0055EE40, World::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
   (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` PlayerManager / EffectManager (0073F2C4) /
   ItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, ItemManager slot 25 "items", left because
   ResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): PlayerSource base
   destructor (vtable 0073F38C), WorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
-  (+0x60, 0073F3A8; was "the game result object"), CWorld::OpenSession 0055F410 (new session ShareAssigned into +0x60).
+  (+0x60, 0073F3A8; was "the game result object"), World::OpenSession 0055F410 (new session ShareAssigned into +0x60).
 - Patterns: functions that start with PUSH / MOV and a relative CALL (005536B0) are reached through the naked stub
   `OriginalUpdateMoveFactors`; slot-implementation bodies are `<Slot>Impl`.
 
@@ -227,7 +227,7 @@ here is gone. What it covered, by file:
   up the spell of `action` (+0x194), not of the planned order; FindUseSpot writes z = -1 into every order's point;
   ResyncWithUnit tests "current order not 0" right after setting 9 and "state not 2" after setting 6; RefreshItemSpells
   keeps the previous item's spell for a node without an item (ours none); 005483C0 copies the extra dword too, 00556950
-  only the steps; PathTo saves and restores CUnit +0x43C around FindPath; NextAnimation passes a pause step's emote as the
+  only the steps; PathTo saves and restores Unit +0x43C around FindPath; NextAnimation passes a pause step's emote as the
   misaligned dword at step + 1; LiftNearby's first loop does nothing; boredom draws ISAAC only past 500.
 - Movement tick: the "blocked" local is uninitialised when no cell was reached or the cell is outside the AI map
   (CanStandAtFromHere returns before writing the reason), the original decides on stack garbage (the dword at its entry

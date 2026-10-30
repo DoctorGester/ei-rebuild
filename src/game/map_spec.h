@@ -16,9 +16,9 @@
 
 class ByteStream;
 class EngineObject;
-class CMapObject;
+class MapObject;
 class TransformObject;
-class CUnit;
+class Unit;
 
 // ---- The world objects' parts of the trap and lever records ---------------------------------------
 // The fields after a record's ObjectSpec, which the world object's SetUp reads in place.
@@ -158,8 +158,8 @@ public:
     virtual void WriteFields();
 
     // The world object an object record makes is a map object (a unit for a unit record).
-    CMapObject* MapObject() const;
-    CUnit* Unit() const;
+    MapObject* MadeMapObject() const;
+    Unit* MadeUnit() const;
 
     std::string model;          // (empty)
     std::int32_t parentId;
@@ -169,7 +169,7 @@ public:
     Vector3 scale;               // (0.5 each; read and written y, x, z)
     std::uint8_t shadow;
     std::uint8_t visible;
-    std::uint8_t side;           // the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
+    std::uint8_t side;           // the owner's player number (chunk B011; Unit::SetSide, the traps' hostile players)
     std::string parentIname;
     std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
     std::vector<std::string> parts;

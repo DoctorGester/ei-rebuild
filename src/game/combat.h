@@ -23,7 +23,7 @@ struct UnitAction : AIOrder {
     UnitAction* Assign(const UnitAction* from);
 // Kind 9, the target released, pointIsUseSpot, param and modifier cleared.
     void Reset();
-    void Retarget(CMapObject* object) {
+    void Retarget(MapObject* object) {
         if (object == target) return;
         target.Assign(object);
     }
@@ -31,7 +31,7 @@ struct UnitAction : AIOrder {
 
 // One step of an animation list: animation is the index of the unit's animation entry (0xFF: a pause), variant
 // the emote / animation variant (0xFF: none), flags UnitSetAnimation's flags, a padding byte, duration in game
-// ticks, kind (1 holds the queue time, 2 lying, a fall; CUnit::SetMotionMode). A blank step is 0xFF, 0xFF, 0,
+// ticks, kind (1 holds the queue time, 2 lying, a fall; Unit::SetMotionMode). A blank step is 0xFF, 0xFF, 0,
 // duration -1, kind 0. The padding byte is never set: the original's steps carried a stack byte there, ours
 // carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
 struct AnimationStep {
@@ -95,8 +95,8 @@ class WorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
 // `from` (z = the caster's ground + BaseSpeed, a height) to the target (z = its ground + ModeSpeed), or to `at`
 // one unit above the water surface when there is no target.
-bool SpellHasLineOfSight(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
-                                    CUnit* target, const Vector3& at);
+bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const Vector3& from,
+                                    Unit* target, const Vector3& at);
 
 struct MoveModeState {
     int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
@@ -190,7 +190,7 @@ public:
     Item* SpellCarrier(std::uint32_t source);
     bool IsScrollSource(std::uint32_t source);
     // A spell slot's spell, or a carrier item's.
-    CSpell* SpellOfSource(std::uint32_t source);
+    Spell* SpellOfSource(std::uint32_t source);
     // Does the current order count as fighting (for the battle music): an attack (kind 3), or a cast (4, 5) of a
     // spell of type 0-8 or 0x1A from a spell slot or a spell carrier (quick item category 5 or 8). Rebirth's
     // FixPlaingBattleMusicFromAntimagic drops 0x1A (antimagic).
@@ -221,13 +221,13 @@ public:
     float AttackRoll(UnitServer* attacker, bool backstab);
     // Decides whether `hit` (from `attacker`, may be null) hits: attackRoll becomes FLT_MAX (hit) or -FLT_MAX
     // (miss). Elemental hits always hit.
-    bool ResolveHit(DamageInfo* hit, CUnit* attacker);
+    bool ResolveHit(DamageInfo* hit, Unit* attacker);
     // The hit of a weapon (or natural) attack into `out`. Draws from rand() and the ISAAC generator.
     void BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
     // `source` (may be null) is whose player gets the experience for a kill. The damage applies when the hit
     // beats the defence, unless the unit's player protects it (returns 1 then); on a miss the victim turns
     // hostile and remembers the attacker.
-    bool TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
+    bool TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) override;
     void MoveFactorsChanged() override;
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);
@@ -245,9 +245,9 @@ public:
     void FinishAction(int location);
     // A missile (world object 0x5B carrying the hit) for a bow or crossbow, else the target's TakeHit
     // directly; then the weapon's spell, and noise when the hit was not a backstab.
-    void DeliverAttack(CMapObject* target, DamageInfo* hit);
+    void DeliverAttack(MapObject* target, DamageInfo* hit);
     // Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers the cost.
-    void TriggerWeaponSpell(CMapObject* target);
+    void TriggerWeaponSpell(MapObject* target);
     // The spells of the armour pieces that trigger on being hit (`onHit`; spell prototype 0x18 triggers when
     // not hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
@@ -258,17 +258,17 @@ public:
     // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
     // direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to death", the death animation,
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags bit 1.
-    void OnDamaged(CUnit* attacker, int hitKind);
+    void OnDamaged(Unit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
-    void WitnessMurder(const HeldUnits* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(const HeldUnits* witnesses, Unit* victim, Unit* murderer);
     // When the unit's flags have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();
     // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
     // to the sides; 0 without an attacker or with a non-zero `hitKind`.
-    BlowSide HitDirection(CUnit* attacker, int hitKind);
+    BlowSide HitDirection(Unit* attacker, int hitKind);
     // A UnitOrderKind::Use: UseSource::SearchBody loots the body; else science (UseSource::Use) and stealing.
-    void UseSkill(CMapObject* target);
+    void UseSkill(MapObject* target);
     // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
     // up of kind 0 (sic).
     void Idle();
@@ -287,11 +287,11 @@ public:
     void OrderMove(const Vector3& point, int run, int walk, float range);
     // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
-    void OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg);
+    void OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg);
     // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
     // spell's skill for a spell of its own; message 0x13 if not, or while flags has 0x10000000.
     void OrderCastAt(std::uint32_t source, const Vector3& point, int run);
-    void OrderCast(std::uint32_t source, CMapObject* target, int run);
+    void OrderCast(std::uint32_t source, MapObject* target, int run);
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
 
@@ -306,21 +306,21 @@ public:
     // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a
     // living unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body
     // (UseSource::SearchBody; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
-    void OrderSteal(CMapObject* target, int run);
-    void OrderTame(CMapObject* target, int run);
-    void OrderUse(CMapObject* target, int spot, int run);
-    void OrderSearchBody(CMapObject* target, int run);
+    void OrderSteal(MapObject* target, int run);
+    void OrderTame(MapObject* target, int run);
+    void OrderUse(MapObject* target, int spot, int run);
+    void OrderSearchBody(MapObject* target, int run);
     // Is `target` (a body to search) taken: with flags bit 0x20000000, when the world does not share it with
     // this unit's id; else when a living unit of the brain's nearby list is searching it (UnitOrderKind::Use,
     // UseSource::SearchBody) while Acting or with its flag set.
-    bool TargetBusy(CMapObject* target);
+    bool TargetBusy(MapObject* target);
     // `name` from the figure's animation database as the queued order: kind 8 for keys with bit 31, else 7;
     // param = the entry's index dword.
     void PlayAnimation(const char* name);
     // Drops everything: Stopped, the effect object, the plan and both orders; the unit stands still.
     void StopAction();
     // Does the unit wear an armour piece in slots 3..6 / in the first three (body, trousers, helmet)?
-    // CUnit::AcceptsTarget asks for the animation bits 0x10 / 0x20 by them.
+    // Unit::AcceptsTarget asks for the animation bits 0x10 / 0x20 by them.
     bool HasOtherArmour() override;
     bool HasMainArmour() override;
 
@@ -381,7 +381,7 @@ public:
     void BuildCastSteps(struct AnimationSteps* steps, int* duration, UnitOrderKind kind, int value);
     // The hit location (plan->hitLocation) and the height of the blow from both units' heights and the
     // distance. Draws random numbers.
-    void BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CMapObject* target);
+    void BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, MapObject* target);
 
     // Every tick: takes over the queued order, else follows the path and continues the current order
     // (ContinueAction for actions; a finished move or animation lets the queue on).
@@ -475,7 +475,7 @@ public:
     // The units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
     // player's units with sessionKind 1.
-    std::vector<CUnit*> LiftNearby(const Vector3& point, char moving);
+    std::vector<Unit*> LiftNearby(const Vector3& point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
     // Every field to its start value (constructor and Load).
@@ -487,7 +487,7 @@ public:
     // 2) it moves the unit a stage along (1 not hostile to the tamer's side, 2 on that side, 3 in the tamer's
     // party with a tamed mode); a unit with a player or a failed roll is attacked instead (taming by that side
     // undone). 0/1.
-    bool TryTame(CUnit* tamer, float roll);
+    bool TryTame(Unit* tamer, float roll);
     // The tamed mode (8) removed, no player, all relations, the old side back (from stage 2), stage 0.
     void UndoTaming();
     // From the items the unit wears (weapons only the one in use) whose spell is periodic: kept entries keep
@@ -512,7 +512,7 @@ public:
 
     // `claimant` claims the players in `mask` are enemies of this unit: they join claimedHostile and the AI
     // memory hears a call of kind 0x1E carrying the mask.
-    void ClaimHostility(CUnit* claimant, std::uint32_t mask);
+    void ClaimHostility(Unit* claimant, std::uint32_t mask);
     // The weapon in `slot` (-1, none, when the slot is empty or the weapon's condition rounds to 0 or less)
     // becomes the active and wanted weapon (part 6 changed); a party unit's AI options are rebuilt, the armour
     // spells refreshed. 1 when the weapon was taken up.
@@ -561,7 +561,7 @@ public:
     UnitAction action;
     UnitAction action2;
     std::uint8_t followsLeader;     // the chase follows `followedLeader`'s target (combat_tick.cpp)
-    Ref<CUnit> followedLeader;      // the party unit whose attack this one joins
+    Ref<Unit> followedLeader;      // the party unit whose attack this one joins
     UnitStats stats;                // its flags get bit 0x10 on a hit
     DamageWords protection;         // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
@@ -582,11 +582,11 @@ public:
     AnimationSteps moveAnimation;   // the movement animation (NextAnimation)
     std::uint32_t idleKey;          // 0x666DEAD: none yet
     AnimationSteps idleAnimation;   // extra: its time
-    void(*actionDone)(CUnit*);   // run when Animating ends; cleared by the reset
+    void(*actionDone)(Unit*);   // run when Animating ends; cleared by the reset
     std::uint32_t claimedHostile;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm
 };
 
-inline UnitServer* CUnit::ServerController() const { return static_cast<UnitServer*>(controller); }
+inline UnitServer* Unit::ServerController() const { return static_cast<UnitServer*>(controller); }
 

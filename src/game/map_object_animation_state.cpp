@@ -1,4 +1,4 @@
-// The figure's animation state (FigureAnimationState, CObject3D + 0x98): what plays, the queue
+// The figure's animation state (FigureAnimationState, Object3D + 0x98): what plays, the queue
 // behind it and the frame reached. See map_object_figures.h and docs/notes/map_objects.md.
 #include "figure_manager.h"
 #include "map_object_figures.h"

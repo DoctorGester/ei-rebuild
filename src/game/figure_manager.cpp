@@ -39,7 +39,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
     if (anm) animations->OpenFromMemory(anm);
 }
 
-void CFigureManager::Create() {
+void FigureManager::Create() {
     BaseManager::Create();
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) {
@@ -51,16 +51,16 @@ void CFigureManager::Create() {
     LoadMenuRects(g_menuRects);
 }
 
-FigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
+FigureMesh* FigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
     auto* part = CreateObjectAs<FigureMesh>(attached ? FigureObjectType::PlainFigureMesh : FigureObjectType::SharedFigureMesh, -1);
     part->name = partName;
     part->directory = modelName;
     return part;
 }
 
-FigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<FigureMesh>(FigureObjectType::UiMesh, -1); }
+FigureMesh* FigureManager::NewBlankFigure() { return CreateObjectAs<FigureMesh>(FigureObjectType::UiMesh, -1); }
 
-FigureMesh* CFigureManager::NewFigure(std::string_view name) {
+FigureMesh* FigureManager::NewFigure(std::string_view name) {
     auto* figure = NewBlankFigure();
     figure->name = name;
     figure->directory = game::kEmptyText;
@@ -77,7 +77,7 @@ FigureMesh* CFigureManager::NewFigure(std::string_view name) {
     return figure;
 }
 
-int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
+int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
     char path[0x200];
     char* end = Append(path, bone->name3.c_str());
@@ -106,6 +106,6 @@ namespace {
 constexpr const char* kCFigureManagerClassName = "CFigureManager";
 } // namespace
 
-const char* CFigureManager::ClassName() { return kCFigureManagerClassName; }
-ClassId CFigureManager::GetClassId() { return ClassId::FigureManager; }
-const char* CFigureManager::GetFolderName() { return "figures"; }
+const char* FigureManager::ClassName() { return kCFigureManagerClassName; }
+ClassId FigureManager::GetClassId() { return ClassId::FigureManager; }
+const char* FigureManager::GetFolderName() { return "figures"; }

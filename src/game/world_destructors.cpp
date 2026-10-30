@@ -18,7 +18,7 @@
 
 #include <memory>
 
-CWorld::~CWorld() {
+World::~World() {
     DestroyOwned(netSession);
     DestroyOwned(worldHandle);
     figureLoader.Reset();

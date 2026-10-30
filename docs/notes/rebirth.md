@@ -58,12 +58,12 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 - **FixLeversActivate**: `LockKey::Opens` (00522A80) compares key and lock levels signed instead of unsigned, and for a level-0 lock returns
   the key's level + 1 (any key but level -1 opens it).
-- **FixSpellEffectsOverflow**: (#1) `CMapObject::AddEffect` (0050F1E0, slot 45) refuses a 21st effect and, after adding an effect lasting more
+- **FixSpellEffectsOverflow**: (#1) `MapObject::AddEffect` (0050F1E0, slot 45) refuses a 21st effect and, after adding an effect lasting more
   than one tick, removes every older effect of the same type and end flag whose +0x0C is within 0.001, that lasts no longer and whose value
   is not higher. (#0) a hook in `WorldServer::UpdateUnits` (0058D670, at 0058D82E) counts every effect down one tick on objects that are
   asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0).
 - **FixProgressNames**: the loading movie (00595080) picks progres2.bik for "gipat2", progres5.bik for "jigran".
-- **FixSpellSelfCasting**: (#0) `CSpell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `BattleScreen::SelectUnit`
+- **FixSpellSelfCasting**: (#0) `Spell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `BattleScreen::SelectUnit`
   (00638EF0) always passes 0 as the flag to 00637500 when casting on a clicked unit.
 - **FixMoveObject**: `SectorMap::Move` (005C11D0) refuses x < 0, y < 0 or NaN (vanilla computes a negative sector).
 - **FixAddMapObject**: object creation (005927C0): a unit with no prototype record is logged and uses index 0 instead of reading [0+8].
@@ -116,7 +116,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 FixProcessLogin (a stub clears +0x18, the age, of the join `ServerBase::OnLogin` 00443080 builds; ours always did), ExtendedServerName
 (0061B2C0 / 0061D780), MQClient (`ClientOnFileChunk` 0041ECC0 returns after collecting every chunk: no file from the server is written),
 MPSpeedControl (the network client test of the two speed keys in 0063A560 and the clock's speed buttons in 00648D70 dropped: JNE +0),
-PlayerNumbers (addon+21B4A replaces `CPlayer::SetPlayerId(0)` in 0066C180: the highest number of the server world's other players + 1,
+PlayerNumbers (addon+21B4A replaces `Player::SetPlayerId(0)` in 0066C180: the highest number of the server world's other players + 1,
 else 0). *Disabled here*: SetDefaultRate, MPConsole, MpZone, ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
@@ -135,9 +135,9 @@ their flags (`ei::rebirth::Enabled`: the flag on). addon's side, as the layer re
   (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
   mod archives (paths relative to the mod) that `MappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
   the game's archive ignored. The key is the lower-case path the game opens: starter `Path Settings\RESOURCES PATH` (`.\Res\`) + name, speech
-  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::Create 005AA544,
-  LinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
-  006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or CMaterialManager::Create (1001FD2E).
+  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (FigureManager::Create 005AA544,
+  LinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (TextureManager::Create
+  006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or MaterialManager::Create (1001FD2E).
 - GetFile (13 calls of 00671B40 and the vtable slot): the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name
   not found is tried once more without the prefix (also with the Standard mod). ListFiles (4 calls of 00674AC0): the mod's listings and the
   archive's own are appended to the caller's array, which is not emptied first (also with the Standard mod).
@@ -174,7 +174,7 @@ S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
 - **Pause** (`PlayerServer::OnPause` 0066FAC0; `rebirth::PluginPause()`, the ini's mode, 1 here). Modes 1 and 2 jump from 0066FAFE to 14
   bytes at 0066FB62 that write `'3' - pause` over the last digit of "reserved_02" (007930F6 in .rdata, the key of announcement 12,
   `Interface3D::MessageText`) and go on, so resumes are announced too ("reserved_03"); mode 2 also replaces the leader test (0066FB10) by
-  the pausing player's own leader. Mode 3 skips the announcement (0066FB2C) and makes 005942C0 (`CWorld::SetServerPaused`, the server's
+  the pausing player's own leader. Mode 3 skips the announcement (0066FB2C) and makes 005942C0 (`World::SetServerPaused`, the server's
   copy of SetPaused) a `RET 4`.
 - **Briefings** (`WorldServer::CompleteBriefing` 00592090): a network client also queues the completion script (GSSetVar /
   #OnBriefingComplete) after asking the server: the client path's stack offsets move by 0x14 and it jumps into the server path's tail

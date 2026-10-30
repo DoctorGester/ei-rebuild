@@ -28,7 +28,7 @@ int ClassOf(Object* object) { return static_cast<int>(object->GetClassId()); }
 // The class ids the digest tells apart (EngineObject::GetClassId).
 constexpr int kClassMapObjectServer = 0x39;     // MapObjectServer, a map object's server half
 constexpr int kClassUnitServer = 0x3E;          // UnitServer, a unit's controller (UnitController)
-constexpr int kClassUnit = 0x50;                // CUnit
+constexpr int kClassUnit = 0x50;                // Unit
 // The world's effects by class id (world_effect.h): their own state goes into "timed<id>".
 constexpr int kClassSound = 0x48, kClassAmbientSound = 0x49, kClassParticle = 0x4A, kClassPointLight = 0x4B,
               kClassLightning = 0x4D, kClassArrow = 0x4E, kClassWall = 0x5A, kClassArrowFigure = 0x5B,
@@ -146,13 +146,13 @@ inline std::uint32_t TextHash(const std::string& text) { return TextHash(text.c_
 // (image/harness_digest_image.cpp).
 namespace exe_side {
 void Read(void* server, Snapshot& s);
-UnitNow Unit(void* server, int id);
+UnitNow UnitNowOf(void* server, int id);
 int LocalLeader(void* server, unsigned* money);
 void NoteAddresses(void* server);
 } // namespace exe_side
 namespace image_side {
 void Read(void* server, Snapshot& s);
-UnitNow Unit(void* server, int id);
+UnitNow UnitNowOf(void* server, int id);
 int LocalLeader(void* server, unsigned* money);
 void NoteAddresses(void* server);
 } // namespace image_side
