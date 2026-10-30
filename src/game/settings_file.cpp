@@ -9,7 +9,6 @@
 
 #include <mutex>
 #include <string>
-#include <winerror.h>
 
 #include <cstring>
 
@@ -153,19 +152,19 @@ void Load(Store& s) {
 // RegQueryValueEx's way of giving `bytes`.
 long Fill(unsigned long valueType, const std::string& bytes, unsigned long* type, void* data, unsigned long* size) {
     if (type) *type = valueType;
-    if (!size) return data ? ERROR_INVALID_PARAMETER : ERROR_SUCCESS;
+    if (!size) return data ? kInvalidParameter : kSuccess;
     const auto needed = static_cast<unsigned long>(bytes.size());
     if (!data) {
         *size = needed;
-        return ERROR_SUCCESS;
+        return kSuccess;
     }
     if (*size < needed) {
         *size = needed;
-        return ERROR_MORE_DATA;
+        return kMoreData;
     }
     std::memcpy(data, bytes.data(), bytes.size());
     *size = needed;
-    return ERROR_SUCCESS;
+    return kSuccess;
 }
 
 const char* PathOf(const void* key) { return key ? static_cast<const Key*>(key)->path.c_str() : ""; }
@@ -191,7 +190,7 @@ long Query(const void* key, const char* sub, const char* name, unsigned long* ty
     const Value* value = found ? Document::FindValue(*found, name) : nullptr;
     if (!value) {
         if (s.missing) s.missing(path.c_str(), name);
-        return ERROR_FILE_NOT_FOUND;
+        return kNotFound;
     }
     std::string bytes = value->data;
     for (ReadFilter filter : s.filters) filter(name, value->type, bytes);
@@ -203,15 +202,15 @@ long Set(const void* key, const char* sub, const char* name, unsigned long type,
     Locked lock;
     Store& s = S();
     Load(s);
-    if (s.readOnly) return ERROR_SUCCESS;   // a harness run writes no settings
+    if (s.readOnly) return kSuccess;   // a harness run writes no settings
     const std::string path = JoinPath(PathOf(key), sub);
     std::string bytes(static_cast<const char*>(data), size);
     Key& target = s.document.AddKey(path);
     if (const Value* value = Document::FindValue(target, name); value && value->type == type && value->data == bytes)
-        return ERROR_SUCCESS;
+        return kSuccess;
     s.document.Set(path, name, type, std::move(bytes));
     s.dirty = true;
-    return ERROR_SUCCESS;
+    return kSuccess;
 }
 
 void Flush() {

@@ -16,7 +16,7 @@ screen pieces are in `ui.md` (sections 7 and 8); players and their message handl
 | Spell effects | spell_effect, spell_effect_start, spell_effect_update | spells, spells_cast |
 | Quest database | quest_database, quest_records | any new game in zone1 |
 | Textures (mmp, composed) | texture_mmp, texture_compose | all (skins at zone load) |
-| Registry, ini | registry, ini_file, win_registry | all |
+| Registry, ini | registry, ini_file, settings_key | all |
 | Trader stock | item_stock | trader_stock |
 | Party, party records, item lists | party_items, party_lifetime, party_save, party_members, party_file | ui_camp, trader_stock, party_records, items |
 
@@ -385,7 +385,7 @@ constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA
 destructor release the shadow surface, destroy and delete every cached texture, delete the composed textures and drop the
 device; the destructor adds SetDevice(null).
 
-## Registry and ini (registry, ini_file, win_registry; every scenario)
+## Registry and ini (registry, ini_file, settings_key; every scenario)
 
 `FileRegistry` (00694520-00694DC0, 00695410, 00695600, 006958E0: construct / destroy / open / attach / IsValid / close, O;
 getters S into scratch objects; `FindData` 006946D0 P). `IniFile` (00695B80-00697100: construct, readers, integer lists into
@@ -394,7 +394,7 @@ one HKEY at +0): construct, Destroy / Close, Open (RET 8), SetDWord / SetInt, Se
 GetDWord / GetInt, GetFloat, GetString(Int) (256-byte stack buffer, malloc on ERROR_MORE_DATA): S on scratch objects (a value
 written twice).
 
-WinRegistry names come from its debug messages; each getter / setter opens `subkey` below the key (KEY_ALL_ACCESS; setters
+WinRegistry names come from its debug messages (ours is `SettingsKey` on the settings file, settings_key.h); each getter / setter opens `subkey` below the key (KEY_ALL_ACCESS; setters
 RegCreateKeyExA with class ""), reads or writes one value, closes it. Reached at startup by the options loader (0045B210) and
 on exit by the writer (0045C560), whose wrapper records the RegCreateKeyExA / RegSetValueExA import slots for both runs.
 SetString / GetString call their workers through the workers' addresses. GetFloat reads into the stack slot of `subkey` (a

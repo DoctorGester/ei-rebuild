@@ -62,7 +62,7 @@ const std::string& ModFolder() {
         char value[MAX_PATH * 2];
         DWORD size = sizeof(value) - 1, type = 0;
         if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", &type, value, &size) == 0 &&
-            type == REG_SZ) {
+            type == settings_file::kTypeString) {
             value[size] = 0;
             path = value;
         }

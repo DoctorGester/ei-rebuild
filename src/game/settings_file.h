@@ -4,7 +4,7 @@
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
 // Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei-rebuild.exe keeps the same
 // keys and values in ei_settings.ini next to the exe instead (or in %LOCALAPPDATA%\EvilIslands\ei_settings.ini when
-// the exe's folder has none and cannot be written): WinRegistry (win_registry.cpp) and the direct readers
+// the exe's folder has none and cannot be written): SettingsKey (settings_key.cpp) and the direct readers
 // (ReadValue) use it there, and never read or write the registry. When the file is missing, the first use writes it
 // with the defaults (DefaultDocument); when it exists but cannot be read (locked, unreadable), the session runs on
 // the defaults in memory and writes nothing. game.exe (the original game) keeps the registry.
@@ -12,7 +12,7 @@
 //   [Software\Nival Interactive\EvilIslands\General Settings]
 //   "FullScreen"=dword:00000001          REG_DWORD
 //   "VideoResolution"="1920x1080"        REG_SZ (\\ and \" escaped)
-//   "Brightness"=float:0.5               a 4-byte REG_BINARY holding a float (WinRegistry's floats)
+//   "Brightness"=float:0.5               a 4-byte REG_BINARY holding a float (SettingsKey's floats)
 //   "Data"=hex:01,02                     REG_BINARY
 //   "Lines"=hex(7):61,00,00              any other type, or a string the quoted form cannot hold
 // "@" names a key's default value; lines starting with ';' are comments. Every value round-trips bit for bit:
@@ -29,8 +29,26 @@ namespace settings_file {
 
 inline constexpr const char* kFileName = "ei_settings.ini";
 
-// One value as RegQueryValueEx gives it: the type (REG_DWORD, REG_SZ, ...) and the bytes (a string's with
-// its terminator).
+// A value's type: the registry's numbers, which the game and Rebirth read (a type not named here round-trips in the
+// file as hex(<type>)).
+enum ValueType : unsigned long {
+    kTypeString = 1,         // REG_SZ: text with its terminator
+    kTypeExpandString = 2,   // REG_EXPAND_SZ
+    kTypeBinary = 3,         // REG_BINARY (SettingsKey's floats: 4 bytes)
+    kTypeDword = 4,          // REG_DWORD: 4 bytes, little-endian
+    kTypeMultiString = 7,    // REG_MULTI_SZ: strings, each terminated, and an empty one
+};
+
+// What Query and ReadValue return: the registry calls' error codes.
+enum Status : long {
+    kSuccess = 0,
+    kNotFound = 2,            // ERROR_FILE_NOT_FOUND: the key or the value is missing
+    kInvalidParameter = 87,   // ERROR_INVALID_PARAMETER: data without a size
+    kMoreData = 234,          // ERROR_MORE_DATA: the size needed is in *size
+};
+
+// One value as RegQueryValueEx gives it: the type (ValueType's, or any other) and the bytes (a string's with its
+// terminator).
 struct Value {
     std::string name;
     unsigned long type = 0;
@@ -54,7 +72,7 @@ public:
     // Reads `text` into the document; each line not understood is skipped and described in `problems`.
     void Parse(const std::string& text, std::vector<std::string>* problems);
 
-    std::deque<Key> keys;   // a deque: a key stays where it is as others are added (WinRegistry holds one)
+    std::deque<Key> keys;   // a deque: a key stays where it is as others are added (SettingsKey holds one)
 };
 
 // The trees the options are kept in: the game's, and Rebirth's (its NivalRegistry patch reads the options there; its
@@ -79,7 +97,7 @@ std::string JoinPath(const char* path, const char* sub);
 // ---- The process's settings (the standalone; game.exe uses the registry) ----
 
 // Opens the key `path` (below HKEY_CURRENT_USER), making it when missing as RegCreateKeyEx does: the handle
-// WinRegistry holds.
+// SettingsKey holds.
 void* CreateKey(const char* path);
 // RegQueryValueEx of the value `name` of `sub` below `key` (a CreateKey handle, or null: below
 // HKEY_CURRENT_USER): 0, ERROR_MORE_DATA (the size needed in *size) or ERROR_FILE_NOT_FOUND (key or value
@@ -101,7 +119,7 @@ void AddReadFilter(ReadFilter filter);
 
 // Harness runs: `file` in place of the one next to the exe, and each read of a key or value it lacks passed to
 // `missing` (key path, value name; may be null). `readOnly`: writes are dropped and a missing file stays missing;
-// else the file is written as in the product (Flush at WinRegistry::Close, .tmp then moved) and a missing file is
+// else the file is written as in the product (Flush at SettingsKey::Close, .tmp then moved) and a missing file is
 // written with the defaults. Before the first use.
 using MissingHandler = void (*)(const char* path, const char* name);
 void Pin(const char* file, MissingHandler missing, bool readOnly = true);

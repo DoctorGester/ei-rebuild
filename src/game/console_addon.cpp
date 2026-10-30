@@ -184,7 +184,7 @@ const std::vector<std::string>& AutoExecLines() {
         if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, nullptr, &size) == 0 && size != 0) {
             std::string data(size, '\0');
             if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, data.data(), &size) == 0 &&
-                type == REG_MULTI_SZ) {
+                type == settings_file::kTypeMultiString) {
                 data.resize(size);
                 for (std::size_t at = 0; at < data.size();) {
                     std::size_t end = data.find('\0', at);

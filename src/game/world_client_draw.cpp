@@ -21,7 +21,6 @@
 #include "settings_file.h"
 #include "sky_object.h"
 #include "spell.h"   // CLight
-#include "system_text.h"
 #include "terrain.h"
 #include "texture.h"
 #include "ui.h"
@@ -81,7 +80,7 @@ void PopMatrix(MatrixStack& stack) {
 float StarterDrawRadius(const char* name) {
     DWORD value = 100;
     DWORD data = 0, size = sizeof(data), type = 0;
-    if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", name, &type, &data, &size) == 0 && type == REG_DWORD)
+    if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", name, &type, &data, &size) == 0 && type == settings_file::kTypeDword)
         value = data;
     float radius = static_cast<float>(static_cast<double>(value));
     return radius;

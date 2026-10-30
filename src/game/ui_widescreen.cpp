@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <winerror.h>
 
 namespace widescreen {
 namespace {
@@ -31,7 +30,7 @@ constexpr const char* kGeneralSettings = "Software\\Gipat.ru\\EI_Starter\\EvilIs
 bool WideScreenSetting() {
     DWORD value = 1;
     DWORD read = 0, size = sizeof(read), type = 0;
-    if (settings_file::ReadValue(kStarterSettings, "WideScreen", &type, &read, &size) == ERROR_SUCCESS && type == REG_DWORD)
+    if (settings_file::ReadValue(kStarterSettings, "WideScreen", &type, &read, &size) == settings_file::kSuccess && type == settings_file::kTypeDword)
         value = read;
     return value != 0;
 }
@@ -42,7 +41,7 @@ void Resolution(int* width, int* height) {
     *height = 0;
     char text[64] = {};
     DWORD size = sizeof(text) - 1, type = 0;
-    if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == ERROR_SUCCESS && type == REG_SZ) {
+    if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == settings_file::kSuccess && type == settings_file::kTypeString) {
         // addon: its own CRT's sscanf; ours is the host CRT's.
         sscanf_s(text, "%dx%d", width, height);
     }
