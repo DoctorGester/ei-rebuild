@@ -378,7 +378,7 @@ void RefGlyphRun(std::vector<std::uint32_t>& pixels, int width, int height, text
                 std::uint8_t& c = cover[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)];
                 c = std::max(c, a);
             }
-    for (const text::Rect& u : layout.underlines)
+    for (const Rect& u : layout.underlines)
         for (int y = std::max(y0, u.top); y < std::min(y1, u.bottom); ++y)
             for (int x = std::max(x0, u.left); x < std::min(x1, u.right); ++x)
                 cover[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)] = 255;
@@ -413,7 +413,7 @@ void CheckGlyphs() {
     struct Case {
         const char* text;
         unsigned format;
-        text::Rect rect;
+        Rect rect;
         bool smoothing;
         int pixels;
     };
@@ -446,7 +446,7 @@ void CheckGlyphs() {
             }
             std::u32string decoded = text::DecodeCp1251(c.text);
             text::TextLayout shadow, layout;
-            text::Rect shifted{c.rect.left + 1, c.rect.top + 1, c.rect.right + 1, c.rect.bottom + 1};
+            Rect shifted{c.rect.left + 1, c.rect.top + 1, c.rect.right + 1, c.rect.bottom + 1};
             bool laid = text::Layout(*font, decoded, shifted, c.format, shadow) && text::Layout(*font, decoded, c.rect, c.format, layout);
             Check(laid, std::string("layout of case ") + std::to_string(caseIndex));
             ui::GlyphRun(holder, *font, shadow, RGB(8, 8, 8));
@@ -469,7 +469,7 @@ void CheckGlyphs() {
         const void* holder = &w;
         text::TextFont* font = text::GetTextFont("Times New Roman", 21, true);
         text::TextLayout layout;
-        if (font && text::Layout(*font, text::DecodeCp1251("&Against black: Ww Qq \xC6\xE6"), text::Rect{3, 3, 170, 60}, text::kWordBreak, layout)) {
+        if (font && text::Layout(*font, text::DecodeCp1251("&Against black: Ww Qq \xC6\xE6"), Rect{3, 3, 170, 60}, text::kWordBreak, layout)) {
             ui::Canvas(holder, w, h, kFormats[2].format);
             ui::GlyphRun(holder, *font, layout, RGB(255, 200, 40));
             std::vector<std::uint32_t> composed(static_cast<std::size_t>(w) * h, 0), got;
@@ -814,7 +814,7 @@ void CheckLost() {
     ui::Image(&drawn, Rect{40, 8, 50, 14}, picture.data(), 10);
     if (text::TextFont* font = text::GetTextFont("Times New Roman", 15, false)) {
         text::TextLayout layout;
-        if (text::Layout(*font, text::DecodeCp1251("Lost"), text::Rect{8, 18, 60, 36}, 0, layout))
+        if (text::Layout(*font, text::DecodeCp1251("Lost"), Rect{8, 18, 60, 36}, 0, layout))
             ui::GlyphRun(&drawn, *font, layout, RGB(255, 255, 255));
     }
     ui::Canvas(&from, 16, 8, f888);

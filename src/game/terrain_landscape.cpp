@@ -29,6 +29,7 @@
 
 namespace terrain {
 
+// TODO: drop these two for map_file.h's (the AI map reads the same file) once this file's SSE2 move is in.
 // The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
 // texture, then the animated textures.
 #pragma pack(push, 1)

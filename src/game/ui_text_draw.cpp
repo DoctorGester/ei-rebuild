@@ -24,7 +24,7 @@ constexpr UINT kModifyString = 0x10000;
 int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_view text, const RECT& rect, UINT format,
             COLORREF colour) {
     render::text::TextLayout layout;
-    if (!render::text::Layout(font, text, render::text::Rect{rect.left, rect.top, rect.right, rect.bottom}, format, layout))
+    if (!render::text::Layout(font, text, render::Rect{rect.left, rect.top, rect.right, rect.bottom}, format, layout))
         return 0;
     if (!(format & DT_CALCRECT)) render::ui::GlyphRun(holder, font, layout, colour);
     return layout.result;

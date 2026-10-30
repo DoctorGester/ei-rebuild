@@ -109,7 +109,7 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-struct VsParams {
+struct MeshVsParams {
     Matrix4 matrix;
     float distanceFog[4];
     float shift[4];
@@ -118,8 +118,8 @@ struct VsParams {
     float normalOffset[4];   // x: world units
     float landscape[3][4];   // model space to the landscape's: rows (point shadows)
 };
-static_assert(sizeof(VsParams) == 240);
-struct FsParams {
+static_assert(sizeof(MeshVsParams) == 240);
+struct MeshFsParams {
     float fogColour[4];
     float factor[4];
     std::int32_t colourOps[4];
@@ -136,7 +136,7 @@ struct FsParams {
     float pointOn[4];           // x: point shadows taken (MeshBatch::landscape), y: a unit's mesh
     float pointFront[4];        // MeshBatch::pointFront
 };
-static_assert(sizeof(FsParams) == 272 + sizeof(MeshLightParams));
+static_assert(sizeof(MeshFsParams) == 272 + sizeof(MeshLightParams));
 // How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
 // map's texels (as the ground's, shaders/terrain.hlsl).
 constexpr float kNormalOffset = 1.5f;
@@ -292,10 +292,10 @@ bool CreateMeshShader() {
         s.attrs[i].hlsl_sem_index = indices[i];
     }
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(VsParams);
+    s.uniform_blocks[0].size = sizeof(MeshVsParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(FsParams);
+    s.uniform_blocks[1].size = sizeof(MeshFsParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
     s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;   // the point shadows
     s.uniform_blocks[2].size = sizeof(PointShadowParams);
@@ -387,7 +387,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     BindPointShadows(b, 5, 5);
     sg_apply_bindings(&b);
     CountBindings(b);
-    VsParams vs{};
+    MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
         vs.distanceFog[0] = 1.0f;
@@ -401,7 +401,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
-    FsParams fs{};
+    MeshFsParams fs{};
     ShadowUniforms(f, batch.light >= 0, &fs.shadow);
     if (fs.shadow.on[0] > 0.5f && fs.shadow.soft[3] > 0.0f)   // the map's texel in world units
         vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;

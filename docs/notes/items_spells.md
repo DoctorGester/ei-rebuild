@@ -625,7 +625,7 @@ obvious.
   lock 007AEE78; ours `ClearUiDepth`, the new renderer's depth); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state
   0x12) set to 1 and put back (vtable +0x90 / +0x94). 006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md.
 
-Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
+Shared: resource_local.h (`LocalResource`, `FillStream`; the lightning, lever and party loads too), database_file.h (`LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
 unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
 `GameClientPaused` / `GameSendFlag10` in world_glue.h. The tables' vector serialisers are called through their
 addresses so that their wrappers run. The folder-only loads (quests, prints, acks) open "database.res" but report

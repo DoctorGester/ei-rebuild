@@ -23,8 +23,6 @@ constexpr int kSkillLevelsChunk = 2;
 constexpr int kRecordChunk = 1;
 constexpr int kModelSlots = 6;
 
-using dbfile::FillStream;
-using dbfile::LocalResource;
 
 // The tables' vector serialisers (id, vector; ChunkArchive::SerializeUnitLevels / SerializeModels /
 // SerializePrototypes / SerializeNpcs, unit_db.cpp).

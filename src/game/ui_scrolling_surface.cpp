@@ -71,7 +71,7 @@ void UiScrollingSurface::RenderText() {
     render::ui::Fill(holder, page, background);
     const int top = render::text::TwipsToPixels(-offset, dpi);
     for (const render::text::RichDraw& draw :
-         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, render::text::Rect{0, 0, width, height}))
+         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, render::Rect{0, 0, width, height}))
         render::ui::GlyphRun(holder, *draw.font, draw.layout, draw.colour);
     const int textHeight = HeightInTwips(this);
     if (endOffset > 0) {

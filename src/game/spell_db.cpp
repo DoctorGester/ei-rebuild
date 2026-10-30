@@ -115,7 +115,7 @@ template SpellModifierRecord* SpellModifierTable::FindByCode(std::string_view);
 
 int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
-    dbfile::LocalResource resource;
+    LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
@@ -123,7 +123,7 @@ int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!data) return game::FatalError("Can't open spells database\n");
 
     MemoryStream stream;
-    dbfile::FillStream(stream, data, size);
+    FillStream(stream, data, size);
     spells.Load(&stream, kSpellsChunk);
     modifiers.Load(&stream, kModifiersChunk);
     // The three recipe lists through one archive.

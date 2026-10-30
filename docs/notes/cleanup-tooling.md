@@ -60,7 +60,7 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
 Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): naked functions, files with
 `#pragma float_control`, unknown_XXX fields,
 `At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
-`0x0073xxxx`-`0x008Fxxxx`), `Fn(T* self, void*)` shims (the old thiscall shape, with or without `__fastcall`; src has two left, the harness hooks' stand-ins), struct names defined in several files, and the rest listed in its output.
+`0x0073xxxx`-`0x008Fxxxx`), `Fn(T* self, void*)` shims (the old thiscall shape, with or without `__fastcall`; none left since C64: the harness's entries for game.exe's CALLs are in tests/verify), struct names defined in several files (outside anonymous namespaces, the name as written: `miles::Sample`), and the rest listed in its output.
 
 ## Redundant pointer casts (`cast_scan.py`, C21)
 

@@ -25,7 +25,7 @@ namespace {
 
 using namespace detail;
 
-struct FsParams {
+struct BlitParams {
     float dest[4];
     float source[4];
 };
@@ -258,7 +258,7 @@ bool CreateBlitPipeline() {
     s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(FsParams);
+    s.uniform_blocks[1].size = sizeof(BlitParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
     s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[0].texture.image_type = SG_IMAGETYPE_2D;
@@ -311,7 +311,7 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     sg_apply_bindings(&bind);
     CountBindings(bind);
     ApplyRect(b.destination, width, height);
-    FsParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
+    BlitParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
                  static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
                 {static_cast<float>(b.source.left), static_cast<float>(b.source.top), static_cast<float>(b.textureWidth),
                  static_cast<float>(b.textureHeight)}};

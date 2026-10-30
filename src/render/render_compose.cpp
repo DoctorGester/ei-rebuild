@@ -23,7 +23,7 @@ namespace render::detail {
 
 namespace {
 
-struct FsParams {
+struct ComposeParams {
     std::int32_t offset[4];   // the image texel at target texel (0, 0); z: fill with `colour`; w: the alpha kept
     float colour[4];
 };
@@ -33,7 +33,7 @@ struct CloudParams {
     std::uint32_t blend[4];    // ps_clouds: x
     std::uint32_t ramp[256];   // ps_clouds: one alpha a word
 };
-static_assert(sizeof(FsParams) == 32 && sizeof(CloudParams) == 1088);
+static_assert(sizeof(ComposeParams) == 32 && sizeof(CloudParams) == 1088);
 
 bool g_tried = false, g_made = false;
 sg_shader g_shader{}, g_cloudFrameShader{}, g_cloudsShader{};
@@ -121,7 +121,7 @@ sg_pipeline MakePlainPipeline(sg_shader shader, sg_pixel_format format, const ch
 bool EnsurePipelines() {
     if (g_tried) return g_made;
     g_tried = true;
-    g_shader = MakeShader(kTextureComposeShader, sizeof(FsParams), 1, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT,
+    g_shader = MakeShader(kTextureComposeShader, sizeof(ComposeParams), 1, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT,
                           "ei-texture-compose");
     g_over = MakePipeline(true, "ei-texture-compose-over");
     g_replace = MakePipeline(false, "ei-texture-compose-replace");
@@ -334,7 +334,7 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(step.to, recipe.width, recipe.height);
-        FsParams fs{{step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
+        ComposeParams fs{{step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
                     {1.0f, 1.0f, 1.0f, 1.0f}};
         sg_range range{&fs, sizeof(fs)};
         sg_apply_uniforms(1, &range);
@@ -474,7 +474,7 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(Rect{0, 0, width, height}, width, height);
-        FsParams fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
+        ComposeParams fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
         sg_range range{&fs, sizeof(fs)};
         sg_apply_uniforms(1, &range);
         sg_draw(0, 6, 1);
