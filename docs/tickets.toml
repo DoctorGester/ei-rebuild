@@ -6182,7 +6182,7 @@ id = "PL2"
 title = "Platform layer: window, messages, cursor, keyboard layouts"
 group = "port"
 model = "opus"
-note = "After PL1. app.cpp, app_main.cpp, present_window.cpp, ui_console_window.cpp, ui_edit_field.cpp (keyboard layouts), ui_cursor_setup.cpp, render_window.cpp's window side: CreateWindowEx / RegisterClassEx / the message loop / WndProc, focus and foreground calls, cursor position and shape, GetKeyNameText and the keyboard layout calls behind platform window and input headers, events as our own types (no WPARAM / LPARAM in game code). Goldens unchanged (the harness drives input through the window: keep the message path it hooks, check tests/verify)."
+note = "User 2026-10-30: we already have sokol (sokol_gfx on D3D11, render/sokol_impl.cpp) as a pseudo platform layer; look at sokol_app for this. First decide by a short look: sokol_app owns the window, the event loop (frame callback, or SOKOL_NO_ENTRY with our own entry), keyboard / mouse / char events, cursor and the D3D11 swapchain sokol_gfx draws into; the game has its own blocking main loop (app_main, after C30e15) that would become one frame per callback, and the harness drives input through window messages (tests/verify), which would move to injected sokol events. Pick sokol_app unless something it cannot do (keyboard layout switching, GetKeyNameText, the cursor, exclusive full screen rules: no display mode switches) makes it worse; then do it. Then: app.cpp, app_main.cpp, present_window.cpp, ui_console_window.cpp, ui_edit_field.cpp (keyboard layouts), ui_cursor_setup.cpp, render_window.cpp's window side: CreateWindowEx / RegisterClassEx / the message loop / WndProc, focus and foreground calls, cursor position and shape, GetKeyNameText and the keyboard layout calls behind platform window and input headers, events as our own types (no WPARAM / LPARAM in game code). Goldens unchanged (the harness drives input through the window: keep the message path it hooks, check tests/verify)."
 
 [[ticket]]
 id = "PL3"
@@ -6210,7 +6210,7 @@ id = "PL6"
 title = "Platform layer: audio and video seams (Miles and Bink behind interfaces, null backends)"
 group = "port"
 model = "opus"
-note = "After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
+note = "After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders; sokol_audio is output only, so miniaudio stays the choice) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
 
 [[ticket]]
 id = "R37"
