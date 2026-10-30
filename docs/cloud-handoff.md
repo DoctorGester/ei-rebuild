@@ -72,8 +72,8 @@ Read before changing code:
   - Each push to a `claude/**` branch costs a full run (about 20 to 30 minutes), so batch your commits and push
     when a step is ready.
 - **Golden recording** (H40): run the workflow by hand on your branch (not main) with `record` = both,
-  vanilla or rebirth (optionally `scenarios`, space-separated, and `reason`). Its `record` job plays four passes
-  (plain twice, two heap jitters), runs `tools/golden.py record` and pushes the goldens to the branch as a commit of
+  vanilla or rebirth (optionally `scenarios`, space-separated, and `reason`). Its `record` job plays two passes
+  that must agree, runs `tools/golden.py record` and pushes the goldens to the branch as a commit of
   its own (`git pull` it). The summary names the new and changed goldens; a golden whose content is the same is
   left alone, golden.json included. That push starts no run, so dispatch a full
   run on the branch after it. docs/notes/standalone-verification.md, section 2.

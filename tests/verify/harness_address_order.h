@@ -10,9 +10,9 @@ namespace ei::verify::address_order {
 
 // The step "checkplayers" (UB1): the window on top is the base screen (`briefing`, game.exe's table of it:
 // WindowKind, harness_windows.h) of a network client with a live binding, and its player list (the chat window, ChatWindow
-// listed) lists every player the client holds. False with what differs in `*text`. With EI_HEAP_JITTER
-// the players may reach the client before its binding (their order in an update follows the server's
-// heap); without the binding's refresh the list then shows nobody.
+// listed) lists every player the client holds. False with what differs in `*text`. The players
+// may reach the client before its binding (their order in an update follows the server's heap); without the
+// binding's refresh the list then shows nobody.
 bool CheckPlayerList(std::uintptr_t briefing, std::string* text);
 
 } // namespace ei::verify::address_order

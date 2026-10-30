@@ -13,15 +13,15 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
   (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
   (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
   GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
-- **Goldens are our own** (H40): runs of the image that agree plain and under heap jitter (section 2), recorded on the
+- **Goldens are our own** (H40): two runs of the image that agree (section 2), recorded on the
   runner by the Suites workflow's `record` input. Until H40 they were game.exe's `--no-hooks` runs (with the harness's
   canonicalising patches, section 5; on the vanilla data with addon.dll's bug fixes only), and every vanilla golden
   the image could run and 24 Rebirth ones were the same as game.exe's when the switch was made. The git tag
   `original-oracle` (main's b06141b) marks the last commit whose `golden.py record` took game.exe's runs: check a
   question about the original's behaviour there.
-- **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap (the image's
-  malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in every run): a golden must hold
-  under every seed. Goldens are recorded from runs that agree plain and under jitter.
+- **Heap layout**: the image's malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in
+  every run, so a golden that held across runs holds under any layout. The harness's heap jitter and fill
+  (`EI_HEAP_JITTER`, `EI_HEAP_FILL`, `heaptrace`; SV7a, SV7c) acted on game.exe's heap only and went with H40.
 - **Function vectors**: recorded until H40 by runs of the original code with the recorders as its only hooks
   (`EI_VECTORS=1` with `--no-hooks`; the tag original-oracle has them); `vectors.py merge`, replayed by
   `ei_vectors.exe` in build.cmd (section 3).
@@ -70,17 +70,17 @@ suite's saves (decoded from the ported writers, unchecked against data): fake un
 spells, carried items, plan steps, most timed effects, items 0x3006 / 0x3007, time-wheel events, script lights /
 particles / FX sources / areas, party manager parties, saves\current\<zone>.sav.
 
-**Recording** (H40): from the image's runs (`<scenario>-standalone`, `<scenario>-standalone-rebirth`), four passes
-that must agree (`IMAGE_RUNS`): plain twice, `EI_HEAP_JITTER=1` and `EI_HEAP_JITTER=2,fill`. The Suites workflow does it
+**Recording** (H40): from the image's runs (`<scenario>-standalone`, `<scenario>-standalone-rebirth`), two passes
+that must agree (`IMAGE_RUNS`). The Suites workflow does it
 on the runner: Actions > Suites > Run workflow on a branch (not main) with `record` = both / vanilla / rebirth,
 optionally `scenarios` (space-separated) and `reason`. Its `record` job builds verify, plays the passes (the vanilla
 suite and the Rebirth smoke set, or the named scenarios), records and pushes the goldens to the branch as a commit of
 its own; the run's summary lists the new and changed goldens and `git diff --stat` of what changed but golden.json.
 That push starts no run: check the branch with a Suites run after it. By hand on the machine:
 ```
-python tools\work.py test <ID> --golden --jobs 4 [scenarios]       (each pass; set EI_HEAP_JITTER=1, then 2,fill)
+python tools\work.py test <ID> --golden --jobs 4 [scenarios]       (each pass)
 python tools\golden.py snapshot <scratch>\passN [--install rebirth]  (after each pass)
-python tools\golden.py record --install vanilla --runs <scratch>\pass1 ... <scratch>\pass4 --reason "..."
+python tools\golden.py record --install vanilla --runs <scratch>\pass1 <scratch>\pass2 --reason "..."
 python tools\golden.py saves --runs <dirs>         (only the saves of existing goldens, digests kept)
 ```
 `record` keeps a scenario only when every run agrees with the first in console, every digest record, every dump and
@@ -362,11 +362,6 @@ happen (the harness logs "share id" if one does).
   another. `clocktrace`: every clock read and wait in ei-rebuild.log. Through `work.py test`, set it in the environment.
 - `golden.py diff A B [--ulps N] [--ignore F] [--records K]`, `golden.py state A --record N`: where two runs' digests
   part, field by field; with `digest 1` and `randtrace` on the scenario this finds the first update and draw.
-- `heaptrace` (EI_HARNESS_CLOCK) writes every CRT heap call with callers until world update `EI_HEAPTRACE` (default 40),
-  then every object's place; `EI_HEAPSEQ=<update>` keeps the events in memory and writes heapseq.txt (faster).
-- `EI_HEAP_FILL=<spec>` (or `heapfill.txt` beside our module, ei-rebuild.exe or ei_harness.dll, since a variable of its own moves the blocks: the CRT
-  copies the environment onto its heap): fill chosen blocks (by number), byte ranges and resized tails with a byte or
-  seeded bytes; bisect the block number, then the offset, to name an uninitialised field (how SV7b7 was found).
 - `EI_WATCH_CUNIT=<id>[,flags]` (a client unit's orientation or flags writes, by debug registers), `EI_WATCH_ADDR=<hex>
   [,from,to]` (one dword's reads and writes), `EI_STACK_SCRUB`, `EI_SPIN_US` (tests/verify/harness_watch.h).
 - `EI_SAVETRACE=1` (every memory stream write up to each saved file, savetrace.txt) with `tools/save_trace.py plain |
@@ -382,8 +377,8 @@ happen (the harness logs "share id" if one does).
   them to doubles. `tools/check_fp_fold.py` (removed in C25d) failed on x87 constants the original never loaded (terrain::Sine's
   256 / pi, the briefing's and the lighting's pi / 180 are floats now; the double pi / 180 moved three menu units by
   1-2 ulps).
-- **Never-set memory** is made canonical, never emulated (section 5). Before adding a new site, find the field with
-  EI_HEAP_FILL and check every pass (plain, jitter 1, 2, 3, `2,fill`, `3,fill`, `EI_HEAP_FILL=r7`).
+- **Never-set memory** is made canonical, never emulated (section 5): our objects start zeroed or set. To find a
+  field read before its set, poison it (next rule).
 - **Whether anything reads a field before a set**: poison it in ours right after its constructor (a temporary
   env-gated write, one bit per construction site; a quiet NaN and a finite 1e5), then run the `--golden` suite and
   hash the capture scenarios' frames against a plain pass. A positive control must move something (the light's
@@ -403,7 +398,7 @@ happen (the harness logs "share id" if one does).
   "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
 - **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the
   canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
-  so a golden that changes with the allocation order is a missing canonicalisation: check with the jitter passes.
+  so a golden that changes with the allocation order is a missing canonicalisation.
 - **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
 - **The reference cache** (H30, H30b; gone with H40, as game.exe's runs): it kept game.exe's runs by scenario commit,
   install and the harness's sources, and so the harness's game.exe side called only game.exe's code

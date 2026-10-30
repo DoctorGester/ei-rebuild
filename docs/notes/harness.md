@@ -79,11 +79,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
   by function, caller and thread, in `ei-rebuild.log`) and `randtrace` (every random draw with its frame
   and caller, in `randtrace.txt`; `tools/randtrace.py` finds where two runs part).
-  On the virtual clock the CRT heap also gives the same addresses every run, and the harness makes
-  the original's address- and leftover-dependent behaviour canonical (`lfheap` keeps the game's own
-  heap). `EI_HEAP_JITTER=<seed>[,fill]` moves the heap's blocks (game.exe's and the image's) without
-  changing the calls, to find behaviour that follows addresses. These and the trace tools (`heaptrace`,
-  `EI_HEAP_FILL`, `EI_SAVETRACE`, `EI_WATCH_*`) are in docs/notes/standalone-verification.md, sections 5 and 7.
+  The image's malloc is the host CRT's (C26), whose low-fragmentation heap moves its blocks in every run, so a
+  golden never follows heap addresses. The trace tools (`EI_SAVETRACE`, `EI_WATCH_*`) are in
+  docs/notes/standalone-verification.md, section 7.
 - AddressSanitizer: `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL
   copied beside them) into `build\asan`; the product builds never have it. Run the suite on it with
   `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden --jobs 4` (any run_all

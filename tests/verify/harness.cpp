@@ -325,8 +325,7 @@
 //                             main thread's CPU and wall time per frame; "-" only starts a new count
 //   checkplayers              require the base screen on top, of a network client with a live binding, to
 //                             list every player the client holds (its chat window's faces; UB1: the order
-//                             of the players and the binding in an update follows the server's heap, run
-//                             with EI_HEAP_JITTER to vary it)
+//                             of the players and the binding in an update follows the server's heap)
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves

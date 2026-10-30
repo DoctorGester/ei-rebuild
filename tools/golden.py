@@ -44,8 +44,8 @@ usage:
       newer than FILE (touched before the pass), so a run folder an earlier suite left is not taken for this pass's.
   python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
-      folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them, under
-      different heap layouts (plain twice, EI_HEAP_JITTER=1 and EI_HEAP_JITTER=2,fill), each passed with a digest,
+      folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them (two runs of
+      the same build: a scenario whose state depends on more than its steps differs), each passed with a digest,
       and every other DIR's run must agree with the first DIR's: the console, every digest record and dump (but
       the known differences, KNOWN). A scenario that does not is not recorded, its old golden kept; its first
       difference is printed. The saves are kept (saves.txt) only when every run's saves decode to the same
@@ -55,12 +55,12 @@ usage:
       A pair (a scenario with a "peer" line, SV5d): the second game's run folder is the peer\ subfolder; it
       must pass and agree the same way and is kept as the golden's peer\ (snapshot copies it, compare checks it,
       its lines start "peer:").
-      Run the games through the scheduler, once per heap layout (the Suites workflow's record input does all of
-      this on the runner, .github/workflows/suites.yml):
+      Run the games through the scheduler, once per DIR (the Suites workflow's record input does all of this on
+      the runner, .github/workflows/suites.yml):
         python tools\work.py test <ID> --golden --jobs 4 [scenarios]        (--golden: the goldens' digest period)
-        python tools\golden.py snapshot <scratch>\plain1
-        set EI_HEAP_JITTER=1 & python tools\work.py test <ID> --golden --jobs 4 [scenarios]   (and so on)
-        python tools\golden.py record --runs <scratch>\plain1 <scratch>\plain2 <scratch>\jit1 <scratch>\jit2 --reason TEXT
+        python tools\golden.py snapshot <scratch>\run1
+        (the same again, snapshot <scratch>\run2)
+        python tools\golden.py record --runs <scratch>\run1 <scratch>\run2 --reason TEXT
   python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
       Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
       must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
@@ -661,7 +661,7 @@ def commit():
 # ---- commands
 
 IMAGE_FOLDER = {'vanilla': 'standalone', 'rebirth': 'standalone-rebirth'}   # the image's run folders by golden install
-IMAGE_RUNS = 4   # record: the fewest agreeing runs (plain twice, two heap jitters)
+IMAGE_RUNS = 2   # record: the fewest agreeing runs of the image
 
 
 def folder_install(args):
@@ -774,8 +774,7 @@ def record(args):
         elif not os.path.exists(digest):
             problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
         elif len(folders) < IMAGE_RUNS:
-            problem = [f'{len(folders)} runs; a golden needs {IMAGE_RUNS} that agree (plain twice, EI_HEAP_JITTER=1, '
-                       'EI_HEAP_JITTER=2,fill)']
+            problem = [f'{len(folders)} runs; a golden needs {IMAGE_RUNS} that agree']
         games = sides(folders[0])
         for side in games:
             # A pair (SV5d): the second game's runs must pass and agree as the first game's do.
