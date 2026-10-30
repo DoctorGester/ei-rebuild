@@ -1610,7 +1610,25 @@ of the 0.5-1.6 ms hand-over).
       104-136 units (zones), 72-88 (town).
     - **GPU per pass** (ms): terrain 0.35-0.7, objects 0.16-0.6, msaa 8's resolve and copies 0.3-0.42, sun map
       0.05-0.35 plus the range passes 0.09, point map up to 0.19 (crowd), present 0.15; on the battle screen 0.27-0.38
-      at the frame's start on the interface canvases' 13 draws, possibly a gap between stamps (R37h).
+      at the frame's start on the interface canvases' 13 draws, mostly not theirs (R37h, next item).
+    - **The canvases at the frame's start** (R37h; zone1 and zone7's battle screen, 4K, msaa 8; the town's has no
+      canvas drawing each frame): a 768 x 792 canvas gets a fill and six glyph runs every frame (17.5 K pixels of
+      text). A temporary probe stamped every canvas step (two stamps in a row at the frame's start read 0, so the
+      first stamp has no gap of its own) and kept each frame's sum. Per frame, ms, one game at a time:
+
+      | layout | mean | median | p90 | max |
+      |---|---|---|---|---|
+      | before: each run its own coverage pass, copy and compose pass, scratch targets 3840 x 792 | 0.09-0.30 | 0.069-0.076 | 0.07-0.28 | 0.4-9.5 |
+      | now: the runs that overlap none of the others in one coverage and one compose pass, scratch of the runs' size (544 x 81) | 0.07-0.18 | 0.054-0.064 | 0.06-0.42 | 0.7-4.0 |
+
+      The canvases' own work is the median, 0.07 ms (now 0.055). The means come from a tail of frames where 0.3-9 ms
+      of other GPU work falls between two of the canvases' stamps: it grows with the whole frame's tail (frame mean
+      2.4-2.8 ms where the median is 1.5) and with other games on the machine (two games at once: whole runs at a
+      0.4 ms median), and it lands on one step (the compose before, the coverage pass now), not spread over them.
+      The frame's first commands go to the GPU on their own while it idles (the main thread is the limit), the rest
+      later; what the GPU does in between (another process's frame, the desktop's composition of our last present)
+      counts to the canvases. So the overlay's and R37's UI time at the frame's start is mostly that gap, not canvas
+      work; read such a pass by its median. Batching saved about 0.015 ms a frame and 15 MB of scratch targets.
     - **Casters per light**: sun 83-290 objects, 190-570 caster draws (in view + outside); the town's 4 mapped point
       lights 4.25 faces each, 44 draws a light (crowd 113, most 397), redrawn every frame though lamps and buildings
       never move (R37a).
@@ -1622,7 +1640,7 @@ of the 0.5-1.6 ms hand-over).
     stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3; done, the source files'
     render_shadows.cpp: crowd sun + point submission 0.54-0.65 -> 0.21-0.23 ms; R37e1: the sun map's GPU time after it a wait, not overdraw),
     R37d (the fit: 0.1-0.25; done: 0.07-0.13 / 0.04-0.086 ms, most of zone1's runs are crossed by the view's sides
-    and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility; done, section 15).
+    and still walked), R37h (the canvases' GPU; done, above: mostly a gap, the runs batched), R37i (the overlay split per pass, for visibility; done, section 15).
 
 ### Loose .bmp textures (A-I23a)
 
@@ -1782,7 +1800,9 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   GPU reaches it, so a pass's time is the GPU's time between its stamps, idle included: while the main thread is
   the frame's limit the GPU waits for commands at some place of the frame and that pass shows the wait (R37e1: the
   crowd's 0.5 ms in SUN, of which the draws are 0.05; the source files' render_shadows.cpp). Other games on the
-  machine sharing the GPU inflate every pass.
+  machine sharing the GPU inflate every pass. Other GPU work (another process, the desktop's composition) lands
+  mostly in the UI pass at the frame's start (R37h, section 13): the overlay shows means, so a UI time there well
+  above about 0.06 ms on the battle screen is that, not the canvases.
   The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
   than labels), uploaded when the text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540
   rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame and the

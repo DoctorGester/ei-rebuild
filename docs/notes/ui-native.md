@@ -139,7 +139,10 @@ facts follow.
   (`DropCanvases`), so P8 needs a CPU copy or a redraw before it drops the DIBs.
 - Commands, in surface pixels: `Fill`, `FrameRect`, `Line`, `Pixel` (colour quantised on the CPU), `GlyphRun(font, layout,
   colour)`, `CopyFrame(source)`, `Greyscale`. `GlyphRun` composes colour × coverage over what is there (max coverage between
-  glyphs, underlines full), so over black it is `ComposeAgainstBlack`. `Greyscale` follows 005FE440 on the format's bits (5:6:5,
+  glyphs, underlines full), so over black it is `ComposeAgainstBlack`; consecutive runs on a canvas that overlap none of
+  each other are drawn together, in one coverage pass and one compose pass (`DrawGlyphs`; the vertex stream is grown
+  for the whole group before its first run is appended: a buffer replaced between them voided the earlier runs'
+  vertices, the help's first text line in ui_compare). `Greyscale` follows 005FE440 on the format's bits (5:6:5,
   5:5:5, else 8-bit channels). `CopyFrame` uses CopyFrameTo's stretch and truncation.
 - `ReadPixels` (0x00RRGGBB) runs the queue first. `DrawCanvas(holder, dst,
   src, keyed, key)` records `Command::Canvas`; it draws like the window blit, with the key compared on the stored colour.
