@@ -44,7 +44,7 @@ GameOptions::GameOptions() {
     buildingShadow = 0;
     floraShadow = 0;
     otherShadow = 0;
-    borderFogDistance = 32.0f;
+    borderFogDistance = 16.0f;   // the installed game's value (the original constructor had 32, which fogs the menu map over)
     enableSelfShadowing = 0;
     enableWaterWaves = 1;
     enableDynamicLights = 1;
