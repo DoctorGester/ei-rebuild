@@ -38,8 +38,8 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
     // The matrix's row 2: the depth axis and its offset.
     const Vector3 normal{view[8], view[9], view[10]};
     float offset = view[11];
-    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(first->localPosition, normal) + offset);
-    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(second->localPosition, normal) + offset);
+    float da = DotZYX(first->localPosition, normal) + offset;
+    float db = DotZYX(second->localPosition, normal) + offset;
     // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
     // every step, so the calls are repeated here in the same order.
     if ((first->IsDead() == 0 && second->IsDead() == 0) ||

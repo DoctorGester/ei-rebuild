@@ -15,7 +15,8 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 
-#include "ei/x87.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstdlib>
@@ -52,12 +53,12 @@ void DiffSets(std::vector<EngineObject*>* known, std::vector<EngineObject*>* cur
 }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
-// and the squared range stay on the FPU (dy^2 + dx^2, in that order).
+// is dy^2 + dx^2, in that order.
 bool OutOfView(const float* point, const PlayerServer* state) {
-    double dx = static_cast<double>(point[0]) - state->lastPosition.x;
-    double dy = static_cast<double>(point[1]) - state->lastPosition.y;
-    double distance = LengthSquared2DUnrounded(dy, dx);
-    double range = static_cast<double>(kViewRange) * kViewRange;
+    float dx = point[0] - state->lastPosition.x;
+    float dy = point[1] - state->lastPosition.y;
+    float distance = LengthSquared2DUnrounded(dy, dx);
+    float range = kViewRange * kViewRange;
     return distance >= range;
 }
 
@@ -104,10 +105,10 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
         auto* controller = unit->ServerController();
-        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.perception[0].current);
+        float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
         float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
-        float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
+        float radius = range * kHearingScale + kHearingMargin;
         for (CUnit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
     }
     return out;
@@ -120,11 +121,11 @@ EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, Engi
         EngineObject* object = node->second;
         auto* timed = static_cast<CEffect*>(object);
         const Vector3* position = timed->Position(&state->partyUnits);
-        double dx = static_cast<double>(position->x) - state->lastPosition.x;
-        double dy = static_cast<double>(position->y) - state->lastPosition.y;
-        float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
+        float dx = position->x - state->lastPosition.x;
+        float dy = position->y - state->lastPosition.y;
+        float distance = LengthSquared2DUnrounded(dy, dx);
         float reach = static_cast<float>(timed->Radius());
-        double reach2 = timed->Radius() * reach;
+        float reach2 = pc24::Mul(timed->Radius(), reach);
         if (reach2 > distance) *out++ = object;
     }
     return out;
@@ -144,7 +145,7 @@ int WorldServer::SyncPlayer(CPlayer* player) {
             return state->Flush();
         }
         if (dirty & PlayerDirty::Weather) {
-            int strength = x87::fistp(weatherStrength);
+            int strength = lib::RoundEven(weatherStrength);
             if (!state->SendState70(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty & PlayerDirty::Time) {

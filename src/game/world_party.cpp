@@ -20,10 +20,10 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/pc24.h"
 #include "lib/text_case.h"
 
 #include <vector>
-#include "ei/x87.h"
 #include "game_singletons.h"
 
 namespace {
@@ -140,9 +140,9 @@ void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placemen
 
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
     // `entrance`), facing away from the map's centre unless the exit gives a heading.
-    double cell = 0.5;
-    float centreX = static_cast<float>(aiMap.cells.width * cell * 0.5f);
-    float centreY = static_cast<float>(aiMap.cells.height * cell * 0.5f);
+    float cell = 0.5f;
+    float centreX = static_cast<float>(aiMap.cells.width) * cell * 0.5f;
+    float centreY = static_cast<float>(aiMap.cells.height) * cell * 0.5f;
     Quaternion rotation;
     rotation = kNewUnitRotation;
     Vector3 start{0.0f, 0.0f, 0.0f};
@@ -152,13 +152,12 @@ void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placemen
     int entrance = static_cast<int>(party->entrance);
     if (zone && entrance >= 0 && entrance < std::ssize(zone->exits)) {
         exit = &zone->exits[entrance];
-        start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
-        start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
+        start.x = (exit->deploy[2] + exit->deploy[0]) * 0.5f;
+        start.y = (exit->deploy[3] + exit->deploy[1]) * 0.5f;
         start.z = 0.0f;
         startValue = std::bit_cast<std::uint32_t>(exit->view);
     }
-    float angle = static_cast<float>(x87::fpatan(static_cast<double>(start.y) - centreY,
-                                                       static_cast<double>(start.x) - centreX) - kFacingOffset);
+    float angle = pc24::Sub(pc24::Atan2(start.y - centreY, start.x - centreX), kFacingOffset);
     if (exit && exit->hasDeployAngle) angle = exit->deployAngle;
     Vector3 up{0.0f, 0.0f, 1.0f};
     rotation.FromAxisAngle(up, angle);

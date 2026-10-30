@@ -443,7 +443,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e2 scripts | 10 | 4,031 | `Ftol` 72 (script_exec 43, script_eval 15: a script argument can be a NaN), script_addon_math's CRT sin / cos / pow |
 | C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
 | C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
-| C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
+| C30e5 (done) server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
 | C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 (done) combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
 | C30e8 (done; ai_motion: C30e8a) AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
@@ -544,6 +544,30 @@ lead), all exact. `x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `Ftol` -> int
 new forms, 200 M random cases each): Level, the attack roll (any dword, any int), an int times a float plus or over a
 float: 0 differ; where an intermediate leaves a float's normal range (e / b, the int product, a denormal quotient)
 they differ, the exponent range again (level: 2.4 M of 5.8 M such cases).
+
+**C30e5 (server world, world effects; 21 files, all moved).** The double locals and casts were PC24 registers: float
+maths in the original's order (the particle step and the scorch shape, the light's range, the bird's speed, the
+tornado's step, the view and hearing ranges, the exit centres, the experience weights and shares, the depth sort's
+dot (`DotZYX`), the hero-start and spell-target distances; `VariableGet` returns float). Through `pc24`: a random
+word (FromUnsigned's FILD is exact) times a wide double constant (the bird's flight angle, the tornado's speed, the
+scorch angle, the weather's map point, offsets, bolt and spread: `pc24::Mul(double(word), c)`); the world tick, an
+int past 2^24 in long games, times the seconds per tick (`CWorld::Elapsed`; `CWorld::TimeOfDay` is fmod(Elapsed() +
+timeBase, 24), exact, for the time functions, `GameServerTimeOfDay`; the save's player times) and plus the tick
+fraction (the camera path); 1 / the time-scale option and the rate times the double 1/15; a height
+(`RawSurfaceHeightAt`, a double virtual) plus or minus a float (missile, particle, spell missile, rain bolt); an
+effect's double `Radius()` times a float (sync); the bird's sin / cos times a radius and its atan2 minus a float, the
+party's facing, PlaceInLine's sin / cos. **Kept:** `libcrt::CiAcos` (PlaceInLine) stays the game CRT's x87 call: its
+64-bit result reaches SSE2 code as a double, and the doubling `pc24::Add(arc, arc)` still gives the x87's float for
+every float argument (tested); the double virtuals (`Radius`, `LightRadius`, `NightLevel`, the heights) keep their
+type and return float values. `Ftol` -> int64 truncation (`Truncate`: the catch-up ticks, the movie flag; the quest
+money), `x87::fistp` / `RoundToInt` -> `lib::RoundEven`. x87 code MSVC leaves in the SSE2 objects: one float
+operation on a call's ST0 result (the bird's floor, `LightRadius`) and NightLevel's (h - 20) * 0.25 (exact at any
+precision); the out-of-line x87 copies of `DotZYX` / `vecmath::Dot` are not called (inlined as SSE). Equivalence
+test (C30e5's `eq/`, the x87 sequences at PC24 against the new forms): every float's acos doubled, 1 / every int,
+every float times 1/15 (2^32 each); every tick 0..2^31 times 8 game rates and plus 5 fractions; random tick times
+and plus a float (200 M each); every word times the bird's and the tornado's constants (2^32 each) and 2^26 words
+(every 64th) times each of the 7 constants: 0 differ. Keep such sweeps to a few minutes each (`eq words 6` 31 s; the
+2^32 sweeps took 4-5 min each, the tick sweeps 25 min together).
 
 ### The whole image on SSE2 (C16 experiment)
 

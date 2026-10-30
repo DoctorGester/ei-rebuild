@@ -77,7 +77,9 @@ MapRecord* FindZone(std::string_view name) { return g_mapDatabase.FindMap(name);
 
 using netlink::FileStream;
 
-double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
+float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
+// The game's _ftol: the value truncated through 64 bits, the low half (0 for a NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 void VariableSet(NamedFloatTable* table, std::string_view name, float value) { table->Set(name, value); }
 void ScriptsReset(MemoryStream* scripts) { scripts->Resize(0); }
 
@@ -93,7 +95,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + name;
-            double value = VariableGet(variables, variable);
+            float value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -155,21 +157,21 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
 
     int entrance = records->entrance;
     if (entrance >= 0 && entrance < std::ssize(zoneRecord->exits)) {
-        float now = static_cast<float>(VariableGet(variables, kGTime));
+        float now = VariableGet(variables, kGTime);
         float left;
         {
             std::string prefix = kLeftPrefix;
             std::string variable = prefix + zone;
-            left = static_cast<float>(VariableGet(variables, variable));
+            left = VariableGet(variables, variable);
         }
-        int ticks = static_cast<int>(libcrt::Ftol((static_cast<double>(now) - left) * 100.0f));
+        int ticks = Truncate((now - left) * 100.0f);
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
         const ZoneExit* exit = &zoneRecord->exits[entrance];
         Vector3 point;
-        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
-        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
+        point.x = (exit->deploy[2] + exit->deploy[0]) * 0.5f;
+        point.y = (exit->deploy[3] + exit->deploy[1]) * 0.5f;
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
             g_serverWorld.WakeUnitsAround(point, kCatchUpRadius);
@@ -252,8 +254,8 @@ constexpr int kResultMainMenu = 4;
 
 inline PlayerClient* ClientWorldLocalView(WorldClient* client) { return client->LocalView(); }
 
-// `value` mod 24 through the game's _CIfmod, stored as float.
-float HoursOfDay(double value) { return static_cast<float>(std::fmod(value, 24.0)); }
+// `value` mod 24 (exact).
+float HoursOfDay(float value) { return std::fmod(value, 24.0f); }
 
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
@@ -373,7 +375,7 @@ int EnterZone(CParty* records) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
-    if (static_cast<int>(libcrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
+    if (Truncate(VariableGet(variables, kMovieVariable)) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
@@ -391,7 +393,7 @@ int EnterZone(CParty* records) {
         const char* mapOverride = nullptr;
         if (text::CompareIgnoringCase(zone,
                             kFrozenZone) == 0) {
-            double frozen = VariableGet(variables, kFrozenVariable);
+            float frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
             EI_NAN_AUDIT(frozen);
             if (frozen == 0.0f) mapOverride = kThawedMap;
@@ -400,7 +402,7 @@ int EnterZone(CParty* records) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + zone;
-            double value = VariableGet(variables, variable);
+            float value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -518,7 +520,7 @@ int LeaveZone(CParty* records) {
         std::string variable = prefix + zone;
         VariableSet(variables, variable, 1.0f);
     }
-    float now = static_cast<float>(VariableGet(variables, kGTime));
+    float now = VariableGet(variables, kGTime);
     {
         std::string prefix = kLeftPrefix;
         std::string variable = prefix + zone;
@@ -1156,7 +1158,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + record->name;
-            double value = VariableGet(variables, variable);
+            float value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -1260,7 +1262,7 @@ void GameFlow::UpdateFromServer() {
     NamedFloatTable* variables = &player->Party()->variables;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
-    float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
+    float construction = VariableGet(variables, kConstructionVariable);
     NamedFloatTable unusedCopy(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
@@ -1282,7 +1284,7 @@ void GameFlow::UpdateFromServer() {
     std::string kVariable = BriefingVariable(briefing + kBriefingSuffixK);
     std::string* const names[2] = {&questVariable, &kVariable};
     for (std::string* name : names) {
-        float value = static_cast<float>(VariableGet(variables, (*name)));
+        float value = VariableGet(variables, (*name));
         // The larger of the value and 1.0 (a NaN is kept).
         std::uint32_t bits;
         bits = std::bit_cast<std::uint32_t>(value);

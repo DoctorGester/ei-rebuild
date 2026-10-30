@@ -10,9 +10,8 @@
 #include "world.h"
 #include "world_effect.h"
 
+#include "lib/pc24.h"
 #include "lib/str.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -45,7 +44,10 @@ constexpr float kDayFactorRain = 0.9f;
 constexpr float kDayFactorDry = 1.0f;
 
 
-float UniformOnMap() { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * kMapScale); }
+// A random word times a double constant, the product rounded once.
+float RandomTimes(double scale) { return pc24::Mul(static_cast<double>(g_random.Next()), scale); }
+
+float UniformOnMap() { return RandomTimes(kMapScale); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
@@ -59,21 +61,20 @@ void TryLightningStrike(WorldServer* world) {
     if (kind != 3 && kind != 1) return;
     if (aiMap->InWaterAt(ground)) return;
 
-    float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre);
-    double dyRaw = x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre;
-    float dy = static_cast<float>(dyRaw);
-    if (dyRaw * dy + static_cast<double>(dx) * dx <= kMinDistance2) return;   // random: never NaN
+    float dx = RandomTimes(kOffsetScale) - kOffsetCentre;
+    float dy = RandomTimes(kOffsetScale) - kOffsetCentre;
+    if (LengthSquared2DUnrounded(dy, dx) <= kMinDistance2) return;   // random: never NaN
 
     Vector3 sky;
-    sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
-    sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
+    sky.x = ground.x + dx;
+    sky.y = ground.y + dy;
     sky.z = ground.z;
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
     BaseManager* manager = world->TimedObjectManager();
     auto* lightning = manager->CreateObjectAs<EffectTornado>(kTypeLightning, -1);
-    sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
-    sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
+    sky.x = ground.x + dx;
+    sky.y = ground.y + dy;
     sky.z = ground.z;
     lightning->Launch(ground, sky);
     lightning->startTick = world->tick;
@@ -109,12 +110,12 @@ void UpdateRain(WorldServer* world) {
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(WorldServer* world) {
     world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
-    float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
-    float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
-    float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - kFive);
-    float fromX = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltSpread + x - 2.0f);
-    float fromY = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltSpread + y - 2.0f);
-    float fromZ = static_cast<float>(static_cast<double>(z) + kBoltHeight);
+    float x = RandomTimes(kBoltScale) + 2.0f;
+    float y = RandomTimes(kBoltScale) + 2.0f;
+    float z = pc24::Sub(world->RawSurfaceHeightAt(x, y), kFive);
+    float fromX = RandomTimes(kBoltSpread) + x - 2.0f;
+    float fromY = RandomTimes(kBoltSpread) + y - 2.0f;
+    float fromZ = z + kBoltHeight;
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
     ShowBolt(from, to);
@@ -152,9 +153,9 @@ void ShowBolt(Vector3 from, Vector3 to) {
     // The middle: x and y are summed into floats first, z is not.
     float sumY = static_cast<float>(to.y + from.y);
     float sumX = static_cast<float>(to.x + from.x);
-    float midZ = static_cast<float>((static_cast<double>(to.z) + from.z) * 0.5f);
-    float midY = static_cast<float>(sumY * 0.5f);
-    float midX = static_cast<float>(sumX * 0.5f);
+    float midZ = (to.z + from.z) * 0.5f;
+    float midY = sumY * 0.5f;
+    float midX = sumX * 0.5f;
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
     if ((g_random.Next() & 3) == 0) {

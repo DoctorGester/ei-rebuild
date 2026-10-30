@@ -15,6 +15,7 @@
 #include <bit>
 #include <cstring>
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 namespace {
 
@@ -40,7 +41,7 @@ void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMap
     Vector3 end;
     end = aim;
     if (spell->targetFlags & SpellTargetFlag::AtPoint) target = nullptr;
-    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
+    end.z = pc24::Add(RawSurfaceHeightAt(end.x, end.y), 0.3f);
     if (caster) from = caster->localPosition;
 
     auto* missile = new SpellEffect();
@@ -108,16 +109,15 @@ void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, C
                 bestIndex = i;
                 break;
             } else {
-                double dz = static_cast<double>(to.z) - unit->localPosition.z;
-                double dy = static_cast<double>(to.y) - unit->localPosition.y;
-                double dx = static_cast<double>(to.x) - unit->localPosition.x;
-                double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
+                float dz = to.z - unit->localPosition.z;
+                float dy = to.y - unit->localPosition.y;
+                float dx = to.x - unit->localPosition.x;
+                float distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 bestDistance = std::bit_cast<float>(bestBits);
                 EI_NAN_AUDIT(distance, bestDistance);
                 if (distance < bestDistance) {
-                    float stored = static_cast<float>(distance);
-                    bestBits = std::bit_cast<std::uint32_t>(stored);
+                    bestBits = std::bit_cast<std::uint32_t>(distance);
                     best = unit;
                     bestIndex = i;
                 }

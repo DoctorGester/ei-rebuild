@@ -17,6 +17,7 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 #include <bit>
 #include <cmath>
@@ -80,9 +81,9 @@ int EffectMissile::Steer() {
     }
     if (!world->IsServer()) {
         // Below the ground plus the clearance: climb by what is missing, at most half the clearance less.
-        double floor = world->RawSurfaceHeightAt(localPosition.x, localPosition.y) + kGroundClearance;
+        float floor = pc24::Add(world->RawSurfaceHeightAt(localPosition.x, localPosition.y), kGroundClearance);
         if (floor > localPosition.z) {
-            float missing = static_cast<float>(floor - localPosition.z);
+            float missing = floor - localPosition.z;
             float limited = missing >= kGroundClearance ? kGroundClearance : missing;
             velocity.z = missing - limited * 0.5f;
         }

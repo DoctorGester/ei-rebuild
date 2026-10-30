@@ -13,9 +13,9 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect_internal.h"
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "save_versions.h"
 
 #include <bit>
@@ -36,12 +36,12 @@ void ClearBase(CEffect* e) {
     e->changeStamp = -1;
 }
 
-// The light's range fields: range, range^2 and 1 / range^2 with the square left unrounded for the division.
+// The light's range fields: range, range^2 and 1 / range^2.
 void SetLightRange(CLight* light, std::uint32_t rangeBits) {
     light->range = std::bit_cast<float>(rangeBits);
-    const double square = static_cast<double>(light->range) * light->range;
-    light->rangeSquared = static_cast<float>(square);
-    light->inverseRangeSquared = static_cast<float>(1.0 / square);
+    const float square = light->range * light->range;
+    light->rangeSquared = square;
+    light->inverseRangeSquared = 1.0f / square;
 }
 
 std::uint32_t& LightFlags(CLight* light) { return light->flags; }
@@ -51,14 +51,14 @@ Vector3& LightPosition(CLight* light) { return light->localPosition; }
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
 int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
-    const double speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(velocity));
-    const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy.y, dxdy.x));
+    const float speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(velocity));
+    const float dist = std::sqrt(LengthSquared2DUnrounded(dxdy.y, dxdy.x));
     // On only when above.
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
     // The speed when the distance is below it or they are unordered.
-    const double divisor = dist >= speed ? dist : speed;
-    *t = static_cast<float>(speed / divisor);
+    const float divisor = dist >= speed ? dist : speed;
+    *t = speed / divisor;
     return 1;
 }
 
@@ -76,10 +76,8 @@ bool IsOneShotType(int type) {
     }
 }
 
-// The scorch mark's angle: a random value (exact) times a constant in double, rounded to float.
-float RandomAngle(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * 1.4668330997698233e-9);
-}
+// The scorch mark's angle: a random value (exact) times a double constant, rounded to float.
+float RandomAngle(std::uint32_t random) { return pc24::Mul(static_cast<double>(random), 1.4668330997698233e-9); }
 
 // The ISAAC Next the 0x2030 scorch inlines.
 std::uint32_t InlineRandom() {
@@ -93,11 +91,11 @@ std::uint32_t InlineRandom() {
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
-// sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in x87 order.
+// sqrt(x*x + y*y) + half + 0.3, in x87 order.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
-    angleAndOuter[0] = static_cast<float>(x87::fpatan(direction.y, direction.x));
-    const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction.x, direction.y));
-    angleAndOuter[1] = static_cast<float>((outer + *half) + 0.3f);
+    angleAndOuter[0] = pc24::Round(pc24::Atan2(direction.y, direction.x));
+    const float outer = std::sqrt(LengthSquared2DUnrounded(direction.x, direction.y));
+    angleAndOuter[1] = (outer + *half) + 0.3f;
 }
 
 } // namespace
@@ -203,7 +201,7 @@ void EffectPointLight::Save(ByteStream* stream) {
     stream->WriteValue(lightFlags);
 }
 
-double EffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range; }
+double EffectPointLight::LightRadius() { return ConstAt(worlddata::DefaultRadius()) + range; }
 
 
 void CEffectParticle::Reset() {
@@ -418,13 +416,13 @@ bool CEffectParticle::RunTick() {
         float t;
         if (StepFraction(velocity, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = static_cast<float>(target.z - World()->RawSurfaceHeightAt(target.x, target.y));
+            float aboveGround = pc24::Sub(target.z, World()->RawSurfaceHeightAt(target.x, target.y));
             float stepY = static_cast<float>(t * d.y);
             float stepZ = static_cast<float>(d.z * t);
             float x = static_cast<float>(t * d.x + localPosition.x);
             float y = static_cast<float>(stepY + localPosition.y);
             float z = static_cast<float>(stepZ + localPosition.z);
-            float floor = static_cast<float>(World()->RawSurfaceHeightAt(x, y) + aboveGround);
+            float floor = pc24::Add(World()->RawSurfaceHeightAt(x, y), aboveGround);
             std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition.x = x;
             localPosition.y = y;

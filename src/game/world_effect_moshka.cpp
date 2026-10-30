@@ -17,8 +17,7 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
+#include "lib/pc24.h"
 
 #include <cmath>
 #include <cstring>
@@ -40,14 +39,13 @@ constexpr float kCircleRadius = 1.5f;         // around the followed object
 constexpr float kCircleHeight = 3.2f;         // above it
 constexpr float kAngularSpeed = 0.2f;         // radians per frame
 constexpr float kCircleStartHeight = 30.0f;
-constexpr double kAngleOffset = 1.5;
-constexpr double kPerchSearchRadius = 50.0;
+constexpr float kAngleOffset = 1.5f;
+constexpr float kPerchSearchRadius = 50.0f;
 constexpr float kHalfPi = 1.5707964f;         // pi * 0.5, set at startup
 constexpr float kClearance = 0.5f;            // above the ground, the sight threshold, height step
-// The flight speed per frame: sqrt(distance to the followed object) * 0.03 + 0.3 (double
-// the floats 0.03 and 0.3 widened).
-constexpr double kSpeedFactor = static_cast<double>(0.03f);
-constexpr double kSpeedBase = static_cast<double>(0.3f);
+// The flight speed per frame: sqrt(distance to the followed object) * 0.03 + 0.3.
+constexpr float kSpeedFactor = 0.03f;
+constexpr float kSpeedBase = 0.3f;
 // FindPerch: the eye 1.5 above the start, radius 50 less 5 each try but at least 4, height 30 rising by 3.
 constexpr float kEyeHeight = 1.5f;
 constexpr float kPerchRadius = 50.0f;
@@ -96,10 +94,10 @@ Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
     Vector3 perch;
     for (;;) {
         float radius = distance >= kPerchMinRadius ? distance : kPerchMinRadius;
-        double flightAngle = x87::FromUnsigned(g_random.Next()) * kRandomAngle;
-        perch.z = static_cast<float>(from.z + perchHeight);
-        perch.x = static_cast<float>(x87::fcos(flightAngle) * radius + from.x);
-        perch.y = static_cast<float>(x87::fsin(flightAngle) * radius + from.y);
+        float flightAngle = pc24::Mul(static_cast<double>(g_random.Next()), kRandomAngle);
+        perch.z = from.z + perchHeight;
+        perch.x = pc24::Mul(pc24::Cos(flightAngle), radius) + from.x;
+        perch.y = pc24::Mul(pc24::Sin(flightAngle), radius) + from.y;
         if (g_serverWorld.aiMap.LineOfSight(eye, perch) > kClearance) break;
         perchHeight = perchHeight + kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
@@ -139,9 +137,9 @@ void EffectMoshka::Update(float now) {
             // A perch straight out from the circle, seen from the bird.
             Vector3 perch = birdAt;
             perch.z = static_cast<float>(perch.z + height);
-            double outward = kHalfPi + flightAngle;
-            perch.x = static_cast<float>(x87::fcos(outward) * kPerchSearchRadius + perch.x);
-            perch.y = static_cast<float>(x87::fsin(outward) * kPerchSearchRadius + perch.y);
+            float outward = kHalfPi + flightAngle;
+            perch.x = pc24::Mul(pc24::Cos(outward), kPerchSearchRadius) + perch.x;
+            perch.y = pc24::Mul(pc24::Sin(outward), kPerchSearchRadius) + perch.y;
             if (g_serverWorld.aiMap.LineOfSight(currentBird->localPosition, perch) > kClearance) {
                 state = kFlyingOff;
                 timer = kFlyingOffFrames;
@@ -151,8 +149,8 @@ void EffectMoshka::Update(float now) {
             }
         }
         target.z = static_cast<float>(kCircleHeight + followed.z);
-        target.x = static_cast<float>(x87::fcos(flightAngle) * kCircleRadius + followed.x);
-        target.y = static_cast<float>(x87::fsin(flightAngle) * kCircleRadius + followed.y);
+        target.x = pc24::Mul(pc24::Cos(flightAngle), kCircleRadius) + followed.x;
+        target.y = pc24::Mul(pc24::Sin(flightAngle), kCircleRadius) + followed.y;
     } else if (state == kPerched) {
         if (timeUp) {
             Vector3 perch;
@@ -168,11 +166,11 @@ void EffectMoshka::Update(float now) {
         float dy = target.y - birdAt.y;
         EI_NAN_AUDIT(dy, dx);
         if (LengthSquared2DUnrounded(dy, dx) < kNearSquared) {   // close: start circling from here
-            double heading = x87::fpatan(-toFollowed.x, static_cast<double>(toFollowed.y));
+            pc24::Unrounded heading = pc24::Atan2(-toFollowed.x, toFollowed.y);
             state = kCircling;
             timer = kCirclingFrames;
             height = kCircleStartHeight;
-            angle = static_cast<float>((heading - now * kAngularSpeed) - kAngleOffset);
+            angle = pc24::Sub(heading, now * kAngularSpeed) - kAngleOffset;
         }
         // Approach the point 1.5 to the side of the followed object, 3.2 above it.
         float sideX = toFollowed.y;
@@ -194,13 +192,13 @@ void EffectMoshka::Update(float now) {
         float gx = birdAt.x - followed.x;
         float gy = birdAt.y - followed.y;
         float gz = birdAt.z - followed.z;
-        double range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
-        double speed = (range * kSpeedFactor + kSpeedBase) * frames;
+        float range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
+        float speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
-            double scale = speed / distance;
-            move.x = static_cast<float>(scale * move.x);
-            move.y = static_cast<float>(scale * move.y);
-            move.z = static_cast<float>(scale * move.z);
+            float scale = speed / distance;
+            move.x = scale * move.x;
+            move.y = scale * move.y;
+            move.z = scale * move.z;
         }
         Vector3 to{static_cast<float>(move.x + birdAt.x), static_cast<float>(move.y + birdAt.y), static_cast<float>(move.z + birdAt.z)};
         g_clientWorld.objectGrid.Move(bird, &to.x);

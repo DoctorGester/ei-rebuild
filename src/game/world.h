@@ -163,6 +163,10 @@ public:
     // `object` moves to `position` (the client's sector map).
     virtual void MoveObject(CMapObject*, const float*) {}
 
+    // The game time: tick * secondsPerTick, the tick (above 2^24 in long games) taken whole, the product rounded once.
+    float Elapsed() const;
+    // The time of day in hours: fmod(Elapsed() + timeBase, 24).
+    float TimeOfDay() const;
     // Whether the hour of the day is before 6 or from 22 on (a NaN counts as night).
     bool IsNight();
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
