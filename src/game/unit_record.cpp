@@ -72,7 +72,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
         const UnitModelRecord* model = target->GetPrototypeModel();
-        const float scaled = static_cast<float>(static_cast<double>(r.protectionScale) * model->protection[k]);
+        const float scaled = r.protectionScale * model->protection[k];
         vitals.protection[k].base = scaled;
         vitals.protection[k].current = scaled;
     }

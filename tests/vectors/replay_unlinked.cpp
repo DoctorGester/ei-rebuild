@@ -53,10 +53,8 @@ void WorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveT
 void ScriptPointLight::Load(ByteStream*) EI_UNLINKED("ScriptPointLight::Load")
 void ScriptFxSource::Load(ByteStream*) EI_UNLINKED("ScriptFxSource::Load")
 
-// The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: srand (random.cpp), acos (quaternion.cpp).
+// The game CRT's port that no replay reaches (crt.cpp reads the game CRT's data): srand (random.cpp).
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
-double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it). A constructed WorldServer would pull in

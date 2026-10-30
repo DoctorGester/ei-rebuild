@@ -293,7 +293,9 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   `x * 0.001f` rounds the constant first. 39 such literals in 29 of the files left (pi, 0.001, 0.01, 1.04, 1.61, 0.7,
   0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: `pc24::Mul / Add / Sub /
   Div` (below: the exact result as a double-double, then one rounding to 24 bits; C30e3's test, rerun against them in
-  C30e16: 50 M cases, a million of them where the double then float rounding differs, 0 differ from the x87 form).
+  C30e16: 50 M cases, a million of them where the double then float rounding differs, 0 differ from the x87 form;
+  every pair of 29 special operands, as float or double, through all four: zeros, infinities, NaNs, denormals, the
+  float and double range ends, 0 of 3,364 differ).
   A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
   The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`).
   A single operation on two floats done in double and then stored as float is the float operation (53 >= 2 x 24 + 2:
@@ -332,7 +334,7 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
   of few significant bits (the test's half integers) the product with f can lie that near a float rounding boundary.
   Accepted. NaNs: of two NaN
-  operands the FPU takes the larger significand, as `Add` .. `Div` do, but a signalling float operand loses to a
+  operands the FPU takes the larger significand (of equal ones the positive), as `Add` .. `Div` do, but a signalling float operand loses to a
   quiet one in the FPU, and a float converted to double is already quiet (nan-bits cases only, never a number).
 - **x87 code in SSE2 objects:** a float returned by a call comes back in ST0 (the x86 calling convention), and the
   compiler may do the next float operation there (`pc24::Exp(...) - 0.2f` is an FSUB). One such operation on two floats
@@ -394,6 +396,21 @@ their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track
 Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),
 `CMapObject::MoveSpeed`'s double return (a virtual of the units; a constant here).
 
+**C30e6 (units; 20 files).** The stats' double locals and returns were PC24 registers: unit.h's and unit_db.h's
+returns (Reduce, the curves, Period20, the speeds, TotalItemWeight, WeaponSkillBonus ...) are float, the maths in the
+original's order. The experience curves: `pc24::Div(pc24::Log(e / d), pc24::Log(base))` into `libcrt::CiPow`, whose
+result at PC24 is a float; `CiPow(1.04, ...)`, `CiPow(1.61, ...)`. SkillPrice (the original's disassembly):
+`_CIpow` for the worth, the perk power and 10^floor(log10 price), the log's 64-bit result stored to a double for the
+CRT's floor (`pc24::Log10(price).hi`), so the host CRT's `std::pow` there became `libcrt::CiPow` (its vectors, SkillPrice
+and SchoolPrice, replay at 0 failures). Through pc24: the ints added to a float (RaiseLevel's cost, the scripts' stat
+raises), the worth exponent over Skill Val 2, the 0.7 of `BaseSpeed`, the stamina drain step (a double), the world's
+double surface height plus z (`GroundHeight`, `StandPoint`, `PlaceOnGround`), the FCOS of the sight cones (pi times
+1/180, both doubles). `x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `Ftol` -> int64 truncation. The skill level
+values (`SkillLevelRecord::Value`, a data dword the original loads exactly) are floats: percentages and stat bonuses,
+far below 2^24. Kept double: `GroundHeight` / `StandPoint`'s world height and the virtual `MoveSpeed`, the 0.001 heal
+threshold compare. ei_vectors builds unit_stats / unit_params_* / unit_skill_price for x87 still, with pc24.cpp in an
+SSE2 library of its own (`ei_vectors_pc24`) and crt_x87.cpp for `CiPow`.
+
 **Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
 Each one focused area, one worker session, after C30e4 where it has a transcendental:
 
@@ -404,7 +421,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
 | C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
 | C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
-| C30e6 units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
+| C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
 | C30e8 AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
 | C30e9 unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |

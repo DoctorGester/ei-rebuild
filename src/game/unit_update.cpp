@@ -7,7 +7,7 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/crt.h"
+#include "lib/pc24.h"
 
 #include <cstring>
 
@@ -79,21 +79,21 @@ void CUnit::UpdateSizeClasses() {
 float* CUnit::StandPoint(float* out) {
     float x = localPosition.x;
     float y = localPosition.y;
-    float lift = static_cast<float>(ModeSpeed());   // inlined
+    float lift = ModeSpeed();   // inlined
     CWorld* world = World();
-    double height;
+    double height;   // the world's double, or the surface plus z (one rounding each)
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            height = world->SurfaceHeightAt(x, y) + localPosition.z;
+            height = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
         } else {
-            height = world->SurfaceHeightAt(x, y) + heightOffset;
+            height = pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
         }
     } else {
         height = world->GroundHeightAt(x, y);
     }
     out[0] = x;
     out[1] = y;
-    out[2] = static_cast<float>(height + lift);
+    out[2] = pc24::Add(height, lift);
     return out;
 }
 
@@ -104,9 +104,9 @@ void CUnit::PlaceOnGround(float offset) {
     CWorld* world = World();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            localPosition.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition.z);
+            localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
         } else {
-            localPosition.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
+            localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
         }
     } else {
         localPosition.z = static_cast<float>(world->GroundHeightAt(x, y));
@@ -115,10 +115,12 @@ void CUnit::PlaceOnGround(float offset) {
 
 void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(&params);
-    float curve = static_cast<float>(stats->HitPointCurve());
+    float curve = stats->HitPointCurve();
     float limit = ScaleHitPointsByEffects(this, curve);
-    packedVitals.maxHitPoints = static_cast<std::int16_t>(libcrt::Ftol(limit));
-    packedVitals.hitPoints = static_cast<std::int16_t>(libcrt::Ftol(stats->Reduce(limit)));
+    // Truncated as _ftol does (the low half of the 64-bit integer; 0 for a NaN).
+    packedVitals.maxHitPoints = static_cast<std::int16_t>(static_cast<std::int64_t>(limit));
+    packedVitals.hitPoints = static_cast<std::int16_t>(static_cast<std::int64_t>(stats->Reduce(limit)));
+
 }
 
 int CUnit::Level() {

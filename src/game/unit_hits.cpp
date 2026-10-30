@@ -14,10 +14,9 @@
 #include "item.h"
 #include "spell.h"
 
-#include "ei/x87.h"
-
 #include <cstring>
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 #include "logic_settings.h"
 #include "lib/float_select.h"
 
@@ -67,12 +66,12 @@ void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKi
     float threshold = item->conditionMax * g_logicSettings.itemDurabilityCritical;
     int pieces = static_cast<int>(item->count);    // the wear is shared between the stack's pieces
     if (pieces > 0) {
-        item->condition = static_cast<float>(item->condition - amount / static_cast<double>(pieces));     // exact
+        item->condition = item->condition - amount / static_cast<float>(pieces);
     } else {
         item->condition = item->condition - amount;
     }
     float condition = item->condition;
-    if (x87::fistp(condition) <= 0) {
+    if (lib::RoundEven(condition) <= 0) {
         Remark(unit, brokenRemark);
         return;
     }
@@ -127,8 +126,8 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         if (typeDamage <= 0.0f) continue;
         damaged = 1;
         if (hit->backstabFactor > 1.0f) typeDamage = typeDamage * hit->backstabFactor;
-        double current = slot.current - typeDamage;   // compared unrounded below
-        slot.current = static_cast<float>(current);
+        float current = slot.current - typeDamage;
+        slot.current = current;
         // Severed by a full hit on a vital damage type, or below -5 times its maximum.
         EI_NAN_AUDIT(current, slot.maximum);
         bool severed = (typeDamage >= slot.maximum && (slot.vitalMask & (1u << type)) != 0) ||
@@ -152,7 +151,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         console::EndLine(kHitLog);
     }
     if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= UnitStatsFlag::Backstab;
-    vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
+    vitals->hitPoints = Reduce(vitals->maxHitPoints);
     return damaged;
 }
 
@@ -185,11 +184,11 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         return result;
     }
     // A hit on the whole body: every working slot takes its share.
-    double factors = 0.0;   // accumulated on the FPU stack
+    float factors = 0.0f;
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind > 1) factors += slot.factor;
     }
-    float share = static_cast<float>(copy.amount / (factors * vitals->maxHitPoints));
+    float share = copy.amount / (factors * vitals->maxHitPoints);
     int damaged = 0;
     for (int i = 0; i < 6; ++i) {
         copy.multiplier = slots[i].maximum * hit->multiplier * share / hit->amount;
@@ -204,8 +203,8 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
 
 void UnitVitals::TakeHit(const DamageInfo* hit) {
     for (int type = 0; type < kDamageTypes; ++type) {
-        double damage = hit->typeWeights[type] * hit->amount - protection[type].current;
-        if (damage > 0.0f) hitPoints = static_cast<float>(hitPoints - damage);
+        float damage = hit->typeWeights[type] * hit->amount - protection[type].current;
+        if (damage > 0.0f) hitPoints = hitPoints - damage;
     }
     float floor = maxHitPoints * kOverkill;
     float f = floor;
@@ -218,11 +217,11 @@ bool CUnit::IsBehind(const CMapObject* t) {
     float dx = t->localPosition.x - localPosition.x;
     float dy = t->localPosition.y - localPosition.y;
     float dz = t->localPosition.z - localPosition.z;
-    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > 0.0f) {
-        dx = static_cast<float>(dx / length);
-        dy = static_cast<float>(dy / length);
-        dz = static_cast<float>(dz / length);
+        dx = dx / length;
+        dy = dy / length;
+        dz = dz / length;
     }
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
@@ -242,14 +241,15 @@ bool CUnit::IsBehind(const CMapObject* t) {
     float b = t->localRotation.x;
     float c = t->localRotation.y;
     float d = t->localRotation.z;
-    double x = c * b - a * d;
+    float x = c * b - a * d;
     x = x + x;
-    double cc = c * c;
-    double rest = a * a - ((d * d + b * b) + cc);
-    float y = static_cast<float>(cc + cc + rest);
-    double z = a * b + c * d;
+    float cc = c * c;
+    float rest = a * a - ((d * d + b * b) + cc);
+    float y = cc + cc + rest;
+    float z = a * b + c * d;
     z = z + z;
-    double facing = DotUnrounded<Sum3::ZYX, double>(x, y, z, dx, dy, dz);
+    float facing = DotUnrounded<Sum3::ZYX, float>(x, y, z, dx, dy, dz);
+
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack;
 }

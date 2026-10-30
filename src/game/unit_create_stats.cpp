@@ -18,15 +18,16 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 
-#include "ei/x87.h"
-
 #include <bit>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
-// Values kept on the FPU stack are double locals; stored values are floats.
+// Float maths at the main thread's 24-bit precision, in the original's order.
 
 namespace {
 
@@ -43,10 +44,9 @@ constexpr float kThousand = 1000.0f;
 constexpr float kTen = 10.0f;
 constexpr int kSlotWorking = 3;
 
-// pi and 1/180 and 90: volatile so the products are computed at run time with the FPU's precision.
-volatile double g_pi = 3.141592653589793;
-volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
-volatile double g_ninety = 90.0;
+// pi and 1/180 (doubles): their product rounds once to 24 bits.
+constexpr double kPi = 3.141592653589793;
+constexpr double kPerDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 
 // These are stored as bit patterns, not through the FPU.
 template <typename To, typename From>
@@ -54,7 +54,7 @@ void CopyDword(To& to, const From& from) {
     to = std::bit_cast<To>(from);
 }
 
-std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
+std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(lib::RoundEven(value)); }
 
 const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase.prototypes.FindByName(name); }
 const UnitNpcRecord* FindNpc(std::string_view name) { return g_unitDatabase.npcs.FindByName(name); }
@@ -67,17 +67,13 @@ const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
 
 // --- The statistics both builders fill the same way ---------------------------------------
 
-// cos(angle / 2) with the angle in degrees, stored to a float.
+// cos(angle / 2) with the angle in degrees, stored to a float (FCOS).
 float HalfAngleCosine(const UnitModelRecord* model) {
-    double half = static_cast<double>(model->angle) * 0.5f;
-    double perDegree = g_pi * g_perDegree;
-    return static_cast<float>(x87::fcos(half * perDegree));
+    float half = model->angle * 0.5f;
+    return pc24::Round(pc24::Cos(half * pc24::Mul(kPi, kPerDegree)));
 }
 
-float RightAngleCosine() {
-    double perDegree = g_pi * g_perDegree;
-    return static_cast<float>(x87::fcos(perDegree * g_ninety));
-}
+float RightAngleCosine() { return pc24::Round(pc24::Cos(pc24::Mul(kPi, kPerDegree) * 90.0f)); }
 
 void SetAttributesAndSkills(UnitStats* stats, const UnitPrototypeRecord* prototype, const UnitNpcRecord* npc) {
     if (npc) {
@@ -90,7 +86,9 @@ void SetAttributesAndSkills(UnitStats* stats, const UnitPrototypeRecord* prototy
     stats->attributes[0] = RoundToByte(prototype->attributes01);
     stats->attributes[1] = RoundToByte(prototype->attributes01);
     stats->attributes[2] = RoundToByte(prototype->attribute2);
-    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(libcrt::Ftol(prototype->skills3to5[i]));
+    // Truncated as _ftol does (the low half of the 64-bit integer; 0 for a NaN).
+    for (int i = 0; i < 3; ++i)
+        stats->skills[3 + i] = static_cast<std::uint8_t>(static_cast<std::int64_t>(prototype->skills3to5[i]));
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
@@ -154,26 +152,23 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow. Unrounded.
-double HitPointExperienceCurve(const float* experience) {
-    return libcrt::CiPow(g_logicSettings.hpVal[3], x87::flog(static_cast<double>(*experience) / g_logicSettings.hpVal[2]) / x87::flog(g_logicSettings.hpVal[4]));
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow (its result is a float at 24 bits).
+float HitPointExperienceCurve(const float* experience) {
+    const float exponent =
+        pc24::Div(pc24::Log(*experience / g_logicSettings.hpVal[2]), pc24::Log(g_logicSettings.hpVal[4]));
+    return static_cast<float>(libcrt::CiPow(g_logicSettings.hpVal[3], exponent));
 }
 
-// A level record's value (unsigned; exact).
-double LevelOf(const SkillLevelRecord* record) {
-    volatile std::int64_t wide = record->values[7];
-    return static_cast<double>(wide);
-}
-double LevelOrZero(UnitStats* stats, int skill) {
+float LevelOrZero(UnitStats* stats, int skill) {
     const SkillLevelRecord* record = stats->SkillLevelRecord(skill);
-    return record ? LevelOf(record) : 0.0f;
+    return record ? record->Value() : 0.0f;
 }
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {
-    double curve = HitPointExperienceCurve(&stats->experience);
-    double scaled = curve * (static_cast<double>(stats->strength) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
+    float curve = HitPointExperienceCurve(&stats->experience);
+    float scaled = curve * (stats->strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
+    return (LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled;
 }
 
 constexpr float kStatBase = 25.0f;
@@ -184,7 +179,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     if (level == 0) return 0.0f;
     const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
     if (!record) return 0.0f;
-    return static_cast<float>(LevelOf(record));
+    return record->Value();
 }
 
 float WeaponBonus(CUnit* unit, int skill) {
@@ -316,14 +311,14 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         stats->dexterity = npc->stats[1];
         stats->intelligenceBase = npc->stats[2];
         stats->intelligence = npc->stats[2];
-        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
+        float rate = stats->dexterity * 0.5f;
         CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
     } else {
-        float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
+        float strength = prototype->hitPoints * kThird;
         stats->strengthBase = strength;
         stats->strength = strength;
-        float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
+        float dexterity = prototype->mana * kThird;
         stats->dexterityBase = dexterity;
         stats->dexterity = dexterity;
         stats->intelligenceBase = kStat25;
@@ -349,7 +344,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     stats->sizeClass60 = smallClass;
 
     for (int i = 0; i < 7; ++i) {
-        float value = static_cast<float>(static_cast<double>(model->protection[i]) * prototype->protectionScale);
+        float value = model->protection[i] * prototype->protectionScale;
         vitals->protection[i].base = value;
         vitals->protection[i].current = value;
     }
@@ -380,14 +375,14 @@ void BuildNpcStats(UnitStats* stats, const std::string& name) {
         stats->intelligence = npc->stats[2];
         stats->speedBase = *speed;
         stats->speed = *speed;
-        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
+        float rate = stats->dexterity * 0.5f;
         stats->rateBase = rate;
         stats->rate = rate;
     } else {
-        float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
+        float strength = prototype->hitPoints * kThird;
         stats->strengthBase = strength;
         stats->strength = strength;
-        float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
+        float dexterity = prototype->mana * kThird;
         stats->dexterityBase = dexterity;
         stats->dexterity = dexterity;
         stats->intelligenceBase = kStat25;
@@ -442,26 +437,24 @@ void UnitStats::ResetToBase(float newLoad) {
         perception[i].current = perception[i].base;
         conspicuity[i].current = conspicuity[i].base;
     }
-    double bonus = 0.0;
+    float bonus = 0.0f;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
-        double level = LevelOf(record);
+        float level = record->Value();
         EI_NAN_AUDIT(level);
         if (level != 0.0f) bonus = level * perception[1].current * kPercent;
     }
-    perception[1].current = static_cast<float>(bonus + perception[1].current);
-    strength = static_cast<float>(LevelOrZero(this, kSkillStat10) + strength);
-    dexterity = static_cast<float>(LevelOrZero(this, kSkillStat18) + dexterity);
+    perception[1].current = bonus + perception[1].current;
+    strength = LevelOrZero(this, kSkillStat10) + strength;
+    dexterity = LevelOrZero(this, kSkillStat18) + dexterity;
     sightCone = kMinusTwo;
-    intelligence = static_cast<float>(LevelOrZero(this, kSkillStat20) + intelligence);
+    intelligence = LevelOrZero(this, kSkillStat20) + intelligence;
 
-    double curve = HitPointExperienceCurve(&experience);
-    float hitPoints = static_cast<float>(
-        curve * (static_cast<double>(strength) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
-    float perShare = static_cast<float>(
-        (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share);
+    float curve = HitPointExperienceCurve(&experience);
+    float hitPoints = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
+    float perShare = (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        float maximum = static_cast<float>(static_cast<double>(perShare) * slot.share);
+        float maximum = perShare * slot.share;
         slot.maximum = maximum;
         std::uint32_t current = std::bit_cast<std::uint32_t>(slot.current);
         std::uint32_t chosen = maximum >= slot.current ? current : std::bit_cast<std::uint32_t>(maximum);
@@ -469,19 +462,19 @@ void UnitStats::ResetToBase(float newLoad) {
     }
 
     load = newLoad;   // a dword copy
-    float strengthCapacity = static_cast<float>(static_cast<double>(strength) * kTwelve);
-    capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
+    float strengthCapacity = strength * kTwelve;
+    capacity = (LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity;
     float legs = LegsFactor();
     loadFactor = legs;
-    speed = static_cast<float>(static_cast<double>(legs) * speedBase);
+    speed = legs * speedBase;
     armsFactor = ArmsFactor();
-    rateBase = static_cast<float>(static_cast<double>(dexterity) * kPointTwo + kTenF);
-    rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
+    rateBase = dexterity * kPointTwo + kTenF;
+    rate = (LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase;
 }
 
 void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
-    float oldHitPoints = static_cast<float>(Reduce(oldMaximum));
+    float oldHitPoints = Reduce(oldMaximum);
     int index = const_cast<SkillDatabase*>(database)->IndexOfLevel(record);
     int skill = index / 3;
     int level = index % 3;
@@ -492,29 +485,29 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= kOneF) return;
     if (newMaximum <= kOneF) return;
-    double newHitPoints = Reduce(newMaximum);
-    float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
+    float newHitPoints = Reduce(newMaximum);
+    float heal = oldHitPoints / oldMaximum * newMaximum - newHitPoints;
     HealSlots(newMaximum, heal);
 }
 
-double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
+float UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
-        if (!IsTextKey(unit->id)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
+        if (!IsTextKey(unit->id)) return static_cast<float>(skills[skill]) + level;
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
         char stat = record->statNames.begin()[0][0];   // its first stat's letter
-        double base;
-        if (stat == 's') base = static_cast<double>(strength) - kStatBase;
-        else if (stat == 'i') base = static_cast<double>(intelligence) - kStatBase;
-        else if (stat == 'd') base = static_cast<double>(dexterity) - kStatBase;
-        else return (static_cast<double>(value) + weapon) + level;
+        float base;
+        if (stat == 's') base = strength - kStatBase;
+        else if (stat == 'i') base = intelligence - kStatBase;
+        else if (stat == 'd') base = dexterity - kStatBase;
+        else return (value + weapon) + level;
         return ((base + value) + weapon) + level;
     }
     if (type == 8) {
-        if (!IsTextKey(unit->id)) return static_cast<double>(static_cast<int>(skills[0]));
+        if (!IsTextKey(unit->id)) return static_cast<float>(skills[0]);
         float weapon = WeaponBonus(unit, 0);
         return SkillWithBonus(0) + weapon;
     }
@@ -574,7 +567,8 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
         vitals.builtFlags |= 1;
         object->CMapObject::SetServerData(&vitals);
         object->SetStats(&stats);
-        float lift = static_cast<float>(-static_cast<double>(model->height));
+        float lift = -model->height;
+
         CObject3D* figure = object;
         figure->defaultScale.x = 0.0f;
         figure->defaultScale.y = lift;

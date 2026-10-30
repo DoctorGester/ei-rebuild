@@ -19,7 +19,9 @@
 #include "world_data.h"
 
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
+
 
 #include <cstdint>
 #include <cstring>
@@ -32,23 +34,21 @@ namespace {
 constexpr double kDrainStep = 0.006666666666666666;
 
 void ToHalfCells(float* xy) {
-    const double factor = 2.0;
-    xy[0] = static_cast<float>(factor * xy[0]);
-    xy[1] = static_cast<float>(factor * xy[1]);
+    xy[0] = 2.0f * xy[0];
+    xy[1] = 2.0f * xy[1];
 }
 
 void FromHalfCells(float* xy) {
-    const double factor = 0.5;
-    xy[0] = static_cast<float>(factor * xy[0]);
-    xy[1] = static_cast<float>(factor * xy[1]);
+    xy[0] = 0.5f * xy[0];
+    xy[1] = 0.5f * xy[1];
 }
 
-// Whether |a - b|^2, summed as (dz^2 + dy^2) + dx^2 unrounded, is above *limit (false for NaN).
+// Whether |a - b|^2, summed as (dz^2 + dy^2) + dx^2, is above *limit (false for NaN).
 bool FartherThan(const float* a, const float* b, const float* limit) {
-    const double dx = static_cast<double>(a[0]) - b[0];
-    const double dy = static_cast<double>(a[1]) - b[1];
-    const double dz = static_cast<double>(a[2]) - b[2];
-    return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz) > *limit;
+    const float dx = a[0] - b[0];
+    const float dy = a[1] - b[1];
+    const float dz = a[2] - b[2];
+    return LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz) > *limit;
 }
 
 bool SpeedBelow(CMapObject* object, const float* than) {
@@ -58,12 +58,12 @@ bool SpeedBelow(CMapObject* object, const float* than) {
 
 void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
 
-// *value -= *rate * the drain step (double); true when the unrounded result compares below 0.
+// *value -= *rate * the drain step (a double: the product rounds once); true when the result is below 0.
 bool Drain(float* value, const float* rate) {
-    const double drained = static_cast<double>(*value) - *rate * kDrainStep;
-    *value = static_cast<float>(drained);
+    const float drained = *value - pc24::Mul(*rate, kDrainStep);
+    *value = drained;
     EI_NAN_AUDIT(drained);
-    return drained < 0.0;
+    return drained < 0.0f;
 }
 
 // The world's time as a float (what Sample is called with).

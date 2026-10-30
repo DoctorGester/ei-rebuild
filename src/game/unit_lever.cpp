@@ -9,7 +9,6 @@
 #include "sector_map.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include <cstdint>
 #include <cstring>
@@ -49,7 +48,7 @@ void Lever::SetState(int wanted, float duration) {
     sectors->Remove(this);
 
     states = stateCount;
-    float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
+    float travel = states > 1 ? static_cast<float>(state) / static_cast<float>(states - 1) : 0.0f;
     if (duration > 0.0f) {
         to = travel;
         from = scale.y;   // bit for bit
@@ -95,7 +94,7 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
         Vector3 at{localPosition.x, localPosition.y, localPosition.z};
         float along = spot[0];
         float across = spot[1];
-        float length = static_cast<float>(std::sqrt(across * across + along * along));
+        float length = std::sqrt(across * across + along * along);
         if (length > 0.0f) {
             along = along / length;
             across = across / length;

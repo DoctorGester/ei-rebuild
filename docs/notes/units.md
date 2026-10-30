@@ -40,11 +40,11 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (0052EB30 pushes a whole dword, the bodies read the low
   byte). UnitPrototypeRecord +0x50 is `level` (CUnit::Level without a text key). World heights: CWorld slots 29 / 30.
   unit_update.cpp is clean (C10; its `_ftol` `__asm` and float_control stay).
-- ST0 results are `double` (the original returns floats unrounded and 00532A20 truncates `Reduce` with `_ftol`): UnitStats
-  Period20, AttributeWithBonus, SkillWithBonus, ScaledStrength, BackstabFactor, BackstabFactorArg, Reduce, ReduceKind1, CUnit MoveSpeed2,
-  MoveSpeedFor, ScaledValue, BaseSpeed, ModeSpeed, TotalItemWeight, AnimationRatio, UnitParams::Period. UnitStats level
-  values are unsigned dwords the original loads with FILD of a zero-extended qword (volatile int64 here). `unit*.cpp` use
-  `float_control(precise, on)`.
+- The unit files build for SSE2 (C30e6): the original returns its ST0 results (Period20, Reduce, the curves, the speeds,
+  TotalItemWeight ...) at the main thread's 24-bit precision, so they are floats; 00532A20's `_ftol` of `Reduce` is the
+  int64 truncation. Kept double: the world's heights (`GroundHeight`, `StandPoint`: a float added through `pc24::Add`)
+  and the virtual `MoveSpeed`. The skill level values (unsigned dwords the original loads with FILD of a zero-extended
+  qword) are floats: percentages and stat bonuses, exact below 2^24.
 
 ### Statistics in play
 
@@ -293,9 +293,9 @@ address in its source comment (grep the address); the per-function table that us
 
 ## Risks and lessons
 
-- Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under 64-bit FPU
-  precision `TotalItemWeight`'s double accumulator rounds differently; SkillPrice may show a rare off-by-one at a truncation
-  edge (rule 7). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
+- Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. SkillPrice and
+  the experience curves are the original's sequence (`libcrt::CiPow`, `pc24::Log` / `Log10`, the int over Skill Val 2
+  through `pc24::Div`). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
 - Not reached by every scenario: TakeRandomItem (stealing), TorchObject::CreateTorch, CollectUseSpots (no lever on zone1), AttributeWithItems,
   ClientGetAttackParams, SkillPrice, packed WeaponSkillBonus (party unit holding a weapon), RemoveArmourModel (Rebirth's
   GiveUnitArmor refuses text-key units), FireAtOccupants (only traps with a period above 0), DestroyNpcTable /
