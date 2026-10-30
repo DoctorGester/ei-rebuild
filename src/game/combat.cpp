@@ -117,9 +117,6 @@ std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode; }
 
 void AttackParamsOf(UnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
-// _ftol: truncated through 64 bits, the low half (0 for a NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-
 float SpellDamage(const CSpell* spell) { return spell->damage; }
 float SpellRange(const CSpell* spell) { return spell->range; }
 float SpellCost(const CSpell* spell) { return spell->manaCost; }
@@ -202,7 +199,7 @@ void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
     *out = DamageWords{};
     if (spell) {
-        auto value = static_cast<std::uint16_t>(Truncate(SpellDamage(spell)));
+        auto value = static_cast<std::uint16_t>(lib::Truncate(SpellDamage(spell)));
         int damageType = spell->GetDamageType();
         out->words[1 + damageType] = value;
     }
@@ -394,16 +391,16 @@ void UnitServer::GetAttackParams(AttackParams* out) {
         out->speed = weapon->weight;
         float base = WeaponAttackBonus(weapon->prototypeId);
         float bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->attack = Truncate(bonus + base);
+        out->attack = lib::Truncate(bonus + base);
         base = WeaponDefenceBonus(weapon->prototypeId);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->defence = Truncate(bonus + base);
+        out->defence = lib::Truncate(bonus + base);
         out->damageType = WeaponDamageType(weapon->prototypeId);
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
-        out->attack = Truncate(stats.combat[UnitStats::kAttack]);
-        out->defence = Truncate(stats.combat[UnitStats::kDefence]);
+        out->attack = lib::Truncate(stats.combat[UnitStats::kAttack]);
+        out->defence = lib::Truncate(stats.combat[UnitStats::kDefence]);
         out->speed = stats.combat[UnitStats::kSpeed];
         if (weapon) {
             out->weaponType = weapon->GetType();

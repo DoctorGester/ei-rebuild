@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include "lib/rounding.h"
 
 namespace {
 constexpr double kWorthBase = 1.61;   // a double
@@ -29,8 +30,6 @@ float Worth(int value) {
     return static_cast<float>(libcrt::CiPow(kWorthBase, exponent)) * settings.skillVal[0];
 }
 
-// A float truncated as _ftol does: the low half of the 64-bit integer (0 for a NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 } // namespace
 
 int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
@@ -43,7 +42,7 @@ int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
 int SchoolPrice(int from, int to) {
     const float upper = Worth(to);
     const float lower = Worth(from);
-    return Truncate(upper - lower);
+    return lib::Truncate(upper - lower);
 }
 
 int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
@@ -57,7 +56,7 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     } else {
         below = Worth(0);
     }
-    float cost = static_cast<float>(Truncate(worth - below));   // truncated, then stored as a float
+    float cost = static_cast<float>(lib::Truncate(worth - below));   // truncated, then stored as a float
 
     std::uint8_t known = 0;   // a byte sum (wraps)
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
@@ -66,13 +65,13 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     // The power of ten of the first digit: the 64-bit log10 stored to a double for the CRT's floor, then _CIpow.
     float power = static_cast<float>(libcrt::CiPow(10.0, std::floor(pc24::Log10(price).hi)));
     float leading = price / power;
-    if (leading >= kTwoDigitsBelow) return Truncate(std::floor(leading + 0.5f) * power);
+    if (leading >= kTwoDigitsBelow) return lib::Truncate(std::floor(leading + 0.5f) * power);
     // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it
     // occurs; the plain leading < 4 would return the NaN's integer conversion).
     EI_NAN_AUDIT(power);
-    if (power <= kRoundUpTo) return Truncate(std::ceil(price));
+    if (power <= kRoundUpTo) return lib::Truncate(std::ceil(price));
     power = power * kTenth;
     leading = price / power;
-    return Truncate(std::floor(leading + 0.5f) * power);
+    return lib::Truncate(std::floor(leading + 0.5f) * power);
 }
 

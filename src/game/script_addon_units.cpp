@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include "lib/rounding.h"
 
 namespace scriptaddon {
 
@@ -125,7 +126,7 @@ bool GetArmor(Call* call) {
 bool NearestUnit(Call* call) {
     const float* f = call->cmd->floatArgs.data();
     float x = f[0], y = f[1], radius = f[2];
-    int filter = Truncate(f[3]);
+    int filter = lib::Truncate(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
     EngineObject* best = nullptr;
     ForObjectsNear(x, y, radius, [&](EngineObject* object) {
@@ -146,7 +147,7 @@ bool NearestUnit(Call* call) {
 bool UnitsNearPoint(Call* call) {
     const float* f = call->cmd->floatArgs.data();
     float x = f[0], y = f[1], radius = f[2];
-    int filter = Truncate(f[3]);
+    int filter = lib::Truncate(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
     call->GroupResult()->Clear();
     ForObjectsNear(x, y, radius, [&](EngineObject* object) {

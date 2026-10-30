@@ -63,6 +63,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include "lib/rounding.h"
 
 namespace {
 
@@ -79,10 +80,6 @@ MapRecord* FindZone(std::string_view name) { return g_mapDatabase.FindMap(name);
 
 using netlink::FileStream;
 
-float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
-// The game's _ftol: the value truncated through 64 bits, the low half (0 for a NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-void VariableSet(NamedFloatTable* table, std::string_view name, float value) { table->Set(name, value); }
 void ScriptsReset(MemoryStream* scripts) { scripts->Resize(0); }
 
 // Copies saves\current\<zone>.sav of every visited zone that has to be kept (the current map's
@@ -97,7 +94,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + name;
-            float value = VariableGet(variables, variable);
+            float value = variables->Get(variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -122,7 +119,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + record->name;
-        VariableSet(variables, variable, 0.0f);
+        variables->Set(variable, 0.0f);
     }
 }
 
@@ -159,14 +156,14 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
 
     int entrance = records->entrance;
     if (entrance >= 0 && entrance < std::ssize(zoneRecord->exits)) {
-        float now = VariableGet(variables, kGTime);
+        float now = variables->Get(kGTime);
         float left;
         {
             std::string prefix = kLeftPrefix;
             std::string variable = prefix + zone;
-            left = VariableGet(variables, variable);
+            left = variables->Get(variable);
         }
-        int ticks = Truncate((now - left) * 100.0f);
+        int ticks = lib::Truncate((now - left) * 100.0f);
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
@@ -188,7 +185,6 @@ constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
 
-bool Active(const RefCounted* object) { return object && !(object->flags7 & RefCounted::kDetached); }
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
@@ -377,7 +373,7 @@ int EnterZone(CParty* records) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
-    if (Truncate(VariableGet(variables, kMovieVariable)) == 1) {
+    if (lib::Truncate(variables->Get(kMovieVariable)) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
@@ -395,7 +391,7 @@ int EnterZone(CParty* records) {
         const char* mapOverride = nullptr;
         if (text::CompareIgnoringCase(zone,
                             kFrozenZone) == 0) {
-            float frozen = VariableGet(variables, kFrozenVariable);
+            float frozen = variables->Get(kFrozenVariable);
             mapOverride = kFrozenMap;
             EI_NAN_AUDIT(frozen);
             if (frozen == 0.0f) mapOverride = kThawedMap;
@@ -404,7 +400,7 @@ int EnterZone(CParty* records) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + zone;
-            float value = VariableGet(variables, variable);
+            float value = variables->Get(variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -481,7 +477,7 @@ int StartNetworkZone(const std::string& zone) {
     g_serverWorld.SetGameResult(kGameResultNetwork);
     options::g_options.drawVisibleOnly = 1;
 
-    if (Active(net::g_gameServer)) {
+    if (IsLive(net::g_gameServer)) {
         AnnounceHost(zone.c_str());
         std::string name = zone;
         std::string mob = name + kMobExtension;
@@ -520,13 +516,13 @@ int LeaveZone(CParty* records) {
     {
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + zone;
-        VariableSet(variables, variable, 1.0f);
+        variables->Set(variable, 1.0f);
     }
-    float now = VariableGet(variables, kGTime);
+    float now = variables->Get(kGTime);
     {
         std::string prefix = kLeftPrefix;
         std::string variable = prefix + zone;
-        VariableSet(variables, variable, now);
+        variables->Set(variable, now);
     }
     return 1;
 }
@@ -536,17 +532,17 @@ int LeaveZone(CParty* records) {
 void GameFlow::UpdateMultiplayerVariable() {
     CPlayer* player = g_clientWorld.LocalView()->player;
     NamedFloatTable* variables = &player->Party()->variables;
-    if (!Active(net::g_gameClient)) return;
+    if (!IsLive(net::g_gameClient)) return;
     auto set = [variables](bool on) {
-        if (on) VariableSet(variables, kMultiplayerVariable, 1.0f);
+        if (on) variables->Set(kMultiplayerVariable, 1.0f);
         else variables->Remove(kMultiplayerVariable);
     };
-    if (!Active(net::g_gameServer)) {
-        set(!Active(net::g_gameClient->info));
+    if (!IsLive(net::g_gameServer)) {
+        set(!IsLive(net::g_gameClient->info));
         return;
     }
     if (zoneSwitchStarted) set(ServerPlayerCount() > 1);
-    else set(!Active(net::g_gameClient->map));
+    else set(!IsLive(net::g_gameClient->map));
 }
 
 // ---- Starting a multiplayer game ------------------------------------------------------------------
@@ -560,7 +556,7 @@ void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(&g_partyManager);
     if (std::ssize(GlobalParty()->members) == 1) GlobalParty()->members.data()->unitId = kMultiplayerHeroId;
     GlobalParty()->zone = MultiplayerZone();
-    VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
+    GlobalParty()->variables.Set(kMultiplayerVariable, 1.0f);
     g_partyManager.BeginRedeploy(GlobalParty());
     state = 4;    // load the zone
     requestTarget = MultiplayerZone();
@@ -573,7 +569,7 @@ void GameFlow::BeginMultiplayerGame() {
 // ---- Small glue of the flow -----------------------------------------------------------------------
 
 void GameFlow::ReturnLocalParty() {
-    if (!Active(net::g_gameClient)) return;
+    if (!IsLive(net::g_gameClient)) return;
     CPlayer* player = g_clientWorld.LocalView()->player;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
@@ -584,7 +580,7 @@ void GameFlow::ReturnLocalParty() {
 }
 
 void GameFlow::UpdateAndAcknowledge() {
-    if (!Active(net::g_gameClient)) return;
+    if (!IsLive(net::g_gameClient)) return;
     UpdateFromServer();
     if (net::g_gameClient->player.Get()->state != kRequestDone) return;
     net::g_gameClient->player.Get()->state = 0;
@@ -593,7 +589,7 @@ void GameFlow::UpdateAndAcknowledge() {
 
 void GameFlow::RequestBriefing(std::string_view briefing) {
     net::ClientSession* client = net::g_gameClient;
-    if (Active(client)) client->SendCommand(kCommandBriefing, briefing);
+    if (IsLive(client)) client->SendCommand(kCommandBriefing, briefing);
 }
 
 void GameFlow::RecreateClientSession() {
@@ -721,7 +717,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (zoneSwitchStarted) {
         // A switch is pending: ask for the start zone again.
         RequestKind(1);
-        bool host = Active(net::g_gameServer);
+        bool host = IsLive(net::g_gameServer);
         {
             g_interface.closeAll = 1;
             g_clientWorld.LocalView()->RequestZone(MultiplayerZone(), 0);
@@ -729,7 +725,7 @@ void GameFlow::SwitchMultiplayerZone() {
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
             net::HostMessage* announced = net::g_gameServer->hostInfo.Get();
-            if (Active(announced)) net::g_gameServer->AnnounceToGuests(kServerDropClient, announced->zone.data());
+            if (IsLive(announced)) net::g_gameServer->AnnounceToGuests(kServerDropClient, announced->zone.data());
             DestroyOwned(net::g_gameServer->hostInfo);
         }
         zoneSwitchStarted = 0;
@@ -739,7 +735,7 @@ void GameFlow::SwitchMultiplayerZone() {
     // Every connection of the host drops what it has read of the incoming reliable stream
     // (flags 6, high and the cursor back to the start).
     net::ServerSession* server = net::g_gameServer;
-    if (Active(server)) {
+    if (IsLive(server)) {
         for (auto& connection : server->clients) {
             GameBuffer& in = connection.Get()->reliableIn;
             std::uint8_t* begin = in.begin;
@@ -759,15 +755,15 @@ void GameFlow::SwitchMultiplayerZone() {
     }
     records.zone = multiplayerZone;
     RequestKind(3);
-    if (Active(net::g_gameServer)) {
+    if (IsLive(net::g_gameServer)) {
         state = 6;
         requestTarget = multiplayerZone;
         RequestParty()->Assign(&records);
     } else {
         net::HostMessage* host = net::g_gameClient->info;
-        if (Active(host)) records.zone = host->zone.data();
+        if (IsLive(host)) records.zone = host->zone.data();
         host = net::g_gameClient->info;
-        if (Active(host)) {
+        if (IsLive(host)) {
             state = 5;
             requestTarget = host->address.data();
             RequestParty()->Assign(&records);
@@ -929,7 +925,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
         game::FatalError(kZoneNotFound, std::string(zone));
-        if (Active(net::g_gameClient)) {
+        if (IsLive(net::g_gameClient)) {
             g_interface.disconnected = 0;
             net::g_gameServer.Reset();
             net::g_gameClient.Reset();
@@ -957,7 +953,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         g_partyManager.EndRedeploy(&records);
         EnterZone(&records);
         g_partyManager.BeginRedeploy(&records);
-        g_serverWorld.SetTime(HoursOfDay(VariableGet(&records.variables, kGTime)));
+        g_serverWorld.SetTime(HoursOfDay(records.variables.Get(kGTime)));
         if (zoneRecord) {
             g_serverWorld.SetClimate(zoneRecord->climate);
             g_serverWorld.SetCave(zoneRecord->cave);
@@ -1034,7 +1030,7 @@ void GameFlow::ProcessRequest() {
     }
     g_interface.CloseAll();
     g_serverWorld.TeardownZone();
-    UseResources(Active(net::g_gameClient));
+    UseResources(IsLive(net::g_gameClient));
 
     auto* clientWorld = &g_clientWorld;
     switch (currentState) {
@@ -1064,7 +1060,7 @@ void GameFlow::ProcessRequest() {
         player->AssignParty(RequestParty());
         g_serverWorld.TeardownZone();
         if (!clientWorld->JoinGameClient()) {
-            if (Active(net::g_gameClient)) {
+            if (IsLive(net::g_gameClient)) {
                 BeginMultiplayerGame();
             } else {
                 g_interface.closeAll = 1;
@@ -1146,7 +1142,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + record->name;
-            float value = VariableGet(variables, variable);
+            float value = variables->Get(variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -1168,7 +1164,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         }
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + record->name;
-        VariableSet(variables, variable, 0.0f);
+        variables->Set(variable, 0.0f);
     }
     g_partyManager.BeginRedeploy(&records);
 
@@ -1199,7 +1195,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     multiplayerZone = zone ? zone : "";    // null (LeaveZone): no zone
-    if (Active(net::g_gameServer) && !Active(net::g_gameClient) && zone) StartNetworkZone(zone);
+    if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone) StartNetworkZone(zone);
 }
 
 int CurrentSaveSize() {
@@ -1240,7 +1236,7 @@ void GameFlow::AfterServerStart() {
 }
 
 void GameFlow::UpdateFromServer() {
-    if (!Active(net::g_gameClient)) return;
+    if (!IsLive(net::g_gameClient)) return;
     if (TextManager* texts = g_clientWorld.texts) {
         for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
@@ -1250,34 +1246,34 @@ void GameFlow::UpdateFromServer() {
     NamedFloatTable* variables = &player->Party()->variables;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
-    float construction = VariableGet(variables, kConstructionVariable);
+    float construction = variables->Get(kConstructionVariable);
     NamedFloatTable unusedCopy(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
         variables->clear();
-    VariableSet(variables, kConstructionVariable, construction);
+    variables->Set(kConstructionVariable, construction);
     if (net::MapMessage* map = net::g_gameClient->map) {
-        if (Active(map)) LoadZoneQuests(map->text.data());
+        if (IsLive(map)) LoadZoneQuests(map->text.data());
     }
 
     // The game type's construction variable and briefings, at least 1.
     std::string briefing;
     unsigned type = net::g_gameClient->gameType;
     if (type <= 3) {
-        VariableSet(variables, kTypeVariables[type], 1.0f);
+        variables->Set(kTypeVariables[type], 1.0f);
         briefing = kTypeBriefings[type];
     }
     std::string questVariable = BriefingVariable(briefing + kBriefingSuffixQuest);
     std::string kVariable = BriefingVariable(briefing + kBriefingSuffixK);
     std::string* const names[2] = {&questVariable, &kVariable};
     for (std::string* name : names) {
-        float value = VariableGet(variables, (*name));
+        float value = variables->Get(*name);
         // The larger of the value and 1.0 (a NaN is kept).
         std::uint32_t bits;
         bits = std::bit_cast<std::uint32_t>(value);
         bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0 ? true : 1.0f < value;
-        VariableSet(variables, (*name), keep ? value : 1.0f);
+        variables->Set(*name, keep ? value : 1.0f);
     }
 
     // The briefings the server says were seen.

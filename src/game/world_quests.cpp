@@ -40,8 +40,6 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
-
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
 // original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
 struct Briefing {
@@ -322,7 +320,7 @@ void WorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->Party()->variables;
-            float left = VariableGet(variables, b.n10);
+            float left = variables->Get(b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
                 if (left != 0.0f) {
@@ -347,10 +345,10 @@ void WorldServer::UpdateMercBriefings() {
                 set(b.n10, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                float hiredValue = VariableGet(variables, b.hired);
+                float hiredValue = variables->Get(b.hired);
                 float hired = hiredValue;
                 float hiredStored = hired;
-                float briefed = VariableGet(variables, b.n8);
+                float briefed = variables->Get(b.n8);
                 EI_NAN_AUDIT(hiredValue, briefed);
                 if (hiredValue != 0.0f) {
                     if (briefed != 1.0f) {

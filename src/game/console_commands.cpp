@@ -45,7 +45,6 @@ CPlayer* LocalPlayer() {
     return g_clientWorld.LocalView()->player;
 }
 
-bool ServerActive(net::ClientSession* server) { return server && !(server->flags7 & RefCounted::kDetached); }
 
 void SetConsoleRect(int left, int top, int right, int bottom) {
     Rect rect = {left, top, right, bottom};
@@ -76,7 +75,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
     int count = static_cast<int>(args->size());
     if (count == 0) {
         net::ClientSession* server = net::g_gameClient;
-        if (ServerActive(server)) {
+        if (IsLive(server)) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding;
             if (binding->Player()->host)
@@ -87,7 +86,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
     if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
     std::string name = (*args)[0];
     if (name[0] == '"' && name[name.size() - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
-    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
+    if (IsLive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
 }
 
 // rate / localrate: bytes per second, clamped to 500..100000.
@@ -343,7 +342,7 @@ void Net(std::vector<std::string>* args) {
     }
     if (text::CompareIgnoringCase((*args)[0], "time") == 0)
         app::g_showClientSpeed = str::ToInt((*args)[1]);
-    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && ServerActive(net::g_gameClient)) {
+    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && IsLive(net::g_gameClient)) {
         std::string zone = (*args)[1];
         net::g_gameClient->SendCommand(0, zone);
     }

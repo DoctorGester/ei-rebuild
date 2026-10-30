@@ -57,12 +57,9 @@ bool Greater(float a, float b) { return a > b; }
 
 bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 
-// _ftol: truncated through 64 bits, the low half (0 for a NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-
 // The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15 / flight - 3).
 int CastDelayTicks(float distanceSq, float flight) {
-    return Truncate(std::sqrt(distanceSq) * 15.0f / flight - 3.0f);
+    return lib::Truncate(std::sqrt(distanceSq) * 15.0f / flight - 3.0f);
 }
 
 // The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a
@@ -387,7 +384,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                 if (!Greater(angle, kPercent)) {
                     facingIt = true;
                 } else {
-                    turnTicks = Truncate(angle / turnSpeed);
+                    turnTicks = lib::Truncate(angle / turnSpeed);
                     if (turnTicks + 1 <= tick) facingIt = true;
                 }
             }

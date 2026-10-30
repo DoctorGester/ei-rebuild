@@ -197,8 +197,6 @@ namespace {
 
 
 
-// A session or message still in use (not shut down by its owner).
-bool Active(const RefCounted* object) { return object && !(object->flags7 & RefCounted::kDetached); }
 
 } // namespace
 
@@ -234,9 +232,9 @@ std::string SessionMapName() {
     const net::MapMessage* peer = nullptr;
     const net::ClientSession* client = net::g_gameClient;
     const net::ServerSession* server = net::g_gameServer;
-    if (Active(client) && Active(client->map))
+    if (IsLive(client) && IsLive(client->map))
         peer = client->map;
-    else if (Active(server) && Active(server->map.Get()))
+    else if (IsLive(server) && IsLive(server->map.Get()))
         peer = server->map.Get();
     if (!peer) return std::string();
     name = peer->text.data();

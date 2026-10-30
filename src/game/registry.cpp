@@ -12,15 +12,12 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include "lib/rounding.h"
 
 namespace {
 
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "FileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "FileRegistry::FindData().\nWrong type of entry.\n"
-
-// _ftol of a float: truncated through a 64-bit integer, keeping the low half (a NaN or a value out of the 64-bit
-// range gives 0, where a cast to int gives 0x80000000).
-int FloatToInt(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
     std::uint16_t v;
@@ -165,7 +162,7 @@ int FileRegistry::GetInt(const char* section, const char* key, int defaultValue)
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
         return static_cast<int>(U32(value));
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
-        return FloatToInt(F32(value));
+        return lib::Truncate(F32(value));
     return defaultValue;
 }
 
