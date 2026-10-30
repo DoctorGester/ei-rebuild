@@ -23,10 +23,10 @@ inline bool Once(std::uint8_t& flags, std::uint8_t bit) {
 }
 
 // A buffer on the initialiser's stack frame in the original (SUB ESP, n; LEA reg, [ESP + offset]): the address of
-// its offset, as the dword a call's argument is.
-inline std::uint32_t Local(std::uint32_t offset) {
+// its offset, as the integer a call's argument is.
+inline std::uintptr_t Local(std::uint32_t offset) {
     alignas(16) static unsigned char frame[0x400];   // tools/gen_static_init.py's LOCAL_MAX
-    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(frame + offset));
+    return reinterpret_cast<std::uintptr_t>(frame + offset);
 }
 
 // An argument as a ported function's parameter: a decoded dword (a constant, a local's address) converted to it.

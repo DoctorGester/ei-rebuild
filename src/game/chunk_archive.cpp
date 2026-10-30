@@ -22,6 +22,7 @@ namespace {
 // The archive's bytes at `p`: a field's value (unaligned), or the text stored with its terminator.
 template <typename T>
 T ValueAt(const std::uint8_t* p) {
+    static_assert(lib::kFormatValue<T>);
     T value;
     std::memcpy(&value, p, sizeof(T));
     return value;
@@ -367,36 +368,26 @@ void ChunkArchive::Close(ByteStream* stream) {
         while (!saved.empty()) {
             RefCounted* object = saved.front();
             saved.pop_front();
-            std::uint32_t vtable;
+            std::uintptr_t vtable;
             lib::LoadBytes(vtable, object);
-            const std::unordered_map<std::uint32_t, std::int32_t>& classIds = g_classRegistry.classIds;
+            const std::unordered_map<std::uintptr_t, std::int32_t>& classIds = g_classRegistry.classIds;
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
             index->WriteValue(classId);
             index->WriteValue(number);
             ChunkArchive::Ref* record = PushRecordChunk(this);
-            if (loading) {
-                ChunkArchive::Ref field;
-                field.Reset();
-                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<RefCounted*>(dataStream.data.data() + field.offset) : nullptr;
-            } else {
-                AppendChild(record, 0, &number, 4);
-            }
+            AppendChild(record, 0, &number, 4);
             if (EnterChunk(1)) {
                 object->Serialize(this);
                 LeaveChunk();
             }
-            if (loading) {
-                PopChunk();
-            } else {
-                // LeaveChunk inlined, with pop_back and ResizeToCurrent.
-                ChunkArchive::Ref* chunk = Current();
-                const std::uint8_t* content = dataStream.data.data() + chunk->offset;
-                AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
-                PopChunk();
-                ResizeToCurrent();
-            }
+            // LeaveChunk inlined, with pop_back and ResizeToCurrent.
+            ChunkArchive::Ref* chunk = Current();
+            const std::uint8_t* content = dataStream.data.data() + chunk->offset;
+            AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
+            PopChunk();
+            ResizeToCurrent();
         }
         Field(2, &version);
         WriteStreamChunk(stream, 0, index);

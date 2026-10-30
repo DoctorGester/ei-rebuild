@@ -199,7 +199,7 @@ void UnitServer::Save(ByteStream* stream) {
     stream->WriteValue(deathReported);
     stream->WriteValue(sinkSpeed);   // the float's bits
     stream->WriteValue(IdOrNone(effectObject));
-    stream->WriteValue(std::ssize(armourSpells));
+    stream->WriteValue(static_cast<std::int32_t>(std::ssize(armourSpells)));
     for (const ArmourSpell& entry : armourSpells) entry.Save(stream);
     stream->WriteValue(followsLeader);
     stream->WriteValue(IdOrNone(followedLeader));

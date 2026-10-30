@@ -22,7 +22,7 @@ namespace {
 
 // A list's count, then each item's id (-1 for an empty entry).
 void WriteItemIds(ByteStream* stream, const std::vector<Item*>& list) {
-    stream->WriteValue(std::ssize(list));
+    stream->WriteValue(static_cast<std::int32_t>(std::ssize(list)));
     for (int i = 0; i < std::ssize(list); ++i) {
         const Item* item = list[i];
         stream->WriteValue(item != nullptr ? item->id : -1);

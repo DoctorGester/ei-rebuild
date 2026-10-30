@@ -17,7 +17,7 @@ void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t i
                           ChunkArchive::Factory factory) {
     RefCounted* prototype = factory();
     if (prototype) prototype->AddRef();
-    std::uint32_t vtable;
+    std::uintptr_t vtable;
     lib::LoadBytes(vtable, prototype);
     registry->classIds[vtable] = static_cast<std::int32_t>(id);
     registry->factories[id] = factory;

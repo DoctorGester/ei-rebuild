@@ -11,7 +11,7 @@
 
 namespace net {
 
-int TypeRegistry::TypeOf(const std::uint32_t* key) const {
+int TypeRegistry::TypeOf(const std::uintptr_t* key) const {
     auto node = byVtable.find(*key);
     return node != byVtable.end() ? static_cast<int>(node->second) : -1;
 }
@@ -45,7 +45,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler han
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
     SharedRef<Message> ref(prototype);
-    const std::uint32_t key = TypeRegistry::KeyOf(ref);
+    const std::uintptr_t key = TypeRegistry::KeyOf(ref);
     int type = types.TypeOf(&key);
     AddHandler(channel, static_cast<std::uint32_t>(type), handler);
 }
