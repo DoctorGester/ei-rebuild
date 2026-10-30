@@ -18,7 +18,7 @@ using render::Rect;
 namespace text = render::text;
 namespace ui = render::ui;
 bool g_verbose = true;
-#include "../ui_canvas_glyphs.h"
+#include "../../tools/ui_check/ui_canvas_glyphs.h"
 
 void CheckShaderPrograms() {
     using namespace render::detail;

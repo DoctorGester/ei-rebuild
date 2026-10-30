@@ -140,7 +140,7 @@ namespace {
 
 // ---- Checks -------------------------------------------------------------------------------------------------
 
-#include "../../tests/ui_canvas_glyphs.h"
+#include "ui_canvas_glyphs.h"
 
 // ---- gdi: fills, frames, lines, pixels against GDI ------------------------------------------------------------
 
