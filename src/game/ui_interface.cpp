@@ -19,9 +19,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "platform/clock.h"
-#include "platform/file.h"
-#include "platform/keyboard.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstdio>

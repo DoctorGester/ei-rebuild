@@ -11,7 +11,7 @@
 #include "ui_widescreen.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "platform/cursor.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 

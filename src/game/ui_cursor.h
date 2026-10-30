@@ -6,9 +6,7 @@
 
 #include "lib/containers.h"
 #include "lib/rect.h"
-#include "platform/mouse.h"
-#include "platform/thread.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <mutex>

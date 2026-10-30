@@ -12,10 +12,7 @@
 
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "platform/clock.h"
-#include "platform/keys.h"
-#include "platform/video.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 #include <cstdint>

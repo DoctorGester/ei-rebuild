@@ -13,7 +13,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include "lib/vecmath.h"
 

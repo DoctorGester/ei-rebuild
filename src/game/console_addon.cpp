@@ -7,7 +7,7 @@
 #include "options.h"
 #include "script.h"
 #include "settings.h"
-#include "platform/files.h"
+#include "platform/platform.h"
 #include "ui.h"
 #include "ui_cursor.h"
 

@@ -15,7 +15,7 @@
 #include "lib/float_select.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 #include <cstring>

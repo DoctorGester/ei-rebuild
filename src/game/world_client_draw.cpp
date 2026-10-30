@@ -34,7 +34,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"

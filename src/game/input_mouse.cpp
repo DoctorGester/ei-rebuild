@@ -1,5 +1,5 @@
 // The DirectInput mouse (DirectInputMouse): set up at the application's start,
-// acquired with the window's activation and polled by the cursor (the device is platform/mouse.h's). See ui_cursor.h.
+// acquired with the window's activation and polled by the cursor (the device is platform/platform.h's). See ui_cursor.h.
 #include "app.h"
 #include "ui_cursor.h"
 

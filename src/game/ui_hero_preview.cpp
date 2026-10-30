@@ -14,7 +14,7 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "render/render.h"
 #include "render/render_state.h"
 

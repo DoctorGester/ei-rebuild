@@ -6,7 +6,7 @@
 #include "console.h"
 
 #include "lib/containers.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "mob_script_decoder.h"
 #include "lib/str.h"
 

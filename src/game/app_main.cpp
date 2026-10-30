@@ -28,15 +28,9 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "platform/audio.h"
-#include "platform/clock.h"
-#include "platform/cursor.h"
-#include "platform/files.h"
-#include "platform/message_box.h"
-#include "platform/window.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

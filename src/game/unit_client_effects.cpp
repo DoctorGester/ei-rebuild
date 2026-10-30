@@ -25,7 +25,7 @@
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <cmath>
 #include <cstdio>

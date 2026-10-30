@@ -3,7 +3,7 @@
 
 #include "asset_text.h"
 
-#include "platform/system.h"
+#include "platform/platform.h"
 #include "render/render_text.h"
 
 namespace {

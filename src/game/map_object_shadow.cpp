@@ -17,7 +17,6 @@
 #include "world.h"   // g_clientWorld
 
 #include "lib/float_select.h"
-#include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 

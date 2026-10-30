@@ -5,7 +5,7 @@
 #include "console.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "platform/ini.h"
+#include "platform/platform.h"
 
 #include <cstdlib>
 #include <cstring>

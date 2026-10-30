@@ -15,7 +15,7 @@
 #include "world_data.h"
 
 #include "lib/containers.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>

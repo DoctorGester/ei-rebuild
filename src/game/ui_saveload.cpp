@@ -20,10 +20,8 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "platform/file.h"
-#include "lib/gameapi.h"
+#include "platform/platform.h"
 #include "lib/intro_sort.h"
-#include "platform/files.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -33,7 +31,6 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"
-#include "platform/files.h"
 
 #include <cstdlib>
 #include <memory>

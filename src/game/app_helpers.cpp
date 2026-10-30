@@ -14,7 +14,7 @@
 #include "unit_create.h"   // MapObjectManager
 #include "world.h"
 
-#include "platform/window.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <memory>

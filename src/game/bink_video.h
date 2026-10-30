@@ -1,9 +1,9 @@
 #pragma once
 
-// Bink movies: the game's players on the platform's movies (platform/video.h).
+// Bink movies: the game's players on the platform's movies (platform/platform.h).
 
 #include "lib/rect.h"
-#include "platform/video.h"
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -8,7 +8,7 @@
 #include "world.h"   // WorldHandle (CreatePair)
 
 #include "lib/bytes.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>

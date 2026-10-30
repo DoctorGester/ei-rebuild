@@ -11,7 +11,7 @@
 #include "bink_video.h"
 #include "game_singletons.h"
 #include "options.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 
 #include <cstring>
 

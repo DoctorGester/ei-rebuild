@@ -25,7 +25,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
-#include "platform/paths.h"
+#include "platform/platform.h"
 
 int FinishQuestMap(const char* name) {
     net::ServerSession* server = net::g_gameServer;

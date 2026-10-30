@@ -1,10 +1,13 @@
 #pragma once
 
+// The Windows backend's own declarations (platform_win32.cpp), for the loader (src/standalone/image_imports.cpp)
+// and the harness's image side.
+//
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
 // so the Windows calls that take or give text (file names, the window title, the message box, key names) are the
 // wide ones, converting at the call:
-//   - the game's imports (gameapi.h, and through it the platform's File, TextFile and FileFind (platform/file.h)): the
-//     image's slot of each ANSI call below that our code calls through gameapi:: takes its UTF-8 version (text::utf8,
+//   - the game's imports (gameapi.h, and through it the platform's File, TextFile and FileFind): the image's slot of
+//     each ANSI call below that our code calls through gameapi:: takes its UTF-8 version (text::utf8,
 //     SystemRoute's list; image_imports.cpp asks for it), so such a call passes and receives UTF-8. A new
 //     gameapi:: call of another import that takes or gives text needs its version and route here. The harness
 //     takes those slots after, as it does the ANSI exports' (its redirects work on the bytes).
@@ -23,7 +26,7 @@
 #include <string_view>
 #include <vector>
 
-#include "lib/win_api.h"
+#include "platform/win32/win_api.h"
 
 namespace text {
 

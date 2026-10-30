@@ -4,7 +4,7 @@
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
-#include "platform/window.h"
+#include "platform/platform.h"
 
 #include <cstdarg>
 #include <cstddef>

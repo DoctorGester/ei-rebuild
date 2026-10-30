@@ -18,7 +18,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -31,7 +31,6 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/str.h"
-#include "platform/keys.h"
 #include <format>
 
 namespace {

@@ -520,7 +520,7 @@ put away and copied again). P3e's comment (tests/verify/harness_ui.h) went with 
 **Deleted.** ui_native.{h,cpp}, ui_native_fonts.cpp, ui_gdi.h, ui_surface_dc.cpp (GetDC / ReleaseDC 005FDC00 /
 005FDC60 and every caller's bracket), lib/gdi.{h,cpp}, the surface memory's DIB section, change marks and window
 textures (render_textures.cpp: `WindowSurfaceView`, `Lookup16`, `SurfaceWritten`, `MissedSurfaceWrites`), render_ui's
-switch, comparison views and read-back into memory, system_text's DrawTextA / GetTextExtentPoint32A /
+switch, comparison views and read-back into memory, the UTF-8 routes' DrawTextA / GetTextExtentPoint32A /
 CreateFontIndirectA routes.
 
 **Pictures.** `render::ui::Image` (a CPU picture written onto a canvas) has no game caller since P8a: it stays as

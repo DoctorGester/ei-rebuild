@@ -1503,7 +1503,7 @@ class Names:
         if port is None:
             self.problems.append(f'{a:08X} is called but has no port: port it (a row of config/static_init_ports.csv)')
             return None
-        if port.name.startswith('gameapi::'):   # an import, called through its slot (lib/gameapi.h)
+        if port.name.startswith('gameapi::'):   # an import, called through its slot (platform/win32/gameapi.h)
             return port.name, port.path, None
         rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
         if not os.path.exists(port.path):

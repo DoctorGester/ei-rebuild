@@ -14,11 +14,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "platform/keys.h"
-#include "platform/cursor.h"
-#include "platform/message_box.h"
-#include "platform/paths.h"
-#include "platform/window.h"
+#include "platform/platform.h"
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>

@@ -4,7 +4,7 @@
 // docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
-#include "platform/net.h"
+#include "platform/platform.h"
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"

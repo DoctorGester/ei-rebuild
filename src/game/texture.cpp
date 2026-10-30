@@ -7,7 +7,7 @@
 #include "world_data.h"   // the text resources' folder
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <algorithm>
 #include <cstdint>

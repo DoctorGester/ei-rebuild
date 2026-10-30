@@ -10,7 +10,7 @@
 #include "world_glue.h"
 #include "ei/rebirth.h"
 #include "lib/str.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <charconv>
 #include <cstring>

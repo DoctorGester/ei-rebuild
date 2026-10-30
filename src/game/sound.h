@@ -1,6 +1,6 @@
 #pragma once
 
-// Sound and music: the sound manager on the platform's audio output (platform/audio.h), its MP3 music stream thread,
+// Sound and music: the sound manager on the platform's audio output (platform/platform.h), its MP3 music stream thread,
 // and the music state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
@@ -10,8 +10,7 @@
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
-#include "platform/audio.h"
-#include "platform/thread.h"
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>

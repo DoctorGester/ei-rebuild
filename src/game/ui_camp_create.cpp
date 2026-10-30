@@ -24,7 +24,7 @@
 #include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

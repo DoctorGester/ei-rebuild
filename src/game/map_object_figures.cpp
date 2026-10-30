@@ -22,7 +22,7 @@
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <bit>
 #include <cfloat>

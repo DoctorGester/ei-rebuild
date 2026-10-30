@@ -17,7 +17,7 @@
 #include "world.h"
 
 #include "lib/rect.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include <cstdint>
 #include <string>
 #include "world_glue.h"
@@ -26,7 +26,6 @@
 #include "game_singletons.h"
 #include "model.h"
 #include "figure_manager.h"
-#include "platform/keys.h"
 
 
 namespace {

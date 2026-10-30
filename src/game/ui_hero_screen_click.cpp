@@ -19,11 +19,9 @@
 #include "random.h"
 
 #include "lib/containers.h"
-#include "platform/file.h"
-#include "platform/files.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-#include "platform/keys.h"
 
 #include <cstdint>
 #include <cstdlib>

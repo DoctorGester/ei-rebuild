@@ -11,7 +11,7 @@
 #include "world_effect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstdlib>

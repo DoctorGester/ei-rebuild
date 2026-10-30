@@ -1,7 +1,7 @@
 // The game's dates (calendar.h).
 #include "calendar.h"
 
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <ctime>
 

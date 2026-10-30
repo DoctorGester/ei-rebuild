@@ -23,7 +23,7 @@
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/str.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <cmath>
 #include <cstdint>

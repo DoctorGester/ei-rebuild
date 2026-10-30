@@ -14,7 +14,7 @@
 #include "world.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstdlib>

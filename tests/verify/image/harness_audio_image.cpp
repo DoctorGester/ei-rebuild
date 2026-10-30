@@ -1,7 +1,7 @@
 // The image's harness runs open no sound device (platform::audio::UseNoDevice): nothing is heard, and the voices'
 // ends and the music's halves keep to the game's clock, the same on every machine and whatever device it has. Set
 // before main when the run has a scenario (EI_HARNESS, as the harness itself starts: harness.cpp's Harness).
-#include "platform/audio.h"
+#include "platform/platform.h"
 
 #include <windows.h>
 

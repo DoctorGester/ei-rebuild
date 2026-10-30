@@ -12,7 +12,7 @@
 #include "player_messages.h"
 #include "script_addon_handlers.h"
 #include "mod_folders.h"
-#include "platform/files.h"
+#include "platform/platform.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"

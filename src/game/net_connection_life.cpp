@@ -7,7 +7,7 @@
 #include "lib/bytes.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 
 #include <cmath>
 #include <cstring>

@@ -6,11 +6,11 @@
 // routes, a slot our code takes; gen_iat.py's routed()) is called through the slot (lib/import_table.h):
 // a reference to it, bound in gameapi.cpp. So is every import the Windows SDK does not declare (no import
 // library), by its prototype of lib/import_prototypes.h, copied below. Every other one is the Windows
-// function itself, which lib/win_api.h declares.
+// function itself, which platform/win32/win_api.h declares.
 
 #include <cstdint>
 
-#include "lib/win_api.h"
+#include "platform/win32/win_api.h"
 
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "user32.lib")

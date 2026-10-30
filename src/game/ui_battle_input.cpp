@@ -30,7 +30,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 
 #include <bit>
 #include <cstdint>

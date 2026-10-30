@@ -14,7 +14,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "platform/clock.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 
 #include <bit>

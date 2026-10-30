@@ -4,7 +4,7 @@
 // the name listing of an archive and the constructors and destructors of
 // MMIOResource (the readers' base ResourceBase is in resource.h). Names provisional.
 
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "resource.h"
 
 #include <cstdint>

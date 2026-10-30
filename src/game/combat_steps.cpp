@@ -9,7 +9,7 @@
 #include "unit.h"
 
 #include "lib/float_select.h"
-#include "platform/debug.h"
+#include "platform/platform.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"

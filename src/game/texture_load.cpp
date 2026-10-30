@@ -13,7 +13,7 @@
 #include "../hook/log.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "platform/file.h"
+#include "platform/platform.h"
 #include "render/render.h"
 
 #include <cctype>

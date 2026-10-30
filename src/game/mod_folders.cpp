@@ -8,7 +8,7 @@
 #include "settings.h"
 #include "lib/text_case.h"
 
-#include "platform/files.h"
+#include "platform/platform.h"
 
 #include "ei/hook.h"
 #include <cstddef>

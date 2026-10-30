@@ -9,9 +9,9 @@
 #include "game/game_singletons.h"
 #include "game/player_messages.h"
 #include "game/asset_text.h"
-#include "platform/win32/system_text.h"
+#include "platform/win32/platform_win32.h"
 #include "game/ui.h"
-#include "lib/gameapi.h"
+#include "platform/win32/gameapi.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

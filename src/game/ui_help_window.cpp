@@ -13,7 +13,7 @@
 #include "world.h"
 #include "render/render_state.h"
 #include "lib/str.h"
-#include "platform/keys.h"
+#include "platform/platform.h"
 
 #include <cmath>
 
