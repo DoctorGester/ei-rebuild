@@ -69,6 +69,18 @@ void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3& to, bool run, 
 
 int AIMode::Evaluate(AIBrain*) { return kPriorityIdle; }
 
+bool AIMode::Exclusive() const {
+    switch (type) {
+    case AIModeType::Guard:
+    case AIModeType::Patrol:
+    case AIModeType::Sentry:
+    case AIModeType::Follow:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void AIMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::Idle);
     brain->LookAround();
@@ -476,14 +488,14 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->StopAction();
 }
 
-void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset) {
+void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset) {
     state = kStateCommand;
     PrepareWalk(this, brain, to, run, offset);
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset) {
+void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, run, offset);
     if (!PartyInDanger(brain->owner->unit) && !StaysWithParty(brain, true)) {

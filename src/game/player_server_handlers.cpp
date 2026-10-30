@@ -73,7 +73,7 @@ void ReadUnits(MemoryStream& in, std::vector<CUnit*>* units) {
     }
 }
 
-using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, int, bool, const Vector3&);
+using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, bool, bool, const Vector3&);
 int MoveUnits(MoveCommand command) {
     MemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
@@ -180,26 +180,6 @@ Vector3* AIPath::TargetPoint(Vector3* out) const {
     out->z = 0.0f;
     out->x = 0.5f * targetX;
     out->y = 0.5f * targetY;
-    return out;
-}
-
-void AIOrder::MakeUse(CMapObject* object, UseSource use) {
-    Clear();
-    kind = UnitOrderKind::Use;
-    if (object != target) {
-        target.Assign(object);
-    }
-    source = static_cast<std::uint32_t>(use);
-}
-
-Vector3* AIOrder::AimPoint(Vector3* out) const {
-    if (target == nullptr) {
-        out->x = point.x;
-        out->y = point.y;
-        out->z = point.z;
-        return out;
-    }
-    target->AimPoint(out);
     return out;
 }
 

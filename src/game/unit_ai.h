@@ -141,8 +141,9 @@ public:
     // the controller's busy flag.
     virtual void Enter(AIBrain* brain);
     virtual void Leave(AIBrain*) {}
-    // True for most modes; AddMode replaces a mode of another type when both answer true.
-    virtual bool Exclusive() { return true; }
+    // True for the Guard, Patrol, Sentry and Follow modes; AddMode replaces a mode of another type when both
+    // are exclusive.
+    bool Exclusive() const;
     virtual void OnObjectDeleted(EngineObject*) {}
     // Taken out of the brain while in charge (AIBrain::RemoveModesOfType): the mode stays in charge until another
     // takes over, with the fields the original's shutdown of a still-held mode resets.
@@ -160,7 +161,6 @@ public:
     int Evaluate(AIBrain* brain) override = 0;
     void Execute(AIBrain* brain) override = 0;
     void Enter(AIBrain* brain) override;
-    bool Exclusive() override { return false; }
 };
 
 // Guard: stay near a point.
@@ -357,10 +357,10 @@ public:
 
     // The player's commands (state 1 or 2). Walk to `to` + `offset` (just `to` when the way there is
     // blocked); forgets the leader unless the party is in danger.
-    void CommandWalk(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset);
+    void CommandWalk(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset);
     // The same in state 2 (keep fighting on the way); when the unit would leave the party it only turns
     // towards the point.
-    void CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset);
+    void CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset);
     void CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot);
     void CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, bool run);
     void CommandCast(AIBrain* brain, int spell, CMapObject* object);
@@ -536,9 +536,6 @@ struct AIAttention {
     // spells (kinds 1..4) into `weapons`, helping spells (5..7) into `spells`; a unit whose id is a text key
     // gets only the weapon. Then `healWeight` is the largest Weight of the `weapons` options.
     void Build(CUnit* unit);
-    void InitOption(AIAttackOption* option, AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
-    DamageWords* AddWeaponOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
-    DamageWords* AddSpellOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
 
     std::vector<AIAttackOption> weapons;
     std::vector<AIAttackOption> spells;

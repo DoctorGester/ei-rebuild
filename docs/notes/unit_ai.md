@@ -33,7 +33,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
   +0xA4 the attention (two CArrays of 0x28-byte AIAttackOption: `weapons` holds the weapon and the attack spells (kinds
   1..4), `spells` the helping ones (5..7); +0x28 the heal weight). UnitController has `stats` (+0x1E0), `protection` (+0x8E4)
   and `brain` (+0x980).
-- Mode slot 9 (`Exclusive`): AddMode replaces a mode of another type when both answer 1. The original's mode list holds
+- Mode slot 9 (`Exclusive`; ours a function of `AIMode::type`: true for Guard, Patrol, Sentry and Follow): AddMode replaces a mode of another type when both are exclusive. The original's mode list holds
   owning pointers (RefPtr::Share on add, RefPtr::Destroy on removal) and `current` a counted one: nothing outside the brain
   holds a mode (every adder hands a new one to AddMode), so no mode is ever shared and its Clone never runs. The one
   visible effect of the counting is kept: RemoveModesOfType (UMAg) taking out the mode in charge shuts it down (slot 2,
@@ -88,10 +88,10 @@ address in its source comment; the per-function table that used to be here is go
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
   memory's HearCall / AddClaim 005CBBA0 / 005CBBC0.
 - `unit_ai.cpp` / `unit_ai_targets.cpp`: AIBrain::CurrentAttack 005CF220, LookAround 005CFE40 (the original's `this` is the attention +0xA4 with the brain passed; ours are AIBrain members),
-  AIBrain::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
+  AIBrain::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast / MakeUse / AimPoint, CanReach 005CF3C0 (spell aimed at
   no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
   lifted). `unit_ai_targets.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
-  and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,
+  and by 005D6630), MakeOption (the original's InitOption / AddWeaponOption / AddSpellOption), SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,
   Load / Save, LoadAttackOptions 005D9B80. `unit_ai_modes.cpp`: PlanLooks 005D5B40, FindStandPoint 005D7F80. `unit_ai_modes.cpp`:
   CArray<AILook> and the patrol point array (AppendPoint 005D12B0).
 - The modes' constructors, shutdowns (`Detach`), types and priorities (the original's 004BA1C0-004BA990, 005D0F90 / 005D2880
