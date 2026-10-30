@@ -3,7 +3,7 @@
 // More: docs/notes/comments-c22i.md, "net_second_master.h".
 #pragma once
 
-#include <cstdint>
+#include "platform/net.h"
 
 class GameBuffer;
 
@@ -28,7 +28,7 @@ void OnMultiplayerClick();
 // once the address is known, the same bytes followed by 0xDEADBEEF, the number of bindings (a byte)
 // and per binding the player's name as (length + 1 as a byte, the name, a zero byte) go from
 // `socket` to the second master.
-void CopyAnnouncement(std::uint32_t socket, const GameBuffer& sent);
+void CopyAnnouncement(platform::net::Socket socket, const GameBuffer& sent);
 
 // The plugin's 100052D0 (master request), instead of master->Parse(host, port): a parsed master is tried
 // with a non-blocking TCP connect (up to 1 s); when it cannot be parsed or reached and the second

@@ -12,4 +12,4 @@ address,name,file
 004E3B20,BuildWeatherNoise,src/game/weather_noise.cpp
 005B2FB0,InitDampScale,src/game/ai_refresh.cpp
 0066C4F0,MemoryStream::MemoryStream,src/game/core_streams.cpp
-006E6106,gameapi::WSAStartup,src/lib/gameapi.h
+006E6106,net::StartWinsock,src/game/net_socket_driver.cpp

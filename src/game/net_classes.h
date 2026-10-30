@@ -11,6 +11,7 @@
 #include "lib/bytes.h"
 #include "lib/in_place.h"
 #include "net_coder.h"
+#include "platform/net.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,13 +64,8 @@ void Rebuild(T* self) {
     new (self) T();
 }
 
-// A sockaddr_in: family 2, then the port and the IPv4 address in network order, 8 zero bytes.
-struct NetAddress {
-    std::uint16_t family;
-    std::uint16_t port;
-    std::uint32_t ip;
-    std::uint8_t zero[8];
-
+// An IPv4 address and port (the platform's: sockaddr_in's 16 bytes), as the messages carry it.
+struct NetAddress : platform::net::Address {
     // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
     // text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
@@ -84,7 +80,7 @@ static_assert(sizeof(NetAddress) == 0x10);
 class MasterLink {
 public:
     // A non-blocking TCP socket connecting to `address` (state 1), or state 0.
-    explicit MasterLink(const void* address);
+    explicit MasterLink(const NetAddress* address);
     ~MasterLink();
     MasterLink(const MasterLink&) = delete;
     MasterLink& operator=(const MasterLink&) = delete;
@@ -93,7 +89,7 @@ public:
 
     GrowingBuffer out;           // what is sent once connected
     GrowingBuffer in;
-    std::uint32_t socket;        // (-1: none)
+    platform::net::Socket socket;   // (kNoSocket: none)
     std::int32_t state;
 };
 
@@ -103,6 +99,10 @@ public:
 // Rebirth's SetDefaultRate, disabled here, writes Settings\Rate over it) and on the local network (12500).
 extern int g_remoteRate;
 extern int g_localRate;
+
+// Winsock's static initialiser, called as the original calls WSAStartup (1.1 into a WSADATA on its stack): starts
+// the platform's sockets, which ask for 1.1 themselves.
+void StartWinsock(std::uint16_t version, void* data);
 
 class SessionBase;
 class ServerSession;
@@ -259,7 +259,7 @@ struct SocketDriver {
     SocketDriver(const SocketDriver&) = delete;
     SocketDriver& operator=(const SocketDriver&) = delete;
 
-    std::uint32_t socket;        // SOCKET (-1: none)
+    platform::net::Socket socket;   // (kNoSocket: none)
     std::vector<NetAddress> addresses;
 
     // A new non-blocking broadcast UDP socket, bound to `port` when positive.

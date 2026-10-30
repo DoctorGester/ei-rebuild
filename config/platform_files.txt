@@ -5,7 +5,6 @@ src/game/app_main.cpp
 src/game/asset_text.cpp
 src/game/bink_video.cpp
 src/game/camera_object.cpp
-src/game/console_addon.cpp
 src/game/device_bounds.cpp
 src/game/dx_errors.cpp
 src/game/figure_part_draw.cpp
@@ -16,17 +15,11 @@ src/game/link_figure.cpp
 src/game/map_object_draw.cpp
 src/game/map_object_figures.cpp
 src/game/menu_rects.cpp
-src/game/mod_folders.cpp
-src/game/net_link.cpp
-src/game/net_second_master.cpp
-src/game/net_socket_driver.cpp
 src/game/object3d_halves.cpp
 src/game/party_file.cpp
 src/game/present_window.cpp
-src/game/random.cpp
 src/game/resource.cpp
 src/game/resource_stream.cpp
-src/game/script_addon_commands.cpp
 src/game/script_parse.cpp
 src/game/settings_file.cpp
 src/game/sound_manager.cpp
@@ -76,4 +69,3 @@ src/standalone/host.cpp
 src/standalone/image_imports.cpp
 src/standalone/standalone_main.cpp
 src/standalone/startup.cpp
-src/standalone/static_init.cpp

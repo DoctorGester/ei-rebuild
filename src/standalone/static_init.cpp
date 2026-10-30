@@ -12,7 +12,7 @@
 
 #include <cstdlib>
 
-#include "lib/gameapi.h"
+#include "game/net_classes.h"
 
 void BuildWeatherNoise();
 void InitCodeTables();
@@ -224,7 +224,7 @@ void RunStaticInitialisers() {
     if (Once(g_emptyStaticGuard, 1)) {
     }
     // 0047C300: constructor + atexit
-    Call(gameapi::WSAStartup, 0x101, Local(0));
+    Call(net::StartWinsock, 0x101, Local(0));
     std::atexit(net::CleanUpWinsock);
     // 0047D7D0: stores; 3 left out
     // 00480020: guarded atexit
