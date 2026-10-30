@@ -57,7 +57,7 @@ void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {
 
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
 // model, then the screen to 1 again.
-void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, RECT slot) {
+void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, Rect slot) {
     Interface3D* ui = page->ui;
     ui->ScaleRectToScreenEntry(&slot);
     ClearUiDepth(0.0f);
@@ -102,9 +102,9 @@ void HeroQuickStrip::Draw(SceneRenderer* pass) {
 
 void RepairGrid::Draw(SceneRenderer* pass) {
     Interface3D* currentUi = ui;
-    RECT grid{200, 100, 600, 500};
+    Rect grid{200, 100, 600, 500};
     currentUi->ScaleRectToScreenEntry(&grid);
-    RECT screen{0, 0, currentUi->width, currentUi->height};
+    Rect screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
 
@@ -122,10 +122,10 @@ void RepairGrid::Draw(SceneRenderer* pass) {
         owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(item->count);    // the stack's count
         if (pieces > 1) {
-            RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
+            Rect r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
             surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
-        RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
+        Rect r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
         surface->DrawTextIn(std::format("{}", owner->Price(item, 8)), &r, 1, kTextColour, 1, 1);
     }
     DrawBase(pass);
@@ -178,8 +178,8 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
     }
     UiSurface* surface = surfaces[0];
     surface->Clear();
-    RECT first{10, 0, 200, 20};
-    RECT second{10, 20, 200, 40};
+    Rect first{10, 0, 200, 20};
+    Rect second{10, 20, 200, 40};
     if (hasSpell) {
         PartySkill best = owner->BestPartySkill(school);
         surface->DrawTextIn(str::Format(kCostFormat, texts[0], best.skill, needed), &first, 1, kTextColour, 0, 1);
@@ -225,12 +225,12 @@ void ConstructorPage::Draw(SceneRenderer* pass) {
         if (IsBuildable(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
-            DrawInSlot(this, pass, cell, RECT{215, 265, 285, 335});
+            DrawInSlot(this, pass, cell, Rect{215, 265, 285, 335});
             hasBlueprint = true;
         } else if (IsPart(item)) {
             cell.x = 350.0f;
             cell.y = 250.0f;
-            DrawInSlot(this, pass, cell, RECT{315, 215, 385, 285});
+            DrawInSlot(this, pass, cell, Rect{315, 215, 385, 285});
             hasPart = true;
             // Another record type keeps the part found before.
             auto* loot = AsLoot(item);

@@ -23,9 +23,9 @@
 
 namespace {
 
-void Down(RECT* rect) { rects::Offset(rect, 0, 15); }
+void Down(Rect* rect) { rects::Offset(rect, 0, 15); }
 
-void AddRect(UiWindow* window, const RECT& rect) { window->AddRegion()->SetRectFrom(rect); }
+void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRectFrom(rect); }
 
 void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->SceneMesh(i)->visible = shown;
@@ -58,7 +58,7 @@ void BuildCellGrid(UiWindow* window) {
             frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
             frame->texture = texture;
-            AddRect(window, RECT{left, top, right, bottom});
+            AddRect(window, Rect{left, top, right, bottom});
             u = 0x9C - u;
         }
         depth = depth * 0.5f;   // * 0.5
@@ -78,7 +78,7 @@ constexpr int kTopicRepair = 0x19;
 // the four quarter pictures (textures 0-3) and a hidden highlight frame.
 void BuildMakerPage(ConstructorPage* page) {
     for (int left = 400; left < 600; left += 100)
-        for (int top = 100; top < 500; top += 100) AddRect(page, RECT{left, top, left + 100, top + 100});
+        for (int top = 100; top < 500; top += 100) AddRect(page, Rect{left, top, left + 100, top + 100});
 }
 void AddMakerPictures(ConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
@@ -101,7 +101,7 @@ void AddMakerPictures(ConstructorPage* page) {
 // --- Statistics page ----------------------------------------------------------------------------
 
 void HeroStatsPanel::ShowStats(int newPage) {
-    RECT area = {0x14, 0xA5, 0xB4, 0xB4};
+    Rect area = {0x14, 0xA5, 0xB4, 0xB4};
     page = newPage;
     while (std::ssize(regions) > 2) RemoveRegionAt(2);
     ShowFrom(this, 4, false);
@@ -126,8 +126,8 @@ void HeroStatsPanel::ShowStats(int newPage) {
         AddRect(this, area);
     } else if (page == 10) {
         ShowFrom(this, 4, true);
-        const RECT columns[3] = {{0x14, 0xA5, 0x8C, 0xB4}, {0x8C, 0xA5, 0xA0, 0xB4}, {0xA0, 0xA5, 0xB4, 0xB4}};
-        for (const RECT& column : columns) {
+        const Rect columns[3] = {{0x14, 0xA5, 0x8C, 0xB4}, {0x8C, 0xA5, 0xA0, 0xB4}, {0xA0, 0xA5, 0xB4, 0xB4}};
+        for (const Rect& column : columns) {
             area = column;
             for (int i = 0; i < 4; ++i) {
                 AddRect(this, area);
@@ -138,7 +138,7 @@ void HeroStatsPanel::ShowStats(int newPage) {
                 }
             }
         }
-        AddRect(this, RECT{0x14, 0xD2, 0xB4, 0xE1});
+        AddRect(this, Rect{0x14, 0xD2, 0xB4, 0xE1});
     } else {
         for (int i = 0; i < 8; ++i) {
             AddRect(this, area);
@@ -154,7 +154,7 @@ void HeroStatsPanel::ShowStats(int newPage) {
 void HeroStatsPanel::DrawStats() {
     UiSurface* draw = surfaces[0];
     draw->Clear();
-    RECT titleArea = {0, 0x1B, 0xC8, 0x2B};
+    Rect titleArea = {0, 0x1B, 0xC8, 0x2B};
     draw->DrawTextIn(title, &titleArea, 1, 0xFFFFFF, 1, 1);
 
     auto hero = [this]() { return owner->HeroRecord(); };
@@ -163,7 +163,7 @@ void HeroStatsPanel::DrawStats() {
     std::string line;
     std::string text;
     TextManager* clientWorldTexts = g_clientWorld.texts;
-    RECT area;
+    Rect area;
 
     if (page == 10) {
         // A new hero's statistics: points left = 75 - (strength + dexterity + intelligence).
@@ -171,7 +171,7 @@ void HeroStatsPanel::DrawStats() {
         int dexterity = static_cast<int>(stats->dexterityBase);
         int intelligence = static_cast<int>(stats->intelligenceBase);
         int sum = intelligence + dexterity + strength;
-        area = RECT{0x14, 0x41, 0x82, 0x50};
+        area = Rect{0x14, 0x41, 0x82, 0x50};
         DrawRow(area, "Strength", strength, -1);
         Down(&area);
         DrawRow(area, "Dexterity", dexterity, -1);
@@ -185,7 +185,7 @@ void HeroStatsPanel::DrawStats() {
         DrawRow(area, texts[6], points, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
-        area = RECT{0x8C, 0x41, 0xA0, 0x50};
+        area = Rect{0x8C, 0x41, 0xA0, 0x50};
         float minimum = 15.0f;
         int values[3] = {strength, dexterity, intelligence};
         float storedStats[3];
@@ -202,7 +202,7 @@ void HeroStatsPanel::DrawStats() {
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(75.0f - sumF);
-        area = RECT{0xA0, 0x41, 0xB4, 0x50};
+        area = Rect{0xA0, 0x41, 0xB4, 0x50};
         float maximum = 35.0f;
         for (int i = 0; i < 3; ++i) {
             EI_NAN_AUDIT(storedStats[i]);
@@ -215,7 +215,7 @@ void HeroStatsPanel::DrawStats() {
         Down(&area);
         draw->DrawTextIn("+", &area, 0, points >= 100 ? kGrey : kBright, 1, 1);
     } else if (page == 0) {
-        area = RECT{0x14, 0x41, 0xAF, 0x50};
+        area = Rect{0x14, 0x41, 0xAF, 0x50};
         text = clientWorldTexts->GetString("infoitem_25");
         draw->DrawTextIn(text, &area, 0, kBright, 0, 1);
         Down(&area);
@@ -266,7 +266,7 @@ void HeroStatsPanel::DrawStats() {
         Down(&area);
         draw->DrawTextIn(texts[7], &area, 0, kBright, 0, 1);
     } else {
-        area = RECT{0x14, 0x41, 0xB4, 0x50};
+        area = Rect{0x14, 0x41, 0xB4, 0x50};
         DrawRow(area, "Strength", static_cast<int>(stats->strength), -1);
         Down(&area);
         DrawRow(area, "Dexterity", static_cast<int>(stats->dexterity), -1);
@@ -302,9 +302,9 @@ void HeroStatsPanel::DrawStats() {
 
 void HeroEquipPanel::Build(bool withBody) {
     body = withBody;
-    rect = RECT{0, 0, 800, withBody ? 500 : 100};
+    rect = Rect{0, 0, 800, withBody ? 500 : 100};
     mode = 0;
-    for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
+    for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
         UiMesh* frame = AddBlankSprite();
         frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
@@ -326,7 +326,7 @@ void HeroEquipPanel::Build(bool withBody) {
     if (body) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
-        for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
+        for (int i = 0; i < 7; ++i) AddRect(this, Rect{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
         for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, TextureKind::Interface);
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
@@ -341,9 +341,9 @@ void HeroEquipPanel::Build(bool withBody) {
 // --- The statistics panel's Build ---------------------------------------------
 
 void HeroStatsPanel::Build() {
-    rect = RECT{0, 100, 200, 400};
-    AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
-    AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
+    rect = Rect{0, 100, 200, 400};
+    AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});      // previous hero
+    AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});    // next hero
     AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true));
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
@@ -366,7 +366,7 @@ void HeroStatsPanel::Build() {
 
 void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldItems, bool spells, bool isExchange) {
     bought = boughtItems;
-    rect = RECT{200, 100, 600, 500};
+    rect = Rect{200, 100, 600, 500};
     sold = soldItems;
     buyKind = spells ? 0 : 4;
     sellKind = spells ? 1 : 5;
@@ -405,7 +405,7 @@ Item* RepairGrid::ItemAt(int x, int y, int* topic) {
 // --- The repair grid's Build ---------------------------------------------------------------
 
 void RepairGrid::Build(std::vector<Item*>* damaged) {
-    rect = RECT{200, 100, 600, 500};
+    rect = Rect{200, 100, 600, 500};
     mode = 8;
     items = damaged;
     for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, TextureKind::Interface);
@@ -416,9 +416,9 @@ void RepairGrid::Build(std::vector<Item*>* damaged) {
 
 void HeroQuickStrip::Build(bool top) {
     y = top ? 0 : 500;
-    rect = RECT{0, y, 800, y + 100};
+    rect = Rect{0, y, 800, y + 100};
     mode = 0;
-    for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y, x + 100, y + 100});
+    for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, y, x + 100, y + 100});
     UiMesh* frame = AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour = 0xFF8B8B37;
@@ -432,15 +432,15 @@ void HeroQuickStrip::Build(bool top) {
 // --- The constructors' second pages ---------------------------------------------------------------
 
 void SpellMakerPage::BuildSpellMaker(CParty* party) {
-    rect = RECT{200, 100, 600, 500};
+    rect = Rect{200, 100, 600, 500};
     mode = 6;
     slots = party;
     for (const char* name : {"constrspell1", "constrspell2", "constrspell3", "constrspell4"}) LoadTexture(name, TextureKind::Interface);
-    AddRect(this, RECT{200, 250, 300, 350});   // the container
-    AddRect(this, RECT{300, 250, 400, 350});   // the spell
+    AddRect(this, Rect{200, 250, 300, 350});   // the container
+    AddRect(this, Rect{300, 250, 400, 350});   // the spell
     BuildMakerPage(this);
-    AddRect(this, RECT{200, 450, 400, 470});
-    AddRect(this, RECT{200, 470, 400, 490});
+    AddRect(this, Rect{200, 450, 400, 470});
+    AddRect(this, Rect{200, 470, 400, 490});
     AddMakerPictures(this);
     AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true));
     TextManager* clientWorldTexts = g_clientWorld.texts;
@@ -453,13 +453,13 @@ void SpellMakerPage::BuildSpellMaker(CParty* party) {
 }
 
 void ConstructorPage::BuildItemMaker(CParty* party) {
-    rect = RECT{200, 100, 600, 500};
+    rect = Rect{200, 100, 600, 500};
     mode = 7;
     slots = party;
     for (const char* name : {"constritem1", "constritem2", "constritem3", "constritem4"}) LoadTexture(name, TextureKind::Interface);
-    AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
-    AddRect(this, RECT{300, 200, 400, 300});   // the parts
-    AddRect(this, RECT{300, 300, 400, 400});
+    AddRect(this, Rect{200, 250, 300, 350});   // the blueprint
+    AddRect(this, Rect{300, 200, 400, 300});   // the parts
+    AddRect(this, Rect{300, 300, 400, 400});
     BuildMakerPage(this);
     AddMakerPictures(this);
 }

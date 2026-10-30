@@ -54,7 +54,7 @@ bool Live(const RefObject* object) { return object && !(object->flags7 & RefObje
 ChatWindow::ChatWindow(Interface3D* ownerUi) : UiWindow(ownerUi) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
-    rect = RECT{left, 0, 800, 0xA0};
+    rect = Rect{left, 0, 800, 0xA0};
     UiSurface* surface = new UiSurface(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
     AddSurface(surface);
     portraits = 0;
@@ -192,11 +192,11 @@ void ChatWindow::Update() {
             }
         }
         if (status.size() != 0) {
-            RECT line{left, 0, left + kFaceWidth, 0xF};
+            Rect line{left, 0, left + kFaceWidth, 0xF};
             surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
         }
         if (offer.size() != 0) {
-            RECT line{left, 0xF, left + kFaceWidth, 0x1E};
+            Rect line{left, 0xF, left + kFaceWidth, 0x1E};
             surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
         }
     }

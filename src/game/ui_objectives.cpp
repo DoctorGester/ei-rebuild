@@ -184,7 +184,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         marker->SetTriangle(5.0f, 100.0f, x, y, x - kMarkerHalfWidth, base, x + kMarkerHalfWidth,
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale = marker->scaleMatrix.m[0];
-        RECT area;
+        Rect area;
         area.left = static_cast<int>(x - kExitHalf);
         area.top = static_cast<int>(y - kExitHalf);
         area.right = static_cast<int>(x + kExitHalf);
@@ -264,9 +264,9 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
                 text = g_clientWorld.texts->ReadToHash();
                 UiSurface* surface = surfaces[1];
                 surface->Clear();
-                RECT titleRect = {0, 5, 340, 25};
+                Rect titleRect = {0, 5, 340, 25};
                 surface->DrawTextIn(title, &titleRect, 1, 0x31B3FF, 1, 1);
-                RECT textRect = {10, 25, 330, 140};
+                Rect textRect = {10, 25, 330, 140};
                 surface->DrawTextIn(text, &textRect, 1, 0xA7D7E4, 0x11, 1);
             }
         }
@@ -403,9 +403,9 @@ void ObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    UiScrollText* column = new UiScrollText(ui, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f);
+    UiScrollText* column = new UiScrollText(ui, game::kEmptyText, Rect{60, 190, 384, 510}, 10.0f);
     AddChild(column);
-    bar = new UiScrollbar(ui, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
+    bar = new UiScrollbar(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar);
 
     LoadTexture("saveload", TextureKind::Interface);
@@ -567,7 +567,7 @@ void ObjectivesWindow::DrawQuestList() {
             mesh(2)->Place(215.0f, static_cast<float>(y + 29), 3.0f);
             mesh(2)->visible = true;
         }
-        RECT area{36, y, 320, y + 21};
+        Rect area{36, y, 320, y + 21};
         surface->DrawTextIn(title, &area, 1, 0xA7D7E4, 0, 1);
     }
 }

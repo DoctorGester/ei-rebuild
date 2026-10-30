@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
-#include "lib/win_types.h"
 #include "platform/audio.h"
 #include "platform/thread.h"
 

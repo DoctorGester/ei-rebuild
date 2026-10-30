@@ -8,7 +8,7 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 #include "platform/window.h"
 
 #include <string>
@@ -67,7 +67,7 @@ public:
     ~TextureDevice() override;
 
     bool fullScreen = false;    // the window covers the monitor
-    RECT screen = {};           // (0, 0, width, height): the screen's size
+    Rect screen = {};           // (0, 0, width, height): the screen's size
     platform::NativeWindow window = nullptr;
     int bitsPerPixel = 32;      // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     TransformPipeline* pipeline = nullptr;
@@ -76,7 +76,7 @@ public:
     std::uint32_t colour = 0xFF000000;    // the renderer's draw colour (mesh draw flag 4)
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
     int distanceFog = 0;
-    RECT drawnRect = {};        // the screen rectangle of the last mesh draw
+    Rect drawnRect = {};        // the screen rectangle of the last mesh draw
 };
 
 // Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x

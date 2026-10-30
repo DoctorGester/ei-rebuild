@@ -59,8 +59,8 @@ PlayerServer* FirstPlayerState() {
 const std::string& ModFolder() {
     static const std::string folder = [] {
         std::string path;
-        char value[MAX_PATH * 2];
-        DWORD size = sizeof(value) - 1, type = 0;
+        char value[520];   // two paths of 260 bytes
+        std::uint32_t size = sizeof(value) - 1, type = 0;
         if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", &type, value, &size) == 0 &&
             type == settings_file::kTypeString) {
             value[size] = 0;

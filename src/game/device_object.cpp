@@ -18,7 +18,7 @@ namespace {
 // Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
 bool PerfOverlaySetting() {
     if (!render::PerfOverlaySupported()) return false;
-    unsigned long type = 0, value = 0, size = sizeof(value);
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
     return settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay", &type, &value,
                                     &size) == 0 &&
            type == settings_file::kTypeDword && value != 0;
@@ -27,7 +27,7 @@ bool PerfOverlaySetting() {
 // The vertical blank's switch (docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
 // absent: on) of the same key. Read only in the product, as above.
 bool VsyncSetting() {
-    unsigned long type = 0, value = 0, size = sizeof(value);
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
     return !(settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", &type, &value, &size) == 0 &&
              type == settings_file::kTypeDword && value == 0);
 }
@@ -36,11 +36,11 @@ bool VsyncSetting() {
 // 2, 4 or 8) and "Anisotropy" (its models' anisotropic sampling: 1 off .. 16), DWORDs of the same key. A value missing
 // (or not a DWORD) is written with its default, the look the user's dgVoodoo setup gave, so the file shows both. Read
 // only in the product, as above (render::QualitySettingsSupported).
-constexpr unsigned long kDefaultMsaa = 8;
-constexpr unsigned long kDefaultAnisotropy = 16;
+constexpr std::uint32_t kDefaultMsaa = 8;
+constexpr std::uint32_t kDefaultAnisotropy = 16;
 
-unsigned long QualitySetting(const char* name, unsigned long fallback) {
-    unsigned long type = 0, value = 0, size = sizeof(value);
+std::uint32_t QualitySetting(const char* name, std::uint32_t fallback) {
+    std::uint32_t type = 0, value = 0, size = sizeof(value);
     if (settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", name, &type, &value, &size) == 0 &&
         type == settings_file::kTypeDword)
         return value;

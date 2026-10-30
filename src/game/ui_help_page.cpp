@@ -42,8 +42,8 @@ constexpr const char* kSpace = " ";
 constexpr float kTexel = 0.00390625f;
 
 constexpr char kHelpAction = ';';                  // the help key's action (g_keyActions)
-constexpr COLORREF kTitleColour = 0x82F5FF;
-constexpr COLORREF kTextColour = 0xBBF9FF;
+constexpr std::uint32_t kTitleColour = 0x82F5FF;
+constexpr std::uint32_t kTextColour = 0xBBF9FF;
 constexpr int kStripHeight = 55;                   // the title's and the buttons' strips
 constexpr int kRowHeight = 16;
 constexpr int kPictureSize = 64;
@@ -77,7 +77,7 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
     return surface;
 }
 
-void SetRectangle(UiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int v1) {
+void SetRectangle(UiMesh* sprite, const Rect& rect, int u0, int v0, int u1, int v1) {
     sprite->SetRectangle(3.0f, 100.0f, static_cast<float>(rect.left), static_cast<float>(rect.top),
                          static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
 }
@@ -131,7 +131,7 @@ void HelpWindow::ShowPage() {
 
     // The page's rectangle. "#position" is looked for from here on (not only in this page), and
     // the reading goes on from here afterwards.
-    RECT pageArea{200, 50, 600, 560};
+    Rect pageArea{200, 50, 600, 560};
     bool rowsGiven = false;
     const char* resume = texts->cursor;
     if (texts->FindLine(kPositionLine)) {
@@ -171,9 +171,9 @@ void HelpWindow::ShowPage() {
     UiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
     AddSurface(header);
     header->Clear();
-    RECT line{0, 8, width, 30};
+    Rect line{0, 8, width, 30};
     header->DrawTextIn(lines[page], &line, 2, kTitleColour, render::text::kCenter, 1);
-    line = RECT{0, 30, width, 50};
+    line = Rect{0, 30, width, 50};
     titleText = str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size()));
     header->DrawTextIn(titleText, &line, 1, kTitleColour, render::text::kCenter, 1);
 
@@ -235,7 +235,7 @@ void HelpWindow::ShowPage() {
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
         UiSurface* body = NewSurface(ui, pageArea.left, pageArea.top + kStripHeight, pageArea.right, pageArea.bottom - kStripHeight);
         AddSurface(body);
-        RECT row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
+        Rect row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
         body->Clear();
         for (const PageEntry& entry : entries) {
@@ -283,7 +283,7 @@ void HelpWindow::ShowPage() {
                     static_cast<float>(pageArea.right + 5), static_cast<float>(pageArea.bottom + 5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
 
     // The three buttons along the bottom, each with its region.
-    RECT button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
+    Rect button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
     const int gap = (width - 150) / 6;
     rects::Offset(&button, gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
@@ -303,7 +303,7 @@ void HelpWindow::ShowPage() {
     AddSurface(footer);
     footer->Clear();
     if (page > 0) {
-        RECT label{0, 5, width / 3, 25};
+        Rect label{0, 5, width / 3, 25};
         footer->DrawTextIn(lines[page - 1], &label, 0, kTitleColour, render::text::kCenter, 1);
         regions[0]->SetTip(0x7595);
     }
@@ -311,11 +311,11 @@ void HelpWindow::ShowPage() {
         std::string hint = texts->GetString(kHelpKeyText);
         hint += kSpace;
         hint += key;
-        RECT label{width / 3, 5, 2 * width / 3, 25};
+        Rect label{width / 3, 5, 2 * width / 3, 25};
         footer->DrawTextIn(hint, &label, 0, kTitleColour, render::text::kCenter, 1);
     }
     if (page < static_cast<int>(lines.size()) - 1) {
-        RECT label{2 * width / 3, 5, width, 25};
+        Rect label{2 * width / 3, 5, width, 25};
         footer->DrawTextIn(lines[page + 1], &label, 0, kTitleColour, render::text::kCenter, 1);
         regions[2]->SetTip(0x7596);
     }

@@ -9,7 +9,7 @@ namespace console {
 // The rectangle in pixels, clamped to at least 76x69 and at most the screen; the number
 // of 15-pixel lines that fit below the 24-pixel margin, less one; the clamped rectangle back in
 // 800x600 coordinates. A shown window gets a new surface.
-void ConsoleWindow::SetRect(const RECT* newRect) {
+void ConsoleWindow::SetRect(const Rect* newRect) {
     int screenWidth = screen->width;
     int screenHeight = screen->height;
     screenRect = *newRect;

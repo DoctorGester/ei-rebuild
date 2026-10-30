@@ -2,7 +2,7 @@
 
 // Bink movies: the game's players on the platform's movies (platform/video.h).
 
-#include "lib/win_types.h"
+#include "lib/rect.h"
 #include "platform/video.h"
 
 #include <cstddef>
@@ -39,6 +39,6 @@ struct BinkVideo {
     // Closes the movie when one is open and shows the cursor again.
     void Close();
 
-    RECT to{};
+    Rect to{};
     platform::video::Movie* movie = nullptr;
 };

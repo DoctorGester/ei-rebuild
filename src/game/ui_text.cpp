@@ -46,11 +46,11 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
     return lines;
 }
 
-int UiSurface::DrawWrappedText(std::string_view text, const RECT* area, int maxLines, int font, COLORREF colour,
-                                UINT format, bool shadow) {
+int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxLines, int font, std::uint32_t colour,
+                                std::uint32_t format, bool shadow) {
     if (!holder) return 0;
     const std::vector<std::string> lines = ui->WrapText(text, area->right - area->left, font);
-    RECT at = *area;
+    Rect at = *area;
     int boxHeight = area->bottom - area->top;
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {

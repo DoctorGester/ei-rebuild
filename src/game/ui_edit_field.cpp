@@ -103,7 +103,7 @@ void UiEditField::KeyDown(int key, int, int) {
 }
 
 // The window's slots; the input side's keys and characters.
-UiEditField::UiEditField(Interface3D* ownerUi, RECT rect) : UiWindow(ownerUi) {
+UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred = 0;
     font = 1;
@@ -145,8 +145,8 @@ void UiEditField::Char(int key, int, int) {
 
 // --- the look, the text and the focus ------------------------------------------------------------
 
-void UiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont, int newMaxLength, COLORREF newColour,
-                           COLORREF newCaretColour) {
+void UiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont, int newMaxLength, std::uint32_t newColour,
+                           std::uint32_t newCaretColour) {
     charClasses = newCharClasses;
     centred = static_cast<std::uint8_t>(mode);
     font = newFont;
@@ -177,15 +177,15 @@ void UiEditField::DrawContentsVanilla() {
     surface->Clear();
     const int width = area.right - area.left;
     const int height = area.bottom - area.top;
-    RECT box{0, 0, width, height};
+    Rect box{0, 0, width, height};
     surface->DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
     int caretX = ui->TextExtent(str::Left(currentText, caret), font).cx;
     if (centred) caretX += width / 2 - ui->TextExtent(currentText, font).cx / 2;
     if (caretX >= 0 && caretX < width) {
-        POINT top{caretX, 0};
-        POINT bottom{caretX, height};
+        Point top{caretX, 0};
+        Point bottom{caretX, height};
         // WideScreen: without the margin.
         ui->CallScalePointToScreenNoMargin(&top);
         ui->CallScalePointToScreenNoMargin(&bottom);

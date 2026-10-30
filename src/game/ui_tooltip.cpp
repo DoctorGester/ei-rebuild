@@ -22,9 +22,9 @@ constexpr int kPaddingX = 12;               // added to the widest line
 constexpr int kPaddingY = 8;                // added to the lines' heights
 constexpr int kTextLeft = 6;
 constexpr int kTextTop = 4;
-constexpr COLORREF kBackground = 0x1C2B;
-constexpr COLORREF kTitleColour = 0x31B3FF;   // also the frame
-constexpr COLORREF kTextColour = 0xA7D7E4;
+constexpr std::uint32_t kBackground = 0x1C2B;
+constexpr std::uint32_t kTitleColour = 0x31B3FF;   // also the frame
+constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // The exe's texts: "w" (an empty line's height is measured on it), "  ( " and " )" around the key.
 const char* EmptyLineSample() { return "w"; }
@@ -36,7 +36,7 @@ constexpr int kLayoutHeight = 600;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
 // exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by a static initialiser).
 constexpr float kAppearTime = 0.0f;
-constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
+constexpr Point kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 } // namespace
 
@@ -55,7 +55,7 @@ UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view
     keyWidth = 0;
     for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
         // An empty line (but the last) is as high as the sample and has no width.
-        SIZE size;
+        Size size;
         int textWidth;
         if (lines[i].empty() && i < static_cast<int>(lines.size()) - 1) {
             size = ui->TextExtent(std::string(EmptyLineSample()), kFont);
@@ -87,13 +87,13 @@ void UiTooltip::DrawLines() {
     UiSurface* surface = surfaces[0];
     if (!surface) return;
     surface->Fill(kBackground);
-    RECT whole{0, 0, 0, 0};   // empty: the whole surface
+    Rect whole{0, 0, 0, 0};   // empty: the whole surface
     surface->FrameRect(&whole, kTitleColour);
     int right = width > keyWidth ? width : keyWidth;
     int step = lineHeight;
-    RECT row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
+    Rect row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
     for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-        COLORREF colour = i > 0 ? kTextColour : kTitleColour;
+        std::uint32_t colour = i > 0 ? kTextColour : kTitleColour;
         if (i == 0 && keyName) {
             std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
             surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
@@ -126,8 +126,8 @@ void UiTooltip::OnMouseMove(int x, int y) {
         }
         state = State::Appearing;
         timer = 0.0f;
-        RECT area{0, 0, width > keyWidth ? width : keyWidth, height};
-        POINT offset = kCursorOffset;
+        Rect area{0, 0, width > keyWidth ? width : keyWidth, height};
+        Point offset = kCursorOffset;
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         ui->CallScalePointFromScreenNoMargin(&offset);
         const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;

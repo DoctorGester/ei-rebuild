@@ -10,6 +10,7 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
+#include "lib/rect.h"
 
 #include <array>
 #include <cstddef>
@@ -165,7 +166,6 @@ public:
     float fogScale = 0.0f;
     Matrix4 projection{};   // the projection matrix (the fog's depth from a screen z)
 };
-struct tagRECT;
 class TextureDevice;
 namespace options {
 class GameOptions;
@@ -270,12 +270,12 @@ public:
     int SetTexture(int stage, CTexture* texture);
     // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(FigureMesh* figure, const std::vector<CLight*>* lights, Material* material, int alpha, tagRECT* screen, CTexture* textureA,
+    int DrawFigureLit(FigureMesh* figure, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* screen, CTexture* textureA,
                       CTexture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on.
-    int DrawFigure(FigureMesh* figure, Material* material, int alpha, tagRECT* screen);
+    int DrawFigure(FigureMesh* figure, Material* material, int alpha, Rect* screen);
     void DrawLineList(LineBatch* lines);
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
@@ -338,7 +338,7 @@ private:
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
-Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect);
+Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect);
 // Perspective projection; `fov` in radians (full angle).
 Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 

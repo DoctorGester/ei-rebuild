@@ -114,9 +114,9 @@ void EnterGameFolder() {
     std::string self = platform::ProgramPath();
     if (self.empty()) return;
     self.resize(self.find_last_of('\\') == std::string::npos ? self.size() : self.find_last_of('\\'));
-    unsigned long error = 0;
+    std::uint32_t error = 0;
     if (!platform::SetCurrentFolder(self, &error))
-        Log("standalone: cannot enter the exe's folder %s (error %lu)", self.c_str(), error);
+        Log("standalone: cannot enter the exe's folder %s (error %u)", self.c_str(), error);
 }
 
 // Called by the exe's main with the game's arguments (what followed "--" on its command line, as typed). `run`

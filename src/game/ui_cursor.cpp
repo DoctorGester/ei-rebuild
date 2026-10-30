@@ -46,9 +46,9 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     // The holder took the picture's size and the screen's pixel size or threw.
     std::uint32_t pictureWidth = static_cast<std::uint32_t>(holder->width), pictureHeight = static_cast<std::uint32_t>(holder->height);
     std::uint32_t count = pictureWidth / pictureHeight;
-    height = static_cast<LONG>(pictureHeight);
+    height = static_cast<std::int32_t>(pictureHeight);
     frames = static_cast<int>(count);
-    width = static_cast<LONG>(pictureWidth / count);
+    width = static_cast<std::int32_t>(pictureWidth / count);
     hotX = static_cast<int>(g_cursorWidth) * hotSpotX / 32;
     hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;

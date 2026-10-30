@@ -25,7 +25,7 @@ constexpr int kCellPixels = 100;    // one slot
 void UiItemStrip::Build(bool atTop) {
     top = atTop ? 0 : 500;
     scale = atTop ? 8.0f : 4.0f;
-    rect = RECT{0, top, 800, top + 100};
+    rect = Rect{0, top, 800, top + 100};
     for (float& tabPosition : position) tabPosition = 0.0f;
     pending = 0.0f;
     velocity = 0.0f;
@@ -127,7 +127,7 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
     auto cellRect = [&](int i) {
         int x = static_cast<int>((i - frac) * hundred);
-        RECT rect;
+        Rect rect;
         rect.left = x + 0xF;
         rect.top = 0;
         rect.right = x + 0x55;
@@ -143,7 +143,7 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
         int stackCount = static_cast<int>(shown[i]->count);
         if (stackCount == 1) continue;
         text = str::Format(kNumber, stackCount);
-        RECT area = cellRect(i);
+        Rect area = cellRect(i);
         counts->DrawTextIn(text, &area, 1, 0xA7D7E4, 2, 1);
     }
     UiSurface* numbers = surfaces[1];
@@ -153,7 +153,7 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
         if (!item || slots == 9) continue;
         if (!owner->CanEquip(item, mode)) continue;       // whether the strip's mode takes the item
         text = str::Format(kNumber, owner->Price(item, slots));     // the number shown under it
-        RECT area = cellRect(i);
+        Rect area = cellRect(i);
         numbers->DrawTextIn(text, &area, 1, 0xA7D7E4, 1, 1);
     }
 }

@@ -18,21 +18,21 @@
 
 namespace {
 
-constexpr LONG kLargeSize = 0x20;
-constexpr LONG kSmallSize = 0x10;
+constexpr std::int32_t kLargeSize = 0x20;
+constexpr std::int32_t kSmallSize = 0x10;
 
 constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
 constexpr int kModeNoThread = 1;
 constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
-constexpr DWORD kFramePeriod = 125;         // ms per frame of an animated cursor
+constexpr std::uint32_t kFramePeriod = 125;         // ms per frame of an animated cursor
 
 // `rect` cut to `bounds`; all zero when they do not meet.
-void CutToBounds(RECT& rect, const RECT& bounds) {
+void CutToBounds(Rect& rect, const Rect& bounds) {
     if (rect.left < bounds.left) rect.left = bounds.left;
     if (rect.top < bounds.top) rect.top = bounds.top;
     if (rect.right > bounds.right) rect.right = bounds.right;
     if (rect.bottom > bounds.bottom) rect.bottom = bounds.bottom;
-    if (rect.left >= rect.right || rect.top >= rect.bottom) rect = RECT{};
+    if (rect.left >= rect.right || rect.top >= rect.bottom) rect = Rect{};
 }
 
 // A holder pointer emptied, then its old holder released.
@@ -54,7 +54,7 @@ void ShowFrame(Cursor* cursor) {
 } // namespace
 
 void Cursor::Init(TextureDevice* newDevice, int newMode, DirectInputMouse* newMouse, bool smallCursors) {
-    const LONG size = smallCursors ? kSmallSize : kLargeSize;
+    const std::int32_t size = smallCursors ? kSmallSize : kLargeSize;
     g_cursorWidth = size;
     g_cursorHeight = size;
     position.x = 0;
@@ -172,7 +172,7 @@ void Cursor::Shutdown() {
 
 bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
-    const DWORD steps = (platform::Milliseconds() - frameTime) / kFramePeriod;
+    const std::uint32_t steps = (platform::Milliseconds() - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;
@@ -180,13 +180,13 @@ bool Cursor::UpdatePosition() {
     const std::int32_t* state = mouse->Poll();
     motion.x += state[0];
     motion.y += state[1];
-    POINT point;
+    Point point;
     if (held) {
         point = heldPosition;
     } else {
         platform::Point at{};
         platform::CursorPosition(&at);
-        point = POINT{at.x, at.y};
+        point = Point{at.x, at.y};
         heldPosition = point;
     }
     if (point.x < 0) point.x = 0;
@@ -196,8 +196,8 @@ bool Cursor::UpdatePosition() {
     if (position.x != point.x || position.y != point.y) moved = true;
 
     ShowFrame(this);
-    const LONG left = position.x - image->hotX;
-    const LONG top = position.y - image->hotY;
+    const std::int32_t left = position.x - image->hotX;
+    const std::int32_t top = position.y - image->hotY;
     rect.left = left;
     rect.top = top;
     rect.right = from.right - from.left + left;

@@ -6,6 +6,7 @@
 
 #include "ai_map.h"
 #include "engine_object.h"
+#include "lib/rect.h"
 #include "unit.h"
 
 #include <cstddef>
@@ -17,12 +18,11 @@
 
 class ParticleSource;
 class CTexture;
-struct tagRECT;
 struct UnitPrototypeRecord;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
-void BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
+void BlitMipChain(CTexture* target, const int* at, CTexture* source, const Rect* from);
 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {

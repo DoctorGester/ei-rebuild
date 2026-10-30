@@ -3,7 +3,7 @@
 // docs/notes/models.md ("Dib").
 #pragma once
 
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,7 +63,7 @@ public:
     // The header and the bits freed; every field cleared.
     void Empty();
     // The header's width and height, 0 x 0 without a header. Returns `out`.
-    SIZE* Size(SIZE* out) const;
+    ::Size* Size(::Size* out) const;
     // Memory for the pixels, height rows of DibRowBytes (padded to four bytes, as `imageSize` counts them). Returns
     // the bits (unchanged without a header).
     std::uint8_t* AllocateBits();

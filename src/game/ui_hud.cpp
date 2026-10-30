@@ -316,7 +316,7 @@ void HudMap::LeftUp(int, int x, int y) {
     case 1:     // the round map (zoomed)
     case 2: {   // the map area
         // The world point under the click.
-        POINT point = {x, y};
+        Point point = {x, y};
         ui->ScalePointFromScreenEntry(&point);
         // WideScreen: the centre moved right by the shift.
         float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide;
@@ -587,7 +587,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
     auto unitPosition = [](CUnit* u) { return u->localPosition; };
     auto objectAt = [x, y]() {
-        POINT point = {x, y};
+        Point point = {x, y};
         return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
     };
     // The portrait of member `index` nods after a short random delay.

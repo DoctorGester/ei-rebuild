@@ -11,7 +11,7 @@
 #include "material.h"             // Material
 #include "maths.h"
 #include "model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
-#include "lib/win_types.h"   // RECT
+#include "lib/rect.h"   // RECT
 
 #include <cstddef>
 #include <cstdint>
@@ -56,9 +56,9 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     // `context` is the scene renderer.
-    int DrawParts(SceneRenderer* context, tagRECT* dirty) override { return Draw(context, dirty); }
+    int DrawParts(SceneRenderer* context, Rect* dirty) override { return Draw(context, dirty); }
     int DrawPartsShadow(SceneRenderer* /*context*/) override { return DrawShadow(); }
-    int PartsIntersectRect(const tagRECT* rect) override { return PartRectsMeet(rect); }
+    int PartsIntersectRect(const Rect* rect) override { return PartRectsMeet(rect); }
     // The object's shadow when shadows are on for its kind and the object is shown: its meshes cast into the
     // renderer's shadow map (render::CastsShadow, units as strongly as they have faded in). Unless the shadow is
     // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground) and the
@@ -70,7 +70,7 @@ public:
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
     // becomes static (object flags 0x400, flags bit 8). Returns 1, or a fatal error's result.
-    int Draw(SceneRenderer* context, tagRECT* dirty);
+    int Draw(SceneRenderer* context, Rect* dirty);
 
     // Walk the materials: the first (cursor 0; with none the cursor is -1) / the next; null at the end.
     Material* FirstMaterial();
@@ -98,9 +98,9 @@ public:
     // Screen picking (a shown object only, flags 0x20 of the 3D object): whether the point (x, y) is in the
     // object's dirtyRect; in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
     // whether `rect` meets such a part's rectangle.
-    int BoundsContainPoint(const long* point) override;
-    int PartsContainPoint(const long* point) override;
-    int PartRectsMeet(const RECT* rect);
+    int BoundsContainPoint(const std::int32_t* point) override;
+    int PartsContainPoint(const std::int32_t* point) override;
+    int PartRectsMeet(const Rect* rect);
     FigureMesh* FindPart(std::string_view name) override;
     FigureMesh* FindPartOfType(int type) override;
 
@@ -155,7 +155,7 @@ public:
     int materialCursor;             // the iteration's index, -1 when there are none
     bool shadowMade;                // the sphere fitted since Create / ClearShadow
     ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
-    RECT drawnRect;                 // the screen area of the dirty parts Draw drew
+    Rect drawnRect;                 // the screen area of the dirty parts Draw drew
     Ref<CTexture> woundsTexture;    // the wounds texture (ShowWounds loads it)
     Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     std::string skinName;          // the first set's texture name (SetSkins)

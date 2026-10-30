@@ -45,9 +45,9 @@ constexpr int kDifficultySetting = 25;  // its spin control says hard / easy
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 
-constexpr COLORREF kColourText = 0xA7D7E4;
-constexpr COLORREF kColourDim = 0xA0A0A0;
-constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
+constexpr std::uint32_t kColourText = 0xA7D7E4;
+constexpr std::uint32_t kColourDim = 0xA0A0A0;
+constexpr std::uint32_t kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
 constexpr float kFromStep = 50.0f;   // value = setting * 50
 constexpr float kToStep = 0.02f;     // setting = value * 0.02
@@ -120,7 +120,7 @@ void OptionsWindow::RefreshRows() {
     surface->Clear();
     SceneMesh(kHighlightSprite)->visible = false;
 
-    RECT title = {10, 60, 140, 80};
+    Rect title = {10, 60, 140, 80};
     for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
         UiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
         float tint = groupIndex == group ? 1.0f : 0.5f;
@@ -130,11 +130,11 @@ void OptionsWindow::RefreshRows() {
         surface->DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
         rects::Offset(&title, 0, 24);
     }
-    RECT heading = {0, 10, 600, 34};
+    Rect heading = {0, 10, 600, 34};
     surface->DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
 
-    RECT name = {160, 60, 420, 80};
-    RECT keys = {430, 60, 590, 80};
+    Rect name = {160, 60, 420, 80};
+    Rect keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow) {
             UiMesh* highlight = SceneMesh(kHighlightSprite);
@@ -142,7 +142,7 @@ void OptionsWindow::RefreshRows() {
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
         if (OptionBinding* binding = rows[row].binding) {
-            COLORREF colour = row == selectedRow && waitingForKey ? kColourWaiting : kColourText;
+            std::uint32_t colour = row == selectedRow && waitingForKey ? kColourWaiting : kColourText;
             surface->DrawTextIn(binding->name, &name, 1, colour, 0, 1);
             surface->DrawTextIn(binding->keysText, &keys, 1, colour, 0, 1);
         } else if (OptionSetting* setting = rows[row].setting) {
@@ -216,9 +216,9 @@ void OptionsWindow::BuildSettings() {
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
-            auto* slider = new UiSlider(ui, RECT{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
+            auto* slider = new UiSlider(ui, Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
             setting.bar = slider;
-            RECT area = {530, top + 163, 680, top + 173};
+            Rect area = {530, top + 163, 680, top + 173};
             slider->SetRect(&area);   // (a failed allocation is called through, as in the original)
             AddChild(slider);
             setting.spin = nullptr;
@@ -226,7 +226,7 @@ void OptionsWindow::BuildSettings() {
             std::string text = kTextOffDefault;
             text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
-            setting.spin = new UiSpin(ui, RECT{530, top + 160, 690, top + 176}, text.c_str());
+            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, text.c_str());
             text = kTextOnDefault;
             text = g_clientWorld.texts->GetString(kTextOptionOn);
             if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
@@ -382,7 +382,7 @@ void OptionsWindow::Apply() {
 
 // --- The slider's virtual ------------------------------------------------------------------
 
-void UiSlider::SetRect(const RECT* newRect) {
+void UiSlider::SetRect(const Rect* newRect) {
     rect = *newRect;
     track.top = newRect->bottom - 10;
     track.bottom = newRect->bottom;

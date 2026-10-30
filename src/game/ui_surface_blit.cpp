@@ -11,7 +11,7 @@
 
 void UiSurface::Blit() {
     if (!holder || !shown) return;
-    RECT clipped{0, 0, ui->width, ui->height};
+    Rect clipped{0, 0, ui->width, ui->height};
     rects::Intersect(&clipped, &clipped, &rect);
     if (rects::IsEmpty(&clipped)) return;
     const render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};

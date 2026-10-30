@@ -4,7 +4,6 @@
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
-#include "lib/win_types.h"
 #include "platform/window.h"
 
 #include <cstdarg>

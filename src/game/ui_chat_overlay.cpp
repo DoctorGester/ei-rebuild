@@ -49,25 +49,25 @@ constexpr int kLineWidth = 0x30C;
 constexpr int kLineFont = 1;
 constexpr int kLineSurfaceHeight = 0x11, kLineSurfacePad = 3;
 constexpr int kLineDrawRight = 0x30F;
-constexpr UINT kLineDrawFormat = 0x800;   // DT_NOPREFIX
-constexpr COLORREF kWhite = 0xFFFFFF;
+constexpr std::uint32_t kLineDrawFormat = 0x800;   // DT_NOPREFIX
+constexpr std::uint32_t kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
 
 // The colour of "^<digit>": bit 0 blue, bit 1 green, bit 2 red (COLORREF 0x00BBGGRR).
-COLORREF MarkColour(char digit) {
+std::uint32_t MarkColour(char digit) {
     int bits = static_cast<signed char>(digit) - '0';
     return ((bits & 1) ? 0xFF0000u : 0u) | ((bits & 2) ? 0xFF00u : 0u) | ((bits & 4) ? 0xFFu : 0u);
 }
 
-void DrawPiece(UiSurface* surface, std::string_view text, int x, COLORREF colour) {
-    RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
+void DrawPiece(UiSurface* surface, std::string_view text, int x, std::uint32_t colour) {
+    Rect rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
     surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
 
 constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
 constexpr int kCaretBottom = 0x10;
-constexpr COLORREF kTypedColour = 0xFFFFFF;
+constexpr std::uint32_t kTypedColour = 0xFFFFFF;
 
 } // namespace
 
@@ -133,7 +133,7 @@ void ChatOverlay::AddLine(const char* text) {
     lines.erase(lines.begin(), lines.begin() + std::clamp(count + before - kMaxLines, 0, before));
 
     std::uint32_t now = platform::Milliseconds();
-    COLORREF colour = kWhite;
+    std::uint32_t colour = kWhite;
     for (int i = 0; i < count; ++i) {
         ChatLine& added = lines.emplace_back();
         added.name = plain[i];
@@ -187,12 +187,12 @@ void ChatOverlay::DrawTyped() {
     if (caret < 0) caret = 0;
     UiSurface* surface = surfaces[0];
     surface->Clear();
-    RECT area{0, 0, kTypedTextRight, kTypedTextBottom};
+    Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
     int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).cx;
     if (width < kMaxTypedWidth) {
-        POINT top{width, 0};
-        POINT bottom{width, kCaretBottom};
+        Point top{width, 0};
+        Point bottom{width, kCaretBottom};
         // WideScreen: without the margin.
         ui->CallScalePointToScreenNoMargin(&top);
         ui->CallScalePointToScreenNoMargin(&bottom);

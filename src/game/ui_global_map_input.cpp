@@ -68,7 +68,7 @@ void GlobalMap::Deactivate() {
 }
 
 void GlobalMap::RightDown(int, int x, int y) {
-    dragStart = POINT{x, y};
+    dragStart = Point{x, y};
     dragging = true;
     turning = 0;
     ui->ScalePointFromScreenEntry(&dragStart);
@@ -80,7 +80,7 @@ void GlobalMap::RightDown(int, int x, int y) {
 
 void GlobalMap::MouseMove(int, int x, int y) {
     if (dragging) {
-        POINT drag{g_cursor.motion.x, g_cursor.motion.y};
+        Point drag{g_cursor.motion.x, g_cursor.motion.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->CallScalePointFromScreenNoMargin(&drag);
@@ -131,7 +131,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
     text = isLink ? links[index].title : zones[index].title;
     surfaces[0]->Show();
     surfaces[0]->Clear();
-    RECT titleRect{10, 10, 300, 50};
+    Rect titleRect{10, 10, 300, 50};
     surfaces[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
@@ -140,7 +140,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
         for (int i = 0; i < std::ssize(quests); ++i) {
             GlobalMapPlace& quest = quests[i];
             if (quest.zone != index) continue;
-            RECT area{20, bottom - kTipLine, 350, bottom};
+            Rect area{20, bottom - kTipLine, 350, bottom};
             surfaces[0]->DrawTextIn(quest.title, &area, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;

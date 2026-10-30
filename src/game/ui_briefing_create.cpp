@@ -173,14 +173,14 @@ void BriefingScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    for (const RECT& area : {RECT{200, 430, 600, 570}, RECT{0, 0, 250, 30}}) {
+    for (const Rect& area : {Rect{200, 430, 600, 570}, Rect{0, 0, 250, 30}}) {
         UiSurface* surface = new UiSurface(ui, area.left, area.top, area.right, area.bottom, SurfaceBlend::Keyed, true);
         AddSurface(surface);
     }
 
-    topicBar = new UiScrollbar(ui, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
+    topicBar = new UiScrollbar(ui, Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar);
-    text = new UiScrollText(ui, game::kEmptyText, RECT{165, 426, 635, 570}, 10.0f);
+    text = new UiScrollText(ui, game::kEmptyText, Rect{165, 426, 635, 570}, 10.0f);
     AddChild(text);
 
     SetMeshesVisible(this, 0);

@@ -1,7 +1,7 @@
 #pragma once
 
 // The Windows functions lib/gameapi.h names, declared as the Windows SDK declares them (C linkage, imported,
-// WINAPI) over lib/win_types.h's types, so that a file calling only these through gameapi:: needs no <windows.h>
+// WINAPI) over platform/win32/win_types.h's types, so that a file calling only these through gameapi:: needs no <windows.h>
 // (~0.2 s of every file that includes it). A structure a call only points to is declared by its SDK tag.
 // tools/gen_iat.py reads the names: a Windows import our code calls as gameapi::X is declared here (it stops
 // otherwise). lib/gameapi.cpp sees these and the SDK's together, so a declaration that differs from the SDK's does
@@ -9,7 +9,7 @@
 
 #include <cstdarg>
 
-#include "lib/win_types.h"
+#include "platform/win32/win_types.h"
 
 struct _BY_HANDLE_FILE_INFORMATION;
 struct _GUID;

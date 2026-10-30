@@ -59,7 +59,7 @@ struct Part {
     const std::vector<CLight*>* lights;
     Material* material;
     int alpha;
-    RECT* rect;
+    Rect* rect;
     CTexture* textureA;
     CTexture* textureB;
     LinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
@@ -199,7 +199,7 @@ void DrawThroughDevice(Part& part) {
     }
     render::SetMeshSource(nullptr);
     if (!part.rect) return;
-    RECT* own = &part.node->screen;
+    Rect* own = &part.node->screen;
     if (result == 2) {
         rects::SetEmpty(own);
         rects::SetEmpty(part.rect);
@@ -242,7 +242,7 @@ void DrawThroughFigure(Part& part) {
     if (part.rect) {
         std::string key((part.node->mesh)->GetName());
         auto node = part.figure->headers.find(key);
-        RECT* own = &part.node->screen;
+        Rect* own = &part.node->screen;
         rects::Copy(own, &node->second.screen);
         *part.rect = *own;
     }
@@ -255,7 +255,7 @@ void DrawThroughFigure(Part& part) {
 // the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
 // two-texture draw. Returns 1.
 int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<CLight*>* lights,
-                              Material* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
+                              Material* material, int alpha, Rect* rect, CTexture* textureA, CTexture* textureB) {
     FigureMesh* currentMesh = mesh;
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;

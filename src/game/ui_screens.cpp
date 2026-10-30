@@ -251,7 +251,7 @@ Item* ForwardingStrip::ItemAt(int x, int y, int* cursor) {
     case 2: *cursor = 0x18; break;
     case 3: *cursor = 0x17; break;
     }
-    POINT point{x, y};
+    Point point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     int index = SlotAt(point.x);
     RebuildList();

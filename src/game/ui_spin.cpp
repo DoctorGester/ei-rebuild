@@ -19,7 +19,7 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 } // namespace
 
 // The window's virtuals; the input side's click and a left double click that does nothing.
-UiSpin::UiSpin(Interface3D* ui, RECT newRect, const char* text) : UiWindow(ui) {
+UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
     rect = newRect;
     UiSurface* surface = new UiSurface(ui, &newRect, SurfaceBlend::Keyed);
     AddSurface(surface);
@@ -46,7 +46,7 @@ void UiSpin::SetValue(int newValue) {
     value = newValue < static_cast<int>(texts.size()) ? newValue : 0;
     UiSurface* surface = surfaces[0];
     surface->Clear();
-    RECT area = layout;
+    Rect area = layout;
     rects::Offset(&area, -layout.left, -layout.top);
     // DrawText is Rebirth-patched: through its address.
     surface->DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);

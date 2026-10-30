@@ -10,7 +10,7 @@
 
 #include <cstdint>
 
-RECT g_menuRects[kMenuRects] = /*007C8048*/ {};
+Rect g_menuRects[kMenuRects] = /*007C8048*/ {};
 
 namespace {
 
@@ -37,7 +37,7 @@ constexpr MenuRect kRects[] = {
 
 } // namespace
 
-int CFigureManager::LoadMenuRects(RECT* rects) {
+int CFigureManager::LoadMenuRects(Rect* rects) {
     FileRegistry reg;
     // The manager's GetFile: the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);

@@ -149,7 +149,7 @@ public:
     UiSurface* backdrop = nullptr; // a full-screen surface (not in the surface list)
     GlobalMapClouds* weather = nullptr;
     bool dragging = false;           // the map is turned with the mouse
-    POINT dragStart{};               // where the drag began (layout)
+    Point dragStart{};               // where the drag began (layout)
     float dragAngle = 0.0f;          // angle when the drag began
     std::string shownName;          // the zone or link whose tip is shown
     bool gipat = false;              // the allod is gipat
@@ -400,9 +400,9 @@ public:
     // (points <= 99; height = points * 0.01). True when it changed something.
     bool StepPoint(int region);
     // The text of "perk <label>" (else `label` itself), `value` as "%d", or "%d/%d" with a maximum >= 0.
-    void DrawRow(const RECT& rect, std::string_view label, int value, int maximum);
+    void DrawRow(const Rect& rect, std::string_view label, int value, int maximum);
     // "     " and the text of "hl_<name>", the part's armour as "%.1f".
-    void DrawPart(const RECT& rect, std::string_view name, int part);
+    void DrawPart(const Rect& rect, std::string_view name, int part);
     // Per damage type the three layers' absorption summed (stored as float); the largest of the first six.
     float PartArmour(int part);
 

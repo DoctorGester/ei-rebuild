@@ -97,7 +97,7 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
     if (handled) return;
     switch (state) {
     case 0: {
-        POINT point = {x, y};
+        Point point = {x, y};
         CUnit* object = g_clientWorld.UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
@@ -155,7 +155,7 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     }
     if (ui->rightDown || state != 0) return;
 
-    POINT point = {x, y};
+    Point point = {x, y};
     CUnit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         int objectId = object->id;
@@ -167,9 +167,9 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1];
         label->Clear();
-        RECT area{0, 0, 0, 0};
+        Rect area{0, 0, 0, 0};
         label->DrawTextIn(node->second, &area, kTextFormat, kLabelColour, 1, 1);
-        POINT at{x, y};
+        Point at{x, y};
         ui->ScalePointFromScreenEntry(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
         label->Show();
@@ -200,7 +200,7 @@ void BriefingScreen::LeftDouble(int buttons, int x, int y) {
         Input()->LeftDown(buttons, x, y);
         return;
     }
-    POINT point = {x, y};
+    Point point = {x, y};
     CUnit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
@@ -242,7 +242,7 @@ void BriefingScreen::DrawTopics() {
     int row = topicTop;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
         if (row >= std::ssize(topics)) break;
-        RECT area{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
+        Rect area{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic ? kTopicColour : kHoveredTopicColour;
         std::string line = prefix;
         line += kTopicSeparator;

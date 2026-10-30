@@ -91,7 +91,7 @@ void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 void FigureStrip::LeftDown(int buttons, int x, int y) {
     UiItemStrip::LeftDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
-    POINT point{x, y};
+    Point point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     int index = SlotAt(point.x);
     if (index < 0 || index >= count) return;

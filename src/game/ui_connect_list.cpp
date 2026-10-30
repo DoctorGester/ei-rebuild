@@ -64,18 +64,18 @@ float SortArrowX(int column) {
     return 0.0f;   // (not reached with keys 1-8)
 }
 
-void DrawLabel(UiSurface* surface, std::string_view text, RECT* rect, int format) {
+void DrawLabel(UiSurface* surface, std::string_view text, Rect* rect, int format) {
     surface->DrawTextIn(text, rect, kFont, g_connectTextColour, format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut at a character's end) and
 // is drawn with an ellipsis.
-void DrawEllipsis(UiSurface* surface, std::string_view text, RECT* rect, int format) {
+void DrawEllipsis(UiSurface* surface, std::string_view text, Rect* rect, int format) {
     char buffer[kExtendedTextSize];
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
 }
-void Down(RECT* rect, int dy = kRowHeight) { rects::Offset(rect, 0, dy); }
+void Down(Rect* rect, int dy = kRowHeight) { rects::Offset(rect, 0, dy); }
 
 } // namespace
 
@@ -107,12 +107,12 @@ void MpConnectScreen::DrawListVanilla() {
     surface->Clear();
     sprite(kSpriteSelection)->visible = false;
     // The two buttons' texts.
-    RECT button{390, 345, 520, 365};
+    Rect button{390, 345, 520, 365};
     DrawLabel(surface, label(10), &button, kFormatCentre);
-    button = RECT{390, 369, 520, 389};
+    button = Rect{390, 369, 520, 389};
     DrawLabel(surface, label(11), &button, kFormatCentre);
     // The column titles.
-    RECT row{20, 8, 290, 29};
+    Rect row{20, 8, 290, 29};
     DrawLabel(surface, label(12), &row, 0);
     row.left = 150;
     DrawLabel(surface, label(13), &row, 0);
@@ -132,8 +132,8 @@ void MpConnectScreen::DrawListVanilla() {
         arrow->Place(SortArrowX((sortKey - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
-    POINT from{8, row.bottom - 2};
-    POINT to{layout.lineRight, row.bottom - 2};
+    Point from{8, row.bottom - 2};
+    Point to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
     ui->CallScalePointToScreenNoMargin(&from);
     ui->CallScalePointToScreenNoMargin(&to);
@@ -158,7 +158,7 @@ void MpConnectScreen::DrawListVanilla() {
                 DrawLabel(surface, text, &row, kFormatNoPrefix);
         } else {
             if (extended) {
-                RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
+                Rect nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
                 nameRect.right = kExtendedNameRight;
                 DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
             } else {
@@ -186,7 +186,7 @@ void MpConnectScreen::DrawListVanilla() {
         // The selected entry's details.
         g_connectTextColour = kColourPlain;
         const MpAddressEntry& entry = entries[selected];
-        row = RECT{340, 20, 590, 44};
+        row = Rect{340, 20, 590, 44};
         if (selected == 0) {
             for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible = true;
             DrawLabel(surface, label(0), &row, 0);

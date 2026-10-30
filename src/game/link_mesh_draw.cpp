@@ -34,7 +34,7 @@ std::uint32_t Truncated(float value) { return static_cast<std::uint32_t>(static_
 std::vector<VertexPacket> g_movedPackets;
 
 // The screen rectangle of a part that was not drawn.
-constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
+constexpr Rect kNoScreen = /*0073D780*/ {0, 0, 0, 0};
 
 void Fill(std::vector<std::uint32_t>& array, std::uint32_t value) {
     for (int i = 0; i < std::ssize(array); ++i) array[i] = value;
@@ -101,7 +101,7 @@ struct PartDraw {
 // drawn) or the empty one.
 void KeepScreen(LinkMesh* mesh, const std::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
-        const RECT& drawn = mesh->loader->renderer->drawnRect;
+        const Rect& drawn = mesh->loader->renderer->drawnRect;
         mesh->headers[*name].screen = drawn;
         return;
     }

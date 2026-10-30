@@ -8,7 +8,7 @@
 #include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
 #include "texture.h"
-#include "lib/win_types.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -34,8 +34,8 @@ protected:
 // class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    int DrawPlain(TextureDevice* device, Material*, int alpha, RECT* rect);
-    int DrawLit(TextureDevice* device, const std::vector<CLight*>* lights, Material* material, int alpha, RECT* rect,
+    int DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
+    int DrawLit(TextureDevice* device, const std::vector<CLight*>* lights, Material* material, int alpha, Rect* rect,
                 CTexture* textureA, CTexture* textureB);
     void DrawBounds(SceneRenderer* renderer);
 
@@ -57,7 +57,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    RECT screen;                // where the mesh was last drawn
+    Rect screen;                // where the mesh was last drawn
 };
 
 class TextureDevice;
@@ -72,7 +72,7 @@ struct LinkPartHeader {
     std::uint32_t meshType;
     std::uint32_t materialValue;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
-    RECT screen;                // where the part was last drawn (empty: not drawn)
+    Rect screen;                // where the part was last drawn (empty: not drawn)
 };
 static_assert(offsetof(LinkPartHeader, screen) == 0x40);
 static_assert(offsetof(LinkPartHeader, box) == 0x08);
@@ -203,7 +203,7 @@ public:
                 int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
                 int indexCount);
 
-    RECT screenRect;
+    Rect screenRect;
     float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
     std::vector<VertexPacket> vertices;
     std::vector<NormalPacket> normals;

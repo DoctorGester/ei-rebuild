@@ -80,7 +80,7 @@ TYPES = {
     'unsigned': 'I', 'DWORD': 'I', 'std::uint32_t': 'I', 'uint32_t': 'I',
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'bool': 'B', 'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
-    'RECT': 'iiii', 'POINT': 'ii', 'HINSTANCE': 'I', 'platform::NativeInstance': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
+    'Rect': 'iiii', 'Point': 'ii', 'HINSTANCE': 'I', 'platform::NativeInstance': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
     'Vector3': 'fff', 'Quaternion': 'ffff', 'FogTile': 'ffff',   # effects.h

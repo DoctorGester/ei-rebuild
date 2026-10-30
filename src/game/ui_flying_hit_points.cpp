@@ -82,7 +82,7 @@ struct QuadBuffer {
 
 // Where the unit was drawn: the screen rectangle of its first "hd", "bd" or "hp" part's own mesh
 // (part flag 0x40), else the unit's; null when it has none of those parts.
-const RECT* UnitScreenRect(CUnit* unit) {
+const Rect* UnitScreenRect(CUnit* unit) {
     CObject3D* object = unit->Object3D();
     FigureMesh* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
@@ -103,8 +103,8 @@ void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 
 void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::string text;
-    DWORD now = platform::Milliseconds();
-    const RECT& screen = renderer->device->screen;
+    std::uint32_t now = platform::Milliseconds();
+    const Rect& screen = renderer->device->screen;
     if (!texture) return;
     if (!renderer->SetTexture(0, texture)) {
         game::FatalError(game::FlyingHitPointsTextureText());
@@ -122,7 +122,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         auto* unit = GameFindClientUnit(point.target);
         if (!unit) continue;
         if (!(unit->flags & MapObjectFlag::Shown) || (unit->flags & MapObjectFlag::NotDrawn) || !(unit->flags & MapObjectFlag::InParty)) continue;
-        const RECT* rect = UnitScreenRect(unit);
+        const Rect* rect = UnitScreenRect(unit);
         if (!rect) continue;
         int middleX = (rect->left + rect->right) / 2;
         int middleY = (rect->top + rect->bottom) / 2;

@@ -100,7 +100,7 @@ const Value* Find(Document& document, const char* path, const char* name) {
 
 // Sets `data` as `name` of kKey with `type`, reads the text back and requires the same value; returns the text
 // line of the value.
-std::string RoundTripOne(unsigned long type, const std::string& data, const char* name = "v") {
+std::string RoundTripOne(std::uint32_t type, const std::string& data, const char* name = "v") {
     Document document;
     document.Set(kKey, name, type, data);
     std::string text;

@@ -95,8 +95,8 @@ void CameraInput::KeyUp(int, int, int flags) {
 }
 
 void CameraInput::RightDown(int, int atX, int atY) {
-    pressScreen = POINT{atX, atY};
-    pressLayout = POINT{atX, atY};
+    pressScreen = Point{atX, atY};
+    pressLayout = Point{atX, atY};
     turning = true;
     ui->ScalePointFromScreenEntry(&pressLayout);
     g_cursor.motion.y = 0;
@@ -124,8 +124,8 @@ void CameraInput::RightUp(int, int, int) {
 void CameraInput::MouseMove(int, int atX, int atY) {
     Camera* camera = &g_camera;
     if (turning) {
-        POINT point{atX, atY};
-        POINT drag{g_cursor.motion.x, g_cursor.motion.y};
+        Point point{atX, atY};
+        Point drag{g_cursor.motion.x, g_cursor.motion.y};
         ui->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->CallScalePointFromScreenNoMargin(&drag);
@@ -189,7 +189,7 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         camera->Pan(direction);
         if (edges) handled = true;
     }
-    pressLayout = POINT{atX, atY};
+    pressLayout = Point{atX, atY};
 }
 
 void CameraInput::Deactivate() {

@@ -125,18 +125,19 @@ void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }
 const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
 
 void* PickAt2(void* world, int x, int y) {
-    const POINT p{x, y};
+    const Point p{x, y};
     return static_cast<WorldClient*>(world)->PickAt2(&p);
 }
 void* UnitAt(void* world, int x, int y) {
-    const POINT p{x, y};
+    const Point p{x, y};
     return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(&p));
 }
 int ScreenRect(void* world, int id, RECT* rect) {
     int found = 0;
     for (const ScreenEntry& entry : static_cast<WorldClient*>(world)->screenEntries) {
         if (static_cast<int>(entry.objectId) != id) continue;
-        *rect = entry.rect;
+        static_assert(sizeof(Rect) == sizeof(RECT) && offsetof(Rect, bottom) == offsetof(RECT, bottom));
+        std::memcpy(rect, &entry.rect, sizeof(RECT));
         found = 1;
     }
     return found;
@@ -192,7 +193,7 @@ bool Region(void* window, int index, RegionInfo* region) {
     return true;
 }
 void ScaleToScreen(long* x, long* y) {
-    POINT point{*x, *y};
+    Point point{*x, *y};
     g_interface.ScalePointToScreenEntry(&point);
     *x = point.x;
     *y = point.y;

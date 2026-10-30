@@ -16,7 +16,7 @@
 
 #include <cstdint>
 
-void ClearUiDepth(float z, const RECT* rects, int count) {
+void ClearUiDepth(float z, const Rect* rects, int count) {
     render::Rect cleared[8];
     const int n = !rects ? 0 : count < 8 ? count : 8;
     for (int i = 0; i < n; ++i) cleared[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -86,9 +86,9 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     // The seven body slots' rectangles: 70 x 70 around their centres.
     const int* centreX = kBodySlotX;
     const int* centreY = kBodySlotY;
-    RECT slots[7];
+    Rect slots[7];
     for (int i = 0; i < 7; ++i) {
-        RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
+        Rect r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
         ui->ScaleRectToScreenEntry(&r);
         slots[i] = r;
     }

@@ -24,7 +24,7 @@ constexpr int kTwipsPerInch = 1440;
 constexpr int kDesignDpi = 96;           // the dots an inch at the design width, as the interface's point sizes are measured
 constexpr int kDesignWidth = 800;        // the layout's width
 constexpr int kExtraTwipsBelow = 1000;   // the text is formatted this far below the visible height
-constexpr COLORREF kWhite = 0xFFFFFF;
+constexpr std::uint32_t kWhite = 0xFFFFFF;
 
 // The DPI twips and points are measured at: the interface's font scale (Interface3D::Create sizes its fonts by the
 // window's width over FontScale, 0.01 on a 4:3 window), 96 at 800 pixels wide. Text and layout then grow with the
@@ -55,7 +55,7 @@ int PixelsToTwips(const UiSurface* surface, int pixels) { return MulDiv(pixels, 
 int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.bottom - surface->rect.top); }
 } // namespace
 
-UiScrollingSurface::UiScrollingSurface(Interface3D* ui, const RECT* rect) : UiSurface(ui, rect, SurfaceBlend::Keyed) {
+UiScrollingSurface::UiScrollingSurface(Interface3D* ui, const Rect* rect) : UiSurface(ui, rect, SurfaceBlend::Keyed) {
     background = kWhite;
 }
 

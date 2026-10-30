@@ -27,7 +27,7 @@ void* CreateFigureObject(int classId);
 // multiplayer), then the Esc menu's five (save, load, resume, exit to the main menu, options).
 constexpr int kMainMenuRects = 6;
 constexpr int kMenuRects = 11;
-extern RECT g_menuRects[kMenuRects];
+extern Rect g_menuRects[kMenuRects];
 
 class CFigureManager : public ResourceManager {
 public:
@@ -52,7 +52,7 @@ public:
     int SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
     // entry cannot be read.
-    int LoadMenuRects(RECT* rects);
+    int LoadMenuRects(Rect* rects);
 
     // BaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
     // class 0x45 object (id -1) of the context's specific manager.

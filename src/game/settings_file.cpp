@@ -60,7 +60,7 @@ enum class Read { read, missing, failed };
 // The whole file, shared with any writer (an editor or a sync tool holding it open). `missing` only when the file
 // or its folder does not exist.
 Read ReadWhole(const std::string& file, std::string* text) {
-    unsigned long error = 0;
+    std::uint32_t error = 0;
     switch (platform::ReadWholeFile(file, text, &error)) {
     case platform::WholeFile::read: return Read::read;
     case platform::WholeFile::missing: return Read::missing;
@@ -72,7 +72,7 @@ Read ReadWhole(const std::string& file, std::string* text) {
 
 // The file written whole beside itself (its folder made when missing), then moved over it.
 bool Write(Store& s) {
-    unsigned long error = 0;
+    std::uint32_t error = 0;
     if (!platform::WriteWholeFile(s.file, s.document.Text(), &error)) {
         ei::Log("settings: cannot write %s (error %lu)", s.file.c_str(), error);
         return false;
@@ -150,10 +150,10 @@ void Load(Store& s) {
 }
 
 // RegQueryValueEx's way of giving `bytes`.
-long Fill(unsigned long valueType, const std::string& bytes, unsigned long* type, void* data, unsigned long* size) {
+long Fill(std::uint32_t valueType, const std::string& bytes, std::uint32_t* type, void* data, std::uint32_t* size) {
     if (type) *type = valueType;
     if (!size) return data ? kInvalidParameter : kSuccess;
-    const auto needed = static_cast<unsigned long>(bytes.size());
+    const auto needed = static_cast<std::uint32_t>(bytes.size());
     if (!data) {
         *size = needed;
         return kSuccess;
@@ -180,7 +180,7 @@ void* CreateKey(const char* path) {
     return &s.document.AddKey(JoinPath(path, nullptr));
 }
 
-long Query(const void* key, const char* sub, const char* name, unsigned long* type, void* data, unsigned long* size) {
+long Query(const void* key, const char* sub, const char* name, std::uint32_t* type, void* data, std::uint32_t* size) {
     if (!name) name = "";
     Locked lock;
     Store& s = S();
@@ -197,7 +197,7 @@ long Query(const void* key, const char* sub, const char* name, unsigned long* ty
     return Fill(value->type, bytes, type, data, size);
 }
 
-long Set(const void* key, const char* sub, const char* name, unsigned long type, const void* data, unsigned long size) {
+long Set(const void* key, const char* sub, const char* name, std::uint32_t type, const void* data, std::uint32_t size) {
     if (!name) name = "";
     Locked lock;
     Store& s = S();
@@ -219,7 +219,7 @@ void Flush() {
     if (s.loaded && !s.readOnly && !s.inMemory && s.dirty) Write(s);
 }
 
-long ReadValue(const char* path, const char* name, unsigned long* type, void* data, unsigned long* size) {
+long ReadValue(const char* path, const char* name, std::uint32_t* type, void* data, std::uint32_t* size) {
     return Query(nullptr, path, name, type, data, size);
 }
 

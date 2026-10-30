@@ -8,12 +8,12 @@
 #include "render/render_ui.h"
 
 namespace {
-render::Rect ToRect(const RECT& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
+render::Rect ToRect(const Rect& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
 } // namespace
 
-void UiSurface::FrameRect(const RECT* area, COLORREF colour) {
+void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
     if (!holder) return;
-    RECT frame;
+    Rect frame;
     if (rects::IsEmpty(area)) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
@@ -23,23 +23,23 @@ void UiSurface::FrameRect(const RECT* area, COLORREF colour) {
     render::ui::FrameRect(holder, ToRect(frame), colour);
 }
 
-void UiSurface::Fill(COLORREF colour) {
+void UiSurface::Fill(std::uint32_t colour) {
     if (!holder) return;
-    RECT whole = rect;
+    Rect whole = rect;
     rects::Offset(&whole, -whole.left, -whole.top);
     FillRect(whole, colour);
 }
 
 void UiSurface::Clear() { Fill(background); }
 
-void UiSurface::FillRect(const RECT& area, COLORREF colour) {
+void UiSurface::FillRect(const Rect& area, std::uint32_t colour) {
     if (holder) render::ui::Fill(holder, ToRect(area), colour);
 }
 
-void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, COLORREF colour) {
+void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, std::uint32_t colour) {
     if (holder) render::ui::Line(holder, x0, y0, x1, y1, lineWidth, colour);
 }
 
-void UiSurface::Dot(int x, int y, COLORREF colour) {
+void UiSurface::Dot(int x, int y, std::uint32_t colour) {
     if (holder) render::ui::Pixel(holder, x, y, colour);
 }
