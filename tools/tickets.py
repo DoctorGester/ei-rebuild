@@ -34,6 +34,11 @@ import work
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, 'docs', 'tickets.toml')
 MARKDOWN = os.path.join(ROOT, 'docs', 'tickets.md')
+# The statuses as a committed file, for checkouts without the machine's work database (cloud sessions,
+# docs/cloud-handoff.md): every generate writes it from the database, and loaded() takes from it each row that is
+# newer than the database's (or that the database lacks), so a status set on either side reaches the other by git.
+STATUS_FILE = os.path.join(ROOT, 'docs', 'ticket_status.tsv')
+STATUS_COLUMNS = ('ticket', 'status', 'started', 'done', 'changed', 'author')
 STATUSES = ('running', 'review', 'queued', 'later', 'watch', 'done')
 STATES = ('running', 'review', 'ready', 'waiting', 'watch', 'later', 'done')
 LOCK = os.path.join(ROOT, 'build', 'tickets', 'tickets.lock')
@@ -135,8 +140,47 @@ def with_worked(db, tickets):
             t['worked'] = spans[t['id']]
 
 
+def changed_time(text):
+    try:
+        return datetime.datetime.fromisoformat(text).astimezone(datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+
+
+def read_status_file(db):
+    """Takes STATUS_FILE's rows that are newer than the database's into it."""
+    if not os.path.exists(STATUS_FILE):
+        return
+    have = {r[0]: r[1] for r in db.execute('SELECT ticket, changed FROM ticket_status')}
+    newest = {}   # a union merge (.gitattributes) can leave two rows of a ticket: the newer counts
+    with open(STATUS_FILE, encoding='utf-8') as f:
+        for line in f.read().splitlines():
+            cells = line.split('\t')
+            if len(cells) != len(STATUS_COLUMNS) or cells[0] == 'ticket':
+                continue
+            row = dict(zip(STATUS_COLUMNS, (c or None for c in cells)))
+            if row['ticket'] not in newest or changed_time(row['changed']) > changed_time(newest[row['ticket']]['changed']):
+                newest[row['ticket']] = row
+    rows = [r for t, r in newest.items() if t not in have or changed_time(r['changed']) > changed_time(have[t])]
+    with work.transaction(db):
+        for r in rows:
+            db.execute('INSERT INTO ticket_status (ticket, status, started, done, changed, author) VALUES (?, ?, ?, ?, ?, ?) '
+                       'ON CONFLICT(ticket) DO UPDATE SET status = excluded.status, started = excluded.started, '
+                       'done = excluded.done, changed = excluded.changed, author = excluded.author',
+                       tuple(r[c] for c in STATUS_COLUMNS))
+
+
+def write_status_file(db):
+    lines = ['\t'.join(STATUS_COLUMNS)]
+    for r in db.execute('SELECT ' + ', '.join(STATUS_COLUMNS) + ' FROM ticket_status ORDER BY ticket'):
+        lines.append('\t'.join(r[c] or '' for c in STATUS_COLUMNS))
+    with open(STATUS_FILE, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('\n'.join(lines) + '\n')
+
+
 def loaded(db):
     """load() with the database's statuses filled in and the states derived; the toml's problems included."""
+    read_status_file(db)
     data, groups, tickets, problems = load()
     problems += with_status(tickets, work.ticket_statuses(db))
     with_worked(db, tickets)
@@ -248,6 +292,7 @@ def generate(db, json_path=None):
         return 1
     with open(MARKDOWN, 'w', encoding='utf-8', newline='\n') as f:
         f.write(markdown(data, groups, tickets))
+    write_status_file(db)
     json_path = json_path or os.path.join(ROOT, 'build', 'tickets', 'tickets.json')
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
     with open(json_path, 'w', encoding='utf-8') as f:

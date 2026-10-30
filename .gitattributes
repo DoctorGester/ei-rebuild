@@ -1,3 +1,4 @@
 docs/tickets.md merge=ours
 *.vec binary
 config/harness/** -text
+docs/ticket_status.tsv merge=union

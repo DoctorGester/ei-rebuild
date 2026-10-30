@@ -31,6 +31,10 @@ jobs:
   suites:
     runs-on: [self-hosted, ei-game]
     timeout-minutes: 120
+    defaults:
+      run:
+        # Git's bash: plain "bash" on this machine is WSL's (C:\Windows\system32ash.exe).
+        shell: '"C:\Program Files\Gitinash.exe" --noprofile --norc -eo pipefail {0}'
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
       EI_RUN_DIR: E:\workspace\ei\run
@@ -42,34 +46,29 @@ jobs:
           clean: true
 
       - name: Build
-        shell: bash
         run: |
           builds="verify release"
           [ "$SUITES" = full ] && builds="verify release debug asan play x64 verify-x64"
           fail=0
           for c in $builds; do
             cmd //c ".\\build.cmd $c > build_$c.log 2>&1" || { echo "::error::build $c failed"; tail -40 build_$c.log; fail=1; }
-            grep -h "warning C" build_$c.log | head -5
+            grep -h "warning C" build_$c.log | head -5 || true
           done
           exit $fail
 
       - name: Image suite (vanilla)
-        shell: bash
         run: python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt | tail -40
 
       - name: Rebirth suite
         if: env.SUITES == 'full'
-        shell: bash
         run: python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt | tail -40
 
       - name: x64 suite
         if: env.SUITES == 'full'
-        shell: bash
         run: python tools/work.py test CI --x64 --golden --jobs 4 2>&1 | tee suite_x64.txt | tail -40
 
       - name: Summary
         if: always()
-        shell: bash
         run: |
           for f in suite_*.txt; do
             [ -f "$f" ] || continue
