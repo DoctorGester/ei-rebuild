@@ -95,5 +95,5 @@ CUnit* CWorld::FindUnit(int unitId) {
 }
 
 CMapObject* CWorld::ObjectWithId(int objectId) {
-    return MapObjectManager()->FindMapObject(static_cast<unsigned>(objectId));
+    return GetMapObjectManager()->FindMapObject(static_cast<unsigned>(objectId));
 }

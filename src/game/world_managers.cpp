@@ -33,9 +33,9 @@ constexpr const char* kItemsFolderName = "items";
 } // namespace
 
 void CWorld::Destroy() {
-    if (SpellManager()) {
+    if (GetSpellManager()) {
         ObjectListIterator objects{nullptr, {}};
-        for (EngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
+        for (EngineObject* object = objects.First(GetSpellManager()); object; object = objects.Next()) object->ClearState();
         if (objects.manager) --objects.manager->refCount;
     }
     DeleteManager(players);
@@ -72,4 +72,4 @@ const char* ItemManager::ClassName() { return kItemManagerName; }
 ClassId ItemManager::GetClassId() { return ClassId::ItemManager; }
 const char* ItemManager::GetFolderName() { return kItemsFolderName; }
 
-BaseManager* CWorld::FigureManager() { return figureManager; }
+BaseManager* CWorld::GetFigureManager() { return figureManager; }

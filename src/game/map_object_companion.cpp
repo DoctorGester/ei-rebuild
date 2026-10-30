@@ -161,8 +161,8 @@ MapObjectClientSpecific::~MapObjectClientSpecific() {
         if (CLight* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
             shown->flags |= LightFlag::Hidden;
             g_clientWorld.terrain->RemoveLight(light);
-            if (CUnit* unit = Unit()) {
-                if (Object3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
+            if (CUnit* unit = OwnerUnit()) {
+                if (Object3DSpecific* half = unit->AsObject3D()->attached) half->SetLit(false);
             }
         }
         int lightId = light->id;
@@ -220,9 +220,9 @@ const char* MapObjectClientSpecific::ClassName() { return kClientClassName; }
 ClassId MapObjectClientSpecific::GetClassId() { return ClassId::MapObjectClientSpecific; }
 
 // The client companion's particle records.
-EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
-EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
-EffectParticle::~EffectParticle() = default;
+ParticleRecord::ParticleRecord(ParticleRecord&&) noexcept = default;
+ParticleRecord& ParticleRecord::operator=(ParticleRecord&&) noexcept = default;
+ParticleRecord::~ParticleRecord() = default;
 
 const char* MapObjectServer::ClassName() { return kServerClassName; }
 ClassId MapObjectServer::GetClassId() { return ClassId::MapObjectServer; }

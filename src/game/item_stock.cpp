@@ -124,7 +124,7 @@ std::vector<int> MagicIndices(const std::vector<Record*>& records, int (*indexOf
 // index the index and count a random count.
 void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std::vector<int>& indices, int minCount,
                           int maxCount, std::vector<Item*>* out) {
-    CItemConstructor* ctor = stock->party->ItemConstructor();
+    CItemConstructor* ctor = stock->party->GetItemConstructor();
     ItemManager* manager = stock->party->ItemFactory();
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (int index : indices) {
@@ -179,7 +179,7 @@ constexpr int kScrollTries = 10;
 // material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
 void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
                               std::vector<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
-    CItemConstructor* ctor = party->ItemConstructor();
+    CItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
     if (spellRecipes) FillSpellMaps(*spellRecipes);
 
@@ -250,7 +250,7 @@ void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::vector<Item*
 }
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>* out) {
-    CItemConstructor* ctor = party->ItemConstructor();
+    CItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
     int count = RandomCount(minCount, maxCount);
     std::vector<StockMaterial> taken;
@@ -325,7 +325,7 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipe
 std::vector<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsigned threshold) {
     using stock::kMaxSpellModifiers;
     std::vector<HeldRef<CSpell>> made;
-    CSpellManager* spellManager = party->SpellManager();
+    CSpellManager* spellManager = party->GetSpellManager();
     std::vector<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
         for (const itemdb::SpellListRecord* recipe : recipes) {
@@ -435,7 +435,7 @@ void ItemStock::CopyMagic(const ItemStock* other) {
 
 // Original bug kept: a failed build (null item) is dereferenced.
 void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
-    CItemConstructor* ctor = party->ItemConstructor();
+    CItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
     FillSpellMaps(g_spellDatabase.scrollRecipes);
     std::vector<HeldRef<CSpell>> list;

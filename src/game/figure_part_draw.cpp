@@ -144,7 +144,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
 
 // Lighting (once, FigureMeshFlag::Lit). The new renderer lights the part on the GPU; the colours keep only the material's
 // diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
-void Light(Part& part) {
+void LightFigurePart(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
         const char* name = (part.node->mesh)->GetName();
@@ -278,7 +278,7 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<CLight*>*
         FlatColours(part);
     } else {
         part.lighting = PartLighting(part);
-        if (!(meshFlags & FigureMeshFlag::Lit)) Light(part);
+        if (!(meshFlags & FigureMeshFlag::Lit)) LightFigurePart(part);
     }
 
     if (visibility == 1) part.drawFlags = 2;

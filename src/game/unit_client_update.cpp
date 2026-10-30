@@ -66,11 +66,11 @@ Material* Object3DClientSpecific::NextMaterial() {
 bool UnitClientSpecific::RunTick() {
     if (unit->pathTimeShift == 1) motion.ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
-    const FigureAnimation* current = unit->Object3D()->animation->current;
+    const FigureAnimation* current = unit->AsObject3D()->animation->current;
     if (current) ShowWeaponParts((current->key & kAnimationVariantBits) == 0);
 
     bool drawn;
-    if (unit->dead && World()->tick >
+    if (unit->dead && OwningWorld()->tick >
                           static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {
@@ -82,14 +82,14 @@ bool UnitClientSpecific::RunTick() {
 
     EI_NAN_AUDIT(fadeIn);
     if (fadeIn < 1.0f) {
-        auto* half = unit->Object3D()->ClientSpecific();
+        auto* half = unit->AsObject3D()->ClientSpecific();
         for (Material* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = MinKeepA(next, 1.0f);   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        unit->Object3D()->ClientSpecific()->SetMaterialsLit(false);
+        unit->AsObject3D()->ClientSpecific()->SetMaterialsLit(false);
 
     if (blinks) {
         if (blinkTimer > 0) {
@@ -118,7 +118,7 @@ bool UnitClientSpecific::RunTick() {
             speech.pop_front();
         }
     }
-    if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->Object3D()->animation->queue) < kIdleRestartBelow)
+    if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->AsObject3D()->animation->queue) < kIdleRestartBelow)
         StartIdleAnimation(0);
     return true;
 }

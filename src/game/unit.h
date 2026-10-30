@@ -457,7 +457,7 @@ public:
     UnitController* Controller() const { return static_cast<UnitController*>(controller); }
     UnitServer* ServerController() const;
     UnitClientSpecific* ClientController() const;
-    CMapObject* MapObject() { return this; }
+    CMapObject* AsMapObject() { return this; }
 
     std::string scriptName;        // network field 9
     int secondPrototype;              // a second prototype index (-1 none)
@@ -909,12 +909,12 @@ inline MapObjectServer* CMapObject::ServerCompanion() const { return static_cast
 class ParticleSource;
 
 // One effect particle record of the client companion.
-struct EffectParticle {
+struct ParticleRecord {
     // Out of line (map_object_companion.cpp): releasing the source needs the complete ParticleSource.
-    EffectParticle() = default;
-    EffectParticle(EffectParticle&&) noexcept;
-    EffectParticle& operator=(EffectParticle&&) noexcept;
-    ~EffectParticle();
+    ParticleRecord() = default;
+    ParticleRecord(ParticleRecord&&) noexcept;
+    ParticleRecord& operator=(ParticleRecord&&) noexcept;
+    ~ParticleRecord();
 
     SpellType type{};                   // the effect type
     int power = 0x10;                   // the effect's power byte
@@ -986,11 +986,11 @@ public:
     // Everything released: particles, light, no object.
     void Destroy() override;
 
-    CUnit* Unit() const { return static_cast<CUnit*>(owner); }
+    CUnit* OwnerUnit() const { return static_cast<CUnit*>(owner); }
 
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
-    std::vector<EffectParticle> particles;  // the effect particles
+    std::vector<ParticleRecord> particles;  // the effect particles
     std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
     Ref<CLight> light;       // counted
     int endSound;           // the end sound's handle (-1 none)

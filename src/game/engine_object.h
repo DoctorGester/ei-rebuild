@@ -137,14 +137,14 @@ public:
     // Drops a reference without the release at zero, where the original did (sic): the object stays.
     void ForgetReference() { --refCount; }
 
-    CManagerContext* ManagerContext() const;
+    CManagerContext* GetManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).
     // Templates so that the world's classes need to be complete only where they are used.
-    template <class World = CWorld> World* WorldContext() const { return static_cast<World*>(ManagerContext()); }
-    template <class World = WorldServer> World* ServerWorld() const { return WorldContext<World>(); }
-    template <class World = WorldClient> World* ClientWorld() const { return WorldContext<World>(); }
+    template <class WorldType = CWorld> WorldType* WorldContext() const { return static_cast<WorldType*>(GetManagerContext()); }
+    template <class WorldType = WorldServer> WorldType* ServerWorld() const { return WorldContext<WorldType>(); }
+    template <class WorldType = WorldClient> WorldType* ClientWorld() const { return WorldContext<WorldType>(); }
     // The world the object belongs to, or null without a context.
-    CWorld* World() const;
+    CWorld* OwningWorld() const;
     BaseManager* SetOwner(BaseManager* owner);
 
     int refCount = 0;

@@ -36,10 +36,10 @@ CParty::~CParty() {
 const char* CParty::ClassName() { return "CParty"; }
 ClassId CParty::GetClassId() { return ClassId::Party; }
 
-CItemConstructor* CParty::ItemConstructor() { return itemConstructor; }
-CSpellConstructor* CParty::SpellConstructor() { return spellConstructor; }
+CItemConstructor* CParty::GetItemConstructor() { return itemConstructor; }
+CSpellConstructor* CParty::GetSpellConstructor() { return spellConstructor; }
 ItemManager* CParty::ItemFactory() { return itemManager; }
-CSpellManager* CParty::SpellManager() { return spellManager; }
+CSpellManager* CParty::GetSpellManager() { return spellManager; }
 
 void CParty::Create() {
     itemManager = new ItemManager();

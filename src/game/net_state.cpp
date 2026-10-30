@@ -172,7 +172,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         Vector3 position;
         field->ReadDelta(&position, 0xC);
         field->ReadDelta(&localRotation, 0x10);
-        CWorld* world = World();
+        CWorld* world = OwningWorld();
         world->MoveObject(this, &position.x);
         PlaceOnGround(localPosition.z);
         complete &= SnapshotConsumed();
@@ -281,7 +281,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->animationStart, 4);
         field->ReadDelta(&unit->actionSound, 1);
         if (unit->motionMode == 1) --unit->animationStart;
-        float time = static_cast<float>(unit->World()->tick);
+        float time = static_cast<float>(unit->OwningWorld()->tick);
         unit->Controller()->RestartAnimation(time);
         field->EndField();
     }

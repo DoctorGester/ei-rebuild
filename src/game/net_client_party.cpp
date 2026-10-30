@@ -141,7 +141,7 @@ void ClientApplyParty(ClientSession* self) {
         if (id > 0) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
-            EngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
+            EngineObject* spell = party->GetSpellManager()->CreateObject(static_cast<int>(type), id);
             spell->prototypeId = packedId;
             spell->Load(stream);
         }

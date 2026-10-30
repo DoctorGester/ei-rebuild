@@ -97,7 +97,7 @@ bool GSGetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *call->result.number = player->Party()->variables.Get(name);
+    *call->result.number = player->GetParty()->variables.Get(name);
     return true;
 }
 
@@ -202,7 +202,7 @@ bool IsFileExists(Call* call) {
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
     CPlayer* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
-    const NamedFloatTable& variables = player->Party()->variables;
+    const NamedFloatTable& variables = player->GetParty()->variables;
     for (auto& node : variables) {
         std::string line;
         line = str::Format("%s = %f", node.first, static_cast<double>(node.second));

@@ -25,7 +25,7 @@ namespace {
 CPlayer* LocalPlayer() { return g_clientWorld.LocalView()->player; }
 
 // A player's named float variable (its party's variables).
-float Variable(CPlayer* player, std::string_view name) { return player->Party()->variables.Get(name); }
+float Variable(CPlayer* player, std::string_view name) { return player->GetParty()->variables.Get(name); }
 
 } // namespace
 
@@ -63,9 +63,9 @@ float GameTime() {
     return static_cast<float>(client->tick) + client->tickFraction;
 }
 
-CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
+CParty* LocalPlayerData() { return LocalPlayer()->GetParty(); }
 
-std::string LocalPlayerZone() { return LocalPlayer()->Party()->zone; }
+std::string LocalPlayerZone() { return LocalPlayer()->GetParty()->zone; }
 
 float LocalPlayerVariable(std::string_view name) { return Variable(LocalPlayer(), name); }
 

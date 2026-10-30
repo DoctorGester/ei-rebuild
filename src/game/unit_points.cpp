@@ -41,7 +41,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        unit->motion.Sample(unit->World(), order, static_cast<float>(time), &turning,
+        unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = 0.5f;
         out->x = toWorld * position.x;

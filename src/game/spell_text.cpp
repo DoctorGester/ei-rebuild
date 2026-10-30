@@ -55,7 +55,7 @@ CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
     std::vector<std::string> codes;
     ParseSpellText(text, codes);
 
-    CSpellConstructor* constructor = context->SpellConstructor();
+    CSpellConstructor* constructor = context->GetSpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);
 

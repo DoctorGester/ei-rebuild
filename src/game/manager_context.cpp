@@ -12,6 +12,6 @@ void CManagerContext::Create() {}
 Item* CManagerContext::MakeCopyOf(Item* item) {
     std::uint32_t packed = item->prototypeId;
     Item* copy = ItemFactory()->MakeItem(item->Kind(), packed >> 16, packed & 0xFFFF);
-    item->CopyTo(copy, SpellManager());
+    item->CopyTo(copy, GetSpellManager());
     return copy;
 }

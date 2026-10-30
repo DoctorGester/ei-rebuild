@@ -24,15 +24,15 @@ public:
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (returns this)
     virtual BaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager (the client's Segment ticks its objects)
-    virtual BaseManager* FigureManager() { return nullptr; }            // the world's figureManager
-    virtual CItemConstructor* ItemConstructor() { return nullptr; }
-    virtual CSpellConstructor* SpellConstructor() { return nullptr; }
+    virtual BaseManager* GetFigureManager() { return nullptr; }            // the world's figureManager
+    virtual CItemConstructor* GetItemConstructor() { return nullptr; }
+    virtual CSpellConstructor* GetSpellConstructor() { return nullptr; }
     virtual ItemManager* ItemFactory() { return nullptr; }
-    virtual CMapObjectManager* MapObjectManager() { return nullptr; }
+    virtual CMapObjectManager* GetMapObjectManager() { return nullptr; }
     virtual PlayerManager* PlayerList() { return nullptr; }
     // The side-specific halves' manager (the client's is a ClientSpecificManager).
     virtual BaseManager* SpecificManager() { return nullptr; }
-    virtual CSpellManager* SpellManager() { return nullptr; }
+    virtual CSpellManager* GetSpellManager() { return nullptr; }
     virtual LinkFigureLoader* FigureLoader() { return nullptr; }        // the figure loader (model.h)
     // A copy of an item: MakeCopyOf (the server's is WorldServer::CopyItem). Not called
     // CopyItem here: WorldServer's plain member of that name would hide it.

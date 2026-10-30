@@ -17,7 +17,7 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-CParty* GlobalParty() { return g_savedParties.outsideGame.Party(); }
+CParty* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 int GlobalRecordCount() { return lib::Count(GlobalParty()->members); }
 int& GlobalGold() { return GlobalParty()->money; }
 
@@ -36,8 +36,8 @@ void GuardPlayers(PlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
-        player->Party()->money ^= static_cast<int>(key);    // gold
-        for (int i = 0; i < std::ssize(player->Party()->members); ++i) XorRange(&player->Party()->members[i].stats, key);
+        player->GetParty()->money ^= static_cast<int>(key);    // gold
+        for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) XorRange(&player->GetParty()->members[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.

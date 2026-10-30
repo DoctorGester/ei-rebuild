@@ -210,7 +210,7 @@ void AnnounceHost(const char* zone) {
 // game state request to the server (a change goes out with a new version).
 int ServerPlayerCount() { return static_cast<int>(g_serverWorld.players->objects.size()); }
 
-CParty* GlobalParty() { return g_savedParties.outsideGame.Party(); }
+CParty* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 constexpr int kCommandBriefing = 1;
@@ -311,7 +311,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     ClearSaveFolder(slotFolder);
     if (g_serverWorld.sessionKind == 4) {
         if (CPlayer* player = g_serverWorld.GetPlayer(0))
-            g_partyManager.BeginRedeploy(player->Party());
+            g_partyManager.BeginRedeploy(player->GetParty());
     }
     CParty records;
     g_partyManager.EndRedeploy(&records);
@@ -535,7 +535,7 @@ int LeaveZone(CParty* records) {
 
 void GameFlow::UpdateMultiplayerVariable() {
     CPlayer* player = g_clientWorld.LocalView()->player;
-    NamedFloatTable* variables = &player->Party()->variables;
+    NamedFloatTable* variables = &player->GetParty()->variables;
     if (!Active(net::g_gameClient)) return;
     auto set = [variables](bool on) {
         if (on) VariableSet(variables, kMultiplayerVariable, 1.0f);
@@ -575,7 +575,7 @@ void GameFlow::BeginMultiplayerGame() {
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::g_gameClient)) return;
     CPlayer* player = g_clientWorld.LocalView()->player;
-    CParty* party = player->Party();
+    CParty* party = player->GetParty();
     GlobalParty()->Assign(party);
     g_partyManager.BeginRedeploy(party);
     // The global party record written into the heroes' folder.
@@ -752,7 +752,7 @@ void GameFlow::SwitchMultiplayerZone() {
     CPlayer* player = g_serverWorld.GetPlayer(0);
     if (player && player->Server()->partyDeployed) {
         g_serverWorld.SyncPartyRecords(player);
-        records.Assign(player->Party());
+        records.Assign(player->GetParty());
         g_serverWorld.ClearPlayerItems(player);
     } else {
         records.Assign(GlobalParty());
@@ -1247,7 +1247,7 @@ void GameFlow::UpdateFromServer() {
     }
     auto* clientWorld = &g_clientWorld;
     CPlayer* player = ClientWorldLocalView(clientWorld)->player;
-    NamedFloatTable* variables = &player->Party()->variables;
+    NamedFloatTable* variables = &player->GetParty()->variables;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
     float construction = VariableGet(variables, kConstructionVariable);
@@ -1354,7 +1354,7 @@ void SavedParties::Reload() {
         MpHeroRecord* entry = &read;
         entry->file = finder.GetFileName();
         if (entry->ReadFile(folder)) {
-            NamedFloatTable* variables = &entry->Party()->variables;
+            NamedFloatTable* variables = &entry->GetParty()->variables;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the clear is skipped and the table is cleared
                 // keeping its "gvar." entries.
@@ -1362,7 +1362,7 @@ void SavedParties::Reload() {
             } else {
                 variables->clear();
             }
-            if (std::ssize(entry->Party()->members) == 1) {
+            if (std::ssize(entry->GetParty()->members) == 1) {
                 ReserveOne();
                 entries.push_back(read);
             }

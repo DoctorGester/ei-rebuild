@@ -120,7 +120,7 @@ void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
     WriteByte(&out, kMessageItemStates);
     out.WriteStream(&states);
     WriteByte(&out, kMessageItemsGiven);
-    WriteDword(&out, static_cast<std::uint32_t>(player->Party()->money));
+    WriteDword(&out, static_cast<std::uint32_t>(player->GetParty()->money));
     WriteByte(&out, static_cast<std::uint8_t>(flag));
     for (Item* item : *items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
     WriteDword(&out, 0xFFFFFFFFu);
@@ -252,7 +252,7 @@ int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
 // The original calls SendObject14 of this object for each item.
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
-        ResourceManager* items = player->Party()->ItemFactory();
+        ResourceManager* items = player->GetParty()->ItemFactory();
         if (EngineObject* item = items->FindObject(objectId)) SendObject14(item);
     }
 }
@@ -292,8 +292,8 @@ int PlayerServer::SendPartyState() {
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
-    if (IsMultiplayerClient() && std::ssize(currentPlayer->Party()->members) == 1)
-        g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->Party()->members[0].unitId), &shared);
+    if (IsMultiplayerClient() && std::ssize(currentPlayer->GetParty()->members) == 1)
+        g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->GetParty()->members[0].unitId), &shared);
     WriteDword(&out, static_cast<std::uint32_t>(shared.size()));
     for (const ScriptObjectRef& member : shared) WriteDword(&out, static_cast<std::uint32_t>(member.AsUnit()->id));
     return 1;
@@ -322,7 +322,7 @@ bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contain
 
 void PlayerServer::SendParty() {
     MemoryStream party;
-    player->Party()->SaveParty(&party, 1);
+    player->GetParty()->SaveParty(&party, 1);
     WriteByte(&out, kMessageParty);
     out.WriteSized(&party);
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);

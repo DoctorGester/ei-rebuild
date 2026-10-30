@@ -179,11 +179,11 @@ void RedeployParty(const SSCCmd* cmd) {
     PlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
     g_serverWorld.CollectParty(player, &slots);
-    CParty* party = player->Party();
+    CParty* party = player->GetParty();
     g_partyManager.BeginRedeploy(party);
     g_partyManager.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
-    const std::vector<PartyUnitRecord>& members = player->Party()->members;
+    const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
     state->SendParty();
     player->Server()->lastPosition.z = -1313.0f;
@@ -982,7 +982,7 @@ bool ScriptRun::Execute(Script* script) {
             CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             std::vector<Item*> items;
-            player->Party()->money += Truncate(f[1]);
+            player->GetParty()->money += Truncate(f[1]);
             player->GiveItems(&items, 0);
             break;
         }

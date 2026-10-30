@@ -98,7 +98,7 @@ void SetObstacle(UnitServer* c, int obstacle) {
 
 void QueueNextAnimation(UnitServer* c) {
     *&c->queue = *c->NextAnimation();
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
+    if (c->queue.extra == -1) c->queue.extra = c->OwningWorld()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
     c->movingAnimation = 1;
@@ -128,7 +128,7 @@ void HitWhileMoving(UnitServer* c) {
         const FigureAnimation* entry = c->unit->AnimationEntry(key);
         if (entry && entry->Kind() == AnimationKind::Hit) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(c->queue.extra);
-            if (ends > static_cast<std::uint32_t>(c->World()->tick)) return;
+            if (ends > static_cast<std::uint32_t>(c->OwningWorld()->tick)) return;
         }
     }
     AnimationSteps current;
@@ -147,7 +147,7 @@ void HitWhileMoving(UnitServer* c) {
         }
     }
     c->queue = fall;
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
+    if (c->queue.extra == -1) c->queue.extra = c->OwningWorld()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
 }
@@ -207,7 +207,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
     if (c->motion.reached) {
         std::uint8_t wasFlag = c->motion.failed == 1;
         c->motion.Clear();
-        int time = c->World()->tick;
+        int time = c->OwningWorld()->tick;
         Vector3 axis, back;
         c->unit->localRotation.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
@@ -219,7 +219,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
     }
     if (!world->aiMap.ContinuePath(unit, &c->motion)) {
         c->motion.Clear();
-        int time = c->World()->tick;
+        int time = c->OwningWorld()->tick;
         Vector3 axis, back;
         c->unit->localRotation.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);

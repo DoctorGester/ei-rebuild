@@ -254,7 +254,7 @@ public:
     std::uint32_t ReadState(int first, MemoryStream* reader);
     std::string* SetSecondName(const char* text);
 
-    CObject3D* Object3D() { return this; }
+    CObject3D* AsObject3D() { return this; }
 
 
     MapObjectCompanion* companion; // MapObjectServer / MapObjectClientSpecific

@@ -47,13 +47,13 @@ void ClientSession::ApplyAwards() {
         case 1: {
             std::vector<Item*> none;
             // Truncated as _ftol does: through 64 bits, so a NaN or a value beyond the int range gives 0.
-            localPlayer->Party()->money += static_cast<int>(static_cast<std::int64_t>(award->value));
+            localPlayer->GetParty()->money += static_cast<int>(static_cast<std::int64_t>(award->value));
             localPlayer->GiveItems(&none, 0);
             break;
         }
         case 2: {
             std::vector<Item*> items;
-            Item* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
+            Item* item = localPlayer->GetParty()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             items.push_back(item);
             localPlayer->GiveItems(&items, 0);
@@ -61,7 +61,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 3: {
-            auto* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
+            auto* item = localPlayer->GetParty()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             for (Item* owned : localPlayer->items) {
                 if (!owned->IsSameAs(item)) {
@@ -74,7 +74,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 4: {
-            localPlayer->Party()->RemoveQuestItems();
+            localPlayer->GetParty()->RemoveQuestItems();
             // TakeItem erases from the list: the quest items' ids first.
             std::vector<int> quest;
             for (Item* owned : localPlayer->items)

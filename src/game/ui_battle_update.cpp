@@ -263,7 +263,7 @@ void BattleScreen::Update() {
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
-        auto mark = [](CUnit* unit, bool on) { unit->Object3D()->attached->SetLit(on); };
+        auto mark = [](CUnit* unit, bool on) { unit->AsObject3D()->attached->SetLit(on); };
         for (int i = 0; i < std::ssize(*currentParty); ++i) {
             auto* unit = (*currentParty)[i];
             std::uint32_t unitFlags = unit->flags;
@@ -343,7 +343,7 @@ void BattleScreen::LeftUp(int buttons, int x, int y) {
                 std::uint32_t unitFlags = unit->flags;
                 if (!(unitFlags & MapObjectFlag::Selected) && (unitFlags & MapObjectFlag::BoxMarked)) {
                     unit->flags = unitFlags & ~MapObjectFlag::BoxMarked;
-                    unit->Object3D()->attached->SetLit(false);
+                    unit->AsObject3D()->attached->SetLit(false);
                 }
                 marker(i)->visible = false;
                 slot(i).restB = kHudRestRotation;

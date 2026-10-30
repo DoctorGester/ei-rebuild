@@ -253,7 +253,7 @@ bool CItemConstructor::FillItem() {
     item->InitFromRecord(record.get());
     if (kind == ItemKind::Quick && static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
         // A potion casts the spell its prototype's text makes (a given spell is not attached).
-        CSpellManager* spellManager = manager->context->SpellManager();
+        CSpellManager* spellManager = manager->context->GetSpellManager();
         CSpell* newSpell = spellManager->CreateSpellFromText(RecordAs<QuickItemRecord>(prototype)->spellText);
         spell = newSpell;
         item->spell.Assign(newSpell);
@@ -286,7 +286,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (parts[0] == kSpellContainer) return CreateSpellItem(extra, context->SpellManager());
+    if (parts[0] == kSpellContainer) return CreateSpellItem(extra, context->GetSpellManager());
 
     // "prototype[.material]".
     const std::string& prototypeName = parts[0];
@@ -310,9 +310,9 @@ Item* ItemManager::CreateItem(std::string_view name) {
         if (prototype->name == kMaterialType)
             count = str::ToInt(extra);
         else
-            spell = context->SpellManager()->CreateSpellFromText(extra);
+            spell = context->GetSpellManager()->CreateSpellFromText(extra);
     }
-    Item* item = context->ItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
+    Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
         // with the null item (and crashes).
@@ -329,7 +329,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
 Item* ItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material) {
     if ((index & 0xFFFF) == kNoIndex) index = 0;
     MaterialRecordHead* materialRecord = NeedsMaterial(kind) ? MaterialAt(material) : nullptr;
-    return context->ItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
+    return context->GetItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
 }
 
 // The "spell container" record is looked up by name each time; without one the index is that of a

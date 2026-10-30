@@ -286,7 +286,7 @@ void UnitClientSpecific::ShowWeaponParts(bool hidden) {
 
 void UnitClientSpecific::UpdateArrow() {
     if (unit->MapType() != MapObjectType::Hero) return;
-    const FigureAnimationState* state = unit->Object3D()->animation;
+    const FigureAnimationState* state = unit->AsObject3D()->animation;
     const FigureAnimation* current = state->current;
     if (current && (current->flags & 1)) {
         float now = state->time;

@@ -53,7 +53,7 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
         }
         // The entry's references go with the items (the original frees the node without releasing them).
         for (HeldRef<Item>& item : node->objects) items.push_back(item.Take());
-        player->Party()->money += static_cast<int>(node->money);
+        player->GetParty()->money += static_cast<int>(node->money);
         player->GiveItems(&items, 0);
         list.erase(node);
         abandon();
@@ -88,7 +88,7 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
                 item->Release();
         }
     }
-    player->Party()->money += gold;
+    player->GetParty()->money += gold;
     player->GiveItems(&items, 0);
     for (Item* item : items)
         item->Release();

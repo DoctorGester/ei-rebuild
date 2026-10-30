@@ -42,14 +42,14 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     float speed;
     int cellX, cellY;
     bool turning;
-    CWorld* world = self->World();
+    CWorld* world = self->OwningWorld();
     unit->motion.Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
     float toWorld = 0.5f;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
     position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
-    self->World()->MoveObject(unit, &position.x);
+    self->OwningWorld()->MoveObject(unit, &position.x);
     if (self->snapHeading) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);
@@ -83,7 +83,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     }
 
     // The animation the figure plays.
-    const FigureAnimation* animation = unit->Object3D()->animation->current;
+    const FigureAnimation* animation = unit->AsObject3D()->animation->current;
     if (!animation) {
         unit->animationSpeed = 1.0f;
         return;

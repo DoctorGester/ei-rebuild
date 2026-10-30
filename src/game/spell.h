@@ -143,9 +143,9 @@ public:
     CSpell* Clone(class CSpellManager* manager);
 
     // The spell's first fields are an active effect record (map_object.h), which a buff copies: its type, power,
-    // ticks (duration), value (damage) and strength (radius). Effect() builds the record, SetEffect() stores one
+    // ticks (duration), value (damage) and strength (radius). EffectRecord() builds the record, SetEffect() stores one
     // (its `ending` is not kept).
-    MapEffect Effect() const;
+    MapEffect EffectRecord() const;
     void SetEffect(const MapEffect& record);
 
     std::uint8_t prototypeIndex;
@@ -267,8 +267,8 @@ public:
     // The visual as the effect class its spell type creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
-    CSpell* Spell() { return &spell; }
-    const CSpell* Spell() const { return &spell; }
+    CSpell* HeldSpell() { return &spell; }
+    const CSpell* HeldSpell() const { return &spell; }
 };
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5

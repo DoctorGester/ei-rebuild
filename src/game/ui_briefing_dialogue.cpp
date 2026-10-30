@@ -120,7 +120,7 @@ void BriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdP
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
     controller->actionDone = SpeakerAnimationDone;
-    if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
+    if (FigureAnimation* animation = unit->AsObject3D()->FindSkillAnimation(number))
         controller->PlayAnimation(animation->name);
 }
 

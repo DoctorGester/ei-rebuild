@@ -89,8 +89,8 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;
     surfaces[0]->Clear();
 
-    if (unit && unit->Object3D()->attached) {
-        CObject3D* model = unit->Object3D();
+    if (unit && unit->AsObject3D()->attached) {
+        CObject3D* model = unit->AsObject3D();
         const bool drawn = bodyPart != kInfoPage;
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):
@@ -127,7 +127,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             model->localRotation = Product(tilted, *q3, true);
 
             const float scale = 1.0f / size;
-            unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
+            unit->AsObject3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart == 0 ? 0xFFFFFFFFu : 0xFF808080u);
             model->SetPartsFlatSpecular(0xFF000000u);
@@ -176,7 +176,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         }
 
         if (bodyPart != kInfoPage) {
-            unit->Object3D()->ClientSpecific()->figureScale = Vector3{1.0f, 1.0f, 1.0f};
+            unit->AsObject3D()->ClientSpecific()->figureScale = Vector3{1.0f, 1.0f, 1.0f};
             model->localPosition = savedPosition;
             model->localRotation = savedOrientation;
         }

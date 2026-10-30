@@ -379,7 +379,7 @@ public:
     // whose tick returned 0, then the connection's TickDone.
     void Tick();
 
-    CParty* Party() { return &party; }
+    CParty* GetParty() { return &party; }
     // The connection as the server's view of it (a PlayerServer on the server world, null for none).
     PlayerServer* Server() const { return static_cast<PlayerServer*>(connection); }
 

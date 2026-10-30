@@ -69,7 +69,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
     int shift = std::lround(scaled);
-    int frame = (World()->tick + shift) % 15;
+    int frame = (OwningWorld()->tick + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = j * 0.125f;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};

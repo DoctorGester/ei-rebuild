@@ -247,7 +247,7 @@ CTexture* Object3DClientSpecific::ReplaceTexture(CTexture* replacement) {
 // --- Skins and materials --------------------------------------------------------------------------
 
 int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
-    CTextureManager* manager = WorldContext()->TextureManager();
+    CTextureManager* manager = WorldContext()->GetTextureManager();
     skinName = first.value_or("");   // (an absent name was the empty text)
     secondSkinName = second.value_or("");
     const std::optional<std::string_view> names[2] = {first, second};
@@ -273,7 +273,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
 }
 
 void Object3DClientSpecific::ApplyMaterials() {
-    CMaterialManager* manager = WorldContext()->MaterialManager();
+    CMaterialManager* manager = WorldContext()->GetMaterialManager();
     if (materials.empty()) {
         materialCursor = -1;
     } else {

@@ -32,7 +32,7 @@ std::uint8_t g_movieMode = /*00784752*/ 1;
 
 } // namespace app
 
-CWorld* EngineObject::World() const {
+CWorld* EngineObject::OwningWorld() const {
     auto* context = owner->context;
     return context ? context->ThisWorld() : nullptr;
 }

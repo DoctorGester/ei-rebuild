@@ -39,7 +39,7 @@ std::uint32_t ItemCharge(const EngineObject* object) {
 }
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).
-NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables; }
+NamedFloatTable* Variables(CPlayer* player) { return &player->GetParty()->variables; }
 
 // Looks an object up by id (base_manager.cpp), through its game address.
 
@@ -250,7 +250,7 @@ PartyUnitRecord* CParty::Find(int unitId) {
 void CPlayer::Tick() {
     for (std::size_t i = 0; i < recharging.size();) {
         int objectId = static_cast<int>(recharging[i]);
-        EngineObject* object = Party()->ItemFactory()->FindObject(objectId);
+        EngineObject* object = GetParty()->ItemFactory()->FindObject(objectId);
         if (object == nullptr || !object->RunTick()) recharging.erase(recharging.begin() + i);
         else ++i;
     }

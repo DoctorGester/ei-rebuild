@@ -47,10 +47,10 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    CItemConstructor* ItemConstructor() override;
-    CSpellConstructor* SpellConstructor() override;
+    CItemConstructor* GetItemConstructor() override;
+    CSpellConstructor* GetSpellConstructor() override;
     ItemManager* ItemFactory() override;
-    CSpellManager* SpellManager() override;
+    CSpellManager* GetSpellManager() override;
     // The item factory under the party's name.
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
     Item* CopyItem(Item* item) { return DuplicateItem(item); }

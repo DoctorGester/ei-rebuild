@@ -176,7 +176,7 @@ void CampPages::DeconstructItem() {
         Ref<Item> container;
         container.Assign(results->ItemFactory()->MakeItem(ItemKind::Scroll, index, 0));
         if (container) {
-            container->AttachSpell(copy->spell->Clone(results->SpellManager()));
+            container->AttachSpell(copy->spell->Clone(results->GetSpellManager()));
             results->AddItem(container, 0, 0);
         }
     }
@@ -198,7 +198,7 @@ void CampPages::DoAction() {
         trade->Settle(true, false);
         return;
     case kSpellTrade:
-        constructor->SpellsParty()->SpellManager();
+        constructor->SpellsParty()->GetSpellManager();
         StockSpells(this, spellParts[2]);
         ReturnToStrip(this, spellParts[0], spellParts[2], spellStrip);
         ReturnToStrip(this, LocalPlayerData(), spellParts[1], itemStrip);

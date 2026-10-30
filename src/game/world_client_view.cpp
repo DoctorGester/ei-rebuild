@@ -52,9 +52,9 @@ void PushStackMatrix(TransformPipeline* device, int index, const float* matrix) 
     }
 }
 
-CObject3D* Object3D(CMapObject* object) { return object; }
+CObject3D* AsObject3D(CMapObject* object) { return object; }
 Object3DClientSpecific* ModelOf(CMapObject* object) {
-    return Object3D(object)->ClientSpecific();
+    return AsObject3D(object)->ClientSpecific();
 }
 
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
@@ -141,7 +141,7 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
 
 int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                                 char withScripted) {
-    if (!object || !Object3D(object)->attached) return 0;
+    if (!object || !AsObject3D(object)->attached) return 0;
     TransformPipeline* device = g_sceneRenderer.pipeline;
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
@@ -163,7 +163,7 @@ int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float a
     }
     if (process) {
         // Object -> world matrix: the rotation with the position as the last column.
-        CObject3D* o3d = Object3D(object);
+        CObject3D* o3d = AsObject3D(object);
         float* matrix = o3d->worldMatrix.m;
         static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
         matrix[3] = o3d->localPosition.x;

@@ -184,7 +184,7 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
     auto* player = unit->player;
     const ItemLink* link = item->ServerLink();
     if (!player || !link) return;
-    ResourceManager* items = player->Party()->ItemFactory();
+    ResourceManager* items = player->GetParty()->ItemFactory();
     Item* copy = FindItem(items, link->value);
     if (!copy) return;
     copy->charge = item->charge;

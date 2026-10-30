@@ -58,7 +58,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     for (;;) {
         if (node == sentinel) return;
         auto* binding = node->Get();
-        auto* player = binding->Player();
+        auto* player = binding->PlayerInfo();
         if (IsLive(player) && player->host) break;
         ++node;
     }

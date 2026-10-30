@@ -35,7 +35,7 @@ namespace {
 // meanwhile and released after.
 Item* CountedClone(Item* item) {
     if (item) item->AddRef();
-    Item* copy = item->Clone(item->WorldContext()->SpellManager());
+    Item* copy = item->Clone(item->WorldContext()->GetSpellManager());
     copy->AddRef();
     return copy;
 }
@@ -125,7 +125,7 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
-        CSpellManager* spellOwner = SpellManager();
+        CSpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         Item* copy = CountedClone(spell);
         std::vector<Item*>& list = record->spells;
@@ -150,7 +150,7 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
-        CSpellManager* spellOwner = SpellManager();
+        CSpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);

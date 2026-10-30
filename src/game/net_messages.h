@@ -243,7 +243,7 @@ public:
 
     Ref<RefObject>& PlayerRef() { return first; }
     Ref<Connection>& ConnectionRef() { return second; }
-    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first.Get()); }
+    PlayerMessage* PlayerInfo() const { return static_cast<PlayerMessage*>(first.Get()); }
 };
 
 // Type 8: a zone the host may pick next.

@@ -90,7 +90,7 @@ bool HasOpenStep(const AnimationSteps& steps) {
 } // namespace
 
 void UnitServer::StartQueueIfUnset() {
-    if (queue.extra == -1) queue.extra = World()->tick;
+    if (queue.extra == -1) queue.extra = OwningWorld()->tick;
 }
 
 void UnitServer::DropEffectObject() {
@@ -346,7 +346,7 @@ void UnitServer::ClearStanding() { SetStandingFlag(this, 0); }
 
 void UnitServer::StandStill() {
     motion.Clear();
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->localRotation);
     if (motion.Start(unit->localPosition, direction, now)) unit->RefreshMotion();
@@ -361,7 +361,7 @@ void UnitServer::PlayHitReaction() {
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = reaction.Duration();
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
-        World()->tick + duration > nextAttackTime)
+        OwningWorld()->tick + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
     savedQueue = queue;
@@ -466,7 +466,7 @@ void UnitServer::TickAction() {
         DropEffectObject();
     }
     motion.Clear();
-    int time = World()->tick;
+    int time = OwningWorld()->tick;
     Vector3 axis;
     unit->localRotation.AxisY(&axis);
     Vector3 backwards = -axis;

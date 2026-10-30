@@ -80,7 +80,7 @@ float* CUnit::StandPoint(float* out) {
     float x = localPosition.x;
     float y = localPosition.y;
     float lift = ModeSpeed();   // inlined
-    CWorld* world = World();
+    CWorld* world = OwningWorld();
     double height;   // the world's double, or the surface plus z (one rounding each)
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
@@ -101,7 +101,7 @@ void CUnit::PlaceOnGround(float offset) {
     float x = localPosition.x;
     float y = localPosition.y;
     heightOffset = offset;
-    CWorld* world = World();
+    CWorld* world = OwningWorld();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
             localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);

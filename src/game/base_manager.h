@@ -108,7 +108,7 @@ public:
     int lastId;                     // id most recently registered (-1 when constructed)
     CManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
     // context as the world, for the world's managers (a party's item manager has the party).
-    template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context); }
+    template <class WorldType = CWorld> WorldType* ContextAsWorld() const { return static_cast<WorldType*>(context); }
 };
 
 // Walks a manager's objectList. While iterating it holds a reference on the manager (refCount + 1); the

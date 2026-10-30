@@ -29,7 +29,7 @@ bool AcceptsAreaSpells(CUnit* unit) {
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
 void Deliver(SpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
-    if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
+    if (effect->caster && !effect->HeldSpell()->CanAffect(effect->caster, unit)) return;
     CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
     unit->ReceiveHit(hit, attacker, effect->caster);
 }
@@ -42,7 +42,7 @@ void SpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit
 void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
-    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius)) {
+    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
     }
@@ -61,7 +61,7 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius)) {
+    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
         const CUnit* at = unit;
         float dz = at->localPosition.z - position.z;
         float dy = at->localPosition.y - position.y;

@@ -45,7 +45,7 @@ Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string&
 
 int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const std::string& name) {
     CWorld* world = ContextAsWorld();
-    CSpellManager* spellOwner = world->SpellManager();   // passed on to the spell factory
+    CSpellManager* spellOwner = world->GetSpellManager();   // passed on to the spell factory
     ItemManager* items = world->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
     if (!prototype) {

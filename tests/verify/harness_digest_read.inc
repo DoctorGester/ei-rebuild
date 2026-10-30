@@ -79,7 +79,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("ids", static_cast<int>(std::ssize(p->recharging)));
     b.Unsigned("units", static_cast<std::uint32_t>(p->units.size()));
     b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects.size()));
-    CParty* party = p->Party();
+    CParty* party = p->GetParty();
     b.Unsigned("money", party->money);
     b.Int("partyItems", PartyItemCount(party));
     b.Int("members", static_cast<int>(std::ssize(party->members)));
@@ -317,7 +317,7 @@ std::string DescribeMissile(const SpellEffect* e) {
         std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(MissileVtable(e)));
         return text;
     }
-    return "spell " + std::to_string(e->Spell()->prototypeId >> 16);
+    return "spell " + std::to_string(e->HeldSpell()->prototypeId >> 16);
 }
 
 void ReadMissile(const SpellEffect* e, Builder& b) {
@@ -329,9 +329,9 @@ void ReadMissile(const SpellEffect* e, Builder& b) {
     b.Int("caster", IdOf(e->caster));
     b.Vector("targetPoint.x", "targetPoint.y", "targetPoint.z", e->targetPoint);
     b.Int("timer", e->timer);
-    b.Float("damage", e->Spell()->damage);
-    b.Float("radius", e->Spell()->radius);
-    b.Int("targets", static_cast<int>(e->Spell()->duration));
+    b.Float("damage", e->HeldSpell()->damage);
+    b.Float("radius", e->HeldSpell()->radius);
+    b.Int("targets", static_cast<int>(e->HeldSpell()->duration));
     b.Int("visual", IdOf(e->visual));
     b.Int("sound", IdOf(e->sound));
     b.Int("light", IdOf(e->light));
@@ -643,7 +643,7 @@ void Read(void* server, Snapshot& s) {
     if (WaterOn()) ReadWater(s.state);
 }
 
-UnitNow Unit(void* server, int id) {
+UnitNow UnitNowOf(void* server, int id) {
     UnitNow now;
     EngineObject* object = nullptr;
     const auto& objects = static_cast<WorldServer*>(server)->objects.map;
@@ -667,7 +667,7 @@ int LocalLeader(void* server, unsigned* money) {
     if (!w->players) return -1;
     for (CPlayer* p : PlayersOf(w->players)) {
         if (p->playerId != 0) continue;
-        CParty* party = p->Party();
+        CParty* party = p->GetParty();
         if (money) *money = party->money;
         return !party->members.empty() ? static_cast<int>(party->members[0].unitId) : -1;
     }

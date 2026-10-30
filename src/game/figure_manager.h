@@ -75,7 +75,7 @@ public:
 
 // The figure manager of `object`'s world (every world's is a CFigureManager).
 inline CFigureManager* FigureManagerOf(const EngineObject* object) {
-    return static_cast<CFigureManager*>(object->WorldContext()->FigureManager());
+    return static_cast<CFigureManager*>(object->WorldContext()->GetFigureManager());
 }
 // The figure manager that made `object` (a bone or an animation track, EngineObject::owner).
 inline CFigureManager* OwningFigureManager(const EngineObject* object) {

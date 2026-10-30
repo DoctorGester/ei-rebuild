@@ -160,7 +160,7 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
 
     const SpeechRecord* speech;
     if (environmentList) {
-        const FigureAnimation* animation = unit->Object3D()->animation->current;
+        const FigureAnimation* animation = unit->AsObject3D()->animation->current;
         if (!animation) return nullptr;
         AnimationKind animationKind = animation->Kind();
         if (animationKind != AnimationKind::Run && animationKind != AnimationKind::Walk &&

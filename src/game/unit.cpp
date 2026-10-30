@@ -41,7 +41,7 @@ float ItemWeight(const Item* item) { return item->Weight(); }
 float SpellCost(const CSpell* spell) { return spell->manaCost; }
 
 // The party of the unit's player.
-CParty* RecordsOf(CPlayer* player) { return player->Party(); }
+CParty* RecordsOf(CPlayer* player) { return player->GetParty(); }
 
 // The units of a player's party have a client-specific controller; their items live in the player's inventory
 // records.
@@ -393,11 +393,11 @@ bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(lib::RoundEven
 
 bool MapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
-bool MapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
+bool MapObjectClientSpecific::IsDead() { return OwnerUnit()->packedVitals.hitPoints <= 0; }
 
 bool MapObjectClientSpecific::IsOverkilled() {
-    int maximum = Unit()->packedVitals.maxHitPoints;
-    return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
+    int maximum = OwnerUnit()->packedVitals.maxHitPoints;
+    return OwnerUnit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
 
 // --- The class name and id, the motion given its speeds, the player test, twice the height above the

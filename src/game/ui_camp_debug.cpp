@@ -68,7 +68,7 @@ void CampPages::DebugFill() {
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, "Instruction Weapon", static_cast<std::uint32_t>(i), kInstructionCount);
             ResourceManager* manager = items->ItemFactory();
-            CItemConstructor* maker = items->ItemConstructor();
+            CItemConstructor* maker = items->GetItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
             AddInMaterials(items, manager, maker, weapon, ItemKind::Weapon, materialCount);
         }
@@ -79,7 +79,7 @@ void CampPages::DebugFill() {
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
             if (NameHas(armor, "prototype")) continue;
             AddNamed(items, "Instruction Armor", static_cast<std::uint32_t>(i), kInstructionCount);
-            CItemConstructor* maker = items->ItemConstructor();
+            CItemConstructor* maker = items->GetItemConstructor();
             AddInMaterials(items, manager, maker, armor, ItemKind::Armor, materialCount);
         }
 

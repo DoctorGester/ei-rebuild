@@ -48,7 +48,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 
     list->records.emplace_back(NewRecord());
 
-    CParty* party = list->records.front()->Party();
+    CParty* party = list->records.front()->GetParty();
     party->AddMember(kHero, kHumanHero, game::kEmptyText);
     party->zone = kFirstZone;
     party->entrance = 0;
@@ -58,8 +58,8 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 CParty* NamedPartyRecords::Find(std::string_view name) const {
     CParty* unnamed = nullptr;
     for (PartyRecord* record : records) {
-        if (str::Compare(record->name.c_str(), name) == 0) return record->Party();
-        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->Party();
+        if (str::Compare(record->name.c_str(), name) == 0) return record->GetParty();
+        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->GetParty();
     }
     return unnamed;
 }

@@ -82,8 +82,8 @@ int WorldServer::CountLivingMercs(int unitId) {
     CPlayer* player = GetPlayer(unitId);
     if (!player) return 0;
     int living = 0;
-    for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
-        unsigned memberId = player->Party()->members[i].unitId;
+    for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
+        unsigned memberId = player->GetParty()->members[i].unitId;
         CUnit* unit = FindUnit(static_cast<int>(memberId));
         if (unit && unit->IsDead() == 0) ++living;
     }

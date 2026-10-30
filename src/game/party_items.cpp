@@ -26,7 +26,7 @@ void RemoveAt(std::vector<Item*>& list, int index) { list.erase(list.begin() + i
 
 
 Item* AddEntry(std::vector<Item*>& list, Item* item) {
-    Item* entry = item->Clone(item->WorldContext()->SpellManager());
+    Item* entry = item->Clone(item->WorldContext()->GetSpellManager());
     entry->AddRef();
     Append(list, entry);
     return entry;

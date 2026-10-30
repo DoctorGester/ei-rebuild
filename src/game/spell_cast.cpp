@@ -224,7 +224,7 @@ SpellContainer* CSpellManager::NewContainer() {
 }
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers) {
-    CSpellConstructor* constructor = context->SpellConstructor();
+    CSpellConstructor* constructor = context->GetSpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);
     if (!constructor->BeginConstruct(prototype))

@@ -66,7 +66,7 @@ int PlayerClient::OnCameraPlacement() {
     const int result = static_cast<int>(in.Read(&mode, 4));
     g_clientWorld.CentreOn(point);
     Camera* camera = &g_camera;
-    if (player->Party()->zone == FixedViewZone()) {
+    if (player->GetParty()->zone == FixedViewZone()) {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;
@@ -153,7 +153,7 @@ int PlayerClient::OnItemValue() {
     float value;
     in.ReadValue(value);
     CPlayer* currentPlayer = player;
-    Item* item = FindItem(currentPlayer->Party()->ItemFactory(), static_cast<unsigned>(objectId));
+    Item* item = FindItem(currentPlayer->GetParty()->ItemFactory(), static_cast<unsigned>(objectId));
     if (item) {
         item->charge = value;
         currentPlayer->ItemUsed(item);
@@ -167,7 +167,7 @@ int PlayerClient::OnWeaponRemoved() {
     int index;
     in.ReadValue(index);
     // The party (an embedded CParty) seen as its record array.
-    PartyUnitRecord* record = player->Party()->Find(unitId);
+    PartyUnitRecord* record = player->GetParty()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
     if (CUnit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
@@ -190,7 +190,7 @@ int PlayerClient::OnUnitControl() {
         const bool lit = (unit->flags & kUnitFlagLit) != 0;
         if (lit == (kind == 1)) return 1;
         unit->flags ^= kUnitFlagLit;
-        unit->Object3D()->attached->SetLit(kind == 1);
+        unit->AsObject3D()->attached->SetLit(kind == 1);
         return 1;
     }
     case 3:
@@ -311,7 +311,7 @@ void PlayerClient::NotifyUnitChanged(CUnit* unit) {
     if (unit->player) g_interface.OnUnitJoined(unit);
     else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
-    CParty* party = player->Party();
+    CParty* party = player->GetParty();
     if (std::ssize(party->members) != 1 || static_cast<int>(party->members[0].unitId) != unit->id) return;
     auto* login = net::g_gameClient->player.Get();
     login->id = unit->player ? unit->id : -1;

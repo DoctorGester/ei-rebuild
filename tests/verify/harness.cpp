@@ -633,7 +633,7 @@ float g_awardExperience = 0;
 unsigned g_awardMoney = 0;
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
 void AwardFrom() {
-    const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&g_awardMoney));
+    const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&g_awardMoney));
     g_awardExperience = unit.experience;
 }
 // A pending "peerwait": the other game's signal and when to give up (harness_pair.h).
@@ -2985,7 +2985,7 @@ void RunSteps() {
         bool done = false;
         if (g_worldWait == WorldWait::Idle) {
             const int leader = digest::LocalLeader();
-            const digest::UnitNow unit = digest::Unit(leader);
+            const digest::UnitNow unit = digest::UnitNowOf(leader);
             if (!unit.found || unit.dead || !unit.idle) g_idleFrom = kNotReady;
             else if (g_idleFrom == kNotReady) g_idleFrom = g_frames;
             done = g_idleFrom != kNotReady && g_frames >= g_idleFrom + g_idleFrames;
@@ -2994,14 +2994,14 @@ void RunSteps() {
         } else if (g_worldWait == WorldWait::Dead) {
             std::string alive;
             for (int id : g_deadIds) {
-                const digest::UnitNow unit = digest::Unit(id);
+                const digest::UnitNow unit = digest::UnitNowOf(id);
                 if (unit.found && !unit.dead) alive += " " + std::to_string(id);
             }
             done = alive.empty();
             what = "waitdead (alive:" + alive + ")";
         } else {
             unsigned money = 0;
-            const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&money));
+            const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&money));
             done = unit.found && (unit.experience != g_awardExperience || money != g_awardMoney);
             char text[160];
             std::snprintf(text, sizeof(text), "waitaward (experience %.1f -> %.1f, money %u -> %u)", g_awardExperience,

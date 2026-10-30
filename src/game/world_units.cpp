@@ -309,7 +309,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
     auto created = [this, spec]<class T>(std::type_identity<T>) {
-        return MapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
+        return GetMapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
     auto allowed = [this](CMapObject* object) {
         return (object->IsSynchronised() ? loadedFresh : keepsState) != 0;
@@ -346,7 +346,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         return object->id;
     };
     BaseManager* timedManager = timedObjectManager;
-    CMapObjectManager* newObjectManager = MapObjectManager();
+    CMapObjectManager* newObjectManager = GetMapObjectManager();
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
@@ -366,7 +366,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;
-            CSpell* spell = SpellManager()->CreateSpellFromText(worlddata::CampfireText());
+            CSpell* spell = GetSpellManager()->CreateSpellFromText(worlddata::CampfireText());
             if (spell) spell->AddRef();
             CastSpell(spell, nullptr, at, nullptr, at, 0);
             if (spell) spell->Release();

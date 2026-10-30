@@ -145,7 +145,7 @@ int WorldClient::UpdateLighting() {
         display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
         if (skyDome) {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
-            skyDome->Light(&kCaveSun.x, black, black);
+            skyDome->ApplyLight(&kCaveSun.x, black, black);
         }
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
@@ -201,7 +201,7 @@ int WorldClient::UpdateLighting() {
     if (skyDome) {
         const SkyColour ambientColour = {skyAmbient.r, skyAmbient.g, skyAmbient.b, skyAmbient.a};
         const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
-        skyDome->Light(&direction.x, ambientColour, sunColour);
+        skyDome->ApplyLight(&direction.x, ambientColour, sunColour);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;
@@ -215,7 +215,7 @@ int WorldClient::UpdateLighting() {
 
 void WorldClient::UpdateExitMarkers() {
     if (exits.size() != exitMarkers.size()) return;
-    NamedFloatTable* variables = &session->Party()->variables;
+    NamedFloatTable* variables = &session->GetParty()->variables;
     for (int i = 0; i < std::ssize(exits); ++i) {
         ParticleSource* marker = exitMarkers[i];
         if (!marker) continue;

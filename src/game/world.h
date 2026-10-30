@@ -126,14 +126,14 @@ public:
 
     CWorld* ThisWorld() override { return this; }
     BaseManager* TimedObjectManager() override { return timedObjectManager; }
-    BaseManager* FigureManager() override;   // figureManager (world_managers.cpp: CFigureManager is complete there)
-    CItemConstructor* ItemConstructor() override { return itemConstructor; }
-    CSpellConstructor* SpellConstructor() override { return spellConstructor; }
+    BaseManager* GetFigureManager() override;   // figureManager (world_managers.cpp: CFigureManager is complete there)
+    CItemConstructor* GetItemConstructor() override { return itemConstructor; }
+    CSpellConstructor* GetSpellConstructor() override { return spellConstructor; }
     ItemManager* ItemFactory() override { return itemManager; }
-    CMapObjectManager* MapObjectManager() override { return objectManager; }
+    CMapObjectManager* GetMapObjectManager() override { return objectManager; }
     PlayerManager* PlayerList() override { return players; }
     BaseManager* SpecificManager() override { return specificManager; }
-    CSpellManager* SpellManager() override { return spellManager; }
+    CSpellManager* GetSpellManager() override { return spellManager; }
     LinkFigureLoader* FigureLoader() override { return figureLoader; }
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
@@ -154,8 +154,8 @@ public:
     // of day (SetTime). The server's updates the players and weather as SetTime does.
     virtual void SetTimeSpeed(float speed);
     // The client's managers; null in the base.
-    virtual CMaterialManager* MaterialManager() { return nullptr; }
-    virtual CTextureManager* TextureManager() { return nullptr; }
+    virtual CMaterialManager* GetMaterialManager() { return nullptr; }
+    virtual CTextureManager* GetTextureManager() { return nullptr; }
     virtual BaseManager* ClientLightManager() { return nullptr; }
     virtual ParticleManager* ClientParticleManager() { return nullptr; }
     virtual int Unused39() { return 0; }
@@ -757,8 +757,8 @@ public:
     // GridHeightAt / RawSurfaceHeightAt raised to the platforms over the point.
     double GroundHeightAt(float x, float y) override;
     double SurfaceHeightAt(float x, float y) override;
-    CMaterialManager* MaterialManager() override;
-    CTextureManager* TextureManager() override;
+    CMaterialManager* GetMaterialManager() override;
+    CTextureManager* GetTextureManager() override;
     BaseManager* ClientLightManager() override;
     ParticleManager* ClientParticleManager() override;
     void MoveObject(CMapObject* object, const float* position) override;
@@ -1189,7 +1189,7 @@ struct MpHeroRecord {
     // false when the file does not read, else the party loaded (with its variables) and the memory
     // stream's ok flag.
     bool ReadFile(const std::string& folder);
-    CParty* Party() { return &party; }
+    CParty* GetParty() { return &party; }
 
     CParty party;
     std::string file;

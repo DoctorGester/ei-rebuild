@@ -101,7 +101,7 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         PlayerServer* state = player->Server();
         stream->ReadValue(player->partyId);
-        player->Party()->LoadParty(stream, 1);
+        player->GetParty()->LoadParty(stream, 1);
         player->lastTick = world->tick;
         stream->ReadValue(player->sessionKind);
         BaseManager* items = world->ItemFactory();
@@ -136,7 +136,7 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->WriteValue(player->partyId);
-        player->Party()->SaveParty(stream, 1);
+        player->GetParty()->SaveParty(stream, 1);
         stream->WriteValue(player->sessionKind);
         for (Item* item : player->items) stream->WriteValue(item->id);
         stream->WriteValue(-1);
@@ -173,7 +173,7 @@ void WorldServer::UpdatePlayerTimes(float offset) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
-        float current = player->Party()->variables.Get(name);
+        float current = player->GetParty()->variables.Get(name);
         float value = pc24::Mul(static_cast<double>(elapsed), secondsPerTick) + offset + current;
         player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }

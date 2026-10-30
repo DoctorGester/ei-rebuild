@@ -106,7 +106,7 @@ void StandIdle(UnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
         if (self->queue.steps.empty() && self->queue.extra == -1) {
-            int now = self->World()->tick;
+            int now = self->OwningWorld()->tick;
             idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }
         self->PlaySteps(idle);
@@ -352,7 +352,7 @@ bool UnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
         return true;
@@ -482,7 +482,7 @@ bool UnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point)
 }
 
 void UnitServer::ExecuteOrder() {
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     searchingTarget = 0;
     if (nextAttackTime > now && action.kind == UnitOrderKind::Attack) {
         ApproachTarget();
@@ -570,7 +570,7 @@ void UnitServer::ExecuteOrder() {
 // --- Closing in --------------------------------------------------------------------------------
 
 void UnitServer::ApproachTarget() {
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     unit->altPassCosts = 1;
     CMapObject* target = action.target;
 
@@ -733,7 +733,7 @@ void UnitServer::ApproachTarget() {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();
-        int time = World()->tick;
+        int time = OwningWorld()->tick;
         Vector3 axis;
         unit->localRotation.AxisY(&axis);
         Vector3 back;

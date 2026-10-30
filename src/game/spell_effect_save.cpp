@@ -41,10 +41,10 @@ void SpellEffect::Load(ByteStream* stream) {
     LoadRef(target, stream, world);
     stream->ReadValue(targetPoint);
     stream->ReadValue(state);
-    Spell()->Load(stream);
+    HeldSpell()->Load(stream);
     std::uint32_t packed = 0;
     stream->ReadValue(packed);
-    Spell()->prototypeId = packed;
+    HeldSpell()->prototypeId = packed;
     CWorld* server = world;
     std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
@@ -53,7 +53,7 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
-    UpdateFootprint(Spell()->Type(), 1);
+    UpdateFootprint(HeldSpell()->Type(), 1);
 }
 
 void SpellEffect::Save(ByteStream* stream) {
@@ -62,8 +62,8 @@ void SpellEffect::Save(ByteStream* stream) {
     SaveRef(target, stream);
     stream->WriteValue(targetPoint);
     stream->WriteValue(state);
-    Spell()->Save(stream);
-    stream->WriteValue(Spell()->prototypeId);
+    HeldSpell()->Save(stream);
+    stream->WriteValue(HeldSpell()->prototypeId);
     SaveEffectObject(stream, visual);
     SaveEffectObject(stream, sound);
     SaveEffectObject(stream, light);

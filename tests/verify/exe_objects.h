@@ -644,7 +644,7 @@ struct SpellEffect {
     std::uint8_t unknown9D[0x3];
     int timer;                              // +0xA0
     std::uint8_t unknownA4[0x4];
-    const CSpell* Spell() const { return &spell; }
+    const CSpell* HeldSpell() const { return &spell; }
 };
 EI_EXE_LAYOUT(sizeof(SpellEffect) == 0xA8);
 
@@ -850,7 +850,7 @@ struct CPlayer : EngineObject {
     int lastTick;                           // +0x110
     List<std::uint32_t> recharging;         // +0x114
     std::uint8_t unknown130[0x4];
-    CParty* Party() { return &party; }
+    CParty* GetParty() { return &party; }
 };
 EI_EXE_LAYOUT(sizeof(CPlayer) == 0x134);
 

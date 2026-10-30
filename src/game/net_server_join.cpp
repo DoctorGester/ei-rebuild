@@ -80,9 +80,9 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 
 // Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
 void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
-    message->binding.Get()->Player()->state = message->state;
-    message->binding.Get()->Player()->id = message->id;
-    PlayerMessage* player = message->binding.Get()->Player();
+    message->binding.Get()->PlayerInfo()->state = message->state;
+    message->binding.Get()->PlayerInfo()->id = message->id;
+    PlayerMessage* player = message->binding.Get()->PlayerInfo();
     ++player->version;
 }
 
@@ -92,7 +92,7 @@ void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
 void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* binding = message->binding.Get();
     if (!IsLive(binding)) return;
-    auto* player = binding->Player();
+    auto* player = binding->PlayerInfo();
     if (IsLive(player)) {
         std::uint8_t wasHost = player->host;
         EraseValue(self->players, player);

@@ -188,7 +188,7 @@ int PlayerClient::SendUseDead(const std::vector<CUnit*>* units, EngineObject* ta
 
 int PlayerClient::SendPartyUpdate() {
     MemoryStream block;
-    player->Party()->SaveParty(&block, 0);
+    player->GetParty()->SaveParty(&block, 0);
     WriteType(out, kPartyUpdate);
     out.WriteSized(&block);
     return 1;

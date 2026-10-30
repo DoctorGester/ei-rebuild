@@ -265,7 +265,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
     if (unitId != -1) {
-        CUnit* unit = World()->FindUnit(unitId);
+        CUnit* unit = OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) {
             Vector3 point;
             position = *unit->EffectPoint(&point);
@@ -417,13 +417,13 @@ bool CEffectParticle::RunTick() {
         float t;
         if (StepFraction(velocity, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = pc24::Sub(target.z, World()->RawSurfaceHeightAt(target.x, target.y));
+            float aboveGround = pc24::Sub(target.z, OwningWorld()->RawSurfaceHeightAt(target.x, target.y));
             float stepY = static_cast<float>(t * d.y);
             float stepZ = static_cast<float>(d.z * t);
             float x = static_cast<float>(t * d.x + localPosition.x);
             float y = static_cast<float>(stepY + localPosition.y);
             float z = static_cast<float>(stepZ + localPosition.z);
-            float floor = pc24::Add(World()->RawSurfaceHeightAt(x, y), aboveGround);
+            float floor = pc24::Add(OwningWorld()->RawSurfaceHeightAt(x, y), aboveGround);
             localPosition.x = x;
             localPosition.y = y;
             localPosition.z = MaxKeepB(z, floor);
@@ -432,7 +432,7 @@ bool CEffectParticle::RunTick() {
     }
     if (!IsOneShotType(type)) return true;
     int lifetime = ParticleTypeOf(type) == ParticleType::Teleport ? 0x78 : 0x3C;
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     return now <= startTick + lifetime;
 }
 
@@ -521,12 +521,12 @@ void EffectLightning::Reset() {
 }
 
 void EffectLightning::UpdateEnds() {
-    CMapObject* target = World()->ObjectWithId(toObject);
+    CMapObject* target = OwningWorld()->ObjectWithId(toObject);
     if (target != nullptr) {
         to = target->localPosition;
         to.z = to.z + ConstAt(worlddata::OneRef());
     }
-    CUnit* source = UnitOrNull(World()->ObjectWithId(fromObject));
+    CUnit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
     if (source != nullptr && WorldContext()->IsServer() == 0) {
         Vector3 point;
         from = *source->EffectPoint(&point);

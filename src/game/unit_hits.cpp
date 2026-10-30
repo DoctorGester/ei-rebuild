@@ -227,7 +227,7 @@ bool CUnit::IsBehind(const CMapObject* t) {
     std::uint32_t slot = activeWeapon;
     ItemWeapon* weapon = nullptr;
     if (controller->GetClassId() == ClassId::UnitClientSpecific) {
-        PartyUnitRecord* record = player ? player->Party()->Find(id) : nullptr;
+        PartyUnitRecord* record = player ? player->GetParty()->Find(id) : nullptr;
         if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons))) weapon = AsWeapon(record->weapons[slot]);
     } else if (slot < 4) {
         weapon = AsWeapon(weapons[slot]);

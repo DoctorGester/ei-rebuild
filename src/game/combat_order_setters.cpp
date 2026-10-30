@@ -114,7 +114,7 @@ void UnitServer::PlayAnimation(const char* name) {
     {
         std::string figure = unit->name;
         auto* world = WorldContext();
-        entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
+        entry = (world->GetMapObjectManager())->FindFigureAnimation(figure, name);
     }
     if (!entry) return;
     action2.Reset();

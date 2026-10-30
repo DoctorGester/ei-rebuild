@@ -152,7 +152,7 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     out->backstabFactor = 1.0f;
     out->calledShot = 0;
 
-    const CSpell* record = Spell();
+    const CSpell* record = HeldSpell();
     switch (record->Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
         out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
@@ -220,7 +220,7 @@ char* SpellModifierCodeByName(std::string_view name) {
 
 // --- The spell's effect record, lifetime, class name and id ---------------------------------------
 
-MapEffect CSpell::Effect() const {
+MapEffect CSpell::EffectRecord() const {
     MapEffect record;
     record.type = prototypeIndex;
     record.power = effectPower;

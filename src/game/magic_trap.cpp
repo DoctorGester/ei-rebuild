@@ -97,7 +97,7 @@ void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition;
     Vector3 from = {origin.x, origin.y, origin.z};
-    auto* world = World();
+    auto* world = OwningWorld();
     from.z = pc24::Add(world->RawSurfaceHeightAt(from.x, from.y), from.z);   // the double height: one rounding
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
@@ -127,7 +127,7 @@ void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    CSpellManager* manager = WorldContext()->SpellManager();
+    CSpellManager* manager = WorldContext()->GetSpellManager();
     CSpell* made = manager->CreateSpellFromText(record->spell);
     spell.Assign(made);
     std::memcpy(&localPosition.x, &record->position, sizeof(record->position));    // bit for bit
@@ -189,7 +189,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
 
 void MagicTrap::LoadTrap(ByteStream* stream) {
     LoadMapObject(stream);
-    CSpellManager* manager = WorldContext()->SpellManager();
+    CSpellManager* manager = WorldContext()->GetSpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
     stream->ReadValue(value);

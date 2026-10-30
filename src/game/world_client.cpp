@@ -272,7 +272,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
 void WorldClient::SummonBird() {
     if (!bird) bird = new EffectMoshka();
     bird->Reset();
-    auto* leader = session->Party()->members.data();
+    auto* leader = session->GetParty()->members.data();
     bird->Follow(static_cast<int>(leader->unitId));
 }
 
@@ -299,7 +299,7 @@ std::string WorldClient::ObjectVariableName(std::string_view name) {
 }
 
 void WorldClient::ApplyObjectVariables() {
-    NamedFloatTable* variables = &session->Party()->variables;
+    NamedFloatTable* variables = &session->GetParty()->variables;
     for (CMapObject* object : objects) {
         const std::string& name = object->name2;
         if (name.empty()) continue;
@@ -437,7 +437,7 @@ bool WorldClient::RunTick() {
             }
         }
     }
-    if (tick % 32 == 0) TextureManager()->TrimCache();
+    if (tick % 32 == 0) GetTextureManager()->TrimCache();
     EndWalk(objectsIt);
     return true;
 }
@@ -455,8 +455,8 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 // material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
 
 const char* WorldClient::TexturePath() { return texturePath.c_str(); }
-CMaterialManager* WorldClient::MaterialManager() { return materialManager; }
-CTextureManager* WorldClient::TextureManager() { return textureManager; }
+CMaterialManager* WorldClient::GetMaterialManager() { return materialManager; }
+CTextureManager* WorldClient::GetTextureManager() { return textureManager; }
 BaseManager* WorldClient::ClientLightManager() { return lightFactory; }
 ParticleManager* WorldClient::ClientParticleManager() { return particleManager; }
 

@@ -92,7 +92,7 @@ HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& ent
         CMapObject* object = manager->FindMapObject(entry.objectId);
         if (!object) continue;
         std::int32_t point[2] = {x, y};
-        Object3DSpecific* half = object->Object3D()->attached;
+        Object3DSpecific* half = object->AsObject3D()->attached;
         if (!(half->*test)(point)) continue;
         hits->push_back(entry);
     }
@@ -114,14 +114,14 @@ using Collect = HitCollector* (HitCollector::*)(const std::vector<ScreenEntry>&,
 CMapObject* Pick(WorldClient* client, const Point* point, Collect collect) {
     std::vector<ScreenEntry>& hits = client->hits;
     hits.clear();
-    CMapObjectManager* manager = client->MapObjectManager();
+    CMapObjectManager* manager = client->GetMapObjectManager();
     HitCollector functor;
     (functor.*collect)(client->screenEntries, &hits, point->x, point->y, manager);
     if (hits.empty()) return nullptr;
 
     // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
     // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, client->GetMapObjectManager()};
     lib::IntroSort(hits.data(), hits.data() + hits.size(),
                    [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
     ScreenEntry*& cursor = client->hitCursor;
@@ -282,7 +282,7 @@ int WorldClient::AddObject(CMapObject* object) {
     }
     ClassId kind = object->GetClassId();
     if (kind == ClassId::Building || object->GetClassId() == ClassId::Lever) {
-        CObject3D* figure = object->Object3D();
+        CObject3D* figure = object->AsObject3D();
         for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
                 int objectId = object->id;
@@ -309,7 +309,7 @@ void WorldClient::RefreshPlatforms(CMapObject* object) {
     if (std::ranges::none_of(objects, [objectId](const CMapObject* filed) { return filed->id == objectId; })) return;
     std::erase_if(platforms.list, [objectId](const Platform& face) { return face.id == objectId; });
     if (object->GetClassId() != ClassId::Building && object->GetClassId() != ClassId::Lever) return;
-    CObject3D* figure = object->Object3D();
+    CObject3D* figure = object->AsObject3D();
     for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
         platforms.AddBox(object->id, figure->PartBox(i), object->localPosition, &object->localRotation);
@@ -364,7 +364,7 @@ double WorldClient::SurfaceHeightAt(float x, float y) {
 }
 
 void WorldClient::ShowNumber(int objectId, int value, std::uint32_t kind) {
-    EngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(objectId));
+    EngineObject* object = GetMapObjectManager()->FindObject(static_cast<unsigned>(objectId));
     if (!object || object->GetClassId() != ClassId::Unit) return;
     if (numbers) numbers->Add(objectId, value, kind);
 }
@@ -467,7 +467,7 @@ std::vector<CMapObject*> WorldClient::UnitsInBox(const Rect* rect) {
     for (auto& node : screenEntries) {
         CMapObject* object = objectManager->FindMapObject(node.objectId);
         if (!object) continue;
-        if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
+        if (!object->AsObject3D()->attached->PartsIntersectRect(rect)) continue;
         inside.push_back(object);
     }
     return inside;
@@ -493,7 +493,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
                 parts.push_back(name);
             }
         }
-        auto* manager = MapObjectManager();
+        auto* manager = GetMapObjectManager();
         auto* unit = manager->CreateObjectAs<CUnit>(MapObjectType::Hero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
@@ -501,7 +501,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->SetSecondPrototypeByName(record->texts[6]);
         unit->flags |= MapObjectFlag::Preview;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
-        Object3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
+        Object3DClientSpecific* figure = unit->AsObject3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimation(nullptr);
         unit->RestartPose();
@@ -511,7 +511,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         CMapObject* slots = unit;
         slots->SetStats(&record->stats);
         unit->SetFigureScale(&record->scaleX);
-        std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
+        std::memcpy(&unit->AsMapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
         for (int j = 0; j < std::ssize(record->weapons); ++j)
@@ -705,7 +705,7 @@ void WorldClient::Deselect() {
 
 void WorldClient::Select(CMapObject* object) {
     if (!object) return;
-    object->Object3D()->UpdatePartBounds();
+    object->AsObject3D()->UpdatePartBounds();
     if (!(object->flags & MapObjectFlag::Selected)) {
         if (!(object->flags & MapObjectFlag::BoxMarked)) object->attached->SetLit(true);
         object->flags |= MapObjectFlag::Selected;
@@ -796,7 +796,7 @@ void WorldClient::Create() {
     else
         flags &= ~WorldClientFlag::DrawShadows;
 
-    if (SpellManager()) ReferenceEveryObject(SpellManager());
+    if (GetSpellManager()) ReferenceEveryObject(GetSpellManager());
 
     hits.reserve(400);
     nextClientObjectId = -100000;
@@ -811,7 +811,7 @@ void WorldClient::Create() {
 void WorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(ItemFactory());
     // The item factory is tested again before walking the spells.
-    if (ItemFactory()) ReferenceEveryObject(SpellManager());
+    if (ItemFactory()) ReferenceEveryObject(GetSpellManager());
 }
 
 void WorldClient::ReleaseItemsAndSpells() {
@@ -819,9 +819,9 @@ void WorldClient::ReleaseItemsAndSpells() {
         ReleaseEveryObject(ItemFactory());
         ItemFactory()->DestroyAll();
     }
-    if (SpellManager()) {
-        ReleaseEveryObject(SpellManager());
-        SpellManager()->DestroyAll();
+    if (GetSpellManager()) {
+        ReleaseEveryObject(GetSpellManager());
+        GetSpellManager()->DestroyAll();
     }
 }
 
@@ -863,7 +863,7 @@ int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
 int WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
     block->Seek(0);
     block->ok = 1;
-    if (!LoadManagerObjects(SpellManager(), block)) return 0;
+    if (!LoadManagerObjects(GetSpellManager(), block)) return 0;
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }
 
@@ -953,7 +953,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     currentTerrain->ClearMap();
     // The texture manager is fetched for both calls; the first does not use it.
     ForgetComposedTextures();
-    TextureManager()->FreeCache();
+    GetTextureManager()->FreeCache();
     ShowLoadingMovie(kProgressMapFreed);
 
     // The allod of the local player's zone names the texture pages, the lights and the music.

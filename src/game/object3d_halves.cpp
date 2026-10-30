@@ -110,7 +110,7 @@ void Object3DClientSpecific::GetScale(float* x, float* y, float* z) {
 }
 
 void Object3DClientSpecific::RegisterPartMaterials() {
-    CMaterialManager* manager = WorldContext()->MaterialManager();
+    CMaterialManager* manager = WorldContext()->GetMaterialManager();
     if (materials.empty()) return;
     materialCursor = 0;
     for (Material* material = materials[0]; material;) {

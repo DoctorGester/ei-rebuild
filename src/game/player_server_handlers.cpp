@@ -110,7 +110,7 @@ MemoryStream g_receivedMessages;
 
 void PlayerServer::OnLeaderDied() {
     CPlayer* currentPlayer = player;
-    CParty* party = currentPlayer->Party();
+    CParty* party = currentPlayer->GetParty();
     if (!IsMultiplayerClient()) {
         std::uint8_t messageType = kMessageGameOver;
         out.WriteValue(messageType);
@@ -301,7 +301,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
 void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state != 1) return;
     CPlayer* currentPlayer = player;
-    CParty* party = currentPlayer->Party();
+    CParty* party = currentPlayer->GetParty();
     int campaign = g_serverWorld.sessionKind;
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
@@ -438,7 +438,7 @@ int PlayerServer::OnPartyUpdate() {
     MemoryStream& in = g_receivedMessages;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->Party()->LoadParty(&block, 0);
+    if (in.ok) player->GetParty()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -479,7 +479,7 @@ int PlayerServer::OnLogin() {
     if (!IsPrintableText(login.password)) return 0;
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
-    CParty* party = currentPlayer->Party();
+    CParty* party = currentPlayer->GetParty();
     switch (g_serverWorld.gameResult) {
     case 1:
         g_partyManager.EndRedeploy(party);
@@ -509,7 +509,7 @@ int PlayerServer::OnLogin() {
 
 void PlayerServer::SendPartyUpdate() {
     MemoryStream block;
-    player->Party()->SaveParty(&block, 0);
+    player->GetParty()->SaveParty(&block, 0);
     std::uint8_t messageType = kMessagePartyUpdate;
     out.WriteValue(messageType);
     out.WriteSized(&block);

@@ -55,7 +55,7 @@ void ShowHead(UnitServer* self) {
 // rotation), then stands (0) and is Stopped.
 void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
-    int now = self->World()->tick;
+    int now = self->OwningWorld()->tick;
     Vector3 axis;
     self->unit->localRotation.AxisY(&axis);
     Vector3 back;
@@ -106,7 +106,7 @@ void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
     self->PopFinishedSteps();
     ShowHead(self);
     self->motion.Clear();
-    int now = self->World()->tick;
+    int now = self->OwningWorld()->tick;
     Vector3 axis;
     self->unit->localRotation.AxisY(&axis);
     Vector3 back = -axis;
@@ -137,7 +137,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 
 bool UnitServer::CanReactFor(int ticks) {
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
-        World()->tick + ticks > nextAttackTime)
+        OwningWorld()->tick + ticks > nextAttackTime)
         return false;
     return true;
 }
@@ -284,11 +284,11 @@ void UnitServer::StartAction(char follow, char stepFlags) {
     state = UnitState::Acting;
     actingCheckTime = WorldContext()->tick + 10;
     if (plan.targetId == -1) {
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         motion.StandAndTurnUntil(now, unit, plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
-        int now = World()->tick;
+        int now = OwningWorld()->tick;
         motion.StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
@@ -537,7 +537,7 @@ void UnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
     motion.Clear();
-    int now = World()->tick;
+    int now = OwningWorld()->tick;
     Vector3 axis;
     unit->localRotation.AxisY(&axis);
     Vector3 back;
@@ -560,7 +560,7 @@ void UnitServer::ResyncWithUnit() {
     if (!queue.SameAs(&idleAnimation)) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (queue.steps.empty() && queue.extra == -1)
-            idleAnimation.extra = World()->tick - static_cast<int>(g_random.Next() % 0x33);
+            idleAnimation.extra = OwningWorld()->tick - static_cast<int>(g_random.Next() % 0x33);
         queue = idleAnimation;
         StartQueueIfUnset();
         PopFinishedSteps();

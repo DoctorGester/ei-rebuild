@@ -78,12 +78,12 @@ public:
         return centre + map->turn.Rotate(local);
     }
     void Turn(UiMesh* sprite) const { sprite->localRotation = map->turn; }
-    CTexture* Texture(int index) const { return map->objects[index]; }
+    CTexture* MapTexture(int index) const { return map->objects[index]; }
 
     UiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
         UiMesh* sprite = map->AddSprite(figure);
         sprite->localPosition = ModelPoint(local);
-        sprite->texture = Texture(1);
+        sprite->texture = MapTexture(1);
         sprite->SetScale(scale);
         Turn(sprite);
         return sprite;
@@ -92,7 +92,7 @@ public:
         UiMesh* sprite = map->AddBlankSprite();
         sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
                              static_cast<int>(u1), static_cast<int>(v1));
-        sprite->texture = Texture(4);
+        sprite->texture = MapTexture(4);
         Turn(sprite);
         sprite->localPosition = ModelPoint(Vector3{0.0f, 0.0f, height});
         return sprite;
@@ -176,7 +176,7 @@ void GlobalMap::CreateScreen() {
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         builder.Marker(allod->otherNames[kAllodBall], position, 0.8f);
         UiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
-        island->texture = builder.Texture(2);
+        island->texture = builder.MapTexture(2);
         island->Place(centreX, centreY, depth);
         builder.Turn(island);
     }
@@ -220,7 +220,7 @@ void GlobalMap::CreateScreen() {
             quest.position = MapPosition("#quest ", parts[2], false).value_or(Vector3{});
             UiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
             sprite->localPosition = builder.ModelPoint(quest.position);
-            sprite->texture = builder.Texture(1);
+            sprite->texture = builder.MapTexture(1);
             sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
@@ -247,7 +247,7 @@ void GlobalMap::CreateScreen() {
             link.position = MapPosition("#zone ", way->name, true).value_or(Vector3{});
             UiMesh* sprite = AddSprite(way->figure);
             sprite->localPosition = builder.ModelPoint(link.position);
-            sprite->texture = builder.Texture(1);
+            sprite->texture = builder.MapTexture(1);
             sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
@@ -284,7 +284,7 @@ void GlobalMap::CreateScreen() {
         shade->visible = false;
         UiMesh* picture = AddBlankSprite();
         picture->visible = false;
-        picture->texture = builder.Texture(3);
+        picture->texture = builder.MapTexture(3);
     }
     {
         UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
@@ -299,7 +299,7 @@ void GlobalMap::CreateScreen() {
         shade->flags |= FigureMeshFlag::Flat;
         UiMesh* frame = AddBlankSprite();
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-        frame->texture = builder.Texture(3);
+        frame->texture = builder.MapTexture(3);
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
@@ -324,15 +324,15 @@ void GlobalMap::CreateScreen() {
     {
         UiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
-        camp->texture = builder.Texture(3);
+        camp->texture = builder.MapTexture(3);
         noCamp = Truncate(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp) camp->visible = false;
         UiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
-        left->texture = builder.Texture(3);
+        left->texture = builder.MapTexture(3);
         UiMesh* right = AddBlankSprite();
         right->SetRectangle(3.0f, 100.0f, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
-        right->texture = builder.Texture(3);
+        right->texture = builder.MapTexture(3);
     }
 
     if (str::Compare(allod->name, "ingos") == 0) {

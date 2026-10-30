@@ -182,7 +182,7 @@ bool PlayerClient::Pump() {
         if (link == nullptr || !link->Connected()) return true;
         if (sendParty) {
             WriteByte(&out, kRequestParty);
-            player->Party()->SaveParty(&out, 1);
+            player->GetParty()->SaveParty(&out, 1);
         }
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
@@ -257,7 +257,7 @@ int PlayerClient::OnSetVariable() {
     std::string name = in.ReadString();
     std::uint32_t value;
     in.ReadValue(value);
-    NamedFloatTable& variables = player->Party()->variables;
+    NamedFloatTable& variables = player->GetParty()->variables;
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
@@ -269,7 +269,7 @@ int PlayerClient::OnSetVariable() {
 
 int PlayerClient::OnDeleteVariable() {
     std::string name = in.ReadString();
-    player->Party()->variables.Remove(name);
+    player->GetParty()->variables.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
         g_clientWorld.OnQuestVariable(name, 0.0f);
@@ -352,7 +352,7 @@ int PlayerClient::OnExperience() {
 
 int PlayerClient::OnItemsReceived() {
     std::vector<Item*> items;
-    int& money = player->Party()->money;
+    int& money = player->GetParty()->money;
     int before = money;
     in.ReadValue(money);
     std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
@@ -378,7 +378,7 @@ int PlayerClient::OnItemsReceived() {
 }
 
 int PlayerClient::OnParty() {
-    CParty* party = player->Party();
+    CParty* party = player->GetParty();
     NamedFloatTable saved(party->variables);
     {
         MemoryStream block;
@@ -410,7 +410,7 @@ int PlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->Party()->LoadParty(&block, 0);
+    if (in.ok) player->GetParty()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -579,7 +579,7 @@ int PlayerClient::OnNewObject() {
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);
-        object->SetVisibilityLevel(currentPlayer->Party()->variables.Get(variable));
+        object->SetVisibilityLevel(currentPlayer->GetParty()->variables.Get(variable));
     }
     if (currentPlayer->sessionKind == kSessionClient) {
         if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();

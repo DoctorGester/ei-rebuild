@@ -122,7 +122,7 @@ float RingSize(SpellType type, int power) {
 int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
-bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, SpellType type) {
+bool OtherRecordOfType(const std::vector<ParticleRecord>& particles, int index, SpellType type) {
     for (int i = 0; i < std::ssize(particles); ++i)
         if (i != index && particles[i].type == type) return true;
     return false;
@@ -217,7 +217,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         // The same effect at the same power keeps its record.
         bool kept = false;
         for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            EffectParticle& record = particles[i];
+            ParticleRecord& record = particles[i];
             if (!record.present && record.type == spellType && record.power == power) {
                 record.present = 1;
                 kept = true;
@@ -226,7 +226,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         if (kept) continue;
         // A source of the same type takes the new power.
         for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            EffectParticle& record = particles[i];
+            ParticleRecord& record = particles[i];
             if (!record.present && record.type == spellType && record.source) {
                 record.power = power;
                 ParticleSource* source = particles[i].source;
@@ -237,7 +237,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         }
         if (kept) continue;
 
-        EffectParticle added = {};
+        ParticleRecord added = {};
         added.type = spellType;
         added.power = power;
         added.present = 1;
@@ -271,7 +271,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
     }
 
     for (int i = 0; i < std::ssize(particles); ++i) {
-        EffectParticle* record = &particles[i];
+        ParticleRecord* record = &particles[i];
         if (record->present) continue;
         switch (record->type) {
         case SpellType::Stun:

@@ -124,7 +124,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
         }
         LoadZoneQuests(zone);
     }
-    player->Party()->variables.Set(BriefingVariable(briefing), 1.0f);
+    player->GetParty()->variables.Set(BriefingVariable(briefing), 1.0f);
 }
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
@@ -135,7 +135,7 @@ std::vector<std::string> g_questFolders;
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = g_clientWorld.LocalView()->player;
-    player->Party()->variables.Remove(BriefingVariable(briefing));
+    player->GetParty()->variables.Remove(BriefingVariable(briefing));
 }
 
 void UnloadQuestTexts() {

@@ -158,8 +158,8 @@ public:
     virtual void WriteFields();
 
     // The world object an object record makes is a map object (a unit for a unit record).
-    CMapObject* MapObject() const;
-    CUnit* Unit() const;
+    CMapObject* MadeMapObject() const;
+    CUnit* MadeUnit() const;
 
     std::string model;          // (empty)
     std::int32_t parentId;

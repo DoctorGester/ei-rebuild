@@ -214,7 +214,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
-        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->Party()->money);
+        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->GetParty()->money);
         return;
     }
     case ScriptFunction::WasLooted: {
@@ -414,7 +414,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         }
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
-        if (player) *result = player->Party()->variables.Get(stringArgs[0]);
+        if (player) *result = player->GetParty()->variables.Get(stringArgs[0]);
         return;
     }
     case ScriptFunction::IsCameraPlaying:
@@ -511,7 +511,7 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         CPlayer* player = g_serverWorld.GetPlayer(Truncate(floatArgs[0]));
         EngineObject* o = nullptr;
         if (player) {
-            const std::vector<PartyUnitRecord>& members = player->Party()->members;
+            const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
             int index = lib::RoundEven(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
                 o = g_serverWorld.FindUnit(static_cast<int>(members[index].unitId));
@@ -542,8 +542,8 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         } else {
             unitId = 0x3B9AF5CE;
             CPlayer* player = g_serverWorld.GetPlayer(0);
-            if (player && std::ssize(player->Party()->members) > 0)
-                unitId = static_cast<int>(player->Party()->members[0].unitId);
+            if (player && std::ssize(player->GetParty()->members) > 0)
+                unitId = static_cast<int>(player->GetParty()->members[0].unitId);
         }
         (*result)->object = g_serverWorld.FindObject(unitId);
         return;

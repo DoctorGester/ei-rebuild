@@ -81,7 +81,7 @@ void UiModel::Draw(SceneRenderer* pass) {
 }
 
 void UiModel::Load(const char* name, const char* from, const char* to) {
-    auto* manager = g_clientWorld.MapObjectManager();
+    auto* manager = g_clientWorld.GetMapObjectManager();
     auto* newObject = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object = newObject;
     newObject->AddRef();

@@ -150,7 +150,7 @@ void Item::Load(ByteStream* stream) {
     stream->ReadValue(weight);
     stream->ReadValue(price);
     stream->ReadValue(unreadValue);
-    CSpellManager* spells = WorldContext()->SpellManager();
+    CSpellManager* spells = WorldContext()->GetSpellManager();
     std::int32_t objectId = 0;
     stream->ReadValue(objectId);
     CSpell* newSpell = objectId == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(objectId));

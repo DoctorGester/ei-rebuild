@@ -23,6 +23,6 @@ CParty* PartyForScript(CPlayer* player, std::string* name) {
         owner = str::Mid(*name, 0, split);
         *name = str::Mid(*name, split + 2, static_cast<int>(name->size()) - split - 2);
     }
-    if (str::Compare(owner, RecordList()->currentName) == 0) return player->Party();
+    if (str::Compare(owner, RecordList()->currentName) == 0) return player->GetParty();
     return (RecordList())->Find(owner);
 }

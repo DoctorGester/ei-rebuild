@@ -749,7 +749,7 @@ void UnitServer::Resettle() {
     if (unit->IsDead()) return;
     auto* world = ServerWorld();
     world->aiMap.sectorMap.Remove(unit);
-    unit->Object3D()->SetUpAnimatedFigure(unit->name);
+    unit->AsObject3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
     AIMap* map = &world->aiMap;

@@ -58,7 +58,7 @@ void CMapObject::DestroyMapObject() {
 void CUnit::Create() {
     CreateMapObject();
     Reset();
-    MapObject()->netState.SetFieldCount(kUnitNetFields);
+    AsMapObject()->netState.SetFieldCount(kUnitNetFields);
 }
 
 void TorchObject::Create() {

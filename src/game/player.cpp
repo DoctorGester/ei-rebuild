@@ -24,11 +24,11 @@ CPlayer::CPlayer() {
     partyId = 0;
     connection = nullptr;
     logTraffic = 0;
-    Party()->Create();
+    GetParty()->Create();
     recharging.clear();
     Clear();
-    Party()->Destroy();
-    Party()->Create();
+    GetParty()->Destroy();
+    GetParty()->Create();
     dirty = 0;
     playerId = -1;
     godMode = 0;
@@ -43,7 +43,7 @@ CPlayer::CPlayer() {
 
 CPlayer::~CPlayer() {
     DestroyPlayer();
-    Party()->Destroy();
+    GetParty()->Destroy();
     recharging.clear();
     items.clear();
     if (link != nullptr) link->Release();
@@ -68,8 +68,8 @@ void CPlayer::CreatePlayer() {
 void CPlayer::DestroyPlayer() {
     recharging.clear();
     Clear();
-    Party()->Destroy();
-    Party()->Create();
+    GetParty()->Destroy();
+    GetParty()->Create();
     dirty = 0;
     playerId = -1;
     godMode = 0;
@@ -171,7 +171,7 @@ void CPlayer::ForgetKnownObjects() {
 }
 
 bool CPlayer::IsLeader(const EngineObject* unit) {
-    const std::vector<PartyUnitRecord>& members = Party()->members;
+    const std::vector<PartyUnitRecord>& members = GetParty()->members;
     if (std::ssize(members) == 0 || unit == nullptr) return false;
     return static_cast<std::uint32_t>(unit->id) == members[0].unitId;
 }
@@ -238,7 +238,7 @@ void CPlayer::ItemUsed(EngineObject* item) {
 
 CParty* CPlayer::AssignParty(CParty* source) {
     recharging.clear();
-    return Party()->Assign(source);
+    return GetParty()->Assign(source);
 }
 
 void CPlayer::ReleaseTamedUnits() {

@@ -25,7 +25,7 @@ public:
     std::string name;           // "" for the unnamed record
     CParty party;               // destroyed before the name
 
-    CParty* Party() { return &party; }
+    CParty* GetParty() { return &party; }
 };
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.

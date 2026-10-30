@@ -26,7 +26,7 @@ void MapEffect::Save(ByteStream* stream) const {
 
 void CSpell::Load(ByteStream* stream) {
     std::memset(modifiers, 0, sizeof(modifiers));
-    MapEffect record = Effect();
+    MapEffect record = EffectRecord();
     record.Load(stream);
     SetEffect(record);
     stream->ReadValue(speed);
@@ -45,7 +45,7 @@ void CSpell::Load(ByteStream* stream) {
 }
 
 void CSpell::Save(ByteStream* stream) {
-    Effect().Save(stream);
+    EffectRecord().Save(stream);
     stream->WriteValue(speed);
     stream->WriteValue(range);
     stream->WriteValue(targetCount);

@@ -70,7 +70,7 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
             return;
         }
     }
-    player->Party()->variables.CopyPrefixed(prefix, out);
+    player->GetParty()->variables.CopyPrefixed(prefix, out);
 }
 
 void StoreStartFolder() {
@@ -191,7 +191,7 @@ void GameRejoin() {
 
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out) {
     CPlayer* player = g_clientWorld.LocalView()->player;
-    player->Party()->variables.CopyPrefixed(prefix, out);
+    player->GetParty()->variables.CopyPrefixed(prefix, out);
 }
 
 PlayerClient* GameLocalView() { return g_clientWorld.LocalView(); }

@@ -146,7 +146,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 void PartyRecord::Serialize(ChunkArchive* ar) {
     MemoryStream local;
     ar->StringField(1, &name);
-    CParty* p = Party();
+    CParty* p = GetParty();
     if (!ar->loading) {
         p->SaveParty(&local, 1);
         ar->StreamField(2, &local);
@@ -187,7 +187,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
     NamedFloatTable variables(party->variables);
     std::string zone = party->zone;
     for (PartyRecord* record : records) {
-        CParty* target = record->Party();
+        CParty* target = record->GetParty();
         target->variables = variables;
         target->zone = zone;
         target->entrance = party->entrance;

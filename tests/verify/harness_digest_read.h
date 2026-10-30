@@ -146,13 +146,13 @@ inline std::uint32_t TextHash(const std::string& text) { return TextHash(text.c_
 // (image/harness_digest_image.cpp).
 namespace exe_side {
 void Read(void* server, Snapshot& s);
-UnitNow Unit(void* server, int id);
+UnitNow UnitNowOf(void* server, int id);
 int LocalLeader(void* server, unsigned* money);
 void NoteAddresses(void* server);
 } // namespace exe_side
 namespace image_side {
 void Read(void* server, Snapshot& s);
-UnitNow Unit(void* server, int id);
+UnitNow UnitNowOf(void* server, int id);
 int LocalLeader(void* server, unsigned* money);
 void NoteAddresses(void* server);
 } // namespace image_side

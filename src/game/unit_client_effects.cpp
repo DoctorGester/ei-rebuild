@@ -188,13 +188,13 @@ void UnitClientSpecific::Wound() {
     source->alpha = kSparkAlpha;
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
-    auto* half = unit->Object3D()->ClientSpecific();
+    auto* half = unit->AsObject3D()->ClientSpecific();
     if (flashCountdown == 0) half->SetMaterialsLit(true);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 
 void UnitClientSpecific::Died() {
-    unit->MapObject()->ClientCompanion()->HideLight();
+    unit->AsMapObject()->ClientCompanion()->HideLight();
     std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
@@ -218,5 +218,5 @@ void UnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight.radius, false);
+    unit->AsMapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight.radius, false);
 }

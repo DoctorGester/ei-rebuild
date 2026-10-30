@@ -200,7 +200,7 @@ inline void SetPosition(TransformObject* object, const Vector3& position) {
 }
 
 // The fields of the spell prototype the casts read.
-inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->Spell()->GetPrototype(); }
+inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->HeldSpell()->GetPrototype(); }
 inline Vector3 PrototypeColor(SpellEffect* e) {
     Vector3 color;
     std::memcpy(&color, &Prototype(e)->extraValues[0], 12);
@@ -214,12 +214,12 @@ inline float PrototypeRange(SpellEffect* e) {
 
 inline float Power(SpellEffect* e) {
     float out;
-    PowerToFloat(&e->Spell()->damage, &Prototype(e)->damage, &out);
+    PowerToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, &out);
     return out;
 }
 inline float PowerScaled(SpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->Spell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
     return out;
 }
 
@@ -248,7 +248,7 @@ inline float LightRiseScaled(SpellEffect* e, const float& scale) {
 inline void HitAreaTargets(SpellEffect* e) {
     DamageInfo hit;
     e->GetDamage(&hit);
-    for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius)) {
+    for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
 }

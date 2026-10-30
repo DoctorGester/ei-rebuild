@@ -18,7 +18,7 @@ void LoadRef(Ref<T>& ref, ByteStream* stream, CWorld* world) {
         ref.Reset();
         return;
     }
-    auto* manager = world->MapObjectManager();
+    auto* manager = world->GetMapObjectManager();
     ref.Assign(manager->FindObjectAs<T>(static_cast<unsigned>(id)));
 }
 

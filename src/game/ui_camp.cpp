@@ -586,9 +586,9 @@ void CampPages::Draw(SceneRenderer* pass) {
 // --- what the constructors would make ------------------------------------------------------------
 
 bool CampPages::CanMakeSpell() {
-    CSpellConstructor* maker = spellResults->SpellConstructor();
+    CSpellConstructor* maker = spellResults->GetSpellConstructor();
     ItemManager* factory = spellResults->ItemFactory();
-    CSpellManager* manager = spellResults->SpellManager();
+    CSpellManager* manager = spellResults->GetSpellManager();
     const itemdb::SpellRecord* spell = nullptr;
     // The modifiers are kept in an 8-entry stack array (more would overwrite its
     // frame; CanEquip allows at most eight).
@@ -632,9 +632,9 @@ bool CampPages::CanMakeSpell() {
 }
 
 bool CampPages::CanMakeItem() {
-    CItemConstructor* maker = itemResults->ItemConstructor();
+    CItemConstructor* maker = itemResults->GetItemConstructor();
     ResourceManager* factory = itemResults->ItemFactory();
-    CSpellManager* manager = itemResults->SpellManager();
+    CSpellManager* manager = itemResults->GetSpellManager();
     itemdb::ItemRecordHead* part = nullptr;
     Ref<CSpell> spell;   // a copy of the container's spell, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;

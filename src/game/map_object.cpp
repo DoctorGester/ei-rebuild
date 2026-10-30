@@ -70,7 +70,7 @@ void CMapObject::MarkChanged(int part) {
     if (part >= 0) netState.mask = static_cast<std::uint16_t>(netState.mask | (1u << (part & 31)));
     flags |= MapObjectFlag::Changed;
     if (refCount == 0) return;
-    if (CWorld* world = World()) changeStamp = UpdateCount(world);
+    if (CWorld* world = OwningWorld()) changeStamp = UpdateCount(world);
 }
 
 bool CMapObject::HasEffect(SpellType spellType) {
@@ -100,7 +100,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
     flags |= MapObjectFlag::Changed;
     if (refCount != 0) {
-        if (CWorld* world = World()) changeStamp = UpdateCount(world);
+        if (CWorld* world = OwningWorld()) changeStamp = UpdateCount(world);
     }
     SpellType spellType = effect->Type();
     bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
@@ -119,7 +119,7 @@ void CMapObject::ClearEffects() {
     netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
     flags |= MapObjectFlag::Changed;
     if (refCount != 0) {
-        if (CWorld* world = World()) changeStamp = UpdateCount(world);
+        if (CWorld* world = OwningWorld()) changeStamp = UpdateCount(world);
     }
     ScaleEffectChanged(true);
     SetStunned(0);
@@ -161,7 +161,7 @@ void CMapObject::RecomputeScale() {
     netState.mask = static_cast<std::uint16_t>(netState.mask | 2);       // part 1
     flags |= MapObjectFlag::Changed;
     if (refCount == 0) return;
-    if (CWorld* world = World()) changeStamp = UpdateCount(world);
+    if (CWorld* world = OwningWorld()) changeStamp = UpdateCount(world);
 }
 
 void CMapObject::ResetScale() { scale = baseScale; }
@@ -180,7 +180,7 @@ float* CMapObject::GroundPoint(float* out) {
     float x = localPosition.x + bounds.center.x;    // each stored to a float local
     float y = localPosition.y + bounds.center.y;
     float z = localPosition.z + bounds.center.z;
-    double height = World()->GridHeightAt(x, y);
+    double height = OwningWorld()->GridHeightAt(x, y);
     out[0] = x;
     out[1] = y;
     out[2] = pc24::Add(height, z);
@@ -188,7 +188,7 @@ float* CMapObject::GroundPoint(float* out) {
 }
 
 void CMapObject::PlaceOnGround(float offset) {
-    double height = World()->GridHeightAt(localPosition.x, localPosition.y);
+    double height = OwningWorld()->GridHeightAt(localPosition.x, localPosition.y);
     localPosition.z = pc24::Add(height, offset);
 }
 

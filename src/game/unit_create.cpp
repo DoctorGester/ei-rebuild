@@ -171,7 +171,7 @@ void CUnit::Reset() {
     std::memset(spells, 0, sizeof(spells));
     carried.clear();
     altPassCosts = 0;
-    MapObject()->netState.Reset();
+    AsMapObject()->netState.Reset();
     fightAtWill = 1;
 }
 

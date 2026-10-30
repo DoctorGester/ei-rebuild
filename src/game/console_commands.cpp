@@ -79,7 +79,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
         if (ServerActive(server)) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding;
-            if (binding->Player()->host)
+            if (binding->PlayerInfo()->host)
                 ScreenOf(g_interface.GetActiveWindow())->PlayerList(windowMode);
             return;
         }
@@ -200,7 +200,7 @@ void ListVar(std::vector<std::string>* args) {
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
-    const NamedFloatTable& variables = player->Party()->variables;
+    const NamedFloatTable& variables = player->GetParty()->variables;
     for (auto& node : variables) {
         const std::string& name = node.first;
         EndLine(g_consoleOut << name << " = " << node.second);
@@ -279,15 +279,15 @@ void Give(std::vector<std::string>* args) {
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->size() > 2) {
         int amount = str::ToInt((*args)[2]);
-        player->Party()->money += amount;
+        player->GetParty()->money += amount;
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
-        int count = lib::Count(player->Party()->members);
+        int count = lib::Count(player->GetParty()->members);
         // The typed number over the count, rounded once to a float (the original's division at 24-bit precision).
         const float share = pc24::Div(str::ToDouble((*args)[2]), count);
         for (int i = 0; i < count; ++i)
-            player->Party()->members[i].stats.AddScaledExperience(share);
+            player->GetParty()->members[i].stats.AddScaledExperience(share);
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {

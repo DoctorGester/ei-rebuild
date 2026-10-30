@@ -89,7 +89,7 @@ float CUnit::BodyExtent() {
 }
 
 double CUnit::GroundHeight(float x, float y) {
-    auto* world = World();
+    auto* world = OwningWorld();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
     // The world's double plus a float: one rounding.
     if (controller->GetClassId() == ClassId::UnitServer) return pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);

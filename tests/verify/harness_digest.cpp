@@ -315,9 +315,9 @@ std::string Dump(const std::string& name) {
     return "";
 }
 
-UnitNow Unit(int id) {
+UnitNow UnitNowOf(int id) {
     if (!g_server || id < 0) return {};
-    return ei::Standalone() ? image_side::Unit(g_server, id) : exe_side::Unit(g_server, id);
+    return ei::Standalone() ? image_side::UnitNowOf(g_server, id) : exe_side::UnitNowOf(g_server, id);
 }
 
 int LocalLeader(unsigned* money) {

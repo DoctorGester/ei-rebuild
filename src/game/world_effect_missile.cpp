@@ -54,7 +54,7 @@ bool SnapshotReadToEnd() {
 
 int EffectMissile::Steer() {
     int flying = 1;
-    CWorld* world = World();
+    CWorld* world = OwningWorld();
     CMapObject* target = world->ObjectWithId(targetId);
     if (target == nullptr) {
         velocity = Vector3{0.0f, 0.0f, 0.0f};
@@ -171,7 +171,7 @@ int EffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster != 0) {
-        auto* caster = World()->FindUnit(casterId);
+        auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -260,7 +260,7 @@ bool EffectArrowFigure::RunTick() {
     localPosition.y = localPosition.y + velocity.y;
     localPosition.z = localPosition.z + velocity.z;
     if (!WorldContext()->IsServer()) MoveParts();
-    CWorld* world = World();
+    CWorld* world = OwningWorld();
     if (arrived != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
         CMapObject* target = world->ObjectWithId(targetId);
@@ -310,7 +310,7 @@ int EffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster != 0) {
-        auto* caster = World()->FindUnit(casterId);
+        auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
