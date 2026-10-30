@@ -6851,3 +6851,17 @@ group = "port"
 model = "opus"
 depends = ["PL10"]
 note = "User 2026-10-30: simplify the platform as much as possible after the review. Carry out build/reviews/pl10_platform.md's plan (one or two workers; File and TextFile become one; MFC-shaped flags and errors go; callers updated tree-wide by script), goldens unchanged unless the review shows an input quirk the goldens depend on (then ask)."
+
+[[ticket]]
+id = "PL9a"
+title = "Check SDL's input translation against the window-procedure path"
+group = "port"
+depends = ["PL9"]
+note = "PL9 left the harness's builds on Windows' window procedure, so no golden covers src/platform/sdl/platform_sdl.cpp's translation of SDL events into platform::Event (virtual-key codes and set-1 scan codes from SDL scancodes, the key flags, SystemKeyDown with Alt, the control characters TranslateMessage made, MK_ bits, double clicks from SDL's click count, the wheel at the screen position, Activate on focus / minimise / restore). Add an offline check (a small exe like ei_ui_check, or a play-time log switch): post the same WM_KEYDOWN / WM_CHAR / mouse messages to an SDL window and to a plain window procedure, translate both, compare the Events (US, Russian and AZERTY layouts; Num Lock on and off; AltGr). Also by hand: full screen (CoverMonitor) on a second monitor, Alt+Tab and restore from the task bar (the game minimises itself on deactivation), typing Cyrillic in a save name, the console key, Ctrl+C / V in the console. Fix what differs, or note it in docs/notes/platform.md."
+
+[[ticket]]
+id = "PL9b"
+title = "Platform remainder for a non-Windows port: paths, key names, keyboard layout, one-instance check"
+group = "port"
+depends = ["PL9"]
+note = "After PL9 these stay Windows in every build because SDL3 has no equivalent with the same results (docs/notes/platform.md, 'SDL3 and the harness'): ProgramPath / ExePath / UserDataFolder / SetCurrentFolder (SDL's pref path is roaming and creates its folder; its base path is the folder, not the file), KeyName (GetKeyNameText in the layout's language), ActivateKeyboardLayout, IsLetter (IsCharAlphaW), FindClassWindow / WindowProcess / BringToFront (the one-instance check by window class), DebugOutput, the files, .ini files and sockets on game.exe's slots. For a Linux / macOS port each needs a plain C++ or POSIX version (std::filesystem paths, XDG data folder, our own key-name table, a lock file for one instance, BSD sockets as platform::net already mirrors). Plan only when a port is scheduled."

@@ -12,7 +12,7 @@ rem   x64                the 64-bit build (build.cmd play-x64, into build\play-x
 rem                      folder run\play-x64 (its own ei_settings.ini and log), on the same data and the same profile; the
 rem                      combination is free (play.cmd vanilla x64). No ei_launch (it is 32-bit): the exe is started
 rem                      here with EI_GAME_ROOT set to the data folder, as ei_launch does (docs/notes/standalone.md "The
-rem                      x64 build"). Sound plays (miniaudio); movies stay black until A2.
+rem                      x64 build").
 rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults

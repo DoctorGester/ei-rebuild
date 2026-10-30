@@ -37,6 +37,18 @@ string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO
 # ei_launch starts the x64 image (run_all.py --x64).
 option(EI_HARNESS "Build the harness: linked into ei-rebuild.exe, and ei_harness.dll for game.exe" OFF)
 
+# SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
+# the message box, the clocks and the threads of the builds without the harness (src/platform/sdl), and the sound
+# device of every build (src/platform/audio_sdl.cpp). Linked statically, so the exe stays one file dropped into a game
+# folder (S23), with only the subsystems those use. Added before the game's compile options: its warnings are its own.
+foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_GPU SDL_RENDER SDL_CAMERA
+            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGL SDL_OPENGLES SDL_VULKAN
+            SDL_OFFSCREEN SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
+    set(${off} OFF CACHE BOOL "" FORCE)
+endforeach()
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
+
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
 # network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
 set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
@@ -73,13 +85,23 @@ if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
-# The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h),
-# implemented for Windows in src/platform/win32 (with game.exe's imports, gameapi.h), the one place of the game's code
-# that includes <windows.h>; the sound on miniaudio (third_party/miniaudio) in src/platform/audio_miniaudio.cpp; the
-# movies on the Bink decoder in src/platform/bink.
+# The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
+# window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
+# (src/platform/sdl), or in the harness's builds on Windows' window procedure and game.exe's import slots, which the
+# harness drives (src/platform/win32/platform_win32_window.cpp); the rest on Windows (src/platform/win32, with game.exe's
+# imports, gameapi.h), the one place of the game's code that includes <windows.h>; the sound on SDL3's audio device
+# with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp)
+if(EI_HARNESS)
+    list(APPEND EI_PLATFORM_SOURCES src/platform/win32/platform_win32_window.cpp)
+else()
+    file(GLOB EI_PLATFORM_SDL_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp)
+    list(APPEND EI_PLATFORM_SOURCES ${EI_PLATFORM_SDL_SOURCES})
+endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
+target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
 # SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
 # render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
@@ -140,7 +162,7 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
-foreach(part fonts/README.txt fonts/LICENSE miniaudio/README.txt miniaudio/LICENSE sokol/README.txt sokol/LICENSE
+foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE sokol/README.txt sokol/LICENSE
              stb/README.txt)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")

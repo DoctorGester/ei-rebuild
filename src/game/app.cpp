@@ -118,7 +118,7 @@ const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 std::intptr_t HandleWindowEvent(const platform::Event& event) {
     switch (event.type) {
     case EventType::Paint:
-        platform::MarkPainted(event.native.window);
+        platform::MarkPainted(event.window);
         return 1;
     case EventType::Destroy:
         if (g_quitAllowed != 0) platform::PostQuit(0);

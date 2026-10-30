@@ -25,8 +25,10 @@ test suite plays out exactly as on the original: the same world state and the sa
 - **Widescreen** at any resolution, with the interface scaled to the window.
 - **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
 - **A new interface layer** drawn by the renderer, with sharp text at any size.
-- **New sound and video code:** sound plays through miniaudio, caves get their reverb back, and the game's Bink movies
-  play through its own decoder.
+- **New sound and video code:** sound plays through SDL3 with our own mixer, caves get their reverb back, and the game's
+  Bink movies play through its own decoder.
+- **SDL3 for the window and input:** the window, keyboard, mouse, clipboard and sound device run on SDL3, linked into
+  the exe.
 - **Unicode throughout.** Names and text are UTF-8 inside the game; saves and the network stay in the original's
   encoding.
 
