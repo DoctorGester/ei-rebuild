@@ -10,7 +10,6 @@
 #include "party_storage.h"
 #include "lib/bytes.h"
 #include "lib/in_place.h"
-#include "game_data.h"
 #include "net_coder.h"
 
 #include <cstddef>

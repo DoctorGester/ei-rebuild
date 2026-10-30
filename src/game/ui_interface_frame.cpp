@@ -19,7 +19,6 @@
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

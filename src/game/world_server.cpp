@@ -18,7 +18,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/rounding.h"
-#include "game_data.h"
 #include "player_manager.h"
 
 #include <string>

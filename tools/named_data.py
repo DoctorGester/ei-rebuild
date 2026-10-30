@@ -835,7 +835,7 @@ def emit(img, img_path, address, type_, shape, name):
 
 READS = re.compile(r'(?:\bei::)?\b(GamePointer|GameData)\s*<\s*([^<>()]*?)\s*>\s*\(\s*(?:(?:ei::)?DataId\s*\(\s*)?'
                    r'0[xX]00([0-9A-Fa-f]{6})\s*\)?\s*\)')
-IDS = re.compile(r'(?:\bei::)?\b(DataId|GameAddress|OriginalGameData)\s*(?:<[^<>()]*>)?\s*\(\s*0[xX]00([0-9A-Fa-f]{6})\s*\)')
+IDS = re.compile(r'(?:\bei::)?\b(DataId|OriginalGameData)\s*(?:<[^<>()]*>)?\s*\(\s*0[xX]00([0-9A-Fa-f]{6})\s*\)')
 ADDRESS = re.compile(r'0[xX]00([0-9A-Fa-f]{6})\b')
 
 

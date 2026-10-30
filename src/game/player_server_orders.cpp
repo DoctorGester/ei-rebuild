@@ -15,7 +15,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <bit>

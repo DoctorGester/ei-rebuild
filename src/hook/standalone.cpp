@@ -3,7 +3,6 @@
 // run's kind, the code addresses as the log names them, and the image's failure reports' handler.
 #include "ei/hook.h"
 #include "log.h"
-#include "game/game_data.h"
 
 #include <windows.h>
 

@@ -9,7 +9,6 @@
 #include "../../src/game/script.h"
 
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <cstdio>
 #include <cstring>

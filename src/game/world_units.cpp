@@ -44,7 +44,6 @@
 #include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
-#include "game_data.h"
 #include "lib/str.h"
 #include "lib/float_select.h"
 

@@ -18,7 +18,6 @@
 #include "engine_object.h"
 #include "combat.h"
 #include "unit.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

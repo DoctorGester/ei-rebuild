@@ -8,7 +8,6 @@
 #include <windowsx.h>
 
 #include "../../src/hook/log.h"
-#include "game/game_data.h"
 
 #include <atomic>
 #include <cstdint>

@@ -1,7 +1,0 @@
-# The data seam (tools/data_seam.py, S18): raw uses of game.exe's data per file and section, which
-# may only go down; a "*sealed*" line marks a section that must have none.
-file,section,raw
-*sealed*,bss,0
-*sealed*,data,0
-*sealed*,iat,0
-*sealed*,rdata,0

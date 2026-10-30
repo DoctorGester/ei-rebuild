@@ -22,7 +22,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstddef>

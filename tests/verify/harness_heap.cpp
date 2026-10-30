@@ -4,7 +4,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
+#include "harness_original.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -19,8 +19,8 @@ namespace ei::verify::heap {
 
 namespace {
 
-// The CRT's heap handle (_crtheap), set by _heap_init (006F54E6).
-HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
+// game.exe's CRT heap handle (_crtheap), set by _heap_init (006F54E6); the image has none.
+HANDLE CrtHeap() { return ei::Standalone() ? nullptr : ei::OriginalGameData<HANDLE>(0x007CAF08); }
 
 decltype(&::HeapCreate) g_heapCreate;
 decltype(&::HeapDestroy) g_heapDestroy;

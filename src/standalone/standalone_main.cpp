@@ -1,12 +1,11 @@
 // The standalone image's start-up (docs/notes/standalone.md section 2), called by the exe's main (host.cpp): what
 // both runs of the harness use is in src/hook/standalone.cpp. The exe reads no game.exe; its static initialisation has
-// entered the game folder and put .rdata, .data and the import slots in its own storage (image_data.cpp,
-// image_imports.cpp); here the start-up actions run, then the static initialisers and WinMain (app::GameMain).
+// entered the game folder and resolved game.exe's imports into a table of its own (image_imports.cpp); here the
+// start-up actions run, then the static initialisers and WinMain (app::GameMain).
 #include "ei/hook.h"
 #include "hook/log.h"
 #include "game/app.h"
 #include "standalone/static_init.h"
-#include "game/game_data.h"
 #include "game/settings_file.h"
 #include "lib/crt.h"
 #include "render/render.h"
@@ -27,7 +26,7 @@ int ImageImportsMissing();   // standalone/image_imports.cpp
 // A code address as the log names it (standalone.cpp).
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 
-// A failure of the image (no code at an address, a use of moved data): logged, and handed to the
+// A failure of the image (no code at an address, an import that did not resolve): logged, and handed to the
 // harness's handler (its report) before the process ends.
 void ReportImageFailure(const char* what);
 
@@ -163,7 +162,7 @@ void RedirectSettingsPaths() {
 // game.exe's DLL imports (image_imports.cpp) are found there. ei_launch starts the exe in the data folder it names
 // (EI_GAME_ROOT); otherwise the exe is the drop-in one in the game folder, started from anywhere (a shortcut's
 // "Start in", a shell in another folder): its own folder. Runs first in the image's static initialisation
-// (image_data.cpp's mover).
+// (image_imports.cpp).
 void EnterGameFolder() {
     if (GetEnvironmentVariableA("EI_GAME_ROOT", nullptr, 0) != 0) return;
     char self[MAX_PATH];

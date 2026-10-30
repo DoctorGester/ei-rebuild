@@ -2,7 +2,6 @@
 #include "camera.h"
 #include "core_maths.h"
 #include "effects.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "hash_tables_400.h"

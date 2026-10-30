@@ -6,7 +6,6 @@
 #include "console.h"
 #include "core_streams.h"
 #include "ei/rebirth.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "lib/crt.h"

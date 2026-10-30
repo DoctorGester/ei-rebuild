@@ -9,7 +9,6 @@
 #include "console.h"
 #include "core_refcount.h"
 #include "ei/rebirth.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"

@@ -2,7 +2,6 @@
 // the host CRT's atof (C26): the count and every byte written, the bits of atof's result.
 #include "crt_format_vectors.h"
 
-#include "game/game_data.h"
 #include "lib/crt.h"
 
 #include <cstdio>

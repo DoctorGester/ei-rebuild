@@ -13,7 +13,6 @@
 #include "ei/hook.h"
 #include "image/image_side.h"
 
-#include "../../src/game/game_data.h"
 
 #include <cstdint>
 #include <cstring>

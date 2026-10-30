@@ -3,7 +3,6 @@
 // More: docs/notes/comments-c22i.md, "map_database.cpp".
 #include "angles.h"
 #include "console.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "text_manager.h"

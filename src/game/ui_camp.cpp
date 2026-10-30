@@ -25,7 +25,6 @@
 #include <cstdint>
 #include <string>
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "ui_cursor.h"
 #include "lib/nan_audit.h"

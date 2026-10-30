@@ -17,7 +17,6 @@
 #include "ui_cursor.h"
 #include "ini_file.h"
 #include "bink_video.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdio>

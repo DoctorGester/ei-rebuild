@@ -14,7 +14,6 @@
 #include "../../src/game/unit_db.h"
 
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <cstring>
 

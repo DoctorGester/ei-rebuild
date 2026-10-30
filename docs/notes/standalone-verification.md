@@ -404,7 +404,7 @@ happen (the harness logs "share id" if one does).
 - **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
 - **The reference cache** keys on the scenario commit, the install and the harness (H30, H30b; run_all.py
   `harness_files`: tests/verify (not tests/verify/image), src/hook but the image's start-up (`HARNESS_IMAGE_ONLY`,
-  hook/standalone_main.cpp), the launcher, config/harness, `HARNESS_SHARED` (rebirth.cpp, image_data.cpp), the vector
+  hook/standalone_main.cpp), the launcher, config/harness, `HARNESS_SHARED` (rebirth.cpp), the vector
   recorders only in `EI_VECTORS=1` runs, and every header they include). In game.exe the harness runs no game code of
   ours: it calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`; a call both sides make is
   `ei::Standalone() ? image::X(...) : OriginalCode<F>(address)(...)`, C20h) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member

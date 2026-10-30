@@ -2,7 +2,6 @@
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "console.h"
 #include "core_streams.h"
-#include "game_data.h"
 #include "game_strings.h"
 #include "net_classes.h"
 #include "net_coder.h"

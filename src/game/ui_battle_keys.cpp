@@ -21,7 +21,6 @@
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/win_user.h"
 

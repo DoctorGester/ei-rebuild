@@ -11,7 +11,6 @@
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "world.h"
 

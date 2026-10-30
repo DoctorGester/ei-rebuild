@@ -27,7 +27,6 @@
 #include <string>
 #include "lib/text_case.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "figure_manager.h"
 #include "lib/str.h"

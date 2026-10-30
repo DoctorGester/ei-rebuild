@@ -9,7 +9,6 @@
 #include "ui_item_info.h"
 #include "net_classes.h"
 
-#include "game_data.h"
 #include "resource.h"
 
 #include <cstddef>

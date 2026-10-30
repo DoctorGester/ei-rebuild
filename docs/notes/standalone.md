@@ -41,12 +41,8 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (S18k: relocatable, ASLR as any exe; it may load anywhere, game.exe's range included) that reads no game.exe and
   reserves nothing of game.exe's range (C48 removed the reservation, its guard log and the fixed base: with no raw game
   address left, the guard was a safety net only). A stray game address faults when the memory is free and is named by
-  the image: OnOldCode (the code section) and OnOldData (.rdata / .data) with the detailed reports. The seam itself
-  never hands out such an address: in the image `GameAddress` of a game address outside the moved range (headers, code,
-  .rsrc) is `StrayGameAddress`'s report (`the data seam was asked for game.exe's code at ...`); a game address is
-  itself only in game.exe, an address outside game.exe's range (a resolved pointer, null) is itself in both. A raw
-  access to the headers or .rsrc has no report of its own (only the seam names those): it ends in the unhandled-exception
-  log line. Where the loader put memory in the range (the host, a heap, a DLL), an access finds that memory and
+  the image: OnOldCode (the code section) with the detailed report. The image has nothing of game.exe's data (C20u),
+  so an access to its range has no report of its own: it ends in the unhandled-exception log line. Where the loader put memory in the range (the host, a heap, a DLL), an access finds that memory and
   does not fault. `ei::Standalone()` is
   "the main module exports `EiStandaloneHost`" (the exe's marker; game.exe, where ei_harness.dll runs, exports nothing).
   **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
@@ -90,66 +86,28 @@ copy or compare the text, none compares the pointer). Keep a string by address o
 
 The image ran on game.exe's sections at their addresses. S18 moves them out one section at a time,
 each step green on the goldens and removing a measured tie:
-- **The seam** (S18a, src/game/game_data.h): code names game data by the original's address and reaches it
-  only through `ei::GameAddress(a)`, `GameData<T>(a)` or `GamePointer<T>(a)`; `DataId(a)` marks an address
-  kept in a table, resolved by its reader. In game.exe (the original's runs: the harness and the vector
-  recorders share this code) it is the address; in the image a moved section's addresses map to our
-  storage, so the layout inside a section (arrays running into neighbours) stays. The generated static
-  initialisers name every object they touch (plain calls, no data address; gen_static_init stops at a statement that
-  would have one).
-- **The check** (`python tools/data_seam.py`, build.cmd): per section the uses through the seam, through a
-  helper whose every definition hands its address to the seam (per-file `GameFloat(std::uintptr_t)`), a
-  constant whose every use does, and raw. config/data_seam.csv holds the raw count per
-  file and section (only down; `--update`) and the sealed sections (none raw). `--list <section>` shows the
-  raw uses, `--apply <section>` rewrites the casts it can (`*reinterpret_cast<T*>(0x...)`, the helpers'
-  casts, constants used in casts).
-- **Moving a section**: our storage (the low 16 bits of each address kept), GameAddress's shift set before
-  any static constructor, the pointer cells of the remaining image data that point into it fixed up (none left
-  since C20t), and nothing at the old range
-  (free memory faults; PAGE_NOACCESS before S18k, the host's reservation until C48), so a use that missed the seam faults with its address. A moved section's bytes are zero (C20t).
+- **The seam** (S18a, src/game/game_data.h): code that reads game.exe's own data (the harness and the vector recorders
+  in game.exe's runs) names it by the original's address and reaches it only through `GameData<T>(a)` or
+  `GamePointer<T>(a)` (the harness's tests/verify: `OriginalGameData`); `DataId(a)` marks an address kept in a table,
+  resolved by its reader. In game.exe it is the address; ei_vectors.exe (EI_VECTORS_REPLAY) hands a stand-in its checks
+  fill (tests/vectors/replay_game_data.cpp). The image has none of game.exe's data and src/ names no address of it
+  (the dashboard's "game data addresses": 0 since C20u).
+- **The check** (`python tools/data_seam.py`, build.cmd): every literal of game.exe's data range in src/, tests/ and
+  include/ is a seam argument, a helper's whose every definition hands its address to the seam, or a constant whose
+  every use does; a raw use fails (every section sealed since S18g, so there is no baseline file). `--list <section>`
+  shows the raw uses.
+- **Moved, then deleted** (S18b, S18d, S18h; C20t, C20u): the image kept game.exe's .rdata and .data (0073B000-007CD000)
+  in its own storage at one shift, `g_dataShift`, which the seam added (`GameAddress`), with the old range guarded
+  (OnOldData). C20t made the storage all zero (no pointer cells: nothing of ours read them; RTTI, EH, the old CRT's
+  and MFC's tables were game.exe's own code's), so only the import slots at its start were read; C20u gave them a
+  table of their own and deleted the storage, the shift, the guard and the section bounds. **Every 1.06 game.exe has
+  the same .rdata, .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under
+  F:\games: vanilla's and Rebirth's differ in one .text byte only, S18e3).
 - **.data sealed** (S18c): every use of 00783000-0079BF70 goes through the seam (tables of ids kept as `DataId`,
   read with `GamePointer` / `GameData`; the addon-site table's .data entries are ids too, generated by
-  tools/rebirth/make_addon_sites.py); `data` is sealed in config/data_seam.csv, so a new raw use fails build.cmd.
-- **.data and .rdata moved** (S18b the .bss, S18d the whole .data, S18h .rdata; src/standalone/image_data.cpp): the
-  moved range is game_data.h's `kMovedBegin`-`kMovedEnd`, 0073B000-007CD000: .rdata (the import address table at its
-  start, S18f) and .data (its initialised bytes and the zero-filled tail) as one range with one shift,
-  `ei::g_dataShift` (0 in game.exe); `GameAddress` is one range check. Both ends are page boundaries: .text ends
-  at 0073A670 inside the page below 0073B000, .rsrc starts at 007CD000, so the guard is exactly the sections' pages
-  and no strip is left unguarded (S18b's .bss-only move left 0079BF70-0079BFFF to the seal, as that page also held
-  .data's initialised end). Nothing runs across either end, and nothing inside the range can run across a
-  boundary any more (the key bindings' action table 0079BF70, 0x200 bytes, runs across the file's raw end
-  0079C000: S18b's move from 0079C000 split it and the guard caught LoadKeyBindings' memset; .rdata's end 007828B2
-  and .data's start have one shift since S18h). `g_dataStorage` in the exe is used from the address whose low
-  16 bits are 0xB000;
-  the shift is set by an `init_seg(compiler)` object, before every other static constructor of the DLL (the
-  harness's and the game globals' `GameData` references bind at static init). Nothing reads or writes the range
-  before it: the host lays out only the headers, the loader and the DLL's CRT start-up touch no game data;
-  the old range holds nothing of ours.
-  **The bytes**: all zero (C20t). The host copies neither section (it skips RVAs 0033B000 and 00383000), the build
-  writes none and image_data.cpp copies none: the storage is a zero array, whose import slots at its start the image
-  fills itself (image_imports.cpp). **Every 1.06 game.exe has the same .rdata, .data and .rsrc** (checked 2026-10-21 on
-  run\vanilla, run\rebirth and the five copies under F:\games: vanilla's and Rebirth's differ in one .text byte
-  only, S18e3).
-  **No pointer cells** (C20t): game.exe has no relocations, so the image fixed up the aligned dwords of its .rdata /
-  .data that point into the range, found by a scan (1243 after C18, 801 before C20t: RTTI and C++ EH of the
-  original's classes and libraries, the old CRT's locale / time / error / heap / lock tables, MFC's maps and CString's
-  empty string; the scan, tools/gen_image_cells.py, reviewed each group and went with the cells). Only game.exe's own
-  code read them: its CRT and MFC, its typeid / dynamic_cast, CxxThrowException with its own ThrowInfo and
-  __CxxFrameHandler on its own frames. None of it runs in the image; our classes and throws carry the compiler's RTTI
-  and EH data (the harness's crash report reads the exception record's ThrowInfo: ours), and src/ names no address of
-  the moved range but its bounds and the import table (tests/verify: harness_heap's `_crtheap` in the zero tail, the
-  rest `OriginalGameData`, game.exe's runs only). So the image reads nothing of the range but its import slots.
-  **What keeps the range** (H33f): the import slots (kImportsBegin-kImportsEnd, lib/import_table.h's `Imports()`)
-  still sit at its start, so the storage, `g_dataShift`, GameAddress's range check and OnOldData's guard stay until
-  the slots become a table of their own.
-  **The guard**: nothing at the old range (free memory, "Host and image"): a use that missed the seam ends the run with
-  `standalone: read|write of game.exe's .rdata|.data at <data> by <code>: ...` (in the import table:
-  `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei-rebuild.log, on stderr and in the
-  harness's report (`OnOldData`; resolve the code address with the map, as for an INT3 hit). ei_vectors.exe's
-  `GameAddress` stays the address.
-  **Addresses read back from objects** (a vtable, a string pointer) are the storage's in the image: the harness
-  prints them as the original's with `ei::OriginalAddress` (game_data.h; DescribeTopWindow, harness_digest's
-  missile vtable).
+  tools/rebirth/make_addon_sites.py).
+- **Addresses read back from objects** (a vtable, a string pointer) are the image's own: the compiler's vtables, our
+  strings.
 - **Code** (C20 batch 6): nothing of ours stands at a game.exe code address. Our code calls every function by
   name: the static initialisers (static_init.h), the handler tables, callbacks and factories (`&Fn`), WinMain
   (`app::GameMain`); the CRT's takers of function pointers (atexit, qsort, the eh vector iterators, ostream's
@@ -165,17 +123,17 @@ each step green on the goldens and removing a measured tie:
   game.exe's own CRT (the host CRT's in the image, C26), and no code throws with game.exe's ThrowInfo
   (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with the compiler-made vtables, the EH
   funclets with C20a. A stray call through one would be a call of null. The launch-free check (`--check`): the routes and imports are checked. Stack scans of the harness and the profiler skip the game's code range in the image.
-- **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
-  `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
-  the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
-  unused until S18h), so `GameAddress` maps two ranges with one `g_dataShift`. `tools/gen_iat.py` writes the table
+- **Own import table** (S18f, C20u, src/standalone/image_imports.cpp): game.exe's import address table (0x820 bytes,
+  .rdata's start) is an ordinary table of the image's (`g_table` in image_imports.cpp); `ei::Imports()`
+  (lib/import_table.h) is that table in the image and game.exe's own (its IAT directory, src/hook/original_data.cpp)
+  in game.exe. `tools/gen_iat.py` writes the table
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
-  `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
+  `ei::Imports()` the table calls go through), the image's list (src/standalone/image_imports.inc, 504 imports:
   ImportTable member, DLL, function or ordinal; the unreached ones too, so that a trap or a read of an old slot
   names its import) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
-  Right after the move (same init_seg(compiler) object, before the harness's static
-  constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
+  At static initialisation (image_imports.cpp's init_seg(compiler) object, after EnterGameFolder, before the
+  harness's static constructor takes its slots) `ResolveImports` loads each DLL (the working directory, else System32;
   game.exe's folder came first until S18k) and fills our reached slots (S22, below);
   a text call's slot gets its UTF-8 version there (`text::SystemRoute`; the command-line, resource, module and
   DirectInput wrappers are gone: S18j, S22). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
@@ -188,8 +146,7 @@ each step green on the goldens and removing a measured tie:
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
   heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
   `PatchOriginalImport` / `TraceOriginalSlot` (S22b, S22c) for game.exe's runs only (do nothing in the image);
-  only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
-  data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` was sealed in S18f (76 raw uses -> 0).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
@@ -199,7 +156,7 @@ each step green on the goldens and removing a measured tie:
   ones are references to the slot (40), and so are the called ones of import_prototypes.h (69: Miles, Bink,
   Winsock; no import library), their `using`s copied from it in its order: `extern decltype(&::X)& X;` /
   `extern ei::import_fn::X& X;`, bound once in gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the
-  move, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
+  table is resolved, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
   of ~140 objects); the other 57 are `using ::X;`, the Windows function through the exe's own imports
   (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/lib/win_api.h, as the SDK
   declares them (C linkage, dllimport, WINAPI) over lib/win_types.h with the structures they point to by tag
@@ -226,8 +183,7 @@ each step green on the goldens and removing a measured tie:
   export, loaded by input_mouse.cpp (S22b: the SDK has no import library of DirectInput 7's dinput.dll, and a static
   import would take Rebirth's proxy dinput.dll beside the exe, which loads addon.dll). The table is still needed as it is:
   the harness patches it and those families call through it; the slots of the direct functions are traps (S22).
-  **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
-  import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
+  **game.exe's own table** is not there (the image has nothing of game.exe); a slot of ours whose import did not resolve leads to a
   trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image has no .text (S18i,
   S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
@@ -236,7 +192,7 @@ each step green on the goldens and removing a measured tie:
   **Only the reached slots resolve** (S22): gen_iat.py's `reached()` finds every slot a call of ours can go through,
   by its member (C18 left no other way): `ImportTable::X` (the harness's routes and its own calls, the static
   initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (an `extern ...&`); comments
-  are left out. image_imports.inc's last field says so; `ResolveImageImports` resolves those, leaves every other slot
+  are left out. image_imports.inc's last field says so; `ResolveImports` resolves those, leaves every other slot
   a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
   A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
   a trap that fires anyway names its import and says so. The harness's ones count (the release image resolves them
@@ -292,7 +248,7 @@ each step green on the goldens and removing a measured tie:
   agree (single operations of floats round the same through 53 bits; the three chains give 40 and 30 exactly). The `d.Log` of a
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
-- **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
+- **.rdata sealed** (S18g; raw 365 -> 0): every use of 0073B820-00783000 reaches the
   seam. **Vtables**: no class of ours stores game.exe's table ("Compiler-made vtables" below). **Other tables**: unit_hits' armour
   rows through `ArmourTable` (GamePointer), ui_widescreen's two layout floats (addon.dll writes them) through Read/WriteFloat,
   the addon-site table's .rdata entries as `DataId` (make_addon_sites.py, from 0073B000 to .data's end). cover.cpp's code bound
@@ -732,7 +688,7 @@ kinds given.
       reads game.exe's copy). Gone as unread (C50d2): the system information CSysInfo 007AB8F8 (it collected the
       machine's version, memory and names; with it the CPUID report 007CAED0 and four pi constants), the device lock
       007AEE78 (only game.exe's DirectDraw device took it). A plain global's constructor may call gameapi: the exe's
-      import slots are resolved by the data move (image_data.cpp, `init_seg(compiler)`) before every other static
+      import slots are resolved by image_imports.cpp (`init_seg(compiler)`) before every other static
       constructor, and in game.exe the remote LoadLibraryW thread runs the loader's process start (game.exe's imports)
       before the DLL's. The streambufs are built when the DLL loads and destroyed after every exit function of the
       game's list (the runtime runs the DLL's atexit table backwards), so a line logged by a later exit function (the
@@ -814,9 +770,8 @@ kinds given.
       the pointer. The only data cells that point at it are the units' model folders 0078F7EC / 0078F824, a table only
       the dead 00532650 reads (zero in the image). The seams that took an address and had no address caller left went with it:
       `game::Text` and the camera's and the transform maths' `GameFloat(std::uintptr_t)`.
-    - **Left**: the section bounds in game_data.h and image_data.cpp (0073B000, 0073B820, 00783000, 007CD000, 007D7000):
-      the address image's layout, not data. They go when the image no longer keeps game.exe's sections at their
-      addresses (the generated static initialisers, image cells and import slots still reach the range by address).
+    - **Left**: none. The section bounds (0073B000, 0073B820, 00783000, 007CD000, 007D7000) went with the moved
+      block (C20u).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)
@@ -962,7 +917,7 @@ game, the `--no-hooks` suite) keeps the registry.
   memory and writes nothing, options saves included. The read shares read, write and delete, so an editor or sync
   tool holding the file open does not stop it.
 - **The game folder (S24b, S23)**: the exe's static initialisation (EnterGameFolder, standalone_main.cpp, from
-  image_data.cpp's mover) makes the exe's folder the working directory when EI_GAME_ROOT is not set (ei_launch sets it
+  image_imports.cpp's resolver) makes the exe's folder the working directory when EI_GAME_ROOT is not set (ei_launch sets it
   and starts the exe in that data folder), before game.exe's imports load: the
   game's relative paths (Work path and CD-ROM Path `.\`, Resources path `.\res\`, saves, mods) and the image's DLL
   imports (image_imports.cpp LoadImport: mss32.dll, binkw32.dll from the working directory) are the exe's folder's
@@ -1608,7 +1563,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   folder" below), `--run` (the exe runs the game by default; `--check` only checks), a console (a windowed program
   whose entry is main; under ei_launch its output still goes to the pipe ei_launch hands it).
 - **The game folder**: the exe's static initialisation enters its own folder first (EnterGameFolder from
-  image_data.cpp's mover, before the imports load), unless EI_GAME_ROOT names a data folder (ei_launch: the harness,
+  image_imports.cpp's resolver, before the imports load), unless EI_GAME_ROOT names a data folder (ei_launch: the harness,
   play.cmd).
 - **The Rebirth profile** (src/standalone/startup.cpp): `ei_rebirth.ini` beside the exe when there is one; without it,
   an exe in its game folder (no EI_GAME_ROOT) picks the profile from the folder's files: Rebirth's where
@@ -1704,43 +1659,23 @@ Moved from the files' headers.
 ei-rebuild: the rebuilt game without game.exe (docs/notes/standalone.md section 2), main's file. An ordinary
 exe with the whole game linked in: it neither reads game.exe nor lays out anything at game.exe's addresses. The
 game's hInstance is this module, whose one resource is its version information (host.rc; the game's strings are
-literals in our code, no icon yet); its static initialisation enters the game folder, keeps game.exe's .rdata and
-.data in its own storage with bytes from the build (src/standalone/image_data.cpp) and resolves game.exe's imports
-into a table of its own (image_imports.cpp); main reads `--check` and the game's arguments and calls StandaloneMain
-(standalone_main.cpp): the start-up actions, the static initialisers and WinMain (app::GameMain). A stray game address (a jump into game.exe's code, a read of its data that missed the seam) faults when the memory is free and is named instead of reaching other memory.
-
-### image_data.cpp
-
-game.exe's .rdata and .data in the image's own storage (docs/notes/standalone.md, "Own data"). In the standalone
-image both sections (kMovedBegin-kMovedEnd: .rdata with the import address table at its start, .data with its
-zero-filled tail, the .bss) are kept in g_dataStorage instead of at their addresses: the data seam (game_data.h)
-adds g_dataShift to each of their addresses. The storage is all zero (no pointer cells or initial bytes since C20t:
-nothing of ours reads the range but its import slots). Nothing is at the old range, so a use that missed the seam
-faults and is named with its data address and code address (OnOldData); a game address outside the range asked of
-the seam is named too (StrayGameAddress). game.exe's
-runs have none of it: ei_harness.dll's shift is 0 (src/hook/original_data.cpp). The import slots at the storage's
-start are ours, resolved right after the placing (PlaceData; image_imports.cpp), which the game folder's
-entry (EnterGameFolder) comes before. The placing runs before every other static constructor of the exe
-(init_seg(compiler)): the harness and the game's globals bind references to game data at static initialisation, and
-the harness takes import slots there.
+literals in our code, no icon yet); its static initialisation enters the game folder and resolves game.exe's
+imports into a table of its own (image_imports.cpp); main reads `--check` and the game's arguments and calls StandaloneMain
+(standalone_main.cpp): the start-up actions, the static initialisers and WinMain (app::GameMain). A jump into game.exe's code faults when the memory is free and is named (OnOldCode) instead of reaching other memory.
 
 ### image_imports.cpp
 
-game.exe's imports in the image's storage (docs/notes/standalone.md, "Own data"). The image's import slots are a
-table of ours: every slot of game.exe's import address table (image_imports.inc, written by tools/gen_iat.py from
-game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here into the storage at the
-data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that calls through a
-slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink, Winsock, the static initialisers'
-Import; the harness's slot routes by address) reaches our table. Only the slots a call of ours reaches resolve
-(image_imports.inc's last field, gen_iat.py's reached(), S22); the rest stay traps and a DLL with none of them does
-not load. A text call's slot takes its UTF-8 version (text::SystemRoute); the resource and module imports take the
-exe's module as it is. Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image
-runs none of game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's
-import and its code address (OnOldData, DescribeImportSlot). A slot of ours that no call was found to reach or
-whose import did not resolve leads to a trap until the run ends (OnTrap; `--check` fails on an unresolved
-one). Runs from image_data.cpp's mover, before every
-other static constructor of the exe: the harness takes import slots in its own. game.exe's loader fills game.exe's
-own table (ei_harness.dll has none of this file).
+game.exe's imports in the image's own table (docs/notes/standalone.md, "Own import table"). `g_table`, an ordinary
+ImportTable of ours, is what lib/import_table.h's Imports() returns in the image (game.exe's own import address table
+in game.exe: src/hook/original_data.cpp), so everything that calls through a slot (gameapi.h's routed imports, Miles,
+Bink, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
+(image_imports.inc, written by tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function
+or ordinal) has its slot; only the slots a call of ours reaches resolve (image_imports.inc's last field, gen_iat.py's
+reached(), S22); the rest stay traps and a DLL with none of them does not load. A text call's slot takes its UTF-8
+version (text::SystemRoute). A slot of ours that no call was found to reach or whose import did not resolve leads to
+a trap that names its import until the run ends (OnTrap; `--check` fails on an unresolved one). Runs before every
+other static constructor of the exe (init_seg(compiler)), after entering the game folder (EnterGameFolder): the
+harness takes import slots in its own.
 
 ### lib/file_io.h
 
