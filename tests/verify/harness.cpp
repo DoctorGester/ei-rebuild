@@ -1140,13 +1140,14 @@ unsigned& TickLength() {
 unsigned g_heldTickLength = 0;
 
 // The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
-// frame), redirected here (the rewritten loop calls through the same CALLs' targets, app_main.cpp).
+// frame): the rewritten loop's hooks (app_main.cpp), and in game.exe the original's CALLs redirected
+// to the *Call entries.
 constexpr std::uintptr_t kServerUpdateCall = 0x00457314;
 constexpr std::uintptr_t kServerUpdate = 0x0058DFF0;
 constexpr std::uintptr_t kClientSegmentCall = 0x00457368;
 constexpr std::uintptr_t kClientSegment = 0x005641F0;
 using WorldUpdate = int(__fastcall*)(void*, void*);
-int __fastcall HeldServerUpdate(void* server, void*) {
+int HeldServerUpdate(void* server) {
     int result;
     {
         timing::Scope scope(timing::Server);
@@ -1161,7 +1162,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
     watch::ScrubStack();                // EI_STACK_SCRUB (harness_watch.h)
     return result;
 }
-int __fastcall HeldClientSegment(void* client, void*) {
+int HeldClientSegment(void* client) {
     int result;
     {
         timing::Scope scope(timing::Client);
@@ -1170,6 +1171,8 @@ int __fastcall HeldClientSegment(void* client, void*) {
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
 }
+int __fastcall HeldServerUpdateCall(void* server, void*) { return HeldServerUpdate(server); }
+int __fastcall HeldClientSegmentCall(void* client, void*) { return HeldClientSegment(client); }
 
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
 // GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
@@ -1324,27 +1327,29 @@ bool g_freezeUsed = false;
 bool g_cameraTraceUsed = false;
 
 // The main loop's per-frame camera update: CALL 0040FB30 at 00457595 (thiscall on the camera
-// 0079B2A8, one float, RET 4), redirected here when the scenario freezes or records the camera's
-// motion (camtrace: sampled after the call).
+// 0079B2A8, one float, RET 4), taken over when the scenario freezes or records the camera's motion
+// (camtrace: sampled after the call); in game.exe that CALL is redirected to the *Call entry.
 constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
-void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
+void HeldCameraUpdate(void* camera, float dt) {
     if (clock::Frozen()) return;
     if (ei::Standalone()) image::CameraUpdate(camera, dt);
     else OriginalCode<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
     camera_trace::Frame(camera, dt);
 }
+void __fastcall HeldCameraUpdateCall(void* camera, void*, float dt) { HeldCameraUpdate(camera, dt); }
 
 // A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
 // the other game takes its turn (harness_pair.h). Only the main loop's call; the frame steps of modal
 // loops and screens stay inside the turn.
 constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
 constexpr std::uintptr_t kFrameStep = 0x00458010;
-void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
+void HandOffThenFrameStep(bool draw, bool cursor) {
     pair::HandOff();
     if (ei::Standalone()) image::FrameStep(draw, cursor);
     else OriginalCode<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
 }
+void __fastcall HandOffThenFrameStepCall(bool draw, bool cursor) { HandOffThenFrameStep(draw, cursor); }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
 bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) {
@@ -4085,15 +4090,15 @@ struct Harness {
         const bool hookPointsOnly = HookPointsOnly();
         if (hookPointsOnly) Log("harness: the main loop and the frame step through the rewritten callers' hook points only");
         if ((g_freezeUsed || g_cameraTraceUsed) && (hookPointsOnly || RedirectCall(kFrameCameraUpdateCall, kCameraUpdate,
-                                                            reinterpret_cast<const void*>(&HeldCameraUpdate))))
+                                                            reinterpret_cast<const void*>(&HeldCameraUpdateCall))))
             hooks.frameCameraUpdate = &HeldCameraUpdate;
-        if (hookPointsOnly || RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate)))
+        if (hookPointsOnly || RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdateCall)))
             hooks.serverUpdate = &HeldServerUpdate;
-        if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment)))
+        if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegmentCall)))
             hooks.clientSegment = &HeldClientSegment;
         if (pair::Active() && pair::Overlap() &&
             (hookPointsOnly ||
-             RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&HandOffThenFrameStep))))
+             RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&HandOffThenFrameStepCall))))
             hooks.frameStep = &HandOffThenFrameStep;
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
