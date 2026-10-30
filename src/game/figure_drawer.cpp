@@ -3,8 +3,6 @@
 #include "engine_object.h"
 #include "link_figure.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <new>
 
@@ -21,7 +19,7 @@ void FigureMeshDrawer::Animate(float time) {
     FigureMesh* currentMesh = mesh;
     const std::uint32_t meshType = currentMesh->meshType;
     if (meshType == kTwoRows) {
-        int frame = static_cast<int>(libcrt::Ftol(time) & 7);
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 7);
         if (frame < 4) {
             currentMesh->textureOffsetU = static_cast<float>(frame) * 0.25f;
             mesh->textureOffsetV = 0.0f;
@@ -30,11 +28,11 @@ void FigureMeshDrawer::Animate(float time) {
             mesh->textureOffsetV = 0.5f;
         }
     } else if (meshType == kSheet4x4) {
-        int frame = static_cast<int>(libcrt::Ftol(time) & 15);
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 15);
         currentMesh->textureOffsetU = static_cast<float>(frame % 4) * 0.25f;
         mesh->textureOffsetV = 1.0f - static_cast<float>(frame / 4) * 0.25f;
     } else if (meshType == kSheet8x4) {
-        int frame = static_cast<int>(libcrt::Ftol(time) & 31);
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 31);
         currentMesh->textureOffsetU = static_cast<float>(frame % 8) * 0.125f;
         mesh->textureOffsetV = 1.0f - static_cast<float>(frame / 8) * 0.25f;
     }

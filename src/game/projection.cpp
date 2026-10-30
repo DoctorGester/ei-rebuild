@@ -8,8 +8,7 @@
 #include "model.h"
 
 #include "lib/float_select.h"
-
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <cfloat>
 #include <cstdint>
@@ -166,7 +165,7 @@ void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
         if (!(depth >= fogStart)) continue;
         const float fog = (depth - fogStart) * fogScale;
         const float alpha = 255.0f - MinKeepA(fog, 255.0f);
-        const std::uint32_t lowered = static_cast<std::uint32_t>(x87::fistp(alpha)) << 24;
+        const std::uint32_t lowered = static_cast<std::uint32_t>(lib::RoundEven(alpha)) << 24;
         const std::uint32_t old = v.specular & 0xFF000000u;
         v.specular = (v.specular & 0x00FFFFFFu) | (lowered < old ? lowered : old);
     }

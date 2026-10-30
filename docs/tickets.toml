@@ -6496,3 +6496,10 @@ group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
 note = """C30e3 (src/lib/rounded_ops.h: lib::RoundedProduct(float, double), lib::RoundedSum(double, double)) and C30e4 (src/lib/pc24.h: pc24::Mul / Add / Sub / Div on Unrounded) were written in parallel and overlap: pc24::Mul(x, c) is RoundedProduct, pc24::Add(a, b) is RoundedSum. Keep pc24 (it covers the transcendental shapes), move C30e3's and C30e11's callers (item, hoover_loot, spell_cast, lever_object, magic_trap, map_object GroundPoint / PlaceOnGround / SetTime) to it, delete rounded_ops.h, update docs/notes/cleanup-tooling.md. Check: goldens unchanged, the C30e3 equivalence forms rerun against pc24 (scratchpad C30e3/eq). Small: batch with the next C30e worker."""
 
+[[ticket]]
+id = "C30e10a"
+title = "SSE2: quaternion.cpp (FSIN of a double for Slerp)"
+group = "cleanup"
+depends = ["C30e16"]
+note = "C30e10 kept src/game/quaternion.cpp x87: Quaternion::Slerp's 1 / x87::fsin(angle) takes libcrt::CiAcos's double (FPATAN's result through a double at PC24), and pc24::Sin takes a float. Add pc24::Sin(double) (FSIN's reduction of a 53-bit argument: the angle is in [0, pi], so q is 0..2 and the 128-bit remainder holds it) with its equivalence test against FSIN on doubles in [0, pi] (and the stored / times-a-float forms), then move quaternion.cpp by C30e's method (FromAngle: pc24::Div(Sin(half), length), Round(Cos(half)); Slerp's weights pc24::Mul(Sin(...), Div(1.0, Sin(angle))) - note inverseSine is itself a PC24 float) and drop it from EI_X87_GAME_SOURCES; it is in ei_vectors' list (no Slerp vectors). Goldens unchanged (verify and --rebirth-only)."
+

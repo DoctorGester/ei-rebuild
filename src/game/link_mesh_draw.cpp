@@ -10,10 +10,6 @@
 #include "render/render_state.h"
 #include "texture.h"   // TextureDevice
 
-#include "lib/crt.h"
-
-#include "ei/x87.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
@@ -29,6 +25,9 @@ constexpr std::uint8_t kMaterialKeepsSpecular = 0x10;
 constexpr int kOpaque = 0xFF;         // the alpha the draws pass (read with draw flag 4 only)
 constexpr int kNothingDrawn = 2;      // the device's result, also for a part the figure does not have
 constexpr float kByteScale = 255.0f;
+
+// The original's _ftol: truncated through 64 bits, the low half (0 for a NaN or a value beyond the range).
+std::uint32_t Truncated(float value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
 // The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
 // projection).
@@ -163,11 +162,11 @@ bool LinkMesh::LightPart(const std::string* partName, const std::vector<CLight*>
 
     const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
     if (material->flags & kMaterialKeepsSpecular) {
-        std::uint32_t packed = libcrt::Ftol(material->colors.specular.x * kByteScale) | (alphaByte << 8);
+        std::uint32_t packed = Truncated(material->colors.specular.x * kByteScale) | (alphaByte << 8);
         packed <<= 8;
-        packed |= libcrt::Ftol(material->colors.specular.y * kByteScale);
+        packed |= Truncated(material->colors.specular.y * kByteScale);
         packed <<= 8;
-        packed |= libcrt::Ftol(material->colors.specular.z * kByteScale);
+        packed |= Truncated(material->colors.specular.z * kByteScale);
         Fill(*speculars, packed);
     } else {
         Fill(*speculars, alphaByte << 24);

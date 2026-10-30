@@ -17,9 +17,8 @@
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/text_case.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -40,10 +39,10 @@ std::vector<VertexPacket> g_movedPositions;
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks plus the fraction of the current one, rounded to a float.
+// The world time: whole ticks plus the fraction of the current one, rounded to a float once (the tick exact).
 void TickTime(float* out) {
     const WorldClient* world = &g_clientWorld;
-    *out = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
+    *out = pc24::Add(static_cast<double>(world->tick), world->tickFraction);
 }
 
 // --- Arrays --------------------------------------------------------------------------------------
