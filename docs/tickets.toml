@@ -6735,3 +6735,10 @@ title = "Platform layer: resource_stream's sound file reads"
 group = "port"
 model = "sonnet"
 note = "The last game file calling Windows outside win_types.h (config/platform_files.txt): resource_stream.cpp opens sound files with mmioOpenA / mmioRead / mmioSeek / mmioClose and takes the size from FindFirstFileA. Move it to platform::File (src/platform/file.h) or std streams if the harness doesn't route those slots (check gameapi routes first); then mmio* and FindFirstFileA may leave gameapi.h (gen_iat.py). Goldens unchanged."
+
+[[ticket]]
+id = "A1b"
+title = "Audio review fixes: wave header bounds, Position across a pause"
+group = "port"
+model = "sonnet"
+note = "From V30 (build/reviews/v30c_miniaudio.md): (1) src/platform/audio_formats.cpp ReadWaveInfo walks chunk headers with no size check: pass the buffer size (SetWave has it), stop at the end, clamp dataLength. (2) miniaudio/audio.cpp Position returns the start while paused and Resume counts the paused time as played (startedAt not moved): a stolen looping voice restarts at the wrong loop spot. Keep the game-clock end rules (ends from WaveMilliseconds) as they are unless the fix is for both. (3) Optional: ScanMp3 counts a Xing/Info frame dr_mp3 skips, so Markers1/2 loop points would shift ~50 ms for a LAME-encoded mod track (no shipped track has one). Goldens unchanged."
