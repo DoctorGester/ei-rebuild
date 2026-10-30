@@ -1,7 +1,5 @@
 // Terrain sectors: loading, building, water levels and projection. See terrain_sector.h for the layout and
 // the file format.
-// Floating point: values kept on the FPU stack are `double` here; every store to a float is a
-// static_cast<float>.
 #include "terrain_sector.h"
 
 #include "model.h"
@@ -12,8 +10,6 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -27,10 +23,10 @@ namespace {
 // The sector files' extension.
 constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
-constexpr double kOffsetScale = 0.007936508394777775;    // 1/126 as a float: vertex displacement per unit
-constexpr double kHeightUnit = 0.000015259254723787308;  // 1/65534 as a float
-constexpr double kNormalScale = 0.0010000000474974513;   // 0.001 as a float
-constexpr double kNormalBias = 1000.0;
+constexpr float kOffsetScale = 1.0f / 126;     // vertex displacement per unit
+constexpr float kHeightUnit = 1.0f / 65534;
+constexpr float kNormalScale = 0.001f;
+constexpr float kNormalBias = 1000.0f;
 // A packed normal: z in the top 10 bits, then x and y in 11 bits each, biased by kNormalBias.
 constexpr int kNormalZShift = 22;
 constexpr int kNormalXShift = 11;
@@ -118,15 +114,13 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                 record.materialColour = s.owner->materials[material].colour;
             }
             record.position = vertex;
-            s.records[ground].depth = static_cast<float>(static_cast<double>(vertex.z) - s.vertices[ground].z);
+            s.records[ground].depth = vertex.z - s.vertices[ground].z;
         }
         std::uint32_t normal;
         lib::LoadBytes(normal, source + 4);
-        record.normal.z = static_cast<float>(x87::FromUnsigned(normal >> kNormalZShift) * kNormalScale);
-        record.normal.x = static_cast<float>(
-            (static_cast<double>(static_cast<int>((normal >> kNormalXShift) & kNormalMask)) - kNormalBias) * kNormalScale);
-        record.normal.y =
-            static_cast<float>((static_cast<double>(static_cast<int>(normal & kNormalMask)) - kNormalBias) * kNormalScale);
+        record.normal.z = static_cast<float>(normal >> kNormalZShift) * kNormalScale;
+        record.normal.x = (static_cast<float>((normal >> kNormalXShift) & kNormalMask) - kNormalBias) * kNormalScale;
+        record.normal.y = (static_cast<float>(normal & kNormalMask) - kNormalBias) * kNormalScale;
     }
     return s.data + layers * kLayerBytes;
 }
@@ -209,7 +203,7 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                     for (int entryColumn = 0; entryColumn < 3; ++entryColumn, ++entry) {
                         entry->u = uv->u[entryRow * 3 + entryColumn];
                         entry->vertex = record + entryColumn;
-                        entry->v = static_cast<float>(1.0 - uv->v[entryRow * 3 + entryColumn]);
+                        entry->v = 1.0f - uv->v[entryRow * 3 + entryColumn];
                     }
                 }
                 std::uint8_t& flags = s.tileFlags[quarter][page][count];
@@ -224,39 +218,36 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
 
 // Bounding boxes of the sector and of its four quarters.
 void ComputeBounds(SectorData& s) {
-    double size = kSectorCells;
-    float x0 = static_cast<float>(s.sx * size);
-    float y0 = static_cast<float>(s.sy * size);
-    double half = size * 0.5;
-    s.maxZ = static_cast<float>(1.0 + s.maxZ);
-    double low = static_cast<double>(s.minZ) - 1.0;
-    s.minZ = static_cast<float>(low);
-    double cz = (static_cast<double>(s.maxZ) - low) * 0.5 + low;
-    float centreZ = static_cast<float>(cz);
-    s.box.center.x = static_cast<float>(half + x0);
-    s.box.center.y = static_cast<float>(half + y0);
+    constexpr float half = kSectorCells * 0.5f;
+    constexpr float quarterHalf = half * 0.5f;
+    const float x0 = static_cast<float>(s.sx * kSectorCells);
+    const float y0 = static_cast<float>(s.sy * kSectorCells);
+    s.maxZ = 1.0f + s.maxZ;
+    s.minZ = s.minZ - 1.0f;
+    const float centreZ = (s.maxZ - s.minZ) * 0.5f + s.minZ;
+    s.box.center.x = half + x0;
+    s.box.center.y = half + y0;
     s.box.center.z = centreZ;
-    s.box.boxMin.x = static_cast<float>(-half);
-    s.box.boxMin.y = static_cast<float>(-half);
-    s.box.boxMin.z = static_cast<float>(s.minZ - cz);
-    s.box.boxMax.x = static_cast<float>(half);
-    s.box.boxMax.y = static_cast<float>(half);
-    s.box.boxMax.z = static_cast<float>(s.maxZ - cz);
+    s.box.boxMin.x = -half;
+    s.box.boxMin.y = -half;
+    s.box.boxMin.z = s.minZ - centreZ;
+    s.box.boxMax.x = half;
+    s.box.boxMax.y = half;
+    s.box.boxMax.z = s.maxZ - centreZ;
     s.box.flags |= BoundsFlag::Box;
-    double quarterHalf = half * 0.5;
     SectorBox* box = s.quarters;
     for (int i = 0; i < 2; ++i) {
-        float by = static_cast<float>((i + 0.5) * half + y0);
+        const float by = (i + 0.5f) * half + y0;
         for (int j = 0; j < 2; ++j, ++box) {
-            box->center.x = static_cast<float>((j + 0.5) * half + x0);
+            box->center.x = (j + 0.5f) * half + x0;
             box->center.y = by;
             box->center.z = centreZ;
-            box->boxMin.x = static_cast<float>(-quarterHalf);
-            box->boxMin.y = static_cast<float>(-quarterHalf);
-            box->boxMin.z = static_cast<float>(s.minZ - cz);
-            box->boxMax.x = static_cast<float>(quarterHalf);
-            box->boxMax.y = static_cast<float>(quarterHalf);
-            box->boxMax.z = static_cast<float>(s.maxZ - cz);
+            box->boxMin.x = -quarterHalf;
+            box->boxMin.y = -quarterHalf;
+            box->boxMin.z = s.minZ - centreZ;
+            box->boxMax.x = quarterHalf;
+            box->boxMax.y = quarterHalf;
+            box->boxMax.z = s.maxZ - centreZ;
             box->flags |= BoundsFlag::Box;
         }
     }
@@ -317,35 +308,36 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
     const std::uint8_t* source = data;
     SectorPosition* out = vertices.data();
     for (int layer = 0; layer < layers; ++layer) {
-        double x0 = static_cast<double>(sx) * kSectorCells;
-        double y = static_cast<double>(sy) * kSectorCells;
+        // The grid's corner, exact as a float below 2^19 sectors.
+        const float x0 = static_cast<float>(sx * kSectorCells);
+        float y = static_cast<float>(sy * kSectorCells);
         int vertex = 0;
         for (int row = 0; row < kSectorRow; ++row) {
-            double x = x0;
+            float x = x0;
             for (int column = 0; column < kSectorRow; ++column, ++vertex, source += kVertexBytes, ++out) {
                 std::uint16_t height;
                 lib::LoadBytes(height, source + 2);
-                out->z = static_cast<float>(static_cast<double>(height) * owner->heightRange * kHeightUnit);
+                out->z = static_cast<float>(height) * owner->heightRange * kHeightUnit;
                 if (layer == 0) {
-                    out->x = static_cast<float>(0.5 * static_cast<std::int8_t>(source[0]) * kOffsetScale + x);
-                    out->y = static_cast<float>(0.5 * static_cast<std::int8_t>(source[1]) * kOffsetScale + y);
+                    out->x = 0.5f * static_cast<std::int8_t>(source[0]) * kOffsetScale + x;
+                    out->y = 0.5f * static_cast<std::int8_t>(source[1]) * kOffsetScale + y;
                 } else {
                     int material = LowestPriorityWaterMaterial(*this, vertex);
                     if (material == -1) {
-                        out->x = static_cast<float>(x);
+                        out->x = x;
                         out->z = 0.0f;
-                        out->y = static_cast<float>(y);
+                        out->y = y;
                     } else if (owner->materials[material].kind != TerrainMaterial::kKeepsGroundXY) {
-                        out->x = static_cast<float>(x);
-                        out->y = static_cast<float>(y);
+                        out->x = x;
+                        out->y = y;
                     } else {
                         out->x = vertices[vertex].x;
                         out->y = vertices[vertex].y;
                     }
                 }
-                x += 1.0;
+                x += 1.0f;
             }
-            y += 1.0;
+            y += 1.0f;
         }
     }
     built |= SectorStage::Loaded;
@@ -389,12 +381,9 @@ void SectorData::Build() {
         for (std::uint8_t id : waterMaterials) levels[id] = owner->materials[id].level;
         ApplyWaterLevels();
     }
-    {
-        const x87::ScopedRounding chop(x87::kRoundChop);
-        for (int i = 0; i < std::ssize(records); ++i) {
-            if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
-            records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
-        }
+    for (int i = 0; i < std::ssize(records); ++i) {
+        if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
+        records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
     }
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU
 }
@@ -402,14 +391,14 @@ void SectorData::Build() {
 void SectorData::ApplyWaterLevels() {
     const std::span<float> levels = owner->SectorWaterLevels(sx, sy);
     for (std::uint8_t id : waterMaterials) {
-        const double level = levels[id];
+        const float level = levels[id];
         EI_NAN_AUDIT(level);
-        if (level == 0.0) continue;
+        if (level == 0.0f) continue;
         for (int i = kSectorVertices; i < 2 * kSectorVertices; ++i) {
             SectorVertex& record = records[i];
             if (record.waterMaterial != id) continue;
-            record.position.z = static_cast<float>(level + record.position.z);
-            vertices[i].z = static_cast<float>(level + vertices[i].z);
+            record.position.z = level + record.position.z;
+            vertices[i].z = level + vertices[i].z;
         }
         levels[id] = 0.0f;
         render::TerrainChanged(this, render::TerrainChange::WaterMoved);

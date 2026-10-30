@@ -158,8 +158,8 @@ Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator
 `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
 (`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone). `Light` 006C3A00
-is gone (R34a): `Build` writes only the edge fade (the fog factor) into each vertex's specular word, truncated (chop
-rounding through `x87::ScopedRounding`), once; `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU
+is gone (R34a): `Build` writes only the edge fade (the fog factor) into each vertex's specular word, once, rounded to
+nearest (`std::lround`; the original truncated it under chop rounding); `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU
 lights the terrain), nor the water's specular word or the sun's ray march (R34), nor the Lit stage and the relight
 countdowns (R34a; renderer.md section 13, R16i, says what behaves differently).
 

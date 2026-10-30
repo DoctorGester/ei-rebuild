@@ -63,8 +63,6 @@ set(EI_X87_GAME_SOURCES
     game/ui_briefing_people game/ui_briefing_phrases game/ui_briefing_start game/ui_camera_input game/ui_camera_keys
     game/ui_global_map game/ui_global_map_input game/ui_global_map_paths game/ui_global_map_places game/ui_hud
     game/ui_hud_map game/ui_view_screen
-    # C30e14: terrain
-    game/sector_map game/sector_spiral game/terrain game/terrain_landscape game/terrain_sector
     # C30e15: the main loop and the game CRT
     game/app_main lib/crt_x87)
 list(TRANSFORM EI_X87_GAME_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/\\1.cpp")

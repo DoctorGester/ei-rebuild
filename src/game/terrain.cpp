@@ -2,8 +2,8 @@
 #include "terrain.h"
 #include "terrain_sector.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 
 #include <cmath>
 
@@ -59,7 +59,7 @@ const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
 }
 
 float Terrain::HeightAt(float x, float y, Layer layer) {
-    int ix0 = x87::fistp(x), iy0 = x87::fistp(y);
+    int ix0 = lib::RoundEven(x), iy0 = lib::RoundEven(y);
     int ix1 = ix0 + 1, iy1 = iy0 + 1;
 
     for (int iteration = 1;; ++iteration) {
@@ -110,22 +110,22 @@ float Terrain::HeightAt(float x, float y, Layer layer) {
 }
 
 float Terrain::SurfaceHeight(float x, float y) {
-    float water = HeightAt(x, y, Layer::Water);
-    double ground = HeightAt(x, y, Layer::Ground);
-    float depth = water > ground ? static_cast<float>(water - ground) : 0.0f;
-    return static_cast<float>(static_cast<float>(ground) + depth);
+    const float water = HeightAt(x, y, Layer::Water);
+    const float ground = HeightAt(x, y, Layer::Ground);
+    const float depth = water > ground ? water - ground : 0.0f;
+    return ground + depth;
 }
 
 int Terrain::SurfaceClass(float x, float y) {
-    int ix = x87::fistp(x);
-    int iy = x87::fistp(y);
+    int ix = lib::RoundEven(x);
+    int iy = lib::RoundEven(y);
     if (ix < 0 || iy < 0 || ix >= sectorsX * kSectorCells || iy >= sectorsY * kSectorCells) return kOutsideClass;
     SectorData* sector = SectorAt(ix / kSectorCells, iy / kSectorCells, SectorStage::Built, true);
     int tile = (iy % kSectorCells) / 2 * kSectorTiles + (ix % kSectorCells) / 2;
     if (!sector) return kOutsideClass;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
         float water = HeightAt(x, y, Layer::Water);
-        const double ground = HeightAt(x, y, Layer::Ground);
+        const float ground = HeightAt(x, y, Layer::Ground);
         EI_NAN_AUDIT(ground, water);
         if (ground < water) return textureClass[sector->tileTextures[tile + kLayerTiles]];
     }

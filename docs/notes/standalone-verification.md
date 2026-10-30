@@ -558,9 +558,8 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   7.41 / 7.58 (the profiled run), fight 28.44 / 29.60, 19.07 / 19.27, 18.72 / 19.09 (menu 2.56, 3.29, 2.35); SV10i's
   quiet run had town 8.19 / 8.40, fight 19.36 / 19.22. The load moves these by 2x between runs, more than the change
   (by the profile ~1.6% of the town, ~0.1 ms).
-- **_controlfp without the UCRT (SV10k, C20r).** Terrain lighting sets chop rounding on the x87 word itself
-  (docs/notes/standalone.md, "_controlfp without the UCRT"); the goldens that light terrain on the CPU check it. By
-  profile (EI_PROFILE=1, render_stats): no sample under control87 / _controlfp.
+- **_controlfp (SV10k, C20r).** No port: the terrain's chop rounding went with the CPU lighting
+  (docs/notes/standalone.md, "_controlfp").
 - **The profiler and the sealed .bss (SV10j).** EI_PROFILE's stack scan took any word inside game.exe's image as a
   possible return address and read the bytes before it; a word pointing into .bss tripped the image's data-seam
   guard ("read of game.exe's .bss ... a use that missed the data seam", the run failed at once). It now takes words

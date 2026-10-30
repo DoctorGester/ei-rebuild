@@ -2,9 +2,9 @@
 #include "sector_map.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 
 #include <algorithm>
 #include <cstring>
@@ -72,8 +72,8 @@ SectorMap::SectorMap() {
 SectorMap::~SectorMap() = default;
 
 bool SectorMap::Add(CMapObject* object) {
-    int cellX = x87::fistp(2.0f * object->localPosition.x - 0.5f);
-    int cellY = x87::fistp(2.0f * object->localPosition.y - 0.5f);
+    int cellX = lib::RoundEven(2.0f * object->localPosition.x - 0.5f);
+    int cellY = lib::RoundEven(2.0f * object->localPosition.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
@@ -135,8 +135,8 @@ std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float 
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
     const std::int16_t* offset = &spiral.offsets.data()->x;
 
-    int cellX = x87::fistp(2.0f * position.x - 0.5f);
-    int cellY = x87::fistp(2.0f * position.y - 0.5f);
+    int cellX = lib::RoundEven(2.0f * position.x - 0.5f);
+    int cellY = lib::RoundEven(2.0f * position.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     float radiusSquared = radius * radius;
     float px = position.x, py = position.y;
@@ -164,10 +164,9 @@ bool SectorMap::Move(CMapObject* object, const Vector3& position) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
         return false;
     Vector3& current = object->localPosition;
-    int cellX = x87::fistp(2.0f * position.x - 0.5f);
-    int cellY = x87::fistp(2.0f * position.y - 0.5f);
-    Vector3 saved;
-    saved = current;   // bitwise (no x87 round trip)
+    int cellX = lib::RoundEven(2.0f * position.x - 0.5f);
+    int cellY = lib::RoundEven(2.0f * position.y - 0.5f);
+    const Vector3 saved = current;
 
     int oldSx = object->sectorCellX / 32, oldSy = object->sectorCellY / 32;
     if (oldSx >= width || oldSy >= height) return false;
