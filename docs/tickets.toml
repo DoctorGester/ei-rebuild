@@ -6130,6 +6130,13 @@ group = "cleanup"
 note = "After C20t (pointer cells 0, the block all zero) and H33f (the import slots out of the block's start). Delete image_data.cpp's storage and guard (PlaceData, OnOldData), game_data.h's kMovedBegin / kMovedEnd and the other section bounds (the dashboard's 5 game data addresses), g_dataShift and GameAddress's range check, data_seam.py's sections if nothing is left for them; gate harness_heap.cpp's GameData<HANDLE>(0x007CAF08) read (_crtheap) to game.exe's runs. Goldens are the check."
 
 [[ticket]]
+id = "A3"
+title = "64-bit audit: configure an x64 build and list every blocker"
+group = "port"
+model = "opus"
+note = "User 2026-10-30 (agreed): after C30e15 lands, a read-only audit, no fixes. Configure an x64 build of the game (a scratch CMake preset, not committed unless trivial) and count what breaks by kind: the known blockers (Miles / Bink 32-bit DLLs: A1 / A2; the import table and the moved image block: H33f / C20u; x87: C30e15), MSVC x64's missing inline asm (src/hook/hook.cpp, tests/verify's __asm sites), layout static_asserts that assume 4-byte pointers (net_coder.h's BufferCursor 0x18 and others), pointers or pointer differences kept in 32-bit fields, file or network formats written from structs that hold pointers, uintptr_t / DWORD casts, Win32 calls whose types widen (LONG_PTR, WPARAM), and anything in the harness's image side. Output: a list per kind with counts and files, and proposed tickets; the harness's game.exe side stays 32-bit (a separate process)."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
