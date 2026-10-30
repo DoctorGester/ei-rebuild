@@ -21,7 +21,7 @@ struct Ramp {
     std::uint8_t entries[256 * 4];
     Ramp() {
         for (int i = 0; i < 256; ++i) {
-            entries[4 * i] = entries[4 * i + 1] = entries[4 * i + 2] = i;
+            entries[4 * i] = entries[4 * i + 1] = entries[4 * i + 2] = static_cast<std::uint8_t>(i);
             entries[4 * i + 3] = 255;
         }
     }

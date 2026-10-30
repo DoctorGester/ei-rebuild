@@ -43,7 +43,8 @@ and retirement outside a frame's drawing.
 Obtain the official sokol-shdc binary from `floooh/sokol-tools-bin`, revision
 `b975d5642093d62e76a1e088bdae945d6d8b8ff2` (matching the version verified here). Put it on PATH or in `build/tools/`:
 `bin/osx_arm64/sokol-shdc` on Apple Silicon, `bin/win32/sokol-shdc.exe` on Windows, `bin/linux/sokol-shdc` on Linux.
-CMake also accepts `-DEI_SHDC=/absolute/path/to/sokol-shdc`. See docs/notes/macos.md for the macOS download command.
+The `EI_SHDC` environment variable (a full path) wins over everything; CMake also accepts
+`-DEI_SHDC=/absolute/path/to/sokol-shdc`. See docs/notes/macos.md for the macOS download command.
 Shader generation needs this one tool; no external GLSL converter or Windows SDK fxc step is involved.
 
 - Add vertex/fragment `@vs` / `@fs` blocks and an `@program`, and include the file from `shaders.glsl`. Shared

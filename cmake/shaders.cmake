@@ -1,4 +1,9 @@
 # One authored source set and compiler for every graphics backend. Generated code stays in the build tree.
+# sokol-shdc (README.md, "Shaders"): the EI_SHDC environment variable (a full path; one copy for every checkout and the
+# Suites runner) wins, then -DEI_SHDC, then build/tools in the checkout, then PATH.
+if(DEFINED ENV{EI_SHDC})
+    set(EI_SHDC "$ENV{EI_SHDC}" CACHE FILEPATH "The sokol-shdc shader compiler" FORCE)
+endif()
 find_program(EI_SHDC sokol-shdc HINTS ${CMAKE_SOURCE_DIR}/build/tools REQUIRED)
 file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/render/shaders/*.glsl)
 set(shader_header ${CMAKE_BINARY_DIR}/shaders/shaders.h)

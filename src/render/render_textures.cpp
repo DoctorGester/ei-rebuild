@@ -8,6 +8,7 @@
 #include "render_internal.h"
 #include "render_ui.h"
 
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <iterator>

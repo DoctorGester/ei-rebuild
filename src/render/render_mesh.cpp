@@ -396,7 +396,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.colourOps[0] = s0.colourOp;
     fs.colourOps[1] = s0.colourArg1;
     fs.colourOps[2] = s0.colourArg2;
-    fs.colourOps[3] = s0.colourOp > 1 ? s1.colourOp : 1;
+    fs.colourOps[3] = s0.colourOp > 1 ? static_cast<float>(s1.colourOp) : 1.0f;
     fs.colourOps1[0] = s1.colourArg1;
     fs.colourOps1[1] = s1.colourArg2;
     fs.alphaOps[0] = s0.alphaOp;
@@ -405,10 +405,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.alphaOps[3] = s1.alphaOp;
     fs.alphaOps1[0] = s1.alphaArg1;
     fs.alphaOps1[1] = s1.alphaArg2;
-    fs.switches[0] = s.specular ? 1 : 0;
-    fs.switches[1] = s.fog ? 1 : 0;
-    fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
-    fs.switches[3] = s.alphaReference;
+    fs.switches[0] = s.specular ? 1.0f : 0.0f;
+    fs.switches[1] = s.fog ? 1.0f : 0.0f;
+    fs.switches[2] = s.alphaTest ? static_cast<float>(s.alphaFunc) : 0.0f;
+    fs.switches[3] = static_cast<float>(s.alphaReference);
     if (s.patch.texture.id) {
         for (int k = 0; k < 4; ++k) {
             fs.patchTo[k] = s.patch.to[k];
