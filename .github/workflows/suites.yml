@@ -230,8 +230,9 @@ jobs:
           rm -f diff_*.txt build_*.log
           git clean -ffdq -e build/
           git fetch -q --depth=1 origin "$BASE"
-          [ -e build/base/.git ] || git worktree add -q --detach build/base FETCH_HEAD
-          git -C build/base checkout -q --force --detach FETCH_HEAD
+          base=$(git rev-parse FETCH_HEAD)   # FETCH_HEAD is this worktree's: the base's would not see it
+          [ -e build/base/.git ] || git worktree add -q --detach build/base "$base"
+          git -C build/base checkout -q --force --detach "$base"
           git -C build/base clean -ffdq -e build/
           echo "base $BASE: $(git -C build/base log -1 --format='%h %s')"
           echo "head $REF: $(git log -1 --format='%h %s')"
