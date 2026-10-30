@@ -72,7 +72,7 @@ private:
     ConsoleStreambuf* buffer;
 };
 
-// The streams, one per message filter (each on its own streambuf, console_streams.cpp): the console itself, then all, unitacks (the AI
+// The streams, one per message filter (each on its own streambuf, console.cpp): the console itself, then all, unitacks (the AI
 // alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
 // on the ground), event, ai (combat's and the AI's logs).
 extern Stream g_consoleOut;

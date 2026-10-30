@@ -323,7 +323,7 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **Bitmaps** (dib.h): `DibFileHeader`, `DibHeader`, `DibColour` with the .bmp layout (14, 40 and 4 bytes) in place of
   wingdi.h's structs.
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
-- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_memory_stream.cpp): lib/return_address.h
+- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): lib/return_address.h
   declares the two compiler intrinsics without <intrin.h>.
 - **Rebirth's flags** (lib/rebirth.cpp, also in ei_harness.dll): ei_rebirth.ini's [Rebirth] read by its own reader as
   GetPrivateProfileInt / String read it (the first section of the name, case ignored, trimmed keys and values, ';'

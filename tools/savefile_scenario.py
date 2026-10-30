@@ -79,7 +79,7 @@ def stream_field(r, fid):
     return bytes_end, end
 
 
-# ---- the party (CParty, party_save.cpp) ------------------------------------------------------------
+# ---- the party (CParty, party.cpp) ------------------------------------------------------------
 
 def is_text_key(uid):
     """IsTextKey (004613A0): ids 1000000000..1999999999 (the heroes and named units)."""
@@ -93,7 +93,7 @@ def read_stats(r, name, text_key):
 
 
 def _item_ids(r, name):
-    """WriteItemIds (party_save.cpp): a count, then each item's id (-1 for an empty entry)."""
+    """WriteItemIds (party.cpp): a count, then each item's id (-1 for an empty entry)."""
     with r.scope(name):
         n = r.i32('count')
         if n < 0 or n > 10000:

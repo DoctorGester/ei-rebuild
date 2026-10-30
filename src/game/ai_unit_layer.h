@@ -14,7 +14,7 @@
 #include <cstdint>
 
 // A unit's footprint on the layers: 16 x 16 cell levels around the unit, shared by radius through the shape
-// cache (ai_shape_cache.cpp; its handles are UnitShapeHandle). Methods in ai_unit_shape.cpp. Names
+// cache (ai_unit_shape.cpp; its handles are UnitShapeHandle). Methods in ai_unit_shape.cpp. Names
 // provisional.
 class UnitShape final : public RefObject {
 public:

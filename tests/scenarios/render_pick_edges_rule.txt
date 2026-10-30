@@ -1,5 +1,5 @@
 # Picking at the bottom edge where the image's rule differs from the original (CTextureDevice::BoundsOfProjected,
-# device_bounds.cpp; docs/notes/renderer.md section 3, "Picking"): a part crossing the edge gets the bounds of its
+# device_draw.cpp; docs/notes/renderer.md section 3, "Picking"): a part crossing the edge gets the bounds of its
 # projected positions clamped to the screen, which along the edge can be wider than the original's bounds of the
 # clipped triangles. An ogre stands where the view's bottom edge cuts it (after SetCPFast, the camera on the hero),
 # held still (freeze), and a Ctrl click goes 2-3 pixels (800x600 layout) right of where the original picks it: the

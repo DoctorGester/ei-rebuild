@@ -45,13 +45,13 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
-    const char* ClassName() override;   // "CFigureClientSpecific" (figure_drawer.cpp)
+    const char* ClassName() override;   // "CFigureClientSpecific" (figure_part_draw.cpp)
     ClassId GetClassId() override;
 
     // No mesh, no flags.
     void DestroyDrawer();
 
-    // figure_drawer.cpp; the draws call it through its address for the animated
+    // figure_part_draw.cpp; the draws call it through its address for the animated
     // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
     // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.

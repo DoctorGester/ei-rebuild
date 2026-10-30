@@ -2811,7 +2811,7 @@ address,name,library,signature,notes
 005BDD70,"CArray<{int,int}>::Add",MFC,,"instantiation (the AI map's area lists, 8-byte elements; SetSize inlined, ConstructElements 0059E290)"
 005BDEE0,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005BDF40,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (CArchive count, then each element written / read whole)"
-005BE090,"stlp::hash_map<Handle,RefPtr>::operator[]",STLport,,"instantiation of find_or_insert for the reference-counted object cache (rewritten caller 005BD7F0, ai_shape_cache.cpp)"
+005BE090,"stlp::hash_map<Handle,RefPtr>::operator[]",STLport,,"instantiation of find_or_insert for the reference-counted object cache (rewritten caller 005BD7F0, ai_unit_shape.cpp)"
 005BE1B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,inventory sweep: 16-byte node from the free list 0079B228; loose-family member of 00407420 (reviewed)
 005BE320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find (shape cache, float key)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"
 005BE450,"stlp::_Ht_iterator::_Ht_iterator(node, table) (shape cache)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"

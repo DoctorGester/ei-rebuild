@@ -5,6 +5,8 @@
 // the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "item.h"
+
+#include "figure_mesh.h"
 #include "item_manager.h"
 #include "object.h"
 #include "object_tables.h"
@@ -12,7 +14,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
@@ -92,3 +93,15 @@ int Hoover::CollectLoot(World* world, Unit* cunit, std::vector<Item*>* drops, st
     cunit->flags |= MapObjectFlag::LootTaken;
     return 1;
 }
+
+// --- Object ------------------------------------------------------------------------------------------
+
+namespace {
+const char* const kHooverName = "CHoover";
+} // namespace
+
+Hoover::~Hoover() {}
+
+void Hoover::Create() {}
+const char* Hoover::ClassName() { return kHooverName; }
+ClassId Hoover::GetClassId() { return ClassId::Hoover; }

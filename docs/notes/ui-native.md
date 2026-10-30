@@ -46,7 +46,7 @@ and drawing use one set of metrics. What follows is the original's behaviour tha
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
 width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
-- The console has its own point font (`console_window_create.cpp`).
+- The console has its own point font (`console_window.cpp`).
 - The original's text was GDI's, with the system's ClearType / smoothing setting; ours is smoothed or not by
   SPI_GETFONTSMOOTHING (P8b).
 - The credits switched font smoothing off for the session (the original; ours does not, P8b: "Font smoothing" in

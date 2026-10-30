@@ -29,7 +29,7 @@ struct ProjectedPoints {
 // The vertex buffer of the projected line strips.
 extern std::vector<LineVertex> g_lineVertices;
 
-// A line list (line_batch.cpp): the figure parts' debug bounds and the world client's lists. The points sit
+// A line list (renderer_lines.cpp): the figure parts' debug bounds and the world client's lists. The points sit
 // four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
     std::vector<VertexPacket> packets;       // four points each

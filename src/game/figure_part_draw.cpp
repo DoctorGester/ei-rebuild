@@ -2,28 +2,31 @@
 // or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
 // parts").
 #include "figure_mesh.h"
+
+#include "engine_object.h"
 #include "game_singletons.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
 #include "material.h"
 #include "model.h"
 #include "options.h"
-#include "render/render.h"
+#include "renderer_lines.h"   // LineBatch
 #include "spell.h"
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
-
 #include "lib/containers.h"
-#include "lib/rect.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
+#include "lib/rect.h"
 #include "lib/text_case.h"
+#include "render/render.h"
 
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <new>
 #include <vector>
 
 namespace {
@@ -32,8 +35,6 @@ namespace {
 std::vector<VertexPacket> g_movedPositions;
 
 // --- Helpers -------------------------------------------------------------------------------------
-
-
 
 // --- x87 sequences --------------------------------------------------------------------------------
 
@@ -292,3 +293,161 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
     DrawBounds(&g_sceneRenderer);
     return 1;
 }
+
+// --- Figure part bounds ------------------------------------------------------------------------------
+
+// The finishing call of the part draws. With the debug flag 0x4000 of the owning manager's context set, the
+// mesh's clip box is drawn as lines through the renderer: the corners are the bounds' centre plus, per axis,
+// either the box minimum or the maximum; eight edges, two points each, in the original's order. See
+// docs/notes/models.md ("Figure parts").
+
+namespace {
+
+// The owning manager's context (hoover_loot.cpp; the world, an engine object), and appending a point.
+EngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<EngineObject*>(node->GetManagerContext()); }
+
+constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags
+
+} // namespace
+
+void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
+    if (!(ContextOf(this)->flags & kShowBounds)) return;
+    LineBatch lines{{}, 0, 0xFFFF0000u};
+    const ClipBounds& bounds = mesh->box.bounds;
+    const float* origin = &bounds.center.x;
+    const float* nearExtent = &bounds.boxMin.x;
+    const float* farExtent = &bounds.boxMax.x;
+    // corner[i]: bit 2 near x, bit 1 near y, bit 0 near z (else far).
+    float corner[8][3];
+    for (int i = 0; i < 8; ++i) {
+        corner[i][0] = origin[0] + ((i & 4) ? nearExtent[0] : farExtent[0]);
+        corner[i][1] = origin[1] + ((i & 2) ? nearExtent[1] : farExtent[1]);
+        corner[i][2] = origin[2] + ((i & 1) ? nearExtent[2] : farExtent[2]);
+    }
+    static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
+    for (int index : kOrder) lines.AddPoint(corner[index]);
+    renderer->DrawLineList(&lines);
+    lib::FreeStorage(lines.packets);
+}
+
+// --- Plain -------------------------------------------------------------------------------------------
+
+// The plain draw of one figure part: the lit draw's simpler sibling, always through the device and without the
+// lighting. Flat meshes (0x100) get their colours filled with one value and speculars with another, a mesh not
+// yet lit asks the device to light it, and the per-vertex offsets are added into a copy of the positions. See
+// docs/notes/models.md ("Figure parts").
+
+// Arguments 2-4 are not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
+// (empty when off screen). Returns 1.
+int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
+                                   Rect* rect) {
+    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+    int drawFlags = 0;
+    mesh->flags &= ~FigureMeshFlag::Drawn;
+    int visibility = device->pipeline->ClipTest(&mesh->box.bounds);
+    if (visibility == 2) return 1;
+    int meshType = static_cast<int>(mesh->meshType);
+    if (meshType >= 13 && meshType <= 16) {
+        float time;
+        TickTime(&time);
+        flags |= kAnimatedDrawerFlags;
+        Animate(time);
+    }
+
+    std::uint32_t meshFlags = mesh->flags;
+    if (meshFlags & FigureMeshFlag::Flat) {
+        Fill(mesh->colorsA, mesh->flatColour);
+        Fill(mesh->colorsB, mesh->flatSpecular);
+    } else if (!(meshFlags & FigureMeshFlag::Lit)) {
+        drawFlags = 4;
+    }
+    if (visibility == 1) drawFlags |= 2;
+    if (rect) drawFlags |= 1;
+
+    const VertexPacket* positions = mesh->buffers.vertices;
+    int blocks = mesh->buffers.vertexCount;
+    if (!mesh->offsets.empty()) positions = MovedPositionsOf(mesh);
+    FigureMesh* m = mesh;
+    const MeshBuffers& b = m->buffers;
+    // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
+    const render::MeshSource source{m, nullptr, !m->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
+    render::SetMeshSource(&source);
+    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA.data(), m->colorsB.data(),
+                                        b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
+                                        b.indices, b.indexCount, m->textureOffsetU,
+                                        m->textureOffsetV, alpha, drawFlags);
+    render::SetMeshSource(nullptr);
+    if (rect) {
+        Rect* own = &screen;
+        if (result == 2) {
+            rects::SetEmpty(own);
+            rects::SetEmpty(rect);
+        } else {
+            rects::Copy(own, &device->drawnRect);
+            *rect = *own;
+        }
+    }
+    if (result != 2) mesh->flags |= FigureMeshFlag::Drawn;
+    DrawBounds(&g_sceneRenderer);
+    return 1;
+}
+
+// --- Figure drawer -----------------------------------------------------------------------------------
+
+// FigureMeshDrawer::Animate: an animated figure mesh's texture offset per frame. The drawer's lifetime: its
+// constructor, destructor bodies and the create / destroy virtuals. See link_figure.h.
+
+namespace {
+
+// The mesh types (FigureMesh +0x15C) whose texture is a sheet of frames.
+constexpr std::uint32_t kTwoRows = 13;     // 8 frames, 4 per row, two rows (v 0 / 0.5)
+constexpr std::uint32_t kSheet4x4 = 14;    // 16 frames
+constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
+
+} // namespace
+
+void FigureMeshDrawer::Animate(float time) {
+    FigureMesh* currentMesh = mesh;
+    const std::uint32_t meshType = currentMesh->meshType;
+    if (meshType == kTwoRows) {
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 7);
+        if (frame < 4) {
+            currentMesh->textureOffsetU = static_cast<float>(frame) * 0.25f;
+            mesh->textureOffsetV = 0.0f;
+        } else {
+            currentMesh->textureOffsetU = static_cast<float>(frame - 4) * 0.25f;
+            mesh->textureOffsetV = 0.5f;
+        }
+    } else if (meshType == kSheet4x4) {
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 15);
+        currentMesh->textureOffsetU = static_cast<float>(frame % 4) * 0.25f;
+        mesh->textureOffsetV = 1.0f - static_cast<float>(frame / 4) * 0.25f;
+    } else if (meshType == kSheet8x4) {
+        int frame = static_cast<int>(static_cast<std::int64_t>(time) & 31);
+        currentMesh->textureOffsetU = static_cast<float>(frame % 8) * 0.125f;
+        mesh->textureOffsetV = 1.0f - static_cast<float>(frame / 8) * 0.25f;
+    }
+}
+
+// ---- Lifetime ---------------------------------------------------------------------------
+
+FigureDrawerBase::FigureDrawerBase() {
+    mesh = nullptr;
+}
+
+// The original's base clears the flags, then its inlined base part the mesh.
+FigureDrawerBase::~FigureDrawerBase() { mesh = nullptr; }
+
+FigureMeshDrawer::FigureMeshDrawer() = default;
+
+FigureMeshDrawer::~FigureMeshDrawer() { flags = 0; }
+
+void FigureMeshDrawer::DestroyDrawer() {
+    mesh = nullptr;
+    flags = 0;
+}
+
+void FigureMeshDrawer::Create() { flags = 0; }
+void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
+const char* FigureMeshDrawer::ClassName() { return "CFigureClientSpecific"; }
+ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

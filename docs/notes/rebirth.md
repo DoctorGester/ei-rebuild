@@ -341,7 +341,7 @@ layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at
 
 **The remaining 18 sites (W4)**; the layout's `axisScale` and `fontScale` are computed with the others in `widescreen::Compute`, as addon
 computes the floats it writes into the code:
-- The axis swap 004F1330+2A (device_helpers.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
+- The axis swap 004F1330+2A (renderer_scene.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
   width keeps 4:3 proportions; `widescreen::AxisScale`.
 - The fonts 005F4990+BF (ui_interface.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in place of
   0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result is one ulp off at

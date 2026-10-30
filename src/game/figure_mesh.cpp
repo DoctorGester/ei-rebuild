@@ -4,15 +4,23 @@
 
 #include "core_maths.h"
 #include "core_transform.h"
+#include "figure_manager.h"
+#include "item.h"
 #include "link_figure.h"
+#include "manager_context.h"
 #include "model.h"
-#include "render/render.h"
-
+#include "object_maths.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
+#include "lib/str.h"
+#include "lib/vecmath.h"
+#include "platform/file.h"
+#include "render/render.h"
 
 #include <cstring>
+#include <memory>
+#include <new>
 #include <vector>
 
 namespace {
@@ -458,4 +466,315 @@ void FigureMesh::LoadFromMemory(char** cursor) {
     if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor);
     else LoadOld(cursor);
     flags |= FigureMeshFlag::Loaded;
+}
+
+// --- File --------------------------------------------------------------------------------------------
+
+// FigureMesh's own file format (reached through virtuals only): the mesh is written to a file and read
+// back. The name, then every array as a count and its elements, then the bounding values. See figure_mesh.h
+// and docs/notes/world.md.
+
+namespace {
+
+void Write(platform::File* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
+void Read(platform::File* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
+
+void WriteCount(platform::File* file, int count) { Write(file, &count, 4); }
+int ReadCount(platform::File* file) {
+    int count;
+    Read(file, &count, 4);
+    return count;
+}
+
+} // namespace
+
+void FigureMesh::SaveTransform(platform::File* file) {
+    int length = static_cast<int>(name.size());
+    WriteCount(file, length);
+    Write(file, name.c_str(), length);
+    WriteCount(file, buffers.vertexCount);
+    Write(file, buffers.vertices, buffers.vertexCount * 0x40);
+    WriteCount(file, buffers.normalCount);
+    Write(file, buffers.normals, buffers.normalCount * 0x40);
+    WriteCount(file, buffers.texCoordCount);
+    Write(file, buffers.texCoords, buffers.texCoordCount * 8);
+    WriteCount(file, 0);
+    WriteCount(file, buffers.cornerCount);
+    Write(file, buffers.corners, buffers.cornerCount * 6);
+    WriteCount(file, buffers.wordCount);
+    Write(file, buffers.words, buffers.wordCount * 4);
+    WriteCount(file, buffers.indexCount);
+    Write(file, buffers.indices, buffers.indexCount * 2);
+    Write(file, &center, 12);
+    Write(file, &boxMin, 12);
+    Write(file, &boxMax, 12);
+    Write(file, &radius, 4);
+    Write(file, &materialValue, 4);
+    Write(file, &meshType, 4);
+}
+
+void PlainFigureMesh::LoadTransform(platform::File* file) {
+    BuffersChanged();
+    int length = ReadCount(file);
+    Read(file, str::SetLength(name, length), length);
+    // The arrays the file fills (the renderer's descriptor is not updated here).
+    int count = ReadCount(file);
+    vertices.resize(count);
+    Read(file, vertices.data(), count * 0x40);
+    count = ReadCount(file);
+    normals.resize(count);
+    Read(file, normals.data(), count * 0x40);
+    count = ReadCount(file);
+    texCoords.resize(count);
+    Read(file, texCoords.data(), count * 8);
+    ReadCount(file);   // the 0 the writer puts here
+    count = ReadCount(file);
+    corners.resize(count);
+    Read(file, corners.data(), count * 6);
+    count = ReadCount(file);
+    words.resize(count);
+    Read(file, words.data(), count * 4);
+    count = ReadCount(file);
+    indices.resize(count);
+    Read(file, indices.data(), count * 2);
+    Read(file, &center, 12);
+    Read(file, &boxMin, 12);
+    Read(file, &boxMax, 12);
+    Read(file, &radius, 4);
+    Read(file, &materialValue, 4);
+    Read(file, &meshType, 4);
+}
+
+// ---- Copy and pose --------------------------------------------------------------------------------
+
+void FigureMesh::CopyFigure(const FigureMesh* other) {
+    BuffersChanged();
+    TransformObject::CopyTransform(*other);   // the transform base's copy
+    name = other->name;
+    buffers.corners = other->buffers.corners;
+    buffers.cornerCount = other->buffers.cornerCount;
+    buffers.words = other->buffers.words;
+    buffers.wordCount = other->buffers.wordCount;
+    buffers.indices = other->buffers.indices;
+    buffers.indexCount = other->buffers.indexCount;
+    buffers.texCoords = other->buffers.texCoords;
+    buffers.texCoordCount = other->buffers.texCoordCount;
+    textureOffsetU = 0;
+    textureOffsetV = 0;
+    center = other->center;
+    boxMin = other->boxMin;
+    boxMax = other->boxMax;
+    radius = other->radius;
+    materialValue = other->materialValue;
+    meshType = other->meshType;
+}
+
+void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
+    // The pose virtual stores the quaternion as the world rotation.
+    CombineRotation(rotation);
+    // The position (+0x1C) rotated by the quaternion (w, v):
+    // 2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
+    Vector3 v{rotation.x, rotation.y, rotation.z};
+    auto* p = &localPosition;
+    float dot = DotUnrounded<Sum3::ZYX>(v, *p);
+    float twice = dot + dot;
+    float z = v.z * twice;
+    float y = v.y * twice;
+    float x = twice * v.x;
+    Vector3 along;
+    along.Construct(x, y, z);
+    float w = rotation.w;
+    Vector3 turned = ScaleVector(Cross(v, *p), w + w);
+    float ww = w * w;
+    float k = ww - Dot(v, v);
+    Vector3 rotated = AddVectors(AddVectors(ScaleVector(*p, k), turned), along);
+    float* moved = &worldPosition.x;
+    float mx = rotated.x + offset.x;
+    float my = rotated.y + offset.y;
+    float mz = rotated.z + offset.z;
+    moved[0] = mx;
+    moved[1] = my;
+    moved[2] = mz;
+
+    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
+    float* m = poseMatrix.m;
+    std::memset(m, 0, sizeof(poseMatrix));
+    m[15] = 1.0f;
+    m[10] = 1.0f;
+    m[5] = 1.0f;
+    m[0] = 1.0f;
+    float qw = worldRotation.w, qx = worldRotation.x, qy = worldRotation.y, qz = worldRotation.z;
+    float x2 = qx + qx;
+    float y2 = qy + qy;
+    float z2 = qz + qz;
+    float wx = x2 * qw;
+    float wy = y2 * qw;
+    float wz = z2 * qw;
+    float xx = x2 * qx;
+    float xy = y2 * qx;
+    float xz = z2 * qx;
+    float yy = y2 * qy;
+    float yz = z2 * qy;
+    float zz = z2 * qz;
+    m[0] = 1.0f - (zz + yy);
+    m[4] = xy - wz;
+    m[8] = wy + xz;
+    m[1] = xy + wz;
+    m[5] = 1.0f - (zz + xx);
+    m[9] = yz - wx;
+    m[2] = xz - wy;
+    m[6] = yz + wx;
+    m[10] = 1.0f - (yy + xx);
+    m[12] = moved[0];
+    m[13] = moved[1];
+    m[14] = moved[2];
+}
+
+// --- Life --------------------------------------------------------------------------------------------
+
+// The figure meshes' lifetime: the constructor body the figure classes share, Create and Clear, the classes
+// 0x41 and 0x42's constructors, destructors and virtuals, the drawer and owner setters, and the figure
+// manager's constructor and its CreateObject, which gives every new figure a drawer. See figure_mesh.h,
+// figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
+
+// --- Construction -------------------------------------------------------------------------------
+
+void FigureMesh::SetUpFigure() {
+    refCount = 0;
+    id = -1;
+    prototypeId = 0;
+    type = 0;
+    flags = 0;
+    owner = nullptr;
+    localRotation.SetIdentity();
+    worldRotation.SetIdentity();
+    object = nullptr;
+    std::construct_at(&offsets);
+    std::construct_at(&colorsA);
+    std::construct_at(&colorsB);
+    std::memset(&box.bounds, 0, sizeof(box.bounds));
+    box.pivot = {};
+}
+
+FigureMesh::FigureMesh() {
+    SetUpFigure();
+    CreateMesh();
+}
+
+void FigureMesh::CreateMesh() {
+    radius = 0.0f;
+    drawer = nullptr;
+    flags = 0;
+    materialValue = 0;
+    meshType = 0;
+    std::memset(&buffers, 0, sizeof(buffers));
+    textureOffsetU = 0;
+    textureOffsetV = 0;
+    flatColour = 0xFFFFFFFF;
+    flatSpecular = 0xFFFFFFFF;
+    std::memset(&box.bounds, 0, sizeof(box.bounds));
+    box.pivot = {};
+}
+
+// --- Clearing -----------------------------------------------------------------------------------
+
+void FigureMesh::Clear() {
+    name.clear();
+    directory.clear();
+    BuffersChanged();
+    offsets.clear();
+    colorsA.clear();
+    colorsB.clear();
+    std::memset(&buffers, 0, sizeof(buffers));
+    materialValue = 0;
+    meshType = 0;
+    if (drawer != nullptr) {
+        drawer->mesh = nullptr;
+        drawer->Release();
+    }
+    drawer = nullptr;
+    flags = 0;
+}
+
+void PlainFigureMesh::Destroy() {
+    vertices.clear();
+    normals.clear();
+    corners.clear();
+    words.clear();
+    indices.clear();
+    texCoords.clear();
+    Clear();
+}
+
+void SharedFigureMesh::Destroy() {
+    vertices.clear();
+    normals.clear();
+    Clear();
+}
+
+// --- Destruction --------------------------------------------------------------------------------
+
+void FigureMesh::TearDownFigure() {
+    Clear();
+    lib::FreeStorage(colorsB);
+    lib::FreeStorage(colorsA);
+    lib::FreeStorage(offsets);
+}
+
+FigureMesh::~FigureMesh() { TearDownFigure(); }
+
+// --- The classes 0x41 and 0x42 ---------------------------------------------------------------
+
+SharedFigureMesh::SharedFigureMesh() {
+}
+
+SharedFigureMesh::~SharedFigureMesh() {
+}
+
+PlainFigureMesh::PlainFigureMesh() {
+}
+
+PlainFigureMesh::~PlainFigureMesh() {
+}
+
+// --- Small virtuals ----------------------------------------------------------------------------
+
+void FigureMesh::Create() { CreateMesh(); }
+void FigureMesh::Destroy() { Clear(); }
+const char* FigureMesh::GetName() { return name.c_str(); }
+const char* FigureMesh::ClassName() { return "CFigure"; }
+ClassId FigureMesh::GetClassId() { return ClassId::FigureMesh; }
+
+// --- Drawer and owner ---------------------------------------------------------------------------
+
+void FigureMesh::SetDrawer(FigureMeshDrawer* newDrawer) {
+    if (drawer != nullptr) {
+        drawer->mesh = nullptr;
+        drawer->Release();
+    }
+    drawer = newDrawer;
+    if (newDrawer != nullptr) {
+        newDrawer->mesh = this;
+        drawer->AddRef();
+    }
+}
+
+void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
+
+// --- The figure manager -------------------------------------------------------------------------
+
+FigureManager::FigureManager() {}
+
+EngineObject* FigureManager::NewObject(int objectType) {
+    return static_cast<EngineObject*>(::CreateFigureObject(objectType));
+}
+
+EngineObject* FigureManager::CreateFigureObject(int newType, int newId) {
+    EngineObject* object = BaseManager::CreateObject(newType, newId);
+    const auto kind = static_cast<FigureObjectType>(newType);
+    if (kind < FigureObjectType::SharedFigureMesh || kind > FigureObjectType::SkyObject || object == nullptr) return object;
+    BaseManager* drawers = context->SpecificManager();
+    auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(SideObjectType::Drawer, -1);
+    static_cast<FigureMesh*>(object)->SetDrawer(drawer);
+    return object;
 }

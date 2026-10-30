@@ -222,5 +222,5 @@ bool RejectsMatch(const char*, char) { std::abort(); }
 void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
 }
 
-// Script::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
+// Script::LoadFile's file reader (script_exec_helpers.cpp needs the game's files): not replayed.
 int scriptparse::ReadTextFile(const std::string&, std::string*) { std::abort(); } // namespace scriptaddon

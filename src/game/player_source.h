@@ -1,6 +1,6 @@
 #pragma once
 
-// The worlds' player sources (world_sessions.cpp): reference objects the
+// The worlds' player sources (world_create.cpp): reference objects the
 // server world's update pumps and asks for new connections (AcceptPlayers).
 // Two kinds: the counted helper at World + 0x5C (WorldHandle, world.h: hands over a
 // pending link once) and the network session at World + 0x60 (netlink::DriverSession, net_link.h).

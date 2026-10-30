@@ -71,7 +71,7 @@ qualified member).
   trade records (core.md, "Containers: the net lists").
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval` and the halves of `clock`): kept (no FPU load).
 - `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a Party's record array (`records + i * 0x784
-  + 0x1C`). `net_server_awards.cpp` /
+  + 0x1C`). `net_server_trade.cpp` /
   `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14). `world_game.cpp`'s `AnnounceHost` builds a `HostMessage`
   by hand. `hash_tables_400.cpp`'s own view of the type registry (004368F0).
 
@@ -89,10 +89,10 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
 - `Player` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId`, +0x104 `lastScreen`, +0x108 `godMode`, +0x110 `lastTick`; `PlayerClient`
   +0x84 is `localSession`. The login's +0x84 is the party id.
 - `PlayerServer` +0x24 `possessedId`: -1, or the Possession spell's target; the next party refresh sends possessedGroup and resets it.
-  world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).
+  world_server.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).
 - `ServerSession` +0x25FC `masterKey` (StartServer's last argument, the client queries' `extra`) and +0x2578 `masterToken` (the master
   server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the kind and the password flag.
-- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb.
+- app_frame.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb.
 - `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its turning time is `time`, as AILook::time); `Behaviour` +0x38
   `enabled` (HearAlarm); `ObjectSpec` +0x6E `side`, +0x74 `skinTexture` (chunk B008).
 - Only written, nothing reads them: `BaseManager` `reservedA` / `reservedB` (0 / 300 after Create), `PlayerServer::spare`,

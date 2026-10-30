@@ -1,5 +1,5 @@
 # Picking at the screen's edges where the image and the original agree (CTextureDevice::BoundsOfProjected,
-# device_bounds.cpp; docs/notes/renderer.md section 3, "Picking"). A figure part's screen rectangle is the bounds of
+# device_draw.cpp; docs/notes/renderer.md section 3, "Picking"). A figure part's screen rectangle is the bounds of
 # its projected positions clamped to the screen; the battle screen's click picks a unit by those rectangles
 # (CWorldClient::UnitAt). An ogre stands where the view's left edge cuts it (in the start view), then one where the
 # bottom edge cuts it (after SetCPFast, which moves the camera to the hero: groundview), each held still (freeze)

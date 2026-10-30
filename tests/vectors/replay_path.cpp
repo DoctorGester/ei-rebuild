@@ -1,4 +1,4 @@
-// Replay of the "path" family (path_vectors.h) against ai_path.cpp, ai_plan.cpp, ai_path_smooth.cpp
+// Replay of the "path" family (path_vectors.h) against ai_path.cpp, ai_movement.cpp, ai_path_smooth.cpp
 // and what they call (the local and block searches, the region map, the path lists, the order).
 //
 // The maps ("@AIMap") are kept here by id; a record's map is built from its saved map with the

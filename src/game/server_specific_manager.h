@@ -57,7 +57,7 @@ public:
     virtual void SetFlameSlot(const float* colour, float value, const float* newValues) { SetFlame(colour, value, newValues); }
     virtual void SetNameSlot(const char* newName) { SetName(newName); }
 
-    // torch_spec.cpp. Create / Destroy (other names so they are no
+    // torch_object.cpp. Create / Destroy (other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
     // the default colour (black), returns 1; Destroy clears +0x1C and the name. Load / Save:
     // +0x20, the name (written with its terminator), +0x28, +0x2C, the
@@ -70,7 +70,7 @@ public:
     void SetLight(std::uint32_t kind, const float* colour, float value);
     void SetFlame(const float* colour, float value, const float* values);
     void SetName(const char* name);
-    // torch_spec.cpp: the torch's network read. Reads the kind,
+    // torch_object.cpp: the torch's network read. Reads the kind,
     // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
     // through the virtual setters (a client half rebuilds its effects there), shows the
     // effects and warms the particles up.

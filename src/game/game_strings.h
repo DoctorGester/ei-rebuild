@@ -168,14 +168,14 @@ inline const char* NoWeapon() { return "Can't create weapon \"%s\" for unit \"%s
 inline const char* NoSpell() { return "Can't create spell \"%s\" for unit \"%s\".\n"; }  // Can't create spell "%s" for unit "%s".
 }  // namespace equipmenttexts
 
-// The menu rectangles' resource and its error texts (menu_rects.cpp).
+// The menu rectangles' resource and its error texts (figure_manager.cpp).
 namespace menutexts {
 inline const char* MenusReg() { return "menus.reg"; }
 inline const char* CantOpen() { return "Can't open file \"menus.reg\" with the main/esc menu rects\n"; }  // "Can't open file "menus.reg" with the main/esc menu rects\n"
 inline const char* CantParse() { return "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n"; }  // "Can't open "menus.reg" as .reg with ...\n"
 }  // namespace menutexts
 
-// The network log's lines (net_session_tick.cpp, net_connection.cpp).
+// The network log's lines (net_session.cpp, net_connection.cpp).
 namespace nettexts {
 inline const char* ZeroLength() { return "ZERO length packet received from "; }
 inline const char* Timeout() { return "TIMEOUT client, drop "; }

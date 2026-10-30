@@ -6,7 +6,7 @@
 // It extends the torch's state object (TorchObjectSpec) with what the torch shows: a
 // particle source, a point light and a looping sound, all placed relative to the torch. The
 // spec's setters are overridden to rebuild them; its show and hide virtuals act on them.
-// torch_client_spec.cpp.
+// torch_object.cpp.
 // The spec's fields, as the client reads them: unknown_20 the particle type, colours[0] its offset
 // and values[0] its size scale; colours[1] the light's offset, values[1] its radius
 // (also the sound's far distance divided by 5 / 3) and values[2..5] its colour; name the

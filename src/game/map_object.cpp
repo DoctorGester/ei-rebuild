@@ -1,22 +1,31 @@
 #include "map_object.h"
 
+#include "core_streams.h"
 #include "core_transform.h"
+#include "game_strings.h"
+#include "map_object_figures.h"
+#include "net_delta.h"
+#include "save_versions.h"
+#include "server_specific_manager.h"   // TorchObjectSpec
+#include "spell.h"    // SpellType
+#include "torch.h"
+#include "unit.h"     // MapObjectServer
+#include "unit_create.h"
+#include "world.h"    // World
 #include "ei/rebirth.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
-#include "map_object_figures.h"
-#include "net_delta.h"
-#include "spell.h"    // SpellType
-#include "unit.h"     // MapObjectServer
-#include "unit_create.h"
-#include "world.h"    // World
 
 #include <bit>
 #include <concepts>
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <new>
+#include <string>
 
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
 
@@ -57,7 +66,6 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
         }
     }
 }
-
 
 } // namespace
 
@@ -358,4 +366,143 @@ int MapObject::SetVisibilityMode(int mode) {
 bool MapObject::ApplyScience(const LockKey*, EngineObject*) {
     game::DebugLog("Science is applied on wrong object");
     return false;
+}
+
+// --- Vitals ------------------------------------------------------------------------------------------
+
+// MapObject: the server companion's vitals. See map_object.h and docs/notes/map_objects.md.
+
+namespace {
+} // namespace
+
+void MapObject::ClearProtectionBases() {
+    if (companion->GetClassId() != ClassId::MapObjectServer) return;
+    // The original reloads the companion pointer for each store (two stores per pair, both +0).
+    for (UnitStatPair& pair : ServerCompanion()->vitals.protection) pair.base = 0.0f;
+}
+
+// --- Create ------------------------------------------------------------------------------------------
+
+// Create of map objects, units and torches: the map object's Create, then the object's number of network
+// fields. See unit.h (Unit::Create), torch.h (TorchObject::Create) and docs/notes/units.md
+// ("Creation, databases, save").
+
+namespace {
+constexpr int kUnitNetFields = 14;
+constexpr int kTorchNetFields = 5;
+
+constexpr int kMapObjectNetFields = 4;
+constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
+
+void DetachCompanion(MapObject* object) {
+    if (EngineObject* companion = object->companion) {
+        CompanionOwner(companion) = nullptr;
+        companion->Release();
+    }
+    object->companion = nullptr;
+}
+
+} // namespace
+
+// --- MapObject's Create / Destroy (A-U) ---------------------------------------------------------
+
+void MapObject::CreateMapObject() {
+    Create3D();
+    DetachCompanion(this);
+    packedVitals.Reset();
+    animationSpeed = 1.0f;
+    packedVitals.Reset();
+    netState.SetFieldCount(kMapObjectNetFields);
+    netState.Reset();
+    changeStamp = -1;
+    effects = {};
+    updateCountdown = kInitialCountdown;
+    name2 = game::kEmptyText;
+    baseScale.x = baseScale.y = baseScale.z = 0.0f;
+}
+
+void MapObject::DestroyMapObject() {
+    SetEffectCount(0);
+    DetachCompanion(this);
+    Destroy3D();
+}
+
+// --- Units and torches -----------------------------------------------------------------------------
+
+void Unit::Create() {
+    CreateMapObject();
+    Reset();
+    AsMapObject()->netState.SetFieldCount(kUnitNetFields);
+}
+
+void TorchObject::Create() {
+    CreateMapObject();
+    TorchObjectSpec* old = spec;
+    spec = nullptr;
+    if (old) old->Release();
+    DeltaState* state = &netState;
+    state->SetFieldCount(kTorchNetFields);
+    state->Reset();
+}
+
+// --- Save --------------------------------------------------------------------------------------------
+
+// Saving and loading the map object part of every map object (MapObject Load / Save) and its
+// server companion's (MapObjectServer Load / Save). See map_object.h and docs/notes/map_objects.md.
+
+namespace {
+
+} // namespace
+
+void MapObject::LoadMapObject(ByteStream* stream) {
+    companion->Load(stream);
+    stream->ReadValue(animationSpeed);
+    stream->Read(&localPosition.x, 3 * sizeof(float));
+    stream->ReadValue(localRotation);
+    name = stream->ReadString();
+    stream->ReadValue(scale);
+    int count = 0;
+    stream->ReadValue(count);
+    SetEffectCount(count);
+    for (int i = 0; i < std::ssize(effects); ++i) effects[i].Load(stream);
+    std::uint32_t currentFlags = flags;    // the original's local starts as stack garbage
+    stream->ReadValue(currentFlags);
+    flags = currentFlags;
+    name2 = stream->ReadString();
+    if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
+}
+
+void MapObject::SaveMapObject(ByteStream* stream) {
+    companion->Save(stream);
+    float speed = animationSpeed;
+    stream->WriteValue(speed);
+    stream->Write(&localPosition.x, 3 * sizeof(float));
+    stream->WriteValue(localRotation);
+    stream->WriteString(name);
+    stream->WriteValue(scale);
+    int count = lib::Count(effects);
+    stream->WriteValue(count);
+    for (int i = 0; i < std::ssize(effects); ++i) effects[i].Save(stream);
+    std::uint32_t currentFlags = flags;
+    stream->WriteValue(currentFlags);
+    stream->WriteString(name2);
+    stream->WriteValue(baseScale);
+}
+
+void MapObjectServer::Load(ByteStream* stream) {
+    stream->ReadValue(vitals);
+    parentIname = stream->ReadString();
+    skinTexture = stream->ReadString();
+    int count = 0;
+    stream->ReadValue(count);
+    for (int i = 0; i < count; ++i) strings.push_back(stream->ReadString());
+}
+
+void MapObjectServer::Save(ByteStream* stream) {
+    stream->WriteValue(vitals);
+    stream->WriteString(parentIname);
+    stream->WriteString(skinTexture);
+    int count = static_cast<int>(strings.size());
+    stream->WriteValue(count);
+    for (const std::string& text : strings) stream->WriteString(text);
 }

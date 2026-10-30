@@ -21,7 +21,7 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   PartRectsMeet; `FindPart` / `SetLit` on it are the base's slots 16 / 26.
 - `Object3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
-  `ObjectWorldMatrix` is shared by the draw and the shadow. `TorchObject::Create` is a member (`map_object_create.cpp`).
+  `ObjectWorldMatrix` is shared by the draw and the shadow. `TorchObject::Create` is a member (`map_object.cpp`).
   `Object3D::figure` is a `Ref<LinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
   client file uses spell.h's `TheLightFactory()->litIds`. The shadow's naked `Fpatan` is `x87::fpatan`.
 

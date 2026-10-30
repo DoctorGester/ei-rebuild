@@ -3,15 +3,20 @@
 // fitting of shadows and figure parts. Plain C++ on the pipeline's matrices; 3DfpFPU.dll's transform object did
 // this in the original (docs/notes/renderer.md, section 10).
 #include "clip.h"          // TLVertex, ClipCodeOf, ClipVerdict
+
+#include "core_maths.h"
+#include "core_transform.h"
 #include "figure_mesh.h"   // VertexPacket
 #include "lightning.h"     // LightningPoint
 #include "model.h"
-
+#include "view_matrices.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
 #include <cfloat>
+#include <cmath>
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -170,3 +175,110 @@ void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
         v.specular = (v.specular & 0x00FFFFFFu) | (lowered < old ? lowered : old);
     }
 }
+
+// --- Matrix math -------------------------------------------------------------------------------------
+
+// The 4x4 matrix helpers: the product, a quaternion's rotation matrix and the
+// transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
+
+namespace {
+
+// The order in which each product element sums its four terms a[r][k] * b[k][c], per column, for row 0 and
+// for rows 1-3 (the game's instruction order). The partial sums are rounded to float; on the game's main
+// thread (24-bit x87 precision) they equal the ones the game keeps on the FPU stack.
+using SumOrder = std::uint8_t[2][4][4];
+constexpr SumOrder kProductOrder = {
+    {{0, 2, 1, 3}, {2, 0, 1, 3}, {0, 2, 1, 3}, {3, 1, 0, 2}},
+    {{1, 3, 2, 0}, {1, 0, 3, 2}, {1, 3, 2, 0}, {0, 3, 2, 1}},
+};
+constexpr SumOrder kPushOrder = {
+    {{3, 2, 1, 0}, {1, 0, 3, 2}, {0, 3, 1, 2}, {2, 1, 0, 3}},
+    {{2, 1, 0, 3}, {0, 3, 2, 1}, {3, 2, 0, 1}, {3, 2, 1, 0}},
+};
+
+// out = a * b, element by element in memory order, reading the inputs again for each element.
+void Multiply(float* out, const float* a, const float* b, const SumOrder& order) {
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c) {
+            const std::uint8_t* k = order[r ? 1 : 0][c];
+            const float* row = a + r * 4;
+            float sum = static_cast<float>(row[k[0]] * b[k[0] * 4 + c] + row[k[1]] * b[k[1] * 4 + c]);
+            sum = static_cast<float>(sum + row[k[2]] * b[k[2] * 4 + c]);
+            out[r * 4 + c] = sum + row[k[3]] * b[k[3] * 4 + c];
+        }
+    }
+}
+
+} // namespace
+
+void Matrix4::Multiply(const float* a, const float* b) { ::Multiply(m, a, b, kProductOrder); }
+
+void Quaternion::ToMatrix(float* out) const {
+    // Twice the vector part; the products the game stores as floats are rounded to float.
+    float x2 = x + x;
+    float y2 = static_cast<float>(y + y);
+    float z2 = static_cast<float>(z + z);
+    float wx = static_cast<float>(x2 * w);
+    float wy = static_cast<float>(y2 * w);
+    float wz = static_cast<float>(z2 * w);
+    float xx = x2 * x;
+    float xy = y2 * x;
+    float xz = static_cast<float>(z2 * x);
+    float yy = static_cast<float>(y2 * y);
+    float yz = static_cast<float>(z2 * y);
+    float zz = static_cast<float>(z2 * z);
+    out[0] = 1.0f - static_cast<float>(zz + yy);
+    out[1] = xy - wz;
+    out[2] = xz + wy;
+    out[4] = xy + wz;
+    out[5] = 1.0f - static_cast<float>(zz + xx);
+    out[6] = yz - wx;
+    out[8] = xz - wy;
+    out[9] = yz + wx;
+    out[10] = 1.0f - static_cast<float>(yy + xx);
+}
+
+void TransformPipeline::PushMatrix(const float* m, int index) {
+    MatrixStack& stack = stacks[index];
+    if (stack.count == 0) {
+        stack.count = 1;
+        std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
+        return;
+    }
+    ++stack.count;
+    Multiply(stack.matrices[stack.count - 1].m, stack.matrices[stack.count - 2].m, m, kPushOrder);
+}
+
+// --- View matrices -----------------------------------------------------------------------------------
+
+// The view matrix: see view_matrices.h. The sums keep the game's order.
+
+namespace view {
+
+Matrix4 ViewMatrix(const Vector3& position, const Quaternion& q) {
+    Matrix4 result = {};
+    float* out = result.m;
+    Vector3 axisX = q.AxisX();
+    Vector3 axisY = RotatedAxisY(q);   // inlined copies, the same orders
+    Vector3 axisZ = RotatedAxisZ(q);
+    const Vector3 p = position;
+    out[0] = axisX.x;
+    out[1] = axisX.y;
+    out[2] = axisX.z;
+    out[4] = axisY.x;
+    out[5] = axisY.y;
+    out[6] = axisY.z;
+    out[8] = axisZ.x;
+    out[3] = -DotZYX(p, axisX);
+    out[9] = axisZ.y;
+    out[10] = axisZ.z;
+    out[7] = -DotZYX(p, axisY);
+    out[11] = -DotZYX(p, axisZ);
+    out[14] = 0.0f;
+    out[13] = 0.0f;
+    out[12] = 0.0f;
+    out[15] = 1.0f;
+    return result;
+}
+
+} // namespace view

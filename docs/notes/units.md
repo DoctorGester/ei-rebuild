@@ -2,7 +2,7 @@
 
 Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.h`, `magic_trap.h`, `lever.h`,
 `unit_client_models.h`; each file's header says what it does): `unit*.cpp`, `magic_trap.cpp`, `lever_object.cpp`,
-`torch_*.cpp`, `trap_object.cpp`, `map_object_kinds.cpp`, `object3d_*.cpp`, `net_state.cpp`, `map_object_create.cpp`.
+`torch_*.cpp`, `magic_trap.cpp`, `map_object_kinds.cpp`, `object3d_*.cpp`, `net_state.cpp`, `map_object.cpp`.
 Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `units.txt`, `unit_create.txt` (eight prototypes, replace, kill,
 remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every scenario that starts the game
 (serialisers, factory, constructors). Shared forwarders are in `originals_units.h`; of the callees only 006AC970
@@ -185,10 +185,10 @@ address in its source comment (grep the address); the per-function table that us
   `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
   `unit_equipment.cpp`, `unit_db*.cpp` / `unit_db.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
   `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_update.cpp` / `unit_stats.cpp` / `unit_items.cpp` /
-  `unit_figure_queries.cpp` / `unit_update.cpp` / `unit_client_update.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
+  `unit_figure_queries.cpp` / `unit_update.cpp` / `unit_client_update.cpp`, `map_object.cpp` / `unit_controller.cpp` /
   `unit_update.cpp`, `unit_update.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
-  `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
-  `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
+  `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_object.cpp` /
+  `torch_object.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `magic_trap.cpp`, `refptr_copies.cpp`.
 - Facts about specific groups: `Unit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
   returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
   the original reads the same record again). `UnitClientSpecific` slots: UpdateClient 6, FiguresLoaded 13, RestartFadeIn 43
@@ -358,7 +358,7 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
   resize / clear and the records' destructors (STLport instantiations, library.csv), the chunk archive's out-of-line
   destructor 004645A0 (not in this range).
 
-## A-E1: the lever table's load (lever_table_load.cpp)
+## A-E1: the lever table's load (lever_table.cpp)
 
 `LeverRecordTable::Load` (00463390, RET 4; Rebirth-patched at its file lookup call 00463474, so it installs in
 the vanilla launch only): `<folder>database.res` opened in an archive of its own (the fatal error names

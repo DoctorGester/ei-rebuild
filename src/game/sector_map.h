@@ -21,7 +21,7 @@ class Unit;
 enum class OccluderKind : std::int8_t {
     Solid = 0,        // a plain part: adds kOccluderCosts[0] (290) to the cell's cost, damps its passage by 7
     Crown = 2,        // a "CROWN..." part: nothing for the passability
-    SpellArea = 3,    // a spell's wall or cloud (ai_footprint_shapes.cpp): the cell's cost counts twice, units fear it
+    SpellArea = 3,    // a spell's wall or cloud (ai_unit_shape.cpp): the cell's cost counts twice, units fear it
     BridgeDeck = 4,   // a "BASE..." part once AIMap::ApplyBridgeDecks applied it: nothing for the passability
 };
 

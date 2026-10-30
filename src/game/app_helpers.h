@@ -15,7 +15,7 @@ extern std::uint8_t g_movieMode;   // app_helpers.cpp
 
 bool QuitGame(int exitCode);
 
-// (app_registry.cpp): a class the chunk archives can hold, by id and factory.
+// (app_frame.cpp): a class the chunk archives can hold, by id and factory.
 void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t id,
                           ChunkArchive::Factory factory);
 } // namespace app

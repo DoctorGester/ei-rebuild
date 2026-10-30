@@ -37,9 +37,9 @@ extern GameFlow g_gameFlow;   // world_game.cpp
 // The interface manager (windows, the quest log, status text, the console window).
 extern Interface3D g_interface;   // ui_interface_input.cpp
 
-extern WorldClient g_clientWorld;   // world_construct.cpp
+extern WorldClient g_clientWorld;   // world_create.cpp
 
-extern WorldServer g_serverWorld;   // world_construct.cpp
+extern WorldServer g_serverWorld;   // world_create.cpp
 
 // The scene renderer.
 extern SceneRenderer g_sceneRenderer;   // renderer_scene.cpp

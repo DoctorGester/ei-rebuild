@@ -2,7 +2,7 @@
 
 Files: `net_classes.h` (session / client / server layouts), `net_session*.cpp`, `net_connection*.{h,cpp}`,
 `net_messages.{h,cpp}`, `net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`,
-`net_coder.*`, `net_delta.*`, `net_link.*`, `net_session_pump.cpp`, `net_state.cpp`. Verify:
+`net_coder.*`, `net_delta.*`, `net_link.*`, `net_session.cpp`, `net_state.cpp`. Verify:
 `tests/verify/verify_net_*.cpp` (+ `net_verify.h`). How the classes are declared after the cleanup:
 `cleanup-network.md`. Names are provisional. Header comments of the `net_*` files say what each
 function does; this file keeps what is not visible in the code.
@@ -305,7 +305,7 @@ messages inline.
   shims (a pointer to a virtual member would dispatch). The handle's is reached when a server world takes its local player (a new game);
   the session's only on a network server.
 
-## A-E1: the server's master announcement and two handlers (net_server_handlers.cpp)
+## A-E1: the server's master announcement and two handlers (net_server.cpp)
 
 - `ServerSession::AnnounceToMaster` (0041AA10; the tick calls it through its address every announcement interval while a master host name
   is set): a `GameInfoRecord` on the stack (name, the played map's title from 005814C0 or "" without a map, players, maximum, kind, password

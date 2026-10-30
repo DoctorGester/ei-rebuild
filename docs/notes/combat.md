@@ -2,7 +2,7 @@
 
 Code (layouts and per-function comments are in `combat.h` and `combat_plan.h`): `combat*.cpp` (queries and the hit in
 combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning, taming, stat
-slots, object / server slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`, `world_managers.cpp`.
+slots, object / server slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`, `world_create.cpp`.
 Verify: `tests/verify/verify_combat*.cpp`, `verify_unit_motion_tick.cpp`, `verify_world_create.cpp`. Scenarios:
 `combat.txt`, `combat_more.txt` (kill, archer, heal), `movement.txt`, `unit_ai.txt`; every creature runs the update and
 animation code each tick, so any scenario with units reaches it.
@@ -191,9 +191,9 @@ here is gone. What it covered, by file:
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
   100000000, types 6 / 8).
 - World managers: World::Create 0055EE40, World::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
-  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` PlayerManager / EffectManager (0073F2C4) /
+  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_create.cpp` PlayerManager / EffectManager (0073F2C4) /
   ItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, ItemManager slot 25 "items", left because
-  ResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): PlayerSource base
+  ResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_create.cpp`): PlayerSource base
   destructor (vtable 0073F38C), WorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
   (+0x60, 0073F3A8; was "the game result object"), World::OpenSession 0055F410 (new session ShareAssigned into +0x60).
 - Patterns: functions that start with PUSH / MOV and a relative CALL (005536B0) are reached through the naked stub
@@ -244,7 +244,7 @@ here is gone. What it covered, by file:
 
 ## Skipped and left
 
-- 0055E990 (the maps folder) is Rebirth-patched (`world_map_files.cpp`, world.md). 0054C8B0 / 0054C960 return the FPU status word in AX
+- 0055E990 (the maps folder) is Rebirth-patched (`world_map.cpp`, world.md). 0054C8B0 / 0054C960 return the FPU status word in AX
   on one path (callers test AL; always called through the address; CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp).
   00536670 / 00535CB0 / 005381B0 are the client's (units.md). AI forwarders: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims,
   005CBBC0 MemoryAddCall (originals_ai.h).

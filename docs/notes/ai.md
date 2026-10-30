@@ -3,7 +3,7 @@
 Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai_unit_layer.h`,
 `sector_map.h`; each file's header says what it does): `ai_map.cpp` (cell queries, heights, line of
 sight), `ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.cpp`,
-`ai_region_reach.cpp`, `ai_path*.cpp`, `ai_plan.cpp`, `ai_join.cpp`, `ai_motion.cpp`, `ai_movement.cpp`,
+`ai_region_reach.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_map.cpp`, `ai_motion.cpp`, `ai_movement.cpp`,
 `ai_unit_layer.cpp`, `sector_map.cpp`, and the small ones named in the table. Verify:
 `tests/verify/verify_ai_*.cpp`, `verify_sector_map.cpp`. Scenario: `tests/scenarios/movement.txt`
 (the map functions also run in every scenario). Names are provisional.
@@ -91,16 +91,16 @@ By file:
   005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
   cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (OccluderKind::BridgeDeck, ground >= deck, terrain type occluder::kBridgeType); `ai_occluders.cpp`;
   `ai_map_construct.cpp` (AIMap::AIMap 005B3C30, AIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
-  pointers); `ai_area_lists.cpp`, `ai_cost_tables.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
-  ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_alarm.cpp` StepAlarm 005AEA80; `ai_shape_cache.cpp`
-  CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_line_step.cpp` LargestStepAlong 005BC750.
+  pointers); `ai_map.cpp`, `ai_map.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
+  ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_events.cpp` StepAlarm 005AEA80; `ai_unit_shape.cpp`
+  CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_map.cpp` LargestStepAlong 005BC750.
 - `ai_region_reach.cpp` RegionMap 005AF1C0-005B1180 (BlockSearchPathTo, JoinBlockSearches, FloodRegionFrom, LabelRegions,
   DominantRegion, ReachesRegion, FindRegionChain, ...); `ai_block_search.cpp` (BlockSearch Attach / Requeue / Relax / PickBest /
   Expand 005AED60-005AF0C0, SeedSearch, AttachSearches, UpdateBlocks 005AFC70).
 - Paths: `ai_path.cpp` (SnapTarget 005BAC10, FindPath 005BB350, ContinuePath 005BB900, AdvancePath 005BB190, PathCellList::NewNode),
-  `ai_path_stand.cpp` (stand orders: no cells, flags {1, 0, 0, 1}, target = the unit's cell), `ai_path_save.cpp` (LoadPath 005B2430,
-  SavePath 005B2570), `ai_plan.cpp` PlanLongPath 005B9C90, `ai_join.cpp` JoinLocalSearches 005B9690 / BuildCellsTo 005B9A20,
-  `ai_local_search.cpp` (LocalSearch 005C1D50-005C35F0, CostContextFor 005B9580), `ai_path_cells.cpp` (PathCellList 005BD200-005C6000,
+  `ai_path.cpp` (stand orders: no cells, flags {1, 0, 0, 1}, target = the unit's cell), `ai_path_save.cpp` (LoadPath 005B2430,
+  SavePath 005B2570), `ai_movement.cpp` PlanLongPath 005B9C90, `ai_map.cpp` JoinLocalSearches 005B9690 / BuildCellsTo 005B9A20,
+  `ai_local_search.cpp` (LocalSearch 005C1D50-005C35F0, CostContextFor 005B9580), `ai_path.cpp` (PathCellList 005BD200-005C6000,
   PathCell::Step 005C5CC0), `ai_path_smooth.cpp` (PathSmoother Smooth 005C46C0 / Advance 005C45D0 / Relax 005C44D0, SmoothPool::SetSize
   005C4C20), `ai_path_state.cpp` (AIPath::WriteState / ReadState 005C7DB0 / 005C7FC0, the order and steps on a delta field).
 - Motion: `ai_motion.cpp` (UnitMotion::Sample 005C7430, SamplePath 005C6FC0, Build 005C67D0, AssignCells, Subdivide(Segment),
@@ -145,7 +145,7 @@ By file:
 - Run only by game.exe's static initialisers; ours build on first use, compared with game.exe's by the path vectors'
   @PathTables (tests/vectors/replay_path.cpp; world.md "Rewritten"): the smoothing tables 005C42B0 with 005C3690, 005C3840,
   005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp` SmoothTables), the spiral 005BF8F0 / 005BF5F0 (`sector_spiral.cpp`
-  SectorSpiralTables). The shape cache 005B32E0 / 005B31F0 (`ai_shape_cache.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
+  SectorSpiralTables). The shape cache 005B32E0 / 005B31F0 (`ai_unit_shape.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
   005BE450, 005BE730 STLport hash_map instantiations (config/library.csv).
 
 ## Risks

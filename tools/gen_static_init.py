@@ -658,7 +658,7 @@ REVIEWED_READ = {
     # C50d1: the console log pointers; ours write to the streams by name (console::Stream& constants).
     0x007AF284: "the hit log pointer (the rpg stream): unit_hits.cpp's kHitLog",
     0x007AF3E8: "the combat log pointer (the AI stream): combat_internal.h's kCombatLog",
-    0x007C2EB8: "the alarm log pointer (the unitacks stream): ai_alarm.cpp's kAlarmLog",
+    0x007C2EB8: "the alarm log pointer (the unitacks stream): ai_events.cpp's kAlarmLog",
     0x007C53C4: "the AI's perception log pointer (the AI stream): unit_ai.h's kAiLog",
     0x007C54E8: "the modes' log pointer (the AI stream): unit_ai.cpp's kModeLog",
 }
@@ -789,13 +789,13 @@ UNUSED_INITIALISERS = {
     0x0040C880: "the camera 0079B2A8 (exit function 0040C8A0): camera_object.cpp's g_camera",
     0x00500930: "the scene renderer 007AF060 (exit function 00500950): renderer_scene.cpp's g_sceneRenderer",
     # C50b1: the worlds are plain globals of ours (GameMain registers EmptyWorlds for the exit order).
-    0x00560620: "the client world 007AF5B8 (exit function 00560640): world_construct.cpp's g_clientWorld",
-    0x00589BE0: "the server world 007AFF60 (exit function 00589C00): world_construct.cpp's g_serverWorld",
+    0x00560620: "the client world 007AF5B8 (exit function 00560640): world_create.cpp's g_clientWorld",
+    0x00589BE0: "the server world 007AFF60 (exit function 00589C00): world_create.cpp's g_serverWorld",
     # C54g1: the party manager, the flow, the save stream and the saved parties are plain globals of ours.
     0x004A56D0: "the party manager 007AA5A0 (exit function 004A56F0): party_manager.cpp's g_partyManager",
     0x00578440: "the flow 007AFE20 (exit function 005784C0): world_game.cpp's g_gameFlow",
     0x00578530: "the save stream 007AFDF8 (exit function 00578550): world_game.cpp's g_saveStream",
-    0x0065F2A0: "the saved parties 007C82A0 (exit function 0065F2C0): party_file.cpp's g_savedParties",
+    0x0065F2A0: "the saved parties 007C82A0 (exit function 0065F2C0): party.cpp's g_savedParties",
     # C50c1 / C50e: the databases the interface reads and the disc / data folders are plain globals of ours.
     0x0045E6C0: "the map database 0079BF00 (exit function 0045E6E0): map_database.cpp's g_mapDatabase",
     0x0051FAF0: "the skill database 007AF268 (exit function 0051FB40): unit_db_globals.cpp's g_skillDatabase",
@@ -837,7 +837,7 @@ UNUSED_INITIALISERS = {
     0x00580980: "the quest text files 007AFDD0 (exit function 005809C0): world_briefing.cpp's g_questFiles",
     0x00581050: "the quest folders 007AFDC0 (exit function 00581090): world_briefing.cpp's g_questFolders",
     # C50b: the draw work arrays are plain globals of ours.
-    0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_draw.cpp's g_drawOrder",
+    0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_manager.cpp's g_drawOrder",
     0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): gone (R37f: the shadow's sphere from the object's bounds)",
     0x0051CDA0: "the shadow's projected points 007AF1F8 (exit function 0051CDD0, guard bit 0 of 007AF1F0): "
                 "gone (R37f: the shadow's sphere from the object's bounds)",
@@ -932,18 +932,18 @@ UNUSED_INITIALISERS = {
                 "g_startFolder",
     0x0055E820: "the text folder 007AF45C (exit function 0055E840, bit 3 of 007AF438): game_folders.cpp's "
                 "g_textFolder",
-    0x005DC050: "the cheat command map 007C7B38 (exit function 005DC070): console_streams.cpp's "
+    0x005DC050: "the cheat command map 007C7B38 (exit function 005DC070): console.cpp's "
                 "console::g_cheatCommands",
-    0x005DC120: "the public command map 007C7B28 (exit function 005DC140): console_streams.cpp's "
+    0x005DC120: "the public command map 007C7B28 (exit function 005DC140): console.cpp's "
                 "console::g_publicCommands",
     # C50d: the draws' work arrays are plain globals of ours.
     0x0049B460: "the line lists' vertices 007A9CE0 (exit function 0049B490): renderer_lines.cpp's g_lineVertices",
     0x0049B6B0: "the line lists' outcodes 007A9CC8 (exit function 0049B6D0): renderer_lines.cpp's g_lineOutcodes",
     0x0049B6E0: "the line lists' projected points 007A9CB8 (exit function 0049B710): renderer_lines.cpp's "
                 "g_lineProjected",
-    0x004E5C40: "the device's outcodes 007AEE30 (exit function 004E5C70): device_buffers.cpp's g_outcodes",
+    0x004E5C40: "the device's outcodes 007AEE30 (exit function 004E5C70): device_draw.cpp's g_outcodes",
     0x004E5C90: "the device's corner outcodes 007AEE20 (exit function 004E5CC0): gone (R30f: the mesh draws clip on the GPU)",
-    0x004E5CE0: "the device's projected vertices 007AEE10 (exit function 004E5D10): device_buffers.cpp's g_projected",
+    0x004E5CE0: "the device's projected vertices 007AEE10 (exit function 004E5D10): device_draw.cpp's g_projected",
     0x004E5D30: "the device's vertices 007AEE00 (exit function 004E5D60): gone (R30f: the mesh draws clip on the GPU)",
     0x004E5DD0: "the device's clip indices 007AEDE0 (exit function 004E5E00): gone (R30f: the mesh draws clip on the GPU)",
     0x004F2AF0: "the moved packets 007AEED0 (exit function 004F2B20): link_mesh_draw.cpp's g_movedPackets",
@@ -954,8 +954,8 @@ UNUSED_INITIALISERS = {
                 "terrain_sector.cpp's g_projectionOutput",
     0x006BFAC0: "the terrain projection's outcodes 007C88D0 (exit function 006BFAE0, bit 2 of 007C88C9): "
                 "terrain_sector.cpp's g_projectionOutcodes",
-    # C50d1: the console's streambufs and streams are plain globals of ours (console_streams.cpp).
-    **{a: f"the console's streambuf {o:08X} (exit function {e:08X}): console_streams.cpp's {n}"
+    # C50d1: the console's streambufs and streams are plain globals of ours (console.cpp).
+    **{a: f"the console's streambuf {o:08X} (exit function {e:08X}): console.cpp's {n}"
        for a, o, e, n in ((0x005DC1E0, 0x007C76D0, 0x005DC2C0, 'g_aiLogBuf'),
                           (0x005DC2D0, 0x007C7278, 0x005DC2F0, 'g_eventLogBuf'),
                           (0x005DC300, 0x007C6E20, 0x005DC320, 'g_graphicsLogBuf'),
@@ -964,7 +964,7 @@ UNUSED_INITIALISERS = {
                           (0x005DC390, 0x007C6118, 0x005DC3B0, 'g_netLogBuf'),
                           (0x005DC3C0, 0x007C5CC0, 0x005DC3E0, 'g_allLogBuf'),
                           (0x005DC3F0, 0x007C5868, 0x005DC410, 'g_consoleBuf'))},
-    **{a: f"the console's stream {o:08X} (exit function {a + 0x20:08X}): console_streams.cpp's {n}"
+    **{a: f"the console's stream {o:08X} (exit function {a + 0x20:08X}): console.cpp's {n}"
        for a, o, n in ((0x005DC420, 0x007C5810, 'g_aiLogOut'), (0x005DC460, 0x007C57B8, 'g_eventLogOut'),
                        (0x005DC4A0, 0x007C5760, 'g_graphicsLogOut'), (0x005DC4E0, 0x007C5708, 'g_rpgLogOut'),
                        (0x005DC520, 0x007C56B0, 'g_netLogOut'), (0x005DC560, 0x007C5658, 'g_unitAcksLogOut'),
@@ -1263,9 +1263,9 @@ RETIRED_STATICS = {
                              "007AEFB8..007AEFE8 (guard byte 007AEFF8) are never made"),
     0x00501D90: (0x00502A20, "CSceneRenderer::DrawStrip (renderer_strip.cpp) uses plain globals of ours: the original's "
                              "work arrays 007AF000..007AF040 (guard byte 007AF050) are never made"),
-    0x006C8ED0: (0x006C9270, "Terrain::SetSun (terrain_animation.cpp) sorts the lit sectors in a local: the original's "
+    0x006C8ED0: (0x006C9270, "Terrain::SetSun (terrain.cpp) sorts the lit sectors in a local: the original's "
                              "static array 007C8938 (guard bit 0 of 007C8948, freed by 006C9270) is never made"),
-    0x005A7640: (0x005A7A50, "FigureMeshDrawer::DrawPlain (figure_part_draw_plain.cpp) uses a plain global of ours: the "
+    0x005A7640: (0x005A7A50, "FigureMeshDrawer::DrawPlain (figure_part_draw.cpp) uses a plain global of ours: the "
                              "original's moved positions 007C2E60 (guard bit 0 of 007C2E70, freed by 005A7A50) are "
                              "never made"),
     0x005A7A70: (0x005A8AE0, "FigureMeshDrawer::DrawLit (figure_part_draw.cpp) uses a plain global of ours: the "
@@ -1281,19 +1281,19 @@ RETIRED_STATICS = {
     0x0057DEE0: (0x0057E1A0, "GameFlow::UseResources (world_game.cpp) keeps the resources in use in a function-local "
                              "static of ours: the original's string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by "
                              "0057E6A0) is never made"),
-    0x00467590: (0x004679B0, "CLightning::DrawGlow (lightning_draw.cpp) uses plain globals of ours: the original's "
+    0x00467590: (0x004679B0, "CLightning::DrawGlow (lightning.cpp) uses plain globals of ours: the original's "
                              "sprite records 0079C1E0 and points 0079C1D0 (guard bits 0 / 1 of 0079C1F4, destroyed by "
                              "00467A10 / 004679F0) are never made"),
-    0x004976B0: (0x00497CE0, "CParticleSource::Draw (particle_render.cpp) uses plain globals of ours: the original's "
+    0x004976B0: (0x00497CE0, "CParticleSource::Draw (particle_manager.cpp) uses plain globals of ours: the original's "
                              "sprites 007A9BE0 and vertices 007A9BD0 (guard bits 0 / 1 of 007A9BF4, destroyed by "
                              "00497D30 / 00497D10) are never made"),
     0x004E1AB0: (0x004E1C60, "CVisibilityFog::UpdateCells (effects_weather.cpp) lists the dead cells in a local: the "
                              "original's static array 007ABB58 (guard bit 0 of 007ABB64, freed by 004E1C50) is never "
                              "made"),
-    0x004E1EB0: (0x004E2290, "CVisibilityFog::Draw (effects_weather_draw.cpp) uses plain globals of ours: the "
+    0x004E1EB0: (0x004E2290, "CVisibilityFog::Draw (effects_weather.cpp) uses plain globals of ours: the "
                              "original's sprites 007ABA40 and points 007ABA30 (guard bits 0 / 1 of 007ABA54, destroyed "
                              "by 004E2280 / 004E2260) are never made"),
-    0x0056C750: (0x0056CE40, "CWorldClient::ProjectDecal (world_client_decals.cpp) uses plain globals of ours: the "
+    0x0056C750: (0x0056CE40, "CWorldClient::ProjectDecal (world_client_lights.cpp) uses plain globals of ours: the "
                              "original's decal builder 007AF488 and part points 007AF478 (guard bits 0 / 1 of 007AF504, "
                              "the points freed by 0056CE10) are never made"),
     0x0058B750: (0x0058C4F0, "CWorldServer::SyncPlayer (world_sync.cpp) diffs in local arrays: the original's static "
@@ -1312,7 +1312,7 @@ RETIRED_STATICS = {
                              "made"),
     0x005B7EF0: (0x005B80BD, "CAIMap::StampWaterPatch (ai_water_patch.cpp) keeps its patch in a function-local static of "
                              "ours: the original's 007C2F64 (guard bit 0 of 007C2F68, released by 005B80C0) is never made"),
-    0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain_passes.cpp) hands the page to src/render: the "
+    0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain.cpp) hands the page to src/render: the "
                              "original's tile arrays and triangle lists 007C8848..007C88C8 are never built"),
     0x0047ADF0: (0x0047B119, "ObjectSetSortUnique (world_object_sets.cpp) sorts by object id with std::sort: the "
                              "original's radix sort scratch array 007A9738 (freed by 0047B1D0) is never made"),

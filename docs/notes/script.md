@@ -2,7 +2,7 @@
 
 Files (`src/game/`): `script.h` (the records, std containers with their own special members, and `Script`),
 `script_*.cpp` (group, vars, eval, parse, parse_load, exec, exec_run, exec_helpers, save, load, construct, blocks, reset,
-cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)), `text_reader.cpp`.
+cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)), `text_manager.cpp`.
 Verify: `tests/verify/verify_script*.cpp` (+ `script_compare.h`), `verify_text_reader.cpp`. Scenarios: `script_parse`,
 `script_exec`, `script_copy`, `script_fx`, `script_quest`, `world_load` (save / load round trip), `console`, `effects`,
 `particles`, `zone_gz2g_traps`. Nothing rewritten here lies in Rebirth's patched range 0x004CF4A2-0x004D460C except where
@@ -169,7 +169,7 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   `chosen` without a reference. Not hookable (3 bytes): 004BA220 / 004BA230 (RET 4), 004BA240 (MOV AL,1), 004BA2B0 / 004BA2C0
   / 004BA970 (RET 4), 004BA2F0 (Guard type 0), 004BA620 (MOV AL,0). The accessors 004B9F20-004BA080 and 004BA9C0 are called
   only from the rewritten runtime 004B6760 (not ported).
-- Text manager line reader (`text_reader.cpp` on `TextManager`; 54 callers of Open in the interface, the map loader's
+- Text manager line reader (`text_manager.cpp` on `TextManager`; 54 callers of Open in the interface, the map loader's
   FindLine / Split, the item texts): the cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is the
   signed `(p - text) < length`; characters are MBCS. Open 004DEFC0 asks each archive (slot 5, GetFile(key, &length)) in list
   order (its wrapper runs GetFile twice: the archive's count rises twice); PeekWord 004DF770 (the cursor does not move);
@@ -187,9 +187,9 @@ be here are gone. Where things live: `script_eval.cpp` (SetParameters / CalcPara
 CalcGroup is there for Rebirth's AddNewScriptCommands), `script_parse*.cpp` and `script_blocks.cpp` (tokens, lexer,
 loaders, defines, qualified names), `script_exec*.cpp` (Execute 004B6760, bind calls, ScriptTick 004BF000,
 FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars.cpp` (savers, loaders, the variables' appends and
-lookups), `script_group.cpp` (the groups' set operations), `script_construct.cpp` / `script_cleanup.cpp` /
-`script_reset.cpp` (Script's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
-lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), the unit mode commands (`script_exec.cpp`),
+lookups), `script_group.cpp` (the groups' set operations), `script_blocks.cpp` / `script_cleanup.cpp` /
+`script_blocks.cpp` (Script's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
+lights), `quest_database.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), the unit mode commands (`script_exec.cpp`),
 the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0-004BCF30, the text reader below.
 
 - Rebirth patches these, so they hook in the vanilla launch only unless the patch is behind a flag: 004B6760 Execute,
@@ -258,17 +258,17 @@ which is why the Execute observer reads the instance list's head (+0x144), not t
 ## Leftovers: the rest of 0x00480000-0x00500000 outside the script engine (rewritten)
 
 Every function carries its address in its source comment. The files, with the scenarios that reach them (all of it also runs
-in `newgame` unless noted): `core_memory_stream.cpp` (MemoryStream, ByteStream::CopyFrom / ReadSized / ReadHeader; every save
-and network message), `core_stream_diff.cpp` / `core_stream_chunks.cpp` (WriteDiff, ApplyDiff, ReadTagged, FindTagged,
+in `newgame` unless noted): `core_streams.cpp` (MemoryStream, ByteStream::CopyFrom / ReadSized / ReadHeader; every save
+and network message), `core_streams.cpp` / `core_streams.cpp` (WriteDiff, ApplyDiff, ReadTagged, FindTagged,
 ReadText, ReplaceTagged; world_load, ui_saveload), `game_buffer.cpp` / `game_buffer_strings.cpp` / `net_coder.h` (growing
 byte buffer; save compression, multiplayer, net_lobby), `buffered_file.cpp` (005809D0 reads "quest.reg"),
-`matrix_math.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `view_matrices.cpp` (CameraViewMatrix
+`projection.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `projection.cpp` (CameraViewMatrix
 004F0EF0; LightRotation 004F15C0 and LightShearMatrix 004F1440 went with the shadow's projection, R37f; 004E5660 a byte
 copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0), `text_split.cpp` (Split, SplitWords,
-ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and TextManager sources;
+ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_manager.cpp` (archive list and TextManager sources;
 briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every frame with shadows), `mob_reader.cpp`,
-`class_template_stock.cpp` (trader_stock, every new game), `script_runtime_helpers.cpp` / `party_script.cpp`,
-`global_map_clouds.cpp` (GlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
+`class_template_stock.cpp` (trader_stock, every new game), `ai_map.cpp` / `party_manager.cpp`,
+`global_map_clouds.cpp` (GlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_db.cpp`, `particle_manager.cpp`
 (particles, spells_cast), `link_figure.cpp` / `link_loader.cpp` (newgame via 00568800, models, ui_hero_screen),
 `sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650; ProjectTerrain
 004F29F0 is gone with the terrain's projection, R31), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.
@@ -419,7 +419,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
   element at EBP-0x50 is copied whole into the node, 004CB220); the tick (004BF000) counts such a source down and replaces
   its sound when the countdown reaches zero. Ours writes 0, 0, 0 and INT_MAX: the sound stays, as with any positive
   residue (zero would replace it on every tick). Scenario script_fx.
-- 004BDE40 `Script::Construct` (`script_construct.cpp`): the member vtables (`scriptvtable::kPointLights` ..
+- 004BDE40 `Script::Construct` (`script_blocks.cpp`): the member vtables (`scriptvtable::kPointLights` ..
   `kTempObjectList` in script.h), lists in blocks of 10, the four global variable sets, 256 zeroed light slots, one empty
   temporary group (004C8CE0) and one null temporary reference (004C9210), an empty error text, then `ScriptReset`. Only the
   world's constructor 00589ED0 calls it (twice), from the static initialiser 00589BE0, before the hooks: the hook never
@@ -447,7 +447,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 The classification of the 173 functions that were left in the range is in renderer.md (section 12); the plain game code among
 them is below.
 
-- Text manager (`text_sources.cpp`, `text_manager.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
+- Text manager (`text_manager.cpp`, `text_manager.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
   `GetFile` result (the size through the out pointer); null without one. 004DEC40 `TextSourcesListKeys`: every source's keys
   matching the pattern appended to the caller's array through a temporary `CStringArray` (the original's `CStringArray::Append`,
   006FEB01); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and
@@ -467,7 +467,7 @@ them is below.
 - 004E3980 (the weather's noise tables filled from `rand`; `weather_noise.cpp`): only a static initialiser calls it; the
   tables are rebuilt from `rand` seeded with 1 at WinMain's entry and match bit for bit (A-E2).
 - 004D5880 (from 004D36F0: a text file read through `CStdioFile` inside an MFC TRY / CATCH(CFileException);
-  `script_text_file.cpp`, A-E2): the text is emptied, the file opened by the throwing constructor (text mode, share deny
+  `script_exec_helpers.cpp`, A-E2): the text is emptied, the file opened by the throwing constructor (text mode, share deny
   write), lines of up to 0x7FF characters appended, the file closed; a caught exception gives 0 (app.md "MFC TRY / CATCH").
   No scenario loads a script text file.
 - The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`, vtable 0073F554:

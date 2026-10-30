@@ -514,7 +514,7 @@ minus the angle, `TiltTowards`' arc cosine times 0.1, the mesh draws' tick (an i
 CRT's arc cosine** (`CiAcos`, crt_x87) returns FPATAN's result through a double at PC24 (its control word restore
 stores it), so an SSE2 caller gets the same double: storing it as a float is a plain conversion, an operation on it a
 `pc24::` one. `x87::fistp` -> `lib::RoundEven` (the fog alpha), `Ftol` -> int64 truncation (frame sheets, specular
-bytes), `CopyBits` -> `=`. quaternion.cpp followed in C30e10a (below). Reviewed in the objects: the x87 code the
+bytes), `CopyBits` -> `=`. core_maths.cpp followed in C30e10a (below). Reviewed in the objects: the x87 code the
 compiler leaves in SSE2 objects (a float-returning function's sum on ST0: `Dot`, `DotZYX`, `UpX`; an FSUBR on a returned float) is float operations on floats, exact at the
 main thread's PC24; `WaterTweens::SetTarget`'s int steps were rounded to a float in the x87 code too (FILD, FSTP dword).
 Equivalence test (C30e10's `eq/`: HEAD's functions built /arch:IA32 at PC24 against the new ones, one x87 acos shared):
@@ -546,17 +546,17 @@ and with wide ones (2^-30 to 2^31, zeros, infinities, NaN); left: which NaN come
 NaN's sign: an infinite angle, NaN and infinite coordinates) and the exponent range (an exponent of Damp's past 88,
 not reachable: ln 0.6 times a fraction times 7).
 
-**C30e10a (quaternion.cpp).** `Slerp`'s angle is the game CRT's arc cosine, a double (FPATAN's 64 bits stored to 53),
+**C30e10a (core_maths.cpp).** `Slerp`'s angle is the game CRT's arc cosine, a double (FPATAN's 64 bits stored to 53),
 and FSIN loads it whole: `pc24::Sin(double)` (the float forms' reduction on a 53-bit argument). `1 / fsin(angle)`
 rounds at PC24, so `inverseSine` is a float, `pc24::Div(1.0, Sin(angle))`; the weights are `pc24::Mul(Sin(pc24::Mul(1 -
 t, angle)), inverseSine)` and `pc24::Mul(Sin(pc24::Mul(angle, t)), inverseSine)` (the original kept weight B as a
 double: a PC24 product); the dot, the linear weights and the blend are float maths. `1 - cos > 0.0001` compares the
 float difference with the double constant (exact either way). `SetAngleAxis` / `SetAxisAngle` call
-`Quaternion::FromAxisAngle` (maths.cpp, C30e10): the same sequence. Equivalence test (C30e10a's `eq/`, `slerp`):
+`Quaternion::FromAxisAngle` (core_maths.cpp, C30e10): the same sequence. Equivalence test (C30e10a's `eq/`, `slerp`):
 every float cosine in [0, 1) and -0 through the x87 arc cosine, a t per cosine: FSIN / FCOS stored, 1 / sin and both
 weights, 0 differ for t in [0, 1] (932 M) and for any t within 2^-100 .. 2^100 (104 M); a t beyond (the products past
 a float's range, where FSIN of |x| >= 2^63 returns x) differs, as the exponent range does everywhere. ei_vectors builds
-quaternion.cpp in ei_vectors_sse2 (the maths family records no Slerp or SetAngleAxis).
+core_maths.cpp in ei_vectors_sse2 (the maths family records no Slerp or SetAngleAxis).
 
 **C30e7 (combat; 11 files).** The double locals were PC24 registers (reach, distances, the plan's squares and cones,
 the attack roll, the blow heights, the chase): float maths in the original's order. Through pc24: `Level`'s

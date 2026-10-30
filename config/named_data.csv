@@ -8,7 +8,7 @@ address,size,name,file
 0073E0FC,20,kSlotWeights,src/game/unit.h
 0073EC24,84,kArmourPartNames,src/game/unit_client_models.h
 0073EC78,96,kHitArmourRows,src/game/unit_client_effects.cpp
-0073F918,4,kMessagesFileName,src/game/world_server_life.cpp
+0073F918,4,kMessagesFileName,src/game/world_server.cpp
 0073FD1C,4,kMapExtension,src/game/ai_map_load.cpp
 0073FD20,4,kSectorExtension,src/game/ai_map_load.cpp
 007402F8,24,kWideClearLeft,src/game/ui_hero_preview.cpp
@@ -36,8 +36,8 @@ address,size,name,file
 00744EA0,16,kIidDirectInputDevice7,src/platform/win32/mouse.cpp
 00744F10,16,kIidDirectInput7,src/platform/win32/mouse.cpp
 00783E30,4,g_gamePort,src/game/net_classes.h
-00783E34,4,g_remoteRate,src/game/net_session_tick.cpp
-00783E38,4,g_localRate,src/game/net_session_tick.cpp
+00783E34,4,g_remoteRate,src/game/net_session.cpp
+00783E38,4,g_localRate,src/game/net_session.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
@@ -71,7 +71,7 @@ address,size,name,file
 0078AC18,96,kFeetAlpha,src/game/particle_callbacks.cpp
 0078AC98,96,kCurseAlpha,src/game/particle_callbacks.cpp
 0078ACF8,64,kTransAlpha,src/game/particle_callbacks.cpp
-0078B0E8,4,g_nextPartyId,src/game/party_records.cpp
+0078B0E8,4,g_nextPartyId,src/game/party_manager.cpp
 0078B120,768,kScriptParticleTypes,src/game/script_effects.cpp
 0078BC8C,4,kCommentOpen,src/game/script_parse.h
 0078BC90,4,kCommentClose,src/game/script_parse.h
@@ -97,12 +97,12 @@ address,size,name,file
 007912A4,12,kOccluderCosts,src/game/world_data.h
 007912B0,12,kOccluderDamping,src/game/world_data.h
 007912BC,32,kLevelHeights,src/game/ai_map.h
-007912DC,48,kLevel0Table,src/game/ai_area_lists.cpp
-0079130C,112,kLevel1Table,src/game/ai_area_lists.cpp
-0079137C,240,kLevel2Table,src/game/ai_area_lists.cpp
-0079146C,80,kLevel3Table,src/game/ai_area_lists.cpp
-007914BC,176,kLevel4Table,src/game/ai_area_lists.cpp
-0079156C,304,kLevel5Table,src/game/ai_area_lists.cpp
+007912DC,48,kLevel0Table,src/game/ai_map.cpp
+0079130C,112,kLevel1Table,src/game/ai_map.cpp
+0079137C,240,kLevel2Table,src/game/ai_map.cpp
+0079146C,80,kLevel3Table,src/game/ai_map.cpp
+007914BC,176,kLevel4Table,src/game/ai_map.cpp
+0079156C,304,kLevel5Table,src/game/ai_map.cpp
 0079169C,32,kSizeClassHeights,src/game/ai_map.cpp
 007916BC,136,kSteepOffsets,src/game/ai_refresh.cpp
 00791744,16,kTransparency,src/game/ai_map.cpp
@@ -119,7 +119,7 @@ address,size,name,file
 007969D0,384,kAmbientSounds,src/game/terrain_ambience.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
-0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
+0079B1B8,4,kHeadingOffset,src/game/core_transform.cpp
 0079B298,1,kEmptyText,src/game/game_strings.h
 0079B2A4,4,kHalfPi,src/game/camera.h
 0079B5B8,16,kIdentityRotation,src/game/camera.h
@@ -128,7 +128,7 @@ address,size,name,file
 0079B5DC,4,g_gameServer,src/game/net_classes.h
 0079B604,4,g_lastPumpTime,src/game/net_session.cpp
 0079B608,4,g_variableSerial,src/game/net_messages.h
-0079B60C,4,g_playerSerial,src/game/net_server_join.cpp
+0079B60C,4,g_playerSerial,src/game/net_server_players.cpp
 0079B6B0,136,g_offsetBits,src/game/net_coder.cpp
 0079B738,136,g_offsetCodes,src/game/net_coder.cpp
 0079B7C0,136,g_lengthBits,src/game/net_coder.cpp
@@ -183,7 +183,7 @@ address,size,name,file
 007AF1D0,12,kDefaultFigureScale,src/game/map_object_figures.h
 007AF230,12,kDefaultLight,src/game/map_object_shadow.cpp
 007AF280,4,kFactorStatRange,src/game/unit_stats.cpp
-007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
+007AF2D0,12,kDefaultColour,src/game/torch_object.cpp
 007AF330,4,kFullTurn,src/game/unit_client_update.cpp
 007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
@@ -195,7 +195,7 @@ address,size,name,file
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2F8C,4,g_dampScale,src/game/ai_refresh.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
-007C53F0,4,g_freeEvents,src/game/ai_grids.cpp
+007C53F0,4,g_freeEvents,src/game/ai_block_search.cpp
 007C5520,16,g_loadingScreen,src/game/bink_video.cpp
 007C554C,1,g_loadingMovieOff,src/game/bink_video.cpp
 007C5550,4,g_loadingMovie,src/game/bink_video.cpp

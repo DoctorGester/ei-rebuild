@@ -1,21 +1,30 @@
 // Lightning bolts.
 #include "lightning.h"
 
+#include "camera.h"
 #include "core_maths.h"
 #include "game_singletons.h"
+#include "model.h"
 #include "random.h"
+#include "resource_local.h"
 #include "texture.h"
 #include "world.h"
-
+#include "world_data.h"
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
 #include <concepts>
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
+#include <string>
+#include <vector>
 
 // --- Helpers -----------------------------------------------------------------------------------
 
@@ -415,3 +424,263 @@ constexpr const char* kLightningManagerClassName = "CLightningManager";
 
 const char* LightningManager::ClassName() { return kLightningManagerClassName; }
 ClassId LightningManager::GetClassId() { return ClassId::LightningManager; }
+
+// --- Start -------------------------------------------------------------------------------------------
+
+// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
+
+namespace {
+
+// The noise amplitude of a segment's keys: 1.5 for positive power, 1 for negative, else 2 (zero or NaN).
+float KeyAmplitude(float power) {
+    if (power > 0.0f) return 1.5f;
+    return power < 0.0f ? 1.0f : 2.0f;
+}
+
+void FreshKeys(LightningSegment& s, float time, float amplitude) {
+    s.noiseTime = time;
+    for (int k = 0; k < 3; ++k) {
+        s.sideKeys[k].Randomize(amplitude);
+        s.upKeys[k].Randomize(amplitude);
+    }
+}
+
+} // namespace
+
+void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
+    int ticks = g_clientWorld.tick;
+    float fraction = g_clientWorld.tickFraction;
+    float time = (ticks + fraction) / 4.0f;
+    power = newPower;
+    const float strength = AbsBits(newPower);
+    amplitude = power > 0.0f ? 0.05f : 0.3f;     // 0.05 : 0.3
+    // A bolt about 30 units high sways less.
+    EI_NAN_AUDIT(to.z, from.z);
+    if (AbsBits(AbsBits(to.z - from.z) - 30.0f) < 0.01f) amplitude = 0.05f;
+
+    main.Init(from, to);
+    FreshKeys(main, time, KeyAmplitude(power));
+    main.width = strength;
+    EI_NAN_AUDIT(power);
+    if (power < 0.0f) main.width = strength * 1.5f;
+
+    EI_NAN_AUDIT(strength);
+    if (strength != 0.0f) {
+        const float positions[6] = {0.2f, 0.3f, 0.5f, 0.8f, 0.9f, 0.9f};
+        std::memcpy(branchPos, positions, sizeof(positions));
+        for (int i = 0; i < 6; ++i) {
+            float along = branchPos[i];
+            float newAmplitude = KeyAmplitude(power);
+            float rest = 1.0f - along;
+            Vector3 origin;
+            origin.x = along * from.x + rest * to.x;
+            origin.y = along * from.y + rest * to.y;
+            origin.z = along * from.z + rest * to.z;
+            branches[i].Init(origin, to);
+            FreshKeys(branches[i], time, newAmplitude);
+            branches[i].width = (g_clientRandom.Next() * 1.8626452e-10f + 0.7f) * strength * 0.5f;
+        }
+    } else {
+        main.width = 4.0f;
+        for (int i = 0; i < 6; ++i) {
+            float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
+            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f;
+            float low = -reach;
+            const float scale = 2.3283064e-10f;
+            float offsetY = (reach - low) * g_clientRandom.Next() * scale + low;
+            float offsetX = (reach - low) * g_clientRandom.Next() * scale + low;
+            float offsetZ = (reach - low) * g_clientRandom.Next() * scale + low;
+            float newAmplitude = KeyAmplitude(power);
+            Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
+            Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
+            branches[i].Init(shiftedFrom, shiftedTo);
+            FreshKeys(branches[i], time, newAmplitude);
+            branches[i].width = g_clientRandom.Next() * 1.8626452e-10f * 3.5f + 2.45f;   // 2.45 .. 3.25
+        }
+    }
+
+    Animate();
+    UpdateBounds();
+    bounds.boxMin.x -= 1.0f;
+    bounds.boxMin.y -= 1.0f;
+    bounds.boxMin.z -= 1.0f;
+    bounds.boxMax.x += 1.0f;
+    bounds.boxMax.y += 1.0f;
+    bounds.boxMax.z += 1.0f;
+    bounds.radius = bounds.boxMax.Length();
+    if (demon) {
+        LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "DemonLight");
+        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "DemonLightning");
+    } else {
+        LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "SmtgLight");
+        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "Lightning");
+    }
+}
+
+LightningSegment::LightningSegment() {
+}
+
+LightningSegment::~LightningSegment() {
+}
+
+Lightning::Lightning() {
+    std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
+    boundsSpare = {};
+    Lightning::Destroy();
+}
+
+// The texture references are null after the reset (releasing them again is a no-op).
+Lightning::~Lightning() { Lightning::Destroy(); }
+
+const char* Lightning::ClassName() { return "CLightning"; }
+ClassId Lightning::GetClassId() { return ClassId::Lightning; }
+
+EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning(); }
+
+// --- Load --------------------------------------------------------------------------------------------
+
+// The lightning noise table's load. Rebirth patches the function (it redirects the
+// file lookup to a mod folder's copy): this is the vanilla function and it
+// installs in the vanilla launch only (rule 9). The lightning manager's Create calls it through
+// its address (LoadLightningNoiseOriginal). Main thread. See docs/notes/objects.md.
+
+// Opens <text folder>gfx.res and reads lightning.dat into the noise table, row by row through a memory stream
+// (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not
+// open (no message), the fatal error's result when the file is missing, else 1.
+int LoadLightningNoise() {
+    LocalResource resource;
+    MemoryStream local;
+    bool opened;
+    {
+        std::string folder = g_textFolder;
+        std::string path = folder + "gfx.res";
+        // Through the vtable.
+        opened = resource.Get()->OpenResource(path, 0) != 0;
+    }
+    if (!opened) return 0;
+
+    std::uint32_t size;
+    void* data = resource.Get()->MappedResource::GetFile("lightning.dat", &size);
+    if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
+
+    FillStream(local, data, size);
+    ByteStream* stream = &local;
+    float* row = g_lightningNoise[0];
+    for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
+        stream->Read(row, kLightningNoiseRowLength * sizeof(float));
+    resource.Get()->MappedResource::CloseFile(data);
+    return 1;
+}
+
+// --- Draw --------------------------------------------------------------------------------------------
+
+// Drawing a lightning bolt (Lightning's renderer virtual; called by DrawAll) and its
+// glow: the segments as textured strips through the render device, then a
+// glow: the segments as textured strips through the render device, then a
+// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
+
+namespace {
+
+// The glow's work arrays: the sprite records (zero filled) and the 16-byte points.
+
+struct SpriteRecord {   // 8 bytes: colour, texture rectangle
+    std::uint32_t colour;
+    const float* rect;
+};
+std::vector<SpriteRecord> g_sprites;
+std::vector<LightningPoint> g_glowPoints;
+
+void SizeSprites() { g_sprites.resize(8); }
+void SizePoints() { g_glowPoints.resize(8); }
+
+// A random texture offset: 0, 0.25, 0.5 or 0.75.
+float RandomOffset() {
+    return static_cast<int>(g_clientRandom.Next() & 3) * 0.25f;
+}
+
+} // namespace
+
+// `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
+// used (the frame comes from the position and the world's counter).
+void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float size) {
+    EnsureTextureLoaded(glowTexture);
+    if (!device->SetTexture(0, glowTexture)) return;
+
+    // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
+    float frames[15][4];
+    const float quarter = 0.25f;
+    for (int i = 0; i < 15; ++i) {
+        frames[i][0] = (i & 3) * quarter;
+        frames[i][1] = 0.75f - ((i >> 2) & 3) * quarter;
+        frames[i][2] = frames[i][0] + quarter;
+        frames[i][3] = frames[i][1] + quarter;
+    }
+    SizeSprites();
+    SizePoints();
+
+    // Towards the camera, normalised unless zero.
+    const Vector3& eye = camera::FrameView().position;
+    Vector3 towards = eye - position;
+    float length = LengthZYX(towards);
+    EI_NAN_AUDIT(length);
+    if (length != 0.0f) towards /= length;
+    float scaled = position.x * 15.0f;
+    int shift = std::lround(scaled);
+    int frame = (OwningWorld()->tick + shift) % 15;
+    for (int j = 0; j < 8; ++j) {
+        float t = j * 0.125f;   // 1/8
+        Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
+        LightningPoint& p = g_glowPoints[j];
+        p.x = position.x + along.x;
+        p.y = position.y + along.y;
+        p.z = position.z + along.z;
+        p.w = std::sqrt(1.0f - t * t) * size;
+        SpriteRecord& s = g_sprites[j];
+        s.colour = 0xA0FFFFFFu;
+        s.rect = frames[frame % 15];
+        frame += 2;
+    }
+    device->DrawSprites(0, &g_glowPoints, &g_sprites);
+}
+
+// 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
+int Lightning::Draw(SceneRenderer* device) {
+    EnsureTextureLoaded(texture);
+    SceneRenderer* renderer = device;
+    if (!renderer->SetTexture(0, texture)) return 0;
+    int visibility = renderer->pipeline->ClipTest(&bounds);
+    if (visibility == 2) return 1;
+    const float zero = 0.0f;
+    if (power >= zero) Animate();
+    const float slant = 0.25f;
+    EI_NAN_AUDIT(power);
+    if (power < zero) {    // negative: untextured lengthwise
+        renderer->DrawStrip(&main.points, main.width, visibility, 0.0f, 0.0f, slant);
+        for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
+    } else {
+        float offset = RandomOffset();
+        float span = LengthZXY(main.step) * std::ssize(main.points) * 0.6f;
+        renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
+        for (LightningSegment& b : branches) {
+            offset = RandomOffset();
+            span = LengthZXY(b.step) * std::ssize(b.points) * 0.6f;
+            renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
+        }
+    }
+
+    float count = static_cast<float>(std::ssize(main.points));
+    Vector3 start = main.start;
+    Vector3 run{count * main.step.x, count * main.step.y, count * main.step.z};
+    Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
+    float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
+    float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f;
+    if (power > zero) {
+        // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
+        float low = 0.5f, high = 1.2f;
+        size = MaxKeepB(low, size);
+        size = MinKeepA(size, high);
+    }
+    if (power >= zero) DrawGlow(device, end, size);
+    if (power == zero) DrawGlow(device, start, size);
+    return 1;
+}

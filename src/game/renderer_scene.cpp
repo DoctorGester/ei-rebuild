@@ -1,21 +1,27 @@
 // The renderer's scene bracket: BeginScene with the last frame's time, EndScene closing the frame. The main loop
 // brackets each frame's drawing with them.
 #include "core_maths.h"
+
+#include "engine_object.h"
 #include "figure_mesh.h"   // FigureMesh
 #include "game_singletons.h"
-#include "lib/crt.h"
-#include "platform/clock.h"
 #include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"     // SceneRenderer
 #include "renderer_lines.h"
 #include "spell.h"     // Light
 #include "texture.h"   // TextureDevice, Texture
 #include "ui.h"
+#include "ui_widescreen.h"
 #include "world.h"
+#include "lib/crt.h"
+#include "lib/vecmath.h"
+#include "platform/clock.h"
 
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <unknwn.h>
 
 int SceneRenderer::BeginScene() {
     if (!(flags & 1)) return 0;
@@ -134,4 +140,57 @@ void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name) {
     if (!found) found = manager->NewTextureOfType(kind);
     found->name = name;
     slot.Assign(found);
+}
+
+// --- Renderer base create ----------------------------------------------------------------------------
+
+// The first step of the scene renderer's creation (CVisualizator::Create in the game's messages): makes
+// the transform pipeline.
+
+void SceneRenderer::CreatePipeline() { pipeline.Assign(new TransformPipeline()); }
+
+// --- Scene renderer ----------------------------------------------------------------------------------
+
+// The scene renderer's members (SceneRenderer, model.h) that are game code rather than device code.
+
+namespace {
+} // namespace
+
+void SceneRenderer::SetFogColour(float r, float g, float b) {
+    // Each product is stored as a float, then it is rounded to the nearest integer.
+    const std::uint32_t red = static_cast<std::uint32_t>(std::lround(r * kColourScale));
+    const std::uint32_t green = static_cast<std::uint32_t>(std::lround(g * kColourScale));
+    const std::uint32_t blue = static_cast<std::uint32_t>(std::lround(b * kColourScale));
+    const std::uint32_t packed = (((red | 0xFFFFFF00u) << 8 | green) << 8) | blue;
+    fogColour = packed;
+    SetFogColourState(packed);
+}
+
+// --- Device helpers ----------------------------------------------------------------------------------
+
+// Small out-of-line helpers of the old renderer's range, a few instructions each: counted
+// holders (destructors, assignments), 32-byte aligned allocations, list iterator copies, deleting
+// destructors, the device's vertex-buffer batch (never used) and the axis swap matrix. None of them
+// touches DirectDraw or Direct3D except the COM pointer's Release. Most are identical to
+// copies written elsewhere; each says which. See docs/notes/renderer.md (section 12).
+
+// ---- Deleting destructors ---------------------------------------------------------------------------
+
+// The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
+RendererBase::~RendererBase() = default;
+
+// (The figure loader's fieldless abstract base is not modelled: its deleting destructor is reached by no object.)
+
+// ---- Matrices ---------------------------------------------------------------------------------------
+
+// The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. With Rebirth's WideScreen
+// x is scaled by width43 / width, so the 4:3 picture keeps its proportions on the wide screen
+// (widescreen::AxisScale); renderer_init.cpp calls it through its address (rule 9).
+Matrix4* AxisSwapMatrix(Matrix4* out) {
+    std::memset(out, 0, sizeof(*out));
+    out->m[15] = 1.0f;
+    out->m[10] = 1.0f;
+    out->m[0] = widescreen::AxisScale();
+    out->m[5] = -1.0f;
+    return out;
 }

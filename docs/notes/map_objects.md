@@ -4,7 +4,7 @@ Code: `src/game/map_object.h/.cpp` (MapObject, MapEffect: layouts, per-slot comm
 `map_object_companion.cpp` (MapObjectServer / MapObjectClientSpecific), `map_object_figures.*`, `map_object_parts.cpp`
 (Object3D figure parts, scale, bounds), `map_object_shadow.*`, `map_object_draw.cpp`,
 `map_object_animation.*`, `map_object_cage.*`, `map_object.cpp` (constructors, destructor
-bodies), `map_object_create.cpp` (slot 2 of units / torches). Verify: `tests/verify/verify_map_object*.cpp`.
+bodies), `map_object.cpp` (slot 2 of units / torches). Verify: `tests/verify/verify_map_object*.cpp`.
 Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and every spawn).
 
 ## Address map
@@ -99,7 +99,7 @@ here is gone. Facts a worker needs:
 - Animation: `AnimationTrack::Evaluate` 0050ACD0 (class 0x300B, vtable 0073D9D8, 0x78 bytes; `frames` +0x38 and `vertices` +0x68 are
   AlignedArrays; LoadKeyFrames 0050AAF0: rotations, positions, frame and vertex counts from the model entry, arrays sized without
   keeping contents, frame pointers into the entry), `FigureBone::InterpolateCube` / `InterpolatePrism` 0050B8C0 / 0050BC00,
-  FigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation_state.cpp),
+  FigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation.cpp),
   Construct / DestructBody / DeleteState (0) / CreateState / DestroyState (2 / 3) / ReleaseBones / Reset (0050C5F0..0050C9E0),
   FindBone 0050CC20, LinkPiece 0050CC60 (a bone of class 0x300C from the figure manager), LinkBone 0050CD70 (child of the first bone
   named as its parent unless it has a child of that name; list, reference, name3 = model, morph, 005ACB80), FindRoot 0050D2E0 (first
@@ -124,7 +124,7 @@ here is gone. Facts a worker needs:
   IsRectEmpty), part lookups 16 / 17 (Object3D::FindPart / FindPartOfType: type, parts then pending).
 - SceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
   (slots 4 / 5; DrawTexture 00504860, slot 21, had no caller and is deleted (R26b); renderer_scene.cpp: the frame time; the frame statistics and the device counters only the debug panel read are gone, C55 / C57), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
-  SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
+  SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_marker.cpp),
   lifetime and small slots (renderer_scene.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
   SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame and 9 ZEnable (gone in ours, R27c: nothing to clear or ask), 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
   DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces). AlignedArray copies registered on the template: TLVertex SetSize /
@@ -188,7 +188,7 @@ Other callees stay forwarders: 00455950 `EngineObject::World`, 00688530 `MapEffe
   005101A0 / 005102A0, 005143E0, 00512660 / 00512A30, 0050E580, 0050FBC0, 0050BF00, 00508870; 5- and 6-byte constant
   slots (byte-identical to rewritten stubs, but registering them under unrelated names was avoided).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
-  original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: MapObject::ClearProtectionBases,
+  original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object.cpp: MapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
 - Dead (A-U5 sweep, config/dead_code.csv): 0050BFA0, 0051FCD0, 005476A0 (PlayIdle's body after 0052E9D0), 0054A0A0, 0054B950.
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures): drawing, stateful (since
@@ -258,7 +258,7 @@ each one is in the head comment of its verify file.
   005156E0-00515810); Object3D's small methods (00515D50, 005161A0, 005174E0, 00517910, 00517950, 005187B0-00518860,
   00519500, 00519530). Side by side: the class names / ids and the folder; the rest ours only (game start, zone load,
   hits and effects on a hosted game's objects, interface models).
-- **0x00500000-0x0050E000** (`map_object_animation.cpp`, `renderer_base_create.cpp`,
+- **0x00500000-0x0050E000** (`map_object_animation.cpp`, `renderer_scene.cpp`,
   `renderer_init.cpp`; `verify_small_slots_500.cpp`): the animation classes' names and ids (0050A6E0, 0050A6F0,
   0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, SceneRenderer::CreateBase 00500540
   (the transform pipeline, CPUID(1) into the globals at 007CAED0, the MMX check and `2DintMMX.dll` from the work path; it

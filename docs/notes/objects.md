@@ -72,9 +72,9 @@ range are in `network.md`, `app.md` and `core.md`; the party (Party, party recor
 ## Rewritten (objects, scenes, options, tables)
 
 Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
-here is gone. Files: `object.cpp` (EngineObject ManagerContext / SetOwner / DestructBase, TransformObject::ConstructBase
+here is gone. Files: `hoover_loot.cpp` (EngineObject ManagerContext / SetOwner / DestructBase, TransformObject::ConstructBase
 0x54, Hoover Construct / Destruct, MemoryStream::Reset, the unit and figure getters), `object_diplomacy.cpp` (Diplomacy
-Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack), `object_maths.cpp`, `object_tables.cpp`
+Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack), `core_maths.cpp`, `object_tables.cpp`
 (TextKeyFromName, IsTextKey, MapDatabase FindMap / FindAllod, NamedFloatTable Get / Set / Remove / CopyPrefixed / Load /
 Save (`core.md`), FindCommandByKey), `lightning*.cpp` (noise key, segments, bounds, animation, registration, draw, glow; the
 textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" go through 00500A00), `options*.cpp` (GameOptions
@@ -281,7 +281,7 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
 
 ## A-E1: small slots (lightning.cpp, unit.cpp, map_object.cpp)
 
-`__fastcall` shims on the slots' addresses, as object.cpp's getters:
+`__fastcall` shims on the slots' addresses, as hoover_loot.cpp's getters:
 
 - Hoover (0073C434): slot 0 00461C60 (deleting destructor), slot 2 00461C90 (Create: 1), slots 11 / 12
   00461C40 / 00461C50 ("Hoover", class 0x1F).
@@ -304,7 +304,7 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   (00462300, 00462330, 00462360, 00462390) returning an empty text, 21 (004623C0) zeroes the caller's ItemUse;
   every class but the quest item keeps slot 21. Side by side (the original into the caller's result, ours into
   a local). Slot 16 (004622F0) is four bytes.
-- `LoadLightningNoise` (00468A00, lightning_load.cpp; Rebirth-patched, so vanilla launch only): `<text
+- `LoadLightningNoise` (00468A00, lightning.cpp; Rebirth-patched, so vanilla launch only): `<text
   folder>gfx.res` opened in an archive of its own (0 when that fails, no message), `lightning.dat` fetched
   (missing: the fatal error "Unable to open file gfx.res\lightning.dat"), copied into a memory stream and read
   back as 32 rows of 0x640 bytes into the noise table 0079CE78; the file closed, the stream and the archive

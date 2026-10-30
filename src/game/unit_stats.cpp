@@ -202,7 +202,7 @@ std::uint16_t MaxDamage(const std::uint16_t* damage) {
 // --- Io ----------------------------------------------------------------------------------------------
 
 // UnitStats::LoadFrom / SaveTo: the statistics block in saved games (the
-// server controller's copy, combat_save.cpp; the party's records, party_save.cpp). See unit.h.
+// server controller's copy, combat_save.cpp; the party's records, party.cpp). See unit.h.
 
 namespace {
 } // namespace

@@ -351,7 +351,7 @@ class Reader:
 # ---- the world (CWorldServer::SaveWorld 00597BD0, world_save.cpp) --------------------------------------
 
 def read_diff(r, name):
-    """CStream::WriteDiff (004A4DA0, core_stream_diff.cpp): runs of equal and of changed bytes against the
+    """CStream::WriteDiff (004A4DA0, core_streams.cpp): runs of equal and of changed bytes against the
     zone's own AI graph state; kept as the changed bytes by offset in the graph state."""
     offset = 0
     equal = True
