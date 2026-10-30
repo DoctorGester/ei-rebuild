@@ -1,13 +1,13 @@
 # Suites: builds and plays the goldens on the self-hosted runner (Kirill's machine, label ei-game), which has the game
-# installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to claude/** branches (cloud sessions)
-# and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
+# installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to main and claude/** branches (cloud
+# sessions; docs/cloud-handoff.md) and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
 # local work; the install copies are the main checkout's run folder (EI_RUN_DIR), so no junction sits in this checkout.
 name: Suites
 
 on:
   push:
-    branches: ["claude/**"]
+    branches: [main, "claude/**"]
   workflow_dispatch:
     inputs:
       ref:
@@ -33,8 +33,8 @@ jobs:
     timeout-minutes: 120
     defaults:
       run:
-        # Git's bash: plain "bash" on this machine is WSL's (C:\Windows\System32\bash.exe).
-        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -eo pipefail {0}'
+        # Git's bash (no spaces in the path: the runner splits a quoted one); plain "bash" here is WSL's.
+        shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
       EI_RUN_DIR: E:\workspace\ei\run
