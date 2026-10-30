@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ inputs.ref != 'main' && inputs.ref || github.ref }}   # the input's default main: the branch the run was started on
           # Keep the ignored build folders between runs: a clean checkout rebuilt all seven builds from nothing
           # (6.5 of a run's 9.5 minutes); incremental they take a fraction of that.
           clean: false
