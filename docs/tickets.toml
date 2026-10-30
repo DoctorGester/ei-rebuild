@@ -6118,6 +6118,12 @@ group = "harness"
 note = "From H33f (docs/notes/cleanup-tooling.md, Build time). camera_object, random, world_game, net_link, resource, mod_folders, console_addon and script_addon_commands include windows.h only for the file calls they make through gameapi:: and their constants (FILE_BEGIN / FILE_END, INVALID_HANDLE_VALUE, INVALID_FILE_ATTRIBUTES, OPEN_EXISTING): moving them onto lib/file_io's File / FileFind (UTF-8, windows.h-free header) would drop windows.h from ~8 objects (~0.17 s each) and the raw handle code. Check by dumpbin per function or the goldens (seek and error behaviour must stay)."
 
 [[ticket]]
+id = "H33h"
+title = "Our own rectangle functions instead of USER32's SetRect / IntersectRect family"
+group = "harness"
+note = "User 2026-10-30 asked where win_api.h's USER32 rectangle imports are used. SetRect, SetRectEmpty, CopyRect, IsRectEmpty, PtInRect, OffsetRect, IntersectRect and UnionRect have ~72 calls in 34 game files: UI layout (OffsetRect row stepping in ui_options, ui_hud_panels, ui_objectives, ui_help_page...), menu rects, figure / map object dirty rects (map_object_draw, figure_part_draw*, object3d_halves), cursor and blit clipping (ui_cursor_setup, ui_surface_blit), bink_video. They are plain integer maths over RECT: replace them with a lib/rect.h of our own (a Rect with the same layout or RECT itself) keeping USER32's exact edge rules: IsRectEmpty is right <= left or bottom <= top; IntersectRect and UnionRect write an all-zero rect when the result is empty and UnionRect ignores an empty operand; PtInRect excludes right and bottom; SetRect / OffsetRect do no normalising. Then drop the 8 imports from gen_iat's reached list (win_api.h, gameapi.h, image_imports.inc), the dashboard's import count follows. Goldens unchanged (hit tests and dirty rects are in them). Coordinate with C20u if it is still moving the import slots."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
