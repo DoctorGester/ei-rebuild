@@ -349,9 +349,9 @@ void CEffectParticle::SetSize(float newSize) {
     MarkChanged();
 }
 
-void CEffectParticle::SetColors(float a, float b) {
-    alpha = a;
-    typeParam = b;
+void CEffectParticle::SetColors(float newAlpha, float newTypeParam) {
+    alpha = newAlpha;
+    typeParam = newTypeParam;
     MarkChanged();
 }
 

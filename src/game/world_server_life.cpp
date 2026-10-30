@@ -60,7 +60,6 @@ void WorldServer::Create() {
     exits.clear();
     climate = 1;
     cave = 0;
-    sendsStartPosition = 0;
     loadedFresh = 1;
     keepsState = 1;
     zoneName = game::kEmptyText;

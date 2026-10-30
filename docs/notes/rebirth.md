@@ -130,7 +130,7 @@ BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the s
 first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders, no [RES]).
 
 **The standalone resource layer (S19b, `src/game/mod_folders.{h,cpp}`).** The image does what addon.dll v0.12.4.2 does for these five, behind
-their flags (`modfolders::Active`: the flag on). addon's side, as the layer reproduces it:
+their flags (`ei::rebirth::Enabled`: the flag on). addon's side, as the layer reproduces it:
 - The mod: starter `Settings\AddonPath` + `\` (100BD184). Its `config.reg` (the game's registry format) section [RES]: for twelve archives
   (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
   mod archives (paths relative to the mod) that `MappedResource::GetFile` asks before the game's archive; a value starting with `-` makes

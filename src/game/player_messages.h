@@ -101,19 +101,19 @@ public:
     void DeleteVariable(const char* name);                          // message 0x82
     void SendGameTime();                                            // message 0x07
     int SendState02(MemoryStream* zone);                           // message 0x02, `zone`
-    int SendState70(std::uint8_t a, std::uint16_t b);               // message 0x70
-    int SendState71(std::uint32_t a, std::uint32_t b);              // message 0x71
+    int SendState70(std::uint8_t weather, std::uint16_t strength);   // message 0x70
+    int SendState71(std::uint32_t time, std::uint32_t speed);   // message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0x72
     void SendState73(const WaterTweens* source);                    // message 0x73
-    int SendPosition04(const Vector3& at, std::uint32_t a, std::uint32_t b);   // message 0x04
+    int SendPosition04(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind);   // message 0x04
     std::uint32_t SendPosition0F(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
     void Send17();
     void SendObject0A(const EngineObject* object);                 // id
-    void SendPair16(std::uint32_t a, std::uint32_t b);
+    void SendPair16(std::uint32_t unitId, std::uint32_t index);
     void SendObject14(const EngineObject* object);                 // the item's id and charge
     void SendText0D(const char* text);
     void SendValue15(std::uint32_t value);
-    void SendPair18(std::uint32_t a, std::uint32_t b);
+    void SendPair18(std::uint32_t unitId, std::uint32_t value);
     void SendObject43(const EngineObject* object);                 // id, nothing without an object
     void SendObject0B(const EngineObject* object, AckKind kind);   // id, the ack kind (message 0x0B)
     // Message 0x12, a byte and `value` . The original never writes
@@ -239,7 +239,7 @@ public:
     // synced, SendParty).
     void ResendParty();
     // From the briefing screen. Message 0x19: a byte and a dword.
-    void SendPair19(std::uint8_t a, std::uint32_t b);
+    void SendPair19(std::uint8_t event, std::uint32_t subject);
 
     void ClearServerState();
     void ReleaseSentObjects();

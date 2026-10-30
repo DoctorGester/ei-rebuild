@@ -34,15 +34,11 @@ float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 #define EI_SCALE_0_4 9.3132266e-11f   // ~0.4 * 2^-32
 #define EI_RING_STEP 0.62832f   // 2 pi / 10
 
-float Range(float min, float max) { return g_clientRandom.Range(min, max); }
-
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return g_sceneRenderer.sun->color; }
 
 // The rotation Reset gives a source: the identity (a static initialiser's stores).
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
-
-void SetBits(void* field, std::uint32_t bits) { lib::StoreBytes(field, bits); }
 
 // The spread box particles start in, relative to the emission point.
 void SetSpread(ParticleSource* s, float x0, float y0, float z0, float x1, float y1, float z1) {
@@ -101,8 +97,8 @@ void SetupExplosion(ParticleSource* s) {
         float lengthSquared;
         for (int tries = 10;;) {
             x = Unsigned(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-            y = Range(-1.0f, 1.0f);
-            z = Range(-1.0f, 1.0f) + EI_POINT_SEVEN;
+            y = g_clientRandom.Range(-1.0f, 1.0f);
+            z = g_clientRandom.Range(-1.0f, 1.0f) + EI_POINT_SEVEN;
             lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
             if (lengthSquared < EI_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
@@ -142,7 +138,7 @@ void SetupFireworks(ParticleSource* s) {
         s->elements[i].vent.pause = 0;
     }
     SetCallbacks(s, &ParticleSource::EmitGeyser, &ParticleSource::UpdateGeyser, &ParticleSource::TickGeyser);
-    SetBits(&s->additiveBlend, 1);
+    lib::StoreBytes(&s->additiveBlend, 1);
 }
 
 // Tornado (0x200A) and CurseHolder (0x2050): six rings stacked 2.4 apart.
@@ -170,7 +166,7 @@ void SetupTornado(ParticleSource* s) {
     color |= static_cast<std::uint32_t>(light[1] * EI_COLOR_SCALE);
     color <<= 8;
     color |= static_cast<std::uint32_t>(light[2] * EI_COLOR_SCALE);
-    SetBits(&s->frameDelay, color);
+    lib::StoreBytes(&s->frameDelay, color);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f;  // 12.0
     s->elements[0].funnel.bend = 0.5f;
@@ -185,7 +181,7 @@ void SetupCurseHolder(ParticleSource* s) {
     s->attachPoint = 7;
     s->maxParticles = 800;
     s->height = 0.2f;
-    SetBits(&s->frameDelay, 0x19000000);
+    lib::StoreBytes(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = EI_TWELVE * EI_POINT_FOUR;
     s->elements[0].funnel.bend = 0.0f;
@@ -241,7 +237,7 @@ void SetupFalling(ParticleSource* s) {
 
 // ClayRing (0x2018): ten points on a circle around the source's (reset) position.
 void SetupClayRing(ParticleSource* s) {
-    SetBits(&s->additiveBlend, 1);
+    lib::StoreBytes(&s->additiveBlend, 1);
     s->emitCount = 80;
     s->lifetime = 15;
     s->frameDelay = 2;
@@ -306,7 +302,7 @@ void SetupPortal(ParticleSource* s) {
     s->frameDelay = 3;
     SetCallbacks(s, &ParticleSource::EmitPortal, &ParticleSource::UpdatePortal, &ParticleSource::TickPortal);
     s->elements.resize(1);
-    SetBits(&s->additiveBlend, 1);
+    lib::StoreBytes(&s->additiveBlend, 1);
 }
 
 // Casting circles (0x203F, 0x2040): two elements with a countdown of 100.
@@ -322,7 +318,7 @@ void SetupCastingCircle(ParticleSource* s) {
 
 // FeetCloud1/2 (0x204A blue, 0x204B red): two elements, one per foot.
 void SetupFeetCloud(ParticleSource* s) {
-    SetBits(&s->additiveBlend, 1);
+    lib::StoreBytes(&s->additiveBlend, 1);
     s->emitCount = 8;
     s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
     s->maxParticles = 300;
@@ -387,7 +383,7 @@ const char* SetupType(ParticleSource* s) {
         return "Vulkan";
     case ParticleType::Healing:        // Healing
         s->flags |= ParticleSourceFlag::AttachedOnly;
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = 8;
         s->frameDelay = 1;
@@ -484,7 +480,7 @@ const char* SetupType(ParticleSource* s) {
         return "Link";
     case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire: case ParticleType::Antimagic:   // protection spheres, AntiMagic
         s->flags |= ParticleSourceFlag::AttachedOnly;
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->emitChance = 90;
         s->emitCount = 1;
         s->lifetime = type == ParticleType::Antimagic ? 4 : 15;
@@ -532,7 +528,7 @@ const char* SetupType(ParticleSource* s) {
         s->emitCount = 6;
         s->frameDelay = 1;
         s->attachPoint = 2;
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         return "Casting4";
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination: case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
@@ -572,7 +568,7 @@ const char* SetupType(ParticleSource* s) {
         s->frameDelay = 1;
         s->size = 1.0f;
         SetCallbacks(s, &ParticleSource::EmitLightning, &ParticleSource::UpdateLightning, &ParticleSource::TickLightning);
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         return "TendriLight";
     case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3: case ParticleType::Falling4:
         SetupFalling(s);
@@ -618,7 +614,7 @@ const char* SetupType(ParticleSource* s) {
         s->lifetime = 15;
         return type == ParticleType::FireStar ? "FireArrowSmoke" : "AcidRay";
     case ParticleType::Sparks:        // Sparks
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 10;
@@ -627,7 +623,7 @@ const char* SetupType(ParticleSource* s) {
         return "Casting6";
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3: case ParticleType::VisionStar4:
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->attachPoint = 2;
         s->emitCount = 3;
         SetCallbacks(s, &ParticleSource::EmitVisionStar, &ParticleSource::UpdateVisionStar, &ParticleSource::TickNone);
@@ -637,14 +633,14 @@ const char* SetupType(ParticleSource* s) {
         else s->lifetime = 3;
         return "Stun";
     case ParticleType::Regeneration:
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 2;
         SetCallbacks(s, &ParticleSource::EmitRegeneration, &ParticleSource::UpdateRegeneration, &ParticleSource::TickNone);
         return "Stun";
     case ParticleType::Silence:
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 4;
@@ -652,7 +648,7 @@ const char* SetupType(ParticleSource* s) {
         SetCallbacks(s, &ParticleSource::EmitSilence, &ParticleSource::UpdateSilence, &ParticleSource::TickNone);
         return "Stun";
     case ParticleType::FeebleMind:        // FeebleMind
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 1;
         s->emitCount = 5;
@@ -663,7 +659,7 @@ const char* SetupType(ParticleSource* s) {
         SetupFeetCloud(s);
         return "VisionFog";
     case ParticleType::Stun:
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 0;
         s->emitCount = 1;
@@ -671,7 +667,7 @@ const char* SetupType(ParticleSource* s) {
         SetCallbacks(s, &ParticleSource::EmitStun, &ParticleSource::UpdateStun, &ParticleSource::TickNone);
         return "Stun";
     case ParticleType::CurseStars:
-        SetBits(&s->additiveBlend, 1);
+        lib::StoreBytes(&s->additiveBlend, 1);
         s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 8;

@@ -30,24 +30,24 @@ T ValueAt(const std::uint8_t* p) {
 const char* TextAt(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
-ChunkArchive::Ref* PushRecordChunk(ChunkArchive* a) {
-    ChunkArchive::Ref* parent = a->Current();
-    a->PushChunk();
-    ChunkArchive::Ref* fresh = a->Current();
-    if (a->loading) {
-        a->FindChild(parent, 1, fresh, parent->occurrence);
+ChunkArchive::Ref* PushRecordChunk(ChunkArchive* archive) {
+    ChunkArchive::Ref* parent = archive->Current();
+    archive->PushChunk();
+    ChunkArchive::Ref* fresh = archive->Current();
+    if (archive->loading) {
+        archive->FindChild(parent, 1, fresh, parent->occurrence);
     } else {
         fresh->id = 1;
         fresh->offset = parent->size + parent->offset + 5;
     }
-    return a->Current();
+    return archive->Current();
 }
 
 // The current chunk's `occurrence`-th child `id` (reading), searched from a default Ref.
-bool FindField(ChunkArchive* a, int id, ChunkArchive::Ref* child) {
-    ChunkArchive::Ref* current = a->Current();
+bool FindField(ChunkArchive* archive, int id, ChunkArchive::Ref* child) {
+    ChunkArchive::Ref* current = archive->Current();
     *child = ChunkArchive::Ref{0xFF, 0, 0, 1};
-    return a->FindChild(current, id, child, current->occurrence);
+    return archive->FindChild(current, id, child, current->occurrence);
 }
 
 
@@ -208,9 +208,9 @@ void ChunkArchive::StreamField(int id, MemoryStream* s) {
 
 // The number a save gives an object: its place in the saved list (1, 2, ...), written as the key (the loader maps
 // any key to the object it creates); numbers by first save keep the saves free of heap layout.
-std::uint32_t SavedNumber(const ChunkArchive* a, const RefCounted* object) {
-    auto node = a->numbers.find(object);
-    return node != a->numbers.end() ? node->second : 0;
+std::uint32_t SavedNumber(const ChunkArchive* archive, const RefCounted* object) {
+    auto node = archive->numbers.find(object);
+    return node != archive->numbers.end() ? node->second : 0;
 }
 
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)

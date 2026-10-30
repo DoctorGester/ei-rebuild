@@ -27,9 +27,9 @@ constexpr std::int32_t kSelectTimeout = 0;
 
 unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addresses.size()); }
 
-std::int32_t Length(GameBuffer* b) {
-    if (b->cur > b->high) b->high = b->cur;
-    return b->PositionOf(b->high);
+std::int32_t Length(GameBuffer* buffer) {
+    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
+    return buffer->PositionOf(buffer->high);
 }
 
 } // namespace

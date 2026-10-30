@@ -29,16 +29,16 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
 // rotations interpolate linearly. The angle is the game CRT's arc cosine, a double: its sine is the FPU's
 // FSIN of the whole double (pc24::Sin's double form), and each weight one PC24 product.
-void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
-    float cosine = DotWZYXUnrounded<float>(a, b);
-    Quaternion c = b;
+void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
+    float cosine = DotWZYXUnrounded<float>(from, to);
+    Quaternion c = to;
     EI_NAN_AUDIT(cosine);
     if (cosine < 0.0f) {
         cosine = -cosine;
-        c.x = -b.x;
-        c.y = -b.y;
-        c.z = -b.z;
-        c.w = -b.w;
+        c.x = -to.x;
+        c.y = -to.y;
+        c.z = -to.z;
+        c.w = -to.w;
     }
     float weightA;
     float weightB;
@@ -51,8 +51,8 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
         weightA = 1.0f - t;
         weightB = t;
     }
-    x = weightA * a.x + weightB * c.x;
-    y = weightA * a.y + weightB * c.y;
-    z = weightA * a.z + weightB * c.z;
-    w = weightA * a.w + weightB * c.w;
+    x = weightA * from.x + weightB * c.x;
+    y = weightA * from.y + weightB * c.y;
+    z = weightA * from.z + weightB * c.z;
+    w = weightA * from.w + weightB * c.w;
 }

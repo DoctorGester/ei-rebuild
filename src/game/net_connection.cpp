@@ -27,14 +27,14 @@ void LogLine(const char* text) {
 }
 
 // Inlined helper of the buffers: `high` follows `cur` upwards.
-void UpdateHigh(GameBuffer* b) {
-    if (b->cur > b->high) b->high = b->cur;
+void UpdateHigh(GameBuffer* buffer) {
+    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
 
 // Bytes in a buffer (written so far).
-std::int32_t BufferedSize(GameBuffer* b) {
-    UpdateHigh(b);
-    return b->PositionOf(b->high);
+std::int32_t BufferedSize(GameBuffer* buffer) {
+    UpdateHigh(buffer);
+    return buffer->PositionOf(buffer->high);
 }
 
 // The handlers registered for message `type` on `channel` (called with the session and the message). The end

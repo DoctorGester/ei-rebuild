@@ -14,9 +14,6 @@
 
 namespace {
 
-// A string read up to its terminator.
-std::string ReadText(ByteStream* stream) { return stream->ReadString(); }
-
 } // namespace
 
 void CMapObject::LoadMapObject(ByteStream* stream) {
@@ -24,7 +21,7 @@ void CMapObject::LoadMapObject(ByteStream* stream) {
     stream->ReadValue(animationSpeed);
     stream->Read(&localPosition.x, 3 * sizeof(float));
     stream->ReadValue(localRotation);
-    name = ReadText(stream);
+    name = stream->ReadString();
     stream->ReadValue(scale);
     int count = 0;
     stream->ReadValue(count);
@@ -33,7 +30,7 @@ void CMapObject::LoadMapObject(ByteStream* stream) {
     std::uint32_t currentFlags = flags;    // the original's local starts as stack garbage
     stream->ReadValue(currentFlags);
     flags = currentFlags;
-    name2 = ReadText(stream);
+    name2 = stream->ReadString();
     if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
@@ -56,11 +53,11 @@ void CMapObject::SaveMapObject(ByteStream* stream) {
 
 void MapObjectServer::Load(ByteStream* stream) {
     stream->ReadValue(vitals);
-    parentIname = ReadText(stream);
-    skinTexture = ReadText(stream);
+    parentIname = stream->ReadString();
+    skinTexture = stream->ReadString();
     int count = 0;
     stream->ReadValue(count);
-    for (int i = 0; i < count; ++i) strings.push_back(ReadText(stream));
+    for (int i = 0; i < count; ++i) strings.push_back(stream->ReadString());
 }
 
 void MapObjectServer::Save(ByteStream* stream) {

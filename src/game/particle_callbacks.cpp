@@ -49,8 +49,8 @@ constexpr std::int32_t kCastAlphaByLife[15] = /*0078A9BC*/ {0, 255, 255, 255, 25
 void RandomInBall(float& x, float& y, float& z) {
     for (int tries = 10;;) {
         x = SignedUnit();
-        y = Range(-1.0f, 1.0f);
-        float zu = Range(-1.0f, 1.0f);
+        y = g_clientRandom.Range(-1.0f, 1.0f);
+        float zu = g_clientRandom.Range(-1.0f, 1.0f);
         z = zu;
         float lengthSquared = zu * z + x * x + y * y;
         if (lengthSquared < EI_P_ONE) return;   // random: never NaN
@@ -69,7 +69,7 @@ bool SetUpCasting(ParticleSource* s) {
     float radius;
     s->AttachmentOffset(&offset, &radius);
     radius = radius * EI_POINT_EIGHT;
-    float scale = s->attachedTo->GetClassId() == ClassId::Unit ? UnitScale(s->attachedTo) : radius;
+    float scale = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
     else scale = scale * EI_THREE;
     float extent = scale;
@@ -128,8 +128,8 @@ const char* NoCarrierSphere() { return "Particle effect Link without carrier\n";
 void RandomInBallZYX(float& x, float& y, float& z) {
     for (int tries = 10;;) {
         x = SignedUnit();
-        y = Range(-1.0f, 1.0f);
-        float zu = Range(-1.0f, 1.0f);
+        y = g_clientRandom.Range(-1.0f, 1.0f);
+        float zu = g_clientRandom.Range(-1.0f, 1.0f);
         z = zu;
         float lengthSquared = zu * z + y * y + x * x;
         if (lengthSquared < EI_P_ONE) return;   // random: never NaN
@@ -247,7 +247,7 @@ void PlaceRings(ParticleSource* s, int countdown) {
 bool EmitRingFlame(ParticleSource* s, Particle* p, int& result) {
     int emitted = static_cast<int>(Bits(&s->emitState));
     if (emitted > std::ssize(s->elements)) return false;
-    SetBits(&s->emitState, static_cast<std::uint32_t>(emitted + 1));
+    lib::StoreBytes(&s->emitState, static_cast<std::uint32_t>(emitted + 1));
     if (emitted == std::ssize(s->elements)) {
         result = 0;
         return true;
@@ -526,9 +526,9 @@ void ChooseShowerRays(ParticleSource* s) {
         float x, y, z;
         float lengthSquared;
         for (int tries = 10;;) {
-            x = Range(-1.0f, 1.0f);
-            y = Range(-1.0f, 1.0f);
-            float zu = Range(-1.0f, 1.0f);
+            x = g_clientRandom.Range(-1.0f, 1.0f);
+            y = g_clientRandom.Range(-1.0f, 1.0f);
+            float zu = g_clientRandom.Range(-1.0f, 1.0f);
             z = zu;
             lengthSquared = zu * z + y * y + x * x;
             if (lengthSquared < EI_P_ONE) break;   // random: never NaN
@@ -618,7 +618,7 @@ bool SetUpColumn(ParticleSource* s) {
     float height = radius + radius;
     float foot = -offset.z - height * EI_COLUMN_FOOT;
     radius = radius * EI_COLUMN_RADIUS;
-    float ring = s->attachedTo->GetClassId() == ClassId::Unit ? UnitScale(s->attachedTo) : radius;
+    float ring = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     radius = ring + ring;
     s->elements.resize(1);
     ParticleElement* e = s->elements.data();
@@ -887,7 +887,7 @@ void RandomInBall(float& x, float& y, float& z, float& lengthSquared) {
     for (int tries = 10;;) {
         x = SignedUnit();
         y = SignedUnit();
-        z = Range(-1.0f, 1.0f);
+        z = g_clientRandom.Range(-1.0f, 1.0f);
         lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);   // (y + z) + x
         if (lengthSquared < EI_P_ONE) break;   // random: never NaN
         if (!(--tries > 0)) break;
@@ -1411,11 +1411,11 @@ int ParticleSource::EmitLink(Particle* p, int) {
     float factor;
     EI_NAN_AUDIT(reachRounded);
     if ((Next() & 3) == 0 && reachRounded < EI_LINK_HALF) {
-        p->drift.y = Range(F(0x3DCCCCCD), F(0x3DF5C28F));     // 0.1 .. 0.12
-        factor = Range(F(0x3E051EB8), F(0x3E23D70A));                           // 0.13 .. 0.16
+        p->drift.y = g_clientRandom.Range(F(0x3DCCCCCD), F(0x3DF5C28F));     // 0.1 .. 0.12
+        factor = g_clientRandom.Range(F(0x3E051EB8), F(0x3E23D70A));                           // 0.13 .. 0.16
     } else {
-        p->drift.y = Range(F(0x3E2E147B), F(0x3E800000));     // 0.17 .. 0.25
-        factor = Range(F(0x3CF5C28F), F(0x3D4CCCCD));                           // 0.03 .. 0.05
+        p->drift.y = g_clientRandom.Range(F(0x3E2E147B), F(0x3E800000));     // 0.17 .. 0.25
+        factor = g_clientRandom.Range(F(0x3CF5C28F), F(0x3D4CCCCD));                           // 0.03 .. 0.05
     }
     p->drift.z = factor * size;
     p->drift.x = 0.0f;
@@ -1990,9 +1990,9 @@ void ParticleSource::TickBag(ParticleElement* e) {
     if (Next() % 6 == 0) {
         float x, y, z;
         for (int tries = 10;;) {
-            x = Range(-1.0f, 1.0f);
-            y = Range(-1.0f, 1.0f);
-            z = Range(-1.0f, 1.0f);
+            x = g_clientRandom.Range(-1.0f, 1.0f);
+            y = g_clientRandom.Range(-1.0f, 1.0f);
+            z = g_clientRandom.Range(-1.0f, 1.0f);
             float lengthSquared = LengthSquaredUnrounded<Sum3::XYZ>(x, y, z);   // (y + x) + z
             if (lengthSquared < EI_P_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
@@ -2646,7 +2646,7 @@ int ParticleSource::EmitArrowSmoke(Particle* p, int index) {
     float t;
     if (index == 0 && Bits(&emitState) == 0) {
         p->size = size * EI_ARROW_HEAD;
-        SetBits(&emitState, 1);
+        lib::StoreBytes(&emitState, 1);
         t = 0.0f;
         p->state = 2;
         p->frame = 0;
@@ -2927,8 +2927,8 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     float lengthSquared;
     for (int tries = 10;;) {
         x = SignedUnit();
-        y = Range(-1.0f, 1.0f);
-        float zu = Range(-1.0f, 1.0f);
+        y = g_clientRandom.Range(-1.0f, 1.0f);
+        float zu = g_clientRandom.Range(-1.0f, 1.0f);
         z = zu;
         lengthSquared = zu * z + y * y + x * x;
         if (lengthSquared < EI_P_ONE) break;   // random: never NaN
@@ -3483,8 +3483,8 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     float x, y, z;
     for (int tries = 10;;) {
         x = SignedUnit();
-        y = Range(-1.0f, 1.0f);
-        float zu = Range(-1.0f, 1.0f);
+        y = g_clientRandom.Range(-1.0f, 1.0f);
+        float zu = g_clientRandom.Range(-1.0f, 1.0f);
         z = zu;
         if (zu * z + y * y + x * x < EI_P_ONE) break;   // random: never NaN
         if (!(--tries > 0)) break;
@@ -3709,7 +3709,7 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     p->life = lifetime;
     p->frameTimer = frameDelay;
     float magnitude;
-    SetBits(&magnitude, Bits(&size) & 0x7FFFFFFFu);
+    lib::StoreBytes(&magnitude, Bits(&size) & 0x7FFFFFFFu);
     float t = Unsigned(Next()) * EI_P_SCALE_1;
     float spread = (t + EI_P_ONE) * t * 0.5f;
     float angle = Unsigned(Next()) * 1.4629215e-09f;    // 2 pi * 2^-32
@@ -4067,7 +4067,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     for (int tries = 10;;) {
         x = SignedUnit();
         y = SignedUnit();
-        float zu = Range(-1.0f, 1.0f);
+        float zu = g_clientRandom.Range(-1.0f, 1.0f);
         z = zu;
         if (zu * z + y * y + x * x < EI_P_ONE) break;   // random: never NaN
         if (!(--tries > 0)) break;

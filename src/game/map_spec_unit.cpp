@@ -266,18 +266,18 @@ void UnitSpec::OnChunk() {
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
 
 // The count, the array sized to it, then the raw waypoints.
-void WaypointsRead(std::vector<Waypoint>* a, ByteStream* stream) {
+void WaypointsRead(std::vector<Waypoint>* waypoints, ByteStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
-    a->resize(n);
-    for (Waypoint& w : *a) StreamRead(stream, &w, sizeof(Waypoint));
+    waypoints->resize(n);
+    for (Waypoint& w : *waypoints) StreamRead(stream, &w, sizeof(Waypoint));
 }
 
 // The count, then the raw waypoints.
-void WaypointsWrite(const std::vector<Waypoint>* a, ByteStream* stream) {
-    int n = static_cast<int>(a->size());
+void WaypointsWrite(const std::vector<Waypoint>* waypoints, ByteStream* stream) {
+    int n = static_cast<int>(waypoints->size());
     StreamWrite(stream, &n, 4);
-    for (const Waypoint& w : *a) StreamWrite(stream, &w, sizeof(Waypoint));
+    for (const Waypoint& w : *waypoints) StreamWrite(stream, &w, sizeof(Waypoint));
 }
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows

@@ -32,8 +32,8 @@ void TickTime(float* out) {
     *out = pc24::Add(static_cast<double>(world->tick), world->tickFraction);
 }
 
-void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
-    for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
+void Fill(std::vector<std::uint32_t>& values, std::uint32_t value) {
+    for (int i = 0; i < std::ssize(values); ++i) values[i] = value;
 }
 
 const VertexPacket* MovedPositionsOf(FigureMesh* mesh) {

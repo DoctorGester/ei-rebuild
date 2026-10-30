@@ -544,9 +544,9 @@ void PlayerServer::ResendParty() {
     g_serverWorld.ClearPlayerItems(currentPlayer);
 }
 
-void PlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
+void PlayerServer::SendPair19(std::uint8_t event, std::uint32_t subject) {
     std::uint8_t messageType = kMessage19;
     out.WriteValue(messageType);
-    out.WriteValue(a);
-    out.WriteValue(b);
+    out.WriteValue(event);
+    out.WriteValue(subject);
 }

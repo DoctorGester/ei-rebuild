@@ -364,7 +364,7 @@ void QuickLoad(const char* slot) {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    g_gameFlow.RequestLoad(slot, 0);
+    g_gameFlow.RequestLoad(slot);
 }
 
 // --- Entry titles, OK / Delete / load / delete ----------------------------------------------
@@ -409,7 +409,7 @@ void SaveLoadWindow::LoadSelected() {
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     ui->PlayInterfaceSound(kSoundOk);
-    g_gameFlow.RequestLoad(entries.data()[selected].folder, 0);
+    g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }
 
 void SaveLoadWindow::DeleteSave() {

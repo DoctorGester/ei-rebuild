@@ -54,12 +54,12 @@ constexpr int kClipStack = 2;
 // --- The steps -----------------------------------------------------------------------------------
 
 // Flag 4: every colour becomes the device's (colour), every specular the alpha byte alone.
-void OverrideColours(TextureDevice* device, const MeshArgs& a) {
+void OverrideColours(TextureDevice* device, const MeshArgs& args) {
     std::uint32_t colour = device->colour;
-    std::uint32_t specular = (static_cast<std::uint32_t>(a.alpha) & 0xFF) << 24;
-    int count = a.colourCount * 4;
-    for (int i = 0; i < count; ++i) a.colours[i] = colour;
-    for (int i = 0; i < count; ++i) a.speculars[i] = specular;
+    std::uint32_t specular = (static_cast<std::uint32_t>(args.alpha) & 0xFF) << 24;
+    int count = args.colourCount * 4;
+    for (int i = 0; i < count; ++i) args.colours[i] = colour;
+    for (int i = 0; i < count; ++i) args.speculars[i] = specular;
 }
 
 // One counted draw per pass (the device's vertex-buffer batch never gave a buffer: nothing is batched).
@@ -73,64 +73,64 @@ void Submit(TextureDevice* device, const Textures* textures) {
 
 // On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
 // or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
-void Draw(TextureDevice* device, const MeshArgs& a, const Textures* textures, bool crossing) {
-    if (a.flags & 1) device->BoundsOfProjected(&g_projected, crossing);
+void Draw(TextureDevice* device, const MeshArgs& args, const Textures* textures, bool crossing) {
+    if (args.flags & 1) device->BoundsOfProjected(&g_projected, crossing);
     Submit(device, textures);
 }
 
-void HandOver(TextureDevice* device, const MeshArgs& a) {
+void HandOver(TextureDevice* device, const MeshArgs& args) {
     render::MeshDraw m{};
-    m.positions = &a.positions->block[0][0];
-    m.positionCount = a.blocks * 4;
-    m.colours = a.colours;
-    m.speculars = a.speculars;
-    m.uvs = &a.uvs->u;
-    m.corners = &a.corners->position;
-    m.cornerCount = a.cornerCount;
-    m.indices = a.indices;
-    m.indexCount = a.indexCount;
-    EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
-    m.moveUv = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
-    m.uOffset = *a.uOffset;
-    m.vOffset = *a.vOffset;
+    m.positions = &args.positions->block[0][0];
+    m.positionCount = args.blocks * 4;
+    m.colours = args.colours;
+    m.speculars = args.speculars;
+    m.uvs = &args.uvs->u;
+    m.corners = &args.corners->position;
+    m.cornerCount = args.cornerCount;
+    m.indices = args.indices;
+    m.indexCount = args.indexCount;
+    EI_NAN_AUDIT(*args.uOffset, *args.vOffset);
+    m.moveUv = *args.uOffset != 0.0f || *args.vOffset != 0.0f;
+    m.uOffset = *args.uOffset;
+    m.vOffset = *args.vOffset;
     // The screen stack (1): the clip-space stack (2, which the clipping draws use) times the
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
     m.matrix = device->pipeline->Top(kScreenStack);
-    m.clipped = (a.flags & 2) != 0;
+    m.clipped = (args.flags & 2) != 0;
     m.distanceFog = device->distanceFog != 0;
     m.zScale = 1.0f;
-    m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
+    m.coloursWritten = (args.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
-    m.normals = &a.normals->block[0][0];
-    m.normalCount = a.colourCount * 4;
-    m.words = reinterpret_cast<const std::uint16_t*>(a.words);   // (position, normal) index pairs
-    m.wordCount = a.wordCount;
+    m.normals = &args.normals->block[0][0];
+    m.normalCount = args.colourCount * 4;
+    m.words = reinterpret_cast<const std::uint16_t*>(args.words);   // (position, normal) index pairs
+    m.wordCount = args.wordCount;
     render::BeginMesh(device, m);
 }
 
 // Returns the projection's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1). Without flag
 // 2 the mesh is projected with the screen stack and counts as on screen.
-int ProjectAndDraw(TextureDevice* device, const MeshArgs& a, const Textures* textures) {
+int ProjectAndDraw(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     const TransformPipeline* pipeline = device->pipeline;
-    g_projected.resize(a.blocks * 4);
+    g_projected.resize(args.blocks * 4);
     int visibility = 0;
-    if (a.flags & 2) {
-        g_outcodes.resize(a.blocks * 4);
-        visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), a.positions, g_projected.data(),
-                                              g_outcodes.data(), a.blocks);
+    if (args.flags & 2) {
+        g_outcodes.resize(args.blocks * 4);
+        visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), args.positions, g_projected.data(),
+                                              g_outcodes.data(), args.blocks);
     } else {
-        TransformPipeline::Project(*pipeline->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
+        TransformPipeline::Project(*pipeline->Top(kScreenStack), args.positions, g_projected.data(), args.blocks);
     }
     if (visibility == 2) return 2;
-    if (a.flags & 4) OverrideColours(device, a);
+    if (args.flags & 4) OverrideColours(device, args);
     // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
     // with; each pass the old path draws below hands over the device's state.
-    HandOver(device, a);
+    HandOver(device, args);
     int result = visibility;
     if (visibility == 0 || visibility == 1) {
-        Draw(device, a, textures, visibility == 1);
+        Draw(device, args, textures, visibility == 1);
         result = 1;
     }
     render::EndMesh();
@@ -138,9 +138,9 @@ int ProjectAndDraw(TextureDevice* device, const MeshArgs& a, const Textures* tex
 }
 
 // The harness build's renderstats time the draw ("device mesh draws").
-int DrawMesh(TextureDevice* device, const MeshArgs& a, const Textures* textures) {
+int DrawMesh(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     render::BeginDeviceMeshTime();
-    int result = ProjectAndDraw(device, a, textures);
+    int result = ProjectAndDraw(device, args, textures);
     render::EndDeviceMeshTime();
     return result;
 }

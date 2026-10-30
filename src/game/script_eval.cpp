@@ -67,7 +67,7 @@ constexpr float kFar = 1e30f;     // the distance when an object is missing
 static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CA);
 
 // (float)(int)b: converts 0/1 exactly.
-float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
+float FromBool(bool value) { return static_cast<float>(value ? 1 : 0); }
 
 // ---- Game state reached by the functions --------------------------------------------------------
 

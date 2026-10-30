@@ -590,30 +590,30 @@ void UnitMotion::Subdivide() {
     }
 }
 
-void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint* b, int cells, float startOffset,
+void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoint* to, int cells, float startOffset,
                                   float endOffset, int* stepIndex) {
-    float dx = a->x - b->x;
-    float dy = a->y - b->y;
+    float dx = from->x - to->x;
+    float dy = from->y - to->y;
     float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
     EI_NAN_AUDIT(distance);
     if (distance == 0.0f) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
     p.cellY = -1;
-    p.dirX = (b->x - a->x) / distance;
-    p.dirY = (b->y - a->y) / distance;
+    p.dirX = (to->x - from->x) / distance;
+    p.dirY = (to->y - from->y) / distance;
 
     EI_NAN_AUDIT(startOffset, endOffset);
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
-        p.x = a->x;
-        p.y = a->y;
+        p.x = from->x;
+        p.y = from->y;
         int size = lib::Count(points);
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         points.resize(size + 1);
         points[size] = p;
         size = lib::Count(points);
-        p.x = b->x;
-        p.y = b->y;
+        p.x = to->x;
+        p.y = to->y;
         points.resize(size + 1);
         points[size] = p;
         ++*stepIndex;
@@ -624,8 +624,8 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
     for (int k = 0; k < cells; ++k) {
         float f = (static_cast<float>(k) + startOffset + 0.5f) * inverse;
         float g = 1.0f - f;
-        p.x = f * b->x + g * a->x;
-        p.y = g * a->y + f * b->y;
+        p.x = f * to->x + g * from->x;
+        p.y = g * from->y + f * to->y;
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         int size = lib::Count(points);
         points.resize(size + 1);

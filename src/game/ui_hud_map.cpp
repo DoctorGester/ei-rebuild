@@ -172,7 +172,7 @@ std::int16_t UnitFrame(const CUnit* unit) {
 
 // The arrow of a unit at map position (x, y) (already zoomed), pointing along the unit's
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
-void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
+void PutArrow(VertexPacket& packet, const CUnit* unit, float x, float y) {
     const Quaternion* rotation = &unit->localRotation;
     // The rotated Y axis is computed twice, x taken from the first, y from the second (the function is
     // pure).
@@ -197,21 +197,21 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
 
     float tipX = nx * kArrowAhead + x;
     float tipY = ny * kArrowAhead + y;
-    b.x()[0] = tipX;
-    b.y()[0] = tipY;
-    b.x()[1] = tipX;
-    b.y()[1] = tipY;
+    packet.x()[0] = tipX;
+    packet.y()[0] = tipY;
+    packet.x()[1] = tipX;
+    packet.y()[1] = tipY;
 
     // The back corners: the direction turned by +-135 degrees (sums of the scaled components).
     float sy = ny * kDiagonal;
     float sx = nx * kDiagonal;
     float leftX = sy - sx;
     float leftY = nx * -kDiagonal - sy;
-    b.x()[2] = leftX * kArrowWing + x;
-    b.y()[2] = leftY * kArrowWing + y;
+    packet.x()[2] = leftX * kArrowWing + x;
+    packet.y()[2] = leftY * kArrowWing + y;
     float rightY = sx - sy;
-    b.x()[3] = leftY * kArrowWing + x;
-    b.y()[3] = rightY * kArrowWing + y;
+    packet.x()[3] = leftY * kArrowWing + x;
+    packet.y()[3] = rightY * kArrowWing + y;
 }
 
 

@@ -23,21 +23,21 @@ namespace {
 // The largest message Send takes (its stack buffer holds the length and the bytes).
 constexpr unsigned kMaxMessage = 0x7FFC;
 
-unsigned BufferFill(GameBuffer* b) {
-    if (b->cur > b->high) b->high = b->cur;
-    return static_cast<unsigned>(b->PositionOf(b->high));
+unsigned BufferFill(GameBuffer* buffer) {
+    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
+    return static_cast<unsigned>(buffer->PositionOf(buffer->high));
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
 // before `end`, otherwise through WriteMore.
-void BufferPut(GameBuffer* b, const void* from, unsigned size) {
-    if (b->cur + size > b->end) {
-        b->WriteMore(from, size);
+void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
+    if (buffer->cur + size > buffer->end) {
+        buffer->WriteMore(from, size);
         return;
     }
-    b->flags |= 1;
-    std::memcpy(b->cur, from, size);
-    b->cur += size;
+    buffer->flags |= 1;
+    std::memcpy(buffer->cur, from, size);
+    buffer->cur += size;
 }
 
 } // namespace

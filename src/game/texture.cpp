@@ -290,7 +290,7 @@ void CTextureManager::Create() {
         return;
     }
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
-    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::TextureArchives()) ResourceManager::AddArchive(path);
     }
 }

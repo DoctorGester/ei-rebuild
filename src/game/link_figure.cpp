@@ -40,7 +40,7 @@ int Append(std::vector<T>& array, const T* from, int count) {
     return start;
 }
 
-float Lerp(float a, float b, float f) { return (b - a) * f + a; }
+float Lerp(float from, float to, float f) { return (to - from) * f + from; }
 
 // A FIG8 value from its 8 versions (`v[c * 4]`, c = 0..7):
 // lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).

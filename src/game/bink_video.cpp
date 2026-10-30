@@ -37,7 +37,7 @@ namespace {
 // when there is one.
 video::Movie* OpenMovie(const char* name) {
     const bool sound = options::g_options.audio != 0;
-    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return video::Open(modfolders::MovieFile(name).c_str(), sound);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::MoviesPatch)) return video::Open(modfolders::MovieFile(name).c_str(), sound);
     return video::Open(name, sound);
 }
 

@@ -37,7 +37,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 ## Meanings of formerly unknown fields (ticket F1)
 
 A gap became a name when src reads or writes it through the class, else `unused_XXX`; writes only in construction count as unused.
-- `WorldServer::sendsStartPosition` (+0x11C) is never set non-zero by the game code, so SendZone's start-position branch is dead.
+- `WorldServer::sendsStartPosition` (+0x11C) and the autoplay recording request (`PlayerClient::StartRecording` / `StopRecording`, `RequestLoad`'s flag) were dead and are gone.
 - `UnitServer::aiPresence` (+0x918) holds 005C9770's result, which is `AIViewer::StepNoise` and always returns 0: the presence record is never
   written and `AIEventPresence` is speculative.
 - `CPlayer` +0x108 is god mode (`CPlayer::godMode`); `PlayerClient` +0x84 is the local session.

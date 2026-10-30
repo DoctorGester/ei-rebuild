@@ -62,14 +62,14 @@ std::vector<Query>::iterator FindQuery(ClientQueries& v, const NetAddress* addre
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
 // before `end`, otherwise through WriteMore.
-void Put(GameBuffer* b, const void* from, unsigned size) {
-    if (b->cur + size > b->end) {
-        b->WriteMore(from, size);
+void Put(GameBuffer* buffer, const void* from, unsigned size) {
+    if (buffer->cur + size > buffer->end) {
+        buffer->WriteMore(from, size);
         return;
     }
-    b->flags |= 1;
-    std::memcpy(b->cur, from, size);
-    b->cur += size;
+    buffer->flags |= 1;
+    std::memcpy(buffer->cur, from, size);
+    buffer->cur += size;
 }
 
 // A cursor's end as inlined: the pending bits stored, then `p` committed to the sink if any.
@@ -117,9 +117,9 @@ ServerEntryBase::ServerEntryBase() {
 std::vector<Query>::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 
 // A buffer's length (its highest position brought up to date first).
-std::int32_t BufferLength(GameBuffer* b) {
-    if (b->cur > b->high) b->high = b->cur;
-    return b->PositionOf(b->high);
+std::int32_t BufferLength(GameBuffer* buffer) {
+    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
+    return buffer->PositionOf(buffer->high);
 }
 
 Query::Query() { std::memset(&address, 0, sizeof(address)); }

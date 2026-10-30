@@ -167,7 +167,7 @@ public:
     void Pack(DeltaField* field) override;
     void SetAttachedTo(int objectId);
     void SetSize(float size);
-    void SetColors(float a, float b);
+    void SetColors(float newAlpha, float newTypeParam);
     void SetTarget(const Vector3& target);
     void Attach();                                // attaches the source to attachedTo
     void Load(ByteStream* stream) override;

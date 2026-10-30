@@ -154,10 +154,6 @@ public:
     // State 0, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
     // reset.
     void Clear();
-    // With a link: request 2 is queued and the link records into `path` (NetLink::OpenRecording) / the link
-    // stops recording.
-    void StartRecording(const char* path);
-    void StopRecording();
 
     // Message 0x00. Login accepted: a dword, state 2, the player's owner gives the player that id
     // (PlayerManager::ChangeId).

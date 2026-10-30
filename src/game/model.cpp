@@ -141,21 +141,21 @@ static int BoxCorners(const Matrix4& m, const Vector3& c, const Vector3& lo, con
 
 // The answers are the corners' codes' (CubeCorners, BoxCorners); the planes' ranges decide most volumes first, and
 // the codes are computed only for a volume with a corner near a plane.
-int TransformPipeline::ClipTest(const ClipBounds* b) const {
+int TransformPipeline::ClipTest(const ClipBounds* bounds) const {
     const MatrixStack& stack = stacks[kClipStack];
     const Matrix4& m = stack.matrices[stack.count - 1];
     const PlaneRanges planes(m);
 
-    if (b->flags & 1) {
-        const float r = b->radius;
-        int result = planes.Classify(b->center, {-r, -r, -r}, {r, r, r});
-        if (result == kNearPlane) result = CubeCorners(m, b->center, r);
+    if (bounds->flags & 1) {
+        const float r = bounds->radius;
+        int result = planes.Classify(bounds->center, {-r, -r, -r}, {r, r, r});
+        if (result == kNearPlane) result = CubeCorners(m, bounds->center, r);
         if (result >= 0) return result;
     }
 
-    if (b->flags & 2) {
-        int result = planes.Classify(b->center, b->boxMin, b->boxMax);
-        if (result == kNearPlane) result = BoxCorners(m, b->center, b->boxMin, b->boxMax);
+    if (bounds->flags & 2) {
+        int result = planes.Classify(bounds->center, bounds->boxMin, bounds->boxMax);
+        if (result == kNearPlane) result = BoxCorners(m, bounds->center, bounds->boxMin, bounds->boxMax);
         if (result >= 0) return result;
     }
     return 1;
