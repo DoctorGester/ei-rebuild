@@ -40,9 +40,8 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
   file that calls Windows includes `<windows.h>`. `lib/gameapi.h` names only the imports our code calls, declared
   over win_types.h (`lib/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
-  `gameapi::` gets no SDK header. A file that only uses winuser.h's constants as the game's own values (VK_* key
-  codes, DT_* text flags) includes `lib/win_user.h` (winuser.h over win_types.h, ~0.1 s); the settings file's
-  REG_* / ERROR_* codes come from win_types.h (winnt.h) and `<winerror.h>`. Release objects reaching windows.h
+  `gameapi::` gets no SDK header. The key codes are platform/keys.h's, the text format bits render/text_format.h's
+  and the settings file's value types and results settings_file.h's (no winuser.h or `<winerror.h>`). Release objects reaching windows.h
   (directly or through a project header; ninja's deps drop the SDK's own headers, so count by the project files
   that include it): 199 -> 160 (H33d: ui.h's `PlaySound` member renamed, ui_item_info.h without gameapi.h) -> 67
   (H33f) -> 58 (H33g: the game's file users on lib/file_io), mmsystem 93 -> 5, objbase / shellapi / dsound 86 -> 3. Per object (median of 7 cl.exe CPU times, base

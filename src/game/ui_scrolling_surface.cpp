@@ -16,8 +16,7 @@
 #include "render/render_rich_text.h"
 #include "render/render_ui.h"
 
-#include <windows.h>
-
+#include <cstdint>
 #include <string_view>
 
 namespace {
@@ -35,7 +34,23 @@ int TitlesDpi(const UiSurface* surface) {
     return static_cast<int>(scale * kDesignDpi + 0.5f);
 }
 
-int PixelsToTwips(const UiSurface* surface, int pixels) { return ::MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
+// `a` * `b` / `divisor` rounded to the nearest, a half away from zero; -1 for a divisor of 0 or a result past 31 bits
+// (USER32's MulDiv, which the titles used).
+int MulDiv(int a, int b, int divisor) {
+    if (divisor == 0) return -1;
+    std::int64_t product = static_cast<std::int64_t>(a) * b;
+    std::int64_t by = divisor;
+    if (by < 0) {
+        product = -product;
+        by = -by;
+    }
+    const std::int64_t half = by / 2;
+    const std::int64_t result = (product >= 0 ? product + half : product - half) / by;
+    if (result > 2147483647 || result < -2147483647) return -1;
+    return static_cast<int>(result);
+}
+
+int PixelsToTwips(const UiSurface* surface, int pixels) { return MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
 
 int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.bottom - surface->rect.top); }
 } // namespace

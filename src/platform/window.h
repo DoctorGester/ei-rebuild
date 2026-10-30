@@ -4,7 +4,7 @@
 // Windows) that the game passes around as an opaque pointer; what happens to it reaches the game as Events, through
 // the handler given at the class's registration (events the system sends) and through the loop's NextEvent /
 // TakeEvent (events waiting in the queue). The values inside an Event are the game's: key codes are the virtual-key
-// codes (lib/win_user.h), key flags and mouse buttons are as Windows gives them.
+// codes (platform/keys.h), key flags and mouse buttons are as Windows gives them.
 
 #include <cstdint>
 

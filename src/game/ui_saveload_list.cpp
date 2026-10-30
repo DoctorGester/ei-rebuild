@@ -19,7 +19,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "lib/win_user.h"
+#include "render/text_format.h"
 
 #include <cstdint>
 #include <cstring>
@@ -70,7 +70,7 @@ void SaveLoadWindow::RefreshListVanilla() {
         const SaveEntry& entry = entries[index];
         if (static_cast<int>(index) == selected) {
             const std::string& title = isSave && nameTyped ? name : entry.title;
-            surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave && !SameFolder(entry.folder, kQuickFolder) && !SameFolder(entry.folder, kAutoFolderA) &&
                 !SameFolder(entry.folder, kAutoFolderB)) {
@@ -88,11 +88,11 @@ void SaveLoadWindow::RefreshListVanilla() {
             marker->visible = true;
             marker->Place(239.0f, static_cast<float>(y), 3.0f);
         } else {
-            surface->DrawTextIn(entry.title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(entry.title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
         }
         if (!isSave || index != 0) {
             const std::string date = lib::FormatTime(entry.savedAt, kDateFormat);
-            surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
+            surface->DrawTextIn(date, &dateRect, kFont, kTextColour, render::text::kRight, 1);
         }
         rects::Offset(&titleRect, 0, kRowHeight);
         rects::Offset(&dateRect, 0, kRowHeight);
@@ -124,5 +124,5 @@ void SaveLoadWindow::RefreshListVanilla() {
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};
-    surface->DrawTextIn(entry.folder, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
+    surface->DrawTextIn(entry.folder, &folderRect, kFont, kTextColour, render::text::kRight, 1);
 }

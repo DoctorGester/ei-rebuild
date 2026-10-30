@@ -3,11 +3,11 @@
 #include "dx_errors.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 
 #include <algorithm>
 #include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <iterator>
 
@@ -33,7 +33,7 @@ constexpr ErrorText kErrorTexts[] = {
 
 constexpr const char* kUnrecognized = "Unrecognized error value.\n";
 
-// The stack buffer (wvsprintf writes at most 1024 characters).
+// The stack buffer: the text is cut to 1023 bytes (the game's wvsprintf wrote at most 1024 characters).
 constexpr std::size_t kBuffer = 0x400;
 
 } // namespace
@@ -52,7 +52,7 @@ GameException::~GameException() = default;
 
 DXException::DXException(const char* format, va_list args) {
     char text[kBuffer];
-    gameapi::wvsprintfA(text, format, args);
+    std::vsnprintf(text, sizeof(text), format, args);
     message = text;
 }
 

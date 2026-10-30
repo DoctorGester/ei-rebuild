@@ -11,6 +11,9 @@ namespace platform {
 
 bool KeyName(int scan, char* name, int size) { return gameapi::GetKeyNameTextA(scan << 16, name, size) != 0; }
 
+// Directly: the game's editor called it so (game.exe has no slot of it).
+bool IsLetter(std::uint32_t character) { return character <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(character)); }
+
 void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback) {
     constexpr int kMaxLayouts = 16;
     HKL layouts[kMaxLayouts];

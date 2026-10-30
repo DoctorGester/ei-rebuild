@@ -11,11 +11,12 @@
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "platform/keyboard.h"
 
 #include <cstddef>
 #include <cstring>
 #include <new>
-#include "lib/win_user.h"
+#include "render/text_format.h"
 
 namespace {
 constexpr int kKeyBackspace = 0x08;
@@ -36,7 +37,7 @@ constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 // The class of typed character `key` that charClasses admits or not. A character past ASCII is a code point: a
 // letter when Windows calls it one.
 std::uint32_t CharClass(int key) {
-    if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
+    if (key >= 0x80) return platform::IsLetter(static_cast<std::uint32_t>(key)) ? kClassLetter : kClassOther;
     const char c = static_cast<char>(key);
     if (text::IsDigit(key) != 0) return kClassDigit;
     if (text::IsAlpha(key) != 0 || c == ' ') return kClassLetter;
@@ -177,7 +178,7 @@ void UiEditField::DrawContentsVanilla() {
     const int width = area.right - area.left;
     const int height = area.bottom - area.top;
     RECT box{0, 0, width, height};
-    surface->DrawTextIn(currentText, &box, font, colour, centred ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    surface->DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
     int caretX = ui->TextExtent(str::Left(currentText, caret), font).cx;

@@ -16,7 +16,7 @@
 #include "render/render_state.h"
 #include "game_singletons.h"
 #include "world.h"
-#include "lib/win_user.h"
+#include "render/text_format.h"
 
 #include <bit>
 
@@ -147,7 +147,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         }
 
         RECT nameRect = {5, 5, 155, 20};
-        surfaces[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, DT_CENTER | DT_WORDBREAK, 1);
+        surfaces[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, render::text::kCenter | render::text::kWordBreak, 1);
 
         switch (bodyPart) {
         case 0: {
