@@ -51,7 +51,7 @@ clickregion 9
 frames 10
 clickregion 1
 frames 10
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 clickregion 4
 frames 5

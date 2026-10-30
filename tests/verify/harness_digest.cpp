@@ -4,7 +4,6 @@
 #include "harness_digest_read.h"
 
 #include "harness_clock.h"
-#include "harness_original.h"
 #include "harness_starter.h"
 
 #include "../../src/hook/log.h"
@@ -37,33 +36,37 @@ std::string KeyName(const Key& key) {
     return Single(key.first) ? name : name + std::to_string(key.second);
 }
 
-// The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold);
-// the image's modes are C++ classes, named by their type (ModeKindId).
+// game.exe's table at `address`, kept as an id (never read): the goldens were first recorded from game.exe and hash
+// these numbers. named_data.py and data_seam.py let a literal through only as this call's argument, in tests/.
+constexpr std::uint32_t ExeTableId(std::uint32_t address) { return address; }
+
+// The AI modes' kinds. A mode's id in the digest is game.exe's table of its kind (ExeTableId); the image's modes are
+// C++ classes, numbered by their type (ModeKindId).
 struct ModeKind {
-    const void* original;   // game.exe's table: the id
+    std::uint32_t id;
     const char* name;
 };
 
 const std::vector<ModeKind>& ModeKinds() {
     static const std::vector<ModeKind> kinds = {
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D128), "guard"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF40), "patrol"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D190), "sentry"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1F8), "suspection"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D260), "aggression"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D294), "corpsewatcher"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0F8), "player"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF8C), "fear"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0C4), "tamed"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1C4), "follow"},
+        {ExeTableId(0x0073D128), "guard"},
+        {ExeTableId(0x0073FF40), "patrol"},
+        {ExeTableId(0x0073D190), "sentry"},
+        {ExeTableId(0x0073D1F8), "suspection"},
+        {ExeTableId(0x0073D260), "aggression"},
+        {ExeTableId(0x0073D294), "corpsewatcher"},
+        {ExeTableId(0x0073F0F8), "player"},
+        {ExeTableId(0x0073FF8C), "fear"},
+        {ExeTableId(0x0073F0C4), "tamed"},
+        {ExeTableId(0x0073D1C4), "follow"},
     };
     return kinds;
 }
 
 // The name of the kind an id belongs to, or null for one not listed.
-const char* ModeName(const void* id) {
+const char* ModeName(std::uint32_t id) {
     for (const ModeKind& kind : ModeKinds())
-        if (kind.original == id) return kind.name;
+        if (kind.id == id) return kind.name;
     return nullptr;
 }
 
@@ -110,9 +113,7 @@ Entity& Slot(State& state, const Key& key) {
 
 bool WaterOn() { return g_water; }
 
-std::uint32_t ModeKindId(std::size_t index) {
-    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(ModeKinds()[index].original));
-}
+std::uint32_t ModeKindId(std::size_t index) { return ModeKinds()[index].id; }
 
 namespace {
 
@@ -135,7 +136,7 @@ std::string FieldValue(const Field& f) {
     case Kind::Bits: std::snprintf(text, sizeof(text), "0x%08X", f.value); break;
     case Kind::Mode: {
         // An AI mode by name, one ModeName does not know by its id (its table; none: 0).
-        const char* mode = ModeName(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(f.value)));
+        const char* mode = ModeName(f.value);
         if (mode) std::snprintf(text, sizeof(text), "%s", mode);
         else std::snprintf(text, sizeof(text), "0x%08X", f.value);
         break;

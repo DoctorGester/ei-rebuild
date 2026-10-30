@@ -19,7 +19,7 @@ def checks(out, x64):
         py + [tool('check_cleanup.py')],
         # Addresses and ticket ids in comments may only go down per file (docs/comment-guide.md).
         py + [tool('comments.py'), 'check'],
-        # Game data by address only through the data seam (src/game/game_data.h, the harness's OriginalGameData):
+        # Game data by address only through the data seam (src/game/game_data.h, the harness's ExeTableId):
         # no raw use.
         py + [tool('data_seam.py'), '--check'],
         # Generated and listed files against what they come from, without game.exe: the import files (gameapi.h by

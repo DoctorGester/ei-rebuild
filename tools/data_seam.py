@@ -1,11 +1,11 @@
 """The data seam (S18): every use of game.exe's data by its original address goes through
-ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's OriginalGameData, so that
+ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's ExeTableId, so that
 ei_vectors.exe's replay can hand a stand-in and no code of the image reads game.exe's data by a raw cast
 (docs/notes/standalone.md, "Own data").
 
 A literal of the exe's data range (0073B000-007D7000: the import address table, .rdata, .data, its
 zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:
-  seam       the address argument of GameData<T> / GamePointer<T> / DataId / OriginalGameData<T>
+  seam       the address argument of GameData<T> / GamePointer<T> / DataId / ExeTableId
   helper     the address argument of a function whose every definition hands that parameter to the
              seam (per-file helpers such as GameFloat(std::uintptr_t)); found from the definitions
   id         the value of a constant (constexpr std::uintptr_t kName = 0x...) whose every use is the
@@ -29,8 +29,8 @@ TOPS = ('src', 'tests', 'include')
 # that runs across the file's 0079C000), as S18b moved "bss" alone.
 SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), ('data', 0x00783000, 0x0079BF70),
             ('bss', 0x0079BF70, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
-# OriginalGameData: the harness's read of game.exe's own copy of a named object in its --no-hooks runs (tests/verify/harness_original.h).
-OPENERS = {'GameData', 'GamePointer', 'DataId', 'OriginalGameData'}
+# ExeTableId: a game.exe table the harness keeps as an id, never read (tests/verify/harness_digest.cpp).
+OPENERS = {'GameData', 'GamePointer', 'DataId', 'ExeTableId'}
 
 LITERAL = re.compile(r'(?<![\w.])0[xX]([0-9A-Fa-f]{1,8})[uUlL]*(?![\w.])')
 _TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|R"([^(\s]*)\(.*?\)\1"|"(?:\\.|[^"\\\n])*"'
@@ -391,7 +391,7 @@ def report(scan):
 def check(scan):
     raw, _ = scan.counts()
     problems = [f'{path}: {n} raw use(s) of {sec} (python tools/data_seam.py --list {sec}): use ei::GameData / '
-                f'GamePointer (src/game/game_data.h) or OriginalGameData (tests/verify/harness_original.h)'
+                f'GamePointer (src/game/game_data.h), or in tests/ ExeTableId (tests/verify/harness_digest.cpp)'
                 for (path, sec), n in sorted(raw.items()) if n]
     for p in problems:
         print('data_seam:', p)
