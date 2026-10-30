@@ -147,7 +147,10 @@ bool ParseValue(const char* p, Value* v) {
         if (!close || close[1] != ':') return false;
         const auto read = std::from_chars(p + 4, close, v->type, 16);
         if (read.ec != std::errc() || read.ptr != close) return false;
-        return ParseHex(close + 2, &v->data);
+        if (!ParseHex(close + 2, &v->data)) return false;
+        // A text value ends in a zero, as a quoted one does, so a hand-edited hex(1): line without it reads safely.
+        if (v->type == kTypeString && (v->data.empty() || v->data.back() != '\0')) v->data += '\0';
+        return true;
     }
     return false;
 }

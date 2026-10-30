@@ -170,6 +170,11 @@ EI_NAKED int __fastcall OriginalMappedResourceOpen(void* /*resource*/, void*, co
     EI_ORIGINAL(0x00671730)
 EI_NAKED void __fastcall OriginalMappedResourceDestroy(void* /*resource*/) EI_ORIGINAL(0x006714A0)
 long OriginalModFile(const std::string& path, const char* name) {
+#if defined(_M_X64)
+    (void)path;
+    (void)name;
+    ::ei::verify::NoOriginalCode(0x00671280);   // no game.exe in the x64 build (its stubs end the run)
+#else
     constexpr std::size_t kMappedResourceSize = 0x58;
     void* memory = ::operator new(kMappedResourceSize);
     std::memset(memory, 0, kMappedResourceSize);
@@ -185,6 +190,7 @@ long OriginalModFile(const std::string& path, const char* name) {
     OriginalMappedResourceDestroy(res);
     ::operator delete(memory);
     return got;
+#endif
 }
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};

@@ -569,7 +569,7 @@ void AddFrameStats() {
                        &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
                        &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
                        &FrameStats::textureChanges, &FrameStats::morphMeshes,
-                       &FrameStats::morphCorners, &FrameStats::decalShadows, &FrameStats::decalPrints,
+                       &FrameStats::morphCorners, &FrameStats::decalPrints,
                        &FrameStats::decalVertices, &FrameStats::flatDraws,
                        &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
         s.*field += f.*field;
@@ -588,7 +588,7 @@ void AddFrameStats() {
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
     s.deviceMeshMs += f.deviceMeshMs;
-    for (auto field : {&FrameStats::decalShadowMs, &FrameStats::decalPrintMs, &FrameStats::flatMs,
+    for (auto field : {&FrameStats::decalPrintMs, &FrameStats::flatMs,
                        &FrameStats::shadowBuildMs})
         s.*field += f.*field;
     s.shadowDraws += f.shadowDraws;
@@ -1008,13 +1008,11 @@ void EndDeviceMeshTime() {
     g_deviceMeshTiming = false;
 #endif
 }
-void BeginDecalTime(bool shadow) {
+void BeginDecalTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_decalTimer.running) return;
-    ++(shadow ? detail::g_stats.decalShadows : detail::g_stats.decalPrints);
-    g_decalTimer.Begin(shadow ? &FrameStats::decalShadowMs : &FrameStats::decalPrintMs);
-#else
-    (void)shadow;
+    ++detail::g_stats.decalPrints;
+    g_decalTimer.Begin(&FrameStats::decalPrintMs);
 #endif
 }
 void EndDecalTime(int vertices) {
