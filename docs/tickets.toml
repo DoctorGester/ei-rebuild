@@ -6167,6 +6167,13 @@ depends = ["H40"]
 note = "User 2026-10-30 idea: a test-only data set built from the install by a tool, so the harness runs where the real files are not (GitHub Actions, a clean checkout). Keep what decides game state: maps / terrain and collision, models' geometry, skeletons and animations (bones, timings, events), databases, scripts, text, unit/item tables. Stub what only shows or sounds: textures as 1x1 or same-size blank (keep the dimensions where layout reads them), sounds and speech as silent clips of the same length (scripts wait on speech), Bink movies as frame count / size / rate only, fonts kept for metrics or replaced by metric tables. Step 1: list every read the harness's runs make (file, which fields reach state) and prove each stub keeps the goldens (all suites the same on the stub set as on the install). Step 2: the stub tool (tools/stub_data.py) writing archives in the original formats so no new loader path is needed; a null renderer / no-audio run if the CI runner has no GPU. Step 3: CI job. User 2026-10-30: if the data can be private, CI can use the real game instead of stubs. Note (mine): Actions cache is NOT private in a public repo (fork PRs can restore the base branch's cache, 10 GB cap, 7-day eviction), and public repo releases are public. Private options: a separate private repo holding the install, cloned with a fine-grained read-only PAT in a secret (secrets are not given to fork PRs); or a self-hosted runner on the user's machine (no upload, has a GPU, but must never run fork PRs). Stubs remain useful only if the data must go somewhere public. Frame-capture scenarios stay local."
 
 [[ticket]]
+id = "H42"
+title = "Harness: runs fail at EI_RESOLUTION=1280x720"
+group = "harness"
+model = "sonnet"
+note = "Found by MAC3e (main and its branch alike): with EI_RESOLUTION=1280x720, render_smooth / ui_quicksave (checksave about 20%), render_shadows_shimmer, render_cursor_present and ui_gallery_deals fail; at the default resolution all pass. Find whether the scenarios or the game depend on the resolution and fix the cause."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -7041,3 +7048,11 @@ group = "port"
 model = "opus"
 depends = ["MAC3j"]
 note = "Merge current main into macos-port and adapt the branch's macOS code to what main took, so only macOS-specific differences remain in those files. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the macOS build cannot be built here, so the user checks it on the Mac."
+
+[[ticket]]
+id = "MAC3l"
+title = "macos-port: small leftovers main can take"
+group = "port"
+model = "sonnet"
+depends = ["MAC3f"]
+note = "From MAC3r: bit_flags.h enable_if instead of constrained templates (Apple clang), bink_file platform::File instead of std::ifstream (case-folding lookup), spell_effect.cpp <cfloat>, ui_connect_screen.cpp BufferPut without __declspec(noinline). Take each only if main needs it or it is simpler; batch with a MAC3 worker."
