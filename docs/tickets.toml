@@ -6231,7 +6231,7 @@ id = "PL1b"
 title = "Platform layer: the standalone start-up's direct calls"
 group = "port"
 depends = ["A3a"]
-note = "From PL1a (its app_main.cpp part is done in PL2's branch): src/standalone/startup.cpp and standalone_main.cpp call GetModuleFileNameA / SetCurrentDirectoryA / Sleep(INFINITE) / GetModuleHandleA directly (before or beside the import table, not the slots): a platform function that calls the system directly (not platform::ExePath, which goes through the UTF-8 route slot), or leave them as the win32 entry and say so in docs/notes/platform.md. GameMain's (HINSTANCE, HINSTANCE, char*, int show) signature to platform::NativeInstance with it. Then python tools/check_platform.py --update. Goldens unchanged."
+note = "Also (PL5, 2026-10-30): tools/gen_static_init.py fails on main: 'd.StoreFloat is written by the analysis but static_init.h has no such function' (0x007C8964, 1.0f * 95.0f); static_init.cpp was edited by hand to what it would write; make the generator agree with static_init.h again (likely since C30e15 / A3a). From PL1a (its app_main.cpp part is done in PL2's branch): src/standalone/startup.cpp and standalone_main.cpp call GetModuleFileNameA / SetCurrentDirectoryA / Sleep(INFINITE) / GetModuleHandleA directly (before or beside the import table, not the slots): a platform function that calls the system directly (not platform::ExePath, which goes through the UTF-8 route slot), or leave them as the win32 entry and say so in docs/notes/platform.md. GameMain's (HINSTANCE, HINSTANCE, char*, int show) signature to platform::NativeInstance with it. Then python tools/check_platform.py --update. Goldens unchanged."
 
 [[ticket]]
 id = "PL2a"
