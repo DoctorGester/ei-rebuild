@@ -50,10 +50,10 @@ Read before changing code:
 - **Reading results:** the run's summary page has each suite's goldens block. A failing build prints its last 40
   log lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`,
   or the REST API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`).
-- **Expected results on main** as of 2026-10-30:
-  - Image suite: 122 the same, 33 without a golden.
-  - Rebirth suite: 24 the same, 8 without a golden.
-  - x64 suite: 122 the same, 33 without a golden.
+- **Expected results on main** as of 2026-10-30 (goldens recorded from the image, H40):
+  - Image suite: 152 the same, 3 without a golden (the watchdogs).
+  - Rebirth suite: 32 the same.
+  - x64 suite: 152 the same, 3 without a golden.
   - A change that should not alter behaviour keeps every golden the same. An intended change re-records the
     affected goldens and says why in the commit.
 - **Limits:**
@@ -62,9 +62,13 @@ Read before changing code:
   - The runner is only up while Kirill is logged in, and a queued run waits until then.
   - Each push to a `claude/**` branch costs a full run (about 20 to 30 minutes), so batch your commits and push
     when a step is ready.
-- **Golden recording** (`tools/golden.py record`) needs run folders on the machine. The workflow cannot do it yet.
-  Adding a `record` input to the workflow is the first step of H40. Until then, a change that needs new goldens
-  waits for that.
+- **Golden recording** (H40): run the workflow by hand on your branch (not main) with `record` = both,
+  vanilla or rebirth (optionally `scenarios`, space-separated, and `reason`). Its `record` job plays four passes
+  (plain twice, two heap jitters), runs `tools/golden.py record` and pushes the goldens to the branch as a commit of
+  its own (`git pull` it). The summary names the new and changed goldens. That push starts no run, so dispatch a full
+  run on the branch after it. docs/notes/standalone-verification.md, section 2.
+- **Dispatching from a session:** the GitHub MCP tool `actions_run_trigger` (workflow `suites.yml`, ref your branch,
+  inputs as above; the `ref` input can stay main, which then means the branch the run was started on).
 - **What you can run in the cloud without the runner:** the Python tools' own tests (`python -m unittest` in
   `tools/`, for example `tools/test_work_sched.py`) and the text checks that read only the source:
   - `tools/check_cleanup.py`
@@ -135,11 +139,16 @@ Recently done:
 - The release workflow: Actions > Release with a version, which publishes the x86 and x64 exes. v0.1.0 is out.
 
 Next, in rough order:
-1. **H40**: own goldens; the harness stops running `game.exe`. Start with a `record` path in the Suites workflow,
-   so goldens can be re-recorded on the runner.
+1. **H40**: own goldens; the harness stops running `game.exe`. Done: the tag `original-oracle` (b06141b), the
+   workflow's `record` input, every golden recorded from the image (all the same as game.exe's but `console`'s
+   help screen, plus 36 new). Left: step 3 (remove the game.exe side: `--no-hooks`, the reference cache,
+   ei_harness.dll and its hooks, the harness key, `# no original` lines, run_all's original installs, the
+   `--widescreen --record` addon references) and step 4 (docs and rules that exist only because of game.exe).
 2. **W12**: one interface layout for any aspect ratio. Its code is on branch `wip/W12` (tested on the old data).
-   It needs own goldens for 5 vanilla 16:9 scenarios: net_pair_leave, net_pair_quest, net_pair_zone,
-   render_pick_edges and render_pick_edges_rule. So it waits for H40.
+   It needs new goldens for 5 vanilla 16:9 scenarios (net_pair_leave, net_pair_quest, net_pair_zone,
+   render_pick_edges, render_pick_edges_rule), and the `ui_widescreen*` / `rebirth_flags` vanilla goldens may move
+   too. H40's record path makes that possible now: rebase it on main, run the suites, then record what differs
+   with the workflow's `record` input (`scenarios` set to those names) and check that nothing else changed.
 3. **C68**: Rebirth's bug fixes always on, plus the harmless options. Waits for W12.
 4. **C69**: `ei_settings.ini` explains itself, with comments and a generated `docs/settings.md`.
 5. **PL11c-f**: the rest of the platform simplification (see PL11's note). **PL11s**: delete the shared-opens

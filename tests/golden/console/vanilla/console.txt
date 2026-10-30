@@ -13,8 +13,6 @@
   Commands are:
   HELP
     show this screen
-  DEBUGINFO [pos]
-    change debug info position; <pos> = l<eft>, r<ight>, rt, righttop, lt, lefttop
   CONSOLE [pos]
     change console position; <pos> = l<eft>, r<ight>, t<op>, b<ottom>, c<enter>, f<ullscreen>
   HISTORY [N lines]

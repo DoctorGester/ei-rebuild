@@ -122,21 +122,31 @@ class GoldenTest(unittest.TestCase):
         self.assertIn('obj2 (84 stbr1) pos.x: 3.0 in A, 4.0 in B', out[1])
 
     def test_record_and_compare(self):
-        orig1 = self.run_folder('orig1/levers-vanilla', digest())
-        self.run_folder('orig2/levers-vanilla', digest())
-        ours = self.run_folder('ours/levers-vanilla', digest(hooks='on'))
+        # H40: goldens are the image's runs (<scenario>-standalone), IMAGE_RUNS of them that agree.
+        runs = [os.path.dirname(self.run_folder(f'{d}/levers-standalone', digest(hooks='on')))
+                for d in ('plain1', 'plain2', 'jit1', 'jit2')]
+        ours = os.path.join(runs[1], 'levers-standalone')
         old = golden.GOLDEN, golden.STORE
         golden.GOLDEN = os.path.join(self.dir, 'golden')
         golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         try:
-            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12, image=False,
-                                      runs=[os.path.dirname(orig1), os.path.dirname(ours), os.path.join(self.dir, 'orig2')]))
+            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12, runs=runs[:3]))
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 2)
+            self.assertIn('3 runs; a golden needs 4', out.getvalue())
+            args.runs = runs
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
+            self.assertIn('(new)', out.getvalue())
             target = os.path.join(golden.GOLDEN, 'levers', 'vanilla')
             self.assertEqual(sorted(os.listdir(target)),
                              ['console.txt', 'digest.txt', 'dump_loaded.txt', 'golden.json', 'saves.txt'])
-            self.assertEqual(json.load(open(os.path.join(target, 'golden.json')))['digest_period'], 20)
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                meta = json.load(f)
+            self.assertEqual((meta['digest_period'], meta['source'], meta['repeated_in']), (20, 'image', 4))
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            self.assertIn('(the same as before)', out.getvalue())
             golden_folder = golden.golden_folder
             golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
             try:
@@ -150,29 +160,49 @@ class GoldenTest(unittest.TestCase):
                 self.assertIn('  info zone: "gz1g" in the golden, "other" in the run', lines)
             finally:
                 golden.golden_folder = golden_folder
-            # A second run of the original that does not repeat: not recorded.
-            self.run_folder('orig3/levers-vanilla', digest(later=['obj1 pos.x 12.0']))
-            args.runs = [os.path.dirname(orig1), os.path.join(self.dir, 'orig3')]
+            # A run under jitter that does not repeat: not recorded, the golden kept.
+            self.run_folder('jit3/levers-standalone', digest(hooks='on', later=['obj1 pos.x 12.0']))
+            args.runs = runs[:3] + [os.path.join(self.dir, 'jit3')]
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 2)
             self.assertIn('not recorded', out.getvalue())
             self.assertIn('obj1 (80 unhuma "") pos.x: 11.0', out.getvalue())
+            self.assertTrue(os.path.exists(os.path.join(target, 'golden.json')))
+            # A changed run that repeats: recorded, the changed files named.
+            changed = [os.path.dirname(self.run_folder(f'new{i}/levers-standalone', digest(hooks='on', hp='19.0')))
+                       for i in range(4)]
+            args.runs = changed
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            self.assertIn('(changed: digest.txt, dump_loaded.txt)', out.getvalue())
         finally:
             golden.GOLDEN, golden.STORE = old
+
+    def test_change_note_leaves_out_title_and_frames(self):
+        # H40: game.exe's goldens said "hooks off", and the renderer-timed ones' frames follow presents.
+        before, after = (os.path.join(self.dir, d) for d in ('before', 'after'))
+        for folder, hooks, frame in ((before, 'off', 'frame 4 '), (after, 'on', 'frame 1553 ')):
+            self.write(os.path.join(folder, 'digest.txt'), digest(hooks=hooks).replace('frame 4 ', frame))
+            self.write(os.path.join(folder, 'console.txt'), '  hello\n')
+        self.assertEqual(golden.change_note(golden.golden_content(before), golden.golden_content(after)),
+                         'the same as before')
+        self.write(os.path.join(after, 'console.txt'), '  hello\n  more\n')
+        self.assertEqual(golden.change_note(golden.golden_content(before), golden.golden_content(after)),
+                         'changed: console.txt')
+        self.assertEqual(golden.change_note({}, golden.golden_content(after)), 'new')
 
     def test_pair_records_and_compares_both_games(self):
         # SV5d: a pair's second game is the run folder's peer\ and the golden's peer\.
         runs = []
-        for d in ('orig1', 'orig2'):
-            runs.append(os.path.dirname(self.run_folder(f'{d}/pair-vanilla', digest())))
-            self.run_folder(f'{d}/pair-vanilla/peer', digest(wolf_x='20.5'), console=('  peer',))
+        for d in ('plain1', 'plain2', 'jit1', 'jit2'):
+            runs.append(os.path.dirname(self.run_folder(f'{d}/pair-standalone', digest(hooks='on'))))
+            self.run_folder(f'{d}/pair-standalone/peer', digest(hooks='on', wolf_x='20.5'), console=('  peer',))
         old, golden_folder = (golden.GOLDEN, golden.STORE), golden.golden_folder
         golden.GOLDEN = os.path.join(self.dir, 'golden')
         golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
         try:
-            args = type('A', (), dict(scenarios=['pair'], install='vanilla', reason='test', fields=12, image=False,
-                                      runs=runs))
+            args = type('A', (), dict(scenarios=['pair'], install='vanilla', reason='test', fields=12, runs=runs))
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
             target = os.path.join(golden.GOLDEN, 'pair', 'vanilla')
@@ -181,7 +211,7 @@ class GoldenTest(unittest.TestCase):
             self.assertEqual(golden.read_lines(os.path.join(target, 'peer', 'console.txt')), ['  peer'])
             self.assertEqual(golden.golden_store(os.path.join(target, 'peer')), golden.STORE)
             self.assertTrue(os.path.exists(os.path.join(target, 'peer', 'saves.txt')))
-            self.assertEqual(golden.compare_one('pair', 'vanilla', os.path.join(runs[1], 'pair-vanilla')), ('SAME', []))
+            self.assertEqual(golden.compare_one('pair', 'vanilla', os.path.join(runs[1], 'pair-standalone')), ('SAME', []))
             bad = self.run_folder('bad/pair-vanilla', digest(hooks='on'))
             self.run_folder('bad/pair-vanilla/peer', digest(hooks='on', wolf_x='20.5'), console=('  other',))
             result, lines = golden.compare_one('pair', 'vanilla', bad)
@@ -190,8 +220,8 @@ class GoldenTest(unittest.TestCase):
             shutil.rmtree(os.path.join(bad, 'peer'))
             self.assertEqual(golden.compare_one('pair', 'vanilla', bad)[1][0][:17], 'peer: no run in ' + bad[:1])
             # The second game's runs must repeat too.
-            shutil.rmtree(os.path.join(runs[1], 'pair-vanilla', 'peer'))
-            self.run_folder('orig2/pair-vanilla/peer', digest(wolf_x='21.5'), console=('  peer',))
+            shutil.rmtree(os.path.join(runs[1], 'pair-standalone', 'peer'))
+            self.run_folder('plain2/pair-standalone/peer', digest(hooks='on', wolf_x='21.5'), console=('  peer',))
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 2)
             self.assertIn('peer differs', out.getvalue())
@@ -201,7 +231,7 @@ class GoldenTest(unittest.TestCase):
 
     def test_snapshot_skips_harness_screenshots(self):
         build = os.path.join(self.dir, 'build')
-        folder = self.run_folder('build/runs/levers-vanilla', digest())
+        folder = self.run_folder('build/runs/levers-standalone', digest(hooks='on'))
         saves = os.path.join(folder, golden.SAVES)
         for name in ('shot0.bmp', 'Shot12.BMP'):
             with open(os.path.join(saves, name), 'wb') as f:
@@ -213,12 +243,12 @@ class GoldenTest(unittest.TestCase):
         old, dest = golden.run_all.BUILD, os.path.join(self.dir, 'dest')
         golden.run_all.BUILD = build
         try:
-            args = type('Args', (), {'scenarios': ['levers'], 'install': 'vanilla', 'image': False, 'dest': dest})()
+            args = type('Args', (), {'scenarios': ['levers'], 'install': 'vanilla', 'dest': dest})()
             with redirect_stdout(io.StringIO()):
                 self.assertEqual(golden.snapshot(args), 0)
         finally:
             golden.run_all.BUILD = old
-        copied = os.path.join(dest, 'levers-vanilla')
+        copied = os.path.join(dest, 'levers-standalone')
         self.assertTrue(os.path.exists(os.path.join(copied, 'digest.txt')))
         self.assertEqual(sorted(os.listdir(os.path.join(copied, golden.SAVES))), ['keyboard.ini', 'savea'])
         self.assertEqual(os.listdir(os.path.join(copied, golden.SAVES, 'savea')), ['info.sav'])

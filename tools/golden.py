@@ -5,7 +5,8 @@ in its run folder: a record of the world server's state every N world updates (h
 "dump <name>" step writes dump_<name>.txt, the whole state at that point. This tool compares two runs'
 records and names the first field that differs, and keeps golden runs.
 
-A golden (tests\golden\<scenario>\<install>\) is a run of the original code (--no-hooks) that repeated:
+A golden (tests\golden\<scenario>\<install>\) is a run of the standalone image (ei-rebuild.exe) that repeated under
+different heap layouts (H40: our own goldens; before it they were game.exe's --no-hooks runs, git tag original-oracle):
   golden.json   when, from which commit, the digest period, the fields left out, the reason
   console.txt   what the game printed
   digest.txt    the digest in compact form: the world, the generators and the players field by field, every
@@ -17,8 +18,8 @@ A golden (tests\golden\<scenario>\<install>\) is a run of the original code (--n
                 values that follow memory layout written as rule tokens): each save's path and the hash of its
                 decoded text, which the shared store tests\golden\saves\<hash>.txt.gz holds (goldens share
                 saves: most start with the same autosave); a difference names the save, the object and the field
-To see the fields behind a differing hash, run the original again (its runs repeat) and `diff` the two
-full digests.
+To see the fields behind a differing hash, run the scenario again at the golden's commit (its runs repeat) and
+`diff` the two full digests.
 
 Digest 2 (SV2a) adds entity groups (KEY_GROUPS: timed, missile, aievents, script, client, cunit) and names them in
 its title line. A golden keeps the groups its digest had: a run is compacted down to them before the comparison, and
@@ -36,35 +37,28 @@ usage:
       SV1b) are left out unless --all-fields.
   python tools/golden.py state A [--record N] [--key REGEX]
       The whole state at record N (default: the last) of one digest, or the entities whose key matches.
-  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth] [--image]
-      Copies the run folders build\verify\runs\<scenario>-<install> (default: every one with a digest) to
-      DEST\<scenario>-<install>: the report, the digest, the dumps and harness_saves. For a second run of the
-      same scenarios, to check that they repeat (record --runs). --image: the standalone image's run folders
-      (<scenario>-standalone, <scenario>-standalone-rebirth), as record --image reads them.
+  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth]
+      Copies the image's run folders build\verify\runs\<scenario>-standalone (--install rebirth:
+      <scenario>-standalone-rebirth; default: every one with a digest) to DEST: the report, the digest, the
+      dumps and harness_saves. One pass of the suite, for record --runs.
   python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
-      Keeps runs of the original code as goldens. DIR (default build\verify\runs) holds run folders
-      <scenario>-<install>; the first DIR's must have passed with --no-hooks and a digest, and the run
-      folders of every other DIR (a second run of the original, runs with our hooks) must agree with it:
-      the console, every digest record and dump (but the known differences, KNOWN). A scenario that does
-      not is not recorded; its first difference is printed. The saves are kept (saves.txt) only when every
-      run's saves decode to the same fields. No SCENARIO: every run folder of the install in the first DIR.
+      Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
+      folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them, under
+      different heap layouts (plain twice, EI_HEAP_JITTER=1 and EI_HEAP_JITTER=2,fill), each passed with a digest,
+      and every other DIR's run must agree with the first DIR's: the console, every digest record and dump (but
+      the known differences, KNOWN). A scenario that does not is not recorded, its old golden kept; its first
+      difference is printed. The saves are kept (saves.txt) only when every run's saves decode to the same
+      fields. No SCENARIO: every run folder of the install in the first DIR. Each recorded golden is reported as
+      new, the same as before (only golden.json changed) or changed (the files that did).
       A pair (a scenario with a "peer" line, SV5d): the second game's run folder is the peer\ subfolder; it
       must pass and agree the same way and is kept as the golden's peer\ (snapshot copies it, compare checks it,
       its lines start "peer:").
-      Run the games through the scheduler, e.g.:
-        set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
-                                                                                whose runs may hold an older digest)
-        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and the image without --no-hooks)
-      --image (S20a): a golden of the standalone image, for the scenarios the original cannot run on that install
-      (their "# no original:" line names it: renderer-only checks). The runs are the image's (DIR\<scenario>-
-      standalone or -standalone-rebirth, snapshot --image), at least IMAGE_RUNS of them, and must all agree, so
-      give runs under different heap layouts: plain twice or more, EI_HEAP_JITTER=1 and EI_HEAP_JITTER=2,fill.
-      Only where the digest, the console and the saves do not follow the renderer's timing (presents, the
-      cursor thread); golden.json says "source": "image". Such a golden checks that the image keeps doing what
-      it did, not that it does what the original does. E.g.:
-        set EI_HEAP_JITTER=1 & python tools\work.py test <ID> --golden --jobs 4 <scenario>...
-        python tools\golden.py snapshot <scratch>\jit1 <scenario> --install vanilla --image
-        python tools\golden.py record <scenario> --install vanilla --image --runs <scratch>\plain1 ... --reason TEXT
+      Run the games through the scheduler, once per heap layout (the Suites workflow's record input does all of
+      this on the runner, .github/workflows/suites.yml):
+        python tools\work.py test <ID> --golden --jobs 4 [scenarios]        (--golden: the goldens' digest period)
+        python tools\golden.py snapshot <scratch>\plain1
+        set EI_HEAP_JITTER=1 & python tools\work.py test <ID> --golden --jobs 4 [scenarios]   (and so on)
+        python tools\golden.py record --runs <scratch>\plain1 <scratch>\plain2 <scratch>\jit1 <scratch>\jit2 --reason TEXT
   python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
       Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
       must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
@@ -665,13 +659,13 @@ def commit():
 
 # ---- commands
 
-IMAGE_FOLDER = {'vanilla': 'standalone', 'rebirth': 'standalone-rebirth'}   # record --image: the image's run folders
-IMAGE_RUNS = 4   # record --image: the fewest agreeing runs (plain twice, two heap jitters)
+IMAGE_FOLDER = {'vanilla': 'standalone', 'rebirth': 'standalone-rebirth'}   # the image's run folders by golden install
+IMAGE_RUNS = 4   # record: the fewest agreeing runs (plain twice, two heap jitters)
 
 
 def folder_install(args):
-    """The run folders' suffix: the install, or with --image the image's run on that install."""
-    return IMAGE_FOLDER[args.install] if getattr(args, 'image', False) else args.install
+    """The run folders' suffix: the image's run on the install."""
+    return IMAGE_FOLDER[args.install]
 
 
 def not_screenshots(folder, names):
@@ -684,7 +678,7 @@ def snapshot(args):
     source = os.path.join(run_all.BUILD, 'runs')
     suffix = folder_install(args)
     names = [f'{n}-{suffix}' for n in args.scenarios] if args.scenarios else \
-        sorted(d for d in os.listdir(source) if (not args.image or d.endswith('-' + suffix))
+        sorted(d for d in os.listdir(source) if d.endswith('-' + suffix)
                and os.path.exists(os.path.join(source, d, 'digest.txt')))
     for name in names:
         src, dst = os.path.join(source, name), os.path.join(args.dest, name)
@@ -727,18 +721,35 @@ def golden_store(folder):
     return os.path.join(os.path.dirname(up) if os.path.basename(folder) == PEER else up, 'saves')
 
 
-def flagged(name, root=ROOT):
-    """Does the scenario turn Rebirth patch flags on (a `rebirthflags` line)?"""
-    path = os.path.join(root, 'tests', 'scenarios', name + '.txt')
-    if not os.path.exists(path):
-        return False
-    with open(path, encoding='utf-8', errors='replace') as f:
-        return any(line.split()[:1] == ['rebirthflags'] for line in f)
+GOLDEN_FILES = ('console.txt', 'digest.txt', 'saves.txt')   # with dump_*.txt: what a golden checks (not golden.json)
 
 
-def no_original(name, install, root=ROOT):
-    """Whether the scenario's "# no original:" line names the install (the original cannot run it there)."""
-    return install in run_all.no_original(os.path.join(root, 'tests', 'scenarios', name + '.txt'))
+TITLE = re.compile(rb'# ei state digest [^\n]*\n')   # a digest's title (names the hooks: not compared)
+FRAME = re.compile(rb'^(@ \d+ update \d+) frame \d+', re.M)   # a record's frame: shown, not compared
+
+
+def golden_content(folder):
+    """{file relative to the golden: bytes} of what a golden checks, both games of a pair; {} without one. A digest's
+    title and its records' frames are left out, as the comparison leaves them out."""
+    out = {}
+    for side in sides(folder) if os.path.isdir(folder) else []:
+        here = on_side(folder, side)
+        for path in [os.path.join(here, f) for f in GOLDEN_FILES] + list(dumps(here).values()):
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    data = f.read()
+                if not path.endswith(('console.txt', 'saves.txt')):
+                    data = FRAME.sub(rb'\1', TITLE.sub(b'', data, count=1))
+                out[os.path.relpath(path, folder).replace(os.sep, '/')] = data
+    return out
+
+
+def change_note(before, after):
+    """record's note on a golden it wrote: new, the same as before or the files that changed."""
+    if not before:
+        return 'new'
+    changed = sorted(f for f in set(before) | set(after) if before.get(f) != after.get(f))
+    return 'changed: ' + ', '.join(changed) if changed else 'the same as before'
 
 
 def record(args):
@@ -756,19 +767,9 @@ def record(args):
             problem = [f'{folders[0]} did not pass ({report_result(folders[0]) or "no report"})']
         elif not os.path.exists(digest):
             problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
-        elif args.image and not no_original(name, args.install):
-            problem = [f'the original runs it on {args.install}, so its golden is the original\'s (--no-hooks); --image '
-                       f'is for scenarios whose "{run_all.NO_ORIGINAL_PREFIX}" line names the install']
-        elif args.image and len(folders) < IMAGE_RUNS:
-            problem = [f'{len(folders)} runs of the image; an image golden needs {IMAGE_RUNS} that agree (plain twice, '
-                       'EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)']
-        elif not args.image and 'hooks off' not in Digest(digest).title:
-            problem = [f'{folders[0]} ran with our hooks; a golden is the original code (--no-hooks)'
-                       + (', or for this scenario, whose "no original" line names the install, the image\'s (--image)'
-                          if no_original(name, args.install) else '')]
-        elif args.install == 'vanilla' and flagged(name):
-            problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
-                       'our vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
+        elif len(folders) < IMAGE_RUNS:
+            problem = [f'{len(folders)} runs; a golden needs {IMAGE_RUNS} that agree (plain twice, EI_HEAP_JITTER=1, '
+                       'EI_HEAP_JITTER=2,fill)']
         games = sides(folders[0])
         for side in games:
             # A pair (SV5d): the second game's runs must pass and agree as the first game's do.
@@ -795,6 +796,7 @@ def record(args):
             code = 2
             continue
         target = os.path.join(GOLDEN, name, args.install)
+        before = golden_content(target)
         shutil.rmtree(target, ignore_errors=True)
         for side in games:
             runs = [on_side(f, side) for f in folders]
@@ -811,14 +813,15 @@ def record(args):
                     'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
             if side:
                 meta['side'] = side   # the pair's second game (tests/scenarios/peer/<name>.txt)
-            if args.image:
-                meta['source'] = 'image'   # the standalone image's runs: the original cannot run it (S20a)
+            meta['source'] = 'image'   # the standalone image's runs (H40; before it game.exe's)
             keep_saves(into, runs, meta)
             with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
                 json.dump(meta, f, indent=2)
                 f.write('\n')
         recorded += 1
-        print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else ''))
+        print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else '')
+              + f' ({change_note(before, golden_content(target))})')
+    prune_store()
     print(f'{recorded} of {len(names)} recorded')
     return code
 
@@ -857,15 +860,15 @@ def add_saves(args):
     """Adds the decoded saves to existing goldens without recording them again: the runs (as for record) must
     each match the golden (console, digest, dumps) and their saves must decode to the same fields."""
     dirs = args.runs
-    names = args.scenarios or sorted(d[:-len(args.install) - 1] for d in os.listdir(dirs[0])
-                                     if d.endswith('-' + args.install))
+    suffix = folder_install(args)
+    names = args.scenarios or sorted(d[:-len(suffix) - 1] for d in os.listdir(dirs[0]) if d.endswith('-' + suffix))
     code = 0
     for name in names:
         target = golden_folder(name, args.install)
         meta_path = os.path.join(target, 'golden.json')
         if not os.path.exists(meta_path):
             continue
-        folders = [os.path.join(d, f'{name}-{args.install}') for d in dirs]
+        folders = [os.path.join(d, f'{name}-{suffix}') for d in dirs]
         with open(meta_path, encoding='utf-8') as f:
             meta = json.load(f)
         problem = []
@@ -886,13 +889,18 @@ def add_saves(args):
                 print('  ' + line)
         else:
             print(f'{name} {args.install}: {meta.get("saves", "no saves")}')
+    prune_store()
+    return code
+
+
+def prune_store():
+    """Removes the decoded saves no golden refers to any more from the shared store."""
     used = set()
     for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')) + glob.glob(os.path.join(GOLDEN, '*', '*', PEER, 'saves.txt')):
         used.update((golden_saves(os.path.dirname(path)) or {}).values())
     for path in glob.glob(os.path.join(STORE, '*.txt.gz')):
         if os.path.basename(path)[:-7] not in used:
-            os.remove(path)   # no golden holds it any more
-    return code
+            os.remove(path)
 
 
 def golden_folder(name, install, root=ROOT):
@@ -986,11 +994,9 @@ def main():
     p.add_argument('dest')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
-    p.add_argument('--image', action='store_true')
     p = sub.add_parser('record')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
-    p.add_argument('--image', action='store_true')
     p.add_argument('--runs', nargs='+')
     p.add_argument('--reason', required=True)
     p.add_argument('--fields', type=int, default=12)

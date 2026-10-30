@@ -1,0 +1,8 @@
+current/gz1g.sav 4a18603ea46b8720
+savea/info.sav 1a6467a48a11b9cd
+savea/mission.sav 0d0001a647b198ad
+savea/scenario.sav 1365ba0de9c0c78f
+saveb/gz1g.sav 4a18603ea46b8720
+saveb/info.sav e2b379389396f758
+saveb/mission.sav 7065f51277d1e12c
+saveb/scenario.sav 898af50335df05bf

@@ -2,10 +2,11 @@
   "scenario": "smoke",
   "install": "vanilla",
   "recorded": "2026-10-30",
-  "commit": "19669d2bb",
+  "commit": "b6204b4",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 1,
-  "reason": "GOG data re-downloaded 2026-10-30 (the old install's data was lost); unit radii differ slightly from the old data"
+  "repeated_in": 4,
+  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
+  "source": "image"
 }

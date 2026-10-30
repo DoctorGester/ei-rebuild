@@ -3,6 +3,8 @@
 # sessions; docs/cloud-handoff.md) and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
 # local work; the install copies are the main checkout's run folder (EI_RUN_DIR), so no junction sits in this checkout.
+# By hand with "record" set, it re-records the goldens from the image instead (H40; tools/golden.py record) and pushes
+# them to the branch as a commit of its own; that push starts no run, so check the branch with another run after it.
 name: Suites
 
 on:
@@ -19,6 +21,19 @@ on:
         type: choice
         options: [full, quick]
         default: full
+      record:
+        description: "Instead of the suites: re-record the goldens of these installs from the image's runs and push them to ref (a branch, not main)"
+        type: choice
+        options: ["no", both, vanilla, rebirth]
+        default: "no"
+      scenarios:
+        description: "record: only these scenarios (space-separated; empty: every scenario)"
+        required: false
+        default: ""
+      reason:
+        description: "record: why (golden.json's reason)"
+        required: false
+        default: "H40: our own goldens, recorded from the image"
 
 concurrency:
   group: ei-game
@@ -29,6 +44,7 @@ permissions:
 
 jobs:
   suites:
+    if: ${{ !inputs.record || inputs.record == 'no' }}
     runs-on: [self-hosted, ei-game]
     timeout-minutes: 120
     defaults:
@@ -78,3 +94,94 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           done
           ! grep -q "GOLDENS DIFFER" suite_*.txt
+
+  record:
+    if: ${{ inputs.record && inputs.record != 'no' }}
+    runs-on: [self-hosted, ei-game]
+    timeout-minutes: 180
+    permissions:
+      contents: write   # pushes the goldens to the branch
+    defaults:
+      run:
+        shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
+    env:
+      WORK_DB: E:\workspace\ei\build\live\work.db
+      EI_RUN_DIR: E:\workspace\ei\run
+      # The ref input, or with its default (main) the branch the run was started on
+      REF: ${{ inputs.ref != 'main' && inputs.ref || github.ref_name }}
+      RECORD: ${{ inputs.record }}
+      SCENARIOS: ${{ inputs.scenarios }}
+      REASON: ${{ inputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+          clean: true
+
+      - name: Check the ref
+        run: |
+          [ "$REF" != main ] || { echo "::error::record pushes goldens: give a branch other than main"; exit 1; }
+          git ls-remote --exit-code --heads origin "$REF" > /dev/null || { echo "::error::$REF is not a branch"; exit 1; }
+
+      - name: Build
+        run: cmd //c ".\\build.cmd verify > build_verify.log 2>&1" || { echo "::error::build verify failed"; tail -40 build_verify.log; exit 1; }
+
+      # Each pass plays the suite under one heap layout (golden.py IMAGE_RUNS: plain twice, two jitters) and keeps its
+      # run folders; a pass's failures and golden differences only mean those scenarios are not recorded.
+      - name: Play the passes
+        run: |
+          installs="--vanilla-only --rebirth-only"
+          [ "$RECORD" = vanilla ] && installs=--vanilla-only
+          [ "$RECORD" = rebirth ] && installs=--rebirth-only
+          for pass in plain1 plain2 jit1 jit2; do
+            jitter=
+            [ $pass = jit1 ] && jitter=1
+            [ $pass = jit2 ] && jitter=2,fill
+            for i in $installs; do
+              install=vanilla
+              [ $i = --rebirth-only ] && install=rebirth
+              EI_HEAP_JITTER=$jitter python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
+              grep -E "^[0-9]+ runs in|^ALL PASS|^SOME RUNS FAILED" pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
+              python tools/golden.py snapshot build/record/$pass --install $install $SCENARIOS
+            done
+          done
+
+      - name: Record
+        run: |
+          installs="vanilla rebirth"
+          [ "$RECORD" = both ] || installs=$RECORD
+          for install in $installs; do
+            python tools/golden.py record $SCENARIOS --install $install --reason "$REASON" \
+              --runs build/record/plain1 build/record/plain2 build/record/jit1 build/record/jit2 2>&1 | tee -a record.txt || true
+          done
+          git add -A tests/golden
+          {
+            echo "### record"
+            echo '```'
+            grep -E "not recorded|\(new\)|\(changed|^[0-9]+ of [0-9]+ recorded" record.txt | head -200 || true
+            echo "$(grep -c "(the same as before)" record.txt || true) recorded the same as before (only golden.json changed)"
+            echo '```'
+            echo "### what changed (golden.json left out)"
+            echo '```'
+            git diff --cached --stat -- tests/golden ':(exclude)tests/golden/*/golden.json' | tail -100
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Push
+        run: |
+          if git diff --cached --quiet; then echo "nothing recorded changed"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Goldens re-recorded from the image ($RECORD${SCENARIOS:+: $SCENARIOS})" \
+            -m "$REASON" -m "Suites run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          git push origin HEAD:refs/heads/$REF
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: record-logs
+          path: |
+            pass_*.txt
+            record.txt
+            build_verify.log
+          if-no-files-found: ignore

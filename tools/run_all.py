@@ -22,8 +22,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
                    install), and starts it from the run folder with no EI_GAME_ROOT or EI_REBIRTH.
                    On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
-                   --rebirth-only: one); never with --no-hooks or --widescreen, and no goldens (the plain profile turns
-                   WideScreen on).
+                   --rebirth-only: one); never with --no-hooks or --widescreen. Their goldens are their own runs'
+                   (H40; the plain profile turns WideScreen on, so they never matched game.exe's).
   --no-hooks      game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
                    vanilla install (install "vanilla": with Rebirth's bug fixes, which ei_launch has addon.dll apply;
                    docs/notes/rebirth.md "One test profile") and on Rebirth's (install "rebirth", with --rebirth as
