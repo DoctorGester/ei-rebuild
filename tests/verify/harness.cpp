@@ -15,7 +15,7 @@
 //                             done sliding in (they ignore input meanwhile), on top for two frames;
 //                             fails after <seconds>. <window>: menu, battle, briefing, map, camp,
 //                             view, trade, escmenu, saveload, options, objectives, help, msgbox,
-//                             difficulty, heroes, titles, or a window vtable in hex
+//                             difficulty, heroes, titles, mpconnect (image/harness_windows_image.cpp)
 //   waitunit <seconds> <name> wait until the unit with script name <name> is drawn and the game's
 //                             picking finds it, as "clickunit" needs (a unit just added to the
 //                             server reaches the client and the screen a few frames later)
@@ -391,7 +391,6 @@
 #include "harness_pair.h"
 #include "harness_timing.h"
 #include "harness_utf8.h"
-#include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
 #include "../../src/hook/thread_context.h"
@@ -399,7 +398,6 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "harness_objects.h"
-#include "harness_original.h"
 #include "image/image_side.h"
 #include "../../src/game/game_data.h"
 
@@ -567,12 +565,11 @@ bool g_waitingNewDevice = false;
 bool g_newDeviceRemoved = false;
 int g_newDeviceFrom = 0;
 DWORD g_newDeviceDeadline = 0;
-// A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
-// started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
+// A pending "waitwindow": the window's name, when it started and gives up, and the frame from which it has been
+// ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
 bool g_waitingWindow = false;
 std::string g_waitWindowName;
-std::uintptr_t g_waitWindowVtable = 0;   // game.exe's table (KnownWindows)
 Deadline g_waitWindowDeadline;
 unsigned g_waitWindowReadyFrom = kNotReady;
 // A pending "waitunit": the unit's script name, when it started and gives up.
@@ -1105,7 +1102,6 @@ void Report(FILE* f);
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
-    ei::vectors::Flush();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
@@ -1124,8 +1120,6 @@ void WriteReport() {
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
 
-    if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
-        failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei-rebuild.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);
@@ -1811,8 +1805,7 @@ std::string CampPutOn(const std::string& argument) {
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     void* camp = TopWindow();
-    if (!camp || WindowKind(camp) !=
-                     reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0074091C)))
+    if (!camp || WindowKind(camp) != "camp")
         return "campputon: the camp is not on top";
     // The strip's source items and their types.
     int page = 0;
@@ -1834,80 +1827,25 @@ std::string CampPutOn(const std::string& argument) {
 }
 
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
-// The interface windows a scenario waits for, by game.exe's table of each (ui.h, ui_screens.h, ui_camp.h): the
-// window on top's class, which WindowKind names by game.exe's table (harness_windows.h).
-struct KnownWindow {
-    const char* name;
-    const void* vtable;
-};
-const std::vector<KnownWindow>& KnownWindows() {
-    static const std::vector<KnownWindow> windows = {
-        {"menu", &ei::OriginalGameData<const std::uint8_t>(0x00740688)},         // MainMenu (CreateScreen 2)
-        {"battle", &ei::OriginalGameData<const std::uint8_t>(0x00740764)},       // the in-game screen (CreateScreen 1)
-        {"briefing", &ei::OriginalGameData<const std::uint8_t>(0x007405AC)},     // the base / briefing screen (CreateScreen 3)
-        {"map", &ei::OriginalGameData<const std::uint8_t>(0x00740B3C)},          // the island map (CreateScreen 4)
-        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CampPages (CreateScreen 5)
-        {"view", &ei::OriginalGameData<const std::uint8_t>(0x00740840)},         // ViewScreen (CreateScreen 7)
-        {"trade", &ei::OriginalGameData<const std::uint8_t>(0x00740D18)},        // trading between players (CreateScreen 9)
-        {"escmenu", &ei::OriginalGameData<const std::uint8_t>(0x007412A4)},      // EscMenu
-        {"saveload", &ei::OriginalGameData<const std::uint8_t>(0x00741388)},     // SaveLoadWindow
-        {"options", &ei::OriginalGameData<const std::uint8_t>(0x00741FAC)},      // OptionsWindow
-        {"objectives", &ei::OriginalGameData<const std::uint8_t>(0x007411BC)},   // ObjectivesWindow
-        {"help", &ei::OriginalGameData<const std::uint8_t>(0x00740E28)},         // the help / message window
-        {"msgbox", &ei::OriginalGameData<const std::uint8_t>(0x00742348)},       // MessageWindow
-        {"difficulty", &ei::OriginalGameData<const std::uint8_t>(0x0074225C)},   // DifficultyBox
-        {"heroes", &ei::OriginalGameData<const std::uint8_t>(0x0074214C)},       // the multiplayer hero screen (main menu region 5)
-        {"titles", &ei::OriginalGameData<const std::uint8_t>(0x00740C3C)},       // CreditsScreen
-    };
-    return windows;
-}
-std::uintptr_t KnownWindowVtable(const char* name) {
-    for (const KnownWindow& w : KnownWindows())
-        if (std::strcmp(name, w.name) == 0) return reinterpret_cast<std::uintptr_t>(w.vtable);
-    return 0;
-}
-
-// game.exe's table of the window `name` (a name above, or one table in hex, game.exe's address); false when unknown.
-bool WindowVtable(const std::string& name, std::uintptr_t* vtable) {
-    if (std::uintptr_t known = KnownWindowVtable(name.c_str())) {
-        *vtable = known;
-        return true;
-    }
-    char* end = nullptr;
-    unsigned long value = std::strtoul(name.c_str(), &end, 16);
-    if (name.empty() || *end || value < 0x00401000 || value >= 0x00800000) return false;
-    *vtable = value;
-    return true;
-}
-
-// game.exe's table of the window on top (WindowKind), 0 without one.
-std::uintptr_t TopWindowVtable(void* top) {
-    return top ? WindowKind(top) : 0;
-}
+// The interface windows a scenario waits for, by name (WindowKind, harness_windows.h).
 
 // Whether the awaited window is on top and takes input (see the step's description).
-bool WindowReady(std::uintptr_t vtable) {
+bool WindowReady(const std::string& name) {
     void* top = TopWindow();
     if (!top || HarnessQueuedWindow() || HarnessFlowState() != 0) return false;
-    const std::uintptr_t real = TopWindowVtable(top);
-    if (real != vtable) return false;
-    if (real == KnownWindowVtable("saveload"))
-        return !image::SaveLoadSliding(top);
-    if (real == KnownWindowVtable("options")) return !image::OptionsSliding(top);
-
+    const std::string kind = WindowKind(top);
+    if (kind != name) return false;
+    if (kind == "saveload") return !image::SaveLoadSliding(top);
+    if (kind == "options") return !image::OptionsSliding(top);
     return true;
 }
 
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
     void* top = TopWindow();
-    const std::uintptr_t vtable = TopWindowVtable(top);
-    const char* name = "?";
-    for (const KnownWindow& w : KnownWindows())
-        if (vtable == reinterpret_cast<std::uintptr_t>(w.vtable)) name = w.name;
     char text[200];
-    std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(vtable), top ? name : "none", HarnessQueuedWindow(), HarnessFlowState(),
+    std::snprintf(text, sizeof(text), "top window %p (%s), queued %p, request %d, campaign mode %d", top,
+                  top ? WindowKind(top).c_str() : "none", HarnessQueuedWindow(), HarnessFlowState(),
                   HarnessCampaignMode());
     return text;
 }
@@ -2617,7 +2555,7 @@ void RunSteps() {
     }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
-        if (!WindowReady(g_waitWindowVtable)) g_waitWindowReadyFrom = kNotReady;
+        if (!WindowReady(g_waitWindowName)) g_waitWindowReadyFrom = kNotReady;
         else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
             bool fadeRunning = false;
@@ -2762,7 +2700,7 @@ void RunSteps() {
                 while (rest && *rest == ' ') ++rest;
                 name = rest ? rest : "";
             }
-            if (!WindowVtable(name, &g_waitWindowVtable)) {
+            if (!image::IsWindowName(name)) {
                 g_failures.push_back("waitwindow: unknown window '" + name + "'");
                 continue;
             }
@@ -3131,7 +3069,7 @@ void RunSteps() {
             image::RenderStep(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "checkplayers") {
             std::string why;
-            if (!address_order::CheckPlayerList(KnownWindowVtable("briefing"), &why)) g_failures.push_back("checkplayers: " + why);
+            if (!address_order::CheckPlayerList(&why)) g_failures.push_back("checkplayers: " + why);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";

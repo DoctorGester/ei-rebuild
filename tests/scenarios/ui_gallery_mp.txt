@@ -34,7 +34,7 @@ unfreeze
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 # The list: row 0 (region 14), sorted by name (region 6).
 clickregion 14

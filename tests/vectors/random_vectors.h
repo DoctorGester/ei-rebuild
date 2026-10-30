@@ -1,7 +1,7 @@
 #pragma once
 
 // Payloads of the "random" family (vectors.h): the game's ISAAC generator (src/game/random.cpp).
-// Recorded by record_random.cpp, replayed by replay_random.cpp.
+// Recorded by record_random.cpp (the tag original-oracle), replayed by replay_random.cpp.
 
 #include "../../src/game/random.h"
 

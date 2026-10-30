@@ -211,12 +211,11 @@ list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
 set_source_files_properties(src/standalone/startup.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 if(EI_HARNESS)
-    # The harness (tests/verify; docs/notes/harness.md): its shared part, with what it names of the hook framework's
-    # game.exe side (src/hook/hook.cpp, cover.cpp) and of the vector recordings (vectors_record.cpp: the report
-    # flushes them), linked into this exe with the image's side (tests/verify/image, which calls our code).
+    # The harness (tests/verify; docs/notes/harness.md): its shared part, linked into this exe with the image's side
+    # (tests/verify/image, which calls our code).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
     add_library(ei_harness_shared OBJECT
-        ${EI_HARNESS_SOURCES} src/hook/hook.cpp src/hook/cover.cpp tests/vectors/vectors_record.cpp)
+        ${EI_HARNESS_SOURCES})
     target_include_directories(ei_harness_shared PRIVATE include src)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})

@@ -10,13 +10,12 @@
 
 namespace ei::verify::address_order {
 
-bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {
+bool CheckPlayerList(std::string* text) {
     void* top = TopWindow();
-    const std::uintptr_t vtable = top ? WindowKind(top) : 0;
     image::PlayerList list;
     char line[200];
     bool ok = false;
-    if (!top || vtable != briefing) {
+    if (!top || WindowKind(top) != "briefing") {
         std::snprintf(line, sizeof(line), "the base screen is not on top");
     } else if (!image::BriefingPlayerList(top, &list)) {
         std::snprintf(line, sizeof(line), "no network client, or its base screen has no player list");

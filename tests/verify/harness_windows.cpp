@@ -5,7 +5,7 @@
 
 namespace ei::verify {
 
-std::uintptr_t WindowKind(const void* window) { return image::WindowKind(window); }
+std::string WindowKind(const void* window) { return image::WindowKind(window); }
 
 void* TopWindow() { return image::TopWindow(); }
 

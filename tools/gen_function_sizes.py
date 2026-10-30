@@ -1,6 +1,6 @@
 """Writes src/hook/function_sizes.inc: {address, size} of every game function body, from Ghidra.
 
-The tools read it (check_stolen.py, check_signatures.py, coverage.py, gen_static_init.py, find_dead_code.py); the
+The tools read it (coverage.py, gen_static_init.py, find_dead_code.py); the
 image does not. Functions Ghidra has no function for
 (e.g. code only reached through a pointer table) are listed by hand in config/extra_function_sizes.csv;
 a row there for a function Ghidra does have replaces Ghidra's size (a body Ghidra cut short).

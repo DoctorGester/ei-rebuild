@@ -123,10 +123,8 @@ Two rules in the rewrite guide come from how VC6's x87 code behaves, not from Ni
   subsystem's header asks its owner (or the coordinator) first. Shared headers change additively only.
 - A mechanical change across many files is a script under `tools/` (one rule per call shape), run,
   built and checked by the suite; hand work only where goldens differ.
-- Every ticket ends with: `build.cmd verify` and `release` clean, the build checks, `check_x87`,
-  `check_signatures` and `check_stolen` at 0, the artefact counts reported before / after, and the
-  suite with `--golden` (`python tools/work.py test <ID> --golden`). The original suite
-  (`--no-hooks --golden --fresh`) only when the change touches the harness's game.exe side.
+- Every ticket ends with: `build.cmd verify` and `release` clean, the build checks and `check_x87` at 0, the
+  artefact counts reported before / after, and the suite with `--golden` (`python tools/work.py test <ID> --golden`).
 - Names: the original's where known (RTTI, strings, Rebirth's and the community's names), else
   descriptive; `CClassName` for game classes (Nival style), members `name`, no Hungarian
   additions of our own.

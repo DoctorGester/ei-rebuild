@@ -42,7 +42,7 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 clickregion 14
 frames 5

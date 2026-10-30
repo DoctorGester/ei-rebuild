@@ -1,7 +1,7 @@
 #pragma once
 
 // Payloads of the "script" family (vectors.h): the script lexer and loader (src/game/script_parse.cpp).
-// Recorded by record_script.cpp, replayed by replay_script.cpp. All records are variable-size, in the
+// Recorded by record_script.cpp (the tag original-oracle), replayed by replay_script.cpp. All records are variable-size, in the
 // order given here (Writer / Reader).
 //
 // "@ScriptKeywords" (fixture): the keyword table as ClassifyToken finds it (the address stored at
@@ -43,8 +43,6 @@ constexpr int kUnasked = 0x7777;
 
 // Tokenize's sources up to this size are kept (bucket: up to 1 KB, up to 16 KB, larger).
 constexpr std::uint32_t kMaxSource = 0x10000;
-// Record side: offers the fixtures once (record_script.cpp).
-void OfferFixtures();
 
 inline unsigned SourceBucket(std::uint32_t size) { return size <= 0x400 ? 0 : size <= 0x4000 ? 1 : 2; }
 

@@ -4,7 +4,7 @@ reaches, and whether a golden run (SV3) or function vectors (SV4) check them wit
 Reach (tests/coverage/reach.txt): which scenarios run each rewritten function's original. Since A-I23 it comes
 from runs of the original code (--no-hooks) with `EI_COVER=<file>`: every address the file lists (`addresses`
 writes reach.txt's: the rewritten functions as the function-to-original map had them until C20l, with their
-names) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei-rebuild.log names each one the
+names) gets a one-shot INT3 (src/hook/cover.cpp, in the tag original-oracle) and the run's ei-rebuild.log names each one the
 run executed (a call the original inlined is not seen, so "reached" is a lower bound for small functions).
 Scenarios collected before S21c came from game.exe with our hooks (EI_COVER=hooks: the hook addresses and our
 replacements' first bytes); `collect --add` keeps them until their scenarios run again. The harness stopped running
@@ -72,31 +72,14 @@ def vector_files():
 
 
 def recorders():
-    """address -> the function name its vectors are written under (tests/vectors/record_*.cpp): the
-    first sampler variable the recorder's body names."""
+    """address -> the function name its vectors are written under (tests/coverage/vector_functions.txt, taken from
+    the recorders when H40 removed them)."""
     found = {}
-    for _, text in sources('tests/vectors/record_*.cpp'):
-        names = {}   # sampler variable -> function name
-        for m in re.finditer(r'\bRecorded<\w+>\s+([^;]*);', text):
-            names.update(re.findall(r'(\w+)\("([^"]*)"\)', m.group(1)))
-        names.update(re.findall(r'\bSampler\s+(\w+)\(\s*"[^"]*"\s*,\s*"([^"]*)"', text))
-        def body(function):
-            start = re.search(r'\b' + function + r'\([^)]*\)\s*\{', text)
-            if not start:
-                return ''
-            depth, end = 1, start.end()
-            while depth and end < len(text):
-                depth += {'{': 1, '}': -1}.get(text[end], 0)
-                end += 1
-            return text[start.end():end]
-
-        for m in re.finditer(r'\bEI_RECORD(?:_OURS)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*(\w+)\s*,', text):
-            words = re.findall(r'\w+', body(m.group(2)))
-            used = [w for w in words if w in names]
-            if not used:   # a shared helper that names the sampler itself
-                used = [w for f in words for w in re.findall(r'\w+', body(f)) if w in names]
-            if used:
-                found[int(m.group(1), 16)] = names[used[0]]
+    with open(os.path.join(ROOT, 'tests', 'coverage', 'vector_functions.txt'), encoding='utf-8') as f:
+        for line in f:
+            if line.strip() and not line.startswith('#'):
+                address, name = line.split(None, 1)
+                found[int(address, 16)] = name.strip()
     return found
 
 
@@ -139,7 +122,7 @@ def write_addresses(args):
     found = set(read_reach()[1])
     os.makedirs(os.path.dirname(os.path.abspath(args.file)), exist_ok=True)
     with open(args.file, 'w', encoding='ascii', newline='\n') as f:
-        f.write("# tools/coverage.py addresses: reach.txt's functions, for EI_COVER (src/hook/cover.cpp)\n")
+        f.write("# tools/coverage.py addresses: reach.txt's functions, for EI_COVER (src/hook/cover.cpp, the tag original-oracle)\n")
         f.writelines(f'{a:08X}\n' for a in sorted(found))
     print(f'{len(found)} addresses; wrote {args.file}')
 

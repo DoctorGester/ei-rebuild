@@ -27,8 +27,10 @@ void ObserveDraws(DrawWriter write);
 
 // The window on top (Interface3D::GetActiveWindow), null without one.
 void* TopWindow();
-// game.exe's table of `window`'s class (by its C++ type), else its +0.
-std::uintptr_t WindowKind(const void* window);
+// `window`'s name as a scenario names it (waitwindow: menu, battle, ...), else its class's name.
+std::string WindowKind(const void* window);
+// Whether `name` is a window's name a scenario can wait for.
+bool IsWindowName(const std::string& name);
 
 // ---- the base screen's player list (harness_address_order.cpp; image/harness_address_order_image.cpp)
 

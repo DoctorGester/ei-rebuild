@@ -60,7 +60,7 @@ protected:
     // both sizes hold; the pointers keep their offsets.
     void ResizeBlock(std::vector<std::uint8_t>& block, std::uint32_t capacity);
 };
-// tests/vectors/record_coder.cpp reads game.exe's buffers through this layout (32-bit).
+// tests/vectors/record_coder.cpp (the tag original-oracle) read game.exe's buffers through this layout (32-bit).
 #if defined(_M_IX86)
 static_assert(offsetof(GameBuffer, begin) == 0x04);
 static_assert(offsetof(GameBuffer, flags) == 0x18);

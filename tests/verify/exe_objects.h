@@ -10,7 +10,6 @@
 // and STLport 4 layouts. The only code called is game.exe's own (EngineObject's slots 11 and 12). Offsets are game.exe
 // 1.06's (they were our classes' when H30b split the two; docs/notes/cleanup-tooling.md, "The harness in game.exe").
 
-#include "harness_original.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -1419,9 +1418,5 @@ EI_EXE_LAYOUT(sizeof(ClientSession) == 0x2700);
 
 } // namespace net
 
-// game.exe's objects at their addresses.
-inline WorldServer* ServerWorld() { return &OriginalGameData<WorldServer>(0x007AFF60); }
-inline WorldClient* ClientWorld() { return &OriginalGameData<WorldClient>(0x007AF5B8); }
-inline const IsaacRandom& Random() { return OriginalGameData<IsaacRandom>(0x007A9D40); }
 
 } // namespace ei::verify::exe

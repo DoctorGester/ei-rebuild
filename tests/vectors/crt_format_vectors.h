@@ -1,7 +1,7 @@
 #pragma once
 
 // Payloads of the game CRT's formatted text in the "crt" family (vectors.h): sprintf / vsprintf and atof
-// (src/lib/crt_format.cpp, S4a). Recorded by record_crt_format.cpp, replayed by replay_crt_format.cpp.
+// (src/lib/crt_format.cpp, S4a). Recorded by record_crt_format.cpp (the tag original-oracle), replayed by replay_crt_format.cpp.
 //
 // "@CrtFormatLocale" (fixture): what the conversions read of the CRT's locale, the decimal point
 // (game.exe's __decimal_point 00797FE8) and the class words of _pctype (00797DD8) for 0..255. Taken at the first

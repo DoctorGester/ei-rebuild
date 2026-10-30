@@ -1,7 +1,7 @@
 #pragma once
 
 // Payloads of the "maths" family (vectors.h): the out-of-line vector, quaternion and spline helpers of
-// src/game/core_maths.cpp and core_maths.cpp. Recorded by record_maths.cpp, replayed by replay_maths.cpp.
+// src/game/core_maths.cpp and core_maths.cpp. Recorded by record_maths.cpp (the tag original-oracle), replayed by replay_maths.cpp.
 // `alias` bits say which inputs the output pointer was (bit 0 the first input, bit 1 the second):
 // the replay passes ours the same aliasing.
 

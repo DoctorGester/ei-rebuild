@@ -36,7 +36,7 @@ frames 10
 clickregion 1
 frames 10
 key enter
-waitwindow 15 00741CD0
+waitwindow 15 mpconnect
 
 # Public (region 4), row 0 (the new game), host; a few announcements before the peer asks.
 clickregion 4
