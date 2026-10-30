@@ -41,8 +41,12 @@ std::uint32_t WaveMilliseconds(const WaveInfo& info);
 // ---- The device ----
 
 // Opens the default output device for 16-bit stereo at `rate` (at most 44100), `reverb` making room for the voices'
-// reverb. False with the reason in `error` when it cannot; then no voice or stream can be made.
+// reverb. False with the reason in `error` when it cannot; then no voice or stream can be made. A backend may also
+// go on without a device (UseNoDevice, or none to be had): the game then runs as with one, silently.
 bool OpenOutput(NativeWindow window, unsigned rate, bool reverb, std::string* error);
+// From now on OpenOutput opens no device: nothing is heard, and what the game reads back keeps to the game's clock
+// as it does with one (the harness's runs: silent and the same on every machine).
+void UseNoDevice();
 // Closes the device; every voice and stream must be destroyed first.
 void CloseOutput();
 
