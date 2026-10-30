@@ -724,15 +724,23 @@ def golden_store(folder):
 GOLDEN_FILES = ('console.txt', 'digest.txt', 'saves.txt')   # with dump_*.txt: what a golden checks (not golden.json)
 
 
+TITLE = re.compile(rb'# ei state digest [^\n]*\n')   # a digest's title (names the hooks: not compared)
+FRAME = re.compile(rb'^(@ \d+ update \d+) frame \d+', re.M)   # a record's frame: shown, not compared
+
+
 def golden_content(folder):
-    """{file relative to the golden: bytes} of what a golden checks, both games of a pair; {} without one."""
+    """{file relative to the golden: bytes} of what a golden checks, both games of a pair; {} without one. A digest's
+    title and its records' frames are left out, as the comparison leaves them out."""
     out = {}
     for side in sides(folder) if os.path.isdir(folder) else []:
         here = on_side(folder, side)
         for path in [os.path.join(here, f) for f in GOLDEN_FILES] + list(dumps(here).values()):
             if os.path.exists(path):
                 with open(path, 'rb') as f:
-                    out[os.path.relpath(path, folder).replace(os.sep, '/')] = f.read()
+                    data = f.read()
+                if not path.endswith(('console.txt', 'saves.txt')):
+                    data = FRAME.sub(rb'\1', TITLE.sub(b'', data, count=1))
+                out[os.path.relpath(path, folder).replace(os.sep, '/')] = data
     return out
 
 

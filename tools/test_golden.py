@@ -178,6 +178,19 @@ class GoldenTest(unittest.TestCase):
         finally:
             golden.GOLDEN, golden.STORE = old
 
+    def test_change_note_leaves_out_title_and_frames(self):
+        # H40: game.exe's goldens said "hooks off", and the renderer-timed ones' frames follow presents.
+        before, after = (os.path.join(self.dir, d) for d in ('before', 'after'))
+        for folder, hooks, frame in ((before, 'off', 'frame 4 '), (after, 'on', 'frame 1553 ')):
+            self.write(os.path.join(folder, 'digest.txt'), digest(hooks=hooks).replace('frame 4 ', frame))
+            self.write(os.path.join(folder, 'console.txt'), '  hello\n')
+        self.assertEqual(golden.change_note(golden.golden_content(before), golden.golden_content(after)),
+                         'the same as before')
+        self.write(os.path.join(after, 'console.txt'), '  hello\n  more\n')
+        self.assertEqual(golden.change_note(golden.golden_content(before), golden.golden_content(after)),
+                         'changed: console.txt')
+        self.assertEqual(golden.change_note({}, golden.golden_content(after)), 'new')
+
     def test_pair_records_and_compares_both_games(self):
         # SV5d: a pair's second game is the run folder's peer\ and the golden's peer\.
         runs = []

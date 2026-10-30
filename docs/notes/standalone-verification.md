@@ -110,8 +110,10 @@ size fail with the command that records them; if a harness change moves what add
 scenario fails the same way: record again with `--fresh`. Vanilla data cannot be compared (its textures differ from
 Rebirth's); `--widescreen --vanilla-only` is refused. A one-layout-unit shift of the right panels (2.7 pixels) fails.
 
-**No golden by rule**: the three watchdogs (meant to time out), harness_disk_full. (The `rebirthflags` scenarios on
-vanilla had none while goldens were game.exe's, SV7b8a; the image's runs of them record like any other.) `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
+**No golden by rule**: the three watchdogs (meant to time out). The first recording from the image (H40, 2026-10-30)
+gave a golden to 36 scenario / install pairs that had none: the ones game.exe could not run or match (renderer checks, the
+`rebirthflags` scenarios on vanilla, SV7b8a), the drop-in scenarios, harness_disk_full. Every golden that existed
+recorded the same but `console` (vanilla), whose help screen no longer lists DEBUGINFO (C55). `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
 lands; `compare --strict` keeps them) are empty.
 
 ## 3. Function vectors
