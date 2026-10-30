@@ -15,8 +15,6 @@
 #include "lib/pc24.h"
 #include "render/render.h"
 
-#include <windows.h>
-
 #include <cstdint>
 
 namespace {

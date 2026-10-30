@@ -13,8 +13,6 @@
 #include "render/render_ui.h"
 #include <cstdint>
 
-#include <windows.h>
-
 #include <cstring>
 #include "game_singletons.h"
 

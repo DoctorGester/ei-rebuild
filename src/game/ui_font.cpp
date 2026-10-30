@@ -6,6 +6,8 @@
 #include "lib/gameapi.h"
 #include "render/render_text.h"
 
+#include <windows.h>
+
 namespace {
 constexpr int kDotsPerInch = 96;
 } // namespace

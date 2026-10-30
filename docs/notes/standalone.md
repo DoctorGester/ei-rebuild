@@ -194,7 +194,8 @@ each step green on the goldens and removing a measured tie:
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
   `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
-  ImportTable member, DLL, function or ordinal) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
+  ImportTable member, DLL, function or ordinal; the unreached ones too, so that a trap or a read of an old slot
+  names its import) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   game.exe's folder came first until S18k) and fills our reached slots (S22, below);
@@ -215,12 +216,20 @@ each step green on the goldens and removing a measured tie:
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
   saves, profile reads, clocks, Winsock, Miles) or our code takes it by address (`&gameapi::X`; none since S22c).
-  Those gameapi.h functions are references to the slot (50, with gen_iat's KEEP: GetVersionExA, deprecated in the
-  SDK: a direct call warns), and so are the 90 of import_prototypes.h (no import library; not the Interlocked pair,
-  which our code takes as the compiler's intrinsics): `extern decltype(ei::ImportTable::X)& X;`, bound once in
-  gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the move, before every other static constructor; an
-  `inline auto&` in the header was a dynamic initialiser in each of ~140 objects); the other 362 are `using ::X;`, the Windows function through the exe's own imports
-  (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
+  **gameapi.h** (H33f) holds only the imports our code calls (`gameapi::X` in src/ or tests/: gen_iat.py's
+  `called()`, 166 of 504; no DirectDraw, registry, GDI, shell or COM import), without the SDK's headers: the routed
+  ones are references to the slot (40), and so are the called ones of import_prototypes.h (69: Miles, Bink,
+  Winsock; no import library), their `using`s copied from it in its order: `extern decltype(&::X)& X;` /
+  `extern ei::import_fn::X& X;`, bound once in gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the
+  move, before every other static constructor; an `inline auto&` in the header was a dynamic initialiser in each
+  of ~140 objects); the other 57 are `using ::X;`, the Windows function through the exe's own imports
+  (`#pragma comment(lib)` for their four DLLs). Those Windows functions are declared by src/lib/win_api.h, as the SDK
+  declares them (C linkage, dllimport, WINAPI) over lib/win_types.h with the structures they point to by tag
+  (tagMSG, _SYSTEM_INFO, ...); gen_iat.py stops on a called one it lacks. gameapi.cpp includes import_table.h
+  (windows.h, mmsystem, shellapi, objbase, dsound) too, so a declaration that differs from the SDK's or a copied
+  prototype from import_prototypes.h's does not compile (C2733, C4273). So a file that calls only gameapi:: needs no
+  windows.h (~0.4 s of front end each). A harness route on a new slot, or a `gameapi::` call of an import gameapi.h
+  does not have yet, makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. **game.exe's own routes** (S22b, S22c): a slot only
   the original calls through is named through a function with "Original" in its name taking `&ImportTable::X`
@@ -248,7 +257,7 @@ each step green on the goldens and removing a measured tie:
   only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers.
   **Only the reached slots resolve** (S22): gen_iat.py's `reached()` finds every slot a call of ours can go through,
   by its member (C18 left no other way): `ImportTable::X` (the harness's routes and its own calls, the static
-  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (`extern decltype(...)&`); comments
+  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (an `extern ...&`); comments
   are left out. image_imports.inc's last field says so; `ResolveImageImports` resolves those, leaves every other slot
   a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
   A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
@@ -265,7 +274,7 @@ each step green on the goldens and removing a measured tie:
   | DDRAW.dll | 2 | 0 | 0 | 0 | 2 |
   | DINPUT.dll | 1 | 0 | 0 | 0 | 1 |
   | WINMM.dll | 5 | 2 | 1 | 0 | 3 |
-  | KERNEL32.dll | 159 | 23 | 15 | 0 | 136 |
+  | KERNEL32.dll | 159 | 22 | 14 | 0 | 137 |
   | USER32.dll | 151 | 16 | 9 | 0 | 135 |
   | GDI32.dll | 83 | 0 | 0 | 0 | 83 |
   | comdlg32.dll | 1 | 0 | 0 | 0 | 1 |
@@ -274,7 +283,7 @@ each step green on the goldens and removing a measured tie:
   | SHELL32.dll | 2 | 0 | 0 | 0 | 2 |
   | COMCTL32.dll | 1 | 0 | 0 | 0 | 1 |
   | ole32.dll | 3 | 0 | 0 | 0 | 3 |
-  | all | 504 | 110 | 25 | 0 | 394 |
+  | all | 504 | 109 | 24 | 0 | 395 |
 
   The table loads binkw32, mss32, WSOCK32, WINMM, KERNEL32 and USER32 (the last three are the exe's own imports
   anyway). Not loaded: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and

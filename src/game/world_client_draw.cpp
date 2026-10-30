@@ -48,7 +48,6 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
-#include <windows.h>
 
 namespace {
 

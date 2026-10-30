@@ -15,7 +15,6 @@
 #include "render/render_state.h"
 
 #include <cstdint>
-#include <windows.h>
 
 void ClearUiDepth(float z, const RECT* rects, int count) {
     render::Rect cleared[8];

@@ -14,6 +14,7 @@
 #include "lib/text_case.h"
 
 #include <cstdio>
+#include <windows.h>
 
 int ResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header.count;

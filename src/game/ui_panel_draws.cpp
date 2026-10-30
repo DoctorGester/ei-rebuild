@@ -18,7 +18,6 @@
 
 #include <cmath>
 #include <format>
-#include <windows.h>
 
 namespace {
 

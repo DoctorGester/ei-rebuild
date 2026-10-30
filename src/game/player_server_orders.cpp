@@ -19,7 +19,6 @@
 #include "game_singletons.h"
 
 #include <bit>
-#include <windows.h>
 
 #include <cstring>
 

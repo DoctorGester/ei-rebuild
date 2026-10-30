@@ -33,7 +33,6 @@
 #include <memory>
 #include <new>
 #include <string>
-#include <windows.h>
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).

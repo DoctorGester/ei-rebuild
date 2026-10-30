@@ -19,8 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # What of src/ game.exe's side may build from, besides src/hook.
 ALLOWED = {
     'src/game/game_data.h',              # GameData / GameAddress (the shift is 0 in game.exe)
-    'src/lib/gameapi.h',                 # game.exe's import slots (hook/paths.cpp)
-    'src/lib/import_table.h',            # ... their table (gameapi.h)
+    'src/lib/import_table.h',            # game.exe's import slots (hook/paths.cpp, harness_imports.h)
     'src/lib/import_prototypes.h',       # ... its members' types where the SDK has none (import_table.h)
     'src/lib/rebirth.cpp',               # the Rebirth flags (HARNESS_SHARED)
     'src/lib/intro_sort.h',              # the game's sort (harness_address_order.cpp)

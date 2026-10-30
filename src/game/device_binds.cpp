@@ -7,8 +7,6 @@
 #include "game_singletons.h"
 #include "world.h"
 
-#include <windows.h>
-
 int TextureDevice::BindSurface(int stage, Surface* holder) {
     stageSurfaces[stage] = holder;
     return 1;

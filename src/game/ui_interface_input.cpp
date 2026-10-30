@@ -11,8 +11,7 @@
 #include "world.h"
 
 #include "game_singletons.h"
-
-#include <windows.h>
+#include "lib/win_user.h"
 
 UiInputSide* Interface3D::MouseTarget() const {
     if (mouseCapture) return static_cast<UiInputSide*>(mouseCapture);

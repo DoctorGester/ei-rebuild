@@ -4,13 +4,14 @@
 #include "settings_file.h"
 
 #include "lib/crt.h"
+#include "lib/win_types.h"
 
 #include <bit>
 #include <cstring>
 #include <new>
 #include <string>
 #include <vector>
-#include <windows.h>
+#include <winerror.h>
 
 namespace {
 

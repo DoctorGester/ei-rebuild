@@ -16,6 +16,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/win_user.h"
 
 #include <cmath>
 #include <cstring>

@@ -4,6 +4,7 @@
 #include "gameapi.h"
 
 #include <process.h>
+#include <windows.h>
 
 namespace lib {
 

@@ -8,10 +8,10 @@
 
 #include "lib/crt.h"
 #include "lib/pc24.h"
+#include "lib/win_types.h"
 
 #include <cmath>
 #include <cstring>
-#include <windows.h>   // RECT (ViewportMatrix)
 
 namespace {
 

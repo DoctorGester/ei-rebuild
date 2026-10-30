@@ -19,12 +19,12 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
+#include "lib/win_user.h"
 
 #include <algorithm>
 #include <bit>
 #include <cmath>
 #include <string>
-#include <windows.h>
 
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";

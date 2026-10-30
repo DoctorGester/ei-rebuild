@@ -8,12 +8,13 @@
 #include "ei/rebirth.h"
 #include "hook/log.h"
 #include "settings_file.h"
+#include "lib/win_types.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <windows.h>
+#include <winerror.h>
 
 namespace widescreen {
 namespace {

@@ -31,6 +31,7 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/str.h"
+#include "lib/win_user.h"
 #include <format>
 
 namespace {
