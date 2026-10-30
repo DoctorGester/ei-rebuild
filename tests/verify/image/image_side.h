@@ -89,7 +89,7 @@ void ConsoleExecute(const char* text);
 void SendLeave04(int id);                       // GameSendLeave04: ask the server for interface screen `id`
 void SetConstructionVariable(std::uint32_t value);   // GameSetConstructionVariable
 void ObserveConsoleLines(void (*observer)(const char* line));
-void ObserveDirectInput(void (*observer)(IDirectInput7A* input));   // g_directInputObserver (ui_cursor.h)
+void ObserveDirectInput(void (*observer)(IDirectInput7A* input));   // g_directInputObserver (platform_win32.h)
 unsigned& UpdatePeriod();                       // worlddata::g_updatePeriod
 const char* DataFolder();                       // the data folder's text, may be empty
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.

@@ -30,6 +30,7 @@
 #include "game/world_data.h"
 #include "game/world_glue.h"
 #include "lib/crt.h"
+#include "platform/win32/platform_win32.h"
 
 #include <cstdlib>
 #include <cstring>

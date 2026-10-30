@@ -2,9 +2,11 @@
 
 // The platform layer (docs/notes/platform.md): every call of the game's code into the operating system, one
 // section per area. No system type crosses it: UTF-8 text, fixed-width integers, our own enums and structs, a
-// native window as an opaque pointer. Each backend implements it in one file: Windows in
-// src/platform/win32/platform_win32.cpp, the sound in src/platform/audio_miniaudio.cpp, the movies in
-// src/platform/bink.
+// native window as an opaque pointer. The backends: SDL3 for the window, its events, the cursor, the mouse, the
+// clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp; in the harness's builds
+// Windows' window-procedure path, src/platform/win32/platform_win32_window.cpp), Windows for the rest
+// (src/platform/win32/platform_win32.cpp), the sound on SDL3's audio device (src/platform/audio_sdl.cpp), the movies
+// in src/platform/bink.
 
 #include "lib/bytes.h"
 
@@ -17,9 +19,6 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
-
-struct IDirectInput7A;
-struct IDirectInputDevice7A;
 
 namespace platform {
 
@@ -362,8 +361,6 @@ public:
     bool Start(ThreadProcedure procedure, void* parameter, int priority);
     bool Started() const { return handle != nullptr; }
     void Close();
-    // The handle, which the caller closes, and the object empty (for code that keeps a native handle).
-    void* Release();
 
 private:
     void* handle = nullptr;
@@ -448,9 +445,9 @@ enum class SystemCommand : std::uint8_t {
 // (0x8000).
 constexpr int kKeyAltDown = 0x2000;
 
-// The system's message an Event came from: what DefaultHandling and DispatchEvent pass on. Not for the game's code.
-struct NativeMessage {
-    NativeWindow window;
+// The backend's record of the system event an Event came from (Windows' window-procedure path: the message's id and
+// its two values), for DefaultHandling and DispatchEvent only. Not for the game's code.
+struct NativeEvent {
     std::uint32_t id;
     std::uintptr_t first;
     std::intptr_t second;
@@ -469,7 +466,8 @@ struct Event {
     bool minimized = false;   // Activate: the window is minimised
     SystemCommand command = SystemCommand::Other;
     int quitCode = 0;         // Quit: the code the quit request carries
-    NativeMessage native{};
+    NativeWindow window = nullptr;   // the window it is for (null: none)
+    NativeEvent native{};
 };
 
 // The game's handling of an event the system sends to its window: what the window procedure returns.
@@ -482,8 +480,8 @@ using EventHandler = std::intptr_t (*)(const Event& event);
 void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler);
 // The running program's own instance (the module the program was started from), asked of the system directly.
 NativeInstance ProgramInstance();
-// A window of the registered class with the title `title` (a game that runs already), or null.
-NativeWindow FindClassWindow(const char* title);
+// A window of the class `className` with the title `title` (a game that runs already), or null.
+NativeWindow FindClassWindow(const char* className, const char* title);
 // The id of the process that owns `window`.
 std::uint32_t WindowProcess(NativeWindow window);
 // Brings another program's window to the front, restored from the task bar, unless it is in front already.
@@ -582,8 +580,8 @@ bool IsLetter(std::uint32_t character);
 // ==== The mouse ======================================================================================================
 
 // The mouse's motion since the last read: the game's cursor adds it to the position it takes from the cursor calls,
-// and the buttons come as window events. On Windows this is DirectInput 7's system mouse, non-exclusive, in the
-// background.
+// and the buttons come as window events. SDL3's motion events, or on Windows' window-procedure path DirectInput 7's
+// system mouse, non-exclusive, in the background (the harness observes it).
 
 enum class MouseStep : std::uint8_t {
     Create,       // the input object
@@ -599,7 +597,7 @@ using MouseReport = int (*)(MouseStep step, std::int32_t code);
 
 class MouseDevice {
 public:
-    MouseDevice() = default;
+    MouseDevice();
     ~MouseDevice();
     MouseDevice(const MouseDevice&) = delete;
     MouseDevice& operator=(const MouseDevice&) = delete;
@@ -615,8 +613,8 @@ public:
     void Read(std::int32_t state[4]);
 
 private:
-    IDirectInput7A* input = nullptr;         // counted
-    IDirectInputDevice7A* device = nullptr;  // counted
+    struct Device;                   // the backend's
+    std::unique_ptr<Device> device;
 };
 
 // ==== The clipboard ==================================================================================================
@@ -895,7 +893,3 @@ void SetVolume(Movie* movie, int volume);   // 0..32768
 } // namespace video
 
 } // namespace platform
-
-// The harness's view of the DirectInput object (verify builds): Open passes it each one it makes, before the mouse
-// device. In game.exe's runs the harness routes the original's import slot instead.
-extern void (*g_directInputObserver)(IDirectInput7A* input);

@@ -173,7 +173,7 @@ void RegisterWindowClass(platform::NativeInstance instance) {
     std::snprintf(g_windowTitle, sizeof(g_windowTitle), "%s", kWindowTitle);
     platform::RegisterWindowClass(instance, kWindowClassName, HandleWindowEvent);
 
-    platform::NativeWindow other = platform::FindClassWindow(g_windowTitle);
+    platform::NativeWindow other = platform::FindClassWindow(kWindowClassName, g_windowTitle);
     if (!other) return;
     ei::Log("app: another game window exists (window %p of process %lu, class and title \"%s\" the same): the one-instance "
             "check ends this game with exit code -1", other, static_cast<unsigned long>(platform::WindowProcess(other)),
