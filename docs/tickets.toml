@@ -6820,3 +6820,19 @@ group = "port"
 model = "opus"
 depends = ["PL8"]
 note = "User 2026-10-30: sokol_app was rejected (the game's nested message loops, the renderer owning the D3D11 swapchain, the harness driving input through the window procedure), so use SDL3 instead. SDL3 fits: it does not own the main loop (SDL_PollEvent from the game's own loops), exposes the HWND for our D3D11 swapchain (SDL_GetPointerProperty(SDL_GetWindowProperties(w), SDL_PROP_WINDOW_WIN32_HWND_POINTER)), and covers window, keyboard and mouse (scancodes/keycodes mapped to platform::kKey*), cursor and warping, clipboard, message box, timing, threads, paths (SDL_GetBasePath / SDL_GetPrefPath), and audio. Plan: vendor SDL3 (zlib licence, third_party/, static or a DLL beside the exe: decide and say), implement platform.h with it, keep the win32 backend only where SDL has no equivalent or the harness needs it. The harness: today it drives input through PeekMessageA, the window procedure and the EIGAME window class (tests/verify): either inject through SDL (SDL_PushEvent) on the image side or keep the window procedure path for harness runs; the --no-hooks suite runs the original game.exe and must stay untouched. Audio (user 2026-10-30: my call): SDL3 audio streams for the device (our mixer stays), miniaudio dropped; dr_wav / dr_mp3 decoding stays as the single-header libraries (SDL does not decode MP3). No exclusive full screen or display mode switch (borderless desktop-size full screen). Goldens unchanged; x64 build too; play check."
+
+[[ticket]]
+id = "PL10"
+title = "Platform layer review: what can be simpler (read-only)"
+group = "port"
+model = "opus"
+depends = ["PL9"]
+note = "User 2026-10-30: clean up the platform layer, review first, then simplify as much as possible. A read-only reviewer reads src/platform (platform.h, the SDL3 backend from PL9, the win32 remainder, audio, bink) and its callers and writes build/reviews/pl10_platform.md: each API that is MFC- or Win32-shaped without need (File's CFile flags and share modes, TextFile = CStdioFile with its 128-character line pieces, FileError's osError, FileFind, mapped files, ini reading, Rect/Point leftovers), duplicates (File vs TextFile, several whole-file readers), dead or single-caller functions, and what the game actually needs. Per item: the proposed simpler shape, the callers to change, and whether a golden could depend on the old behaviour (e.g. the 128-character quirk in script or key files). Ends with a batched plan for PL11. Run after PL9 merges (PL9 rewrites the backend)."
+
+[[ticket]]
+id = "PL11"
+title = "Platform layer simplified per the PL10 review"
+group = "port"
+model = "opus"
+depends = ["PL10"]
+note = "User 2026-10-30: simplify the platform as much as possible after the review. Carry out build/reviews/pl10_platform.md's plan (one or two workers; File and TextFile become one; MFC-shaped flags and errors go; callers updated tree-wide by script), goldens unchanged unless the review shows an input quirk the goldens depend on (then ask)."
