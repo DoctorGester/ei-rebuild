@@ -81,8 +81,11 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   the inlining of `std::basic_string` members in ~120 objects (code compared with `dumpbin /disasm` per function), so
   x87 code around them could round differently. Game headers in it break the harness's views (tests/verify) and
   per-file names.
-- ei-rebuild.exe links with `/OPT:REF /OPT:NOICF`: unreferenced code goes (static objects' initialisers stay: .CRT$XCU
-  references them). `/OPT:ICF` would save another 6% but gives identical functions one address.
+- ei-rebuild.exe links with `/OPT:REF /OPT:ICF` (H33c): unreferenced code goes (static objects' initialisers stay:
+  .CRT$XCU references them), identical functions share one address (-346 KB, 5.07 -> 4.73 MB). Audit: function
+  pointers are only compared with null, none of our functions is patched by address; so the cost is only that a
+  crash log or profile address names one of the functions folded there (resolve_crash.py picks one; the map has
+  them all at the address). Rule: do not compare function pointers for identity (a new use needs `/OPT:NOICF`).
 
 ## `progress.py` cleanup artefacts
 

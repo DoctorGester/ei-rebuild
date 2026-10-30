@@ -35,8 +35,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    our code inside game.exe (--native and --dgvoodoo are gone with it).
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
                    change), so its runs never need the machine to themselves. dgVoodoo draws the original code
-                   (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with a "resolution" step runs
-                   alone, and a scenario at full screen at a mode of its own is left out (it would switch the
+                   (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with a "resolution" step for a
+                   size other than "desktop" (or WideScreen on, with Rebirth's addon.dll) runs alone, and a scenario at full screen at a mode of its own is left out (it would switch the
                    display). EI_RENDER reaches no run: a scenario's "render" step sets the image's renderer options
                    (EI_RENDER_EXTRA adds words to them).
   --fresh          play the original code's runs again instead of taking them from the reference
@@ -193,11 +193,16 @@ def switches_display(scenario):
     return mode and any(re.match(r'\s*fullscreen\s+1\b', l) for l in lines)
 
 
-def sets_display_mode(scenario):
-    """Whether a scenario sets the display mode (a `resolution` step): on dgVoodoo it runs with no other game."""
+def sets_display_mode(scenario, install):
+    """Whether a scenario run on install (game.exe) sets the display mode: a `resolution` step for a size other than
+    the desktop's (dgVoodoo switches the real display in full screen), or Rebirth's WideScreen (`widescreen 1`, the
+    addon.dll runs of --widescreen --record and the rebirth install). On dgVoodoo such a run takes the surfaces of
+    every other game; `resolution desktop` alone is the snapshot's mode, what every other game.exe run uses."""
     with open(scenario, encoding='cp1251', errors='replace') as f:
-        return any(re.match(r'\s*resolution\b', line) for line in f)
-
+        lines = f.read().splitlines()
+    if any(re.match(r'\s*resolution\s+(?!desktop\b)\S', l) for l in lines):
+        return True
+    return install.startswith('rebirth') and any(re.match(r'\s*widescreen\s+1\b', l) for l in lines)
 
 
 def our_code(install):
@@ -208,10 +213,10 @@ def our_code(install):
 
 
 def runs_alone(scenario, install):
-    """A run that keeps the machine to itself: a dgVoodoo run (the original code) that sets the display mode. Our
-    renderer changes no display mode (full screen is a window over the monitor), so the image's runs share the
-    machine."""
-    return sets_display_mode(scenario) and not our_code(install)
+    """A run that keeps the machine to itself: a dgVoodoo run (the original code) that sets the display mode
+    (sets_display_mode). Our renderer changes no display mode (full screen is a window over the monitor), so the
+    image's runs share the machine."""
+    return not our_code(install) and sets_display_mode(scenario, install)
 
 
 # EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and

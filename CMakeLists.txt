@@ -234,10 +234,12 @@ target_compile_definitions(ei-rebuild PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CON
 target_compile_definitions(ei_game PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
 # gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
-# them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
-# pointers would then change its answer. The debug build keeps the linker's default (no /OPT:REF with /INCREMENTAL).
+# them. /OPT:ICF folds identical functions to one address (5.07 -> 4.73 MB): no code compares function pointers (the
+# audit of H33c: only null checks) or patches one of our functions by address; a crash or profile address names
+# only one of the functions folded there (the map lists them at one address). The debug build keeps the linker's
+# default (no /OPT:REF with /INCREMENTAL).
 # /MAP: ei-rebuild.map lets the harness crash log (ei-rebuild+offset) be resolved to functions.
-target_link_options(ei-rebuild PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
+target_link_options(ei-rebuild PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
 
 if(EI_HARNESS AND NOT EI_X64)
     # ei_harness.dll: the harness in game.exe, the original game, for the references (goldens, function vectors,
