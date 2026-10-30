@@ -17,18 +17,10 @@ platform::NativeWindow Window() {
     return device ? device->window : nullptr;
 }
 
-// The frame does not fill the client area one to one: the game's coordinates need mapping.
-bool Scaled() {
-    int fw = 0, fh = 0;
-    render::Rect placed{};
-    if (!render::FrameInWindow(&fw, &fh, &placed)) return false;
-    return placed.left != 0 || placed.top != 0 || placed.right != fw || placed.bottom != fh;
-}
-
 // The cursor's screen position as a point of the frame (the game's screen).
 void ScreenToGame(platform::Point* point) {
     platform::NativeWindow window = Window();
-    if (!window || !Scaled()) return;
+    if (!window) return;
     platform::ScreenToClient(window, point);
     render::WindowToFrame(&point->x, &point->y);
 }
@@ -36,7 +28,7 @@ void ScreenToGame(platform::Point* point) {
 // A point of the frame as the screen's.
 void GameToScreen(platform::Point* point) {
     platform::NativeWindow window = Window();
-    if (!window || !Scaled()) return;
+    if (!window) return;
     render::FrameToWindow(&point->x, &point->y);
     platform::ClientToScreen(window, point);
 }
@@ -57,7 +49,7 @@ void Update(TextureDevice* device) {
 void MouseToGame(platform::Event* event) {
     using platform::EventType;
     const bool client = event->type >= EventType::MouseMove && event->type <= EventType::RightDouble;
-    if (!(client || event->type == EventType::Wheel) || !Scaled()) return;
+    if (!client && event->type != EventType::Wheel) return;
     platform::Point p{event->x, event->y};
     if (event->type == EventType::Wheel) {
         platform::NativeWindow window = Window();

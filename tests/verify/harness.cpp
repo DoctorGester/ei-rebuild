@@ -3477,8 +3477,8 @@ std::string FocusStep(const std::string& argument) {
     return "focus needs off or on";
 }
 
-// windowsize <width> <height>: the game window resized (it is a WS_POPUP: its size is the client
-// area's), as the user or a display change could; the switch-over scales the frame into it.
+// windowsize <width> <height>: the game window's client area resized, as the user or a display change could; the
+// renderer scales the frame into it.
 std::string WindowSizeStep(const std::string& argument) {
     int width = 0, height = 0;
     if (sscanf_s(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
@@ -3486,6 +3486,11 @@ std::string WindowSizeStep(const std::string& argument) {
     HWND window = GameWindow();
     if (!window) return "windowsize: no game window yet";
     Log("harness: windowsize %dx%d", width, height);
+    RECT outer{}, client{};
+    GetWindowRect(window, &outer);
+    GetClientRect(window, &client);
+    width += outer.right - outer.left - client.right;   // the borders and the title bar, if any
+    height += outer.bottom - outer.top - client.bottom;
     SetWindowPos(window, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
     return "";
 }
@@ -3500,7 +3505,11 @@ void KeepGameWindowActive() {
     if (!g_gameWindowProc) {
         g_gameWindowProc = reinterpret_cast<WNDPROC>(
             SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
-        Log("harness: the game window stays active when it loses focus");
+        RECT outer{}, client{};
+        GetWindowRect(window, &outer);
+        GetClientRect(window, &client);
+        Log("harness: the game window stays active when it loses focus; window (%ld,%ld)-(%ld,%ld), client %ldx%ld",
+            outer.left, outer.top, outer.right, outer.bottom, client.right, client.bottom);
     }
     ActivateWithoutForeground(window);
 }

@@ -13,6 +13,7 @@
 #define DIRECTINPUT_VERSION 0x0700
 #include <dinput.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -193,6 +194,8 @@ Event Translate(HWND window, UINT id, WPARAM first, LPARAM second) {
         event.wheelDelta = static_cast<short>(HIWORD(first));
         break;
     case WM_PAINT: event.type = EventType::Paint; break;
+    // The player closes the window: the game decides, as on WM_DESTROY (the window stays until the game ends).
+    case WM_CLOSE:
     case WM_DESTROY: event.type = EventType::Destroy; break;
     case WM_ACTIVATE:
         event.type = EventType::Activate;
@@ -241,9 +244,24 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     g_classAtom = gameapi::RegisterClassExA(&windowClass);
 }
 
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height) {
-    return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, width,
-                                    height, nullptr, nullptr, static_cast<HINSTANCE>(instance), nullptr);
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height, bool fullScreen) {
+    const DWORD style = (fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_CLIPSIBLINGS;
+    RECT frame{};   // the borders and the title bar around an empty client area
+    AdjustWindowRectEx(&frame, style, FALSE, 0);
+    width += frame.right - frame.left;
+    height += frame.bottom - frame.top;
+    int left = 0, top = 0;
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (!fullScreen && GetMonitorInfoA(MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &info)) {
+        const RECT& work = info.rcWork;
+        width = std::min<int>(width, work.right - work.left);
+        height = std::min<int>(height, work.bottom - work.top);
+        left = work.left + (work.right - work.left - width) / 2;
+        top = work.top + (work.bottom - work.top - height) / 2;
+    }
+    return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, style, left, top, width, height, nullptr,
+                                    nullptr, static_cast<HINSTANCE>(instance), nullptr);
 }
 
 void ShowGameWindow(NativeWindow window, int show) {
