@@ -188,10 +188,10 @@ struct FrameStats {
     double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
 // The game device's mesh draws (device_mesh.cpp's DrawMesh, the BeginDeviceMeshTime timer), the hand-over in them left out.
     double deviceMeshMs = 0.0;
-// ProjectDecal for object shadows and ground prints; the device's flat draws (hand-over left out);
+// ProjectDecal for ground prints; the device's flat draws (hand-over left out);
 // RenderShadow.
-    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
-    std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
+    double decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
+    std::uint64_t decalPrints = 0, decalVertices = 0;
     std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
 // The shadow map's draws and CPU time (left out of the times around it); harness build, GPU time of the
 // shadow pass and all passes (timestamp queries read a few frames later, summed over gpuFrames).
@@ -204,11 +204,10 @@ struct FrameStats {
 };
 FrameStats TakeFrameStats();
 
-// Harness build: timers into FrameStats (deviceMeshMs, the decal / flat / shadow build times; `shadow`: an
-// object shadow's decal, else a ground print's).
+// Harness build: timers into FrameStats (deviceMeshMs, the decal / flat / shadow build times).
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
-void BeginDecalTime(bool shadow);
+void BeginDecalTime();
 void EndDecalTime(int vertices);
 void BeginFlatDrawTime(int vertices);
 void EndFlatDrawTime();

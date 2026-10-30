@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iterator>
+#include <string>
 #include <vector>
 
 namespace ei::verify::addon {
@@ -107,13 +108,20 @@ bool InKeptSite(std::uintptr_t address) {
 }
 
 void LoadFlags() {
-    char ini[MAX_PATH];
+    wchar_t module[MAX_PATH];
     HMODULE self = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                        reinterpret_cast<LPCSTR>(&LoadFlags), &self);
-    GetModuleFileNameA(self, ini, MAX_PATH);
-    if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
-    rebirth::LoadSettings(ini);
+    const DWORD length = GetModuleFileNameW(self, module, MAX_PATH);
+    // rebirth.cpp's reader takes UTF-8 paths.
+    char utf8[MAX_PATH * 4];
+    const int bytes = length < MAX_PATH ? WideCharToMultiByte(CP_UTF8, 0, module, static_cast<int>(length), utf8,
+                                                              static_cast<int>(sizeof(utf8)), nullptr, nullptr) : 0;
+    std::string ini(utf8, static_cast<std::size_t>(bytes));
+    const std::size_t slash = ini.find_last_of('\\');
+    if (slash != std::string::npos) ini.resize(slash + 1);
+    ini += "ei_rebirth.ini";
+    rebirth::LoadSettings(ini.c_str());
 }
 
 void AtWinMain() {

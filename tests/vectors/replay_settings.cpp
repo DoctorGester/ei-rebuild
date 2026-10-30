@@ -145,13 +145,20 @@ void Strings() {
         const std::string line = RoundTripOne(REG_SZ, text + '\0');
         CHECK_MSG(line.rfind("\"v\"=\"", 0) == 0, "REG_SZ " + Printable(text) + " written as " + Printable(line));
     }
-    // What the quoted form cannot hold goes to hex(1): control characters, a second terminator, no terminator.
-    const std::vector<std::string> raw = {std::string("a\tb\0", 4),   std::string("a\nb\0", 4), std::string("a\rb\0", 4),
-                                          std::string("\x01\0", 2),   std::string("a\0b\0", 4), std::string("abc", 3),
-                                          std::string("a\0b", 3),     std::string(),            std::string("\0\0", 2)};
+    // What the quoted form cannot hold goes to hex(1): control characters, a second terminator.
+    const std::vector<std::string> raw = {std::string("a\tb\0", 4), std::string("a\nb\0", 4), std::string("a\rb\0", 4),
+                                          std::string("\x01\0", 2), std::string("a\0b\0", 4), std::string("\0\0", 2)};
     for (const std::string& data : raw) {
         const std::string line = RoundTripOne(REG_SZ, data);
         CHECK_MSG(line.rfind("\"v\"=hex(1):", 0) == 0, "REG_SZ " + Hex(data) + " written as " + Printable(line));
+    }
+    // A hex(1) line without the terminator reads with one added, so a string value always ends in a zero.
+    for (const std::string& data : {std::string("abc", 3), std::string("a\0b", 3), std::string()}) {
+        Document document;
+        document.Set(kKey, "v", REG_SZ, data);
+        Document back = Reread(document);
+        const Value* value = Find(back, kKey, "v");
+        CHECK_MSG(value && value->type == REG_SZ && value->data == data + '\0', "REG_SZ " + Hex(data) + " without terminator");
     }
     // The empty string is the quoted form.
     CHECK(RoundTripOne(REG_SZ, std::string("\0", 1)) == "\"v\"=\"\"");

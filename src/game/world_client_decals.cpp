@@ -92,7 +92,7 @@ void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh*
 void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
                                 const VertexPacket& quad, std::vector<VertexPacket>* points,
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices) {
-    render::BeginDecalTime(false);   // a ground print's (object shadows project none)
+    render::BeginDecalTime();
     DecalBuilder& builder = g_builder;
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
     if (!platforms.Contains(point.x, point.y)) terrain->AddDecalTriangles(&builder, quad);

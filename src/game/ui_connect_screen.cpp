@@ -602,7 +602,7 @@ void MpConnectScreen::CreateScreen() {
         archive.Close(&file);
         file.Close();
         if (queries.extra == 0) {
-            const std::uint32_t random = g_random.Next();
+            const std::uint32_t random = g_clientRandom.Next();
             queries.extra = platform::TickCount() ^ random;
         }
         net::g_gameClient->SetQueries(&queries);
