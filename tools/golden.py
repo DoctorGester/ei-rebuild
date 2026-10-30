@@ -37,10 +37,11 @@ usage:
       SV1b) are left out unless --all-fields.
   python tools/golden.py state A [--record N] [--key REGEX]
       The whole state at record N (default: the last) of one digest, or the entities whose key matches.
-  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth]
+  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth] [--since FILE]
       Copies the image's run folders build\verify\runs\<scenario>-standalone (--install rebirth:
       <scenario>-standalone-rebirth; default: every one with a digest) to DEST: the report, the digest, the
-      dumps and harness_saves. One pass of the suite, for record --runs.
+      dumps and harness_saves. One pass of the suite, for record --runs. --since: only the runs whose report is
+      newer than FILE (touched before the pass), so a run folder an earlier suite left is not taken for this pass's.
   python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
       folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them, under
@@ -681,10 +682,15 @@ def snapshot(args):
     names = [f'{n}-{suffix}' for n in args.scenarios] if args.scenarios else \
         sorted(d for d in os.listdir(source) if d.endswith('-' + suffix)
                and os.path.exists(os.path.join(source, d, 'digest.txt')))
+    since = os.path.getmtime(args.since) if getattr(args, 'since', None) else None
     for name in names:
         src, dst = os.path.join(source, name), os.path.join(args.dest, name)
         if not os.path.isdir(src):
             print(f'{name}: no run folder')
+            continue
+        report = os.path.join(src, 'harness_report.txt')
+        if since is not None and (not os.path.exists(report) or os.path.getmtime(report) < since):
+            print(f'{name}: left out, its run is older than {args.since}')
             continue
         shutil.rmtree(dst, ignore_errors=True)
         for side in sides(src):
@@ -1005,6 +1011,7 @@ def main():
     p.add_argument('dest')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
+    p.add_argument('--since')
     p = sub.add_parser('record')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])

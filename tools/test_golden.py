@@ -256,6 +256,19 @@ class GoldenTest(unittest.TestCase):
             golden.run_all.BUILD = old
         copied = os.path.join(dest, 'levers-standalone')
         self.assertTrue(os.path.exists(os.path.join(copied, 'digest.txt')))
+        # --since: a run older than the pass's start (an earlier suite's folder) is left out
+        start = self.write('start', '')
+        os.utime(os.path.join(folder, 'harness_report.txt'), (0, 0))
+        old_dest = os.path.join(self.dir, 'dest2')
+        golden.run_all.BUILD = build
+        try:
+            args = type('Args', (), {'scenarios': [], 'install': 'vanilla', 'dest': old_dest, 'since': start})()
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.snapshot(args), 0)
+        finally:
+            golden.run_all.BUILD = old
+        self.assertIn('left out', out.getvalue())
+        self.assertFalse(os.path.exists(os.path.join(old_dest, 'levers-standalone')))
         self.assertEqual(sorted(os.listdir(os.path.join(copied, golden.SAVES))), ['keyboard.ini', 'savea'])
         self.assertEqual(os.listdir(os.path.join(copied, golden.SAVES, 'savea')), ['info.sav'])
 

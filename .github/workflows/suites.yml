@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.REF }}
-          clean: true
+          clean: false   # the build folders stay (incremental builds), as in the suites job
 
       - name: Check the ref
         run: |
@@ -144,7 +144,10 @@ jobs:
           git ls-remote --exit-code --heads origin "$REF" > /dev/null || { echo "::error::$REF is not a branch"; exit 1; }
 
       - name: Build
-        run: cmd //c ".\\build.cmd verify > build_verify.log 2>&1" || { echo "::error::build verify failed"; tail -40 build_verify.log; exit 1; }
+        run: |
+          rm -rf pass_*.txt record.txt build_verify.log build/record
+          git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
+          cmd //c ".\\build.cmd verify > build_verify.log 2>&1" || { echo "::error::build verify failed"; tail -40 build_verify.log; exit 1; }
 
       # Each pass plays the suite under one heap layout (golden.py IMAGE_RUNS: plain twice, two jitters) and keeps its
       # run folders; a pass's failures and golden differences only mean those scenarios are not recorded.
@@ -160,9 +163,11 @@ jobs:
             for i in $installs; do
               install=vanilla
               [ $i = --rebirth-only ] && install=rebirth
+              # the run folders stay between workflow runs: the snapshot takes only this pass's (--since)
+              mkdir -p build/record && touch build/record/start
               EI_HEAP_JITTER=$jitter python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
               sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p; /^ALL PASS/p; /^SOME RUNS FAILED/p' pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
-              python tools/golden.py snapshot build/record/$pass --install $install $SCENARIOS
+              python tools/golden.py snapshot build/record/$pass --install $install --since build/record/start $SCENARIOS | grep -v "left out" || true
             done
           done
 
@@ -236,6 +241,7 @@ jobs:
           git clean -ffdq -e build/
           git fetch -q --depth=1 origin "$BASE"
           base=$(git rev-parse FETCH_HEAD)   # FETCH_HEAD is this worktree's: the base's would not see it
+          git worktree prune   # a build/base deleted by hand is still registered
           [ -e build/base/.git ] || git worktree add -q --detach build/base "$base"
           git -C build/base checkout -q --force --detach "$base"
           git -C build/base clean -ffdq -e build/
