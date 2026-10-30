@@ -22,7 +22,6 @@
 
 #include <bit>
 #include <cstdint>
-#include <xmmintrin.h>
 
 #include "nan_audit.h"
 
@@ -32,13 +31,12 @@ inline bool SignBit(float v) { return (std::bit_cast<std::uint32_t>(v) >> 31) !=
 // |v| by clearing the sign bit (the bits of a NaN stay).
 inline float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
-// `ifLess` when a < b or unordered, else `otherwise` (the original's branch-free select): CMPLESS gives a >= b as
-// all ones (zero when unordered), and the mask picks the operand.
+// `ifLess` when a < b or unordered, else `otherwise` (the original's branch-free select): a >= b (false when
+// unordered) as a mask of all ones, which picks the operand's bits.
 inline float SelectLess(float a, float b, float ifLess, float otherwise) {
-    const __m128 notLess = _mm_cmple_ss(_mm_set_ss(b), _mm_set_ss(a));
-    const __m128 picked =
-        _mm_or_ps(_mm_and_ps(notLess, _mm_set_ss(otherwise)), _mm_andnot_ps(notLess, _mm_set_ss(ifLess)));
-    return _mm_cvtss_f32(picked);
+    const std::uint32_t notLess = 0u - static_cast<std::uint32_t>(a >= b);
+    return std::bit_cast<float>((std::bit_cast<std::uint32_t>(otherwise) & notLess) |
+                                (std::bit_cast<std::uint32_t>(ifLess) & ~notLess));
 }
 
 inline float MinKeepA(float a, float b) { return SelectLess(a, b, a, b); }
