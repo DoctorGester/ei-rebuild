@@ -33,9 +33,9 @@ constexpr float kAxisTiny = 1e-8f;
 
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
-    float low = v >= 0.0f ? v : 0.0f;
+    float low = MaxKeepB(v, 0.0f);
     float limit = last - 1.0f;
-    return low <= limit ? low : limit;
+    return MinKeepA(limit, low);
 }
 
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
@@ -189,9 +189,9 @@ void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float
                 if (y >= 0.0f && g_clientWorld.terrain->height > y) {
                     float h = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y));
                     float low = *minimum;
-                    *minimum = h >= low ? low : h;
+                    *minimum = MinKeepA(h, low);
                     float high = *maximum;
-                    *maximum = high >= h ? high : h;
+                    *maximum = MaxKeepB(high, h);
                     ++count;
                     *average = h + *average;
                 }

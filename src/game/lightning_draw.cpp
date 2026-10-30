@@ -18,6 +18,7 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
 
@@ -119,8 +120,8 @@ int Lightning::Draw(SceneRenderer* device) {
     if (power > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
-        size = low >= size ? low : size;
-        size = size >= high ? high : size;
+        size = MaxKeepB(low, size);
+        size = MinKeepA(size, high);
     }
     if (power >= zero) DrawGlow(device, end, size);
     if (power == zero) DrawGlow(device, start, size);

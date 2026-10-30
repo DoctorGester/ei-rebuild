@@ -11,6 +11,7 @@
 #include "unit.h"
 #include "world_data.h"
 
+#include "lib/float_select.h"
 #include "lib/str.h"
 #include <cstring>
 #include <memory>
@@ -39,7 +40,7 @@ void WakeAroundUnits(WorldServer* world, CPlayer* player) {
         auto* controller = unit->ServerController();
         float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
         float minimum = controller->stats.perception[2].current;
-        float range = perception >= minimum ? perception : minimum;   // the branch-free select
+        float range = MaxKeepB(perception, minimum);   // the branch-free select
         float radius = range * worlddata::kHearingScale + worlddata::kWakeMargin;
         world->WakeUnitsAround(unit->localPosition, radius);
     }

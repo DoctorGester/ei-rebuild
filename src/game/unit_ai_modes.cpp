@@ -5,6 +5,7 @@
 #include "core_maths.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -671,7 +672,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         float z = me->z - at->z;
         float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)) * kSeenScale;
         // The larger of the two; an unordered pair takes the new one.
-        distance = distance >= reach ? distance : reach;
+        distance = MaxKeepB(distance, reach);
     }
 
     // A unit that fights from a distance keeps away from its nearest enemy.

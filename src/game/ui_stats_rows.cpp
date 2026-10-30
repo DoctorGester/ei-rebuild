@@ -10,6 +10,7 @@
 #include <string>
 #include "game_singletons.h"
 #include "world.h"
+#include "lib/float_select.h"
 #include "lib/str.h"
 
 
@@ -61,7 +62,7 @@ float HeroStatsPanel::PartArmour(int part) {
     // The largest of the first six (a branch-free select that keeps the old value on a NaN).
     float largest = 0.0f;
     for (int shownType = 0; shownType < kShownTypes; ++shownType)
-        if (sums[shownType] >= largest) largest = sums[shownType];
+        largest = MaxKeepB(sums[shownType], largest);
     return largest;
 }
 

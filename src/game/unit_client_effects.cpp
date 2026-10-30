@@ -14,6 +14,7 @@
 #include "world.h"
 #include "random.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -98,7 +99,7 @@ std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return var
 float SmallerExtent(const CUnit* unit) {
     float y = unit->bounds.boxMax.y;
     float x = unit->bounds.boxMax.x;
-    return y >= x ? x : y;
+    return MinKeepA(y, x);
 }
 
 // The hero's armour material over `location`, or null.
@@ -165,7 +166,7 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     }
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
-    float reach = 1.0f >= smaller ? 1.0f : smaller;
+    float reach = MaxKeepB(1.0f, smaller);
     float sizeStored = (part->box.bounds.boxMax.y + part->box.bounds.boxMax.x) * 0.5f * kDecalScale;
     float size = sizeStored;
     Vector3 at;

@@ -22,6 +22,7 @@
 
 #include "asset_text.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/str.h"
 #include <cstddef>
 #include <cstdint>
@@ -146,7 +147,7 @@ void PlayerServer::OnLeaderDied() {
         auto* npc = g_unitDatabase.npcs.FindByName(record.texts[5]);
         if (npc) {
             float above = experience - npc->experienceFloor;
-            experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept
+            experience = MaxKeepB(0.0f, above);   // a NaN is kept
         }
         stats->TakePendingExperience(g_logicSettings.lostXp * experience);
     }

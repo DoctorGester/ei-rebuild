@@ -9,6 +9,7 @@
 #include "spell.h"
 #include "world.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 
@@ -78,7 +79,7 @@ bool Item::RunTick() {
         return true;
     }
     charge = chargeRate * chargeMax + charge;
-    if (charge >= chargeMax) charge = chargeMax;
+    charge = MinKeepA(charge, chargeMax);
     return true;
 }
 

@@ -4,6 +4,7 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "game_singletons.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -247,7 +248,7 @@ float Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* cur
         scale = 10.0f;
     }
     float beyond = std::sqrt(DistanceSquaredXYUnrounded<float>(candidate->localPosition, from)) - reach;
-    float penalty = 0.0f >= beyond ? 0.0f : beyond;
+    float penalty = MaxKeepB(0.0f, beyond);
     float result = score - penalty * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
     if (result < threshold) return result;
@@ -524,7 +525,7 @@ void AIAttention::Build(CUnit* unit) {
     healWeight = 0.0f;
     for (int i = 0; i < std::ssize(weapons); ++i) {
         float weight = OptionWeight(&weapons[i]);
-        healWeight = healWeight >= weight ? healWeight : weight;
+        healWeight = MaxKeepB(healWeight, weight);
     }
 }
 

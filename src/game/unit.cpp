@@ -3,6 +3,7 @@
 #include "ai_map.h"      // AIPath
 #include "ai_motion.h"   // UnitMotion
 #include "item.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -311,7 +312,7 @@ float CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::
 float CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
     if (flags & MapObjectFlag::ChoosingTarget) {
-        float capped = value >= kTen ? kTen : value;   // NaN is kept
+        float capped = MinKeepA(value, kTen);   // NaN is kept
         return capped * kThree + kTen;
     }
     return kNoPlayerValue;

@@ -3,6 +3,7 @@
 
 #include "options.h"
 
+#include "lib/float_select.h"
 #include "lib/pc24.h"
 
 #include <bit>
@@ -78,7 +79,7 @@ void WorldServer::SetTimeSpeed(float speed) {
 
 void WorldServer::ChangeWind(const Vector3& direction, float strength) {
     // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
-    float clamped = strength >= 0.0f ? strength : 0.0f;
+    float clamped = MaxKeepB(strength, 0.0f);
     if (1.0f < clamped) clamped = 1.0f;
     SetWind(direction, clamped);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Wind));

@@ -16,6 +16,7 @@
 #include "world_effect.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 
@@ -84,7 +85,7 @@ int EffectMissile::Steer() {
         float floor = pc24::Add(world->RawSurfaceHeightAt(localPosition.x, localPosition.y), kGroundClearance);
         if (floor > localPosition.z) {
             float missing = floor - localPosition.z;
-            float limited = missing >= kGroundClearance ? kGroundClearance : missing;
+            float limited = MinKeepA(missing, kGroundClearance);
             velocity.z = missing - limited * 0.5f;
         }
     }

@@ -18,6 +18,7 @@
 #include "world.h"
 #include "world_effect.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -55,8 +56,8 @@ extern FootprintCellSet g_spellFootprint;
 // FYL2X / F2XM1 / FSCALE (VC6's inline log and exp; the logarithm is used unrounded). The two clamps keep a NaN
 // ratio (1 < r or unordered; r < 8 or unordered).
 inline float ClampPow(float ratio) {
-    const float low = ratio <= 1.0f ? 1.0f : ratio;
-    const float clamped = low >= 8.0f ? 8.0f : low;
+    const float low = MaxKeepB(1.0f, ratio);
+    const float clamped = MinKeepA(low, 8.0f);
     return pc24::Exp(pc24::Mul(pc24::Log(clamped), 0.33f)) - 0.2f;
 }
 
@@ -227,7 +228,7 @@ inline float LightRise(SpellEffect* e) {
     float value;
     value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
-    float divisor = value <= 1.0f ? 1.0f : value;
+    float divisor = MaxKeepB(1.0f, value);
     return range / divisor;
 }
 
@@ -236,7 +237,7 @@ inline float LightRiseScaled(SpellEffect* e, const float& scale) {
     float value;
     value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
-    float divisor = value <= 1.0f ? 1.0f : value;
+    float divisor = MaxKeepB(1.0f, value);
     float out;
     DivideMultiply(&range, &divisor, ConstPtr(scale), &out);
     return out;

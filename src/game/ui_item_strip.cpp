@@ -11,6 +11,7 @@
 #include <string>
 
 #include <cmath>
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -207,14 +208,14 @@ void UiItemStrip::Update() {
                 if (velocity > maxSpeed) velocity = maxSpeed;
                 const float limit = (pending - nearDistance) / dt;
                 const float current = velocity;
-                limited = current >= limit ? limit : current;
+                limited = MinKeepA(current, limit);
             } else {
                 velocity = velocity - gain;
                 const float minSpeed = -maxSpeed;
-                velocity = velocity >= minSpeed ? velocity : minSpeed;
+                velocity = MaxKeepB(velocity, minSpeed);
                 const float limit = (nearDistance + pending) / dt;
                 const float current = velocity;
-                limited = limit >= current ? limit : current;
+                limited = MaxKeepB(limit, current);
             }
             speed = (limited + velocity) * half;
         } else if (pending > zero) {

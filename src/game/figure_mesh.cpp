@@ -9,6 +9,7 @@
 #include "render/render.h"
 
 #include "lib/bytes.h"
+#include "lib/float_select.h"
 
 #include <cstring>
 #include <vector>
@@ -159,8 +160,8 @@ inline constexpr float kFarLimit = 100000000.0f;
 // Grows [min, max] by one transformed point. The original selects with the comparison's below-or-unordered bit
 // as a mask on the float bits, so a NaN on either side takes the point.
 void Extend(float& max, float& min, float v) {
-    max = max >= v ? max : v;
-    min = v >= min ? min : v;
+    max = MaxKeepB(max, v);
+    min = MinKeepA(v, min);
 }
 
 // Negates one component block of every packet.

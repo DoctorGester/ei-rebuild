@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -53,7 +54,7 @@ inline bool IsMoving(const Vector3& v) {
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or
 // is NaN, else 1.0.
 inline float BelowOneOrOne(const float& value) {
-    return value >= 1.0f ? 1.0f : value;
+    return MinKeepA(value, 1.0f);
 }
 
 // --- Engine objects ------------------------------------------------------------------------------

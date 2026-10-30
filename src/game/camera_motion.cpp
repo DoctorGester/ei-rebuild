@@ -143,22 +143,22 @@ void Camera::ClampAboveObjects() {
         if (outside <= CAM_ZERO) factor = CAM_ONE;
         else if (outside <= CAM_OBJECT_FADE) factor = CAM_ONE - outside * CAM_TENTH;
         float height = ((object->localPosition.z + object->bounds.boxMax.z) + object->bounds.center.z) * factor;
-        best = best >= height ? best : height;
+        best = MaxKeepB(best, height);
     }
     const options::GameOptions* s = settings;
     float raised;
     if (best > highest) {
         float over = best - highest;
         float limit = s->cameraMaxHeight;
-        float used = over >= limit ? limit : over;
+        float used = MinKeepA(over, limit);
         float wanted = (used + highest) + s->cameraMinHeight;
         float z = p->z;
-        raised = z >= wanted ? z : wanted;
+        raised = MaxKeepB(z, wanted);
     } else {
-        float top = best >= highest ? best : highest;
+        float top = MaxKeepB(best, highest);
         float wanted = top + s->cameraMinHeight;
         float z = p->z;
-        raised = z >= wanted ? z : wanted;
+        raised = MaxKeepB(z, wanted);
     }
     p->z = raised;
 }

@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -232,12 +233,12 @@ void Lightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < std::ssize(segment->points); ++i) {
         const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        bounds.boxMin.x = p.x >= bounds.boxMin.x ? bounds.boxMin.x : p.x;
-        bounds.boxMin.y = p.y >= bounds.boxMin.y ? bounds.boxMin.y : p.y;
-        bounds.boxMin.z = p.z >= bounds.boxMin.z ? bounds.boxMin.z : p.z;
-        bounds.boxMax.x = bounds.boxMax.x >= p.x ? bounds.boxMax.x : p.x;
-        bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
-        bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
+        bounds.boxMin.x = MinKeepA(p.x, bounds.boxMin.x);
+        bounds.boxMin.y = MinKeepA(p.y, bounds.boxMin.y);
+        bounds.boxMin.z = MinKeepA(p.z, bounds.boxMin.z);
+        bounds.boxMax.x = MaxKeepB(bounds.boxMax.x, p.x);
+        bounds.boxMax.y = MaxKeepB(bounds.boxMax.y, p.y);
+        bounds.boxMax.z = MaxKeepB(bounds.boxMax.z, p.z);
     }
 }
 

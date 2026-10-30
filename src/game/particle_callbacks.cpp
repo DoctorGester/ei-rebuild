@@ -7,6 +7,7 @@
 #include "object_maths.h"
 #include "unit.h"
 
+#include "lib/float_select.h"
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -1078,8 +1079,8 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     if (speed > EI_STILL_SPEED) {
         const Vector3& m = elements[1].pos;
         float t = -(DotUnrounded<Sum3::ZYX>(m, p->velocity) / speed);
-        if (t >= 1.0f) t = 1.0f;
-        t = t >= 0.0f ? t : 0.0f;
+        t = MinKeepA(t, 1.0f);
+        t = MaxKeepB(t, 0.0f);
         Vector3 along;
         SubtractVectors(&offset, p->velocity, *ScaleVector(&along, m, t));
     } else {
@@ -1698,9 +1699,9 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
             boundsMin.x = MinKeepA(q->pos.x, boundsMin.x);
             boundsMin.y = MinKeepA(q->pos.y, boundsMin.y);
             boundsMin.z = MinKeepA(q->pos.z, boundsMin.z);
-            boundsMax.x = boundsMax.x >= q->pos.x ? boundsMax.x : q->pos.x;
-            boundsMax.y = boundsMax.y >= q->pos.y ? boundsMax.y : q->pos.y;
-            boundsMax.z = boundsMax.z >= q->pos.z ? boundsMax.z : q->pos.z;
+            boundsMax.x = MaxKeepB(boundsMax.x, q->pos.x);
+            boundsMax.y = MaxKeepB(boundsMax.y, q->pos.y);
+            boundsMax.z = MaxKeepB(boundsMax.z, q->pos.z);
             particles.push_back(q);
         }
     }
@@ -2310,7 +2311,7 @@ int ParticleSource::UpdateTornado(Particle* p) {
     p->pos.z = base;
     p->pos.z = elements[0].funnel.height * p->aux0 + base;
     if (p->life > 8) p->aux1 = MinKeepA(p->aux1 + EI_FUNNEL_FADE, 1.0f);
-    else p->aux1 = 0.1f >= p->aux1 ? 0.1f : p->aux1;
+    else p->aux1 = MaxKeepB(0.1f, p->aux1);
     int a = std::lround(std::sqrt(EI_P_ONE - p->aux0) * p->aux1 * EI_FUNNEL_ALPHA);
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {

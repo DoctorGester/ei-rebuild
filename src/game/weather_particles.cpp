@@ -18,6 +18,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -113,7 +114,7 @@ ParticleFrame Begin(RainSnow& layer, float sink, float rise) {
     layer.particleCount = 0;
     layer.positions.resize(kMaxPackets);
     const float below = eye.z - kHalfHeight;
-    frame.low = below <= 0.0f ? 0.0f : below;
+    frame.low = MaxKeepB(0.0f, below);
     frame.high = kHalfHeight + eye.z;
     return frame;
 }

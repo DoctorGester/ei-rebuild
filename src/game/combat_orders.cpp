@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "lib/bytes.h"
+#include "lib/float_select.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -110,8 +111,8 @@ void UnitServer::FinishCast() {
         float left = -needed + *mana;
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
-        float capped = left >= maximum ? maximum : left;
-        float result = capped <= 0.0f ? 0.0f : capped;
+        float capped = MinKeepA(left, maximum);
+        float result = MaxKeepB(0.0f, capped);
         *mana = result;
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);

@@ -7,6 +7,7 @@
 
 #include "maths.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -154,7 +155,7 @@ void HudTopPanel::Update() {
         float slideAt = UiContainer::FrameTime() * slideDirection / kSlideTime + slide;
         slide = slideAt;
         if (slideAt > 1.0f) slide = 1.0f;
-        slide = slide >= 0.0f ? slide : 0.0f;      // NaN too
+        slide = MaxKeepB(slide, 0.0f);      // NaN too
         // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.
         float eased;
         if (slide < 0.5f) {

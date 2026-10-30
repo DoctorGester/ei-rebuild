@@ -601,13 +601,10 @@ decay, FindFlightPoint, FearMode's Evaluate and Execute, a planned look, FindSta
 suspicion / combat filter / party / path-clear tests, the patrol points, UpdateMove, Notice, IsNearPath, the senses
 (Prepare to ForceSee) and the targets (Score, GroupExcess, IsUsable, CanReach, Weight)): 2.4 M cases each, 0 differ
 with game operands and with wide ones (2^-12 to 2^13, zeros, infinities, NaN) but which NaN comes out and one zero
-sign below; with 2^-30 to 2^32, the senses' four-factor products' exponent range (denormal exposures). **Signed zero
-selects:** MSVC (/fp:precise, SSE2) compiles `a >= b ? a : b` to MAXSS (and `a >= b ? b : a` to MINSS), which give
-the second operand on a tie: where +0 meets -0 the result's zero sign differs from the x87 compare-and-branch
-(float_select's MaxKeepB / MinKeepA too). In these files: AIViewer::Refresh's reach (a -0 sight against a +0
-hearing, only with a negative stat; the test's 2,229), FearMode::Evaluate's distance (only a -0 distance from a
-save), KeepLower's exposures (a -0 exposure needs a negative range), Score's penalty and IsNearPath's clamp (no
-decision changes); `a < b ? a : b` forms map exactly. C30e17 makes the selects exact.
+sign below; with 2^-30 to 2^32, the senses' four-factor products' exponent range (denormal exposures). The zero
+signs were the `>=` selects MSVC compiles to MAXSS / MINSS (AIViewer::Refresh's reach, FearMode::Evaluate's distance,
+KeepLower, Score's penalty, IsNearPath's clamp): exact through float_select's helpers since (below, "Selects on
+`>=` / `<=`").
 
 **C30e12 (client units and world; 13 files).** The double locals were PC24 registers: unit_client_path's blend
 (`(1 - w) target + w current`) and animation speed, the client world's light reach test, ObjectsInRange's reach and
@@ -688,8 +685,8 @@ UV tables' 1 / tiles per row and side / tile size (`Div` on the ints). `x87::fis
 bounds, heights' cell), `Ftol` -> int64 truncation (the material's opacity byte: a NaN from the file gives 0), and
 the chop scope around Build's edge fade removed (above: nothing x87 ran under it since C30c). In the SSE2 objects:
 PlaneHeight's degenerate-triangle average `(z0 + z1 + z2) * 1/3` is an FADD, FADD, FMUL chain on its ST0 return value
-(PC24 on the main thread, as the original) and SurfaceHeight's last add an FADD; SetWaveStrength's clamp
-`s >= 0 ? s : 0` compiles to MAXSS (a -0 strength gives +0 glow and height where the x87 kept -0; C30e17). Equivalence
+(PC24 on the main thread, as the original) and SurfaceHeight's last add an FADD; SetWaveStrength's clamp goes through
+`MaxKeepB` (a plain `s >= 0 ? s : 0` is MAXSS: +0 for a -0 strength; "Selects on `>=` / `<=`" below). Equivalence
 test (C30e14's `eq/`: HEAD's forms built /arch:IA32 against the new, at PC24 or PC53 as each runs; whole runs under 5
 minutes each): the sine table at PC53 (512, 0 differ; at PC24 266 would), the wave phases at PC53 (48,000 tables, 0;
 at PC24 all would), every float in [0, 1] as the arc sine's argument plus the turn (1,065 M, 0), SetWaveStrength
@@ -699,6 +696,32 @@ float through the material values (0 but the exponent range), 1 / every positive
 water depth and level, sector bounds, plane and surface heights (24 M each, half wide: 0 but NaN payloads and the
 exponent range; 4 of 12 M wide plane heights with coordinates from 2^-120 to 2^108 in one triangle are NaN on SSE2),
 every float's sector cell (0) and the spiral distances at both precisions (0).
+
+### Selects on `>=` / `<=` (lib/float_select.h, C30e17)
+
+MSVC (/fp:precise, SSE2) compiles `a >= b ? a : b` to MAXSS and `a >= b ? b : a` to MINSS (the `<=` forms likewise),
+which return the second operand on a tie: where +0 meets -0 the zero's sign differs from the original's compare and
+branch (NaNs come out right: MSVC orders the operands for them). The strict forms (`a < b ? a : b`, `a > b ? b : a`,
+`!(a < b) ? a : b`, `std::min` / `std::max`) have an exact MINSS / MAXSS and compile to it. So:
+- **A select of two floats on `>=` / `<=` goes through float_select.h**, never as a conditional expression or a
+  one-line if: `a >= b ? a : b` -> `MaxKeepB(a, b)`, `a >= b ? b : a` -> `MinKeepA(a, b)`, `a <= b ? a : b` ->
+  `MinKeepA(b, a)`, `a <= b ? b : a` -> `MaxKeepB(b, a)`; `if (a >= b) a = b;` -> `a = MinKeepA(a, b);` and so on.
+  `SelectLess(a, b, ifLess, otherwise)` is the general one: CMPLESS's mask (all ones for a >= b, zero when unordered)
+  and AND / ANDNOT / OR through intrinsics, which MSVC keeps; MinKeepA / MaxKeepB call it. Their deleted template
+  overloads make an int or double pair a compile error (ints stay plain: they have no signed zero).
+- **Routed by script** (C30e17's scratch folder: `route_selects.py` for the ternaries, `route_ifs.py` for the one-line
+  ifs, the int sites kept with `--skip` from the build's C2280 list): 107 ternaries in 49 files, 7 if-selects
+  (item, spell_cast, terrain_sector, ui_stats_rows, particle_callbacks), and the two `Bits(...)` selects (combat_sight's
+  OutOfSightRange, world_effect_visual's ground clamp; MSVC made MAXSS of those too).
+- **The object scan** (`scan_minmax.py EXE` lists the linked image's MAXSS / MINSS by function; `scan_lines.py` recompiles
+  the SSE2 objects that have one with /FAs and gives each its source line): 436 at 179 places before, 134 at 56 after,
+  every one a strict form, `std::min` / `std::max`, MinKeepB / MaxKeepA, addon's `!(f < m)` folds, stb_truetype or a
+  double clamp in pc24.
+- **Equivalence test** (C30e17's `eq/`: the helpers and each form as its own SSE2 function against an /arch:IA32
+  FLD / FCOMP / FNSTSW reference that moves results as bits): every pair of 28 special operands (+-0, +-inf, quiet and
+  signalling NaNs with payloads, denormals, the smallest normals, the largest finite, 1 +- an ulp) and every quadruple
+  for SelectLess: 0 differ; 50 M random sets with a's twin (equal, negated, an ulp off) as b: 0 differ. The plain `>=` /
+  `<=` expressions differ on exactly the +0 / -0 pairs (2 of 784; 113,572 of 50 M), the strict ones on none.
 
 ### The whole image on SSE2 (C16 experiment)
 
