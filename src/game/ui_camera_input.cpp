@@ -98,7 +98,7 @@ void CameraInput::RightDown(int, int atX, int atY) {
     pressScreen = Point{atX, atY};
     pressLayout = Point{atX, atY};
     turning = true;
-    ui->ScalePointFromScreenEntry(&pressLayout);
+    ui->ScalePointFromScreen(&pressLayout);
     g_cursor.motion.y = 0;
     g_cursor.motion.x = 0;
     g_cursor.SetHeld(1);
@@ -126,9 +126,9 @@ void CameraInput::MouseMove(int, int atX, int atY) {
     if (turning) {
         Point point{atX, atY};
         Point drag{g_cursor.motion.x, g_cursor.motion.y};
-        ui->ScalePointFromScreenEntry(&point);
+        ui->ScalePointFromScreen(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
-        ui->CallScalePointFromScreenNoMargin(&drag);
+        ui->ScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * kPerWidth;
         float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
         if (!ModifierHeld(ui)) {

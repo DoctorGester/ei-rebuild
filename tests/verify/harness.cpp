@@ -741,7 +741,7 @@ HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
 }
 
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
-// and the sound is muted (the image's runs also play in a 1280x720 window: harness_starter.h). The
+// and the sound is muted (the image's runs also play in a small window: harness_starter.h). The
 // game's own code still runs (sound included), so scenarios test the same paths.
 
 decltype(&::SetForegroundWindow) g_setForegroundWindow;
@@ -4160,7 +4160,7 @@ struct Harness {
         PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
         PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
         PatchImport(&ImportTable::GetCursorPos, &HarnessCursorPos, g_getCursorPos);
-        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's 1280x720
+        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)

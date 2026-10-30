@@ -1,7 +1,7 @@
 // The multiplayer connection screen's list (MpConnectScreen::DrawListVanilla): the servers' rows, the new
 // game's controls and the selected entry's details, drawn on the screen's first surface. Rebirth patches it
-// twice and both are reproduced behind their flags: WideScreen (the line under the titles scaled without the
-// margin) and ExtendedServerName (wider columns, the servers' names and the new game's row drawn shortened
+// twice and both are reproduced: WideScreen for every window (the line under the titles scaled without the
+// margin) and ExtendedServerName behind its flag (wider columns, the servers' names and the new game's row drawn shortened
 // with an ellipsis, the selected server's name wrapped). See ui_screens.h and docs/notes/ui.md, section 5.
 #include "asset_text.h"
 #include "ui.h"
@@ -135,8 +135,8 @@ void MpConnectScreen::DrawListVanilla() {
     Point from{8, row.bottom - 2};
     Point to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
-    ui->CallScalePointToScreenNoMargin(&from);
-    ui->CallScalePointToScreenNoMargin(&to);
+    ui->ScalePointToScreenNoMargin(&from);
+    ui->ScalePointToScreenNoMargin(&to);
     surface->Line(from.x, from.y, to.x, to.y, 1, g_connectTextColour);
     Down(&row, 27);
 

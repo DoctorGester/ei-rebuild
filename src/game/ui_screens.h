@@ -373,7 +373,7 @@ public:
     void MasterRequest();
     // Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
-    // The list drawn on surface 0 (Rebirth-patched: WideScreen and ExtendedServerName reproduced behind their flags): see
+    // The list drawn on surface 0 (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag): see
     // docs/notes/ui.md, "MpConnectScreen::DrawListVanilla".
     void DrawListVanilla();
     // The list again: the client's servers (ServerAt) in order, sorted by sortKey (std::sort), the new game entry

@@ -182,8 +182,8 @@ void HudUnitPanel::DrawUnitInfo(Unit* unit) {
 
 // --- Ui hud unit draw --------------------------------------------------------------------------------
 
-// The battle HUD's unit panel: its draw (HudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
-// the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
+// The battle HUD's unit panel: its draw (HudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced for
+// every window (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
 
 namespace {
@@ -261,9 +261,9 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             Rect strip = {0, 0, 20 - offset, 220};
             Rect below = {0, 220, 400 - offset, 300};
             // WideScreen: without the margin.
-            ui->CallScaleRectToScreenNoMargin(&right);
-            ui->CallScaleRectToScreenNoMargin(&strip);
-            ui->CallScaleRectToScreenNoMargin(&below);
+            ui->ScaleRectToScreenNoMargin(&right);
+            ui->ScaleRectToScreenNoMargin(&strip);
+            ui->ScaleRectToScreenNoMargin(&below);
             Rect rects[3] = {right, below, strip};
             ClearUiDepth(0.0f, rects, 3);
 

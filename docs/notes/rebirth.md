@@ -76,8 +76,9 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ### Widescreen and rendering (3 of 4 applied)
 
-- **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below): with VIDEORESOLUTION wider
-  than 4:3 the 800x600 interface layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
+- **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below), and since W12 no flag: the
+  interface layout follows the window's shape on both installs; with a window wider than 4:3 the 800x600 interface
+  layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
   `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `UiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
   screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
   are why rule 9 of the rewrite guide exists.
@@ -294,8 +295,9 @@ layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-e
 0 otherwise) in `UiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
 the battle screen's panels at the screen's edges.
 
-All of it is rewritten (W1-W4b, W2a/b) behind `Patch::WideScreen` (`src/game/ui_widescreen.{h,cpp}` and the files named below), each
-function named in the csv's WideScreen rows; WideScreen has no leftovers.
+All of it is rewritten (W1-W4b, W2a/b; `src/game/ui_widescreen.{h,cpp}` and the files named below), each
+function named in the csv's WideScreen rows; WideScreen has no leftovers. Since W12 it has no flag: the layout follows
+the window's shape (the module overview at the end).
 
 **Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
 harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth
@@ -425,27 +427,41 @@ WideScreen on), so the Rebirth half of the suite compares these wrappers with ad
 NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only (hooked Rebirth launches keep addon's; S19b).
 ## WideScreen module overview
 
-Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering")
-behind the flag ei::rebirth::Patch::WideScreen. With the starter's Settings\WideScreen on (DWORD, 1 when
-absent) and the starter's EvilIslands\General Settings\VIDEORESOLUTION ("WxH") a valid mode wider than 4:3,
-addon widens the 800x600 interface layout: the 4:3 part of the screen keeps the 800x600 layout in the middle
-(width43 = H * 800 / 600 pixels) and the margins left and right of it (margin pixels each) add `extra`
-layout units on either side. addon computes these once, when it applies its patches before WinMain, from
-the registry (not from the game's screen). This module computes them once as well (widescreen::Configure, in
-GameMain right after the options load), from the resolution the game loaded: the settings file's [video]
-VideoResolution, one value for both installs (tests/scenarios/ui_widescreen_resolution.txt).
+Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering"),
+folded in for every window shape (W12, user 2026-10-30: no flag, no setting; src/game/ui_widescreen.h). The 800x600
+interface layout is drawn in the window's 4:3 part, the largest 4:3 rectangle in the window, centred:
+width43 = min(W, H * 800 / 600), height43 = min(H, W * 600 / 800). A window wider than 4:3 has margins left and
+right of it (margin pixels each, `extra` layout units: addon's layout); a window narrower than 4:3 (5:4, portrait)
+has bands above and below it (marginY pixels: the 4:3 part letterboxed, nothing moves into the bands, the 3D view
+keeps its proportions over the whole window through the axis swap's y scale); at exactly 4:3 both are 0 and every
+value is the original's. addon computed its values once, before WinMain, from the starter's registry, and refused
+every shape but wider than 4:3 (the original's stretched layout then drew). This module computes them once as well
+(widescreen::Configure, in GameMain right after the options load), from the resolution the game loaded and makes its
+window at: the settings file's [video] VideoResolution, one value for both installs
+(tests/scenarios/ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
 Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
-scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
-them without it; every one is without the margin when called with ECX 0), UiRegion::SetRect / AddPoint and
+scaling (+ the margins), the screen-to-layout scaling (- the margins), UiRegion::SetRect / AddPoint and
 the sprites' Place (x + the panel offset); the sprite shapes (x moved by the panel offset), the text extent
-(TextExtentToLayout), and the places addon scales without the margin (ECX 0: the text surfaces' draw, the
-edit field, the connection list, the save / load list, the chat line and the tooltip with its right edge
-LayoutRight; Interface3D::CallScale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
+(TextExtentToLayout), and the places scaled without the margins (addon's ECX 0: the text surfaces' draw and their
+text height, the edit field, the connection list, the save / load list, the chat line and the tooltip with its
+right edge LayoutRight; Interface3D::Scale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
 panel, the weapon bar, the quick items, the action and spell columns, the clock, the movement panel:
 ui_hud_*.cpp) set the panel offset (EnterLeftPanel / EnterRightPanel / LeavePanel) and move their layout
-constants by EdgeShift; the projection's x scale (the axis swap: AxisScale), the interface fonts' size
-(Interface3D::Create: FontScale), the screen backdrop at the mode's size (DrawOverlays), the drags scaled
-without the margin (the camera's and the global map's mouse moves), the global map's pick picture read
-without the margin (through addon's 9 bytes: PickShift), the curtains over the margins of the camp and the
-multiplayer hero screen and the tutorial messages' frames moved with the panels. With the flag off, or a
-mode addon would refuse, everything is the original's.
+constants by EdgeShift; the projection's x and y scales (the axis swap: AxisScale, AxisScaleY), the interface fonts'
+size (Interface3D::Create: FontScale, width * 0.0075 / height43 in double, 0.01f at every 4:3 size), the screen
+backdrop at the window's size (DrawOverlays), the drags scaled without the margins (the camera's and the global map's
+mouse moves), the global map's pick picture read without the margins (PickShift), the curtains over the margins of
+the camp and the multiplayer hero screen (empty sprites with no margin) and the tutorial messages' frames moved with
+the panels.
+- At 4:3 the wide code is the original's (W12 step 1): every branch's wide side, with margin 0 and extra 0, gives
+  the plain side's values (the 64-bit products equal the original's 32-bit ones in range; the font scale rounds to
+  0.01f; the backdrop's window-size rectangle is the scaled 800x600 one). Checked with the layout forced on and the
+  image at 960x720: the 117 vanilla goldens at 4:3 the same. Two things are not addon's: the unit panel's setup
+  keeps the original's slide and moves the original's rectangle by the shift (addon wrote (-133, 0)-(52, 225) and
+  `sliding` 0 whatever the margin), and the curtains are added at 4:3 too (empty: two more sprites on the camp and
+  hero screens).
+- The harness's image runs follow the goldens' shape: vanilla 960x720 (game.exe's stretched layout, a 4:3 window's),
+  Rebirth 1280x720 (addon's at the 16:9 desktop; tests/verify/harness_starter.h). The vanilla scenarios at
+  `resolution desktop` (16:9) get the wide layout there, which the vanilla original never drew.
+- The flag's name stays in rebirth_patches.inc as Dropped (nothing reads it): the harness's addon fix set undoes
+  addon's WideScreen sites in the original's vanilla runs by it.

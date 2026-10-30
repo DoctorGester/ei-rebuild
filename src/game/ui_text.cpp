@@ -70,13 +70,12 @@ int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxL
 // Text on the interface's surfaces: UiSurface's DrawText and the interface's text extent, both in our own fonts
 // (ui_font.h): the text laid out by DrawText's rules (render_text.h's Layout) and drawn as glyph runs on the
 // surface's canvas. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the extent scaled
-// by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h). See docs/notes/ui.md,
+// by the 4:3 part), which these reproduce for every window (ticket W2, ui_widescreen.h). See docs/notes/ui.md,
 // section 3, and docs/notes/ui-native.md, "P8 done".
 
 namespace {
 constexpr std::uint32_t kShadowColour = 0x080808;
 constexpr int kRectSlack = 2;           // pixels added to a scaled rectangle's right and bottom
-constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
 // DT_MODIFYSTRING (the connection list's names, with DT_END_ELLIPSIS): DrawText would write the shortened text
 // back into the caller's buffer, which the game never reads; nothing is written.
 constexpr std::uint32_t kModifyString = 0x10000;
@@ -103,13 +102,13 @@ int UiSurface::DrawTextIn(std::string_view text, const Rect* area, int font, std
     } else {
         frame = *area;
         // WideScreen (addon replaces the interface argument by 0): without the margin.
-        ui->CallScaleRectToScreenNoMargin(&frame);
+        ui->ScaleRectToScreenNoMargin(&frame);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
     Point extent{0, DrawTextPixels(ui->fonts[font], text, frame, format, colour, shadow)};
-    ui->ScalePointFromScreenCopyEntry(&extent);
+    ui->ScalePointFromScreenNoMargin(&extent);
     return extent.y;
 }
 
@@ -137,8 +136,5 @@ int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const R
 
 Size Interface3D::TextExtent(std::string_view text, int font) const {
     const Size size = ::TextExtent(fonts[font], text);
-    // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
-    if (widescreen::Active()) return widescreen::TextExtentToLayout(size);
-    return Size{static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width,
-                static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height};
+    return widescreen::TextExtentToLayout(size);
 }

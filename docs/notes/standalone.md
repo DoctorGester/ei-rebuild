@@ -942,7 +942,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   tables: the original's registry subkeys, General Settings split into video and sound, Joystick in game), renderer
   (Msaa, Anisotropy, VSync, PerfOverlay), patches (Rebirth's patches, `Name = true|false`, and EI_Plugin's NPlayers,
   Pause, SecondMaster: docs/notes/rebirth.md, "The flags"; C66a folded the separate ei_rebirth.ini in), rebirth
-  (Rebirth's starter switches: WideScreen, ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
+  (Rebirth's starter switches: ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
   names are the original's registry value names. A value is the text after the first `=`, spaces around it trimmed
   (in double quotes when it starts or ends with a space or starts with a quote: the outer pair is dropped); a line
   break inside one is written as a space. Numbers are decimal (up to 4294967295, read as the int of those bits), floats
@@ -950,8 +950,8 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   a number reads true / false as 1 / 0). The options writer writes its on / off options as booleans (options.cpp
   `kFlag`), the others as numbers. Sections and names compare without case; a name keeps its first spelling. A section
   name is letters, digits, spaces, `_` and `-`: a bad one and its lines are skipped (reported). One tree for both
-  installs: Rebirth's NivalRegistry (the starter's tree) is dropped, the WideScreen layout takes the resolution the
-  game loaded (ui_widescreen.cpp Configure).
+  installs: Rebirth's NivalRegistry (the starter's tree) is dropped; the interface layout (W12, no switch) takes the
+  resolution the game loaded (ui_widescreen.cpp Configure).
 - **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with `settings::Defaults`
   (settings_document.cpp) for the primary monitor's mode in pixels (EnumDisplaySettings of the primary monitor's
   device: the physical size whatever the process's DPI awareness, so no reader order matters; without a size, no
@@ -967,7 +967,7 @@ and never reads or writes the registry. game.exe (the original game, the `--no-h
   ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright), the hero's light 216 216 116 radius 5 and the
   quest light 120 72 120 radius 5, UseSWCursors false, SelectionType 1, DefaultMapName / DefaultStreamingSound, the
   master server a3master.nival.com (the code's is empty). renderer: VSync true, Msaa 8, Anisotropy 16, PerfOverlay
-  false. patches: a comment only (every patch takes the game folder's profile). rebirth: WideScreen true, ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
+  false. patches: a comment only (every patch takes the game folder's profile). rebirth: ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
   original's distances; 5376 draws the whole map and is what the user's starter had). autoexec: a comment only.
   Everything else is left out and read as absent: the game takes its own defaults (paths `.\` and `.\res\` from the
   working folder, the exe's: "The game folder" above, the other game settings, equal to the install's), Rebirth its
@@ -1589,8 +1589,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **The Rebirth profile** (src/standalone/startup.cpp, C66a): the game data folder (EI_GAME_ROOT when a launcher names
   it, else the exe's own) picks the profile from its files: Rebirth's where `starter\addon.dll` or `EI_Plugin.asi` is
   (config/rebirth_profile.ini's patches, made a spec at configure time: build/<cfg>/config/rebirth_profile.inc;
-  EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the plain install's (the defaults and
-  WideScreen). Then ei_settings.ini's `[patches]` (`Name = true|false`, `NPlayers`, `Pause`, `SecondMaster`; read as
+  EI_Plugin.ini's `[CONFIG] NPlayers` / `Pause` when it is there), else the plain install's (the
+  defaults). Then ei_settings.ini's `[patches]` (`Name = true|false`, `NPlayers`, `Pause`, `SecondMaster`; read as
   the section's lines, so a harness run's pinned file reports nothing missing), then EI_REBIRTH and a scenario's flags.
   The defaults name no patch, so play.cmd's two modes share run\play's file and each takes its data folder's profile.
   When EI_REBIRTH is set no profile is taken: ei_launch sets it to `defaults` for a harness run whose caller set none,
@@ -1602,7 +1602,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   (`/DEPENDENTLOADFLAG:0x800`, where Windows honours it), so a wrapper DLL of the same name in a game folder (dgVoodoo,
   a dsound wrapper) is not taken; ASan's build leaves it out (its runtime is beside the exe).
 - **Checked** (hand, `--check` from C:\ without EI_GAME_ROOT, the release exe copied into a folder with an install's
-  DLLs): the imports load from the exe's folder, the plain folder takes the defaults and WideScreen, the folder with
+  DLLs): the imports load from the exe's folder, the plain folder takes the defaults (then also WideScreen, a flag until W12), the folder with
   EI_Plugin.asi / EI_Plugin.ini the 40 flags of the Rebirth profile with the plugin's players and pause mode,
   ei_settings.ini written beside the exe. The game itself plays in every suite run from the same exe layout.
 - **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
@@ -1619,8 +1619,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   ei_launch sets to the build's (from the copy, two folders up is the run folder). Scenarios: `dropin_boot` (the menu comes up), `dropin_profile` (the harness's `dropin` step,
   tests/verify/harness_dropin.h: no EI_GAME_ROOT or EI_REBIRTH, the working directory the exe's folder, and every
   flag as the folder's profile must set it, worked out from config/rebirth_profile.ini and the patch list,
-  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
-  profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
+  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Their goldens are their own (H40): no
+  EI_REBIRTH, so the Rebirth install's drop-in run plays in the vanilla runs' 4:3 window (harness_starter.h). The verify exe runs there (the harness is linked in), not the release one.
 
 ### The x64 build
 

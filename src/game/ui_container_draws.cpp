@@ -89,7 +89,7 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     Rect slots[7];
     for (int i = 0; i < 7; ++i) {
         Rect r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        ui->ScaleRectToScreenEntry(&r);
+        ui->ScaleRectToScreen(&r);
         slots[i] = r;
     }
     ClearUiDepth(0.0f);

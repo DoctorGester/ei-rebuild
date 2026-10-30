@@ -103,11 +103,11 @@ public:
     void RightUp(int, int, int) override { Deactivate(); }
     // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
-    // Rebirth-patched (WideScreen behind its flag: the drag and the pick picture's x without the margin).
+    // Rebirth-patched (WideScreen: the drag and the pick picture's point without the margins).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void MouseMove(int buttons, int x, int y) override;
-    // Rebirth's WideScreen patch reproduced (the pick picture's x without the margin). Nothing while
+    // Rebirth's WideScreen patch reproduced (the pick picture's point without the margins). Nothing while
     // dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
     void LeftDown(int buttons, int x, int y) override;

@@ -351,7 +351,7 @@ UiMesh::Placement UiMesh::GetPlacement() const {
 // 10023151): x moved by the panel offset first (an integer add; 0 outside its panel builders,
 // ui_widescreen.h).
 void UiMesh::Place(float x, float y, float depth) {
-    if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
+    x += static_cast<float>(widescreen::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
     localPosition.x = placedX;
@@ -470,7 +470,7 @@ void UiMesh::SetUvCount(int count) { texCoords.resize(count); }
 
 // The shapes an interface sprite (UiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
-// these reproduce behind the flag. docs/notes/ui.md, section 9.
+// these reproduce for every window. docs/notes/ui.md, section 9.
 
 namespace {
 
@@ -593,8 +593,7 @@ void UiMesh::SetRectangle(float depth, float scale, float left, float top, float
     // The centre in front of the interface camera, as Place puts a layout point.
     float y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
     // WideScreen (addon's handler): both edges moved.
-    float sumX = left + right;
-    if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
+    const float sumX = MovedX(MovedX(left + right));
     float x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
     Vector3 centre;
     localPosition = *centre.Construct(x, y, depth);
@@ -648,7 +647,7 @@ void UiMesh::SetGrid(float depth, float scale, float left, float top, float righ
     }
     // The top left corner in front of the interface camera.
     // WideScreen (addon's handler): the left edge moved.
-    const float gridLeft = widescreen::Active() ? MovedX(left) : left;
+    const float gridLeft = MovedX(left);
     localPosition.x = (gridLeft * 0.0025f - 1.0f) * kViewHalfWidth * depth;
     localPosition.y = (top * 0.0025f - 0.75f) * kViewHalfWidth * depth;
     localPosition.z = depth;
@@ -698,8 +697,7 @@ void UiMesh::SetFrame(float depth, float scale, float left, float top, float rig
     lower.x()[3] = -innerX;
     lower.y()[3] = innerY;
     // WideScreen (addon's handler): both edges moved.
-    float sumX = left + right;
-    if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
+    const float sumX = MovedX(MovedX(left + right));
     localPosition.x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
     localPosition.y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
     localPosition.z = depth;
@@ -739,7 +737,7 @@ void UiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1,
     points.y()[3] = 0.0f;
     float y = (y0 * 0.0025f - 0.75f) * kViewHalfWidth * depth;
     // WideScreen (addon's handler): the first point moved.
-    const float firstX = widescreen::Active() ? MovedX(x0) : x0;
+    const float firstX = MovedX(x0);
     float x = (firstX * 0.0025f - 1.0f) * kViewHalfWidth * depth;
     Vector3 first;
     localPosition = *first.Construct(x, y, depth);

@@ -1,6 +1,6 @@
 // The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
-// reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
+// reproduced for every window (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
 
 #include "text_manager.h"
@@ -100,8 +100,6 @@ constexpr const char* kInfoTextFormat = "infounit_%d";
 constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
 float StripScale() { return 100.0f / 0.48157462f; }
 constexpr int kUnitTravel = 180;
-constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
-constexpr int kWideUnitRight = 52;
 constexpr int kInfoTexts = 18;
 
 constexpr const char* kDefaultPicture = "battle00";
@@ -236,16 +234,14 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     offset = slid ? kUnitTravel : 0;
     slide = slid ? 1.0f : 0.0f;
     slideDirection = slid ? 1.0f : -1.0f;
-    if (widescreen::Active()) {
-        // addon's handler (over the fields' stores): the panel offset, and its own
-        // rectangle and slide state.
-        widescreen::EnterLeftPanel();
-        rect = Rect{kWideUnitLeft, 0, kWideUnitRight, 225};
-        sliding = false;
-    } else {
-        rect = Rect{0, 0, 185, 225};
-        sliding = true;
-    }
+    // The panel offset from here on (addon's handler over the fields' stores) and the original's rectangle moved to the
+    // window's left edge. addon wrote (-133, 0)-(52, 225) and `sliding` 0 whatever the margin: its rectangle is this one
+    // at 16:9 but a unit to the right, and without the first update's slide a panel set up slid out kept its sling
+    // button where it was made, turned the other way.
+    widescreen::EnterLeftPanel();
+    const int shift = widescreen::EdgeShift();
+    rect = Rect{-shift, 0, 185 - shift, 225};
+    sliding = true;
     travel = kUnitTravel;
 
     UiRegion* sling = AddRegion();

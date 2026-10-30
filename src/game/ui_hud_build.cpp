@@ -1,6 +1,6 @@
 // The battle screen's weapon bar, quick items, spell column and action column: the four constructors, the
 // functions that add a slot's sprite and the weapon bar's highlight. Rebirth patches all nine for its
-// WideScreen layout, reproduced behind the flag (ui_widescreen.h): the weapon bar and the action column at
+// WideScreen layout, reproduced for every window (ui_widescreen.h): the weapon bar and the action column at
 // the screen's left edge, the quick items and the spell column at its right (the panel offset while some of
 // them run, layout constants moved by EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and
 // docs/notes/rebirth.md ("WideScreen").

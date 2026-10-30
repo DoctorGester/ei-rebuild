@@ -59,7 +59,7 @@ void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {
 // model, then the screen to 1 again.
 void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, Rect slot) {
     Interface3D* ui = page->ui;
-    ui->ScaleRectToScreenEntry(&slot);
+    ui->ScaleRectToScreen(&slot);
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, &slot, 1);
     page->owner->DrawItem(pass, cell);
@@ -103,7 +103,7 @@ void HeroQuickStrip::Draw(SceneRenderer* pass) {
 void RepairGrid::Draw(SceneRenderer* pass) {
     Interface3D* currentUi = ui;
     Rect grid{200, 100, 600, 500};
-    currentUi->ScaleRectToScreenEntry(&grid);
+    currentUi->ScaleRectToScreen(&grid);
     Rect screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
