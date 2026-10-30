@@ -315,7 +315,9 @@ MIT and links nothing of FFmpeg's); FFmpeg ran only offline as the oracle.
   ffmpeg decodes in float and converts float samples to 16 bits); larger differences only inside the blended frame
   starts of loud passages (ffmpeg blends before clipping), at most 726 samples of a file; ffmpeg gives the
   last transform frame whole (up to one frame more at the end). RGB against ffmpeg's rgb0: within 2 per channel,
-  mean 0.65 (swscale's own rounding).
+  mean 0.65 (swscale's own rounding). A windowed run of the release exe (a run folder of junctions without
+  binkw32 / mss32, Work path / CD-ROM Path `.\`) showed the start-up movies in their colours and reached the menu;
+  the movie's stream was the first sound to reach the device; closed with WM_CLOSE.
 - Harness runs: the output has no device but gives streams, so a movie's sound decodes and its halves wait on the
   game's clock; movies pace on the real-time clock as before. The goldens did not move.
 
