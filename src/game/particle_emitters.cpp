@@ -415,7 +415,7 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
 // 0x2039: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int ParticleSource::UpdateGlow(Particle* p) {
-    if (p->life == -10) p->life = p->frameTimer * 8 / std::ssize(particles) + 7;
+    if (p->life == -10) p->life = p->frameTimer * 8 / lib::Count(particles) + 7;
     if (--p->life < 0) return 0;
     int opacity = std::lround(kGlowAlpha[p->life] * EI_BYTE);
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);

@@ -19,6 +19,7 @@
 #include <string>
 #include "world_glue.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/str.h"
 
 #include <vector>
@@ -42,7 +43,7 @@ void BattleScreen::ToggleMember(int index) {
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*currentParty); ++i) {
         CUnit* member = unitAt(i);
-        lib::SetAtGrow(chosen, std::ssize(chosen), member ? (member->flags & MapObjectFlag::Selected) : 0);
+        lib::SetAtGrow(chosen, lib::Count(chosen), member ? (member->flags & MapObjectFlag::Selected) : 0);
     }
     if (ui->shiftDown) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;

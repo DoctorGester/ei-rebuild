@@ -10,6 +10,7 @@
 #include "unit.h"
 
 #include "lib/bytes.h"
+#include "lib/containers.h"
 
 #include <bit>
 #include <cstring>
@@ -314,7 +315,7 @@ void Behaviour::Read(ByteStream* stream) {
 // The record to a stream (the same fields).
 void Behaviour::Write(ByteStream* stream) const {
     StreamWrite(stream, &type, 4);
-    int n = std::ssize(patrols);
+    int n = lib::Count(patrols);
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < std::ssize(patrols); ++i) {
         const Patrol* p = &patrols[i];

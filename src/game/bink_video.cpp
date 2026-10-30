@@ -28,9 +28,17 @@ std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
+// Whether Bink (binkw32.dll) is loaded with game.exe's imports (src/standalone/image_imports.cpp). The x64 build
+// has none: its movies are skipped as when the movies option is off, the loading screen's does not open.
+bool BinkLoaded() { return gameapi::GetModuleHandleA("binkw32.dll") != nullptr; }
+
+// Movies play: the movies option is on and Bink is loaded.
+bool MoviesOn() { return options::g_options.video && BinkLoaded(); }
+
 // BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
-// Movies\ copy when there is one.
+// Movies\ copy when there is one. Null without Bink.
 BinkHeader* OpenBink(const char* name) {
+    if (!BinkLoaded()) return nullptr;
     if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return gameapi::BinkOpen(modfolders::MovieFile(name).c_str(), 0);
     return gameapi::BinkOpen(name, 0);
 }
@@ -86,7 +94,7 @@ unsigned BinkVideo::Frame() {
 // Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
                bool loadingStep) {
-    if (!options::g_options.video) return true;
+    if (!MoviesOn()) return true;
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
     if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
@@ -172,6 +180,7 @@ void ShowLoadingMovie(int progress) {
     if (g_loadingMovieOff) return;
     g_cursor.ShowImage(0);
     if (!g_loadingBink) {
+        if (!BinkLoaded()) return;
         std::string path = DataFolderText();
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
@@ -216,7 +225,7 @@ void ShowLoadingMovie(int progress) {
 // the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
 char BinkVideo::Open(const char* name, char loadingStep) {
     if (bink) gameapi::BinkClose(bink);
-    if (!options::g_options.video) return 0;
+    if (!MoviesOn()) return 0;
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
     if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
     bink = OpenBink(name);
@@ -246,7 +255,7 @@ char BinkVideo::Open(const char* name, char loadingStep) {
 // --- Closing --------------------------------------------------------------------------------
 
 void CloseLoadingMovie() {
-    gameapi::BinkClose(g_loadingBink);
+    if (BinkLoaded()) gameapi::BinkClose(g_loadingBink);
     g_loadingBink = nullptr;
     g_cursor.ShowImage(1);
 }

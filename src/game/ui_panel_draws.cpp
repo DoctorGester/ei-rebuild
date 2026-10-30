@@ -14,6 +14,7 @@
 #include <string>
 #include "render/render.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
 
@@ -82,7 +83,7 @@ const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
 void HeroQuickStrip::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
     auto* frame = SceneMesh(0);
-    int count = std::ssize(hero->spells);
+    int count = lib::Count(hero->spells);
     if (selected >= 0 && selected < count) {
         frame->visible = true;
         frame->Place(static_cast<float>(selected * 100 + 50), static_cast<float>(y + 50), 3.0f);

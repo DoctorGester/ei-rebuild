@@ -9,6 +9,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -796,7 +797,7 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
     }
     if (record->loop != 0) return;
     // Not a loop: the points again in reverse order.
-    int count = std::ssize(mode->points);
+    int count = lib::Count(mode->points);
     mode->points.reserve(count * 2);
     for (int i = count - 1; i >= 0; --i) mode->points.push_back(mode->points[i]);
 }

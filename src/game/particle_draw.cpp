@@ -7,6 +7,7 @@
 
 #include "engine_object.h"
 
+#include "lib/containers.h"
 #include "lib/intro_sort.h"
 #include "lib/vecmath.h"
 #include "camera.h"
@@ -70,7 +71,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         ParticleDepth entry;
         entry.source = source;
         entry.depth = DotUnrounded<Sum3::ZYX>(axis, *p);
-        lib::SetAtGrow(order, std::ssize(order), entry);
+        lib::SetAtGrow(order, lib::Count(order), entry);
         source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }
 

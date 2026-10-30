@@ -6,6 +6,7 @@
 #include "texture.h"         // TextureDevice
 
 #include "lib/bytes.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -121,7 +122,7 @@ bool LinkMesh::AddPart(const std::string* newName, const VertexPacket* newVertic
     newRanges.normals = {Append(normals, newNormals, normalCount), normalCount};
     newRanges.texCoords = {Append(texCoords, newTexCoords, texCoordCount), texCoordCount};
 
-    int start = std::ssize(corners);
+    int start = lib::Count(corners);
     corners.resize(start + cornerCount);
     std::memcpy(corners.data() + start, newCorners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     newRanges.corners = {start, cornerCount};
@@ -236,8 +237,8 @@ void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string* name, c
 
 int LinkMesh::MemoryBytes() const {
     const int parts = static_cast<int>(ranges.size());
-    const int inner = std::ssize(texCoords) + 8 * (std::ssize(vertices) + std::ssize(normals)) + 6 * parts;
-    return 2 * (std::ssize(indices) + 3 * std::ssize(corners) + 2 * (std::ssize(words) + 0x2C + 2 * inner));
+    const int inner = lib::Count(texCoords) + 8 * (lib::Count(vertices) + lib::Count(normals)) + 6 * parts;
+    return 2 * (lib::Count(indices) + 3 * lib::Count(corners) + 2 * (lib::Count(words) + 0x2C + 2 * inner));
 }
 
 bool LinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* newVertices, unsigned count) {

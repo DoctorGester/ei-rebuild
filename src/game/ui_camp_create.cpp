@@ -22,6 +22,7 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -262,7 +263,7 @@ void CampPages::BuildPages() {
     turning = 0;
     std::vector<PartyUnitRecord*> records;
     CParty* player = LocalPlayerData();
-    const int count = std::ssize(player->members);
+    const int count = lib::Count(player->members);
     for (PartyUnitRecord& record : player->members) {
         record.unitId += kRecordBias;
         if (PrototypeObjectClass(record.texts[5]) == MapObjectType::Hero) records.push_back(&record);

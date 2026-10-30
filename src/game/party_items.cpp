@@ -5,6 +5,7 @@
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 
@@ -15,7 +16,7 @@ bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
 // Appends `item` to `list` (SetSize(count + 1) and store, inlined).
 void Append(std::vector<Item*>& list, Item* item) {
-    int index = std::ssize(list);
+    int index = lib::Count(list);
     list.resize(index + 1);
     list[index] = item;
 }
@@ -87,7 +88,7 @@ Item* CParty::RemoveItem(Item* item, int all) {
 }
 
 void CParty::RemoveQuestItems() {
-    for (int i = std::ssize(items) - 1; i >= 0; --i) {
+    for (int i = lib::Count(items) - 1; i >= 0; --i) {
         Item* item = items[i];
         if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
     }

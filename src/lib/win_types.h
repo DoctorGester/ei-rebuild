@@ -9,6 +9,8 @@
 
 #if defined(_M_IX86) && !defined(_X86_)
 #define _X86_
+#elif defined(_M_X64) && !defined(_AMD64_)
+#define _AMD64_
 #endif
 
 #include <windef.h>

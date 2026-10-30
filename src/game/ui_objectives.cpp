@@ -15,6 +15,7 @@
 #include "world.h"
 #include "world_glue.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
@@ -136,7 +137,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         if (text::CompareIgnoringCase(source.target,
                             "none") == 0)
             continue;
-        int index = std::ssize(exits);
+        int index = lib::Count(exits);
         ObjectiveExit* exit = &exits.emplace_back();
         exit->exit = i;
         exit->x = (source.deploy[2] + source.deploy[0]) * 0.5f;
@@ -357,8 +358,8 @@ void ObjectivesWindow::ShowQuest() {
     MapRecord* map = g_mapDatabase.FindMap(shownZone);
     if (!map) return;
     LoadQuestPlaces(currentQuests[selectedQuest]);
-    while (std::ssize(sceneObjects) > std::ssize(exits) + 0x15) RemoveSceneObjectAt(std::ssize(exits) + 0x15);
-    while (std::ssize(regions) > std::ssize(exits) + 9) RemoveRegionAt(std::ssize(exits) + 9);
+    while (lib::Count(sceneObjects) > lib::Count(exits) + 0x15) RemoveSceneObjectAt(lib::Count(exits) + 0x15);
+    while (lib::Count(regions) > lib::Count(exits) + 9) RemoveRegionAt(lib::Count(exits) + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces.end() - questPlaces.begin()); ++i) {
         float worldWidth = static_cast<float>(map->sizeX << 5);

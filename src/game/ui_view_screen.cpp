@@ -12,6 +12,7 @@
 #include <cstdint>
 #include "world_glue.h"
 #include "game_singletons.h"
+#include "lib/containers.h"
 #include "lib/win_user.h"
 
 #include <vector>
@@ -60,7 +61,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
     CUnit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {
         if (unit) {
-            int n = std::ssize(picked);
+            int n = lib::Count(picked);
             picked.resize(n + 1);
             picked[n] = static_cast<std::uint32_t>(unit->id);
             world->Select(unit);

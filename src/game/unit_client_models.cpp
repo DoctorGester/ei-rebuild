@@ -391,21 +391,20 @@ std::vector<SkinLayer> UnitClientSpecific::BuildSkinLayers(int detailed) {
     return layers;
 }
 
-void* UnitClientSpecific::ComposeSkin(int detailed, void* target) {
+bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
     CTextureManager* textureManager = g_clientWorld.textureManager;
-    void* result;
+    bool result;
     {
         std::string unitKey;
         std::string prototypeKey;
         std::string texture;   // the work string
         SkinRequest request{};
         const std::vector<SkinLayer> layers = BuildSkinLayers(detailed);
-        int bytes = std::ssize(layers) * static_cast<int>(sizeof(SkinLayer));
+        int bytes = lib::Count(layers) * static_cast<int>(sizeof(SkinLayer));
         request.layers.resize(bytes);
         std::memcpy(request.layers.data(), layers.data(), static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
-        result = reinterpret_cast<void*>(
-            textureManager->Compose(static_cast<std::string*>(target), &request, &unitKey, &prototypeKey, 3, 0x5551));
+        result = textureManager->Compose(target, &request, &unitKey, &prototypeKey, 3, 0x5551) != 0;
         lib::FreeStorage(request.layers);
     }
     return result;

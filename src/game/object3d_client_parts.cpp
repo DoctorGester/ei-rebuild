@@ -9,6 +9,7 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -136,7 +137,7 @@ CTexture* Object3DClientSpecific::FindOrAddTexture(int kind) {
         set = new TextureParts();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
-        int count = std::ssize(textures);
+        int count = lib::Count(textures);
         textures.resize(count + 1);
         textures[count] = set->texture;
         set->texture->AddRef();
@@ -176,10 +177,10 @@ Material* Object3DClientSpecific::FindOrAddMaterial(int textureKind, int materia
     group->material = material;
     material->AddRef();
     set = partSets[k];
-    int count = std::ssize(set->groups);
+    int count = lib::Count(set->groups);
     set->groups.resize(count + 1);
     set->groups[count] = group;
-    count = std::ssize(materials);
+    count = lib::Count(materials);
     materials.resize(count + 1);
     materials[count] = group->material;
     group->material->AddRef();
@@ -207,7 +208,7 @@ int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
         if (!group->material || group->material->type != materialKind) continue;
         for (int i = 0; i < std::ssize(group->parts); ++i)
             if (group->parts[i] == part) return 1;
-        int count = std::ssize(group->parts);
+        int count = lib::Count(group->parts);
         group->parts.resize(count + 1);
         group->parts[count] = part;
         part->AddRef();

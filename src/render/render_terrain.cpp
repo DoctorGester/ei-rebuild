@@ -6,6 +6,7 @@
 #include "render.h"
 #include "render_internal.h"
 
+#include "lib/containers.h"
 #include "lib/float_select.h"
 
 #include <algorithm>
@@ -165,18 +166,18 @@ struct PageSource {
 PageSource SourceOf(const SectorData* s, int page) {
     PageSource src;
     src.records = s->records.data();
-    src.recordCount = std::ssize(s->records);
+    src.recordCount = lib::Count(s->records);
     src.positions = s->vertices.data();
-    src.positionCount = std::ssize(s->vertices);
+    src.positionCount = lib::Count(s->vertices);
     for (int q = 0; q < 4; ++q) {
         if (page < std::ssize(s->tiles[q])) {
             src.lists[q] = s->tiles[q][page].data();
-            src.listSizes[q] = std::ssize(s->tiles[q][page]);
+            src.listSizes[q] = lib::Count(s->tiles[q][page]);
         }
         if (page < std::ssize(s->tileFlags[q])) src.edges[q] = s->tileFlags[q][page].data();
     }
     src.animated = s->animated.data();
-    src.animatedCount = std::ssize(s->animated);
+    src.animatedCount = lib::Count(s->animated);
     auto it = g_changes.find(s);
     if (it != g_changes.end()) src.changes = it->second;
     return src;
@@ -320,7 +321,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         const auto& lists = s->tiles[quarter];
         if (page < std::ssize(lists) && !lists[page].empty()) {
             const std::vector<terrain::TileVertex>& list = lists[page];
-            int tiles = std::ssize(list) / 9;
+            int tiles = lib::Count(list) / 9;
             const std::uint8_t* edges = nullptr;
             if (seams && page < std::ssize(s->tileFlags[quarter]))
                 edges = s->tileFlags[quarter][page].data();

@@ -9,6 +9,7 @@
 #include "render/render.h"
 
 #include "lib/bytes.h"
+#include "lib/containers.h"
 #include "lib/float_select.h"
 
 #include <cstring>
@@ -135,7 +136,7 @@ void LoadOldCommon(FigureMesh* mesh, char** cursor) {
     int count = ReadCount(cursor);
     mesh->vertices.resize(count);
     LoadVertices(mesh->vertices, cursor, kOldVersions);
-    if (!mesh->vertices.empty()) bounds.Fit(mesh->vertices.data(), std::ssize(mesh->vertices));
+    if (!mesh->vertices.empty()) bounds.Fit(mesh->vertices.data(), lib::Count(mesh->vertices));
 
     count = ReadCount(cursor);
     mesh->normals.resize(count);
@@ -250,7 +251,7 @@ void PlainFigureMesh::LoadFig(char** cursor) {
 
     vertices.resize(header.vertexCount);
     LoadVertices(vertices, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
-    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), lib::Count(vertices));
 
     normals.resize(header.normalCount);
     colorsA.resize(header.normalCount * 4);
@@ -266,18 +267,18 @@ void PlainFigureMesh::LoadFig(char** cursor) {
 
     BuffersChanged();
     buffers.vertices = vertices.data();
-    buffers.vertexCount = std::ssize(vertices);
+    buffers.vertexCount = lib::Count(vertices);
     buffers.normals = normals.data();
-    buffers.normalCount = std::ssize(normals);
+    buffers.normalCount = lib::Count(normals);
     colorsA.resize(std::ssize(normals) * 4);
     colorsB.resize(std::ssize(normals) * 4);
     buffers.texCoords = texCoords.data();
-    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.texCoordCount = lib::Count(texCoords);
     buffers.indices = indices.data();
-    buffers.indexCount = std::ssize(indices);
+    buffers.indexCount = lib::Count(indices);
     buffers.corners = corners.data();
-    buffers.cornerCount = std::ssize(corners);
-    buffers.wordCount = std::ssize(words);
+    buffers.cornerCount = lib::Count(corners);
+    buffers.wordCount = lib::Count(words);
     buffers.words = words.data();
     flags |= FigureMeshFlag::Loaded;
 }
@@ -293,7 +294,7 @@ void SharedFigureMesh::LoadFig(char** cursor) {
 
     vertices.resize(header.vertexCount);
     LoadVertices(vertices, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
-    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), lib::Count(vertices));
 
     normals.resize(header.normalCount);
     colorsA.resize(header.normalCount * 4);
@@ -314,9 +315,9 @@ void SharedFigureMesh::LoadFig(char** cursor) {
 
     BuffersChanged();
     buffers.vertices = vertices.data();
-    buffers.vertexCount = std::ssize(vertices);
+    buffers.vertexCount = lib::Count(vertices);
     buffers.normals = normals.data();
-    buffers.normalCount = std::ssize(normals);
+    buffers.normalCount = lib::Count(normals);
     colorsA.resize(std::ssize(normals) * 4);
     colorsB.resize(std::ssize(normals) * 4);
     flags |= FigureMeshFlag::Loaded;
@@ -335,18 +336,18 @@ void PlainFigureMesh::LoadOld(char** cursor) {
 
     BuffersChanged();
     buffers.vertices = vertices.data();
-    buffers.vertexCount = std::ssize(vertices);
+    buffers.vertexCount = lib::Count(vertices);
     buffers.normals = normals.data();
-    buffers.normalCount = std::ssize(normals);
+    buffers.normalCount = lib::Count(normals);
     colorsA.resize(std::ssize(normals) * 4);
     colorsB.resize(std::ssize(normals) * 4);
     buffers.texCoords = texCoords.data();
-    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.texCoordCount = lib::Count(texCoords);
     buffers.corners = corners.data();
-    buffers.cornerCount = std::ssize(corners);
+    buffers.cornerCount = lib::Count(corners);
     buffers.words = words.data();
-    buffers.wordCount = std::ssize(words);
-    buffers.indexCount = std::ssize(indices);
+    buffers.wordCount = lib::Count(words);
+    buffers.indexCount = lib::Count(indices);
     buffers.indices = indices.data();
     flags |= FigureMeshFlag::Loaded;
 }
@@ -367,9 +368,9 @@ void SharedFigureMesh::LoadOld(char** cursor) {
 
     BuffersChanged();
     buffers.vertices = vertices.data();
-    buffers.vertexCount = std::ssize(vertices);
+    buffers.vertexCount = lib::Count(vertices);
     buffers.normals = normals.data();
-    buffers.normalCount = std::ssize(normals);
+    buffers.normalCount = lib::Count(normals);
     colorsA.resize(std::ssize(normals) * 4);
     colorsB.resize(std::ssize(normals) * 4);
     flags |= FigureMeshFlag::Loaded;
@@ -410,7 +411,7 @@ void PlainFigureMesh::MirrorX() {
 }
 
 void FigureMesh::FitVertexBounds() {
-    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), lib::Count(vertices));
 }
 
 void PlainFigureMesh::MirrorY() {
@@ -423,19 +424,19 @@ void PlainFigureMesh::MirrorY() {
 void PlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
     buffers.vertices = vertices.data();
-    buffers.vertexCount = std::ssize(vertices);
+    buffers.vertexCount = lib::Count(vertices);
     buffers.normals = normals.data();
-    buffers.normalCount = std::ssize(normals);
+    buffers.normalCount = lib::Count(normals);
     colorsA.resize(std::ssize(normals) * 4);
     colorsB.resize(std::ssize(normals) * 4);
     buffers.texCoords = texCoords.data();
-    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.texCoordCount = lib::Count(texCoords);
     buffers.corners = corners.data();
-    buffers.cornerCount = std::ssize(corners);
+    buffers.cornerCount = lib::Count(corners);
     buffers.words = words.data();
-    buffers.wordCount = std::ssize(words);
+    buffers.wordCount = lib::Count(words);
     buffers.indices = indices.data();
-    buffers.indexCount = std::ssize(indices);
+    buffers.indexCount = lib::Count(indices);
 }
 
 void FigureMesh::SetOffsets(const OffsetSpan* newOffsets) {

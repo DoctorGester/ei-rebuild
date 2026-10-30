@@ -7,6 +7,7 @@
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "lib/containers.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -42,15 +43,15 @@ void ObjectSetSortUnique(std::vector<EngineObject*>* self) {
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
 void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>* current, std::vector<EngineObject*>* added, std::vector<EngineObject*>* gone, std::vector<EngineObject*>* same) {
     ObjectSetSortUnique(current);
-    int most = std::ssize(*current) > std::ssize(*sent) ? std::ssize(*current) : std::ssize(*sent);
+    int most = lib::Count(*current) > lib::Count(*sent) ? lib::Count(*current) : lib::Count(*sent);
     added->resize(most);
     gone->resize(most);
     same->resize(most);
 
     EngineObject* const* s = sent->data();
     EngineObject* const* c = current->data();
-    int sentLeft = std::ssize(*sent);
-    int currentLeft = std::ssize(*current);
+    int sentLeft = lib::Count(*sent);
+    int currentLeft = lib::Count(*current);
     int addedCount = 0, goneCount = 0, sameCount = 0;
     bool changed = false;
     while (sentLeft != 0 && currentLeft != 0) {

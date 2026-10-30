@@ -31,6 +31,7 @@
 #include "world_glue.h"
 
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "bink_video.h"
@@ -628,7 +629,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::RemoveQuestItem: {   // RemoveQuestItem(unit, id): the first quest item with the id
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            int count = std::ssize(unit->carried);
+            int count = lib::Count(unit->carried);
             int id = Truncate(f[0]);
             for (int i = 0; i < count; ++i) {
                 ItemQuest* item = AsQuest(unit->carried[i]);

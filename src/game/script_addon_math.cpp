@@ -8,6 +8,7 @@
 #include "script_addon_handlers.h"
 
 #include "random.h"
+#include "lib/containers.h"
 
 #include <algorithm>
 #include <cmath>
@@ -19,7 +20,7 @@ namespace scriptaddon {
 namespace {
 
 float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
-int FloatCount(Call* call) { return std::ssize(call->cmd->floatArgs); }
+int FloatCount(Call* call) { return lib::Count(call->cmd->floatArgs); }
 
 double CrtSin(double x) { return std::sin(x); }
 double CrtCos(double x) { return std::cos(x); }

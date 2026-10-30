@@ -556,7 +556,6 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         return timed(particle);
     }
     default:
-        // The argument slot is returned untouched: the message's address.
-        return reinterpret_cast<int>(message);
+        return -1;
     }
 }

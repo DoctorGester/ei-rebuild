@@ -14,6 +14,7 @@
 #include "unit.h"
 #include "world_data.h"
 
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "lib/crt.h"
 #include <cstdint>
@@ -147,7 +148,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         middleX += static_cast<int>(age * 120.0f);
         middleY += static_cast<int>(age * -100.0f);
         text = str::Format(game::DecimalFormat(), point.amount);
-        int length = text.size();
+        int length = lib::Count(text);
         // The box: the digits, at least a label row wide when there are labels; 12 pixels high
         // (22 with the first label row), 10 more for each other one.
         int boxWidth = length * static_cast<int>(kDigitWidth);

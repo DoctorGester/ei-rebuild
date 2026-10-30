@@ -67,7 +67,7 @@ bool UiRegion::HitTest(int x, int y) const {
     if (rectOnly) return true;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
     // bits like the original's.
-    int count = std::ssize(points);
+    int count = lib::Count(points);
     for (int i = 0; i < count;) {
         const UiPoint& a = points[i];
         ++i;
@@ -112,7 +112,7 @@ void UiRegion::AddPoint(int x, int y) {
         if (x > bounds.right) bounds.right = x;
         if (y > bounds.bottom) bounds.bottom = y;
     }
-    int index = std::ssize(points);
+    int index = lib::Count(points);
     points.resize(index + 1);
     points[index].x = x;
     points[index].y = y;
@@ -269,7 +269,7 @@ CTexture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
 CTexture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
     CTexture* texture = g_clientWorld.textureManager->NewTexture(width, height, kind);
     if (!texture) return nullptr;
-    int index = std::ssize(objects);
+    int index = lib::Count(objects);
     objects.resize(index + 1);
     objects[index] = texture;
     texture->flags |= TextureFlag::Keep;
@@ -361,7 +361,7 @@ UiMesh* UiWindow::AddSceneObject(FigureMesh* object) {
     bool listed = false;
     for (int i = 0; i < std::ssize(sceneObjects) && !listed; ++i) listed = sceneObjects[i] == object;
     if (!listed) {
-        lib::SetAtGrow(sceneObjects, std::ssize(sceneObjects), object);
+        lib::SetAtGrow(sceneObjects, lib::Count(sceneObjects), object);
         object->AddRef();
         object->SetObject(this);
     }

@@ -2,6 +2,7 @@
 // a run of {a, b} pairs ended by a = 100. The last list appends through its Add, the others through SetSize.
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 #include <vector>
@@ -39,7 +40,7 @@ void FillAreaLists(AIMap* map) {
                 list->push_back(pair);
                 continue;
             }
-            int n = std::ssize(*list);
+            int n = lib::Count(*list);
             list->resize(n + 1);
             (*list)[n].dx = pair.dx;
             (*list)[n].dy = pair.dy;

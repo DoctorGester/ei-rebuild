@@ -123,8 +123,9 @@ public:
 
     // Composes the unit's skin texture through the texture manager from the skin layers and the textures
     // "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp", named "mo<id>p" /
-    // "prot<prototype>p" (shorter when not `detailed`). Returns the texture.
-    void* ComposeSkin(int detailed, void* target);
+    // "prot<prototype>p" (shorter when not `detailed`), the name into `target`. True when the texture was made of
+    // these layers already or is now (CTextureManager::Compose's result).
+    bool ComposeSkin(int detailed, std::string* target);
 
     // The point the weapon in hand acts from: the node named by the weapon's model ("baserh3" without one) in the
     // unit's figure animation, copied to `out` (relative to the unit, not turned by its orientation). False when the

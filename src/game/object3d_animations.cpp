@@ -4,6 +4,7 @@
 #include "map_object_figures.h"
 #include "random.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <vector>
@@ -32,7 +33,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key, AnimationRandom r
         if (AcceptsAnimation(entry)) candidates.push_back(entry);
     }
     FigureAnimation** list = candidates.data();
-    int count = std::ssize(candidates);
+    int count = lib::Count(candidates);
     if (count < 2) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
         return only;
@@ -58,13 +59,13 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key, AnimationRa
         FigureAnimation* entry = &animations->animations[i];
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
         if (!AcceptsAnimation(entry)) continue;
-        int index = std::ssize(candidates);
+        int index = lib::Count(candidates);
         candidates.resize(index + 1);
         candidates[index] = entry;
     }
     if (candidates.empty()) {
         return nullptr;
     }
-    FigureAnimation* picked = candidates[RandomBelow(random, std::ssize(candidates))];
+    FigureAnimation* picked = candidates[RandomBelow(random, lib::Count(candidates))];
     return picked;
 }

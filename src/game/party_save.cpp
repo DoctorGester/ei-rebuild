@@ -11,6 +11,7 @@
 #include "spell.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "save_versions.h"
 
@@ -154,7 +155,7 @@ void CParty::SaveParty(ByteStream* stream, int saveVariables) {
     itemManager->SaveObjects(stream);
     spellManager->SaveObjects(stream);
     WriteItemIds(stream, items);
-    int records = std::ssize(members);
+    int records = lib::Count(members);
     stream->WriteValue(records);
     for (int i = 0; i < records; ++i) members[i].Save(stream);
     if (saveVariables != 0) variables.Save(stream);

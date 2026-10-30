@@ -17,6 +17,7 @@
 #include "world_glue.h"
 
 #include "lib/calendar.h"
+#include "lib/containers.h"
 #include "lib/file_io.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
@@ -282,7 +283,7 @@ void Give(std::vector<std::string>* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
-        int count = std::ssize(player->Party()->members);
+        int count = lib::Count(player->Party()->members);
         // The typed number over the count, rounded once to a float (the original's division at 24-bit precision).
         const float share = pc24::Div(str::ToDouble((*args)[2]), count);
         for (int i = 0; i < count; ++i)

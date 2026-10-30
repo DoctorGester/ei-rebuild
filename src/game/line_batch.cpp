@@ -4,6 +4,7 @@
 #include "figure_mesh.h"   // VertexPacket
 #include "model.h"
 #include "renderer_lines.h"
+#include "lib/containers.h"
 
 #include <vector>
 
@@ -28,9 +29,9 @@ int LineBatch::Draw(TransformPipeline* pipeline, TextureDevice* device) {
     projected.resize(std::ssize(packets) * 4);
     g_lineOutcodes.resize(std::ssize(packets) * 4);
     int visibility = pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), packets.data(),
-                                              projected.data(), g_lineOutcodes.data(), std::ssize(packets));
+                                              projected.data(), g_lineOutcodes.data(), lib::Count(packets));
     if (visibility == 0) {
-        const ProjectedPoints points{projected.data(), std::ssize(projected)};
+        const ProjectedPoints points{projected.data(), static_cast<int>(lib::Count(projected))};
         DeviceDrawLineStrip(device, &points, colour);
     }
     return 1;

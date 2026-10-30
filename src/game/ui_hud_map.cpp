@@ -13,6 +13,7 @@
 #include "unit.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
 #include "lib/str.h"
@@ -224,13 +225,13 @@ bool Crosses(float prev, float cur, float edge) {
 // inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
 void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
-    int count = std::ssize(points);
+    int count = lib::Count(points);
     for (int i = 0; i < count; ++i) {
         UiPointF cur = points[i];
         UiPointF prev = points[i == 0 ? count - 1 : i - 1];
         UiPointF cross;
         if (!cut(prev, cur, &cross)) continue;
-        int size = std::ssize(points);
+        int size = lib::Count(points);
         if (i < size) {
             points.resize(size + 1);
             std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
@@ -243,7 +244,7 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     }
     for (int i = 0; i < count; ++i) {
         if (!outside(points[i])) continue;
-        int tail = std::ssize(points) - i - 1;
+        int tail = lib::Count(points) - i - 1;
         if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
         points.pop_back();
         --i;
@@ -265,12 +266,12 @@ void HudMap::BuildMarkers() {
     // The local view: the ids of the units shown on the map (partyUnitIds) and, in multiplayer, of the other
     // players' units (otherUnitIds).
     PlayerClient* localView = g_clientWorld.LocalView();
-    int unitCount = localView ? std::ssize(localView->partyUnitIds) : 0;
+    int unitCount = localView ? lib::Count(localView->partyUnitIds) : 0;
     LightFactory* markers = g_clientWorld.lightFactory;
     const std::vector<int>& marked = markers->litIds;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits));
-    int playerCount = IsMultiplayerClient() ? std::ssize(localView->otherUnitIds) : 0;
+    int playerCount = IsMultiplayerClient() ? lib::Count(localView->otherUnitIds) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
     mesh->SetQuadCount(quads + unitCount);
@@ -382,7 +383,7 @@ void HudMap::UpdateView() {
 
     auto* area = SceneMesh(1);
     std::vector<UiPointF>& points = visibleArea;
-    int count = std::ssize(viewPolygon);
+    int count = lib::Count(viewPolygon);
     points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
         const UiPointF& v = viewPolygon[i];
@@ -435,7 +436,7 @@ void HudMap::UpdateView() {
              [height](const UiPointF& v) { return v.y > height; });
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
-    count = std::ssize(points);
+    count = lib::Count(points);
     area->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
         area->corners[i].position = static_cast<std::uint16_t>(i);
@@ -462,7 +463,7 @@ void HudMap::UpdateView() {
         ++quads;
         UiPointF first = points[0];
         for (int k = 4 - count % 4; k > 0; --k) {
-            int size = std::ssize(points);
+            int size = lib::Count(points);
             points.resize(size + 1);
             points[size] = first;
         }

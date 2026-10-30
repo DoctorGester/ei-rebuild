@@ -30,7 +30,7 @@ namespace {
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside.
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
-    int count = std::ssize(trap->area);
+    int count = lib::Count(trap->area);
     const TrapCircle* circle = trap->area.data();
     float x = unit->localPosition.x;
     float y = unit->localPosition.y;
@@ -172,13 +172,13 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
     SaveMapObject(stream);
     std::int32_t value = spell ? spell->id : -1;
     stream->WriteValue(value);
-    value = std::ssize(area);
+    value = lib::Count(area);
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
-    value = std::ssize(inside);
+    value = lib::Count(inside);
     stream->WriteValue(value);
     for (CUnit* unit : inside) SaveRef(unit, stream);
-    value = std::ssize(points);
+    value = lib::Count(points);
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {

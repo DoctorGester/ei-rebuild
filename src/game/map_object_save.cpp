@@ -5,6 +5,7 @@
 #include "core_streams.h"
 #include "unit.h"
 #include "save_versions.h"
+#include "lib/containers.h"
 
 #include <cstring>
 #include <memory>
@@ -44,7 +45,7 @@ void CMapObject::SaveMapObject(ByteStream* stream) {
     stream->WriteValue(localRotation);
     stream->WriteString(name);
     stream->WriteValue(scale);
-    int count = std::ssize(effects);
+    int count = lib::Count(effects);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Save(stream);
     std::uint32_t currentFlags = flags;

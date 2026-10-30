@@ -21,6 +21,7 @@
 #include "world.h"
 
 #include "asset_text.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
@@ -68,7 +69,7 @@ void ReadUnits(MemoryStream& in, std::vector<CUnit*>* units) {
         int id = 0;
         in.ReadValue(id);
         CUnit* unit = g_serverWorld.FindUnit(id);
-        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
+        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, lib::Count(*units), unit);
     }
 }
 
@@ -211,7 +212,7 @@ int PlayerServer::OnUseOrder() {
         int objectId = 0;
         in.ReadValue(objectId);
         CUnit* unit = g_serverWorld.FindUnit(objectId);
-        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, std::ssize(units), unit);
+        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, lib::Count(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;
     int skillWord = 0;
@@ -285,7 +286,7 @@ int PlayerServer::OnUseOrder() {
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
 void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets) {
-    int count = std::ssize(*units);
+    int count = lib::Count(*units);
     if (count < 1) return;
     if (count == 1) {
         offsets->resize(1);

@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
@@ -82,7 +83,7 @@ void SampleCurve(LightningSegment* segment, const NoiseKey* keys, const float* b
     rows[7] = fresh.index[1] + 16;
     rows[6] = fresh.index[0] + 16;
     for (int j = 0; j < 8; ++j) weights[j] = blend[j] * weights[j];
-    int count = std::ssize(segment->points);
+    int count = lib::Count(segment->points);
     const float* table = g_lightningNoise[0];
     for (int p = 0; p < count; ++p) {
         float sum = 0.0f;
@@ -140,7 +141,7 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
 }
 
 void LightningSegment::Animate(float time, float amplitude) {
-    int count = std::ssize(points);
+    int count = lib::Count(points);
     float* sideNoise = g_noiseSide;
     float* upNoise = g_noiseUp;
     SampleNoise(time, sideNoise, upNoise, amplitude);
@@ -304,7 +305,7 @@ void Lightning::Animate() {
             float targetZ = wz + uz;
 
             int index = std::lround((1.0f - branchPos[i]) * std::ssize(main.points));
-            int last = std::ssize(main.points) - 1;
+            int last = lib::Count(main.points) - 1;
             if (index >= last) index = last;
             const LightningPoint& origin = main.points[index];
             branch.start.x = origin.x;

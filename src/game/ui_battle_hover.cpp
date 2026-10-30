@@ -9,6 +9,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
+#include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include <bit>
 #include <cstdint>
@@ -73,7 +74,7 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         panel->hoverUnit = nullptr;
     }
 
-    int count = std::ssize(party);
+    int count = lib::Count(party);
     if (count <= 0) return;
     CUnit* first = nullptr;
     int selected = 0;

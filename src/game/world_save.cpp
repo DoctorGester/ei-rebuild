@@ -32,6 +32,7 @@
 #include "world_effect.h"
 #include "world_map_files.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/file_io.h"
 #include "lib/pc24.h"
@@ -74,7 +75,7 @@ void RelocateStrandedUnits(WorldServer* world) {
         if (!unit) continue;
         if (world->aiMap.CanLeaveCell(unit)) continue;
         int id = unit->id;
-        int index = std::ssize(stranded);
+        int index = lib::Count(stranded);
         stranded.resize(index + 1);
         stranded[index] = id;
     }

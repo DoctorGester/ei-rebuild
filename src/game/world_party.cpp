@@ -73,7 +73,7 @@ void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item
         CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int objectId = object->KeyId();
-        if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, std::ssize(wanted), objectId);
+        if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, lib::Count(wanted), objectId);
     }
 
     // Quest items move from the array to the list: in single player only those whose
@@ -128,7 +128,7 @@ void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placemen
     CParty* party = player->Party();
     std::vector<PartyUnitRecord*> records{};
     for (int i = 0; i < std::ssize(party->members); ++i) {
-        int index = std::ssize(records);
+        int index = lib::Count(records);
         records.resize(index + 1);
         records[index] = &party->members[i];
     }

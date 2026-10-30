@@ -12,6 +12,7 @@
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
@@ -45,7 +46,7 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
         animation->SetModel(model);
         animation->Play(nullptr);
         animation->UpdatePose();
-        int count = std::ssize(animation->bones);
+        int count = lib::Count(animation->bones);
         partBoxes.resize(count);   // new boxes are all zero; the old ones are kept
         partNames.resize(animation->bones.size());
 

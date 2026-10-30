@@ -13,6 +13,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/containers.h"
 #include "lib/text_case.h"
 
 #include "game_singletons.h"
@@ -112,14 +113,14 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(armour.begin()[i]);
         Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->armor, std::ssize(record->armor), copy);
+        lib::SetAtGrow(record->armor, lib::Count(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
         Item* item = ItemFactory()->CreateItem(*weapon);
         Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
+        lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
         Drop(item);
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
@@ -128,7 +129,7 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         Item* copy = CountedClone(spell);
         std::vector<Item*>& list = record->spells;
-        int index = std::ssize(list);
+        int index = lib::Count(list);
         list.resize(index + 1);
         list[index] = copy;
         Drop(spell);
@@ -158,14 +159,14 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
         Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->quickItems, std::ssize(record->quickItems), copy);
+        lib::SetAtGrow(record->quickItems, lib::Count(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
         Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
+        lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
         Drop(item);
     }
     money += npc->startMoney;

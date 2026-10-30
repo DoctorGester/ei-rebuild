@@ -182,7 +182,7 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
         v->specular = 0xFF000000;
     }
     StripAt(0)->color = 0x00FFFFFF;
-    StripAt(std::ssize(g_projected) - 1)->color = 0x00FFFFFF;
+    StripAt(lib::Count(g_projected) - 1)->color = 0x00FFFFFF;
 
     int count = 0;
     TLVertex* ribbon = g_ribbon.data();
@@ -200,7 +200,7 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
             AddQuad(count, true);
         }
     } else {
-        currentPipeline->ToScreen(g_strip.data(), std::ssize(g_strip));
+        currentPipeline->ToScreen(g_strip.data(), lib::Count(g_strip));
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             const std::uint8_t* clipFlags = g_clipped.data();
@@ -229,8 +229,8 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
     const render::Blend savedDest = state.destBlend;
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::One;
-    int result = device->DrawTlTriangles(g_ribbon.data(), std::ssize(g_ribbon),
-                                 g_indices.data(), std::ssize(g_indices));
+    int result = device->DrawTlTriangles(g_ribbon.data(), lib::Count(g_ribbon),
+                                 g_indices.data(), lib::Count(g_indices));
     state.sourceBlend = savedSource;
     state.destBlend = savedDest;
     return result;

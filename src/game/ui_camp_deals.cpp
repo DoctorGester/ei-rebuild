@@ -13,6 +13,7 @@
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 #include <optional>
@@ -107,7 +108,7 @@ void StockSpells(CampPages* camp, CParty* list) {
 // loot priced by itself (LootKind::Self) leaves the list.
 void StockItems(CampPages* camp, CParty* list) {
     ItemStock* stock = &camp->constructor->allowed;
-    for (int i = std::ssize(list->items) - 1; i >= 0; --i) {
+    for (int i = lib::Count(list->items) - 1; i >= 0; --i) {
         Item* item = list->items[i];
         item->Repair();
         std::optional<LootRecordType> kind;

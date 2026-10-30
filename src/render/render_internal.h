@@ -832,8 +832,8 @@ void DestroyTextures();
 // by RemakeComposed.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
-// Puts the x87 control word back after calls into the driver (the game's main thread runs at 24-bit
-// precision, docs/notes/rebirth.md).
+// Puts the floating-point control state back after calls into the driver: the x87 control word on 32-bit (the
+// game's main thread runs at 24-bit precision, docs/notes/rebirth.md), the SSE control and status word (MXCSR) on x64.
 class FpuGuard {
 public:
     FpuGuard();

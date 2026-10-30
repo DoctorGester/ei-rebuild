@@ -3,6 +3,7 @@
 // are built on first use. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
+#include "lib/containers.h"
 #include "lib/rounding.h"
 
 #include <algorithm>
@@ -114,7 +115,7 @@ int PathSmoother::Smooth(CUnit* unit, AIMap* mapArg, PathCells* path, int startD
     SmoothPool& pool = g_smoothPool;
     for (;;) {
         SmoothState first[kStates], second[kStates];
-        pool.SetSize((std::ssize(*path) + 5) * 10);
+        pool.SetSize((lib::Count(*path) + 5) * 10);
         pool.zeroed = 0;
         for (SmoothState& s : first) s = SmoothState{0, nullptr};
         pool.next = pool.nodes.data();

@@ -47,11 +47,13 @@ template <class R, class... P, class... A>
 void Call(R(*fn)(P...), A... args) {
     fn(Argument<P>(args)...);
 }
-// An import by its name (gameapi::), called through its slot.
+#if defined(_M_IX86)
+// An import by its name (gameapi::), called through its slot. (On x64 __stdcall is the one convention: the first.)
 template <class R, class... P, class... A>
 void Call(R(__stdcall* fn)(P...), A... args) {
     fn(Argument<P>(args)...);
 }
+#endif
 // A method by its name, on the object the original called it on.
 template <class R, class C, class... P, class O, class... A>
 void Call(R (C::*method)(P...), O object, A... args) {

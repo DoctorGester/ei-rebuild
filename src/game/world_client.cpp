@@ -25,6 +25,7 @@
 #include "world_data.h"
 #include "world_effect.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
@@ -259,7 +260,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
             result = 0;
             continue;
         }
-        const int last = std::ssize(*inExit);
+        const int last = lib::Count(*inExit);
         inExit->resize(last + 1);
         (*inExit)[last] = record;
     }
@@ -278,7 +279,7 @@ void WorldClient::SummonBird() {
 void WorldClient::OnQuestVariable(std::string_view variable, float value) {
     const char* dot = DotText();
     std::string name(variable);
-    const int length = name.size();
+    const int length = lib::Count(name);
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
     name = str::Right(name, length - second - 1);
     for (CMapObject* object : objects) {

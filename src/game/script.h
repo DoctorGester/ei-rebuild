@@ -765,7 +765,9 @@ struct ScriptKeyword {
     const char* function;   // functions: result and parameter types, else null
     const char* command;    // commands: parameter types, else null
 };
-static_assert(sizeof(ScriptKeyword) == 16);
+#if defined(_M_IX86)
+static_assert(sizeof(ScriptKeyword) == 16);   // game.exe's table (tests/vectors/record_script.cpp reads it)
+#endif
 // 225 keywords and the null entry; the loader reads it through KeywordTable().
 extern const ScriptKeyword kScriptKeywords[226];
 

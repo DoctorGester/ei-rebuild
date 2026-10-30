@@ -37,11 +37,11 @@ void SetVertex(UiMesh* mesh, int index, int position, int uv) {
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
 void AppendBySize(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) {
-    int at = std::ssize(mesh->indices);
+    int at = lib::Count(mesh->indices);
     indices->resize(at + 1);
     mesh->indices[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices), static_cast<std::uint16_t>(value)); }
+void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) { lib::SetAtGrow(*indices, lib::Count(mesh->indices), static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {

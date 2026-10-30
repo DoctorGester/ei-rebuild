@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <string>
+#include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -82,10 +83,10 @@ void UiEditField::KeyDown(int key, int, int) {
         // The first edit key of a field keeps the text, the caret at its end.
         if (!editing) {
             editing = true;
-            caret = currentText.size();
+            caret = lib::Count(currentText);
         }
         if (key == kKeyEnd)
-            caret = currentText.size();
+            caret = lib::Count(currentText);
         else if (key == kKeyHome)
             caret = 0;
         else if (key == kKeyLeft)
@@ -158,7 +159,7 @@ void UiEditField::SetText(std::string_view newText) {
     editing = false;
     text = newText;
     changed = true;
-    caret = text.size();
+    caret = lib::Count(text);
     DrawContentsVanilla();
 }
 
@@ -168,7 +169,7 @@ void UiEditField::SetFocused(bool newFocused) { focused = newFocused; }
 
 void UiEditField::DrawContentsVanilla() {
     auto& currentText = text;
-    if (caret > static_cast<int>(currentText.size())) caret = currentText.size();
+    if (caret > static_cast<int>(currentText.size())) caret = lib::Count(currentText);
     if (caret < 0) caret = 0;
     UiSurface* surface = surfaces[0];
     if (!surface->holder) return;

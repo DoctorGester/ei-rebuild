@@ -53,7 +53,8 @@ void WriteModules(FILE* f, std::vector<HMODULE>& known) {
         char path[MAX_PATH] = {};
         GetModuleInformation(GetCurrentProcess(), modules[i], &info, sizeof info);
         GetModuleFileNameA(modules[i], path, MAX_PATH);
-        std::fprintf(f, "M %08X %08X %s\n", unsigned(reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll)), unsigned(info.SizeOfImage), path);
+        std::fprintf(f, "M %08llX %08X %s\n", static_cast<unsigned long long>(reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll)),
+                     unsigned(info.SizeOfImage), path);
     }
 }
 
@@ -71,7 +72,7 @@ DWORD WINAPI Sampler(void*) {
     std::fprintf(f, "T %02d:%02d:%02d.%03d\n", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
     std::vector<HMODULE> known;
     WriteModules(f, known);
-    std::vector<std::uint32_t> stack(16384);
+    std::vector<std::uintptr_t> stack(16384);
     for (unsigned sample = 1;; ++sample) {
         Sleep(1);
         if (SuspendThread(g_main) == DWORD(-1)) break;
@@ -81,18 +82,24 @@ DWORD WINAPI Sampler(void*) {
             ResumeThread(g_main);
             break;
         }
+#if defined(_M_X64)
+        const std::uintptr_t sp = context.Rsp, ip = context.Rip;
+#else
+        const std::uintptr_t sp = context.Esp, ip = context.Eip;
+#endif
         std::size_t words = 0;
-        if (context.Esp < g_stackBase) {
-            words = std::min<std::size_t>((g_stackBase - context.Esp) / 4, stack.size());
-            std::memcpy(stack.data(), reinterpret_cast<const void*>(context.Esp), words * 4);
+        if (sp < g_stackBase) {
+            words = std::min<std::size_t>((g_stackBase - sp) / sizeof(std::uintptr_t), stack.size());
+            std::memcpy(stack.data(), reinterpret_cast<const void*>(sp), words * sizeof(std::uintptr_t));
         }
         ResumeThread(g_main);
         QueryPerformanceCounter(&now);
-        std::fprintf(f, "S %.2f %08X", double(now.QuadPart - start.QuadPart) * 1000.0 / double(frequency.QuadPart), unsigned(context.Eip));
+        std::fprintf(f, "S %.2f %08llX", double(now.QuadPart - start.QuadPart) * 1000.0 / double(frequency.QuadPart),
+                     static_cast<unsigned long long>(ip));
         int callers = 0;
         for (std::size_t i = 0; i < words && callers < 96; ++i)
             if (InCode(stack[i]) && AfterCall(stack[i])) {
-                std::fprintf(f, " %X", unsigned(stack[i]));
+                std::fprintf(f, " %llX", static_cast<unsigned long long>(stack[i]));
                 ++callers;
             }
         std::fputc('\n', f);
@@ -124,7 +131,7 @@ void InstallProfiler() {
     // there and its code section is guarded, so a stack word there is not read.
     const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
     const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
     for (unsigned i = 0; !Standalone() && i < nt->FileHeader.NumberOfSections; ++i, ++section) {
         if (!(section->Characteristics & IMAGE_SCN_CNT_CODE)) continue;

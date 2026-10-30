@@ -27,6 +27,12 @@ bool Contains(const C& c, const T& value) {
     return std::find(std::begin(c), std::end(c), value) != std::end(c);
 }
 
+// A container's element count as an int, the type of the game's counts and indices (std::ssize is 64-bit on x64).
+template <typename C>
+constexpr int Count(const C& c) {
+    return static_cast<int>(std::size(c));
+}
+
 // CArray's SetAtGrow on a vector: grows it to hold `index` (the new elements value-initialised), then sets it.
 template <typename T, typename U>
 void SetAtGrow(std::vector<T>& v, int index, U&& value) {
