@@ -303,7 +303,7 @@ each step green on the goldens and removing a measured tie:
   (006EEF7C) before `_initterm`, so they are not at the main thread's later 24 bits. check_static_init (removed in C25d) evaluated each fold of
   literals in x87 order at 53 bits and in C++ precedence at 53 bits and in float, and fails when the three floats differ: all 118
   agree (single operations of floats round the same through 53 bits; the three chains give 40 and 30 exactly). The `d.Log` of a
-  literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
+  literal is FYL2X's at run time (its 64-bit result, the precision control ignored). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
 - **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
   seam. **Vtables**: no class of ours stores game.exe's table ("Compiler-made vtables" below). **Other tables**: unit_hits' armour
@@ -826,7 +826,7 @@ kinds given.
       007C8DE8 / 007C8D50, afxData 007C90C8, the global locks 007C8E80..007C907C, _afxThreadData 007C9084, the halftone
       brush 007C8D40, the DragList message id 007CAA64) are gone: their initialisers are UNUSED_INITIALISERS (each the
       compiler's `call A; jmp B`, 10 bytes: rows in extra_function_sizes.csv).
-      printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_x87.cpp).
+      printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_maths.cpp).
     - **The empty string (C18, 6 -> 5)**: 0079B298 is game_strings.h's `kEmptyText` (`char[1]`, `game::EmptyText()`
       returns it). Its readers copy it (CString / STLport assignments) or compare its text (mbscmp, memcmp); none compares
       the pointer. The only data cells that point at it are the units' model folders 0078F7EC / 0078F824, a table only
@@ -1236,49 +1236,42 @@ game, the `--no-hooks` suite) keeps the registry.
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
-- **x87 maths** (crt_x87.cpp, kept; the one file in src/lib check_cleanup lets hold `__asm`: Hypot's NaN addition):
-  the bodies of _CIacos / _CIasin / _CIpow and their stack forms 006E7334 / 006E83D4 (`libcrt::CiAcos`, `CiAsin`,
-  `CiPow`) and _hypot 006FD026 (`libcrt::Hypot`), called by name (no register entries). The CRT's control word keeps
-  the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's
-  precision; pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; `_hypothlp` runs at 64 bits with every
-  step stored to a double and a denormal result cut off. errno / _matherr are not reproduced (the CRT's math function
-  names 00797CC0, which only its error reporting read, are gen_image_cells' UNREAD cells). Why each stays (C35h, the
-  scratch maths_equiv.cpp, not checked in: crt_x87.cpp against the host's on 5M float-valued arguments each):
-  - acos / asin / pow: the game's main thread runs at 24 bits (control word 007F) and the CRT's steps round there,
-    the host's are 53-bit results. At 007F, rounded to a float, pow differs in 4.1% of the arguments, acos 7.8%, asin
-    18.8%; at 027F (53 bits) in a double's bits 62% / 6.9% / 16%. C26 tried the host's for the maths: acos / asin /
-    pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
-    net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units,
-    whose console prints "44.8744" for "44.8745": unit_vitals' CiPow; #unit of the base's units in
-    terrain_water_waves, ui_base_dialogue, ui_base_topic, ui_gallery_base, zone_base_bz1g).
-  - _hypot: std::hypot (the UCRT's, SSE2 doubles) differs from the port in a double's last bit for 11.7% of the
-    arguments (never once rounded to a float), and costs 3.5 times as much (about 270 ns a call against 80, the
-    scratch hypot_time.cpp: the UCRT's _hypot sets and restores the control word around each call, the cost SV10i
-    took out of the camera's ClampAboveObjects: Hypot was 13.5% of the town's main thread then). With the callers on
-    std::hypot the image suite's goldens were the same (121, C35h), so _hypot was not among C26's 14; kept for the
-    cost and the bits.
+- **The game CRT's maths** (crt_maths.cpp, SSE2 code like the rest since C30e15): the bodies of _CIacos / _CIasin /
+  _CIpow and their stack forms 006E7334 / 006E83D4 (`libcrt::CiAcos`, `CiAsin`, `CiPow`) and _hypot 006FD026
+  (`libcrt::Hypot`), called by name. What each computes is the original's x87 sequence on the main thread (control word
+  007F: the CRT keeps the caller's precision and rounds to nearest): acos / asin round 1 + x, 1 - x, their product and
+  its root to 24 bits, then FPATAN's 64-bit result (`pc24::Atan2`) stored to a double; pow is FYL2X's y log2 x rounded
+  to 64 bits (`pc24::Log2Times`), FRNDINT, F2XM1 plus 1 rounded to 24 bits, FSCALE (`pc24::TwoToThe`); `_hypothlp`
+  runs at 64 bits with every step stored to a double (double-double and integer arithmetic for the 64-bit roundings)
+  and a denormal result cut off. NaNs as the FPU picks them: _hypot's FLD x, FADD y; _CIpow's FADDP of its two loaded
+  operands. errno / _matherr are not reproduced (the CRT's math function names 00797CC0, which only its error
+  reporting read, are gen_image_cells' UNREAD cells). The equivalence test (C30e15, against HEAD's x87 port built
+  /arch:IA32 and the original's pow instructions, all at 007F; docs/notes/cleanup-tooling.md, "C30e15"): pow and
+  _hypot 0 differ but NaN against NaN; acos / asin of every float 9,084 of 2.1 G differ in the double's last bit,
+  where this CPU's FPATAN is an ulp off next to a 53-bit tie, 0 once rounded to a float. Why the game's and not the
+  host's (C35h, the scratch maths_equiv.cpp: the old port against the host's on 5M float-valued arguments each):
+  - acos / asin / pow: the CRT's steps round at the main thread's 24 bits, the host's are 53-bit results. At 007F,
+    rounded to a float, pow differs in 4.1% of the arguments, acos 7.8%, asin 18.8%. C26 tried the host's for the
+    maths: acos / asin / pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero
+    in effects_bow, net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp,
+    ui_gallery_deals, units, whose console prints "44.8744" for "44.8745": unit_vitals' CiPow; #unit of the base's
+    units in terrain_water_waves, ui_base_dialogue, ui_base_topic, ui_gallery_base, zone_base_bz1g).
+  - _hypot: std::hypot (the UCRT's, SSE2 doubles) differs from the game's in a double's last bit for 11.7% of the
+    arguments (never once rounded to a float), and the UCRT's _hypot sets and restores the control word around each
+    call (the cost SV10i took out of the camera's ClampAboveObjects). With the callers on std::hypot the image
+    suite's goldens were the same (121, C35h), so _hypot was not among C26's 14; kept for the bits.
   - fmod (_CIfmod 006E95AA, fmod 006E95A0), modf 006EAD0B, floor and ceil alone kept every golden and are the host's
     (std::fmod and so on).
-  - _controlfp 006EBBB4 has no port: its one caller, `SectorData::Light`, set chop rounding around the CPU lighting,
-    which is gone (R34a); the edge fade Build writes rounds to nearest (SV10k below).
-  - `libcrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
-    truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
-    where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
-    damage, the clock's elapsed milliseconds); ours equals _ftol 006E853C there and gives 0 for NaN / infinity /
-    |x| >= 2^63.
-  The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord / SetControlWord),
-  put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set and restore the
-  word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Hypot). The FPU keeps bits 0-5 and
-  8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form round-trips, so the words are
-  the same. (check_x87 is the other x87 rule: unsigned to float only through x87::FromUnsigned.) Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
-  file and the new one compiled side by side) on 50M calls of Hypot, CiPow, CiAcos, CiAsin and StackFmod under every
-  precision, rounding and infinity control: results, control word after, x87 status flags and errno all the same;
-  a one-line mutation (Hypot at 53 bits) differs. No vectors of this file exist (the crt family is formatting).
-- **FISTP for std::lrint (SV10j)**: `x87::RoundToInt` (x87.h; FLD float / double, FISTP dword: the original's own
-  rounding, e.g. 004BD339 and 00553420) in the 25 places that called std::lrint (the AI's cells, the scripts' FX and particle
+  - _controlfp 006EBBB4 has no port (below).
+  - _ftol 006E853C: `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value past int's range can
+    arrive (money, damage, the clock's elapsed milliseconds): the low 32 bits of the 64-bit truncation, as _ftol, 0
+    for NaN / infinity / |x| >= 2^63; MSVC's int cast gives 0x80000000 there.
+- **FISTP for std::lrint (SV10j)**: `lib::RoundEven` (lib/rounding.h, CVTSS2SI under MXCSR's default rounding: the
+  original's FISTP at round to nearest, e.g. 004BD339 and 00553420) in the 25 places that called std::lrint (the AI's
+  cells, the scripts' FX and particle
   ids and delays, combat and armour slots, the tornado, money and level). The UCRT's lrintf / lrint read the x87 and
   SSE control words on every call (acrt_fenv_get_control). Checked old against new (build/SV10j/equiv.cpp, not checked
-  in: std::lrint and RoundToInt side by side, cw 007F / 027F / 037F with every rounding): every float bit pattern under
+  in: std::lrint and the x87 FISTP form side by side, cw 007F / 027F / 037F with every rounding): every float bit pattern under
   every rounding and precision with MXCSR at its default, and 50M doubles (random bits, boundaries, halves, specials).
   At round-to-nearest (the game's: the main thread's word is 007F) every in-range float gives the same value, the same
   x87 status flags (PE), errno and control word at 24, 53 and 64 bits; at chop too. Differences, all where FISTP is the
@@ -1290,10 +1283,17 @@ game, the `--no-hooks` suite) keeps the registry.
   61,547 / 786,725 cases at 027F. No call site depends on lrint's 0: Usable / the armour layers test > 0, the tornado clamps
   below 0, the armour's int16 store keeps 0; the script ids (a NaN id now takes the next negative id, as 004BD347 does),
   delays, steps and AI cells follow the original. Goldens the same.
-- **_controlfp (SV10k, C20r, C30e14)**: game.exe's one call outside the CRT, terrain lighting's
+- **_controlfp (SV10k, C20r, C30e14, C30e15)**: game.exe's one call outside the CRT, terrain lighting's
   `_controlfp(_RC_CHOP, _MCW_RC)` and the restore around `SectorData::Light` (006EBBB4 / 006EBC2A / 006EBCBC), has no
-  port: the CPU lighting is gone (R34a), and the edge fade that Build writes instead is SSE2 code rounding to nearest
-  (`std::lround`, C30c), which the x87 word does not reach; C30e14 removed the scoped chop word left around it.
+  port: the CPU lighting is gone (R34a), and the edge fade that Build writes instead truncates
+  (`Terrain::EdgeFadeDown`: the final conversion; its few float operations round to nearest, where the original's
+  chopped). The edge fade the prints and objects read rounds to nearest, ties to even (`EdgeFade`, FISTP's).
+- **The x87 control word**: the main thread runs at 24-bit precision from the device's creation (device_object's
+  `__control87_2(_PC_24, _MCW_PC)`, as Direct3D 7 set it for the original). The image's game code is SSE2, but the
+  word still matters: MSVC leaves x87 operations in SSE2 code on a float or double returned in ST0 (the x86 calling
+  convention: `pc24::Exp(...) - 0.2f` is an FSUB, a chain like `LightRiseScaled`'s FDIVR then FMUL), the UCRT's log2,
+  exp2 and cbrt follow the precision control, and Miles and Bink ran under it in the original. render.cpp's
+  `FpuGuard` puts the word back after a library changed it. docs/notes/cleanup-tooling.md, "The control word".
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):

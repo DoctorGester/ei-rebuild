@@ -88,35 +88,28 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `std::`. Call the CRT functions whose game behaviour differs from the host's through
    `libcrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
-   sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
-   thread at 24-bit precision anyway, and an SSE2 build is planned (C16d, docs/cleanup-plan.md). The existing hand-copied helpers stay
-   until the cleanup removes them. When an integer or a branch follows from a float that sits on a rounding edge, a rare difference there is
-   expected: say so in the notes rather than copying the FPU sequence.
-   - The game code builds for SSE2 but CMakeLists' `EI_X87_GAME_SOURCES` (src/render too): there float maths is plain float
-     (`std::sin`, `lib::RoundEven` for FISTP's rounding, `pc24::Mul` / `Add` (lib/pc24.h) where the original's operand
-     is an int above 2^24 or a wide double, no `D()` / `static_cast<double>` registers, no `x87::` helpers;
-     docs/notes/cleanup-tooling.md, C30a / C30b / C30e). The rest of this rule is for the x87 files, which C30e1-C30e15 move.
-   - The build is `/arch:IA32 /fp:precise` (x87): the grouping written is the grouping compiled, and a `static_cast<float>`, a float local or a float
-     return is rounded to float (a store, which changes nothing at the main thread's 24 bits). `/fp:fast` had distributed and refolded sums
-     (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and settled on another fixed point) and kept float locals unrounded (unrounded atan2
-     angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k); round with `static_cast<float>` or a float variable.
-   - Under precise, `std::sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code paths): use `x87::fsin / fcos /
-     fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`, the instructions the original's VC6 code inlines. `std::sqrt` is FSQRT at the
-     precision control on this target (C16, docs/notes/cleanup-tooling.md "SSE2 build"); give it a double: `std::sqrt(static_cast<double>(x))` for a float expression, as `std::sqrt(float)` is `sqrtf`. A product of two constants that the
-     original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it at double precision: write it as the
-     float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; no check finds such
-     double constants any more (check_fp_fold compared the compiled DLL with game.exe's x87 constants and went with the
-     build's reads of game.exe, C25d): the goldens and vectors catch the drift. The build inlines at /Ob2 (R16c5), so a constant behind a helper function (`Pi() * FaceStep()`) folds too.
-   - Rounding mode matters: FISTP rounds to nearest (use `x87::RoundToInt`, float or double, or `x87::fistp`, float), a C++ cast
-     truncates, `_ftol` truncates. Not `std::lrint`: the UCRT's reads the FP environment on every call, follows MXCSR's rounding
-     rather than the x87 one, and gives 0 with errno EDOM where FISTP gives 0x80000000 (SV10j).
-   - The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at every frame boundary in both installs; other
-     threads run at 53 bits). A float the original returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
-     callers round when they store (see `ItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it
-     (docs/notes/rebirth.md).
-   - Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never `static_cast<double>`: MSVC adds 2^32 with an FADD
-     that rounds; `tools/check_x87.py` checks this. Where detecting NaN is the code's purpose, test it with `x87::IsNaN` (a bit test; `v != v`
-     was folded to false under /fp:fast and the standalone's compiler flags may change again).
+   sequences (no naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact; the build is
+   `/arch:SSE2 /fp:precise` for all of the game code. When an integer or a branch follows from a float that sits on a rounding edge, a rare
+   difference there is expected: say so in the notes rather than copying the FPU sequence.
+   - The game's main thread runs the original's x87 at 24-bit precision (control word 007F, set by Direct3D and by device_object; measured at
+     every frame boundary in both installs; other threads and the start-up before the device run at 53 bits). There every x87 add, subtract,
+     multiply, divide and square root on floats rounds as the float operation does, so the original's float maths is plain float maths in its
+     order: no `double` registers. Where an operand was wider (an int above 2^24, a double constant, FSIN / FCOS / FPATAN / FYL2X's 64-bit
+     result, VC6's inline exp) use `lib/pc24.h` (`pc24::Mul` / `Add` / `Sub` / `Div`, `Sin`, `Cos`, `Atan2`, `Log`, `Exp`); the game CRT's
+     pow / acos / asin / hypot are `libcrt::CiPow` / `CiAcos` / `CiAsin` / `Hypot` (src/lib/crt_maths.cpp). Code that runs before the
+     device keeps its double maths (SSE2's doubles are the FPU's at 53 bits). docs/notes/cleanup-tooling.md, "The x87 files to SSE2".
+   - The grouping written is the grouping compiled, and a `static_cast<float>`, a float local or a float return is rounded to float.
+     `/fp:fast` had distributed and refolded sums (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and settled on another fixed
+     point) and kept float locals unrounded; keep `/fp:precise`.
+   - A product of two constants that the original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler
+     folds it at double precision: write it as the float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the
+     operation; the goldens and vectors catch the drift. The build inlines at /Ob2 (R16c5), so a constant behind a helper function
+     (`Pi() * FaceStep()`) folds too.
+   - Rounding mode matters: FISTP rounds to nearest, ties to even (`lib::RoundEven`), a C++ cast truncates, `_ftol` truncates and gives the
+     low half of the 64-bit integer (`static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond the int range can
+     arrive). Not `std::lrint` (it reads the FP environment on every call) nor `std::lround` (halves away from zero).
+   - Unsigned 32-bit values (random words, tick counts) convert exactly with `static_cast<double>`; through `pc24::` where the original's
+     operation rounded at 24 bits. Test a NaN with `std::isnan` where detecting it is the code's purpose.
 
 8. **Comparisons are plain C++ (the NaN audit, C16c).** Decode VC6's FCOM / FNSTSW / TEST AH to the comparison the
    source had: C3 (`TEST AH,0x40`) is `==`, C0 (`TEST AH,1`) `<`, C0|C3 (`TEST AH,0x41`) `<=` (its negation `>`), C0 as a

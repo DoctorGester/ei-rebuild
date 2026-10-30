@@ -68,9 +68,10 @@ shim, stub or workaround lands.
 - A hash map keyed by pointer values iterates in an order that depends on the pointers (the original's STLport
   `hash_map<void*, ...>`), so allocation order can change the order in which `MappedResource::FreeAllFiles` frees
   files. Harmless so far, but check before swapping allocators or containers (C14c).
-- `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
-- x87 maths (`/arch:IA32 /fp:precise`, `include/ei/x87.h`) and the FPU control word the game runs with
-  (Direct3D sets single precision) must stay the same until the SSE2 switch (C16d), or float results drift.
+- `lib::RoundEven` rounds to nearest, ties to even, as the original's FISTP; a C++ cast truncates.
+- The game code is SSE2 (`/arch:SSE2 /fp:precise`, C30e15); the main thread still runs the x87 at 24-bit precision
+  (device_object, as Direct3D set it): MSVC's x87 operations on values returned in ST0, the UCRT's log2 / exp2 / cbrt
+  and Miles / Bink run under it (docs/notes/cleanup-tooling.md, "The control word").
 
 ## Original bugs kept on purpose
 

@@ -95,7 +95,7 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 ## Layout
 
 - `src/game/` the game code. Each function names the original function it replaces.
-- `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, x87 maths), file and text helpers, byte copies.
+- `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
 - `src/hook/` logging and the Rebirth options (both homes), and the harness's game.exe side (ei_harness.dll).

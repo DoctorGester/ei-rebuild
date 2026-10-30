@@ -10,11 +10,10 @@ stripped) at V1; treat them as +-10%. "Site" = one source line.
   `(z+y)+x`, `(z+x)+y` (named by the pair added first: XYZ, ZYX, ZXY; YXZ == XYZ, YZX == ZYX, XZY == ZXY).
 - The game's main thread runs the x87 at 24-bit precision (rule 7). Every FADD/FMUL/FDIV/FSQRT then rounds to a float
   significand, so "kept in ST0" and "stored to a float" give the same bits except for the extended exponent range
-  (overflow / denormals only). So float arithmetic with the right grouping reproduces the original on the main thread, and
-  also in the SSE2 standalone build; the existing `D(x)` / `double` style (82 files under `float_control(precise)`) only
-  differs from float maths on 53-bit threads and in the SSE2 build, where it would NOT round per op. FSIN / FCOS / FPATAN /
-  the CRT acos ignore the precision control (64-bit results): where the original stores their result to a float, the
-  rounding store is required (X3).
+  (overflow / denormals only). So float arithmetic with the right grouping reproduces the original on the main thread; the
+  build is SSE2 throughout (C30e15) and holds no `D(x)` / `double` registers. FSIN / FCOS / FPATAN / the CRT acos ignore
+  the precision control (64-bit results): `lib/pc24.h` gives them, and where the original stores their result to a float,
+  the rounding store is required (X3).
 - So the helpers only have to fix the grouping, and round after transcendentals.
 
 ## 2. Catalog of hand-written patterns (at V1)
@@ -105,42 +104,37 @@ All `__forceinline`, by value:
 | `TransformColumn<OX, OY, OZ>`, `TransformColumnNormal<...>` (Matrix4 or MatrixRows) | `M * v`: grouped `m[4i]*x, m[4i+1]*y, m[4i+2]*z`, then `+ m[4i+3]` |
 | `TransformColumnW<Sum3>` | the homogeneous w of `M * (v, 1)`: grouped `m[12]*x, m[13]*y, m[14]*z`, then `+ m[15]` |
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
-| `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
-| `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; precise off, on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
-| `DotUnrounded<Sum3, T>(a, b)`, `LengthSquaredUnrounded<Sum3, T>(v)` (V3d; Vector3 forms of the above; T defaults to float since V3e) | the same sums on the members; `double` in a precise region (a float-typed result is rounded on return there) |
-| `AxisXUnrounded<T>(q)` (V3c; precise off; returns `AxisUnrounded<T>` {x, y, z}) | 0040D940's X axis, `(w^2 - ((y^2 + z^2) + x^2)) + 2x^2`, `2(wz + xy)`, `2(xz - wy)`, each doubling an addition |
-| `RotatedAxisY(q)` (V3c; precise; no intermediate stores since V3e) | AxisY 0040F560 and its inlined copies 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
-| `DotWZYXUnrounded<T>(a, b)` (V3e; precise off) | quaternion dot `((w*w' + z*z') + y*y') + x*x'` (Slerp 0049ED20) |
-| `RotatedAxisX / Z(q)` (V3e; precise) | Quaternion::AxisX 0040D940 / AxisZ 0040D6B0's orders, each component rounded to float |
-| `OffsetDot2DUnrounded<T>(d, x, y, x2, y2)` (V3f; precise off) | `(d + x*x2) + y*y2`, the offset added first (a plane's value at a point, PlaneHeight 006BE3A0); not `d + Dot2DUnrounded(...)` |
-| `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
-| `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
+| `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
+| `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
+| `DotUnrounded<Sum3, T>(a, b)`, `LengthSquaredUnrounded<Sum3, T>(v)` (V3d; Vector3 forms of the above; T defaults to float since V3e) | the same sums on the members |
+| `AxisXUnrounded<T>(q)` (V3c; returns `AxisUnrounded<T>` {x, y, z}) | 0040D940's X axis, `(w^2 - ((y^2 + z^2) + x^2)) + 2x^2`, `2(wz + xy)`, `2(xz - wy)`, each doubling an addition |
+| `RotatedAxisY(q)` (V3c; no intermediate stores since V3e) | AxisY 0040F560 and its inlined copies 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
+| `DotWZYXUnrounded<T>(a, b)` (V3e) | quaternion dot `((w*w' + z*z') + y*y') + x*x'` (Slerp 0049ED20) |
+| `RotatedAxisX / Z(q)` (V3e) | Quaternion::AxisX 0040D940 / AxisZ 0040D6B0's orders, each component rounded to float |
+| `OffsetDot2DUnrounded<T>(d, x, y, x2, y2)` (V3f) | `(d + x*x2) + y*y2`, the offset added first (a plane's value at a point, PlaneHeight 006BE3A0); not `d + Dot2DUnrounded(...)` |
+| (arc tangent, arc cosine, arc sine) | not in vecmath.h: `pc24::Atan2` (FPATAN's 64-bit result, lib/pc24.h) and the game CRT's `libcrt::CiAcos` / `CiAsin` (_CIacos 006E7320 / _CIasin 006E83C0, src/lib/crt_maths.cpp), doubles |
 
 Decisions (V1 open questions, settled for V2): no default order: every 3-term helper names its grouping (`enum class Sum3
 { XYZ, ZYX, ZXY }`; commutative re-spellings get no names); code on 53-bit threads stays as written (no `double` helpers);
 quaternion products and AxisX/Y/Z stay written out at each site (only `Conjugate` is a helper); one `Matrix4` with
 `TransformRow` / `TransformColumn`, no `Matrix4 operator*` for game code (MatrixMultiply 004D9880 has per-element orders;
 src/render, not compared bit for bit, may add a plain product). The generic dot is `vecmath::Dot<Sum3>`: a global template
-named `Dot` would make `&Dot` (the hooked 00401E00 in `EI_REPLACE`) ambiguous. Atan2 is not `std::atan2`: that becomes
-FPATAN only under /fp:fast; inlined into a `float_control(precise)` function it calls the modern CRT's `_CIatan2` (the same
-holds for `std::sqrt`, except that on this /arch:IA32 build it is FSQRT, so game code writes `std::sqrt`, C16a).
+named `Dot` would make `&Dot` (the hooked 00401E00 in `EI_REPLACE`) ambiguous.
 
-**/fp:fast regroups; the helpers are compiled precise.** Measured with cl 14.43 /O2 /arch:IA32: a fast-compiled inline
-`(z*z' + y*y') + x*x'` followed by the caller's `* 2.0f + 1.0f` became `(2x*x' + 1) + 2(z*z' + y*y')`-style code (the `* 2`
-turned into an add and was distributed); `v * (1 / len)` was rewritten too. Plain uses (`Dot` alone, `* 3`, `* s`, `-
-x*x'`) kept their grouping, so the hazard depends on the caller's expression. vecmath.h therefore defines its arithmetic
-helpers between `#pragma float_control(precise, on, push)` and `pop` (the one file check_cleanup exempts from that pattern).
-The precise body survives inlining into /fp:fast callers (grouping kept), at the cost of rounding each helper's float
-result to memory (an FSTP / FLD pair). On the 24-bit main thread that store changes nothing; on a 53-bit thread a helper is
-plain float maths, not the original's unrounded register value. **Migration rule:** a helper may replace written-out maths
-when the original stores the result to a float (or the result is a single operation per component); a sum the original
-keeps unrounded in ST0 and uses further stays written out unless the function is known to run on the main thread only.
+**/fp:fast regroups; the build is precise.** Measured with cl 14.43 /O2: a fast-compiled inline `(z*z' + y*y') + x*x'`
+followed by the caller's `* 2.0f + 1.0f` became `(2x*x' + 1) + 2(z*z' + y*y')`-style code (the `* 2` turned into an add
+and was distributed); `v * (1 / len)` was rewritten too. The whole build is `/fp:precise` and SSE2, so a helper's grouping
+is the compiled one and its float results are floats (no pragmas in vecmath.h). On the 24-bit main thread that is the
+original's x87 result; on a 53-bit thread a helper is plain float maths, not the original's unrounded register value.
+**Migration rule:** a helper may replace written-out maths when the original stores the result to a float (or the result
+is a single operation per component); a sum the original keeps unrounded in ST0 and uses further stays written out unless
+the function is known to run on the main thread only.
 
 **Self-test** (tests/verify/verify_vecmath.cpp, verify build, at DLL load at 24-bit precision, "vecmath self-test" in the
 log): every grouped helper in /fp:fast contexts (alone, `* 2 + 1`, two groupings in one expression, transforms with
 translation, normalising, distances, lerps) against a reference that rounds each operation separately, on 24 inputs per
-helper chosen so that XYZ, ZYX and ZXY give three different results (2448 checks, 0 mismatches; without the precise
-pragmas 116 mismatch).
+helper chosen so that XYZ, ZYX and ZXY give three different results (2448 checks, 0 mismatches; /fp:fast helpers
+mismatched 116).
 
 **Done in V2**: the old local vector types (render::detail::Matrix, render `Vertex` / `DecalVertex` / `GlobalMapPlace`
 positions, chunk_stream.h `Float4` (Quaternion, still memcpy'd), Point, Vec3, UiVec3, V3, Quat, Quaternion4) are the vecmath
@@ -168,14 +162,13 @@ and weight names (`link_figure.h` `morph_` is `morphWeights`).
 **Rules that came out of the batches** (each batch compared the release objects function by function with dumpbin, later with a
 symbolic x87 comparison of every store, call argument, compare and return; the differences left were stack slots, scheduling,
 register choice, commuted FADD / FMUL operands, compare operand order with the same NaN branch, and volatiles read once):
-- The x87 stackifier is sensitive to any inlined call: compare every function of the file, not only the edited lines.
-- Precise helpers (float_control(precise)) inlined into /fp:fast code spill scalar or reference-to-float arguments, round a
-  float cast of the result and push other inlining out of line (StoreFloat, fabs became calls in UpdateWorld). The unrounded
+- (The batches ran on the x87 /fp:fast build with precise and precise-off helper bodies; the build is SSE2 and /fp:precise
+  throughout since C30e15, vecmath.h without pragmas, so the grouping written is the one compiled.) The unrounded
   forms (`LengthSquared2DUnrounded<T>`, `DistanceSquaredXYUnrounded<T>` (dy first, as AIDistance2 005CFE20 loads them),
   `Dot2DUnrounded`, `DotUnrounded<Sum3, T>`, `LengthSquaredUnrounded<Sum3, T>`, `DotWZYXUnrounded`, `AxisXUnrounded<T>`,
-  `OffsetDot2DUnrounded`; T is deduced or `double`, so double sites stay double and float sites float) are compiled with precise
-  off and compile to the written-out code, so they are used for sums that are compared, stored, passed or square-rooted.
-- But a precise-off body regroups with the caller's arithmetic: `2.0f * Dot(...)` became `(2xx' + s) + s` (two roundings where the
+  `OffsetDot2DUnrounded`; T is deduced or `double`, so double sites stay double and float sites float) are the written-out
+  sums, used for sums that are compared, stored, passed or square-rooted.
+- Under /fp:fast a body regrouped with the caller's arithmetic: `2.0f * Dot(...)` became `(2xx' + s) + s` (two roundings where the
   original has one), and negation of a fast helper's sum regroups too (`-2(yx - wz)` became `(wz - yx) + (wz - yx)`: +0 where
   the game's FCHS gives -0). So: where a caller doubles a dot, double the operands, `(2u) . v` (`Dot2DUnrounded<double>(x * 2.0,
   y * 2.0, z, w)`; doubling is exact and the same value as the original's `(2x)z + (2y)w`); where the caller scales or negates
@@ -214,11 +207,8 @@ register choice, commuted FADD / FMUL operands, compare operand order with the s
 
 ## 7. Risks
 
-- **/fp:fast reassociation** (above): inspect the release disassembly of one migrated site per batch. The `...Unrounded` 2D
-  helpers are compiled without precise semantics on purpose (V3b): they regroup with the caller like written-out code, so
-  they hold only 2-term sums and replace written-out sums only where the object code stays the same.
-- **Precise files.** 82 files use `float_control(precise)`; migrating one moves its maths from `double` to `float`: same bits
-  at 24 bits, which is what the bitwise wrappers see; different on 53-bit threads.
+- **/fp:fast reassociation** (above): the build is /fp:precise; a file switched to fast would regroup the helpers with
+  their callers.
 - **53-bit threads.** Code running off the main thread (verify log "FPU precision ...") is where float helpers and the
   original's register values can differ; leave such functions explicit until checked.
 - **Transcendentals.** FPATAN / FSIN / FCOS / acos results are 64-bit regardless of precision; dropping a float store (`static_cast<float>`) the
