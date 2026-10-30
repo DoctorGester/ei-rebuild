@@ -432,8 +432,10 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **Bitmaps** (dib.h): `DibFileHeader`, `DibHeader`, `DibColour` with the .bmp layout (14, 40 and 4 bytes) in place of
   wingdi.h's structs.
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
-- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): lib/return_address.h
-  declares the two compiler intrinsics without <intrin.h>.
+- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): platform.h's
+  `EI_RETURN_ADDRESS()` / `EI_CALLER_FRAME()`, MSVC's intrinsics (declared without <intrin.h>) or clang's builtins.
+  Macros, so that they read the frame of the function that uses them: an inline function is not inlined at /Ob0 (the
+  debug build) and would name itself as the caller.
 - **Rebirth's flags** (lib/rebirth.cpp): plain data and specs; EI_REBIRTH with `getenv_s`. The
   settings file's [patches] is read by the start-up through settings.h (C66a), no reader of its own.
 - The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.

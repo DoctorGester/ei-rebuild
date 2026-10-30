@@ -4,8 +4,8 @@
 #include "core_streams.h"
 
 #include "asset_text.h"
+#include "platform/platform.h"
 #include "lib/containers.h"
-#include "lib/return_address.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -243,8 +243,7 @@ std::uint32_t MemoryStream::Read(void* buffer, std::uint32_t byteCount) {
 }
 
 void MemoryStream::Write(const void* buffer, std::uint32_t byteCount) {
-    if (g_memoryStreamWriteObserver)
-        g_memoryStreamWriteObserver(this, byteCount, static_cast<void* const*>(_AddressOfReturnAddress()));
+    if (g_memoryStreamWriteObserver) g_memoryStreamWriteObserver(this, byteCount, EI_CALLER_FRAME());
     if (position + byteCount > data.size()) data.resize((static_cast<std::uint32_t>(data.size()) + byteCount) * 2);
     std::memcpy(data.data() + position, buffer, byteCount);
     position += byteCount;
