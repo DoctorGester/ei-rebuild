@@ -106,7 +106,7 @@ void HudWeaponBar::LeftUp(int, int x, int y) {
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(region, true);
     selected = region;
-    ui->PlaySound(kSoundWeapon);
+    ui->PlayInterfaceSound(kSoundWeapon);
     // No check for a missing local view here (like the original).
     if (CUnit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
 }
@@ -290,7 +290,7 @@ void HudMap::LeftDown(int, int x, int y) {
         CaptureMouse();
     }
     if (region != 3 && region != 4) return;
-    ui->PlaySound(kSoundClick);
+    ui->PlayInterfaceSound(kSoundClick);
     view = region == 3 ? 1 : 2;
     // Scene objects 6 and 7 are the buttons of views 1 and 2.
     for (int i = 0; i < 2; ++i)
@@ -308,7 +308,7 @@ void HudMap::LeftUp(int, int x, int y) {
     const int region = RegionAt(x, y);
     switch (region) {
     case 0:     // the sling button
-        ui->PlaySound(kSoundSling);
+        ui->PlayInterfaceSound(kSoundSling);
         slideDirection = -slideDirection;
         sliding = true;
         handled = true;
@@ -341,7 +341,7 @@ void HudMap::LeftUp(int, int x, int y) {
         return;
     }
     case 5:     // "camera north"
-        ui->PlaySound(kSoundClick);
+        ui->PlayInterfaceSound(kSoundClick);
         g_camera.SetHeading(0.0f);
         northTime = 0.5f;
         handled = true;
@@ -368,14 +368,14 @@ void HudUnitPanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == 0) {
-        ui->PlaySound(kSoundSling);
+        ui->PlayInterfaceSound(kSoundSling);
         sliding = true;
         slideDirection = -slideDirection;
         handled = true;
         return;
     }
     if (region > 0 && region <= 4) {
-        ui->PlaySound(kSoundClick);
+        ui->PlayInterfaceSound(kSoundClick);
         bodyPart = region - 1;
         // Scene objects 3-6 are the body parts.
         for (int i = 0; i < 4; ++i) SetTint(sceneObjects[3 + i], bodyPart == i ? kTintOn : kTintOff);
@@ -430,7 +430,7 @@ void HudClock::MouseMove(int, int x, int y) {
 }
 
 void HudClock::TogglePause() {
-    ui->PlaySound(kSoundClock);
+    ui->PlayInterfaceSound(kSoundClock);
     const bool paused = g_clientWorld.paused;
     GameSendFlag10(paused ? 0 : 1);
 }
@@ -439,12 +439,12 @@ void HudClock::SetSpeed(bool newFast) {
     fast = newFast;
     worlddata::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
     ui->fastGame = newFast;
-    ui->PlaySound(kSoundClock);
+    ui->PlayInterfaceSound(kSoundClock);
 }
 
 void HudClock::OpenObjectives() {
     highlight = false;
-    ui->PlaySound(kSoundClick);
+    ui->PlayInterfaceSound(kSoundClick);
     auto* window = new ObjectivesWindow(ui);
     window->Setup(LocalPlayerZone(), nullptr, false, false);
     ui->PushWindow(window, true, true);
@@ -474,7 +474,7 @@ void HudMovePanel::SetMode(int newMode) {
     PlayerClient* view = g_clientWorld.LocalView();
     if (!view) return;
     if (newMode >= 0 && newMode < 4) {
-        ui->PlaySound(kSoundClick);
+        ui->PlayInterfaceSound(kSoundClick);
         for (CUnit* unit : owner->party) {
             if (unit->flags & MapObjectFlag::Selected) view->SetMoveMode(unit, newMode);
         }
@@ -549,7 +549,7 @@ void HudTopPanel::LeftUp(int, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case 0:
-        ui->PlaySound(kSoundSling);
+        ui->PlayInterfaceSound(kSoundSling);
         sliding = true;
         slideDirection = -slideDirection;
         handled = true;
@@ -558,7 +558,7 @@ void HudTopPanel::LeftUp(int, int x, int y) {
     case 2:
         page = region - 1;
         ShowPage();
-        ui->PlaySound(kSoundClick);
+        ui->PlayInterfaceSound(kSoundClick);
         handled = true;
         return;
     default:
@@ -616,7 +616,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         if (count <= 0) return;
         for (int i = 0; i < std::ssize(party); ++i) {
             if (unit != party[i]) continue;
-            ui->PlaySound(game::SoundOnOffText());
+            ui->PlayInterfaceSound(game::SoundOnOffText());
             if (ui->doubleClick) {
                 if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
             } else {
@@ -651,7 +651,7 @@ void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int members = std::ssize(party);
             for (int i = 0; i < members; ++i) {
                 if (unit != party[i]) continue;
-                ui->PlaySound(game::SoundOnOffText());
+                ui->PlayInterfaceSound(game::SoundOnOffText());
                 if (ui->doubleClick) {
                     if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
                 } else {
@@ -762,7 +762,7 @@ void HudQuickItems::LeftUp(int, int x, int y) {
             Pick(region);
         return;
     }
-    ui->PlaySound(kSoundClick);
+    ui->PlayInterfaceSound(kSoundClick);
     if (selected != region) {
         // One of the player's items (top row): used on an object, with the item's key in the screen's
         // itemUseKey and its id in pendingItem.

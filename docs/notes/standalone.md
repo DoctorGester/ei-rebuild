@@ -194,7 +194,7 @@ each step green on the goldens and removing a measured tie:
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
   `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
-  ImportTable member, DLL, function or ordinal) and gameapi.h, all committed; build.cmd runs it with `--check`.
+  ImportTable member, DLL, function or ordinal) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   game.exe's folder came first until S18k) and fills our reached slots (S22, below);
@@ -215,9 +215,11 @@ each step green on the goldens and removing a measured tie:
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
   saves, profile reads, clocks, Winsock, Miles) or our code takes it by address (`&gameapi::X`; none since S22c).
-  Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (50, with gen_iat's KEEP:
-  GetVersionExA, deprecated in the SDK: a direct call warns), and so are the 90 of import_prototypes.h (no import
-  library; not the Interlocked pair, which our code takes as the compiler's intrinsics); the other 362 are `using ::X;`, the Windows function through the exe's own imports
+  Those gameapi.h functions are references to the slot (50, with gen_iat's KEEP: GetVersionExA, deprecated in the
+  SDK: a direct call warns), and so are the 90 of import_prototypes.h (no import library; not the Interlocked pair,
+  which our code takes as the compiler's intrinsics): `extern decltype(ei::ImportTable::X)& X;`, bound once in
+  gameapi.cpp (`= ei::Imports().X` under init_seg(lib): after the move, before every other static constructor; an
+  `inline auto&` in the header was a dynamic initialiser in each of ~140 objects); the other 362 are `using ::X;`, the Windows function through the exe's own imports
   (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. **game.exe's own routes** (S22b, S22c): a slot only
@@ -246,7 +248,7 @@ each step green on the goldens and removing a measured tie:
   only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers.
   **Only the reached slots resolve** (S22): gen_iat.py's `reached()` finds every slot a call of ours can go through,
   by its member (C18 left no other way): `ImportTable::X` (the harness's routes and its own calls, the static
-  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (`inline auto&`); comments
+  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (`extern decltype(...)&`); comments
   are left out. image_imports.inc's last field says so; `ResolveImageImports` resolves those, leaves every other slot
   a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
   A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
@@ -342,7 +344,7 @@ C25d deleted tools\check_against_exe.cmd and the modes only it ran (check_fp_fol
 comparison with game.exe's bytes and cells, check_short_functions, check_static_init, gen_image_cells --check's scan,
 gen_iat --check's read of the import directory): each had proved its generated file or tagged definition when it was
 made, and the generators still read game.exe when rerun. What needs no game.exe stays in build.cmd, from the committed files:
-`gen_iat.py --check` (import_table.h, image_imports.inc and gameapi.h regenerated from the committed table and the routes:
+`gen_iat.py --check` (import_table.h, image_imports.inc, gameapi.h and gameapi.cpp regenerated from the committed table and the routes:
 a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
 literal inside a named, retired or unread range) and `gen_image_cells.py --check` (retired vtables
 against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,

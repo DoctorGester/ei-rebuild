@@ -222,7 +222,7 @@ void ChatWindow::LeftDown(int, int x, int y) {
         briefing->chatActive = 0;
         return;
     }
-    ui->PlaySound(kOnOffSound);
+    ui->PlayInterfaceSound(kOnOffSound);
     net::ClientSession* client = net::g_gameClient;
     RefObject* player = players[index];
     // The binding is not checked for null here.

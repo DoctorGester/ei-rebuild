@@ -131,7 +131,7 @@ void BriefingScreen::UnitLeft(CUnit* unit) {
 }
 
 void BriefingScreen::GameOver(bool) {
-    ui->PlaySound("buttons\\gameover.wav");
+    ui->PlayInterfaceSound("buttons\\gameover.wav");
     MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     ui->PushWindow(box, true, true);
 }

@@ -119,7 +119,7 @@ void HudUnitPanel::ShowParts(CUnit* unit) {
 // --- Movement panel ------------------------------------------------------------------------------
 
 void HudMovePanel::ToggleFlag() {
-    ui->PlaySound(kSoundClick);
+    ui->PlayInterfaceSound(kSoundClick);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
     for (int i = 0; i < std::ssize(owner->party); ++i) {

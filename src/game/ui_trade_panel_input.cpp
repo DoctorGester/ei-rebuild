@@ -54,7 +54,7 @@ void TradePanel::LeftDown(int, int x, int y) {
     case kLearnableDown: ++learnableTop; ClampScroll(); return;
     default: break;
     }
-    if (region >= kFirstSchool) ui->PlaySound(kPerkSound);
+    if (region >= kFirstSchool) ui->PlayInterfaceSound(kPerkSound);
     UnitStats* stats = &owner->HeroRecord()->stats;
     TradeStatsRecord& record = records[recordIndex];
 

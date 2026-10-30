@@ -14,6 +14,7 @@
 
 #include "lib/containers.h"
 #include "lib/str.h"
+#include "lib/win_types.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -23,7 +24,6 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-#include <windows.h>
 
 inline constexpr float kHudFullTurn = /*007C8140*/ 6.2831855f;
 inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
@@ -127,7 +127,7 @@ public:
     // on and the topic was not seen.
     void OpenHelp(bool forced);
     // A 2D sound at priority 1000, volume 100; returns its handle.
-    int PlaySound(std::string_view name, bool loop = false);
+    int PlayInterfaceSound(std::string_view name, bool loop = false);
     void StopSound(int handle);
     // A multiplayer client's screens call them for Enter / Backspace. While the chat line is closed:
     // Enter opens it, Backspace empties the chat lines.

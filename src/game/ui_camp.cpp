@@ -225,7 +225,7 @@ void CampPages::ShowPage(int newPage) {
         ReturnAll(LocalPlayerData(), itemExtra);
         TakeResults(this, spellResults, spellParts[0], spellStrip);
         TakeResults(this, itemResults, itemParts[0], partStrip);
-        ui->PlaySound("buttons\\globalmap\\transit.wav");
+        ui->PlayInterfaceSound("buttons\\globalmap\\transit.wav");
         if (fromHeroScreen) {
             ui->SetPendingValue(0);
             return;
@@ -240,7 +240,7 @@ void CampPages::ShowPage(int newPage) {
     if (!offered) {
         ShowPage(page);    // the page is not offered: show the current one again
     } else {
-        if (page != newPage) ui->PlaySound("buttons\\camp\\slot.wav");
+        if (page != newPage) ui->PlayInterfaceSound("buttons\\camp\\slot.wav");
         page = newPage;
         statsPanel->ShowStats(newPage);
         trade->SelectHero(hero);
@@ -700,7 +700,7 @@ void CampPages::CloseScreen() {
 // --- taking an item off the hero -----------------------------------------------------------------
 
 Item* CampPages::TakeOff(Item* item) {
-    ui->PlaySound(game::PutOffSoundText());
+    ui->PlayInterfaceSound(game::PutOffSoundText());
     ItemKind kind = item->Kind();
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Scroll)) return nullptr;
     PartyUnitRecord* heroRecord = HeroRecord();
@@ -750,7 +750,7 @@ Item* CampPages::TakeOff(Item* item) {
 // --- putting an item on the hero -----------------------------------------------------------------
 
 void CampPages::PutOn(Item* item) {
-    ui->PlaySound(game::PutOnSoundText());
+    ui->PlayInterfaceSound(game::PutOnSoundText());
     PartyUnitRecord* heroRecord = HeroRecord();
     switch (item->Kind()) {
     case ItemKind::Weapon:
@@ -823,12 +823,12 @@ void CampPages::PutOnFromStrip(Item* item) {
     default:
         return;
     }
-    ui->PlaySound(game::PutOnSoundText());
+    ui->PlayInterfaceSound(game::PutOnSoundText());
 }
 
 void CampPages::TakeItem(Item* item, int mode) {
     if (!CanEquip(item, mode)) {
-        ui->PlaySound(game::CancelSoundText());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         return;
     }
     // Back to the player's items and the item strip (from `list`).
@@ -854,7 +854,7 @@ void CampPages::TakeItem(Item* item, int mode) {
             MoveItem(item, spellParts[1], spellParts[0], 8, true, false);
         else if (page == 3)
             MoveItem(item, spellResults, spellParts[0], 0, false, true);
-        ui->PlaySound(game::PutOnSoundText());
+        ui->PlayInterfaceSound(game::PutOnSoundText());
         return;
     case 3:
         if (page == 4) {
@@ -869,7 +869,7 @@ void CampPages::TakeItem(Item* item, int mode) {
                 MoveItem(item, itemResults, itemParts[0], 0, false, true);
             }
         }
-        ui->PlaySound(game::PutOnSoundText());
+        ui->PlayInterfaceSound(game::PutOnSoundText());
         return;
     case 4:
         // Out of the spell constructor's sold or bought list.
@@ -926,7 +926,7 @@ void CampPages::TakeItem(Item* item, int mode) {
     default:
         return;
     }
-    ui->PlaySound(game::PutOffSoundText());
+    ui->PlayInterfaceSound(game::PutOffSoundText());
 }
 
 // --- the hero's unit after a change --------------------------------------------------------------

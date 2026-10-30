@@ -48,7 +48,7 @@ Item* FirstOf(const std::vector<Item*>& list) { return !list.empty() ? list[0] :
 void BackToMainMenu(Interface3D* ui) {
     std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
     g_interface.ShowStatusText(text);
-    ui->PlaySound(game::CancelSoundText());
+    ui->PlayInterfaceSound(game::CancelSoundText());
     g_gameFlow.EndSession();
     ui->SetPendingValue(0);
 }
@@ -102,7 +102,7 @@ void MpHeroScreen::CloseRenameEdit() {
 }
 
 void MpHeroScreen::BackToNewHero() {
-    ui->PlaySound(game::CancelSoundText());
+    ui->PlayInterfaceSound(game::CancelSoundText());
     statsPanel->SetHero(0, game::kEmptyText);
     surfaces[0]->Clear();
     tradePanel->Settle(false, false);
@@ -160,7 +160,7 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
         } else if (mode == kModeStats) {
             BackToNewHero();
         } else if (mode == kModeNewHero) {
-            currentUi->PlaySound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(game::CancelSoundText());
             SetMode(kModeList);
         }
         handled = true;
@@ -185,11 +185,11 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
         return;
     }
     if (mode == kModeList) {
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         heroIndex += heroStep;
         ClampHeroSelection();
     } else if (mode == kModeNewHero) {
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         voiceIndex += voiceStep;
         ClampVoiceSelection();
         PlayVoice();
@@ -206,7 +206,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
     Interface3D* currentUi = ui;
     int region = RegionAt(x, y);
     auto rotate = [&](int direction) {
-        currentUi->PlaySound(game::RotateSoundText());
+        currentUi->PlayInterfaceSound(game::RotateSoundText());
         rotating = direction;
         CaptureMouse();
     };
@@ -215,7 +215,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
         // The new hero.
         switch (region) {
         case 0:
-            currentUi->PlaySound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(game::CancelSoundText());
             SetMode(kModeList);
             return;
         case 1:
@@ -229,7 +229,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
             return;
         case 4: {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
-            currentUi->PlaySound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(game::CancelSoundText());
             ChooseFigure(defaults[0]);
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
@@ -254,7 +254,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
         if (index < 0) return;
         std::vector<MpVoiceEntry>& currentVoices = *voices;
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(currentVoices.end() - currentVoices.begin())) return;
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         voiceIndex = index;
         const std::string& file = currentVoices.begin()[index].file;
         HeroRecord()->texts[6] = file;
@@ -271,7 +271,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
             AddNewHero();
         } else if (region == 4) {
             // Take the equipment back.
-            currentUi->PlaySound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(game::CancelSoundText());
             tradePanel->Settle(false, false);
             ShowFirstEquipment();
         }
@@ -297,7 +297,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
         return;
     case 5:
         // A new hero.
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         ChooseFigure(defaults[0]);
         statsPanel->SetHero(0, game::kEmptyText);
         surfaces[0]->Clear();
@@ -306,12 +306,12 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
         nameEdit->SetText(game::kEmptyText);
         return;
     case 6:
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         Rename();
         return;
     case 7: {
         // Delete: asks first ("lmp_deletepers").
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
         UiWindow* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
         currentUi->PushWindow(box, true, true);
@@ -319,7 +319,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
     }
     case 8: {
         // The hero's inventory: the camp screen.
-        currentUi->PlaySound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
         ui->PushWindow(new CampPages(ui, true), false, true);
         return;
@@ -330,7 +330,7 @@ void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
     if (region < 9 || region >= 19) return;
     int index = heroTop + region - 9;
     if (!IsHero(index)) return;
-    currentUi->PlaySound(game::SelectSoundText());
+    currentUi->PlayInterfaceSound(game::SelectSoundText());
     ShowHero(index);
 }
 
@@ -391,7 +391,7 @@ void MpHeroScreen::PlayVoice() {
     };
     int index = ClientRandBelow(count);
     for (int tries = 0; tries < count && voiceSound == -1; ++tries) {
-        voiceSound = ui->PlaySound(nth(index)->speech.sound.c_str());
+        voiceSound = ui->PlayInterfaceSound(nth(index)->speech.sound.c_str());
         index = (index + 1) % count;
     }
 }
@@ -400,7 +400,7 @@ void MpHeroScreen::PlayVoice() {
 
 void MpHeroScreen::Continue() {
     Interface3D* currentUi = ui;
-    currentUi->PlaySound(kSoundOk);
+    currentUi->PlayInterfaceSound(kSoundOk);
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
         currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
@@ -436,10 +436,10 @@ void MpHeroScreen::CreateHero() {
     float points = kAttributePoints;
     EI_NAN_AUDIT(sum, points);
     if (sum != points || static_cast<int>(name.size()) == 0) {
-        ui->PlaySound(game::CancelSoundText());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         return;
     }
-    ui->PlaySound(kSoundOk);
+    ui->PlayInterfaceSound(kSoundOk);
     ShowFirstEquipment();
     hero->texts[0] = name;
     statsPanel->SetHero(0, name);
@@ -506,7 +506,7 @@ void MpHeroScreen::MessageResult(int result) {
 // --- The new hero added to the list --------------------------------------------------
 
 void MpHeroScreen::AddNewHero() {
-    ui->PlaySound(kSoundOk);
+    ui->PlayInterfaceSound(kSoundOk);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = std::ssize(hero->weapons) - 1; i >= 0; --i)

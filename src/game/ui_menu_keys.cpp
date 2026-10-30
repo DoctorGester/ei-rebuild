@@ -73,7 +73,7 @@ void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         break;
     case kKeyEsc:
-        ui->PlaySound(game::CancelSoundText());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(kCloseSaveLoad);
         handled = true;
         break;
@@ -84,7 +84,7 @@ void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
     default: break;
     }
     if (step != 0) {
-        ui->PlaySound(game::SelectSoundText());
+        ui->PlayInterfaceSound(game::SelectSoundText());
         selected += step;
         ShowSelection();
         handled = true;
@@ -202,7 +202,7 @@ void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
             }
         }
         if (!pressed) {
-            ui->PlaySound(game::CancelSoundText());
+            ui->PlayInterfaceSound(game::CancelSoundText());
             return;
         }
         waitingForKey = false;
@@ -211,7 +211,7 @@ void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
             RefreshRows();
             return;
         }
-        ui->PlaySound(game::OkSoundText());
+        ui->PlayInterfaceSound(game::OkSoundText());
         int code = keyOfScan[pressed->scan];
         OptionBinding* other = nullptr;
         for (OptionBinding& b : bindings) {
@@ -250,19 +250,19 @@ void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
             const int value = row.setting->spin->TakeValue();
             rows[selectedRow].setting->spin->SetValue(value + 1);
         }
-        ui->PlaySound(game::OkSoundText());
+        ui->PlayInterfaceSound(game::OkSoundText());
         RefreshRows();
         handled = true;
         return;
     }
     case kKeyEsc:
         RestoreSettings();
-        ui->PlaySound(game::CancelSoundText());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(kCloseOptions);
         break;
     case kKeyPageUp:
     case kKeyPageDown:
-        ui->PlaySound(game::SelectSoundText());
+        ui->PlayInterfaceSound(game::SelectSoundText());
         ShowGroup(key == kKeyPageUp ? group - 1 : group + 1);
         break;
     case kKeyLeft:
@@ -275,7 +275,7 @@ void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
         return;
     }
     case kKeyUp:
-        ui->PlaySound(game::SelectSoundText());
+        ui->PlayInterfaceSound(game::SelectSoundText());
         for (int i = selectedRow - 1; i >= 0; --i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;
@@ -285,7 +285,7 @@ void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
         }
         break;
     case kKeyDown:
-        ui->PlaySound(game::SelectSoundText());
+        ui->PlayInterfaceSound(game::SelectSoundText());
         for (int i = selectedRow + 1; i < kOptionRows; ++i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;

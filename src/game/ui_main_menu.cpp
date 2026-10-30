@@ -193,7 +193,7 @@ void MainMenu::MouseMove(int buttons, int x, int y) {
             else
                 animation = g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(animation);
-            ui->PlaySound(kStoneSound);
+            ui->PlayInterfaceSound(kStoneSound);
         }
         hovered = region;
     }

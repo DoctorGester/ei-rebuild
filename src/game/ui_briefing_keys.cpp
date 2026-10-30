@@ -13,6 +13,7 @@
 
 #include <bit>
 #include <cstring>
+#include <windows.h>
 
 namespace {
 
@@ -71,10 +72,10 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
         } else if (state == 3) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);
         } else if (state == 4) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             FinishDialogue();
         }
         handled = true;
@@ -83,10 +84,10 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         if (state == 0) {
             ui->PushWindow(new EscMenu(ui), true, true);
         } else if (state == 3) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);
         } else if (state == 4) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             FinishDialogue();
         } else if (state == 2) {
             StartDialogue(true, false);
@@ -97,10 +98,10 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         return;
     case VK_SPACE:
         if (state == 3) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             NextPhrase(false);
         } else if (state == 4) {
-            ui->PlaySound(kClickSound);
+            ui->PlayInterfaceSound(kClickSound);
             FinishDialogue();
         } else if (state == 2) {
             StartDialogue(true, false);

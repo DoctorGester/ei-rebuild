@@ -312,6 +312,7 @@ set(EI_VECTORS_GAME_SOURCES
     src/lib/crt_format.cpp
     src/lib/crt_x87.cpp
     src/lib/file_io.cpp
+    src/lib/gameapi.cpp
     src/lib/hash_map.cpp
     src/lib/pc24.cpp
     src/lib/rebirth.cpp

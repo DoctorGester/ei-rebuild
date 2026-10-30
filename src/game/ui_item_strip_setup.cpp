@@ -95,7 +95,7 @@ void FigureStrip::LeftDown(int buttons, int x, int y) {
     ui->ScalePointFromScreenEntry(&point);
     int index = SlotAt(point.x);
     if (index < 0 || index >= count) return;
-    ui->PlaySound(kOnOffSound);
+    ui->PlayInterfaceSound(kOnOffSound);
     owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure
 }
 

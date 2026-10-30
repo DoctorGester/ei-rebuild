@@ -14,6 +14,7 @@
 #include "game_singletons.h"
 
 #include <vector>
+#include <windows.h>
 
 namespace {
 

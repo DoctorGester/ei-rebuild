@@ -13,6 +13,7 @@
 #include "options.h"
 
 #include <cstring>
+#include <windows.h>
 
 namespace {
 
@@ -56,10 +57,10 @@ void MessageWindow::LeftDown(int buttons, int x, int y) {
             PlayExitMovieAndQuit();
             return;
         }
-        ui->PlaySound(OkSound());
+        ui->PlayInterfaceSound(OkSound());
         if (flags & kEditField) CopyEditText();
     } else if (region == 1) {
-        ui->PlaySound(CancelSound());
+        ui->PlayInterfaceSound(CancelSound());
     } else if (region < 0) {
         return;
     }
@@ -74,11 +75,11 @@ void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
             PlayExitMovieAndQuit();
         } else {
             if (flags & kEditField) CopyEditText();
-            ui->PlaySound(OkSound());
+            ui->PlayInterfaceSound(OkSound());
             ui->SetPendingValue(result | kAnswerOk);
         }
     } else if (key == VK_ESCAPE) {
-        ui->PlaySound(CancelSound());
+        ui->PlayInterfaceSound(CancelSound());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;
@@ -92,11 +93,11 @@ void DifficultyBox::LeftDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
         options::g_options.difficulty = easy;
-        ui->PlaySound(OkSound());
+        ui->PlayInterfaceSound(OkSound());
         ui->SetPendingValue(result | kAnswerOk);
         break;
     case 1:
-        ui->PlaySound(CancelSound());
+        ui->PlayInterfaceSound(CancelSound());
         ui->SetPendingValue(result | kAnswerCancel);
         break;
     case 2:
@@ -119,10 +120,10 @@ void DifficultyBox::KeyDown(int key, int repeat, int modifiers) {
     if (handled) return;
     if (key == VK_RETURN) {
         options::g_options.difficulty = easy;
-        ui->PlaySound(OkSound());
+        ui->PlayInterfaceSound(OkSound());
         ui->SetPendingValue(result | kAnswerOk);
     } else if (key == VK_ESCAPE) {
-        ui->PlaySound(CancelSound());
+        ui->PlayInterfaceSound(CancelSound());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;

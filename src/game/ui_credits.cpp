@@ -16,6 +16,7 @@
 #include "lib/nan_audit.h"
 
 #include <memory>
+#include <windows.h>
 
 namespace {
 

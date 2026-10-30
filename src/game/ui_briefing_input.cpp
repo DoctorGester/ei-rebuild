@@ -100,7 +100,7 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
         CUnit* object = g_clientWorld.UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
-                ui->PlaySound(kClickSound);
+                ui->PlayInterfaceSound(kClickSound);
                 OpenTopics(object);
             }
             return;
@@ -111,18 +111,18 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
     case 1: {
         int region = RegionAt(x, y);
         if (region < 0 || region >= kTopicRows || region + topicTop >= std::ssize(topics)) return;
-        ui->PlaySound(kClickSound);
+        ui->PlayInterfaceSound(kClickSound);
         topic = topics[region + topicTop];
         ClearRegions();
         StartDialogue(false, true);
         return;
     }
     case 3:
-        ui->PlaySound(kClickSound);
+        ui->PlayInterfaceSound(kClickSound);
         NextPhrase(false);
         return;
     case 4:
-        ui->PlaySound(kClickSound);
+        ui->PlayInterfaceSound(kClickSound);
         FinishDialogue();
         return;
     default:

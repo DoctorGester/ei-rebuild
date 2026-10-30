@@ -10,7 +10,6 @@
 #include "core_refcount.h"
 #include "party_storage.h"
 #include "ui.h"
-#include "lib/gameapi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -78,12 +77,14 @@ struct ItemObjectCache {
 // Kept: the screens' two named caches of the one template.
 using ItemModelCache = ItemObjectCache<UiMesh>;        // the models (UiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
+// timeGetTime, for TrimItemCache (defined in ui_item_info.cpp, which includes lib/gameapi.h for it).
+std::uint32_t ItemCacheTime();
 // While the cache holds more than its limit: the least recently used entry (used before now) has
 // its object released and is erased. Spins while every entry was used at or after now.
 template <typename Object>
 inline void TrimItemCache(ItemObjectCache<Object>* cache) {
     while (cache->map.size() > cache->limit) {
-        std::uint32_t oldestTime = gameapi::timeGetTime();
+        std::uint32_t oldestTime = ItemCacheTime();
         auto oldest = cache->map.end();
         for (auto node = cache->map.begin(); node != cache->map.end(); ++node) {
             if (node->second.lastUse < oldestTime) {

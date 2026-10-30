@@ -245,7 +245,7 @@ void EscMenu::CreateScreen() {
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }
     models[0]->Play(SkillAnimation::Briefing02);
-    ui->PlaySound("buttons\\menu\\shift.wav");
+    ui->PlayInterfaceSound("buttons\\menu\\shift.wav");
 }
 
 // --- Esc menu clicks -------------------------------------------------------------------
@@ -254,7 +254,7 @@ void EscMenu::LeftDown(int buttons, int x, int y) {
     Interface3D* currentUi = ui;
     int region = RegionAt(x, y);
     if (region >= 0) {
-        currentUi->PlaySound("buttons\\menu\\ok.wav");
+        currentUi->PlayInterfaceSound("buttons\\menu\\ok.wav");
         handled = true;
     }
     UiWindow* opened = nullptr;
@@ -297,12 +297,12 @@ void MainMenu::LeftDown(int buttons, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
-        currentUi->PlaySound(okSound);
+        currentUi->PlayInterfaceSound(okSound);
         currentUi->PushWindow(new DifficultyBox(currentUi), true, true);
         break;
     }
     case 1: {
-        currentUi->PlaySound(okSound);
+        currentUi->PlayInterfaceSound(okSound);
         currentUi->PushWindow(new SaveLoadWindow(currentUi, false, false), true, true);
         break;
     }
@@ -315,7 +315,7 @@ void MainMenu::LeftDown(int buttons, int x, int y) {
         break;
     }
     case 3: {
-        currentUi->PlaySound(okSound);
+        currentUi->PlayInterfaceSound(okSound);
         currentUi->PushWindow(new OptionsWindow(currentUi, false), true, true);
         break;
     }
@@ -323,7 +323,7 @@ void MainMenu::LeftDown(int buttons, int x, int y) {
         // The titles (opened over a cleared menu, not as a dialog).
         GameStopSounds(0);
         GameStopAmbience();
-        currentUi->PlaySound(okSound);
+        currentUi->PlayInterfaceSound(okSound);
         ClearSurfaces();
         currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), false, true);
         break;
@@ -335,7 +335,7 @@ void MainMenu::LeftDown(int buttons, int x, int y) {
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
-        currentUi->PlaySound(okSound);
+        currentUi->PlayInterfaceSound(okSound);
         currentUi->PushWindow(new MpHeroScreen(currentUi), true, true);
         break;
     }

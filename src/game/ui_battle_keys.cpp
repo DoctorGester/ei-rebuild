@@ -86,7 +86,7 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
         panel->sliding = true;
         panel->slideDirection = 1.0f;
     }
-    panel->ui->PlaySound(kSoundSling);
+    panel->ui->PlayInterfaceSound(kSoundSling);
     show(panel);
 }
 
@@ -155,7 +155,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         camera->SetTargetId(-1);
         return;
     case kActionCameraNorth:
-        ui->PlaySound(kSoundClick);
+        ui->PlayInterfaceSound(kSoundClick);
         camera->SetHeading(0.0f);
         map->northTime = 0.5f;
         return;
@@ -212,7 +212,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         if (current >= 0 && current < count) bar->Highlight(current, false);
         bar->Highlight(slot, true);
         bar->selected = slot;
-        ui->PlaySound(kSoundWeapon);
+        ui->PlayInterfaceSound(kSoundWeapon);
         CUnit* unit = bar->unit;
         if (!unit) return;
         g_clientWorld.LocalView()->SetWeapon(unit, slot);
@@ -244,7 +244,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         return;
     }
     case kActionMapSlide:
-        ui->PlaySound(kSoundSling);
+        ui->PlayInterfaceSound(kSoundSling);
         map->slideDirection = -map->slideDirection;
         map->sliding = true;
         return;
@@ -258,7 +258,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     case kActionMember + 1:
     case kActionMember + 2: {
         const int member = action - kActionMember;
-        ui->PlaySound(kSoundOnOff);
+        ui->PlayInterfaceSound(kSoundOnOff);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
         if ((ui->ctrlDown || ui->altDown) && std::ssize(party) > member)
@@ -267,7 +267,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     }
     case kActionSelectAll:
         if (IsMultiplayerClient()) return;
-        ui->PlaySound(kSoundOnOff);
+        ui->PlayInterfaceSound(kSoundOnOff);
         for (int i = 0; i < std::ssize(party); ++i) {
             MarkPortrait(i);
             if (CUnit* unit = party[i]) g_clientWorld.Select(unit);

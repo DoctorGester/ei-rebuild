@@ -24,6 +24,7 @@
 #include <bit>
 #include <cmath>
 #include <string>
+#include <windows.h>
 
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
@@ -281,7 +282,7 @@ void UiItemStrip::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
         if (!currentUi->shiftDown) {
-            currentUi->PlaySound(kSoundCampScroll);
+            currentUi->PlayInterfaceSound(kSoundCampScroll);
             currentUi->mouseCapture = Input();
             scrollDirection = region == 0 ? 1 : 2;
         } else {
@@ -292,7 +293,7 @@ void UiItemStrip::LeftDown(int, int x, int y) {
         }
     }
     if (tabsEnabled && region >= 2 && region < 8) {
-        currentUi->PlaySound(kSoundCampMode);
+        currentUi->PlayInterfaceSound(kSoundCampMode);
         SetTab(region - 2);
     }
     if (region >= 0) handled = true;
@@ -311,7 +312,7 @@ void UiItemStrip::MouseMove(int, int x, int y) {
 void UiItemStrip::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == 8) {
         pending = (static_cast<short>(delta) / 120) + pending;
-        ui->PlaySound(kSoundCampScroll);
+        ui->PlayInterfaceSound(kSoundCampScroll);
     }
 }
 
@@ -452,7 +453,7 @@ void MpHeroScreen::TakeItem(Item* item, int takeMode) {
             equipped = false;
             break;
         }
-        if (equipped) ui->PlaySound(kSoundMessageOk);
+        if (equipped) ui->PlayInterfaceSound(kSoundMessageOk);
     }
     RefreshStats();
 }
@@ -482,14 +483,14 @@ void EscMenu::MouseMove(int modifiers, int x, int y) {
     switch (region) {
     case 0:
         if (hovered != 0 && !IsMultiplayerClient()) {
-            ui->PlaySound(kSoundMenuStone);
+            ui->PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing03);
         }
         hovered = 0;
         break;
     case 1:
         if (hovered != 1 && !IsMultiplayerClient()) {
-            ui->PlaySound(kSoundMenuStone);
+            ui->PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing04);
         }
         hovered = 1;
@@ -501,7 +502,7 @@ void EscMenu::MouseMove(int modifiers, int x, int y) {
                                                  SkillAnimation::Briefing06, SkillAnimation::Briefing07,
                                                  SkillAnimation::Briefing05};
         if (hovered != region) {
-            ui->PlaySound(kSoundMenuStone);
+            ui->PlayInterfaceSound(kSoundMenuStone);
             model->Play(kAnimation[region]);
         }
         hovered = region;
@@ -518,7 +519,7 @@ void EscMenu::MouseMove(int modifiers, int x, int y) {
 void EscMenu::KeyDown(int key, int repeat, int modifiers) {
     UiContainer::KeyDown(key, repeat, modifiers);
     if (key == VK_ESCAPE) {
-        ui->PlaySound(kSoundMenuOk);
+        ui->PlayInterfaceSound(kSoundMenuOk);
         ui->SetPendingValue(0);
         handled = true;
     }

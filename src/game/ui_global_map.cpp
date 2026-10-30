@@ -355,7 +355,7 @@ void GlobalMap::CreateScreen() {
     g_sceneRenderer.fogColour = 0xFF00000A;
     weather->SetRamp(0x77, 0xF8, 2.0f);
     Update();
-    windSound = ui->PlaySound("buttons\\globalmap\\wind.wav", true);
+    windSound = ui->PlayInterfaceSound("buttons\\globalmap\\wind.wav", true);
     if (autosave && options::g_options.autosave != 0) ::QuickSave("saveb", true);
     ui->OpenHelp(false);
 }
