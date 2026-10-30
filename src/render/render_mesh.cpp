@@ -109,10 +109,6 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-using MeshVsParams = mesh_vs_params_t;
-using MeshFsParams = mesh_fs_params_t;
-static_assert(offsetof(MeshFsParams, shadowFigure) - offsetof(MeshFsParams, shadow_on) == sizeof(ShadowParams));
-static_assert(offsetof(MeshFsParams, pointOn) - offsetof(MeshFsParams, light_on) == sizeof(MeshLightParams));
 // How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
 // map's texels (as the ground's, shaders/terrain.glsl).
 constexpr float kNormalOffset = 1.5f;
@@ -332,7 +328,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     BindPointShadows(b, VIEW_point_shadow_map, SMP_point_shadow_smp);
     sg_apply_bindings(&b);
     CountBindings(b);
-    MeshVsParams vs{};
+    mesh_vs_params_t vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
         vs.distanceFog[0] = 1.0f;
@@ -346,10 +342,15 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
-    MeshFsParams fs{};
+    mesh_fs_params_t fs{};
     ShadowParams shadow{};
     ShadowUniforms(f, batch.light >= 0, &shadow);
-    std::memcpy(fs.shadow_on, &shadow, sizeof(shadow));
+    for (int k = 0; k < 4; ++k) {
+        fs.shadow_on[k] = shadow.on[k];
+        fs.shadow_scale[k] = shadow.scale[k];
+        fs.shadow_camera[k] = shadow.camera[k];
+        fs.shadow_soft[k] = shadow.soft[k];
+    }
     if (shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)   // the map's texel in world units
         vs.normalOffset[0] = shadow.scale[0] * 2.0f / shadow.soft[3] * kNormalOffset;
     if (batch.lighting >= 0) {
@@ -359,7 +360,17 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             float& w = lighting.points[k][1][3];
             w = static_cast<float>(PointShadowSlot(f, static_cast<int>(w) - 1) + 1);
         }
-        std::memcpy(fs.light_on, &lighting, sizeof(lighting));
+        for (int k = 0; k < 4; ++k) {
+            fs.light_on[k] = lighting.on[k];
+            fs.light_sun[k] = lighting.sun[k];
+            fs.light_sun_colour[k] = lighting.sunColour[k];
+            fs.light_ambient[k] = lighting.ambient[k];
+            fs.light_emissive[k] = lighting.emissive[k];
+            for (int light = 0; light < kMostMeshLights; ++light) {
+                fs.light_points[2 * light][k] = lighting.points[light][0][k];
+                fs.light_points[2 * light + 1][k] = lighting.points[light][1][k];
+            }
+        }
         if (batch.landscape >= 0) {
             const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(vs.landscape, m.m, sizeof(vs.landscape));
@@ -409,8 +420,16 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     sg_apply_uniforms(UB_mesh_vs_params, &vr);
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(UB_mesh_fs_params, &fr);
-    PointShadowParams point;
-    PointShadowUniforms(f, &point);
+    mesh_point_params_t point{};
+    const auto& shadows = f.shadow.point.params;
+    for (int k = 0; k < 4; ++k) {
+        point.point_shadow_on[k] = shadows.on[k];
+        point.point_shadow_eye[k] = shadows.eye[k];
+        for (int light = 0; light < kMostPointShadows; ++light) {
+            point.point_shadow_at[light][k] = shadows.lights[light][k];
+            point.point_shadow_depth[light][k] = shadows.depth[light][k];
+        }
+    }
     sg_range pr{&point, sizeof(point)};
     sg_apply_uniforms(UB_mesh_point_params, &pr);
     sg_draw(first, batch.indexCount, 1);

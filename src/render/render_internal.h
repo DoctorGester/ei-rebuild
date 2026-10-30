@@ -224,7 +224,6 @@ struct ShadowParams {
     float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
                        // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
 };
-static_assert(sizeof(ShadowParams) == 64);
 
 // The scene's light (shaders/scene_lighting.glsl) as kept by render::SceneLighting, a fragment uniform block.
 struct LightParams {
@@ -236,7 +235,6 @@ struct LightParams {
     float points[kMostSceneLights][2][4];   // position xyz, 1 / range squared; colour rgb, w: 1 specular
     float shadowSlots[kMostSceneLights];    // per point light its shadow map + 1, 0: none
 };
-static_assert(sizeof(LightParams) == sizeof(light_params_t));
 void LightUniforms(LightParams* params);
 // The kept point lights, laid out as LightParams::points. SceneLightIndex: the kept light at `position`
 // exactly (the same Light's), -1 none.
@@ -265,7 +263,6 @@ struct MeshLightParams {
                                            // scene's light (SceneLightIndex) + 1, 0 none; drawn: its point
                                            // shadow + 1, 0 none
 };
-static_assert(sizeof(MeshLightParams) == 80 + kMostMeshLights * 32);
 void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
 
 // Point-light shadows (shaders/point_shadow.glsl): the receivers' fragment uniforms, the same for the
@@ -278,8 +275,6 @@ struct PointShadowParams {
     float lights[kMostPointShadows][4];   // xyz: the light in the landscape's space, w: the faces' near distance
     float depth[kMostPointShadows][4];    // xy: a face's depth for a distance d along its axis is x + y / d
 };
-static_assert(sizeof(PointShadowParams) == sizeof(point_shadow_params_t));
-static_assert(sizeof(PointShadowParams) == sizeof(mesh_point_params_t));
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
@@ -367,14 +362,11 @@ private:
     unsigned mappedWidth = 0, mappedHeight = 0;
 };
 
-// The vertex parameters of the rectangle shaders (blit, ui_canvas, texture_compose, texture_clouds): the rectangle
-// (left, top, right, bottom, target pixels) and the target's width and height.
-using RectParams = rect_params_t;
-static_assert(sizeof(RectParams) == 32);
 // `r` on a `width` x `height` target as vertex uniform block 0.
 inline void ApplyRect(const Rect& r, int width, int height) {
-    RectParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                  {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    rect_params_t vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
+                      static_cast<float>(r.bottom)},
+                     {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
     sg_range range{&vs, sizeof(vs)};
     sg_apply_uniforms(UB_rect_params, &range);
 }
@@ -667,7 +659,6 @@ private:
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
-void PointShadowUniforms(const Frame& frame, PointShadowParams* params);
 void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
 void DestroyPointShadows();

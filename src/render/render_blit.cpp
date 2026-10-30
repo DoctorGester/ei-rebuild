@@ -19,9 +19,6 @@ namespace {
 
 using namespace detail;
 
-using BlitParams = blit_params_t;
-using SolidParams = solid_params_t;
-
 enum PipelineKind { kBlit, kClearDepth, kFill, kPipelineKinds };
 
 sg_shader g_blitShader{}, g_solidShader{};
@@ -71,10 +68,11 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
     sg_pipeline pipeline = PassPipeline(kind);
     sg_apply_pipeline(pipeline);
     CountPipeline(pipeline);
-    SolidParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                   {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
-                   {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f,
-                    (colour & 0xFF) / 255.0f, 1.0f}};
+    solid_params_t vs{
+        {static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
+         static_cast<float>(r.bottom)},
+        {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
+        {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(UB_solid_params, &vr);
     sg_draw(0, 6, 1);
@@ -276,14 +274,14 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     sg_apply_bindings(&bind);
     CountBindings(bind);
     ApplyRect(b.destination, width, height);
-    BlitParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
-                 static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
-                {static_cast<float>(b.source.left), static_cast<float>(b.source.top), static_cast<float>(b.textureWidth),
-                 static_cast<float>(b.textureHeight)}};
+    blit_params_t fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
+                      static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
+                     {static_cast<float>(b.source.left), static_cast<float>(b.source.top),
+                      static_cast<float>(b.textureWidth), static_cast<float>(b.textureHeight)}};
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(UB_blit_params, &fr);
     sg_draw(0, 6, 1);
-    CountDraw(sizeof(RectParams) + sizeof(fs));
+    CountDraw(sizeof(rect_params_t) + sizeof(fs));
 }
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {

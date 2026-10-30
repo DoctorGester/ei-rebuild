@@ -30,7 +30,6 @@ auto& g_ramp = g_rampTable.entries;
 std::uint8_t g_uploaded[256 * 4]{};
 Rect g_lastCursor{};
 WindowPresentInfo g_info;
-using CursorParams = cursor_params_t;
 bool CreatePipeline() {
     sg_shader_desc s = ShaderDescription(kPresentShader);
     s.label = "ei-present";
@@ -191,7 +190,7 @@ bool DrawToWindow(const BlitBatch* cursor, bool overlay) {
     sg_apply_viewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, true);
     sg_apply_pipeline(g_pipeline);
     // The cursor texture's slot holds the ramp's when there is no cursor (the rectangle is empty then).
-    CursorParams cp{};
+    cursor_params_t cp{};
     sg_view cursorView = g_rampView;
     g_lastCursor = Rect{0, 0, 0, 0};
     if (cursor && cursor->texture.id) {
@@ -200,13 +199,13 @@ bool DrawToWindow(const BlitBatch* cursor, bool overlay) {
         int sw = cursor->source.right - cursor->source.left, sh = cursor->source.bottom - cursor->source.top;
         if (dw > 0 && dh > 0 && sw > 0 && sh > 0) {
             cursorView = cursor->texture;
-            cp = CursorParams{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
-                               static_cast<float>(to.bottom)},
-                              {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
-                               static_cast<float>(sw) / static_cast<float>(dw),
-                               static_cast<float>(sh) / static_cast<float>(dh)},
-                              {static_cast<float>(sw), static_cast<float>(sh), static_cast<float>(cursor->source.left),
-                               static_cast<float>(cursor->source.top)}};
+            cp = cursor_params_t{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
+                                  static_cast<float>(to.bottom)},
+                                 {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
+                                  static_cast<float>(sw) / static_cast<float>(dw),
+                                  static_cast<float>(sh) / static_cast<float>(dh)},
+                                 {static_cast<float>(sw), static_cast<float>(sh),
+                                  static_cast<float>(cursor->source.left), static_cast<float>(cursor->source.top)}};
             g_lastCursor = to;
         }
     }

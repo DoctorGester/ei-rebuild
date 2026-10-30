@@ -7,6 +7,7 @@
 #include "platform/graphics.h"
 #include "render_internal.h"
 
+#include <bit>
 #include <cctype>
 #include <cstring>
 #include <string>
@@ -18,10 +19,6 @@ namespace render::detail {
 
 namespace {
 
-using ComposeParams = texture_compose_params_t;
-// texture_clouds.glsl's fragment parameters.
-using CloudParams = cloud_params_t;
-static_assert(sizeof(ComposeParams) == 32 && sizeof(CloudParams) == 1088);
 
 bool g_tried = false, g_made = false;
 sg_shader g_shader{}, g_cloudFrameShader{}, g_cloudsShader{};
@@ -209,8 +206,8 @@ sg_view CloudFrameView(const CloudFrame& frame) {
     sg_begin_pass(&pass);
     sg_apply_pipeline(g_cloudFrame);
     ApplyRect(Rect{0, 0, kCloudSize, kCloudSize}, kCloudSize, kCloudSize);
-    CloudParams params{};
-    std::memcpy(params.words, frame.words, sizeof(params.words));
+    cloud_params_t params{};
+    for (int k = 0; k < 12; ++k) params.words[k / 4][k % 4] = std::bit_cast<int>(frame.words[k / 3][k % 3]);
     sg_range range{&params, sizeof(params)};
     sg_apply_uniforms(UB_cloud_params, &range);
     sg_draw(0, 6, 1);
@@ -280,7 +277,7 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
             b.samplers[0] = g_nearest;
             sg_apply_bindings(&b);
             ApplyRect(step.to, recipe.width, recipe.height);
-            CloudParams params{};
+            cloud_params_t params{};
             params.blend[0] = step.clouds->blend;
             for (int g = 0; g < 256; ++g) params.ramp[g / 4][g % 4] = step.clouds->ramp[g];
             sg_range range{&params, sizeof(params)};
@@ -296,8 +293,9 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(step.to, recipe.width, recipe.height);
-        ComposeParams fs{{step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
-                    {1.0f, 1.0f, 1.0f, 1.0f}};
+        texture_compose_params_t fs{
+            {step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(recipe.alpha)},
+            {1.0f, 1.0f, 1.0f, 1.0f}};
         sg_range range{&fs, sizeof(fs)};
         sg_apply_uniforms(UB_texture_compose_params, &range);
         sg_draw(0, 6, 1);
@@ -412,7 +410,7 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         b.samplers[0] = g_nearest;
         sg_apply_bindings(&b);
         ApplyRect(Rect{0, 0, width, height}, width, height);
-        ComposeParams fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
+        texture_compose_params_t fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
         sg_range range{&fs, sizeof(fs)};
         sg_apply_uniforms(UB_texture_compose_params, &range);
         sg_draw(0, 6, 1);

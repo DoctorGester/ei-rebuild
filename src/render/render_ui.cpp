@@ -126,8 +126,6 @@ std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
-using UiParams = ui_params_t;
-static_assert(sizeof(UiParams) == 96);
 
 bool g_pipelinesTried = false, g_pipelinesMade = false;
 sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
@@ -291,14 +289,14 @@ void BeginCanvasPass(sg_view attachment, bool clear, const char* label) {
     sg_begin_pass(&pass);
 }
 
-UiParams CanvasParams(const CanvasState& canvas) {
-    UiParams fs{};
+ui_params_t CanvasParams(const CanvasState& canvas) {
+    ui_params_t fs{};
     for (int i = 0; i < 3; ++i) fs.bits[i] = static_cast<int>(canvas.bits[i]);
     fs.bits[3] = canvas.greyMode;
     return fs;
 }
 
-void ApplyFs(const UiParams& fs) {
+void ApplyFs(const ui_params_t& fs) {
     sg_range range{&fs, sizeof(fs)};
     sg_apply_uniforms(UB_ui_params, &range);
 }
@@ -330,7 +328,7 @@ void DrawSolids(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (std::size_t k = from; k < to; ++k) {
         const Op& op = g_queue[k];
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        ui_params_t fs = CanvasParams(canvas);
         fs.colour[0] = ((op.colour >> 16) & 0xFF) / 255.0f;
         fs.colour[1] = ((op.colour >> 8) & 0xFF) / 255.0f;
         fs.colour[2] = (op.colour & 0xFF) / 255.0f;
@@ -454,7 +452,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (const Run& run : runs) {
         const Op& op = *run.op;
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        ui_params_t fs = CanvasParams(canvas);
         fs.colour[0] = static_cast<float>(op.colour & 0xFF);
         fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
         fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
@@ -491,7 +489,7 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-    UiParams fs = CanvasParams(canvas);
+    ui_params_t fs = CanvasParams(canvas);
     fs.source[0] = r.left;
     fs.source[1] = r.top;
     fs.source[2] = r.right - r.left;
@@ -835,7 +833,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(Rect{0, 0, width, height}, width, height);
-    UiParams fs{};
+    ui_params_t fs{};
     fs.source[2] = canvas.width;
     fs.source[3] = canvas.height;
     fs.dest[0] = width;
@@ -954,7 +952,7 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
     ApplyRect(batch.destination, width, height);
-    UiParams fs{};
+    ui_params_t fs{};
     fs.source[0] = batch.source.left;
     fs.source[1] = batch.source.top;
     fs.source[2] = canvas.width;

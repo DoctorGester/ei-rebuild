@@ -395,8 +395,6 @@ GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-using Params = terrain_vs_params_t;
-static_assert(sizeof(Params) == sizeof(terrain_fs_params_t));
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
@@ -633,33 +631,64 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     BindPointShadows(b, VIEW_point_shadow_map, SMP_point_shadow_smp);
     sg_apply_bindings(&b);
     CountBindings(b);
-    Params params{};
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    params.light = receives ? f.shadow.lights[0] : f.matrices[static_cast<std::size_t>(batch.matrix)];
     ShadowParams shadow{};
     ShadowUniforms(f, receives, &shadow);
-    std::memcpy(params.shadow_on, &shadow, sizeof(shadow));
-    params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    params.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
-    params.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
-    params.fog[2] = (f.fogColour & 0xFF) / 255.0f;
-    params.flags[0] = mode;
-    params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-    params.flags[2] = f.pixelShift[0];
-    params.flags[3] = f.pixelShift[1];
-    sg_range u{&params, sizeof(params)};
-    sg_apply_uniforms(UB_terrain_vs_params, &u);
-    sg_apply_uniforms(UB_terrain_fs_params, &u);
-    LightParams light;
-    LightUniforms(&light);
+    auto fill = [&](auto& params) {
+        params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
+        params.light = receives ? f.shadow.lights[0] : params.matrix;
+        for (int k = 0; k < 4; ++k) {
+            params.shadow_on[k] = shadow.on[k];
+            params.shadow_scale[k] = shadow.scale[k];
+            params.shadow_camera[k] = shadow.camera[k];
+            params.shadow_soft[k] = shadow.soft[k];
+        }
+        params.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
+        params.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
+        params.fog[2] = (f.fogColour & 0xFF) / 255.0f;
+        params.flags[0] = mode;
+        params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+        params.flags[2] = f.pixelShift[0];
+        params.flags[3] = f.pixelShift[1];
+    };
+    terrain_vs_params_t vs{};
+    terrain_fs_params_t fs{};
+    fill(vs);
+    fill(fs);
+    sg_range vu{&vs, sizeof(vs)}, fu{&fs, sizeof(fs)};
+    sg_apply_uniforms(UB_terrain_vs_params, &vu);
+    sg_apply_uniforms(UB_terrain_fs_params, &fu);
+    LightParams scene;
+    LightUniforms(&scene);
+    light_params_t light{};
+    for (int k = 0; k < 4; ++k) {
+        light.sun_dir[k] = scene.sun[k];
+        light.sun_colour[k] = scene.sunColour[k];
+        light.ambient_colour[k] = scene.ambient[k];
+        light.light_counts[k] = scene.counts[k];
+        light.map_sun[k] = scene.mapSun[k];
+        for (int index = 0; index < kMostSceneLights; ++index) {
+            light.point_lights[2 * index][k] = scene.points[index][0][k];
+            light.point_lights[2 * index + 1][k] = scene.points[index][1][k];
+        }
+    }
+    for (int k = 0; k < kMostSceneLights; ++k) light.point_slots[k / 4][k % 4] = scene.shadowSlots[k];
     sg_range lu{&light, sizeof(light)};
     sg_apply_uniforms(UB_light_params, &lu);
-    PointShadowParams point;
-    PointShadowUniforms(f, &point);
+    point_shadow_params_t point{};
+    const auto& shadows = f.shadow.point.params;
+    for (int k = 0; k < 4; ++k) {
+        point.point_shadow_on[k] = shadows.on[k];
+        point.point_shadow_eye[k] = shadows.eye[k];
+        for (int index = 0; index < kMostPointShadows; ++index) {
+            point.point_shadow_at[index][k] = shadows.lights[index][k];
+            point.point_shadow_depth[index][k] = shadows.depth[index][k];
+        }
+    }
     sg_range pr{&point, sizeof(point)};
     sg_apply_uniforms(UB_point_shadow_params, &pr);
-    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light) + sizeof(point);
+    std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(light) + sizeof(point);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;

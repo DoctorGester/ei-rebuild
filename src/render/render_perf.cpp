@@ -183,9 +183,6 @@ bool g_pixelsChanged = false;
 long long g_lastText = 0;
 std::vector<std::string> g_lines;
 
-using OverlayVs = rect_params_t;
-using OverlayFs = perf_overlay_params_t;
-
 bool MakePipeline() {
     sg_shader_desc s = ShaderDescription(kPerfOverlayShader);
     s.label = "ei-perf-overlay";
@@ -354,10 +351,10 @@ void Draw(int width, int height, const Rect& placed) {
     b.views[0] = g_view;
     b.samplers[0] = g_sampler;
     sg_apply_bindings(&b);
-    OverlayVs vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    rect_params_t vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(UB_rect_params, &vr);
-    OverlayFs fs{{left, top, static_cast<float>(scale), 0.0f}};
+    perf_overlay_params_t fs{{left, top, static_cast<float>(scale), 0.0f}};
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(UB_perf_overlay_params, &fr);
     sg_draw(0, 6, 1);

@@ -52,8 +52,8 @@ Shader generation needs this one tool; no external GLSL converter or Windows SDK
 - Give uniform blocks, textures, samplers and attributes explicit binding/location numbers. A shared resource
   name must have the same binding and type in every program. Use the generated `UB_`, `VIEW_`, `SMP_` and `ATTR_`
   constants in the renderer. Samplers for integer textures and unfilterable floats are explicitly nonfiltering.
-- Use generated uniform structs. Engine lighting structures copied into a uniform block have size/offset
-  checks against those layouts. The mesh's operation codes are exact small floats, so its large float block
+- Use generated uniform structs. Copy engine lighting values field by field so uploads do not depend on
+  their memory layout. The mesh's operation codes are exact small floats, so its large float block
   can be flattened for GL; shader arithmetic converts codes to integers. Cloud seeds remain signed integer
   vectors in uniform storage, explicitly interpreted as unsigned words for the noise arithmetic.
 - The engine uses D3D clip depth [0,w]; vertex stages request `@glsl_options fixup_clipspace` for GL. Matrix4

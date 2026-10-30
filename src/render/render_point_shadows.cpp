@@ -237,7 +237,6 @@ struct RedrawnFace {
 };
 std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
 // A face cleared alone (shaders/solid.glsl: a rectangle at a depth, written whatever is there).
-using ClearVs = solid_params_t;
 sg_shader g_clearShader{};
 sg_pipeline g_clearPipeline{};
 sg_image g_atlas{};
@@ -606,7 +605,7 @@ void DrawPointShadows(Frame& f) {
         }
         sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
         const auto side = static_cast<float>(kPointFaceTexels);
-        ClearVs vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
+        solid_params_t vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
         sg_range vr{&vs, sizeof(vs)};
         sg_apply_uniforms(UB_solid_params, &vr);
         sg_draw(0, 6, 1);
@@ -619,8 +618,6 @@ void DrawPointShadows(Frame& f) {
         }
     sg_end_pass();
 }
-
-void PointShadowUniforms(const Frame& f, PointShadowParams* params) { *params = f.shadow.point.params; }
 
 int PointShadowSlot(const Frame& f, int sceneLight) {
     if (sceneLight < 0 || sceneLight >= kMostSceneLights) return -1;
