@@ -200,7 +200,7 @@ void BriefingScreen::CreateScreen() {
         noWalk = false;
     }
     GameStartAmbience();
-    GameSetWeather(0, 0.0f);
+    g_serverWorld.SetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
     UiInputSide* input = new UiInertInput(ui);           // 0x0C bytes
@@ -347,7 +347,7 @@ void BriefingScreen::MarkPeople() {
 void BriefingScreen::LeaveIfExitOpen() {
     Party* localParty = LocalPlayerData();
     if (!exitPending || std::ssize(localParty->members) <= 0) return;
-    std::string zone = GameExitTarget(exit);
+    std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone, kNoZone) == 0) return;
     std::string variable = kZoneVariablePrefix;
     variable += zone;
@@ -358,7 +358,7 @@ void BriefingScreen::LeaveIfExitOpen() {
     std::vector<PartyUnitRecord*> second{};
     records.resize(1);
     records[0] = localParty->members.data();
-    if (GamePartyInExit(&records, exit, &second)) {
+    if (g_clientWorld.PartyInExit(&records, exit, &second)) {
         app::g_interfaceHasScreen = 0;
         GameLeaveThroughExit(exit);
     }

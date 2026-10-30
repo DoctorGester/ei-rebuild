@@ -17,7 +17,6 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-Party* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 int GlobalRecordCount() { return lib::Count(GlobalParty()->members); }
 int& GlobalGold() { return GlobalParty()->money; }
 

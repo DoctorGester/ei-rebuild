@@ -38,14 +38,6 @@
 
 namespace {
 
-float FloatBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatBits(T) = delete;
-
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
@@ -732,7 +724,7 @@ void SoundManager::FadeOutStream() {
     musicFader.mode = 2;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
-    musicFader.step = FloatBits(FadeStepBits());
+    musicFader.step = lib::FloatFromBits(FadeStepBits());
     musicFader.holdUntil = 0;
 }
 
@@ -741,7 +733,7 @@ void SoundManager::FadeInStream() {
     musicFader.mode = 1;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
-    musicFader.step = FloatBits(FadeStepBits());
+    musicFader.step = lib::FloatFromBits(FadeStepBits());
     musicFader.holdUntil = 0;
 }
 
@@ -765,7 +757,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
                 musicFader.mode = 1;
                 musicFader.finished = 0;
                 musicFader.step = 0.0f;
-                musicFader.step = FloatBits(FadeStepBits());
+                musicFader.step = lib::FloatFromBits(FadeStepBits());
                 musicFader.holdUntil = 0;
             }
             return 1;
@@ -783,7 +775,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
         musicFader.mode = 2;
         musicFader.finished = 0;
         musicFader.step = 0.0f;
-        musicFader.step = FloatBits(FadeStepBits());
+        musicFader.step = lib::FloatFromBits(FadeStepBits());
         musicFader.holdUntil = 0;
         at = 0x7FFFFFFF;
         break;
@@ -849,7 +841,7 @@ void SoundManager::StopStream(int mode) {
             musicFader.finished = 0;
             musicFader.step = step;
             EI_NAN_AUDIT(step);
-            if (step == 0.0f) musicFader.step = FloatBits(FadeStepBits());
+            if (step == 0.0f) musicFader.step = lib::FloatFromBits(FadeStepBits());
             musicFader.SetHold(platform::Milliseconds() + 2000);
         } else {
             RequestStream(game::kEmptyText, mode);

@@ -33,9 +33,6 @@ constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
-float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float Float(T) = delete;
 
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(void* state, float x, float y, float z) {
@@ -44,8 +41,8 @@ void AnimationSetScale(void* state, float x, float y, float z) {
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
 // (it is beyond the bound, or unordered).
-std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= Float(bound) ? bound : Bits(v); }
-std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= v ? bound : Bits(v); }
+std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= lib::FloatFromBits(bound) ? bound : Bits(v); }
+std::uint32_t KeepHigher(std::uint32_t bound, float v) { return lib::FloatFromBits(bound) >= v ? bound : Bits(v); }
 
 // a + b + c in that order, stored to a float.
 float Sum3(float a, float b, float c) { return (a + b) + c; }
@@ -80,8 +77,12 @@ void Object3D::ComputeBounds() {
     }
     if (parts.empty()) return;
 
-    float lowX = Float(box.low[0]), lowY = Float(box.low[1]), lowZ = Float(box.low[2]);
-    float highX = Float(box.high[0]), highY = Float(box.high[1]), highZ = Float(box.high[2]);
+    float lowX = lib::FloatFromBits(box.low[0]);
+    float lowY = lib::FloatFromBits(box.low[1]);
+    float lowZ = lib::FloatFromBits(box.low[2]);
+    float highX = lib::FloatFromBits(box.high[0]);
+    float highY = lib::FloatFromBits(box.high[1]);
+    float highZ = lib::FloatFromBits(box.high[2]);
     float centerX = (lowX + highX) * 0.5f;
     float centerY = (lowY + highY) * 0.5f;
     float centerZ = (lowZ + highZ) * 0.5f;

@@ -229,7 +229,7 @@ void PlaceRings(ParticleSource* s, int countdown) {
             ParticleElement* e = &s->elements[i];
             e->word[9] = 0;
             e->ticks = countdown;
-            float lift = Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + low;
+            float lift = WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + low;
             e->flames.centre = offset;
             e->flames.centre.z = lift + e->flames.centre.z;
             e->pos = e->flames.centre;
@@ -271,11 +271,11 @@ bool EmitRingFlame(ParticleSource* s, Particle* p, int& result) {
 // the offset.
 void PlaceRingSpark(ParticleSource* s, Particle* p, const ParticleElement& ring, float spread) {
     float low = -spread;
-    float x = Unsigned(Next()) * (spread - low) * EI_P_SCALE_1 + ring.pos.x + s->origin.x + low;
+    float x = WordToFloat(Next()) * (spread - low) * EI_P_SCALE_1 + ring.pos.x + s->origin.x + low;
     p->pos.x = x;
-    float y = Unsigned(Next()) * (spread - low) * EI_P_SCALE_1 + ring.pos.y + s->origin.y + low;
+    float y = WordToFloat(Next()) * (spread - low) * EI_P_SCALE_1 + ring.pos.y + s->origin.y + low;
     p->pos.y = y;
-    p->pos.z = ring.pos.z - Unsigned(Next()) * low * EI_P_SCALE_1 + s->origin.z + low;
+    p->pos.z = ring.pos.z - WordToFloat(Next()) * low * EI_P_SCALE_1 + s->origin.z + low;
 }
 
 float RingRadius(const ParticleElement& ring) {
@@ -470,7 +470,7 @@ constexpr std::int32_t kBlastAlpha[16] = /*0078A5DC*/ {255, 255, 207, 175, 128, 
 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(ParticleSource* s, Particle* p) {
-    float jitter = Unsigned(Next()) * EI_BLAST_SCALE_0_4 + EI_BLAST_POINT_EIGHT;
+    float jitter = WordToFloat(Next()) * EI_BLAST_SCALE_0_4 + EI_BLAST_POINT_EIGHT;
     p->aux0 = s->elements[0].fragment.radius * s->size * jitter * EI_BLAST_FLAME_SIZE;
     p->aux1 = static_cast<float>(p->frame);
 }
@@ -503,7 +503,7 @@ void BlastFlameTiming(ParticleSource* s, Particle* p) {
 // A random value in [low, high) of the spread box component, added to `base` (the original's order: the
 // random part, the base, then the low end).
 float SpreadAround(float base, float low, float high) {
-    return Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + base + low;
+    return WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + base + low;
 }
 
 #define EI_SHOWER_RAYS 8.0f   // directions per unit of alpha
@@ -586,7 +586,7 @@ std::uint32_t BagRgb(int kind) {
 float BagSpread(const ParticleSource* s, float& low, float& high) {
     high = s->size * EI_BAG_SPREAD_HIGH;
     low = s->size * EI_BAG_SPREAD_LOW;
-    return Unsigned(Next()) * (high - low) * EI_P_SCALE_1;
+    return WordToFloat(Next()) * (high - low) * EI_P_SCALE_1;
 }
 
 #define EI_COLUMN_FOOT 0.3f
@@ -750,7 +750,7 @@ void SetUpCylinder(ParticleSource* s) {
 #define EI_ARROW_SPREAD 1.1f
 
 // A random value of [low, high) (the original's spread box order).
-float Between(float low, float high) { return Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + low; }
+float Between(float low, float high) { return WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + low; }
 
 // The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis (AddUp).
 void SideVelocity(ParticleSource* s, Particle* p, float low, float high) {
@@ -933,7 +933,7 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     for (;;) {
         x = SignedUnit();
         y = SignedUnit();
-        float zu = Unsigned(Next()) * EI_P_SCALE_2 - EI_P_ONE;
+        float zu = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
         z = zu;
         float sum = zu * z + y * y + x * x;
         lengthSquared = sum;
@@ -972,7 +972,7 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     p->pos.y = py;
     p->pos.x = px;
     p->pos.z = pz;
-    p->size = (Unsigned(Next()) * EI_SCALE_0_4_HI + EI_POINT_SIX) * state->cast.size *
+    p->size = (WordToFloat(Next()) * EI_SCALE_0_4_HI + EI_POINT_SIX) * state->cast.size *
                     p->aux0;
     return 1;
 }
@@ -986,7 +986,7 @@ int ParticleSource::UpdateCasting(Particle* p) {
     if (p->state) {
         p->pos = origin;
         p->size = 1.0f;
-        p->size = (Unsigned(Next()) * EI_SCALE_SIZE + EI_SIZE_BASE) * elements[0].cast.radius *
+        p->size = (WordToFloat(Next()) * EI_SCALE_SIZE + EI_SIZE_BASE) * elements[0].cast.radius *
                         EI_POINT_THREE;
         p->color = (static_cast<std::uint32_t>(elements[0].cast.alpha) << 24) | 0xFFFFFF;
         return 1;
@@ -1034,7 +1034,7 @@ void ParticleSource::TickCasting(ParticleElement* e) {
     float bound = EI_CAST_DRIFT;
     float low = -bound;
     for (int i = 0; i < 3; ++i) {
-        float kick = Unsigned(Next()) * (bound - low) * EI_P_SCALE_1;
+        float kick = WordToFloat(Next()) * (bound - low) * EI_P_SCALE_1;
         velocity[i] = kick + velocity[i] * EI_CAST_DAMP + low - pos[i] * EI_CAST_PULL;
     }
 }
@@ -1051,9 +1051,9 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     float big;
     if (Next() % 11 == 0) {
         float base = ParticleTypeOf(type) == ParticleType::Antimagic ? EI_BIG_ANTIMAGIC : ParticleTypeOf(type) == ParticleType::SphereElectricity ? EI_BIG_EARTH : EI_BIG_SPHERE;
-        big = Unsigned(Next()) * EI_P_SCALE_1 + base;
+        big = WordToFloat(Next()) * EI_P_SCALE_1 + base;
     } else {
-        big = Unsigned(Next()) * EI_SCALE_0_03 + EI_MOTION_KEEP;
+        big = WordToFloat(Next()) * EI_SCALE_0_03 + EI_MOTION_KEEP;
     }
     p->drift.x = big;
 
@@ -1139,7 +1139,7 @@ int ParticleSource::EmitCastRing(Particle* p, int) {
         std::uint32_t r = Next();
         p->color = 0xFFFFFFFF;
         p->frame = 1;
-        float angle = Unsigned(r) * twoPi * EI_P_SCALE_1;
+        float angle = WordToFloat(r) * twoPi * EI_P_SCALE_1;
         int age = elements[0].ticks;
         if (age >= 5) age = 5;
         std::uint32_t spread = Next();
@@ -1147,7 +1147,7 @@ int ParticleSource::EmitCastRing(Particle* p, int) {
         p->state = -1;
         p->life = static_cast<int>(spread % 4u) + age + 1;
         float inner = (ringRadius - height * EI_TWENTY) * EI_HALF + ringRadius;
-        float reach = Unsigned(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;
+        float reach = WordToFloat(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;
         const ParticleElement& ring = elements[0];
         p->pos.x = std::sin(angle) * reach + (origin.x + ring.pos.x);
         p->pos.y = std::cos(angle) * reach + (elements[0].pos.y + origin.y);
@@ -1302,14 +1302,14 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
     p->life = 28;
     p->frameTimer = 1;
     p->state = j;
-    float t = Unsigned(r) * EI_P_SCALE_1;
-    p->aux2 = (Unsigned(Next()) * EI_SWIRL_SIZE_SCALE + EI_SWIRL_SIZE_BASE) *
+    float t = WordToFloat(r) * EI_P_SCALE_1;
+    p->aux2 = (WordToFloat(Next()) * EI_SWIRL_SIZE_SCALE + EI_SWIRL_SIZE_BASE) *
                                     e->orbiter.scale * EI_SWIRL_GROW;
     p->aux1 = 1.03f;     // 1.03
     float* v = &p->velocity.x;
     const float* low = &spreadMin.x;
     const float* high = &spreadMax.x;
-    for (int i = 0; i < 3; ++i) v[i] = Unsigned(Next()) * (high[i] - low[i]) * EI_P_SCALE_1 + low[i];
+    for (int i = 0; i < 3; ++i) v[i] = WordToFloat(Next()) * (high[i] - low[i]) * EI_P_SCALE_1 + low[i];
     const float* previous = &e->orbiter.previous.x;
     float px = previous[0] + v[0];
     float py = v[1] + previous[1];
@@ -1331,7 +1331,7 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
     v[0] = c0 + v[0];
     v[1] = c1 + v[1];
     v[2] = c2 + v[2];
-    p->size = (Unsigned(Next()) * EI_SWIRL_SPARK_SCALE + EI_SWIRL_SPARK_BASE) * size *
+    p->size = (WordToFloat(Next()) * EI_SWIRL_SPARK_SCALE + EI_SWIRL_SPARK_BASE) * size *
                     EI_SWIRL_SPARK_SIZE;
     return 1;
 }
@@ -1345,7 +1345,7 @@ int ParticleSource::UpdateCastSwirl(Particle* p) {
         const ParticleElement& e = elements[-(state + 1)];
         p->pos = e.pos;
         p->size = 1.0f;
-        p->size = (Unsigned(Next()) * EI_MARKER_SIZE_SCALE + EI_MARKER_SIZE_BASE) * size *
+        p->size = (WordToFloat(Next()) * EI_MARKER_SIZE_SCALE + EI_MARKER_SIZE_BASE) * size *
                         EI_POINT_FOUR_C;
         if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return 1;
         int life = p->life;
@@ -1395,7 +1395,7 @@ int ParticleSource::EmitLink(Particle* p, int) {
     p->color = 0xFFFFFF;
     float a = SignedUnit();
     float b = SignedUnit();
-    float c = Unsigned(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
+    float c = WordToFloat(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
     p->velocity.x = a * spreadMin.x;
     p->velocity.y = b * spreadMin.y;
     p->velocity.z = c;
@@ -1539,11 +1539,11 @@ int ParticleSource::EmitBlast(Particle* p, int) {
         if (outside < threshold) {
             p->frame = 8;
             BlastFlameTiming(this, p);
-            p->aux2 = Unsigned(Next()) * EI_BLAST_RISE_SCALE + EI_BLAST_RISE;
+            p->aux2 = WordToFloat(Next()) * EI_BLAST_RISE_SCALE + EI_BLAST_RISE;
         } else {
             p->frame = static_cast<int>(Next() % 3);
             BlastFlameTiming(this, p);
-            float t = Unsigned(Next()) * EI_BLAST_RISE_SCALE * EI_BLAST_HALF;
+            float t = WordToFloat(Next()) * EI_BLAST_RISE_SCALE * EI_BLAST_HALF;
             p->aux2 =
                 t + outsideRounded * EI_BLAST_RISE / threshold + EI_BLAST_RISE_BASE;
         }
@@ -1554,7 +1554,7 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     ParticleElement* e = &fragments[kind];
     EI_NAN_AUDIT(e->fragment.frame);
     if (e->fragment.frame == 0.0f) p->frame = 8;
-    float u = Unsigned(Next()) * EI_P_SCALE_1;
+    float u = WordToFloat(Next()) * EI_P_SCALE_1;
     float scale = size;
     const float* velocity = &e->fragment.velocity.x;
     float ux = u * velocity[0];
@@ -1569,7 +1569,7 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     start.Construct(px - sx, py - sy, origin.z + e->pos.z - sz);
     p->pos = start;
     p->size = 1.0f;
-    float g = Unsigned(Next()) * EI_BLAST_DEBRIS_SCALE + EI_BLAST_POINT_SEVEN;
+    float g = WordToFloat(Next()) * EI_BLAST_DEBRIS_SCALE + EI_BLAST_POINT_SEVEN;
     float sized = g * (EI_BLAST_POINT_THREE - u * EI_BLAST_POINT_15) *
                    (e->fragment.radius * EI_BLAST_SEVENTH + EI_BLAST_POINT_THREE);
     p->size = sized * e->fragment.sizeFactor * size;
@@ -1669,8 +1669,8 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
             float y = row * EI_FOG_CELL;
             float high = EI_FOG_CELL * EI_FOG_QUARTER;
             float low = EI_FOG_CELL * EI_FOG_JITTER_LOW;
-            x = Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + low + x;
-            float yu = Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + low + y;
+            x = WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + low + x;
+            float yu = WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + low + y;
             y = yu;
             if (yu * y + x * x >= radiusSquared) continue;
             Particle* q = Manager()->AcquireParticle();
@@ -1680,7 +1680,7 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
             y = y + localPosition.y;
             q->pos.x = px;
             q->pos.y = y;
-            q->size = Unsigned(Next()) * EI_FOG_SIZE_SCALE + EI_FOG_SIZE_BASE - EI_FOG_QUARTER;
+            q->size = WordToFloat(Next()) * EI_FOG_SIZE_SCALE + EI_FOG_SIZE_BASE - EI_FOG_QUARTER;
             q->pos.z = GroundHeight(x, y) + q->size;
             if (ParticleTypeOf(type) == ParticleType::PoisonCloud) {
                 q->color = 0xFFFFAF7F;
@@ -1733,9 +1733,9 @@ int ParticleSource::EmitGeyser(Particle* p, int) {
     if (e.ticks > 0) {
         p->life = 0x7FFFFFFF;
         float radian = ei::kRadiansPerDegree;
-        float yaw = (Unsigned(Next()) * EI_GEYSER_YAW_SCALE - EI_GEYSER_YAW_LOW) * radian + e.pos.x;
-        float tilt = (Unsigned(Next()) * EI_GEYSER_TILT_SCALE - EI_GEYSER_TILT_LOW) * radian + e.pos.y;
-        float power = Unsigned(Next()) * EI_GEYSER_JET_SCALE + e.pos.z - EI_GEYSER_JET_LOW;
+        float yaw = (WordToFloat(Next()) * EI_GEYSER_YAW_SCALE - EI_GEYSER_YAW_LOW) * radian + e.pos.x;
+        float tilt = (WordToFloat(Next()) * EI_GEYSER_TILT_SCALE - EI_GEYSER_TILT_LOW) * radian + e.pos.y;
+        float power = WordToFloat(Next()) * EI_GEYSER_JET_SCALE + e.pos.z - EI_GEYSER_JET_LOW;
         float sinTilt = std::sin(tilt);
         p->drift.x = std::sin(yaw) * sinTilt * power * height;
         p->drift.y = std::cos(yaw) * sinTilt * power * height;
@@ -1769,7 +1769,7 @@ int ParticleSource::UpdateGeyser(Particle* p) {
             p->size = 0.0f;
             return 0;
         }
-        p->size = (Unsigned(Next()) * EI_GEYSER_MARK_SCALE + EI_GEYSER_MARK_BASE) * size;
+        p->size = (WordToFloat(Next()) * EI_GEYSER_MARK_SCALE + EI_GEYSER_MARK_BASE) * size;
         return 1;
     }
     std::uint32_t a = p->color >> 24;
@@ -1798,9 +1798,9 @@ void ParticleSource::TickGeyser(ParticleElement* e) {
     if (--e->vent.pause > 0) return;
     e->ticks = static_cast<int>(Next() % 7) + 1;
     float radian = ei::kRadiansPerDegree;
-    float yaw = Unsigned(Next()) * EI_GEYSER_ANGLE_SCALE * radian;
-    float tilt = Unsigned(Next()) * EI_GEYSER_TILT_RANGE * radian;
-    float power = Unsigned(Next()) * EI_GEYSER_POWER_SCALE + EI_GEYSER_POWER_BASE;
+    float yaw = WordToFloat(Next()) * EI_GEYSER_ANGLE_SCALE * radian;
+    float tilt = WordToFloat(Next()) * EI_GEYSER_TILT_RANGE * radian;
+    float power = WordToFloat(Next()) * EI_GEYSER_POWER_SCALE + EI_GEYSER_POWER_BASE;
     e->pos.x = yaw;
     e->pos.y = tilt;
     e->pos.z = power;
@@ -1816,9 +1816,9 @@ int ParticleSource::EmitShower(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frame = elements[0].ticks;
-    float a = Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
-    float b = Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
-    float c = Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
+    float a = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
+    float b = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
+    float c = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
     const ParticleElement& ray = elements[Next() % static_cast<std::uint32_t>(frameDelay)];
     float scale = size;
     float ax = a + ray.pos.x;
@@ -1836,7 +1836,7 @@ int ParticleSource::EmitShower(Particle* p, int) {
     p->velocity.y = 0.8f;     // 0.8: the size kept per tick
     p->drift.y = speed * b;
     p->drift.z = speed * c;
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     float dx = t * p->drift.x;
     float dy = t * p->drift.y;
     float dz = t * p->drift.z;
@@ -1903,7 +1903,7 @@ int ParticleSource::EmitBag(Particle* p, int index) {
     p->life = life;
     p->frame = 4;
     p->state = -1;
-    float u = Unsigned(Next()) * EI_P_SCALE_1 - EI_P_ONE;
+    float u = WordToFloat(Next()) * EI_P_SCALE_1 - EI_P_ONE;
     const float* step = &ball.ball.step.x;
     float ax = u * step[0];
     float ay = u * step[1];
@@ -2024,13 +2024,13 @@ int ParticleSource::EmitColumn(Particle* p, int) {
     p->frame = 1;
     p->life = 13;
     p->frameTimer = 1;
-    p->aux2 = (Unsigned(Next()) * EI_COLUMN_RISE_SCALE + EI_COLUMN_RISE_BASE) *
+    p->aux2 = (WordToFloat(Next()) * EI_COLUMN_RISE_SCALE + EI_COLUMN_RISE_BASE) *
                                     elements[0].column.height * EI_COLUMN_RISE;
-    float ring = Unsigned(Next()) * EI_COLUMN_RING_SCALE + EI_COLUMN_RING_BASE;
-    float angle = Unsigned(Next()) * EI_COLUMN_ANGLE_SCALE;
+    float ring = WordToFloat(Next()) * EI_COLUMN_RING_SCALE + EI_COLUMN_RING_BASE;
+    float angle = WordToFloat(Next()) * EI_COLUMN_ANGLE_SCALE;
     p->velocity.x = std::sin(angle) * ring;
     p->velocity.y = std::cos(angle) * ring;
-    float z = Unsigned(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
+    float z = WordToFloat(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
     p->velocity.z = z;
     p->velocity.z = z + elements[0].column.foot;
     float px = origin.x + p->velocity.x;
@@ -2040,7 +2040,7 @@ int ParticleSource::EmitColumn(Particle* p, int) {
     p->pos.y = py;
     p->pos.z = pz;
     p->pos.x = px;
-    p->size = (Unsigned(Next()) * EI_COLUMN_SIZE_SCALE + EI_COLUMN_SIZE_BASE) * size * EI_COLUMN_SIZE;
+    p->size = (WordToFloat(Next()) * EI_COLUMN_SIZE_SCALE + EI_COLUMN_SIZE_BASE) * size * EI_COLUMN_SIZE;
     return 1;
 }
 
@@ -2080,10 +2080,10 @@ int ParticleSource::EmitMushroom(Particle* p, int) {
         elements[0].pos.z = 0.0f;
         elements[0].mushroom.stem = origin;
     }
-    float spread = (Unsigned(Next()) * EI_MUSHROOM_W_SCALE + EI_MUSHROOM_W_BASE) * elements[0].pos.x;
+    float spread = (WordToFloat(Next()) * EI_MUSHROOM_W_SCALE + EI_MUSHROOM_W_BASE) * elements[0].pos.x;
     float a = SignedUnit();
     float b = SignedUnit();
-    float c = Unsigned(Next()) * EI_MUSHROOM_UP_SCALE + EI_MUSHROOM_UP_BASE;
+    float c = WordToFloat(Next()) * EI_MUSHROOM_UP_SCALE + EI_MUSHROOM_UP_BASE;
     float k = EI_MUSHROOM_ONE / std::sqrt(c * c + b * b + a * a);
     float dx = k * a;
     p->drift.x = dx;
@@ -2177,9 +2177,9 @@ int ParticleSource::EmitStench(Particle* p, int) {
     }
     float radius = elements[0].gas.radius;
     float carrierHeight = elements[0].gas.height;
-    float t = Unsigned(Next()) * radius * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * radius * EI_P_SCALE_1;
     float twoPi = 3.1415927f + 3.1415927f;
-    float angle = Unsigned(Next()) * twoPi * EI_P_SCALE_1;
+    float angle = WordToFloat(Next()) * twoPi * EI_P_SCALE_1;
     p->color = 0xFFFFFFFF;
     p->frame = 0;
     p->life = lifetime;
@@ -2188,13 +2188,13 @@ int ParticleSource::EmitStench(Particle* p, int) {
     float low = radius * EI_GAS_LOW;
     float vx = std::sin(angle) * t;
     float vy = std::cos(angle) * t;
-    float vz = Unsigned(Next()) * (radius * EI_GAS_RADIUS - low) * EI_P_SCALE_1 + low;
+    float vz = WordToFloat(Next()) * (radius * EI_GAS_RADIUS - low) * EI_P_SCALE_1 + low;
     p->velocity = {vx, vy, vz};
     float riseLow = carrierHeight * EI_GAS_RISE_LOW;
     std::uint32_t r4 = Next();
     p->drift.x = std::sin(turn);
     p->drift.y = std::cos(turn);
-    p->drift.z = Unsigned(r4) * (carrierHeight * EI_GAS_RISE_HIGH - riseLow) * EI_P_SCALE_1 + riseLow;
+    p->drift.z = WordToFloat(r4) * (carrierHeight * EI_GAS_RISE_HIGH - riseLow) * EI_P_SCALE_1 + riseLow;
     const ParticleElement& e = elements[0];
     float cx = origin.x + e.pos.x;
     float cy = origin.y + e.pos.y;
@@ -2242,7 +2242,7 @@ int ParticleSource::UpdateStench(Particle* p) {
 // with a radius growing towards the top and a turn rate larger near the bottom; one in three is
 // dust (state 0, frames 12-15), the others debris sized by their radius.
 int ParticleSource::EmitTornado(Particle* p, int) {
-    float height01 = Unsigned(Next()) * EI_P_SCALE_1;
+    float height01 = WordToFloat(Next()) * EI_P_SCALE_1;
     p->state = static_cast<int>(Next() % 3);
     p->color = static_cast<std::uint32_t>(frameDelay);
     std::memcpy(&p->pos, &origin, 2 * sizeof(float));
@@ -2263,17 +2263,17 @@ int ParticleSource::EmitTornado(Particle* p, int) {
     std::uint32_t r = Next();
     p->aux1 = 0.1f;     // 0.1
     p->aux0 = height01;
-    float angle = Unsigned(r) * (high - low) * EI_P_SCALE_1 + low;
+    float angle = WordToFloat(r) * (high - low) * EI_P_SCALE_1 + low;
     float w = EI_P_ONE - height01;
     float wRounded = w;
     float w2 = w * w;
     float w4 = w2 * w2;
     p->velocity.x = angle;
-    float radius = (Unsigned(Next()) * EI_FUNNEL_R_SCALE + EI_FUNNEL_R_BASE) * (w4 + EI_FUNNEL_R_ADD) * 2.0f;
+    float radius = (WordToFloat(Next()) * EI_FUNNEL_R_SCALE + EI_FUNNEL_R_BASE) * (w4 + EI_FUNNEL_R_ADD) * 2.0f;
     p->velocity.y = radius;
     float turnHigh = EI_FUNNEL_PI * EI_FUNNEL_TURN_HIGH;
     float turnLow = EI_FUNNEL_PI * EI_FUNNEL_TURN_LOW;
-    float turn = Unsigned(Next()) * (turnHigh - turnLow) * EI_P_SCALE_1 + turnLow;
+    float turn = WordToFloat(Next()) * (turnHigh - turnLow) * EI_P_SCALE_1 + turnLow;
     p->drift.x = turn * (EI_FUNNEL_TURN_TOP - wRounded * wRounded) * EI_FUNNEL_TURN_SCALE;
     p->drift.z = 0.0f;
     p->drift.y = elements[0].funnel.damping;
@@ -2416,7 +2416,7 @@ int ParticleSource::EmitPortalStar(Particle* p, int) {
 int ParticleSource::UpdatePortalStar(Particle* p) {
     if (!(flags & ParticleSourceFlag::Emitting)) return 0;
     p->color = 0xFFFFFFFF;
-    p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size;
+    p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size;
     return 1;
 }
 
@@ -2454,7 +2454,7 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     if (isZero(step[0]) && isZero(step[1])) return 0;
     p->frame = 1;
     p->state = -1;
-    float u = Unsigned(Next()) * EI_P_SCALE_1 - EI_P_ONE;
+    float u = WordToFloat(Next()) * EI_P_SCALE_1 - EI_P_ONE;
     float a = u * step[0];
     float b = u * step[1];
     float c = u * step[2];
@@ -2582,7 +2582,7 @@ int ParticleSource::EmitFireBall(Particle* p, int index) {
         p->size = half;
         std::uint32_t r = Next();
         p->state = 0;
-        t = Unsigned(r) * EI_P_SCALE_1 - EI_P_ONE;
+        t = WordToFloat(r) * EI_P_SCALE_1 - EI_P_ONE;
     }
     EI_NAN_AUDIT(distance);
     if (distance <= EI_TRAIL_MOVING) {
@@ -2654,7 +2654,7 @@ int ParticleSource::EmitArrowSmoke(Particle* p, int index) {
         p->size = size * EI_ARROW_PUFF;
         std::uint32_t r = Next();
         p->state = 0;
-        t = Unsigned(r) * EI_P_SCALE_1 - EI_P_ONE;
+        t = WordToFloat(r) * EI_P_SCALE_1 - EI_P_ONE;
         if (Next() % 100 > 70) p->state = 1;
         p->frame = static_cast<int>(Next() & 1) + 2;
     }
@@ -2744,7 +2744,7 @@ int ParticleSource::EmitBanshee(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 0;
     p->frameTimer = 1;
-    float angle = Unsigned(r) * twoPi * EI_P_SCALE_1;
+    float angle = WordToFloat(r) * twoPi * EI_P_SCALE_1;
     int age = elements[0].ticks;
     if (age >= 5) age = 5;
     p->life = static_cast<int>(Next() % 3u) + age + 1;
@@ -2753,7 +2753,7 @@ int ParticleSource::EmitBanshee(Particle* p, int) {
     if (inner + EI_BANSHEE_THIN >= ringRadius)
         reach = inner;
     else
-        reach = Unsigned(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;   // also NaN
+        reach = WordToFloat(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;   // also NaN
     p->pos.x = std::sin(angle) * reach + origin.x;
     p->pos.y = std::cos(angle) * reach + origin.y;
     p->pos.z = origin.z + elements[0].pos.z;
@@ -2802,9 +2802,9 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     p->life = lifetime;
     p->frameTimer = frameDelay;
     float radius = EI_PORTAL_RADIUS;
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     float spread = (t + EI_P_ONE) * t * EI_PORTAL_HALF_C;
-    float angle = Unsigned(Next()) * EI_PORTAL_ANGLE;
+    float angle = WordToFloat(Next()) * EI_PORTAL_ANGLE;
     float reach = spread * radius;
     float x = std::sin(angle) * reach;
     float y = std::cos(angle) * reach;
@@ -2816,7 +2816,7 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     p->aux2 = (EI_PORTAL_TWO - spread) * EI_PORTAL_SHRINK;
     p->aux0 = x;
     float spin = radius / EI_PORTAL_RADIUS * EI_PORTAL_SPIN;
-    if (Unsigned(Next()) * EI_P_SCALE_1 > spread) {
+    if (WordToFloat(Next()) * EI_P_SCALE_1 > spread) {
         p->frame = static_cast<int>(Next() % 11) + 4;
     } else {
         p->frame = static_cast<int>(Next() & 3);
@@ -2825,7 +2825,7 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     p->velocity.x = std::cos(spin);
     p->velocity.y = std::sin(spin);
     p->velocity.z = (EI_P_ONE - spread + 3.0f) * radius * EI_PORTAL_RISE;
-    p->pos.z = (Unsigned(Next()) * EI_P_SCALE_1 - EI_PORTAL_HALF_C) * p->velocity.z + p->pos.z;
+    p->pos.z = (WordToFloat(Next()) * EI_P_SCALE_1 - EI_PORTAL_HALF_C) * p->velocity.z + p->pos.z;
     return 1;
 }
 
@@ -2841,7 +2841,7 @@ int ParticleSource::EmitAcidRay(Particle* p, int) {
     p->size = 1.0f;
     std::uint32_t r = Next();
     p->state = 0;
-    float t = Unsigned(r) * EI_P_SCALE_1 - EI_P_ONE;
+    float t = WordToFloat(r) * EI_P_SCALE_1 - EI_P_ONE;
     p->frame = static_cast<int>(Next() & 1);
     if (distance > EI_TRAIL_MOVING) {
         float ax = t * motion.x;
@@ -2856,11 +2856,11 @@ int ParticleSource::EmitAcidRay(Particle* p, int) {
         p->pos.z = pz;
         p->drift.z = pz;
         p->drift.x = px;
-        float q = Unsigned(Next()) * EI_P_SCALE_2 - EI_P_ONE;
+        float q = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
         p->velocity.x = q * side.x;
         p->velocity.y = q * side.y;
         p->velocity.z = q * side.z;
-        float q2 = Unsigned(Next()) * EI_P_SCALE_2 - EI_P_ONE;
+        float q2 = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
         float a = q2 * up.x;
         float b = q2 * up.y;
         float c = q2 * up.z;
@@ -2922,7 +2922,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     }
     flags &= ~ParticleSourceFlag::Emitting;
     p->color = 0xFFFFFFFF;
-    float speed = Unsigned(Next()) * 1.3969838e-10f + 0.8f;
+    float speed = WordToFloat(Next()) * 1.3969838e-10f + 0.8f;
     float x, y, z;
     float lengthSquared;
     for (int tries = 10;;) {
@@ -2943,7 +2943,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     p->drift.x = direction.x * k;
     p->drift.y = direction.y * k;
     p->drift.z = direction.z * k;
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     float a = t * p->drift.x;
     float b = t * p->drift.y;
     float c = t * p->drift.z;
@@ -2954,7 +2954,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     p->pos.y = py;
     p->pos.x = px;
     p->pos.z = pz;
-    p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size *
+    p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     0.2f;
     p->life = 6;
     p->state = 0;
@@ -2980,7 +2980,7 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
         return 1;
     }
     int j = static_cast<int>(Next() % static_cast<std::uint32_t>(std::ssize(elements)));
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     p->life = 5;
     const ParticleElement& e = elements[j];
     const float* previous = &e.clay.previous.x;
@@ -2994,9 +2994,9 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
     p->velocity.x = d + a;
     p->velocity.y = f + b;
     p->velocity.z = g + c;
-    float sx = Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
-    float sy = Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
-    float sz = Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
+    float sx = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
+    float sy = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
+    float sz = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
     p->aux0 = sy;
     p->aux1 = sx;
     p->aux2 = sz;
@@ -3079,22 +3079,22 @@ int ParticleSource::EmitFalling(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 12;
     p->pos = origin;
-    p->size = Unsigned(Next()) * EI_FALL_SIZE_SCALE + EI_FALL_SIZE_BASE;
+    p->size = WordToFloat(Next()) * EI_FALL_SIZE_SCALE + EI_FALL_SIZE_BASE;
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
     float reach = gust.wind.reach * EI_FALL_HALF;
     int spread = static_cast<int>(ei::kRadiansPerDegree * EI_FALL_TEN);
     float turn = spread * gust.wind.direction;
     float lowReach = -reach;
-    float x = Unsigned(Next()) * (reach - lowReach) * EI_P_SCALE_1 + gust.wind.reach + lowReach;
+    float x = WordToFloat(Next()) * (reach - lowReach) * EI_P_SCALE_1 + gust.wind.reach + lowReach;
     float lowTurn = -turn;
-    float angle = Unsigned(Next()) * (turn - lowTurn) * EI_P_SCALE_1 + gust.wind.direction + lowTurn;
+    float angle = WordToFloat(Next()) * (turn - lowTurn) * EI_P_SCALE_1 + gust.wind.direction + lowTurn;
     p->velocity.x = 1.0f;
     p->velocity.z = -0.12f;     // -0.12
     p->drift.x = std::sin(angle) * x;
     p->drift.y = std::cos(angle) * x;
     p->drift.z = 0.0f;
-    p->velocity.z = Unsigned(Next()) * EI_FALL_DROP_SCALE + p->velocity.z - EI_FALL_DROP;
-    p->velocity.y = Unsigned(Next()) * EI_FALL_SPIN_SCALE - EI_FALL_SPIN;
+    p->velocity.z = WordToFloat(Next()) * EI_FALL_DROP_SCALE + p->velocity.z - EI_FALL_DROP;
+    p->velocity.y = WordToFloat(Next()) * EI_FALL_SPIN_SCALE - EI_FALL_SPIN;
     return 1;
 }
 
@@ -3103,9 +3103,9 @@ int ParticleSource::EmitFalling(Particle* p, int) {
 void ParticleSource::TickFalling(ParticleElement* e) {
     int age = e->wind.age;
     if (age == 0) {
-        e->wind.reach = Unsigned(Next()) * EI_FALL_REACH_SCALE + EI_FALL_SIZE_BASE;
+        e->wind.reach = WordToFloat(Next()) * EI_FALL_REACH_SCALE + EI_FALL_SIZE_BASE;
         float whole = static_cast<float>(static_cast<int>(ei::kRadiansPerDegree * EI_FALL_TURN));
-        e->wind.direction = Unsigned(Next()) * whole * EI_P_SCALE_1;
+        e->wind.direction = WordToFloat(Next()) * whole * EI_P_SCALE_1;
         age = e->wind.age;
     }
     if (age > 0) {
@@ -3130,7 +3130,7 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
         std::memcpy(&p->pos, &origin, 2 * sizeof(float));
         float low = spreadMin.y * EI_VULKAN_LOW;
         float high = spreadMin.y * EI_VULKAN_HALF;
-        p->pos.z = Unsigned(Next()) * (high - low) * EI_P_SCALE_1 + spreadMax.y + origin.z + low;
+        p->pos.z = WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + spreadMax.y + origin.z + low;
         p->size = size;
         p->velocity.x = growth;
         p->velocity.y = 0.965f;     // 0.965
@@ -3138,7 +3138,7 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
         float span = radian;
         std::uint32_t r = Next();
         p->drift.z = 0.0f;
-        float angle = Unsigned(r) * span * EI_P_SCALE_1;
+        float angle = WordToFloat(r) * span * EI_P_SCALE_1;
         p->drift.x = std::sin(angle) * reach;
         p->drift.y = std::cos(angle) * reach;
         return 1;
@@ -3146,9 +3146,9 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
     p->state = 4;
     p->life = lifetime * 4;
     p->frameTimer = 4;
-    float reach = Unsigned(Next()) * spreadMax.x * EI_P_SCALE_1;
+    float reach = WordToFloat(Next()) * spreadMax.x * EI_P_SCALE_1;
     float span = radian;
-    float angle = Unsigned(Next()) * span * EI_P_SCALE_1;
+    float angle = WordToFloat(Next()) * span * EI_P_SCALE_1;
     p->pos.x = std::sin(angle) * reach + origin.x;
     p->pos.y = std::cos(angle) * reach + origin.y;
     p->pos.z = origin.z;
@@ -3254,7 +3254,7 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
         target.y = offsetY + target.y;
         target.z = offsetZ + target.z;
     }
-    p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size *
+    p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     0.25f;                       // (0.8 + [0, 0.4)) * size / 4
     float keep = 0.7f;
     float pull = 0.3f;
@@ -3320,7 +3320,7 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
         p->pos.z = p->velocity.z + p->pos.z;
     }
     if (ParticleTypeOf(type) == ParticleType::VisionStar4) p->pos.z = p->pos.z + 0.7f;
-    float eased = (Unsigned(Next()) * 4.1909515e-10f + 0.1f) * size * flicker *
+    float eased = (WordToFloat(Next()) * 4.1909515e-10f + 0.1f) * size * flicker *
                        0.05f +
                    oldSize * 0.95f;
     p->size = eased;
@@ -3476,7 +3476,7 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     auto node = particles.begin();
     if (Next() & 1) ++node;
     const Particle* orb = *node;
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     float startX = orb->pos.x - t * orb->drift.x;
     float startY = orb->pos.y - t * orb->drift.y;
     float startZ = orb->pos.z - t * orb->drift.z;
@@ -3504,7 +3504,7 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     float y8 = b8 + startY;
     p->pos.z = c8 + startZ;
     p->pos.y = y8;
-    p->velocity.x = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size *
+    p->velocity.x = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                           0.08f;    // (0.8 + [0, 0.4)) * size * 0.08
     p->color = 0xFFFFFFFF;
     p->frame = 6;
@@ -3570,7 +3570,7 @@ int ParticleSource::UpdateSilence(Particle* p) {
     p->pos.z = z;
     p->velocity.x = p->velocity.y + p->velocity.x;
     p->aux0 = p->aux1 + p->aux0;
-    p->size = (Unsigned(Next()) * 4.656614e-11f + 0.9f) * size *
+    p->size = (WordToFloat(Next()) * 4.656614e-11f + 0.9f) * size *
                     0.22f;    // (0.9 + [0, 0.2)) * size * 0.22
     return 1;
 }
@@ -3710,9 +3710,9 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     p->frameTimer = frameDelay;
     float magnitude;
     lib::StoreBytes(&magnitude, Bits(&size) & 0x7FFFFFFFu);
-    float t = Unsigned(Next()) * EI_P_SCALE_1;
+    float t = WordToFloat(Next()) * EI_P_SCALE_1;
     float spread = (t + EI_P_ONE) * t * 0.5f;
-    float angle = Unsigned(Next()) * 1.4629215e-09f;    // 2 pi * 2^-32
+    float angle = WordToFloat(Next()) * 1.4629215e-09f;    // 2 pi * 2^-32
     float reach = magnitude * spread;
     float sx = std::sin(angle) * reach;
     float cy = std::cos(angle) * reach;
@@ -3720,10 +3720,10 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     p->pos.x = sx + origin.x;
     p->pos.z = origin.z;
     p->size = 0.0f;
-    p->pos.z = (Unsigned(Next()) * 4.656613e-11f - 0.4f) * magnitude +
+    p->pos.z = (WordToFloat(Next()) * 4.656613e-11f - 0.4f) * magnitude +
                      p->pos.z;    // [-0.4, -0.2) * |size|
     p->aux0 = (2.0f - spread) * 0.2f;    // (2 - spread) / 5
-    if (Unsigned(Next()) * EI_P_SCALE_1 > spread) {
+    if (WordToFloat(Next()) * EI_P_SCALE_1 > spread) {
         p->frame = static_cast<int>(Next() % 12) + 4;
     } else {
         p->frame = static_cast<int>(Next() & 3);
@@ -3826,7 +3826,7 @@ int ParticleSource::UpdateCurseStars(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->size);
     if (p->size == 0.0f) {
-        p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size *
+        p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                         0.04f;
     } else {
         p->size = p->size * 0.95f;
@@ -3902,7 +3902,7 @@ int ParticleSource::UpdateStartTrans(Particle* p) {
             return 1;
         }
         p->color = 0xFFFFFFFF;
-        p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) *
+        p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) *
                         elements[0].trans.scale;
         return 1;
     }
@@ -3930,15 +3930,15 @@ int ParticleSource::EmitNuke(Particle* p, int) {
     int tick = elements[0].ticks;
     int rise = 11 - tick;
     float fifth = size * 0.2f;
-    float reach = Unsigned(Next()) * fifth * EI_P_SCALE_1;
+    float reach = WordToFloat(Next()) * fifth * EI_P_SCALE_1;
     float turn = 3.1415927f + 3.1415927f;    // 2 pi
-    float angle = Unsigned(Next()) * turn * EI_P_SCALE_1;
+    float angle = WordToFloat(Next()) * turn * EI_P_SCALE_1;
     float s = std::sin(angle);
     p->pos.x = reach * s + origin.x;
     float c = std::cos(angle);
     p->pos.y = reach * c + origin.y;
     float top = size + size;
-    p->pos.z = Unsigned(Next()) * top * EI_P_SCALE_1 + origin.z;
+    p->pos.z = WordToFloat(Next()) * top * EI_P_SCALE_1 + origin.z;
     p->size = size * 0.2f;
     p->drift.x = s;
     p->drift.y = c;
@@ -3959,7 +3959,7 @@ int ParticleSource::EmitNuke(Particle* p, int) {
 // and y, and set its own height above the ground there.
 int ParticleSource::EmitTendril(Particle* p, int index) {
     if (!EmitSmoke(p, index)) return 0;
-    float u = Unsigned(Next()) * EI_P_SCALE_2 - EI_P_ONE;
+    float u = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
     p->pos.x = u * extent.x + p->pos.x;
     p->pos.y = u * extent.y + p->pos.y;
     float ground = GroundHeight(p->pos.x, p->pos.y);
@@ -4086,7 +4086,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     p->pos.z = pz;
     p->pos.x = px;
     p->life = 20;
-    p->velocity.x = Unsigned(Next()) * 1.3969838e-10f + 0.7f;
+    p->velocity.x = WordToFloat(Next()) * 1.3969838e-10f + 0.7f;
     auto* unit = static_cast<Unit*>(attachedTo);   // the carrier is taken as a unit
     if (!unit) {
         flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
@@ -4115,7 +4115,7 @@ int ParticleSource::UpdateStun(Particle* p) {
         return 0;
     }
     p->color = 0xFFFFFFFF;
-    p->size = (Unsigned(Next()) * 9.3132266e-11f + 0.8f) * size *
+    p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     p->velocity.x;
     if (!attachedTo) {
         flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);

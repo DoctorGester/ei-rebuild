@@ -273,7 +273,7 @@ void CampPages::BuildPages() {
     heroes.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {
         if (PrototypeObjectClass(player->members[i].texts[5]) != MapObjectType::Hero) continue;
-        auto* unit = GameFindClientUnit(player->members[i].unitId);
+        auto* unit = g_clientWorld.FindUnit(player->members[i].unitId);
         heroes[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {

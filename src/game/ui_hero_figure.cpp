@@ -1,6 +1,5 @@
 // The multiplayer hero screen's figure choice. See docs/notes/ui.md, section 5.
 #include "ui.h"
-#include "world_glue.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
 
@@ -47,7 +46,7 @@ void MpHeroScreen::ChooseFigure(std::string_view prototype) {
         height = first->height;
         intelligence = stats->intelligence;
         std::vector<PartyUnitRecord*> records{first};
-        GameRemoveUnitsOf(&records);
+        g_clientWorld.RemoveUnitsOf(&records);
     }
     player->Clear(1, 0);
     player->AddMember(kHeroName, prototype, prototype);

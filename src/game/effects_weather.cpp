@@ -33,8 +33,6 @@ constexpr float kFar = 1e30f;
 static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 
 
-float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
-
 constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
@@ -210,9 +208,9 @@ void VisibilityFog::Reveal(const FogGrid* grid) {
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
             std::uint32_t r = g_clientRandom.Next();
-            cell->pos.x = (Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f;
+            cell->pos.x = (WordToFloat(r) * kFogJitter + cell->x - kQuarter) * 0.5f;
             r = g_clientRandom.Next();
-            cell->pos.y = (Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f;
+            cell->pos.y = (WordToFloat(r) * kFogJitter + cell->y - kQuarter) * 0.5f;
             float ground = static_cast<float>(OwningWorld()->SurfaceHeightAt(cell->pos.x, cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = ground + 0.5f;

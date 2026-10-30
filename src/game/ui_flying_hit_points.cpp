@@ -1,6 +1,6 @@
 // The flying hit points (ui_flying_hit_points.h): the list and its drawing. docs/notes/ui.md, section 3.
 #include "ui_flying_hit_points.h"
-#include "world_glue.h"
+#include "world.h"
 
 #include "clip.h"
 #include "core_maths.h"
@@ -119,7 +119,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<int>(now - point.time) * kPerMillisecond;
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
-        auto* unit = GameFindClientUnit(point.target);
+        auto* unit = g_clientWorld.FindUnit(point.target);
         if (!unit) continue;
         if (!(unit->flags & MapObjectFlag::Shown) || (unit->flags & MapObjectFlag::NotDrawn) || !(unit->flags & MapObjectFlag::InParty)) continue;
         const Rect* rect = UnitScreenRect(unit);

@@ -12,9 +12,6 @@
 
 namespace {
 
-// The stream's format version, compared signed.
-int VersionOf(const ByteStream* stream) { return static_cast<int>(stream->version); }
-
 // The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
 
@@ -94,7 +91,7 @@ void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
 
 bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
     if (!file->ReadHeader(magic, kSaveVersion, kSaveOldestVersion)) return false;
-    if (VersionOf(file) <= kSaveLastUncompressedVersion) {
+    if (file->Version() <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         out->Resize(static_cast<std::uint32_t>(size));
@@ -106,8 +103,8 @@ bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
         LocalBuffer packed;
         LocalBuffer plain;
         std::uint32_t stored = 0;
-        if (VersionOf(file) > kVersionChecksum) file->ReadValue(stored);
-        if (VersionOf(file) > kVersionCompressedFlag) file->ReadValue(compressed);
+        if (file->Version() > kVersionChecksum) file->ReadValue(stored);
+        if (file->Version() > kVersionCompressedFlag) file->ReadValue(compressed);
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         if (compressed) {
@@ -117,7 +114,7 @@ bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
             packed.b.cur = packed.b.begin;
             if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
             coder.Decompress(&packed.b, &plain.b);
-            if (VersionOf(file) > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
+            if (file->Version() > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
                 return false;   // the buffers and the coder's cursor go on the way out
         } else {
             SeekTo(plain.b, size);

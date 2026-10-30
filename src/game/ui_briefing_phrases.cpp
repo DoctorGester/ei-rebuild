@@ -140,7 +140,7 @@ void BriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = GameFindClientUnit(TextKeyFromName(words[1]));
+        auto* unit = g_clientWorld.FindUnit(TextKeyFromName(words[1]));
         if (!unit) {
             speaker = words[1];
         } else {

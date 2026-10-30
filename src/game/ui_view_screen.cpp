@@ -48,7 +48,7 @@ void ViewScreen::CreateScreen() {
 }
 
 void ViewScreen::Draw(SceneRenderer*) {
-    GameRender();
+    g_clientWorld.Render();
 }
 
 void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
@@ -70,14 +70,14 @@ void UnitPickInput::LeftDown(int, int x, int y) {
         Vector3 ground;
         world->PickGround(&ground, x, y);
         for (int i = 0; i < std::ssize(picked); ++i) {
-            auto* member = GameFindClientUnit(picked[i]);
+            auto* member = g_clientWorld.FindUnit(picked[i]);
             if (!member) continue;
             std::vector<Unit*> order{member};
             world->LocalView()->SendWalk(&order, ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < std::ssize(picked); ++i) {
-            auto* member = GameFindClientUnit(picked[i]);
+            auto* member = g_clientWorld.FindUnit(picked[i]);
             if (!member) continue;
             std::vector<Unit*> order{member};
             world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);

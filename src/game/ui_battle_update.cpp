@@ -19,7 +19,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
@@ -90,9 +89,9 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
 
     // The local player's own unit also shows up to four of the player's ItemKind::Quest items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    Player* player = GameLocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     if (!player->IsLeader(unit)) return;
-    player = GameLocalView()->player;
+    player = g_clientWorld.LocalView()->player;
     auto node = player->items.rbegin();
     if (node == player->items.rend()) return;
     int slot = 4;
@@ -245,7 +244,7 @@ void BattleScreen::Update() {
         Party* data = LocalPlayerData();
         for (int i = 0; i < std::ssize(data->members); ++i)
             lib::SetAtGrow(records, lib::Count(records), &data->members[i]);
-        if (GamePartyInExit(&records, pendingExit, &second)) {
+        if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
             MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             ui->PushWindow(box, true, true);
             exitPending = false;

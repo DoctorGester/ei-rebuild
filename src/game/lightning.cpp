@@ -21,8 +21,6 @@
 
 namespace {
 
-float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
-
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
 constexpr int kNoiseRowLength = 400;
@@ -53,7 +51,7 @@ void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
     for (int i = 0; i < 2; ++i) {
         key.index[i] = g_clientRandom.Next() & 0xF;
-        float v = Unsigned(g_clientRandom.Next()) * kNoiseScale - 1.0f;
+        float v = WordToFloat(g_clientRandom.Next()) * kNoiseScale - 1.0f;
         key.weight[i] = v;
         sum = v * v + sum;
     }
@@ -359,9 +357,9 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             std::uint32_t r1 = g_clientRandom.Next();
             std::uint32_t r2 = g_clientRandom.Next();
             std::uint32_t r3 = g_clientRandom.Next();
-            float ox = (reach - low) * Unsigned(r3) * kRandomScale + low;
-            float oy = (reach - low) * Unsigned(r2) * kRandomScale + low;
-            float ozExt = (reach - low) * Unsigned(r1) * kRandomScale + low;
+            float ox = (reach - low) * WordToFloat(r3) * kRandomScale + low;
+            float oy = (reach - low) * WordToFloat(r2) * kRandomScale + low;
+            float ozExt = (reach - low) * WordToFloat(r1) * kRandomScale + low;
             float oz = ozExt;
             Vector3 shiftedTo;
             shiftedTo.z = ozExt + to.z;

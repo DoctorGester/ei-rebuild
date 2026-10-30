@@ -90,6 +90,9 @@ public:
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
     void WriteHeader(std::uint32_t magic, std::uint32_t version);
 
+    // The format version, compared signed.
+    int Version() const { return static_cast<int>(version); }
+
     void Rewind() {
         ok = 1;
         Seek(0);

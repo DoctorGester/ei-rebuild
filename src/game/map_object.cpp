@@ -2,6 +2,7 @@
 
 #include "core_transform.h"
 #include "ei/rebirth.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -38,10 +39,6 @@ int UpdateCount(const World* world) { return world->updateCount; }
 constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
 
-float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatBits(T) = delete;
-
 // Rebirth fix (FixSpellEffectsOverflow): after adding `effect`, older effects (not the new last one) of the
 // same type and end flag whose second float is within 0.001 of the new one's, that last no longer and whose
 // value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
@@ -50,10 +47,10 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
     for (int i = 0; i < std::ssize(object->effects) - 1; ++i) {
         MapEffect* e = &object->effects[i];
         if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
-        EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
-        if (FloatBits(effect->value) < FloatBits(e->value)) continue;
+        EI_NAN_AUDIT(lib::FloatFromBits(effect->value), lib::FloatFromBits(e->value));
+        if (lib::FloatFromBits(effect->value) < lib::FloatFromBits(e->value)) continue;
         if (e->ending != effect->ending) continue;
-        float difference = FloatBits(e->strength) - FloatBits(effect->strength);
+        float difference = lib::FloatFromBits(e->strength) - lib::FloatFromBits(effect->strength);
         float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
         if (static_cast<double>(distance) < kRebirthSameStrength) {          // plain IEEE compare
             object->effects.erase(object->effects.begin() + i);

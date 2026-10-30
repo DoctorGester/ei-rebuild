@@ -2,7 +2,7 @@
 // the menu frame step and the hero equipment panel. Every state set goes to render::g_renderState; every depth clear to
 // render::ClearDepth. See docs/notes/ui.md, "Container draws", and docs/notes/renderer.md, sections 5 and 8.
 #include "item.h"
-#include "world_glue.h"
+#include "world.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -27,7 +27,7 @@ namespace {
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
-    GameRender();
+    g_clientWorld.Render();
     if (mouseMove) self->Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
     ClearUiDepth(1.0f);
     self->UiContainer::Draw(pass);

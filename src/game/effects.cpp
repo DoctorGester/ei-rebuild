@@ -44,9 +44,6 @@ static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 
-// A random word as a float.
-float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
-
 
 } // namespace
 
@@ -172,12 +169,12 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     }
     float hi = extra + spreadMax.x;
     float lo = spreadMin.x - extra;
-    p->velocity.x = Unsigned(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo;
+    p->velocity.x = WordToFloat(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo;
     hi = extra + spreadMax.y;
     lo = spreadMin.y - extra;
     std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
-    p->velocity.y = Unsigned(r) * (hi - lo) * kRandomScale + lo;
+    p->velocity.y = WordToFloat(r) * (hi - lo) * kRandomScale + lo;
     p->velocity.x = p->velocity.x * 0.5f;
     p->velocity.y = p->velocity.y * 0.5f;
     p->velocity.z = p->velocity.z * 0.5f;
@@ -187,7 +184,7 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     r = g_clientRandom.Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
-    p->pos.z = Unsigned(r) * h * kRandomScale + origin.z;
+    p->pos.z = WordToFloat(r) * h * kRandomScale + origin.z;
     p->drift.z = height;
     return 1;
 }

@@ -2,7 +2,6 @@
 // the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
-#include "world_glue.h"
 #include "combat.h"
 #include "ui_briefing.h"
 
@@ -180,7 +179,7 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     Vector3 ground{p->x, p->y, p->z};
     int newExit = 0;
     if (!g_clientWorld.FindExitAt(&ground.x, &newExit)) return;
-    std::string zone = GameExitTarget(exit);
+    std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone,
                         kNoZone) == 0)
         return;

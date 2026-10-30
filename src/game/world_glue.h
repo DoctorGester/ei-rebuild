@@ -45,12 +45,10 @@ class TextManager;
 // The server world's.
 // Player 0's connection, when there is one, sends "constr.current" = `value`.
 void GameSetConstructionVariable(std::uint32_t value);
-void GameSetWeather(int weather, float strength);
 // The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)).
 double GameServerTimeOfDay();
 // The players' times move on by `offset` (WorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void GamePassTime(float offset);
-void GameEnsureZone(std::string_view map, std::string_view mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
 class MemoryStream;
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
@@ -72,19 +70,13 @@ int GameShowCameraPath(const char* name);
 std::uint32_t GameCameraPathPlaying();
 
 // The client world's.
-int GameRender();
 void GameStopSounds(int stopStream);
 // The terrain's ambience stops (StopAmbience) / is switched on (flag 8).
 void GameStopAmbience();
 void GameStartAmbience();
 // The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's result.
 int GamePlayMusic(const char* name);
-Unit* GameFindClientUnit(int id);
 void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour);
-void GameRemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
-int GameFindExitAt(const float* point, int* index);
-int GamePartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
-const char* GameExitTarget(int index);
 // Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void GameLeaveThroughExit(int exit);
@@ -92,5 +84,3 @@ void GameLeaveThroughExit(int exit);
 void GameSendLeave04(int value);
 void GameRejoin();
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out);
-PlayerClient* GameLocalView();
-int GameSendFlag10(int value);
