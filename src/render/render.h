@@ -1,12 +1,12 @@
 #pragma once
 
-// The renderer: draws the game's frame with sokol_gfx (Direct3D 11) from the data the game hands over and
-// presents it through its own swap chain on the game window. No fallback of any kind: when it cannot start, or
-// cannot go on (a sokol panic, a lost device not made again, no swap chain), the game ends with the reason in the
+// The renderer: draws the game's frame with sokol_gfx (on the device platform/graphics.h makes) from the data the game
+// hands over and presents it on the game window. No fallback of any kind: when it cannot start, or cannot go on (a
+// sokol panic, a lost device not made again, nothing to present into), the game ends with the reason in the
 // game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
 // vector recorders). See docs/notes/renderer.md.
-// EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words:
-// "removable" and "checkall".
+// EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words: "checkall"
+// (the harness's own "removable" never reaches it).
 
 #include "render_rect.h"
 #include "lib/vecmath.h"
@@ -472,21 +472,12 @@ struct WindowPresentInfo {
     int deviceLosses = 0;       // devices lost (or LoseDevice) ...
     int deviceRecoveries = 0;   // ... and made again with everything on them
     std::uint32_t presentsAtRecovery = 0;   // `presents` when the last new device was made
-    long lastLossResult = 0;   // the last loss: the DXGI error that reported it ...
-    long lastLossReason = 0;   // ... and GetDeviceRemovedReason then (S_OK: LoseDevice's, not a real loss)
-    bool lastLossSimulated = false;
-    bool removable = false;   // harness build: RemoveDevice can remove the device
-    int removals = 0;
+    std::uint32_t lastLossCode = 0;   // the last loss: the backend's code (0: LoseDevice's, not a real loss)
 };
 WindowPresentInfo WindowPresents();
-// Acts as if the device were lost at the next present ("losedevice"): Present is not called but reported
-// DXGI_ERROR_DEVICE_REMOVED; then, as for a real loss, everything is made again and textures uploaded again
-// from what they were decoded from.
+// Acts as if the device were lost at the end of the next presented frame ("losedevice"): as for a real loss,
+// everything is made again and textures uploaded again from what they were decoded from.
 void LoseDevice();
-// Harness build only (EI_RENDER "removable"): the device was made through D3D11On12, and this removes the
-// Direct3D 12 device for real (ID3D12Device5::RemoveDevice, this process only) before the next present.
-// False when the device is not removable.
-bool RemoveDevice();
 // Harness build only ("terrainlevels"): what the ground pages draw. Levels: the texture level the page's
 // sampler reads at each pixel (red = level * 32, mips blended as the sampler blends them; green 0x5A and blue
 // 0xA5 mark the pixel). PointMips: the same through the old sampler (bilinear, point mips: the level steps

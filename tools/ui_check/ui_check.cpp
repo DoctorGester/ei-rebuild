@@ -129,8 +129,6 @@ void SplitFrame() {
 void RunCanvasesNow() { RunCanvasCommands(); }
 GpuWorkAlone::GpuWorkAlone() {}
 GpuWorkAlone::~GpuWorkAlone() {}
-FpuGuard::FpuGuard() : saved(0) {}
-FpuGuard::~FpuGuard() {}
 } // namespace detail
 } // namespace render
 
@@ -734,22 +732,21 @@ void CheckPicture() {
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
-    auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
-    detail::StagingCopy copy;
-    bool ok = copy.Map(context, detail::D3DTexture(g_target));
-    if (ok) {
-        const unsigned w = copy.Width(), h = copy.Height();
+    platform::graphics::Readback copy;
+    const int w = g_targetWidth, h = g_targetHeight;
+    const bool read = copy.Read(g_target, platform::Rect{0, 0, w, h});
+    if (read) {
         rgb->resize(static_cast<std::size_t>(w) * h);
-        for (unsigned y = 0; y < h; ++y) {
+        for (int y = 0; y < h; ++y) {
             const std::uint8_t* row = copy.Row(y);
-            for (unsigned x = 0; x < w; ++x)
-                (*rgb)[static_cast<std::size_t>(y) * w + x] =
-                    (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
+            for (int x = 0; x < w; ++x)
+                (*rgb)[static_cast<std::size_t>(y) * w + x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) |
+                                                              (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) |
+                                                              row[x * 4 + 2];
         }
     }
     copy.Release();
-    sg_reset_state_cache();
-    return ok;
+    return read;
 }
 
 // The blit of `canvas` (its pixels, `cw` wide) onto `target` as ps_blit draws it (exact ratios only).

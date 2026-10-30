@@ -169,9 +169,7 @@ struct WindowPresents {
     int deviceLosses = 0;
     int deviceRecoveries = 0;
     std::uint32_t presentsAtRecovery = 0;
-    long lastLossResult = 0;
-    long lastLossReason = 0;
-    bool lastLossSimulated = false;
+    std::uint32_t lastLossCode = 0;   // 0: LoseDevice's
     bool removable = false;
     int removals = 0;
 };

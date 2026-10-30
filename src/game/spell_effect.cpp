@@ -21,6 +21,7 @@
 #include "lib/str.h"
 
 #include <bit>
+#include <cfloat>
 #include <cstdint>
 #include <cstring>
 #include <string>

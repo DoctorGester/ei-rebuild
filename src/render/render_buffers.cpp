@@ -6,6 +6,8 @@
 
 #include "../hook/log.h"
 
+#include "platform/win32/graphics_win32.h"
+
 #include <windows.h>
 #include <d3d11.h>
 
@@ -114,7 +116,7 @@ bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
     d.Usage = D3D11_USAGE_DEFAULT;
     d.BindFlags = index ? D3D11_BIND_INDEX_BUFFER : D3D11_BIND_VERTEX_BUFFER;
     ID3D11Buffer* made = nullptr;
-    if (!D3DDevice() || FAILED(D3DDevice()->CreateBuffer(&d, nullptr, &made)) || !made) return false;
+    if (FAILED(platform::graphics::Device()->CreateBuffer(&d, nullptr, &made)) || !made) return false;
     sg_buffer_desc s{};
     s.size = bytes;
     s.usage.vertex_buffer = !index;
@@ -135,7 +137,7 @@ bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
 void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
     if (!bytes || !d3d) return;
     D3D11_BOX box{static_cast<UINT>(offset), 0, 0, static_cast<UINT>(offset + bytes), 1, 1};
-    D3DContext()->UpdateSubresource(d3d, 0, &box, data, 0, 0);
+    platform::graphics::Context()->UpdateSubresource(d3d, 0, &box, data, 0, 0);
 }
 
 void GpuPool::Buffer::Drop() {

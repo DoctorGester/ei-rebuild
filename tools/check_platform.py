@@ -1,11 +1,11 @@
-"""Ratchet on the platform layer's rule (docs/notes/platform.md): the game's code reaches the operating system only
-through src/platform/platform.h (its Windows implementation in src/platform/win32); the renderer's Direct3D backend
-(src/render) keeps its own Windows calls.
+"""Ratchet on the platform layer's rule (docs/notes/platform.md): the game's code and the renderer reach the operating
+system and the graphics device only through src/platform (platform.h, graphics.h; their Windows implementation in
+src/platform/win32).
 
-This lists the files under src/ outside src/platform, src/render and src/hook (the harness's hook framework) that still
-include a Windows system header (<windows.h>, <dinput.h>, <wingdi.h>, <mmsystem.h>, ...) or a header of the Windows
-implementation (platform/win32/: its own declarations, game.exe's imports) or call game.exe's imports (`gameapi::X`,
-comments left out), and fails when one is not in
+This lists the files under src/ outside src/platform and src/hook (the harness's hook framework) that still include a
+Windows system header (<windows.h>, <dinput.h>, <d3d11.h>, ...) or a header of the Windows implementation
+(platform/win32/: its own declarations, game.exe's imports, the Direct3D backend's objects) or call game.exe's imports
+(`gameapi::X`) or sokol's Direct3D functions (`sg_d3d11_*`; comments left out), and fails when one is not in
 config/platform_files.txt: a file may leave the list, not join it. Run with --update after a move onto the platform
 layer to drop the files that no longer need to be listed (it never adds one).
 
@@ -15,7 +15,7 @@ import glob, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LISTED = os.path.join(ROOT, 'config', 'platform_files.txt')
-OUTSIDE = ('src/platform/', 'src/render/', 'src/hook/')
+OUTSIDE = ('src/platform/', 'src/hook/')
 # <windows.h> and the system's other headers (the SDK's, DirectX's and the C runtime's Windows parts): game code gets
 # what it needs from src/platform.
 SYSTEM_HEADERS = (r'windows|windowsx|winsock2?|ws2tcpip|wingdi|winuser|winbase|winnt|windef|winerror|mmsystem|mmreg|'
@@ -25,6 +25,7 @@ WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + 
 # The Windows implementation's own headers (platform_win32.h, gameapi.h, win_api.h).
 WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/win32/', re.M)
 IMPORT_CALL = re.compile(r'\bgameapi::\w')
+BACKEND_CALL = re.compile(r'\bsg_d3d11_\w+\s*\(')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 
@@ -35,9 +36,10 @@ def counted(path):
 
 def calls_windows(text):
     """Whether a file's text includes a Windows system header or one of the Windows implementation, or calls an import
-    as gameapi::X."""
+    as gameapi::X or a sokol Direct3D function."""
     code = COMMENT.sub('', text)
-    return bool(WINDOWS_H.search(code) or WIN32_HEADER.search(code) or IMPORT_CALL.search(code))
+    return bool(WINDOWS_H.search(code) or WIN32_HEADER.search(code) or IMPORT_CALL.search(code) or
+                BACKEND_CALL.search(code))
 
 
 def windows_files():
@@ -63,8 +65,9 @@ def main(argv):
         return 0
     problems = [p for p in now if p not in listed]
     for p in problems:
-        print(f'{p}: includes a Windows header or calls gameapi::; go through platform/platform.h (docs/notes/platform.md)')
-    print(f'platform: {len(now)} files outside src/platform and src/render call Windows; {len(problems)} problem(s)')
+        print(f'{p}: includes a Windows header or calls gameapi:: or sg_d3d11_; go through src/platform '
+              '(docs/notes/platform.md)')
+    print(f'platform: {len(now)} files outside src/platform call Windows; {len(problems)} problem(s)')
     return 1 if problems else 0
 
 

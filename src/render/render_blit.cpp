@@ -8,11 +8,6 @@
 
 #include "../hook/log.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-
 #include "../game/texture.h"
 
 #include <cstring>
@@ -130,18 +125,18 @@ void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, 
 #if defined(EI_RENDER_VALIDATION)
     long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
     if (!ReadBackDue(uploads++)) return;
-    StagingCopy copy;
-    if (copy.Map(D3DContext(), D3DTexture(image), 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
+    platform::graphics::Readback copy;
+    if (copy.Read(image, platform::Rect{0, 0, w, h})) {
         bool same = true;
         for (int y = 0; y < h && same; ++y)
-            same = std::memcmp(copy.Row(static_cast<unsigned>(y)), rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+            same = std::memcmp(copy.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
+                               static_cast<std::size_t>(w) * 4) == 0;
         ++g_uploadChecks;
         if (!same && g_uploadMismatches++ < 10)
             ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written",
                     use == ImageUse::Movie ? "movie" : "cursor", w, h);
     }
     copy.Release();
-    sg_reset_state_cache();
     if (g_uploadChecks % 20 == 1)
         ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
 #else
@@ -344,7 +339,7 @@ void RetireFrameImages() {
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
     Start();
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     CountImageRequest(ImageUse::Movie);
     g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
     for (std::size_t i = 3; i < g_movieScratch.size(); i += 4) g_movieScratch[i] = 255;
@@ -397,7 +392,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (from.left < 0 || from.top < 0 || from.right > picture->width || from.bottom > picture->height ||
         from.right <= from.left || from.bottom <= from.top)
         return;
-    FpuGuard fpu;
+    platform::FloatingPointGuard fpu;
     const CursorSheet* sheet = SheetOf(imageHolder, mask, maskBytes, *picture);
     if (!sheet) return;
     g_frame.cursor = BlitBatch{sheet->view, sheet->width, sheet->height, to, from};

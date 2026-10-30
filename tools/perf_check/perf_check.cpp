@@ -15,6 +15,7 @@
 #include <d3d11.h>
 #include <dxgi1_5.h>
 
+#include "platform/win32/graphics_win32.h"
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 
@@ -65,11 +66,6 @@ void Log(const char* fmt, ...) {
     }
 }
 } // namespace ei
-
-namespace render::detail {
-ID3D11Device* D3DDevice() { return g_device; }
-ID3D11DeviceContext* D3DContext() { return g_context; }
-} // namespace render::detail
 
 std::uint64_t render::perf::FrameDrawCount() { return g_frameDraws; }
 
@@ -174,17 +170,16 @@ void BeginTargetPass(const Target& t) {
 }
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
-    render::detail::StagingCopy copy;
-    bool ok = copy.Map(g_context, render::detail::D3DTexture(t.image));
-    if (ok) {
+    platform::graphics::Readback copy;
+    const bool read = copy.Read(t.image, platform::Rect{0, 0, t.width, t.height});
+    if (read) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
             std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4,
-                        copy.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(t.width) * 4);
+                        copy.Row(y), static_cast<std::size_t>(t.width) * 4);
     }
     copy.Release();
-    sg_reset_state_cache();
-    return ok;
+    return read;
 }
 
 void CheckDraw(int width, int height) {
@@ -314,10 +309,11 @@ bool StartDevice(bool hardware) {
     return sg_isvalid();
 }
 
-// The vertical blank switch (src/render/render_window.cpp, R23): the pure rules, then real chains on a hidden window.
+// The vertical blank switch (src/platform/win32/graphics_win32.cpp, R23): the pure rules, then real chains on a hidden
+// window.
 void CheckVsync() {
     const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    namespace d = render::detail;
+    namespace d = platform::graphics;
     Check(d::SyncIntervalFor(true) == 1 && d::SyncIntervalFor(false) == 0, "the sync interval: 1 with the wait, 0 without");
     Check(d::ChainFlagsFor(false, true) == 0 && d::ChainFlagsFor(false, false) == 0 && d::ChainFlagsFor(true, false) == 0 &&
               d::ChainFlagsFor(true, true) == tearing,

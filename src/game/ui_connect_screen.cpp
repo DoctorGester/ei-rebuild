@@ -122,19 +122,6 @@ UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom)
     return surface;
 }
 
-// A write the way the box's constructor inlines it: in place (marking the buffer written) when it
-// fits before `end`, otherwise through the buffer's virtual call. Not inlined, so it is called through the
-// buffer's own vtable.
-__declspec(noinline) void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) {
-        buffer->WriteMore(from, size);
-        return;
-    }
-    buffer->flags |= 1;
-    std::memcpy(buffer->cur, from, size);
-    buffer->cur += size;
-}
-
 } // namespace
 
 void MpConnectScreen::Update() {
@@ -627,7 +614,7 @@ MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, c
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
     bar->flatColour = kBarColour;
-    BufferPut(&link.out, &extra, sizeof(extra));
+    link.out.BufferWrite(&extra, sizeof(extra));
 }
 
 void MasterRequestBox::Update() {

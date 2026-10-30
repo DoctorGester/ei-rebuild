@@ -608,6 +608,12 @@ bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
     return true;
 }
 
+bool WindowPixelSize(NativeWindow window, int* width, int* height) {
+    SDL_Window* w = WindowOf(window);
+    if (!w || Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;
+    return *width > 0 && *height > 0;
+}
+
 // ---- Events ------------------------------------------------------------------------------------------------------
 
 bool EventWaits() {

@@ -12,10 +12,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <d3d11.h>
 #include <unordered_map>
 #include <vector>
-#include <windows.h>
 
 namespace render {
 
@@ -831,7 +829,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
     {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         state = ReadPassState(nullptr);
     }
     if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
@@ -860,7 +858,7 @@ void ShadowTerrainSector(const SectorData* s) {
     c.seen = FrameNumber();
     c.cast = false;
     if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
-        FpuGuard fpu;
+        platform::FloatingPointGuard fpu;
         BuildCaster(s, c);
         c.positions = s->vertices.data();
         c.sx = s->sx;
