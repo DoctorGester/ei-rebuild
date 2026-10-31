@@ -30,8 +30,6 @@ cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build/linux
 ```
 
-`-DEI_RENDER_VALIDATION=ON` adds sokol's validation layer, its messages in ei-rebuild.log.
-
 ## Checks
 
 `ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's llvmpipe draws):

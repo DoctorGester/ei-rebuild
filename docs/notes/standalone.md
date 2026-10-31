@@ -1618,8 +1618,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 
 ### The harness in the image (S23, H40)
 
-The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (CMake object library
-`ei_harness_shared`: tests/verify/*.cpp), with its image side (tests/verify/image), which calls our code by name. The
+The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (EI_HARNESS: tests/verify/*.cpp),
+with its image side (tests/verify/image), which calls our code by name. The
 release and play builds have none of it. Until H40 the same harness also ran inside game.exe as ei_harness.dll, for
 the original's runs (the tag original-oracle).
 - **Why linked, not a DLL the exe loads**: the image side reaches our code through ~120 functions (image_side.h) and

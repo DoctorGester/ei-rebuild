@@ -1146,8 +1146,8 @@ across runs; the goldens check the game state.
    helpers inlined 0.087-0.089 / FISTP inlined too 0.066-0.070, the town 0.036 / 0.029 / 0.024: about 0.12 ms a
    harness frame in zone1. Check: terrain_water_waves' goldens (vanilla, and Rebirth's, recorded in R16c4; in the
    Rebirth smoke set) and every golden the same, ei_vectors 0.
-   **R16c5 /Ob2 (done).** The build inlines at /Ob2 (CMakeLists' `EI_INLINE`; 1 builds as before, for A/B runs with
-   `EI_BUILD_DIR`), so file-local helpers inline without `inline`. Measured: render_stats vanilla, the /Ob1 and /Ob2
+   **R16c5 /Ob2 (done).** The build inlines at /Ob2 (CMakeLists.txt; its EI_INLINE switch for A/B runs went
+   2026-10-31), so file-local helpers inline without `inline`. Measured: render_stats vanilla, the /Ob1 and /Ob2
    verify builds run at the same time, three rounds (main thread CPU ms a frame, /Ob1 -> /Ob2): fight 17.1 / 18.0 /
    26.7 -> 16.0 / 17.1 / 23.5, town 5.3 / 5.5 / 5.8 -> 4.6 / 5.0 / 5.0, zone1 5.3 / 8.8 / 5.3 -> 4.4 / 7.5 / 4.3
    (escape menu, map, camp within the noise). Inlined constant helpers folded five products the original rounds to
