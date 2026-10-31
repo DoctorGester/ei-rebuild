@@ -1,1 +1,0 @@
-# The files that still call Windows outside the platform layer (tools/check_platform.py).

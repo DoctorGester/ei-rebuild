@@ -15,7 +15,7 @@ option(EI_HARNESS "Build the harness, linked into ei-rebuild.exe" OFF)
 
 # SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
 # the message box, the clocks and the threads of the builds without the harness (src/platform/sdl), the sound device
-# of every build (src/platform/audio_sdl.cpp) and on Linux the OpenGL context. Linked statically, so the exe stays one
+# of every build (src/audio/audio.cpp) and on Linux the OpenGL context. Linked statically, so the exe stays one
 # file dropped into a game folder (S23), with only the subsystems those use. Added before the game's compile options:
 # its warnings are its own.
 foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_GPU SDL_RENDER SDL_CAMERA
@@ -66,35 +66,53 @@ if(WIN32)
     else()
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
-    set(EI_SYSTEM win32)   # src/platform/win32, with game.exe's imports (gameapi.h)
-    set(EI_GRAPHICS src/platform/win32/graphics_win32.cpp)
+    set(EI_SYSTEM win32)   # src/platform/win32, with game.exe's import slots (gameapi.h)
+    set(EI_GRAPHICS d3d11)
     set(EI_GRAPHICS_BACKEND SOKOL_D3D11)
     set(EI_GRAPHICS_LIBRARIES d3d11 dxgi)
+    set(EI_SHDC_OPTIONS --bytecode --errfmt msvc)   # the HLSL compiled here, so no shader compiler runs at start
 else()
     add_compile_options(-ffp-contract=off)
     find_package(OpenGL REQUIRED)
     set(EI_SYSTEM posix)   # src/platform/posix
-    set(EI_GRAPHICS src/platform/graphics_gl.cpp)
+    set(EI_GRAPHICS gl)
     set(EI_GRAPHICS_BACKEND SOKOL_GLCORE)
     set(EI_GRAPHICS_LIBRARIES SDL3::SDL3-static OpenGL::GL)
 endif()
 
-# The game code: a library linked whole (every object, as if listed: the static objects' initialisers too), ahead of
-# the renderer and the platform it calls.
-file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
+# The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
+# docs/notes/audio.md) and its movies (src/video: our Bink 1 decoder): a library linked whole (every object, as if
+# listed: the static objects' initialisers too), ahead of the renderer and the platform it calls.
+file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp src/audio/*.cpp src/video/*.cpp)
 add_library(ei_game STATIC ${EI_GAME_SOURCES})
-target_include_directories(ei_game PRIVATE include src)
-target_link_libraries(ei_game PUBLIC ei_render ei_platform)
+target_include_directories(ei_game PRIVATE include src third_party)
+target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-static)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; Direct3D 11
-# on Windows, OpenGL 4.5 on Linux; each backend file holds sokol's implementation). The backend and the floating-point
-# guard are built in here, not into ei_platform: the offline checks link the renderer without the game.
-file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES} ${EI_GRAPHICS} src/platform/floating_point.cpp)
+# on Windows, src/platform/d3d11, OpenGL 4.5 on Linux, src/platform/gl; each holds sokol's implementation). The backend
+# and the floating-point guard are built in here, not into ei_platform: the offline checks link the renderer without
+# the game.
+file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp src/platform/${EI_GRAPHICS}/*.cpp)
+add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/floating_point.cpp)
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_compile_definitions(ei_render PRIVATE ${EI_GRAPHICS_BACKEND})
 target_link_libraries(ei_render PRIVATE ${EI_GRAPHICS_LIBRARIES})
-include(cmake/shaders.cmake)
+# Its shaders (docs/notes/renderer.md, "Shader authoring"): src/render/shaders/*.glsl, one input (shaders.glsl)
+# compiled by sokol-shdc for every graphics backend into shaders/shaders.h in the build folder (not committed): the
+# uniform blocks' C structs, the bind slots and each program's sokol shader description. sokol-shdc: -DEI_SHDC
+# (build.cmd passes this machine's), else build/tools in the checkout, else PATH.
+find_program(EI_SHDC sokol-shdc HINTS ${CMAKE_SOURCE_DIR}/build/tools REQUIRED)
+file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.glsl)
+set(EI_SHADER_HEADER ${CMAKE_BINARY_DIR}/shaders/shaders.h)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+add_custom_command(OUTPUT ${EI_SHADER_HEADER}
+    COMMAND ${EI_SHDC} --input ${CMAKE_SOURCE_DIR}/src/render/shaders/shaders.glsl --output ${EI_SHADER_HEADER}
+            --slang hlsl5:metal_macos:glsl430 --format sokol_impl --ifdef --no-log-cmdline ${EI_SHDC_OPTIONS}
+    DEPENDS ${EI_SHADER_SOURCES} ${EI_SHDC}
+    COMMENT "Compiling the shaders with sokol-shdc"
+    VERBATIM)
+target_sources(ei_render PRIVATE ${EI_SHADER_HEADER})
+target_include_directories(ei_render PUBLIC ${CMAKE_BINARY_DIR})
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
 # as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).
 set(EI_FONT_HEADERS)
@@ -113,14 +131,10 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
 # window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
 # (src/platform/sdl); the rest on the system's (src/platform/win32, the one place of the game's code that includes
-# <windows.h>, or src/platform/posix); the sound on SDL3's audio device with the dr_wav / dr_mp3 decoders
-# (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
-file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/${EI_SYSTEM}/*.cpp
-     src/platform/sdl/*.cpp src/platform/bink/*.cpp)
-list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp
-     ${CMAKE_SOURCE_DIR}/src/platform/graphics_gl.cpp ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
+# <windows.h>, or src/platform/posix).
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
-target_include_directories(ei_platform PRIVATE include src third_party)
+target_include_directories(ei_platform PRIVATE include src)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
@@ -160,7 +174,7 @@ if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
     # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place; sokol's validation
     # layer is on (its messages in ei-rebuild.log), with the Direct3D backend's removable device
-    # (src/platform/win32/graphics_win32.h), which the harness's image side (tests/verify/image) reaches.
+    # (src/platform/d3d11/graphics_d3d11.h), which the harness's image side (tests/verify/image) reaches.
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)

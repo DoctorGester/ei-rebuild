@@ -1,6 +1,6 @@
 #pragma once
 
-// The Direct3D 11 backend's own part (graphics_win32.cpp) beyond graphics.h: the vertical blank switch's rules that
+// The Direct3D 11 backend's own part (graphics_d3d11.cpp) beyond graphics.h: the vertical blank switch's rules that
 // tools/perf_check checks on real swap chains, and the harness build's removable device.
 
 #include "platform/graphics.h"

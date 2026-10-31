@@ -1434,7 +1434,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 from there, started from anywhere, with no ei_launch, no DLL of ours and no file of ours beside it.
 - **What a play needs** (release build): the exe alone. From the game folder, as game.exe used them: the data (res,
   maps, camera, movies, stream, ...); no DLL of the game's (no Miles, Bink or `*.asi`: platform/platform.h and video.h,
-  PL6). Built in: the shaders (sokol-shdc's bytecode, cmake/shaders.cmake), the interface fonts
+  PL6). Built in: the shaders (sokol-shdc's bytecode, CMakeLists.txt), the interface fonts
   (render_fonts.cpp), game.exe's import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
   (defaults, "Settings file"; the per-user fallback when the folder is not writable). Its `[patches]` holds the
@@ -1488,8 +1488,8 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **What it builds**: ei-rebuild.exe, ei_text_check, ei_ui_check and ei_perf_check. 32-bit only: ei_vectors (its
   recordings are game.exe's 32-bit calls); the harness and an x64 ei_launch are verify-x64's (below). build_checks.py `--x64` runs every check but the function vectors. No
   `/arch:SSE2` (x64 has it always).
-- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through platform/platform.h and
-  platform/platform.h, the same on x86 and x64 (docs/notes/platform.md, "Audio and video").
+- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through src/audio and src/video, the
+  same on x86 and x64 (docs/notes/audio.md).
 - **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
   layout (net_coder.h's buffers, ScriptKeyword), the PC24 control word
   (device_mesh.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps

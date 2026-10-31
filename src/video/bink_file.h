@@ -8,7 +8,7 @@
 #include <fstream>
 #include <vector>
 
-namespace platform::bink {
+namespace bink {
 
 // A frame's packets, inside the buffer they were read into.
 struct FramePackets {
@@ -54,4 +54,4 @@ private:
     std::vector<std::uint8_t> buffer;
 };
 
-} // namespace platform::bink
+} // namespace bink

@@ -6,7 +6,7 @@
 
 #include "../../../src/hook/log.h"
 
-#include "platform/win32/graphics_win32.h"
+#include "platform/d3d11/graphics_d3d11.h"
 #include "render/render.h"
 
 #include <windows.h>
@@ -62,7 +62,7 @@ bool FrameInWindow(int* width, int* height) {
 }
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
-// "removable" is the Direct3D backend's (graphics_win32.h); the other words are the renderer's.
+// "removable" is the Direct3D backend's (graphics_d3d11.h); the other words are the renderer's.
 void ConfigureRenderer(const char* spec) {
     std::string words;
     std::size_t start = 0;

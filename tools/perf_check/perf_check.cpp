@@ -15,7 +15,7 @@
 #include <d3d11.h>
 #include <dxgi1_5.h>
 
-#include "platform/win32/graphics_win32.h"
+#include "platform/d3d11/graphics_d3d11.h"
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 
@@ -309,7 +309,7 @@ bool StartDevice(bool hardware) {
     return sg_isvalid();
 }
 
-// The vertical blank switch (src/platform/win32/graphics_win32.cpp, R23): the pure rules, then real chains on a hidden
+// The vertical blank switch (src/platform/d3d11/graphics_d3d11.cpp, R23): the pure rules, then real chains on a hidden
 // window.
 void CheckVsync() {
     const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;

@@ -2,14 +2,14 @@
 
 // Bink audio (the RDFT variant): a movie's sound track decoded a packet at a time into interleaved 16-bit samples.
 
-#include "platform/bink/bit_reader.h"
+#include "video/bit_reader.h"
 
 #include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
-namespace platform::bink {
+namespace bink {
 
 class AudioDecoder {
 public:
@@ -38,4 +38,4 @@ private:
     bool first = true;
 };
 
-} // namespace platform::bink
+} // namespace bink

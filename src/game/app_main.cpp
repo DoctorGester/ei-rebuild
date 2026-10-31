@@ -336,7 +336,7 @@ std::uint32_t TimeSinceLastPass() {
         now = platform::Milliseconds();
     }
     // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them).
-    platform::audio::DeliverEnds(now);
+    audio::DeliverEnds(now);
     const std::uint32_t elapsed = now - g_lastTime;
     g_lastTime += elapsed;
     return elapsed;

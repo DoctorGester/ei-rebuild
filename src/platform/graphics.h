@@ -4,8 +4,8 @@
 // pipeline, buffer and image is the renderer's (src/render). A backend makes the device sokol draws on, gives it the
 // window's drawable each frame and presents it, presents the last frame again from another thread (the cursor between
 // frames), says when the device is lost, writes part of a buffer (which sokol cannot), and reads images back and times
-// the GPU for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's
-// implementation); elsewhere OpenGL 4.5 (graphics_gl.cpp). No backend type crosses this header.
+// the GPU for the diagnostics. On Windows: Direct3D 11 (d3d11/graphics_d3d11.cpp, which also holds sokol's
+// implementation); elsewhere OpenGL 4.5 (gl/graphics_gl.cpp). No backend type crosses this header.
 
 #include "platform/platform.h"
 #include "sokol_gfx.h"
@@ -101,7 +101,7 @@ bool PresentAgain(std::span<const sg_range> uniforms, PresentReads* reads);
 
 // ---- Diagnostics --------------------------------------------------------------------------------------------------
 
-// The backend's copy for reading texels back (win32/graphics_win32.h).
+// The backend's copy for reading texels back (d3d11/graphics_d3d11.h).
 class Staging;
 
 // Texels read back to the CPU, blocking (captures, the interface canvases' reads, the harness build's checks): copied

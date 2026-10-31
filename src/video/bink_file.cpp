@@ -4,13 +4,13 @@
 // (bit 13 stereo, bit 12 the DCT variant), per track a 32-bit id; then the frame index: per frame and the end of the
 // last its offset in the file, bit 0 set on keyframes. A frame holds per track the packet's size (0: none) followed
 // by the number of bytes it decodes to and the packet, then the video packet.
-#include "platform/bink/bink_file.h"
+#include "video/bink_file.h"
 
 #include <cstring>
 #include <filesystem>
 #include <string>
 
-namespace platform::bink {
+namespace bink {
 
 namespace {
 
@@ -96,4 +96,4 @@ bool File::ReadFrame(unsigned index, FramePackets& packets) {
     return true;
 }
 
-} // namespace platform::bink
+} // namespace bink

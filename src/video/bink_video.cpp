@@ -4,17 +4,17 @@
 // come from the bit stream directly. Written from the format's description (multimedia.cx: Bink Video, Kostya
 // Shishkov's notes), the details it leaves out from the game's binkw32.dll, and checked frame for frame against an
 // independent decoder (docs/notes/platform.md, "Movies").
-#include "platform/bink/bink_video.h"
+#include "video/bink_video.h"
 
-#include "platform/bink/bink_tables.h"
-#include "platform/bink/bit_reader.h"
+#include "video/bink_tables.h"
+#include "video/bit_reader.h"
 
 #include <algorithm>
 #include <bit>
 #include <cstring>
 #include <utility>
 
-namespace platform::bink {
+namespace bink {
 
 namespace {
 
@@ -667,4 +667,4 @@ void VideoDecoder::Decode(const std::uint8_t* packet, std::size_t size) {
     }
 }
 
-} // namespace platform::bink
+} // namespace bink

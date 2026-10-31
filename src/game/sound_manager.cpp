@@ -152,15 +152,15 @@ int DeferLooping(SoundManager* m, std::string_view name, int priority, int volum
 
 // The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
 int StartLoaded(SoundManager* m, SoundSlot* slot, int loop) {
-    if (loop != 0) platform::audio::SetLoopCount(slot->voice, 0);
+    if (loop != 0) audio::SetLoopCount(slot->voice, 0);
     m->ApplyVolumePan(slot);
-    platform::audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
-    if (m->reverbOn != 0) platform::audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
+    audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
+    if (m->reverbOn != 0) audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        platform::audio::SetPositionMs(slot->voice, g_clientRandom.Next() % range);
+        audio::SetPositionMs(slot->voice, g_clientRandom.Next() % range);
     }
-    platform::audio::Start(slot->voice);
+    audio::Start(slot->voice);
     return slot->handle;
 }
 
@@ -174,7 +174,7 @@ void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator
     record.lastUsed = platform::TickCount();
     record.uses = record.uses + 1;
     slot->length = m->WaveLength(record.data.data(), record.data.size());
-    platform::audio::SetWave(slot->voice, record.data.data(), record.data.size());
+    audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
@@ -217,16 +217,16 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
 // Hands the slot's volume and pan to the output; the pan is mirrored unless panDirect.
 void SoundManager::ApplyVolumePan(SoundSlot* slot) const {
     int direct = panDirect;
-    platform::audio::SetVolume(slot->voice, slot->volume);
+    audio::SetVolume(slot->voice, slot->volume);
     int p = slot->pan;
     if (direct == 0) p = -p;
-    platform::audio::SetPan(slot->voice, (p + 100) * 0x7F / 200);
+    audio::SetPan(slot->voice, (p + 100) * 0x7F / 200);
 }
 
 // Ends a voice: releases its cached wave, stops the voice and frees the slot.
 void SoundManager::EndSlot(SoundSlot* slot) {
     --CacheEntry(cache, slot)->uses;
-    platform::audio::End(slot->voice);
+    audio::End(slot->voice);
     slot->playing = 0;
     slot->finished = 0;
     slot->handle = -1;
@@ -317,7 +317,7 @@ void SoundManager::SetMusicVolume(int volume) {
     if (enabled == 0) return;
     musicFader.volume = v;
     musicFader.Recalc();
-    if (streamSample != nullptr) platform::audio::SetStreamVolume(streamSample, musicFader.level);
+    if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
     if (v == 0) StopStream(4);
 }
 
@@ -332,15 +332,15 @@ void SoundManager::SetReverb(float room, float level, float time) {
 void SoundManager::PauseAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) platform::audio::Stop(slots[i].voice);
-    if (enabled != 0 && streamSample != nullptr) platform::audio::StopStream(streamSample);
+            if (slots[i].playing != 0) audio::Stop(slots[i].voice);
+    if (enabled != 0 && streamSample != nullptr) audio::StopStream(streamSample);
 }
 
 void SoundManager::ResumeAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) platform::audio::Resume(slots[i].voice);
-    if (enabled != 0 && streamSample != nullptr) platform::audio::ResumeStream(streamSample);
+            if (slots[i].playing != 0) audio::Resume(slots[i].voice);
+    if (enabled != 0 && streamSample != nullptr) audio::ResumeStream(streamSample);
 }
 
 // --- Per-handle controls --------------------------------------------------------------------------
@@ -602,7 +602,7 @@ void SoundManager::Tick() {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
         --CacheEntry(cache, slot)->uses;
-        platform::audio::End(slot->voice);
+        audio::End(slot->voice);
         slot->handle = -1;
         slot->playing = 0;
         slot->finished = 0;
@@ -636,18 +636,18 @@ void SoundManager::Tick() {
         slot->position = rec->position;
         slot->nearDistance = rec->nearDistance;
         slot->farDistance = rec->farDistance;
-        platform::audio::ResetVoice(slot->voice);
+        audio::ResetVoice(slot->voice);
         // A flat sound's level is recomputed from its saved output level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
         if (LoadSample(slot, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;
-            platform::audio::SetLoopCount(slot->voice, 0);
+            audio::SetLoopCount(slot->voice, 0);
             ApplyVolumePan(slot);
-            platform::audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
-            if (reverbOn != 0) platform::audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
-            platform::audio::SetPosition(slot->voice, rec->samplePosition);
-            platform::audio::Start(slot->voice);
+            audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
+            if (reverbOn != 0) audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
+            audio::SetPosition(slot->voice, rec->samplePosition);
+            audio::Start(slot->voice);
         }
         if (rec != nullptr) FreeDeferred(rec);
     }
@@ -828,7 +828,7 @@ void SoundManager::StopStream(int mode) {
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
-                platform::audio::CloseMp3(streamFile);
+                audio::CloseMp3(streamFile);
                 streamFile = nullptr;
             }
             streamState = 0;
@@ -866,9 +866,9 @@ void SoundManager::DeleteDeferred() {
 }
 
 float SoundManager::WaveLength(const void* data, std::size_t size) {
-    const platform::audio::WaveInfo info = platform::audio::ReadWaveInfo(data, size);
+    const audio::WaveInfo info = audio::ReadWaveInfo(data, size);
     std::uint32_t samples;
-    if (info.format == platform::audio::kImaAdpcm) {
+    if (info.format == audio::kImaAdpcm) {
         samples = info.samples;
     } else {
         std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
@@ -955,7 +955,7 @@ int SoundManager::AllocateVoice(int priority) {
         rec->nearDistance = slot->nearDistance;
         rec->farDistance = slot->farDistance;
         rec->handle = slot->handle;
-        rec->samplePosition = platform::audio::Position(slot->voice);
+        rec->samplePosition = audio::Position(slot->voice);
         SetDeferred(deferred, rec->handle, rec);
     }
     if (slot->playing != 0) EndSlot(slot);
@@ -977,7 +977,7 @@ int SoundManager::Play2D(std::string_view name, int priority, int volume, int pa
         return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
     }
     SoundSlot* slot = &slots[index];
-    platform::audio::ResetVoice(slot->voice);
+    audio::ResetVoice(slot->voice);
     slot->looping = loop;
     slot->baseVolume = volume;
     slot->pan = pan;
@@ -1015,7 +1015,7 @@ int SoundManager::Play3D(std::string_view name, int priority, const float* posit
         return rec->handle;
     }
     SoundSlot* slot = &slots[index];
-    platform::audio::ResetVoice(slot->voice);
+    audio::ResetVoice(slot->voice);
     slot->looping = loop;
     lib::LoadBytes(slot->position, position);
     slot->nearDistance = nearDist;
@@ -1056,7 +1056,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
         std::uint32_t now = platform::TickCount();
         WaveRecord record;
         if (compressed != 0) {
-            const bool ok = platform::audio::DecodeMp3File(data, fileSize, &record.data);
+            const bool ok = audio::DecodeMp3File(data, fileSize, &record.data);
             source->CloseFile(data);
             if (!ok) return 0;
             size = static_cast<int>(record.data.size());
@@ -1080,7 +1080,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
             node = std::prev(cacheList.end());
         }
         cache[key] = node;
-        platform::audio::SetWave(slot->voice, node->data.data(), node->data.size());
+        audio::SetWave(slot->voice, node->data.data(), node->data.size());
         slot->length = WaveLength(node->data.data(), node->data.size());
     }
     slot->name = key;
@@ -1134,7 +1134,7 @@ const char* const kSwitchMarkers = "Markers1";
 
 void CodecClose(SoundManager* m) {
     if (m->streamFile == nullptr) return;
-    platform::audio::CloseMp3(m->streamFile);
+    audio::CloseMp3(m->streamFile);
     m->streamFile = nullptr;
 }
 void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
@@ -1142,7 +1142,7 @@ void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
 }
 // `bytes` of the file; what it does not give is silence.
 void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
-    int got = platform::audio::DecodeMp3(m->streamFile, to, bytes);
+    int got = audio::DecodeMp3(m->streamFile, to, bytes);
     if (got < bytes) Silence(m, to + got, bytes - got);
 }
 
@@ -1155,7 +1155,7 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     CodecClose(m);
     if (str::Compare(m->nextName, game::kEmptyText) != 0 && m->streamReader.OpenFile(path, &m->streamFileSize) != 0)
-        m->streamFile = platform::audio::OpenMp3(SoundStreamRead, m);
+        m->streamFile = audio::OpenMp3(SoundStreamRead, m);
     if (m->streamFile == nullptr) {
         Silence(m, to, bytes);
         m->streamState = 0;
@@ -1174,14 +1174,14 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
     m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
-    const unsigned rate = platform::audio::Mp3Rate(m->streamFile);
-    const int channels = platform::audio::Mp3Channels(m->streamFile);
-    const int bits = platform::audio::Mp3Bits(m->streamFile);
+    const unsigned rate = audio::Mp3Rate(m->streamFile);
+    const int channels = audio::Mp3Channels(m->streamFile);
+    const int bits = audio::Mp3Bits(m->streamFile);
     // 16 bits are signed, 8 bits unsigned (silence at 0x7F).
     m->streamSilence = bits == 16 ? 0 : kSilence8;
-    platform::audio::SetStreamFormat(m->streamSample, rate, channels, bits);
-    platform::audio::SetStreamVolume(m->streamSample, kFullLevel);
-    platform::audio::SetStreamPan(m->streamSample, kCentrePan);
+    audio::SetStreamFormat(m->streamSample, rate, channels, bits);
+    audio::SetStreamVolume(m->streamSample, kFullLevel);
+    audio::SetStreamPan(m->streamSample, kCentrePan);
     m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
@@ -1320,22 +1320,22 @@ void SoundManager::ResetStream() {
 // --- Open, Close, Reset ------------------------------------------------------------------
 
 int SoundManager::CloseStream() {
-    if (streamFile != nullptr) platform::audio::CloseMp3(streamFile);
-    if (streamSample != nullptr) platform::audio::DestroyStream(streamSample);
+    if (streamFile != nullptr) audio::CloseMp3(streamFile);
+    if (streamSample != nullptr) audio::DestroyStream(streamSample);
     ResetStream();
     return 0;
 }
 
 int SoundManager::OpenStream() {
-    streamSample = platform::audio::CreateStream();
+    streamSample = audio::CreateStream();
     if (streamSample == nullptr) return CloseStream();
 
-    streamBufferSize = platform::audio::MinimumHalfBytes(kStreamRate, kStreamChannels, kStreamBits) * 2;
+    streamBufferSize = audio::MinimumHalfBytes(kStreamRate, kStreamChannels, kStreamBits) * 2;
     for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.assign(static_cast<std::size_t>(streamBufferSize), 0);
-    platform::audio::ResetStream(streamSample);
-    platform::audio::SetStreamFormat(streamSample, kStreamRate, kStreamChannels, kStreamBits);
-    platform::audio::SetStreamVolume(streamSample, 0);
-    platform::audio::SetStreamPan(streamSample, 0);
+    audio::ResetStream(streamSample);
+    audio::SetStreamFormat(streamSample, kStreamRate, kStreamChannels, kStreamBits);
+    audio::SetStreamVolume(streamSample, 0);
+    audio::SetStreamPan(streamSample, 0);
     streamHalfBuffer[0] = 0;
     streamHalfBuffer[1] = 1;
     streamSpareBuffer = 2;
@@ -1356,9 +1356,9 @@ void SoundManager::StreamThread() {
 
         streamLock.lock();
         musicFader.Update();
-        platform::audio::SetStreamVolume(streamSample, musicFader.level);
+        audio::SetStreamVolume(streamSample, musicFader.level);
         for (;;) {
-            int half = platform::audio::ReadyHalf(streamSample);
+            int half = audio::ReadyHalf(streamSample);
             if (half == kNoHalfReady) break;
             // The spare buffer goes into that half; the one it played becomes the spare.
             int buffer = streamSpareBuffer;
@@ -1366,7 +1366,7 @@ void SoundManager::StreamThread() {
             streamSpareBuffer = playing;
             playing = buffer;
             streamPosition += streamBufferFrames;
-            platform::audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
+            audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
             ReadStreamVanilla();
         }
         streamLock.unlock();
@@ -1417,14 +1417,14 @@ void SoundManager::ReadStreamVanilla() {
         restBytes = streamBufferSize;
         again = false;
     } else {
-        int got = platform::audio::DecodeMp3(streamFile, buffer, currentBytes);
+        int got = audio::DecodeMp3(streamFile, buffer, currentBytes);
         if (got < currentBytes) {
             if (streamState == kStateSwitching && switchMode == kSwitchAtEnd) {
                 // The file ended: the next one from here.
                 currentBytes = got;
                 restBytes = streamBufferSize - got;
             } else {
-                platform::audio::RewindMp3(streamFile);
+                audio::RewindMp3(streamFile);
                 streamPosition = 0;
                 ReadOrSilence(this, buffer + got, currentBytes - got);
             }
@@ -1432,7 +1432,7 @@ void SoundManager::ReadStreamVanilla() {
     }
     if (restBytes == 0) return;
     if (again) {
-        platform::audio::RewindMp3(streamFile);
+        audio::RewindMp3(streamFile);
         streamPosition = 0;
         ReadOrSilence(this, buffer + currentBytes, restBytes);
         return;
@@ -1447,7 +1447,7 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
     reverbOn = useReverb;
     if (rate >= kMaxRate) rate = kMaxRate;
     std::string error;
-    if (!platform::audio::OpenOutput(window, rate, useReverb != 0, &error)) {
+    if (!audio::OpenOutput(window, rate, useReverb != 0, &error)) {
         game::DebugLog("%s\n", error.c_str());
         return 0;
     }
@@ -1468,7 +1468,7 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
         slot.finished = 0;
         slot.heightFade = 0;
         slot.handle = -1;
-        slot.voice = platform::audio::CreateVoice();
+        slot.voice = audio::CreateVoice();
     }
     enabled = 1;
     return 1;
@@ -1485,14 +1485,14 @@ void SoundManager::Close() {
     if (slots != nullptr) {
         for (int i = 0; i < kVoiceCount; ++i) {
             if (slots[i].playing != 0) EndSlot(&slots[i]);
-            if (slots[i].voice != nullptr) platform::audio::DestroyVoice(slots[i].voice);
+            if (slots[i].voice != nullptr) audio::DestroyVoice(slots[i].voice);
         }
         slots.reset();
     }
     DeleteDeferred();
     cacheList.clear();
     cache.clear();
-    if (enabled != 0) platform::audio::CloseOutput();
+    if (enabled != 0) audio::CloseOutput();
     ClearWaveSources();
     streamReader.Close();
     soundRegistry.Close();

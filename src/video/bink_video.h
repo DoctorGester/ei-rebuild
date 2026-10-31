@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace platform::bink {
+namespace bink {
 
 // One plane: `width` x `height` bytes `stride` apart, the decoded size rounded up to whole 8x8 blocks.
 struct Plane {
@@ -37,4 +37,4 @@ private:
     Plane previous[3];
 };
 
-} // namespace platform::bink
+} // namespace bink

@@ -29,7 +29,7 @@ WinMain; not with "removable") and taken at the renderer's first use.
 ### Shader authoring
 
 The shaders are GLSL 4.5 in sokol-shdc's annotated form, `src/render/shaders/*.glsl`. `shaders.glsl` includes the
-rest, and `cmake/shaders.cmake` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
+rest, and `CMakeLists.txt` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
 is compiled: hlsl5 for Direct3D 11 (to bytecode, so no compiler runs at start) and metal_macos for the macOS port.
 The compiler is `EI_SHDC`. build.cmd and play.cmd default it to `E:\bin\sokol-shdc\sokol-shdc.exe`, and the
 suites workflow sets the same.
@@ -475,7 +475,7 @@ sets it).
 Shared helpers: every read-back of a texture (the frame, the canvases, the composed levels, the harness build's
 upload / ramp / cursor checks) goes through `platform::graphics::Readback` (graphics.h; on Direct3D 11 a staging
 texture kept and grown, copied into and mapped, then sokol's state cache reset); the cursor thread, which must not call
-sokol, maps the backend's `Staging` itself (graphics_win32.h). render_internal.h: `Channel` a pixel format's channel
+sokol, maps the backend's `Staging` itself (graphics_d3d11.h). render_internal.h: `Channel` a pixel format's channel
 (its 8-bit value: `Widen`), `rect_params_t` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
@@ -651,7 +651,7 @@ is what to read it for.
 
 - Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
   DRIVER_INTERNAL_ERROR) and by `GetDeviceRemovedReason` (a loss nothing reported, e.g. minimised): both are
-  `platform::graphics::Lost()` (graphics_win32.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
+  `platform::graphics::Lost()` (graphics_d3d11.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
   frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
   made (`DropWindow`, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
   `DropBlits`, `DropTextures`), then `sg_shutdown` and `platform::graphics::Stop` (the context cleared and released,
@@ -675,7 +675,7 @@ is what to read it for.
 ### R9c5: a real removal of the device (harness build only)
 
 - `removable` in the harness's render step (the scenario's `render new,present,removable`; the harness passes it to
-  the backend, `platform::graphics::MakeRemovable` in graphics_win32.h, harness build only, `EI_RENDER_VALIDATION`)
+  the backend, `platform::graphics::MakeRemovable` in graphics_d3d11.h, harness build only, `EI_RENDER_VALIDATION`)
   makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
   default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
   the gamma ramp check, the cursor's deferred context and every frame work on it as on the hardware device.
@@ -1874,13 +1874,13 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
   are made as before).
 - **Off**: sync interval 0. Where the system supports tearing (`IDXGIFactory5::CheckFeatureSupport`
-  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in graphics_win32.cpp, asked of the factory at each chain
+  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in graphics_d3d11.cpp, asked of the factory at each chain
   creation) the flip-model chain is made with `DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING` and every present carries
   `DXGI_PRESENT_ALLOW_TEARING`: without it a windowed flip-model chain stays composed and capped at the display's rate
   even at interval 0. Without support: interval 0 and no flags (it may still be capped by the compositor). `ResizeBuffers`
   takes the flags the chain was made with (`g_chainFlags`), and Present's flag follows them (the flag is only valid on a
   chain made with it). Both present paths use the same values: the backend's `EndDrawable` and the cursor
-  thread's between-frames present (`PresentAgain`). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_win32.h).
+  thread's between-frames present (`PresentAgain`). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_d3d11.h).
 - **Nothing else relies on vsync pacing**: game time is the world updates (up to five of 0078FF34 ms per frame, see
   the timing line in section 3: vsync only changes how they group into frames); the cursor thread presents only after
   40 ms without a main-thread present, so unlocked frames never reach it; the overlay's frame time simply stops including

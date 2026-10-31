@@ -1,29 +1,25 @@
-"""Ratchet on the platform layer's rule (docs/notes/platform.md): the game's code and the renderer reach the operating
-system and the graphics device only through src/platform (platform.h, graphics.h; their Windows implementation in
-src/platform/win32).
+"""The platform layer's rule (docs/notes/platform.md): the game's code and the renderer reach the operating system and
+the graphics device only through src/platform (platform.h, graphics.h; their Windows backends in src/platform/win32 and
+src/platform/d3d11).
 
-This lists the files under src/ outside src/platform and src/hook (the harness's hook framework) that still include a
-Windows system header (<windows.h>, <dinput.h>, <d3d11.h>, ...) or a header of the Windows implementation
-(platform/win32/: its own declarations, game.exe's imports, the Direct3D backend's objects) or call game.exe's imports
-(`gameapi::X`) or sokol's Direct3D functions (`sg_d3d11_*`; comments left out), and fails when one is not in
-config/platform_files.txt: a file may leave the list, not join it. Run with --update after a move onto the platform
-layer to drop the files that no longer need to be listed (it never adds one).
+Fails on a file under src/ outside src/platform that includes a Windows system header (<windows.h>, <dinput.h>,
+<d3d11.h>, ...) or a header of a Windows backend (platform/win32/, platform/d3d11/), or calls game.exe's import slots
+(`gameapi::X`) or sokol's Direct3D functions (`sg_d3d11_*`; comments left out).
 
-usage: python tools/check_platform.py [--update]
+usage: python tools/check_platform.py
 """
 import glob, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LISTED = os.path.join(ROOT, 'config', 'platform_files.txt')
-OUTSIDE = ('src/platform/', 'src/hook/')
+OUTSIDE = 'src/platform/'
 # <windows.h> and the system's other headers (the SDK's, DirectX's and the C runtime's Windows parts): game code gets
 # what it needs from src/platform.
 SYSTEM_HEADERS = (r'windows|windowsx|winsock2?|ws2tcpip|wingdi|winuser|winbase|winnt|windef|winerror|mmsystem|mmreg|'
                   r'mmeapi|msacm|dinput|dsound|ddraw|d3d\w*|dxgi\w*|dwmapi|shellapi|shlobj|commctrl|commdlg|imm|'
                   r'objbase|ole2|oleauto|comdef|process|io|direct|tlhelp32|psapi|dbghelp|intrin|ddk\w*')
 WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + r')\.h[">]', re.M | re.I)
-# The Windows implementation's own headers (platform_win32.h, gameapi.h, graphics_win32.h, ...).
-WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/win32/', re.M)
+# The Windows backends' own headers (platform_win32.h, gameapi.h, graphics_d3d11.h, ...).
+WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/(?:win32|d3d11)/', re.M)
 IMPORT_CALL = re.compile(r'\bgameapi::\w')
 BACKEND_CALL = re.compile(r'\bsg_d3d11_\w+\s*\(')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
@@ -52,23 +48,12 @@ def windows_files():
 
 
 def main(argv):
-    now = windows_files()
-    listed = []
-    if os.path.exists(LISTED):
-        listed = [l.strip() for l in open(LISTED, encoding='utf-8') if l.strip() and not l.startswith('#')]
-    if '--update' in argv:
-        keep = [p for p in listed if p in now]
-        with open(LISTED, 'w', encoding='utf-8', newline='\n') as f:
-            f.write('# The files that still call Windows outside the platform layer (tools/check_platform.py).\n')
-            f.writelines(p + '\n' for p in keep)
-        print(f'wrote {os.path.relpath(LISTED, ROOT)}: {len(keep)} files ({len(listed) - len(keep)} dropped)')
-        return 0
-    problems = [p for p in now if p not in listed]
-    for p in problems:
+    found = windows_files()
+    for p in found:
         print(f'{p}: includes a Windows header or calls gameapi:: or sg_d3d11_; go through src/platform '
               '(docs/notes/platform.md)')
-    print(f'platform: {len(now)} files outside src/platform call Windows; {len(problems)} problem(s)')
-    return 1 if problems else 0
+    print(f'platform: {len(found)} files outside src/platform call Windows')
+    return 1 if found else 0
 
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
-// The audio backend (platform/platform.h's sound): one output device, an SDL3 audio stream (third_party/SDL), our mixer
-// giving it the voices' waves decoded by dr_wav and the music's halves at their volume and pan, the cave voices through
-// a reverb; the MP3 files decoded by dr_mp3 (third_party/dr_libs).
+// The sound (audio.h): one output device, an SDL3 audio stream (third_party/SDL), our mixer giving it the voices' waves
+// decoded by dr_wav and the music's halves at their volume and pan, the cave voices through a reverb; the MP3 files
+// decoded by dr_mp3 (third_party/dr_libs).
 // What the game reads back keeps to the game's clock whatever the device does: a voice ends when its wave would have
 // (WaveMilliseconds on platform::Milliseconds, delivered by DeliverEnds). The music's halves become free as the device
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
-#include "platform/platform.h"
+#include "audio.h"
 
 // dr_wav and dr_mp3 (third_party/dr_libs, unmodified); their implementations are at the end of this file.
 #pragma warning(push, 0)
@@ -27,9 +27,9 @@
 
 // ==== Waves and MP3 files, read without decoding =====================================================================
 
-// RIFF WAVE headers, the voices' length rule and the MP3 frame scan: the same for every backend.
+// RIFF WAVE headers, the voices' length rule and the MP3 frame scan.
 
-namespace platform::audio {
+namespace audio {
 
 // An MP3 file's whole frames: their samples per channel, the first frame's rate and channels.
 struct Mp3Layout {
@@ -152,11 +152,11 @@ Mp3Layout ScanMp3(const void* data, std::size_t size) {
     return layout;
 }
 
-} // namespace platform::audio
+} // namespace audio
 
 // ==== The backend ====================================================================================================
 
-namespace platform::audio {
+namespace audio {
 
 namespace {
 
@@ -424,7 +424,7 @@ void Log(const char* format, ...) {
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
-    DebugOutput(text);
+    platform::DebugOutput(text);
 }
 
 void Mix(float* out, std::uint32_t frames);
@@ -443,7 +443,7 @@ void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
 
 void UseNoDevice() { g_noDevice = true; }
 
-bool OpenOutput(NativeWindow, unsigned rate, bool, std::string*) {
+bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     g_open = true;
     g_rate = rate != 0 ? rate : kDefaultRate;
     {
@@ -594,7 +594,7 @@ void StartTimer(Voice& v) {
     v.running = true;
     v.stopped = false;
     v.forever = v.loops == 0;
-    v.startedAt = Milliseconds();
+    v.startedAt = platform::Milliseconds();
     v.end = v.startedAt + Remaining(v);
 }
 
@@ -686,7 +686,7 @@ void SetPosition(Voice* voice, std::int32_t bytes) {
 
 std::int32_t Position(const Voice* voice) {
     if (!voice->running || voice->stopped || voice->wave.dataLength == 0) return voice->position;
-    const std::uint64_t played = static_cast<std::uint64_t>(Milliseconds() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
+    const std::uint64_t played = static_cast<std::uint64_t>(platform::Milliseconds() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
     return static_cast<std::int32_t>((voice->position + played) % voice->wave.dataLength);
 }
 
@@ -704,7 +704,7 @@ void Stop(Voice* voice) {
     if (!voice->running || voice->stopped) return;
     voice->position = Position(voice);
     voice->stopped = true;
-    const std::uint32_t now = Milliseconds();
+    const std::uint32_t now = platform::Milliseconds();
     voice->left = static_cast<std::int32_t>(voice->end - now) > 0 ? voice->end - now : 0;
 }
 
@@ -715,7 +715,7 @@ void Resume(Voice* voice) {
     }
     if (!voice->running || !voice->stopped) return;
     voice->stopped = false;
-    voice->startedAt = Milliseconds();
+    voice->startedAt = platform::Milliseconds();
     voice->end = voice->startedAt + voice->left;
 }
 
@@ -848,7 +848,7 @@ void DestroyStream(Stream* stream) {
 }
 
 int MinimumHalfBytes(unsigned rate, int channels, int bits) {
-    // 87 ms rounded up to 512 bytes: what Miles asked for 44.1 kHz 16-bit stereo through the wave mapper.
+    // 87 ms rounded up to 512 bytes: what the original asked for 44.1 kHz 16-bit stereo through the wave mapper.
     const std::uint64_t bytes = static_cast<std::uint64_t>(rate) * channels * bits / 8 * 87 / 1000;
     return static_cast<int>((bytes + 511) & ~std::uint64_t{511});
 }
@@ -882,13 +882,13 @@ void SetStreamPan(Stream* stream, int pan) {
 
 int ReadyHalf(Stream* stream) {
     std::lock_guard hold(g_mix);
-    stream->Pump(Milliseconds());
+    stream->Pump(platform::Milliseconds());
     return stream->halves[stream->next].queued ? -1 : stream->next;
 }
 
 void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
     std::lock_guard hold(g_mix);
-    stream->Pump(Milliseconds());
+    stream->Pump(platform::Milliseconds());
     Half& h = stream->halves[half];
     const int frameBytes = std::max(1, stream->channels * stream->bits / 8);
     h.data = static_cast<const std::uint8_t*>(data);
@@ -904,7 +904,7 @@ void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
 
 void StopStream(Stream* stream) {
     std::lock_guard hold(g_mix);
-    stream->Pump(Milliseconds());
+    stream->Pump(platform::Milliseconds());
     stream->stopped = true;
 }
 
@@ -912,7 +912,7 @@ void ResumeStream(Stream* stream) {
     std::lock_guard hold(g_mix);
     if (!stream->stopped) return;
     stream->stopped = false;
-    stream->pumpedAt = Milliseconds();
+    stream->pumpedAt = platform::Milliseconds();
 }
 
 // ---- The mixer ----
@@ -1096,14 +1096,15 @@ bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>
     Put16(p + 34, 16);
     PutTag(p + 36, "data");
     Put32(p + 40, dataBytes);
-    // Every whole frame's samples, as Miles gave: what dr_mp3 decodes, cut or padded with silence to that count.
+    // Every whole frame's samples, as the original's decoder gave: what dr_mp3 decodes, cut or padded with silence to
+    // that count.
     const Mp3Decoder decoder = OpenMp3Decoder(data, size, layout);
     std::vector<std::int16_t> samples;
     DecodeFrames(decoder.get(), layout.channels, layout.samples, &samples, p + 44);
     return true;
 }
 
-} // namespace platform::audio
+} // namespace audio
 
 // ==== dr_wav and dr_mp3 ==============================================================================================
 

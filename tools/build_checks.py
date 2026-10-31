@@ -27,8 +27,7 @@ def checks(out, x64):
         py + [tool('gen_iat.py'), '--check'],
         py + [tool('named_data.py'), '--check'],
         py + [tool('retired_vtables.py'), '--check'],
-        # The game's code calls Windows only through src/platform: the files that still do may only leave
-        # config/platform_files.txt (tools/check_platform.py).
+        # The game's code calls Windows only through src/platform (tools/check_platform.py).
         py + [tool('check_platform.py')],
         # docs/settings.md against the settings catalog, and the catalog against the settings the code reads (C69).
         py + [tool('gen_settings_doc.py'), '--check'],

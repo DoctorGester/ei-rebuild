@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace platform::bink {
+namespace bink {
 
 class BitReader {
 public:
@@ -51,4 +51,4 @@ private:
     std::size_t position = 0;   // in bits
 };
 
-} // namespace platform::bink
+} // namespace bink

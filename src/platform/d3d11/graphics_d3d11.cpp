@@ -1,7 +1,7 @@
-// The Direct3D 11 backend of the renderer's device and window (graphics.h, graphics_win32.h; docs/notes/platform.md,
+// The Direct3D 11 backend of the renderer's device and window (graphics.h, graphics_d3d11.h; docs/notes/platform.md,
 // "Graphics"), and sokol_gfx's implementation on it.
 
-#include "platform/win32/graphics_win32.h"
+#include "platform/d3d11/graphics_d3d11.h"
 
 #include "hook/log.h"
 
@@ -725,7 +725,7 @@ void GpuTimer::Release() {
     queries.reset();
 }
 
-// ---- graphics_win32.h ---------------------------------------------------------------------------------------------
+// ---- graphics_d3d11.h ---------------------------------------------------------------------------------------------
 
 bool TearingSupported(IDXGIFactory2* factory) {
     IDXGIFactory5* factory5 = nullptr;

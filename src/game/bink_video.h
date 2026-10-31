@@ -4,6 +4,7 @@
 
 #include "lib/rect.h"
 #include "platform/platform.h"
+#include "video/movie.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -40,5 +41,5 @@ struct BinkVideo {
     void Close();
 
     Rect to{};
-    platform::video::Movie* movie = nullptr;
+    video::Movie* movie = nullptr;
 };

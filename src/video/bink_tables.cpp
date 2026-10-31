@@ -1,9 +1,9 @@
 // The constant tables of the Bink 1 video format (BIKi): the 16 Huffman codes the bundles choose from, the 16
 // scan patterns of run-fill blocks, the coefficient scan and the dequantisation tables of the inverse DCT. They are the
 // format's own numbers, as the game's binkw32.dll (RAD Game Tools, 2000) holds them.
-#include "platform/bink/bink_tables.h"
+#include "video/bink_tables.h"
 
-namespace platform::bink {
+namespace bink {
 
 // Per tree the code of each symbol index: its bits (the first read lowest) and their count.
 const HuffmanCode kTreeCodes[16][16] = {
@@ -436,4 +436,4 @@ const std::int32_t kInterQuant[16][64] = {
     },
 };
 
-} // namespace platform::bink
+} // namespace bink

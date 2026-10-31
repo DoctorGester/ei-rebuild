@@ -8,7 +8,7 @@
 #include "lib/vecmath.h"
 #include "platform/graphics.h"
 
-// The shaders' uniform structs, bind slots and descriptions (cmake/shaders.cmake): after sokol_gfx.h and Matrix4.
+// The shaders' uniform structs, bind slots and descriptions (CMakeLists.txt): after sokol_gfx.h and Matrix4.
 // Their blocks are copied by sg_apply_uniforms, so they are not 16-byte aligned (that would pad the frame's structs
 // that hold them).
 #define SOKOL_SHDC_ALIGN(a)

@@ -23,7 +23,6 @@
 #include "options.h"
 #include "world.h"
 
-namespace video = platform::video;
 
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};

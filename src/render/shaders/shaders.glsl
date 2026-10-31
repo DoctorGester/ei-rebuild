@@ -1,4 +1,4 @@
-// The renderer's shaders, one input for sokol-shdc (cmake/shaders.cmake; docs/notes/renderer.md, "Shader
+// The renderer's shaders, one input for sokol-shdc (CMakeLists.txt; docs/notes/renderer.md, "Shader
 // authoring"): each file below holds its programs (@program) and the blocks it shares (@block). A name used by
 // several programs (a uniform block, a texture, a sampler) has the same binding in each.
 // Matrix4 is row-major in memory and uploaded as is: a mat4's column k is the matrix's row k, which the vertex

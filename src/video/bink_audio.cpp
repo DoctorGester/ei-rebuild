@@ -3,13 +3,13 @@
 // sharing a bit width; an inverse real DFT turns it into samples, and each frame's start is blended with the last
 // frame's tail. Written from the format's description (multimedia.cx: Bink Audio) and checked against an independent
 // decoder (docs/notes/platform.md, "Movies").
-#include "platform/bink/bink_audio.h"
+#include "video/bink_audio.h"
 
 #include <algorithm>
 #include <cmath>
 #include <numbers>
 
-namespace platform::bink {
+namespace bink {
 
 namespace {
 
@@ -157,4 +157,4 @@ void AudioDecoder::InverseTransform() {
     }
 }
 
-} // namespace platform::bink
+} // namespace bink

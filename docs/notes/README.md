@@ -18,7 +18,8 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `models.md`: 3D library, databases, device layer, terrain sectors, resources. `renderer.md`: the sidecar renderer and the
   switch-over (renderer workers read it whole).
 - `rebirth.md`: what the Rebirth edition patches and the patch flags of the rebuild.
-- `platform.md`: the platform layer (src/platform): its rule, the areas moved onto it and those left.
+- `platform.md`: the platform layer (src/platform): its rule, the areas moved onto it and those left. `audio.md`: the
+  sound (src/audio: our mixer on SDL3) and the movies (src/video: our Bink 1 decoder). `linux.md`: the Linux build.
 - `x64.md`: the data side of a 64-bit build (formats read or written as bytes, pointers and handles in 32-bit fields)
   and its rules.
 - `standalone.md`: how the standalone image runs, what the MFC / STLport replacements and the CRT port must keep, the UTF-8 plan, the hook retirement's outcome (not an area note).

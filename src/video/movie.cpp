@@ -1,11 +1,12 @@
-// The movie backend (platform/platform.h) on the Bink 1 decoder: frames read and decoded on demand, converted to RGB
-// when copied, due at the movie's own rate on a real-time clock; the sound track decoded with the frames and played
-// as a stream of the audio output.
-#include "platform/platform.h"
+// The movies (movie.h) on the Bink 1 decoder: frames read and decoded on demand, converted to RGB when copied, due at
+// the movie's own rate on a real-time clock; the sound track decoded with the frames and played as a stream of the
+// audio output (audio/audio.h).
+#include "video/movie.h"
 
-#include "platform/bink/bink_audio.h"
-#include "platform/bink/bink_file.h"
-#include "platform/bink/bink_video.h"
+#include "audio/audio.h"
+#include "video/bink_audio.h"
+#include "video/bink_file.h"
+#include "video/bink_video.h"
 
 #include <algorithm>
 #include <chrono>
@@ -13,7 +14,7 @@
 #include <optional>
 #include <vector>
 
-namespace platform::video {
+namespace video {
 
 namespace {
 
@@ -187,4 +188,4 @@ void SetVolume(Movie* movie, int volume) {
     if (movie->stream) audio::SetStreamVolume(movie->stream, std::clamp(volume, 0, 32768) * 127 / 32768);
 }
 
-} // namespace platform::video
+} // namespace video

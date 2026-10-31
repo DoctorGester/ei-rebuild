@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace platform::bink {
+namespace bink {
 
 struct HuffmanCode {
     std::uint8_t bits;     // the code, its first bit lowest
@@ -22,4 +22,4 @@ extern const std::uint8_t kScan[64];
 extern const std::int32_t kIntraQuant[16][64];
 extern const std::int32_t kInterQuant[16][64];
 
-} // namespace platform::bink
+} // namespace bink
