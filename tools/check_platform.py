@@ -22,7 +22,7 @@ SYSTEM_HEADERS = (r'windows|windowsx|winsock2?|ws2tcpip|wingdi|winuser|winbase|w
                   r'mmeapi|msacm|dinput|dsound|ddraw|d3d\w*|dxgi\w*|dwmapi|shellapi|shlobj|commctrl|commdlg|imm|'
                   r'objbase|ole2|oleauto|comdef|process|io|direct|tlhelp32|psapi|dbghelp|intrin|ddk\w*')
 WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + r')\.h[">]', re.M | re.I)
-# The Windows implementation's own headers (platform_win32.h, gameapi.h, win_api.h).
+# The Windows implementation's own headers (platform_win32.h, gameapi.h, graphics_win32.h, ...).
 WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/win32/', re.M)
 IMPORT_CALL = re.compile(r'\bgameapi::\w')
 BACKEND_CALL = re.compile(r'\bsg_d3d11_\w+\s*\(')

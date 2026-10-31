@@ -1,6 +1,6 @@
 // ei_vectors.exe links our game sources without the hook framework and without game.exe.
 #include "hook/log.h"
-#include "lib/import_table.h"
+#include "platform/win32/import_table.h"
 #include "vectors.h"
 
 namespace ei {

@@ -1,3 +1,1 @@
 # The files that still call Windows outside the platform layer (tools/check_platform.py).
-src/lib/import_prototypes.h
-src/lib/import_table.h

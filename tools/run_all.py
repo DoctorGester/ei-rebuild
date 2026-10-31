@@ -418,7 +418,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     counts = {}
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
              if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
-             or l.startswith('ei-rebuild: ') and 'imports resolved, 0 missing' not in l]
+             or l.startswith('ei-rebuild: ')]
     if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
         result = 'TIMEOUT'
         if not failures:

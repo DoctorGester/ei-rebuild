@@ -36,27 +36,27 @@ constexpr wchar_t kWideFolder[] = L"\\utf8 Проверка";
 constexpr char kContents[] = "U2: Проверка";
 
 std::string RoundTrip(const char* savesDir) {
-    if (!gameapi::CreateDirectoryA(kFolder, nullptr) && gameapi::GetLastError() != ERROR_ALREADY_EXISTS)
+    if (!gameapi::CreateDirectoryA(kFolder, nullptr) && ::GetLastError() != ERROR_ALREADY_EXISTS)
         return "the folder was not made";
     HANDLE file = gameapi::CreateFileA(kFile, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) return "the file was not made";
     DWORD written = 0;
     const BOOL wrote = gameapi::WriteFile(file, kContents, sizeof(kContents) - 1, &written, nullptr);
-    gameapi::CloseHandle(file);
+    ::CloseHandle(file);
     if (!wrote || written != sizeof(kContents) - 1) return "the file was not written";
 
     WIN32_FIND_DATAA found{};
     HANDLE find = gameapi::FindFirstFileA(kPattern, &found);
     if (find == INVALID_HANDLE_VALUE) return "the file was not listed";
-    gameapi::FindClose(find);
+    ::FindClose(find);
     if (std::strcmp(found.cFileName, kName) != 0) return std::string("the file was listed as ") + found.cFileName;
 
     file = gameapi::CreateFileA(kFile, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) return "the file was not opened again";
     char contents[64] = {};
     DWORD read = 0;
-    gameapi::ReadFile(file, contents, sizeof(contents) - 1, &read, nullptr);
-    gameapi::CloseHandle(file);
+    ::ReadFile(file, contents, sizeof(contents) - 1, &read, nullptr);
+    ::CloseHandle(file);
     if (read != sizeof(kContents) - 1 || std::memcmp(contents, kContents, read) != 0) return "the file read back differs";
 
     // The names on disk, as UTF-16, in the run's saves folder.

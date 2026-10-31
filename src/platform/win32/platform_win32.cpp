@@ -72,7 +72,7 @@ std::string FormatLocalTime(std::int64_t seconds, const char* format) {
 
 namespace platform {
 
-void DebugOutput(const char* text) { gameapi::OutputDebugStringA(text); }
+void DebugOutput(const char* text) { ::OutputDebugStringA(text); }
 
 } // namespace platform
 
@@ -163,7 +163,7 @@ namespace platform {
 
 std::uint32_t PageSize() {
     SYSTEM_INFO info;
-    gameapi::GetSystemInfo(&info);
+    ::GetSystemInfo(&info);
     return info.dwPageSize;
 }
 
@@ -308,7 +308,7 @@ std::string ErrorText(unsigned long code, std::string_view path) {
     return "file error: OS error " + std::to_string(code) + ", file '" + std::string(path) + "'";
 }
 
-[[noreturn]] void ThrowLastError(std::string_view path) { throw FileError(gameapi::GetLastError(), path); }
+[[noreturn]] void ThrowLastError(std::string_view path) { throw FileError(::GetLastError(), path); }
 
 // A closed file's calls fail as on INVALID_HANDLE_VALUE (MFC's hFileNull).
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
@@ -340,14 +340,14 @@ bool File::Open(std::string_view filePath, FileMode mode) {
 }
 
 void File::Close() {
-    if (IsOpen()) gameapi::CloseHandle(handle);
+    if (IsOpen()) ::CloseHandle(handle);
     handle = nullptr;
 }
 
 unsigned File::Read(void* buffer, unsigned count) {
     if (count == 0) return 0;
     DWORD read;
-    if (!gameapi::ReadFile(Win32(handle), buffer, count, &read, nullptr)) ThrowLastError(path);
+    if (!::ReadFile(Win32(handle), buffer, count, &read, nullptr)) ThrowLastError(path);
     return read;
 }
 
@@ -366,27 +366,27 @@ void File::WriteLine(std::string_view line) {
 
 long File::Seek(long offset, SeekFrom from) {
     const DWORD method = from == SeekFrom::Begin ? FILE_BEGIN : from == SeekFrom::Current ? FILE_CURRENT : FILE_END;
-    const DWORD position = gameapi::SetFilePointer(Win32(handle), offset, nullptr, method);
+    const DWORD position = ::SetFilePointer(Win32(handle), offset, nullptr, method);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
     return static_cast<long>(position);
 }
 
 std::uint32_t File::Position() const {
-    const DWORD position = gameapi::SetFilePointer(Win32(handle), 0, nullptr, FILE_CURRENT);
+    const DWORD position = ::SetFilePointer(Win32(handle), 0, nullptr, FILE_CURRENT);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
     return position;
 }
 
 std::uint32_t File::Size() const {
-    const DWORD size = gameapi::GetFileSize(Win32(handle), nullptr);
+    const DWORD size = ::GetFileSize(Win32(handle), nullptr);
     if (size == INVALID_FILE_SIZE) ThrowLastError(path);
     return size;
 }
 
 bool File::ReadAt(long offset, void* buffer, unsigned count) {
     DWORD read = 0;
-    return gameapi::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-           gameapi::ReadFile(Win32(handle), buffer, count, &read, nullptr) && read == count;
+    return ::SetFilePointer(Win32(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+           ::ReadFile(Win32(handle), buffer, count, &read, nullptr) && read == count;
 }
 
 // ---- MappedFile -----------------------------------------------------------------------------------
@@ -397,20 +397,20 @@ bool MappedFile::Open(std::string_view path) {
     Close();
     file = OpenHandle(std::string(path), GENERIC_READ, OPEN_EXISTING);
     if (!file) return false;
-    size = gameapi::GetFileSize(file, nullptr);
-    if (size != INVALID_FILE_SIZE) mapping = gameapi::CreateFileMappingA(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
-    if (mapping) view = gameapi::MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+    size = ::GetFileSize(file, nullptr);
+    if (size != INVALID_FILE_SIZE) mapping = ::CreateFileMappingA(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    if (mapping) view = ::MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
     if (view) return true;
     Close();
     return false;
 }
 
 void MappedFile::Close() {
-    if (view) gameapi::UnmapViewOfFile(view);
+    if (view) ::UnmapViewOfFile(view);
     view = nullptr;
-    if (mapping) gameapi::CloseHandle(mapping);
+    if (mapping) ::CloseHandle(mapping);
     mapping = nullptr;
-    if (file) gameapi::CloseHandle(file);
+    if (file) ::CloseHandle(file);
     file = nullptr;
     size = 0;
 }
@@ -426,7 +426,7 @@ FileFind::FileFind() = default;
 FileFind::~FileFind() { Close(); }
 
 void FileFind::Close() {
-    if (search) gameapi::FindClose(search->handle);
+    if (search) ::FindClose(search->handle);
     search.reset();
     hasFound = false;
 }
@@ -444,7 +444,7 @@ bool FileFind::FindFile(std::string_view pattern) {
                                       : gameapi::GetFullPathNameA(text.c_str(), MAX_PATH, full, nullptr);
     if (length == 0 || length >= MAX_PATH) {
         Close();
-        gameapi::SetLastError(ERROR_INVALID_NAME);
+        ::SetLastError(ERROR_INVALID_NAME);
         return false;
     }
     root.assign(full, length);
@@ -540,17 +540,17 @@ NativeWindow FindClassWindow(const char* className, const char* title) { return 
 
 std::uint32_t WindowProcess(NativeWindow window) {
     DWORD process = 0;
-    gameapi::GetWindowThreadProcessId(static_cast<HWND>(window), &process);
+    ::GetWindowThreadProcessId(static_cast<HWND>(window), &process);
     return process;
 }
 
 void BringToFront(NativeWindow window) {
     HWND other = static_cast<HWND>(window);
-    const DWORD foregroundThread = gameapi::GetWindowThreadProcessId(gameapi::GetForegroundWindow(), nullptr);
-    const DWORD otherThread = gameapi::GetWindowThreadProcessId(other, nullptr);
-    if (otherThread == foregroundThread && !gameapi::IsIconic(other)) return;
-    HWND popup = gameapi::GetLastActivePopup(other);
-    if (gameapi::IsIconic(popup)) gameapi::ShowWindow(popup, SW_RESTORE);
+    const DWORD foregroundThread = ::GetWindowThreadProcessId(::GetForegroundWindow(), nullptr);
+    const DWORD otherThread = ::GetWindowThreadProcessId(other, nullptr);
+    if (otherThread == foregroundThread && !::IsIconic(other)) return;
+    HWND popup = ::GetLastActivePopup(other);
+    if (::IsIconic(popup)) gameapi::ShowWindow(popup, SW_RESTORE);
     gameapi::BringWindowToTop(popup);
     gameapi::SetForegroundWindow(popup);
 }
@@ -589,14 +589,14 @@ bool IsLetter(std::uint32_t character) { return character <= 0xFFFF && IsCharAlp
 void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback) {
     constexpr int kMaxLayouts = 16;
     HKL layouts[kMaxLayouts];
-    const int count = gameapi::GetKeyboardLayoutList(kMaxLayouts, layouts);
+    const int count = ::GetKeyboardLayoutList(kMaxLayouts, layouts);
     int fallbackIndex = -1;
     int found = -1;
-    HKL chosen = gameapi::GetKeyboardLayout(0);
+    HKL chosen = ::GetKeyboardLayout(0);
     for (int i = 0; i < count; ++i) {
-        gameapi::ActivateKeyboardLayout(layouts[i], 0);
+        ::ActivateKeyboardLayout(layouts[i], 0);
         char name[KL_NAMELENGTH + 3];
-        if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
+        if (!::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
         sscanf_s(name, "%x", &id);
         id &= 0xFFFF;
@@ -610,7 +610,7 @@ void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback) {
         chosen = layouts[found];
     else if (fallbackIndex >= 0)
         chosen = layouts[fallbackIndex];
-    gameapi::ActivateKeyboardLayout(chosen, 0);
+    ::ActivateKeyboardLayout(chosen, 0);
 }
 
 } // namespace platform

@@ -2157,8 +2157,8 @@ DWORD ConcealedExStyle(DWORD exStyle) {
     if (g_conceal) exStyle = (exStyle | WS_EX_TOOLWINDOW) & ~DWORD(WS_EX_APPWINDOW);
     return exStyle;
 }
-// (Message-only windows, Miles' and DirectSound's among them, are never seen and cannot be cloaked:
-// their parent is HWND_MESSAGE, which GetParent does not report.)
+// (Message-only windows are never seen and cannot be cloaked: their parent is HWND_MESSAGE, which GetParent does
+// not report.)
 void Conceal(HWND window) {
     if (!g_conceal || !window || GetAncestor(window, GA_PARENT) != GetDesktopWindow() ||
         !TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), nullptr))
@@ -3332,7 +3332,7 @@ void LogMainThreadStack() {
 
 // The stack dump runs on a thread of its own and the watchdog waits 2 s for it: suspending the main
 // thread and reading its context waits until the thread is actually suspended, which a thread stuck
-// in a driver call (DirectSound's device open inside Miles' waveOutOpen under load) never is. The
+// in a driver call (an audio device's open under load) never is. The
 // watchdog itself must reach TerminateProcess whatever the main thread is doing (SV1d).
 void LogMainThreadStackBounded() {
     HANDLE dump = CreateThread(nullptr, 0, [](void*) -> DWORD {
@@ -3493,8 +3493,8 @@ bool IsInputLoop() { return IsWinMainLoop(); }
 // A pending close-all (Interface3D +0x44, set by a screen request 00578B00 / 00578B20 or a leave
 // answer) is carried out by whichever comes first: the input dispatcher's first step
 // (CloseAllPending 005F5AB0) for the next message the main loop takes, or the next pass (the
-// server's answer through Activate, or Draw). Whether a message waits then (Miles' WM_TIMER,
-// WM_PAINT) is real time, and the close stops the playing sounds, which Terrain::PlayAmbience's
+// server's answer through Activate, or Draw). Which comes first depends on whether a message waits,
+// and the close stops the playing sounds, which Terrain::PlayAmbience's
 // draws depend on (SV1j: ui_view_screen's `screen 7` closed in its own frame or the next). On the
 // virtual clock the main loop's peeks report no message while one is pending, so the next pass
 // always does it; after two frames (no pass took it up) messages go through again.
@@ -3531,8 +3531,8 @@ bool BeforeEvents() {
         }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
-    // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
-    // follows a console command's output would otherwise run in this frame or the next.
+    // depends on the events it gets, and a step that follows a console command's output would
+    // otherwise run in this frame or the next.
     if (g_running && !g_inStep && (afterFrame || !clock::Virtual())) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop();

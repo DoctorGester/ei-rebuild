@@ -22,11 +22,11 @@
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
 // ASCII).
 
+#include <windows.h>
+
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include "platform/win32/win_api.h"
 
 namespace text {
 

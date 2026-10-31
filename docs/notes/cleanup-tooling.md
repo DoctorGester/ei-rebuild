@@ -35,11 +35,9 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   ends are DLLs in it), the trees in turn, the median of 9 (H33d's scratch `per_file.py`). A job object started
   after the process (`AssignProcessToJobObject` on a running cl) can miss children and gives low outliers.
 - Header diet: a header that only holds or passes a rectangle, point or size includes `lib/rect.h` (our own `Rect`,
-  `Point`, `Size`); the declarations of Windows functions (`platform/win32/win_api.h`) include the SDK's basic types
-  (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
-  file that calls Windows includes `<windows.h>`. `platform/win32/gameapi.h` names only the imports our code calls, declared
-  over those types (`platform/win32/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
-  `gameapi::` gets no SDK header. The key codes are platform/platform.h's, the text format bits render/text_format.h's
+  `Point`, `Size`); only a file that calls Windows includes `<windows.h>` (~0.2-0.4 s of front end): the platform's
+  Windows backend, the graphics backend and the harness (platform/win32/win_api.h, which let a file calling only
+  `gameapi::` do without it, went in 2026-10-31: every such file includes it anyway). The key codes are platform/platform.h's, the text format bits render/text_format.h's
   (no winuser.h or `<winerror.h>`). Release objects reaching windows.h
   (directly or through a project header; ninja's deps drop the SDK's own headers, so count by the project files
   that include it): 199 -> 160 (H33d: ui.h's `PlaySound` member renamed, ui_item_info.h without gameapi.h) -> 67
