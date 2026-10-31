@@ -472,8 +472,8 @@ RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, Ge
 # or one the image's code reproduces by writing our global (C25a: WideScreen). address -> why. One in .rdata is written
 # all the same (not const).
 NAMED_ADDON_SITES = {
-    0x00742B08: "WideScreen's layout width: widescreen::g_layoutWidth, written by ui_widescreen.cpp's Startup",
-    0x007428AC: "WideScreen's panels' right column: widescreen::g_panelRight, written by ui_widescreen.cpp's Startup",
+    0x00742B08: "WideScreen's layout width: screen_layout::g_layoutWidth, written by screen_layout.cpp's Startup",
+    0x007428AC: "WideScreen's panels' right column: screen_layout::g_panelRight, written by screen_layout.cpp's Startup",
     0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session.cpp)",
 }
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'

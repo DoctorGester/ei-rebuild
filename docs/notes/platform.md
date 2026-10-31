@@ -168,19 +168,28 @@ swap chain on the window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the Nativ
   video and audio (no GPU, renderer, camera, joystick, haptic, HID, sensor, power, dialog, OpenGL, Vulkan), before the
   game's compile options, into ei-rebuild.exe: the exe stays one file dropped into a game folder (S23), for x86 and
   x64 alike. Its sources compile without a warning under its own flags.
-- **The harness keeps the window procedure.** The harness drives the game's input as posted window messages, runs its
-  frame steps inside the game's PeekMessageA slot, subclasses the window procedure (the focus steps), answers the
-  cursor, FindWindowA and MessageBoxA slots and drives the clocks on timeGetTime / GetTickCount / Sleep /
-  WaitForSingleObject (the same code drove game.exe's runs, the goldens' references, until H40). So the builds with
-  the harness (verify, verify-x64, asan) take platform_win32_window.cpp for SDL's areas: their runs go through the
-  same slots as before and the goldens stay. Injecting through `SDL_PushEvent` would have needed
-  a second input path in the harness and moved every event a pump later (SDL takes the messages in its own
-  PeekMessageW, outside the slot). What the goldens do not cover: SDL's translation into `platform::Event` (below);
-  the game from the Event on is the same code.
+- **The harness has its own platform backend on SDL** (tests/verify/harness_platform.cpp), built in its builds in
+  place of the game's platform_sdl.cpp (the threads, sdl_threads.cpp, and the key tables are shared): an SDL window
+  shown without activation, every system event SDL takes dropped (the real keyboard and mouse never reach a harness
+  game; counted for the report), the harness's events queued for the game's loops, its steps run before EventWaits /
+  TakeEvent look (where its runs took posted input; false holds the events for the close-all pass), a key's character
+  queued by NextEvent as the harness's TranslateMessage posted it, the activation changes only the harness's focus
+  steps make, its message box answers, and the harness's clocks, date and mouse position (harness.cpp answers them
+  through the import slots it drives: its virtual and held clocks, its fixed date, its own mouse). The backend file
+  itself is SDL only; the harness's answers are its Windows part. Its steps still speak
+  window messages; harness_input.cpp makes each into the event the window procedure's translation made, so the games
+  see what they saw on the window-procedure path (platform_win32_window.cpp, gone with DirectInput, `Event::native`
+  and `DefaultHandling`: PL12). SDL's translation of real input is checked by tools/input_check against Windows'
+  layouts.
 - What stays Windows in every build: the other game window (FindWindowA on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
   folder and creates it, its base path is the folder, not the file: the settings file and ExePath would move), the
-  files, .ini files, sockets and the developer's output.
+  files, .ini files, sockets and the developer's output. The macos-port branch has their POSIX versions
+  (src/platform/posix/platform_posix.cpp, PL9b): the program's path from `_NSGetExecutablePath` / `/proc/self/exe`,
+  the user data folder from SDL's pref path, the one-instance check as an advisory `flock` on a lock file named
+  after the class and title (the other process's id in it), key names for the set-1 scan codes through SDL's,
+  `ActivateKeyboardLayout` a no-op (text follows the system's layout), `IsLetter` by `iswalpha_l`, the debug output
+  to stderr; main keeps the Windows ones until it takes that file.
 
 What SDL's backend does (platform_sdl.cpp):
 
@@ -196,12 +205,17 @@ What SDL's backend does (platform_sdl.cpp):
   minimised, restored become `Activate` (only on a change of active / minimised), exposed becomes `Paint`, the close
   request (and SDL's quit) `Destroy`. No `SetCursor`, `SystemCommand` or `AutoPlay` events: SDL keeps the hidden cursor
   over its window and keeps the screen saver off itself. Input waits in a queue for the game's loops.
-- **Keys**: the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a table of US
-  positions; letter and digit keys take what they type, SDL's Latin letters on every layout), the key flags as
+- **Keys** (sdl_keys.cpp): the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a
+  table of US positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the
+  active layout's code (`platform::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M as the window
+  procedure had it, PL9a), elsewhere what they type (SDL's Latin letters on every layout); tools/input_check checks
+  the codes and the control characters against every layout the machine has (build checks). The key flags as
   Windows' message data (Alt, repeat, release; sign-extended), SystemKeyDown / Up with Alt held but not Ctrl, and
   F10. Characters: SDL's text as UTF-16 units, each carrying the last key's flags (the interface drops the console
   key's character by its scan code), and the control characters TranslateMessage made (Backspace, Tab, Enter, Escape;
-  Ctrl+letter 1..26, Ctrl+Backspace 0x7F, Ctrl+Enter 0x0A; none with Alt).
+  with Ctrl the active layout's on Windows, `platform::LayoutControlCharacter`: Ctrl+[ 0x1B, Ctrl+] 0x1D, Ctrl+\\ 0x1C
+  on a US layout, none for those keys on a Russian one; elsewhere Ctrl+letter 1..26, Ctrl+Escape 0x1B, Ctrl+Backspace
+  0x7F, Ctrl+Enter 0x0A; none with Alt).
 - **The mouse**: MK_ bits (the buttons held, Shift, Ctrl), positions in the window, a second click (clicks even) as
   LeftDouble / RightDouble, the wheel 120 a notch at the screen position. `MouseDevice::Read` gives the motion events'
   sum since the last read, the wheel and the buttons (DIMOUSESTATE's layout).

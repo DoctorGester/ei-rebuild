@@ -8,7 +8,7 @@
 #include "options.h"
 #include "ui.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"

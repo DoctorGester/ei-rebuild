@@ -3,8 +3,7 @@
 // The platform layer (docs/notes/platform.md): every call of the game's code into the operating system, one
 // section per area. No system type crosses it: UTF-8 text, fixed-width integers, our own enums and structs, a
 // native window as an opaque pointer. The backends: SDL3 for the window, its events, the cursor, the mouse, the
-// clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp; in the harness's builds
-// Windows' window-procedure path, src/platform/win32/platform_win32_window.cpp), Windows for the rest
+// clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp), Windows for the rest
 // (src/platform/win32/platform_win32.cpp), the sound on SDL3's audio device (src/platform/audio_sdl.cpp), the movies
 // in src/platform/bink.
 
@@ -387,7 +386,7 @@ enum class EventType : std::uint8_t {
     SystemCommand,   // a command of the window's system menu or a system key (command)
     AutoPlay,        // the system asks whether a disc put in may start its AutoPlay
     Quit,            // the quit request (quitCode): the loop ends
-    Other,           // anything else: DefaultHandling
+    Other,           // anything else
 };
 
 enum class Activation : std::uint8_t { Inactive, Active, ClickActive, Unknown };
@@ -401,14 +400,6 @@ enum class SystemCommand : std::uint8_t {
 // code in bits 0-8 (bit 8 for an extended key), Alt held (kKeyAltDown), the key down before (0x4000), released
 // (0x8000).
 constexpr int kKeyAltDown = 0x2000;
-
-// The backend's record of the system event an Event came from (Windows' window-procedure path: the message's id and
-// its two values), for DefaultHandling and DispatchEvent only. Not for the game's code.
-struct NativeEvent {
-    std::uint32_t id;
-    std::uintptr_t first;
-    std::intptr_t second;
-};
 
 struct Event {
     EventType type = EventType::Other;
@@ -424,7 +415,6 @@ struct Event {
     SystemCommand command = SystemCommand::Other;
     int quitCode = 0;         // Quit: the code the quit request carries
     NativeWindow window = nullptr;   // the window it is for (null: none)
-    NativeEvent native{};
 };
 
 // The game's handling of an event the system sends to its window: what the window procedure returns.
@@ -452,8 +442,6 @@ NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int wi
 // Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
 void ShowGameWindow(NativeWindow window, int show);
 bool IsMinimized(NativeWindow window);
-void Minimize(NativeWindow window);
-void Restore(NativeWindow window);
 // The window's part waiting to be painted marked as painted (nothing drawn: the renderer presents on its own).
 void MarkPainted(NativeWindow window);
 // Every window on the desktop repainted.
@@ -476,8 +464,6 @@ bool EventWaits();
 bool NextEvent(Event* event);
 // Takes the next waiting event, untranslated; false when none waits.
 bool TakeEvent(Event* event);
-// The system's own handling of an event the game does not handle; what the window procedure returns.
-std::intptr_t DefaultHandling(const Event& event);
 // An event taken from the queue sent on to its window's procedure (typed keys translated first).
 void DispatchEvent(const Event& event);
 // Asks the loop to end: NextEvent gives a Quit event with `code` once the waiting events are taken.
@@ -533,6 +519,13 @@ void SetCursorPosition(Point at);
 // The name the system gives the key with the scan code `scan` (bit 8 for an extended key) in the active layout's
 // language, UTF-8 into `name` (`size` bytes with the terminator, cut at a character). False when it has none.
 bool KeyName(int scan, char* name, int size);
+// The virtual-key code the active keyboard layout gives the key with the scan code `scan` (set 1, bit 8 for an extended
+// key), as the window procedure's key messages carried it; 0 when the system has no such codes (SDL's backend then
+// names the key itself: sdl_keys.h).
+int LayoutKey(int scan);
+// The control character the active layout types for the key `key` (scan code `scan`) with Ctrl held, as
+// TranslateMessage made it: 0 for none; -1 when the system cannot say (SDL's backend then applies its own rule).
+int LayoutControlCharacter(int key, int scan);
 // Activates the keyboard layout of `language` (a Windows language id), else one of `fallback`, else keeps the one in
 // use. Each installed layout is active for a moment on the way (only the active one tells its language).
 void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback);

@@ -296,7 +296,7 @@ The harness still runs the original game.exe for goldens and vectors.
 
 What C25a named or dropped of its list, still the code's form:
 - **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
-  `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
+  `screen_layout::g_layoutWidth` / `g_panelRight` (screen_layout.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
   .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address; harness_addon.cpp read it in game.exe until H40).
 - **The DragList message id**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64, read only by
@@ -944,7 +944,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   `kFlag`), the others as numbers. Sections and names compare without case; a name keeps its first spelling. A section
   name is letters, digits, spaces, `_` and `-`: a bad one and its lines are skipped (reported). One tree for both
   installs: Rebirth's NivalRegistry (the starter's tree) is dropped; the interface layout (W12, no switch) takes the
-  resolution the game loaded (ui_widescreen.cpp Configure).
+  resolution the game loaded (screen_layout.cpp Configure).
 - **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with `settings::Defaults`
   (settings_document.cpp) for the primary monitor's mode in pixels (EnumDisplaySettings of the primary monitor's
   device: the physical size whatever the process's DPI awareness, so no reader order matters; without a size, no

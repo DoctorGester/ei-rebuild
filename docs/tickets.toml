@@ -6900,21 +6900,21 @@ id = "PL9a"
 title = "Check SDL's input translation against the window-procedure path"
 group = "port"
 depends = ["PL9"]
-note = "PL9 left the harness's builds on Windows' window procedure, so no golden covers src/platform/sdl/platform_sdl.cpp's translation of SDL events into platform::Event (virtual-key codes and set-1 scan codes from SDL scancodes, the key flags, SystemKeyDown with Alt, the control characters TranslateMessage made, MK_ bits, double clicks from SDL's click count, the wheel at the screen position, Activate on focus / minimise / restore). Add an offline check (a small exe like ei_ui_check, or a play-time log switch): post the same WM_KEYDOWN / WM_CHAR / mouse messages to an SDL window and to a plain window procedure, translate both, compare the Events (US, Russian and AZERTY layouts; Num Lock on and off; AltGr). Also by hand: full screen (CoverMonitor) on a second monitor, Alt+Tab and restore from the task bar (the game minimises itself on deactivation), typing Cyrillic in a save name, the console key, Ctrl+C / V in the console. Fix what differs, or note it in docs/notes/platform.md."
+note = "Done 2026-10-31: ei_input_check compares the SDL backend's keys and control characters with Windows' for every installed layout; the layout keys and Ctrl characters now come from the active layout (platform::LayoutKey / LayoutControlCharacter). By hand for the user: full screen on a second monitor, Alt+Tab, Cyrillic save names, the console key, Ctrl+C / V in the console."
 
 [[ticket]]
 id = "PL9b"
 title = "Platform remainder for a non-Windows port: paths, key names, keyboard layout, one-instance check"
 group = "port"
 depends = ["PL9"]
-note = "After PL9 these stay Windows in every build because SDL3 has no equivalent with the same results (docs/notes/platform.md, 'SDL3 and the harness'): ProgramPath / ExePath / UserDataFolder / SetCurrentFolder (SDL's pref path is roaming and creates its folder; its base path is the folder, not the file), KeyName (GetKeyNameText in the layout's language), ActivateKeyboardLayout, IsLetter (IsCharAlphaW), FindClassWindow / WindowProcess / BringToFront (the one-instance check by window class), DebugOutput, the files, .ini files and sockets on game.exe's slots. For a Linux / macOS port each needs a plain C++ or POSIX version (std::filesystem paths, XDG data folder, our own key-name table, a lock file for one instance, BSD sockets as platform::net already mirrors). Plan only when a port is scheduled."
+note = "Done 2026-10-30: the POSIX versions are on macos-port (src/platform/posix/platform_posix.cpp; docs/notes/platform.md, 'SDL3 and the harness'); main keeps the Windows ones until it takes that file with the port."
 
 [[ticket]]
 id = "PL12"
 title = "The harness drives the SDL path in the image's runs (platform_win32_window.cpp goes)"
 group = "port"
 depends = ["PL9a"]
-note = "PL10 review (build/reviews/pl10_platform.md, section 6): an image-side seam in the platform (events injected as platform::Event, the frame step at the game's EventWaits site, the two clocks / Sleep / thread join, cursor position, mouse motion, the one-instance check and the message box settable by tests/verify/image) so the harness's image runs use platform_sdl.cpp. Deletes platform_win32_window.cpp, DirectInput and g_directInputObserver, Event::native / DefaultHandling. Every golden needs re-checking against game.exe's references (events a pump earlier or later); keep the two clocks distinct. After PL9a and PL11."
+note = "Done 2026-10-31: the harness's builds compile their own platform backend on SDL (tests/verify/harness_platform.cpp, no windows.h) in place of platform_sdl.cpp, which has nothing of the harness; threads and signals shared (sdl_threads.cpp). The harness's input goes in as platform::Event (harness_input.cpp), its steps run before EventWaits / TakeEvent, its clocks, date and mouse are answered by harness.cpp through the slots it drives. platform_win32_window.cpp, DirectInput, g_directInputObserver, Event::native and DefaultHandling deleted. Goldens all the same (image 154 / 3 without, Rebirth 29, x64 154 / 3)."
 
 [[ticket]]
 id = "PL11s"
@@ -7039,7 +7039,7 @@ id = "MAC3j1"
 title = "Windowed mode: no minimise on focus loss (user decision)"
 group = "port"
 depends = ["MAC3j"]
-note = "MAC3j made the windowed mode a decorated, movable window. The game still minimises its window whenever it is deactivated (app.cpp OnActivate, Inactive: platform::Minimize), the full-screen behaviour of the original: in a window, clicking another program hides the game. Ask the user whether the windowed mode should only pause (cursor, mouse, sound as now) and stay visible; if so, minimise only when full screen. Also try the release build (SDL window) windowed at the desktop's size by hand: MAC3j checked the harness's window only (it cannot run the release exe without touching an install)."
+note = "Done 2026-10-31 (user: drop the minimising entirely): app.cpp no longer minimises or restores on focus changes; platform::Minimize / Restore deleted. By hand for the user: the release build windowed at the desktop's size."
 
 [[ticket]]
 id = "MAC3r"

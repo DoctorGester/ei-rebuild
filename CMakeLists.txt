@@ -88,18 +88,19 @@ endif()
 
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
 # window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
-# (src/platform/sdl), or in the harness's builds on Windows' window procedure and game.exe's import slots, which the
-# harness drives (src/platform/win32/platform_win32_window.cpp); the rest on Windows (src/platform/win32, with game.exe's
-# imports, gameapi.h), the one place of the game's code that includes <windows.h>; the sound on SDL3's audio device
-# with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
+# (src/platform/sdl; the harness's builds take their own, tests/verify/harness_platform.cpp); the rest on Windows
+# (src/platform/win32, with game.exe's imports, gameapi.h), the one place of the game's code that includes <windows.h>;
+# the sound on SDL3's audio device with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the
+# Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
-list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp
-     ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp
+     ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
+file(GLOB EI_PLATFORM_SDL_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp)
+list(APPEND EI_PLATFORM_SOURCES ${EI_PLATFORM_SDL_SOURCES})
+# The harness's builds take its own window, events, clocks, cursor, mouse and clipboard on SDL
+# (tests/verify/harness_platform.cpp) in place of the game's.
 if(EI_HARNESS)
-    list(APPEND EI_PLATFORM_SOURCES src/platform/win32/platform_win32_window.cpp)
-else()
-    file(GLOB EI_PLATFORM_SDL_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp)
-    list(APPEND EI_PLATFORM_SOURCES ${EI_PLATFORM_SDL_SOURCES})
+    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/sdl/platform_sdl.cpp)
 endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src third_party)
@@ -180,6 +181,7 @@ if(EI_HARNESS)
     add_library(ei_harness_shared OBJECT
         ${EI_HARNESS_SOURCES})
     target_include_directories(ei_harness_shared PRIVATE include src)
+    target_link_libraries(ei_harness_shared PRIVATE SDL3::SDL3-static)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
     # The image's side reaches the Direct3D backend's removable device (src/platform/win32/graphics_win32.h).
@@ -261,6 +263,11 @@ endif()
 add_executable(ei_text_check tools/text_check/text_check.cpp tools/text_check/titles_check.cpp)
 target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
+# Offline check of the SDL backend's keys (src/platform/sdl/sdl_keys.cpp, ticket PL9a) against the key codes and control
+# characters Windows' layouts give, for every layout the machine has.
+add_executable(ei_input_check tools/input_check/input_check.cpp src/platform/sdl/sdl_keys.cpp)
+target_include_directories(ei_input_check PRIVATE include src)
+target_link_libraries(ei_input_check PRIVATE SDL3::SDL3-static user32)
 # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
 # a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
 add_executable(ei_ui_check tools/ui_check/ui_check.cpp tests/render/glyph_cases.cpp)

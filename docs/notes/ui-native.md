@@ -45,7 +45,7 @@ and drawing use one set of metrics. What follows is the original's behaviour tha
 **Fonts.** `Interface3D::Create` 005F4990 (`ui_interface.cpp`) makes `fonts[0..2]` as the original's
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
-width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
+width·0.0075/height (addon's float at 005F4F81, `screen_layout::FontScale`; W4).
 - The console has its own point font (`console_window.cpp`).
 - The original's text was GDI's, with the system's ClearType / smoothing setting; ours is smoothed or not by
   SPI_GETFONTSMOOTHING (P8b).
@@ -583,7 +583,7 @@ as much (GDI's emboldening); italic is drawn upright (the file's text has none).
 smoothing, as RichEdit drew it with the titles' font smoothing off.
 
 **Scale (P8c, 2026-10-29).** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi`
-(ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `widescreen::FontScale`), the scale the interface's fonts
+(ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `screen_layout::FontScale`), the scale the interface's fonts
 get in `Interface3D::Create` (width over FontScale, so 96 at 800 pixels wide and, in Rebirth's WideScreen, following the
 height as the other fonts do). The titles' text, indents, wrap and scroll then grow with the window like the rest of
 the interface and do not move with the system DPI (the original and P8a took `GetDpiForSystem`: 192 on a 200% display, 96

@@ -1,5 +1,5 @@
 // The camp's Create (CampPages). Rebirth's WideScreen replaces the function with the game's version followed
-// by two curtain sprites over the screen's margins (widescreen::AddCurtains), which this reproduces; nothing
+// by two curtain sprites over the screen's margins (screen_layout::AddCurtains), which this reproduces; nothing
 // in our code calls it but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "item_manager.h"
@@ -17,7 +17,7 @@
 #include "ui_briefing.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit.h"
 #include "world.h"
 
@@ -73,7 +73,7 @@ double FramesNow() { return platform::Milliseconds() * (15.0 / 1024.0); }
 
 void CampPages::CreateScreen() {
     BuildPages();
-    widescreen::AddCurtains(this, 1);
+    screen_layout::AddCurtains(this, 1);
 }
 
 void CampPages::BuildPages() {

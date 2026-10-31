@@ -8,7 +8,7 @@
 #include "maths.h"
 #include "text_manager.h"
 #include "ui_float.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world.h"
 #include "world_data.h"
 #include "lib/crt.h"
@@ -27,7 +27,7 @@
 namespace {
 
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
-// widescreen::g_layoutWidth, for its widescreen layout).
+// screen_layout::g_layoutWidth, for its widescreen layout).
 constexpr float kPausedHand = 0.9166667f;   // hand angle while paused, in pi
 constexpr float kFastHand = 0.5833333f;   // at fast speed
 constexpr float kNormalHand = 0.75f;   // at normal speed
@@ -131,7 +131,7 @@ void HudClock::Update() {
     Turn(scene[1], -1.0f, handAngle);
     float handSin = std::sin(handAngle);
     float handY = kCentreY - handSin * kHandRadius;
-    float handX = std::cos(handAngle) * kHandRadius + widescreen::g_layoutWidth;
+    float handX = std::cos(handAngle) * kHandRadius + screen_layout::g_layoutWidth;
     AsUiMesh(scene[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
@@ -144,7 +144,7 @@ void HudClock::Update() {
         Turn(mark, 1.0f, angle);
         float c = std::cos(angle);
         float y = kCentreY - c * kDialRadius;
-        float x = std::sin(angle) * kDialRadius + widescreen::g_layoutWidth;
+        float x = std::sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
         angle = angle - (kPi * kDialStep);
     }
@@ -281,7 +281,7 @@ void HudTopPanel::AddMoney(int money) {
 // --- Ui hud setup ------------------------------------------------------------------------------------
 
 // The battle HUD's two corner panels, the game clock (HudClock) and the movement panel (HudMovePanel): their setups.
-// Rebirth patches both for its WideScreen layout, reproduced for every window (ui_widescreen.h): the clock at the screen's
+// Rebirth patches both for its WideScreen layout, reproduced for every window (screen_layout.h): the clock at the screen's
 // right edge, the movement panel at its left. See ui.h and docs/notes/ui.md, "Battle HUD corner panels".
 
 namespace {
@@ -334,8 +334,8 @@ void SetHand(UiMesh* sprite) {
 // --- The clock ---------------------------------------------------------------------------
 
 void HudClock::Setup(bool newFast) {
-    widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
+    const int shift = screen_layout::EdgeShift();
     rect = Rect{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
     AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddBlankSprite());
@@ -376,14 +376,14 @@ void HudClock::Setup(bool newFast) {
     ui->fastGame = fast;
     highlight = false;
     dial = 0.0f;
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }
 
 // --- The movement panel --------------------------------------------------------------------
 
 void HudMovePanel::Build() {
-    widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
+    const int shift = screen_layout::EdgeShift();
     rect = Rect{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
     // The flag button: the quarter disc in the corner.
     UiRegion* middle = AddRegion();
@@ -424,5 +424,5 @@ void HudMovePanel::Build() {
     ShowMode(-1);
     flag = -1;
     SceneMesh(5)->textureOffsetU = 0.48046875f;
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }

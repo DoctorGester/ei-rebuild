@@ -11,7 +11,7 @@
 #include "spell.h"     // Light
 #include "texture.h"   // TextureDevice, Texture
 #include "ui.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -183,14 +183,14 @@ RendererBase::~RendererBase() = default;
 // ---- Matrices ---------------------------------------------------------------------------------------
 
 // The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. x is scaled by width43 / width
-// and y by height43 / height (the window's 4:3 part, ui_widescreen.h; Rebirth's WideScreen scaled x), so the 4:3
+// and y by height43 / height (the window's 4:3 part, screen_layout.h; Rebirth's WideScreen scaled x), so the 4:3
 // picture keeps its proportions on any window, 1 and 1 on a 4:3 one; renderer_init.cpp calls it through its address
 // (rule 9).
 Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;
-    out->m[0] = widescreen::AxisScale();
-    out->m[5] = -widescreen::AxisScaleY();
+    out->m[0] = screen_layout::AxisScale();
+    out->m[5] = -screen_layout::AxisScaleY();
     return out;
 }

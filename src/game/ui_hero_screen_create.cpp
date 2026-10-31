@@ -1,5 +1,5 @@
 // The multiplayer hero screen's Create. Rebirth's WideScreen adds two hidden curtain sprites over the
-// screen's margins (widescreen::AddCurtains), which this does after the original's body; EI_Plugin.asi
+// screen's margins (screen_layout::AddCurtains), which this does after the original's body; EI_Plugin.asi
 // patches it too (EiPluginFixes, reproduced: the figures' sex test). See ui_screens.h and docs/notes/ui.md,
 // section 5. Scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete open the screen.
 #include "party.h"
@@ -10,7 +10,7 @@
 #include "text_manager.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
@@ -305,5 +305,5 @@ void MpHeroScreen::CreateScreen() {
     heroIndex = heroes->entries.size() == 0 ? -1 : 0;
     SetMode(kModeList);
     // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
-    widescreen::AddCurtains(this, 0);
+    screen_layout::AddCurtains(this, 0);
 }

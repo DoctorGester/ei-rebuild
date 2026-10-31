@@ -7,7 +7,7 @@
 
 #include "text_manager.h"
 #include "object_tables.h"      // FindCommandByKey
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 
 #include "ei/rebirth.h"
 #include "lib/rect.h"
@@ -99,8 +99,8 @@ bool Listed(const std::string& page, const char* const* names, std::size_t count
 int TutorialFrameShift(const HelpWindow* window) {
     if (!window->message) return 0;
     const std::string page = std::string(window->text) + ':' + std::to_string(window->page);
-    if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
-    if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();
+    if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -screen_layout::EdgeShift();
+    if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return screen_layout::EdgeShift();
     return 0;
 }
 

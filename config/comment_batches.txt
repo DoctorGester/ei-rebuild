@@ -544,8 +544,8 @@ src/game/ui_trade_panel.cpp
 src/game/ui_trade_panel_input.cpp
 src/game/ui_view_screen.cpp
 src/game/ui_view_screen.h
-src/game/ui_widescreen.cpp
-src/game/ui_widescreen.h
+src/game/screen_layout.cpp
+src/game/screen_layout.h
 src/game/ui_window.cpp
 src/game/ui_window_delete.cpp
 src/hook/dllmain.cpp
@@ -1566,8 +1566,8 @@ src/game/ui_trade_panel.cpp
 src/game/ui_trade_panel_input.cpp
 src/game/ui_view_screen.cpp
 src/game/ui_view_screen.h
-src/game/ui_widescreen.cpp
-src/game/ui_widescreen.h
+src/game/screen_layout.cpp
+src/game/screen_layout.h
 src/game/ui_window.cpp
 src/game/ui_window_delete.cpp
 src/game/unit.cpp

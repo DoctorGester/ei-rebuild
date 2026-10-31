@@ -603,8 +603,9 @@ no stand-in for any of them (R27c):
   platform::MapCursorPoints; the mouse events (client positions) and the wheel's (screen) mapped at the top of the
   input dispatcher (00457970, app.cpp).
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
-  deactivates the cursor, the mouse, the sound and the network and minimises (004EEC60's RestoreDisplayMode is gone);
-  active restores, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
+  deactivates the cursor, the mouse, the sound and the network; the window stays as it is (the original minimised it;
+  gone with MAC3j1, user 2026-10-30) and 004EEC60's RestoreDisplayMode is gone too;
+  active resumes them, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
   Minimised the client area is empty and nothing is presented; on return the swap chain is resized.
   DXGI_STATUS_OCCLUDED counts as success.
 - Harness steps: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through

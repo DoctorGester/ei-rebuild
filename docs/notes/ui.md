@@ -746,7 +746,7 @@ set; both name lists sorted, the women's then reversed; the two figure strips; t
 windows; the voices' scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts,
 the voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"; the list's scroll
 range, the list drawn, the first hero selected (-1 without one) and mode 9; with Rebirth's WideScreen then
-the two curtains over the screen's margins, hidden (widescreen::AddCurtains; sprites 19 and 20).
+the two curtains over the screen's margins, hidden (screen_layout::AddCurtains; sprites 19 and 20).
 
 ## MpConnectScreen::CreateScreen
 
@@ -833,7 +833,7 @@ not while the image is hidden (the movie players and the loading screen hide it)
 The battle HUD's two corner panels, the game clock (HudClock) and the movement panel
 (HudMovePanel): their setups, which make the panels' sprites and their
 regions about the layout's bottom corners.
-Rebirth patches both for its WideScreen layout, reproduced for every window (ui_widescreen.h):
+Rebirth patches both for its WideScreen layout, reproduced for every window (screen_layout.h):
 the clock at the screen's right edge, the movement panel at its left (the panel offset while
 they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
 Place and SetTriangle, the regions' AddPoint, the panel's ShowMode)
@@ -846,7 +846,7 @@ The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (H
 their layouts at the current slide offset, their per-frame updates
 (Update) and their setups.
 Rebirth patches all of them for its WideScreen layout, reproduced for every window (
-ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
+screen_layout.h): the map at the screen's right edge, the unit panel at its left (the panel
 offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
 Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
 through their addresses. See ui.h ("Battle screen and its HUD panels"), docs/notes/items_spells.md
@@ -855,7 +855,7 @@ and docs/notes/rebirth.md ("WideScreen").
 ## Battle HUD unit panel draw
 
 The battle HUD's unit panel: its draw (HudUnitPanel).
-Rebirth patches it for its WideScreen layout, reproduced for every window (ui_widescreen.h):
+Rebirth patches it for its WideScreen layout, reproduced for every window (screen_layout.h):
 the panel offset while it draws (until the window's base draw), the model's x moved left by
 EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
 too (the sprites' Place, the layout scaling) are called through their

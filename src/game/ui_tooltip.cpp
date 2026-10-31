@@ -3,7 +3,7 @@
 // reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "options.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 
 #include "lib/crt.h"
 #include "text_split.h"
@@ -129,7 +129,7 @@ void UiTooltip::OnMouseMove(int x, int y) {
         Point offset = kCursorOffset;
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         ui->ScalePointFromScreenNoMargin(&offset);
-        const int layoutRight = widescreen::LayoutRight();
+        const int layoutRight = screen_layout::LayoutRight();
         rects::Offset(&area, offset.x, offset.y);
         rects::Offset(&area, x, y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.

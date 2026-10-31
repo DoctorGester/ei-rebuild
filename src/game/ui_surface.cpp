@@ -110,7 +110,7 @@ void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
         frame = *area;
-        ui->ScaleRectToScreen(&frame);           // (Rebirth-patched)
+        ui->ScaleRectToScreenNoMargin(&frame);   // the surface's own pixels: no window margin
     }
     render::ui::FrameRect(holder, ToRect(frame), colour);
 }

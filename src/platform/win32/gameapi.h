@@ -75,18 +75,12 @@ extern ei::import_fn::gethostbyname& gethostbyname;  // WSOCK32.dll, through the
 extern ei::import_fn::htons& htons;  // WSOCK32.dll, through the slot
 extern ei::import_fn::ioctlsocket& ioctlsocket;  // WSOCK32.dll, through the slot
 extern ei::import_fn::sendto& sendto;  // WSOCK32.dll, through the slot
-extern decltype(&::timeGetTime)& timeGetTime;  // WINMM.dll, through the slot
-extern decltype(&::Sleep)& Sleep;  // KERNEL32.dll, through the slot
 using ::OutputDebugStringA;  // KERNEL32.dll
 extern decltype(&::GetVolumeInformationA)& GetVolumeInformationA;  // KERNEL32.dll, through the slot
 extern decltype(&::CreateDirectoryA)& CreateDirectoryA;  // KERNEL32.dll, through the slot
 using ::GetSystemInfo;  // KERNEL32.dll
 extern decltype(&::CopyFileA)& CopyFileA;  // KERNEL32.dll, through the slot
-extern decltype(&::GetLocalTime)& GetLocalTime;  // KERNEL32.dll, through the slot
-using ::SetEvent;  // KERNEL32.dll
-using ::CreateEventA;  // KERNEL32.dll
 using ::CloseHandle;  // KERNEL32.dll
-extern decltype(&::WaitForSingleObject)& WaitForSingleObject;  // KERNEL32.dll, through the slot
 extern decltype(&::RemoveDirectoryA)& RemoveDirectoryA;  // KERNEL32.dll, through the slot
 using ::FindClose;  // KERNEL32.dll
 extern decltype(&::FindNextFileA)& FindNextFileA;  // KERNEL32.dll, through the slot
@@ -105,10 +99,7 @@ using ::SetFilePointer;  // KERNEL32.dll
 extern decltype(&::GetFullPathNameA)& GetFullPathNameA;  // KERNEL32.dll, through the slot
 extern decltype(&::GetModuleFileNameA)& GetModuleFileNameA;  // KERNEL32.dll, through the slot
 using ::SetLastError;  // KERNEL32.dll
-using ::ResumeThread;  // KERNEL32.dll
-using ::SetThreadPriority;  // KERNEL32.dll
 extern decltype(&::GetFileAttributesA)& GetFileAttributesA;  // KERNEL32.dll, through the slot
-extern decltype(&::GetTickCount)& GetTickCount;  // KERNEL32.dll, through the slot
 extern decltype(&::MoveFileA)& MoveFileA;  // KERNEL32.dll, through the slot
 using ::CreateFileMappingA;  // KERNEL32.dll
 using ::GetFileSize;  // KERNEL32.dll
@@ -119,31 +110,12 @@ using ::IsIconic;  // USER32.dll
 using ::GetWindowThreadProcessId;  // USER32.dll
 using ::GetForegroundWindow;  // USER32.dll
 extern decltype(&::FindWindowA)& FindWindowA;  // USER32.dll, through the slot
-using ::InvalidateRect;  // USER32.dll
-extern decltype(&::TranslateMessage)& TranslateMessage;  // USER32.dll, through the slot
-extern decltype(&::GetMessageA)& GetMessageA;  // USER32.dll, through the slot
-extern decltype(&::PeekMessageA)& PeekMessageA;  // USER32.dll, through the slot
-extern decltype(&::DefWindowProcA)& DefWindowProcA;  // USER32.dll, through the slot
-using ::EndPaint;  // USER32.dll
-using ::BeginPaint;  // USER32.dll
-using ::GetUpdateRect;  // USER32.dll
 extern decltype(&::GetKeyNameTextA)& GetKeyNameTextA;  // USER32.dll, through the slot
-extern decltype(&::DispatchMessageA)& DispatchMessageA;  // USER32.dll, through the slot
-extern decltype(&::GetCursorPos)& GetCursorPos;  // USER32.dll, through the slot
-extern decltype(&::SetCursorPos)& SetCursorPos;  // USER32.dll, through the slot
 using ::GetKeyboardLayoutNameA;  // USER32.dll
 using ::ActivateKeyboardLayout;  // USER32.dll
 using ::GetKeyboardLayout;  // USER32.dll
 using ::GetKeyboardLayoutList;  // USER32.dll
 extern decltype(&::SystemParametersInfoA)& SystemParametersInfoA;  // USER32.dll, through the slot
 extern decltype(&::ShowWindow)& ShowWindow;  // USER32.dll, through the slot
-extern decltype(&::CreateWindowExA)& CreateWindowExA;  // USER32.dll, through the slot
-extern decltype(&::RegisterClassExA)& RegisterClassExA;  // USER32.dll, through the slot
-using ::RegisterWindowMessageA;  // USER32.dll
-using ::PostQuitMessage;  // USER32.dll
-extern decltype(&::MessageBoxA)& MessageBoxA;  // USER32.dll, through the slot
-using ::SetCursor;  // USER32.dll
-using ::UpdateWindow;  // USER32.dll
-using ::GetCursor;  // USER32.dll
 
 } // namespace gameapi

@@ -9,6 +9,7 @@
 #include "game/game_singletons.h"
 #include "game/player_messages.h"
 #include "game/asset_text.h"
+#include "../harness_platform.h"
 #include "platform/win32/platform_win32.h"
 #include "game/ui.h"
 #include "platform/win32/gameapi.h"
@@ -86,10 +87,13 @@ std::string Type(HWND window, const std::string& typed) {
     if (!window) return "typeunicode: no game window yet";
     const std::wstring wide = text::Wide(typed);
     for (wchar_t unit : wide) {
-        if (!PostMessageW(window, WM_CHAR, static_cast<WPARAM>(unit), 1))
-            return "typeunicode: WM_CHAR was not posted";
+        platform::Event event;
+        event.type = platform::EventType::Character;
+        event.key = static_cast<int>(unit);
+        event.repeat = 1;
+        ei::verify::harnessplatform::Queue(event);
     }
-    Log("harness: typeunicode: %u UTF-16 units posted as WM_CHAR", static_cast<unsigned>(wide.size()));
+    Log("harness: typeunicode: %u UTF-16 units handed in as characters", static_cast<unsigned>(wide.size()));
     return {};
 }
 

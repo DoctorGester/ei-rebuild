@@ -15,7 +15,7 @@
 #include "ui_cursor.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit.h"
 #include "world.h"
 #include "world_glue.h"
@@ -284,7 +284,7 @@ void MpHeroScreen::ShowHero(int index) {
 
 // The multiplayer hero screen's mode (MpHeroScreen::SetMode): the hero list (9), the new
 // hero (10) and its statistics page (11) laid out. Rebirth's WideScreen adds the curtains' visibility
-// (widescreen::ShowHeroCurtains) after the original's body, which this does too. See ui_screens.h and
+// (screen_layout::ShowHeroCurtains) after the original's body, which this does too. See ui_screens.h and
 // docs/notes/ui.md, section 5.
 
 namespace {
@@ -416,5 +416,5 @@ void MpHeroScreen::SetMode(int newMode) {
     statsPanel->ShowStats(newMode);
     mode = newMode;
     // Rebirth's WideScreen: the curtains shown but on the list.
-    widescreen::ShowHeroCurtains(this, newMode);
+    screen_layout::ShowHeroCurtains(this, newMode);
 }

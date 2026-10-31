@@ -17,7 +17,7 @@
 #include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "lib/nan_audit.h"
@@ -317,7 +317,7 @@ void HudMap::LeftUp(int, int x, int y) {
         Point point = {x, y};
         ui->ScalePointFromScreen(&point);
         // WideScreen: the centre moved right by the shift.
-        float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide;
+        float right = static_cast<float>(point.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
         float down = static_cast<float>(point.y - kMapCentreY) / halfSide;
         if (region == 1) {
             right /= zoom;
@@ -485,7 +485,7 @@ void HudMovePanel::MouseMove(int, int x, int y) {
 }
 
 void HudMovePanel::ShowMode(int newMode) {
-    widescreen::EnterLeftPanel();    // addon's handler; another at the end
+    screen_layout::EnterLeftPanel();    // addon's handler; another at the end
     mode = newMode;
     auto* marker = SceneMesh(0);
     marker->visible = newMode >= 0;
@@ -505,7 +505,7 @@ void HudMovePanel::ShowMode(int newMode) {
         SceneMesh(0)->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }
 
 void HudMovePanel::Update() {

@@ -48,13 +48,11 @@ std::intptr_t OnActivate(platform::Activation activation, bool minimized) {
         g_cursor.ShowImage(0);
         if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
         if (sounds) sounds->PauseAll();
-        platform::Minimize(g_mainWindow);
         return 1;
     }
     if (activation == platform::Activation::Unknown) return 1;
     g_active = 1;
     g_activationChanged = 1;
-    platform::Restore(g_mainWindow);
     if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
     TextureDevice* device = g_sceneRenderer.device;
     if (device && device->fullScreen) {
@@ -72,12 +70,8 @@ std::intptr_t OnActivate(platform::Activation activation, bool minimized) {
 }
 
 std::intptr_t OnSystemCommand(const platform::Event& event) {
-    if (event.command == platform::SystemCommand::TaskSwitch) {
-        console::PrintLine("switch task");
-    } else if (event.command == platform::SystemCommand::ScreenSaver) {
-        return 0;
-    }
-    return platform::DefaultHandling(event);
+    if (event.command == platform::SystemCommand::TaskSwitch) console::PrintLine("switch task");
+    return 0;
 }
 
 std::intptr_t Handled() {
@@ -133,7 +127,7 @@ std::intptr_t HandleWindowEvent(const platform::Event& event) {
     case EventType::AutoPlay:
         return 1;
     default:
-        return platform::DefaultHandling(event);
+        return 0;
     }
 }
 

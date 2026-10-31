@@ -14,7 +14,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_item_info.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -183,7 +183,7 @@ void HudUnitPanel::DrawUnitInfo(Unit* unit) {
 // --- Ui hud unit draw --------------------------------------------------------------------------------
 
 // The battle HUD's unit panel: its draw (HudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced for
-// every window (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
+// every window (screen_layout.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
 
 namespace {
@@ -223,7 +223,7 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 } // namespace
 
 void HudUnitPanel::Draw(SceneRenderer* pass) {
-    widescreen::EnterLeftPanel();    // addon's 100232F4
+    screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
     SceneMesh(kHeightBar)->visible = false;
@@ -274,7 +274,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
             // WideScreen: 100 - shift.
-            const float x = ((100 - widescreen::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
+            const float x = ((100 - screen_layout::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
                                          kDepthUnit * kModelDepth;
             const float y = height / size - (kDepthUnit * kModelDepth) * kModelDrop;
             model->localPosition = Vector3{x, y, kModelDepth};
@@ -344,6 +344,6 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         }
     }
 
-    widescreen::LeavePanel();        // addon's 10023312, before the base draw
+    screen_layout::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
 }

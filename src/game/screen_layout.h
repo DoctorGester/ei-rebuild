@@ -12,7 +12,7 @@
 
 class UiWindow;
 
-namespace widescreen {
+namespace screen_layout {
 
 // The layout's values (Rebirth's for a window wider than 4:3: addon's globals at 100BD094..100BD0A8).
 struct Layout {
@@ -92,4 +92,4 @@ void ShowHeroCurtains(UiWindow* window, int mode);
 // The layout's right edge, 800 + extra (the tooltip kept on the layout).
 int LayoutRight();
 
-} // namespace widescreen
+} // namespace screen_layout

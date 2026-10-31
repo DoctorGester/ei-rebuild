@@ -25,7 +25,7 @@
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -420,7 +420,7 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
         EngineObject* sprite = sceneObjects[shownCount - 1];
-        const float right = widescreen::g_panelRight;
+        const float right = screen_layout::g_panelRight;
         if (slot < 4)
             AsUiMesh(sprite)->Place(right - (slot * 50), 575.0f, 20.0f);
         else

@@ -5,7 +5,7 @@
 // "The titles' rich text"). See docs/notes/items_spells.md.
 #include "ui.h"
 #include "ui_screens.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "game_strings.h"
 
 #include "resource.h"
@@ -30,7 +30,7 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 // window's width over FontScale, 0.01 on a 4:3 window), 96 at 800 pixels wide. Text and layout then grow with the
 // window and ignore the system's DPI.
 int TitlesDpi(const UiSurface* surface) {
-    const float scale = static_cast<float>(surface->ui->width) / kDesignWidth * (0.01f / widescreen::FontScale());
+    const float scale = static_cast<float>(surface->ui->width) / kDesignWidth * (0.01f / screen_layout::FontScale());
     return static_cast<int>(scale * kDesignDpi + 0.5f);
 }
 

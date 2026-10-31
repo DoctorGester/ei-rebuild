@@ -50,10 +50,10 @@
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs).
 //                             A letter or digit is typed once (its WM_CHAR, lower case); the game's
 //                             TranslateMessage translates as the US layout with no key held, whatever the
-//                             user's own keyboard does (HarnessTranslateMessage).
+//                             user's own keyboard does (FixedKeyChar).
 //                             Input steps (key and the mouse steps below) are posted from the game's
 //                             main loop only: the pump that window switches run drops waiting input
-//                             (see PeekMessageHook)
+//                             (see BeforeEvents)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
@@ -63,7 +63,7 @@
 //                             only the left / right button's press or release there (a button held
 //                             over frames, e.g. the camp trade panel's repeated school purchase, the
 //                             global map turned by a right-button drag)
-//   mousedrag <dx> <dy>       from the next frame on, after each frame the game's DirectInput mouse moves by
+//   mousedrag <dx> <dy>       from the next frame on, after each frame the game's mouse moves by
 //                             (dx, dy) counts and a WM_MOUSEMOVE at the harness's mouse follows: a drag at a
 //                             steady speed, e.g. the camera turned with the right button held (rdown /
 //                             rup; camera_spin); "mousedrag 0 0" ends it
@@ -391,6 +391,7 @@
 #include "harness_starter.h"
 #include "harness_windows.h"
 #include "harness_input.h"
+#include "harness_platform.h"
 #include "harness_install.h"
 #include "harness_net.h"
 #include "harness_pair.h"
@@ -519,7 +520,7 @@ bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
 // Whether the PeekMessageA call running the steps is one that hands input to the game (see
-// PeekMessageHook): "key", mouse and region steps wait for one.
+// BeforeEvents): "key", mouse and region steps wait for one.
 bool g_inputLoop = false;
 // Whether that call is WinMain's own loop: "quit" waits for one.
 bool g_winMainLoop = false;
@@ -552,7 +553,7 @@ std::size_t g_waitForFrom = 0;
 DWORD g_waitForNext = 0;
 Deadline g_waitForDeadline;
 // Frames drawn so far: passes of WinMain's loop through its after-frame PeekMessageA (see
-// PeekMessageHook). A pending "frames": the count it waits for.
+// BeforeEvents). A pending "frames": the count it waits for.
 unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
@@ -617,7 +618,6 @@ void OnConsoleLine(const char* text) {
     }
 }
 
-decltype(&::PeekMessageA) g_peekMessage;
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
 // and the code addresses found on the stack (game.exe addresses as is, ours as <module>+offset: ei::OwnModuleName).
@@ -735,7 +735,7 @@ BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
     switch (command) {
     case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
     case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
-    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // the game minimises itself on deactivation
+    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;
     default: break;
     }
     return g_showWindow(window, command);
@@ -748,7 +748,6 @@ HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWOR
         std::snprintf(harnessTitle, sizeof(harnessTitle), "%s (harness)", name);
         name = harnessTitle;
     }
-    input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
 }
 
@@ -1241,8 +1240,8 @@ void PostModifiers(unsigned mods, bool down) {
     for (const Key& key : keys) {
         if (!(mods & key.mod)) continue;
         LPARAM lparam = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
-        if (down) PostMessageA(GameWindow(), key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
-        else PostMessageA(GameWindow(), key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
+        if (down) input::Post(key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
+        else input::Post(key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
     }
 }
 
@@ -1275,7 +1274,6 @@ struct HeldModifiers {
 // "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
 // theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
-decltype(&::TranslateMessage) g_translateMessage;
 
 char FixedKeyChar(WPARAM vk) {
     switch (vk) {
@@ -1303,13 +1301,8 @@ char FixedKeyChar(WPARAM vk) {
     }
 }
 
-BOOL WINAPI HarnessTranslateMessage(const MSG* message) {
-    if (!message || message->message != WM_KEYDOWN) return FALSE;   // no Alt in the key state: no WM_SYSCHAR
-    const char c = FixedKeyChar(message->wParam);
-    if (!c) return FALSE;
-    PostMessageA(message->hwnd, WM_CHAR, static_cast<unsigned char>(c), message->lParam);
-    return TRUE;
-}
+// The character a key press types (harness_platform.h): the US layout's, with no key held.
+int TypedCharacter(int key) { return static_cast<unsigned char>(FixedKeyChar(static_cast<WPARAM>(key))); }
 
 // Which messages PostKey posts: the press and release ("key"), or only one of them ("keydown" / "keyup").
 enum class KeyPart { Both, Down, Up };
@@ -1351,12 +1344,12 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
                           vk == VK_NEXT || vk == VK_HOME || vk == VK_END || vk == VK_DELETE;
     if (part != KeyPart::Both && extended) scan |= 0x100;
     if (part != KeyPart::Up) {
-        PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
+        input::Post(WM_KEYDOWN, vk, 1 | (scan << 16));
         if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
-            PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
-        if (part == KeyPart::Both && name == "enterchar") PostMessageA(GameWindow(), WM_CHAR, 0x0D, 1 | (scan << 16));
+            input::Post(WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
+        if (part == KeyPart::Both && name == "enterchar") input::Post(WM_CHAR, 0x0D, 1 | (scan << 16));
     }
-    if (part != KeyPart::Down) PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
+    if (part != KeyPart::Down) input::Post(WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
 // The image's renderer's present counts.
@@ -1483,7 +1476,7 @@ std::string WindowTitleStep() {
 }
 
 // The layout point (x, y) of the 800x600 interface as the mouse steps' share of a window of width x height: the layout
-// fills the window's 4:3 part, the largest one, centred (src/game/ui_widescreen.h).
+// fills the window's 4:3 part, the largest one, centred (src/game/screen_layout.h).
 void LayoutToWindowShare(int width, int height, int* x, int* y) {
     const double part43Width = width * 3 < height * 4 ? width : height * 4.0 / 3.0;
     const double part43Height = height * 4 < width * 3 ? height : width * 3.0 / 4.0;
@@ -1499,32 +1492,32 @@ void PostMouse(const std::string& verb, int x, int y) {
     LPARAM at = MAKELPARAM(window.x, window.y);
     g_mouseX = window.x;
     g_mouseY = window.y;
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    input::Post(WM_MOUSEMOVE, 0, at);
     if (verb == "click") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rclick") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "dblclick") {
         // What Windows sends for a double click: down, up, double click, up.
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "ldown") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
     } else if (verb == "lup") {
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rdown") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
     } else if (verb == "rup") {
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "rdblclick") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_RBUTTONDBLCLK, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDBLCLK, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     }
 }
 
@@ -1532,9 +1525,9 @@ void PostMouse(const std::string& verb, int x, int y) {
 void PostWheel(int x, int y, int delta) {
     RECT client = GameClient();
     POINT point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
+    input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
     ClientToScreen(GameWindow(), &point);
-    PostMessageA(GameWindow(), WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
+    input::Post(WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
 }
 
 // The centre of region `index` of the top interface window, posted as a mouse event. The region's
@@ -1561,19 +1554,19 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
     point = ToWindow(point.x, point.y);
     LPARAM at = MAKELPARAM(point.x, point.y);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    input::Post(WM_MOUSEMOVE, 0, at);
     if (verb == "clickregion") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rclickregion") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "dblclickregion") {
         // As "dblclick": down, up, double click, up.
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     }
 }
 
@@ -1663,18 +1656,18 @@ std::string PostUnitMouse(const std::string& argument) {
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, where);
+    input::Post(WM_MOUSEMOVE, 0, where);
     if (std::strcmp(button, "l") == 0) {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, where);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, where);
+        input::Post(WM_LBUTTONUP, 0, where);
     } else if (std::strcmp(button, "r") == 0) {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, where);
+        input::Post(WM_RBUTTONUP, 0, where);
     } else if (std::strcmp(button, "dbl") == 0) {
         // The second half of a double click only: the release after it carries the interface's
         // double-click flag (+0x7F) into the battle screen's SelectUnit (rebirth_fixes_ui).
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, where);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, where);
+        input::Post(WM_LBUTTONUP, 0, where);
     }
     return "";
 }
@@ -2696,7 +2689,7 @@ void RunSteps() {
             }
         }
         if (!g_inputLoop && IsInputStep(s.verb)) {
-            --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)
+            --g_next;   // posted from the next main loop pass instead (see BeforeEvents)
             return;
         }
         // "quit" posts WM_QUIT (PostQuitMessage) on this thread: only WinMain's loop ends the game on
@@ -3417,92 +3410,41 @@ void TraceFpu(const char* where) {
     last = cw;
 }
 
-// The game pauses itself when its window loses focus (WM_ACTIVATE inactive: it minimises the
-// window and stops the renderer, sound and network). Parallel harness runs leave only one game in
-// front, so the harness keeps every game active: it subclasses the window and drops the
-// deactivation (and minimise) messages.
-WNDPROC g_gameWindowProc;
-// (Harness games no longer take the foreground, noforeground:: above, so only the focus off step minimises a
-// game.) The game restores its surfaces only when it is activated again (the main loop's RestoreAllSurfaces),
-// which the harness's always-active window never sees. So the harness notes the minimise (WM_SIZE) and, once the
-// PeekMessageA that sent it has returned, puts the window back without activating it and has the device restore
-// its surfaces, after every peek for the next 50. The image's device holds a token (nothing to restore); the
-// restore was made for the original under dgVoodoo (until H40), whose minimise lost the surfaces in the middle of
-// a pass, and twice within ~100 ms the second time took the exclusive mode as well.
-HWND g_minimised;
-int g_restoresLeft;
-// The render device's surfaces restored (false without a device): the image's device object holds a token
-// (nothing to restore).
-bool RestoreSurfaces(long* result) { return image::RestoreSurfaces(result); }
-
-void RestoreAfterMinimise() {
-    if (!g_minimised) return;
-    if (g_restoresLeft == 50) {
-        g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
-        Log("harness: the game window was minimised (a focus off step, or the user): shown again");
-    }
-    long result = DD_OK;
-    if (RestoreSurfaces(&result)) {
-        if (result == DDERR_NOEXCLUSIVEMODE) {
-            // A second minimise soon after the first also takes the exclusive mode away, and getting
-            // it back (the renderer's restore after a switch back, 00504780) hangs while the window
-            // is in the background: the run ends on the game's lost-surface box. (Harness games no longer
-            // take the foreground, noforeground::, so this should not be seen.)
-            Log("harness: the exclusive mode was lost with the foreground; the run ends on the game's lost-surface "
-                "box");
-            g_minimised = nullptr;
-            return;
-        }
-        if (g_restoresLeft == 50 || result != DD_OK) Log("harness: surfaces restored (%08X)", unsigned(result));
-    }
-    if (--g_restoresLeft <= 0) g_minimised = nullptr;
-}
-
-LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == WM_SIZE && wParam == SIZE_MINIMIZED) {
-        g_minimised = window;
-        g_restoresLeft = 50;
-        return 0;
-    }
-    if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
-    if (message == WM_ACTIVATEAPP && !wParam) return 0;
-    if (LRESULT result; input::RealMouse(window, message, wParam, lParam, &result)) return result;
-    return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
-}
-
+// The game pauses itself when its window loses focus (it stops the cursor, the mouse and the sound). Parallel harness
+// runs leave only one game in front, so the harness keeps every game active: its platform backend tells the game no
+// activation change of the system's (harness_platform.h); the focus steps tell it their own.
 // The window is shown and made without activating it, and nothing in the process brings it to the
 // front (ShowWithoutActivating, noforeground::), so Windows never sends it the WM_ACTIVATE that
 // sets the game's active flag 0079BC5C and starts its frames. (Under dgVoodoo its exclusive
 // cooperative level used to activate the window; without DirectDraw, the switch-over in device.h,
 // nothing did.) Once the device object exists and the game is not active, the harness sends the
 // activation a foreground start would have given (tickets R9a2, SV1c).
-void ActivateWithoutForeground(HWND window) {
+void ActivateWithoutForeground() {
     static bool sent = false;
     if (sent || !HarnessSceneDevice()) return;
     sent = true;
     if (HarnessActive()) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
-    SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
+    harnessplatform::Activate(true);
 }
 
-// focus off: what Windows sends the game when another window takes the focus (WM_ACTIVATE
-// WA_INACTIVE, which AlwaysActiveWindowProc otherwise keeps from it): the game deactivates and asks
-// to be minimised, which ShowWithoutActivating leaves out, so the step minimises the window itself
-// (activating nothing). focus on: the window restored (not activated) and the activation Windows
-// sends when the user comes back (WA_CLICKACTIVE). Ticket R9c.
+// focus off: what the system tells the game when another window takes the focus (deactivated; the platform's
+// backend keeps the system's own changes from a harness's game): the game deactivates, and the step minimises the
+// window as the user's switch would (activating nothing). focus on: the window restored (not activated) and the
+// activation the user's return gives. Ticket R9c.
 std::string FocusStep(const std::string& argument) {
     HWND window = GameWindow();
-    if (!window || !g_gameWindowProc) return "focus: no game window yet";
+    if (!window) return "focus: no game window yet";
     if (argument == "off") {
-        Log("harness: focus off (WM_ACTIVATE inactive, the window minimised)");
-        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_INACTIVE, 0);
+        Log("harness: focus off (deactivated, the window minimised)");
+        harnessplatform::Activate(false);
         g_showWindow(window, SW_SHOWMINNOACTIVE);
         return "";
     }
     if (argument == "on") {
-        Log("harness: focus on (the window restored, WM_ACTIVATE click-active)");
+        Log("harness: focus on (the window restored, activated)");
         g_showWindow(window, SW_SHOWNOACTIVATE);
-        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_CLICKACTIVE, 0);
+        harnessplatform::Activate(true);
         return "";
     }
     return "focus needs off or on";
@@ -3533,16 +3475,16 @@ void KeepGameWindowActive() {
         timing::Scope scope(timing::WindowChecks);
         noforeground::Watch(window);
     }
-    if (!g_gameWindowProc) {
-        g_gameWindowProc = reinterpret_cast<WNDPROC>(
-            SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
         RECT outer{}, client{};
         GetWindowRect(window, &outer);
         GetClientRect(window, &client);
         Log("harness: the game window stays active when it loses focus; window (%ld,%ld)-(%ld,%ld), client %ldx%ld",
             outer.left, outer.top, outer.right, outer.bottom, client.right, client.bottom);
     }
-    ActivateWithoutForeground(window);
+    ActivateWithoutForeground();
 }
 
 // Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then
@@ -3582,8 +3524,9 @@ bool HoldMessagesForCloseAll() {
     return g_frames < g_closeAllHeldFrom + 2;
 }
 
-BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
-
+// Before the game looks for events (harness_platform.h): the frame count, the steps; false
+// while the close-all holds the events.
+bool BeforeEvents() {
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
@@ -3596,7 +3539,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
         if (g_dragX || g_dragY) {
             input::AddMotion(g_dragX, g_dragY);
-            PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
+            input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
         }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
@@ -3610,13 +3553,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         RunSteps();
         g_inStep = false;
     }
-    if (HoldMessagesForCloseAll()) {
-        RestoreAfterMinimise();
-        return FALSE;
-    }
-    const BOOL result = g_peekMessage(msg, hwnd, min, max, remove);
-    RestoreAfterMinimise();
-    return result;
+    return !HoldMessagesForCloseAll();
 }
 
 // EI_RENDER_EXTRA: words added to the renderer's settings of every run (the scenario's "render" step, or
@@ -3791,8 +3728,6 @@ struct Harness {
 
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
 
-        PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
-        PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);
         image::ObserveConsoleLines(&OnConsoleLine);
         PatchImport(&ImportTable::CreateFileA, &RedirectedCreateFile, g_createFile);
         crash::WatchWrites();
@@ -3844,5 +3779,33 @@ struct Harness {
     }
 } g_harness;
 } // namespace
+
+namespace harnessplatform {
+
+bool BeforeEvents() { return ei::verify::BeforeEvents(); }
+int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
+// Through the import slots the harness drives: its virtual or held clocks, its fixed date, its own mouse.
+std::uint32_t ClockMilliseconds() { return ei::Imports().timeGetTime(); }
+std::uint32_t ClockTicks() { return ei::Imports().GetTickCount(); }
+void ClockSleep(std::uint32_t ms) { ei::Imports().Sleep(ms); }
+platform::DateTime Date() {
+    SYSTEMTIME local;
+    ei::Imports().GetLocalTime(&local);
+    return {local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond};
+}
+bool MousePosition(platform::Point* at) {
+    POINT p{};
+    if (!ei::Imports().GetCursorPos(&p)) return false;
+    *at = platform::Point{static_cast<int>(p.x), static_cast<int>(p.y)};
+    return true;
+}
+void MoveMouse(platform::Point at) { ei::Imports().SetCursorPos(at.x, at.y); }
+
+platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons) {
+    const int answer = HarnessMessageBoxA(nullptr, text, caption, buttons == platform::MessageButtons::OkCancel ? MB_OKCANCEL : MB_OK);
+    return answer == IDCANCEL ? platform::MessageAnswer::Cancel : platform::MessageAnswer::Ok;
+}
+
+} // namespace harnessplatform
 
 } // namespace ei::verify

@@ -89,9 +89,3 @@ LPSTR WINAPI CharLowerA(LPSTR text);
 
 } // namespace text
 
-struct IDirectInput7A;
-
-// The harness's view of the DirectInput object (the window-procedure path, platform_win32_window.cpp: the harness's
-// builds): MouseDevice::Open passes it each one it makes, before the mouse device. In game.exe's runs the harness
-// routes the original's import slot instead.
-extern void (*g_directInputObserver)(IDirectInput7A* input);

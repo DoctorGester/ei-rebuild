@@ -38,6 +38,8 @@ def checks(out, x64):
         *([] if x64 else [[os.path.join(out, 'ei_vectors.exe')]]),
         # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
+        # The SDL backend's keys against Windows' layouts (tools/input_check).
+        [os.path.join(out, 'ei_input_check.exe')],
         # The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps
         # (tools/perf_check).
         [os.path.join(out, 'ei_perf_check.exe')],

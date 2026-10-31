@@ -21,7 +21,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -540,7 +540,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     options->Load();
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
-    widescreen::Configure(options->resolutionX, options->resolutionY);
+    screen_layout::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
     g_serverWorld.Create();

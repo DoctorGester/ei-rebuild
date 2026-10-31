@@ -5,7 +5,7 @@
 #include "figure_mesh.h"
 #include "material.h"
 #include "model.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -349,9 +349,9 @@ UiMesh::Placement UiMesh::GetPlacement() const {
 
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
 // 10023151): x moved by the panel offset first (an integer add; 0 outside its panel builders,
-// ui_widescreen.h).
+// screen_layout.h).
 void UiMesh::Place(float x, float y, float depth) {
-    x += static_cast<float>(widescreen::PanelOffset());
+    x += static_cast<float>(screen_layout::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
     localPosition.x = placedX;
@@ -469,7 +469,7 @@ void UiMesh::SetUvCount(int count) { texCoords.resize(count); }
 // --- Shapes ------------------------------------------------------------------------------------------
 
 // The shapes an interface sprite (UiMesh, ui.h) is given. Rebirth's WideScreen patches each of
-// them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
+// them (one site: the x of the sprite's position moved by its panel offset, screen_layout.h), which
 // these reproduce for every window. docs/notes/ui.md, section 9.
 
 namespace {
@@ -559,7 +559,7 @@ void SetLayoutScale(UiMesh* sprite, float depth, float scale) {
 
 // Rebirth's WideScreen: addon's code at the four sites adds its panel offset (an int, FIADD) to the
 // layout x before the scaling: once to a left edge or a point, twice to a sum of two edges.
-float MovedX(float x) { return x + widescreen::PanelOffset(); }
+float MovedX(float x) { return x + screen_layout::PanelOffset(); }
 
 } // namespace
 

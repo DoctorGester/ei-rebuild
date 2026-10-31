@@ -1,6 +1,6 @@
 // The interface layout for any window shape (Rebirth's WideScreen folded in for every aspect ratio): the window's
-// 4:3 part, the layout widths and the scaling. See ui_widescreen.h.
-#include "ui_widescreen.h"
+// 4:3 part, the layout widths and the scaling. See screen_layout.h.
+#include "screen_layout.h"
 
 #include "ui.h"
 
@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace widescreen {
+namespace screen_layout {
 namespace {
 
 constexpr int kLayoutWidth = 800;
@@ -154,4 +154,4 @@ void ShowHeroCurtains(UiWindow* window, int mode) {
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
 
-} // namespace widescreen
+} // namespace screen_layout

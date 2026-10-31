@@ -36,7 +36,7 @@ constexpr DWORD kCtfMon = 0;
 
 // The image's runs without a resolution of their own (H31): small captures and less GPU work per game, in a window
 // (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way. The window's
-// shape decides the interface layout (src/game/ui_widescreen.h), so each install's runs take the shape of the
+// shape decides the interface layout (src/game/screen_layout.h), so each install's runs take the shape of the
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
 // same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
 // apart as the image's start-up tells the profiles apart (src/standalone/startup.cpp): Rebirth's has starter\addon.dll

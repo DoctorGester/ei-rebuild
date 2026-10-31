@@ -1,5 +1,5 @@
 // The platform layer on Windows (platform/platform.h; docs/notes/platform.md), in its sections' order: every area but
-// those of SDL3 (src/platform/sdl; in the harness's builds platform_win32_window.cpp), the sound and the movies. Most
+// those of SDL3 (src/platform/sdl), the sound and the movies. Most
 // calls go through game.exe's import slots (gameapi::X), as the game made them: the harness's routes and the image's
 // UTF-8 routes are in those slots. A call that never went through a slot calls the system directly.
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
@@ -54,8 +54,7 @@ std::string Utf8(std::wstring_view wide) {
 
 // ==== Clocks =========================================================================================================
 
-// The C library's local time (the clocks themselves are the window layer's: platform_sdl.cpp,
-// platform_win32_window.cpp).
+// The C library's local time (the clocks themselves are platform_sdl.cpp's).
 
 namespace platform {
 
@@ -551,6 +550,22 @@ NativeInstance ProgramInstance() { return GetModuleHandleA(nullptr); }
 namespace platform {
 
 bool KeyName(int scan, char* name, int size) { return gameapi::GetKeyNameTextA(scan << 16, name, size) != 0; }
+
+// Directly: what Windows' layout maps the scan code to (the key messages' code; game.exe had no slot of it).
+int LayoutKey(int scan) {
+    const UINT code = static_cast<UINT>(scan & 0xFF) | ((scan & 0x100) ? 0xE000u : 0u);
+    return static_cast<int>(MapVirtualKeyExW(code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0)));
+}
+
+// Directly, as LayoutKey: what the layout types with Ctrl held (flag 4: a dead key's state left as it was); only a
+// control character counts.
+int LayoutControlCharacter(int key, int scan) {
+    BYTE state[256] = {};
+    state[VK_CONTROL] = 0x80;
+    wchar_t out[8] = {};
+    const int n = ToUnicodeEx(static_cast<UINT>(key), static_cast<UINT>(scan & 0xFF), state, out, 8, 4, GetKeyboardLayout(0));
+    return n == 1 && (out[0] < 0x20 || out[0] == 0x7F) ? out[0] : 0;
+}
 
 // Directly: the game's editor called it so (game.exe has no slot of it).
 bool IsLetter(std::uint32_t character) { return character <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(character)); }
