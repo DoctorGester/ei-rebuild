@@ -54,6 +54,11 @@
 
 using options::GameOptions;
 
+void InitGameServerPointer();   // net_session.cpp
+void InitGameClientPointer();
+void InitCodeTables();   // net_coder.cpp
+void BuildWeatherNoise();   // weather_noise.cpp
+
 namespace app {
 
 // ---- The application's globals that the static initialisers set ------------------------------------
@@ -523,6 +528,16 @@ int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
 int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* commandLine, int show) {
+    // What game.exe's static initialisers did beyond setting values, in their order: the exit functions go in the
+    // game's order, not at our CRT's.
+    ::InitGameServerPointer();
+    ::InitGameClientPointer();
+    ::InitCodeTables();
+    std::atexit(app::ReleaseMouseAtExit);
+    net::StartWinsock();
+    std::atexit(net::CleanUpWinsock);
+    ::BuildWeatherNoise();
+
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.

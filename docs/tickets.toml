@@ -7069,7 +7069,7 @@ note = "Merge current main into macos-port and rebuild the macOS side on main's 
 id = "LX1"
 title = "Linux build: POSIX platform, sokol on OpenGL 4.5, one CMakeLists.txt, Linux workflow"
 group = "port"
-note = "User 2026-10-31: start a Linux build, adopting macos-port's POSIX platform layer where it fits. Takes src/platform/posix/platform_posix.cpp (without its macOS parts), src/standalone/posix/host.cpp and tests/port from macos-port; adds src/platform/graphics_gl.cpp (an SDL GL 4.5 core context, glClipControl from the upper left with depth 0..1, the drawable a framebuffer of ours blitted upside down), graphics::ApplyViewport / ApplyScissorRect, sokol-shdc's glsl430 output; CMakeLists.txt builds both systems (no separate native cmake file). Check: Linux builds with gcc, ctest under xvfb (port_platform; port_render: the glyph cases on OpenGL, 0 pixels differ), ei-rebuild --check; Windows suites the same. Left: LX2-LX4. docs/notes/linux.md."
+note = "Done 2026-10-31: on main (b35f2d9, 0b806d9); Windows suites the same, the Linux workflow green (gcc build, ctest under xvfb). Left: LX2-LX4."
 
 [[ticket]]
 id = "LX2"
@@ -7091,3 +7091,16 @@ title = "Linux: keyboard layouts and key names from the system"
 group = "port"
 depends = ["LX1"]
 note = "platform_posix.cpp's LayoutKey / LayoutControlCharacter give nothing (sdl_keys.cpp's US rules) and KeyName is SDL's English name. Through SDL's keymap (SDL_GetKeyFromScancode with the modifiers) the layout's key codes and Ctrl characters, as PL9a did on Windows; key names in the layout's language if SDL or xkb gives them. Check by hand with a Russian layout, or a Linux reference for ei_input_check's cases."
+
+[[ticket]]
+id = "PL13"
+title = "One main.cpp for both systems: src/standalone's start-up and game.exe scaffolding deleted"
+group = "port"
+note = "User 2026-10-31: why is any of src/standalone needed. Of 1,500 lines, about 15 did work: src/main.cpp (both systems) enters the game folder, redirects the game paths under EI_GAME_ROOT, loads the Rebirth flags (moved into src/hook/rebirth_hook.cpp), starts the renderer's device and calls WinMain with what follows '--' (platform::ArgumentsAfterSeparator). game.exe's static initialisers (static_init.cpp, 1,143 generated lines doing 8 calls; static_exit.cpp, empty) are WinMain's first lines and g_dampScale's initialiser; tools/gen_static_init.py, config/static_init_ports.csv and named_data's --emit went. Deleted: the start-up action registry (no users), the handlers of jumps into game.exe's code (InGameText, OnOldCode, ReportNoCode, DescribeCode), include/ei/hook.h, both host.cpp, --check, the unhandled-exception log line, SetProcessDPIAware (SDL sets the awareness). image_imports.cpp moved to src/platform/win32 and resolves from System32 only; the profiler (EI_PROFILE) and thread_context.h moved to the harness / platform. Check: Windows suites the same; Linux ctest."
+
+[[ticket]]
+id = "PL14"
+title = "The harness redirects files, clocks and sockets in its own platform backend; game.exe's import slots go"
+group = "port"
+depends = ["PL13"]
+note = "After PL12 and PL13 the import slots (image_imports.cpp/.inc, lib/import_table.h, lib/import_prototypes.h, win32/gameapi.h/.cpp, tools/gen_iat.py) exist only so that the harness can patch them (its file overlay, clocks, sockets, registry, message boxes, UTF-8 routes). Move each redirection into the harness's platform side (as PL12 did for the window, events and clocks: tests/verify/harness_platform.cpp answering platform:: calls), then have platform_win32.cpp call the system directly and delete the slot machinery. Goldens the same."

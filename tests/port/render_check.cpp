@@ -2,7 +2,6 @@
 // the native renderer: the game's renderer starts itself on OpenGL at the first canvas. Exit code 0 when all pass.
 #include "render/glyph_cases.h"
 #include "sokol_gfx.h"
-#include "standalone/static_init.h"
 
 #include <cstdio>
 #include <string>
@@ -20,7 +19,6 @@ void Check(bool ok, const std::string& what) {
 } // namespace
 
 int main() {
-    ei::static_init::RunStaticInitialisers();
     glyph_cases::Run(Check);
     sg_commit();
     std::printf("render_check: %d checks, %d failed\n", g_checks, g_failures);

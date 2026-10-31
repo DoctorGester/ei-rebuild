@@ -102,6 +102,17 @@ std::string ProgramPath() {
     return size > 0 ? path.substr(0, static_cast<std::size_t>(size)) : std::string{};
 }
 
+std::string ArgumentsAfterSeparator(int argc, char** argv) {
+    std::string arguments;
+    int i = 1;
+    while (i < argc && std::strcmp(argv[i], "--") != 0) ++i;
+    for (++i; i < argc; ++i) {
+        if (!arguments.empty()) arguments += ' ';
+        arguments += argv[i];
+    }
+    return arguments;
+}
+
 std::string ExePath() { return GamePath(ProgramPath()); }
 
 std::string CurrentFolder() { return GamePath(fs::current_path()); }

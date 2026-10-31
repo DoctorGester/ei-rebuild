@@ -108,6 +108,22 @@ std::string CurrentFolder() {
     return Fitted(std::move(folder), length);
 }
 
+std::string ArgumentsAfterSeparator(int, char**) {
+    const char* p = ::GetCommandLineA();
+    while (*p) {
+        while (*p == ' ' || *p == '\t') ++p;
+        const char* token = p;
+        bool quoted = false;
+        for (; *p && (quoted || (*p != ' ' && *p != '\t')); ++p)
+            if (*p == '"') quoted = !quoted;
+        if (p - token == 2 && token[0] == '-' && token[1] == '-') {
+            while (*p == ' ' || *p == '\t') ++p;
+            return p;
+        }
+    }
+    return {};
+}
+
 std::string ProgramPath() {
     std::wstring path(MAX_PATH, L'\0');
     for (;;) {

@@ -145,16 +145,13 @@ see in verify runs). Each has its own platform function that calls the system di
 - The settings file (settings.cpp: next to the exe or in the user's data folder, whatever a harness run
   redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
   its lock is a `std::mutex`.
-- The standalone's start-up (startup.cpp, standalone_main.cpp's `EnterGameFolder` and exit paths): `ProgramPath`,
-  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt`, `ProgramInstance` and `EndProcess`
-  (TerminateProcess, then `Sleep(INFINITE)` as the old code, so the call never returns). `app::GameMain` takes
+- The program's start-up (src/main.cpp, src/hook/rebirth_hook.cpp): `ProgramPath`, `ArgumentsAfterSeparator`,
+  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt` and `ProgramInstance`. `app::GameMain` takes
   `platform::NativeInstance`.
-- The win32 entry stays on the list: standalone_main.cpp, host.cpp and image_imports.cpp are the loader (the
-  vectored and unhandled exception handlers, `VirtualProtect` on another module's import table, `GetModuleHandleA` /
-  `GetProcAddress` of the DLLs the slots resolve to, the DPI call, the process id for the log; image_imports.cpp also
-  puts the UTF-8 routes in the slots); lib/import_table.h and lib/import_prototypes.h are game.exe's import table as a
-  struct. A port
-  has its own entry; nothing of the game's code is in them.
+- image_imports.cpp (src/platform/win32) is the loader of game.exe's import slots (`GetProcAddress` of the DLLs the
+  slots resolve to, the UTF-8 routes in the slots, a trap for the rest); lib/import_table.h and
+  lib/import_prototypes.h are game.exe's import table as a struct, on the list of files outside src/platform that
+  name Windows' types.
 
 ## Window and events
 
@@ -469,7 +466,8 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 
 ## Left for the next areas
 
-- standalone_main.cpp, host.cpp and image_imports.cpp: the loader (see "Files and the direct calls"); they stay.
+- image_imports.cpp, import_table.h and gameapi.h: game.exe's import slots, which the harness redirects; they go
+  when the harness redirects the files, clocks and sockets in its own platform backend.
 - The renderer's own timings are `std::chrono::steady_clock` (render_internal.h's `Ticks` / `kMsPerTick`), not the
   game's clocks; the log (src/hook/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
   through `FormatLocalTime`).

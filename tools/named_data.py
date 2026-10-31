@@ -10,7 +10,7 @@ The code then names the global (kSlotXs[i]), not the address (GamePointer<const 
 range's bytes (the image's copy of the sections is zero: C20t).
 
 --check (build.cmd; reads no game.exe: the comparisons with its bytes and cells were tools/check_against_exe.cmd's until
-C25d, the proof of each definition when it was made, `--emit` runs it in reverse):
+C25d, the proof of each definition when it was made):
   * every tagged initialiser is well formed: its numbers pack by the declared element type (TYPES; a struct type its
     fields' formats, nested braces flattened), it lies in .rdata past the import table or .data and its zero-filled
     tail, no addon.dll site but NAMED_ADDON_SITES (the ones the image writes itself), no two ranges overlapping, and one
@@ -24,12 +24,8 @@ C25d, the proof of each definition when it was made, `--emit` runs it in reverse
     (config/vtables.csv) or an unread object (config/unread_data.csv). What the image's code does not name,
     nothing reads: the zero bytes are never seen.
 
-The bytes a definition replaces are game.exe's as its static initialisers leave them (C18j): their stores,
-float folds and fills in list order (gen_static_init.stored_values; tools/gen_static_init.py leaves those statements
-out of static_init.cpp, the definition's initialiser takes their place). A call's stored result is unknown: such a
-range is ported by hand on the name, unless the generated code stores it into the name
-(gen_static_init.GENERATED_NAMES): then the definition is the zero start. The unread objects of config/unread_data.csv (written
-by gen_static_init.py: only their initialiser stores into them) get the same proof that nothing reaches them.
+The bytes a definition replaced were game.exe's as its static initialisers left them (C18j). The unread objects of
+config/unread_data.csv (only their initialiser stored into them) get the same proof that nothing reaches them.
 
 A .data or .bss object (C18d) takes the same form; it is constexpr when no code of ours writes it (most .data tables:
 the original's arrays lacked const), plain when the code writes it (`float g_bagSizes[12] = /*007A9BFC*/ {};`).
@@ -42,22 +38,14 @@ the kinds given also list their addresses.
 --refs BEGIN [END]: the original's code reaching game.exe's data in [BEGIN, END] (its absolute operands), by function:
 the extent of an object and every function that reads or writes it directly.
 
---emit ADDRESS TYPE COUNT NAME (C18o): prints the tagged definition of COUNT elements of TYPE (a TYPES key; COUNT
-'4x10' for rows) at ADDRESS from game.exe's bytes as the static initialisers leave them, by the same packing --check
-uses run in reverse (reads game.exe): numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
-string's start as string literals, pointers to a named range's start by its name, zero as nullptr. What it cannot name (any other code: name the
-function of ours by hand) prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
-it then packs the text back and says where it differs. The declaration is `constexpr` (a string table
-`const char* const`): drop it for a table the code writes. Paste it, run --update.
-
 --rewrite NAME [--apply] (C18o): in src/, the reads of a named range (in config/named_data.csv: run --update first)
 by address, `GamePointer<T>(0x...)` / `GameData<T>(0x...)` (a `DataId(0x...)` argument too) where T is the element
 type and the address an element's start, become the name (`NAME`, `(NAME + k)`, `NAME[k]`); the other mentions
 (DataId constants, other types, a field's address, tests/) are listed for a person. Without --apply it only lists.
---check stays the proof of both steps' form; the emitted text packs back to game.exe's bytes (emit says where it differs).
+--check stays the proof of its form.
 
 usage: python tools/named_data.py --check | --update | --split [KIND ...] | --refs BEGIN [END]
-                                  | --emit ADDRESS TYPE COUNT NAME | --rewrite NAME [--apply]  [--exe game.exe]
+                                  | --rewrite NAME [--apply]  [--exe game.exe]
 """
 import argparse, collections, csv, os, re, struct, sys
 
@@ -514,25 +502,13 @@ def csv_text(defs):
 
 
 class Unread:
-    """An object of config/unread_data.csv (tools/gen_static_init.py): only its static initialiser stored into it."""
+    """An object of config/unread_data.csv: only its static initialiser stored into it."""
     def __init__(self, address, size, initialiser):
         self.address, self.size = address, size
         self.name, self.path = f'the unread object of initialiser {initialiser}', 'config/unread_data.csv'
 
     def where(self):
         return self.path
-
-
-def initialised(img_path):
-    """game.exe's data as its static initialisers leave it: the image with their stores, float folds and fills
-    applied (gen_static_init.stored_values; calls are not run), and the dwords a call's result went to (unknown)."""
-    import gen_static_init
-    exe = gen_static_init.Image(img_path)
-    decoded, bad = gen_static_init.decode_all(exe)
-    if bad:
-        return None, set()
-    values = gen_static_init.stored_values(exe, decoded)
-    return values, {a for a, v in values.items() if v is None}
 
 
 def check(update):
@@ -574,12 +550,12 @@ def check(update):
         for a, b in addon_sites():
             if a < r.address + r.size and r.address < b and a not in RETIRED_ADDON_SITES:
                 problems.append(f'{r.where()}: {r.name} overlaps the addon.dll site {a:08X}: that slot is written')
-    # The unread objects (config/unread_data.csv, gen_static_init.py): the same proof; no named range overlaps one.
+    # The unread objects (config/unread_data.csv): the same proof; no named range overlaps one.
     unread = [Unread(a, n, i) for a, n, i in read_unread()]
     for u in unread:
         for d in good:
             if d.address < u.address + u.size and u.address < d.address + d.size:
-                problems.append(f'{d.where()}: {d.name} overlaps {u.name} at {u.address:08X} (run tools/gen_static_init.py)')
+                problems.append(f'{d.where()}: {d.name} overlaps {u.name} at {u.address:08X}')
     reached = good + retired + unread
 
     def inside(a):
@@ -617,20 +593,7 @@ def check(update):
     return 1 if problems else 0
 
 
-# ---- --emit: a tagged initialiser from game.exe's bytes (C18o) ---------------------------------------------------
-
-def initialised_image(img, img_path):
-    """game.exe's image as the static initialisers leave it (what --check compares with), and the dwords a call's
-    result went to (unknown)."""
-    values, unknown = initialised(img_path)
-    import gen_static_init
-    generated_stores = set(gen_static_init.GENERATED_NAMES)
-    img = bytearray(img)
-    for a, v in (values or {}).items():
-        if v is not None:
-            struct.pack_into('<I', img, a - BASE, v)
-    return img, unknown
-
+# ---- the initialisers' packing ---------------------------------------------------------------------------------------
 
 def codes_of(fmt):
     """The field codes of a TYPES format: one per character, or the tuple's (a char array field is 'Ns')."""
@@ -660,20 +623,6 @@ def c_literal(data):
         else:
             out.append(f'\\{b:03o}')
     return '"' + ''.join(out) + '"'
-
-
-def short_float(value, code):
-    """The shortest decimal that packs back to the same float ('f') or double ('d') bits."""
-    bits = struct.pack('<' + code, value)
-    if value != value or value in (float('inf'), float('-inf')):
-        return None
-    for digits in range(1, 18):
-        text = f'{value:.{digits}g}'
-        if struct.pack('<' + code, float(text)) == bits:
-            break
-    if 'e' not in text and '.' not in text:
-        text += '.0'
-    return text + ('f' if code == 'f' else '')
 
 
 class Namer:
@@ -714,43 +663,6 @@ class Namer:
         return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is game.exe\'s data that is no string start and no named range'
 
 
-def emit_values(img, namer, address, fmt, count):
-    """The element texts (each a list of field texts) and the problems for a person."""
-    codes = codes_of(fmt)
-    at = address
-    elements, problems = [], []
-    for _ in range(count):
-        fields = []
-        for code in codes:
-            o = at - BASE
-            if code == 'P':
-                cell = struct.unpack_from('<I', img, o)[0]
-                token, problem = namer.name(cell)
-                if problem:
-                    problems.append(f'{at:08X}: {problem}')
-                fields.append(token)
-            elif code.endswith('s'):
-                width = int(code[:-1])
-                raw = bytes(img[o:o + width])
-                text = raw.split(b'\0', 1)[0]
-                if raw[len(text):].strip(b'\0') or len(text) == width:
-                    problems.append(f'{at:08X}: char[{width}] holds bytes past its text: no string literal')
-                fields.append(c_literal(text))
-            elif code in 'fd':
-                value = struct.unpack_from('<' + code, img, o)[0]
-                text = short_float(value, code)
-                if text is None:
-                    problems.append(f'{at:08X}: {value} has no literal; write its bits (std::bit_cast)')
-                    text = '0'
-                fields.append(text)
-            else:
-                value = struct.unpack_from('<' + code, img, o)[0]
-                fields.append(str(value) if code.islower() or value < 0x10000 else f'0x{value:X}')
-            at += code_size(code)
-        elements.append(fields)
-    return elements, problems, at - address
-
-
 def layout(elements, single, indent='    ', width=120):
     """The initialiser's lines: a scalar table flows, a struct table has one braced element per line."""
     items = [f[0] if single else '{' + ', '.join(f) + '}' for f in elements]
@@ -769,69 +681,6 @@ def layout(elements, single, indent='    ', width=120):
     lines[-1] = lines[-1].rstrip(',')
     return lines
 
-
-def emit(img, img_path, address, type_, shape, name):
-    """--emit: prints a tagged definition of `shape` (a count, or rows: '4x10') elements of `type_` at `address` from
-    game.exe's bytes (as the static initialisers leave them), then packs it back as --check would."""
-    fmt = element_format(type_, address)
-    if fmt is None:
-        sys.exit(f'named_data: {type_} is no element type tools/named_data.py knows (TYPES)')
-    bounds = [int(n, 0) for n in shape.lower().split('x')]
-    count = 1
-    for n in bounds:
-        count *= n
-    img, unknown = initialised_image(img, img_path)
-    sources = srcscan.load_sources()
-    namer = Namer(img, sources)
-    elements, problems, size = emit_values(img, namer, address, fmt, count)
-    late = sorted(a for a in unknown if address <= a < address + size)
-    if late:
-        problems.append(f'{late[0]:08X}: a static initialiser stores a call\'s result here: port it by hand')
-    single = len(codes_of(fmt)) == 1
-    pointer = type_.endswith('*')
-    if type_ == 'char*':
-        decl = f'const char* const {name}'
-    else:
-        decl = f'constexpr {type_} {name}'
-    if count == 1 and single:
-        value = elements[0][0]
-        body = value if pointer and value.startswith('"') else '{' + value + '}'
-        lines = [f'{"constexpr const char*" if type_ == "char*" else "constexpr " + type_} {name} = /*{address:08X}*/ '
-                 f'{body};']
-        dims = ''
-    else:
-        dims = ''.join(f'[{n}]' for n in bounds)
-        row = bounds[-1] if len(bounds) > 1 else count
-        inner = []
-        for r in range(0, count, row):   # rows of the last bound, each braced (one bound: the list itself)
-            part = layout(elements[r:r + row], single, '        ' if len(bounds) > 1 else '    ')
-            if len(bounds) > 1 and len(part) == 1 and len(part[0]) < 112:
-                part = ['    {' + part[0].strip() + '},']
-            elif len(bounds) > 1:
-                part = ['    {'] + part + ['    },']
-            inner += part
-        if len(bounds) > 1:
-            inner[-1] = inner[-1].rstrip(',')
-        lines = [f'{decl}{dims} = /*{address:08X}*/ {{'] + inner + ['};']
-        body = '{' + '\n'.join(lines[1:-1]) + '}'
-    print('\n'.join(lines))
-    # The proof: pack the text back as --check does.
-    d = Definition('<emit>', 1, type_, name, dims, address, body)
-    d.pack(img, Targets(definitions(sources), sources))
-    want = bytes(img[address - BASE:address - BASE + size])
-    if d.problem:
-        problems.append(f'packing it back: {d.problem}')
-    elif d.packed != want:
-        at = next((i for i in range(min(len(want), len(d.packed))) if d.packed[i] != want[i]), min(len(want), len(d.packed)))
-        problems.append(f'packing it back differs at {address + at:08X}')
-    lo, hi = address, address + size
-    print(f'// named_data --emit: {count} x {type_} = {size} byte(s), {lo:08X}..{hi:08X}', file=sys.stderr)
-    for p in problems:
-        print(f'// named_data --emit: for a person: {p}', file=sys.stderr)
-    return 1 if problems else 0
-
-
-# ---- --rewrite: the reads of a just-named range by the name (C18o) ------------------------------------------------
 
 READS = re.compile(r'(?:\bei::)?\b(GamePointer|GameData)\s*<\s*([^<>()]*?)\s*>\s*\(\s*(?:(?:ei::)?DataId\s*\(\s*)?'
                    r'0[xX]00([0-9A-Fa-f]{6})\s*\)?\s*\)')
@@ -907,9 +756,6 @@ def rewrite(name, apply_):
 
 # ---- the split of what is left (C18's measure) -------------------------------------------------------------------
 
-GENERATED = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
-
-
 def split(img, wanted):
     def dw(a):
         return struct.unpack_from('<I', img, a - BASE)[0]
@@ -944,7 +790,7 @@ def split(img, wanted):
     kinds = {a: kind(a) for a in files}
     owner = {}
     for a, fs in files.items():
-        hand = sorted(fs - set(GENERATED))
+        hand = sorted(fs)
         owner[a] = 'generated static init / exit only' if not hand else hand[0] if len(hand) == 1 else 'several files'
     print(f'{len(files)} distinct game data addresses in src/ (progress.py)')
     print('by kind: ' + ', '.join(f'{k} {n}' for k, n in collections.Counter(kinds.values()).most_common()))
@@ -990,15 +836,13 @@ def main():
     ap.add_argument('--update', action='store_true')
     ap.add_argument('--split', nargs='*', metavar='KIND')
     ap.add_argument('--refs', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the code reaching game.exe\'s data there')
-    ap.add_argument('--emit', nargs=4, metavar=('ADDRESS', 'TYPE', 'COUNT', 'NAME'),
-                    help='print a tagged definition from game.exe\'s bytes')
     ap.add_argument('--rewrite', metavar='NAME', help='list the reads of a named range to rewrite to its name')
     ap.add_argument('--apply', action='store_true', help='with --rewrite: write the rewrites')
     ap.add_argument('--exe')
     a = ap.parse_args()
     if a.rewrite:
         return rewrite(a.rewrite, a.apply)
-    if not (a.split is not None or a.refs or a.emit):
+    if not (a.split is not None or a.refs):
         return check(a.update)   # --check, --update: no game.exe
     try:
         path = exe_path.find_exe(a.exe)
@@ -1007,10 +851,7 @@ def main():
         sys.exit(f'named_data: {e}')
     if a.split is not None:
         return split(img, set(a.split))
-    if a.refs:
-        return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
-    address, type_, shape, name = a.emit
-    return emit(img, path, int(address, 16), type_, shape, name)
+    return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
 
 
 if __name__ == '__main__':

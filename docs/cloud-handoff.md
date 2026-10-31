@@ -85,8 +85,10 @@ Read before changing code:
   - `tools/comments.py check`
   - `tools/tickets.py`
   - `tools/gen_iat.py --check`
-  - `tools/gen_static_init.py --check-ports` (needs `pip install capstone==5.0.7`)
-  - `tools/data_seam.py --check`
+  - `tools/data_seam.py --check`, `tools/named_data.py --check`, `tools/check_platform.py`,
+    `tools/gen_settings_doc.py --check`
+- **Linux builds here too** (docs/notes/linux.md): `cmake -S . -B build/linux -G Ninja` and `xvfb-run -a ctest` in
+  it, after the packages and sokol-shdc that note lists.
 
 ## Merging
 

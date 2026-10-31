@@ -4,7 +4,6 @@
 
 #include "../../src/game/game_data.h"
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "image/image_side.h"
 
@@ -550,7 +549,7 @@ const unsigned* g_traceFrames = nullptr;
 unsigned g_randomFrame = ~0u;
 CRITICAL_SECTION g_randomLock;
 
-// One draw: "<frame> [(other thread) ][<module>+]<caller> <value>[ <what>] #<where>" (<module>: ei::OwnModuleName). <where> is the
+// One draw: "<frame> [(other thread) ][<module>+]<caller> <value>[ <what>] #<where>" (<module>: ei-rebuild). <where> is the
 // generator's state after the draw: ISAAC's position in its stream (cc * 256 + 255 - count; cc
 // counts the refills), rand()'s seed. Where a function ran the original on live state besides ours (the verify
 // wrappers until S21d), the generators were put back between them, so one draw could show up twice; the position tells a repeat from a new draw
@@ -564,7 +563,7 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
         g_randomFrame = frame;
     }
     std::fprintf(g_randomFile, "%u %s%s%s%X %08X%s #%X\n", frame, OnMainThread() ? "" : "(other thread) ",
-                 ours ? ei::OwnModuleName() : "", ours ? "+" : "", unsigned(ours ? caller - g_selfBase : caller), value,
+                 ours ? "ei-rebuild" : "", ours ? "+" : "", unsigned(ours ? caller - g_selfBase : caller), value,
                  what, unsigned(where));
     LeaveCriticalSection(&g_randomLock);
 }

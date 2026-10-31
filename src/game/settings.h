@@ -31,7 +31,7 @@ namespace settings {
 inline constexpr const char* kFileName = "ei_settings.ini";
 
 // The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's patches
-// (src/standalone/startup.cpp, include/ei/rebirth.h), its switch (mod_folders.cpp) and its console lines
+// (src/hook/rebirth_hook.cpp, include/ei/rebirth.h), its switch (mod_folders.cpp) and its console lines
 // (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";
@@ -138,7 +138,7 @@ void SetString(const char* section, const char* name, const std::string& value);
 // Writes the file when a value changed (.tmp, then moved over it; not in a session on the defaults in memory).
 void Save();
 
-// A change of each value read (the harness's and the start-up's redirects of the game paths, standalone_main.cpp):
+// A change of each value read (the harness's and the start-up's redirects of the game paths, src/main.cpp):
 // called in the order added with the value's name and text, which it may change.
 using ReadFilter = void (*)(const char* name, std::string& value);
 void AddReadFilter(ReadFilter filter);

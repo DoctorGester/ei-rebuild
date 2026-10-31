@@ -9,7 +9,6 @@
 #include "harness_pair.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 #include "image/image_side.h"
 
 

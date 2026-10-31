@@ -10,7 +10,6 @@
 
 #include "platform/platform.h"
 
-#include "ei/hook.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

@@ -41,8 +41,7 @@ cmake --build build/linux
 - `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on OpenGL against their CPU
   reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11).
 
-`ei-rebuild --check` runs the start-up (the startup actions and static initialisers) and stops. The Linux workflow
-(.github/workflows/linux.yml) runs all three on GitHub's Ubuntu runner for every push.
+The Linux workflow (.github/workflows/linux.yml) runs both on GitHub's Ubuntu runner for every push.
 
 ## Run
 

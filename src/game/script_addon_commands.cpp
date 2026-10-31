@@ -21,7 +21,6 @@
 
 #include "lib/str.h"
 
-#include "ei/hook.h"
 
 #include <bit>
 #include <cstdint>

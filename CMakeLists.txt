@@ -33,7 +33,7 @@ set(EI_INLINE 2 CACHE STRING "Inline expansion level /Ob<n> of the release and v
 string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 endif()
 
-# Two builds (build.cmd): `release` is the product, the standalone image (ei-rebuild.exe, the whole game); `verify`
+# Two builds (build.cmd): `release` is the product (ei-rebuild.exe, the whole game); `verify`
 # is the harness build, the same image with the harness linked in (tests/verify: scenario runs of the image). Until H40
 # it also built ei_harness.dll, the harness in the original game.exe (the tag original-oracle). On x64 (build.cmd
 # verify-x64) that build's ei_launch starts the x64 image (run_all.py --x64).
@@ -161,22 +161,11 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its one resource
-# is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used. A windowed program
-# (no console) whose entry is main. On Linux the game's host is src/standalone/posix/host.cpp (data from EI_GAME_ROOT,
-# else beside the executable).
+# is its version information (src/main.rc, C23): game.exe's own resources are not used. A windowed program (no console)
+# whose entry is main (src/main.cpp, both systems).
+set(EI_PROGRAM_SOURCES src/hook/log.cpp src/hook/rebirth_hook.cpp)
 if(WIN32)
-    add_executable(ei-rebuild
-        src/hook/log.cpp
-        src/hook/profile.cpp
-        src/hook/rebirth_hook.cpp
-        src/hook/standalone.cpp
-        src/standalone/host.cpp
-        src/standalone/host.rc
-        src/standalone/image_imports.cpp
-        src/standalone/standalone_main.cpp
-        src/standalone/startup.cpp
-        src/standalone/static_exit.cpp
-        src/standalone/static_init.cpp)
+    add_executable(ei-rebuild src/main.cpp src/main.rc ${EI_PROGRAM_SOURCES})
     set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
     if(EI_ASAN)
@@ -184,17 +173,15 @@ if(WIN32)
         target_link_options(ei-rebuild PRIVATE /LARGEADDRESSAWARE)
     else()
         # The exe's own imports (Direct3D 11, DXGI, ...) from System32 only: a game folder may hold a wrapper of the
-        # same name (dgVoodoo's DLLs beside the original's game.exe). game.exe's imports load from the game folder on
-        # purpose (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
+        # same name (dgVoodoo's DLLs beside the original's game.exe); so do game.exe's (image_imports.cpp). ASan's
+        # runtime is beside the exe, so its build searches as usual.
         target_link_options(ei-rebuild PRIVATE /DEPENDENTLOADFLAG:0x800)
     endif()
 else()
-    set(EI_STARTUP_SOURCES src/hook/log.cpp src/hook/rebirth_hook.cpp src/standalone/startup.cpp
-        src/standalone/static_exit.cpp src/standalone/static_init.cpp)
-    add_executable(ei-rebuild ${EI_STARTUP_SOURCES} src/standalone/posix/host.cpp)
+    add_executable(ei-rebuild src/main.cpp ${EI_PROGRAM_SOURCES})
 endif()
 target_include_directories(ei-rebuild PRIVATE include src)
-# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/standalone/startup.cpp):
+# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/hook/rebirth_hook.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
 # into config/rebirth_profile.inc in the build folder.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini)
@@ -206,7 +193,7 @@ foreach(line ${EI_REBIRTH_PROFILE_LINES})
 endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
-set_source_files_properties(src/standalone/startup.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
+set_source_files_properties(src/hook/rebirth_hook.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md): its shared part, linked into this exe with the image's side
     # (tests/verify/image, which calls our code).
@@ -254,7 +241,7 @@ if(NOT WIN32)
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)
-    add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_STARTUP_SOURCES})
+    add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES})
     target_include_directories(ei_render_check PRIVATE include src tests third_party/sokol)
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" ei_render ei_platform)
     add_test(NAME port_render COMMAND ei_render_check)
@@ -267,6 +254,7 @@ endif()
 if(NOT EI_X64 OR EI_HARNESS)
     add_executable(ei_launch tools/launcher/launch.cpp)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
+    target_include_directories(ei_launch PRIVATE src)
 endif()
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:

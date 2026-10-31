@@ -13,7 +13,4 @@ void Log(const char* format, ...);
 // can go in parallel), else the exe's folder. Inputs (ei_settings.ini) stay next to the exe.
 std::string OutputPath(const char* name);
 
-// Starts the sampler when EI_PROFILE=1, from the thread that runs WinMain.
-void InstallProfiler();
-
 } // namespace ei

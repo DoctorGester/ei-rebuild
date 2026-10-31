@@ -7,7 +7,6 @@
 #include "render_ui.h"
 
 #include "../hook/log.h"
-#include "ei/hook.h"
 
 #include "render_state.h"
 #include "../game/texture.h"

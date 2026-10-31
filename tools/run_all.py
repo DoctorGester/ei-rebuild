@@ -13,8 +13,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
                    --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's marks and every
                    scenario with a step for one install, rebirthflags, addonpath or widescreen) or the named
-                   scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both. An address
-                   with no rewrite ends the run: "standalone: no code at ...".
+                   scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both.
   drop-in          a scenario with a line "# drop-in: <why>" (tests/scenarios/dropin_*.txt) checks the exe dropped
                    into a game folder (S23a; docs/notes/standalone.md, "The drop-in exe"): ei_launch sees the line and
                    (as with --drop-in) copies the build's ei-rebuild.exe into <run folder>\\dropin, a folder made

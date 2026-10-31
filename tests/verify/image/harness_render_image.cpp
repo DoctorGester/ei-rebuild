@@ -5,7 +5,6 @@
 #include "../harness_capture.h"
 
 #include "../../../src/hook/log.h"
-#include "ei/hook.h"
 
 #include "platform/win32/graphics_win32.h"
 #include "render/render.h"

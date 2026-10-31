@@ -391,7 +391,7 @@ Document Defaults(int width, int height) {
     set(kRenderer, "Anisotropy", IntText(16));
     set(kRenderer, "PerfOverlay", BoolText(false));
 
-    // Rebirth's patches (startup.cpp): none named, each takes the game folder's profile.
+    // Rebirth's patches (rebirth_hook.cpp): none named, each takes the game folder's profile.
     d.Comment(kPatches, "Rebirth's patches, name = true or false (docs/settings.md lists them). A patch not named here takes");
     d.Comment(kPatches, "the game folder's profile: Rebirth's in a Rebirth install, else none. NPlayers, Pause: EI_Plugin's");
     d.Comment(kPatches, "player count and pause mode. SecondMaster: a second master server, host[:port].");

@@ -370,7 +370,6 @@
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
-#include "ei/hook.h"
 #include "harness_imports.h"
 #include "harness_camera.h"
 #include "harness_capture.h"
@@ -399,8 +398,7 @@
 #include "harness_utf8.h"
 
 #include "../../src/hook/log.h"
-#include "../../src/hook/thread_context.h"
-#include "ei/hook.h"
+#include "platform/win32/thread_context.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "harness_objects.h"
@@ -620,13 +618,13 @@ void OnConsoleLine(const char* text) {
 
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
-// and the code addresses found on the stack (game.exe addresses as is, ours as <module>+offset: ei::OwnModuleName).
+// and the code addresses found on the stack (ours as ei-rebuild+offset, others as they are).
 // First-chance, so exceptions the game handles itself show up too; only the first few are logged.
 std::uintptr_t g_selfBase, g_selfEnd;
 
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
-    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s %s+%X", label, ei::OwnModuleName(), unsigned(a - g_selfBase));
+    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei-rebuild+%X", label, unsigned(a - g_selfBase));
     else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
         HMODULE m = nullptr;
         char name[MAX_PATH] = "";
@@ -791,7 +789,7 @@ const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
 // of is copied there first), and a read takes that copy when there is one, else the install's file.
 // Nothing under the install is ever modified. Deleting or moving an install file only affects the
 // overlay copy (a move of an install file becomes a copy).
-char g_rootDirs[2][MAX_PATH];   // the working directory at start and the game folder
+char g_rootDirs[2][MAX_PATH];   // the game folder (install::GameFolder) and the settings' one
 
 bool UnderRoot(const char* full, const char* root, const char** relative) {
     std::size_t n = std::strlen(root);
@@ -1915,16 +1913,6 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     }
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_EXECUTE_HANDLER;
-}
-
-// The standalone image reached game code with no rewrite (src/hook/standalone_main.cpp, which ends the process
-// after this): the run fails naming the address.
-void EndRunOnMissingCode(const char* what) {
-    g_failures.push_back(std::string("standalone: ") + what + " (ei-rebuild.log)");
-    if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
-        WaitForSingleObject(writer, 3000);
-        CloseHandle(writer);
-    }
 }
 
 // A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
@@ -3696,7 +3684,7 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
-        ei::SetMissingCodeHandler(&EndRunOnMissingCode);
+        ei::InstallProfiler();   // EI_PROFILE=1: samples this thread from here on
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA), false);
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW), false);
         noforeground::Install();
@@ -3708,7 +3696,8 @@ struct Harness {
         if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
         CreateDirectoryA(g_savesDir, nullptr);
         Log("harness: %lld MB free on the run folder's disk", crash::FreeMegabytes(g_savesDir));
-        if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
+        if (!WideCharToMultiByte(CP_ACP, 0, install::GameFolder().c_str(), -1, g_rootDirs[0], MAX_PATH, nullptr, nullptr))
+            g_rootDirs[0][0] = '\0';
 
         PatchImport(&ImportTable::FindWindowA, &NoOtherGameWindow, g_findWindow);
         PatchImport(&ImportTable::SetForegroundWindow, &NoForeground, g_setForegroundWindow);

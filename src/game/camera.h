@@ -10,7 +10,6 @@
 #include "maths.h"
 #include "options.h"
 
-#include "ei/hook.h"
 
 #include <cstddef>
 #include <cstdint>

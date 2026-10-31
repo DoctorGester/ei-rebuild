@@ -6,7 +6,6 @@
 // More: docs/notes/comments-c22i.md, "persistent_globals.cpp".
 #include "object_tables.h"
 
-#include "ei/hook.h"
 
 #include <cstring>
 #include <iterator>

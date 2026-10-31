@@ -3,8 +3,9 @@
 // output folder. tools/profile_report.py turns that into time per function between harness steps.
 // The stack is scanned, not walked (the game's code omits frame pointers), so a stale return address
 // can show up as a caller; only words that follow a CALL instruction in our module count.
-#include "log.h"
-#include "thread_context.h"
+#include "harness_timing.h"
+#include "hook/log.h"
+#include "platform/win32/thread_context.h"
 
 #include <windows.h>
 #include <psapi.h>
@@ -108,7 +109,7 @@ DWORD WINAPI Sampler(void*) {
 
 } // namespace
 
-// From StandaloneMain before WinMain: the main thread.
+// From the harness's start (its static constructor, on the main thread).
 void InstallProfiler() {
     char value[4];
     if (!GetEnvironmentVariableA("EI_PROFILE", value, sizeof value) || value[0] != '1') return;
@@ -121,8 +122,7 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    HANDLE thread
- = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
+    HANDLE thread = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
     SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
     CloseHandle(thread);
     Log("profile: sampling the main thread into profile.txt");

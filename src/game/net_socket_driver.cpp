@@ -280,7 +280,7 @@ int MasterLinkTick(MasterLink* self) {
     }
 }
 
-void StartWinsock(std::uint16_t, void*) { sockets::Start(); }
+void StartWinsock() { sockets::Start(); }
 
 // The exit function of Winsock's static initialiser (WSAStartup 1.1): WSACleanup once the network
 // threads are gone. The original waits while their count is non-zero; only the thread procedure

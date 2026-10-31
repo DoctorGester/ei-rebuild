@@ -16,7 +16,7 @@ import exe_path  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VTABLES = os.path.join(ROOT, 'config', 'vtables.csv')
 BASE = 0x00400000
-CODE = (0x00401000, 0x0073A670)   # .text's bytes (include/ei/hook.h's kGameTextBegin / kGameTextEnd)
+CODE = (0x00401000, 0x0073A670)   # game.exe's .text
 
 
 def retired_vtables():

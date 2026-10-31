@@ -9,7 +9,7 @@
 //
 // Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour (C68) and have no flag. Every
 // flag is off by default and can be switched either way. Every flag is off until Reset, which the standalone image's
-// start-up calls once, before any rewritten code runs (src/standalone/startup.cpp; ei_vectors.exe, which replays the
+// start-up calls once, before any rewritten code runs (src/hook/rebirth_hook.cpp; ei_vectors.exe, which replays the
 // original's vectors, never does): the defaults, then the game folder's profile (Rebirth's in a Rebirth install:
 // config/rebirth_profile.ini; a launch that names its flags in EI_REBIRTH takes none), then the settings file's
 // [patches] (src/game/settings.h), then the EI_REBIRTH environment variable (ei_launch --rebirth) and a harness

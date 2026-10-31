@@ -37,42 +37,27 @@ copy or compare the text, none compares the pointer). Keep a string by address o
 
 ### How it runs
 
-- **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei-rebuild.exe` is an ordinary exe
-  (S18k: relocatable, ASLR as any exe; it may load anywhere, game.exe's range included) that reads no game.exe and
-  reserves nothing of game.exe's range (C48 removed the reservation, its guard log and the fixed base: with no raw game
-  address left, the guard was a safety net only). A stray game address faults when the memory is free and is named by
-  the image: OnOldCode (the code section) with the detailed report. The image has nothing of game.exe's data (C20u),
-  so an access to its range has no report of its own: it ends in the unhandled-exception log line. Where the loader put memory in the range (the host, a heap, a DLL), an access finds that memory and
-  does not fault.
-  **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
-  (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
-  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
-  no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
-  GetModuleFileNameA(NULL) names ei-rebuild.exe (the
-  message box title).
-  Its static initialisation enters the game folder, keeps .rdata (with the import slots) and .data in its own storage
-  and resolves the imports of game.exe our code still calls through a slot (S18f, S22; from the working directory, the
-  game folder, when it has the DLL, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
-  then main calls `StandaloneMain` (standalone_main.cpp): the start-up actions run (`RunStartupActions`: the Rebirth
-  flags, WideScreen's resolution), the static initialisers and WinMain (`app::GameMain`, called by name: "Code",
-  below). Nothing runs in or jumps through game.exe's code. `ei-rebuild [--check] [-- <game args>]`, from anywhere
-  (it enters its own folder; ei_launch names another with EI_GAME_ROOT); with `--check` it builds the image, checks
-  the routes and the imports and exits.
+- **The program** (src/main.cpp, both systems). `ei-rebuild.exe` is an ordinary exe (S18k: relocatable, ASLR as any
+  exe) that reads no game.exe and lays out nothing at game.exe's addresses; nothing runs in or jumps through game.exe's
+  code. `ei-rebuild [-- <game args>]` from anywhere: main enters the game folder (EI_GAME_ROOT when a launcher names
+  it, else the exe's own), reads the settings file's game paths as EI_GAME_ROOT when it is set, loads the Rebirth flags
+  (src/hook/rebirth_hook.cpp: the folder's profile, the settings file's [patches], EI_REBIRTH), starts the renderer's
+  device in the background and calls WinMain (`app::GameMain`) with the game's arguments, what follows `--`
+  (`platform::ArgumentsAfterSeparator`: on Windows the command line's own text). WinMain's first lines do what
+  game.exe's static initialisers did beyond setting values (the sessions' pointers, the coder's tables, Winsock, the
+  weather's curves, the exit functions in the game's order); every value they set is a definition's initialiser
+  ("Named data" below).
+  **Resources** (S18j, C23): the exe has none of game.exe's. Its one resource is a VERSIONINFO of its own
+  (`src/main.rc`); the game's strings are literals in our code (the window title "Evil Islands" and class "EIGAME" in
+  app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has no icon (C24).
+  **Imports** (Windows): the static initialisation resolves the imports of game.exe our code still calls through a
+  slot into a table of the program's own, from System32 (src/platform/win32/image_imports.cpp, "Own import table"
+  below): the harness redirects the files, clocks and sockets there.
 - **What comes from game.exe at build time**: nothing (C25c; the sections' bytes are zero since C20t, "The build
-  without game.exe" below); the section places are constants (game_data.h, hook.h's `kGameTextBegin`-`kGameTextEnd`). InstallHooks reads
-  game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
-  dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: their callers call the
-  virtual, `EI_REPLACE_DISPATCH` and its byte check are gone.
-- **Start** (StandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
-  list order (`RunStaticInitialisers`), then WinMain; its result goes to the CRT's exit as the CRT did.
-- **Missing code.** Reaching an address without code (a jump into the guarded .text) logs `FAILED: standalone: no code at <address>, [esp] <caller>` and ends the run;
-  `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
-  (`... of game.exe's code at ...`). The handler goes in before the start-up actions
-  (S16c), so a startup action's hit is reported too; a hit during the exe's static constructors (before
-  StandaloneMain) ends the process with the system's access violation.
-  ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
-- **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
-  holds no code pointer in the image since C20).
+  without game.exe" below). The 8 dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25:
+  their callers call the virtual.
+- **A crash** in a harness run is the harness's (its crash log, tools/resolve_crash.py); ei_launch reports a game
+  that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the patches of `config/rebirth_profile.ini`, which are the 40 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -120,19 +105,19 @@ each step green on the goldens and removing a measured tie:
   registration, never through the list), CWnd::GetMessageMap is never called, the CRT tables' readers are
   game.exe's own CRT (the host CRT's in the image, C26), and no code throws with game.exe's ThrowInfo
   (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with the compiler-made vtables, the EH
-  funclets with C20a. A stray call through one would be a call of null. The launch-free check (`--check`): the routes and imports are checked. Stack scans of the harness and the profiler skip the game's code range in the image.
-- **Own import table** (S18f, C20u, src/standalone/image_imports.cpp): game.exe's import address table (0x820 bytes,
+  funclets with C20a. A stray call through one would be a call of null.
+- **Own import table** (S18f, C20u, src/platform/win32/image_imports.cpp): game.exe's import address table (0x820 bytes,
   .rdata's start) is an ordinary table of the image's (`g_table` in image_imports.cpp); `ei::Imports()`
   (lib/import_table.h) is that table (until H40 game.exe's own in the harness's game.exe runs). `tools/gen_iat.py`
   writes the table
   as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
   -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
-  `ei::Imports()` the table calls go through), the image's list (src/standalone/image_imports.inc, 504 imports:
+  `ei::Imports()` the table calls go through), the program's list (src/platform/win32/image_imports.inc, 504 imports:
   ImportTable member, DLL, function or ordinal; the unreached ones too, so that a trap or a read of an old slot
   names its import) and gameapi.h with gameapi.cpp, all committed; build.cmd runs it with `--check`.
-  At static initialisation (image_imports.cpp's init_seg(compiler) object, after EnterGameFolder, before the
-  harness's static constructor takes its slots) `ResolveImports` loads each DLL (the working directory, else System32;
-  game.exe's folder came first until S18k) and fills our reached slots (S22, below);
+  At static initialisation (image_imports.cpp's init_seg(compiler) object, before the harness's static constructor
+  takes its slots) `ResolveImports` loads each DLL from System32 (the game folder came first until 2026-10-31,
+  game.exe's folder until S18k) and fills our reached slots (S22, below);
   a text call's slot gets its UTF-8 version there (`text::SystemRoute`; the command-line, resource, module and
   DirectInput wrappers are gone: S18j, S22). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
   routed imports and every import of src/lib/import_prototypes.h, the static initialisers'
@@ -1023,35 +1008,10 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   the exit function that does nothing is not registered at all (C35e: src/game/short_functions.cpp and its `Ret` went; the
   generator drops the initialisers' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
   (12 kinds, each compiling to the original's bytes), went with the map (C20l).
-- **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
-  interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
-  operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
-  once-only guard bit; a single-use decodable
-  callee is inlined, everything else is a call. The result is one function, `RunStaticInitialisers` (plain calls,
-  `std::atexit`, `Once`, `Local`; static_init.h), run by the image before WinMain. Inside the script the statements
-  are written `d.Operation(...)` and `plain` turns them into that code at the end (a call without arguments is the
-  call itself).
-- **Calls by name** (C20 batch 2): a call or atexit of a function ported by hand (a row of
-  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `app::ConstructCameraFile();`, `Call(&Class::Method, &g_object, args)`, `std::atexit(Exit0070C0B8)` (gen_static_init's `Names`,
-  `name_calls`). A call with arguments goes through static_init.h's `Call`, which converts the decoded dwords to the
-  declared parameters (`Argument`: a pointer from a dword). The name is the
-  definition's (its namespaces from srcscan.Scopes); a header that declares it in the same namespace is included,
-  otherwise a `void __cdecl Fn()` initialiser or exit function is declared at the top of the generated file (the
-  linker catches a signature that differs: MSVC's names hold the return type and convention). A method is
-  `&Class::Method` of the class a header declares. A function in an anonymous namespace has no name another file can
-  reach, and a function with no port none at all: the generator stops with a problem (move it out of the namespace).
-  Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing namespaces), batch 3
-  the last 28 (console_streams 18, script_exec_helpers 2, and the files of the old MFC string and collections): nothing is
-  called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
-  AtExit by address went. The statements stay in `d.` address form until render, so unread_objects, stored_values and
-  named_data.py read them unchanged (the `d.Begin` labels and the Do& template, Code and Run went with C20q1).
-  When a helper gets ported later the output changes: rerun the generator (check_static_init, removed in
-  C25d, re-decoded game.exe and compared).
-- **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns
-  (`EXIT_PATTERNS`: `mov ecx, obj; jmp dtor`, flag-guarded, operator delete of a counted buffer, a counted
-  `Release`, DeleteCriticalSection, the eh vector destructor iterator, the WSACleanup wait, `ret`) plus 60 run-time
-  atexit registrations of function-local statics (PUSH fn, CALL 006E727B within 14 instructions). Their sizes go
-  into config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
+- **Static initialisers** (S3, S3a, S16a): until 2026-10-31 tools/gen_static_init.py decoded game.exe's 748 static
+  initialisers and its exit functions into src/standalone/static_init.cpp and static_exit.cpp. Every value they set is
+  now a definition's initialiser and the 7 calls left are WinMain's first lines, so the generator, its ports list and
+  the two files went (git history has them).
 - **Compiler jump thunks** (functions.csv kind "thunk"): our callers call the target by name.
 - **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30): the
   callers call the virtual.
@@ -1068,13 +1028,13 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   before C20c, 3,527 after C20d, 809 before C20 batch 1, 72 after C20e, 1 after batch 3, 0 after batch 6.
 - **No function-to-original map** (C20l): the `EI_REWRITTEN` lines (C20d-C20k: {address, &Fn} in the DLL's `.eiorg`
   section, one per address by check_registrations) went with their last readers. What still needs a game address
-  of a function of ours has it where it is used: gen_static_init reads config/static_init_ports.csv (the vector
-  recorders' EI_RECORD named the rewrites their replays call until H40). The trace tools (coverage, save_trace, named_data's --emit / --refs) no longer map
+  of a function of ours has it where it is used (the vector recorders' EI_RECORD named the rewrites their replays call
+  until H40). The trace tools (coverage, save_trace, named_data's --refs) no longer map
   game.exe's functions to ours; progress / the dashboard dropped the port counts.
 - **game.exe's side** (until H40; the tag original-oracle): the vector recorders (`EI_RECORD`, tests/vectors/
   record_*.cpp) were game.exe's only hooks, installed with EI_VECTORS=1 and checked by check_stolen.py.
 - **Function sizes** (src/hook/function_sizes.inc from Ghidra, config/extra_function_sizes.csv for what Ghidra lacks
-  or cuts short) are the tools' (coverage, gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
+  or cuts short) are the tools' (coverage, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
   006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
@@ -1707,26 +1667,21 @@ references, coverage), with ei_harness.dll and the vector recorders its only cod
 
 Moved from the files' headers.
 
-### host.cpp
+### main.cpp
 
-ei-rebuild: the rebuilt game without game.exe (docs/notes/standalone.md section 2), main's file. An ordinary
-exe with the whole game linked in: it neither reads game.exe nor lays out anything at game.exe's addresses. The
-game's hInstance is this module, whose one resource is its version information (host.rc; the game's strings are
-literals in our code, no icon yet); its static initialisation enters the game folder and resolves game.exe's
-imports into a table of its own (image_imports.cpp); main reads `--check` and the game's arguments and calls StandaloneMain
-(standalone_main.cpp): the start-up actions, the static initialisers and WinMain (app::GameMain). A jump into game.exe's code faults when the memory is free and is named (OnOldCode) instead of reaching other memory.
+The program's `main`, the same on every system: the game folder, the settings file's game paths, the Rebirth flags,
+the renderer's device in the background, then WinMain (app::GameMain) with what follows `--`. "How it runs" above.
 
-### image_imports.cpp
+### platform/win32/image_imports.cpp
 
-game.exe's imports in the image's own table (docs/notes/standalone.md, "Own import table"). `g_table`, an ordinary
-ImportTable of ours, is what lib/import_table.h's Imports() returns, so everything that calls through a slot (gameapi.h's routed imports, Winsock, the static initialisers' Import, the harness's slot routes) reaches it. Every import of game.exe
-(image_imports.inc, written by tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function
-or ordinal) has its slot; only the slots a call of ours reaches resolve (image_imports.inc's last field, gen_iat.py's
-reached(), S22); the rest stay traps and a DLL with none of them does not load. A text call's slot takes its UTF-8
-version (text::SystemRoute). A slot of ours that no call was found to reach or whose import did not resolve leads to
-a trap that names its import until the run ends (OnTrap; `--check` fails on an unresolved one). Runs before every
-other static constructor of the exe (init_seg(compiler)), after entering the game folder (EnterGameFolder): the
-harness takes import slots in its own.
+game.exe's imports in the program's own table (docs/notes/standalone.md, "Own import table"). `g_table`, an ordinary
+ImportTable of ours, is what lib/import_table.h's Imports() returns, so everything that calls through a slot
+(gameapi.h's routed imports, Winsock, the harness's slot routes) reaches it. Every import of game.exe
+(image_imports.inc, written by tools/gen_iat.py: ImportTable member, DLL, function or ordinal) has its slot; only
+the slots a call of ours reaches resolve, from System32 (image_imports.inc's last field, gen_iat.py's reached(),
+S22); the rest stay traps and a DLL with none of them does not load. A text call's slot takes its UTF-8 version
+(text::SystemRoute). A call through a slot that did not resolve names its import and ends the process (OnTrap). Runs
+before every other static constructor of the exe (init_seg(compiler)): the harness takes import slots in its own.
 
 ### platform/platform.h
 

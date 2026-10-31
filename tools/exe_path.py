@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INSTALLS = ('vanilla', 'rebirth')   # in this order
-TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
+TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06
 
 
 class ExeNotFound(Exception):

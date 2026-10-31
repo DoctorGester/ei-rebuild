@@ -4,7 +4,6 @@
 
 #include "../../../src/hook/log.h"
 
-#include "ei/hook.h"
 #include "game/console.h"
 #include "game/game_singletons.h"
 #include "game/player_messages.h"

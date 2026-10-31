@@ -11,8 +11,8 @@
 // folder like the game's (whose import slots harness.cpp takes first).
 //
 // The guard: ntdll's NtCreateFile, NtOpenFile, NtSetInformationFile (rename, link, delete) and NtDeleteFile,
-// below every other layer. A file or folder under an install root (the working directory at start,
-// EI_GAME_ROOT, EI_INSTALL_ROOTS: ei_launch's two installs) opened for writing, created, renamed, linked or
+// below every other layer. A file or folder under an install root (the game folder, GameFolder below;
+// EI_INSTALL_ROOTS: ei_launch's two installs) opened for writing, created, renamed, linked or
 // deleted is refused (access denied) and fails the run ("install: write refused: ..." with the calling module),
 // whatever made the call. A run that reports it found a write the redirect does not cover.
 
@@ -37,6 +37,10 @@ bool WritesFile(unsigned long access, unsigned long disposition);
 
 // Takes kernel32's slots and ntdll's calls (once, at harness start, after the game's own slots).
 void Install(const Overlay& overlay);
+
+// The game's folder, as the program's main enters it (src/main.cpp): EI_GAME_ROOT, else the exe's own (a drop-in
+// run). The harness starts before main, in whatever folder the run was started from.
+std::wstring GameFolder();
 
 // The run's install problems (writes refused, calls the module could not take), "; "-separated; empty when
 // there were none.

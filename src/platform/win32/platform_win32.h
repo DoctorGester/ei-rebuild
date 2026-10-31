@@ -1,6 +1,6 @@
 #pragma once
 
-// The Windows backend's own declarations (platform_win32.cpp), for the loader (src/standalone/image_imports.cpp)
+// The Windows backend's own declarations (platform_win32.cpp), for the loader (image_imports.cpp)
 // and the harness's image side.
 //
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,

@@ -19,7 +19,7 @@ namespace {
 constexpr int kLevels = 8;
 
 // The occluders' damping scale, ln 0.6 (the double) as FYL2X computes it, stored as a float by a static initialiser.
-float g_dampScale = /*007C2F8C*/ {};
+float g_dampScale = /*007C2F8C*/ {-0.51082563f};
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.
 int AreaList(int level) {
@@ -81,8 +81,6 @@ int MaxStep(const std::vector<int>& table) {
 }
 
 } // namespace
-
-void InitDampScale() { g_dampScale = -0x1.058afp-1f; }
 
 void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;

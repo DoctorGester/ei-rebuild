@@ -13,7 +13,6 @@
 #include "script_addon.h"
 #include "script_addon_handlers.h"
 
-#include "ei/hook.h"
 #include "engine_object.h"
 #include "combat.h"
 #include "unit.h"

@@ -12,7 +12,6 @@
 #include "net_classes.h"
 #include "random.h"
 #include "world.h"
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"

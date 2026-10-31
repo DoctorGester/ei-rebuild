@@ -229,4 +229,3 @@ address,size,name,file
 007C8988,12,kZeroPosition,src/game/terrain_landscape.cpp
 007C8998,4,kTwoPi,src/game/ground_print.cpp
 007C899C,4,kHalfPi,src/game/ground_print.cpp
-007CAEE4,1,g_emptyStaticGuard,src/standalone/static_init.h

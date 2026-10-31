@@ -14,7 +14,6 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 
-#include "ei/hook.h"
 
 #include <cstdarg>
 #include <cstdio>

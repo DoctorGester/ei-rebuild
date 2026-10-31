@@ -27,8 +27,6 @@ def checks(out, x64):
         py + [tool('gen_iat.py'), '--check'],
         py + [tool('named_data.py'), '--check'],
         py + [tool('retired_vtables.py'), '--check'],
-        # Every row of config/static_init_ports.csv names a definition in its file (tools/gen_static_init.py).
-        py + [tool('gen_static_init.py'), '--check-ports'],
         # The game's code calls Windows only through src/platform: the files that still do may only leave
         # config/platform_files.txt (tools/check_platform.py).
         py + [tool('check_platform.py')],

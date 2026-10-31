@@ -31,11 +31,9 @@ jobs:
           chmod +x build/tools/sokol-shdc
       - name: Build
         run: |
-          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_RENDER_VALIDATION=ON
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build/linux
       - name: Checks
         run: |
           cd build/linux
           xvfb-run -a -s "-screen 0 1280x1024x24" ctest --output-on-failure
-          ./ei-rebuild --check
-          cat ei-rebuild.log || true

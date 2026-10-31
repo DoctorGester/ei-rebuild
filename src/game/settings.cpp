@@ -1,7 +1,6 @@
 // The standalone's settings file and its typed accessors. See settings.h.
 #include "settings.h"
 
-#include "ei/hook.h"
 #include "hook/log.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"

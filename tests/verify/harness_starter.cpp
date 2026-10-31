@@ -39,7 +39,7 @@ constexpr DWORD kCtfMon = 0;
 // shape decides the interface layout (src/game/screen_layout.h), so each install's runs take the shape of the
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
 // same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
-// apart as the image's start-up tells the profiles apart (src/standalone/startup.cpp): Rebirth's has starter\addon.dll
+// apart as the image's start-up tells the profiles apart (src/hook/rebirth_hook.cpp): Rebirth's has starter\addon.dll
 // or EI_Plugin.asi. (EI_REBIRTH does not: ei_launch sets it to "defaults" for every run that names no flags.)
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";

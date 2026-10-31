@@ -2,7 +2,6 @@
 #include "harness_dropin.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "image/image_side.h"
 
