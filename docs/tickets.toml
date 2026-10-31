@@ -7064,3 +7064,30 @@ group = "port"
 model = "opus"
 depends = ["MAC3g"]
 note = "Merge current main into macos-port and rebuild the macOS side on main's shapes (graphics_metal.mm on the slimmer graphics.h with KeepPresent/DropPresent/PresentAgain and UpdateBuffer; sokol-shdc GLSL; glyph_cases module), so only macOS-specific differences remain. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the user builds the Mac side."
+
+[[ticket]]
+id = "LX1"
+title = "Linux build: POSIX platform, sokol on OpenGL 4.5, one CMakeLists.txt, Linux workflow"
+group = "port"
+note = "User 2026-10-31: start a Linux build, adopting macos-port's POSIX platform layer where it fits. Takes src/platform/posix/platform_posix.cpp (without its macOS parts), src/standalone/posix/host.cpp and tests/port from macos-port; adds src/platform/graphics_gl.cpp (an SDL GL 4.5 core context, glClipControl from the upper left with depth 0..1, the drawable a framebuffer of ours blitted upside down), graphics::ApplyViewport / ApplyScissorRect, sokol-shdc's glsl430 output; CMakeLists.txt builds both systems (no separate native cmake file). Check: Linux builds with gcc, ctest under xvfb (port_platform; port_render: the glyph cases on OpenGL, 0 pixels differ), ei-rebuild --check; Windows suites the same. Left: LX2-LX4. docs/notes/linux.md."
+
+[[ticket]]
+id = "LX2"
+title = "Linux: play with real data (menus, maps, movies, sound, saves, multiplayer)"
+group = "port"
+depends = ["LX1"]
+note = "LX1 builds and passes its checks without game data. Play a vanilla and a Rebirth folder on Linux by hand (Kirill, or a machine with the data): the menus and a new game, a campaign map, a movie, music and sounds, a save and its load, the settings file in the user data folder, a LAN game against Windows. Fix what differs; frame captures against Windows' where they differ visibly."
+
+[[ticket]]
+id = "LX3"
+title = "Linux: the cursor between frames on OpenGL"
+group = "port"
+depends = ["LX1"]
+note = "graphics_gl.cpp's KeepPresent refuses (the GL context is the main thread's), so the cursor stays put during a long load. A second context sharing the first's objects, current on the cursor thread, drawing the kept present into the window (ordered with the main thread under the renderer's present lock), or note it as accepted."
+
+[[ticket]]
+id = "LX4"
+title = "Linux: keyboard layouts and key names from the system"
+group = "port"
+depends = ["LX1"]
+note = "platform_posix.cpp's LayoutKey / LayoutControlCharacter give nothing (sdl_keys.cpp's US rules) and KeyName is SDL's English name. Through SDL's keymap (SDL_GetKeyFromScancode with the modifiers) the layout's key codes and Ctrl characters, as PL9a did on Windows; key names in the layout's language if SDL or xkb gives them. Check by hand with a Russian layout, or a Linux reference for ei_input_check's cases."

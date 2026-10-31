@@ -93,6 +93,10 @@ Read before changing code:
 When a branch's full Suites run is green (no golden differs), merge it into `main` and push. The Suites workflow
 also runs on pushes to `main`. Set the ticket to done with `tickets.py set <ID> done` in the merge.
 
+Keep the history linear (Kirill, 2026-10-31): rebase the branch onto `main` instead of merging `main` into it, tidy
+its chain into a few commits that each say what changed (fixups folded in), and put them on `main` as they are
+(a fast-forward), not as one squash.
+
 For `docs/tickets.toml` conflicts, keep both sides' tickets (each is a `[[ticket]]` block). `docs/tickets.md` merges
 as ours, so regenerate it. `docs/ticket_status.tsv` merges as a union, so regenerate it too.
 
@@ -117,9 +121,8 @@ Goal and code:
 
 Platform direction:
 - The x64 build and the platform layer (SDL3, `src/platform`) are the current direction.
-- A Linux and macOS port was estimated on 2026-10-30 at about 10 to 15 tickets but is not filed yet: the renderer
-  through sokol for GL and Metal, a clang build, PL9b, case-insensitive file lookup, and the harness on SDL (PL12).
-  Ask Kirill before starting it.
+- Linux builds and runs its checks (LX1, docs/notes/linux.md): the POSIX platform, sokol on OpenGL 4.5, the Linux
+  workflow on GitHub's Ubuntu runner. macOS is the macos-port branch (Metal), which keeps only macOS code.
 
 Safety on Kirill's machine (these apply to anything the workflow runs):
 - Never write into `F:\games\*` (the installs).

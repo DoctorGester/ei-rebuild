@@ -1,0 +1,41 @@
+# Linux: builds the game with gcc on GitHub's Ubuntu runner (CMakeLists.txt; docs/notes/linux.md) and runs its checks
+# under a virtual display on Mesa's software OpenGL (ctest: the POSIX platform's checks, the interface canvases' glyph
+# cases on OpenGL). No game data: the game itself does not run here. On pushes to main and claude/** branches and by
+# hand.
+name: Linux
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
+            libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev \
+            xvfb mesa-utils libgl1-mesa-dri
+      - name: sokol-shdc
+        run: |
+          mkdir -p build/tools
+          curl -sSfL https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/linux/sokol-shdc -o build/tools/sokol-shdc
+          chmod +x build/tools/sokol-shdc
+      - name: Build
+        run: |
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_RENDER_VALIDATION=ON
+          cmake --build build/linux
+      - name: Checks
+        run: |
+          cd build/linux
+          xvfb-run -a -s "-screen 0 1280x1024x24" ctest --output-on-failure
+          ./ei-rebuild --check
+          cat ei-rebuild.log || true
