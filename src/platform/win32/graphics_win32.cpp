@@ -487,6 +487,10 @@ std::optional<std::uint32_t> Lost() {
     return std::nullopt;
 }
 
+void ApplyViewport(int x, int y, int width, int height) { sg_apply_viewport(x, y, width, height, true); }
+
+void ApplyScissorRect(int x, int y, int width, int height) { sg_apply_scissor_rect(x, y, width, height, true); }
+
 bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode& mode, sg_swapchain* drawable) {
     g_mode = mode;
     if (!EnsureChain(static_cast<HWND>(window), width, height)) return false;

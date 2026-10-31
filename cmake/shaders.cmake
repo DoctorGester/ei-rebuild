@@ -17,7 +17,7 @@ endif()
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 add_custom_command(OUTPUT ${EI_SHADER_HEADER}
     COMMAND ${EI_SHDC} --input ${CMAKE_SOURCE_DIR}/src/render/shaders/shaders.glsl --output ${EI_SHADER_HEADER}
-            --slang hlsl5:metal_macos --format sokol_impl --ifdef --no-log-cmdline ${EI_SHDC_OPTIONS}
+            --slang hlsl5:metal_macos:glsl430 --format sokol_impl --ifdef --no-log-cmdline ${EI_SHDC_OPTIONS}
     DEPENDS ${EI_SHADER_SOURCES} ${EI_SHDC}
     COMMENT "Compiling the shaders with sokol-shdc"
     VERBATIM)

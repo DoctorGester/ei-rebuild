@@ -328,7 +328,9 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (Destroy)
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");           // mouse events only over the window, as Windows gave them
     // The window class's name (FindClassWindow finds a running game by it); SDL counts double clicks itself.
+#if defined(_WIN32)
     SDL_RegisterApp(className, 0, instance);
+#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
         DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
 }
@@ -343,6 +345,9 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
+#if !defined(_WIN32)
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);   // graphics_gl.cpp's context
+#endif
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;
@@ -356,7 +361,11 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
         SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - width) / 2,
                               work.y + top + (work.h - top - bottom - height) / 2);
     }
+#if defined(_WIN32)
     g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#else
+    g_native = g_window;
+#endif
     SDL_StartTextInput(g_window);
     return g_native;
 }

@@ -5,7 +5,7 @@
 // window's drawable each frame and presents it, presents the last frame again from another thread (the cursor between
 // frames), says when the device is lost, writes part of a buffer (which sokol cannot), and reads images back and times
 // the GPU for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's
-// implementation). No backend type crosses this header.
+// implementation); elsewhere OpenGL 4.5 (graphics_gl.cpp). No backend type crosses this header.
 
 #include "platform/platform.h"
 #include "sokol_gfx.h"
@@ -49,6 +49,11 @@ bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode
 // After the frame's sg_commit: the drawable shown. False when it was not (a failure is logged; a lost device is seen
 // by Lost).
 bool EndDrawable();
+
+// The pass's viewport and scissor rectangle, from the target's top-left corner as on every backend (sokol's
+// sg_apply_viewport / sg_apply_scissor_rect with the origin each backend's targets need).
+void ApplyViewport(int x, int y, int width, int height);
+void ApplyScissorRect(int x, int y, int width, int height);
 
 // ---- Buffers ------------------------------------------------------------------------------------------------------
 

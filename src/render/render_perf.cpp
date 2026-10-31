@@ -331,7 +331,7 @@ void Draw(int width, int height, const Rect& placed) {
     int scale = Scale(placed.bottom - placed.top);
     float left = static_cast<float>(placed.left + Margin(scale)), top = static_cast<float>(placed.top + Margin(scale));
     float right = left + (g_imageWidth * scale), bottom = top + (g_imageHeight * scale);
-    sg_apply_viewport(0, 0, width, height, true);
+    platform::graphics::ApplyViewport(0, 0, width, height);
     sg_apply_pipeline(g_pipeline);
     sg_bindings b{};
     b.views[0] = g_view;

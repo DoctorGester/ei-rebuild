@@ -6,6 +6,7 @@
 #include "game_strings.h"
 #include "script.h"
 
+#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -22,7 +23,7 @@ inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
 // Formats the error message into the Script's error text and sets code and line;
 // returns 0. (Script::Error is the same.)
-int ScriptErrorV(Script* script, int line, int code, const char* format, char* args);
+int ScriptErrorV(Script* script, int line, int code, const char* format, va_list args);
 
 // script_exec_helpers.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read.

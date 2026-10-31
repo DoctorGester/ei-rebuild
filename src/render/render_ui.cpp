@@ -432,7 +432,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     sg_apply_pipeline(g_glyph);
     for (const Run& run : runs) {
         const Rect& r = run.op->rect;
-        sg_apply_scissor_rect(0, run.row, r.right - r.left, r.bottom - r.top, true);
+        platform::graphics::ApplyScissorRect(0, run.row, r.right - r.left, r.bottom - r.top);
         sg_bindings b{};
         b.vertex_buffers[0] = g_vertices;
         b.vertex_buffer_offsets[0] = run.offset;
@@ -842,7 +842,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     GpuWorkAlone alone;
     if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
     BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
-    sg_apply_viewport(0, 0, width, height, true);
+    platform::graphics::ApplyViewport(0, 0, width, height);
     sg_apply_pipeline(g_rgb565);
     sg_bindings b{};
     b.views[0] = canvas.gpu.texture;

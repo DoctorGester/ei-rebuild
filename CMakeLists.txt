@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
-project(EvilIslands CXX RC)
+# Two systems: Windows with MSVC (build.cmd: the release and verify builds, 32-bit x86 or x64) and Linux with gcc or
+# clang (docs/notes/linux.md: the game on SDL3, POSIX and OpenGL). The harness (for now) and the offline checks against
+# Windows' drawing and keys build on Windows.
+project(EvilIslands CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(WIN32)
+enable_language(RC)
 # 32-bit x86 (the vcvars32 environment) or x64 (vcvars64: build.cmd x64 / verify-x64). The function vectors' replay
 # (tests/vectors) is 32-bit only; the harness builds for both (build.cmd verify-x64).
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -10,9 +17,6 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
 else()
     message(FATAL_ERROR "Build for 32-bit x86 or x64: use the x86 or x64 vcvars environment.")
 endif()
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # The debug build's containers are the release build's: the checked iterators' proxy is allocated by the
 # constructor, so a constinit std::vector global (the game-order exit functions' containers) fails to compile.
@@ -27,6 +31,7 @@ endforeach()
 # compiler's own picks (file-local helpers). EI_INLINE=1 builds as before, for A/B timing runs.
 set(EI_INLINE 2 CACHE STRING "Inline expansion level /Ob<n> of the release and verify builds")
 string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
 
 # Two builds (build.cmd): `release` is the product, the standalone image (ei-rebuild.exe, the whole game); `verify`
 # is the harness build, the same image with the harness linked in (tests/verify: scenario runs of the image). Until H40
@@ -36,13 +41,17 @@ option(EI_HARNESS "Build the harness, linked into ei-rebuild.exe" OFF)
 
 # SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
 # the message box, the clocks and the threads of the builds without the harness (src/platform/sdl), and the sound
-# device of every build (src/platform/audio_sdl.cpp). Linked statically, so the exe stays one file dropped into a game
-# folder (S23), with only the subsystems those use. Added before the game's compile options: its warnings are its own.
+# device of every build (src/platform/audio_sdl.cpp); on Linux also the OpenGL context. Linked statically, so the exe
+# stays one file dropped into a game folder (S23), with only the subsystems those use. Added before the game's compile
+# options: its warnings are its own.
 foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_GPU SDL_RENDER SDL_CAMERA
-            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGL SDL_OPENGLES SDL_VULKAN
-            SDL_OFFSCREEN SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
+            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGLES SDL_VULKAN SDL_OFFSCREEN
+            SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
     set(${off} OFF CACHE BOOL "" FORCE)
 endforeach()
+if(WIN32)
+    set(SDL_OPENGL OFF CACHE BOOL "" FORCE)
+endif()
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
@@ -54,16 +63,21 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 # SSE2 floating point everywhere: the original's x87 maths at the main thread's 24-bit precision is float maths in
 # its order, with src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by an ulp (SV7d1).
-add_compile_options(/fp:precise /W4 /permissive- /utf-8)
-if(NOT EI_X64)
-    add_compile_options(/arch:SSE2)   # x64 has SSE2 always
+# gcc and clang: no contraction of a multiply and an add into one FMA either.
+if(MSVC)
+    add_compile_options(/fp:precise /W4 /permissive- /utf-8)
+    if(NOT EI_X64)
+        add_compile_options(/arch:SSE2)   # x64 has SSE2 always
+    endif()
+else()
+    add_compile_options(-ffp-contract=off -fno-fast-math)
 endif()
 
 # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
 # instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside the
 # executables. Its reports go to the run's folder (tests/verify/image/asan_report.cpp).
 option(EI_ASAN "Build with AddressSanitizer (/fsanitize=address)" OFF)
-if(EI_ASAN)
+if(EI_ASAN AND WIN32)
     add_compile_options(/fsanitize=address)
     get_filename_component(EI_CL_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
     file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-i386.dll" DESTINATION "${CMAKE_BINARY_DIR}")
@@ -73,30 +87,43 @@ endif()
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; on Windows
-# Direct3D 11, src/platform/win32/graphics_win32.cpp, which holds sokol's implementation). The backend and the
-# floating-point guard are built in here, not into ei_platform: the offline checks link the renderer without the game.
-# The harness build turns on sokol's validation layer (messages go to ei-rebuild.log) and the removable device.
+# Direct3D 11, src/platform/win32/graphics_win32.cpp, elsewhere OpenGL 4.5, src/platform/graphics_gl.cpp; each holds
+# sokol's implementation). The backend and the floating-point guard are built in here, not into ei_platform: the
+# offline checks link the renderer without the game. The harness build turns on sokol's validation layer (messages go
+# to ei-rebuild.log) and the removable device; EI_RENDER_VALIDATION turns on the layer alone.
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
-set(EI_RENDER_PLATFORM_SOURCES src/platform/win32/graphics_win32.cpp src/platform/floating_point.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES} ${EI_RENDER_PLATFORM_SOURCES})
+if(WIN32)
+    add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/win32/graphics_win32.cpp
+                src/platform/floating_point.cpp)
+    target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
+    target_link_libraries(ei_render PUBLIC d3d11 dxgi)
+else()
+    find_package(OpenGL REQUIRED)
+    add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/graphics_gl.cpp src/platform/floating_point.cpp)
+    target_compile_definitions(ei_render PRIVATE SOKOL_GLCORE)
+    target_link_libraries(ei_render PRIVATE SDL3::SDL3-static OpenGL::GL)
+endif()
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
-target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
-target_link_libraries(ei_render PUBLIC d3d11 dxgi)
-if(EI_HARNESS)
+option(EI_RENDER_VALIDATION "sokol_gfx's validation layer, its messages in ei-rebuild.log" OFF)
+if(EI_HARNESS OR EI_RENDER_VALIDATION)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
 # window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
 # (src/platform/sdl; the harness's builds take their own, tests/verify/harness_platform.cpp); the rest on Windows
-# (src/platform/win32, with game.exe's imports, gameapi.h), the one place of the game's code that includes <windows.h>;
-# the sound on SDL3's audio device with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the
-# Bink decoder in src/platform/bink.
-file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
+# (src/platform/win32, with game.exe's imports, gameapi.h), the one place of the game's code that includes <windows.h>,
+# or POSIX (src/platform/posix); the sound on SDL3's audio device with the dr_wav / dr_mp3 decoders
+# (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
+if(WIN32)
+    set(EI_SYSTEM win32)
+else()
+    set(EI_SYSTEM posix)
+endif()
+file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/${EI_SYSTEM}/*.cpp
+     src/platform/sdl/*.cpp src/platform/bink/*.cpp)
 list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp
-     ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
-file(GLOB EI_PLATFORM_SDL_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp)
-list(APPEND EI_PLATFORM_SOURCES ${EI_PLATFORM_SDL_SOURCES})
+     ${CMAKE_SOURCE_DIR}/src/platform/graphics_gl.cpp ${CMAKE_SOURCE_DIR}/src/platform/floating_point.cpp)
 # The harness's builds take its own window, events, clocks, cursor, mouse and clipboard on SDL
 # (tests/verify/harness_platform.cpp) in place of the game's.
 if(EI_HARNESS)
@@ -130,37 +157,43 @@ foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_li
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
 endforeach()
 file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
-     "Third-party software built into ei-rebuild.exe, with its licences.\n\n${EI_NOTICES}")
+     "Third-party software built into ei-rebuild, with its licences.\n\n${EI_NOTICES}")
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its one resource
 # is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used. A windowed program
-# (no console) whose entry is main.
-add_executable(ei-rebuild
-    src/hook/log.cpp
-    src/hook/profile.cpp
-    src/hook/rebirth_hook.cpp
-    src/hook/standalone.cpp
-    src/standalone/host.cpp
-    src/standalone/host.rc
-    src/standalone/image_imports.cpp
-    src/standalone/standalone_main.cpp
-    src/standalone/startup.cpp
-    src/standalone/static_exit.cpp
-    src/standalone/static_init.cpp)
-set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
-target_include_directories(ei-rebuild PRIVATE include src)
-target_link_libraries(ei-rebuild PRIVATE ei_render ei_platform)
-target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
-if(EI_ASAN)
-    # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
-    target_link_options(ei-rebuild PRIVATE /LARGEADDRESSAWARE)
+# (no console) whose entry is main. On Linux the game's host is src/standalone/posix/host.cpp (data from EI_GAME_ROOT,
+# else beside the executable).
+if(WIN32)
+    add_executable(ei-rebuild
+        src/hook/log.cpp
+        src/hook/profile.cpp
+        src/hook/rebirth_hook.cpp
+        src/hook/standalone.cpp
+        src/standalone/host.cpp
+        src/standalone/host.rc
+        src/standalone/image_imports.cpp
+        src/standalone/standalone_main.cpp
+        src/standalone/startup.cpp
+        src/standalone/static_exit.cpp
+        src/standalone/static_init.cpp)
+    set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
+    target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
+    if(EI_ASAN)
+        # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
+        target_link_options(ei-rebuild PRIVATE /LARGEADDRESSAWARE)
+    else()
+        # The exe's own imports (Direct3D 11, DXGI, ...) from System32 only: a game folder may hold a wrapper of the
+        # same name (dgVoodoo's DLLs beside the original's game.exe). game.exe's imports load from the game folder on
+        # purpose (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
+        target_link_options(ei-rebuild PRIVATE /DEPENDENTLOADFLAG:0x800)
+    endif()
 else()
-    # The exe's own imports (Direct3D 11, DXGI, ...) from System32 only: a game folder may hold a wrapper of the same
-    # name (dgVoodoo's DLLs beside the original's game.exe). game.exe's imports load from the game folder on purpose
-    # (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
-    target_link_options(ei-rebuild PRIVATE /DEPENDENTLOADFLAG:0x800)
+    set(EI_STARTUP_SOURCES src/hook/log.cpp src/hook/rebirth_hook.cpp src/standalone/startup.cpp
+        src/standalone/static_exit.cpp src/standalone/static_init.cpp)
+    add_executable(ei-rebuild ${EI_STARTUP_SOURCES} src/standalone/posix/host.cpp)
 endif()
+target_include_directories(ei-rebuild PRIVATE include src)
 # The Rebirth install's profile, which an exe takes in a Rebirth folder (src/standalone/startup.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
 # into config/rebirth_profile.inc in the build folder.
@@ -187,10 +220,15 @@ if(EI_HARNESS)
     # The image's side reaches the Direct3D backend's removable device (src/platform/win32/graphics_win32.h).
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)
 endif()
-# The game code: a library, whole (every object, as if listed: the static objects' initialisers too).
+# The game code: a library, whole (every object, as if listed: the static objects' initialisers too). gcc's linker
+# reads the libraries once, in order, so there it comes ahead of the libraries it calls.
 add_library(ei_game STATIC ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE include src)
-target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
+if(WIN32)
+    target_link_libraries(ei-rebuild PRIVATE ei_render ei_platform "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
+else()
+    target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" ei_render ei_platform)
+endif()
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
 target_compile_definitions(ei-rebuild PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 target_compile_definitions(ei_game PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
@@ -201,7 +239,28 @@ target_compile_definitions(ei_game PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG
 # only one of the functions folded there (the map lists them at one address). The debug build keeps the linker's
 # default (no /OPT:REF with /INCREMENTAL).
 # /MAP: ei-rebuild.map lets the harness crash log (ei-rebuild+offset) be resolved to functions.
-target_link_options(ei-rebuild PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
+if(WIN32)
+    target_link_options(ei-rebuild PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
+endif()
+
+# Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, .ini files, the
+# one-instance lock, sockets, the settings document; tests/port/port_check.cpp) and the interface canvases' glyph cases
+# on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11). The rest of this file is
+# Windows' only.
+if(NOT WIN32)
+    enable_testing()
+    add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
+                   tests/vectors/replay_settings.cpp)
+    target_include_directories(ei_port_check PRIVATE include src)
+    target_link_libraries(ei_port_check PRIVATE ei_platform)
+    add_test(NAME port_platform COMMAND ei_port_check)
+    add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_STARTUP_SOURCES})
+    target_include_directories(ei_render_check PRIVATE include src tests third_party/sokol)
+    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" ei_render ei_platform)
+    add_test(NAME port_render COMMAND ei_render_check)
+    set_tests_properties(port_platform port_render PROPERTIES TIMEOUT 60)
+    return()
+endif()
 
 # The launcher: starts the image (ei_launch). On x64 in the verify build only, for the x64 image's runs; the x64 release
 # image starts without it, from the game folder.

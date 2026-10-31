@@ -207,7 +207,7 @@ bool DrawToWindow(const BlitBatch* cursor) {
     pass.swapchain = drawable;
     pass.label = "ei-present";
     sg_begin_pass(&pass);
-    sg_apply_viewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, true);
+    platform::graphics::ApplyViewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top);
     sg_apply_pipeline(g_pipeline);
     // The cursor texture's slot holds the ramp's when there is no cursor (the rectangle is empty then).
     cursor_params_t cp{};

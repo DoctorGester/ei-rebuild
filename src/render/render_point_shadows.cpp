@@ -602,7 +602,7 @@ void DrawPointShadows(Frame& f) {
             sg_apply_pipeline(g_clearPipeline);
             clearApplied = true;
         }
-        sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
+        platform::graphics::ApplyViewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels);
         const auto side = static_cast<float>(kPointFaceTexels);
         solid_params_t vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
         sg_apply_uniforms(UB_solid_params, SG_RANGE(vs));
@@ -611,7 +611,7 @@ void DrawPointShadows(Frame& f) {
     if (haveDraws)
         for (const RedrawnFace& r : redrawn) {
             if (r.from == r.to) continue;
-            sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
+            platform::graphics::ApplyViewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels);
             g_faceDraws.Draw(r.from, r.to);
         }
     sg_end_pass();
