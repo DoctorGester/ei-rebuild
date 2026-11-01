@@ -157,9 +157,9 @@ void Comments() {
     plain.Set("a", "x", "1");
     CHECK(plain.Text() == "[a]\r\nx = 1\r\n");
     // Line breaks: \n alone, and a last line without one.
-    Document unix;
-    unix.Parse("[a]\nx = 1\ny = 2", &problems);
-    CHECK(problems.empty() && Value(unix, "a", "y") == "2");
+    Document lineFeeds;
+    lineFeeds.Parse("[a]\nx = 1\ny = 2", &problems);
+    CHECK(problems.empty() && Value(lineFeeds, "a", "y") == "2");
 }
 
 // Lines not understood are reported and skipped; below a bad section every line is skipped.

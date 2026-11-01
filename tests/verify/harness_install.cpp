@@ -584,11 +584,9 @@ void AddRoot(const wchar_t* folder) {
 }
 
 void FindRoots() {
+    AddRoot(GameFolder().c_str());
     wchar_t folder[kPathChars];
-    if (GetCurrentDirectoryW(kPathChars, folder)) AddRoot(folder);
-    DWORD n = GetEnvironmentVariableW(L"EI_GAME_ROOT", folder, kPathChars);
-    if (n && n < kPathChars) AddRoot(folder);
-    n = GetEnvironmentVariableW(L"EI_INSTALL_ROOTS", folder, kPathChars);
+    const DWORD n = GetEnvironmentVariableW(L"EI_INSTALL_ROOTS", folder, kPathChars);
     if (n && n < kPathChars) {
         for (wchar_t* context = nullptr, *part = wcstok_s(folder, L";", &context); part; part = wcstok_s(nullptr, L";", &context))
             if (*part) AddRoot(part);
@@ -609,6 +607,16 @@ bool WritesFile(unsigned long access, unsigned long disposition) {
                               FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA;
     return (access & kWrites) != 0 || disposition == CREATE_ALWAYS || disposition == CREATE_NEW ||
            disposition == TRUNCATE_EXISTING || disposition == OPEN_ALWAYS;
+}
+
+std::wstring GameFolder() {
+    wchar_t folder[kPathChars];
+    DWORD n = GetEnvironmentVariableW(L"EI_GAME_ROOT", folder, kPathChars);
+    if (n && n < kPathChars) return folder;
+    n = GetModuleFileNameW(nullptr, folder, kPathChars);
+    std::wstring path(folder, n < kPathChars ? n : 0);
+    const std::size_t slash = path.find_last_of(L'\\');
+    return slash == std::wstring::npos ? std::wstring() : path.substr(0, slash);
 }
 
 void Install(const Overlay& overlay) {

@@ -28,7 +28,7 @@ The frame order is this. `Interface3D::Draw` 005F5220 (inside BeginScene..EndSce
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh.cpp` | every panel | GPU meshes |
 | 3D previews and models | `UiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
 | Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `ScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
-| Cursor | 005E54A0 → `render::Cursor`; between frames `render_cursor.cpp` (renderer.md, R9c2) | — | drawn by the present |
+| Cursor | 005E54A0 → `render::Cursor` (`render_cursor.cpp`, renderer.md R40) | — | the system's cursor |
 | Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw of the CPU-decoded frame |
 | Textures written by the interface | `CopyImage` 005FFFB0 (portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, the save / load pictures, the global-map clouds (`GlobalMapClouds::Draw`: noise and blend in shaders) | — | GPU (R28, R28b) |
 
@@ -45,7 +45,7 @@ and drawing use one set of metrics. What follows is the original's behaviour tha
 **Fonts.** `Interface3D::Create` 005F4990 (`ui_interface.cpp`) makes `fonts[0..2]` as the original's
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
-width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
+width·0.0075/height (addon's float at 005F4F81, `screen_layout::FontScale`; W4).
 - The console has its own point font (`console_window.cpp`).
 - The original's text was GDI's, with the system's ClearType / smoothing setting; ours is smoothed or not by
   SPI_GETFONTSMOOTHING (P8b).
@@ -148,8 +148,7 @@ facts follow.
   src, keyed, key)` records `Command::Canvas`; it draws like the window blit, with the key compared on the stored colour.
 - **Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes (hoisting). A command on a
   canvas whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn: the blit shows the old contents).
-  `CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame. `RunCanvasesNow` takes the
-  present's lock (the cursor thread).
+  `CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame.
 - **GDI rules measured** (Windows 10; `ei_ui_check` holds them): 16-bit DIBs truncate 8-bit colours (no rounding, no dithering)
   for fills, pens and SetPixel. FrameRect draws a 1-px border inside the rectangle, and odd shapes for an empty one (not
   modelled; the game never passes one). A 1-px pen leaves out the end point. A 2-px pen (round ends) draws both end points.
@@ -583,7 +582,7 @@ as much (GDI's emboldening); italic is drawn upright (the file's text has none).
 smoothing, as RichEdit drew it with the titles' font smoothing off.
 
 **Scale (P8c, 2026-10-29).** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi`
-(ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `widescreen::FontScale`), the scale the interface's fonts
+(ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `screen_layout::FontScale`), the scale the interface's fonts
 get in `Interface3D::Create` (width over FontScale, so 96 at 800 pixels wide and, in Rebirth's WideScreen, following the
 height as the other fonts do). The titles' text, indents, wrap and scroll then grow with the window like the rest of
 the interface and do not move with the system DPI (the original and P8a took `GetDpiForSystem`: 192 on a 200% display, 96

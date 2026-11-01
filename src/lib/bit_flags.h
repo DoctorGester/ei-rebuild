@@ -33,8 +33,24 @@ template <lib::BitFlags E> constexpr E& operator|=(E& a, E b) { return a = a | b
 template <lib::BitFlags E> constexpr E& operator&=(E& a, E b) { return a = a & b; }
 template <lib::BitFlags E> constexpr E& operator^=(E& a, E b) { return a = a ^ b; }
 
-template <lib::BitFlags E> constexpr std::uint32_t operator|(std::uint32_t word, E bits) { return word | lib::Bits(bits); }
-template <lib::BitFlags E> constexpr std::uint32_t operator&(std::uint32_t word, E bits) { return word & lib::Bits(bits); }
-template <lib::BitFlags E> constexpr std::uint32_t& operator|=(std::uint32_t& word, E bits) { return word |= lib::Bits(bits); }
-template <lib::BitFlags E> constexpr std::uint32_t& operator&=(std::uint32_t& word, E bits) { return word &= lib::Bits(bits); }
-template <lib::BitFlags E> constexpr std::uint32_t& operator^=(std::uint32_t& word, E bits) { return word ^= lib::Bits(bits); }
+// The return type also excludes non-enums: Apple Clang checks operator parameters before their constraints.
+template <class E>
+constexpr std::enable_if_t<lib::BitFlags<E>, std::uint32_t> operator|(std::uint32_t word, E bits) {
+    return word | lib::Bits(bits);
+}
+template <class E>
+constexpr std::enable_if_t<lib::BitFlags<E>, std::uint32_t> operator&(std::uint32_t word, E bits) {
+    return word & lib::Bits(bits);
+}
+template <class E>
+constexpr std::enable_if_t<lib::BitFlags<E>, std::uint32_t&> operator|=(std::uint32_t& word, E bits) {
+    return word |= lib::Bits(bits);
+}
+template <class E>
+constexpr std::enable_if_t<lib::BitFlags<E>, std::uint32_t&> operator&=(std::uint32_t& word, E bits) {
+    return word &= lib::Bits(bits);
+}
+template <class E>
+constexpr std::enable_if_t<lib::BitFlags<E>, std::uint32_t&> operator^=(std::uint32_t& word, E bits) {
+    return word ^= lib::Bits(bits);
+}

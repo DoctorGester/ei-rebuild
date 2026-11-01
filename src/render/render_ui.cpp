@@ -432,7 +432,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     sg_apply_pipeline(g_glyph);
     for (const Run& run : runs) {
         const Rect& r = run.op->rect;
-        sg_apply_scissor_rect(0, run.row, r.right - r.left, r.bottom - r.top, true);
+        platform::graphics::ApplyScissorRect(0, run.row, r.right - r.left, r.bottom - r.top);
         sg_bindings b{};
         b.vertex_buffers[0] = g_vertices;
         b.vertex_buffer_offsets[0] = run.offset;
@@ -551,8 +551,7 @@ CanvasState* Find(const void* holder, unsigned id) {
     return it != g_canvases.end() && it->second.id == id ? &it->second : nullptr;
 }
 
-// The read-backs' copies, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Read under the present's
-// lock (GpuWorkAlone); unmapped after reading.
+// The read-backs' copies, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's; unmapped after reading.
 platform::graphics::Readback g_staging, g_pictureStaging;
 
 // `op`, just drawn on `canvas`, joins its history. One that covers the canvas whole (its making, a fill or
@@ -800,7 +799,6 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
     platform::FloatingPointGuard fpu;
-    GpuWorkAlone alone;
     const int w = canvas.width, h = canvas.height;
     if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
@@ -824,7 +822,6 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     const CanvasState& canvas = it->second;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
     platform::FloatingPointGuard fpu;
-    GpuWorkAlone alone;
     if (!g_staging.Read(canvas.gpu.image, platform::Rect{x, y, x + 1, y + 1})) return false;
     const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
@@ -839,10 +836,9 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     if (it == g_canvases.end() || !it->second.gpu.texture.id || !EnsurePipelines()) return false;
     const CanvasState& canvas = it->second;
     platform::FloatingPointGuard fpu;
-    GpuWorkAlone alone;
     if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
     BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
-    sg_apply_viewport(0, 0, width, height, true);
+    platform::graphics::ApplyViewport(0, 0, width, height);
     sg_apply_pipeline(g_rgb565);
     sg_bindings b{};
     b.views[0] = canvas.gpu.texture;

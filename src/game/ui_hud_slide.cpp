@@ -1,12 +1,12 @@
 // The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
-// reproduced for every window (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
+// reproduced for every window (screen_layout.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
 
 #include "text_manager.h"
 #include "map_object.h"
 #include "object_tables.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit.h"
 #include "world.h"
 
@@ -47,8 +47,8 @@ constexpr float kSlingY = 20.0f;
 
 // WideScreen's layout constants (addon's operands, exact integers as floats): moved right for the
 // map, left for the unit panel.
-float RightEdge(float x) { return x + widescreen::EdgeShift(); }
-float LeftEdge(float x) { return x - widescreen::EdgeShift(); }
+float RightEdge(float x) { return x + screen_layout::EdgeShift(); }
+float LeftEdge(float x) { return x - screen_layout::EdgeShift(); }
 
 void Place(UiWindow* window, int index, float x, float y, float depth) {
     AsUiMesh(window->sceneObjects[index])->Place(x, y, depth);
@@ -132,7 +132,7 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
 // --- The map -------------------------------------------------------------------------------------
 
 void HudMap::Layout() {
-    widescreen::EnterRightPanel();   // addon's 10023366
+    screen_layout::EnterRightPanel();   // addon's 10023366
     const float slideOffset = static_cast<float>(offset);
     const float centre = slideOffset + kMapCentreX;
     const float buttons = slideOffset + kMapButtonsX;
@@ -147,8 +147,8 @@ void HudMap::Layout() {
     Place(this, 9, slideOffset + kMapFrameX, 80.0f, 10.0f);
     Place(this, 10, slideOffset + kMapNeedleX, 84.0f, kSlingDepthBits);
     Place(this, 11, buttons, 85.0f, 10.0f);
-    surfaces[0]->MoveTo(offset + 700 + widescreen::EdgeShift(), 80);     // WideScreen
-    widescreen::LeavePanel();        // addon's 1002337E, before the regions
+    surfaces[0]->MoveTo(offset + 700 + screen_layout::EdgeShift(), 80);     // WideScreen
+    screen_layout::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset);
 }
 
@@ -185,7 +185,7 @@ void HudMap::Update() {
 // --- The unit panel ------------------------------------------------------------------------------
 
 void HudUnitPanel::Layout() {
-    widescreen::EnterLeftPanel();    // addon's 100232AF
+    screen_layout::EnterLeftPanel();    // addon's 100232AF
     const float slideOffset = static_cast<float>(offset);
     const float edge = kUnitEdgeX - slideOffset;
     const float middle = kUnitMiddleX - slideOffset;
@@ -208,9 +208,9 @@ void HudUnitPanel::Layout() {
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, kUnitEffectX - slideOffset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces[0]->MoveTo(20 - widescreen::EdgeShift() - offset, 0);     // WideScreen
+    surfaces[0]->MoveTo(20 - screen_layout::EdgeShift() - offset, 0);     // WideScreen
     MoveRegions(this, -offset);
-    widescreen::LeavePanel();        // addon's 100232E9
+    screen_layout::LeavePanel();        // addon's 100232E9
 }
 
 void HudUnitPanel::Update() {
@@ -238,8 +238,8 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     // window's left edge. addon wrote (-133, 0)-(52, 225) and `sliding` 0 whatever the margin: its rectangle is this one
     // at 16:9 but a unit to the right, and without the first update's slide a panel set up slid out kept its sling
     // button where it was made, turned the other way.
-    widescreen::EnterLeftPanel();
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterLeftPanel();
+    const int shift = screen_layout::EdgeShift();
     rect = Rect{-shift, 0, 185 - shift, 225};
     sliding = true;
     travel = kUnitTravel;
@@ -328,14 +328,14 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
         partLabels.push_back(text);
     }
     for (int& icon : effectIcons) icon = -1;
-    widescreen::LeavePanel();        // addon's 100230E2
+    screen_layout::LeavePanel();        // addon's 100230E2
 }
 
 // --- The map's setup ----------------------------------------------------------------------
 
 void HudMap::Setup(float newZoom, bool slid) {
-    widescreen::EnterRightPanel();   // addon's 10023344
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterRightPanel();   // addon's 10023344
+    const int shift = screen_layout::EdgeShift();
     rect = Rect{615 + shift, 0, 800 + shift, 165};    // WideScreen
     halfSide = 80.0f;
 
@@ -451,5 +451,5 @@ void HudMap::Setup(float newZoom, bool slid) {
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects[6 + i], view == i + 1 ? 1.0f : 0.5f);
     Layout();
     northTime = 0.0f;
-    widescreen::LeavePanel();        // addon's 10023359
+    screen_layout::LeavePanel();        // addon's 10023359
 }

@@ -15,8 +15,8 @@
 //
 // Step:
 //   dropin   require the drop-in start-up: a drop-in run (EI_DROPIN) without EI_GAME_ROOT or EI_REBIRTH, the
-//            working directory and the game's data folder the exe's folder (EnterGameFolder), and the Rebirth
-//            flags the folder's profile (src/standalone/startup.cpp): on the Rebirth install every flag as
+//            working directory and the game's data folder the exe's folder (src/main.cpp), and the Rebirth
+//            flags the folder's profile (src/hook/rebirth_hook.cpp): on the Rebirth install every flag as
 //            config/rebirth_profile.ini says, with EI_Plugin.ini's players and pause mode; on the vanilla
 //            install the defaults (the bug fixes). The flags' expected values are worked out here
 //            from the ini and the patch list, not taken from the image's profile.

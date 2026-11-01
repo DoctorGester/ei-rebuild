@@ -21,7 +21,6 @@ using ei::Log;
 char g_resolution[32];      // "WxH", empty: the snapshot's
 int g_wideScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_fullScreen = -1;      // 0 / 1, -1: the snapshot's
-int g_fpsCursor = -1;       // FPSIndependentCursor 0 / 1, -1: the snapshot's
 int g_music = -1;           // AudioStreaming (the streamed music's volume), -1: the snapshot's
 std::string g_addonFolder;  // "addonpath": the mod's folder under harness_saves, empty: the snapshot's
 char g_addonPath[MAX_PATH]; // its full path (Install)
@@ -36,10 +35,10 @@ constexpr DWORD kCtfMon = 0;
 
 // The image's runs without a resolution of their own (H31): small captures and less GPU work per game, in a window
 // (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way. The window's
-// shape decides the interface layout (src/game/ui_widescreen.h), so each install's runs take the shape of the
+// shape decides the interface layout (src/game/screen_layout.h), so each install's runs take the shape of the
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
 // same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
-// apart as the image's start-up tells the profiles apart (src/standalone/startup.cpp): Rebirth's has starter\addon.dll
+// apart as the image's start-up tells the profiles apart (src/hook/rebirth_hook.cpp): Rebirth's has starter\addon.dll
 // or EI_Plugin.asi. (EI_REBIRTH does not: ei_launch sets it to "defaults" for every run that names no flags.)
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";
@@ -83,13 +82,6 @@ bool Answer(const char* name, DWORD* type, const BYTE** data, DWORD* size, DWORD
         *size = 4;
         return true;
     }
-    if (g_fpsCursor >= 0 && _stricmp(name, "FPSIndependentCursor") == 0) {
-        *dword = static_cast<DWORD>(g_fpsCursor);
-        *type = REG_DWORD;
-        *data = reinterpret_cast<const BYTE*>(dword);
-        *size = 4;
-        return true;
-    }
     if (g_music >= 0 && _stricmp(name, "AudioStreaming") == 0) {
         *dword = static_cast<DWORD>(g_music);
         *type = REG_DWORD;
@@ -126,10 +118,6 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
         g_fullScreen = std::atoi(argument.c_str()) != 0 ? 1 : 0;
         return true;
     }
-    if (verb == "fpscursor") {
-        g_fpsCursor = std::atoi(argument.c_str()) != 0 ? 1 : 0;
-        return true;
-    }
     if (verb == "music") {
         g_music = std::atoi(argument.c_str());
         if (g_music < 0) g_music = 0;
@@ -158,14 +146,13 @@ void Install(const char* savesDir) {
     }
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
     if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
-    if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_fpsCursor >= 0 || g_music >= 0 || g_addonPath[0]) {
+    if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_music >= 0 || g_addonPath[0]) {
         char music[16] = "(snapshot)";
         if (g_music >= 0) std::snprintf(music, sizeof(music), "%d", g_music);
-        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, FPSIndependentCursor %s, "
+        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, "
             "AudioStreaming %s, AddonPath %s",
             g_resolution[0] ? g_resolution : "(snapshot)", g_wideScreen < 0 ? "(snapshot)" : g_wideScreen ? "1" : "0",
-            g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(snapshot)" : g_fpsCursor ? "1" : "0",
-            music, g_addonPath[0] ? g_addonPath : "(snapshot)");
+            g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
 std::string ModFileStep(const std::string& argument) {

@@ -1,6 +1,6 @@
 #pragma once
 
-// The Windows backend's own declarations (platform_win32.cpp), for the loader (src/standalone/image_imports.cpp)
+// The Windows backend's own declarations (platform_win32.cpp), for the loader (image_imports.cpp)
 // and the harness's image side.
 //
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
@@ -25,8 +25,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include "platform/win32/win_api.h"
+#include <windows.h>
 
 namespace text {
 
@@ -88,10 +87,3 @@ LPSTR WINAPI CharLowerA(LPSTR text);
 } // namespace utf8
 
 } // namespace text
-
-struct IDirectInput7A;
-
-// The harness's view of the DirectInput object (the window-procedure path, platform_win32_window.cpp: the harness's
-// builds): MouseDevice::Open passes it each one it makes, before the mouse device. In game.exe's runs the harness
-// routes the original's import slot instead.
-extern void (*g_directInputObserver)(IDirectInput7A* input);

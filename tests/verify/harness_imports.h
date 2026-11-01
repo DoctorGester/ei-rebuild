@@ -1,12 +1,12 @@
 #pragma once
 
-// The harness's routes of game.exe's import slots, named by their ImportTable member (lib/import_table.h): the
-// image's own table, through the data seam (S18f). tools/gen_iat.py's routed() reads the members named here
-// (`ImportTable::X`): our code calls those imports through the slot (lib/gameapi.h), so the route applies.
+// The harness's routes of game.exe's import slots, named by their ImportTable member
+// (platform/win32/import_table.h): the program's own table. tools/gen_iat.py's routed() reads the members named here
+// (`ImportTable::X`): our code calls those imports through the slot (platform/win32/gameapi.h), so the route applies.
 
 #include <windows.h>
 
-#include "lib/import_table.h"
+#include "platform/win32/import_table.h"
 
 namespace ei::verify {
 

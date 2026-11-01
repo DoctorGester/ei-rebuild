@@ -1,13 +1,13 @@
 // The battle screen's weapon bar, quick items, spell column and action column: the four constructors, the
 // functions that add a slot's sprite and the weapon bar's highlight. Rebirth patches all nine for its
-// WideScreen layout, reproduced for every window (ui_widescreen.h): the weapon bar and the action column at
+// WideScreen layout, reproduced for every window (screen_layout.h): the weapon bar and the action column at
 // the screen's left edge, the quick items and the spell column at its right (the panel offset while some of
 // them run, layout constants moved by EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and
 // docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 
 #include "text_manager.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 #include <string>
@@ -97,7 +97,7 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 HudWeaponBar::HudWeaponBar(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     // WideScreen: the rectangle and the first region from 80 - shift; the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
-    const int shift = widescreen::EdgeShift();
+    const int shift = screen_layout::EdgeShift();
     rect = {80 - shift, 520, 240 - shift, 600};
     for (int x = 80 - shift; x < 240; x += kStep) AddRegion()->SetRect(x, 520, x + kStep, 600);
     ClearSceneObjects();
@@ -110,9 +110,9 @@ HudWeaponBar::HudWeaponBar(Interface3D* ui, BattleScreen* newOwner) : UiWindow(u
 }
 
 void HudWeaponBar::Highlight(int index, bool on) {
-    widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
+    screen_layout::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
     if (index < 0 || index >= count) {
-        widescreen::LeavePanel();
+        screen_layout::LeavePanel();
         return;
     }
     UiMesh* sprite = SceneMesh(index);
@@ -124,7 +124,7 @@ void HudWeaponBar::Highlight(int index, bool on) {
         sprite->SetScale(0.65f);
         sprite->flatSpecular = kColourOn;
         regions[index]->SetRect(left, 495, right, 600);
-        widescreen::LeavePanel();
+        screen_layout::LeavePanel();
         return;
     }
     // The more weapons, the larger each: 1.2 per slot in use, 24 deep at scale 1.
@@ -136,7 +136,7 @@ void HudWeaponBar::Highlight(int index, bool on) {
     sprite->SetScale(scale);
     sprite->flatSpecular = kColourOff;
     regions[index]->SetRect(left, 520, right, 600);
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }
 
 void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
@@ -159,7 +159,7 @@ void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats
         // written over).
         float offset = static_cast<float>(count * kStep);
-        const float shift = static_cast<float>(widescreen::EdgeShift());
+        const float shift = static_cast<float>(screen_layout::EdgeShift());
         sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f - shift), 520.0f,
                              offset + (120.0f - shift), 600.0f, 0, 0, kWeaponWidth, kWeaponHeight);
     }
@@ -175,8 +175,8 @@ void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
 // WideScreen: addon enters the right panels before the window's constructor (10023477); the window's reads no
 // panel offset, so here it is the body's first step.
 HudQuickItems::HudQuickItems(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
-    widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterRightPanel();   // addon's 10023477; 1002348E at the end
+    const int shift = screen_layout::EdgeShift();
     rect = {520 + shift, 500, 720 + shift, 600};    // WideScreen
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 550, x + 50, 600);
@@ -192,7 +192,7 @@ HudQuickItems::HudQuickItems(Interface3D* ui, BattleScreen* newOwner) : UiWindow
     unit = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     labels = Labels(ids);
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }
 
 void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
@@ -205,7 +205,7 @@ void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
         sprite->localRotation = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
     } else {
         sprite = AddBlankSprite();
-        const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen
+        const float shift = static_cast<float>(screen_layout::EdgeShift());   // WideScreen
         sprite->SetRectangle(20.0f, 20.0f, 680.0f + shift, 560.0f, 720.0f + shift, 600.0f, 0, 0, kIconSize, kIconSize);
     }
     SetOffsets(sprite, at.x, at.y + kIconSize);
@@ -216,7 +216,7 @@ void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
 // --- Spell column ----------------------------------------------------------------------------------------------
 
 HudSpellColumn::HudSpellColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
-    const int shift = widescreen::EdgeShift();
+    const int shift = screen_layout::EdgeShift();
     rect = {760 + shift, 190, 800 + shift, 510};    // WideScreen
     ClearSceneObjects();
     ClearRegions();
@@ -228,7 +228,7 @@ HudSpellColumn::HudSpellColumn(Interface3D* ui, BattleScreen* newOwner) : UiWind
 }
 
 void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
-    widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
+    screen_layout::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
     // What is there moves up a step; the new button takes the bottom place.
     for (int i = 0; i < std::ssize(regions); ++i) {
         int top = (i - count) * kStep;
@@ -253,15 +253,15 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     button->SetScale(1.0f);
     button->flatSpecular = kColourOff;
     selected = index;
-    widescreen::LeavePanel();
+    screen_layout::LeavePanel();
 }
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
 HudActionColumn::HudActionColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     // WideScreen (addon's handler): the panel offset from here on, the rectangle less the shift.
-    widescreen::EnterLeftPanel();
-    const int shift = widescreen::EdgeShift();
+    screen_layout::EnterLeftPanel();
+    const int shift = screen_layout::EdgeShift();
     rect = {-shift, 250, 40 - shift, 510};
     for (int y = 470; y > 230; y -= kStep) AddRegion()->SetRect(0, y, 40, y + kStep);
     ClearSceneObjects();
@@ -272,7 +272,7 @@ HudActionColumn::HudActionColumn(Interface3D* ui, BattleScreen* newOwner) : UiWi
     unit = nullptr;
     std::string text = g_clientWorld.texts->GetString("infoitem_16");
     labels.push_back(text);
-    widescreen::LeavePanel();        // addon's 10023430
+    screen_layout::LeavePanel();        // addon's 10023430
 }
 
 void HudActionColumn::AddAction(std::string_view model, std::string_view image, int action) {
@@ -283,7 +283,7 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     Quaternion turn;
     sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     float y = kColumnBottom - (count * kStep);
-    sprite->Place(20.0f - widescreen::EdgeShift(), y, 40.0f);   // WideScreen
+    sprite->Place(20.0f - screen_layout::EdgeShift(), y, 40.0f);   // WideScreen
     MakePlain(sprite);
     int place = lib::Count(actions);
     actions.resize(place + 1);

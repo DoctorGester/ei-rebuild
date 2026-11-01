@@ -308,7 +308,7 @@ layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-e
 0 otherwise) in `UiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
 the battle screen's panels at the screen's edges.
 
-All of it is rewritten (W1-W4b, W2a/b; `src/game/ui_widescreen.{h,cpp}` and the files named below), each
+All of it is rewritten (W1-W4b, W2a/b; `src/game/screen_layout.{h,cpp}` and the files named below), each
 function named in the csv's WideScreen rows; WideScreen has no leftovers. Since W12 it has no flag: the layout follows
 the window's shape (the module overview at the end).
 
@@ -323,9 +323,9 @@ flags are known and before the hooks are installed); the scaling 005F7CA0 / 005F
 
 **Shapes, text, tooltips (W2).** The shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
 005E99D0+4A7 SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon); the text
-extent 005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`); the text surfaces'
+extent 005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `screen_layout::TextExtentToLayout`); the text surfaces'
 draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the tooltip
-0065E580 (scaled with ECX 0; the tooltip's right edge at `800 + extra`, `widescreen::LayoutRight`). The chat line is not drawn in a single
+0065E580 (scaled with ECX 0; the tooltip's right edge at `800 + extra`, `screen_layout::LayoutRight`). The chat line is not drawn in a single
 player game (the overlay's root is drawn only for network clients): the harness's `chat 1|0` step opens it for the wrapper.
 - W2a, the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both. addon's changes
   in it: row right edge 265 -> 278 (0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x
@@ -347,7 +347,7 @@ player game (the overlay's root is drawn only for network clients): the harness'
 spell column 0063E2A0 / 0063E4B0, the action column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520
 (ui_hud_slide.cpp, ui_hud_build.cpp, ui_hud_frame.cpp, ui_hud_unit_info.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its
 panel offset at a builder's entry (`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call
-`widescreen::EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra
+`screen_layout::EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` at the same points, and its operands become `screen_layout::EdgeShift()` (extra
 while Active, else 0) added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the
 layouts inside the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where
 they are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
@@ -360,23 +360,23 @@ layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at
 - The unit panel's draw scales its three depth-clear rectangles without the margin and puts the model at layout x 100 - extra - slide offset;
   the map's click takes the centre at 700 + extra (two operands).
 
-**The remaining 18 sites (W4)**; the layout's `axisScale` and `fontScale` are computed with the others in `widescreen::Compute`, as addon
+**The remaining 18 sites (W4)**; the layout's `axisScale` and `fontScale` are computed with the others in `screen_layout::Compute`, as addon
 computes the floats it writes into the code:
 - The axis swap 004F1330+2A (renderer_scene.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
-  width keeps 4:3 proportions; `widescreen::AxisScale`.
+  width keeps 4:3 proportions; `screen_layout::AxisScale`.
 - The fonts 005F4990+BF (ui_interface.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in place of
   0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result is one ulp off at
-  3840x2160); `widescreen::FontScale`.
+  3840x2160); `screen_layout::FontScale`.
 - The backdrop 005F5320 (+14A .. +251, ui_interface_input.cpp): the full-size backdrop surface at the mode's size, flag 0 (addon's
   Construct(..., 0, 0, width, height, 4, 0) in place of (..., 800, 600, 4, 1)); these are the backdrop's rectangles, not the cursor's.
 - The drags: the camera's mouse move 005EB210+39 and the global map's 00630010+7C call the no-margin entry
   (`CallScalePointFromScreenNoMargin`); the map's pick picture is read at `x / 2 - margin / 2` (addon's 9 bytes at 005FD237, which its
-  redirected CALLs at 0063023C / 0062FB20 enter: `widescreen::PickShift`) in 00630010+22C and 0062F950+1D0.
+  redirected CALLs at 0063023C / 0062FB20 enter: `screen_layout::PickShift`) in 00630010+22C and 0062F950+1D0.
 - The camp 0060C870 (ui_camp_create.cpp) and the multiplayer hero screen 00613EA0 (ui_hero_screen_create.cpp): addon's handlers (100234AB,
   100235BA) run after the original and add two sprites, the curtains over the margins: SetRectangle(2.0, 100.0, -margin, 0, 0, 600, ...) and
   (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the
-  camp, hidden on the hero screen; `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen.cpp, addon's 100236C3
-  after it) shows them in every mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
+  camp, hidden on the hero screen; `screen_layout::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen.cpp, addon's 100236C3
+  after it) shows them in every mode but the hero list (9) when the screen has its 21 sprites: `screen_layout::ShowHeroCurtains`.
 - The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message` set) named `"<text>:<page>"` in addon's two lists
   move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0, zt4:1, zt7:0,
   zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals before the first
@@ -440,7 +440,7 @@ NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the sta
 ## WideScreen module overview
 
 Rebirth's WideScreen patch (starter\addon.dll v0.12.4.2, docs/notes/rebirth.md "Widescreen and rendering"),
-folded in for every window shape (W12, user 2026-10-30: no flag, no setting; src/game/ui_widescreen.h). The 800x600
+folded in for every window shape (W12, user 2026-10-30: no flag, no setting; src/game/screen_layout.h). The 800x600
 interface layout is drawn in the window's 4:3 part, the largest 4:3 rectangle in the window, centred:
 width43 = min(W, H * 800 / 600), height43 = min(H, W * 600 / 800). A window wider than 4:3 has margins left and
 right of it (margin pixels each, `extra` layout units: addon's layout); a window narrower than 4:3 (5:4, portrait)
@@ -448,7 +448,7 @@ has bands above and below it (marginY pixels: the 4:3 part letterboxed, nothing 
 keeps its proportions over the whole window through the axis swap's y scale); at exactly 4:3 both are 0 and every
 value is the original's. addon computed its values once, before WinMain, from the starter's registry, and refused
 every shape but wider than 4:3 (the original's stretched layout then drew). This module computes them once as well
-(widescreen::Configure, in GameMain right after the options load), from the resolution the game loaded and makes its
+(screen_layout::Configure, in GameMain right after the options load), from the resolution the game loaded and makes its
 window at: the settings file's [video] VideoResolution, one value for both installs
 (tests/scenarios/ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
 Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen

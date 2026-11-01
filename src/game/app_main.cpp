@@ -21,7 +21,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -53,6 +53,11 @@
 #include <format>
 
 using options::GameOptions;
+
+void InitGameServerPointer();   // net_session.cpp
+void InitGameClientPointer();
+void InitCodeTables();   // net_coder.cpp
+void BuildWeatherNoise();   // weather_noise.cpp
 
 namespace app {
 
@@ -312,7 +317,6 @@ void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
         g_sceneRenderer.flags |= 1;
-        platform::SetCursor(nullptr);
     } else {
         g_sceneRenderer.flags &= ~1u;
         platform::RepaintDesktop();
@@ -331,7 +335,7 @@ std::uint32_t TimeSinceLastPass() {
         now = platform::Milliseconds();
     }
     // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them).
-    platform::audio::DeliverEnds(now);
+    audio::DeliverEnds(now);
     const std::uint32_t elapsed = now - g_lastTime;
     g_lastTime += elapsed;
     return elapsed;
@@ -523,6 +527,16 @@ int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
 int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* commandLine, int show) {
+    // What game.exe's static initialisers did beyond setting values, in their order: the exit functions go in the
+    // game's order, not at our CRT's.
+    ::InitGameServerPointer();
+    ::InitGameClientPointer();
+    ::InitCodeTables();
+    std::atexit(app::ReleaseMouseAtExit);
+    net::StartWinsock();
+    std::atexit(net::CleanUpWinsock);
+    ::BuildWeatherNoise();
+
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
@@ -540,7 +554,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     options->Load();
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
-    widescreen::Configure(options->resolutionX, options->resolutionY);
+    screen_layout::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
     g_serverWorld.Create();
@@ -571,7 +585,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
-    SetUpCursors(options->fpsIndependentCursor != 0, g_mouse, 0);
+    SetUpCursors(g_mouse, 0);
     g_interface.Create(g_sceneRenderer.device);
     g_mapDatabase.LoadAll();
     StartFirstMap();

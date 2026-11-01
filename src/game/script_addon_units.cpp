@@ -10,7 +10,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 
 #include <cstdint>
 #include <type_traits>

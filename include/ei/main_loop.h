@@ -31,16 +31,17 @@ struct InSite {
 // harness_capture.cpp). The rewritten callers (src/game/app_main.cpp, app_frame.cpp) call the hook
 // instead of the function when one is set; in game.exe the harness redirects the original's CALLs at
 // these points to entries in the original's register convention that call the same hooks. Null: the
-// function itself. Each hook ends by calling the function it stands in for.
+// function itself. Each hook ends by calling the function it stands in for (beforePresent stands in for none).
 struct HarnessHooks {
     using WorldUpdate = int (*)(void* world);   // 0 stops the frame
     using CameraUpdate = void (*)(void* camera, float seconds);
-    using CursorLock = void (*)(void* cursor);
+    using BeforePresent = void (*)();
     using FrameStep = void (*)(bool draw, bool cursor);
     WorldUpdate serverUpdate = nullptr;         // CALL 0058DFF0 at 00457314 in WinMain
     WorldUpdate clientSegment = nullptr;        // CALL 005641F0 at 00457368 in WinMain
     CameraUpdate frameCameraUpdate = nullptr;   // CALL 0040FB30 at 00457595 in WinMain (the frame's last)
-    CursorLock cursorLock = nullptr;            // CALL 005E65F0 at 004580D7 in the frame step 00458010
+    BeforePresent beforePresent = nullptr;      // the frame step 00458010 before the cursor and the present (004580D7,
+                                                // where the original took the cursor's lock 005E65F0)
     FrameStep frameStep = nullptr;              // CALL 00458010 at 004575FD in WinMain (a pass's frame step)
 };
 

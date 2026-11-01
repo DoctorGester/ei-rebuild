@@ -19,7 +19,7 @@
 // Rebirth's on its data: starter::RebirthInstall), each key as its section (General Settings as [video] and
 // [sound]), and Rebirth's switches (EI_Starter\Settings as [rebirth]), with the starter lines' answers in place (any
 // key with that value name); read only, and a read of a value the file lacks fails the run as above (unless marked
-// absent). The game paths' redirects (standalone_main.cpp, harness_startup.cpp's discprompt) change its reads as they
+// absent). The game paths' redirects (src/main.cpp, harness_startup.cpp's discprompt) change its reads as they
 // did the registry's.
 //
 // Two scenario lines check the product's file paths instead, in the image only:

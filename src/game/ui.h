@@ -64,7 +64,7 @@ extern char g_pauseMessageKey[12];
 // The interface manager.
 class Interface3D {
 public:
-    // Layout (800x600) to screen and back, in the window's 4:3 part (ui_widescreen.h).
+    // Layout (800x600) to screen and back, in the window's 4:3 part (screen_layout.h).
     void ScaleRectToScreen(Rect* rect) const;
     void ScalePointToScreen(Point* point) const;
     void ScaleRectFromScreen(Rect* rect) const;
@@ -126,7 +126,7 @@ public:
     void ChatKeyEnter();
     void ChatKeyBackspace();
     // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout by the window's
-    // 4:3 part (widescreen::TextExtentToLayout).
+    // 4:3 part (screen_layout::TextExtentToLayout).
     Size TextExtent(std::string_view text, int font) const;
     // `text` word-wrapped to `width` layout units in `font` (UiSurface::DrawWrappedText's lines: breaks at
     // spaces and '\n', a line keeps the space after its last word).

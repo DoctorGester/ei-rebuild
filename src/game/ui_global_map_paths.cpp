@@ -13,7 +13,7 @@
 #include "text_manager.h"
 #include "ui.h"
 #include "ui_screens.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world.h"
 #include "world_glue.h"
 #include "ei/rebirth.h"
@@ -126,7 +126,7 @@ void GlobalMap::LeftDown(int, int x, int y) {
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
         // part's margins come off (Rebirth's WideScreen took the margin off x).
-        const Point shift = widescreen::PickShift();
+        const Point shift = screen_layout::PickShift();
         const std::uint32_t pixel = backdrop->PixelAt(x / 2 - shift.x, y / 2 - shift.y);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;

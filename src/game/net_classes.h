@@ -100,9 +100,10 @@ public:
 extern int g_remoteRate;
 extern int g_localRate;
 
-// Winsock's static initialiser, called as the original calls WSAStartup (1.1 into a WSADATA on its stack): starts
-// the platform's sockets, which ask for 1.1 themselves.
-void StartWinsock(std::uint16_t version, void* data);
+// The platform's sockets started at the game's start (game.exe's static initialiser called WSAStartup 1.1) and
+// stopped at its exit.
+void StartWinsock();
+void CleanUpWinsock();
 
 class SessionBase;
 class ServerSession;

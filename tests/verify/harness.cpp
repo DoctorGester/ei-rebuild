@@ -50,10 +50,10 @@
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs).
 //                             A letter or digit is typed once (its WM_CHAR, lower case); the game's
 //                             TranslateMessage translates as the US layout with no key held, whatever the
-//                             user's own keyboard does (HarnessTranslateMessage).
+//                             user's own keyboard does (FixedKeyChar).
 //                             Input steps (key and the mouse steps below) are posted from the game's
 //                             main loop only: the pump that window switches run drops waiting input
-//                             (see PeekMessageHook)
+//                             (see BeforeEvents)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
@@ -63,7 +63,7 @@
 //                             only the left / right button's press or release there (a button held
 //                             over frames, e.g. the camp trade panel's repeated school purchase, the
 //                             global map turned by a right-button drag)
-//   mousedrag <dx> <dy>       from the next frame on, after each frame the game's DirectInput mouse moves by
+//   mousedrag <dx> <dy>       from the next frame on, after each frame the game's mouse moves by
 //                             (dx, dy) counts and a WM_MOUSEMOVE at the harness's mouse follows: a drag at a
 //                             steady speed, e.g. the camera turned with the right button held (rdown /
 //                             rup; camera_spin); "mousedrag 0 0" ends it
@@ -216,8 +216,6 @@
 //                             back (restored, WM_ACTIVATE click-active), as Windows does it
 //   windowsize <w> <h>        resize the game window (its client area) to <w> x <h>
 //   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
-//   fpscursor 0|1             answer the game's FPSIndependentCursor setting for this run: 1 runs the
-//                             cursor's drawing thread 005E5690, 0 does not (harness_starter.h)
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
@@ -246,21 +244,15 @@
 //                             scenario's "render" step names "removable"). Also fails when the loss
 //                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
 //                             is not removable again
-//   mouseglide <ms> <x0> <y0> <x1> <y1>
-//                             move the harness's mouse (what the game's GetCursorPos reads) from
-//                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
-//                             steps, from a thread of its own: it goes on while the main thread is
-//                             busy (a stall, a movie, a loading screen). No messages are posted
-//   stall <ms>                the main thread does nothing for <ms> real time: one long frame
-//   cursormark                remember how often the cursor thread has presented (render::CursorPresents)
-//   cursorcheck <name>|- <min> [max]
-//                             require the cursor thread to have presented the frame again with the
-//                             cursor moved (the switch-over without DirectDraw, R9c2) at least <min>
-//                             and at most <max> times since "cursormark"; with a name, its last
-//                             present's frame is written to frames\<name>.bmp, the verify build's
-//                             checks of the composed frames must have found no difference, and its
-//                             rectangle must sit at the mouse less the cursor's hot spot (within the
-//                             distance the mouse covers in two steps of the cursor thread)
+//   cursormark                remember the presents' cursor counts (render::CursorState)
+//   cursorcheck <name>|- shown|hidden|held|animated [min]
+//                             the system's cursor (renderer.md section 9) since "cursormark": "shown", at least
+//                             <min> (default 1) presents showed it and it is shown now, not held: the game's image's
+//                             frame at the window's scale (size and hot spot), with opaque and transparent pixels;
+//                             with a name, the last frame with the cursor drawn in at the game's position goes to
+//                             frames\<name>.bmp. "hidden": at least <min> presents hid it (a movie, a loading
+//                             screen). "held": presents held it, and it is held now at the game's position.
+//                             "animated": the shape stepped to another frame of the same picture <min> times
 //   windowtitle               require the game window's title to be "Evil Islands" and its class "EIGAME"
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
 //                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
@@ -370,7 +362,6 @@
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
-#include "ei/hook.h"
 #include "harness_imports.h"
 #include "harness_camera.h"
 #include "harness_capture.h"
@@ -391,6 +382,7 @@
 #include "harness_starter.h"
 #include "harness_windows.h"
 #include "harness_input.h"
+#include "harness_platform.h"
 #include "harness_install.h"
 #include "harness_net.h"
 #include "harness_pair.h"
@@ -398,8 +390,7 @@
 #include "harness_utf8.h"
 
 #include "../../src/hook/log.h"
-#include "../../src/hook/thread_context.h"
-#include "ei/hook.h"
+#include "platform/win32/thread_context.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "harness_objects.h"
@@ -519,7 +510,7 @@ bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
 // Whether the PeekMessageA call running the steps is one that hands input to the game (see
-// PeekMessageHook): "key", mouse and region steps wait for one.
+// BeforeEvents): "key", mouse and region steps wait for one.
 bool g_inputLoop = false;
 // Whether that call is WinMain's own loop: "quit" waits for one.
 bool g_winMainLoop = false;
@@ -552,7 +543,7 @@ std::size_t g_waitForFrom = 0;
 DWORD g_waitForNext = 0;
 Deadline g_waitForDeadline;
 // Frames drawn so far: passes of WinMain's loop through its after-frame PeekMessageA (see
-// PeekMessageHook). A pending "frames": the count it waits for.
+// BeforeEvents). A pending "frames": the count it waits for.
 unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
@@ -617,16 +608,15 @@ void OnConsoleLine(const char* text) {
     }
 }
 
-decltype(&::PeekMessageA) g_peekMessage;
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
-// and the code addresses found on the stack (game.exe addresses as is, ours as <module>+offset: ei::OwnModuleName).
+// and the code addresses found on the stack (ours as ei-rebuild+offset, others as they are).
 // First-chance, so exceptions the game handles itself show up too; only the first few are logged.
 std::uintptr_t g_selfBase, g_selfEnd;
 
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
-    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s %s+%X", label, ei::OwnModuleName(), unsigned(a - g_selfBase));
+    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei-rebuild+%X", label, unsigned(a - g_selfBase));
     else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
         HMODULE m = nullptr;
         char name[MAX_PATH] = "";
@@ -735,7 +725,7 @@ BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
     switch (command) {
     case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
     case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
-    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // the game minimises itself on deactivation
+    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;
     default: break;
     }
     return g_showWindow(window, command);
@@ -748,7 +738,6 @@ HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWOR
         std::snprintf(harnessTitle, sizeof(harnessTitle), "%s (harness)", name);
         name = harnessTitle;
     }
-    input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
 }
 
@@ -792,7 +781,7 @@ const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
 // of is copied there first), and a read takes that copy when there is one, else the install's file.
 // Nothing under the install is ever modified. Deleting or moving an install file only affects the
 // overlay copy (a move of an install file becomes a copy).
-char g_rootDirs[2][MAX_PATH];   // the working directory at start and the game folder
+char g_rootDirs[2][MAX_PATH];   // the game folder (install::GameFolder) and the settings' one
 
 bool UnderRoot(const char* full, const char* root, const char** relative) {
     std::size_t n = std::strlen(root);
@@ -1241,8 +1230,8 @@ void PostModifiers(unsigned mods, bool down) {
     for (const Key& key : keys) {
         if (!(mods & key.mod)) continue;
         LPARAM lparam = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
-        if (down) PostMessageA(GameWindow(), key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
-        else PostMessageA(GameWindow(), key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
+        if (down) input::Post(key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
+        else input::Post(key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
     }
 }
 
@@ -1275,7 +1264,6 @@ struct HeldModifiers {
 // "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
 // theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
-decltype(&::TranslateMessage) g_translateMessage;
 
 char FixedKeyChar(WPARAM vk) {
     switch (vk) {
@@ -1303,13 +1291,8 @@ char FixedKeyChar(WPARAM vk) {
     }
 }
 
-BOOL WINAPI HarnessTranslateMessage(const MSG* message) {
-    if (!message || message->message != WM_KEYDOWN) return FALSE;   // no Alt in the key state: no WM_SYSCHAR
-    const char c = FixedKeyChar(message->wParam);
-    if (!c) return FALSE;
-    PostMessageA(message->hwnd, WM_CHAR, static_cast<unsigned char>(c), message->lParam);
-    return TRUE;
-}
+// The character a key press types (harness_platform.h): the US layout's, with no key held.
+int TypedCharacter(int key) { return static_cast<unsigned char>(FixedKeyChar(static_cast<WPARAM>(key))); }
 
 // Which messages PostKey posts: the press and release ("key"), or only one of them ("keydown" / "keyup").
 enum class KeyPart { Both, Down, Up };
@@ -1351,16 +1334,15 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
                           vk == VK_NEXT || vk == VK_HOME || vk == VK_END || vk == VK_DELETE;
     if (part != KeyPart::Both && extended) scan |= 0x100;
     if (part != KeyPart::Up) {
-        PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
+        input::Post(WM_KEYDOWN, vk, 1 | (scan << 16));
         if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
-            PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
-        if (part == KeyPart::Both && name == "enterchar") PostMessageA(GameWindow(), WM_CHAR, 0x0D, 1 | (scan << 16));
+            input::Post(WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
+        if (part == KeyPart::Both && name == "enterchar") input::Post(WM_CHAR, 0x0D, 1 | (scan << 16));
     }
-    if (part != KeyPart::Down) PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
+    if (part != KeyPart::Down) input::Post(WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
 // The image's renderer's present counts.
-image::CursorPresents HarnessCursorPresents() { return image::CursorPresentCounts(); }
 image::WindowPresents HarnessWindowPresents() { return image::WindowPresentCounts(); }
 
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
@@ -1378,94 +1360,101 @@ POINT ToWindow(int x, int y) {
     return POINT{x, y};
 }
 
-// "mouseglide": the harness's mouse moved by a thread of its own (the main thread may be busy). A
-// newer glide ends an older one.
-struct Glide {
-    POINT from, to;
-    DWORD ms;
-    LONG generation;
-};
-volatile LONG g_glideGeneration = 0;
+// "cursormark" / "cursorcheck": the presents' system cursor (R40).
+image::CursorPresents g_cursorMark;
 
-DWORD WINAPI GlideThread(void* parameter) {
-    Glide glide = *static_cast<Glide*>(parameter);
-    delete static_cast<Glide*>(parameter);
-    const DWORD start = GetTickCount();
-    for (;;) {
-        if (g_glideGeneration != glide.generation) return 0;
-        DWORD elapsed = GetTickCount() - start;
-        if (elapsed > glide.ms) elapsed = glide.ms;
-        LONG x = glide.from.x + static_cast<LONG>((static_cast<long long>(glide.to.x - glide.from.x) * elapsed) / glide.ms);
-        LONG y = glide.from.y + static_cast<LONG>((static_cast<long long>(glide.to.y - glide.from.y) * elapsed) / glide.ms);
-        g_mouseX = x;
-        g_mouseY = y;
-        if (elapsed >= glide.ms) return 0;
-        Sleep(10);
+// The last frame with the shown cursor drawn in at the game's cursor position less its hot spot (each frame pixel takes
+// the cursor's pixel under its top left corner, alpha blended) into frames\<name>.bmp.
+std::string WriteCursorFrame(const char* name, const image::CursorState& game) {
+    harnessplatform::ShownCursor cursor;
+    int fw = 0, fh = 0, pw = 0, ph = 0;
+    std::vector<std::uint8_t> bgr;
+    if (!harnessplatform::CursorShown(&cursor) || !image::FramePlaced(&pw, &ph) || !image::ReadFrame(&fw, &fh, &bgr) ||
+        fw <= 0 || fh <= 0)
+        return "cursorcheck: no frame or cursor to write";
+    const int left = game.x - game.hotX, top = game.y - game.hotY;
+    for (int y = (std::max)(0, top); y < fh; ++y) {
+        const int cy = static_cast<int>(static_cast<long long>(y - top) * ph / fh);
+        if (cy >= cursor.height) break;
+        for (int x = (std::max)(0, left); x < fw; ++x) {
+            const int cx = static_cast<int>(static_cast<long long>(x - left) * pw / fw);
+            if (cx >= cursor.width) break;
+            const std::uint8_t* c = &cursor.rgba[(static_cast<std::size_t>(cy) * cursor.width + cx) * 4];
+            std::uint8_t* f = &bgr[(static_cast<std::size_t>(y) * fw + x) * 3];
+            for (int k = 0; k < 3; ++k) f[k] = static_cast<std::uint8_t>((c[2 - k] * c[3] + f[k] * (255 - c[3]) + 127) / 255);
+        }
     }
+    std::string path;
+    if (!capture::WriteFrame(name, fw, fh, bgr, &path)) return std::string("cursorcheck: cannot write ") + name;
+    g_capturedFrames.push_back(path + " (the last frame with the system's cursor drawn in)");
+    return {};
 }
-
-void StartMouseGlide(int ms, int x0, int y0, int x1, int y1) {
-    RECT client = GameClient();
-    LONG w = client.right - client.left, h = client.bottom - client.top;
-    auto* glide = new Glide{ToWindow(x0 * w / 800, y0 * h / 600), ToWindow(x1 * w / 800, y1 * h / 600), static_cast<DWORD>(ms),
-                            InterlockedIncrement(&g_glideGeneration)};
-    Log("harness: mouseglide: window (%ld, %ld) to (%ld, %ld) over %d ms", glide->from.x, glide->from.y, glide->to.x,
-        glide->to.y, ms);
-    if (HANDLE thread = CreateThread(nullptr, 0, &GlideThread, glide, 0, nullptr)) CloseHandle(thread);
-    else delete glide;
-}
-
-// "cursormark" / "cursorcheck": the cursor thread's presents between frames (R9c2). The cursor
-// thread places the cursor where the mouse was at its step before (005E52E0), so the rectangle
-// trails the mouse by up to two of its 41 ms steps.
-std::uint32_t g_cursorMark = 0;
-constexpr int kCursorTrail = 24;   // frame pixels: the scenarios glide at most 0.25 px/ms
 
 std::string CursorCheck(const std::string& argument) {
-    char name[64] = "";
-    unsigned least = 0, most = ~0u;
-    if (sscanf_s(argument.c_str(), "%63s %u %u", name, unsigned(sizeof(name)), &least, &most) < 2)
-        return "cursorcheck needs <name>|- <min> [max]";
-    const image::CursorPresents info = HarnessCursorPresents();
-    std::uint32_t count = info.presents - g_cursorMark;
-    Log("harness: cursorcheck: %u presents by the cursor thread since cursormark (last at %d,%d-%d,%d); %d composed "
-        "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
-        count, info.lastLeft, info.lastTop, info.lastRight, info.lastBottom, info.checks, info.mismatches, info.calls,
-        info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
-    const image::CursorState cursor = HarnessCursor();
-    Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", cursor.mode, cursor.thread ? "running" : "none",
-        cursor.imageShown);
-    char what[240];
-    if (count < least || count > most) {
-        std::snprintf(what, sizeof(what), "cursorcheck: %u presents by the cursor thread, expected %u..%u", count, least, most);
-        return what;
+    char name[64] = "", what[16] = "";
+    unsigned least = 1;
+    if (sscanf_s(argument.c_str(), "%63s %15s %u", name, unsigned(sizeof(name)), what, unsigned(sizeof(what)), &least) < 2)
+        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
+    const image::CursorPresents now = image::CursorPresentCounts();
+    const image::CursorPresents& mark = g_cursorMark;
+    const image::CursorState game = HarnessCursor();
+    harnessplatform::ShownCursor shown;
+    const bool isShown = harnessplatform::CursorShown(&shown);
+    platform::Point heldAt{};
+    const bool isHeld = harnessplatform::CursorHeld(&heldAt);
+    Log("harness: cursorcheck %s: since cursormark %u presents showed the cursor, %u held it, %u hid it; %u frame "
+        "steps, %u shapes made in all (%u failed); shown %s %dx%d (hot spot %d, %d)%s; the game's image %dx%d (%d "
+        "frames, hot spot %d, %d) shown %d, %s at %d, %d",
+        what, now.presentsShown - mark.presentsShown, now.presentsHeld - mark.presentsHeld,
+        now.presentsHidden - mark.presentsHidden, now.frameChanges - mark.frameChanges, now.made, now.failures,
+        isShown ? "yes" : "no", shown.width, shown.height, shown.hotX, shown.hotY, isHeld ? ", held" : "", game.width,
+        game.height, game.frames, game.hotX, game.hotY, game.imageShown, game.held ? "held" : "free", game.x, game.y);
+    char failure[200] = "";
+    const std::string kind = what;
+    if (now.failures) {
+        std::snprintf(failure, sizeof(failure), "cursorcheck: the system could not make %u shapes", now.failures);
+    } else if (kind == "shown") {
+        int fw = 0, fh = 0, pw = 0, ph = 0;
+        image::FrameInWindow(&fw, &fh);
+        image::FramePlaced(&pw, &ph);
+        const int width = fw > 0 ? (std::max)(1, (game.width * pw + fw / 2) / fw) : 0;
+        const int height = fh > 0 ? (std::max)(1, (game.height * ph + fh / 2) / fh) : 0;
+        int opaque = 0, clear = 0;
+        for (std::size_t i = 3; i < shown.rgba.size(); i += 4) {
+            opaque += shown.rgba[i] == 255;
+            clear += shown.rgba[i] == 0;
+        }
+        if (now.presentsShown - mark.presentsShown < least || !isShown || isHeld)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: not shown (or held)");
+        else if (!game.image || game.width <= 0 || game.height <= 0 || shown.width != width || shown.height != height ||
+                 shown.width != now.width || shown.height != now.height)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: %dx%d, expected the image's %dx%d at the window's scale: %dx%d",
+                          shown.width, shown.height, game.width, game.height, width, height);
+        else if (shown.hotX != (std::min)(width - 1, (game.hotX * width + game.width / 2) / game.width) ||
+                 shown.hotY != (std::min)(height - 1, (game.hotY * height + game.height / 2) / game.height))
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: hot spot %d, %d, the image's %d, %d", shown.hotX,
+                          shown.hotY, game.hotX, game.hotY);
+        else if (!opaque || !clear)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: %d opaque and %d transparent pixels", opaque, clear);
+        else if (std::strcmp(name, "-") != 0)
+            return WriteCursorFrame(name, game);
+    } else if (kind == "hidden") {
+        if (now.presentsHidden - mark.presentsHidden < least)
+            std::snprintf(failure, sizeof(failure), "cursorcheck hidden: %u presents hid the cursor, expected %u or more",
+                          now.presentsHidden - mark.presentsHidden, least);
+    } else if (kind == "held") {
+        if (now.presentsHeld - mark.presentsHeld < least || !isShown || !isHeld || !game.held || heldAt.x != game.x ||
+            heldAt.y != game.y)
+            std::snprintf(failure, sizeof(failure), "cursorcheck held: held at %d, %d (%s), the game's cursor at %d, %d (%s)",
+                          heldAt.x, heldAt.y, isHeld ? "held" : "not held", game.x, game.y, game.held ? "held" : "free");
+    } else if (kind == "animated") {
+        if (now.frameChanges - mark.frameChanges < least)
+            std::snprintf(failure, sizeof(failure), "cursorcheck animated: %u frame steps, expected %u or more",
+                          now.frameChanges - mark.frameChanges, least);
+    } else {
+        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
     }
-    if (info.mismatches) {
-        std::snprintf(what, sizeof(what), "cursorcheck: %d of %d frames composed by the cursor thread differ", info.mismatches,
-                      info.checks);
-        return what;
-    }
-    if (std::strcmp(name, "-") == 0 || count == 0) return {};
-    if (info.checks == 0) return "cursorcheck: the cursor thread's frames were not checked";
-    int width = 0, height = 0;
-    std::vector<std::uint8_t> bgr;
-    std::string path;
-    if (!image::ReadCursorPresent(&width, &height, &bgr) ||
-        !capture::WriteFrame(name, width, height, bgr, &path))
-        return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
-    g_capturedFrames.push_back(path + " (the cursor thread's last present)");
-    if (!cursor.image) return "cursorcheck: the cursor has no image";
-    int fx = g_mouseX, fy = g_mouseY;
-    image::WindowToFrame(&fx, &fy);
-    int dx = info.lastLeft - (fx - cursor.hotX), dy = info.lastTop - (fy - cursor.hotY);
-    Log("harness: cursorcheck: %s; the mouse at frame (%d, %d), hot spot (%d, %d), the cursor %d, %d from mouse less hot spot",
-        path.c_str(), fx, fy, cursor.hotX, cursor.hotY, dx, dy);
-    if (dx < -kCursorTrail || dx > kCursorTrail || dy < -kCursorTrail || dy > kCursorTrail) {
-        std::snprintf(what, sizeof(what), "cursorcheck: the cursor at %d,%d is %d, %d from the mouse (%d, %d) less its hot spot (%d, %d)",
-                      info.lastLeft, info.lastTop, dx, dy, fx, fy, cursor.hotX, cursor.hotY);
-        return what;
-    }
-    return {};
+    return failure;
 }
 
 // "windowtitle": the game window's title is "Evil Islands" and its class "EIGAME" (the strings game.exe's table held,
@@ -1483,7 +1472,7 @@ std::string WindowTitleStep() {
 }
 
 // The layout point (x, y) of the 800x600 interface as the mouse steps' share of a window of width x height: the layout
-// fills the window's 4:3 part, the largest one, centred (src/game/ui_widescreen.h).
+// fills the window's 4:3 part, the largest one, centred (src/game/screen_layout.h).
 void LayoutToWindowShare(int width, int height, int* x, int* y) {
     const double part43Width = width * 3 < height * 4 ? width : height * 4.0 / 3.0;
     const double part43Height = height * 4 < width * 3 ? height : width * 3.0 / 4.0;
@@ -1499,32 +1488,32 @@ void PostMouse(const std::string& verb, int x, int y) {
     LPARAM at = MAKELPARAM(window.x, window.y);
     g_mouseX = window.x;
     g_mouseY = window.y;
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    input::Post(WM_MOUSEMOVE, 0, at);
     if (verb == "click") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rclick") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "dblclick") {
         // What Windows sends for a double click: down, up, double click, up.
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "ldown") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
     } else if (verb == "lup") {
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rdown") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
     } else if (verb == "rup") {
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "rdblclick") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_RBUTTONDBLCLK, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDBLCLK, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     }
 }
 
@@ -1532,9 +1521,9 @@ void PostMouse(const std::string& verb, int x, int y) {
 void PostWheel(int x, int y, int delta) {
     RECT client = GameClient();
     POINT point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
+    input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
     ClientToScreen(GameWindow(), &point);
-    PostMessageA(GameWindow(), WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
+    input::Post(WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
 }
 
 // The centre of region `index` of the top interface window, posted as a mouse event. The region's
@@ -1561,19 +1550,19 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
     point = ToWindow(point.x, point.y);
     LPARAM at = MAKELPARAM(point.x, point.y);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    input::Post(WM_MOUSEMOVE, 0, at);
     if (verb == "clickregion") {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     } else if (verb == "rclickregion") {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(WM_RBUTTONUP, 0, at);
     } else if (verb == "dblclickregion") {
         // As "dblclick": down, up, double click, up.
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        input::Post(WM_LBUTTONUP, 0, at);
     }
 }
 
@@ -1663,18 +1652,18 @@ std::string PostUnitMouse(const std::string& argument) {
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
-    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, where);
+    input::Post(WM_MOUSEMOVE, 0, where);
     if (std::strcmp(button, "l") == 0) {
-        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, where);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
+        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, where);
+        input::Post(WM_LBUTTONUP, 0, where);
     } else if (std::strcmp(button, "r") == 0) {
-        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
-        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
+        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, where);
+        input::Post(WM_RBUTTONUP, 0, where);
     } else if (std::strcmp(button, "dbl") == 0) {
         // The second half of a double click only: the release after it carries the interface's
         // double-click flag (+0x7F) into the battle screen's SelectUnit (rebirth_fixes_ui).
-        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, where);
-        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
+        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, where);
+        input::Post(WM_LBUTTONUP, 0, where);
     }
     return "";
 }
@@ -1924,16 +1913,6 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-// The standalone image reached game code with no rewrite (src/hook/standalone_main.cpp, which ends the process
-// after this): the run fails naming the address.
-void EndRunOnMissingCode(const char* what) {
-    g_failures.push_back(std::string("standalone: ") + what + " (ei-rebuild.log)");
-    if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
-        WaitForSingleObject(writer, 3000);
-        CloseHandle(writer);
-    }
-}
-
 // A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
 // program termination", from game.exe's own CRT or Rebirth's), a pure virtual call, the game's error
 // box. user32's MessageBoxA / MessageBoxW are hot-patched (the CRT finds MessageBoxA through
@@ -2176,8 +2155,8 @@ DWORD ConcealedExStyle(DWORD exStyle) {
     if (g_conceal) exStyle = (exStyle | WS_EX_TOOLWINDOW) & ~DWORD(WS_EX_APPWINDOW);
     return exStyle;
 }
-// (Message-only windows, Miles' and DirectSound's among them, are never seen and cannot be cloaked:
-// their parent is HWND_MESSAGE, which GetParent does not report.)
+// (Message-only windows are never seen and cannot be cloaked: their parent is HWND_MESSAGE, which GetParent does
+// not report.)
 void Conceal(HWND window) {
     if (!g_conceal || !window || GetAncestor(window, GA_PARENT) != GetDesktopWindow() ||
         !TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), nullptr))
@@ -2696,7 +2675,7 @@ void RunSteps() {
             }
         }
         if (!g_inputLoop && IsInputStep(s.verb)) {
-            --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)
+            --g_next;   // posted from the next main loop pass instead (see BeforeEvents)
             return;
         }
         // "quit" posts WM_QUIT (PostQuitMessage) on this thread: only WinMain's loop ends the game on
@@ -3190,20 +3169,9 @@ void RunSteps() {
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
             g_waitingNewDevice = true;
             return;
-        } else if (s.verb == "mouseglide") {
-            int ms = 0, x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-            if (sscanf_s(s.argument.c_str(), "%d %d %d %d %d", &ms, &x0, &y0, &x1, &y1) != 5 || ms <= 0) {
-                g_failures.push_back("mouseglide needs <ms> <x0> <y0> <x1> <y1>");
-                continue;
-            }
-            StartMouseGlide(ms, x0, y0, x1, y1);
-        } else if (s.verb == "stall") {
-            DWORD ms = std::strtoul(s.argument.c_str(), nullptr, 10);
-            Sleep(ms);   // the harness's own Sleep: real time, the game's clocks are not touched
-            Log("harness: stall: the main thread was away for %lu ms", ms);
         } else if (s.verb == "cursormark") {
-            g_cursorMark = HarnessCursorPresents().presents;
-            Log("harness: cursormark: %u presents by the cursor thread so far", g_cursorMark);
+            g_cursorMark = image::CursorPresentCounts();
+            Log("harness: cursormark");
         } else if (s.verb == "cursorcheck") {
             std::string error = CursorCheck(s.argument);
             if (!error.empty()) {
@@ -3351,7 +3319,7 @@ void LogMainThreadStack() {
 
 // The stack dump runs on a thread of its own and the watchdog waits 2 s for it: suspending the main
 // thread and reading its context waits until the thread is actually suspended, which a thread stuck
-// in a driver call (DirectSound's device open inside Miles' waveOutOpen under load) never is. The
+// in a driver call (an audio device's open under load) never is. The
 // watchdog itself must reach TerminateProcess whatever the main thread is doing (SV1d).
 void LogMainThreadStackBounded() {
     HANDLE dump = CreateThread(nullptr, 0, [](void*) -> DWORD {
@@ -3417,92 +3385,41 @@ void TraceFpu(const char* where) {
     last = cw;
 }
 
-// The game pauses itself when its window loses focus (WM_ACTIVATE inactive: it minimises the
-// window and stops the renderer, sound and network). Parallel harness runs leave only one game in
-// front, so the harness keeps every game active: it subclasses the window and drops the
-// deactivation (and minimise) messages.
-WNDPROC g_gameWindowProc;
-// (Harness games no longer take the foreground, noforeground:: above, so only the focus off step minimises a
-// game.) The game restores its surfaces only when it is activated again (the main loop's RestoreAllSurfaces),
-// which the harness's always-active window never sees. So the harness notes the minimise (WM_SIZE) and, once the
-// PeekMessageA that sent it has returned, puts the window back without activating it and has the device restore
-// its surfaces, after every peek for the next 50. The image's device holds a token (nothing to restore); the
-// restore was made for the original under dgVoodoo (until H40), whose minimise lost the surfaces in the middle of
-// a pass, and twice within ~100 ms the second time took the exclusive mode as well.
-HWND g_minimised;
-int g_restoresLeft;
-// The render device's surfaces restored (false without a device): the image's device object holds a token
-// (nothing to restore).
-bool RestoreSurfaces(long* result) { return image::RestoreSurfaces(result); }
-
-void RestoreAfterMinimise() {
-    if (!g_minimised) return;
-    if (g_restoresLeft == 50) {
-        g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
-        Log("harness: the game window was minimised (a focus off step, or the user): shown again");
-    }
-    long result = DD_OK;
-    if (RestoreSurfaces(&result)) {
-        if (result == DDERR_NOEXCLUSIVEMODE) {
-            // A second minimise soon after the first also takes the exclusive mode away, and getting
-            // it back (the renderer's restore after a switch back, 00504780) hangs while the window
-            // is in the background: the run ends on the game's lost-surface box. (Harness games no longer
-            // take the foreground, noforeground::, so this should not be seen.)
-            Log("harness: the exclusive mode was lost with the foreground; the run ends on the game's lost-surface "
-                "box");
-            g_minimised = nullptr;
-            return;
-        }
-        if (g_restoresLeft == 50 || result != DD_OK) Log("harness: surfaces restored (%08X)", unsigned(result));
-    }
-    if (--g_restoresLeft <= 0) g_minimised = nullptr;
-}
-
-LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == WM_SIZE && wParam == SIZE_MINIMIZED) {
-        g_minimised = window;
-        g_restoresLeft = 50;
-        return 0;
-    }
-    if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
-    if (message == WM_ACTIVATEAPP && !wParam) return 0;
-    if (LRESULT result; input::RealMouse(window, message, wParam, lParam, &result)) return result;
-    return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
-}
-
+// The game pauses itself when its window loses focus (it stops the cursor, the mouse and the sound). Parallel harness
+// runs leave only one game in front, so the harness keeps every game active: its platform backend tells the game no
+// activation change of the system's (harness_platform.h); the focus steps tell it their own.
 // The window is shown and made without activating it, and nothing in the process brings it to the
 // front (ShowWithoutActivating, noforeground::), so Windows never sends it the WM_ACTIVATE that
 // sets the game's active flag 0079BC5C and starts its frames. (Under dgVoodoo its exclusive
 // cooperative level used to activate the window; without DirectDraw, the switch-over in device.h,
 // nothing did.) Once the device object exists and the game is not active, the harness sends the
 // activation a foreground start would have given (tickets R9a2, SV1c).
-void ActivateWithoutForeground(HWND window) {
+void ActivateWithoutForeground() {
     static bool sent = false;
     if (sent || !HarnessSceneDevice()) return;
     sent = true;
     if (HarnessActive()) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
-    SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
+    harnessplatform::Activate(true);
 }
 
-// focus off: what Windows sends the game when another window takes the focus (WM_ACTIVATE
-// WA_INACTIVE, which AlwaysActiveWindowProc otherwise keeps from it): the game deactivates and asks
-// to be minimised, which ShowWithoutActivating leaves out, so the step minimises the window itself
-// (activating nothing). focus on: the window restored (not activated) and the activation Windows
-// sends when the user comes back (WA_CLICKACTIVE). Ticket R9c.
+// focus off: what the system tells the game when another window takes the focus (deactivated; the platform's
+// backend keeps the system's own changes from a harness's game): the game deactivates, and the step minimises the
+// window as the user's switch would (activating nothing). focus on: the window restored (not activated) and the
+// activation the user's return gives. Ticket R9c.
 std::string FocusStep(const std::string& argument) {
     HWND window = GameWindow();
-    if (!window || !g_gameWindowProc) return "focus: no game window yet";
+    if (!window) return "focus: no game window yet";
     if (argument == "off") {
-        Log("harness: focus off (WM_ACTIVATE inactive, the window minimised)");
-        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_INACTIVE, 0);
+        Log("harness: focus off (deactivated, the window minimised)");
+        harnessplatform::Activate(false);
         g_showWindow(window, SW_SHOWMINNOACTIVE);
         return "";
     }
     if (argument == "on") {
-        Log("harness: focus on (the window restored, WM_ACTIVATE click-active)");
+        Log("harness: focus on (the window restored, activated)");
         g_showWindow(window, SW_SHOWNOACTIVATE);
-        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_CLICKACTIVE, 0);
+        harnessplatform::Activate(true);
         return "";
     }
     return "focus needs off or on";
@@ -3533,16 +3450,16 @@ void KeepGameWindowActive() {
         timing::Scope scope(timing::WindowChecks);
         noforeground::Watch(window);
     }
-    if (!g_gameWindowProc) {
-        g_gameWindowProc = reinterpret_cast<WNDPROC>(
-            SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
         RECT outer{}, client{};
         GetWindowRect(window, &outer);
         GetClientRect(window, &client);
         Log("harness: the game window stays active when it loses focus; window (%ld,%ld)-(%ld,%ld), client %ldx%ld",
             outer.left, outer.top, outer.right, outer.bottom, client.right, client.bottom);
     }
-    ActivateWithoutForeground(window);
+    ActivateWithoutForeground();
 }
 
 // Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then
@@ -3563,8 +3480,8 @@ bool IsInputLoop() { return IsWinMainLoop(); }
 // A pending close-all (Interface3D +0x44, set by a screen request 00578B00 / 00578B20 or a leave
 // answer) is carried out by whichever comes first: the input dispatcher's first step
 // (CloseAllPending 005F5AB0) for the next message the main loop takes, or the next pass (the
-// server's answer through Activate, or Draw). Whether a message waits then (Miles' WM_TIMER,
-// WM_PAINT) is real time, and the close stops the playing sounds, which Terrain::PlayAmbience's
+// server's answer through Activate, or Draw). Which comes first depends on whether a message waits,
+// and the close stops the playing sounds, which Terrain::PlayAmbience's
 // draws depend on (SV1j: ui_view_screen's `screen 7` closed in its own frame or the next). On the
 // virtual clock the main loop's peeks report no message while one is pending, so the next pass
 // always does it; after two frames (no pass took it up) messages go through again.
@@ -3582,8 +3499,9 @@ bool HoldMessagesForCloseAll() {
     return g_frames < g_closeAllHeldFrom + 2;
 }
 
-BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
-
+// Before the game looks for events (harness_platform.h): the frame count, the steps; false
+// while the close-all holds the events.
+bool BeforeEvents() {
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
@@ -3596,12 +3514,12 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
         if (g_dragX || g_dragY) {
             input::AddMotion(g_dragX, g_dragY);
-            PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
+            input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
         }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
-    // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
-    // follows a console command's output would otherwise run in this frame or the next.
+    // depends on the events it gets, and a step that follows a console command's output would
+    // otherwise run in this frame or the next.
     if (g_running && !g_inStep && (afterFrame || !clock::Virtual())) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop();
@@ -3610,13 +3528,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         RunSteps();
         g_inStep = false;
     }
-    if (HoldMessagesForCloseAll()) {
-        RestoreAfterMinimise();
-        return FALSE;
-    }
-    const BOOL result = g_peekMessage(msg, hwnd, min, max, remove);
-    RestoreAfterMinimise();
-    return result;
+    return !HoldMessagesForCloseAll();
 }
 
 // EI_RENDER_EXTRA: words added to the renderer's settings of every run (the scenario's "render" step, or
@@ -3759,7 +3671,7 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
-        ei::SetMissingCodeHandler(&EndRunOnMissingCode);
+        ei::InstallProfiler();   // EI_PROFILE=1: samples this thread from here on
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA), false);
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW), false);
         noforeground::Install();
@@ -3771,7 +3683,8 @@ struct Harness {
         if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
         CreateDirectoryA(g_savesDir, nullptr);
         Log("harness: %lld MB free on the run folder's disk", crash::FreeMegabytes(g_savesDir));
-        if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
+        if (!WideCharToMultiByte(CP_ACP, 0, install::GameFolder().c_str(), -1, g_rootDirs[0], MAX_PATH, nullptr, nullptr))
+            g_rootDirs[0][0] = '\0';
 
         PatchImport(&ImportTable::FindWindowA, &NoOtherGameWindow, g_findWindow);
         PatchImport(&ImportTable::SetForegroundWindow, &NoForeground, g_setForegroundWindow);
@@ -3791,8 +3704,6 @@ struct Harness {
 
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
 
-        PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
-        PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);
         image::ObserveConsoleLines(&OnConsoleLine);
         PatchImport(&ImportTable::CreateFileA, &RedirectedCreateFile, g_createFile);
         crash::WatchWrites();
@@ -3844,5 +3755,33 @@ struct Harness {
     }
 } g_harness;
 } // namespace
+
+namespace harnessplatform {
+
+bool BeforeEvents() { return ei::verify::BeforeEvents(); }
+int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
+// Through the import slots the harness drives: its virtual or held clocks, its fixed date, its own mouse.
+std::uint32_t ClockMilliseconds() { return ei::Imports().timeGetTime(); }
+std::uint32_t ClockTicks() { return ei::Imports().GetTickCount(); }
+void ClockSleep(std::uint32_t ms) { ei::Imports().Sleep(ms); }
+platform::DateTime Date() {
+    SYSTEMTIME local;
+    ei::Imports().GetLocalTime(&local);
+    return {local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond};
+}
+bool MousePosition(platform::Point* at) {
+    POINT p{};
+    if (!ei::Imports().GetCursorPos(&p)) return false;
+    *at = platform::Point{static_cast<int>(p.x), static_cast<int>(p.y)};
+    return true;
+}
+void MoveMouse(platform::Point at) { ei::Imports().SetCursorPos(at.x, at.y); }
+
+platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons) {
+    const int answer = HarnessMessageBoxA(nullptr, text, caption, buttons == platform::MessageButtons::OkCancel ? MB_OKCANCEL : MB_OK);
+    return answer == IDCANCEL ? platform::MessageAnswer::Cancel : platform::MessageAnswer::Ok;
+}
+
+} // namespace harnessplatform
 
 } // namespace ei::verify

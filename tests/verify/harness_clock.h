@@ -12,9 +12,8 @@
 // sequence (harness.cpp); GetTimeZoneInformation gives the daylight state of the game's date, not
 // today's (game.exe's time(), save times).
 //
-// Clock trace ("clocktrace"): every clock read and wait the game makes through its import table,
-// and those of the DLLs in the game's folder (Miles, Bink), counted by function,
-// caller and thread; new combinations are logged as they appear and the busiest ones every second
+// Clock trace ("clocktrace"): every clock read and wait the game makes through its import slots, counted by
+// function, caller and thread; new combinations are logged as they appear and the busiest ones every second
 // (ei-rebuild.log, "clocktrace:").
 
 #include <windows.h>

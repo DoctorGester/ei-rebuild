@@ -616,7 +616,9 @@ void FloatConversion(std::string& out, char type, unsigned flags, int width, int
 
 } // namespace
 
-std::string Format(const char* format, va_list args) {
+std::string Format(const char* format, va_list arguments) {
+    va_list args;   // a copy HostConversion can take by reference (a va_list parameter is a pointer on x86-64 POSIX)
+    va_copy(args, arguments);
     std::string out;
     int state = kNormal;
     unsigned flags = 0;
@@ -699,6 +701,7 @@ std::string Format(const char* format, va_list args) {
             break;
         }
     }
+    va_end(args);
     return out;
 }
 

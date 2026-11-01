@@ -29,7 +29,7 @@ WinMain; not with "removable") and taken at the renderer's first use.
 ### Shader authoring
 
 The shaders are GLSL 4.5 in sokol-shdc's annotated form, `src/render/shaders/*.glsl`. `shaders.glsl` includes the
-rest, and `cmake/shaders.cmake` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
+rest, and `CMakeLists.txt` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
 is compiled: hlsl5 for Direct3D 11 (to bytecode, so no compiler runs at start) and metal_macos for the macOS port.
 The compiler is `EI_SHDC`. build.cmd and play.cmd default it to `E:\bin\sokol-shdc\sokol-shdc.exe`, and the
 suites workflow sets the same.
@@ -49,8 +49,6 @@ Rules (sokol-shdc's, or the shaders'):
   - the receivers' shared blocks are `shadow_params` 2, `scene_light_params` / `mesh_light_params` 3 and
     `point_shadow_params` 4;
   - their maps are `shadow_map` 3, `shadow_range` 4 and `point_shadow_map` 5 (`BindShadowMap`, `BindPointShadows`).
-  - the cursor thread's present (`platform::graphics::PresentAgain`) binds its cbuffers at the registers the
-    shader's description (`present_shader_desc`) gives.
 - **Block members.** Members are `vec4`, `ivec4`, `mat4` or arrays of them, never structs. An unsigned value goes in
   an `int`, bit for bit.
 - **Indexing.** No variable index into a component of a uniform vector: copy the vector into a local first.
@@ -183,7 +181,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
 | Interface surfaces | UiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_marker.cpp` -> `render::ScreenDraw` | drawn |
-| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
+| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor.cpp`) -> `render::Cursor` | the system's cursor, shown at the present (section 9, R40) |
 | Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; BinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
 | Present | 004EF610 | `device_draw.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
 | Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
@@ -406,8 +404,7 @@ the vanilla runs the same). A pass may not read the image it draws into, so a le
 copied from there: two small passes a level. The scratch and the level views are kept for the texture drawn last (the
 global map's clouds are drawn every frame). The texture's view starts at level `mip` (the texture quality option),
 so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
-once from the game's load (not inside a frame pass), with the present's lock held against the cursor thread
-(`GpuWorkAlone`). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
+once from the game's load (not inside a frame pass). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
 composed texture again right after it is made (`RemakeComposed`; render_device_lost's camp and world frames match
 before and after the loss). Frames against the CPU composition (render_blink, units, models, render_device_lost: at
 most 0.012% of a 4K frame over 8, on the hero's and wounded units' skins; ui_gallery_camp unchanged): the 8-bit
@@ -455,7 +452,7 @@ screen 3, vtable 007405AC / screen 2, 00740688: depth clear then 00600EF0; no sc
 models in seven slots between three depth clears, each after a flush of the two batches); 0064D970 (slot 26 of vtable
 007411BC: alpha reference = the window's +0x1EC).
 
-Movies and software cursor (the original draws them to the primary; its device calls are gone, R11a):
+Movies and the cursor (the original draws them to the primary; its device calls are gone, R11a):
 
 | Address | The original | Ours |
 |---|---|---|
@@ -463,31 +460,21 @@ Movies and software cursor (the original draws them to the primary; its device c
 | 005DB9E0 `HolderFill`, 005E5640 `HolderBlt`, 005E5C40 composition | colour fill, Blt between holders, cursor blend, under the device lock | not ported: no caller of ours (config/dead_code.csv, R11b) |
 | 005E6630 `CursorSaveBackground` | background copy under the device lock | does nothing |
 | 005DA400 `ShowLoadingMovie` (fastcall progress) | loading movie (progres*.bik per zone by 00595080, path 007AF460 + "Movies\" + name; state 007C5550 / holder 007C551C / type 007C5554 / rect 007C5520) stretched over the primary; hides the cursor (005E5270 0) on every call and never shows it again | last frame blitted and presented as above |
-| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | the last frame presented again with the cursor moved (R9c2) |
+| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | gone: the system moves the cursor (R40) |
 
 005DA880 is dead (a thread procedure started only by 005DAD50, which has no caller); 005DA5AB / 005DB603 are catch
 blocks (fallback to 004EF7B0, only with 00784756 0). The harness's input steps wait for PeekMessageA calls recognised
 by return address; the rewritten player's call no longer returns to 005DB788, so input steps are not posted inside a
 movie (the harness empties movie.ini's lists). Scenario render_movie_present (PlayMovie("crdtfin.bik") after a new
-game); 005DA400 runs in every new game; 005E5690 presents only with FpsIndependentCursor (render_cursor_present
-sets it).
+game); 005DA400 runs in every new game (render_cursor_present: the cursor hidden there).
 
 Shared helpers: every read-back of a texture (the frame, the canvases, the composed levels, the harness build's
-upload / ramp / cursor checks) goes through `platform::graphics::Readback` (graphics.h; on Direct3D 11 a staging
-texture kept and grown, copied into and mapped, then sokol's state cache reset); the cursor thread, which must not call
-sokol, maps the backend's `Staging` itself (graphics_win32.h). render_internal.h: `Channel` a pixel format's channel
+upload / ramp checks) goes through `platform::graphics::Readback` (graphics.h; on Direct3D 11 a staging
+texture kept and grown, copied into and mapped, then sokol's state cache reset). render_internal.h: `Channel` a pixel format's channel
 (its 8-bit value: `Widen`), `rect_params_t` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
-Images kept across frames (`render_blit.cpp`). The cursor (R32): each cursor picture (all its frames side by side)
-goes to the GPU once, at its first draw, with its mask as alpha (255 where the mask is zero), as an immutable image
-per holder; it is made again only when the holder's mask or size changes, let go when the holder goes (HolderGone)
-and dropped with the device. A frame's cursor is that image with `from` as the source rectangle: the present shader
-reads the part (`cursor_params.cursorSize`: its size and top left texel) and the cursor thread draws the same
-texture (its shader view referenced under the sheet lock), so no frame composes or uploads cursor pixels. Before
-R32 the part was cut out on the CPU every frame and uploaded whenever it differed (render_stats: 1 upload, 4 KB, a
-frame in every scene; render_cursor_present: 31 requests, 31 uploads); now render_stats' small uploads are 0 after a
-picture's first frame. A movie keeps one dynamic image per player, updated with `sg_update_image` in place unless it
+Images kept across frames (`render_blit.cpp`). A movie keeps one dynamic image per player, updated with `sg_update_image` in place unless it
 was already blitted or updated in this frame (sokol allows one update per image and frame, and the blits are drawn
 at the end of the frame; then a new one replaces it after the present).
 `render::Fill` (the movie player's black) is a solid rectangle command, drawn with the depth clear's shader
@@ -603,8 +590,9 @@ no stand-in for any of them (R27c):
   platform::MapCursorPoints; the mouse events (client positions) and the wheel's (screen) mapped at the top of the
   input dispatcher (00457970, app.cpp).
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
-  deactivates the cursor, the mouse, the sound and the network and minimises (004EEC60's RestoreDisplayMode is gone);
-  active restores, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
+  deactivates the cursor, the mouse, the sound and the network; the window stays as it is (the original minimised it;
+  gone with MAC3j1, user 2026-10-30) and 004EEC60's RestoreDisplayMode is gone too;
+  active resumes them, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
   Minimised the client area is empty and nothing is presented; on return the swap chain is resized.
   DXGI_STATUS_OCCLUDED counts as success.
 - Harness steps: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through
@@ -650,7 +638,7 @@ is what to read it for.
 
 - Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
   DRIVER_INTERNAL_ERROR) and by `GetDeviceRemovedReason` (a loss nothing reported, e.g. minimised): both are
-  `platform::graphics::Lost()` (graphics_win32.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
+  `platform::graphics::Lost()` (graphics_d3d11.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
   frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
   made (`DropWindow`, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
   `DropBlits`, `DropTextures`), then `sg_shutdown` and `platform::graphics::Stop` (the context cleared and released,
@@ -674,10 +662,10 @@ is what to read it for.
 ### R9c5: a real removal of the device (harness build only)
 
 - `removable` in the harness's render step (the scenario's `render new,present,removable`; the harness passes it to
-  the backend, `platform::graphics::MakeRemovable` in graphics_win32.h, harness build only, `EI_RENDER_VALIDATION`)
+  the backend, `platform::graphics::MakeRemovable` in graphics_d3d11.h, harness build only, `EI_RENDER_VALIDATION`)
   makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
   default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
-  the gamma ramp check, the cursor's deferred context and every frame work on it as on the hardware device.
+  the gamma ramp check and every frame work on it as on the hardware device.
 - `platform::graphics::RequestRemoval` (harness step `removedevice [seconds]`) asks for a removal; it happens right
   before the next swap chain Present (`RemoveIfAsked`): the GPU is let finish
   (an event query, at most 2 s), then `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and
@@ -695,67 +683,58 @@ is what to read it for.
 - Scenario `render_device_removed` (image golden, vanilla; also runs on Rebirth): render_device_lost's three moments
   (main menu, zone1, the camp) with `removedevice`: the frame before and after each removal match (0 pixels over 8).
 
-### R9c2: the software cursor between frames
+### R40: the cursor is the system's
 
-The original's cursor: the renderer's +4 bit 0 is the game's active flag (WinMain's activation, app_main.cpp), and with
-the options' FpsIndependentCursor (registry FPSIndependentCursor, options +0x80; the test machine's value is 0) the
-cursor runs in mode 2 with a thread (005E5690, started through 005E52A0, mode set by 005DAEA0) that wakes every 41 ms
-and, when the image is shown (+0x0C) and 005E52E0 says the cursor moved or its frame stepped, restores the old place's
-background and blits the composed cursor at the new place: about 24 Hz whatever the frame rate. It draws nothing while
-the image is hidden: every movie player (005DB3F0, 005DBA50, the titles 0062B7D0) and every loading screen step
-(005DA400) call 005E5270 0 first and show it again only at their end, so during movies and loading there is no cursor.
+The original's cursor: the renderer's +4 bit 0 is the game's active flag (WinMain's activation, app_main.cpp). The
+frame step drew the cursor into the frame before the flip (005E54A0) and, with the options' FpsIndependentCursor, a
+thread (005E5690) redrew it on the primary every 41 ms between frames. Every movie player (005DB3F0, 005DBA50, the
+titles 0062B7D0) and every loading screen step (005DA400) hide the image (005E5270 0) and show it again only at their
+end, so during movies and loading there is no cursor.
 
-Ours is a present from the cursor thread, not a hardware cursor (that would move with the Windows cursor while the game
-holds its own still (005E67B0, the camera turned with the right button), is not scaled with the frame in a larger
-window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to captures). The design is in
-the header of `render_cursor.cpp`; the rules worth knowing:
-- The cursor thread makes no sokol call: sokol is the main thread's alone (MAC3h). The main thread hands the graphics
-  backend the present's objects at the end of each present (`platform::graphics::KeepPresent`: its own references to
-  the raw objects of the pipeline, the frame target, the ramp, the cursor's picture and the sampler), and the cursor
-  thread asks it to draw them again (`PresentAgain`). On Direct3D 11 that is a deferred context executed with
-  RestoreContextState, so sokol's state cache stays right, with ID3D11Multithread protection on; on Metal it would be a
-  command buffer of its own on the queue and the layer's next drawable (Metal's objects may be used from any thread).
-  The other rule (MAC2's review, 3.4), the cursor thread calling sokol under one lock, needs every main-thread sokol
-  call (450 and more, lazy samplers and pipelines among them) under that lock and checked, sokol's frame advanced by
-  the cursor thread's commits, and a failure in a sokol path (render_window's `Fatal`) could end the game from the
-  cursor thread; this one leaves a missed turn on the lock at a frame shown half drawn, never sokol's state broken.
-- The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
-  (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
-  (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
-  in mode 2) before the present lock, in both threads.
-- render::Cursor keeps the cursor aside (`Frame::cursor`); the frame target never holds it. The present shader
-  (`present.glsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
-  with alpha of a half or more replace the frame's pixel; where the cursor touches the bilinear footprint the filter
-  is done by hand over the composed pixels, so a scaled window filters the cursor with the frame as before). The cursor
-  thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
-  frame (R16f; there was a whole-frame copy a frame, 33 MB of GPU traffic at 4K). So that the target is whole when it
-  reads it, everything that draws into the frame target runs under the present lock (`EndFrame`, and `DrawPendingAlone`
-  for the passes of a copy in the middle of a frame, SplitFrame) and `BeginWindowPresent` drops what the cursor thread
-  draws with until the frame's own present: during a frame that drew a pass early (a copy in its middle: quick save),
-  the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
-  the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
-- The cursor's texels are the part `from` of its picture's image (section 8, R32): the cursor thread takes the
-  picture the last frame drew (`SetCursorSheet`; handed to the backend with the present, again when it changes between
-  presents) and presents only when the call names that picture; DropCursorPresents and DropCursorSheet let it go.
-- Harness build: every frame the cursor thread presents is read back from the back buffer before it is shown
-  (`PresentReads`) and compared with the frame target, the cursor's texels (read back from the picture's image) and
-  the ramp as uploaded (one to one placement; "render: cursor between frames: N
-  presented frames checked, M differed" / "render: MISMATCH cursor between frames"). The ramp check of the main
-  thread's present (`CheckRamp`) leaves out the points around the cursor.
+Ours is the system's cursor with the game's pictures (R40, user 2026-11-01; before it a cursor thread presented the
+last frame again with the cursor moved, R9c2, at the cost of a deferred context, a present lock and a present-again in
+every graphics backend):
+- The frame step hands the renderer the frame's cursor (`render::Cursor`, ui_cursor.cpp's CursorDrawFrame): the
+  current image's current frame, its mask, its hot spot, and whether the game holds it (with its position). The game's
+  own cursor logic (shapes, the 125 ms frame steps, the position clamped to the screen, the hold) is unchanged; the
+  thread, its lock and the cursor's mode (FpsIndependentCursor, still read and written by the options, now chooses
+  nothing) are gone.
+- At the frame's present (`render::Present`, render_cursor.cpp `ShowFrameCursor`) the renderer shows the shape for it
+  through `platform::SetCursor` and hides it (`SetCursor(nullptr)`) when the frame handed none over: the movie players,
+  the loading screens and frames with the image hidden. Between frames the system moves the cursor (a long frame, a
+  load without a present): the frame step's frame rate no longer limits it.
+- A shape is the picture's frame (`render::PictureFromMmp`'s RGBA, alpha 255 where the mask is zero) scaled to the
+  window as the present scales the frame (the frame's placed size over its size; bilinear on texel centres over the
+  opaque texels, so the edges come out partly transparent as the present's filter blended them), then through the
+  gamma ramp the present applies (`GammaRamp`), made with `platform::MakeCursor` (SDL_CreateColorCursor) at its first
+  show and kept: one per picture frame, so an animated cursor is a set of cached shapes. Shapes of another window scale
+  or ramp are let go (`FreeCursor`) once another is shown, those of a picture when its holder goes (`ForgetCursor`).
+- The hold (the camera turned with the right button, 005E67B0; the global map's drag): `platform::HoldCursor` at the
+  game's position. SDL's backend puts the window in relative mode with the pointer kept in a one-pixel mouse rectangle
+  there (hints: the cursor visible in relative mode, not centred, the motion scaled as the system scales the pointer's),
+  so the cursor stands still while the motion reaches the game; let go (the next present without a hold, or the game's
+  own SetCursorPosition at the release, which lets go first) SDL puts the pointer where its motion would have taken it
+  and the game's warp, when it makes one, follows.
+- What looks different from the original: the cursor moves at the display's rate whatever the frame rate; over the
+  letterbox bars of a window of another shape it is where the mouse is (the game's position is clamped to the frame,
+  as before); it is not in the Scroll Lock screenshot or the movie recorder's frames (it never was in ours: they read
+  the frame).
+- macOS (Metal on the macos-port branch): nothing to keep in the backend; SDL's relative mode freezes the pointer
+  itself (CGAssociateMouseAndMouseCursorPosition), which is the hold.
 
-Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread of its
-own in 10 ms steps), `stall <ms>` (the main thread away: one long frame), `cursormark`, `cursorcheck <name>|- <min>
-[max]` (presents by the cursor thread since the mark within min..max; with a name the last presented frame (after the ramp) goes to
-frames\<name>.bmp, the checks must have found no difference and its rectangle must sit at the mouse less the hot spot
-within 24 pixels), and the starter step `fpscursor 0|1`. Scenario `render_cursor_present` (on `realtime`: on the
-virtual clock other threads see the main thread's clock plus the real time since it last moved and never go back, so
-after a movie or a load the cursor thread's clock stands still until the main thread's frames catch up).
+Harness: the harness's platform backend makes the same SDL cursors on its window (seen only while the real mouse is
+over it) and keeps each shape's pixels; `cursormark`, `cursorcheck <name>|- shown|hidden|held|animated [min]`
+(harness.cpp's header) check them against the game's image at the window's scale and count the presents that showed,
+held or hid it and the frame steps; with a name the last frame is written with the cursor drawn in at the game's
+position. Scenario `render_cursor_present` (vanilla and Rebirth): the main menu one to one and in a 1600x900 window,
+hidden during a new game's loading screens and a movie, held during a right-button turn, the scroll cursor's frames at
+the window's edge.
 
 ### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 
 `surface.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
 gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
-before the gamma ramp and the present's cursor): a Dib of the rectangle's size in the holder's depth with the channel
+before the gamma ramp; the system's cursor is not in it): a Dib of the rectangle's size in the holder's depth with the channel
 masks `device::ScreenFormat` gives, rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged
 once). The callers are unchanged, so the file names (`shot%.4d.bmp` from counter 007C7E24 for Scroll Lock; the
 recorder's `<moviepath>shot%.4d.bmp` from 0079BC58, the movie folder defaulting to `.\capture\`), the format
@@ -921,7 +900,7 @@ Behaviour differences (one path for every sprite):
     border pixels). Between runs (render_smooth.cpp): after a world run the frame target's depth is set from sample 0
     of the multisampled depth; before a world run that follows other draws the frame target's colour and depth go
     into every sample (a pass of its own: the resolve's destination cannot be read in the pass that resolves into
-    it). The frame target is what every reader takes (the present, the cursor thread's copy, `ReadFrame`,
+    it). The frame target is what every reader takes (the present, `ReadFrame`,
     the canvases' screen copy, the gamma ramp check), always resolved: a pass ends with the resolve, and a copy between frames
     (R13) finds the last frame there.
   - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`; mesh and
@@ -950,7 +929,7 @@ Behaviour differences (one path for every sprite):
 ### Frame capture
 
 Harness. `capture <name>` skips two presented frames and writes the next to `frames\<name>.bmp` (24-bit). In the image
-it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp and the software cursor, which the present draws). In a run of
+it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp; the cursor is the system's, never in a frame). In a run of
 the original (until H40: `--no-hooks`, dgVoodoo) it was the old render target at the present point (after scene and
 interface, before the software cursor and the flip). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
 (Camera::Update at 00457595 runs once per frame even with dt 0 and moves a fixed fraction per call); the main loop
@@ -1145,8 +1124,8 @@ across runs; the goldens check the game state.
    helpers inlined 0.087-0.089 / FISTP inlined too 0.066-0.070, the town 0.036 / 0.029 / 0.024: about 0.12 ms a
    harness frame in zone1. Check: terrain_water_waves' goldens (vanilla, and Rebirth's, recorded in R16c4; in the
    Rebirth smoke set) and every golden the same, ei_vectors 0.
-   **R16c5 /Ob2 (done).** The build inlines at /Ob2 (CMakeLists' `EI_INLINE`; 1 builds as before, for A/B runs with
-   `EI_BUILD_DIR`), so file-local helpers inline without `inline`. Measured: render_stats vanilla, the /Ob1 and /Ob2
+   **R16c5 /Ob2 (done).** The build inlines at /Ob2 (CMakeLists.txt; its EI_INLINE switch for A/B runs went
+   2026-10-31), so file-local helpers inline without `inline`. Measured: render_stats vanilla, the /Ob1 and /Ob2
    verify builds run at the same time, three rounds (main thread CPU ms a frame, /Ob1 -> /Ob2): fight 17.1 / 18.0 /
    26.7 -> 16.0 / 17.1 / 23.5, town 5.3 / 5.5 / 5.8 -> 4.6 / 5.0 / 5.0, zone1 5.3 / 8.8 / 5.3 -> 4.4 / 7.5 / 4.3
    (escape menu, map, camp within the noise). Inlined constant helpers folded five products the original rounds to
@@ -1266,12 +1245,9 @@ across runs; the goldens check the game state.
    so keeping decals off figures and other objects needs a stencil format or a receiver mask, and reading depth
    needs a pass break (and the multisampled depth with the smooth option). Revisit if decals become many more.
 6. **R16f The present without a frame copy (done).** The frame was copied whole every frame for the cursor thread
-   (33 MB of GPU traffic at 4K) before the cursor was drawn into it. Now the present shader draws the cursor over the
-   frame as it applies the gamma ramp (section 9, R9c2), the frame target never holds the cursor and the cursor thread
-   draws the frame target itself: the copy and the cursor's blit pass (one pass and one draw less a frame with the
-   cursor) are gone. Measured in render_stats (4K, 16 games share the GPU, so the GPU ms are noise): passes 2.0 -> 1.0 a
-   frame. Check: render_cursor_present, render_present, render_present_shot (0 differences, the main thread's cursor
-   checked in the back buffer too: "cursor in the presented frame").
+   (33 MB of GPU traffic at 4K) before the cursor was drawn into it; R16f drew the cursor in the present instead
+   (passes 2.0 -> 1.0 a frame in render_stats), and R40 took the cursor out of the frame altogether: it is the
+   system's (section 9).
 7. **R16g Per-draw records and instancing (measured, not built: under 0.2 ms a frame to gain).** The plan: one ring
    buffer of per-draw records (matrix, fog, stage operations) read by index instead of two apply_uniforms per mesh
    draw; meshes with the same geometry and state drawn instanced. Measured with a temporary timer around the parts
@@ -1823,7 +1799,7 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   the rest of the world view (the models that cast none, effects, flat decals, pre-transformed draws, depth clears,
   the uploads, and the passes' clears, copies into the multisampled target and its resolve), `UI` the interface
   (with the canvases' queued drawing at the frame's start) and `PRESENT` (the window's pass: the frame through the
-  gamma ramp, the cursor, the overlay); `SHADOW` and `WORLD` are their parts' sums. `CPU SUBMIT` the main thread's
+  gamma ramp, the overlay); `SHADOW` and `WORLD` are their parts' sums. `CPU SUBMIT` the main thread's
   time in EndFrame's draws up to the present (the present's wait left out; draws already made by a split earlier in
   the frame are not in it) and of it `SHADOW` the shadow map's fitting and pass; `DRAWS` the frame's draws by pass
   (FrameStats' draws and shadow draws counted at each change of pass; `WORLD` terrain + objects + other, `UI` with
@@ -1843,11 +1819,10 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   above about 0.06 ms on the battle screen is that, not the canvases.
   The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
   than labels), uploaded when the text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540
-  rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame and the
-  cursor (the cursor passes under it).
+  rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame (the system's
+  cursor passes over it).
 - **Never in the frame target**: captures, frame checks, the Scroll Lock screenshot, the movie recorder and the
-  escape menu's / save game's pictures read the frame target, which never holds it. The cursor thread's presents
-  between frames (a frame later than 40 ms, R9c2) show the last frame without it.
+  escape menu's / save game's pictures read the frame target, which never holds it.
 - **Cost**: off, a flag test at each entry point (the commands' pass only when on). On: a query End per change of
   pass (about 10-20 a frame) and a few non-blocking GetData calls, one 6-vertex draw in the present's pass, a CPU
   text image of about 330 x 70 bytes made and uploaded at most four times a second.
@@ -1873,16 +1848,14 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
   are made as before).
 - **Off**: sync interval 0. Where the system supports tearing (`IDXGIFactory5::CheckFeatureSupport`
-  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in graphics_win32.cpp, asked of the factory at each chain
+  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in graphics_d3d11.cpp, asked of the factory at each chain
   creation) the flip-model chain is made with `DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING` and every present carries
   `DXGI_PRESENT_ALLOW_TEARING`: without it a windowed flip-model chain stays composed and capped at the display's rate
   even at interval 0. Without support: interval 0 and no flags (it may still be capped by the compositor). `ResizeBuffers`
   takes the flags the chain was made with (`g_chainFlags`), and Present's flag follows them (the flag is only valid on a
-  chain made with it). Both present paths use the same values: the backend's `EndDrawable` and the cursor
-  thread's between-frames present (`PresentAgain`). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_win32.h).
+  chain made with it). The backend's `EndDrawable` uses them. The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor` (graphics_d3d11.h).
 - **Nothing else relies on vsync pacing**: game time is the world updates (up to five of 0078FF34 ms per frame, see
-  the timing line in section 3: vsync only changes how they group into frames); the cursor thread presents only after
-  40 ms without a main-thread present, so unlocked frames never reach it; the overlay's frame time simply stops including
+  the timing line in section 3: vsync only changes how they group into frames); the overlay's frame time simply stops including
   the wait. An unlocked game runs the main thread flat out (a core at 100%, the GPU as fast as it goes): that is the
   point of the switch, not a bug.
 - **Check**: `ei_perf_check` (tools/perf_check, run by build.cmd), the `vsync` part: the rules for every combination
@@ -1911,20 +1884,13 @@ would loop forever in the rain's wrap. See docs/notes/renderer.md, section 12.
 
 What each file does at large, moved from the files' headers.
 
-### render_cursor.cpp: the cursor between frames
+### render_cursor.cpp: the cursor
 
-The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md, section 9). The
-game's cursor thread (every 41 ms) drew the cursor straight onto the primary surface when it moved, so it kept
-moving while the main thread drew no frame (a long frame, a blocking load). Without DirectDraw the cursor thread
-hands the move here instead (render::CursorBetweenFrames): the last frame presented on the game window, which holds
-no cursor (the present draws it over the frame), is presented again with the cursor at its new place. The main
-thread keeps using sokol alone. The cursor thread makes no sokol call: the graphics backend draws the present again
-for it (`platform::graphics::PresentAgain`: the frame target and the cursor through the gamma ramp into the window's
-drawable, the draw the main thread's present makes, with the backend's own references to sokol's objects). The swap
-chain and the frame target are shared: the main thread's frame draw and present on the game window and the cursor
-thread's present take turns under one lock, and the main thread hands the backend what the cursor thread draws with
-at the end of each of its presents (`KeepPresent`; refused from when it begins the next frame's draws: the frame
-target is partly drawn until then).
+The game's cursor as the system's (section 9, R40): render::Cursor keeps the frame's cursor (its picture's frame, mask,
+hot spot and hold), and at the frame's present ShowFrameCursor shows the matching shape through
+`platform::SetCursor`, made at its first show (`platform::MakeCursor`) from the picture's frame scaled to the window
+and through the gamma ramp; shapes of another scale or ramp are let go once not shown, those of a picture with its
+holder (ForgetCursor). A present without a cursor hides it; a held one is kept still (`platform::HoldCursor`).
 
 ### render_mesh.cpp: meshes
 
@@ -2074,7 +2040,7 @@ The performance overlay (docs/notes/renderer.md, section 15): frames a second, t
 over the last second), the GPU time of the frame's passes (sun map, point faces, terrain, objects, the rest of
 the world, interface, present: a timestamp query at each change, read a few frames late without waiting), the
 renderer's CPU time and the draws by pass, as a few lines of text in the frame's top left corner. Drawn by
-the present into the game window's back buffer after the frame and the cursor (render_window.cpp, DrawToWindow),
+the present into the game window's back buffer after the frame (render_window.cpp, DrawToWindow),
 never into the frame target: captures, screenshots, the escape menu's and the save game's pictures and every frame
 check read the frame target, so none of them holds it. Off unless the settings file switches it on
 (render::SetPerfOverlay); the harness build never draws it. Its own text: a 5 x 7 pixel font of capitals, digits

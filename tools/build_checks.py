@@ -27,10 +27,7 @@ def checks(out, x64):
         py + [tool('gen_iat.py'), '--check'],
         py + [tool('named_data.py'), '--check'],
         py + [tool('retired_vtables.py'), '--check'],
-        # Every row of config/static_init_ports.csv names a definition in its file (tools/gen_static_init.py).
-        py + [tool('gen_static_init.py'), '--check-ports'],
-        # The game's code calls Windows only through src/platform: the files that still do may only leave
-        # config/platform_files.txt (tools/check_platform.py).
+        # The game's code calls Windows only through src/platform (tools/check_platform.py).
         py + [tool('check_platform.py')],
         # docs/settings.md against the settings catalog, and the catalog against the settings the code reads (C69).
         py + [tool('gen_settings_doc.py'), '--check'],
@@ -38,6 +35,8 @@ def checks(out, x64):
         *([] if x64 else [[os.path.join(out, 'ei_vectors.exe')]]),
         # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
+        # The SDL backend's keys against Windows' layouts (tools/input_check).
+        [os.path.join(out, 'ei_input_check.exe')],
         # The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps
         # (tools/perf_check).
         [os.path.join(out, 'ei_perf_check.exe')],

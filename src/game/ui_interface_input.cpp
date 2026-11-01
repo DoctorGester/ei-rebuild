@@ -16,7 +16,7 @@
 #include "text_split.h"
 #include "texture.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"

@@ -11,7 +11,6 @@
 #include "net_delta.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 

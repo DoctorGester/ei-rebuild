@@ -1,4 +1,4 @@
-// ei_launch: starts the standalone image (ei-rebuild.exe next to ei_launch.exe, our code; src/standalone/host.cpp) on an
+// ei_launch: starts the standalone image (ei-rebuild.exe next to ei_launch.exe, our code; src/main.cpp) on an
 // install's data, the way the Rebirth starter starts the game (working directory = game root). Nothing in the game
 // folder is modified. game.exe is no longer started (H40: the goldens are the image's own; the tag original-oracle has
 // the launcher that injected ei_harness.dll into it).
@@ -28,7 +28,7 @@
 // it kTimeoutMargin later. The game runs in a job object that is killed with ei_launch, so it (and any
 // process it started) never outlives ei_launch. Exit codes of a run: 0 passed, 1 failed, 2 no report /
 // not started, 3 and 4 below.
-#include "../../src/hook/thread_context.h"
+#include "platform/win32/thread_context.h"
 
 #include <windows.h>
 #include <tlhelp32.h>

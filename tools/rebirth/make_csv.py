@@ -117,9 +117,9 @@ SITE_STATUS = {
  ('AddNewScriptCommands', 0x004D4204): 'not needed: 004D41C0 is the dead script dumper',
  ('AddNewScriptCommands', 0x004D4212): 'not needed: 004D41C0 is the dead script dumper',
  ('AddNewScriptCommands', 0x004D460C): 'not needed: 004D41C0 is the dead script dumper',
- # WideScreen, ticket W1 (src/game/ui_widescreen.h; the rest W2-W4, docs/notes/rebirth.md "WideScreen").
- ('WideScreen', 0x00742B08): 'implemented: written at hook time from the same settings (src/game/ui_widescreen.cpp)',
- ('WideScreen', 0x007428AC): 'implemented: written at hook time from the same settings (src/game/ui_widescreen.cpp)',
+ # WideScreen, ticket W1 (src/game/screen_layout.h; the rest W2-W4, docs/notes/rebirth.md "WideScreen").
+ ('WideScreen', 0x00742B08): 'implemented: written at hook time from the same settings (src/game/screen_layout.cpp)',
+ ('WideScreen', 0x007428AC): 'implemented: written at hook time from the same settings (src/game/screen_layout.cpp)',
  ('WideScreen', 0x005F7CA0): 'implemented: CInterface3D::ScaleRectToScreen (src/game/ui_interface.cpp)',
  ('WideScreen', 0x005F7D20): 'implemented: CInterface3D::ScalePointToScreen (src/game/ui_interface.cpp)',
  ('WideScreen', 0x005F7D60): 'not needed: 005F7D60 is a copy of 005F7D20 that nothing calls',

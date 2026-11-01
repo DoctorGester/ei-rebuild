@@ -68,7 +68,7 @@ STRUCT_DEFINITION = re.compile(
 
 def defined_struct_names(code):
     """The struct/class names that `code` (comments blanked) defines with a body at the start of a line, as written
-    (`miles::Sample`), but those inside an anonymous namespace: those are the file's own and cannot clash."""
+    (`net::Connection`), but those inside an anonymous namespace: those are the file's own and cannot clash."""
     scopes = None
     names = set()
     for m in STRUCT_DEFINITION.finditer(code):

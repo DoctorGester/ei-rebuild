@@ -16,7 +16,7 @@ rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.
 if defined EI_VSROOT (set "VSROOT=%EI_VSROOT%") else (set "VSROOT=E:\bin\vs\buildtools")
-rem EI_SHDC: the sokol-shdc shader compiler (cmake/shaders.cmake) when it is not the default below.
+rem EI_SHDC: the sokol-shdc shader compiler (CMakeLists.txt) when it is not the default below.
 if not defined EI_SHDC set "EI_SHDC=E:\bin\sokol-shdc\sokol-shdc.exe"
 set CFG=%~1
 if "%CFG%"=="" set CFG=release
@@ -43,7 +43,7 @@ if /i "%CFG%"=="asan" set ASAN=ON
 if /i "%CFG%"=="debug" set BUILDTYPE=Debug
 set OUT=%~dp0build\%CFG%
 
-cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_ASAN=%ASAN% || exit /b 1
+cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_ASAN=%ASAN% "-DEI_SHDC=%EI_SHDC%" || exit /b 1
 cmake --build "%OUT%" || exit /b 1
 rem The checks (tools/build_checks.py, side by side): the cleanup and comment counts, the data seam, the harness key,
 rem the generated and listed files, the function vectors (ei_vectors), the interface canvases (ei_ui_check) and the

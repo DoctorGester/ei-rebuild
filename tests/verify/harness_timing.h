@@ -33,3 +33,10 @@ void FrameEnd();
 void Report(FILE* f);
 
 } // namespace ei::verify::timing
+
+namespace ei {
+
+// The sampling profiler (EI_PROFILE=1; harness_profile.cpp): started from the main thread at the harness's start.
+void InstallProfiler();
+
+} // namespace ei

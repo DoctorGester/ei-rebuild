@@ -22,8 +22,7 @@ std::string Check(const char* savesDir);
 namespace ei::verify::utf8typing {
 
 // "typeunicode <text>": each UTF-16 unit of <text> (UTF-8 in the scenario; a character past U+FFFF is two)
-// posted to `window` as WM_CHAR with PostMessageW, as Windows gives a Unicode window a typed character. Empty,
-// or what failed.
+// handed to the game as a Character event, as a Unicode window's WM_CHAR became one. Empty, or what failed.
 std::string Type(HWND window, const std::string& typed);
 
 // "consoleline <n> <text>": the console's input line holds <text> in UTF-8 (<text> may be empty) and its caret

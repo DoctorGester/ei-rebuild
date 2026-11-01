@@ -138,10 +138,10 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText), news for the top window
   (slots 28-32, 36, 37 as `UiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).
-- Cursor (`ui_cursor*.cpp`): `Cursor::Init` / `AddShape`, `SetShape`,
-  `TakeLock` / `ReleaseLock` (mode 2 only), `Start` (thread 005E52A0 unless mode 1), `UpdatePosition` (frames every
-  125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread and image construct (the blend 005E5C40 is not ported):
-  renderer.md (R9c2).
+- Cursor (`ui_cursor*.cpp`): `Cursor::Init` / `AddShape`, `SetShape`, `Start`, `UpdatePosition` (frames every
+  125 ms; +0x08 the DirectInput mouse). The lock (`TakeLock` / `ReleaseLock`, mode 2), the mode and the thread
+  (005E52A0 / 005E5690) are gone with R40: the cursor is the system's. Frame draw and image construct (the blend 005E5C40
+  is not ported): renderer.md (R40).
 - Flying hit points (`ui_flying_hit_points.cpp`): `Draw` (S, timeGetTime held, stand-in renderers replayed), `Add`
   (flag 8 starts 0.5 s later); numbers need option 17 (0079BE74).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
@@ -746,7 +746,7 @@ set; both name lists sorted, the women's then reversed; the two figure strips; t
 windows; the voices' scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts,
 the voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"; the list's scroll
 range, the list drawn, the first hero selected (-1 without one) and mode 9; with Rebirth's WideScreen then
-the two curtains over the screen's margins, hidden (widescreen::AddCurtains; sprites 19 and 20).
+the two curtains over the screen's margins, hidden (screen_layout::AddCurtains; sprites 19 and 20).
 
 ## MpConnectScreen::CreateScreen
 
@@ -816,24 +816,18 @@ display option's software cursor bit (the renderer's +4 bit 0) is set). The Dire
 cursor's screen rectangle (updated) from the render target into the background
 surface, combines the cursor image (the part `from` of it) with it in the composition surface
 ((background & mask) | image) and copies that back to the render target; `drawn`
-keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
-renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
-("Cursor") and docs/notes/renderer.md.
-Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
-thread (redraws the cursor on the primary every 41 ms between frames) and the background
-save. Ours has neither the background nor the composition surface (005E60B0 made them: nothing drew into them
-since R11a, and R30a deleted them); the background saves and
-the composition's holder blits are left out (the two
-ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
-presenting the last frame again (render::CursorBetweenFrames);
-not while the image is hidden (the movie players and the loading screen hide it).
+keeps the rectangle drawn. Ours hands the image's current frame, its mask, its hot spot and the hold to the
+renderer (render::Cursor), whose present shows it as the system's cursor (docs/notes/renderer.md section 9, R40).
+The original's draws straight to the primary surface (the cursor thread, which redrew the cursor on the primary every
+41 ms between frames, and the background save) are gone: the system moves the cursor, and a frame that hands none
+over (the movie players and the loading screens hide the image) hides it.
 
 ## Battle HUD corner panels
 
 The battle HUD's two corner panels, the game clock (HudClock) and the movement panel
 (HudMovePanel): their setups, which make the panels' sprites and their
 regions about the layout's bottom corners.
-Rebirth patches both for its WideScreen layout, reproduced for every window (ui_widescreen.h):
+Rebirth patches both for its WideScreen layout, reproduced for every window (screen_layout.h):
 the clock at the screen's right edge, the movement panel at its left (the panel offset while
 they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
 Place and SetTriangle, the regions' AddPoint, the panel's ShowMode)
@@ -846,7 +840,7 @@ The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (H
 their layouts at the current slide offset, their per-frame updates
 (Update) and their setups.
 Rebirth patches all of them for its WideScreen layout, reproduced for every window (
-ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
+screen_layout.h): the map at the screen's right edge, the unit panel at its left (the panel
 offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
 Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
 through their addresses. See ui.h ("Battle screen and its HUD panels"), docs/notes/items_spells.md
@@ -855,7 +849,7 @@ and docs/notes/rebirth.md ("WideScreen").
 ## Battle HUD unit panel draw
 
 The battle HUD's unit panel: its draw (HudUnitPanel).
-Rebirth patches it for its WideScreen layout, reproduced for every window (ui_widescreen.h):
+Rebirth patches it for its WideScreen layout, reproduced for every window (screen_layout.h):
 the panel offset while it draws (until the window's base draw), the model's x moved left by
 EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
 too (the sprites' Place, the layout scaling) are called through their

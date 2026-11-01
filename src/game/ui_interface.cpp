@@ -14,7 +14,7 @@
 #include "text_split.h"
 #include "texture.h"
 #include "ui_cursor.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "world.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -33,17 +33,17 @@
 
 // --- Interface3D ----------------------------------------------------------------------------
 
-// The scaling is the window's layout (ui_widescreen.h): the original's x * width / 800, y * height / 600 on a 4:3
+// The scaling is the window's layout (screen_layout.h): the original's x * width / 800, y * height / 600 on a 4:3
 // window (where the 4:3 part is the window), Rebirth's WideScreen on a wider one.
 
-void Interface3D::ScaleRectToScreen(Rect* rect) const { widescreen::RectToScreen(rect, true); }
-void Interface3D::ScalePointToScreen(Point* point) const { widescreen::PointToScreen(point, true); }
-void Interface3D::ScaleRectFromScreen(Rect* rect) const { widescreen::RectFromScreen(rect, true); }
-void Interface3D::ScalePointFromScreen(Point* point) const { widescreen::PointFromScreen(point, true); }
+void Interface3D::ScaleRectToScreen(Rect* rect) const { screen_layout::RectToScreen(rect, true); }
+void Interface3D::ScalePointToScreen(Point* point) const { screen_layout::PointToScreen(point, true); }
+void Interface3D::ScaleRectFromScreen(Rect* rect) const { screen_layout::RectFromScreen(rect, true); }
+void Interface3D::ScalePointFromScreen(Point* point) const { screen_layout::PointFromScreen(point, true); }
 
-void Interface3D::ScaleRectToScreenNoMargin(Rect* rect) const { widescreen::RectToScreen(rect, false); }
-void Interface3D::ScalePointToScreenNoMargin(Point* point) const { widescreen::PointToScreen(point, false); }
-void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { widescreen::PointFromScreen(point, false); }
+void Interface3D::ScaleRectToScreenNoMargin(Rect* rect) const { screen_layout::RectToScreen(rect, false); }
+void Interface3D::ScalePointToScreenNoMargin(Point* point) const { screen_layout::PointToScreen(point, false); }
+void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { screen_layout::PointFromScreen(point, false); }
 
 UiWindow* Interface3D::GetActiveWindow() const {
     return stack.begin() != stack.end() ? stack.end()[-1] : nullptr;
@@ -65,7 +65,7 @@ void Interface3D::SetPendingValue(std::uint32_t value) {
 // The interface manager's start (Interface3D::Create, called once by the application's start with the
 // renderer's device object): the screen size, the three fonts, the keyboard layout, the console window, the
 // chat overlay, the fade and the help topics seen (config\tutorial.ini).
-// The fonts' scale is the window layout's (widescreen::FontScale: the fonts follow the window's 4:3 part). See ui.h
+// The fonts' scale is the window layout's (screen_layout::FontScale: the fonts follow the window's 4:3 part). See ui.h
 // and docs/notes/ui.md, section 3.
 
 namespace {
@@ -96,7 +96,7 @@ void Interface3D::Create(TextureDevice* device) {
 
     // The scale: what a 75-point font is high here, in pixels / 100.
     if (!MakeFont(fonts[0], kMeasureSize)) return;
-    const float scale = fonts[0].pixels * widescreen::FontScale();    // 0.01
+    const float scale = fonts[0].pixels * screen_layout::FontScale();    // 0.01
     for (int i = 0; i < 3; ++i) {
         float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
         if (!MakeFont(fonts[i], static_cast<int>(size))) return;

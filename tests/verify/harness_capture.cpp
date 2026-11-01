@@ -115,20 +115,19 @@ void Capture() {
     g_state = State::Done;
 }
 
-// The frame step's lock of the cursor, after a capture when one is due.
-void CaptureThenCursorLock(void* cursor) {
+// The frame step before the cursor and the present: a capture when one is due.
+void CaptureBeforePresent() {
     g_frames = g_frames + 1;
     if (g_state == State::Pending) {
         if (g_skip > 0) --g_skip;
         else Capture();
     }
-    ei::verify::image::CursorLock(cursor);
 }
 
 } // namespace
 
 bool Install() {
-    ei::mainloop::g_harnessHooks.cursorLock = &CaptureThenCursorLock;   // the rewritten frame step's hook point
+    ei::mainloop::g_harnessHooks.beforePresent = &CaptureBeforePresent;   // the rewritten frame step's hook point
     return true;
 }
 

@@ -5,7 +5,7 @@
 #include "material.h"
 #include "texture.h"
 #include "ui.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -84,11 +84,11 @@ bool UiRegion::HasActiveTip() const {
 }
 
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
-// is moved by the panel offset its panel builders set (ui_widescreen.h; 0 outside them).
+// is moved by the panel offset its panel builders set (screen_layout.h; 0 outside them).
 void UiRegion::SetRect(int left, int top, int right, int bottom) {
     points.clear();
-    left += widescreen::PanelOffset();
-    right += widescreen::PanelOffset();
+    left += screen_layout::PanelOffset();
+    right += screen_layout::PanelOffset();
     bounds.left = left;
     bounds.right = right;
     bounds.top = top;
@@ -98,7 +98,7 @@ void UiRegion::SetRect(int left, int top, int right, int bottom) {
 }
 
 void UiRegion::AddPoint(int x, int y) {
-    x += widescreen::PanelOffset();
+    x += screen_layout::PanelOffset();
     if (points.empty()) {
         bounds.left = x;
         bounds.top = y;

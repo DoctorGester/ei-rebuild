@@ -8,7 +8,7 @@ usage: python tools/gen_settings_doc.py            writes docs/settings.md
 
 The settings the code reads are found by their spelling: options.cpp's tables (section and name, the camera's
 motion values, the shortcuts, the lights), every Get*(section, "name") under src/, the renderer's QualitySetting
-names, Rebirth's patches (include/ei/rebirth_patches.inc) and the [patches] names startup.cpp understands.
+names, Rebirth's patches (include/ei/rebirth_patches.inc) and the [patches] names rebirth_hook.cpp understands.
 """
 import os, re, sys
 
@@ -22,7 +22,7 @@ COMMENT_WIDTH = 108   # settings_document.cpp kCommentWidth
 # The original's settings this build does not read (dropped in C69: nothing used them). A file that holds them keeps
 # the lines; the game ignores them.
 DROPPED = ['[video] VideoZBufferDepthInBits', 'VideoRefreshRate', 'Antialiasing', 'Dithering', 'PerspectiveCorrection',
-           'ShowParticles', 'AutomaticQuantization', 'MovieCapturingFPS', '[shadows] HeroShadow', 'OtherShadow',
+           'ShowParticles', 'FPSIndependentCursor', 'AutomaticQuantization', 'MovieCapturingFPS', '[shadows] HeroShadow', 'OtherShadow',
            '[terrain] EnableDynamicLights', 'LightingFreq', 'ShadowingFreq', '[game] Joystick', 'UseSWCursors',
            'CornerSize', 'CD1 Label', 'CD3 Label', 'Font CharSet', '[statistics] CreateOutputInfo', 'NumberOfFrames']
 
@@ -100,7 +100,7 @@ def read_names(names_of):
             if f == 'device_mesh.cpp':
                 for name in re.findall(r'QualitySetting\("(\w+)"', text):
                     found.add(('kRenderer', name))
-            if f == 'startup.cpp':
+            if f == 'rebirth_hook.cpp':
                 for name in re.findall(r'(?:_stricmp|CompareIgnoringCase)\(name, "(\w+)"\)', text):
                     found.add(('kPatches', name))
             if 'GetValues(settings::kAutoExec)' in text:

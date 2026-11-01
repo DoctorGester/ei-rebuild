@@ -191,7 +191,7 @@ def line_comments(text):
 
 def banned_count(body, path):
     """Banned narration words in one comment (see BANNED_COMMON); `path` is the file's path under the repo, or None."""
-    if path in BANNED_EXEMPT or (path and path.startswith('src/standalone/')):
+    if path in BANNED_EXEMPT:
         return 0
     n = len(BANNED_COMMON.findall(body))
     if path is None or path.startswith('src/game/'):

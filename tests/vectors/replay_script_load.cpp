@@ -8,7 +8,6 @@
 
 #include "../../src/game/script.h"
 
-#include "ei/hook.h"
 
 #include <cstdio>
 #include <cstring>

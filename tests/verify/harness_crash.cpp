@@ -4,7 +4,6 @@
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
-#include "ei/hook.h"
 
 #include <cstdio>
 #include <cstring>

@@ -14,8 +14,7 @@ def initial_settings(data):
     source = data / "ei_settings.ini"
     settings = source.read_text() if source.exists() else "[video]\n[game]\n"
     for section, key, value in [("video", "VideoResolution", "1280x800"),
-                                ("video", "FullScreen", "false"),
-                                ("video", "FPSIndependentCursor", "false")]:
+                                ("video", "FullScreen", "false")]:
         pattern = r"^" + key + r"\s*=.*$"
         if re.search(pattern, settings, flags=re.M | re.I):
             settings = re.sub(pattern, key + " = " + value, settings, flags=re.M | re.I)
@@ -36,7 +35,6 @@ def main():
     parser.add_argument("--exe", type=Path, default=Path(__file__).resolve().parent.parent / "build/macos/ei-rebuild.app/Contents/MacOS/ei-rebuild")
     parser.add_argument("--seconds", type=int, default=40)
     parser.add_argument("--play", action="store_true", help="Play until you quit, keeping saves/settings in run/macos")
-    parser.add_argument("--check", action="store_true")
     parser.add_argument("--intro", action="store_true", help="Play the startup movies too")
     args = parser.parse_args()
     if not 1 <= args.seconds <= 60:
@@ -70,7 +68,7 @@ def main():
     env.update(EI_GAME_ROOT=str(root), EI_OUT_DIR=str(root), EI_SETTINGS_PATH=str(root / "ei_settings.ini"))
     print(("Play folder: " if args.play else "Scratch run: ") + str(root), flush=True)
     with (root / "stdout.txt").open("a" if args.play else "w") as output:
-        process = subprocess.Popen([str(exe), *(["--check"] if args.check else [])], cwd=root,
+        process = subprocess.Popen([str(exe)], cwd=root,
                                    env=env, stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
         print("Game PID: " + str(process.pid), flush=True)
         try:

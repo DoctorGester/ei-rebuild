@@ -132,8 +132,6 @@ void SplitFrame() {
     if (g_target.id) DrawTestFrame();   // before CheckFrame there is no frame: "between frames"
 }
 void RunCanvasesNow() { RunCanvasCommands(); }
-GpuWorkAlone::GpuWorkAlone() {}
-GpuWorkAlone::~GpuWorkAlone() {}
 } // namespace detail
 } // namespace render
 

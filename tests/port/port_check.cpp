@@ -1,6 +1,7 @@
 // Native platform checks with synthetic files only. No installed game files are changed.
 #include "platform/platform.h"
 
+#include "lib/bit_flags.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
@@ -28,6 +29,10 @@ void Check(bool ok, const char* message) {
 [[gnu::noinline]] bool CallerCaptured() { return EI_CALLER_FRAME()[0] == EI_RETURN_ADDRESS(); }
 }
 int main() {
+    // An unscoped enum uses the built-in operator, not the opt-in flag operators (Apple Clang's substitution order).
+    enum Plain : std::uint32_t { kPlain = 1 };
+    const std::uint32_t word = 2;
+    Check((kPlain | word) == 3 && (kPlain & word) == 0, "plain enum bit operations");
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(platform::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");

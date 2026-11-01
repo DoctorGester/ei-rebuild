@@ -721,8 +721,7 @@ class SchedTest(unittest.TestCase):
             if not is_game(cmd):
                 return REAL_RUN(cmd, **kw)
             seen.append((cmd, kw.get('env')))
-            return subprocess.CompletedProcess(cmd, 0, 'ei-rebuild: 504 imports resolved, 0 missing\n'
-                                               'ei-rebuild: the game returned 0\n', '')
+            return subprocess.CompletedProcess(cmd, 0, 'ei-rebuild: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
         self.scenario('wide', 'render smooth\nresolution 800x600\nfullscreen 1\n')
         # The vanilla data only unless the Rebirth data is asked for (SV9)

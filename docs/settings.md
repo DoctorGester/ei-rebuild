@@ -11,7 +11,7 @@ Defaults: the value a new file holds, else the one the game takes when the line 
 game folder's profile decides (Rebirth's patches in a Rebirth install, none in a plain one).
 
 The original game's settings this build does not read (a file that holds them keeps the lines; the game
-ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, AutomaticQuantization, MovieCapturingFPS, [shadows] HeroShadow, OtherShadow, [terrain] EnableDynamicLights, LightingFreq, ShadowingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, [statistics] CreateOutputInfo, NumberOfFrames.
+ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, FPSIndependentCursor, AutomaticQuantization, MovieCapturingFPS, [shadows] HeroShadow, OtherShadow, [terrain] EnableDynamicLights, LightingFreq, ShadowingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, [statistics] CreateOutputInfo, NumberOfFrames.
 
 ## [paths]
 
@@ -34,7 +34,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `TextureQuality` | `0` | 0, 1, 2 or 3 | Texture detail: 0 full size, 1 half, 2 a quarter, 3 an eighth (blurrier, less memory). |
 | `Mipmapping` | `true` | true / false | Distant surfaces use smaller copies of their textures so they don't shimmer; false: always the full-size texture (grainy in the distance). |
 | `Filtering` | `2` | 0, 1 or 2 | 0: textures drawn blocky, without smoothing (and without anisotropic filtering); 1 or 2: smoothed (the two are the same here). |
-| `FPSIndependentCursor` | `true` | true / false | The mouse cursor keeps moving smoothly when the game's frame rate is low; false: it moves only as often as the game draws a frame. |
 | `Brightness` | `0` | -1 .. 1 | Brightens (above 0) or darkens (below 0) the whole picture; 0 leaves it as it is. The options screen's slider sets it. |
 | `Contrast` | `0` | -1 .. 1 | Above 0 makes darks darker and lights lighter; below 0 flattens the picture towards grey; 0 leaves it as it is. |
 | `Gamma` | `0` | -1 .. 1 | Above 0 lightens the mid-tones, below 0 darkens them (black and white stay); 0 leaves the picture as it is. |

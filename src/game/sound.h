@@ -9,6 +9,7 @@
 
 #include "lib/containers.h"
 #include "lib/hash_map.h"
+#include "audio/audio.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 
@@ -39,7 +40,7 @@ struct SoundFader {
 // One of the 15 voices.
 struct SoundSlot {
     std::string name;           // the wave name
-    platform::audio::Voice* voice;
+    audio::Voice* voice;
     std::int32_t volume;        // the output's volume 0..127
     std::int32_t baseVolume;    // 2D sounds: volume 0..100
     std::int32_t pan;           // -100..100
@@ -145,8 +146,8 @@ struct SoundManager : EngineObject {
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
-    platform::audio::Stream* streamSample;
-    platform::audio::Mp3Stream* streamFile;   // the playing file's decoder
+    audio::Stream* streamSample;
+    audio::Mp3Stream* streamFile;   // the playing file's decoder
     std::vector<std::uint8_t> streamBuffers[3];   // streamBufferSize bytes each
     std::int32_t streamBufferSize;      // twice the output's minimum half; -1 after ResetStream
     std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes

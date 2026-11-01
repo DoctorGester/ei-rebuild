@@ -26,7 +26,6 @@
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
-#include <xlocale.h>
 #endif
 
 namespace platform {
@@ -67,6 +66,7 @@ std::string GamePath(fs::path path) {
 }
 
 int Descriptor(void* handle) { return handle ? static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1) : -1; }
+
 void* Handle(int fd) { return fd < 0 ? nullptr : reinterpret_cast<void*>(static_cast<std::intptr_t>(fd) + 1); }
 [[noreturn]] void FileFailure(std::string_view path) { throw FileError(errno, path); }
 
@@ -98,6 +98,7 @@ std::string_view Trim(std::string_view text) {
 }
 
 void DebugOutput(const char* text) { std::fputs(text, stderr); }
+
 std::string ProgramPath() {
 #if defined(__APPLE__)
     std::uint32_t size = 0;
@@ -110,11 +111,25 @@ std::string ProgramPath() {
 #else
     std::string path(PATH_MAX, '\0');
     const ssize_t size = readlink("/proc/self/exe", path.data(), path.size());
-    return size > 0 ? path.substr(0, size) : std::string{};
+    return size > 0 ? path.substr(0, static_cast<std::size_t>(size)) : std::string{};
 #endif
 }
+
+std::string ArgumentsAfterSeparator(int argc, char** argv) {
+    std::string arguments;
+    int i = 1;
+    while (i < argc && std::strcmp(argv[i], "--") != 0) ++i;
+    for (++i; i < argc; ++i) {
+        if (!arguments.empty()) arguments += ' ';
+        arguments += argv[i];
+    }
+    return arguments;
+}
+
 std::string ExePath() { return GamePath(ProgramPath()); }
+
 std::string CurrentFolder() { return GamePath(fs::current_path()); }
+
 std::string UserDataFolder() {
     char* path = SDL_GetPrefPath("", "");
     if (!path) return {};
@@ -122,60 +137,77 @@ std::string UserDataFolder() {
     SDL_free(path);
     return result;
 }
+
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (chdir(NativePath(path).c_str()) == 0) return true;
     if (error) *error = errno;
     return false;
 }
+
 std::uint32_t PageSize() { return static_cast<std::uint32_t>(sysconf(_SC_PAGESIZE)); }
+
 bool FontSmoothing() { return true; }
+
 void PrimaryDesktopSize(int* width, int* height) {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay())) {
-        *width = mode->w;
-        *height = mode->h;
+        *width = static_cast<int>(std::lround(mode->w * mode->pixel_density));
+        *height = static_cast<int>(std::lround(mode->h * mode->pixel_density));
     }
 }
+
 std::string EnvironmentVariable(const char* name) {
     const char* value = std::getenv(name);
     return value ? value : "";
 }
+
 void EndProcess(std::uint32_t code) { std::_Exit(static_cast<int>(code)); }
+
 bool CreateFolder(const char* path) {
     std::error_code e;
     return fs::create_directory(NativePath(path), e);
 }
+
 bool RemoveFile(const char* path) { return unlink(NativePath(path).c_str()) == 0; }
+
 bool RemoveFolder(const char* path) { return rmdir(NativePath(path).c_str()) == 0; }
+
 bool RenameFile(const char* from, const char* to) {
     const auto target = NativePath(to);
     std::error_code e;
     if (fs::exists(target, e)) return false;
     return rename(NativePath(from).c_str(), target.c_str()) == 0;
 }
+
 bool CopyFileOver(const char* from, const char* to) {
     std::error_code e;
     return fs::copy_file(NativePath(from), NativePath(to), fs::copy_options::overwrite_existing, e);
 }
+
 double FreeDiskSpace(const char* path) {
     std::error_code e;
     const auto space = fs::space(NativePath(path), e);
     return e ? 0.0 : static_cast<double>(space.available);
 }
+
 bool PathExists(const std::string& path) {
     std::error_code e;
     return fs::exists(NativePath(path), e);
 }
+
 bool IsFile(const std::string& path) {
     std::error_code e;
     return fs::is_regular_file(NativePath(path), e);
 }
+
 bool FileExists(const std::string& path) { return PathExists(path); }
+
 std::string VolumeLabel(const char*) { return {}; }
 
 FileError::FileError(unsigned long code, std::string_view path)
     : std::runtime_error(std::string(path) + ": " + std::strerror(static_cast<int>(code))) {}
 File::~File() { Close(); }
+
 bool File::Open(std::string_view filePath, FileMode mode) {
     Close();
     path = filePath;
@@ -185,10 +217,12 @@ bool File::Open(std::string_view filePath, FileMode mode) {
     handle = Handle(open(NativePath(path).c_str(), flags | O_CLOEXEC, 0666));
     return IsOpen();
 }
+
 void File::Close() {
     if (handle) close(Descriptor(handle));
     handle = nullptr;
 }
+
 unsigned File::Read(void* buffer, unsigned count) {
     ssize_t n;
     do {
@@ -197,6 +231,7 @@ unsigned File::Read(void* buffer, unsigned count) {
     if (n < 0) FileFailure(path);
     return static_cast<unsigned>(n);
 }
+
 void File::Write(const void* buffer, unsigned count) {
     const auto* bytes = static_cast<const char*>(buffer);
     while (count) {
@@ -210,10 +245,12 @@ void File::Write(const void* buffer, unsigned count) {
         count -= static_cast<unsigned>(n);
     }
 }
+
 void File::WriteLine(std::string_view line) {
     Write(line.data(), static_cast<unsigned>(line.size()));
     Write("\r\n", 2);
 }
+
 long File::Seek(long offset, SeekFrom from) {
     const off_t n = lseek(Descriptor(handle), offset,
                           from == SeekFrom::Begin ? SEEK_SET
@@ -222,16 +259,19 @@ long File::Seek(long offset, SeekFrom from) {
     if (n < 0 || n > UINT32_MAX) FileFailure(path);
     return static_cast<long>(n);
 }
+
 std::uint32_t File::Position() const {
     const off_t n = lseek(Descriptor(handle), 0, SEEK_CUR);
     if (n < 0 || n > UINT32_MAX) FileFailure(path);
     return static_cast<std::uint32_t>(n);
 }
+
 std::uint32_t File::Size() const {
     struct stat s{};
     if (fstat(Descriptor(handle), &s) || s.st_size < 0 || s.st_size > UINT32_MAX) FileFailure(path);
     return static_cast<std::uint32_t>(s.st_size);
 }
+
 bool File::ReadAt(long offset, void* buffer, unsigned count) {
     // Preserve the stream-position side effect of the Windows implementation.
     try {
@@ -241,6 +281,7 @@ bool File::ReadAt(long offset, void* buffer, unsigned count) {
         return false;
     }
 }
+
 bool ReadFile(const std::string& path, std::string* bytes) {
     bytes->clear();
     File file;
@@ -253,6 +294,7 @@ bool ReadFile(const std::string& path, std::string* bytes) {
     bytes->clear();
     return false;
 }
+
 WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error) {
     if (!PathExists(path)) {
         if (error) *error = ENOENT;
@@ -273,6 +315,7 @@ WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32
     bytes->clear();
     return WholeFile::failed;
 }
+
 bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error) {
     const auto target = NativePath(path);
     std::error_code e;
@@ -299,7 +342,9 @@ bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint
     if (error) *error = ok ? 0 : saved;
     return ok;
 }
+
 MappedFile::~MappedFile() { Close(); }
+
 bool MappedFile::Open(std::string_view path) {
     Close();
     const int fd = open(NativePath(path).c_str(), O_RDONLY | O_CLOEXEC);
@@ -319,6 +364,7 @@ bool MappedFile::Open(std::string_view path) {
     view = mapped;
     return true;
 }
+
 void MappedFile::Close() {
     if (view) munmap(const_cast<void*>(view), size);
     if (file) close(Descriptor(file));
@@ -331,12 +377,14 @@ struct FileFind::Search {
     std::vector<fs::directory_entry> entries;
     std::size_t next = 0;
 };
+
 FileFind::FileFind() = default;
 FileFind::~FileFind() = default;
 void FileFind::Close() {
     search.reset();
     hasFound = false;
 }
+
 bool FileFind::FindFile(std::string_view pattern) {
     Close();
     std::string native(pattern);
@@ -357,6 +405,7 @@ bool FileFind::FindFile(std::string_view pattern) {
     search = std::move(started);
     return true;
 }
+
 bool FileFind::FindNext() {
     if (!search || search->next == search->entries.size()) return false;
     const auto& entry = search->entries[search->next++];
@@ -367,12 +416,19 @@ bool FileFind::FindNext() {
     hasFound = true;
     return search->next < search->entries.size();
 }
+
 std::string FileFind::GetFileName() const { return hasFound ? name : ""; }
+
 std::string FileFind::GetFilePath() const { return root + "\\" + GetFileName(); }
+
 std::string FileFind::GetTitle() const { return fs::path(GetFileName()).stem().string(); }
+
 unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
+
 bool FileFind::IsDirectory() const { return hasFound && (attributes & 0x10); }
+
 bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
+
 std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
     FileFind find;
     std::vector<FolderEntry> entries;
@@ -385,6 +441,7 @@ std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
     }
     return entries;
 }
+
 std::vector<std::string> IniSectionEntries(const char* section, const char* path) {
     std::string bytes;
     std::vector<std::string> entries;
@@ -407,6 +464,7 @@ std::vector<std::string> IniSectionEntries(const char* section, const char* path
     }
     return entries;
 }
+
 std::string IniString(const char* section, const char* key, const char* fallback, const char* path) {
     for (const auto& entry : IniSectionEntries(section, path)) {
         const auto equal = entry.find('=');
@@ -418,6 +476,7 @@ std::string IniString(const char* section, const char* key, const char* fallback
     }
     return std::string(fallback ? fallback : "").substr(0, 1022);
 }
+
 int IniInt(const char* section, const char* key, int fallback, const char* path) {
     const auto value = IniString(section, key, "", path);
     if (value.empty()) return fallback;
@@ -450,29 +509,41 @@ NativeWindow FindClassWindow(const char* className, const char* title) {
         g_instanceLock = fd;
         g_instanceOwner = getpid();
         const std::string pid = std::to_string(getpid());
-        ftruncate(fd, 0);
-        pwrite(fd, pid.data(), pid.size(), 0);
+        if (ftruncate(fd, 0) != 0 || pwrite(fd, pid.data(), pid.size(), 0) < 0)
+            DebugOutput("platform: the instance lock holds no process id\n");
         return nullptr;
     }
     const int error = errno;
     char pid[32] = {};
-    pread(fd, pid, sizeof(pid) - 1, 0);
+    if (pread(fd, pid, sizeof(pid) - 1, 0) < 0) pid[0] = 0;
     close(fd);
     g_otherProcess = static_cast<pid_t>(std::strtol(pid, nullptr, 10));
     return error == EWOULDBLOCK || error == EAGAIN ? kOtherInstance : nullptr;
 }
+
 std::uint32_t WindowProcess(NativeWindow window) {
     return static_cast<std::uint32_t>(window == kOtherInstance ? g_otherProcess : getpid());
 }
+
 void BringToFront(NativeWindow window) {
     if (window && window != kOtherInstance) SDL_RaiseWindow(static_cast<SDL_Window*>(window));
 }
+
 NativeInstance ProgramInstance() { return nullptr; }
+
 bool IsLetter(std::uint32_t c) {
-    static locale_t locale = newlocale(LC_CTYPE_MASK, "en_US.UTF-8", nullptr);
+    static locale_t locale = [] {
+        locale_t found = newlocale(LC_CTYPE_MASK, "C.UTF-8", nullptr);
+        return found ? found : newlocale(LC_CTYPE_MASK, "en_US.UTF-8", nullptr);
+    }();
     return c <= 0xFFFF && (locale ? iswalpha_l(static_cast<wint_t>(c), locale) : std::iswalpha(static_cast<wint_t>(c)));
 }
+
 void ActivateKeyboardLayout(std::uint32_t, std::uint32_t) {}   // Text input follows the user's active system layout.
+// No layout's own key codes or control characters here: sdl_keys.cpp's rules (US keys, Ctrl+letter).
+int LayoutKey(int) { return 0; }
+
+int LayoutControlCharacter(int, int) { return -1; }
 // Set-1 scan codes used by the binding file, mapped to SDL's physical keys.
 bool KeyName(int scan, char* name, int size) {
     static constexpr SDL_Scancode codes[] = {SDL_SCANCODE_UNKNOWN,     SDL_SCANCODE_ESCAPE,
@@ -526,11 +597,12 @@ bool KeyName(int scan, char* name, int size) {
     std::snprintf(name, static_cast<std::size_t>(size), "%s", text);
     return *name != 0;
 }
-}   // namespace platform
+} // namespace platform
 
 namespace platform::net {
 namespace {
 int Fd(Socket s) { return s == kNoSocket ? -1 : static_cast<int>(s); }
+
 sockaddr_in Native(const Address& a) {
     sockaddr_in n{};
 #if defined(__APPLE__)
@@ -541,10 +613,14 @@ sockaddr_in Native(const Address& a) {
     n.sin_addr.s_addr = a.ip;
     return n;
 }
+
 Address Public(const sockaddr_in& n) { return {kIpv4, n.sin_port, n.sin_addr.s_addr, {}}; }
 }
+
 bool Start() { return true; }
+
 void Stop() {}
+
 Socket Open(Kind kind) {
     const int fd = socket(AF_INET, kind == Kind::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd < 0) return kNoSocket;
@@ -555,23 +631,29 @@ Socket Open(Kind kind) {
     fcntl(fd, F_SETFD, FD_CLOEXEC);
     return static_cast<Socket>(fd);
 }
+
 void Close(Socket s) { close(Fd(s)); }
+
 bool Bind(Socket s, const Address& a) {
     const auto n = Native(a);
     return a.family == kIpv4 && bind(Fd(s), reinterpret_cast<const sockaddr*>(&n), sizeof(n)) == 0;
 }
+
 void SetNonBlocking(Socket s, bool on) {
     const int flags = fcntl(Fd(s), F_GETFL);
     if (flags >= 0) fcntl(Fd(s), F_SETFL, on ? flags | O_NONBLOCK : flags & ~O_NONBLOCK);
 }
+
 void AllowBroadcast(Socket s) {
     const int yes = 1;
     setsockopt(Fd(s), SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes));
 }
+
 bool Connect(Socket s, const Address& a) {
     const auto n = Native(a);
     return a.family == kIpv4 && connect(Fd(s), reinterpret_cast<const sockaddr*>(&n), sizeof(n)) == 0;
 }
+
 int SendTo(Socket s, const void* p, int n, const Address& a) {
     if (n < 0 || a.family != kIpv4) {
         errno = EINVAL;
@@ -580,6 +662,7 @@ int SendTo(Socket s, const void* p, int n, const Address& a) {
     const auto to = Native(a);
     return static_cast<int>(sendto(Fd(s), p, n, 0, reinterpret_cast<const sockaddr*>(&to), sizeof(to)));
 }
+
 int ReceiveFrom(Socket s, void* p, int n, Address* from) {
     if (n < 0) {
         errno = EINVAL;
@@ -591,6 +674,7 @@ int ReceiveFrom(Socket s, void* p, int n, Address* from) {
     if (got >= 0 && from) *from = Public(a);
     return got;
 }
+
 int Send(Socket s, const void* p, int n) {
     if (n < 0) {
         errno = EINVAL;
@@ -602,6 +686,7 @@ int Send(Socket s, const void* p, int n) {
     return static_cast<int>(send(Fd(s), p, n, 0));
 #endif
 }
+
 int Receive(Socket s, void* p, int n) {
     if (n < 0) {
         errno = EINVAL;
@@ -609,6 +694,7 @@ int Receive(Socket s, void* p, int n) {
     }
     return static_cast<int>(recv(Fd(s), p, n, 0));
 }
+
 Error LastError() {
     switch (errno) {
     case 0:
@@ -625,6 +711,7 @@ Error LastError() {
         return Error::Other;
     }
 }
+
 int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
     SocketGroup* groups[] = {read, write, failed};
     fd_set sets[3];
@@ -659,7 +746,9 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
         }
     return ready;
 }
+
 bool HostName(char* name, int size) { return size > 0 && gethostname(name, size) == 0; }
+
 bool LookUp(const char* name, std::uint32_t* ip) {
     addrinfo hint{};
     hint.ai_family = AF_INET;
@@ -670,6 +759,7 @@ bool LookUp(const char* name, std::uint32_t* ip) {
     freeaddrinfo(found);
     return true;
 }
+
 std::string HostNameAt(const void* address, int length) {
     if (length != 4) return {};
     sockaddr_in a{};
@@ -680,10 +770,13 @@ std::string HostNameAt(const void* address, int length) {
                ? name
                : "";
 }
+
 std::uint32_t ParseIpv4(const char* text) { return inet_addr(text); }
+
 std::uint16_t ToNetwork(std::uint16_t v) { return htons(v); }
+
 std::uint16_t FromNetwork(std::uint16_t v) { return ntohs(v); }
-}   // namespace platform::net
+} // namespace platform::net
 
 namespace platform {
 
@@ -696,4 +789,4 @@ std::string FormatLocalTime(std::int64_t seconds, const char* format) {
     return buffer;
 }
 
-}   // namespace platform
+} // namespace platform

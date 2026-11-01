@@ -5,7 +5,7 @@ rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:
 rem                      (config\rebirth_profile.ini: draw radii, console and script additions, the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the plain profile (the bug fixes)
 rem                      The interface follows the window's shape on both (widescreen on a wide window).
-rem   The profile is the data folder's (src/standalone/startup.cpp); a patch named in ei_settings.ini's [patches]
+rem   The profile is the data folder's (src/hook/rebirth_hook.cpp); a patch named in ei_settings.ini's [patches]
 rem   (name = true or false) wins over it in either mode.
 rem   x64                the 64-bit build (build.cmd play-x64, into build\play-x64) in place of the 32-bit one, in its own
 rem                      folder run\play-x64 (its own ei_settings.ini and log), on the same data and the same profile; the

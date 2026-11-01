@@ -4,7 +4,7 @@
 #include "asset_text.h"
 #include "console.h"
 #include "game_strings.h"
-#include "ui_widescreen.h"
+#include "screen_layout.h"
 #include "hook/log.h"
 #include "lib/rect.h"
 #include "render/render_text.h"
@@ -70,7 +70,7 @@ int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxL
 // Text on the interface's surfaces: UiSurface's DrawText and the interface's text extent, both in our own fonts
 // (ui_font.h): the text laid out by DrawText's rules (render_text.h's Layout) and drawn as glyph runs on the
 // surface's canvas. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the extent scaled
-// by the 4:3 part), which these reproduce for every window (ticket W2, ui_widescreen.h). See docs/notes/ui.md,
+// by the 4:3 part), which these reproduce for every window (ticket W2, screen_layout.h). See docs/notes/ui.md,
 // section 3, and docs/notes/ui-native.md, "P8 done".
 
 namespace {
@@ -136,5 +136,5 @@ int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const R
 
 Size Interface3D::TextExtent(std::string_view text, int font) const {
     const Size size = ::TextExtent(fonts[font], text);
-    return widescreen::TextExtentToLayout(size);
+    return screen_layout::TextExtentToLayout(size);
 }

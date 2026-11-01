@@ -63,7 +63,7 @@ concurrency:
 permissions:
   contents: read
 
-# The sokol-shdc shader compiler on the runner (cmake/shaders.cmake; build.cmd sets the same by default).
+# The sokol-shdc shader compiler on the runner (CMakeLists.txt; build.cmd sets the same by default).
 env:
   EI_SHDC: E:\bin\sokol-shdc\sokol-shdc.exe
 

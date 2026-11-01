@@ -1,4 +1,4 @@
-"""Time per function from a profiled harness run (EI_PROFILE=1, src/hook/profile.cpp).
+"""Time per function from a profiled harness run (EI_PROFILE=1, tests/verify/harness_profile.cpp).
 
 usage: python tools/profile_report.py <run folder> [--top N] [--min-ms MS]
 

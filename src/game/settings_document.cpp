@@ -56,7 +56,7 @@ std::string ValueText(const std::string& value) {
 constexpr const char* kTrue[] = {"true", "yes", "on"};
 constexpr const char* kFalse[] = {"false", "no", "off"};
 
-} // namespace
+}   // namespace
 
 // ---- The document ----
 
@@ -124,7 +124,7 @@ std::string Document::Text() const {
 
 void Document::Parse(std::string_view text, std::vector<std::string>* problems) {
     if (text.substr(0, 3) == "\xEF\xBB\xBF") text.remove_prefix(3);   // a UTF-8 BOM
-    const char* section = "";     // the lines' section; null below a section not understood
+    const char* section = "";   // the lines' section; null below a section not understood
     std::string sectionName;
     int number = 0;
     while (!text.empty()) {
@@ -142,8 +142,8 @@ void Document::Parse(std::string_view text, std::vector<std::string>* problems) 
                 AddSection(sectionName);
             } else {
                 section = nullptr;
-                problems->push_back("line " + std::to_string(number) + " not understood (and the lines below it): " +
-                                    std::string(line));
+                problems->push_back("line " + std::to_string(number) +
+                                    " not understood (and the lines below it): " + std::string(line));
             }
             continue;
         }
@@ -153,7 +153,8 @@ void Document::Parse(std::string_view text, std::vector<std::string>* problems) 
             continue;
         }
         const std::size_t equals = line.find('=');
-        const std::string_view name = equals == std::string_view::npos ? std::string_view() : Trimmed(line.substr(0, equals));
+        const std::string_view name =
+            equals == std::string_view::npos ? std::string_view() : Trimmed(line.substr(0, equals));
         if (name.empty() || !*section) {
             problems->push_back("line " + std::to_string(number) + " not understood: " + std::string(line));
             continue;
@@ -253,7 +254,7 @@ bool Matches(std::string_view pattern, std::string_view name) {
     return n == name.size();
 }
 
-} // namespace
+}   // namespace
 
 const Described* CatalogBegin() { return std::begin(kCatalog); }
 const Described* CatalogEnd() { return std::end(kCatalog); }
@@ -409,7 +410,7 @@ Document Defaults(int width, int height) {
     set(kRenderer, "Anisotropy", IntText(16));
     set(kRenderer, "PerfOverlay", BoolText(false));
 
-    // Rebirth's patches (startup.cpp): none named, each takes the game folder's profile.
+    // Rebirth's patches (rebirth_hook.cpp): none named, each takes the game folder's profile.
     d.Comment(kPatches, "Rebirth's patches, name = true or false (docs/settings.md lists them). A patch not named here takes");
     d.Comment(kPatches, "the game folder's profile: Rebirth's in a Rebirth install, else none. NPlayers, Pause: EI_Plugin's");
     d.Comment(kPatches, "player count and pause mode. SecondMaster: a second master server, host[:port].");
@@ -420,4 +421,4 @@ Document Defaults(int width, int height) {
     return d;
 }
 
-} // namespace settings
+}   // namespace settings
