@@ -1,21 +1,21 @@
 // The global map's input side (right-button drag, mouse, keys), its close and message-result slots
 // (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
-#include "game_strings.h"
-#include "ui.h"
-#include "ui_camp.h"
-
 #include "console.h"
 #include "core_streams.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "global_map_clouds.h"
+#include "platform/platform.h"
+#include "screen_layout.h"
+#include "ui.h"
+#include "ui_camp.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
-#include "screen_layout.h"
+
+#include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include "ei/rebirth.h"
-#include "platform/platform.h"
-#include "lib/vecmath.h"
-#include "game_singletons.h"
-#include "lib/str.h"
 
 #include <cmath>
 #include <cstring>
@@ -72,8 +72,6 @@ void GlobalMap::RightDown(int, int x, int y) {
     turning = 0;
     ui->ScalePointFromScreen(&dragStart);
     dragAngle = angle;
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
     g_cursor.SetHeld(1);
 }
 

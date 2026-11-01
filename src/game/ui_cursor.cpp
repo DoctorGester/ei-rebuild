@@ -5,13 +5,15 @@
 
 #include "game_singletons.h"
 #include "model.h"
+#include "platform/platform.h"
+#include "render/render.h"
 #include "surface.h"
 #include "texture.h"
 #include "world.h"
-#include "lib/crt.h"
-#include "platform/platform.h"
-#include "render/render.h"
 
+#include "lib/crt.h"
+
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -191,6 +193,16 @@ void Cursor::ShowImage(bool shown) {
 
 void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
+    if (newHeld && !held) {
+        // Poll before holding: movement from before the press must not turn the camera on the next frame.
+        mouse->Poll();
+        motion = Point{};
+        platform::Point at{};
+        if (platform::CursorPosition(&at)) {
+            heldPosition = Point{std::clamp(at.x, 0, bounds.right), std::clamp(at.y, 0, bounds.bottom)};
+            position = heldPosition;
+        }
+    }
     held = newHeld;
 }
 

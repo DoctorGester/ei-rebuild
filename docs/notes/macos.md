@@ -83,6 +83,9 @@ launcher while testing, so the installed data is left untouched.
   the cursor position by the window's pixel density. Nothing is written back to the settings. Native 2x is
   VideoResolution 2560x1600. SDL's cursor uses point dimensions and a matching hotspot, with the original pixels
   attached as a high-density image. The renderer uses main's SDL cursor; no cursor thread or Metal cursor draw remains.
+  The vendored SDL Cocoa backend has a local fix for `SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE` (third_party/SDL/README.txt):
+  the camera's held cursor stays visible at the press point rather than being hidden and warped to the window centre.
+  Capturing also drains pre-press mouse motion so it cannot become the first camera turn.
 - Apple's libc++ has no float `std::from_chars`: settings_document.cpp's `ParseFloat` reads with `strtof` (the C
   locale) where the library does not define `__cpp_lib_to_chars`, refusing what from_chars refuses.
 - `port_platform` (tests/port/port_check.cpp) covers path folding, file/mapping behavior, INI updates,

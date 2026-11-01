@@ -2,12 +2,12 @@
 
 // The mouse cursor (docs/notes/ui.md, "Cursor"): the game's pictures, shown as the system's cursor.
 
-#include <cstddef>
+#include "platform/platform.h"
 
 #include "lib/containers.h"
 #include "lib/rect.h"
-#include "platform/platform.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -76,6 +76,7 @@ public:
     // current with the image's current frame as `from`; returns the previous shape.
     int SetShape(int shape);
     void ShowImage(bool shown);
+    // On capture, discard earlier motion and keep the current pointer position until released.
     void SetHeld(bool held);
     // Shape 0 (its image and frame).
     void Start();

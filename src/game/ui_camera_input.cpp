@@ -1,17 +1,17 @@
 // The battle camera's input side: key release, right-button turning, deactivation and the wheel
 // (CameraInput, ui_camera_keys.h; the key press is in ui_camera_input.cpp). See docs/notes/ui.md,
 // section 2 ("").
-#include "ui_camera_keys.h"
-
 #include "camera.h"
 #include "game_singletons.h"
 #include "options.h"
-#include "ui.h"
-#include "ui_cursor.h"
+#include "platform/platform.h"
 #include "screen_layout.h"
+#include "ui.h"
+#include "ui_camera_keys.h"
+#include "ui_cursor.h"
+
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "platform/platform.h"
 
 #include <cstdint>
 
@@ -99,8 +99,6 @@ void CameraInput::RightDown(int, int atX, int atY) {
     pressLayout = Point{atX, atY};
     turning = true;
     ui->ScalePointFromScreen(&pressLayout);
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
     g_cursor.SetHeld(1);
     handled = true;
 }

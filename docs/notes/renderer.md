@@ -709,7 +709,8 @@ every graphics backend):
   gamma ramp the present applies (`GammaRamp`), made with `platform::MakeCursor` (SDL_CreateColorCursor) at its first
   show and kept: one per picture frame, so an animated cursor is a set of cached shapes. Shapes of another window scale
   or ramp are let go (`FreeCursor`) once another is shown, those of a picture when its holder goes (`ForgetCursor`).
-- The hold (the camera turned with the right button, 005E67B0; the global map's drag): `platform::HoldCursor` at the
+- The hold (the camera turned with the right button, 005E67B0; the global map's drag): `Cursor::SetHeld` first drains
+  pre-press mouse motion and captures the current position. `platform::HoldCursor` holds the pointer at that
   game's position. SDL's backend puts the window in relative mode with the pointer kept in a one-pixel mouse rectangle
   there (hints: the cursor visible in relative mode, not centred, the motion scaled as the system scales the pointer's),
   so the cursor stands still while the motion reaches the game; let go (the next present without a hold, or the game's
@@ -719,8 +720,9 @@ every graphics backend):
   letterbox bars of a window of another shape it is where the mouse is (the game's position is clamped to the frame,
   as before); it is not in the Scroll Lock screenshot or the movie recorder's frames (it never was in ours: they read
   the frame).
-- macOS (Metal on the macos-port branch): nothing to keep in the backend; SDL's relative mode freezes the pointer
-  itself (CGAssociateMouseAndMouseCursorPosition), which is the hold.
+- macOS (Metal on the macos-port branch): nothing to keep in the graphics backend; SDL's relative mode freezes the
+  pointer itself (CGAssociateMouseAndMouseCursorPosition), which is the hold. The local Cocoa fix in the vendored SDL
+  honors the visible-relative-cursor hint and skips the centering warp (third_party/SDL/README.txt).
 
 Harness: the harness's platform backend makes the same SDL cursors on its window (seen only while the real mouse is
 over it) and keeps each shape's pixels; `cursormark`, `cursorcheck <name>|- shown|hidden|held|animated [min]`
