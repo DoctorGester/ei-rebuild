@@ -88,7 +88,10 @@ launcher while testing, so the installed data is left untouched.
   Capturing also drains pre-press mouse motion so it cannot become the first camera turn.
 - Apple's libc++ has no float `std::from_chars`: settings_document.cpp's `ParseFloat` reads with `strtof` (the C
   locale) where the library does not define `__cpp_lib_to_chars`, refusing what from_chars refuses.
-- `port_platform` (tests/port/port_check.cpp) covers path folding, file/mapping behavior, INI updates,
+- Bink movies use platform file reads, so the game's backslashes and filename casing work on POSIX too. The 21
+  supplied movies' 6,724 decoded YUV frames match FFmpeg 8.1 exactly on ARM64, including all 60 loading-screen frames.
+  Loading-movie RGB copies and forward/backward seeks were checked too (rounding differs by at most 3 per channel).
+- `port_platform` (tests/port/port_check.cpp) covers path folding, Bink container reads, file/mapping behavior, INI updates,
   single-instance exclusion, UDP, math edge cases, caller capture and the settings checks
   (tests/vectors/replay_settings.cpp). `port_render` (tests/port/render_check.cpp) runs the interface canvases' glyph
   cases (tests/render/glyph_cases.cpp, the ones tools/ui_check runs on Direct3D 11) on Metal.

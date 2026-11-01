@@ -284,7 +284,7 @@ else()
     # cases on OpenGL or Metal (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
-                   tests/vectors/replay_settings.cpp)
+                   src/video/bink_file.cpp tests/vectors/replay_settings.cpp)
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)

@@ -124,6 +124,8 @@ format's descriptions (multimedia.cx: Bink Container, Bink Video, Bink Audio; Ko
 binkw32.dll studied for what they leave out (the tables are its numbers). FFmpeg's sources were never read (the exe is
 MIT and links nothing of FFmpeg's); FFmpeg ran only offline as the oracle.
 
+- File access goes through `platform::File`, including frame reads: movie paths use the same separator and case
+  rules as game assets. The loading screen passes `Movies\Progres.bik`, which must open `Movies/progres.bik` on POSIX.
 - What it plays: Bink 1 revision i ("BIKi") with video flags 0, the first sound track when it is the RDFT variant.
   That is every movie the installs ship: 46 distinct files (vanilla 640x272 and 800x600, Rebirth's 1920x816 /
   1080 / 960, LostInAstral's; sound 44.1 or 22.05 kHz stereo, many without). Other revisions, alpha, grayscale and

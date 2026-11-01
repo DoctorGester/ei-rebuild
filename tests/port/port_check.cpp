@@ -1,10 +1,12 @@
 // Native platform checks with synthetic files only. No installed game files are changed.
 #include "platform/platform.h"
+#include "video/bink_file.h"
 
 #include "lib/bit_flags.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
+#include <array>
 #include <bit>
 #include <cstdio>
 #include <cstdlib>
@@ -43,6 +45,33 @@ int main() {
     std::string temp = (fs::temp_directory_path() / "ei-port-XXXXXX").string();
     Check(mkdtemp(temp.data()) != nullptr, "scratch directory");
     fs::current_path(temp);
+    Check(platform::CreateFolder("Movies"), "create movie directory");
+    {
+        // A one-frame Bink container: an 8x8 picture and eight video bytes, no sound track.
+        constexpr std::uint32_t words[] = {0x694B4942, 52, 1, 8, 1, 8, 8, 15, 1, 0, 0, 53, 60, 0, 0};
+        std::array<std::uint8_t, sizeof(words)> bytes{};
+        for (std::size_t i = 0; i < std::size(words); ++i)
+            for (int byte = 0; byte < 4; ++byte)
+                bytes[i * 4 + byte] = static_cast<std::uint8_t>(words[i] >> (byte * 8));
+        platform::File file;
+        Check(file.Open("Movies/progres.bik", platform::FileMode::Create), "create loading movie fixture");
+        file.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
+        file.Close();
+        bink::File movie;
+        Check(movie.Open("movies\\PROGRES.BIK"), "open loading movie through the platform's path rules");
+        Check(movie.Width() == 8 && movie.Height() == 8 && movie.FrameCount() == 1 && movie.Keyframe(0),
+              "read loading movie header and keyframe index");
+        bink::FramePackets packet;
+        Check(movie.ReadFrame(0, packet) && packet.videoBytes == 8 && !packet.audio, "read loading movie video packet");
+        Check(!movie.ReadFrame(1, packet), "reject loading movie frame past the end");
+        Check(file.Open("Movies/truncated.bik", platform::FileMode::Create), "create truncated movie fixture");
+        file.Write(bytes.data(), 44);
+        file.Close();
+        bink::File truncated;
+        Check(!truncated.Open("movies\\TRUNCATED.BIK"), "reject truncated movie index");
+        bink::File missing;
+        Check(!missing.Open("movies\\missing.bik"), "missing loading movie fails without throwing");
+    }
     Check(platform::CreateFolder("Res"), "create mixed-case directory");
     platform::File file;
     Check(file.Open("Res/Database.RES", platform::FileMode::Create), "create asset");
