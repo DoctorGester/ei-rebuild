@@ -306,7 +306,6 @@ void DrawStep(const void* holder, ComposeStep step) {
                  : std::next(it);
     steps.push_back(std::move(step));
     if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
-    GpuWorkAlone alone;
     DrawComposed(recipe, t.image, &steps.back(), 1);
 }
 
@@ -364,10 +363,7 @@ bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
     Retire(t);
-    {
-        GpuWorkAlone alone;
-        MakeComposed(*recipe, &t.image, &t.view);
-    }
+    MakeComposed(*recipe, &t.image, &t.view);
     t.checkedFrame = FrameNumber();
     t.width = recipe->width >> recipe->firstLevel;
     t.height = recipe->height >> recipe->firstLevel;
@@ -744,7 +740,6 @@ std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* 
 MmpLevelCheck CheckMmpLevels() {
     using namespace detail;
     MmpLevelCheck c;
-    GpuWorkAlone alone;   // (the block-compressed levels read back)
     for (const auto& entry : g_textures) {
         const TextureSource& s = entry.second.source;
         if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpHeader)) continue;

@@ -11,13 +11,13 @@
 #include <SDL3/SDL_main.h>
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <deque>
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
 
 namespace platform {
 namespace {
@@ -112,10 +112,12 @@ bool g_toldMinimized = false;
 int g_buttons = 0;
 // The key flags of the last key pressed: the characters it types carry them (WM_CHAR had the key's).
 int g_typedFlags = 0;
-// The mouse's motion and wheel since MouseDevice::Read took them (the cursor's thread reads them).
-std::atomic<std::int32_t> g_motionX{0};
-std::atomic<std::int32_t> g_motionY{0};
-std::atomic<std::int32_t> g_motionWheel{0};
+// The mouse's motion and wheel since MouseDevice::Read took them; the motion's fractions kept for the next event (the
+// held cursor's relative mode scales the motion as the system scales the pointer's).
+std::int32_t g_motionX = 0;
+std::int32_t g_motionY = 0;
+std::int32_t g_motionWheel = 0;
+float g_motionRestX = 0.0f, g_motionRestY = 0.0f;
 
 constexpr int kKeyRepeated = 0x4000;   // the key was down before
 constexpr int kKeyReleased = 0xC000;   // a release: down before, going up
@@ -273,8 +275,12 @@ void Take(const SDL_Event& e) {
     case SDL_EVENT_KEY_UP: TakeKey(e.key); break;
     case SDL_EVENT_TEXT_INPUT: TakeText(e.text.text); break;
     case SDL_EVENT_MOUSE_MOTION:
-        g_motionX += Whole(e.motion.xrel);
-        g_motionY += Whole(e.motion.yrel);
+        g_motionRestX += e.motion.xrel;
+        g_motionRestY += e.motion.yrel;
+        g_motionX += Whole(g_motionRestX);
+        g_motionY += Whole(g_motionRestY);
+        g_motionRestX -= std::floor(g_motionRestX);
+        g_motionRestY -= std::floor(g_motionRestY);
         QueueMouse(EventType::MouseMove, e.motion.x, e.motion.y);
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -327,6 +333,11 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");      // the game takes Alt+F4 itself
     SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (Destroy)
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");           // mouse events only over the window, as Windows gave them
+    // The held cursor (HoldCursor): relative mode keeps it visible where the mouse rectangle holds it, its motion scaled
+    // as the pointer's.
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE, "1");
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE, "1");
     // The window class's name (FindClassWindow finds a running game by it); SDL counts double clicks itself.
 #if defined(_WIN32)
     SDL_RegisterApp(className, 0, instance);
@@ -468,11 +479,24 @@ namespace {
 
 PointMap g_toGame = nullptr;
 PointMap g_toScreen = nullptr;
+bool g_holding = false;   // HoldCursor's
+SDL_Rect g_held{};
 
 } // namespace
 
-// The shape shown over the window; null while hidden (the game draws its own).
+// The shape shown over the window; null while hidden.
 CursorShape CurrentCursor() { return SDL_CursorVisible() ? SDL_GetCursor() : nullptr; }
+
+CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX, int hotY) {
+    SDL_Surface* surface =
+        SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, const_cast<std::uint8_t*>(rgba), width * 4);
+    if (!surface) return nullptr;
+    SDL_Cursor* cursor = SDL_CreateColorCursor(surface, hotX, hotY);
+    SDL_DestroySurface(surface);
+    return cursor;
+}
+
+void FreeCursor(CursorShape shape) { SDL_DestroyCursor(static_cast<SDL_Cursor*>(shape)); }
 
 void SetCursor(CursorShape shape) {
     if (!shape) {
@@ -497,7 +521,31 @@ bool CursorPosition(Point* at) {
     return true;
 }
 
+// Held: SDL's relative mode (the motion from the device, not the pointer) with the pointer kept in a one-pixel mouse
+// rectangle at the point. Let go, SDL puts the pointer where its motion would have taken it.
+void HoldCursor(const Point* at) {
+    if (!g_window) return;
+    if (!at) {
+        if (!g_holding) return;
+        SDL_SetWindowMouseRect(g_window, nullptr);
+        SDL_SetWindowRelativeMouseMode(g_window, false);
+        g_holding = false;
+        return;
+    }
+    Point screen = *at;
+    if (g_toScreen) g_toScreen(&screen);
+    int left = 0, top = 0;
+    SDL_GetWindowPosition(g_window, &left, &top);
+    const SDL_Rect place{screen.x - left, screen.y - top, 1, 1};
+    if (g_holding && place.x == g_held.x && place.y == g_held.y) return;
+    SDL_SetWindowMouseRect(g_window, &place);
+    SDL_SetWindowRelativeMouseMode(g_window, true);
+    g_held = place;
+    g_holding = true;
+}
+
 void SetCursorPosition(Point at) {
+    HoldCursor(nullptr);
     if (g_toScreen) g_toScreen(&at);
     SDL_WarpMouseGlobal(static_cast<float>(at.x), static_cast<float>(at.y));
 }
@@ -519,9 +567,9 @@ int MouseDevice::SetActive(bool, MouseReport) { return 1; }
 
 // DIMOUSESTATE: x, y and the wheel, then a byte a button (0x80 held: left, right, middle, the first side button).
 void MouseDevice::Read(std::int32_t state[4]) {
-    state[0] = g_motionX.exchange(0);
-    state[1] = g_motionY.exchange(0);
-    state[2] = g_motionWheel.exchange(0);
+    state[0] = std::exchange(g_motionX, 0);
+    state[1] = std::exchange(g_motionY, 0);
+    state[2] = std::exchange(g_motionWheel, 0);
     const SDL_MouseButtonFlags held = SDL_GetMouseState(nullptr, nullptr);
     std::uint32_t buttons = 0;
     if (held & SDL_BUTTON_LMASK) buttons |= 0x80u;

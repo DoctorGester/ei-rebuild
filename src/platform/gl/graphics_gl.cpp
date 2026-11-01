@@ -199,13 +199,6 @@ void UpdateBuffer(sg_buffer buffer, std::size_t offset, const void* data, std::s
         glNamedBufferSubData(name, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(bytes), data);
 }
 
-// The context is the main thread's: the cursor is not presented between frames.
-bool KeepPresent(const PresentParts&) { return false; }
-
-void DropPresent() {}
-
-bool PresentAgain(std::span<const sg_range>, PresentReads*) { return false; }
-
 Readback::Readback() = default;
 Readback::~Readback() = default;
 

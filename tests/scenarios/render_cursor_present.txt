@@ -1,55 +1,75 @@
-# R9c2: the software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md,
-# section 9). The game's cursor thread (005E5690, every 41 ms) drew the moved cursor straight onto the
-# primary, so it kept moving while the main thread drew no frame; without DirectDraw it presents the
-# last frame again (as drawn before its cursor) with the cursor at its new place
-# (render::CursorBetweenFrames). As in the original it draws nothing while the image is hidden: the
-# movie players and every loading screen step hide it (005E5270 0).
+# R40: the game's cursor as the system's (docs/notes/renderer.md section 9). Each frame hands the renderer its cursor
+# picture's current frame (005E54A0 -> render::Cursor); the present shows it as an SDL colour cursor made at the
+# window's scale and through the gamma ramp, one per picture frame. A present without one hides it: as in the original,
+# the movie players and every loading screen step hide the image (005E5270 0). While the game holds its cursor still
+# (the camera turned with the right button, 005E67B0) the cursor is held at the game's position.
 #
-# The mouse is moved by a harness thread ("mouseglide": what the game's GetCursorPos reads, the only
-# input the cursor thread takes) while the main thread is away: a long frame ("stall": the cursor
-# moves, each composed frame checked in the verify build and the last one written to frames\), a
-# movie and a new game's loading screen (the cursor stays hidden: at most the moments before the
-# player hides it). "cursorcheck" also checks the cursor's rectangle against the mouse and the
-# image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
-# off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
-# 1 for this run ("fpscursor"). "windowtitle" checks the window's title ("Evil Islands") and class name ("EIGAME").
-fpscursor 1
+# "cursorcheck" reads the shape the harness's platform backend was given (harness_platform.cpp): "shown" checks its
+# size and hot spot against the game's image at the window's scale and, with a name, writes the last frame with the
+# cursor drawn in; "hidden", "held" and "animated" count the presents since "cursormark". "windowtitle" checks the
+# window's title ("Evil Islands") and class name ("EIGAME").
 render checkall
+resolution 800x600
+fullscreen 0
 reject Script error
 waitmenu
 windowtitle
 console thingamabob
 
-# The main menu: one long frame.
+# The main menu, one to one.
 move 400 300
 frames 10
 cursormark
-mouseglide 1200 400 300 550 400
-stall 1600
-cursorcheck menu_stall 10
+frames 5
+cursorcheck menu shown 5
 
-# A new game's loading screen: logged only (the main thread's work before the first loading step is a
-# long frame with the cursor still shown, which the cursor thread rightly draws).
+# A larger window (1600x900: the frame at 1200x900): the shape made again at one and a half times the size.
+windowsize 1600 900
+waitpresent 10
+frames 10
 cursormark
-mouseglide 3000 550 400 250 250
+frames 5
+cursorcheck menu_large shown 5
+windowsize 800 600
+waitpresent 10
+frames 10
+
+# A new game's loading screens: hidden.
+cursormark
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
-cursorcheck - 0
+cursorcheck - hidden
 console @BlockUnit(GetLeader(),0)
 waitwindow 10 battle
 
-# A movie (about 1.7 s; the console runs it to its end): hidden.
+# A movie (about 1.7 s; the console runs it to its end): hidden while it plays, shown again after.
 cursormark
-mouseglide 1200 250 250 400 350
 console @PlayMovie("crdtfin.bik")
-cursorcheck - 0 2
-
-# In the game: one long frame.
-move 400 300
+cursorcheck - hidden
 frames 10
 cursormark
-mouseglide 1200 400 300 250 400
-stall 1600
-cursorcheck game_stall 10
+frames 5
+cursorcheck game shown 5
+
+# The camera turned with the right button: the cursor held at the game's position, then free again.
+move 400 300
+frames 5
+rdown 400 300
+frames 5
+cursormark
+frames 5
+cursorcheck - held 5
+rup 400 300
+frames 5
+cursormark
+frames 5
+cursorcheck - shown 5
+
+# At the window's edge the scroll cursor steps through its frames.
+move 799 300
+frames 10
+cursormark
+frames 40
+cursorcheck - animated 1
 report
 quit

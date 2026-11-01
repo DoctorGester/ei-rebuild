@@ -33,11 +33,10 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-// The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame capture reads the
-// finished frame before the cursor is blitted and the frame flipped (tests/verify/harness_capture.cpp).
-void LockCursorAtCallSite() {
-    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) hook(&g_cursor);
-    else g_cursor.TakeLock();
+// The harness's hook before the cursor and the present (ei/main_loop.h): its frame capture reads the finished frame
+// (tests/verify/harness_capture.cpp).
+void BeforePresent() {
+    if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
 }
 
 std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
@@ -56,10 +55,9 @@ void FrameStep(bool draw, bool cursor) {
     g_sceneRenderer.EndScene();
     if (cursor) g_interface.DrawOverlays();
     if (!draw || !Running()) return;
-    LockCursorAtCallSite();
+    BeforePresent();
     CursorDrawFrame(&g_cursor);
     if (DevicePresent(g_sceneRenderer.device)) game::FatalError("Can't flip render surface");    // "Can't flip render surface"
-    g_cursor.ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
     std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);

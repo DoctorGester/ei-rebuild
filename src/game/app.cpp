@@ -60,7 +60,7 @@ std::intptr_t OnActivate(platform::Activation activation, bool minimized) {
         device = g_sceneRenderer.device;
         if (device) {
             // ResetCursors after the device was restored. The context is the mouse.
-            ResetCursors(options::g_options.fpsIndependentCursor != 0, g_mouse, 0);
+            ResetCursors(g_mouse, 0);
         }
     }
     g_cursor.ShowImage(1);
@@ -119,9 +119,6 @@ std::intptr_t HandleWindowEvent(const platform::Event& event) {
         return 1;
     case EventType::Activate:
         return OnActivate(event.activation, event.minimized);
-    case EventType::SetCursor:
-        platform::SetCursor(nullptr);
-        return 1;
     case EventType::SystemCommand:
         return OnSystemCommand(event);
     case EventType::AutoPlay:

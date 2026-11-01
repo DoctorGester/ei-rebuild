@@ -74,14 +74,18 @@ void SetWaterWaves(bool on) { options::g_options.enableWaterWaves = on; }
 CursorState Cursor() {
     const ::Cursor* cursor = &g_cursor;
     CursorState state;
-    state.mode = cursor->mode;
-    state.thread = cursor->thread.Started();
     state.imageShown = cursor->imageShown;
     if (const CursorImage* image = cursor->image) {
         state.image = true;
+        state.width = image->width;
+        state.height = image->height;
+        state.frames = image->frames;
         state.hotX = image->hotX;
         state.hotY = image->hotY;
     }
+    state.held = cursor->held;
+    state.x = cursor->position.x;
+    state.y = cursor->position.y;
     return state;
 }
 
@@ -107,7 +111,6 @@ int ServerUpdate(void* server) {
 int ClientSegment(void* client) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
 void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)->Update(seconds); }
 void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
-void CursorLock(void* cursor) { static_cast<::Cursor*>(cursor)->TakeLock(); }
 
 void ConsoleExecute(const char* text) { console::Execute(text); }
 void SendLeave04(int id) { GameSendLeave04(id); }

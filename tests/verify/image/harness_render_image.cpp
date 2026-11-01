@@ -19,17 +19,20 @@
 namespace ei::verify::image {
 
 CursorPresents CursorPresentCounts() {
-    const render::CursorPresentInfo info = render::CursorPresents();
+    const render::CursorInfo info = render::CursorState();
     CursorPresents counts;
-    counts.presents = info.presents;
-    counts.calls = info.calls;
-    for (int i = 0; i < 4; ++i) counts.refused[i] = info.refused[i];
-    counts.lastLeft = info.lastTo.left;
-    counts.lastTop = info.lastTo.top;
-    counts.lastRight = info.lastTo.right;
-    counts.lastBottom = info.lastTo.bottom;
-    counts.checks = info.checks;
-    counts.mismatches = info.mismatches;
+    counts.presentsShown = info.presentsShown;
+    counts.presentsHeld = info.presentsHeld;
+    counts.presentsHidden = info.presentsHidden;
+    counts.made = info.made;
+    counts.failures = info.failures;
+    counts.shapeChanges = info.shapeChanges;
+    counts.frameChanges = info.frameChanges;
+    counts.shown = info.shown;
+    counts.width = info.width;
+    counts.height = info.height;
+    counts.hotX = info.hotX;
+    counts.hotY = info.hotY;
     return counts;
 }
 
@@ -40,8 +43,6 @@ WindowPresents WindowPresentCounts() {
     counts.rampChecks = info.rampChecks;
     counts.rampPoints = info.rampPoints;
     counts.rampDiffering = info.rampDiffering;
-    counts.cursorChecks = info.cursorChecks;
-    counts.cursorMismatches = info.cursorMismatches;
     counts.rampCheckPending = info.rampCheckPending;
     counts.rampIdentity = info.rampIdentity;
     counts.deviceLosses = info.deviceLosses;
@@ -53,12 +54,17 @@ WindowPresents WindowPresentCounts() {
     return counts;
 }
 
-bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr) {
-    return render::ReadCursorPresent(width, height, bgr);
-}
 bool FrameInWindow(int* width, int* height) {
     render::Rect placed{};
     return render::FrameInWindow(width, height, &placed);
+}
+bool FramePlaced(int* width, int* height) {
+    int fw = 0, fh = 0;
+    render::Rect placed{};
+    if (!render::FrameInWindow(&fw, &fh, &placed)) return false;
+    *width = placed.right - placed.left;
+    *height = placed.bottom - placed.top;
+    return true;
 }
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }

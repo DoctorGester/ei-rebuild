@@ -216,8 +216,6 @@
 //                             back (restored, WM_ACTIVATE click-active), as Windows does it
 //   windowsize <w> <h>        resize the game window (its client area) to <w> x <h>
 //   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
-//   fpscursor 0|1             answer the game's FPSIndependentCursor setting for this run: 1 runs the
-//                             cursor's drawing thread 005E5690, 0 does not (harness_starter.h)
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
@@ -246,21 +244,15 @@
 //                             scenario's "render" step names "removable"). Also fails when the loss
 //                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
 //                             is not removable again
-//   mouseglide <ms> <x0> <y0> <x1> <y1>
-//                             move the harness's mouse (what the game's GetCursorPos reads) from
-//                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
-//                             steps, from a thread of its own: it goes on while the main thread is
-//                             busy (a stall, a movie, a loading screen). No messages are posted
-//   stall <ms>                the main thread does nothing for <ms> real time: one long frame
-//   cursormark                remember how often the cursor thread has presented (render::CursorPresents)
-//   cursorcheck <name>|- <min> [max]
-//                             require the cursor thread to have presented the frame again with the
-//                             cursor moved (the switch-over without DirectDraw, R9c2) at least <min>
-//                             and at most <max> times since "cursormark"; with a name, its last
-//                             present's frame is written to frames\<name>.bmp, the verify build's
-//                             checks of the composed frames must have found no difference, and its
-//                             rectangle must sit at the mouse less the cursor's hot spot (within the
-//                             distance the mouse covers in two steps of the cursor thread)
+//   cursormark                remember the presents' cursor counts (render::CursorState)
+//   cursorcheck <name>|- shown|hidden|held|animated [min]
+//                             the system's cursor (renderer.md section 9) since "cursormark": "shown", at least
+//                             <min> (default 1) presents showed it and it is shown now, not held: the game's image's
+//                             frame at the window's scale (size and hot spot), with opaque and transparent pixels;
+//                             with a name, the last frame with the cursor drawn in at the game's position goes to
+//                             frames\<name>.bmp. "hidden": at least <min> presents hid it (a movie, a loading
+//                             screen). "held": presents held it, and it is held now at the game's position.
+//                             "animated": the shape stepped to another frame of the same picture <min> times
 //   windowtitle               require the game window's title to be "Evil Islands" and its class "EIGAME"
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
 //                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
@@ -1351,7 +1343,6 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
 }
 
 // The image's renderer's present counts.
-image::CursorPresents HarnessCursorPresents() { return image::CursorPresentCounts(); }
 image::WindowPresents HarnessWindowPresents() { return image::WindowPresentCounts(); }
 
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
@@ -1369,94 +1360,101 @@ POINT ToWindow(int x, int y) {
     return POINT{x, y};
 }
 
-// "mouseglide": the harness's mouse moved by a thread of its own (the main thread may be busy). A
-// newer glide ends an older one.
-struct Glide {
-    POINT from, to;
-    DWORD ms;
-    LONG generation;
-};
-volatile LONG g_glideGeneration = 0;
+// "cursormark" / "cursorcheck": the presents' system cursor (R40).
+image::CursorPresents g_cursorMark;
 
-DWORD WINAPI GlideThread(void* parameter) {
-    Glide glide = *static_cast<Glide*>(parameter);
-    delete static_cast<Glide*>(parameter);
-    const DWORD start = GetTickCount();
-    for (;;) {
-        if (g_glideGeneration != glide.generation) return 0;
-        DWORD elapsed = GetTickCount() - start;
-        if (elapsed > glide.ms) elapsed = glide.ms;
-        LONG x = glide.from.x + static_cast<LONG>((static_cast<long long>(glide.to.x - glide.from.x) * elapsed) / glide.ms);
-        LONG y = glide.from.y + static_cast<LONG>((static_cast<long long>(glide.to.y - glide.from.y) * elapsed) / glide.ms);
-        g_mouseX = x;
-        g_mouseY = y;
-        if (elapsed >= glide.ms) return 0;
-        Sleep(10);
+// The last frame with the shown cursor drawn in at the game's cursor position less its hot spot (each frame pixel takes
+// the cursor's pixel under its top left corner, alpha blended) into frames\<name>.bmp.
+std::string WriteCursorFrame(const char* name, const image::CursorState& game) {
+    harnessplatform::ShownCursor cursor;
+    int fw = 0, fh = 0, pw = 0, ph = 0;
+    std::vector<std::uint8_t> bgr;
+    if (!harnessplatform::CursorShown(&cursor) || !image::FramePlaced(&pw, &ph) || !image::ReadFrame(&fw, &fh, &bgr) ||
+        fw <= 0 || fh <= 0)
+        return "cursorcheck: no frame or cursor to write";
+    const int left = game.x - game.hotX, top = game.y - game.hotY;
+    for (int y = (std::max)(0, top); y < fh; ++y) {
+        const int cy = static_cast<int>(static_cast<long long>(y - top) * ph / fh);
+        if (cy >= cursor.height) break;
+        for (int x = (std::max)(0, left); x < fw; ++x) {
+            const int cx = static_cast<int>(static_cast<long long>(x - left) * pw / fw);
+            if (cx >= cursor.width) break;
+            const std::uint8_t* c = &cursor.rgba[(static_cast<std::size_t>(cy) * cursor.width + cx) * 4];
+            std::uint8_t* f = &bgr[(static_cast<std::size_t>(y) * fw + x) * 3];
+            for (int k = 0; k < 3; ++k) f[k] = static_cast<std::uint8_t>((c[2 - k] * c[3] + f[k] * (255 - c[3]) + 127) / 255);
+        }
     }
+    std::string path;
+    if (!capture::WriteFrame(name, fw, fh, bgr, &path)) return std::string("cursorcheck: cannot write ") + name;
+    g_capturedFrames.push_back(path + " (the last frame with the system's cursor drawn in)");
+    return {};
 }
-
-void StartMouseGlide(int ms, int x0, int y0, int x1, int y1) {
-    RECT client = GameClient();
-    LONG w = client.right - client.left, h = client.bottom - client.top;
-    auto* glide = new Glide{ToWindow(x0 * w / 800, y0 * h / 600), ToWindow(x1 * w / 800, y1 * h / 600), static_cast<DWORD>(ms),
-                            InterlockedIncrement(&g_glideGeneration)};
-    Log("harness: mouseglide: window (%ld, %ld) to (%ld, %ld) over %d ms", glide->from.x, glide->from.y, glide->to.x,
-        glide->to.y, ms);
-    if (HANDLE thread = CreateThread(nullptr, 0, &GlideThread, glide, 0, nullptr)) CloseHandle(thread);
-    else delete glide;
-}
-
-// "cursormark" / "cursorcheck": the cursor thread's presents between frames (R9c2). The cursor
-// thread places the cursor where the mouse was at its step before (005E52E0), so the rectangle
-// trails the mouse by up to two of its 41 ms steps.
-std::uint32_t g_cursorMark = 0;
-constexpr int kCursorTrail = 24;   // frame pixels: the scenarios glide at most 0.25 px/ms
 
 std::string CursorCheck(const std::string& argument) {
-    char name[64] = "";
-    unsigned least = 0, most = ~0u;
-    if (sscanf_s(argument.c_str(), "%63s %u %u", name, unsigned(sizeof(name)), &least, &most) < 2)
-        return "cursorcheck needs <name>|- <min> [max]";
-    const image::CursorPresents info = HarnessCursorPresents();
-    std::uint32_t count = info.presents - g_cursorMark;
-    Log("harness: cursorcheck: %u presents by the cursor thread since cursormark (last at %d,%d-%d,%d); %d composed "
-        "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
-        count, info.lastLeft, info.lastTop, info.lastRight, info.lastBottom, info.checks, info.mismatches, info.calls,
-        info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
-    const image::CursorState cursor = HarnessCursor();
-    Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", cursor.mode, cursor.thread ? "running" : "none",
-        cursor.imageShown);
-    char what[240];
-    if (count < least || count > most) {
-        std::snprintf(what, sizeof(what), "cursorcheck: %u presents by the cursor thread, expected %u..%u", count, least, most);
-        return what;
+    char name[64] = "", what[16] = "";
+    unsigned least = 1;
+    if (sscanf_s(argument.c_str(), "%63s %15s %u", name, unsigned(sizeof(name)), what, unsigned(sizeof(what)), &least) < 2)
+        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
+    const image::CursorPresents now = image::CursorPresentCounts();
+    const image::CursorPresents& mark = g_cursorMark;
+    const image::CursorState game = HarnessCursor();
+    harnessplatform::ShownCursor shown;
+    const bool isShown = harnessplatform::CursorShown(&shown);
+    platform::Point heldAt{};
+    const bool isHeld = harnessplatform::CursorHeld(&heldAt);
+    Log("harness: cursorcheck %s: since cursormark %u presents showed the cursor, %u held it, %u hid it; %u frame "
+        "steps, %u shapes made in all (%u failed); shown %s %dx%d (hot spot %d, %d)%s; the game's image %dx%d (%d "
+        "frames, hot spot %d, %d) shown %d, %s at %d, %d",
+        what, now.presentsShown - mark.presentsShown, now.presentsHeld - mark.presentsHeld,
+        now.presentsHidden - mark.presentsHidden, now.frameChanges - mark.frameChanges, now.made, now.failures,
+        isShown ? "yes" : "no", shown.width, shown.height, shown.hotX, shown.hotY, isHeld ? ", held" : "", game.width,
+        game.height, game.frames, game.hotX, game.hotY, game.imageShown, game.held ? "held" : "free", game.x, game.y);
+    char failure[200] = "";
+    const std::string kind = what;
+    if (now.failures) {
+        std::snprintf(failure, sizeof(failure), "cursorcheck: the system could not make %u shapes", now.failures);
+    } else if (kind == "shown") {
+        int fw = 0, fh = 0, pw = 0, ph = 0;
+        image::FrameInWindow(&fw, &fh);
+        image::FramePlaced(&pw, &ph);
+        const int width = fw > 0 ? (std::max)(1, (game.width * pw + fw / 2) / fw) : 0;
+        const int height = fh > 0 ? (std::max)(1, (game.height * ph + fh / 2) / fh) : 0;
+        int opaque = 0, clear = 0;
+        for (std::size_t i = 3; i < shown.rgba.size(); i += 4) {
+            opaque += shown.rgba[i] == 255;
+            clear += shown.rgba[i] == 0;
+        }
+        if (now.presentsShown - mark.presentsShown < least || !isShown || isHeld)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: not shown (or held)");
+        else if (!game.image || game.width <= 0 || game.height <= 0 || shown.width != width || shown.height != height ||
+                 shown.width != now.width || shown.height != now.height)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: %dx%d, expected the image's %dx%d at the window's scale: %dx%d",
+                          shown.width, shown.height, game.width, game.height, width, height);
+        else if (shown.hotX != (std::min)(width - 1, (game.hotX * width + game.width / 2) / game.width) ||
+                 shown.hotY != (std::min)(height - 1, (game.hotY * height + game.height / 2) / game.height))
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: hot spot %d, %d, the image's %d, %d", shown.hotX,
+                          shown.hotY, game.hotX, game.hotY);
+        else if (!opaque || !clear)
+            std::snprintf(failure, sizeof(failure), "cursorcheck shown: %d opaque and %d transparent pixels", opaque, clear);
+        else if (std::strcmp(name, "-") != 0)
+            return WriteCursorFrame(name, game);
+    } else if (kind == "hidden") {
+        if (now.presentsHidden - mark.presentsHidden < least)
+            std::snprintf(failure, sizeof(failure), "cursorcheck hidden: %u presents hid the cursor, expected %u or more",
+                          now.presentsHidden - mark.presentsHidden, least);
+    } else if (kind == "held") {
+        if (now.presentsHeld - mark.presentsHeld < least || !isShown || !isHeld || !game.held || heldAt.x != game.x ||
+            heldAt.y != game.y)
+            std::snprintf(failure, sizeof(failure), "cursorcheck held: held at %d, %d (%s), the game's cursor at %d, %d (%s)",
+                          heldAt.x, heldAt.y, isHeld ? "held" : "not held", game.x, game.y, game.held ? "held" : "free");
+    } else if (kind == "animated") {
+        if (now.frameChanges - mark.frameChanges < least)
+            std::snprintf(failure, sizeof(failure), "cursorcheck animated: %u frame steps, expected %u or more",
+                          now.frameChanges - mark.frameChanges, least);
+    } else {
+        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
     }
-    if (info.mismatches) {
-        std::snprintf(what, sizeof(what), "cursorcheck: %d of %d frames composed by the cursor thread differ", info.mismatches,
-                      info.checks);
-        return what;
-    }
-    if (std::strcmp(name, "-") == 0 || count == 0) return {};
-    if (info.checks == 0) return "cursorcheck: the cursor thread's frames were not checked";
-    int width = 0, height = 0;
-    std::vector<std::uint8_t> bgr;
-    std::string path;
-    if (!image::ReadCursorPresent(&width, &height, &bgr) ||
-        !capture::WriteFrame(name, width, height, bgr, &path))
-        return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
-    g_capturedFrames.push_back(path + " (the cursor thread's last present)");
-    if (!cursor.image) return "cursorcheck: the cursor has no image";
-    int fx = g_mouseX, fy = g_mouseY;
-    image::WindowToFrame(&fx, &fy);
-    int dx = info.lastLeft - (fx - cursor.hotX), dy = info.lastTop - (fy - cursor.hotY);
-    Log("harness: cursorcheck: %s; the mouse at frame (%d, %d), hot spot (%d, %d), the cursor %d, %d from mouse less hot spot",
-        path.c_str(), fx, fy, cursor.hotX, cursor.hotY, dx, dy);
-    if (dx < -kCursorTrail || dx > kCursorTrail || dy < -kCursorTrail || dy > kCursorTrail) {
-        std::snprintf(what, sizeof(what), "cursorcheck: the cursor at %d,%d is %d, %d from the mouse (%d, %d) less its hot spot (%d, %d)",
-                      info.lastLeft, info.lastTop, dx, dy, fx, fy, cursor.hotX, cursor.hotY);
-        return what;
-    }
-    return {};
+    return failure;
 }
 
 // "windowtitle": the game window's title is "Evil Islands" and its class "EIGAME" (the strings game.exe's table held,
@@ -3171,20 +3169,9 @@ void RunSteps() {
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
             g_waitingNewDevice = true;
             return;
-        } else if (s.verb == "mouseglide") {
-            int ms = 0, x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-            if (sscanf_s(s.argument.c_str(), "%d %d %d %d %d", &ms, &x0, &y0, &x1, &y1) != 5 || ms <= 0) {
-                g_failures.push_back("mouseglide needs <ms> <x0> <y0> <x1> <y1>");
-                continue;
-            }
-            StartMouseGlide(ms, x0, y0, x1, y1);
-        } else if (s.verb == "stall") {
-            DWORD ms = std::strtoul(s.argument.c_str(), nullptr, 10);
-            Sleep(ms);   // the harness's own Sleep: real time, the game's clocks are not touched
-            Log("harness: stall: the main thread was away for %lu ms", ms);
         } else if (s.verb == "cursormark") {
-            g_cursorMark = HarnessCursorPresents().presents;
-            Log("harness: cursormark: %u presents by the cursor thread so far", g_cursorMark);
+            g_cursorMark = image::CursorPresentCounts();
+            Log("harness: cursormark");
         } else if (s.verb == "cursorcheck") {
             std::string error = CursorCheck(s.argument);
             if (!error.empty()) {

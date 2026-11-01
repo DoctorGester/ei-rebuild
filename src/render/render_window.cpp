@@ -1,8 +1,7 @@
 // The game window's present (render::StartPresenting): the frame is drawn into the window's drawable (a flip-model
 // swap chain on Windows, platform/graphics.h), its aspect kept (centred, black bars when the window's client area has
 // another shape), through the display's gamma ramp (the options' brightness / contrast / gamma, SetGammaRamp's table)
-// as a shader step, with the software cursor drawn over it by the same shader (the frame stays without it, for the
-// cursor thread's presents), and presented with the vertical blank. Also where the frame sits in the window, for the
+// as a shader step, and presented with the vertical blank. Also where the frame sits in the window, for the
 // game's mouse coordinates (WindowToFrame / FrameToWindow). docs/notes/renderer.md, section 9.
 #include "render.h"
 #include "render_internal.h"
@@ -14,8 +13,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
 
 namespace render {
 
@@ -49,13 +46,12 @@ struct Ramp {
 };
 Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
 std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
-std::uint8_t g_uploaded[256 * 4];   // the ramp in the lookup texture (the cursor thread's checks read it)
 bool g_rampDirty = true;     // to be uploaded before the next present
 bool g_rampIdentity = true;
+std::uint32_t g_rampChanges = 0;   // SetGammaRamp's calls (the cursor's shapes are made through the ramp)
 long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
 bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
 WindowPresentInfo g_info;
-Rect g_lastCursor{0, 0, 0, 0};   // verify build: where the last present drew the cursor (the ramp check leaves it out)
 
 bool CreatePipeline() {
     g_shader = sg_make_shader(present_shader_desc(sg_query_backend()));
@@ -116,8 +112,6 @@ void CheckRamp(int width, int height) {
     int points = 0, differing = 0;
     for (int y = height / 34; y < height; y += height / 17 + 1) {
         for (int x = width / 34; x < width; x += width / 17 + 1) {
-            if (x >= g_lastCursor.left - 1 && x < g_lastCursor.right + 1 && y >= g_lastCursor.top - 1 && y < g_lastCursor.bottom + 1)
-                continue;   // the cursor is over the frame only in the drawable
             const std::uint8_t* b = g_backCopy.Row(y) + x * 4;
             const std::uint8_t* f = g_frameCopy.Row(y) + x * 4;
             // drawable B, G, R; frame R, G, B
@@ -139,45 +133,13 @@ void CheckRamp(int width, int height) {
     else ei::Log("render: gamma ramp check: %d points of the presented frame match the ramp", points);
 }
 
-// Verify build: the cursor the present just drew (g_lastCursor), checked in the drawable: its pixels must differ from
-// the frame's somewhere (the cursor is not in the frame), for the sampled presents (one to one placement only).
-void CheckCursorDrawn(int width, int height) {
-    static long presents = 0;
-    static int logged = 0;
-    const Rect& c = g_lastCursor;
-    if (c.right <= c.left || c.bottom <= c.top || c.left < 0 || c.top < 0 || c.right > width || c.bottom > height) return;
-    if (!ReadBackDue(presents++)) return;
-    int fw = 0, fh = 0;
-    if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
-    const platform::Rect region{c.left, c.top, c.right, c.bottom};
-    if (!g_backCopy.ReadDrawable(region) || !g_frameCopy.Read(FrameImage(), region)) return;
-    int differing = 0, total = (c.right - c.left) * (c.bottom - c.top);
-    for (int y = 0; y < c.bottom - c.top; ++y) {
-        const std::uint8_t* b = g_backCopy.Row(y);
-        const std::uint8_t* f = g_frameCopy.Row(y);
-        for (int x = 0; x < c.right - c.left; ++x) {
-            // drawable B, G, R; frame R, G, B, through the ramp
-            if (std::abs(static_cast<int>(b[x * 4]) - g_uploaded[f[x * 4 + 2] * 4 + 2]) > 1 ||
-                std::abs(static_cast<int>(b[x * 4 + 1]) - g_uploaded[f[x * 4 + 1] * 4 + 1]) > 1 ||
-                std::abs(static_cast<int>(b[x * 4 + 2]) - g_uploaded[f[x * 4] * 4]) > 1)
-                ++differing;
-        }
-    }
-    ++g_info.cursorChecks;
-    if (differing == 0) {
-        ++g_info.cursorMismatches;
-        ei::Log("render: MISMATCH cursor in the presented frame: none of the %d pixels of its rectangle differ from the frame", total);
-    } else if (logged++ < 3) {
-        ei::Log("render: cursor in the presented frame: %d of %d pixels of its rectangle differ from the frame", differing, total);
-    }
-}
 #endif
 
 } // namespace
 
 namespace detail {
 
-bool DrawToWindow(const BlitBatch* cursor) {
+bool DrawToWindow() {
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
@@ -198,7 +160,6 @@ bool DrawToWindow(const BlitBatch* cursor) {
         sg_image_data data{};
         data.mip_levels[0] = sg_range{g_ramp, sizeof(g_ramp)};
         sg_update_image(g_rampImage, &data);
-        std::memcpy(g_uploaded, g_ramp, sizeof(g_uploaded));
         g_rampDirty = false;
     }
     sg_pass pass{};
@@ -209,37 +170,15 @@ bool DrawToWindow(const BlitBatch* cursor) {
     sg_begin_pass(&pass);
     platform::graphics::ApplyViewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top);
     sg_apply_pipeline(g_pipeline);
-    // The cursor texture's slot holds the ramp's when there is no cursor (the rectangle is empty then).
-    cursor_params_t cp{};
-    sg_view cursorView = g_rampView;
-    g_lastCursor = Rect{0, 0, 0, 0};
-    if (cursor && cursor->texture.id) {
-        const Rect& to = cursor->destination;
-        int dw = to.right - to.left, dh = to.bottom - to.top;
-        int sw = cursor->source.right - cursor->source.left, sh = cursor->source.bottom - cursor->source.top;
-        if (dw > 0 && dh > 0 && sw > 0 && sh > 0) {
-            cursorView = cursor->texture;
-            cp = cursor_params_t{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
-                                  static_cast<float>(to.bottom)},
-                                 {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
-                                  static_cast<float>(sw) / static_cast<float>(dw),
-                                  static_cast<float>(sh) / static_cast<float>(dh)},
-                                 {static_cast<float>(sw), static_cast<float>(sh),
-                                  static_cast<float>(cursor->source.left), static_cast<float>(cursor->source.top)}};
-            g_lastCursor = to;
-        }
-    }
     sg_bindings b{};
     b.views[0] = FrameTexture();
     b.views[1] = g_rampView;
-    b.views[2] = cursorView;
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
     const present_params_t whole{{0.0f, 0.0f, 1.0f, 1.0f}};
     sg_apply_uniforms(UB_present_params, SG_RANGE(whole));
-    sg_apply_uniforms(UB_cursor_params, SG_RANGE(cp));
     sg_draw(0, 3, 1);
-    perf::Draw(clientWidth, clientHeight, placed);   // over the frame and the cursor, off unless switched on
+    perf::Draw(clientWidth, clientHeight, placed);   // over the frame, off unless switched on
     sg_end_pass();
     return true;
 }
@@ -247,22 +186,14 @@ bool DrawToWindow(const BlitBatch* cursor) {
 bool PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp) CheckRamp(g_drawableWidth, g_drawableHeight);
-    CheckCursorDrawn(g_drawableWidth, g_drawableHeight);
 #endif
     if (!platform::graphics::EndDrawable()) return false;
     ++g_info.presents;
     return true;
 }
 
-bool CurrentWindowParts(WindowParts* parts) {
-    if (!g_drawableWidth || !g_pipeline.id || !g_rampView.id) return false;
-    int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
-    Rect placed{};
-    if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
-    *parts = WindowParts{g_shader,         g_pipeline,      FrameTexture(), g_rampView,  g_uploaded,
-                         g_drawableWidth, g_drawableHeight, frameWidth,     frameHeight, placed};
-    return true;
-}
+const std::uint8_t* GammaRamp() { return g_ramp; }
+std::uint32_t GammaRampChanges() { return g_rampChanges; }
 
 void DropWindow() {
     if (g_rampView.id) sg_destroy_view(g_rampView);
@@ -320,6 +251,7 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
                 g_ramp[257], g_ramp[258], g_ramp[512], g_ramp[513], g_ramp[514]);
     g_rampIdentity = identity;
     g_rampDirty = true;
+    ++g_rampChanges;
 #if defined(EI_RENDER_VALIDATION)
     // Reading the presented frame back stalls on the GPU: sampled (ReadBackDue).
     g_checkRamp = detail::ReadBackDue(g_rampsSet);

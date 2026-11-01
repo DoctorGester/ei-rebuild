@@ -3,6 +3,7 @@
 #include "platform/platform.h"
 
 #include <cstdint>
+#include <vector>
 
 // The harness's own platform backend on SDL (harness_platform.cpp): what the harness's builds take in place of the
 // game's (src/platform/sdl/platform_sdl.cpp). A harness game takes no real input and shows no box: its window is never
@@ -18,6 +19,14 @@ void AddMotion(int dx, int dy);
 void Activate(bool active);
 // The system's keyboard and mouse events the backend dropped (for the report).
 unsigned RealInputLeftOut();
+// The cursor shown over the window (MakeCursor's pixels, R, G, B, A rows from the top) and where HoldCursor holds it;
+// false when none is shown / it is not held.
+struct ShownCursor {
+    int width = 0, height = 0, hotX = 0, hotY = 0;
+    std::vector<std::uint8_t> rgba;
+};
+bool CursorShown(ShownCursor* cursor);
+bool CursorHeld(platform::Point* at);
 
 // What the backend asks of the harness (harness.cpp): before the game looks for events (EventWaits, TakeEvent), the
 // frame count and the steps, false while the harness holds the events for a pass (the close-all); the character a key

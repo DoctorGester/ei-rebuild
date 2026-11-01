@@ -1,6 +1,6 @@
 #pragma once
 
-// The software mouse cursor (docs/notes/ui.md, "Cursor").
+// The mouse cursor (docs/notes/ui.md, "Cursor"): the game's pictures, shown as the system's cursor.
 
 #include <cstddef>
 
@@ -9,7 +9,6 @@
 #include "platform/platform.h"
 
 #include <cstdint>
-#include <mutex>
 #include <vector>
 
 class TextureDevice;
@@ -18,8 +17,6 @@ class TextureDevice;
 inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
 inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
-
-unsigned CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class DirectInputMouse final {
@@ -75,19 +72,15 @@ public:
     Cursor(const Cursor&) = delete;
     Cursor& operator=(const Cursor&) = delete;
 
-    // Unless no shape is selected yet or the cursor is not enabled (-1): under the lock, shape `shape` and
-    // its image become current with the image's current frame as `from`; returns the previous shape.
+    // Unless no shape is selected yet or the cursor is not enabled (-1): shape `shape` and its image become
+    // current with the image's current frame as `from`; returns the previous shape.
     int SetShape(int shape);
     void ShowImage(bool shown);
     void SetHeld(bool held);
-    void TakeLock();
-    void ReleaseLock();
-    // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread started
-    // (platform::Thread at priority 2).
+    // Shape 0 (its image and frame).
     void Start();
-    // Ends the drawing thread (stop, then waits for `stopped`), closes the event, releases and frees every
-    // shape and empties the list, releases the surfaces and the device and resets the fields (not enabled,
-    // shape -1, mode 0).
+    // Releases and frees every shape and empties the list, releases the device and resets the fields (not
+    // enabled, shape -1).
     void Shutdown();
     // Steps the image's frame every 125 ms, adds the DirectInput motion to motion, takes the mouse position
     // (or heldPosition while held) clamped into the bounds, places rect at the previous position less the
@@ -95,19 +88,17 @@ public:
     // position. Returns whether the frame stepped or the position changed.
     bool UpdatePosition();
 
-    // Sets the cursor up on `device` (a reference taken, the old one's dropped) in `mode` with `mouse`;
-    // `smallCursors` picks 16-pixel cursors instead of 32. Makes the end event and the bounds (the screen's size).
-    void Init(TextureDevice* device, int mode, DirectInputMouse* mouse, bool smallCursors);
+    // Sets the cursor up on `device` (a reference taken, the old one's dropped) with `mouse`; `smallCursors`
+    // picks 16-pixel cursors instead of 32. Takes the bounds (the screen's size).
+    void Init(TextureDevice* device, DirectInputMouse* mouse, bool smallCursors);
     void AddShape(const char* name, int hotX, int hotY);
 
-    int mode = 0;                    // 2: the background is saved from the primary without an image
     TextureDevice* device = nullptr;    // referenced
     DirectInputMouse* mouse = nullptr;    // polled for the motion
     bool imageShown = false;         // an image is shown
     CursorImage* image = nullptr;
     std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
     int shape = 0;                   // the shape SetShape selected
-    platform::Signal stopped;         // set when the cursor thread ends
     Rect drawn = {};                 // the rectangle drawn last
     Rect rect = {};                  // the cursor's screen rectangle
     Rect from = {};                  // the part of the image shown
@@ -119,14 +110,11 @@ public:
     bool held = false;               // the cursor stays at heldPosition
     bool enabled = false;            // the cursor exists (created)
     std::uint32_t frameTime = 0;             // when the image's frame last stepped
-    platform::Thread thread;         // the drawing thread, when started
-    int stop = 0;                    // asks the cursor thread to end
-    std::recursive_mutex lock;
 };
-// The software cursor drawn into the render target before the present.
+// The frame's cursor handed to the renderer before the present, which shows it as the system's.
 void CursorDrawFrame(Cursor* self);
 
 extern Cursor g_cursor;
 
-void SetUpCursors(bool modeTwo, DirectInputMouse* context, int smallCursors);
-void ResetCursors(bool modeTwo, DirectInputMouse* context, int smallCursors);
+void SetUpCursors(DirectInputMouse* context, int smallCursors);
+void ResetCursors(DirectInputMouse* context, int smallCursors);

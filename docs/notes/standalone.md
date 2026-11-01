@@ -876,7 +876,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   writes it at the settings' first use (`settings::Pin`'s prepare, once the start-up has set the Rebirth flags) from
   config/harness/registry.reg: the option tree game.exe reads on the run's install (the original's, or Rebirth's when
   `starter::RebirthInstall`), each key as its section, and Rebirth's switches, with the scenario's starter lines
-  (resolution, widescreen, fullscreen, fpscursor, music, addonpath, CtfMon) in place; read only (the game's writes
+  (resolution, widescreen, fullscreen, music, addonpath, CtfMon) in place; read only (the game's writes
   are dropped, as the registry's were), a read of a value the file lacks fails the run unless the snapshot marks it
   absent (`"name"=-`). So a standalone run never depends on the machine's registry, and its folder shows the
   settings it played with. The advapi32 hooks stay for anything else that reads the registry.

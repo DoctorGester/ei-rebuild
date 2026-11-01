@@ -50,8 +50,6 @@ exact spelling first). Arguments for the game follow `--`.
 
 ## What differs from Windows
 
-- The cursor is not drawn again between frames during a long load: the GL context is the main thread's
-  (`KeepPresent` refuses).
 - No lost context is looked for (it needs a robust context).
 - The keys: SDL's scancodes through sdl_keys.cpp's US rules; no layout's own key codes or control characters
   (`LayoutKey` / `LayoutControlCharacter`), and the key names are SDL's English ones.
