@@ -40,7 +40,7 @@ std::string GameFolder() {
 int main(int argc, char** argv) {
     // Under ei_launch stdout is a pipe: unbuffered, so a run that ends abruptly loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
-    for (int i = 1; i < argc && std::strcmp(argv[i], "--") != 0; ++i) {
+    if (argc > 1 && std::strcmp(argv[1], "--") != 0) {
         std::fprintf(stderr, "usage: ei-rebuild [-- <game arguments>]\n");
         return 2;
     }
