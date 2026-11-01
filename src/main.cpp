@@ -52,6 +52,8 @@ int main(int argc, char** argv) {
         g_gameRoot = folder + "\\";
         settings::AddReadFilter(&RedirectGamePath);
     }
+    const std::string settingsFile = platform::EnvironmentVariable("EI_SETTINGS_PATH");
+    if (!settingsFile.empty()) settings::Pin(settingsFile.c_str(), nullptr, false);
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
     ei::rebirth_hook::Load(folder);

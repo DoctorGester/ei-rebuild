@@ -7,7 +7,9 @@
 # "cursorcheck" reads the shape the harness's platform backend was given (harness_platform.cpp): "shown" checks its
 # size and hot spot against the game's image at the window's scale and, with a name, writes the last frame with the
 # cursor drawn in; "hidden", "held" and "animated" count the presents since "cursormark". "windowtitle" checks the
-# window's title ("Evil Islands") and class name ("EIGAME").
+# window's title ("Evil Islands") and class name ("EIGAME"). "cursormark" also keeps the shapes shown from then on while the gamma
+# ramp is the identity (the picture has 24 frames); "cursorcheck - gamma" checks that the shape shown now is one of them
+# through the gamma ramp the present applies.
 render checkall
 resolution 800x600
 fullscreen 0
@@ -22,6 +24,26 @@ frames 10
 cursormark
 frames 5
 cursorcheck menu shown 5
+
+# The gamma ramp reaches the shape: the options' gamma slider held (as render_present_window does) changes the ramp, the
+# shape is made again through it; Cancel puts the old value back and the shape returns to the marked one.
+cursormark
+frames 100
+clickregion 3
+waitwindow 10 options
+ldown 674 456
+wait 600
+lup 674 456
+waitpresent 10 gamma
+move 400 20
+frames 10
+cursorcheck - gamma
+clickregion 1
+waitwindow 10 menu
+move 400 300
+waitpresent 10
+frames 10
+cursorcheck - gamma
 
 # A larger window (1600x900: the frame at 1200x900): the shape made again at one and a half times the size.
 windowsize 1600 900

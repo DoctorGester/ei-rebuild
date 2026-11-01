@@ -26,6 +26,9 @@ struct ShownCursor {
     std::vector<std::uint8_t> rgba;
 };
 bool CursorShown(ShownCursor* cursor);
+// The shapes SetCursor was given while the harness asked for them (CollectCursors), each once; ForgetSeenCursors starts anew.
+const std::vector<ShownCursor>& SeenCursors();
+void ForgetSeenCursors();
 bool CursorHeld(platform::Point* at);
 
 // What the backend asks of the harness (harness.cpp): before the game looks for events (EventWaits, TakeEvent), the
@@ -33,6 +36,8 @@ bool CursorHeld(platform::Point* at);
 // press types (the US layout, no key held; 0: none), queued when NextEvent hands the press out, as TranslateMessage
 // posted it; a message box's answer.
 bool BeforeEvents();
+// Whether SetCursor keeps the shape it is given (SeenCursors).
+bool CollectCursors();
 int TypedCharacter(int key);
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
 // The harness's clocks, sleep and date (its virtual or held clocks, its fixed date) and its mouse's position on the

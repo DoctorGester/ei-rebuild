@@ -24,7 +24,6 @@ GameOptions::GameOptions() {
     filtering = 1;
     shadowLightingFreq = 10000;
     floraSpecialLight = 0;
-    fpsIndependentCursor = 1;
     brightness = 0.0f;
     contrast = 0.0f;
     gamma = 0.0f;

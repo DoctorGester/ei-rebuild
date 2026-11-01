@@ -63,7 +63,6 @@ public:
     int textureQuality;              // TextureQuality
     int mipmapping;                  // Mipmapping (cleared when the driver has no mipmaps)
     int filtering;                   // Filtering: 0 point, 1 / 2 linear
-    int fpsIndependentCursor;
     float brightness;
     float contrast;
     float gamma;

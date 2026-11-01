@@ -723,12 +723,13 @@ every graphics backend):
   itself (CGAssociateMouseAndMouseCursorPosition), which is the hold.
 
 Harness: the harness's platform backend makes the same SDL cursors on its window (seen only while the real mouse is
-over it) and keeps each shape's pixels; `cursormark`, `cursorcheck <name>|- shown|hidden|held|animated [min]`
+over it) and keeps each shape's pixels; `cursormark`, `cursorcheck <name>|- shown|hidden|held|animated|gamma [min]`
 (harness.cpp's header) check them against the game's image at the window's scale and count the presents that showed,
 held or hid it and the frame steps; with a name the last frame is written with the cursor drawn in at the game's
 position. Scenario `render_cursor_present` (vanilla and Rebirth): the main menu one to one and in a 1600x900 window,
 hidden during a new game's loading screens and a movie, held during a right-button turn, the scroll cursor's frames at
-the window's edge.
+the window's edge, and the gamma slider's ramp reaching the shape (`gamma`: the shape shown is the marked one through
+the ramp, and again the marked one after Cancel).
 
 ### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 

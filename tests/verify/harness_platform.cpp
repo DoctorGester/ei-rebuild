@@ -32,6 +32,7 @@ struct Cursor {
     ShownCursor picture;
 };
 Cursor* g_cursor = nullptr;   // shown
+std::vector<ShownCursor> g_seen;
 bool g_holding = false;
 platform::Point g_held{};
 platform::PointMap g_toGame = nullptr;
@@ -102,6 +103,9 @@ bool CursorShown(ShownCursor* cursor) {
     *cursor = g_cursor->picture;
     return true;
 }
+
+const std::vector<ShownCursor>& SeenCursors() { return g_seen; }
+void ForgetSeenCursors() { g_seen.clear(); }
 
 bool CursorHeld(platform::Point* at) {
     if (!g_holding) return false;
@@ -295,6 +299,14 @@ void SetCursor(CursorShape shape) {
     if (!hp::g_cursor) {
         SDL_HideCursor();
         return;
+    }
+    if (hp::CollectCursors()) {
+        const hp::ShownCursor& picture = hp::g_cursor->picture;
+        bool known = false;
+        for (const hp::ShownCursor& seen : hp::SeenCursors())
+            known = known || (seen.width == picture.width && seen.height == picture.height && seen.hotX == picture.hotX &&
+                              seen.hotY == picture.hotY && seen.rgba == picture.rgba);
+        if (!known) hp::g_seen.push_back(picture);
     }
     SDL_SetCursor(hp::g_cursor->sdl);
     SDL_ShowCursor();
