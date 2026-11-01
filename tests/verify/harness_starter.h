@@ -9,8 +9,6 @@
 //   widescreen 0|1                 the starter's Settings\WideScreen (addon.dll's switch, and the
 //                                  rebuild's for its WideScreen flag)
 //   fullscreen 0|1                 the game's FullScreen
-//   fpscursor 0|1                  the game's FPSIndependentCursor (options +0x80: on, the cursor runs in
-//                                  mode 2 with its drawing thread 005E5690; off, mode 1 without one)
 //   music <volume>                 the game's AudioStreaming (the streamed music's volume, 0..100); 0: no
 //                                  streamed music. The stream thread plays in real time, and the music
 //                                  system's random draws follow the track it reports (SV5d5: a fight's
@@ -37,7 +35,7 @@ namespace ei::verify::starter {
 // DWORD answer); false when the run leaves it to the snapshot.
 bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size, unsigned long* dword);
 
-// Consumes a "resolution", "widescreen", "fullscreen", "fpscursor", "music" or "addonpath" scenario line; false for any
+// Consumes a "resolution", "widescreen", "fullscreen", "music" or "addonpath" scenario line; false for any
 // other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 

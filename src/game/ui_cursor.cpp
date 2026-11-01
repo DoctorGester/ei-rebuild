@@ -1,7 +1,6 @@
 // The cursor images' constructor (the cursor object, see docs/notes/ui.md, "Cursor"), which builds each image's mask
 // from its picture's pixels in the .mmp file (the holder has no memory). (The software cursor's blit, which combined
-// image, mask and background through Locks of the holders' surfaces, has no caller of ours since: the new renderer
-// draws the cursor, ui_cursor.cpp.)
+// image, mask and background through Locks of the holders' surfaces, is gone: the cursor is the system's.)
 #include "ui_cursor.h"
 
 #include "game_singletons.h"
@@ -65,94 +64,49 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
 
 // --- Frame -------------------------------------------------------------------------------------------
 
-// The software mouse cursor in the frame: the image and its mask for the cursor's rectangle go to the new renderer
-// (render::Cursor), which draws it in every frame it presents; the cursor thread moves it between frames by presenting
-// the last frame again (render::CursorBetweenFrames), not while the image is hidden. The DirectDraw background saves
-// and composition are left out. See docs/notes/ui.md, "Cursor", and docs/notes/renderer.md.
+// The cursor in the frame: the image's current frame with its mask and hot spot goes to the renderer (render::Cursor),
+// whose present shows it as the system's cursor (held still while the game holds it); a frame that hands none over
+// (a movie, a loading screen, the image hidden) hides it. The original's cursor thread, which redrew the cursor on
+// the primary between frames, and the DirectDraw background saves are gone: the system moves the cursor. See
+// docs/notes/ui.md, "Cursor", and docs/notes/renderer.md section 9.
 
 namespace {
-
-constexpr std::uint32_t kThreadPeriod = 41;                  // ms between the thread's redraws
 
 // The renderer object; its flags' bit 0 is the software cursor display option.
 bool SoftwareCursor() { return (g_sceneRenderer.flags & 1) != 0; }
 
-render::Rect ToRender(const Rect& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
-
-// The cursor thread's step: under the cursor's lock, the position updated and,
-// when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
-// with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
-// frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
-void MoveBetweenFrames(Cursor* self) {
-    self->lock.lock();
-    const bool moved = self->UpdatePosition();
-    if (self->imageShown && moved) {
-        CursorImage* image = self->image;
-        render::CursorBetweenFrames(image->holder, image->saved.data(), ToRender(self->from), ToRender(self->rect));
-        self->drawn = self->rect;
-    }
-    self->lock.unlock();
-}
-
 } // namespace
 
-// (Without an image shown, DirectDraw saves the background from the primary in mode 2: nothing here.)
 void CursorDrawFrame(Cursor* self) {
     if (!SoftwareCursor()) return;
     if (!self->enabled) return;
     self->UpdatePosition();
-    Rect* rect = &self->rect;
-    if (rect->left >= rect->right || rect->top >= rect->bottom) return;
     if (!self->imageShown) return;
-    CursorImage* image = self->image;
-    render::Cursor(image->holder, image->saved.data(), ToRender(self->from), ToRender(*rect));
-    self->drawn = *rect;
-}
-
-// Takes the cursor's place once, then until `stop` is set: every 41 ms, with the software cursor on, one
-// MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's background
-// restored, the new one's saved and the composed cursor blitted to the primary, after the vertical blank). At
-// the end the event `stopped` is set.
-void CursorThread(Cursor* self) {
-    if (!self->enabled) return;
-    self->lock.lock();
-    self->UpdatePosition();
+    const CursorImage* image = self->image;
+    render::FrameCursor frame;
+    frame.imageHolder = image->holder;
+    frame.mask = image->saved.data();
+    frame.from = render::Rect{image->frame * image->width, 0, (image->frame + 1) * image->width, image->height};
+    frame.hotX = image->hotX;
+    frame.hotY = image->hotY;
+    frame.held = self->held;
+    frame.heldX = self->position.x;
+    frame.heldY = self->position.y;
+    render::Cursor(frame);
     self->drawn = self->rect;
-    self->lock.unlock();
-    std::uint32_t last = platform::Milliseconds();
-    while (!self->stop) {
-        std::uint32_t now = platform::Milliseconds();
-        if (now - last < kThreadPeriod) {
-            platform::Sleep(kThreadPeriod - (now - last));
-            continue;
-        }
-        last = now;
-        if (!SoftwareCursor()) continue;
-        MoveBetweenFrames(self);
-    }
-    self->stopped.Set();
-}
-
-// The procedure platform::Thread starts (the cursor as its parameter): CursorThread, then exit code 0.
-unsigned CursorThreadEntry(void* cursor) {
-    CursorThread(static_cast<Cursor*>(cursor));
-    return 0;
 }
 
 // --- Setup -------------------------------------------------------------------------------------------
 
-// The software cursor (Cursor, ui_cursor.h): its set-up Init AddShape (called
-// by the cursor set-up, cursor_setup.cpp, at start and after a display reset), its life
-// cycle, shape and lock and the position update the drawing thread runs. See docs/notes/ui.md, section 3.
+// The cursor (Cursor, ui_cursor.h): its set-up Init AddShape (called by the cursor set-up, cursor_setup.cpp, at
+// start and after a display reset), its life cycle, shape and the position update each frame runs. See
+// docs/notes/ui.md, section 3.
 
 namespace {
 
 constexpr std::int32_t kLargeSize = 0x20;
 constexpr std::int32_t kSmallSize = 0x10;
 
-constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
-constexpr int kModeNoThread = 1;
-constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
 constexpr std::uint32_t kFramePeriod = 125;         // ms per frame of an animated cursor
 
 // `rect` cut to `bounds`; all zero when they do not meet.
@@ -182,7 +136,7 @@ void ShowFrame(Cursor* cursor) {
 
 } // namespace
 
-void Cursor::Init(TextureDevice* newDevice, int newMode, DirectInputMouse* newMouse, bool smallCursors) {
+void Cursor::Init(TextureDevice* newDevice, DirectInputMouse* newMouse, bool smallCursors) {
     const std::int32_t size = smallCursors ? kSmallSize : kLargeSize;
     g_cursorWidth = size;
     g_cursorHeight = size;
@@ -192,13 +146,9 @@ void Cursor::Init(TextureDevice* newDevice, int newMode, DirectInputMouse* newMo
     motion.y = 0;
     image = nullptr;
     imageSpare = 0;
-    thread.Close();
     shape = -1;
     imageShown = true;
     enabled = true;
-    mode = 0;
-    stopped.Create();
-    mode = newMode;
     mouse = newMouse;
     TextureDevice* old = device;
     device = newDevice;
@@ -222,62 +172,36 @@ Cursor::~Cursor() {
     if (device) device->Release();
 }
 
-// The software cursor.
+// The cursor.
 Cursor g_cursor;
 
 int Cursor::SetShape(int newShape) {
     const int previous = shape;
     if (previous == -1 || !enabled) return -1;
-    lock.lock();
     shape = newShape;
     image = images[newShape];
     ShowFrame(this);
-    lock.unlock();
     return previous;
 }
 
 void Cursor::ShowImage(bool shown) {
     if (!enabled) return;
-    lock.lock();
     imageShown = shown;
-    lock.unlock();
 }
 
 void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
-    lock.lock();
     held = newHeld;
-    lock.unlock();
-}
-
-void Cursor::TakeLock() {
-    if (enabled && mode == kModeLocked) lock.lock();
-}
-
-void Cursor::ReleaseLock() {
-    if (enabled && mode == kModeLocked) lock.unlock();
 }
 
 void Cursor::Start() {
     shape = 0;
     if (!enabled) return;
-    lock.lock();
-    shape = 0;
     image = images[0];
     ShowFrame(this);
-    lock.unlock();
-    if (!enabled || mode == kModeNoThread) return;
-    stop = 0;
-    thread.Start(CursorThreadEntry, this, kThreadPriority);
 }
 
 void Cursor::Shutdown() {
-    if (thread.Started()) {
-        stop = 1;
-        stopped.Wait();
-        thread.Close();
-    }
-    stopped.Close();
     for (int i = 0; i < std::ssize(images); ++i) {
         ReleaseHolder(images[i]->holder);
         delete images[i];
@@ -292,9 +216,7 @@ void Cursor::Shutdown() {
     motion.y = 0;
     image = nullptr;
     imageSpare = 0;
-    thread.Close();
     shape = -1;
-    mode = 0;
     enabled = false;
 }
 

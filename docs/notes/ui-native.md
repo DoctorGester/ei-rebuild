@@ -28,7 +28,7 @@ The frame order is this. `Interface3D::Draw` 005F5220 (inside BeginScene..EndSce
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh.cpp` | every panel | GPU meshes |
 | 3D previews and models | `UiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
 | Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `ScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
-| Cursor | 005E54A0 → `render::Cursor`; between frames `render_cursor.cpp` (renderer.md, R9c2) | — | drawn by the present |
+| Cursor | 005E54A0 → `render::Cursor` (`render_cursor.cpp`, renderer.md R40) | — | the system's cursor |
 | Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw of the CPU-decoded frame |
 | Textures written by the interface | `CopyImage` 005FFFB0 (portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, the save / load pictures, the global-map clouds (`GlobalMapClouds::Draw`: noise and blend in shaders) | — | GPU (R28, R28b) |
 
@@ -148,8 +148,7 @@ facts follow.
   src, keyed, key)` records `Command::Canvas`; it draws like the window blit, with the key compared on the stored colour.
 - **Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes (hoisting). A command on a
   canvas whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn: the blit shows the old contents).
-  `CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame. `RunCanvasesNow` takes the
-  present's lock (the cursor thread).
+  `CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame.
 - **GDI rules measured** (Windows 10; `ei_ui_check` holds them): 16-bit DIBs truncate 8-bit colours (no rounding, no dithering)
   for fills, pens and SetPixel. FrameRect draws a 1-px border inside the rectangle, and odd shapes for an empty one (not
   modelled; the game never passes one). A 1-px pen leaves out the end point. A 2-px pen (round ends) draws both end points.

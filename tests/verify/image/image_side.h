@@ -65,11 +65,12 @@ void SetMasterHost(const char* host);
 void SetWaterWaves(bool on);
 
 struct CursorState {
-    int mode = 0;
-    bool thread = false;   // the cursor's thread runs
     int imageShown = 0;
-    bool image = false;    // it has an image, with this hot spot
+    bool image = false;    // it has an image: a frame's size, its frames, the hot spot
+    int width = 0, height = 0, frames = 0;
     int hotX = 0, hotY = 0;
+    bool held = false;     // the cursor held at its position (game points)
+    int x = 0, y = 0;
 };
 CursorState Cursor();
 
@@ -146,22 +147,19 @@ int ServerUpdate(void* server);                 // WorldServer::Update
 int ClientSegment(void* client);                // WorldClient::Segment
 void CameraUpdate(void* camera, float seconds); // Camera::Update
 void FrameStep(bool draw, bool cursor);         // app::FrameStep
-void CursorLock(void* cursor);                  // Cursor::TakeLock
 
 // ---- the image's renderer (harness.cpp, harness_capture.cpp; image/harness_render_image.cpp)
 
-// render::CursorPresentInfo and render::WindowPresentInfo.
+// render::CursorInfo and render::WindowPresentInfo.
 struct CursorPresents {
-    std::uint32_t presents = 0;
-    std::uint32_t calls = 0;
-    std::uint32_t refused[4] = {};
-    int lastLeft = 0, lastTop = 0, lastRight = 0, lastBottom = 0;
-    int checks = 0, mismatches = 0;
+    std::uint32_t presentsShown = 0, presentsHeld = 0, presentsHidden = 0;
+    std::uint32_t made = 0, failures = 0, shapeChanges = 0, frameChanges = 0;
+    bool shown = false;
+    int width = 0, height = 0, hotX = 0, hotY = 0;
 };
 struct WindowPresents {
     std::uint32_t presents = 0;
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
-    int cursorChecks = 0, cursorMismatches = 0;
     bool rampCheckPending = false;
     bool rampIdentity = true;
     int deviceLosses = 0;
@@ -173,8 +171,9 @@ struct WindowPresents {
 };
 CursorPresents CursorPresentCounts();
 WindowPresents WindowPresentCounts();
-bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
 bool FrameInWindow(int* width, int* height);
+// The frame's size in the window (render::FrameInWindow's placed rectangle).
+bool FramePlaced(int* width, int* height);
 void FrameToWindow(int* x, int* y);
 void WindowToFrame(int* x, int* y);
 void ConfigureRenderer(const char* spec);

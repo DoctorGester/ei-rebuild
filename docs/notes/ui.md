@@ -138,10 +138,10 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText), news for the top window
   (slots 28-32, 36, 37 as `UiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).
-- Cursor (`ui_cursor*.cpp`): `Cursor::Init` / `AddShape`, `SetShape`,
-  `TakeLock` / `ReleaseLock` (mode 2 only), `Start` (thread 005E52A0 unless mode 1), `UpdatePosition` (frames every
-  125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread and image construct (the blend 005E5C40 is not ported):
-  renderer.md (R9c2).
+- Cursor (`ui_cursor*.cpp`): `Cursor::Init` / `AddShape`, `SetShape`, `Start`, `UpdatePosition` (frames every
+  125 ms; +0x08 the DirectInput mouse). The lock (`TakeLock` / `ReleaseLock`, mode 2), the mode and the thread
+  (005E52A0 / 005E5690) are gone with R40: the cursor is the system's. Frame draw and image construct (the blend 005E5C40
+  is not ported): renderer.md (R40).
 - Flying hit points (`ui_flying_hit_points.cpp`): `Draw` (S, timeGetTime held, stand-in renderers replayed), `Add`
   (flag 8 starts 0.5 s later); numbers need option 17 (0079BE74).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
@@ -816,17 +816,11 @@ display option's software cursor bit (the renderer's +4 bit 0) is set). The Dire
 cursor's screen rectangle (updated) from the render target into the background
 surface, combines the cursor image (the part `from` of it) with it in the composition surface
 ((background & mask) | image) and copies that back to the render target; `drawn`
-keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
-renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
-("Cursor") and docs/notes/renderer.md.
-Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
-thread (redraws the cursor on the primary every 41 ms between frames) and the background
-save. Ours has neither the background nor the composition surface (005E60B0 made them: nothing drew into them
-since R11a, and R30a deleted them); the background saves and
-the composition's holder blits are left out (the two
-ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
-presenting the last frame again (render::CursorBetweenFrames);
-not while the image is hidden (the movie players and the loading screen hide it).
+keeps the rectangle drawn. Ours hands the image's current frame, its mask, its hot spot and the hold to the
+renderer (render::Cursor), whose present shows it as the system's cursor (docs/notes/renderer.md section 9, R40).
+The original's draws straight to the primary surface (the cursor thread, which redrew the cursor on the primary every
+41 ms between frames, and the background save) are gone: the system moves the cursor, and a frame that hands none
+over (the movie players and the loading screens hide the image) hides it.
 
 ## Battle HUD corner panels
 

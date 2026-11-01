@@ -26,7 +26,14 @@ bool g_quitPosted = false;
 int g_quitCode = 0;
 std::atomic<std::int32_t> g_motionX{0}, g_motionY{0};
 unsigned g_realInput = 0;
-platform::CursorShape g_cursor = nullptr;
+// A cursor made by MakeCursor: SDL's, and its pixels for the harness's checks.
+struct Cursor {
+    SDL_Cursor* sdl = nullptr;
+    ShownCursor picture;
+};
+Cursor* g_cursor = nullptr;   // shown
+bool g_holding = false;
+platform::Point g_held{};
 platform::PointMap g_toGame = nullptr;
 platform::PointMap g_toScreen = nullptr;
 std::string g_clipboard;
@@ -89,6 +96,18 @@ void Activate(bool active) {
 }
 
 unsigned RealInputLeftOut() { return g_realInput; }
+
+bool CursorShown(ShownCursor* cursor) {
+    if (!g_cursor) return false;
+    *cursor = g_cursor->picture;
+    return true;
+}
+
+bool CursorHeld(platform::Point* at) {
+    if (!g_holding) return false;
+    *at = g_held;
+    return true;
+}
 
 } // namespace ei::verify::harnessplatform
 
@@ -248,9 +267,44 @@ void PostQuit(int code) {
 
 // ---- The cursor, the mouse, the clipboard ------------------------------------------------------------------------
 
+// SDL's cursors on the window as the game's backend shows them (only seen while the real mouse is over it), their pixels
+// kept for the checks.
 CursorShape CurrentCursor() { return hp::g_cursor; }
 
-void SetCursor(CursorShape shape) { hp::g_cursor = shape; }
+CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX, int hotY) {
+    SDL_Surface* surface =
+        SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, const_cast<std::uint8_t*>(rgba), width * 4);
+    if (!surface) return nullptr;
+    SDL_Cursor* sdl = SDL_CreateColorCursor(surface, hotX, hotY);
+    SDL_DestroySurface(surface);
+    if (!sdl) return nullptr;
+    auto* cursor = new hp::Cursor{sdl, {width, height, hotX, hotY, {}}};
+    cursor->picture.rgba.assign(rgba, rgba + static_cast<std::size_t>(width) * height * 4);
+    return cursor;
+}
+
+void FreeCursor(CursorShape shape) {
+    auto* cursor = static_cast<hp::Cursor*>(shape);
+    if (!cursor) return;
+    SDL_DestroyCursor(cursor->sdl);
+    delete cursor;
+}
+
+void SetCursor(CursorShape shape) {
+    hp::g_cursor = static_cast<hp::Cursor*>(shape);
+    if (!hp::g_cursor) {
+        SDL_HideCursor();
+        return;
+    }
+    SDL_SetCursor(hp::g_cursor->sdl);
+    SDL_ShowCursor();
+}
+
+// The harness's mouse moves only by its steps: a hold is only recorded.
+void HoldCursor(const Point* at) {
+    hp::g_holding = at != nullptr;
+    if (at) hp::g_held = *at;
+}
 
 void MapCursorPoints(PointMap toGame, PointMap toScreen) {
     hp::g_toGame = toGame;
@@ -266,6 +320,7 @@ bool CursorPosition(Point* at) {
 }
 
 void SetCursorPosition(Point at) {
+    HoldCursor(nullptr);
     if (hp::g_toScreen) hp::g_toScreen(&at);
     hp::MoveMouse(at);
 }

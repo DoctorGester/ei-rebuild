@@ -1,14 +1,11 @@
-// The image blits: the software cursor's pictures (render::Cursor: each uploaded once, the present draws a part of
-// it) and the movies' frames (MovieFrame / MovieBlit: an RGBA8 image updated in place, drawn as a screen rectangle
-// that copies texels one to one, a stretch when the sizes differ). Also here: the
+// The image blits: the movies' frames (MovieFrame / MovieBlit: an RGBA8 image updated in place, drawn as a screen
+// rectangle that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
 // (The interface windows' canvases have their own blit, render_ui.cpp.)
 #include "render.h"
 #include "render_internal.h"
 
 #include "../hook/log.h"
-
-#include "../game/texture.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -79,7 +76,7 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
     CountDraw(sizeof(vs));
 }
 
-std::vector<sg_image> g_frameImages;   // let go during the frame (a movie's, a cursor picture's), destroyed at the present
+std::vector<sg_image> g_frameImages;   // let go during the frame (a movie's), destroyed at the present
 std::vector<sg_view> g_frameViews;
 
 // A movie's RGBA8 image, updated in place (sg_update_image) instead of made again. Sokol allows
@@ -116,15 +113,14 @@ sg_view MakeImageView(sg_image image) {
 
 #if defined(EI_RENDER_VALIDATION)
 long g_uploadChecks = 0, g_uploadMismatches = 0;
-long g_uploads[2] = {0, 0};   // uploads so far, cursor and movie (the read-back is sampled: ReadBackDue)
+long g_uploads = 0;   // movie uploads so far (the read-back is sampled: ReadBackDue)
 #endif
 
-// Verify build: the image just uploaded read back from the GPU and compared with the pixels written (what the
-// shaders then draw are exactly these texels), sampled per use. Nothing in the other builds.
-void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, int h) {
+// Verify build: the movie image just uploaded read back from the GPU and compared with the pixels written (what the
+// shaders then draw are exactly these texels), sampled. Nothing in the other builds.
+void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h) {
 #if defined(EI_RENDER_VALIDATION)
-    long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
-    if (!ReadBackDue(uploads++)) return;
+    if (!ReadBackDue(g_uploads++)) return;
     platform::graphics::Readback copy;
     if (copy.Read(image, platform::Rect{0, 0, w, h})) {
         bool same = true;
@@ -133,14 +129,12 @@ void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, 
                                static_cast<std::size_t>(w) * 4) == 0;
         ++g_uploadChecks;
         if (!same && g_uploadMismatches++ < 10)
-            ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written",
-                    use == ImageUse::Movie ? "movie" : "cursor", w, h);
+            ei::Log("render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w, h);
     }
     copy.Release();
     if (g_uploadChecks % 20 == 1)
-        ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
+        ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads, g_uploadMismatches);
 #else
-    (void)use;
     (void)image;
     (void)rgba;
     (void)w;
@@ -154,7 +148,7 @@ void UpdateMovieImage(sg_image image, const std::uint8_t* rgba, int w, int h) {
     CountImage(ImageUse::Movie, false);
     CountUpload(FrameStats::Movie, data.mip_levels[0].size);
     sg_update_image(image, &data);
-    CheckUpload(ImageUse::Movie, image, rgba, w, h);
+    CheckUpload(image, rgba, w, h);
 }
 
 struct Movie {
@@ -166,71 +160,6 @@ struct Movie {
 };
 std::unordered_map<const void*, Movie> g_movies;
 std::vector<std::uint8_t> g_movieScratch;
-
-// The cursor's pictures on the GPU: each picture with its mask as alpha, uploaded at its first draw (a frame draws
-// the part render::Cursor's `from` names).
-struct CursorSheet {
-    const void* holder = nullptr;
-    const void* mask = nullptr;
-    int width = 0, height = 0;
-    sg_image image{};
-    sg_view view{};
-};
-std::vector<CursorSheet> g_cursorSheets;
-
-// The sheet's image let go: destroyed after the present (this frame's cursor may still draw it).
-void RetireSheet(CursorSheet& sheet) {
-    if (sheet.view.id) g_frameViews.push_back(sheet.view);
-    if (sheet.image.id) g_frameImages.push_back(sheet.image);
-    sheet = CursorSheet{};
-}
-
-// The picture's colours with the mask as alpha: 255 where the mask's pixel (`maskBytes`) is zero, else 0 (the
-// mask is all ones where the picture is black).
-std::vector<std::uint8_t> MaskedPicture(const Picture& picture, const void* mask, int maskBytes) {
-    std::vector<std::uint8_t> rgba = picture.rgba;
-    const std::size_t pixels = static_cast<std::size_t>(picture.width) * picture.height;
-    rgba.resize(pixels * 4);
-    const auto* m = static_cast<const std::uint8_t*>(mask);
-    for (std::size_t i = 0; i < pixels; ++i) {
-        std::uint32_t bits = 0;
-        std::memcpy(&bits, m + i * maskBytes, static_cast<std::size_t>(maskBytes));
-        rgba[i * 4 + 3] = bits == 0 ? 255 : 0;
-    }
-    return rgba;
-}
-
-// The sheet of `holder`'s picture with `mask` (the picture's width, `maskBytes` a pixel), made at its first draw;
-// null when it cannot be made.
-const CursorSheet* SheetOf(const void* holder, const void* mask, int maskBytes, const Picture& picture) {
-    CursorSheet* sheet = nullptr;
-    for (CursorSheet& s : g_cursorSheets)
-        if (s.holder == holder) sheet = &s;
-    if (sheet && sheet->mask == mask && sheet->width == picture.width && sheet->height == picture.height)
-        return sheet->view.id ? sheet : nullptr;
-    if (!sheet) sheet = &g_cursorSheets.emplace_back();
-    RetireSheet(*sheet);
-    sheet->holder = holder;
-    sheet->mask = mask;
-    sheet->width = picture.width;
-    sheet->height = picture.height;
-    const std::vector<std::uint8_t> rgba = MaskedPicture(picture, mask, maskBytes);
-    CountImageRequest(ImageUse::Cursor);
-    CountImage(ImageUse::Cursor, true);
-    CountUpload(FrameStats::Small, rgba.size());
-    sg_image_desc desc{};
-    desc.width = picture.width;
-    desc.height = picture.height;
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
-    desc.label = "ei-cursor";
-    sg_image image = sg_make_image(&desc);
-    sheet->view = MakeImageView(image);
-    if (!sheet->view.id) return nullptr;   // made again only when the mask or the size changes
-    sheet->image = image;
-    CheckUpload(ImageUse::Cursor, image, rgba.data(), picture.width, picture.height);
-    return sheet;
-}
 
 } // namespace
 
@@ -305,14 +234,14 @@ namespace detail {
 namespace {
 long g_imageMade[static_cast<int>(ImageUse::Count)];
 long g_imageUpdated[static_cast<int>(ImageUse::Count)];
-long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (cursor, movie frames)
+long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (movie frames)
 } // namespace
 
 void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdated)[static_cast<int>(use)]; }
 void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
 
 void LogImageCounts(const char* when) {
-    static const char* const names[] = {"cursor", "movie", "texture"};
+    static const char* const names[] = {"movie", "texture"};
     for (int i = 0; i < static_cast<int>(ImageUse::Count); ++i)
         ei::Log("render: images %s, frame %u: %s: %ld requested, %ld made, %ld updated in place", when,
                 static_cast<unsigned>(FrameNumber()), names[i], g_imageRequests[i], g_imageMade[i], g_imageUpdated[i]);
@@ -379,34 +308,7 @@ void Fill(const Rect& to, std::uint32_t colour) {
     g_frame.commands.push_back(Command{Command::Fill, static_cast<int>(g_frame.fills.size()) - 1});
 }
 
-void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
-    if (!imageHolder || !mask) return;
-    Start();
-    // The picture loaded from its file (render::PictureFromMmp); the mask, the holder's width in its pixel size, the
-    // cursor image built from the file. A picture holder has no surface: without a decoded picture there is nothing
-    // to draw.
-    const auto* holder = static_cast<const Surface*>(imageHolder);
-    const int maskBytes = holder->bitsPerPixel / 8;
-    const Picture* picture = PictureOf(imageHolder);
-    if (!picture || picture->width != holder->width || (maskBytes != 2 && maskBytes != 4)) return;
-    if (from.left < 0 || from.top < 0 || from.right > picture->width || from.bottom > picture->height ||
-        from.right <= from.left || from.bottom <= from.top)
-        return;
-    platform::FloatingPointGuard fpu;
-    const CursorSheet* sheet = SheetOf(imageHolder, mask, maskBytes, *picture);
-    if (!sheet) return;
-    g_frame.cursor = BlitBatch{sheet->view, sheet->width, sheet->height, to, from};
-    g_frame.haveCursor = true;
-    SetCursorSheet(imageHolder, mask, sheet->width, sheet->height, sheet->view);
-}
-
 namespace detail {
-void ForgetCursor(const void* holder) {
-    for (CursorSheet& s : g_cursorSheets)
-        if (s.holder == holder) RetireSheet(s);
-    DropCursorSheet(holder);
-}
-
 void DropBlits() {
     RetireFrameImages();
     for (auto& entry : g_movies) {
@@ -414,11 +316,6 @@ void DropBlits() {
         if (entry.second.image.id) sg_destroy_image(entry.second.image);
     }
     g_movies.clear();   // a movie shows again from its next frame
-    for (CursorSheet& s : g_cursorSheets) {
-        if (s.view.id) sg_destroy_view(s.view);
-        if (s.image.id) sg_destroy_image(s.image);
-    }
-    g_cursorSheets.clear();
     DestroyBlits();
 }
 } // namespace detail

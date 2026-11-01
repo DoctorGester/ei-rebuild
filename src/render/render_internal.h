@@ -241,9 +241,6 @@ struct Frame {
         std::size_t first, end;
     };
     std::vector<Range> worldRanges;
-// Drawn last, after the frame without it is kept for the cursor thread.
-    BlitBatch cursor{};
-    bool haveCursor = false;
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
@@ -304,23 +301,13 @@ struct Channel {
 sg_image FrameImage();
 sg_view FrameTexture();
 bool FrameSize(int* width, int* height);
-// The frame into the window's drawable through the gamma ramp, `cursor` (null: none) over it; PresentWindow, after
-// the frame's commit, shows it. False: nothing to present into / nothing presented.
-bool DrawToWindow(const BlitBatch* cursor);
+// The frame into the window's drawable through the gamma ramp; PresentWindow, after the frame's commit, shows it.
+// False: nothing to present into / nothing presented.
+bool DrawToWindow();
 bool PresentWindow();
-// What the last DrawToWindow drew with, for the cursor thread's presents (main thread); false when there is no
-// drawable.
-struct WindowParts {
-    sg_shader shader;
-    sg_pipeline pipeline;
-    sg_view frame;
-    sg_view ramp;
-    const std::uint8_t* rampTable;   // 256 RGBA8 entries
-    int clientWidth, clientHeight;
-    int frameWidth, frameHeight;
-    Rect placed;
-};
-bool CurrentWindowParts(WindowParts* parts);
+// The gamma ramp the present applies (256 RGBA8 entries) and how often SetGammaRamp changed it.
+const std::uint8_t* GammaRamp();
+std::uint32_t GammaRampChanges();
 // Releases everything the window module made on the device (before sg_shutdown); the next DrawToWindow makes them
 // on the new device.
 void DropWindow();
@@ -577,14 +564,11 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
 void RetireFrameImages();
 void DestroyBlits();
-// The cursor picture the frames draw (render::Cursor): `view` the whole picture (width x height, all its frames side
-// by side) with its mask as alpha, made once; the cursor thread draws the same texture. DropCursorSheet: the
-// holder is gone (the cursor thread forgets its picture).
-void SetCursorSheet(const void* holder, const void* mask, int width, int height, sg_view view);
-void DropCursorSheet(const void* holder);
-// The holder is gone: its cursor picture's image let go.
+// At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
+void ShowFrameCursor();
+// The holder is gone: the cursor shapes made from its picture let go.
 void ForgetCursor(const void* holder);
-// The device is lost: DestroyBlits, and every image kept across frames (movies, the cursor's pictures).
+// The device is lost: DestroyBlits, and every image kept across frames (the movies').
 void DropBlits();
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
@@ -623,12 +607,12 @@ void CanvasBlitsDrawn();
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height);
 void DropCanvases();
 // SplitFrame draws the commands recorded so far (a pass split; not between frames); RunCanvasesNow runs
-// RunCanvasCommands at once, under the present's lock.
+// RunCanvasCommands at once.
 void SplitFrame();
 void RunCanvasesNow();
 
 // Images made and updated in place by purpose, logged in the verify build.
-enum class ImageUse { Cursor, Movie, Texture, Count };
+enum class ImageUse { Movie, Texture, Count };
 void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
@@ -695,24 +679,6 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
 // again on a new device (no pass in progress).
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
 void RemakeComposed();
-// GPU work from game code outside the frame's drawing (a texture composed): the cursor thread keeps off the
-// immediate context meanwhile (the present's lock), as for the canvases run at once.
-class GpuWorkAlone {
-public:
-    GpuWorkAlone();
-    ~GpuWorkAlone();
-    GpuWorkAlone(const GpuWorkAlone&) = delete;
-    GpuWorkAlone& operator=(const GpuWorkAlone&) = delete;
-};
-
-// The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
-// the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into
-// the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent hands the
-// backend what the cursor thread draws with (platform::graphics::KeepPresent). DropCursorPresents lets it go before
-// the device goes.
-void BeginWindowPresent();
-void EndWindowPresent(bool presented);
-void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
 // Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
 // stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render

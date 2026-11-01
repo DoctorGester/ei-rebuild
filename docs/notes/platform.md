@@ -64,8 +64,8 @@ that includes `<windows.h>` or calls game.exe's imports (`gameapi::X`). On Linux
   (below) took 31 off: 26. The last game-side users (PL7) took 17 off: 9; the sound and movie files (PL6b), the sound
   files' reads (PL7b) and lib/win_types.h (PL7a) left it: 5, the win32 entry (below) and the import layer's headers.
   The rule took in src/render with graphics.h (MAC3f): 9; the transfers drawn with sokol (MAC3g) took
-  render_buffers, render_compose and render_ui off, and the cursor thread's present behind graphics.h (MAC3h)
-  render_cursor: 5, none of them in src/render.
+  render_buffers, render_compose and render_ui off, and the cursor's present behind graphics.h (MAC3h; gone
+  with R40) render_cursor: 5, none of them in src/render.
 - The check sees a file's own includes only. lib/win_user.h (winuser.h for the DT_* constants) let ui_edit_field.cpp
   call `IsCharAlphaW` unnoticed (now `platform::IsLetter`); win_user.h is gone. lib/win_types.h (windef.h's types)
   was the last such header: 113 game files used its RECT, POINT, SIZE, DWORD, COLORREF, LONG and UINT. They use our
@@ -92,7 +92,7 @@ platform.h's sections (the sockets in `platform::net`, the sound in `platform::a
 | The .ini files | `IniSectionEntries`, `IniString`; `IniInt` | the GetPrivateProfileSectionA / StringA slots (not routed: the config\*.ini names are ASCII); `IniInt` direct |
 | The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the window and message slots (the harness hooks CreateWindowExA, ShowWindow, PeekMessageA), the screen mapping and monitor calls direct |
 | The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: the FindWindowA (the harness answers it), GetWindowThreadProcessId and foreground slots; `ProgramInstance` direct |
-| The cursor | the cursor's shape, its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the GetCursor / SetCursor / GetCursorPos / SetCursorPos slots (the harness's own mouse) |
+| The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
 | The keyboard | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field) | Windows in every build (SDL has no key names in the layout's language, no layout choice): the GetKeyNameTextA (UTF-8 route) and keyboard layout slots; IsCharAlphaW direct |
 | The clipboard | `CopyText`, `ClipboardText` (Rebirth's console) | SDL; harness builds: direct |
 | Threads | `Thread` (a plain `unsigned (*)(void*)` procedure; priority set before it runs, or as it starts on SDL), `Signal` (an auto-reset event: `Create`, `Set`, `Wait`, `Close`); locks are `std::recursive_mutex` | SDL; harness builds: the SetThreadPriority / ResumeThread / CreateEventA / SetEvent / WaitForSingleObject (the harness's clocks) / CloseHandle slots, `_beginthreadex` direct |
@@ -193,8 +193,8 @@ What SDL's backend does (platform_sdl.cpp):
   are pixels.
 - **Window events go to the handler at once**, as the window procedure's sent messages did: focus gained / lost,
   minimised, restored become `Activate` (only on a change of active / minimised), exposed becomes `Paint`, the close
-  request (and SDL's quit) `Destroy`. No `SetCursor`, `SystemCommand` or `AutoPlay` events: SDL keeps the hidden cursor
-  over its window and keeps the screen saver off itself. Input waits in a queue for the game's loops.
+  request (and SDL's quit) `Destroy`. No `SystemCommand` or `AutoPlay` events: SDL keeps the cursor set over its
+  window and keeps the screen saver off itself. Input waits in a queue for the game's loops.
 - **Keys** (sdl_keys.cpp): the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a
   table of US positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the
   active layout's code (`platform::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M as the window
@@ -209,8 +209,13 @@ What SDL's backend does (platform_sdl.cpp):
 - **The mouse**: MK_ bits (the buttons held, Shift, Ctrl), positions in the window, a second click (clicks even) as
   LeftDouble / RightDouble, the wheel 120 a notch at the screen position. `MouseDevice::Read` gives the motion events'
   sum since the last read, the wheel and the buttons (DIMOUSESTATE's layout).
-- **The cursor**: hidden with `SDL_HideCursor` (null shape); the position is `SDL_GetGlobalMouseState`, placed with
-  `SDL_WarpMouseGlobal` (the cursor's thread reads it too).
+- **The cursor**: the game's pictures as SDL colour cursors (`MakeCursor`: `SDL_CreateColorCursor` on an RGBA
+  surface; the renderer makes them, docs/notes/renderer.md section 9, R40), shown with `SDL_SetCursor` +
+  `SDL_ShowCursor`, hidden with `SDL_HideCursor` (null shape). The position is `SDL_GetGlobalMouseState`, placed with
+  `SDL_WarpMouseGlobal`. `HoldCursor`: the window in relative mode with a one-pixel mouse rectangle at the point (the
+  hints keep the cursor visible there, not centred, the motion scaled as the pointer's; the motion's fractions are
+  carried to the next event); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
+  motion went when relative mode ends.
 - **The clocks**: both are `SDL_GetTicks` plus a day (`kClockStart`), so no read is near 0 (the game keeps 0 as
   "never" in times it compares with them, and the original ran on machines that had been up for a while).
   `Sleep(0)` yields (`std::this_thread::yield`); SDL_Delay(0) would return at once.
@@ -263,13 +268,6 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
   tearing, docs/notes/renderer.md section 15a), `EndDrawable` presents it after `sg_commit`. The window's size in
   pixels is platform.h's `WindowPixelSize` (SDL: `SDL_GetWindowSizeInPixels`, false while minimised; Windows: the
   client rectangle).
-- Presenting again from another thread (the cursor between frames, docs/notes/renderer.md R9c2): the cursor thread
-  never calls sokol. The main thread hands the backend the present's sokol objects after each present (`KeepPresent`:
-  `PresentParts`, the backend's own references), and the cursor thread asks it to draw them again with its uniforms
-  and show them (`PresentAgain`; `PresentReads` the harness build's read-back before the present). The renderer's
-  present lock keeps the calls apart. Direct3D 11: a deferred context run on the immediate one with its state put back,
-  multithread protection on (`Start`). OpenGL: not done (the context is the main thread's; `KeepPresent` refuses, so
-  the cursor stays put during a long load).
 - Viewports and scissor rectangles go through `ApplyViewport` / `ApplyScissorRect`, from the target's top left on
   every backend (sokol's own flip is off on OpenGL, whose clip control already counts rows from the top).
 - Buffers: `UpdateBuffer` writes a range of a buffer and keeps the rest (render_buffers.cpp's `GpuPool`: terrain
@@ -300,8 +298,7 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 - The renderer's own timings are `std::chrono::steady_clock` (render_internal.h's `Ticks` / `kMsPerTick`), not the
   game's clocks; the log (src/hook/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
   through `FormatLocalTime`).
-- The renderer's own threads and lock (render.cpp, render_cursor.cpp) stay its own; render_cursor.cpp's lock is a
-  `std::recursive_mutex` (a critical section re-enters).
+- The renderer's own threads (render.cpp) stay its own.
 
 ## Plain C++ in place of the system
 

@@ -193,12 +193,10 @@ void ShowLoadingMovie(int progress) {
         video::GoToFrame(movie, video::NextFrameNumber(movie) + 1);
         if (Ended(movie)) break;
     }
-    g_cursor.TakeLock();
     const void* key = &g_loadingScreen;   // the loading movie in the new renderer
     if (decoded) render::MovieFrame(key, frame.data(), video::Width(movie), video::Height(movie));
     render::MovieBlit(key, ToRender(g_loadingScreen));
     PresentMovieFrame();
-    g_cursor.ReleaseLock();
 }
 
 // --- Opening a movie for the frame's player ----------------------------------------------

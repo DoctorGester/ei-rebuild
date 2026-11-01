@@ -44,17 +44,16 @@ const CursorShape kShapes[] = {
 };
 } // namespace
 
-// Set-up. `modeTwo` picks the cursor's mode 2 (else 1); `context` and
-// `smallCursors` (low byte tested) go to the cursor's Init.
-void SetUpCursors(bool modeTwo, DirectInputMouse* context, int smallCursors) {
+// Set-up. `context` and `smallCursors` (low byte tested) go to the cursor's Init.
+void SetUpCursors(DirectInputMouse* context, int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
-    g_cursor.Init(g_sceneRenderer.device, modeTwo ? 2 : 1, context, useSmall);
+    g_cursor.Init(g_sceneRenderer.device, context, useSmall);
     for (const CursorShape& shape : kShapes)
         g_cursor.AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY);
     g_cursor.Start();
 }
 
-void ResetCursors(bool modeTwo, DirectInputMouse* context, int smallCursors) {
-    g_cursor.Shutdown();   // the drawing thread stopped, the shapes released
-    SetUpCursors(modeTwo, context, smallCursors);
+void ResetCursors(DirectInputMouse* context, int smallCursors) {
+    g_cursor.Shutdown();   // the shapes released
+    SetUpCursors(context, smallCursors);
 }

@@ -384,7 +384,6 @@ enum class EventType : std::uint8_t {
     Paint,           // part of the window needs drawing
     Destroy,         // the window is being destroyed
     Activate,        // the window was activated or deactivated (activation, minimized)
-    SetCursor,       // the system asks for the cursor's shape over the window
     SystemCommand,   // a command of the window's system menu or a system key (command)
     AutoPlay,        // the system asks whether a disc put in may start its AutoPlay
     Quit,            // the quit request (quitCode): the loop ends
@@ -497,13 +496,21 @@ inline constexpr int kKeyF4 = 0x73;
 
 // ==== The cursor =====================================================================================================
 
-// Its shape over the game window (the game hides it and draws its own) and its position, in the game's points.
+// The system's cursor shows the game's pictures over the game window (docs/notes/renderer.md section 9); its position is
+// in the game's points.
 
-// A native cursor shape (an HCURSOR on Windows); null shows none.
+// A cursor shape (an SDL_Cursor); null shows none.
 using CursorShape = void*;
 
+// A shape of `width` x `height` pixels (R, G, B, A bytes, alpha not premultiplied, rows from the top) with its hot spot
+// at (hotX, hotY); null when the system cannot make one. FreeCursor: one no longer shown let go.
+CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX, int hotY);
+void FreeCursor(CursorShape shape);
 CursorShape CurrentCursor();
 void SetCursor(CursorShape shape);
+// With `at` (a game point) the cursor stays there while the mouse's motion still reaches the game (MouseDevice::Read:
+// the camera turned with the right button); null lets it move again. SetCursorPosition lets it go first.
+void HoldCursor(const Point* at);
 
 // How the game's points relate to the screen's (the frame scaled into the window): `toGame` turns a screen point into
 // the game's, `toScreen` the other way. Without (the start), the game's points are the screen's.

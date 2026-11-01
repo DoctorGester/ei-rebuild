@@ -351,29 +351,28 @@ void MovieBlit(const void* key, const Rect& to);
 // The movie player's fill before its first frame (`colour`'s alpha ignored).
 void Fill(const Rect& to, std::uint32_t colour);
 
-// The software cursor: the part `from` of the cursor image with its mask (the image's full width, the
-// surface's pixel format) at `to`; texels whose mask is not zero are left out. The picture with its mask goes to the
-// GPU once, at its first draw.
-void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
-
-// The software cursor between frames (renderer.md section 9): from the cursor thread, the cursor's lock
-// held, the last presented frame is presented again with the cursor at `to` (Cursor must have drawn the
-// image before). Only when the renderer presents itself and nothing was presented for 40 ms; false when
-// nothing was presented. Thread-safe: drawn by the graphics backend (platform::graphics::PresentAgain), never
-// through sokol.
-bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
-// The cursor thread's presents and, in the verify build, the checks of the frame it presented.
-struct CursorPresentInfo {
-    std::uint32_t presents = 0;
-    std::uint32_t calls = 0;
-    std::uint32_t refused[4] = {};   // not presented: picture not drawn yet, no frame, a frame within 40 ms, outside
-    Rect lastTo{0, 0, 0, 0};
-    int checks = 0, mismatches = 0;
+// The cursor the frame shows (docs/notes/renderer.md section 9). The frame's present shows it as the system's cursor at
+// the window's scale and through the gamma ramp (a shape per picture frame, made at its first show); a frame presented
+// without it hides it (movies, loading screens).
+struct FrameCursor {
+    const void* imageHolder = nullptr;   // the cursor picture (its frames side by side)
+    const void* mask = nullptr;          // over the whole picture, the surface's pixel format: texels where it is not 0 left out
+    Rect from{0, 0, 0, 0};               // the frame shown
+    int hotX = 0, hotY = 0;              // the hot spot, texels into `from`
+    bool held = false;                   // the game keeps its cursor at (heldX, heldY), a game point, while the mouse
+    int heldX = 0, heldY = 0;            // turns the camera
 };
-CursorPresentInfo CursorPresents();
-// Verify build: the frame the cursor thread presented last (after the gamma ramp), 24-bit BGR rows from the
-// top. False when there is none.
-bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
+void Cursor(const FrameCursor& cursor);
+// The presents by what they did with the cursor, and the shape shown (its size and hot spot in window pixels).
+struct CursorInfo {
+    std::uint32_t presentsShown = 0, presentsHeld = 0, presentsHidden = 0;
+    std::uint32_t made = 0, failures = 0;   // shapes made, shapes the system could not make
+    std::uint32_t shapeChanges = 0;         // another shape (or none) shown ...
+    std::uint32_t frameChanges = 0;         // ... of them, another frame of the same picture
+    bool shown = false;
+    int width = 0, height = 0, hotX = 0, hotY = 0;
+};
+CursorInfo CursorState();
 
 // The game clears the depth buffer mid-frame (before the interface's panels and 3D previews); `rects`
 // null: all of it.
@@ -467,7 +466,6 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
 struct WindowPresentInfo {
     std::uint32_t presents = 0;
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
-    int cursorChecks = 0, cursorMismatches = 0;   // verify build: the cursor the present draws, checked in the back buffer
     bool rampCheckPending = false;
     bool rampIdentity = true;
     int deviceLosses = 0;       // devices lost (or LoseDevice) ...

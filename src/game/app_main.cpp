@@ -317,7 +317,6 @@ void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
         g_sceneRenderer.flags |= 1;
-        platform::SetCursor(nullptr);
     } else {
         g_sceneRenderer.flags &= ~1u;
         platform::RepaintDesktop();
@@ -586,7 +585,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
-    SetUpCursors(options->fpsIndependentCursor != 0, g_mouse, 0);
+    SetUpCursors(g_mouse, 0);
     g_interface.Create(g_sceneRenderer.device);
     g_mapDatabase.LoadAll();
     StartFirstMap();

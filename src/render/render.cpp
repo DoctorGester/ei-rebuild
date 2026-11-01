@@ -301,7 +301,6 @@ void RecreateDevice() {
     platform::FloatingPointGuard fpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
-    DropCursorPresents();
     DropWindow();
     DestroyTarget();
     DestroyTerrain();
@@ -629,16 +628,6 @@ bool DrawPending() {
     return true;
 }
 
-// DrawPending for a draw in the middle of the frame (CopyFrameTo). The cursor thread draws the frame target
-// itself, so it takes none of it while a pass is in progress: the present's lock, no cursor presents until
-// the frame's own present.
-bool DrawPendingAlone() {
-    BeginWindowPresent();
-    bool drawn = DrawPending();
-    EndWindowPresent(false);
-    return drawn;
-}
-
 // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key): the target still
 // holds the last frame, as the original's render target did. A pass now would clear it first.
 bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
@@ -919,20 +908,14 @@ namespace detail {
 void SplitFrame() {
     if (!g_started || g_frameDrawn || BetweenFrames()) return;
     platform::FloatingPointGuard fpu;
-    DrawPendingAlone();
+    DrawPending();
 }
 
 void RunCanvasesNow() {
     Start();
     platform::FloatingPointGuard fpu;
-    BeginWindowPresent();
     RunCanvasCommands();
-    EndWindowPresent(false);
 }
-
-GpuWorkAlone::GpuWorkAlone() { BeginWindowPresent(); }
-
-GpuWorkAlone::~GpuWorkAlone() { EndWindowPresent(false); }
 
 } // namespace detail
 
@@ -945,27 +928,22 @@ void EndFrame() {
     platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
-    // Onto the game window through the renderer's swap chain, in turn with the cursor thread's presents, which
-    // draw the frame as it is (the present draws the cursor over the frame).
-    BeginWindowPresent();
-    if (!DrawPending()) {
-        EndWindowPresent(false);
-        return;
-    }
+    // Onto the game window through the renderer's swap chain.
+    if (!DrawPending()) return;
     perf::Enter(perf::Pass::Present);
-    bool toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
+    bool toWindow = DrawToWindow();
     perf::EndGpuFrame();
-    g_frame.haveCursor = false;
     ShadowFrameEnd();
     sg_commit();
     submitTime.Stop();   // the present's wait for the display is not the renderer's work
     ++g_commits;
-    EndWindowPresent(toWindow && PresentWindow());
+    if (toWindow) PresentWindow();
     g_haveFrame = true;
 }
 
 void Present() {
     EndFrame();
+    ShowFrameCursor();
     perf::FrameDone();
     AddFrameStats();
     g_drawnCommands = 0;
@@ -991,7 +969,6 @@ void Present() {
     g_frame.shadow.on = false;
     g_frame.shadow.lights.clear();
     ShadowFrameDone();
-    g_frame.haveCursor = false;
     g_frame.haveFog = false;
     g_frameDrawn = false;
     g_holder = Holder::None;
