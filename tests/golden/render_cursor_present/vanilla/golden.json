@@ -2,12 +2,12 @@
   "scenario": "render_cursor_present",
   "install": "vanilla",
   "recorded": "2026-11-01",
-  "commit": "de99cd5b1",
+  "commit": "f0ed1a395",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 2,
-  "reason": "R40: render_cursor_present rewritten for the system's cursor (new steps: resolution, window size, movie, camera turn, edge scroll)",
+  "reason": "R40a: render_cursor_present gained the gamma check (options slider held, Cancel), which moves the world's timeline",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }
