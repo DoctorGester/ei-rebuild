@@ -232,6 +232,8 @@ bool VsyncSwitchSupported() {
 #endif
 }
 
+const std::uint8_t* GammaRampTable() { return g_ramp; }
+
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256); entries are
     // rounded to the 8 bits a channel of the frame has.

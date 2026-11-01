@@ -36,6 +36,8 @@ CursorPresents CursorPresentCounts() {
     return counts;
 }
 
+const std::uint8_t* GammaRampEntries() { return render::GammaRampTable(); }
+
 WindowPresents WindowPresentCounts() {
     const render::WindowPresentInfo info = render::WindowPresents();
     WindowPresents counts;

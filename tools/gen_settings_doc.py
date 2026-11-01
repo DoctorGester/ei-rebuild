@@ -22,7 +22,8 @@ COMMENT_WIDTH = 108   # settings_document.cpp kCommentWidth
 # The original's settings this build does not read (dropped in C69: nothing used them). A file that holds them keeps
 # the lines; the game ignores them.
 DROPPED = ['[video] VideoZBufferDepthInBits', 'VideoRefreshRate', 'Antialiasing', 'Dithering', 'PerspectiveCorrection',
-           'ShowParticles', 'AutomaticQuantization', 'MovieCapturingFPS', '[shadows] HeroShadow', 'OtherShadow',
+           'ShowParticles', 'FPSIndependentCursor', 'AutomaticQuantization', 'MovieCapturingFPS', '[shadows] HeroShadow',
+           'OtherShadow',
            '[terrain] EnableDynamicLights', 'LightingFreq', 'ShadowingFreq', '[game] Joystick', 'UseSWCursors',
            'CornerSize', 'CD1 Label', 'CD3 Label', 'Font CharSet', '[statistics] CreateOutputInfo', 'NumberOfFrames']
 

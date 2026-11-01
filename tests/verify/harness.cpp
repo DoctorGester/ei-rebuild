@@ -244,15 +244,19 @@
 //                             scenario's "render" step names "removable"). Also fails when the loss
 //                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
 //                             is not removable again
-//   cursormark                remember the presents' cursor counts (render::CursorState)
-//   cursorcheck <name>|- shown|hidden|held|animated [min]
+//   cursormark                remember the presents' cursor counts (render::CursorState) and start keeping
+//                             the shapes shown while the gamma ramp is the identity ("cursorcheck gamma")
+//   cursorcheck <name>|- shown|hidden|held|animated|gamma [min]
 //                             the system's cursor (renderer.md section 9) since "cursormark": "shown", at least
 //                             <min> (default 1) presents showed it and it is shown now, not held: the game's image's
 //                             frame at the window's scale (size and hot spot), with opaque and transparent pixels;
 //                             with a name, the last frame with the cursor drawn in at the game's position goes to
 //                             frames\<name>.bmp. "hidden": at least <min> presents hid it (a movie, a loading
 //                             screen). "held": presents held it, and it is held now at the game's position.
-//                             "animated": the shape stepped to another frame of the same picture <min> times
+//                             "animated": the shape stepped to another frame of the same picture <min> times.
+//                             "gamma": the shape shown now is one of those kept since "cursormark" through the
+//                             present's gamma ramp (same size, hot spot and alpha; each colour the ramp's entry for
+//                             the kept one; some changed when the ramp is not the identity)
 //   windowtitle               require the game window's title to be "Evil Islands" and its class "EIGAME"
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
 //                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
@@ -1362,6 +1366,56 @@ POINT ToWindow(int x, int y) {
 
 // "cursormark" / "cursorcheck": the presents' system cursor (R40).
 image::CursorPresents g_cursorMark;
+bool g_cursorCollecting = false;   // "cursormark" on: the shapes shown at the identity ramp are kept (SeenCursors)
+
+// Whether the gamma ramp is the identity.
+bool RampIsIdentity() {
+    const std::uint8_t* ramp = image::GammaRampEntries();
+    for (int i = 0; i < 256; ++i)
+        for (int c = 0; c < 3; ++c)
+            if (ramp[i * 4 + c] != i) return false;
+    return true;
+}
+
+// "cursorcheck gamma": the shape shown now is one of those seen since "cursormark" (made at the identity ramp: the
+// picture has several frames) through the ramp the present applies: same size, hot spot and alpha, each colour the
+// ramp's entry for the seen one; where the ramp is not the identity some colours differ. A failure message, or "".
+std::string GammaShapeCheck(const harnessplatform::ShownCursor& shown) {
+    const std::vector<harnessplatform::ShownCursor>& seen = harnessplatform::SeenCursors();
+    if (seen.empty()) return "cursorcheck gamma: no shape seen since cursormark at the identity ramp";
+    if (shown.rgba.empty()) return "cursorcheck gamma: no cursor shown";
+    const std::uint8_t* ramp = image::GammaRampEntries();
+    const bool identity = RampIsIdentity();
+    std::size_t fewest = shown.rgba.size();
+    bool matched = false, changed = false;
+    for (const harnessplatform::ShownCursor& before : seen) {
+        if (shown.width != before.width || shown.height != before.height || shown.hotX != before.hotX ||
+            shown.hotY != before.hotY)
+            continue;
+        std::size_t wrong = 0;
+        bool differs = false;
+        for (std::size_t i = 0; i < before.rgba.size(); i += 4) {
+            wrong += shown.rgba[i + 3] != before.rgba[i + 3];
+            for (int c = 0; c < 3; ++c) {
+                wrong += shown.rgba[i + c] != ramp[before.rgba[i + c] * 4 + c];
+                differs = differs || shown.rgba[i + c] != before.rgba[i + c];
+            }
+        }
+        fewest = (std::min)(fewest, wrong);
+        if (!wrong) {
+            matched = true;
+            changed = changed || differs;
+        }
+    }
+    Log("harness: cursorcheck gamma: ramp %s, %zu shapes seen, %s (the closest differs in %zu values)",
+        identity ? "identity" : "set", seen.size(),
+        matched ? (changed ? "the shown one is a seen one through the ramp, changed" : "the shown one is a seen one, unchanged")
+                : "none matches",
+        fewest);
+    if (!matched) return "cursorcheck gamma: the shape shown is none of those seen at the identity ramp through the present's ramp";
+    if (!identity && !changed) return "cursorcheck gamma: the ramp is not the identity but the shape did not change";
+    return {};
+}
 
 // The last frame with the shown cursor drawn in at the game's cursor position less its hot spot (each frame pixel takes
 // the cursor's pixel under its top left corner, alpha blended) into frames\<name>.bmp.
@@ -1394,7 +1448,7 @@ std::string CursorCheck(const std::string& argument) {
     char name[64] = "", what[16] = "";
     unsigned least = 1;
     if (sscanf_s(argument.c_str(), "%63s %15s %u", name, unsigned(sizeof(name)), what, unsigned(sizeof(what)), &least) < 2)
-        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
+        return "cursorcheck needs <name>|- shown|hidden|held|animated|gamma [min]";
     const image::CursorPresents now = image::CursorPresentCounts();
     const image::CursorPresents& mark = g_cursorMark;
     const image::CursorState game = HarnessCursor();
@@ -1451,8 +1505,10 @@ std::string CursorCheck(const std::string& argument) {
         if (now.frameChanges - mark.frameChanges < least)
             std::snprintf(failure, sizeof(failure), "cursorcheck animated: %u frame steps, expected %u or more",
                           now.frameChanges - mark.frameChanges, least);
+    } else if (kind == "gamma") {
+        return GammaShapeCheck(shown);
     } else {
-        return "cursorcheck needs <name>|- shown|hidden|held|animated [min]";
+        return "cursorcheck needs <name>|- shown|hidden|held|animated|gamma [min]";
     }
     return failure;
 }
@@ -3171,6 +3227,8 @@ void RunSteps() {
             return;
         } else if (s.verb == "cursormark") {
             g_cursorMark = image::CursorPresentCounts();
+            g_cursorCollecting = true;
+            harnessplatform::ForgetSeenCursors();
             Log("harness: cursormark");
         } else if (s.verb == "cursorcheck") {
             std::string error = CursorCheck(s.argument);
@@ -3759,6 +3817,7 @@ struct Harness {
 namespace harnessplatform {
 
 bool BeforeEvents() { return ei::verify::BeforeEvents(); }
+bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::RampIsIdentity(); }
 int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
 // Through the import slots the harness drives: its virtual or held clocks, its fixed date, its own mouse.
 std::uint32_t ClockMilliseconds() { return ei::Imports().timeGetTime(); }

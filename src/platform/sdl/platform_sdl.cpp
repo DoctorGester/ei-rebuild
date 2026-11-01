@@ -227,12 +227,24 @@ int Buttons() {
 
 int Whole(float coordinate) { return static_cast<int>(std::floor(coordinate)); }
 
+// Pixels a window point holds: SDL's mouse and window coordinates are points, the game's (its input, its frame, the
+// renderer's drawable) pixels. On macOS a point is 2 pixels on Retina; elsewhere 1.
+float PixelsPerPoint() {
+#if defined(__APPLE__)
+    if (const float density = g_window ? SDL_GetWindowPixelDensity(g_window) : 0.0f; density > 0.0f) return density;
+#endif
+    return 1.0f;
+}
+
+// A coordinate in points as whole pixels.
+int Pixels(float points) { return static_cast<int>(std::floor(points * PixelsPerPoint())); }
+
 void QueueMouse(EventType type, float x, float y) {
     Event event;
     event.type = type;
     event.buttons = Buttons();
-    event.x = static_cast<std::int16_t>(Whole(x));
-    event.y = static_cast<std::int16_t>(Whole(y));
+    event.x = static_cast<std::int16_t>(Pixels(x));
+    event.y = static_cast<std::int16_t>(Pixels(y));
     Queue(event);
 }
 
@@ -262,8 +274,8 @@ void TakeWheel(const SDL_MouseWheelEvent& w) {
     event.type = EventType::Wheel;
     event.buttons = Buttons();
     event.wheelDelta = delta;
-    event.x = static_cast<std::int16_t>(Whole(w.mouse_x) + left);
-    event.y = static_cast<std::int16_t>(Whole(w.mouse_y) + top);
+    event.x = static_cast<std::int16_t>(Pixels(w.mouse_x + static_cast<float>(left)));
+    event.y = static_cast<std::int16_t>(Pixels(w.mouse_y + static_cast<float>(top)));
     Queue(event);
 }
 
@@ -275,8 +287,8 @@ void Take(const SDL_Event& e) {
     case SDL_EVENT_KEY_UP: TakeKey(e.key); break;
     case SDL_EVENT_TEXT_INPUT: TakeText(e.text.text); break;
     case SDL_EVENT_MOUSE_MOTION:
-        g_motionRestX += e.motion.xrel;
-        g_motionRestY += e.motion.yrel;
+        g_motionRestX += e.motion.xrel * PixelsPerPoint();
+        g_motionRestY += e.motion.yrel * PixelsPerPoint();
         g_motionX += Whole(g_motionRestX);
         g_motionY += Whole(g_motionRestY);
         g_motionRestX -= std::floor(g_motionRestX);
@@ -396,15 +408,15 @@ void RepaintDesktop() {}
 void ScreenToClient(NativeWindow window, Point* point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x -= left;
-    point->y -= top;
+    point->x -= Pixels(static_cast<float>(left));
+    point->y -= Pixels(static_cast<float>(top));
 }
 
 void ClientToScreen(NativeWindow window, Point* point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x += left;
-    point->y += top;
+    point->x += Pixels(static_cast<float>(left));
+    point->y += Pixels(static_cast<float>(top));
 }
 
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
@@ -491,6 +503,19 @@ CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX
     SDL_Surface* surface =
         SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, const_cast<std::uint8_t*>(rgba), width * 4);
     if (!surface) return nullptr;
+    // SDL's cursor dimensions and hotspot are in points. Keep the original pixels as its high-density image.
+    const float density = PixelsPerPoint();
+    const int pointsWide = std::max(1, static_cast<int>(std::lround(width / density)));
+    const int pointsHigh = std::max(1, static_cast<int>(std::lround(height / density)));
+    if (pointsWide != width || pointsHigh != height) {
+        SDL_Surface* pixels = surface;
+        surface = SDL_ScaleSurface(pixels, pointsWide, pointsHigh, SDL_SCALEMODE_NEAREST);
+        if (surface) SDL_AddSurfaceAlternateImage(surface, pixels);
+        SDL_DestroySurface(pixels);
+        if (!surface) return nullptr;
+        hotX = std::clamp(static_cast<int>(std::lround(hotX / density)), 0, pointsWide - 1);
+        hotY = std::clamp(static_cast<int>(std::lround(hotY / density)), 0, pointsHigh - 1);
+    }
     SDL_Cursor* cursor = SDL_CreateColorCursor(surface, hotX, hotY);
     SDL_DestroySurface(surface);
     return cursor;
@@ -515,7 +540,7 @@ void MapCursorPoints(PointMap toGame, PointMap toScreen) {
 bool CursorPosition(Point* at) {
     float x = 0.0f, y = 0.0f;
     SDL_GetGlobalMouseState(&x, &y);
-    Point point{Whole(x), Whole(y)};
+    Point point{Pixels(x), Pixels(y)};
     if (g_toGame) g_toGame(&point);
     *at = point;
     return true;
@@ -536,7 +561,8 @@ void HoldCursor(const Point* at) {
     if (g_toScreen) g_toScreen(&screen);
     int left = 0, top = 0;
     SDL_GetWindowPosition(g_window, &left, &top);
-    const SDL_Rect place{screen.x - left, screen.y - top, 1, 1};
+    const SDL_Rect place{Whole(static_cast<float>(screen.x) / PixelsPerPoint()) - left,
+                         Whole(static_cast<float>(screen.y) / PixelsPerPoint()) - top, 1, 1};
     if (g_holding && place.x == g_held.x && place.y == g_held.y) return;
     SDL_SetWindowMouseRect(g_window, &place);
     SDL_SetWindowRelativeMouseMode(g_window, true);
@@ -547,7 +573,7 @@ void HoldCursor(const Point* at) {
 void SetCursorPosition(Point at) {
     HoldCursor(nullptr);
     if (g_toScreen) g_toScreen(&at);
-    SDL_WarpMouseGlobal(static_cast<float>(at.x), static_cast<float>(at.y));
+    SDL_WarpMouseGlobal(static_cast<float>(at.x) / PixelsPerPoint(), static_cast<float>(at.y) / PixelsPerPoint());
 }
 
 // ==== The mouse ======================================================================================================

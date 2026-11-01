@@ -44,9 +44,6 @@ EI_SETTING(kVideo, "Mipmapping", "true", "true / false",
 EI_SETTING(kVideo, "Filtering", "2", "0, 1 or 2",
            "0: textures drawn blocky, without smoothing (and without anisotropic filtering); 1 or 2: smoothed "
            "(the two are the same here).")
-EI_SETTING(kVideo, "FPSIndependentCursor", "true", "true / false",
-           "The mouse cursor keeps moving smoothly when the game's frame rate is low; false: it moves only as "
-           "often as the game draws a frame.")
 EI_SETTING(kVideo, "Brightness", "0", "-1 .. 1",
            "Brightens (above 0) or darkens (below 0) the whole picture; 0 leaves it as it is. The options "
            "screen's slider sets it.")

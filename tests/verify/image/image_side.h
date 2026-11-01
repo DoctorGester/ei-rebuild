@@ -170,6 +170,8 @@ struct WindowPresents {
     int removals = 0;
 };
 CursorPresents CursorPresentCounts();
+// The gamma ramp the present applies: 256 RGBA8 entries (render::GammaRampTable).
+const std::uint8_t* GammaRampEntries();
 WindowPresents WindowPresentCounts();
 bool FrameInWindow(int* width, int* height);
 // The frame's size in the window (render::FrameInWindow's placed rectangle).

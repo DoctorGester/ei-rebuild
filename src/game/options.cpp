@@ -5,6 +5,7 @@
 
 #include "settings.h"
 
+#include "lib/rounding.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
@@ -13,10 +14,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <new>
 #include <string>
-#include <format>
-#include "lib/rounding.h"
 
 namespace options {
 namespace {
@@ -65,7 +65,6 @@ constexpr Value kValues[] = {
     {kVideo, "TextureQuality", &GameOptions::textureQuality},
     {kVideo, "Mipmapping", &GameOptions::mipmapping, kFlag},
     {kVideo, "Filtering", &GameOptions::filtering},
-    {kVideo, "FPSIndependentCursor", &GameOptions::fpsIndependentCursor, kFlag},
     {kVideo, "Brightness", &GameOptions::brightness},
     {kVideo, "Contrast", &GameOptions::contrast},
     {kVideo, "Gamma", &GameOptions::gamma},
