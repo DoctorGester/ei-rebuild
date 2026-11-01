@@ -6711,6 +6711,14 @@ model = "opus"
 note = "User 2026-11-01 asked why we need the custom cursor tech. The original drew the cursor in the frame and hid it during loads and movies (renderer.md section 9); our cursor thread re-presents the last frame between frames, at the cost of render_cursor, KeepPresent/DropPresent/PresentAgain in every backend, the D3D deferred context and the present lock; GL cannot do it. Do: the game's cursor as SDL color cursors made from the cursor sheet at the window's scale (one per animation frame, cached, gamma ramp applied to the pixels), hidden or warped while the game holds its cursor still (right-button camera turn); delete the cursor thread, render_cursor's present, PresentAgain and its parts in graphics.h and every backend (d3d11, gl, and tell the macos-port merge to drop Metal's), the deferred context. Captures and harness checks that need the cursor draw it into the read-back frame. Check: goldens (image 154/3, Rebirth 29/0, x64 154/3), render_cursor_present rewritten for the new rule, captures, a manual play.cmd check windowed and full screen (camera turn, animated cursors, loads)."
 
 [[ticket]]
+id = "R40a"
+title = "R40 follow-ups: FPSIndependentCursor removed, cursor gamma check"
+group = "renderer"
+model = "sonnet"
+depends = ["R40"]
+note = "After R40 the FPSIndependentCursor setting is read and saved but does nothing: remove it from the settings catalogue, the options screen and the ini. Add a scenario check that the gamma ramp reaches the cursor shapes. The real-game right-button camera turn under the SDL hold is for the user to try (play.cmd)."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
