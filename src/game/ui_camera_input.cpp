@@ -4,6 +4,7 @@
 #include "ui_camera_keys.h"
 
 #include "camera.h"
+#include "camera_trace.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "ui.h"
@@ -99,7 +100,6 @@ void CameraInput::RightDown(int, Point at) {
     pressLayout = at;
     turning = true;
     ui->ScalePointFromScreen(&pressLayout);
-    g_cursor.motion = {};
     g_cursor.SetHeld(1);
     handled = true;
 }
@@ -112,7 +112,6 @@ void CameraInput::RightUp(int, Point) {
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(still);
     const Point position = g_cursor.position;
-    g_cursor.motion = {};
     g_cursor.SetHeld(0);
     platform::SetCursorPosition(position);
     handled = true;
@@ -122,7 +121,10 @@ void CameraInput::MouseMove(int, Point at) {
     Camera* camera = &g_camera;
     if (turning) {
         Point point = at;
-        Point drag = g_cursor.motion;
+        // The mouse's speed as a 60 Hz frame's motion, so that the turn and tilt rates go with the speed at any
+        // frame rate (they went with each frame's motion, and so with the frame's length).
+        const Point taken = g_cursor.TakeDrag();
+        Point drag = taken;
         ui->ScalePointFromScreen(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
@@ -147,8 +149,7 @@ void CameraInput::MouseMove(int, Point at) {
             Vector3 direction{across * speed, along * speed, 0.0f};
             camera->Pan(direction);
         }
-        g_cursor.motion.y = 0;
-        g_cursor.motion.x = 0;
+        camera_trace::Drag(taken, drag);
         g_cursor.SetShape(kDragCursor);
         handled = true;
         pressLayout = point;
@@ -197,7 +198,6 @@ void CameraInput::Deactivate() {
     y = 0.0f;
     z = 0.0f;
     g_cursor.SetHeld(0);
-    g_cursor.motion = {};
     g_camera.StopMotion();
 }
 

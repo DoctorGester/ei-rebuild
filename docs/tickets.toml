@@ -7564,3 +7564,10 @@ title = "Music: the game thread waits for the stream thread's MP3 work under str
 group = "port"
 depends = ["PL17a"]
 note = "PL17a found: the stream thread holds streamLock while it decodes a half and while SwitchStream opens a file (OpenMp3 reads the whole file); the main thread takes it in RequestStream every frame of a fight and in PlayStreamOnce / StopStream. Not the device, but a game-thread wait: time the main thread's streamLock waits and move the decoding and opening outside the lock (the request state stays under it)."
+
+[[ticket]]
+id = "PL20a"
+title = "Camera mouse turn per count independent of the screen size"
+group = "port"
+depends = ["PL20"]
+note = "Found in PL20 (docs/notes/ui.md, 'Camera mouse turn'): the right-button drag is scaled to the 800-unit layout across the window's 4:3 part (ScalePointFromScreenNoMargin, 800 / width43, Rebirth's WideScreen entry) before it sets the turn and tilt rates, so the turn per mouse count goes with the screen's size: 1920x1080 turns twice as far as 3840x2160 for the same motion (the user plays at 2160p; a Linux player at 1080p gets twice the speed), and the integer scaling truncates: at 2160p a drag below about 4 counts a 60 Hz frame turns nothing, slow drags stick. The original took raw DirectInput counts at 800x600 / 1024x768. Choice for the user/coordinator: keep (today's feel per resolution), or scale by a fixed reference (e.g. counts as at 1080p or at 2160p; changes the feel at every other size), and carry the fraction instead of truncating (smoother slow drags, a small change at every size). camera_drag_rate measures the turn; the harness window's size sets its layout scale."

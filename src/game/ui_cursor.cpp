@@ -3,6 +3,7 @@
 // image, mask and background through Locks of the holders' surfaces, is gone: the cursor is the system's.)
 #include "ui_cursor.h"
 
+#include "camera_trace.h"
 #include "game_singletons.h"
 #include "model.h"
 #include "surface.h"
@@ -12,6 +13,8 @@
 #include "platform/platform.h"
 #include "render/render.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -178,7 +181,41 @@ void Cursor::ShowImage(bool shown) {
 
 void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
+    if (newHeld && !held) {
+        mouse->Poll();
+        motion = {};
+        pollTime = platform::Milliseconds();
+        pollCount = 0;
+        dragGiven = true;
+        Point at{};
+        if (platform::CursorPosition(&at)) {
+            heldPosition = Min(Max(at, Point{}), bounds.BottomRight());
+            position = heldPosition;
+        }
+    }
     held = newHeld;
+}
+
+Point Cursor::TakeDrag() {
+    if (dragGiven) return {};
+    dragGiven = true;
+    return drag;
+}
+
+Point Cursor::DragOfPolls() const {
+    const float window = std::max(kDragFrame, static_cast<float>(polls[newestPoll].interval));
+    float covered = 0.0f, x = 0.0f, y = 0.0f;
+    for (int i = 0; i < pollCount && covered < window; ++i) {
+        const Poll& poll = polls[(newestPoll - i + kPollsKept) % kPollsKept];
+        const float span = static_cast<float>(poll.interval);
+        // The oldest poll in the window counts for its part in it.
+        const float part = covered + span <= window ? 1.0f : (window - covered) / span;
+        x += part * static_cast<float>(poll.motion.x);
+        y += part * static_cast<float>(poll.motion.y);
+        covered += part * span;
+    }
+    const float scale = kDragFrame / window;
+    return Point{static_cast<int>(std::lround(x * scale)), static_cast<int>(std::lround(y * scale))};
 }
 
 void Cursor::Start() {
@@ -207,7 +244,8 @@ void Cursor::Shutdown() {
 
 bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
-    const std::uint32_t steps = (platform::Milliseconds() - frameTime) / kFramePeriod;
+    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t steps = (now - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;
@@ -215,6 +253,13 @@ bool Cursor::UpdatePosition() {
     const std::int32_t* state = mouse->Poll();
     motion.x += state[0];
     motion.y += state[1];
+    newestPoll = (newestPoll + 1) % kPollsKept;
+    polls[newestPoll] = Poll{now - pollTime, Point{state[0], state[1]}};
+    pollCount = std::min(pollCount + 1, kPollsKept);
+    pollTime = now;
+    drag = DragOfPolls();
+    dragGiven = false;
+    camera_trace::Poll(now, polls[newestPoll].interval, polls[newestPoll].motion, drag, held);
     Point point;
     if (held) {
         point = heldPosition;
