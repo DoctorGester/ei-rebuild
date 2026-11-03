@@ -66,8 +66,8 @@ The options are:
 
 Linux (WSL included): first install the packages in docs/notes/linux.md, then run `sh tools/gpu_spike/build.sh`
 after the fetch. This builds shadercross with DXC's Linux release, then ei_gpu_spike with sokol on OpenGL and
-SDL_GPU on Vulkan. Dumps are recorded on Windows only. On WSLg, `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`
-picks lavapipe.
+SDL_GPU on Vulkan. Dumps are recorded on Windows only. On WSLg both APIs run in software: GL on llvmpipe and Vulkan on
+lavapipe, which the loader picks by default (or set `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`).
 
 ## What SDL_GPU needed
 

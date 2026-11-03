@@ -912,6 +912,36 @@ scaled to 800x600): the same counts turn the camera faster at a lower resolution
 - **Check**: `ei_perf_check`'s `vsync` part: the rules for every combination, and on a hidden window's flip-model chain on
   the WARP device: the flags it reports, `ResizeBuffers` with them, a `Present` with the switch's interval and flags.
 
+## 15b. SDL_GPU (the spike)
+
+The renderer is meant to move from sokol_gfx to SDL3's GPU API, which picks Direct3D 12, Vulkan or Metal when it
+makes the device and can read textures back. Its shaders would be HLSL compiled by SDL_shadercross. The spike in
+`tools/gpu_spike` (README there, CMake option `EI_GPU_SPIKE`, off in every build.cmd build) draws recorded game
+frames both ways.
+
+What it found:
+- Both APIs draw the same pixels.
+- The frame times are close.
+- SDL_GPU's device costs about 150 ms more at start.
+- Its full-frame readback is somewhat slower than sokol's, but it is general: any texture, any time.
+
+The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md.
+
+Rules the spike found:
+- **Bindings.** HLSL uses SDL's register spaces:
+  - vertex shader: textures and samplers in space0, blocks in space1;
+  - fragment shader: textures and samplers in space2, blocks in space3.
+- **Stages.** shadercross keeps every stage's bindings, so code for one stage only sits under `EI_VERTEX` /
+  `EI_FRAGMENT`.
+- **Vertex inputs.** Each input is `TEXCOORD<location>` with `[[vk::location]]`.
+- **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
+  slot number.
+- **What SDL_GPU lacks:**
+  - border clamp;
+  - sampling a multisampled texture, and depth resolve (depth_from_multisampled.glsl needs another way);
+  - timestamp queries (GpuTimer);
+  - a WARP device.
+
 ## The renderer's source files
 
 ### render_cursor.cpp: the cursor

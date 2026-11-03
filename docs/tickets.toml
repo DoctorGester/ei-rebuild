@@ -6834,6 +6834,87 @@ depends = ["R44"]
 note = "R44: after a resolution change every UI surface is placed again and its canvas resized with what it holds stretched (nearest pixel); the battle screen builds its HUD again and the camp / multiplayer hero screen move their curtains (UiContainer::LayoutChanged). The others (menus, the Esc menu over its screenshot backdrop, dialogue, inventory, trade, map, options) keep stretched text until they draw it again, and panels a window placed at the layout's edges at build time (EdgeShift) stay where they were. Go through the windows' Create / builders, give each that bakes edge positions or draws text once a LayoutChanged (build again or draw again), and the Esc menu backdrop a fresh screenshot. Check: render_resize_zone-like captures for each window at 1280x720 and 1000x800."
 
 [[ticket]]
+id = "R43a"
+title = "HLSL as the single shader source: shadercross toolchain in the build, all 21 programs, reflection headers"
+group = "renderer"
+size = 2
+model = "opus"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, tools/gpu_spike). Fetch SDL_shadercross, SPIRV-Cross and DXC with pinned hashes (tools/gpu_spike/fetch_third_party.py) in the main build on Windows and Linux. Port all 21 programs to src/render/shaders/*.hlsl: the spike's seven plus a861650b3's old HLSL for the rest, in SDL's register spaces (VS t/s space0, b space1; FS t/s space2, b space3; TEXCOORD<location> plus vk::location; one-stage code under EI_VERTEX/EI_FRAGMENT). Generate reflection headers (sampler and uniform-block counts, slot names) to replace sokol-shdc's UB_/VIEW_/SMP_/ATTR_. Add a check that creates every program and pipeline on D3D12, Vulkan and lavapipe. The GLSL stays until R43e."
+
+[[ticket]]
+id = "R43b"
+title = "Smooth option without sampling multisampled depth (SDL_GPU has no MSAA sampling or depth resolve)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 1). depth_from_multisampled.glsl reads sample 0 of the world's multisampled depth into the frame target. SDL_GPU cannot sample a multisampled texture and resolves only colour. Options: (a) an R32F colour copy of the depth, resolved (edge pixels get a mean); (b) a second depth-only world pass without MSAA; (c) the later passes into the MSAA target. Decide on render_smooth captures, on sokol first."
+
+[[ticket]]
+id = "R43c"
+title = "Small SDL_GPU blockers on the sokol renderer: border clamp, manual range bilinear, packed vertex slots, no D24S8"
+group = "renderer"
+size = 1
+model = "sonnet"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blockers 2, 3 and 8). Border clamp (render_textures.cpp, address mode 4): find whether game data uses it, then emulate it in the mesh and terrain shaders or drop it. The shadow range RGBA32F's linear filtering is optional on Vulkan: make the receivers do four loads and a lerp. Pack each pipeline's vertex buffer slots from 0, as the casters' 0 and 2 break SDL's D3D12 backend. Replace the one DEPTH_STENCIL target (D24S8, absent on AMD Vulkan and Metal) with D32F or drop its stencil. Captures unchanged or explained."
+
+[[ticket]]
+id = "R43d"
+title = "src/render/gpu.{h,cpp} on SDL_GPU: device, swapchain, upload ring, async download, pipeline cache"
+group = "renderer"
+size = 1.5
+model = "opus"
+depends = ["R43a"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, 'Shape'). The device is made on the start thread (PrepareDevice) and SDL_ClaimWindowForGPUDevice takes the window. Present modes: VSYNC, IMMEDIATE (tearing) and MAILBOX. One command buffer per frame. A cycled transfer-buffer upload ring replaces UpdateBuffer and append. Download(texture, rect) returns a fence ticket. Pipeline cache. Unit-checked on hardware and lavapipe. Not yet used by the game."
+
+[[ticket]]
+id = "R43e"
+title = "The switch: renderer on SDL_GPU; sokol, sokol-shdc, GLSL and platform/graphics.h with its backends deleted"
+group = "renderer"
+size = 3
+model = "opus"
+depends = ["R43a", "R43b", "R43c", "R43d"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md). Move every sg_* in src/render (19 files, 383 calls) onto gpu.h, along with ui_check, perf_check and tests/port/render_check (their WARP device becomes hardware D3D12, or lavapipe on Linux). Decide GpuTimer first: SDL_GPU has no timestamp queries, so the overlay's GPU line goes or becomes a whole-frame fence time. Re-baseline the image suite once. Delete graphics.h, graphics_d3d11.cpp, graphics_gl.cpp, third_party/sokol, EI_SHDC (build.cmd, play.cmd, workflows) and the GLSL. May be split by file group, with the switch in the last part."
+
+[[ticket]]
+id = "R43f"
+title = "CI for the HLSL toolchain: linux.yml and the Suites runner fetch and cache shadercross and DXC; port_render on lavapipe"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R43a"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 6). The toolchain is fetched with pinned hashes and cached. Lavapipe ran the spike under WSLg."
+
+[[ticket]]
+id = "R43g"
+title = "SDL_GPU draw loop and readback costs against the spike's sokol numbers"
+group = "renderer"
+size = 1
+model = "sonnet"
+depends = ["R43e"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, 'Numbers'). The spike's SDL replay rebinds and re-pushes uniforms on every draw: it was level with D3D11 on D3D12 and 15-25% slower on Vulkan. Readback makes a transfer buffer per call and waits. Filter redundant binds and pushes, keep the download buffers, read without stalls, and compare with the spike's tables."
+
+[[ticket]]
+id = "R43h"
+title = "macOS through SDL_GPU's Metal backend (MSL from shadercross)"
+group = "renderer"
+size = 2
+model = "opus"
+depends = ["R43e"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md). Replaces the sokol Metal plan of the MAC3 tickets."
+
+[[ticket]]
+id = "R43i"
+title = "Delete tools/gpu_spike and the EI_GPU_SPIKE option"
+group = "renderer"
+size = 0.25
+model = "sonnet"
+depends = ["R43g"]
+note = "From R43. Once R43g's numbers have replaced the spike's."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
