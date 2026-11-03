@@ -7034,6 +7034,13 @@ depends = ["C76"]
 note = "User 2026-11-03: lots of hand-written x/y work in 2D code (UI layout, hit tests, screen positions). Today: lib/rect.h Point/Size/Rect with USER32-shaped pointer helpers (rects::Set(Rect*,...)), Size uses cx/cy, a second Point/Rect in platform.h and a third Rect in render_rect.h, float Vector2 in vecmath.h with no operators. Do: one Point (int) and one Vector2 (float) with +,-,*scalar,==; Size as w/h or merged into Point; one Rect with value methods (Contains, Intersect, Union, Offset, Width, Height) replacing the rects:: pointer API; platform/render duplicates removed. Then collapse per-component x/y pairs (consecutive .x/.y or left/top assignments, xy scalar pairs) the same way as C74c, ending with the same audit list: converted or a one-line reason. Goldens should stay the same.  Audit (user 2026-11-03): temporarily rename the vector's x/y/z members and build the Linux gcc build with -fmax-errors=0 so every component access is listed; rewrite functions doing the same op on every component, keep single-component uses, leftover list grouped by reason in build/reviews/. The rename is not committed."
 
 [[ticket]]
+id = "C79"
+title = "Disc check and disc prompts deleted"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: all code for physical disc prompts goes. Delete WinMain's disc check and its second-disc boxes (app_main.cpp), the CD-ROM volume label check, platform::VolumeLabel and the AutoPlay event (platform.h, win32, posix, sdl, harness), the disc prompt strings and any 'insert disc' paths, the harness's disc-prompt answer (MessageBox) and the app_disc_prompt scenario and its golden (scenario deleted, not re-recorded). 'CD-ROM Path' stays only as a data folder setting if something still reads data through it; if it always equals the game folder, fold it into the game folder and drop the setting (say which). Docs: core.md / app.md / platform.md lines about the disc check and the EB jump at 00456BB5. Goldens otherwise the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
