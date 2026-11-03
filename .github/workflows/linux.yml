@@ -7,10 +7,13 @@ name: Linux
 on:
   push:
     branches: [main, "claude/**"]
+    paths-ignore: ["docs/**", "**.md"]
   workflow_dispatch:
 
+# Every push to main gets its own run (they go in parallel on GitHub's runners); on other branches a newer push
+# cancels the older run.
 concurrency:
-  group: linux-${{ github.ref }}
+  group: linux-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
