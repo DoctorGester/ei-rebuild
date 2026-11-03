@@ -730,6 +730,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
     if (musicFader.volume == 0) return 1;
     if (streamSample == nullptr) return 0;
     std::lock_guard<std::recursive_mutex> guard(streamLock);
+    endAfterSwitch = false;
     int m = 4;
     if (streamState != 0) {
         m = mode;
@@ -812,6 +813,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
 void SoundManager::StopStream(int mode) {
     if (enabled == 0) return;
     std::lock_guard<std::recursive_mutex> guard(streamLock);
+    endAfterSwitch = false;
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
@@ -831,6 +833,15 @@ void SoundManager::StopStream(int mode) {
             RequestStream(game::kEmptyText, mode);
         }
     }
+}
+
+// A request the stream thread has yet to take (state 2) gets its end-after request from SwitchStream; one it has
+// already taken or turned down gets it now.
+void SoundManager::PlayStreamOnce(std::string_view name) {
+    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    RequestStream(name, 4);
+    if (streamState == 2) endAfterSwitch = true;
+    else StopStream(1);
 }
 
 // --- Stopping everything, wave lengths -------------------------------------------------------
@@ -1145,6 +1156,7 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     if (m->streamFile == nullptr) {
         Silence(m, to, bytes);
         m->streamState = 0;
+        m->endAfterSwitch = false;
         {
             std::lock_guard<std::recursive_mutex> guard(m->nameLock);
             m->streamName = game::kEmptyText;
@@ -1172,6 +1184,7 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
+    if (m->endAfterSwitch.exchange(false)) m->StopStream(1);
 }
 
 } // namespace
@@ -1283,6 +1296,7 @@ SoundManager::~SoundManager() {
 
 void SoundManager::ResetStream() {
     streamState = 0;
+    endAfterSwitch = false;
     streamSample = nullptr;
     streamFile = nullptr;
     for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.clear();

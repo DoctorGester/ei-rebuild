@@ -35,11 +35,17 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   frame, without one on `platform::Milliseconds` from the stream thread, counted to the frame (the game's 7680-frame
   halves free at 175, 349, 523 ms). `MinimumHalfBytes` is 87 ms rounded up to 512 bytes (15360 for 44.1 kHz stereo).
 - **Harness runs open no device** (`UseNoDevice` when EI_HARNESS is set): silent and the same on every machine; ends
-  and the stream run on the harness's clocks exactly as with a device.
+  and the stream run on the harness's clocks exactly as with a device. `EI_HARNESS_SOUND=1` keeps the real device for
+  a run that measures the sound (with `EI_AUDIO_TRACE`, below); not for goldens.
+- **The game thread never waits for the device.** Its calls only take the mixer's lock (held for one mix of a device
+  period); a one-off music file (`PlayStreamOnce`: PlayJingle, the calm music) is requested and its "silence after
+  it" is the stream thread's to ask for as it switches (`endAfterSwitch`; any other request clears it), while
+  `UpdateMusic` chooses nothing until then.
 
 ## The mixer
 
-- SDL3's default playback device, a 32-bit float stereo stream at 44100 Hz whose callback runs our mixer. SDL
+- SDL3's default playback device, a 32-bit float stereo stream at 44100 Hz whose callback runs our mixer (the log
+  names the device, its driver, its rate and its period: WASAPI 441 frames, pulseaudio 768). SDL
   follows a change of the default device; a device that cannot open leaves the game running silently, so logic never
   depends on the sound hardware. The device's name, the first voice and sound, and at the close the voices started and
   the mix's peak go to the debugger's output.
@@ -54,6 +60,24 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   denormals, no cost). Checked: tails fall 60 dB in 2.6-2.7 s of the 3.0 asked, nothing clips that did not clip dry.
 - The stream mixes straight from the caller's halves at each half's format; more than one stream can play (a movie's
   sound takes its own). All mixer state is under one lock; the voices' clock fields are the main thread's.
+
+## How the sound keeps up (EI_AUDIO_TRACE)
+
+With `EI_AUDIO_TRACE=1` the log gets an `audio trace:` line a second: the passes of the main loop (and the longest),
+the game thread's time in the sound's calls a pass (mean and most) and its waits for the mixer's lock, the device's
+requests and frames (the largest, the longest gap between two, the longest mix), how far the sound given runs ahead
+of real time (the device's buffer; a falling value is a device that takes less than real time), and the stream frames
+played as silence for want of a queued half. In a play run set it in the environment; in a harness run add
+`EI_HARNESS_SOUND=1` (both reach the game through run_all), with `realtime` in the scenario for real-time spacing.
+
+Measured 2026-11-03 (the game thread's sound time a pass; the device):
+- Windows, WASAPI (441 frames a period), 35 s of a zone with a jingle every 2.5 s: 0.001 to 0.02 ms mean, at most
+  6 ms (a wave's decoding in SetWave); lock waits at most 0.05 ms; 44100 frames a second, 10 to 19 ms ahead, steady.
+- WSLg, pulseaudio's "RDP Sink" (768 frames a period), the menu and a zone: 0.002 to 0.03 ms mean, at most 1.4 ms;
+  lock waits at most 0.08 ms; 12 to 30 ms ahead until the sink stalls (docs/notes/linux.md, "Sound under WSLg").
+- Before PlayStreamOnce, PlayJingle and the calm music spun on the main thread until the stream thread took the file:
+  127 and 146 ms a request on Windows, 9 to 207 ms on WSLg with a working sink, 874 ms and then for good (the harness's
+  60 s limit) once the sink had stalled.
 
 ## Game side
 
@@ -96,8 +120,7 @@ with fights the number of draws follows how far the stream got, i.e. the machine
 - Tick recomputes a restarted flat sound's level from its saved output level (0..127) as if it were the 0..100 base
   volume: such sounds come back louder.
 - `SetZoneMode` passes the error text to FatalError as the format string.
-- `PlayJingle` and the calm music busy-wait on the main thread until the stream thread takes the request; an empty
-  theme list (`combat` with 0 names) divides by zero.
+- An empty theme list (`combat` with 0 names) divides by zero.
 - `FadeOutStream` / `FadeInStream` / `SetMusicVolume` change the music fader without the stream lock.
 
 ## Movies

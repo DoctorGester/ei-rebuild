@@ -19,12 +19,14 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 #include <mutex>
 #include <string_view>
+#include <thread>
 
 // ==== Waves and MP3 files, read without decoding =====================================================================
 
@@ -419,6 +421,123 @@ float g_peak = 0.0f;
 bool g_heard = false;
 Reverb g_reverb;   // under g_mix
 
+// ---- How the sound keeps up (EI_AUDIO_TRACE) ----
+
+// With EI_AUDIO_TRACE set the log gets a line a second: the game thread's time in the sound's calls per frame and its
+// waits for the mixer's lock, the device's requests, how far the sound given runs ahead of real time (the device's
+// buffer), and the frames a stream played as silence because no half was queued.
+using Clock = std::chrono::steady_clock;
+bool g_trace = false;
+std::thread::id g_mainThread;
+
+double Ms(Clock::duration d) { return std::chrono::duration<double, std::milli>(d).count(); }
+
+// The game thread's side (its own, no lock).
+struct MainHealth {
+    Clock::duration frame{};       // in the sound's calls since the last DeliverEnds
+    Clock::duration total{};       // since the last report
+    Clock::duration longest{};     // the most in one frame
+    Clock::duration longestWait{};
+    unsigned waits = 0;            // times g_mix was taken by the device
+    unsigned frames = 0;
+    Clock::duration longestPass{};
+    Clock::time_point passAt{};
+    Clock::time_point reportedAt{};
+} g_main;
+
+// The device's side (under g_mix).
+struct DeviceHealth {
+    unsigned calls = 0;
+    std::uint64_t frames = 0;      // asked since the last report
+    std::uint32_t largest = 0;     // the most frames in one request
+    Clock::duration longestGap{};  // between two requests
+    Clock::duration longestMix{};
+    std::uint64_t starved = 0;     // stream frames played as silence while it waited for a half
+    std::uint64_t given = 0;       // frames since the first request
+    Clock::time_point first{};
+    Clock::time_point last{};
+} g_deviceHealth;
+
+// g_mix, the time the game thread waits for it and holds it counted when tracing.
+class MixHold {
+public:
+    MixHold() : lock(g_mix, std::defer_lock) {
+        if (!g_trace || std::this_thread::get_id() != g_mainThread) {
+            lock.lock();
+            return;
+        }
+        timed = true;
+        start = Clock::now();
+        if (lock.try_lock()) return;
+        lock.lock();
+        const Clock::duration wait = Clock::now() - start;
+        g_main.longestWait = std::max(g_main.longestWait, wait);
+        ++g_main.waits;
+    }
+    ~MixHold() {
+        if (!timed) return;
+        lock.unlock();
+        g_main.frame += Clock::now() - start;
+    }
+    MixHold(const MixHold&) = delete;
+    MixHold& operator=(const MixHold&) = delete;
+
+private:
+    std::unique_lock<std::mutex> lock;
+    bool timed = false;
+    Clock::time_point start{};
+};
+
+// A call's time on the game thread outside g_mix (a wave's decoding), when tracing.
+class MainTimer {
+public:
+    MainTimer() : timed(g_trace && std::this_thread::get_id() == g_mainThread), start(timed ? Clock::now() : Clock::time_point{}) {}
+    ~MainTimer() {
+        if (timed) g_main.frame += Clock::now() - start;
+    }
+    MainTimer(const MainTimer&) = delete;
+    MainTimer& operator=(const MainTimer&) = delete;
+
+private:
+    bool timed;
+    Clock::time_point start;
+};
+
+// A pass of the main loop ended (DeliverEnds): its sound time counted, and a second's report logged.
+void NoteFrame() {
+    const Clock::time_point now = Clock::now();
+    g_main.total += g_main.frame;
+    g_main.longest = std::max(g_main.longest, g_main.frame);
+    g_main.frame = {};
+    ++g_main.frames;
+    if (g_main.passAt != Clock::time_point{}) g_main.longestPass = std::max(g_main.longestPass, now - g_main.passAt);
+    g_main.passAt = now;
+    if (g_main.reportedAt == Clock::time_point{}) g_main.reportedAt = now;
+    if (now - g_main.reportedAt < std::chrono::seconds(1)) return;
+    DeviceHealth device;
+    {
+        std::lock_guard hold(g_mix);
+        device = g_deviceHealth;
+        g_deviceHealth.calls = 0;
+        g_deviceHealth.frames = 0;
+        g_deviceHealth.largest = 0;
+        g_deviceHealth.longestGap = {};
+        g_deviceHealth.longestMix = {};
+        g_deviceHealth.starved = 0;
+    }
+    const double ahead = device.given == 0 ? 0.0 : static_cast<double>(device.given) * 1000.0 / g_rate - Ms(now - device.first);
+    ei::Log("audio trace: %u frames (longest pass %.1f ms); the game thread in sound %.3f ms a frame, at most %.3f ms, "
+            "%u lock waits (longest %.3f ms); the device %u requests, %llu frames (largest %u, longest gap %.1f ms, "
+            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames",
+            g_main.frames, Ms(g_main.longestPass), g_main.frames != 0 ? Ms(g_main.total) / g_main.frames : 0.0,
+            Ms(g_main.longest), g_main.waits, Ms(g_main.longestWait), device.calls,
+            static_cast<unsigned long long>(device.frames), device.largest, Ms(device.longestGap), Ms(device.longestMix),
+            ahead, static_cast<unsigned long long>(device.starved));
+    g_main = MainHealth{};
+    g_main.passAt = now;
+    g_main.reportedAt = now;
+}
+
 void Mix(float* out, std::uint32_t frames);
 
 // The device wants `additional` more bytes: that many frames mixed and put into its stream (the device's thread).
@@ -427,8 +546,21 @@ void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
     const auto frames = static_cast<std::uint32_t>(additional / (kOutputChannels * static_cast<int>(sizeof(float))));
     if (frames == 0) return;
     mixed.resize(static_cast<std::size_t>(frames) * kOutputChannels);
+    const Clock::time_point start = g_trace ? Clock::now() : Clock::time_point{};
     Mix(mixed.data(), frames);
     SDL_PutAudioStreamData(stream, mixed.data(), static_cast<int>(mixed.size() * sizeof(float)));
+    if (!g_trace) return;
+    const Clock::time_point end = Clock::now();
+    std::lock_guard hold(g_mix);
+    DeviceHealth& h = g_deviceHealth;
+    if (h.given == 0) h.first = start;
+    else h.longestGap = std::max(h.longestGap, start - h.last);
+    h.last = start;
+    ++h.calls;
+    h.frames += frames;
+    h.given += frames;
+    h.largest = std::max(h.largest, frames);
+    h.longestMix = std::max(h.longestMix, end - start);
 }
 
 } // namespace
@@ -438,6 +570,8 @@ void UseNoDevice() { g_noDevice = true; }
 bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     g_open = true;
     g_rate = rate != 0 ? rate : kDefaultRate;
+    g_trace = !platform::EnvironmentVariable("EI_AUDIO_TRACE").empty();
+    g_mainThread = std::this_thread::get_id();
     {
         std::lock_guard hold(g_mix);
         g_reverb.Open(g_rate);
@@ -458,8 +592,13 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
         return true;
     }
     g_deviceLive = true;
-    const char* name = SDL_GetAudioDeviceName(SDL_GetAudioStreamDevice(g_device));
-    ei::Log("audio: %s through %s, %u Hz", name ? name : "the default device", SDL_GetCurrentAudioDriver(), g_rate);
+    const SDL_AudioDeviceID device = SDL_GetAudioStreamDevice(g_device);
+    const char* name = SDL_GetAudioDeviceName(device);
+    SDL_AudioSpec deviceSpec{};
+    int deviceFrames = 0;
+    SDL_GetAudioDeviceFormat(device, &deviceSpec, &deviceFrames);
+    ei::Log("audio: %s through %s, %u Hz; the device %d Hz, %d frames a period", name ? name : "the default device",
+            SDL_GetCurrentAudioDriver(), g_rate, deviceSpec.freq, deviceFrames);
     return true;
 }
 
@@ -592,7 +731,7 @@ void StartTimer(Voice& v) {
 
 // The device plays the voice's wave from its position, with its loops.
 void StartSound(Voice& v) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     Sound& s = v.sound;
     s.next = FrameAt(v.wave, v.position);
     s.loopsLeft = v.loops;
@@ -606,30 +745,31 @@ void StartSound(Voice& v) {
 Voice* CreateVoice() {
     if (!g_open) return nullptr;
     auto* voice = new Voice;
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     g_voices.push_back(voice);
     return voice;
 }
 
 void DestroyVoice(Voice* voice) {
     {
-        std::lock_guard hold(g_mix);
+        MixHold hold;
         std::erase(g_voices, voice);
     }
     delete voice;
 }
 
 void ResetVoice(Voice* voice) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     *voice = Voice{};
 }
 
 void SetWave(Voice* voice, const void* wave, std::size_t size) {
+    const MainTimer timer;
     voice->wave = ReadWaveInfo(wave, size);
     voice->position = 0;
     Sound decoded;
     Decode(wave, size, voice->wave.samples, &decoded);
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     Sound& s = voice->sound;
     s.samples = std::move(decoded.samples);
     s.channels = decoded.channels;
@@ -642,13 +782,13 @@ void SetWave(Voice* voice, const void* wave, std::size_t size) {
 void SetLoopCount(Voice* voice, int count) { voice->loops = count; }
 
 void SetVolume(Voice* voice, int volume) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     voice->sound.volume = volume;
     voice->sound.UpdateGains();
 }
 
 void SetPan(Voice* voice, int pan) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     voice->sound.pan = pan;
     voice->sound.UpdateGains();
 }
@@ -656,7 +796,7 @@ void SetPan(Voice* voice, int pan) {
 // The voice feeds the reverb at `level` (0..1) while `room` and `level` are above 0: the game sets room 0 when the
 // party leaves a cave, the level and time kept. The room and time shape the one reverb every voice shares.
 void SetReverb(Voice* voice, float room, float level, float time) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     const bool on = room > 0.0f && level > 0.0f;
     voice->sound.reverb = on ? std::min(level, 1.0f) : 0.0f;
     voice->sound.UpdateGains();
@@ -671,7 +811,7 @@ void SetPositionMs(Voice* voice, std::uint32_t ms) {
 void SetPosition(Voice* voice, std::int32_t bytes) {
     voice->position = bytes;
     if (voice->running && !voice->stopped) StartTimer(*voice);
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     voice->sound.next = FrameAt(voice->wave, bytes);
     voice->sound.primed = false;
 }
@@ -690,7 +830,7 @@ void Start(Voice* voice) {
 
 void Stop(Voice* voice) {
     {
-        std::lock_guard hold(g_mix);
+        MixHold hold;
         voice->sound.paused = true;
     }
     if (!voice->running || voice->stopped) return;
@@ -702,7 +842,7 @@ void Stop(Voice* voice) {
 
 void Resume(Voice* voice) {
     {
-        std::lock_guard hold(g_mix);
+        MixHold hold;
         voice->sound.paused = false;
     }
     if (!voice->running || !voice->stopped) return;
@@ -713,7 +853,7 @@ void Resume(Voice* voice) {
 
 void End(Voice* voice) {
     voice->running = false;
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     voice->sound.playing = false;
 }
 
@@ -723,6 +863,7 @@ void SetEndCallback(Voice* voice, EndCallback callback, void* user) {
 }
 
 void DeliverEnds(std::uint32_t now) {
+    if (g_trace) NoteFrame();
     std::vector<Voice*> due;
     for (Voice* v : g_voices) {
         if (!v->running || v->stopped || v->forever || static_cast<std::int32_t>(now - v->end) < 0) continue;
@@ -767,6 +908,7 @@ struct Stream {
     std::uint64_t carry = 0;
     Resampler resampler;
     bool primed = false;
+    bool started = false;           // a half has played since the reset (for the trace's starved frames)
 
     // The playing half done with: the other one plays when it is queued.
     void Finish() {
@@ -778,9 +920,11 @@ struct Stream {
     bool Fetch(float frame[2]) {
         while (playing >= 0 && halves[playing].next >= halves[playing].frames) Finish();
         if (playing < 0) {
+            if (started) ++g_deviceHealth.starved;
             frame[0] = frame[1] = 0.0f;
             return true;
         }
+        started = true;
         Half& h = halves[playing];
         const std::size_t at = static_cast<std::size_t>(h.next) * h.channels;
         for (int c = 0; c < 2; ++c) {
@@ -826,14 +970,14 @@ std::vector<Stream*> g_streams;
 Stream* CreateStream() {
     if (!g_open) return nullptr;
     auto* stream = new Stream;
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     g_streams.push_back(stream);
     return stream;
 }
 
 void DestroyStream(Stream* stream) {
     {
-        std::lock_guard hold(g_mix);
+        MixHold hold;
         std::erase(g_streams, stream);
     }
     delete stream;
@@ -846,40 +990,41 @@ int MinimumHalfBytes(unsigned rate, int channels, int bits) {
 }
 
 void ResetStream(Stream* stream) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->halves[0].queued = stream->halves[1].queued = false;
+    stream->started = false;
     stream->playing = -1;
     stream->next = 0;
     stream->stopped = false;
 }
 
 void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->rate = rate;
     stream->channels = channels;
     stream->bits = bits;
 }
 
 void SetStreamVolume(Stream* stream, int volume) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->volume = volume;
     stream->gains = GainsOf(volume, stream->pan, 1.0f);
 }
 
 void SetStreamPan(Stream* stream, int pan) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->pan = pan;
     stream->gains = GainsOf(stream->volume, pan, 1.0f);
 }
 
 int ReadyHalf(Stream* stream) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->Pump(platform::Milliseconds());
     return stream->halves[stream->next].queued ? -1 : stream->next;
 }
 
 void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->Pump(platform::Milliseconds());
     Half& h = stream->halves[half];
     const int frameBytes = std::max(1, stream->channels * stream->bits / 8);
@@ -895,13 +1040,13 @@ void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
 }
 
 void StopStream(Stream* stream) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     stream->Pump(platform::Milliseconds());
     stream->stopped = true;
 }
 
 void ResumeStream(Stream* stream) {
-    std::lock_guard hold(g_mix);
+    MixHold hold;
     if (!stream->stopped) return;
     stream->stopped = false;
     stream->pumpedAt = platform::Milliseconds();

@@ -47,21 +47,17 @@ bool g_fixedDate = false;
 bool IsMainLoopTime() { return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && OnMainThread(); }
 
 // What other threads read. They do not move the clock, but they see time pass while the main thread
-// stands still: the new-game load waits on one of them. PlayJingle / the calm music (sound_music.cpp,
-// WaitAndEndAfter) busy-wait with Sleep(0) on the main thread until the stream thread takes up the
-// next file, and the stream thread does so only when the music fader (on timeGetTime) has finished
-// fading out; on a clock that only the main thread moves that never happened. Nothing those threads
-// time touches game state (the music volume, the cursor's frame).
+// stands still: the new-game load waits on one of them. Nothing those threads time touches game
+// state (the music volume, the cursor's frame).
 //
 // Their clock runs at real time, and jumps ahead to the virtual time when that is further on: from
 // an anchor (their time and the real time it was taken at) moved by the main thread's advances to
 // max(their time then, the new virtual time). It used to be the virtual time plus the real time
 // since the main thread last moved it, never going back: after a long main-thread block (a load, a
 // movie) it was the block's real length ahead of the virtual time and stood still until the main
-// thread's frames caught up (SV1h: the cursor thread's 41 ms steps took 1.5 s), and while it stood
-// still the main thread's music waits waited too, for as long again; on a busy machine, whose
-// frames take more real time than they advance, it never caught up and every wait paid the whole
-// lead again (SV1f: sandbox_map 72-81 s against 17 s on real time).
+// thread's frames caught up (SV1h: the cursor thread's 41 ms steps took 1.5 s); on a busy machine,
+// whose frames take more real time than they advance, it never caught up (SV1f: sandbox_map 72-81 s
+// against 17 s on real time).
 struct Anchor {
     std::uint32_t time;   // the other threads' time
     std::uint32_t real;   // the system's tick count when it was taken
@@ -100,13 +96,9 @@ std::uint32_t OtherThreadsNow() {
     return seen;
 }
 
-// Main-thread sleeps since the last frame (see VirtualSleep).
-int g_sleepsSinceFrame = 0;
-
 std::uint32_t VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
     if (IsMainLoopTime()) {
-        g_sleepsSinceFrame = 0;
         Advance(g_frameMs ? g_frameMs : kUpdatesPerFrame * *g_tickLength);
         // The random trace notes every move of the clock (here, sleeps, timed waits), so two runs show where
         // their virtual times part (SV1g).
@@ -118,14 +110,11 @@ std::uint32_t VirtualGetTickCount() { return OnMainThread() ? g_now.load() : Oth
 
 // The main thread's sleeps take no real time: the clock moves by what they would have waited. Other threads sleep
 // for real (and only read the clock).
-// A main thread that sleeps over and over without a frame between is waiting for another thread (the
-// music's WaitAndEndAfter): a sleep of 0 lets only threads of its own priority run, so on a busy machine
-// the one it waits for may get no time. After the first 50 such sleeps each one sleeps 1 ms for real.
 void VirtualSleep(std::uint32_t ms) {
     if (!OnMainThread()) return sys::SleepMs(ms);
     if (ms) RandomNote("clock +%lu: sleep", static_cast<unsigned long>(ms));
     Advance(ms);
-    sys::SleepMs(++g_sleepsSinceFrame > 50 ? 1 : 0);
+    sys::SleepMs(0);
 }
 
 // ---- Held clocks ("freeze" in a real-time run) ---------------------------------------------------
