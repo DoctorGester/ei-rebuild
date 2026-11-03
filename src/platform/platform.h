@@ -535,19 +535,4 @@ bool LookUp(const char* name, std::uint32_t* ip);
 
 } // namespace net
 
-// ==== Floating point =================================================================================================
-
-// Puts the floating-point control state back at the end of a scope that calls code which may change it (the graphics
-// driver): MXCSR's control bits. Set back only when they changed.
-class FloatingPointGuard {
-public:
-    FloatingPointGuard();
-    ~FloatingPointGuard();
-    FloatingPointGuard(const FloatingPointGuard&) = delete;
-    FloatingPointGuard& operator=(const FloatingPointGuard&) = delete;
-
-private:
-    unsigned int saved;
-};
-
 } // namespace platform

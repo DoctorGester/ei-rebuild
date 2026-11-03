@@ -5,6 +5,7 @@
 #include "render_internal.h"
 
 #include "../platform/log.h"
+#include "../platform/platform.h"
 
 #include "../game/surface.h"
 

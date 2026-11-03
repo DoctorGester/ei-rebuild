@@ -551,9 +551,9 @@ void UploadCachedMeshes(const Frame& f) {
     g_pending.clear();
 }
 
-bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex) {
+bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {
     if (!g_pool.Placed(mesh.place)) return false;
-    g_pool.Bind(b);
+    g_pool.Bind(g);
     *firstIndex = static_cast<int>(mesh.place.firstIndex);
     return true;
 }

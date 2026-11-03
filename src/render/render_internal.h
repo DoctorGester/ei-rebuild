@@ -3,16 +3,12 @@
 // Internals shared by the renderer's files.
 
 #include "render.h"
-#include "sokol_gfx.h"
+#include "render/gpu.h"
 
 #include "lib/vecmath.h"
-#include "platform/graphics.h"
 
-// The shaders' uniform structs, bind slots and descriptions (CMakeLists.txt): after sokol_gfx.h and Matrix4.
-// Their blocks are copied by sg_apply_uniforms, so they are not 16-byte aligned (that would pad the frame's structs
-// that hold them).
-#define SOKOL_SHDC_ALIGN(a)
-#include "shaders/shaders.h"
+// The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
+#include "shaders/gpu_shaders.h"
 
 #include <chrono>
 #include <cstdint>
@@ -25,6 +21,26 @@
 class TextureDevice;
 
 namespace render::detail {
+
+using gpu_shaders::BlitParams;
+using gpu_shaders::CloudParams;
+using gpu_shaders::MeshFsParams;
+using gpu_shaders::MeshLightParams;
+using gpu_shaders::MeshVsParams;
+using gpu_shaders::PerfOverlayParams;
+using gpu_shaders::PointShadowParams;
+using gpu_shaders::PresentParams;
+using gpu_shaders::RectParams;
+using gpu_shaders::SceneLightParams;
+using gpu_shaders::ShadowDilateParams;
+using gpu_shaders::ShadowParams;
+using gpu_shaders::ShadowTerrainFsParams;
+using gpu_shaders::ShadowTerrainVsParams;
+using gpu_shaders::SolidParams;
+using gpu_shaders::TerrainFsParams;
+using gpu_shaders::TerrainVsParams;
+using gpu_shaders::TextureComposeParams;
+using gpu_shaders::UiParams;
 
 // The game's transform pipeline matrices are Matrix4: row-major, out = M * (x, y, z, 1), Direct3D clip
 // space (-w <= x, y <= w, 0 <= z <= w).
@@ -45,7 +61,7 @@ struct StageState {
     std::uint8_t alphaOp = 1, alphaArg1 = 2, alphaArg2 = 1;
     std::uint8_t magFilter = 2, minFilter = 2, mipFilter = 1;     // D3DTFG / D3DTFN / D3DTFP
     std::uint8_t addressU = 1, addressV = 1;                      // D3DTADDRESS_WRAP
-    sg_view texture{};                                            // the bound surface, read at the pass
+    gpu::Texture texture;                                         // the bound surface, read at the pass
     bool hasTexture = false;
 };
 
@@ -53,7 +69,7 @@ struct StageState {
 // `texture` at uv * map.xy + map.zw, kept inside `inside` (the source rectangle less half a texel). All
 // zero: none.
 struct StagePatch {
-    sg_view texture{};
+    gpu::Texture texture;
     float to[4] = {};       // u0, v0, u1, v1
     float map[4] = {};
     float inside[4] = {};   // u0, v0, u1, v1
@@ -88,7 +104,7 @@ struct PassState {
 // The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
 PassState ReadPassState(char* device);
-void ApplyPassState(sg_pipeline_desc& p, const PassState& s);
+void ApplyPassState(gpu::PipelineDesc& p, const PassState& s);
 
 // A terrain page kept on the GPU and one quarter of it drawn in a frame.
 struct CachedPage;
@@ -142,7 +158,7 @@ struct MeshBatch {
 
 // The image is read at the blit.
 struct BlitBatch {
-    sg_view texture;
+    gpu::Texture texture;
     int textureWidth, textureHeight;
     Rect destination;
     Rect source;
@@ -174,13 +190,13 @@ struct Command {
     int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / canvasBatches
 };
 
-// The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.glsl), with
+// The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.hlsli), with
 // the frame's point shadows and the shadow map's light direction.
-static_assert(std::size(scene_light_params_t{}.pointAt) == kMostSceneLights);
-void LightUniforms(scene_light_params_t* params);
+static_assert(std::size(SceneLightParams{}.pointAt) == kMostSceneLights);
+void LightUniforms(SceneLightParams* params);
 // The kept point lights (`counts[0]` of them in pointAt / pointColour). SceneLightIndex: the kept light at
 // `position` exactly (the same Light's), -1 none.
-const scene_light_params_t& KeptSceneLight();
+const SceneLightParams& KeptSceneLight();
 // The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
 bool SceneLightCastsShadows(int k);
 int SceneLightIndex(const Vector3& position);
@@ -191,23 +207,23 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel);
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A figure part lit on the GPU (shaders/mesh.glsl's mesh_light_params): the sun and lights in the part's model
+// A figure part lit on the GPU (shaders/mesh.hlsl's MeshLightParams): the sun and lights in the part's model
 // space, their colours times the material's diffuse colour and the coefficient; the kMostMeshLights nearest the
 // part's origin. A light's pointColour w: the scene's light (SceneLightIndex) + 1, 0 none; drawn: its point shadow
 // + 1, 0 none.
 constexpr int kMostMeshLights = 8;
-static_assert(std::size(mesh_light_params_t{}.pointAt) == kMostMeshLights);
-void MeshLightUniforms(const MeshLighting& lighting, mesh_light_params_t* params);
+static_assert(std::size(MeshLightParams{}.pointAt) == kMostMeshLights);
+void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
 
-// Point-light shadows (shaders/point_shadow.glsl): the receivers' fragment uniforms, the same for the frame. Each
+// Point-light shadows (shaders/point_shadow.hlsli): the receivers' fragment uniforms, the same for the frame. Each
 // light with a map has six faces of kPointFaceTexels in one row of the atlas.
 constexpr int kMostPointShadows = 4;
 constexpr int kPointFaceTexels = 512;
-static_assert(std::size(point_shadow_params_t{}.lights) == kMostPointShadows);
+static_assert(std::size(PointShadowParams{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
-    point_shadow_params_t params{};
+    PointShadowParams params{};
 };
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
@@ -218,7 +234,7 @@ struct ShadowFrame {
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     std::vector<Matrix4> lights;   // each receiving mesh's model space to the map's clip space; [0]: the terrain's
-    shadow_params_t params{};
+    ShadowParams params{};
     PointShadowFrame point;
 };
 
@@ -229,7 +245,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
-    std::vector<mesh_light_params_t> meshLights;   // MeshBatch::lighting
+    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<FillBatch> fills;
@@ -244,7 +260,7 @@ struct Frame {
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
-// Direct3D 7 samples a pixel at its integer screen coordinates, Direct3D 11 half a pixel further right and
+// Direct3D 7 samples a pixel at its integer screen coordinates, today's GPUs half a pixel further right and
 // down: the 3D draws move their clip positions by half a pixel (x by +1 / width, y by -1 / height, times w)
 // so the same screen coordinates get the same pixels, texture coordinates and colours. Set by EndFrame.
     float pixelShift[2] = {0.0f, 0.0f};
@@ -252,6 +268,7 @@ struct Frame {
 };
 extern Frame g_frame;   // the frame being built
 std::uint32_t FrameNumber();
+// Counts the frames' submissions (gpu::Submit at the frame's end).
 std::uint32_t CommitNumber();
 
 // Added when it differs from the last one.
@@ -260,22 +277,21 @@ int AddMatrix(const Matrix4& m);
 void ReadFog(Frame& f);
 TextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
-// sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).
+// The device is started: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();
-// The renderer cannot go on (no device, a sokol panic, a lost device, no swap chain): the reason is logged and shown
-// in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other
-// way to draw: no fallback.
+// The renderer cannot go on (no device, no swap chain): the reason is logged and shown in the game's error box, and
+// the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
-// A lost device (platform::graphics::Lost) ends the game (Fatal): at the end of every presented frame, and when the
-// window's drawable could not be had.
-void CheckDevice();
 
-// `r` on a `width` x `height` target as the rectangle shaders' vertex uniforms (shaders/rect.glsl).
+// `r` on a `width` x `height` target as the rectangle programs' vertex uniforms (shaders/rect_vs.hlsli): block 0
+// of every one of them.
+static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_blit::kBlockRectParams == 0 &&
+              gpu_shaders::texture_compose::kBlockRectParams == 0 && gpu_shaders::texture_mip::kBlockRectParams == 0);
 inline void ApplyRect(const Rect& r, int width, int height) {
-    rect_params_t vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
-                      static_cast<float>(r.bottom)},
-                     {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_apply_uniforms(UB_rect_params, SG_RANGE(vs));
+    const RectParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
+                         static_cast<float>(r.bottom)},
+                        {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
 }
 
 // The top `bits` of a channel value widened to 8 by repeating them (more than 8: the top 8 of them).
@@ -301,11 +317,10 @@ struct Channel {
     std::uint32_t Widen(std::uint32_t pixel) const { return WidenTop((pixel & mask) >> shift, bits); }
 };
 
-sg_image FrameImage();
-sg_view FrameTexture();
+const gpu::Texture& FrameTexture();
 bool FrameSize(int* width, int* height);
-// The frame into the window's drawable through the gamma ramp; PresentWindow, after the frame's commit, shows it.
-// False: nothing to present into / nothing presented.
+// The frame into the swap chain's texture through the gamma ramp; PresentWindow, after the frame's submission (which
+// presents it), counts it. False: nothing to present into / nothing presented.
 bool DrawToWindow();
 bool PresentWindow();
 // The gamma ramp the present applies (256 RGBA8 entries) and how often SetGammaRamp changed it.
@@ -318,23 +333,30 @@ constexpr long kReadBackAlways = 64;
 bool ReadBackDue(long count);
 #endif
 
-// Filled with sg_append_buffer, so a frame can be drawn in several passes; replaced by a larger one when an
-// append does not fit.
+// Appended to between passes (a frame drawn in several passes appends after what it drew from), written from its
+// start again each frame; replaced by a larger one when an append does not fit. Append: the bytes' offset in Buffer()
+// until the next Append (which may replace it), -1 when they could not be written.
 class StreamBuffer {
 public:
     StreamBuffer(bool newIndex, const char* newLabel) : index(newIndex), label(newLabel) {}
     int Append(const void* data, std::size_t bytes);
-    sg_buffer Buffer() const { return buffer; }
+    const gpu::Buffer& Buffer() const { return buffer; }
 
 private:
     bool index;
     const char* label;
-    sg_buffer buffer{};
-    std::size_t capacity = 0;
+    gpu::Buffer buffer;
     std::size_t used = 0;                 // appended since the last commit
     std::uint32_t commit = 0xFFFFFFFFu;   // CommitNumber() of the last append
 };
-void RetireBuffers();
+
+// The buffers a draw reads its corners from: vertex buffers 0.. and the 32-bit indices.
+struct Geometry {
+    gpu::BufferBinding vertices[2];
+    int vertexBuffers = 0;
+    gpu::BufferBinding indices;
+    void Bind() const;
+};
 
 // A frame's vertices and absolute indices on the GPU, appended again when they grew since the frame's last
 // pass.
@@ -343,7 +365,7 @@ public:
     // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
     GeometryStream(const char* label, bool newTerrain) : vertices(false, label), indices(true, label), terrain(newTerrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
-    bool Bind(sg_bindings& b) const;
+    bool Bind(Geometry& g) const;
 
 private:
     StreamBuffer vertices, indices;
@@ -360,9 +382,8 @@ struct PoolPlace {
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
 // stream (kColourPairBytes a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
-// ranges (platform::graphics::UpdateBuffer: sokol writes a buffer only whole). Items are placed one after the
-// other; when one does not fit, the pool starts again (Restart) with the items still needed, larger when they
-// need more than half.
+// ranges. Items are placed one after the other; when one does not fit, the pool starts again (Restart) with the
+// items still needed, larger when they need more than half.
 constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
 class GpuPool {
 public:
@@ -371,20 +392,20 @@ public:
 // Keeps the place when the item still fits there, else places it at the end (`anew`: all of it to write).
 // False when the pool is full.
     bool Place(PoolPlace& p, std::uint32_t vertices, std::uint32_t indices, bool* anew);
-    bool Placed(const PoolPlace& p) const { return p.generation == generation && geometry.buffer.id != 0; }
+    bool Placed(const PoolPlace& p) const { return p.generation == generation && geometry.buffer; }
     void Restart(std::uint64_t vertices, std::uint64_t indices);
     void WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const void* data) const;
     void WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const;
     void WriteIndices(const PoolPlace& p, const std::uint32_t* relative, std::size_t count);
-    void Bind(sg_bindings& b) const;
+    void Bind(Geometry& g) const;
     void Drop();
 
 private:
     struct Buffer {
-        sg_buffer buffer{};
+        gpu::Buffer buffer;
         bool Make(std::size_t bytes, bool index, const char* label);
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
-        void Drop();   // destroyed after the frame's commit
+        void Drop();   // kept by the GPU until the commands using it are done
     };
     std::size_t geometryStride;
     std::uint32_t leastVertices, leastIndices;
@@ -421,7 +442,7 @@ struct TerrainCasterVertex {
 static_assert(sizeof(TerrainCasterVertex) == 24);
 std::size_t TerrainCasterCount();
 void UploadTerrainCasters();
-int DrawTerrainCasters(sg_pipeline pipeline);
+int DrawTerrainCasters(gpu::Pipeline pipeline);
 void TerrainCastersDone();
 
 bool CreateMeshShader();
@@ -431,8 +452,8 @@ void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
 
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
-bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex);
-void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
+bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex);
+void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
 
 // Meshes kept on the GPU (docs/notes/renderer.md section 13). KeepMesh: the mesh being handed over brought up
 // to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
@@ -455,7 +476,7 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& mesh);
 // meshes ever share one (render_point_shadows.cpp keeps faces drawn from them).
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
-bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex);
+bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex);
 void MeshCacheFrameDone();
 const void* MeshSourceOwner();
 const MeshLighting* MeshSourceLighting();
@@ -465,15 +486,15 @@ Vector3 CornerNormal(const MeshDraw& mesh, int index);
 // Object shadows (docs/notes/renderer.md section 13). PrepareShadows, once a frame before its first pass on
 // the world: fits the map around the visible ground seen from the sun and gives every receiving batch its
 // light matrix; DrawShadowMap draws the casters and the depth range per cell. Receivers include
-// shaders/shadow_receiver.glsl, take its shadow_params (ShadowUniforms: all zero, no shadow, unless `receives`) and
-// bind the map (or a cleared 1 x 1 one) and its depth range per cell with BindShadowMap.
+// shaders/shadow_receiver.hlsli, take its ShadowParams (ShadowUniforms: all zero, no shadow, unless `receives`) and
+// bind the map (or a cleared 1 x 1 one) at `mapSlot` and its depth range per cell after it with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-const shadow_params_t& ShadowUniforms(const Frame& frame, bool receives);
-void BindShadowMap(sg_bindings& b);
+const ShadowParams& ShadowUniforms(const Frame& frame, bool receives);
+void BindShadowMap(int mapSlot);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
 // in world units (0 without the map).
-inline float ShadowNormalOffset(const shadow_params_t& shadow) {
+inline float ShadowNormalOffset(const ShadowParams& shadow) {
     if (!(shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)) return 0.0f;
     return shadow.scale[0] * 2.0f / shadow.soft[3] * 1.5f;
 }
@@ -481,10 +502,10 @@ inline float ShadowNormalOffset(const shadow_params_t& shadow) {
 // ground drawn.
 bool WorldCamera(const Frame& frame, Matrix4* clip, Vector3* eye);
 // NoShadowTexture: 1 x 1 at the far plane, for a receiver drawn without a map.
-bool MakeShadowDepth(int width, int height, const char* label, sg_image* image, sg_view* attachment, sg_view* texture);
-sg_sampler ShadowCompareSampler();
-sg_view NoShadowTexture();
-// The casters' draws into a depth map (shaders/shadow_caster.glsl), the sun's and the point lights'. Each draw's
+gpu::Texture MakeShadowDepth(int width, int height, const char* label);
+gpu::Sampler ShadowCompareSampler();
+const gpu::Texture& NoShadowTexture();
+// The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
 // own data (CasterInstance) goes into one instance buffer uploaded once a pass and is read at the draw's first
 // instance; the draws are sorted by what they bind (a depth map does not depend on the order its casters are
 // drawn in) and the pipeline and bindings are applied only when they change.
@@ -497,32 +518,33 @@ static_assert(sizeof(CasterInstance) == 80, "the instance layout in CasterDraws'
 class CasterDraws {
 public:
     explicit CasterDraws(const char* label) : instances(false, label) {}
-    // A draw of `indexCount` indices from `firstIndex` in the buffers `geometry` binds (BindMeshBatch,
-    // BindCachedMesh; `kept`: the kept meshes' pool, MeshLayout's `cached`).
-    void Add(const sg_bindings& geometry, bool kept, sg_view texture, sg_sampler sampler, int firstIndex, int indexCount,
-             const CasterInstance& instance);
+    // A draw of `indexCount` indices from `firstIndex` in the buffers of `geometry` (BindMeshBatch, BindCachedMesh;
+    // `kept`: the kept meshes' pool, MeshLayout's `cached`).
+    void Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler, int firstIndex,
+             int indexCount, const CasterInstance& instance);
     std::size_t Count() const { return draws.size(); }
     // Sorts the draws in [from, to) by what they bind.
     void Sort(std::size_t from, std::size_t to);
-    // Uploads the instances, before the pass's first Draw (whose pipeline and bindings are then applied anew);
-    // false when they could not be (nothing is drawn).
+    // Uploads the instances, before the pass (whose first Draw applies the pipeline and bindings anew); false when
+    // they could not be (nothing is drawn).
     bool Upload();
     void Draw(std::size_t from, std::size_t to);
     void Clear();
 
 private:
     struct Entry {
-        sg_buffer vertices, indices;   // the positions (MeshLayout's buffer 0; the colours are not read)
-        int vertexOffset, indexOffset;
-        sg_view texture;
-        sg_sampler sampler;
+        gpu::BufferBinding vertices, indices;   // the positions (MeshLayout's buffer 0; the colours are not read)
+        gpu::TextureBinding texture;
         int kept;
         int firstIndex, indexCount;
         int instance;   // in instanceData
     };
     // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
     static auto BindingKey(const Entry& e) {
-        return std::make_tuple(e.kept, e.texture.id, e.sampler.id, e.vertices.id, e.vertexOffset, e.indices.id, e.indexOffset);
+        return std::make_tuple(e.kept, reinterpret_cast<std::uintptr_t>(e.texture.texture.texture),
+                               reinterpret_cast<std::uintptr_t>(e.texture.sampler.sampler),
+                               reinterpret_cast<std::uintptr_t>(e.vertices.buffer.buffer), e.vertices.offset,
+                               reinterpret_cast<std::uintptr_t>(e.indices.buffer.buffer), e.indices.offset);
     }
     std::vector<Entry> draws;
     std::vector<CasterInstance> instanceData;
@@ -536,14 +558,12 @@ private:
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
-void BindPointShadows(sg_bindings& b);
+void BindPointShadows(int slot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
-// The object whose meshes are being handed over. ShadowFrameEnd: the frame's passes are recorded (the harness
-// build's GPU time); ShadowFrameDone: the frame is presented.
+// The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const void* CurrentCaster();
 bool CurrentCasterFigure();
 void NoteCasterPart(const void* part);
-void ShadowFrameEnd();
 void ShadowFrameDone();
 
 // The movies' blits, the depth clear in the middle of the pass and the movie player's fill.
@@ -551,7 +571,6 @@ bool CreateBlitPipeline();
 void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
-void RetireFrameImages();
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
 void ShowFrameCursor();
 // The holder is gone: the cursor shapes made from its picture let go.
@@ -576,9 +595,10 @@ private:
     long long start;
     StatsTimer* outer;
 };
-// CountPipeline: a change when it differs from the last one applied in the frame.
-void CountPipeline(sg_pipeline pipeline);
-void CountBindings(const sg_bindings& b);
+// CountPipeline: a change when it differs from the last one applied in the frame; CountBindings: a texture change
+// when the first texture bound differs from the last.
+void CountPipeline(gpu::Pipeline pipeline);
+void CountBindings(const gpu::Texture& first);
 void CountDraw(std::size_t uniformBytes);
 void CountUpload(FrameStats::Upload kind, std::size_t bytes);
 // Against the last frame's vertices for the same key (a terrain page: sector and page; a mesh: its positions,
@@ -602,10 +622,10 @@ void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
 
-// A Texture or a texture's holder (Surface) as a texture view with its mip levels: what was decoded or drawn for it;
-// white when there is none. Valid until the next Present.
-sg_view TextureView(const void* texture);
-sg_view SurfaceView(const void* holder);
+// A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
+// when there is none. Valid until the next Present.
+const gpu::Texture& TextureView(const void* texture);
+const gpu::Texture& SurfaceView(const void* holder);
 // render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 void ForgetHolder(const void* holder);
@@ -616,9 +636,9 @@ struct Picture {
 };
 bool PictureFromMmpData(const void* holder, const void* data);
 const Picture* PictureOf(const void* holder);
-sg_sampler LinearSampler();
+gpu::Sampler LinearSampler();
 // A 1x1 white texture.
-sg_view WhiteView();
+const gpu::Texture& WhiteView();
 
 // Textures the game builds from images on the GPU (render::ComposeTexture; render_compose.cpp): an image
 // decoded to premultiplied RGBA8 rows from the top. False (nothing decoded) for an image without pixels or too large.
@@ -648,48 +668,47 @@ struct ComposeShape {
     int firstLevel = 0;          // the first level the texture shows
     BlankAlpha alpha = BlankAlpha::Full;   // what is drawn keeps of the alpha (None: cleared to opaque black)
 };
-// The image of `shape` made with `steps` drawn into it, with a view of the levels it shows; false (nothing made) on
-// failure.
-bool MakeComposed(const ComposeShape& shape, const ComposeStep* steps, std::size_t count, sg_image* image, sg_view* view);
-// More steps drawn into an image MakeComposed made for `shape` (its levels made again).
-void DrawComposed(const ComposeShape& shape, sg_image image, const ComposeStep* steps, std::size_t count);
+// The texture of `shape` made with `steps` drawn into it: the levels it shows (from shape.firstLevel on, copied out
+// of a full-size image when that is above 0); empty (nothing made) on failure.
+gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
+// More steps drawn into a texture MakeComposed made for `shape` (of first level 0; its levels made again).
+void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const ComposeStep* steps, std::size_t count);
 #if defined(EI_RENDER_VALIDATION)
-// Level `level` (`width` x `height`) of a texture image as RGBA8 rows from the top, as the GPU reads it (drawn texel
-// for texel into a target and read back): render::CheckMmpLevels's levels. No pass in progress.
-bool ReadImageLevel(sg_image image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
+// Level `level` (`width` x `height`) of a texture as RGBA8 rows from the top, as the GPU reads it (drawn texel for
+// texel into a target and read back): render::CheckMmpLevels's levels. No pass in progress.
+bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
 #endif
 // render::ComposeTexture's and BlankTexture's entry for `holder` (render_textures.cpp): `shape` made with `steps`.
 bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
-sg_sampler StageSampler(const StageState& stage);
+gpu::Sampler StageSampler(const StageState& stage);
 // Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
 // stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render
 // quality's anisotropy for the world's models when it is above 1.
 constexpr std::uint32_t kMostAnisotropy = 16;
-sg_sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
-// After a present: images replaced during the frame destroyed, entries unused for a long time dropped.
+gpu::Sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
+// After a present: textures replaced during the frame released, entries unused for a long time dropped.
 void RetireTextures();
 
-constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
-constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
+constexpr gpu::Format kColourFormat = gpu::Format::Rgba8;
+constexpr gpu::Format kDepthFormat = gpu::Format::Depth32Float;
 
 // The render quality's multisampling (docs/notes/renderer.md section 11): the world commands are drawn into a
 // multisampled target resolved into the frame target. PassSampleCount: the sample count of the pass being
 // drawn; every pipeline drawing into it is made for it.
 int PassSampleCount();
 constexpr int kSmoothSamples = 8;   // the most the render quality asks for
-// The multisampled target's second colour attachment: each fragment's depth, written where the depth is (the
-// depth itself cannot be read back from a multisampled target), resolved into a plain texture.
-constexpr sg_pixel_format kDepthCopyFormat = SG_PIXELFORMAT_R32F;
-// A pipeline made for more than one sample: that attachment added, written when `p` writes the depth.
-void AddDepthCopy(sg_pipeline_desc& p);
+// The multisampled target's second colour target: each fragment's depth, written where the depth is (a
+// multisampled depth cannot be resolved or sampled), resolved into a plain texture.
+constexpr gpu::Format kDepthCopyFormat = gpu::Format::R32Float;
+// A pipeline made for more than one sample: that target added, written when `p` writes the depth.
+void AddDepthCopy(gpu::PipelineDesc& p);
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample (and the
 // depth into the depth copy's).
-void CopyIntoMultisampled(sg_view colour, sg_view depth);
+void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth);
 // Inside a pass on the frame target: its depth set from the resolved depth copy; the colour comes from the
 // multisampled pass's resolve.
-void CopyDepthFromResolved(sg_view depth);
-void DestroySmooth();
+void CopyDepthFromResolved(const gpu::Texture& depth);
 
 } // namespace render::detail

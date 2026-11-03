@@ -389,46 +389,41 @@ GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-sg_shader g_shader{};
-std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
+std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;   // by PassState::PipelineKey
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
 // state the old path draws the page with. The ground pass runs under the terrain's state
 // block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
 // water pass under the scene's; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
-sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
+gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
+    namespace program = gpu_shaders::terrain;
+    gpu::PipelineDesc p;
+    p.program = program::kIndex;
+    p.bufferCount = 2;
+    p.buffers[0].stride = sizeof(PageVertex);
+    p.buffers[1].stride = kColourPairBytes;
+    p.attributeCount = 6;
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
+    p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, 0};
+    p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, 4};
+    p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
+    p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
+    p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
+    ApplyPassState(p, s);
+    p.samples = samples;
+    AddDepthCopy(p);
+    return p;
+}
+
+// TerrainDesc's pipeline, kept by the state and the sample count.
+gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
     int samples = PassSampleCount();
     std::uint32_t key = s.PipelineKey() | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
-    sg_pipeline_desc p{};
-    p.shader = g_shader;
-    p.layout.buffers[0].stride = sizeof(PageVertex);
-    p.layout.buffers[1].stride = kColourPairBytes;
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[1].buffer_index = 1;
-    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[1].offset = 0;
-    p.layout.attrs[2].buffer_index = 1;
-    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[2].offset = 4;
-    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
-    p.layout.attrs[3].offset = 12;
-    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[4].offset = 20;
-    p.layout.attrs[5].format = SG_VERTEXFORMAT_FLOAT;
-    p.layout.attrs[5].offset = 32;
-    p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-    ApplyPassState(p, s);
-    p.sample_count = samples;
-    AddDepthCopy(p);
-    p.label = "ei-terrain";
-    sg_pipeline pipeline = sg_make_pipeline(&p);
-    if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID)
-        ei::Log("render: a terrain pipeline could not be created (state key %08X; see the sokol messages above)", key);
+    gpu::Pipeline pipeline = gpu::MakePipeline(TerrainDesc(s, samples), "ei-terrain");
+    if (!pipeline) ei::Log("render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)", key);
 #if defined(EI_RENDER_VALIDATION)
     ei::Log("render: terrain pipeline (first for a %s page): blend %d (%u, %u), depth test %d write %d func %u, cull %u",
             water ? "water" : "ground", s.blend ? 1 : 0, s.sourceBlend, s.destBlend, s.depthTest ? 1 : 0, s.depthWrite ? 1 : 0, s.depthFunc, s.cull);
@@ -442,42 +437,27 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
 
 TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
 
-struct LevelImage {
-    int width, height, levels;
-    sg_image image;
-    sg_view view;
-};
-std::vector<LevelImage> g_levelImages;
+// A texture of the page texture's size and levels, each level one grey (level k: 32 k).
+std::vector<gpu::Texture> g_levelImages;
 
-sg_view LevelView(sg_view page) {
-    sg_image image = sg_query_view_image(page);
-    if (!image.id) return sg_view{};
-    int width = sg_query_image_width(image), height = sg_query_image_height(image);
-    int levels = sg_query_image_num_mipmaps(image);
-    for (const LevelImage& l : g_levelImages)
-        if (l.width == width && l.height == height && l.levels == levels) return l.view;
-    if (width <= 0 || height <= 0 || levels <= 0 || levels > SG_MAX_MIPMAPS) return sg_view{};
-    std::vector<std::vector<std::uint8_t>> pixels(static_cast<std::size_t>(levels));
-    sg_image_desc d{};
-    d.width = width;
-    d.height = height;
-    d.num_mipmaps = levels;
-    d.pixel_format = SG_PIXELFORMAT_RGBA8;
-    d.label = "ei-terrain-levels";
+gpu::Texture LevelView(const gpu::Texture& page) {
+    if (!page) return gpu::Texture{};
+    const int width = page.width, height = page.height, levels = page.levels;
+    for (const gpu::Texture& l : g_levelImages)
+        if (l.width == width && l.height == height && l.levels == levels) return l;
+    if (width <= 0 || height <= 0 || levels <= 0) return gpu::Texture{};
+    gpu::Texture t = gpu::MakeTexture({width, height, levels, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-terrain-levels"});
+    if (!t) return t;
+    std::vector<std::uint8_t> level;
     for (int k = 0; k < levels; ++k) {
         int w = (width >> k) > 0 ? width >> k : 1, h = (height >> k) > 0 ? height >> k : 1;
         auto grey = static_cast<std::uint8_t>(k * 32 < 255 ? k * 32 : 255);
-        auto& level = pixels[static_cast<std::size_t>(k)];
         level.assign(static_cast<std::size_t>(w) * h * 4, grey);
         for (std::size_t i = 3; i < level.size(); i += 4) level[i] = 255;
-        d.data.mip_levels[k] = sg_range{level.data(), level.size()};
+        gpu::Write(t, k, {0, 0, w, h}, level.data(), static_cast<std::size_t>(w) * 4);
     }
-    LevelImage l{width, height, levels, sg_make_image(&d), sg_view{}};
-    sg_view_desc v{};
-    v.texture.image = l.image;
-    l.view = sg_make_view(&v);
-    g_levelImages.push_back(l);
-    return l.view;
+    g_levelImages.push_back(t);
+    return t;
 }
 #endif
 
@@ -561,14 +541,20 @@ bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
 
 namespace detail {
 
+// The program checked at the start: a pipeline of it made (gpu.h keeps it).
 bool CreateTerrainShader() {
-    g_shader = sg_make_shader(terrain_shader_desc(sg_query_backend()));
-    bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the terrain shader could not be created (see the sokol messages above)");
+    bool ok = static_cast<bool>(gpu::MakePipeline(TerrainDesc(PassState{}, 1), "ei-terrain"));
+    if (!ok) ei::Log("render: the terrain pipeline could not be created (see the gpu messages above)");
     return ok;
 }
 
 void UploadTerrain(const Frame& f) {
+#if defined(EI_RENDER_VALIDATION)
+    // The level maps are written here, before the scene's pass (gpu.h refuses writes inside one).
+    if (g_levelMode != TerrainLevelMode::Off)
+        for (const TerrainBatch& batch : f.terrainBatches)
+            if (!batch.water) LevelView(TextureView(batch.texture));
+#endif
     if (g_pending.empty()) return;
     StatsTimer timer(&FrameStats::terrainMs);
     bool placed = true;
@@ -590,58 +576,59 @@ void UploadTerrain(const Frame& f) {
 }
 
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
+    namespace program = gpu_shaders::terrain;
     if (batch.pieceCount <= 0) return;
-    sg_bindings b{};
-    g_pool.Bind(b);
-    if (!b.vertex_buffers[0].id) return;
-    sg_pipeline pipeline = Pipeline(batch.state, batch.water);
-    if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
-    sg_apply_pipeline(pipeline);
+    Geometry g;
+    g_pool.Bind(g);
+    if (!g.vertices[0].buffer) return;
+    gpu::Pipeline pipeline = Pipeline(batch.state, batch.water);
+    if (!pipeline) return;
+    gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    b.views[0] = TextureView(batch.texture);
-    b.samplers[0] = AnisotropicSampler(batch.state.stages[0], kMostAnisotropy);
+    g.Bind();
+    gpu::TextureBinding texture{TextureView(batch.texture), AnisotropicSampler(batch.state.stages[0], kMostAnisotropy)};
     float mode = batch.water ? 1.0f : 0.0f;
 #if defined(EI_RENDER_VALIDATION)
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {
-        sg_view levels = LevelView(b.views[0]);
-        if (levels.id) {
-            b.views[0] = levels;
-            if (g_levelMode == TerrainLevelMode::PointMips) b.samplers[0] = LinearSampler();
+        gpu::Texture levels = LevelView(texture.texture);
+        if (levels) {
+            texture.texture = levels;
+            if (g_levelMode == TerrainLevelMode::PointMips) texture.sampler = LinearSampler();
             mode = 2.0f;
         }
     }
 #endif
-    BindShadowMap(b);
-    BindPointShadows(b);
-    sg_apply_bindings(&b);
-    CountBindings(b);
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
+    BindShadowMap(program::kSamplerShadowMap);
+    BindPointShadows(program::kSamplerPointShadowMap);
+    CountBindings(texture.texture);
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    const shadow_params_t& shadow = ShadowUniforms(f, receives);
-    terrain_vs_params_t vs{};
+    const ShadowParams& shadow = ShadowUniforms(f, receives);
+    TerrainVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     vs.light = receives ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
-    terrain_fs_params_t fs{};
+    TerrainFsParams fs{};
     fs.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-    scene_light_params_t light;
+    SceneLightParams light;
     LightUniforms(&light);
-    sg_apply_uniforms(UB_terrain_vs_params, SG_RANGE(vs));
-    sg_apply_uniforms(UB_terrain_fs_params, SG_RANGE(fs));
-    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
-    sg_apply_uniforms(UB_scene_light_params, SG_RANGE(light));
-    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
+    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
     std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;
-        sg_draw(static_cast<int>(first), static_cast<int>(count), 1);
+        gpu::DrawIndexed(first, count);
         CountDraw(uniformBytes);
         uniformBytes = 0;
     };
@@ -803,7 +790,6 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
     {
-        platform::FloatingPointGuard fpu;
         state = ReadPassState(nullptr);
     }
     if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
@@ -832,7 +818,6 @@ void ShadowTerrainSector(const SectorData* s) {
     c.seen = FrameNumber();
     c.cast = false;
     if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
-        platform::FloatingPointGuard fpu;
         BuildCaster(s, c);
         c.positions = s->vertices.data();
         c.sx = s->sx;
@@ -880,18 +865,18 @@ void UploadTerrainCasters() {
     }
 }
 
-int DrawTerrainCasters(sg_pipeline pipeline) {
+int DrawTerrainCasters(gpu::Pipeline pipeline) {
     if (g_frameCasters.empty()) return 0;
-    sg_bindings b{};
-    g_casterPool.Bind(b);
-    b.vertex_buffers[1] = sg_buffer{};   // the colours: not read
-    if (!b.vertex_buffers[0].id) return 0;
-    sg_apply_pipeline(pipeline);
-    sg_apply_bindings(&b);
+    Geometry g;
+    g_casterPool.Bind(g);
+    g.vertexBuffers = 1;   // the colours: not read
+    if (!g.vertices[0].buffer) return 0;
+    gpu::ApplyPipeline(pipeline);
+    g.Bind();
     int draws = 0;
     for (const SectorCaster* c : g_frameCasters) {
         if (!g_casterPool.Placed(c->place)) continue;
-        sg_draw(static_cast<int>(c->place.firstIndex), static_cast<int>(g_gridIndices.size()), 1);
+        gpu::DrawIndexed(c->place.firstIndex, static_cast<std::uint32_t>(g_gridIndices.size()));
         ++draws;
     }
     return draws;

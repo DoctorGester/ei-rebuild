@@ -32,15 +32,15 @@ def checks(out):
         py + [tool('gen_settings_doc.py'), '--check'],
         # Checks of our code without the game: the settings file, lib::HashMap's order (tests/unit).
         [os.path.join(out, 'ei_unit_check.exe')],
-        # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
+        # The interface canvases (src/render/render_ui) on the GPU (Direct3D 12) against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
         # The SDL backend's keys against Windows' layouts (tools/input_check).
         [os.path.join(out, 'ei_input_check.exe')],
-        # The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps
+        # The performance overlay (src/render/render_perf) on the GPU (Direct3D 12): text, pixels, the frame's GPU time
         # (tools/perf_check).
         [os.path.join(out, 'ei_perf_check.exe')],
-        # The HLSL programs against the GLSL's interfaces, and made with their pipelines on Direct3D 12 and Vulkan
-        # (tools/shader_check; a driver without a device is skipped).
+        # The HLSL programs made with their pipelines on Direct3D 12 and Vulkan (tools/shader_check; a driver without
+        # a device is skipped).
         [os.path.join(out, 'ei_shader_check.exe')],
         # The renderer's SDL_GPU layer (src/render/gpu.cpp) on Direct3D 12 and Vulkan: resources, writes and downloads,
         # draws in order, the swap chain on a small window off the screen (tools/gpu_check).

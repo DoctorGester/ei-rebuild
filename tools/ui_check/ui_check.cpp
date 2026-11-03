@@ -1,9 +1,9 @@
 // Offline check of the interface canvases (src/render/render_ui, ticket N1; docs/notes/ui-native.md).
 //
-//   ei_ui_check [--hardware] [--verbose]
+//   ei_ui_check [--verbose]
 //
-// Runs render_ui's commands on a Direct3D 11 WARP device (--hardware: the default adapter) without the
-// game, playing render.cpp's part itself (the frame, its target, SplitFrame, RunCanvasesNow), and
+// Runs render_ui's commands on the renderer's GPU (render/gpu.h: Direct3D 12) without the game, playing
+// render.cpp's part itself (the frame, its target, SplitFrame, RunCanvasesNow, the commits), and
 // compares every canvas pixel exactly:
 //   gdi     fills, frames, lines (1 and 2 px, horizontal and vertical) and pixels against GDI drawing the
 //           same into a DIB section of each surface format (5:6:5, 5:5:5, 8:8:8); diagonal lines are
@@ -19,9 +19,10 @@
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
 //           first, so the blit shows the canvas as it was.
-// Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
+// Any ei::Log line but the device's own (gpu.h's misuses among them) fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include "render/glyph_cases.h"
+#include "render/gpu.h"
 #include "render/render_internal.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
@@ -30,7 +31,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <d3d11.h>
 #include <random>
 #include <string>
 #include <vector>
@@ -39,6 +39,7 @@
 namespace ui = render::ui;
 namespace text = render::text;
 namespace detail = render::detail;
+namespace gpu = render::gpu;
 using glyph_cases::Differ;
 using glyph_cases::Format;
 using glyph_cases::kFormats;
@@ -48,41 +49,45 @@ using glyph_cases::RefTopBits;
 namespace {
 
 bool g_verbose = false;
-int g_problems = 0;   // sokol messages and ei::Log lines
+int g_problems = 0;   // ei::Log lines
 
 // ---- The host: what render.cpp gives render_ui.cpp -----------------------------------------------------
 
-sg_view g_frameTexture{};   // CopyFrame's source
+gpu::Texture g_frameTexture;   // CopyFrame's source
 int g_frameWidth = 0, g_frameHeight = 0;
 int g_splits = 0;
+std::uint32_t g_commits = 0;
 
 // The frame's target for the blits (with depth: the canvas blit's pipeline is the frame pass's).
-sg_image g_target{}, g_targetDepth{};
-sg_view g_targetColour{}, g_targetDepthView{};
+gpu::Texture g_target, g_targetDepth;
 int g_targetWidth = 160, g_targetHeight = 120;
 std::size_t g_drawnCommands = 0;
 int g_passes = 0;
-const sg_color kTargetClear{40.0f / 255.0f, 50.0f / 255.0f, 60.0f / 255.0f, 1.0f};
 constexpr std::uint32_t kTargetClearRgb = 0x28323C;
+
+// render.cpp's EndFrame: the commands sent (the stream buffers are written from their start again).
+void Commit() {
+    gpu::Submit();
+    ++g_commits;
+}
 
 // render.cpp's DrawPending: the canvases' queue first, then the frame's commands not drawn yet.
 void DrawTestFrame() {
     detail::RunCanvasCommands();
     if (g_passes > 0 && g_drawnCommands == detail::g_frame.commands.size()) return;
-    sg_pass pass{};
-    pass.action.colors[0].load_action = g_passes == 0 ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.colors[0].clear_value = kTargetClear;
-    pass.action.depth.load_action = g_passes == 0 ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.depth.clear_value = 1.0f;
-    pass.attachments.colors[0] = g_targetColour;
-    pass.attachments.depth_stencil = g_targetDepthView;
-    sg_begin_pass(&pass);
+    gpu::PassDesc pass;
+    pass.colour.texture = g_target;
+    pass.colour.load = g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep;
+    const float clear[4] = {40.0f / 255.0f, 50.0f / 255.0f, 60.0f / 255.0f, 1.0f};
+    std::copy(std::begin(clear), std::end(clear), pass.colour.clear);
+    pass.depth = {g_targetDepth, 0, g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
+    if (!gpu::BeginPass(pass)) return;
     for (std::size_t k = g_drawnCommands; k < detail::g_frame.commands.size(); ++k) {
         const detail::Command& c = detail::g_frame.commands[k];
         if (c.kind == detail::Command::Canvas)
             detail::DrawCanvasBatch(detail::g_frame.canvasBatches[static_cast<std::size_t>(c.index)], g_targetWidth, g_targetHeight);
     }
-    sg_end_pass();
+    gpu::EndPass();
     ++g_passes;
     g_drawnCommands = detail::g_frame.commands.size();
     detail::CanvasBlitsDrawn();
@@ -91,13 +96,6 @@ void DrawTestFrame() {
 void LogLine(const char* prefix, const char* text) {
     ++g_problems;
     std::printf("  %s%s\n", prefix, text);
-}
-
-void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line, const char*, void*) {
-    char buffer[1024];
-    std::snprintf(buffer, sizeof buffer, "%s level %u item %u (line %u): %s", tag ? tag : "sg", level, item, line, message ? message : "");
-    // sokol's note that a feature level 11.0 device has eight UAV slots (none are used here) is not a problem.
-    if (level <= 2 && item != SG_LOGITEM_D3D11_FEATURE_LEVEL_0_DETECTED) LogLine("sokol: ", buffer);
 }
 
 } // namespace
@@ -116,16 +114,19 @@ void Log(const char* fmt, ...) {
 namespace render {
 namespace detail {
 Frame g_frame;
-sg_view FrameTexture() { return g_frameTexture; }
+FrameStats g_stats;   // render_buffers.cpp's counts (the canvases' vertex stream)
+const gpu::Texture& FrameTexture() { return g_frameTexture; }
 bool FrameSize(int* width, int* height) {
     *width = g_frameWidth;
     *height = g_frameHeight;
-    return g_frameTexture.id != 0;
+    return static_cast<bool>(g_frameTexture);
 }
 int PassSampleCount() { return 1; }
+std::uint32_t CommitNumber() { return g_commits; }
+std::uint32_t FrameNumber() { return g_commits; }
 void SplitFrame() {
     ++g_splits;
-    if (g_target.id) DrawTestFrame();   // before CheckFrame there is no frame: "between frames"
+    if (g_target) DrawTestFrame();   // before CheckFrame there is no frame: "between frames"
 }
 void RunCanvasesNow() { RunCanvasCommands(); }
 } // namespace detail
@@ -313,7 +314,7 @@ void CheckGdi() {
         int diagonal = CompareWithGdi(f, Shape::Diagonal, 100, 777u, &example);
         std::printf("  report %s %s: %d of %d pixels differ from GDI (not gated)\n", f.name, ShapeName(Shape::Diagonal), diagonal, 61 * 47);
     }
-    sg_commit();
+    Commit();
 }
 
 // ---- grey: 005FE440 -------------------------------------------------------------------------------------------
@@ -353,7 +354,7 @@ void CheckGrey() {
         Check(!before.empty() && after.size() == before.size() && differ == 0, std::string(f.name) + " greyscale: " + std::to_string(differ) + " pixels differ from 005FE440's");
         ui::DropCanvas(holder);
     }
-    sg_commit();
+    Commit();
 }
 
 // ---- image: Image ----------------------------------------------------------------------------------------------
@@ -383,13 +384,12 @@ void CheckImage() {
         Check(differ == 0, std::string(f.name) + " image, clipped: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
         ui::DropCanvas(holder);
     }
-    sg_commit();
+    Commit();
 }
 
 // ---- copy: CopyFrameTo's screen copy ----------------------------------------------------------------------------
 
 std::vector<std::uint8_t> g_frameRgba;
-sg_image g_frameImage{};
 
 void MakeFrameTexture() {
     g_frameWidth = 200;
@@ -397,15 +397,9 @@ void MakeFrameTexture() {
     std::mt19937 random(4242);
     g_frameRgba.resize(static_cast<std::size_t>(g_frameWidth) * g_frameHeight * 4);
     for (std::size_t i = 0; i < g_frameRgba.size(); ++i) g_frameRgba[i] = static_cast<std::uint8_t>(i % 4 == 3 ? 255 : random() & 0xFF);
-    sg_image_desc d{};
-    d.width = g_frameWidth;
-    d.height = g_frameHeight;
-    d.pixel_format = SG_PIXELFORMAT_RGBA8;
-    d.data.mip_levels[0] = sg_range{g_frameRgba.data(), g_frameRgba.size()};
-    g_frameImage = sg_make_image(&d);
-    sg_view_desc v{};
-    v.texture.image = g_frameImage;
-    g_frameTexture = sg_make_view(&v);
+    g_frameTexture = gpu::MakeTexture({g_frameWidth, g_frameHeight, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ui-check-frame"});
+    gpu::Write(g_frameTexture, 0, Rect{0, 0, g_frameWidth, g_frameHeight}, g_frameRgba.data(),
+               static_cast<std::size_t>(g_frameWidth) * 4, gpu::Contents::Discard);
 }
 
 void CheckCopy() {
@@ -441,7 +435,7 @@ void CheckCopy() {
     }
     // CopyFrame draws the frame so far first (SplitFrame).
     Check(g_splits == 12, "every copy drew the frame so far first: " + std::to_string(g_splits) + " splits for 12 copies");
-    sg_commit();
+    Commit();
 }
 
 // ---- picture: the save's 5:6:5 picture, one-pixel reads, moved canvases -----------------------------------------
@@ -497,7 +491,7 @@ void CheckPicture() {
     bool ok = !ui::HasCanvas(&from) && ui::ReadPixels(&to, &moved) && moved.size() == 128 && moved[0] == 0xC86432 && moved[15] == 0x0A141E;
     Check(ok, "a canvas moved with its queued fill");
     ui::DropCanvas(&to);
-    sg_commit();
+    Commit();
 }
 
 // ---- resize: a surface's canvas placed again for another screen size --------------------------------------------
@@ -547,26 +541,27 @@ void CheckResize() {
             ui::DropCanvas(holder);
         }
     }
-    sg_commit();
+    Commit();
 }
 
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
-    platform::graphics::Readback copy;
     const int w = g_targetWidth, h = g_targetHeight;
-    const bool read = copy.Read(g_target, Rect{0, 0, w, h});
+    gpu::Ticket ticket = gpu::Download(g_target, 0, Rect{0, 0, w, h});
+    gpu::Texels texels;
+    const bool read = ticket && gpu::Wait(ticket) && gpu::Read(ticket, &texels);
     if (read) {
         rgb->resize(static_cast<std::size_t>(w) * h);
         for (int y = 0; y < h; ++y) {
-            const std::uint8_t* row = copy.Row(y);
+            const std::uint8_t* row = texels.Row(y);
             for (int x = 0; x < w; ++x)
                 (*rgb)[static_cast<std::size_t>(y) * w + x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) |
                                                               (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) |
                                                               row[x * 4 + 2];
         }
     }
-    copy.Release();
+    gpu::Release(ticket);
     return read;
 }
 
@@ -587,22 +582,8 @@ void RefBlit(std::vector<std::uint32_t>& target, const std::vector<std::uint32_t
 
 void CheckFrame() {
     if (g_verbose) std::printf("frame:\n");
-    sg_image_desc d{};
-    d.usage.color_attachment = true;
-    d.width = g_targetWidth;
-    d.height = g_targetHeight;
-    d.pixel_format = detail::kColourFormat;
-    g_target = sg_make_image(&d);
-    d.usage.color_attachment = false;
-    d.usage.depth_stencil_attachment = true;
-    d.pixel_format = detail::kDepthFormat;
-    g_targetDepth = sg_make_image(&d);
-    sg_view_desc v{};
-    v.color_attachment.image = g_target;
-    g_targetColour = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.depth_stencil_attachment.image = g_targetDepth;
-    g_targetDepthView = sg_make_view(&v);
+    g_target = gpu::MakeTexture({g_targetWidth, g_targetHeight, 1, 1, detail::kColourFormat, gpu::kColourTarget, "ui-check-target"});
+    g_targetDepth = gpu::MakeTexture({g_targetWidth, g_targetHeight, 1, 1, detail::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
 
     std::vector<std::uint32_t> expected(static_cast<std::size_t>(g_targetWidth) * g_targetHeight, kTargetClearRgb);
     const render::PixelFormat f565 = kFormats[0].format;
@@ -670,57 +651,47 @@ void CheckFrame() {
     Check(g_splits == splits + 1 && !ui::HasCanvas(first), "dropping a canvas with its blit pending splits the frame first");
     differ = ReadTarget(&got) ? Differ(expected, got, g_targetWidth, &example) : -1;
     Check(differ == 0, "and the dropped canvas's blit is drawn: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-    sg_commit();
+    Commit();
 }
 
-bool StartDevice(bool hardware) {
-    ID3D11Device* device = nullptr;
-    ID3D11DeviceContext* context = nullptr;
-    const D3D_FEATURE_LEVEL level = D3D_FEATURE_LEVEL_11_0;   // the shaders are shader model 5
-    D3D_FEATURE_LEVEL got{};
-    HRESULT hr =
-        D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
-                          D3D11_CREATE_DEVICE_BGRA_SUPPORT, &level, 1, D3D11_SDK_VERSION, &device, &got, &context);
-    if (FAILED(hr)) {
-        std::printf("D3D11CreateDevice (%s) failed: %08lX\n", hardware ? "hardware" : "WARP", static_cast<unsigned long>(hr));
+// The device; its own log line (the driver and the adapter) is not a problem.
+bool StartDevice() {
+    const int problems = g_problems;
+    const bool started = gpu::Start();
+    if (!started) {
+        std::printf("no device: %s\n", gpu::Error());
         return false;
     }
-    sg_desc desc{};
-    desc.environment.defaults.color_format = detail::kColourFormat;
-    desc.environment.defaults.depth_format = detail::kDepthFormat;
-    desc.environment.defaults.sample_count = 1;
-    desc.environment.d3d11.device = device;
-    desc.environment.d3d11.device_context = context;
-    desc.logger.func = &SokolLog;
-    sg_setup(&desc);
-    std::printf("device: %s, feature level %X\n", hardware ? "hardware" : "WARP", static_cast<unsigned>(got));
-    return sg_isvalid();
+    g_problems = problems;
+    std::printf("device: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
+    return true;
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
-    bool hardware = false;
     for (int i = 1; i < argc; ++i) {
-        if (!std::strcmp(argv[i], "--hardware")) hardware = true;
-        else if (!std::strcmp(argv[i], "--verbose")) g_verbose = true;
+        if (!std::strcmp(argv[i], "--verbose")) g_verbose = true;
         else {
-            std::printf("usage: ei_ui_check [--hardware] [--verbose]\n");
+            std::printf("usage: ei_ui_check [--verbose]\n");
             return 2;
         }
     }
-    if (!StartDevice(hardware)) return 1;
+    if (!StartDevice()) return 1;
     CheckGdi();
     if (g_verbose) std::printf("glyphs:\n");
     glyph_cases::Run(Check);
-    sg_commit();
+    Commit();
     CheckGrey();
     CheckImage();
     CheckCopy();
     CheckPicture();
     CheckResize();
     CheckFrame();
-    sg_shutdown();
-    std::printf("ui_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);
+    gpu::Release(g_frameTexture);
+    gpu::Release(g_target);
+    gpu::Release(g_targetDepth);
+    gpu::Stop();
+    std::printf("ui_check: %d checks, %d failed, %d log problems\n", g_checks, g_failures, g_problems);
     return g_failures == 0 && g_problems == 0 ? 0 : 1;
 }

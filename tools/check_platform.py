@@ -1,10 +1,9 @@
-"""The platform layer's rule (docs/notes/platform.md): the game's code and the renderer reach the operating system and
-the graphics device only through src/platform (platform.h, graphics.h; their Windows backends in src/platform/win32 and
-src/platform/d3d11).
+"""The platform layer's rule (docs/notes/platform.md): the game's code and the renderer reach the operating system only
+through src/platform (platform.h; its Windows backend in src/platform/win32), the graphics device only through SDL's
+GPU API (src/render/gpu.h).
 
 Fails on a file under src/ outside src/platform that includes a Windows system header (<windows.h>, <dinput.h>,
-<d3d11.h>, ...) or a header of a Windows backend (platform/win32/, platform/d3d11/), or calls sokol's Direct3D functions
-(`sg_d3d11_*`; comments left out).
+<d3d12.h>, ...) or a header of the Windows backend (platform/win32/; comments left out).
 
 usage: python tools/check_platform.py
 """
@@ -18,9 +17,8 @@ SYSTEM_HEADERS = (r'windows|windowsx|winsock2?|ws2tcpip|wingdi|winuser|winbase|w
                   r'mmeapi|msacm|dinput|dsound|ddraw|d3d\w*|dxgi\w*|dwmapi|shellapi|shlobj|commctrl|commdlg|imm|'
                   r'objbase|ole2|oleauto|comdef|process|io|direct|tlhelp32|psapi|dbghelp|intrin|ddk\w*')
 WINDOWS_H = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"](?:' + SYSTEM_HEADERS + r')\.h[">]', re.M | re.I)
-# The Windows backends' own headers (platform_win32.h, graphics_d3d11.h, ...).
-WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/(?:win32|d3d11)/', re.M)
-BACKEND_CALL = re.compile(r'\bsg_d3d11_\w+\s*\(')
+# The Windows backend's own headers (platform_win32.h, ...).
+WIN32_HEADER = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"platform/win32/', re.M)
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 
@@ -30,10 +28,9 @@ def counted(path):
 
 
 def calls_windows(text):
-    """Whether a file's text includes a Windows system header or one of the Windows implementation, or calls a sokol
-    Direct3D function."""
+    """Whether a file's text includes a Windows system header or one of the Windows implementation."""
     code = COMMENT.sub('', text)
-    return bool(WINDOWS_H.search(code) or WIN32_HEADER.search(code) or BACKEND_CALL.search(code))
+    return bool(WINDOWS_H.search(code) or WIN32_HEADER.search(code))
 
 
 def windows_files():
@@ -48,7 +45,7 @@ def windows_files():
 def main(argv):
     found = windows_files()
     for p in found:
-        print(f'{p}: includes a Windows header or calls sg_d3d11_; go through src/platform '
+        print(f'{p}: includes a Windows header; go through src/platform '
               '(docs/notes/platform.md)')
     print(f'platform: {len(found)} files outside src/platform call Windows')
     return 1 if found else 0

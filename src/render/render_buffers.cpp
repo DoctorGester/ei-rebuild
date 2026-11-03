@@ -10,58 +10,37 @@
 
 namespace render::detail {
 
-namespace {
-
-// Buffers replaced or dropped during a frame: destroyed after its commit (passes drawn earlier in the
-// frame may still use them).
-std::vector<sg_buffer> g_retiredBuffers;
-
-void Retire(sg_buffer& b) {
-    if (b.id) g_retiredBuffers.push_back(b);
-    b = sg_buffer{};
-}
-
-} // namespace
-
 // --- Streams ---------------------------------------------------------------------------------------------
 
 int StreamBuffer::Append(const void* data, std::size_t bytes) {
     if (bytes == 0) return 0;
-    std::size_t rounded = (bytes + 3) & ~static_cast<std::size_t>(3);   // sokol appends at multiples of 4
-    if (commit != CommitNumber()) {    // sokol starts appending from the start again after a commit
+    std::size_t rounded = (bytes + 3) & ~static_cast<std::size_t>(3);   // offsets at multiples of 4 (the indices')
+    if (commit != CommitNumber()) {    // each frame appends from the start again
         commit = CommitNumber();
         used = 0;
     }
-    if (!buffer.id || used + rounded > capacity) {
-        // Too small for this frame's data: a larger buffer; the old one is destroyed after the
-        // commit (passes drawn earlier in the frame still use it).
-        Retire(buffer);
-        capacity = (capacity > rounded ? capacity : rounded) * 2 + 4096;
-        sg_buffer_desc d{};
-        d.size = capacity;
-        d.usage.vertex_buffer = !index;
-        d.usage.index_buffer = index;
-        d.usage.immutable = false;
-        d.usage.dynamic_update = true;
-        d.label = label;
-        buffer = sg_make_buffer(&d);
+    if (!buffer || used + rounded > buffer.size) {
+        // Too small for this frame's data: a larger buffer (the GPU keeps the old one while passes drawn earlier in
+        // the frame still read it).
+        const std::size_t capacity = (buffer.size > rounded ? buffer.size : rounded) * 2 + 4096;
+        gpu::Release(buffer);
         used = 0;
-        if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
-            if (buffer.id) sg_destroy_buffer(buffer);
-            buffer = sg_buffer{};
-            capacity = 0;
-            return -1;
-        }
+        if (capacity > 0xFFFFFFFFu) return -1;
+        buffer = gpu::MakeBuffer(index ? gpu::BufferUse::Index : gpu::BufferUse::Vertex,
+                                 static_cast<std::uint32_t>(capacity), label);
+        if (!buffer) return -1;
     }
-    sg_range range{data, bytes};
-    int offset = sg_append_buffer(buffer, &range);
+    const auto offset = static_cast<std::uint32_t>(used);
+    if (!gpu::Write(buffer, offset, data, static_cast<std::uint32_t>(bytes),
+                    used == 0 ? gpu::Contents::Discard : gpu::Contents::Keep))
+        return -1;
     used += rounded;
-    return sg_query_buffer_overflow(buffer) ? -1 : offset;
+    return static_cast<int>(offset);
 }
 
-void RetireBuffers() {
-    for (sg_buffer b : g_retiredBuffers) sg_destroy_buffer(b);
-    g_retiredBuffers.clear();
+void Geometry::Bind() const {
+    gpu::BindVertexBuffers(0, {vertices, static_cast<std::size_t>(vertexBuffers)});
+    gpu::BindIndexBuffer(indices);
 }
 
 bool GeometryStream::Upload(const std::vector<Vertex>& vertexData, const std::vector<std::uint32_t>& indexData) {
@@ -81,39 +60,28 @@ bool GeometryStream::Upload(const std::vector<Vertex>& vertexData, const std::ve
     return vertexOffset >= 0 && indexOffset >= 0;
 }
 
-bool GeometryStream::Bind(sg_bindings& b) const {
+bool GeometryStream::Bind(Geometry& g) const {
     if (frame != FrameNumber() || vertexOffset < 0 || indexOffset < 0) return false;
-    b.vertex_buffers[0] = vertices.Buffer();
-    b.vertex_buffer_offsets[0] = vertexOffset;
-    b.index_buffer = indices.Buffer();
-    b.index_buffer_offset = indexOffset;
+    g.vertices[0] = {vertices.Buffer(), static_cast<std::uint32_t>(vertexOffset)};
+    g.vertexBuffers = 1;
+    g.indices = {indices.Buffer(), static_cast<std::uint32_t>(indexOffset)};
     return true;
 }
 
 // --- Pools -------------------------------------------------------------------------------------------------
 
 bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
-    sg_buffer_desc d{};
-    d.size = bytes;
-    d.usage.vertex_buffer = !index;
-    d.usage.index_buffer = index;
-    d.usage.write_unsealed = true;   // made without data, written in parts (Write)
-    d.label = label;
-    buffer = sg_make_buffer(&d);
-    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_UNSEALED) {
-        if (buffer.id) sg_destroy_buffer(buffer);
-        buffer = sg_buffer{};
-        return false;
-    }
-    sg_seal_buffer(buffer);
-    return true;
+    if (bytes > 0xFFFFFFFFu) return false;
+    buffer = gpu::MakeBuffer(index ? gpu::BufferUse::Index : gpu::BufferUse::Vertex, static_cast<std::uint32_t>(bytes), label);
+    return static_cast<bool>(buffer);
 }
 
 void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
-    if (buffer.id) platform::graphics::UpdateBuffer(buffer, offset, data, bytes);
+    if (buffer)
+        gpu::Write(buffer, static_cast<std::uint32_t>(offset), data, static_cast<std::uint32_t>(bytes), gpu::Contents::Keep);
 }
 
-void GpuPool::Buffer::Drop() { Retire(buffer); }
+void GpuPool::Buffer::Drop() { gpu::Release(buffer); }
 
 bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t indexCount, bool* anew) {
     *anew = false;
@@ -133,7 +101,7 @@ bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t index
 void GpuPool::Restart(std::uint64_t vertexCount, std::uint64_t indexCount) {
     std::uint64_t needVertices = std::max<std::uint64_t>(2 * vertexCount, leastVertices);
     std::uint64_t needIndices = std::max<std::uint64_t>(2 * indexCount, leastIndices);
-    if (!geometry.buffer.id || needVertices > vertexCapacity || needIndices > indexCapacity) {
+    if (!geometry.buffer || needVertices > vertexCapacity || needIndices > indexCapacity) {
         needVertices = std::max<std::uint64_t>(needVertices, 2ull * vertexCapacity);
         needIndices = std::max<std::uint64_t>(needIndices, 2ull * indexCapacity);
         Drop();
@@ -167,10 +135,11 @@ void GpuPool::WriteIndices(const PoolPlace& p, const std::uint32_t* relative, st
     indices.Write(p.firstIndex * sizeof(std::uint32_t), absolute.data(), count * sizeof(std::uint32_t));
 }
 
-void GpuPool::Bind(sg_bindings& b) const {
-    b.vertex_buffers[0] = geometry.buffer;
-    b.vertex_buffers[1] = colours.buffer;
-    b.index_buffer = indices.buffer;
+void GpuPool::Bind(Geometry& g) const {
+    g.vertices[0] = {geometry.buffer, 0};
+    g.vertices[1] = {colours.buffer, 0};
+    g.vertexBuffers = 2;
+    g.indices = {indices.buffer, 0};
 }
 
 void GpuPool::Drop() {

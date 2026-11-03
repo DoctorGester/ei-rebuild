@@ -1,7 +1,7 @@
 // The interface canvases (render_ui.cpp): a window surface's pixels kept in a render target as the surface's memory
 // would hold them (8 bits a channel, each channel cut to the surface format's bits and widened again), drawn into by
 // GDI-like commands and blitted onto the frame. Every ui_ program but ui_glyph draws a rectangle (rect_vs.hlsli) and
-// takes this block. Its unsigned values (bits, key) are ints here (as sokol's uniform types).
+// takes this block. Its unsigned values (bits, key) are ints here (as the C++ structs hold them).
 #include "rect_vs.hlsli"
 #ifdef EI_FRAGMENT
 struct UiParams {

@@ -1,24 +1,17 @@
 // Offline check of the performance overlay (src/render/render_perf, ticket R21; docs/notes/renderer.md section 15)
-// on a Direct3D 11 WARP device, without the game:
+// on the renderer's GPU (render/gpu.h: Direct3D 12), without the game:
 //   text    the lines of known numbers, every character in the font, the image's size and a glyph's pixels.
-//   draw    the overlay drawn over a cleared back buffer (as the present draws it: BGRA8, no depth) at 720 and
-//           2160 rows: every pixel against the text image scaled up (text: its brightness; the box: the clear
-//           colour at 40%; outside the box: untouched).
-//   time    frames with the passes the renderer marks: the GPU times come back, the passes add up to the total
-//           (also in a frame with more changes of pass than the frame's timestamps), each pass's draws.
-//   vsync   (R23, the vertical blank switch) the rules for the chain's flags and Present's interval and flags
-//           (tearing wanted or not, supported or not), and on a hidden window's flip-model chain made as the renderer
-//           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
-// Any sokol error or warning and any ei::Log line but the switch's fails the check. Exit code 0 when all pass.
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-#include <dxgi1_5.h>
-
-#include "platform/d3d11/graphics_d3d11.h"
+//   draw    the overlay drawn over a cleared target (as the present draws it: BGRA8, no depth) at 720 and 2160 rows:
+//           every pixel against the text image scaled up (text: its brightness; the box: the clear colour at 40%;
+//           outside the box: untouched).
+//   time    frames with the passes the renderer marks: each pass's draws, the CPU times and the whole frame's GPU
+//           time (gpu::FrameGpuTime) come back.
+// Any ei::Log line but the switch's and the device's own fails the check. Exit code 0 when all pass.
+#include "render/gpu.h"
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdarg>
 #include <cstdint>
@@ -26,15 +19,15 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
+namespace gpu = render::gpu;
 namespace perf = render::perf;
 
 namespace {
 
 int g_checks = 0, g_failures = 0, g_problems = 0;
-ID3D11Device* g_device = nullptr;
-ID3D11DeviceContext* g_context = nullptr;
 std::uint64_t g_frameDraws = 0;   // FrameDrawCount's (the renderer's FrameStats in the game)
 
 void Check(bool ok, const std::string& what) {
@@ -43,12 +36,6 @@ void Check(bool ok, const std::string& what) {
         ++g_failures;
         std::printf("  FAILED: %s\n", what.c_str());
     }
-}
-
-void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line, const char*, void*) {
-    if (level > 2 || item == SG_LOGITEM_D3D11_FEATURE_LEVEL_0_DETECTED) return;
-    ++g_problems;
-    std::printf("  sokol: %s level %u item %u (line %u): %s\n", tag ? tag : "sg", level, item, line, message ? message : "");
 }
 
 } // namespace
@@ -81,13 +68,6 @@ void CheckText() {
     n.gpu = true;
     n.gpuMs = 2.1;
     n.worstGpuMs = 2.6;
-    n.passMs[slot(Pass::Sun)] = 0.25;
-    n.passMs[slot(Pass::Point)] = 0.06;
-    n.passMs[slot(Pass::Terrain)] = 0.5;
-    n.passMs[slot(Pass::Objects)] = 0.4;
-    n.passMs[slot(Pass::Other)] = 0.3;
-    n.passMs[slot(Pass::Ui)] = 0.4;
-    n.passMs[slot(Pass::Present)] = 0.19;
     n.submitMs = 1.1;
     n.shadowCpuMs = 0.12;
     n.draws[slot(Pass::Sun)] = 120;
@@ -98,9 +78,7 @@ void CheckText() {
     n.draws[slot(Pass::Ui)] = 24;
     n.draws[slot(Pass::Present)] = 1;
     const std::vector<std::string> expected = {"FPS 144   FRAME 6.96 MS   WORST 9.13", "GPU 2.10 MS   WORST 2.60",
-                                               "  SHADOW 0.31 (SUN 0.25  POINT 0.06)",
-                                               "  WORLD 1.20 (TERRAIN 0.50  OBJECTS 0.40  OTHER 0.30)",
-                                               "  UI 0.40   PRESENT 0.19", "CPU SUBMIT 1.10 MS   SHADOW 0.12",
+                                               "CPU SUBMIT 1.10 MS   SHADOW 0.12",
                                                "DRAWS WORLD 370   SUN 120   POINT 80   UI 25"};
     std::vector<std::string> lines = perf::Lines(n);
     Check(lines == expected, "the lines of known numbers");
@@ -130,65 +108,49 @@ void CheckText() {
           "the scale by height");
 }
 
-// A BGRA8 render target (the back buffer's format) with its attachment view.
-struct Target {
-    sg_image image{};
-    sg_view attachment{};
-    int width = 0, height = 0;
-};
+// A BGRA8 colour target (the swap chain's format).
+constexpr gpu::Format kTargetFormat = gpu::Format::Bgra8;
 
-Target MakeTarget(int width, int height) {
-    Target t;
-    sg_image_desc d{};
-    d.usage.color_attachment = true;
-    d.width = width;
-    d.height = height;
-    d.pixel_format = SG_PIXELFORMAT_BGRA8;
-    d.sample_count = 1;
-    t.image = sg_make_image(&d);
-    sg_view_desc v{};
-    v.color_attachment.image = t.image;
-    t.attachment = sg_make_view(&v);
-    t.width = width;
-    t.height = height;
-    return t;
-}
-
-void DropTarget(Target& t) {
-    sg_destroy_view(t.attachment);
-    sg_destroy_image(t.image);
+gpu::Texture MakeTarget(int width, int height) {
+    return gpu::MakeTexture({width, height, 1, 1, kTargetFormat, gpu::kColourTarget, "perf-check-target"});
 }
 
 constexpr std::uint8_t kClear[3] = {160, 90, 40};   // B, G, R
 
-void BeginTargetPass(const Target& t) {
-    sg_pass pass{};
-    pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
-    pass.action.colors[0].clear_value = sg_color{kClear[2] / 255.0f, kClear[1] / 255.0f, kClear[0] / 255.0f, 1.0f};
-    pass.attachments.colors[0] = t.attachment;
-    sg_begin_pass(&pass);
+bool BeginTargetPass(const gpu::Texture& t) {
+    gpu::PassDesc pass;
+    pass.colour.texture = t;
+    pass.colour.load = gpu::Load::Clear;
+    pass.colour.clear[0] = kClear[2] / 255.0f;
+    pass.colour.clear[1] = kClear[1] / 255.0f;
+    pass.colour.clear[2] = kClear[0] / 255.0f;
+    pass.colour.clear[3] = 1.0f;
+    return gpu::BeginPass(pass);
 }
 
-bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
-    platform::graphics::Readback copy;
-    const bool read = copy.Read(t.image, Rect{0, 0, t.width, t.height});
+bool ReadTarget(const gpu::Texture& t, std::vector<std::uint8_t>* bgra) {
+    gpu::Ticket ticket = gpu::Download(t, 0, Rect{0, 0, t.width, t.height});
+    gpu::Texels texels;
+    const bool read = ticket && gpu::Wait(ticket) && gpu::Read(ticket, &texels);
     if (read) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
             std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4,
-                        copy.Row(y), static_cast<std::size_t>(t.width) * 4);
+                        texels.Row(y), static_cast<std::size_t>(t.width) * 4);
     }
-    copy.Release();
+    gpu::Release(ticket);
     return read;
 }
 
 void CheckDraw(int width, int height) {
-    Target t = MakeTarget(width, height);
+    gpu::Texture t = MakeTarget(width, height);
     Rect placed{0, 0, width, height};
-    BeginTargetPass(t);
-    perf::Draw(width, height, placed);
-    sg_end_pass();
-    sg_commit();
+    perf::Prepare();
+    if (BeginTargetPass(t)) {
+        perf::Draw(kTargetFormat, width, height, placed);
+        gpu::EndPass();
+    }
+    gpu::Submit();
     // What it should show: the current numbers' lines (none measured yet), scaled up from the corner.
     std::vector<std::uint8_t> text;
     int tw = 0, th = 0;
@@ -223,25 +185,24 @@ void CheckDraw(int width, int height) {
           "the overlay at " + std::to_string(width) + "x" + std::to_string(height) + ": " + std::to_string(wrong) +
               " pixels wrong" + example);
     std::printf("  %dx%d: scale %d, box %dx%d, %d text pixels\n", width, height, scale, tw * scale, th * scale, textPixels);
-    DropTarget(t);
+    gpu::Release(t);
 }
 
-// `draws` draws in `pass` (cleared target passes: GPU work between the stamps).
-void PassWork(const Target& t, perf::Pass pass, int draws) {
+// `draws` draws in `pass` (a cleared target pass: GPU work).
+void PassWork(const gpu::Texture& t, perf::Pass pass, int draws) {
     perf::Enter(pass);
-    BeginTargetPass(t);
-    sg_end_pass();
+    if (BeginTargetPass(t)) gpu::EndPass();
     g_frameDraws += static_cast<std::uint64_t>(draws);
 }
 
 void CheckTime() {
     using perf::Pass;
     auto slot = [](Pass p) { return static_cast<int>(p); };
-    Target t = MakeTarget(640, 360);
+    gpu::Texture t = MakeTarget(640, 360);
     Rect placed{0, 0, 640, 360};
     for (int frame = 0; frame < 40; ++frame) {
         g_frameDraws = 0;
-        perf::BeginGpuFrame();
+        perf::BeginDraws();
         PassWork(t, Pass::Ui, 2);   // the canvases' queued drawing
         {
             perf::CpuTimer shadow(perf::Cpu::Shadow);
@@ -255,19 +216,17 @@ void CheckTime() {
         PassWork(t, Pass::Other, 1);
         PassWork(t, Pass::Objects, 1);
         PassWork(t, Pass::Ui, 3);
-        // Every tenth frame more changes of pass than a frame's timestamps: the rest goes to the last stamped.
-        if (frame % 10 == 9)
-            for (int k = 0; k < 100; ++k) perf::Enter(k % 2 ? Pass::Ui : Pass::Other);
         perf::Enter(Pass::Present);
-        BeginTargetPass(t);
-        perf::Draw(640, 360, placed);
-        sg_end_pass();
+        perf::Prepare();
+        if (BeginTargetPass(t)) {
+            perf::Draw(kTargetFormat, 640, 360, placed);
+            gpu::EndPass();
+        }
         g_frameDraws += 1;
-        perf::EndGpuFrame();
-        sg_commit();
+        perf::EndDraws();
+        gpu::Submit();
         submit.Stop();
-        g_context->Flush();
-        Sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
         perf::FrameDone();
     }
     perf::Numbers n = perf::Current();
@@ -280,119 +239,38 @@ void CheckTime() {
           "each pass's draws");
     Check(lines.back() == "DRAWS WORLD 11   SUN 3   POINT 2   UI 6", "the draws' line");
     Check(n.submitMs > 0.0 && n.shadowCpuMs >= 0.0, "the CPU times");
-    Check(n.gpu, "the GPU times came back");
-    double parts = 0.0;
-    for (double ms : n.passMs) parts += ms;
-    Check(n.gpu && n.gpuMs > 0.0 && std::abs(parts - n.gpuMs) <= n.gpuMs * 0.001 + 0.0001 && n.worstGpuMs >= n.gpuMs,
-          "the passes add up to the GPU total");
-    DropTarget(t);
+    Check(n.gpu && n.gpuMs > 0.0 && n.worstGpuMs >= n.gpuMs, "the whole frame's GPU time came back");
+    gpu::Release(t);
 }
 
-bool StartDevice(bool hardware) {
-    const D3D_FEATURE_LEVEL level = D3D_FEATURE_LEVEL_11_0;   // the shaders are shader model 5
-    D3D_FEATURE_LEVEL got{};
-    HRESULT hr =
-        D3D11CreateDevice(nullptr, hardware ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_WARP, nullptr,
-                          D3D11_CREATE_DEVICE_BGRA_SUPPORT, &level, 1, D3D11_SDK_VERSION, &g_device, &got, &g_context);
-    if (FAILED(hr)) {
-        std::printf("D3D11CreateDevice (%s) failed: %08lX\n", hardware ? "hardware" : "WARP", static_cast<unsigned long>(hr));
+// The device; its own log line (the driver and the adapter) is not a problem.
+bool StartDevice() {
+    const int problems = g_problems;
+    if (!gpu::Start()) {
+        std::printf("no device: %s\n", gpu::Error());
         return false;
     }
-    sg_desc desc{};
-    desc.environment.defaults.color_format = SG_PIXELFORMAT_BGRA8;
-    desc.environment.defaults.depth_format = SG_PIXELFORMAT_NONE;
-    desc.environment.defaults.sample_count = 1;
-    desc.environment.d3d11.device = g_device;
-    desc.environment.d3d11.device_context = g_context;
-    desc.logger.func = &SokolLog;
-    sg_setup(&desc);
-    return sg_isvalid();
-}
-
-// The vertical blank switch (src/platform/d3d11/graphics_d3d11.cpp, R23): the pure rules, then real chains on a hidden
-// window.
-void CheckVsync() {
-    const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    namespace d = platform::graphics;
-    Check(d::SyncIntervalFor(true) == 1 && d::SyncIntervalFor(false) == 0, "the sync interval: 1 with the wait, 0 without");
-    Check(d::ChainFlagsFor(false, true) == 0 && d::ChainFlagsFor(false, false) == 0 && d::ChainFlagsFor(true, false) == 0 &&
-              d::ChainFlagsFor(true, true) == tearing,
-          "the chain's tearing flag only when wanted and supported");
-    Check(d::PresentFlagsFor(true, 0) == 0 && d::PresentFlagsFor(true, tearing) == 0 && d::PresentFlagsFor(false, 0) == 0 &&
-              d::PresentFlagsFor(false, tearing) == DXGI_PRESENT_ALLOW_TEARING,
-          "Present's tearing flag only without the wait and on a chain made with the flag");
-
-    IDXGIDevice* dxgiDevice = nullptr;
-    IDXGIAdapter* adapter = nullptr;
-    IDXGIFactory2* factory = nullptr;
-    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
-              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
-              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
-    Check(ok, "the device's DXGI factory");
-    HWND window = CreateWindowExW(0, L"STATIC", L"ei_perf_check", WS_POPUP, 0, 0, 320, 240, nullptr, nullptr, nullptr, nullptr);
-    Check(window != nullptr, "a hidden window");
-    if (ok && window) {
-        const bool supported = d::TearingSupported(factory);
-        std::printf("  tearing presents %s on this device\n", supported ? "supported" : "not supported");
-        for (int wanted = 0; wanted < 2; ++wanted) {
-            const bool allowTearing = wanted != 0;
-            const bool vsync = !allowTearing;
-            DXGI_SWAP_CHAIN_DESC1 sd{};
-            sd.Width = 320;
-            sd.Height = 240;
-            sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-            sd.SampleDesc.Count = 1;
-            sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            sd.BufferCount = 2;
-            sd.Scaling = DXGI_SCALING_STRETCH;
-            sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-            sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-            sd.Flags = d::ChainFlagsFor(allowTearing, supported);
-            IDXGISwapChain1* chain = nullptr;
-            const std::string name = allowTearing ? "the VSync=0 chain" : "the VSync=1 chain";
-            HRESULT hr = factory->CreateSwapChainForHwnd(g_device, window, &sd, nullptr, nullptr, &chain);
-            Check(SUCCEEDED(hr) && chain, name + " made");
-            if (!chain) continue;
-            DXGI_SWAP_CHAIN_DESC1 got{};
-            chain->GetDesc1(&got);
-            Check(((got.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) != 0) == (allowTearing && supported),
-                  name + " reports the tearing flag as asked");
-            Check(SUCCEEDED(chain->ResizeBuffers(0, 400, 300, DXGI_FORMAT_UNKNOWN, sd.Flags)), name + " resized with the same flags");
-            hr = chain->Present(d::SyncIntervalFor(vsync), d::PresentFlagsFor(vsync, sd.Flags));
-            Check(SUCCEEDED(hr), name + " presents with the switch's interval and flags");
-            if (FAILED(hr)) std::printf("  Present returned %08lX\n", static_cast<unsigned long>(hr));
-            chain->Release();
-        }
-    }
-    if (window) DestroyWindow(window);
-    if (factory) factory->Release();
-    if (adapter) adapter->Release();
-    if (dxgiDevice) dxgiDevice->Release();
+    g_problems = problems;
+    std::printf("device: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
+    return true;
 }
 
 } // namespace
 
-int main(int argc, char** argv) {
-    bool hardware = false;
-    for (int i = 1; i < argc; ++i) {
-        if (!std::strcmp(argv[i], "--hardware")) hardware = true;
-        else {
-            std::printf("usage: ei_perf_check [--hardware]\n");
-            return 2;
-        }
+int main(int argc, char**) {
+    if (argc > 1) {
+        std::printf("usage: ei_perf_check\n");
+        return 2;
     }
     CheckText();
-    if (!StartDevice(hardware)) return 1;
+    if (!StartDevice()) return 1;
     perf::SetOn(true);
     CheckDraw(1280, 720);
     CheckDraw(3840, 2160);
     CheckTime();
-    CheckVsync();
     perf::SetOn(false);
     perf::Release();
-    sg_shutdown();
-    g_context->Release();
-    g_device->Release();
-    std::printf("perf_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);
+    gpu::Stop();
+    std::printf("perf_check: %d checks, %d failed, %d log problems\n", g_checks, g_failures, g_problems);
     return g_failures == 0 && g_problems == 0 ? 0 : 1;
 }

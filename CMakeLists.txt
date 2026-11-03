@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 # Two systems: Windows with MSVC (build.cmd: the release and verify builds, x64) and Linux with gcc or
-# clang (docs/notes/linux.md: the game on SDL3, POSIX and OpenGL). The harness (for now) and the offline checks against
+# clang (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan). The harness (for now) and the offline checks against
 # Windows' drawing and keys build on Windows.
 project(EvilIslands CXX)
 set(CMAKE_CXX_STANDARD 20)
@@ -11,22 +11,18 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # Two builds (build.cmd): `release` is the product (ei-rebuild.exe, the whole game); `verify` is the harness build,
 # the same program with the harness linked in (tests/verify: scenario runs of the image).
 option(EI_HARNESS "Build the harness, linked into ei-rebuild.exe" OFF)
-# The SDL_GPU spike (tools/gpu_spike/README.md): its own build folder (tools/gpu_spike/build.cmd), never
-# build.cmd's. SDL with its GPU API and Vulkan, the frame recorder in the renderer and ei_gpu_spike.
-option(EI_GPU_SPIKE "Build the SDL_GPU spike (tools/gpu_spike)" OFF)
 
 # SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
 # the message box, the clocks and the threads of the builds without the harness (src/platform/sdl), the sound device
-# of every build (src/audio/audio.cpp) and on Linux the OpenGL context. Linked statically, so the exe stays one
-# file dropped into a game folder (S23), with only the subsystems those use. Added before the game's compile options:
-# its warnings are its own.
+# of every build (src/audio/audio.cpp) and the renderer's GPU (SDL_GPU: Direct3D 12, Vulkan; src/render/gpu.cpp).
+# Linked statically, so the exe stays one file dropped into a game folder (S23), with only the subsystems those use.
+# Added before the game's compile options: its warnings are its own.
 foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_RENDER SDL_CAMERA
-            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGLES SDL_OFFSCREEN
+            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGL SDL_OPENGLES SDL_OFFSCREEN
             SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
     set(${off} OFF CACHE BOOL "" FORCE)
 endforeach()
-# SDL's GPU API (Direct3D 12, Vulkan), which the renderer moves to (docs/notes/renderer.md, "SDL_GPU"): only the
-# shader check (tools/shader_check) uses it so far.
+# SDL's GPU API (Direct3D 12, Vulkan): the renderer's (docs/notes/renderer.md, "gpu.h").
 set(SDL_GPU ON CACHE BOOL "" FORCE)
 set(SDL_VULKAN ON CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
@@ -72,17 +68,9 @@ if(WIN32)
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
     set(EI_SYSTEM win32)   # src/platform/win32
-    set(EI_GRAPHICS d3d11)
-    set(EI_GRAPHICS_BACKEND SOKOL_D3D11)
-    set(EI_GRAPHICS_LIBRARIES d3d11 dxgi)
-    set(EI_SHDC_OPTIONS --bytecode --errfmt msvc)   # the HLSL compiled here, so no shader compiler runs at start
 else()
     add_compile_options(-ffp-contract=off)
-    find_package(OpenGL REQUIRED)
     set(EI_SYSTEM posix)   # src/platform/posix
-    set(EI_GRAPHICS gl)
-    set(EI_GRAPHICS_BACKEND SOKOL_GLCORE)
-    set(EI_GRAPHICS_LIBRARIES SDL3::SDL3-static OpenGL::GL)
 endif()
 
 # The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
@@ -93,38 +81,18 @@ add_library(ei_game STATIC ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-static)
 
-# The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; Direct3D 11
-# on Windows, src/platform/d3d11, OpenGL 4.5 on Linux, src/platform/gl; each holds sokol's implementation). The backend
-# and the floating-point guard are built in here, not into ei_platform: the offline checks link the renderer without
-# the game.
-file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp src/platform/${EI_GRAPHICS}/*.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/floating_point.cpp)
-target_include_directories(ei_render PRIVATE src third_party third_party/sokol)
-target_compile_definitions(ei_render PRIVATE ${EI_GRAPHICS_BACKEND})
-target_link_libraries(ei_render PRIVATE ${EI_GRAPHICS_LIBRARIES})
-# Its shaders (docs/notes/renderer.md, "Shader authoring"): src/render/shaders/*.glsl, one input (shaders.glsl)
-# compiled by sokol-shdc for every graphics backend into shaders/shaders.h in the build folder (not committed): the
-# uniform blocks' C structs, the bind slots and each program's sokol shader description. sokol-shdc: -DEI_SHDC
-# (build.cmd passes this machine's), else build/tools in the checkout, else PATH.
-find_program(EI_SHDC sokol-shdc HINTS ${CMAKE_SOURCE_DIR}/build/tools REQUIRED)
-file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.glsl)
-set(EI_SHADER_HEADER ${CMAKE_BINARY_DIR}/shaders/shaders.h)
+# The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
+# elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.
+file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
+add_library(ei_render STATIC ${EI_RENDER_SOURCES})
+target_include_directories(ei_render PRIVATE src third_party)
+target_link_libraries(ei_render PRIVATE SDL3::SDL3-static)
+# Its programs (docs/notes/renderer.md, "HLSL and SDL_shadercross"): each src/render/shaders/<program>.hlsl is one
+# program (vs_main and ps_main, each stage under EI_VERTEX / EI_FRAGMENT), compiled by SDL_shadercross
+# (tools/shader_toolchain) to SPIR-V, MSL and on Windows DXIL; spirv-cross reflects each stage's SPIR-V, and
+# tools/gen_gpu_shaders.py checks the binding rules and writes shaders/gpu_shaders.h (the blocks' structs, the slots,
+# the counts) and shaders/gpu_shaders.cpp (the code) into the build folder (not committed).
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-add_custom_command(OUTPUT ${EI_SHADER_HEADER}
-    COMMAND ${EI_SHDC} --input ${CMAKE_SOURCE_DIR}/src/render/shaders/shaders.glsl --output ${EI_SHADER_HEADER}
-            --slang hlsl5:metal_macos:glsl430 --format sokol_impl --ifdef --no-log-cmdline ${EI_SHDC_OPTIONS}
-    DEPENDS ${EI_SHADER_SOURCES} ${EI_SHDC}
-    COMMENT "Compiling the shaders with sokol-shdc"
-    VERBATIM)
-target_sources(ei_render PRIVATE ${EI_SHADER_HEADER})
-
-# The same programs in HLSL (docs/notes/renderer.md, "HLSL and SDL_shadercross"), for the SDL_GPU renderer to come;
-# only the shader check (tools/shader_check) and src/render/gpu.cpp use them so far. Each
-# src/render/shaders/<program>.hlsl is one program (vs_main and ps_main, each stage under EI_VERTEX / EI_FRAGMENT),
-# compiled by SDL_shadercross (tools/shader_toolchain) to SPIR-V, MSL and on Windows DXIL; spirv-cross reflects each
-# stage's SPIR-V, and tools/gen_gpu_shaders.py checks the binding rules and writes shaders/gpu_shaders.h (the blocks'
-# structs, the slots, the counts), shaders/gpu_shaders.cpp (the code) and shaders/gpu_shaders_sokol.h (the blocks and
-# inputs against sokol-shdc's) into the build folder.
 include(tools/shader_toolchain/toolchain.cmake)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 file(GLOB EI_HLSL_PROGRAMS CONFIGURE_DEPENDS src/render/shaders/*.hlsl)
@@ -167,8 +135,7 @@ foreach(source ${EI_HLSL_PROGRAMS})
         list(APPEND EI_HLSL_OUTPUTS ${reflection})
     endforeach()
 endforeach()
-set(EI_GPU_SHADERS ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.h ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.cpp
-    ${CMAKE_BINARY_DIR}/shaders/gpu_shaders_sokol.h)
+set(EI_GPU_SHADERS ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.h ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.cpp)
 string(REPLACE ";" "," EI_HLSL_FORMAT_LIST "${EI_HLSL_FORMATS}")
 add_custom_command(OUTPUT ${EI_GPU_SHADERS}
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py --sources ${CMAKE_SOURCE_DIR}/src/render/shaders
@@ -176,14 +143,11 @@ add_custom_command(OUTPUT ${EI_GPU_SHADERS}
     DEPENDS ${EI_HLSL_OUTPUTS} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py
     COMMENT "Writing the HLSL programs' code and reflection (gen_gpu_shaders.py)"
     VERBATIM)
-# The programs' code goes into the renderer, with its SDL_GPU device (src/render/gpu.cpp, docs/notes/renderer.md,
-# "gpu.h"), which nothing in the game uses yet.
+# The programs' code goes into the renderer, with its device (src/render/gpu.cpp, docs/notes/renderer.md, "gpu.h").
 target_sources(ei_render PRIVATE ${EI_GPU_SHADERS})
-target_link_libraries(ei_render PRIVATE SDL3::SDL3-static)
 # Their check (tools/shader_check): build_checks.py runs it on Windows, ctest on Linux.
 add_executable(ei_shader_check tools/shader_check/shader_check.cpp)
-target_include_directories(ei_shader_check PRIVATE src third_party/sokol ${CMAKE_BINARY_DIR})
-target_compile_definitions(ei_shader_check PRIVATE ${EI_GRAPHICS_BACKEND})
+target_include_directories(ei_shader_check PRIVATE src ${CMAKE_BINARY_DIR})
 target_link_libraries(ei_shader_check PRIVATE ei_render SDL3::SDL3-static)
 target_include_directories(ei_render PUBLIC ${CMAKE_BINARY_DIR})
 # gpu.cpp's check (tools/gpu_check) on Direct3D 12 and Vulkan: build_checks.py runs it on Windows, ctest on Linux.
@@ -252,8 +216,7 @@ set_source_files_properties(src/game/rebirth_profile.cpp PROPERTIES INCLUDE_DIRE
 # The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
-foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE sokol/README.txt sokol/LICENSE
-             stb/README.txt)
+foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
@@ -266,7 +229,6 @@ if(EI_HARNESS)
     # takes the place of platform_sdl.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL), of
     # system_path.cpp (its overlay) and of game_calls.cpp (its answers to the game's file write, socket, disc and desktop
     # calls; its sockets on 127.0.0.1). Its own calls of the system are tests/verify/system's, one file per system.
-    # sokol's validation layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp tests/verify/platform/*.cpp
          tests/verify/system/*.cpp)
     if(WIN32)
@@ -279,7 +241,7 @@ if(EI_HARNESS)
         # The harness reads its scenario lines with the standard sscanf on every system, not MSVC's sscanf_s.
         set_property(SOURCE ${EI_HARNESS_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS _CRT_SECURE_NO_WARNINGS)
     endif()
-    target_include_directories(ei-rebuild PRIVATE tests/verify third_party/sokol)
+    target_include_directories(ei-rebuild PRIVATE tests/verify)
     target_link_libraries(ei-rebuild PRIVATE SDL3::SDL3-static)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
@@ -306,20 +268,20 @@ if(WIN32)
     add_executable(ei_input_check tools/input_check/input_check.cpp src/platform/sdl/sdl_keys.cpp)
     target_include_directories(ei_input_check PRIVATE src)
     target_link_libraries(ei_input_check PRIVATE SDL3::SDL3-static user32)
-    # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
+    # Offline check of the interface canvases (render_ui, ticket N1) on the GPU (gpu.h's device): every command against
     # a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
     add_executable(ei_ui_check tools/ui_check/ui_check.cpp tests/render/glyph_cases.cpp)
-    target_include_directories(ei_ui_check PRIVATE src tests third_party/sokol)
+    target_include_directories(ei_ui_check PRIVATE src tests)
     target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
-    # Offline check of the performance overlay (render_perf, ticket R21) on a WARP device: its text, its pixels over a
-    # back buffer, the GPU timestamps.
+    # Offline check of the performance overlay (render_perf, ticket R21) on the GPU: its text and its pixels over a
+    # target.
     add_executable(ei_perf_check tools/perf_check/perf_check.cpp)
-    target_include_directories(ei_perf_check PRIVATE src third_party/sokol)
+    target_include_directories(ei_perf_check PRIVATE src)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
     # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
     # one-instance lock, sockets, the settings document, IPv4 text; tests/port/port_check.cpp) and the interface
-    # canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11) and the
+    # canvases' glyph cases on Vulkan (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 12) and the
     # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
@@ -331,7 +293,7 @@ else()
     add_test(NAME port_platform COMMAND ei_port_check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
-    target_include_directories(ei_render_check PRIVATE src tests third_party/sokol)
+    target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
     find_package(X11 REQUIRED)
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static X11::X11)
     add_test(NAME port_render COMMAND ei_render_check)
@@ -339,8 +301,4 @@ else()
     add_test(NAME port_shaders COMMAND ei_shader_check --require)
     add_test(NAME port_gpu COMMAND ei_gpu_check --require)
     set_tests_properties(port_platform port_render port_shaders port_gpu PROPERTIES TIMEOUT 60)
-endif()
-
-if(EI_GPU_SPIKE)
-    include(tools/gpu_spike/gpu_spike.cmake)
 endif()

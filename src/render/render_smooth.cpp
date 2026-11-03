@@ -2,8 +2,8 @@
 // commands into a multisampled colour and depth target and resolves the colour into the frame target at the
 // end of each such pass; the interface draws into the frame target as without the option. A multisampled depth
 // cannot be read back (SDL_GPU neither samples a multisampled texture nor resolves a depth), so every pipeline of
-// such a pass also writes each fragment's depth into a second, R32F, colour attachment, resolved with the colour.
-// Here: that attachment on the pipelines, and the two copies between the targets where the frame changes from one
+// such a pass also writes each fragment's depth into a second, R32F, colour target, resolved with the colour.
+// Here: that target on the pipelines, and the two copies between the targets where the frame changes from one
 // to the other (the frame target's colour and depth into every sample before a world run that follows interface
 // draws; the resolved depth copy into the frame target's depth after a world run).
 #include "render.h"
@@ -17,87 +17,64 @@ namespace {
 
 using namespace detail;
 
-sg_shader g_intoShader{}, g_fromShader{};
-sg_pipeline g_into{}, g_from{};
+gpu::Pipeline g_into, g_from;
 int g_copySamples = 0;   // the sample count the copies were made for
-sg_sampler g_point{};
 
 // Depth always written, colour as `writeColour`, for `samples`.
-sg_pipeline CopyPipeline(sg_shader shader, int samples, bool writeColour, const char* label) {
-    sg_pipeline_desc p{};
-    p.shader = shader;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-    p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_ALWAYS;
-    p.depth.write_enabled = true;
-    p.colors[0].pixel_format = kColourFormat;
-    p.colors[0].write_mask = writeColour ? SG_COLORMASK_RGBA : SG_COLORMASK_NONE;
-    p.sample_count = samples;
+gpu::Pipeline CopyPipeline(int program, int samples, bool writeColour, const char* label) {
+    gpu::PipelineDesc p;
+    p.program = program;
+    p.depth = kDepthFormat;
+    p.depthCompare = gpu::Compare::Always;
+    p.depthWrite = true;
+    p.colour = kColourFormat;
+    p.colourMask = writeColour ? gpu::kWriteAll : 0;
+    p.samples = samples;
     AddDepthCopy(p);
-    p.label = label;
-    return sg_make_pipeline(&p);
+    return gpu::MakePipeline(p, label);
 }
 
-void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
-    sg_apply_pipeline(pipeline);
-    sg_bindings b{};
-    for (int v = 0; v < count; ++v) b.views[v] = views[v];
-    b.samplers[0] = g_point;
-    sg_apply_bindings(&b);
-    sg_draw(0, 3, 1);
+void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count) {
+    gpu::ApplyPipeline(pipeline);
+    const gpu::Sampler point = gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest});
+    gpu::TextureBinding b[2];
+    for (int k = 0; k < count; ++k) b[k] = {textures[k], point};
+    gpu::BindTextures(gpu::Stage::Fragment, 0, {b, static_cast<std::size_t>(count)});
+    gpu::Draw(0, 3);
 }
 
 } // namespace
 
 namespace detail {
 
-void AddDepthCopy(sg_pipeline_desc& p) {
-    if (p.sample_count <= 1) return;
-    p.color_count = 2;
-    p.colors[1].pixel_format = kDepthCopyFormat;
-    p.colors[1].write_mask = p.depth.write_enabled ? SG_COLORMASK_R : SG_COLORMASK_NONE;
+void AddDepthCopy(gpu::PipelineDesc& p) {
+    if (p.samples <= 1) return;
+    p.second = kDepthCopyFormat;
+    p.secondMask = p.depthWrite ? gpu::kWriteRed : 0;
 }
 
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
-    DestroySmooth();
-    sg_sampler_desc d{};
-    d.min_filter = SG_FILTER_NEAREST;
-    d.mag_filter = SG_FILTER_NEAREST;
-    d.label = "ei-smooth-copy";
-    g_point = sg_make_sampler(&d);
-    g_intoShader = sg_make_shader(into_multisampled_shader_desc(sg_query_backend()));
-    g_fromShader = sg_make_shader(depth_from_resolved_shader_desc(sg_query_backend()));
-    g_into = CopyPipeline(g_intoShader, samples, true, "ei-into-multisampled");
-    g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-resolved");
-    bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;
-    if (!ok) {
-        ei::Log("render: msaa: the copies between the targets could not be made (see the sokol messages above)");
-        DestroySmooth();
+    g_copySamples = 0;
+    g_into = CopyPipeline(gpu_shaders::into_multisampled::kIndex, samples, true, "ei-into-multisampled");
+    g_from = CopyPipeline(gpu_shaders::depth_from_resolved::kIndex, 1, false, "ei-depth-from-resolved");
+    if (!g_into || !g_from) {
+        ei::Log("render: msaa: the copies between the targets could not be made (see the gpu messages above)");
         return false;
     }
     g_copySamples = samples;
     return true;
 }
 
-void CopyIntoMultisampled(sg_view colour, sg_view depth) {
-    const sg_view views[2] = {colour, depth};
-    Draw(g_into, views, 2);
+static_assert(gpu_shaders::into_multisampled::kSamplerColour == 0 && gpu_shaders::into_multisampled::kSamplerDepth == 1 &&
+              gpu_shaders::depth_from_resolved::kSamplerDepthCopy == 0);
+
+void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth) {
+    const gpu::Texture textures[2] = {colour, depth};
+    Draw(g_into, textures, 2);
 }
 
-void CopyDepthFromResolved(sg_view depth) { Draw(g_from, &depth, 1); }
-
-void DestroySmooth() {
-    if (g_into.id) sg_destroy_pipeline(g_into);
-    if (g_from.id) sg_destroy_pipeline(g_from);
-    if (g_intoShader.id) sg_destroy_shader(g_intoShader);
-    if (g_fromShader.id) sg_destroy_shader(g_fromShader);
-    if (g_point.id) sg_destroy_sampler(g_point);
-    g_into = g_from = sg_pipeline{};
-    g_intoShader = g_fromShader = sg_shader{};
-    g_point = sg_sampler{};
-    g_copySamples = 0;
-}
+void CopyDepthFromResolved(const gpu::Texture& depth) { Draw(g_from, &depth, 1); }
 
 } // namespace detail
 
