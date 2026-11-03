@@ -2,6 +2,7 @@
 // at target.z), the movie player's fill (its pipeline writes the colour only) and a point shadow face's clear
 // (render_point_shadows.cpp).
 #include "bindings.hlsli"
+#include "depth_copy.hlsli"
 struct VsOut {
     [[vk::location(0)]] nointerpolation float4 colour : TEXCOORD0;
     float4 pos : SV_Position;
@@ -23,5 +24,5 @@ VsOut vs_main(uint id : SV_VertexID) {
 }
 #endif
 #ifdef EI_FRAGMENT
-float4 ps_main(VsOut i) : SV_Target0 { return i.colour; }
+DepthCopyOut ps_main(VsOut i) { return WithDepthCopy(i.colour, i.pos.z); }
 #endif

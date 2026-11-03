@@ -80,29 +80,35 @@ void CompareWithSokol() {
 constexpr SDL_GPUTextureFormat kNone = SDL_GPU_TEXTUREFORMAT_INVALID;
 
 // A kind of target a program is drawn into (the renderer's pipelines): its colour format (kNone: depth only), whether
-// it has the D32F depth, its sample count, and the first vertex input of the instance buffer (-1: none).
+// it has the D32F depth, its sample count, the first vertex input of the instance buffer (-1: none), and whether it
+// has the multisampled pass's depth copy (render_smooth.cpp: an R32F second target, written by the programs with a
+// second output, masked off for the others).
 struct Draw {
     const char* program;
     SDL_GPUTextureFormat colour;
     bool depth;
     int samples;
     int instanceFrom = -1;
+    bool depthCopy = false;
 };
 constexpr SDL_GPUTextureFormat kRgba8 = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 constexpr SDL_GPUTextureFormat kBgra8 = SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+constexpr SDL_GPUTextureFormat kDepthCopy = SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
 const Draw kDraws[] = {
-    // The frame target (render.cpp): colour and depth, single or multisampled (the smooth option).
+    // The frame target (render.cpp): colour and depth, single or multisampled with the depth copy (the smooth option).
     {"blit", kRgba8, true, 1},
-    {"blit", kRgba8, true, 4},
+    {"blit", kRgba8, true, 4, -1, true},
     {"solid", kRgba8, true, 1},
-    {"solid", kRgba8, true, 4},
+    {"solid", kRgba8, true, 4, -1, true},
     {"solid", kNone, true, 1},   // a point shadow face's clear
     {"terrain", kRgba8, true, 1},
-    {"terrain", kRgba8, true, 4},
+    {"terrain", kRgba8, true, 4, -1, true},
     {"mesh", kRgba8, true, 1},
-    {"mesh", kRgba8, true, 4},
-    {"into_multisampled", kRgba8, true, 4},
-    {"depth_from_multisampled", kRgba8, true, 1},
+    {"mesh", kRgba8, true, 4, -1, true},
+    {"ui_blit", kRgba8, true, 1},   // an interface canvas onto the frame
+    {"ui_blit", kRgba8, true, 4, -1, true},
+    {"into_multisampled", kRgba8, true, 4, -1, true},
+    {"depth_from_resolved", kRgba8, true, 1},
     // The window's back buffer.
     {"present", kBgra8, false, 1},
     {"perf_overlay", kBgra8, false, 1},
@@ -145,8 +151,14 @@ void CheckDrawTable() {
             continue;
         }
         const Program& p = kPrograms[k];
-        if (d.colour != kNone && (p.outputCount != 1 || (p.outputs[0].scalar == Scalar::Uint) != UintFormat(d.colour)))
+        if (d.colour != kNone && (p.outputCount < 1 || (p.outputs[0].scalar == Scalar::Uint) != UintFormat(d.colour)))
             Fail("%s: its colour output does not suit a draw's target", d.program);
+    }
+    // A second output is the depth copy: one float.
+    for (int k = 0; k < kProgramCount; ++k) {
+        const Program& p = kPrograms[k];
+        if (p.outputCount > 2 || (p.outputCount == 2 && (p.outputs[1].scalar != Scalar::Float || p.outputs[1].components != 1)))
+            Fail("%s: its outputs beyond the colour are not the depth copy's one float", p.name);
     }
     for (int k = 0; k < kProgramCount; ++k) {
         bool drawn = false;
@@ -218,11 +230,13 @@ bool MakePipeline(SDL_GPUDevice* device, const Draw& d, const Program& p, SDL_GP
     ci.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
     ci.rasterizer_state.enable_depth_clip = true;
     ci.multisample_state.sample_count = SampleCount(d.samples);
-    SDL_GPUColorTargetDescription colour{};
-    colour.format = d.colour;
+    SDL_GPUColorTargetDescription colours[2]{};
+    colours[0].format = d.colour;
+    colours[1].format = kDepthCopy;
+    colours[1].blend_state.enable_color_write_mask = p.outputCount < 2;   // masked off where nothing is written
     if (d.colour != kNone) {
-        ci.target_info.color_target_descriptions = &colour;
-        ci.target_info.num_color_targets = 1;
+        ci.target_info.color_target_descriptions = colours;
+        ci.target_info.num_color_targets = d.depthCopy ? 2 : 1;
     }
     if (d.depth) {
         ci.target_info.has_depth_stencil_target = true;
@@ -269,6 +283,7 @@ bool CheckDriver(const char* driver) {
         if (k < 0 || !vertex[k] || !fragment[k]) continue;
         const SDL_GPUSampleCount count = SampleCount(d.samples);
         if ((d.colour != kNone && !SDL_GPUTextureSupportsSampleCount(device, d.colour, count)) ||
+            (d.depthCopy && !SDL_GPUTextureSupportsSampleCount(device, kDepthCopy, count)) ||
             (d.depth && !SDL_GPUTextureSupportsSampleCount(device, SDL_GPU_TEXTUREFORMAT_D32_FLOAT, count))) {
             ++unsupported;
             continue;

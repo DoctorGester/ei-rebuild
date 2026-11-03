@@ -215,6 +215,7 @@ sg_pipeline BlitPipelineFor(int samples) {
     p.colors[0].pixel_format = kColourFormat;
     p.colors[0].write_mask = SG_COLORMASK_RGB;
     p.sample_count = samples;
+    AddDepthCopy(p);
     p.label = "ei-canvas-blit";
     sg_pipeline made = sg_make_pipeline(&p);
     g_blits.push_back(BlitPipeline{samples, made});

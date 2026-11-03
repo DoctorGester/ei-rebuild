@@ -20,6 +20,10 @@ void main() {
 @fs solid_fs
 layout(location = 0) flat in vec4 v_colour;
 layout(location = 0) out vec4 frag_colour;
-void main() { frag_colour = v_colour; }
+layout(location = 1) out float frag_depth;   // the depth copy of a multisampled pass (render_smooth.cpp)
+void main() {
+    frag_colour = v_colour;
+    frag_depth = gl_FragCoord.z;
+}
 @end
 @program solid solid_vs solid_fs

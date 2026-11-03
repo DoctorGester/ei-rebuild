@@ -54,7 +54,9 @@ layout(location = 6) in float v_loss;
 layout(binding = 0) uniform texture2D tex;
 layout(binding = 0) uniform sampler smp;
 layout(location = 0) out vec4 frag_colour;
+layout(location = 1) out float frag_depth;   // the depth copy of a multisampled pass (render_smooth.cpp)
 void main() {
+    frag_depth = gl_FragCoord.z;
     vec3 dsx = dFdx(v_shadow.xyz), dsy = dFdy(v_shadow.xyz);
     vec4 t = texture(sampler2D(tex, smp), v_uv);
     if (flags.x > 1.5) {

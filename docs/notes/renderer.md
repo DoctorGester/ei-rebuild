@@ -107,8 +107,10 @@ Rules (SDL_GPU's, or the generator's):
 - **Shared parts.** `rect_vs.hlsli` and `fullscreen.hlsli` are the two vertex stages most programs share. The
   receivers' `shadow_receiver.hlsli`, `point_shadow.hlsli` and `scene_lighting.hlsli` take their slots from the
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
-- **Not yet drawable.** `depth_from_multisampled` reads a multisampled texture, which SDL_GPU cannot sample. The
-  check creates the program, but the smooth option needs another depth copy first.
+- **The depth copy.** The programs that write the depth (`mesh`, `terrain`, `solid`, `into_multisampled`) also
+  output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`; the GLSL's `frag_depth`). Only a
+  multisampled pass's pipelines have that target (the smooth option); with one target it is dropped. The check's
+  `kDraws` marks those draws `depthCopy`, and a second output must be one float.
 
 A new program is its `.hlsl` file, which the build finds by itself, and a line in the check's `kDraws`.
 
@@ -588,9 +590,20 @@ with its own level.
   device refuses the most, none when the target cannot be made: logged), and each such pass resolves into the frame target
   at its end; the other runs draw into the frame target directly, so the interface's edges and window surfaces are
   unchanged (a 3D draw's edges run through pixel centres: multisampled, every sprite would get half-covered border pixels).
-  Between runs (render_smooth.cpp): after a world run the frame target's depth is set from sample 0 of the multisampled
-  depth; before a world run that follows other draws the frame target's colour and depth go into every sample (a pass of
-  its own). The frame target is what every reader takes, always resolved.
+  Between runs (render_smooth.cpp): after a world run the frame target's depth is set from the resolved depth copy;
+  before a world run that follows other draws the frame target's colour and depth go into every sample (a pass of its
+  own). The frame target is what every reader takes, always resolved.
+- **The depth copy.** A multisampled depth is never read back: SDL_GPU samples no multisampled texture and resolves
+  only colour. So a multisampled pass has a second colour attachment, R32F (`kDepthCopyFormat`), and every pipeline
+  made for more than one sample has it (`AddDepthCopy`): written (red only, no blending) when the pipeline writes the
+  depth, masked off otherwise. The programs that write the depth output the fragment's depth there; it is cleared to 1
+  with the depth, set by the copy into every sample, and resolved with the colour into a plain R32F texture, which
+  `depth_from_resolved` writes into the frame target's depth. A pixel inside one surface gets that surface's depth at
+  the pixel centre (as without multisampling); an edge pixel the mean over its samples of each one's surface depth at
+  the centre. Only draws after the world that test the depth see it. Chosen over drawing the world's depth again
+  without multisampling (twice the world's draw calls) and over drawing the interface multisampled (its edges half
+  covered). The GL backend (Linux) blends the copy with the colour's blend state (sokol has one blend state for all of a
+  pipeline's attachments): a blended draw that writes the depth stores a blended depth there.
 - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): sokol's
   validation skips a draw whose pipeline's count differs. A change of the sample count remakes the targets at a frame's
   first pass.
@@ -993,7 +1006,7 @@ Rules the spike found:
   - border clamp (the renderer has none: nothing in the game sets a stage's address, so `Address` has no border);
   - linear filtering of RGBA32F on every Vulkan device (the receivers read the shadow range with four loads and a lerp);
   - D24S8 on AMD Vulkan and Metal (the renderer's depth is D32F everywhere, `kDepthFormat`, and it has no stencil);
-  - sampling a multisampled texture, and depth resolve (depth_from_multisampled.glsl needs another way);
+  - sampling a multisampled texture, and depth resolve (the smooth option keeps an R32F depth copy instead);
   - timestamp queries (GpuTimer);
   - a WARP device.
 
@@ -1064,7 +1077,7 @@ uses it yet; `ei_gpu_check` checks it.
 | sokol / graphics.h | gpu.h |
 |---|---|
 | `sg_setup`, `graphics::Start` / `PrepareInBackground` / `Stop` / `Error` | `Start`, `PrepareInBackground`, `Stop`, `Error` |
-| `graphics::MaxSamples` | `MaxSamples(Rgba8, Depth32Float, kSmoothSamples)` |
+| `graphics::MaxSamples` | `MaxSamples(Rgba8, Depth32Float, kSmoothSamples)`, at most that of the depth copy's R32F (a `Format` to add) |
 | `graphics::Lost` / `CheckDevice` | nothing |
 | `sg_make_image` with data, `sg_update_image` | `MakeTexture`, then `Write` per level (`Discard` for a whole one-level rewrite) |
 | `sg_make_view` (texture, attachment) | none: the texture itself; a level is the pass target's `level`; a view from level k on is a sampler with `minLod` k |
@@ -1087,7 +1100,7 @@ What the port has to change besides the calls:
 - Writes inside a pass: none may stay (`render_perf`'s text image and the gamma ramp are written before their pass).
 - The gamma ramp check (`CheckRamp`) reads the drawable back, which SDL_GPU cannot: it needs the present drawn into a
   texture of its own in the harness build, or a check of the ramp on the frame target.
-- The smooth option's depth copy (R43b) and the casters' instance buffer at slot 2 (R43c) before the switch.
+- A multisampled pass's second target (the depth copy, R32F) resolves with the colour: two resolve targets per pass.
 - Index buffers are 32-bit only; `sg_draw` with an index buffer bound becomes `DrawIndexed`.
 - Integer textures cannot be sampled: the clouds' R8UI frame, which `texture_clouds` reads, becomes R8 (read back
   exactly as round(v * 255)) or a storage texture; `ui_rgb565`'s R16UI target is only drawn into and downloaded.

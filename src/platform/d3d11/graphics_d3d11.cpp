@@ -279,12 +279,13 @@ const char* Error() { return g_error; }
 
 int MaxSamples(int most) {
     for (int samples = most; samples > 1; samples /= 2) {
-        UINT colour = 0, depth = 0;
-        // RGBA8 and sokol's DEPTH (a D32_FLOAT view of R32_TYPELESS).
+        UINT colour = 0, depth = 0, copy = 0;
+        // RGBA8, sokol's DEPTH (a D32_FLOAT view of R32_TYPELESS) and the depth copy's R32F (render_smooth.cpp).
         const auto count = static_cast<UINT>(samples);
         if (SUCCEEDED(g_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, count, &colour)) &&
-            SUCCEEDED(g_device->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT, count, &depth)) && colour > 0 &&
-            depth > 0)
+            SUCCEEDED(g_device->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT, count, &depth)) &&
+            SUCCEEDED(g_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R32_FLOAT, count, &copy)) && colour > 0 &&
+            depth > 0 && copy > 0)
             return samples;
     }
     return 1;

@@ -26,8 +26,8 @@ bool Start(sg_environment* environment);
 // After sg_shutdown: the window's drawable, the device and everything else the backend made on it released.
 void Stop();
 const char* Error();
-// The most samples, up to `most` (a power of two), the device draws an RGBA8 target with a depth buffer with (the
-// renderer's frame target); 1: none.
+// The most samples, up to `most` (a power of two), the device draws an RGBA8 target with an R32F one and a depth
+// buffer with (the renderer's multisampled frame target and its depth copy); 1: none.
 int MaxSamples(int most);
 // The device was lost (removed, reset, hung, a driver error), as a call that failed or the device itself says: why, in
 // words for the player (the renderer ends the game on it: docs/notes/renderer.md, "No device-loss recovery"); null

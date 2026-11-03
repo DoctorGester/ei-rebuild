@@ -1,5 +1,5 @@
 // One triangle covering the target (three vertices, no buffer): the vertex stage of the passes whose fragment
-// stage reads its source at its own pixel (into_multisampled, depth_from_multisampled, shadow_reduce,
+// stage reads its source at its own pixel (into_multisampled, depth_from_resolved, shadow_reduce,
 // shadow_dilate).
 @vs fullscreen_vs
 void main() {

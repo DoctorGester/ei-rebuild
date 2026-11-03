@@ -424,6 +424,7 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
     p.sample_count = samples;
+    AddDepthCopy(p);
     p.label = "ei-terrain";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID)

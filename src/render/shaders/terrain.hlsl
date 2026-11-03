@@ -2,6 +2,7 @@
 // material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0 or more; below 0 on the
 // water layer, whose specular word carries the wave crests).
 #include "bindings.hlsli"
+#include "depth_copy.hlsli"
 struct VsIn {
     [[vk::location(0)]] float3 pos : TEXCOORD0;
     [[vk::location(1)]] float4 col : TEXCOORD1;
@@ -64,7 +65,7 @@ ConstantBuffer<TerrainFsParams> fs : FS_BLOCK(0);
 Texture2D<float4> tex : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);
 
-float4 ps_main(VsOut i) : SV_Target0 {
+float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (fs.flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
@@ -88,4 +89,6 @@ float4 ps_main(VsOut i) : SV_Target0 {
     if (fs.flags.y > 0.5) c = lerp(fs.fog.rgb, c, i.spec.a);
     return float4(c, a);
 }
+
+DepthCopyOut ps_main(VsOut i) { return WithDepthCopy(Shade(i), i.pos.z); }
 #endif
