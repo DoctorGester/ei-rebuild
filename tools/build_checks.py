@@ -42,6 +42,9 @@ def checks(out):
         # The HLSL programs against the GLSL's interfaces, and made with their pipelines on Direct3D 12 and Vulkan
         # (tools/shader_check; a driver without a device is skipped).
         [os.path.join(out, 'ei_shader_check.exe')],
+        # The renderer's SDL_GPU layer (src/render/gpu.cpp) on Direct3D 12 and Vulkan: resources, writes and downloads,
+        # draws in order, the swap chain on a small window off the screen (tools/gpu_check).
+        [os.path.join(out, 'ei_gpu_check.exe')],
     ]
 
 

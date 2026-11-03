@@ -6941,6 +6941,15 @@ files = ["tools/shader_check/shader_check.cpp", "src/render/shaders"]
 note = "From R43a. Only the spike's seven world programs were compared by pixels (frame dumps); R43a's check creates all 24 HLSL programs and their pipelines and checks their blocks and inputs against sokol-shdc's, but draws nothing. Draw each program once with fixed inputs (blocks, small textures, a few vertices) through sokol on D3D11 and through gpu.h on D3D12, read both back and compare, so a port slip in the 17 newly ported programs (ui_*, texture_*, present, blit, perf_overlay, into/depth_from_multisampled) shows before R43e re-baselines the image captures. Could live in ei_shader_check."
 
 [[ticket]]
+id = "R43d1"
+title = "Pipelines made ahead on the device's thread (gpu.cpp)"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R43e"]
+note = "From R43d. gpu::MakePipeline makes a pipeline at its first use on the main thread; the spike measured about 200-330 ms for seven programs' pipelines cold (after a driver or shader change), so the game's ~60 could cost a second at a first start. Make the descriptions the renderer always uses (render_mesh's keys and the rest, as R43e leaves them) on the thread PrepareInBackground makes the device on, into gpu.cpp's cache, before Start returns; check that SDL's pipeline creation is safe off the main thread on Direct3D 12 and Vulkan (ei_gpu_check). Measure with R43g."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"

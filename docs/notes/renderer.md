@@ -60,7 +60,8 @@ The build finds the file by itself. `tools/comments.py` reads the `.glsl` commen
 
 The same programs are also HLSL, for the renderer's move to SDL_GPU (section 15b): `src/render/shaders/<program>.hlsl`,
 one file a program, with shared parts in `.hlsli` files. Until the switch the GLSL above is what the game draws
-with, and both sources must change together. Only `ei_shader_check` uses the HLSL so far.
+with, and both sources must change together. Only `ei_shader_check` and `src/render/gpu.cpp` (section 15c, not used by
+the game yet) use the HLSL so far.
 
 The build (CMakeLists.txt):
 - **Toolchain.** `tools/shader_toolchain/toolchain.cmake` fetches SDL_shadercross's sources (a pinned commit),
@@ -980,7 +981,7 @@ What it found:
 - SDL_GPU's device costs about 150 ms more at start.
 - Its full-frame readback is somewhat slower than sokol's, but it is general: any texture, any time.
 
-The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md. The shaders' HLSL and its toolchain are in the
+The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md; the layer the port draws with is section 15c. The shaders' HLSL and its toolchain are in the
 main build now ("HLSL and SDL_shadercross" above, with the binding rules the spike found). The spike's own copies
 of the world's seven programs stay in `tools/gpu_spike/shaders`, with its hand-made `kBindings`, until it is deleted.
 
@@ -992,6 +993,118 @@ Rules the spike found:
   - sampling a multisampled texture, and depth resolve (depth_from_multisampled.glsl needs another way);
   - timestamp queries (GpuTimer);
   - a WARP device.
+
+## 15c. gpu.h: the renderer's layer on SDL_GPU
+
+`src/render/gpu.{h,cpp}` (namespace `render::gpu`) is what the renderer's files are to draw with once they leave
+sokol: plain C++, no SDL type but forward-declared handles, so the files include no SDL header. Nothing in the game
+uses it yet; `ei_gpu_check` checks it.
+
+**Shape.**
+- **Device.** `PrepareInBackground` (SDL's video started on the calling thread, then the device made on a thread of its
+  own) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12,
+  else Vulkan, on Windows; Vulkan elsewhere; `DeviceOptions::driver` picks one. Shaders: DXIL on Direct3D 12, SPIR-V on
+  Vulkan, MSL on Metal, from `gpu_shaders::kPrograms` (made at their first pipeline). `MaxSamples`, `FormatSupported`.
+  No device loss is reported (section 9).
+- **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
+  `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
+  are done (SDL's), so the sokol renderer's retire lists (`RetireBuffers`, `RetireFrameImages`, the replaced images)
+  are not needed. Release after `Stop` does nothing (globals destroyed at exit).
+- **Formats**: RGBA8, BGRA8 (the swap chain), R8, R8 / R16 uint, RGBA32F, BC1-3, D32F. No stencil. An integer
+  texture is never sampled (SDL_GPU's rule; refused). Direct3D 12 copies a compressed texture's region only in whole
+  4x4 blocks, also on a level smaller than one, and Vulkan only at the level's own size there: gpu.cpp rounds the
+  copy's extent up on Direct3D 12 alone.
+- **Samplers and pipelines are kept by description** (`MakeSampler`, `MakePipeline`: the pipeline cache). The same
+  description gives the same object, made at its first use and kept until `Stop`, so callers keep no maps of their own
+  beyond a cheap key if they want one. A `PipelineDesc` is the program, the vertex buffers (0..n-1, no gaps: SDL's
+  Direct3D 12 backend looks a layout up by its index) and attributes, primitive, cull and winding, colour format, write
+  mask and blend, depth format, compare, write and bias, and the sample count.
+- **One command buffer per frame**, taken at the first command; `Submit` sends it and presents the swap chain's
+  texture if one was taken. A burst of writes (64 MB in one command buffer, a load) submits early unless the swap
+  chain's texture was taken.
+- **Passes**: `BeginPass` (one colour target with a level, load Keep / Clear / DontCare, store, a resolve target;
+  a depth target) .. `EndPass`. A target cleared or not cared about is cycled (a free copy of it takes the pass while
+  the GPU still reads the old one). Viewport and scissor in target pixels from the top-left on every driver. Bindings
+  (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
+  `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (the spike's
+  replay bound everything for every draw). `Draw`, `DrawIndexed` (with a first instance).
+- **Writes** (`Write` of a buffer range or a texture region, `Copy` of a texture region) go between passes, never
+  inside one (refused and logged). The bytes are copied into the upload ring at once; the copies wait and are recorded
+  in one copy pass before the next pass, download wait or submission, so they are in order with the draws: a draw
+  before a write reads what it replaces. `Contents::Discard`: nothing else of the buffer or texture is read by later
+  commands, so the write may go into a fresh copy (a stream written from its start again: the sokol renderer's
+  `StreamBuffer` appends; `Keep` for `GpuPool`'s writes in place).
+- **The upload ring** is one 16 MB transfer buffer filled from its start each command buffer. It is mapped while writes
+  go into it, unmapped when the waiting copies are recorded (SDL wants it so), and mapped again without cycling to go
+  on after them. A new command buffer or a full ring maps it cycling (SDL gives a free copy while the GPU reads the
+  old). A write over 4 MB has a transfer buffer of its own. A command buffer that cycled it more than twice lets it go
+  at its submission (SDL keeps every copy a cycle made until the transfer buffer is released). Texture rows are 256
+  bytes apart and start at multiples of 512 (Direct3D 12's copy alignments, so SDL copies nothing again).
+- **Downloads**: `Download(texture, level, rect)` is recorded in order with the frame's commands and returns a ticket;
+  `Done` without waiting (its command buffer submitted and finished), `Wait` (submits first when the open command
+  buffer holds it), `Read` maps the texels until `Release`. Released tickets' transfer buffers are kept for the next
+  downloads (four at most). Not downloadable: the swap chain's texture (Vulkan makes it without transfer source) and a
+  multisampled texture; a depth texture only whole on Direct3D 12.
+- **The window**: `ClaimWindow(SDL_Window*)`, `SetPresentMode` (Vsync; Immediate, falling back to Mailbox, then Vsync;
+  Mailbox, falling back to Vsync), `SwapchainFormat`, `AcquireSwapchain` (waits while too many frames are in flight;
+  an empty texture while the window is minimised or hidden, which SDL's Vulkan driver treats so). SDL follows the
+  window's size by itself.
+- **The frame's GPU time** (the overlay's GPU line, one whole-frame time, user 2026-11-03): SDL_GPU has no timestamp
+  queries, so `SetFrameTiming(true)` starts a thread that polls the submissions' fences every 0.2 ms; a submission's
+  time runs from its submission (or the end of the one before, if later) to when its fence was seen signalled.
+  `FrameGpuTime` gives the latest. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
+  submit lock while it waits, so a waiting thread would stall the main thread's submissions.
+- `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses.
+
+**Porting the renderer (R43e).**
+
+| sokol / graphics.h | gpu.h |
+|---|---|
+| `sg_setup`, `graphics::Start` / `PrepareInBackground` / `Stop` / `Error` | `Start`, `PrepareInBackground`, `Stop`, `Error` |
+| `graphics::MaxSamples` | `MaxSamples(Rgba8, Depth32Float, kSmoothSamples)` |
+| `graphics::Lost` / `CheckDevice` | nothing |
+| `sg_make_image` with data, `sg_update_image` | `MakeTexture`, then `Write` per level (`Discard` for a whole one-level rewrite) |
+| `sg_make_view` (texture, attachment) | none: the texture itself; a level is the pass target's `level`; a view from level k on is a sampler with `minLod` k |
+| `sg_make_sampler`, the files' sampler maps | `MakeSampler` (kept by description) |
+| `sg_make_shader` | none (shaders come with the pipeline's program) |
+| `sg_make_pipeline`, the files' pipeline maps | `MakePipeline` |
+| `sg_make_buffer`, `sg_append_buffer` (`StreamBuffer`) | `MakeBuffer`, `Write(..., used == 0 ? Discard : Keep)` at the frame's offset |
+| `graphics::UpdateBuffer` (`GpuPool`) | `Write(..., Keep)` |
+| `sg_begin_pass` / `sg_end_pass`, `graphics::BeginDrawable` / `EndDrawable` | `BeginPass` / `EndPass`, `AcquireSwapchain` / `Submit` |
+| `graphics::ApplyViewport` / `ApplyScissorRect` | `SetViewport` / `SetScissor` |
+| `sg_apply_pipeline` / `_bindings` / `_uniforms`, `sg_draw` / `_ex` | `ApplyPipeline`, `BindVertexBuffers` / `BindIndexBuffer` / `BindTextures`, `PushUniforms`, `Draw` / `DrawIndexed` |
+| `sg_commit` | `Submit` |
+| `graphics::Readback` (`Read`, `Row`, `Unmap`, `Release`) | `Download`, `Wait`, `Read` (`Texels::Row`), `Release`; or `Done` a frame later |
+| `graphics::GpuTimer` | `SetFrameTiming`, `FrameGpuTime` |
+| `PresentMode` (vsync, tearing) | `SetPresentMode(Vsync / Immediate / Mailbox)` |
+
+What the port has to change besides the calls:
+- The game's window to the device: `ClaimWindow` takes the platform layer's `SDL_Window` (a small accessor in
+  `src/platform/sdl` and the harness's platform).
+- Writes inside a pass: none may stay (`render_perf`'s text image and the gamma ramp are written before their pass).
+- The gamma ramp check (`CheckRamp`) reads the drawable back, which SDL_GPU cannot: it needs the present drawn into a
+  texture of its own in the harness build, or a check of the ramp on the frame target.
+- The smooth option's depth copy (R43b) and the casters' instance buffer at slot 2 (R43c) before the switch.
+- Index buffers are 32-bit only; `sg_draw` with an index buffer bound becomes `DrawIndexed`.
+- Integer textures cannot be sampled: the clouds' R8UI frame, which `texture_clouds` reads, becomes R8 (read back
+  exactly as round(v * 255)) or a storage texture; `ui_rgb565`'s R16UI target is only drawn into and downloaded.
+
+**Check**: `ei_gpu_check` (tools/gpu_check; build_checks.py on Windows, ctest `port_gpu --require` on Linux), per driver
+(Direct3D 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), in a few seconds:
+- texture writes from padded rows and downloads in every format (BC ones where supported), whole levels, a second
+  level in two writes, a region; a download not done before its submission, then done by polling without a wait;
+- the casters' program from vertex, instance and index buffers at offsets with a first instance; the depth test; the
+  target's top-left orientation; a discarding write and a write in place between passes, each read back after the
+  passes before and after it;
+- the blit program in two pipelines with the bindings and uniforms kept across them; a mip level cleared as a target
+  beside the first level kept; a texture copy; a 4-sample target with depth resolved;
+- 77 MB of texture writes in one command buffer (through the ring, cycled, and on their own), the burst's early
+  submission, each texture's first and last rows read back;
+- the pipeline and sampler caches (anisotropic, compare);
+- the swap chain on a 64x48 borderless, unfocusable window at (-4000, -4000) (shown, as SDL's Vulkan driver gives a
+  hidden window no texture), four frames in each present mode with the fallbacks, the textures at the window's pixel
+  size; under a second;
+- frame GPU times from the fences; the misuses refused, each logged once, and nothing else logged.
 
 ## The renderer's source files
 
