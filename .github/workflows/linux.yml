@@ -19,14 +19,29 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      CCACHE_MAXSIZE: 2G
     steps:
       - uses: actions/checkout@v5
       - name: Packages
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q ninja-build libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
+          sudo apt-get install -y -q ninja-build ccache libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
             libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev \
             xvfb mesa-utils libgl1-mesa-dri mesa-vulkan-drivers
+      # The shader toolchain (shadercross, spirv-cross, DXC: tools/shader_toolchain), built at configure time, by its
+      # pins; and ccache's objects of both builds, the newest run's (ccache checks every hit against the source).
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: ccache-${{ runner.os }}-
       - name: sokol-shdc
         run: |
           mkdir -p build/tools
@@ -34,12 +49,13 @@ jobs:
           chmod +x build/tools/sokol-shdc
       - name: Build
         run: |
-          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build/linux
       - name: Build the harness
         run: |
-          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON
+          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build/linux-harness --target ei-rebuild
+          ccache --show-stats
       - name: Checks
         run: |
           cd build/linux
