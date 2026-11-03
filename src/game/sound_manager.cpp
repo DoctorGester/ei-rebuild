@@ -1105,7 +1105,6 @@ void ConstructFader(SoundFader& fader) {
 }
 
 constexpr unsigned kMaxRate = 44100;
-constexpr int kStreamThreadPriority = 15;   // THREAD_PRIORITY_TIME_CRITICAL
 
 constexpr int kStreamRate = 44100;
 constexpr int kStreamChannels = 2;
@@ -1368,14 +1367,6 @@ void SoundManager::StreamThread() {
     }
 }
 
-// The stream thread's procedure: the manager's StreamThread, then 0.
-unsigned StreamThreadEntry(void* manager) {
-    auto* self = static_cast<SoundManager*>(manager);
-    self->StreamThread();
-    self->streamStopped.Set();
-    return 0;
-}
-
 // --- The stream's reader -----------------------------------------------------------------
 
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
@@ -1447,8 +1438,10 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
         return 0;
     }
     if (OpenStream() != 0) {
-        streamStopped.Create();
-        streamThread.Start(StreamThreadEntry, this, kStreamThreadPriority);
+        streamThread = std::thread([this] {
+            platform::MakeThreadTimeCritical();
+            StreamThread();
+        });
     }
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);
     for (int i = 0; i < kVoiceCount; ++i) {
@@ -1470,11 +1463,9 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
 }
 
 void SoundManager::Close() {
-    if (streamThread.Started()) {
+    if (streamThread.joinable()) {
         threadsQuit = 1;
-        streamStopped.Wait();
-        streamThread.Close();
-        streamStopped.Close();
+        streamThread.join();
     }
     CloseStream();
     if (slots != nullptr) {
@@ -1496,7 +1487,6 @@ void SoundManager::Close() {
 
 void SoundManager::Reset() {
     ResetStream();
-    streamThread.Close();
     threadsQuit = 0;
     slots = nullptr;
     cacheBytes = 0;

@@ -4,6 +4,7 @@
 // (tests/verify/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through EventWaits / NextEvent / TakeEvent); the renderer keeps its own
 // swap chain on the window's native handle.
 #include "platform/platform.h"
+#include "platform/log.h"
 #include "platform/sdl/sdl_keys.h"
 
 #define SDL_MAIN_HANDLED   // SDL_main.h only for SDL_RegisterApp: the program keeps its own entry
@@ -11,6 +12,7 @@
 #include <SDL3/SDL_main.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <deque>
@@ -54,11 +56,8 @@ void Sleep(std::uint32_t ms) {
         SDL_Delay(ms);
 }
 
-DateTime LocalTime() {
-    SDL_Time now = 0;
-    SDL_DateTime local{};
-    if (!SDL_GetCurrentTime(&now) || !SDL_TimeToDateTime(now, &local, true)) return {};
-    return {local.year, local.month, local.day, local.hour, local.minute, local.second};
+std::int64_t SecondsSince1970() {
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 // ==== The message box ================================================================================================
@@ -355,7 +354,7 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     SDL_RegisterApp(className, 0, instance);
 #endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
-        DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
+        ei::Log("platform: no SDL video: %s", SDL_GetError());
 }
 
 NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {

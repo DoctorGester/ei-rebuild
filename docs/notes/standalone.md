@@ -377,9 +377,9 @@ The rest:
 - **Files:** every open goes through platform/platform.h, which the harness answers in its builds for its save /
   install redirection.
   - `platform::File` is a Win32 handle; text lines are written with `WriteLine`.
-  - `platform::ReadFile` reads a whole file.
-  - `platform::FileFind` does CFileFind's read-ahead.
-  - `platform::FileExists` is `_access`.
+  - `platform::ReadWholeFile` reads a whole file.
+  - `platform::FolderEntries` does CFileFind's read-ahead.
+  - `platform::PathExists` is `_access`.
   - The res archives keep a Win32 handle.
   - A truncating open of a just-written file, then a write past its end, can read the gap back as old bytes under load.
 - **Not ported (no callers):** `_controlfp`, the old iostream (the console's streams are `console::Stream`), errno /
@@ -475,7 +475,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   volume label, the key names, the other game window's class. The window, its title, the message box and typed text are
   SDL's (UTF-8). The harness's saves redirect, overlay and settings snapshot work on the UTF-8 path before the wide
   call.
-- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h) through `platform::ReadFile`, their
+- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h) through `platform::ReadWholeFile`, their
   text taken from the asset code page into UTF-8.
 - **ANSI still:** OutputDebugString.
 - **Save names:** saves are folders `saves\save<n>` with the title inside info.sav, so a title never reaches a file

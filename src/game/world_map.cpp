@@ -284,10 +284,8 @@ std::string MapPath(std::string_view name) {
 }
 
 bool MapFileExists(const char* name) {
-    platform::FileFind find;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
-    std::string path = MapsFolder() + name;
-    return find.FindFile(path) != 0;
+    return platform::PathExists(MapsFolder() + name);
 }
 
 void WriteMapFile(const char* name, GameBuffer* buffer) {

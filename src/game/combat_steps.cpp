@@ -9,7 +9,7 @@
 #include "unit.h"
 
 #include "lib/float_select.h"
-#include "platform/platform.h"
+#include "platform/log.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/rounding.h"
@@ -60,8 +60,8 @@ constexpr int kSkillLocations[20] = {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4
 constexpr int kLocationBody = 1;
 constexpr int kLocationCount = 6;
 
-// Printed when not even the fallback attack animation exists.
-const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!\n";
+// Logged when not even the fallback attack animation exists (the original's debugger output).
+const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!";
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
@@ -244,7 +244,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
     if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == UnitOrderKind::Attack) {
         animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {
-            platform::DebugOutput(kNoAnimationMessage);
+            ei::Log("%s", kNoAnimationMessage);
             animation = unit->AnimationEntry(0);
         }
     }

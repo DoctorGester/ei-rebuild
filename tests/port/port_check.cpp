@@ -1,7 +1,10 @@
 // Native platform checks with synthetic files only. No installed game files are changed.
 #include "platform/platform.h"
 
+#include "lib/calendar.h"
+#include "lib/caller.h"
 #include "lib/float_select.h"
+#include "lib/ipv4.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -13,10 +16,13 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <thread>
 #include <unistd.h>
+#include <vector>
 
 int RunSettingsFileChecks();
 int RunIniFileChecks();
+int RunIpv4Checks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -31,10 +37,12 @@ void Check(bool ok, const char* message) {
 int main() {
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
     Check(RunIniFileChecks() == 0, "ini file checks");
+    Check(RunIpv4Checks() == 0, "IPv4 text as Winsock read it");
     Check(CallerCaptured(), "caller frame starts at the return address");
-    Check(platform::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
+    Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');
-    Check(platform::FormatLocalTime(0, tooLong.c_str()).empty(), "reject oversized saved timestamp text");
+    Check(lib::FormatLocalTime(0, tooLong.c_str()).empty(), "reject oversized saved timestamp text");
+    Check(lib::LocalDateTime(86400 * 365).year == 1971, "local date of a time");
     namespace fs = std::filesystem;
     const fs::path old = fs::current_path();
     std::string temp = (fs::temp_directory_path() / "ei-port-XXXXXX").string();
@@ -58,15 +66,16 @@ int main() {
     Check(file.Open("empty", platform::FileMode::Create), "empty file");
     file.Close();
     Check(!mapped.Open("empty"), "empty map fails");
-    platform::FileFind find;
-    Check(find.FindFile("res\\*.res"), "case-insensitive wildcard");
-    Check(!find.FindNext() && find.GetFileName() == "Database.RES" && find.GetLength() == 7,
-          "last search result remains readable");
+    const std::vector<platform::FolderEntry> found = platform::FolderEntries("res\\*.res");
+    Check(found.size() == 1 && found[0].name == "Database.RES" && found[0].size == 7 && !found[0].folder,
+          "case-insensitive wildcard");
+    Check(platform::IsFile("res\\DATABASE.res") && platform::PathExists("RES") && !platform::IsFile("res"),
+          "files and folders with folded case");
     std::uint32_t error = 0;
     Check(platform::WriteWholeFile("Config\\Test.ini", "[Game]\r\nCount=42\r\nName=\"value\"\r\n", &error),
           "atomic ini write");
     std::string written;
-    Check(platform::ReadFile("config\\test.INI", &written) && written.size() == 32, "ini read back with folded case");
+    Check(platform::ReadWholeFile("config\\test.INI", &written) && written.size() == 32, "ini read back with folded case");
     Check(!platform::RenameFile("empty", "Res/Database.RES"), "rename refuses existing target");
     Check(platform::CopyFileOver("Res/Database.RES", "res/COPY.res"), "copy file");
     Check(platform::FreeDiskSpace(".") > 0, "free disk space");
@@ -92,10 +101,9 @@ int main() {
     Check(std::bit_cast<std::uint32_t>(MinKeepA(nan, 1.0f)) == 0x7FC01234, "min preserves NaN bits");
 
     using namespace platform::net;
-    Check(Start(), "socket start");
     const Socket receiver = Open(Kind::Udp), sender = Open(Kind::Udp);
     Check(receiver != kNoSocket && sender != kNoSocket, "UDP sockets");
-    Address address{kIpv4, 0, ParseIpv4("127.0.0.1"), {}};
+    Address address{kIpv4, 0, lib::ParseIpv4("127.0.0.1"), {}};
     Check(Bind(receiver, address), "loopback bind");
     sockaddr_in bound{};
     socklen_t boundSize = sizeof(bound);
@@ -113,25 +121,13 @@ int main() {
     Check(Select(&ready, nullptr, nullptr, 1000) == 0 && ready.count == 0, "select clears nonready sockets");
     Close(receiver);
     Close(sender);
-    Stop();
-    struct Worker {
-        platform::Signal finished;
-        int value = 0;
-    } worker;
-    worker.finished.Create();
-    platform::Thread thread;
-    Check(thread.Start(
-              [](void* parameter) -> unsigned {
-                  auto& worker = *static_cast<Worker*>(parameter);
-                  worker.value = 42;
-                  worker.finished.Set();
-                  return 0;
-              },
-              &worker, 0),
-          "start ordinary C++ thread callback");
-    worker.finished.Wait();
-    Check(worker.value == 42, "thread callback receives its parameter and signals completion");
-    thread.Close();
+    int value = 0;
+    std::thread thread([&value] {
+        platform::MakeThreadTimeCritical();
+        value = 42;
+    });
+    thread.join();
+    Check(value == 42, "a thread at the highest priority runs");
     fs::current_path(old);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);

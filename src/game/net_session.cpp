@@ -238,8 +238,6 @@ void BufferUpdateHigh(GameBuffer* buffer) {
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
 
-std::string NetAddress::ToString() const { return Format(0); }
-
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;

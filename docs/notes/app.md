@@ -57,4 +57,4 @@ from it by `tools/gen_settings_doc.py`, a build check).
 - `DelayedProtectionCheck` (the original's copy protection on every new object: a 1% `rand()` draw, then a list nothing
   fills) is gone; the harness made the original's return at once, so nothing depends on its draw.
 - Caught file errors: `platform::File` throws `platform::FileError` by value; `Dib::Read` / `Write` catch it, the
-  script reader reads whole files with `platform::ReadFile`, which does not throw.
+  script reader reads whole files with `platform::ReadWholeFile`, which does not throw.

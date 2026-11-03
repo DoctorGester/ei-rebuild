@@ -12,6 +12,7 @@
 #include "net_messages.h"
 
 #include "lib/rebirth.h"
+#include "lib/ipv4.h"
 
 #include <atomic>
 #include <chrono>
@@ -139,7 +140,7 @@ void OnMultiplayerClick() {
     std::snprintf(g_text, sizeof(g_text), "%u.%u.%u.%u:%u", address & 0xFF, (address >> 8) & 0xFF,
                   (address >> 16) & 0xFF, address >> 24, static_cast<unsigned>(g_port));
     g_address.ip = address;
-    g_address.port = sockets::ToNetwork(static_cast<std::uint16_t>(g_port));
+    g_address.port = lib::ToNetwork(static_cast<std::uint16_t>(g_port));
     g_address.family = sockets::kIpv4;
 }
 

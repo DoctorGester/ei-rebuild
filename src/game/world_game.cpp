@@ -39,6 +39,7 @@
 #include "world.h"
 #include "world_map_files.h"
 
+#include "lib/calendar.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -868,19 +869,8 @@ int LoadMission(ByteStream* file) {
 }
 
 void ClearSaveFolder(const std::string& path) {
-    platform::CreateFolder(path.c_str());
-    platform::FileFind finder;
-    int found;
-    {
-        std::string pattern = path + kAllFiles;
-        found = finder.FindFile(pattern);
-    }
-    while (found) {
-        found = finder.FindNext();
-        std::string file(finder.GetFilePath());
-        platform::RemoveFile(file.c_str());
-    }
-    finder.Close();
+    platform::CreateFolder(path);
+    for (const platform::FolderEntry& entry : platform::FolderEntries(path + kAllFiles)) platform::RemoveFile(entry.path);
 }
 
 bool NameInList(const char* const* list, std::string_view name) {
@@ -930,7 +920,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     if (mode == kModeMainMenu) {
         g_serverWorld.NewZone(kMenuMap, kMenuMob, std::nullopt);
         // The menu shows the local time of day.
-        const platform::DateTime now = platform::LocalTime();
+        const lib::DateTime now = lib::LocalTime();
         int minute = now.minute;
         int hour = now.hour;
         g_serverWorld.SetTime(static_cast<float>(minute) * 0.016666668f + static_cast<float>(hour));
@@ -1189,17 +1179,9 @@ void GameFlow::SetNetworkZone(const char* zone) {
 }
 
 int CurrentSaveSize() {
-    platform::FileFind find;
-    std::string pattern;
-    pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern)) {
-        int more;
-        do {
-            more = find.FindNext();
-            total += static_cast<int>(find.GetLength());
-        } while (more);
-    }
+    for (const platform::FolderEntry& entry : platform::FolderEntries(str::Format(kCurrentFiles, DataFolderText())))
+        total += static_cast<int>(entry.size);
     return total;
 }
 
@@ -1323,14 +1305,10 @@ void GameFlow::UpdateFromServer() {
 void SavedParties::Reload() {
     entries.clear();
 
-    platform::FileFind finder;
-    if (!finder.FindFile(folder + kPartyFilePattern)) return;
-    bool more;
-    do {
-        more = finder.FindNext();
+    for (const platform::FolderEntry& found : platform::FolderEntries(folder + kPartyFilePattern)) {
         MpHeroRecord read;
         MpHeroRecord* entry = &read;
-        entry->file = finder.GetFileName();
+        entry->file = found.name;
         if (entry->ReadFile(folder)) {
             ClearVariablesKeepingGlobals(&entry->GetParty()->variables);   // but "gvar." (Rebirth's PersistentGlobalVars)
             if (std::ssize(entry->GetParty()->members) == 1) {
@@ -1338,22 +1316,15 @@ void SavedParties::Reload() {
                 entries.push_back(read);
             }
         }
-    } while (more);
+    }
 }
 
 void GameFlow::BuildZoneTable() {
     std::vector<ZoneEntry>& table = g_zoneTable;
     if (table.end() != table.begin()) return;
-    platform::FileFind find;
-    int more;
-    {
-        modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
-        std::string pattern = MapsFolder() + kQuestFilePattern;
-        more = find.FindFile(pattern);
-    }
-    while (more) {
-        more = find.FindNext();
-        std::string name = find.GetTitle();
+    modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
+    for (const platform::FolderEntry& found : platform::FolderEntries(MapsFolder() + kQuestFilePattern)) {
+        std::string name = found.Title();
         str::MakeLower(name);
         RegisterQuests(name);
         UnloadQuestTexts();
@@ -1367,5 +1338,4 @@ void GameFlow::BuildZoneTable() {
             entry.id = allod;
         }
     }
-    find.Close();
 }

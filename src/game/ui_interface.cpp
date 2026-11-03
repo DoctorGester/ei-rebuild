@@ -136,7 +136,7 @@ void Interface3D::Create(TextureDevice* device) {
     pollTop = false;
 
     // The help topics seen: "topic count" lines.
-    if (std::string bytes; platform::ReadFile(g_dataFolder + game::TutorialIniText(), &bytes)) {
+    if (std::string bytes; platform::ReadWholeFile(g_dataFolder + game::TutorialIniText(), &bytes)) {
         std::vector<std::string> words;
         for (const std::string& line : str::Lines(bytes)) {
             words = text::SplitWords(line, ' ');

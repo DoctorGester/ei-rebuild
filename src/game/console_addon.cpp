@@ -180,8 +180,7 @@ const std::vector<std::string>& AutoExecLines() {
         for (std::string& line : settings::GetValues(settings::kAutoExec))
             if (!line.empty()) result.push_back(std::move(line));
         std::string bytes;
-        std::uint32_t error;
-        if (platform::ReadWholeFile("2utoexec.cfg", &bytes, &error) == platform::WholeFile::read)
+        if (platform::ReadWholeFile("2utoexec.cfg", &bytes))
             for (std::string& line : str::Lines(bytes)) result.push_back(std::move(line));
         return result;
     }();

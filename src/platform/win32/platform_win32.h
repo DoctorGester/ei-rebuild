@@ -24,18 +24,13 @@ std::string Narrow(std::wstring_view wide);
 
 } // namespace text
 
-// The system calls of platform_win32.cpp's file objects and socket waits that a harness run answers
-// itself: game_calls.cpp's, which the harness's builds replace with their own (docs/notes/platform.md, "SDL3 and the
-// harness").
+// The system calls of platform_win32.cpp's files and socket waits that a harness run answers itself: game_calls.cpp's,
+// which the harness's builds replace with their own (docs/notes/platform.md, "The harness's answers").
 namespace platform::win32 {
 
-// `path` opened with `access` and `disposition` (CreateFile's), shared with other readers and writers; null when it
-// does not open.
-HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition);
-// WriteFile's call, synchronous.
-BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written);
-// A folder search started on `pattern`, its first entry in `found`; INVALID_HANDLE_VALUE when nothing matches.
-HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found);
+// WriteFile's call for File::Write, synchronous; `path` is the file as the game named it (the harness watches the
+// game's writes: tests/verify/harness_crash.h).
+BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written, std::string_view path);
 // select's call (the count is ignored by Winsock).
 int Select(fd_set* read, fd_set* write, fd_set* failed, const timeval* timeout);
 

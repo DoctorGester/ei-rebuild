@@ -25,7 +25,7 @@ std::string_view Trim(std::string_view text) {
 
 void IniFile::SetPath(std::string_view path) {
     std::string bytes;
-    platform::ReadFile(std::string(path), &bytes);   // a missing file leaves it empty
+    platform::ReadWholeFile(std::string(path), &bytes);   // a missing file leaves it empty
     text = text::FromAssetText(bytes);
 }
 

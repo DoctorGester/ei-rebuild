@@ -6,6 +6,8 @@
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
 #include "audio.h"
 
+#include "platform/log.h"
+
 // dr_wav and dr_mp3 (third_party/dr_libs, unmodified); their implementations are at the end of this file.
 #pragma warning(push, 0)
 #include "dr_libs/dr_mp3.h"
@@ -18,7 +20,6 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
-#include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -418,15 +419,6 @@ float g_peak = 0.0f;
 bool g_heard = false;
 Reverb g_reverb;   // under g_mix
 
-void Log(const char* format, ...) {
-    char text[256];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    platform::DebugOutput(text);
-}
-
 void Mix(float* out, std::uint32_t frames);
 
 // The device wants `additional` more bytes: that many frames mixed and put into its stream (the device's thread).
@@ -453,13 +445,13 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     if (g_noDevice) return true;
     // The game goes on as with a device, silently, when none opens.
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
-        Log("audio: no audio (%s): silent\n", SDL_GetError());
+        ei::Log("audio: no audio (%s): silent", SDL_GetError());
         return true;
     }
     const SDL_AudioSpec spec{SDL_AUDIO_F32, kOutputChannels, static_cast<int>(g_rate)};
     g_device = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, DeviceData, nullptr);
     if (!g_device || !SDL_ResumeAudioStreamDevice(g_device)) {
-        Log("audio: no output device (%s): silent\n", SDL_GetError());
+        ei::Log("audio: no output device (%s): silent", SDL_GetError());
         if (g_device) SDL_DestroyAudioStream(g_device);
         g_device = nullptr;
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
@@ -467,7 +459,7 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     }
     g_deviceLive = true;
     const char* name = SDL_GetAudioDeviceName(SDL_GetAudioStreamDevice(g_device));
-    Log("audio: %s through %s, %u Hz\n", name ? name : "the default device", SDL_GetCurrentAudioDriver(), g_rate);
+    ei::Log("audio: %s through %s, %u Hz", name ? name : "the default device", SDL_GetCurrentAudioDriver(), g_rate);
     return true;
 }
 
@@ -476,7 +468,7 @@ void CloseOutput() {
         SDL_DestroyAudioStream(g_device);
         g_device = nullptr;
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
-        Log("audio: closed; %u voices started, the mix's peak %.3f\n", g_voicesStarted, static_cast<double>(g_peak));
+        ei::Log("audio: closed; %u voices started, the mix's peak %.3f", g_voicesStarted, static_cast<double>(g_peak));
     }
     g_deviceLive = false;
     g_open = false;
@@ -693,7 +685,7 @@ std::int32_t Position(const Voice* voice) {
 void Start(Voice* voice) {
     StartTimer(*voice);
     StartSound(*voice);
-    if (g_voicesStarted++ == 0 && g_device) Log("audio: the first voice plays\n");
+    if (g_voicesStarted++ == 0 && g_device) ei::Log("audio: the first voice plays");
 }
 
 void Stop(Voice* voice) {
@@ -975,7 +967,7 @@ void Mix(float* out, std::uint32_t frames) {
     }
     if (peak > 0.0f && !g_heard && g_device) {
         g_heard = true;
-        Log("audio: the first sound reaches the device\n");
+        ei::Log("audio: the first sound reaches the device");
     }
     g_peak = peak;
 }

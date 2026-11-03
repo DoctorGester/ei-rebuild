@@ -382,6 +382,7 @@
 #include "harness_utf8.h"
 
 #include "../../src/platform/log.h"
+#include "platform/paths.h"
 #include "platform/platform.h"
 #include "platform/win32/platform_win32.h"
 #include "platform/win32/thread_context.h"
@@ -3536,54 +3537,28 @@ platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, 
 
 // ==== The game's calls the harness answers ===========================================================================
 
-// The harness's builds leave src/platform/win32/game_calls.cpp out and take these: the saves and the install's files
-// through the run's overlay (ReadPath / WritePath above), the startup movies left out, the font smoothing off, no
-// other game window. Without the harness (g_answering false) each is the system's call, as game_calls.cpp's.
+// The harness's builds leave src/platform/win32/game_calls.cpp and src/platform/system_path.cpp out and take these: the
+// game's paths mapped onto the run's overlay (ReadPath / WritePath above), the startup movies left out, the font
+// smoothing off, no other game window. Without the harness (g_answering false) each is the system's call, as theirs.
 
 namespace platform {
 
-namespace {
-
-using ei::verify::ReadPath;
-using ei::verify::WritePath;
-
-std::wstring Wide(const char* path) { return text::Wide(path); }
-
-} // namespace
-
-bool CreateFolder(const char* path) {
+// The one seam of the overlay (src/platform/paths.h): every file and folder call of the game asks for its path here.
+// A read takes the overlay's copy when there is one; a write goes to the overlay (its folders made), Update copying the
+// install's file there first, so an install file renamed is copied, never moved away. config\movie.ini (the startup
+// movies: "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays. The saves trace sees every write
+// (EI_SAVETRACE).
+std::string SystemPath(std::string_view path, PathUse use) {
+    using namespace ei::verify;
+    if (!g_answering) return std::string(path);
+    const std::string name(path);
     char b[MAX_PATH];
-    return CreateDirectoryW(Wide(WritePath(path, b, false)).c_str(), nullptr) != FALSE;
-}
-
-bool RemoveFile(const char* path) {
-    char b[MAX_PATH];
-    return DeleteFileW(Wide(WritePath(path, b, false)).c_str()) != FALSE;
-}
-
-// An install file is never moved away: it is copied into the overlay instead.
-bool RenameFile(const char* from, const char* to) {
-    char b1[MAX_PATH], b2[MAX_PATH], b3[MAX_PATH];
-    const char* source = ReadPath(from, b1);
-    const char* target = WritePath(to, b2, false);
-    if (source == from && ei::verify::ShadowOf(from, b3))
-        return CopyFileW(Wide(source).c_str(), Wide(target).c_str(), TRUE) != FALSE;
-    return MoveFileW(Wide(source).c_str(), Wide(target).c_str()) != FALSE;
-}
-
-bool CopyFileOver(const char* from, const char* to) {
-    char b1[MAX_PATH], b2[MAX_PATH];
-    return CopyFileW(Wide(ReadPath(from, b1)).c_str(), Wide(WritePath(to, b2, false)).c_str(), FALSE) != FALSE;
-}
-
-bool RemoveFolder(const char* path) {
-    char b[MAX_PATH];
-    return RemoveDirectoryW(Wide(WritePath(path, b, false)).c_str()) != FALSE;
-}
-
-bool FileExists(const std::string& path) {
-    char b[MAX_PATH];
-    return ei::verify::Attributes(ReadPath(path.c_str(), b)) != INVALID_FILE_ATTRIBUTES;
+    if (use == PathUse::Read) {
+        if (name.size() >= 9 && _stricmp(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
+        return ReadPath(name.c_str(), b);
+    }
+    savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
+    return WritePath(name.c_str(), b, use == PathUse::Update);
 }
 
 // Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switched it off and
@@ -3604,37 +3579,9 @@ bool FontSmoothing() {
 // other way (ST1b): a game the user starts without the harness runs the real check, so a harness game's window has a
 // title of its own (harness_platform.cpp's CreateGameWindow) and a play launch never finds it.
 NativeWindow FindClassWindow(const char* className, const char* title) {
-    if (!ei::verify::g_answering) return FindWindowW(Wide(className).c_str(), Wide(title).c_str());
+    if (!ei::verify::g_answering) return FindWindowW(text::Wide(className).c_str(), text::Wide(title).c_str());
     ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
     return nullptr;
 }
-
-namespace win32 {
-
-// A write goes to the overlay (its directories made, an install file it keeps copied first), a read takes the
-// overlay's copy when there is one; the saves trace and the "diskfull" step see each open. The startup movies:
-// config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik); harness runs read it as missing, so nothing
-// plays.
-HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
-    char b[MAX_PATH];
-    const char* name = path.c_str();
-    const bool write = ei::verify::install::WritesFile(access, disposition);
-    if (ei::verify::g_answering && !write && path.size() >= 9 && _stricmp(name + path.size() - 9, "movie.ini") == 0)
-        return nullptr;
-    const bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
-    const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
-    if (write) ei::verify::savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
-    const HANDLE file = CreateFileW(Wide(target).c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
-                                    disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
-    ei::verify::crash::OnFileOpened(name, target, file, write);   // "diskfull" (harness_crash.h)
-    return file == INVALID_HANDLE_VALUE ? nullptr : file;
-}
-
-HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found) {
-    char b[MAX_PATH];
-    return FindFirstFileW(Wide(ReadPath(pattern.c_str(), b)).c_str(), found);
-}
-
-} // namespace win32
 
 } // namespace platform

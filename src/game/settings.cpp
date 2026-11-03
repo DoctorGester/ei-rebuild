@@ -54,11 +54,8 @@ enum class Read { read, missing, failed };
 // or its folder does not exist.
 Read ReadWhole(const std::string& file, std::string* text) {
     std::uint32_t error = 0;
-    switch (platform::ReadWholeFile(file, text, &error)) {
-    case platform::WholeFile::read: return Read::read;
-    case platform::WholeFile::missing: return Read::missing;
-    case platform::WholeFile::failed: break;
-    }
+    if (platform::ReadWholeFile(file, text, &error)) return Read::read;
+    if (!platform::PathExists(file)) return Read::missing;
     ei::Log("settings: %s cannot be read (error %lu)", file.c_str(), error);
     return Read::failed;
 }

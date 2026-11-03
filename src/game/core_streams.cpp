@@ -4,7 +4,7 @@
 #include "core_streams.h"
 
 #include "asset_text.h"
-#include "platform/platform.h"
+#include "lib/caller.h"
 #include "lib/containers.h"
 
 #include <cstddef>

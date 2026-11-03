@@ -1,11 +1,12 @@
 // The platform layer on Windows (platform/platform.h; docs/notes/platform.md), in its sections' order: every area but
-// those of SDL3 (src/platform/sdl), the sound and the movies, and the calls a harness run answers (game_calls.cpp).
-// Text goes to the system's wide calls (platform_win32.h).
-#define _WINSOCK_DEPRECATED_NO_WARNINGS   // gethostbyname, gethostbyaddr, inet_addr: the look-ups the game made
+// those of SDL3 (src/platform/sdl), the folder calls (src/platform/files.cpp), the sound and the movies, and the calls
+// a harness run answers (game_calls.cpp). Text goes to the system's wide calls (platform_win32.h).
+#define _WINSOCK_DEPRECATED_NO_WARNINGS   // gethostbyname: the look-up the game made
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
 
 #include "platform/platform.h"
 
+#include "platform/paths.h"
 #include "platform/win32/platform_win32.h"
 
 #include <windows.h>
@@ -13,9 +14,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <string>
-#include <utility>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -50,30 +49,6 @@ std::string Narrow(std::wstring_view wide) {
 
 } // namespace text
 
-// ==== Clocks =========================================================================================================
-
-// The C library's local time (the clocks themselves are platform_sdl.cpp's).
-
-namespace platform {
-
-std::string FormatLocalTime(std::int64_t seconds, const char* format) {
-    char text[128];
-    std::tm local{};
-    const std::time_t time = seconds;
-    if (localtime_s(&local, &time) != 0 || std::strftime(text, sizeof(text), format, &local) == 0) text[0] = '\0';
-    return text;
-}
-
-} // namespace platform
-
-// ==== Output for a developer =========================================================================================
-
-namespace platform {
-
-void DebugOutput(const char* text) { ::OutputDebugStringA(text); }
-
-} // namespace platform
-
 // ==== Paths ==========================================================================================================
 
 namespace platform {
@@ -99,9 +74,6 @@ std::wstring FullPath(const std::wstring& path) {
 }
 
 } // namespace
-
-// On Windows the program's path as the game names it is ProgramPath's.
-std::string ExePath() { return ProgramPath(); }
 
 std::string CurrentFolder() { return text::Narrow(CurrentFolderWide()); }
 
@@ -158,12 +130,6 @@ std::string UserDataFolder() {
 
 namespace platform {
 
-std::uint32_t PageSize() {
-    SYSTEM_INFO info;
-    ::GetSystemInfo(&info);
-    return info.dwPageSize;
-}
-
 void PrimaryDesktopSize(int* width, int* height) {
     MONITORINFOEXW monitor{};
     monitor.cbSize = sizeof(monitor);
@@ -191,89 +157,17 @@ void EndProcess(std::uint32_t exitCode) {
 
 } // namespace platform
 
-// ==== Folders, drives and whole files ================================================================================
+// ==== Files and folders ==============================================================================================
 
-// The game's folder and file calls and the volume label are game_calls.cpp's (the harness redirects the saves and
-// the install's files); these call the system directly.
-
-namespace platform {
-
-bool PathExists(const std::string& path) {
-    return GetFileAttributesW(text::Wide(path).c_str()) != INVALID_FILE_ATTRIBUTES;
-}
-
-bool IsFile(const std::string& path) {
-    const DWORD attributes = GetFileAttributesW(text::Wide(path).c_str());
-    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
-}
-
-WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error) {
-    const std::wstring wide = text::Wide(path);
-    HANDLE handle = CreateFileW(wide.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                nullptr, OPEN_EXISTING, 0, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) {
-        *error = GetLastError();
-        return *error == ERROR_FILE_NOT_FOUND || *error == ERROR_PATH_NOT_FOUND ? WholeFile::missing : WholeFile::failed;
-    }
-    LARGE_INTEGER size{};
-    bool ok = GetFileSizeEx(handle, &size) && size.QuadPart < (1 << 24);
-    if (ok) {
-        bytes->resize(static_cast<std::size_t>(size.QuadPart));
-        DWORD read = 0;
-        ok = ::ReadFile(handle, bytes->data(), static_cast<DWORD>(bytes->size()), &read, nullptr) && read == bytes->size();
-    }
-    *error = ok ? 0 : GetLastError();
-    CloseHandle(handle);
-    return ok ? WholeFile::read : WholeFile::failed;
-}
-
-bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error) {
-    const std::wstring file = text::Wide(path);
-    const std::wstring temporary = file + L".tmp";
-    CreateDirectoryW(file.substr(0, file.find_last_of(L'\\')).c_str(), nullptr);
-    HANDLE handle = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
-    DWORD written = 0;
-    bool ok = handle != INVALID_HANDLE_VALUE;
-    if (ok) {
-        ok = WriteFile(handle, bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr) && written == bytes.size();
-        CloseHandle(handle);
-    }
-    ok = ok && MoveFileExW(temporary.c_str(), file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
-    if (!ok) {
-        *error = GetLastError();
-        DeleteFileW(temporary.c_str());
-    }
-    return ok;
-}
-
-std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
-    std::vector<FolderEntry> entries;
-    WIN32_FIND_DATAW found;
-    const HANDLE find = FindFirstFileW(text::Wide(pattern).c_str(), &found);
-    if (find == INVALID_HANDLE_VALUE) return entries;
-    do {
-        entries.push_back({text::Narrow(found.cFileName), (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0});
-    } while (FindNextFileW(find, &found));
-    ::FindClose(find);
-    return entries;
-}
-
-double FreeDiskSpace(const char* path) {
-    ULARGE_INTEGER available;
-    if (!GetDiskFreeSpaceExW(text::Wide(path).c_str(), &available, nullptr, nullptr)) return 0.0;
-    return static_cast<double>(static_cast<std::int64_t>(available.QuadPart));
-}
-
-} // namespace platform
-
-// ==== Files ==========================================================================================================
-
-// Opening, writing and the folder search's start through game_calls.cpp's calls (platform_win32.h), which the
-// harness answers in its builds.
+// Every path through SystemPath (paths.h), which the harness's builds answer with their overlay. The folder calls are
+// files.cpp's, the volume label and the writes' call game_calls.cpp's.
 
 namespace platform {
 
 namespace {
+
+// `path` as the system's wide path for `use`.
+std::wstring SystemWide(std::string_view path, PathUse use) { return text::Wide(SystemPath(path, use)); }
 
 std::string ErrorText(unsigned long code, std::string_view path) {
     return "file error: OS error " + std::to_string(code) + ", file '" + std::string(path) + "'";
@@ -284,9 +178,82 @@ std::string ErrorText(unsigned long code, std::string_view path) {
 // A closed file's calls fail as on INVALID_HANDLE_VALUE (MFC's hFileNull).
 HANDLE Win32(void* handle) { return handle ? handle : INVALID_HANDLE_VALUE; }
 
+// `path` opened with `access` and `disposition` (CreateFile's), shared with other readers and writers; null when it
+// does not open.
+HANDLE OpenFile(std::string_view path, PathUse use, DWORD access, DWORD disposition) {
+    const HANDLE handle = CreateFileW(SystemWide(path, use).c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                                      disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+    return handle == INVALID_HANDLE_VALUE ? nullptr : handle;
+}
+
 } // namespace
 
+std::filesystem::path NativePath(std::string_view path) { return std::filesystem::path(text::Wide(path)); }
+
 FileError::FileError(unsigned long code, std::string_view path) : std::runtime_error(ErrorText(code, path)) {}
+
+// ---- Whole files and folder searches ---------------------------------------------------------------------------
+
+// Shared with a rename or a delete too: the file is closed before the call returns.
+bool ReadWholeFile(std::string_view path, std::string* bytes, std::uint32_t* error) {
+    bytes->clear();
+    const HANDLE handle = CreateFileW(SystemWide(path, PathUse::Read).c_str(), GENERIC_READ,
+                                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, 0,
+                                      nullptr);
+    bool ok = handle != INVALID_HANDLE_VALUE;
+    LARGE_INTEGER size{};
+    if (ok) ok = GetFileSizeEx(handle, &size) && size.HighPart == 0;
+    if (ok) {
+        bytes->resize(size.LowPart);
+        DWORD read = 0;
+        ok = ::ReadFile(handle, bytes->data(), size.LowPart, &read, nullptr) && read == size.LowPart;
+    }
+    if (error) *error = ok ? 0 : GetLastError();
+    if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle);
+    if (!ok) bytes->clear();
+    return ok;
+}
+
+bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32_t* error) {
+    const std::wstring file = SystemWide(path, PathUse::Write);
+    const std::wstring temporary = file + L".tmp";
+    CreateDirectoryW(file.substr(0, file.find_last_of(L'\\')).c_str(), nullptr);
+    HANDLE handle = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+    DWORD written = 0;
+    bool ok = handle != INVALID_HANDLE_VALUE;
+    if (ok) {
+        ok = ::WriteFile(handle, bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr) &&
+             written == bytes.size();
+        CloseHandle(handle);
+    }
+    ok = ok && MoveFileExW(temporary.c_str(), file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+    if (error) *error = ok ? 0 : GetLastError();
+    if (!ok) DeleteFileW(temporary.c_str());
+    return ok;
+}
+
+std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
+    std::vector<FolderEntry> entries;
+    WIN32_FIND_DATAW found;
+    const HANDLE find = FindFirstFileW(SystemWide(pattern, PathUse::Read).c_str(), &found);
+    if (find == INVALID_HANDLE_VALUE) return entries;
+    // The entries' folder: the pattern as the game named it made absolute (the current folder for an empty one), up to
+    // its last separator; a path of MAX_PATH bytes or more finds nothing.
+    std::string root = text::Narrow(pattern.empty() ? CurrentFolderWide() : FullPath(text::Wide(pattern)));
+    if (!root.empty() && root.size() < MAX_PATH) {
+        if (const std::size_t cut = root.find_last_of("\\/"); cut != std::string::npos) root.resize(cut);
+        if (root.empty() || (root.back() != '\\' && root.back() != '/')) root += '\\';
+        do {
+            FolderEntry& entry = entries.emplace_back();
+            entry.name = text::Narrow(found.cFileName);
+            entry.path = root + entry.name;
+            entry.size = found.nFileSizeLow;
+            entry.folder = (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        } while (FindNextFileW(find, &found));
+    }
+    ::FindClose(find);
+    return entries;
+}
 
 // ---- File -----------------------------------------------------------------------------------------
 
@@ -296,9 +263,9 @@ bool File::Open(std::string_view filePath, FileMode mode) {
     Close();
     path = filePath;
     switch (mode) {
-    case FileMode::Read: handle = win32::OpenFile(path, GENERIC_READ, OPEN_EXISTING); break;
-    case FileMode::Create: handle = win32::OpenFile(path, GENERIC_WRITE, CREATE_ALWAYS); break;
-    case FileMode::WriteExisting: handle = win32::OpenFile(path, GENERIC_WRITE, OPEN_EXISTING); break;
+    case FileMode::Read: handle = OpenFile(path, PathUse::Read, GENERIC_READ, OPEN_EXISTING); break;
+    case FileMode::Create: handle = OpenFile(path, PathUse::Write, GENERIC_WRITE, CREATE_ALWAYS); break;
+    case FileMode::WriteExisting: handle = OpenFile(path, PathUse::Update, GENERIC_WRITE, OPEN_EXISTING); break;
     }
     return IsOpen();
 }
@@ -318,7 +285,7 @@ unsigned File::Read(void* buffer, unsigned count) {
 void File::Write(const void* buffer, unsigned count) {
     if (count == 0) return;
     DWORD written;
-    if (!win32::WriteFile(Win32(handle), buffer, count, &written)) ThrowLastError(path);
+    if (!win32::WriteFile(Win32(handle), buffer, count, &written, path)) ThrowLastError(path);
     if (written != count) throw FileError(ERROR_DISK_FULL, path);
 }
 
@@ -359,7 +326,7 @@ MappedFile::~MappedFile() { Close(); }
 
 bool MappedFile::Open(std::string_view path) {
     Close();
-    file = win32::OpenFile(std::string(path), GENERIC_READ, OPEN_EXISTING);
+    file = OpenFile(path, PathUse::Read, GENERIC_READ, OPEN_EXISTING);
     if (!file) return false;
     size = ::GetFileSize(file, nullptr);
     if (size != INVALID_FILE_SIZE) mapping = ::CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
@@ -377,83 +344,6 @@ void MappedFile::Close() {
     if (file) ::CloseHandle(file);
     file = nullptr;
     size = 0;
-}
-
-// ---- FileFind -------------------------------------------------------------------------------------
-
-struct FileFind::Search {
-    HANDLE handle = INVALID_HANDLE_VALUE;
-    WIN32_FIND_DATAW next{};   // the entry read ahead
-};
-
-FileFind::FileFind() = default;
-FileFind::~FileFind() { Close(); }
-
-void FileFind::Close() {
-    if (search) ::FindClose(search->handle);
-    search.reset();
-    hasFound = false;
-}
-
-bool FileFind::FindFile(std::string_view pattern) {
-    Close();
-    const std::string text(pattern);
-    auto started = std::make_unique<Search>();
-    started->handle = win32::FindFirst(text, &started->next);
-    if (started->handle == INVALID_HANDLE_VALUE) return false;
-    search = std::move(started);
-    // The root: the pattern made absolute (the current folder for an empty one), up to its last separator; a path of
-    // MAX_PATH bytes or more fails.
-    root = text::Narrow(text.empty() ? CurrentFolderWide() : FullPath(text::Wide(text)));
-    if (root.empty() || root.size() >= MAX_PATH) {
-        Close();
-        ::SetLastError(ERROR_INVALID_NAME);
-        return false;
-    }
-    if (const std::size_t cut = root.find_last_of("\\/"); cut != std::string::npos) root.resize(cut);
-    return true;
-}
-
-bool FileFind::FindNext() {
-    if (!search) return false;
-    hasFound = true;
-    name = text::Narrow(search->next.cFileName);
-    attributes = search->next.dwFileAttributes;
-    size = search->next.nFileSizeLow;
-    return FindNextFileW(search->handle, &search->next) != 0;
-}
-
-std::string FileFind::GetFileName() const { return hasFound ? name : std::string(); }
-
-std::string FileFind::GetFilePath() const {
-    std::string path = root;
-    if (path.empty() || (path.back() != '\\' && path.back() != '/')) path += '\\';
-    return path + GetFileName();
-}
-
-std::string FileFind::GetTitle() const {
-    const std::string path = GetFilePath();
-    char title[MAX_PATH] = {};
-    _splitpath_s(path.c_str(), nullptr, 0, nullptr, 0, title, MAX_PATH, nullptr, 0);
-    return title;
-}
-
-unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
-
-bool FileFind::IsDirectory() const { return hasFound && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0; }
-
-bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
-
-// ---- Whole files and _access ---------------------------------------------------------------------
-
-bool ReadFile(const std::string& path, std::string* bytes) {
-    bytes->clear();
-    File file;
-    if (!file.Open(path, FileMode::Read)) return false;
-    bytes->resize(file.Size());
-    if (file.ReadAt(0, bytes->data(), static_cast<unsigned>(bytes->size()))) return true;
-    bytes->clear();
-    return false;
 }
 
 } // namespace platform
@@ -580,16 +470,19 @@ void FromNative(const fd_set& native, SocketGroup* set) {
     for (int i = 0; i < set->count; ++i) set->sockets[i] = native.fd_array[i];
 }
 
-} // namespace
-
-bool Start() {
-    WSADATA data;
-    return WSAStartup(0x101, &data) == 0;
+// Winsock 1.1, started by the first call that needs it and up until the process ends.
+void Start() {
+    static const bool started = [] {
+        WSADATA data;
+        return WSAStartup(0x101, &data) == 0;
+    }();
+    static_cast<void>(started);
 }
 
-void Stop() { WSACleanup(); }
+} // namespace
 
 Socket Open(Kind kind) {
+    Start();
     if (kind == Kind::Udp) return socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     return socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 }
@@ -625,25 +518,17 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
     return ready;
 }
 
-bool HostName(char* name, int size) { return gethostname(name, size) == 0; }
+bool HostName(char* name, int size) {
+    Start();
+    return gethostname(name, size) == 0;
+}
 
 bool LookUp(const char* name, std::uint32_t* ip) {
+    Start();
     const hostent* host = gethostbyname(name);
     if (!host || !host->h_addr_list[0]) return false;
     std::memcpy(ip, host->h_addr_list[0], sizeof(*ip));
     return true;
 }
-
-std::string HostNameAt(const void* address, int length) {
-    const hostent* host = gethostbyaddr(static_cast<const char*>(address), length, AF_INET);
-    if (!host || !host->h_name) return {};
-    return host->h_name;
-}
-
-std::uint32_t ParseIpv4(const char* text) { return inet_addr(text); }
-
-std::uint16_t ToNetwork(std::uint16_t value) { return htons(value); }
-
-std::uint16_t FromNetwork(std::uint16_t value) { return ntohs(value); }
 
 } // namespace platform::net

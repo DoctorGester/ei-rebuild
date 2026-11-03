@@ -124,22 +124,12 @@ const Vector3* CameraAnchor(const Camera* self) {
 // rename goes to camera0001.cam; kept as the game has it). Sets the client world's
 // WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName, flag 0x10 set) when the file can be created, else 0.
 int Camera::OpenFile(const char* name) {
-    platform::FileFind find;
     platform::File file;
-    if (find.FindFile(kCurrentRecord) == 1) {
+    if (platform::PathExists(kCurrentRecord)) {
         int last = 0;
-        if (find.FindFile(kNumberedRecords)) {
-            int more;
-            do {
-                more = find.FindNext();
-                std::string title = find.GetTitle();
-                {
-                    std::string tail = str::Right(title, 4);
-                    title = tail;
-                }
-                int number = str::ToInt(title);
-                if (number > last) last = number;
-            } while (more);
+        for (const platform::FolderEntry& entry : platform::FolderEntries(kNumberedRecords)) {
+            const int number = str::ToInt(str::Right(entry.Title(), 4));
+            if (number > last) last = number;
         }
         std::string path;
         path = str::Format(kNumberedRecord, last + 1);

@@ -7,6 +7,7 @@
 #include "platform/platform.h"
 
 #include "lib/rebirth.h"
+#include "lib/ipv4.h"
 #include "../platform/log.h"
 
 #include <cstdint>
@@ -62,29 +63,17 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         std::string host(s.data(), s.data() + m);
         s.assign(host.data(), host.data() + host.size());
     }
-    ip = sockets::ParseIpv4(s.data());
-    if (ip == sockets::kNoAddress && !sockets::LookUp(s.data(), &ip)) return false;
-    port = sockets::ToNetwork(static_cast<std::uint16_t>(number));
+    ip = lib::ParseIpv4(s.data());
+    if (ip == lib::kNoAddress && !sockets::LookUp(s.data(), &ip)) return false;
+    port = lib::ToNetwork(static_cast<std::uint16_t>(number));
     return true;
 }
 
-// The look-up is given the whole sockaddr (16 bytes, where an IPv4 address is 4).
-std::string NetAddress::Format(int resolve) const {
+std::string NetAddress::ToString() const {
     char text[0x400];
-    bool named = false;
-    if (static_cast<std::uint8_t>(resolve)) {
-        const std::string name = sockets::HostNameAt(this, sizeof(*this));
-        if (!name.empty()) {
-            std::uint16_t value = sockets::FromNetwork(port);
-            std::snprintf(text, sizeof(text), "%s:%i", name.c_str(), value & 0xFFFF);
-            named = true;
-        }
-    }
-    if (!named) {
-        std::uint16_t value = sockets::FromNetwork(port);
-        auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
-        std::snprintf(text, sizeof(text), "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
-    }
+    const std::uint16_t value = lib::FromNetwork(port);
+    auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
+    std::snprintf(text, sizeof(text), "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     return text;
 }
 
@@ -92,7 +81,6 @@ std::string NetAddress::Format(int resolve) const {
 
 // The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
 SocketDriver::SocketDriver() {
-    sockets::Start();
     socket = kNoSocket;
     char name[1000];
     if (!sockets::HostName(name, sizeof(name))) return;
@@ -112,7 +100,6 @@ SocketDriver::SocketDriver() {
 
 SocketDriver::~SocketDriver() {
     if (socket != kNoSocket) sockets::Close(socket);
-    sockets::Stop();
 }
 
 bool SocketDriver::Open(int port) {
@@ -122,7 +109,7 @@ bool SocketDriver::Open(int port) {
     if (socket == kNoSocket) return false;
     NetAddress a{};
     a.family = sockets::kIpv4;
-    a.port = sockets::ToNetwork(static_cast<std::uint16_t>(port));
+    a.port = lib::ToNetwork(static_cast<std::uint16_t>(port));
     if (port > 0 && !sockets::Bind(socket, a)) {
         // Not the game's: a second game on the machine holding the port leaves this session without a
         // socket, and its local client then talks to that game's server. The verify build's
@@ -142,7 +129,7 @@ bool SocketDriver::Open(int port) {
 bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     if (index >= AddressCount(this)) return false;
     *out = addresses[index];
-    out->port = sockets::ToNetwork(static_cast<std::uint16_t>(port));
+    out->port = lib::ToNetwork(static_cast<std::uint16_t>(port));
     return true;
 }
 
@@ -279,12 +266,5 @@ int MasterLinkTick(MasterLink* self) {
         return self->state;
     }
 }
-
-void StartWinsock() { sockets::Start(); }
-
-// The exit function of Winsock's static initialiser (WSAStartup 1.1): WSACleanup once the network
-// threads are gone. The original waits while their count is non-zero; only the thread procedure
-// counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
-void CleanUpWinsock() { sockets::Stop(); }
 
 } // namespace net

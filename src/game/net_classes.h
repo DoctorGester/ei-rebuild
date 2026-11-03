@@ -69,9 +69,8 @@ struct NetAddress : platform::net::Address {
     // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
     // text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
-    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds).
-    std::string Format(int resolve) const;
-    // Format without the look-up.
+    // "a.b.c.d:port". The original's Format could name the host instead (gethostbyaddr), but only ever ran without the
+    // look-up, which was given the whole 16 bytes and so could not have found the name.
     std::string ToString() const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
@@ -99,11 +98,6 @@ public:
 // Rebirth's SetDefaultRate, disabled here, writes Settings\Rate over it) and on the local network (12500).
 extern int g_remoteRate;
 extern int g_localRate;
-
-// The platform's sockets started at the game's start (game.exe's static initialiser called WSAStartup 1.1) and
-// stopped at its exit.
-void StartWinsock();
-void CleanUpWinsock();
 
 class SessionBase;
 class ServerSession;
