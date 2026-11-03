@@ -20,15 +20,15 @@ option(EI_GPU_SPIKE "Build the SDL_GPU spike (tools/gpu_spike)" OFF)
 # of every build (src/audio/audio.cpp) and on Linux the OpenGL context. Linked statically, so the exe stays one
 # file dropped into a game folder (S23), with only the subsystems those use. Added before the game's compile options:
 # its warnings are its own.
-foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_GPU SDL_RENDER SDL_CAMERA
-            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGLES SDL_VULKAN SDL_OFFSCREEN
+foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_UNINSTALL SDL_RENDER SDL_CAMERA
+            SDL_JOYSTICK SDL_HAPTIC SDL_HIDAPI SDL_POWER SDL_SENSOR SDL_DIALOG SDL_OPENGLES SDL_OFFSCREEN
             SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
     set(${off} OFF CACHE BOOL "" FORCE)
 endforeach()
-if(EI_GPU_SPIKE)
-    set(SDL_GPU ON CACHE BOOL "" FORCE)
-    set(SDL_VULKAN ON CACHE BOOL "" FORCE)
-endif()
+# SDL's GPU API (Direct3D 12, Vulkan), which the renderer moves to (docs/notes/renderer.md, "SDL_GPU"): only the
+# shader check (tools/shader_check) uses it so far.
+set(SDL_GPU ON CACHE BOOL "" FORCE)
+set(SDL_VULKAN ON CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
@@ -117,6 +117,70 @@ add_custom_command(OUTPUT ${EI_SHADER_HEADER}
     COMMENT "Compiling the shaders with sokol-shdc"
     VERBATIM)
 target_sources(ei_render PRIVATE ${EI_SHADER_HEADER})
+
+# The same programs in HLSL (docs/notes/renderer.md, "HLSL and SDL_shadercross"), for the SDL_GPU renderer to come;
+# only the shader check (tools/shader_check) uses them so far. Each src/render/shaders/<program>.hlsl is one program
+# (vs_main and ps_main, each stage under EI_VERTEX / EI_FRAGMENT), compiled by SDL_shadercross
+# (tools/shader_toolchain) to SPIR-V, MSL and on Windows DXIL; spirv-cross reflects each stage's SPIR-V, and
+# tools/gen_gpu_shaders.py checks the binding rules and writes shaders/gpu_shaders.h (the blocks' structs, the slots,
+# the counts), shaders/gpu_shaders.cpp (the code) and shaders/gpu_shaders_sokol.h (the blocks and inputs against
+# sokol-shdc's) into the build folder.
+include(tools/shader_toolchain/toolchain.cmake)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+file(GLOB EI_HLSL_PROGRAMS CONFIGURE_DEPENDS src/render/shaders/*.hlsl)
+file(GLOB EI_HLSL_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
+set(EI_HLSL_DIR ${CMAKE_BINARY_DIR}/shaders/hlsl)
+file(MAKE_DIRECTORY ${EI_HLSL_DIR})
+set(EI_HLSL_FORMATS spirv msl)
+if(WIN32)
+    list(APPEND EI_HLSL_FORMATS dxil)
+endif()
+set(EI_HLSL_OUTPUTS)
+set(EI_HLSL_NAMES)
+foreach(source ${EI_HLSL_PROGRAMS})
+    get_filename_component(program ${source} NAME_WE)
+    list(APPEND EI_HLSL_NAMES ${program})
+    foreach(stage vertex fragment)
+        if(stage STREQUAL "vertex")
+            set(entry vs_main)
+            set(define -DEI_VERTEX)
+        else()
+            set(entry ps_main)
+            set(define -DEI_FRAGMENT)
+        endif()
+        foreach(format ${EI_HLSL_FORMATS})
+            set(out ${EI_HLSL_DIR}/${program}_${stage}.${format})
+            string(TOUPPER ${format} dest)
+            add_custom_command(OUTPUT ${out}
+                COMMAND ${EI_SHADERCROSS} ${source} -s HLSL -d ${dest} -t ${stage} -e ${entry} ${define}
+                        -I ${CMAKE_SOURCE_DIR}/src/render/shaders -o ${out}
+                DEPENDS ${EI_HLSL_SOURCES}
+                COMMENT "shadercross ${program}.hlsl ${stage} to ${format}"
+                VERBATIM)
+            list(APPEND EI_HLSL_OUTPUTS ${out})
+        endforeach()
+        set(reflection ${EI_HLSL_DIR}/${program}_${stage}.json)
+        add_custom_command(OUTPUT ${reflection}
+            COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --reflect --output ${reflection}
+            DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
+            VERBATIM)
+        list(APPEND EI_HLSL_OUTPUTS ${reflection})
+    endforeach()
+endforeach()
+set(EI_GPU_SHADERS ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.h ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.cpp
+    ${CMAKE_BINARY_DIR}/shaders/gpu_shaders_sokol.h)
+string(REPLACE ";" "," EI_HLSL_FORMAT_LIST "${EI_HLSL_FORMATS}")
+add_custom_command(OUTPUT ${EI_GPU_SHADERS}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py --sources ${CMAKE_SOURCE_DIR}/src/render/shaders
+            --compiled ${EI_HLSL_DIR} --out ${CMAKE_BINARY_DIR}/shaders --formats ${EI_HLSL_FORMAT_LIST} ${EI_HLSL_NAMES}
+    DEPENDS ${EI_HLSL_OUTPUTS} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py
+    COMMENT "Writing the HLSL programs' code and reflection (gen_gpu_shaders.py)"
+    VERBATIM)
+# Their check (tools/shader_check): build_checks.py runs it on Windows, ctest on Linux.
+add_executable(ei_shader_check tools/shader_check/shader_check.cpp ${EI_GPU_SHADERS})
+target_include_directories(ei_shader_check PRIVATE src third_party/sokol ${CMAKE_BINARY_DIR})
+target_compile_definitions(ei_shader_check PRIVATE ${EI_GRAPHICS_BACKEND})
+target_link_libraries(ei_shader_check PRIVATE ei_render SDL3::SDL3-static)
 target_include_directories(ei_render PUBLIC ${CMAKE_BINARY_DIR})
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
 # as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).
@@ -248,7 +312,9 @@ else()
     find_package(X11 REQUIRED)
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static X11::X11)
     add_test(NAME port_render COMMAND ei_render_check)
-    set_tests_properties(port_platform port_render PROPERTIES TIMEOUT 60)
+    # The HLSL programs on Vulkan (lavapipe without a GPU).
+    add_test(NAME port_shaders COMMAND ei_shader_check --require)
+    set_tests_properties(port_platform port_render port_shaders PROPERTIES TIMEOUT 60)
 endif()
 
 if(EI_GPU_SPIKE)

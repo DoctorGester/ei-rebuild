@@ -39,6 +39,9 @@ def checks(out):
         # The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps
         # (tools/perf_check).
         [os.path.join(out, 'ei_perf_check.exe')],
+        # The HLSL programs against the GLSL's interfaces, and made with their pipelines on Direct3D 12 and Vulkan
+        # (tools/shader_check; a driver without a device is skipped).
+        [os.path.join(out, 'ei_shader_check.exe')],
     ]
 
 

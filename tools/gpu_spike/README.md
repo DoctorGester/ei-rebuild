@@ -21,18 +21,16 @@ plan for the full port is in build/reviews/r43_sdl_gpu.md, and its short version
 - `shaders/*.hlsl`: the HLSL for the ported programs: terrain, mesh, solid, shadow_caster, shadow_terrain,
   shadow_reduce and shadow_dilate. They were restored from commit a861650b3, the last before MAC3 moved the shaders
   to sokol-shdc GLSL, and brought up to the current GLSL. SDL_shadercross compiles them at build time to DXIL, SPIR-V
-  and MSL.
-- `shadercross/`: a CMake wrapper that builds SDL_shadercross's command-line tool from the downloaded sources and our
-  third_party/SDL.
-- `fetch_third_party.py`: downloads SDL_shadercross, SPIRV-Cross and DXC (Windows and Linux) into build/third_party.
-  It pins each one's URL and SHA-256.
+  and MSL. The main build's HLSL of every program (src/render/shaders; docs/notes/renderer.md, "HLSL and
+  SDL_shadercross") started from them. These copies keep the slots `kBindings` was written for.
+- The toolchain (SDL_shadercross, SPIRV-Cross, DXC) is the main build's (tools/shader_toolchain): fetched with pinned
+  hashes and built at configure time.
 
 ## Build and run
 
 Windows:
 
 ```
-python tools\gpu_spike\fetch_third_party.py
 tools\gpu_spike\build.cmd
 ```
 
@@ -64,9 +62,8 @@ The options are:
 - `--reference ref.bmp`: writes the dump's own frame.
 - `--debug`: lists the passes and compares every attachment with the dump's (SDL_GPU only).
 
-Linux (WSL included): first install the packages in docs/notes/linux.md, then run `sh tools/gpu_spike/build.sh`
-after the fetch. This builds shadercross with DXC's Linux release, then ei_gpu_spike with sokol on OpenGL and
-SDL_GPU on Vulkan. Dumps are recorded on Windows only. On WSLg both APIs run in software: GL on llvmpipe and Vulkan on
+Linux (WSL included): first install the packages in docs/notes/linux.md, then run `sh tools/gpu_spike/build.sh`.
+This builds ei_gpu_spike with sokol on OpenGL and SDL_GPU on Vulkan. Dumps are recorded on Windows only. On WSLg both APIs run in software: GL on llvmpipe and Vulkan on
 lavapipe, which the loader picks by default (or set `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`).
 
 ## What SDL_GPU needed
@@ -75,7 +72,7 @@ lavapipe, which the loader picks by default (or set `VK_ICD_FILENAMES=/usr/share
   - Vertex shader: textures and samplers in space0, uniform blocks in space1.
   - Fragment shader: textures and samplers in space2, uniform blocks in space3.
   - Vertex inputs are `TEXCOORD<location>` with `[[vk::location]]`.
-- shadercross keeps the bindings of every stage, so code for only one stage sits under `EI_VERTEX` / `EI_FRAGMENT`.
+- DXC keeps every declared resource in each stage's SPIR-V, so code for only one stage sits under `EI_VERTEX` / `EI_FRAGMENT`.
 - A pipeline's vertex buffer slots must be packed from 0. The D3D12 backend looks each buffer's description up by
   slot number, so with slots 0 and 2 the instance rows lost their per-instance step.
 - SDL_GPU has no border clamp. `SG_WRAP_CLAMP_TO_BORDER` becomes clamp-to-edge here.
