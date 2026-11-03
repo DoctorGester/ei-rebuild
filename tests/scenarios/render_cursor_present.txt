@@ -31,9 +31,9 @@ cursormark
 frames 100
 clickregion 3
 waitwindow 10 options
-ldown 674 456
+ldown 674 336
 wait 600
-lup 674 456
+lup 674 336
 waitpresent 10 gamma
 move 400 20
 frames 10

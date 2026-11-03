@@ -56,7 +56,7 @@ public:
     // Reads every option from the settings file; a missing value keeps the current one (the defaults set before).
     void Load();
     // Writes the same values back and saves the file (WinMain calls it once, on exit). The camera flips are written
-    // as booleans, the light colours as 0..255 and "Difficulty Level" from difficultyStored.
+    // as booleans and "Difficulty Level" from difficultyStored.
     void Save();
 
     std::string workPath;           // Work path

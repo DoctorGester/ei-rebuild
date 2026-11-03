@@ -7253,6 +7253,20 @@ depends = ["C84"]
 note = "User 2026-11-03: for the C list's 'keep' rows they need better descriptions, since they can't see the consequences of fixing most of them. Research only, no code changes. For each keep row in build/reviews/c84_original_bugs.md: what a player sees today, what fixing would change, with a concrete example (a map, creature, spell or item from the data where one exists), and how big the change is (never seen / rare / common; feel / balance / AI behaviour). Plus the open calls the user asked examples for: combat 2 (which creatures' natural attacks have no non-zero weight and what damage type they deal now vs after), combat 20 (what changes for wands used from the quick slots, step by step), units 9 (RaiseStrength's maximum: numbers for a hero raising strength at a few levels, now vs fixed), units 38 (which levers in the shipped maps and Rebirth's take a key, and what a player could do after a fix), unit AI 15 (how far off patrol / guard points land, in game units, and whether anyone could notice), unit AI 24 (which enemies choose spells and then attack with a weapon: list the creature kinds / prototypes with spells, what they do now and what they'd do fixed; this one may change the game a lot). Decided, don't re-ask: combat 14/24 taming stays (cut from the original), map objects 2 RecomputeScale stays (strong units get wider by design), units 14 IsBehind stays (NPCs never backstab players). Output: build/reviews/c84c_explanations.md; the coordinator publishes it as a page."
 
 [[ticket]]
+id = "C81a"
+title = "Options window: localized text for the Shadows row"
+group = "cleanup"
+depends = ["C81"]
+note = "C81 collapsed the three shadow rows into one whose label and tip are English constants in ui_options.cpp (the game's texts have no entry). Add the entry to the texts (all languages) or take the closest existing text."
+
+[[ticket]]
+id = "C81b"
+title = "16-bit canvas formats in render::ui"
+group = "cleanup"
+depends = ["C81"]
+note = "C81 removed VideoColorDepthInBits; ScreenFormat() is always X8R8G8B8. render_ui.cpp (is565/is555), ui_canvas shaders and ui_rgb565.hlsl may still serve the save-picture 565 path only; delete what nothing reaches."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
