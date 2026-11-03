@@ -3,7 +3,7 @@ scenarios with the same goldens, but holds no picture, sound or movie of the gam
 packed) and can go where the install cannot (a private repository the CI job fetches).
 
 usage: python tools/stub_data.py build <install> <out folder> [--force]
-       python tools/stub_data.py pack <out.tar.xz> <stub folder>...
+       python tools/stub_data.py pack <out.tar.zst> <stub folder>...
        python tools/stub_data.py reads <runs folder> [<install>...]
        python tools/stub_data.py check <stub folder> <install> <runs folder>
 
@@ -24,14 +24,14 @@ usage: python tools/stub_data.py build <install> <out folder> [--force]
           LEFT_OUT below (the install's saves\: a run reads its own folder's; what the game never opens; logs). The
           programs (.exe, .dll, .asi) are empty files: no run starts them, the Rebirth profile only looks whether
           starter\addon.dll or EI_Plugin.asi is there (src/game/rebirth_profile.cpp).
-  pack    one .tar.xz of the stub folders (each under its folder's name), for the private repository
+  pack    one .tar.zst of the stub folders (each under its folder's name; pack_options), for the private repository
   reads   the install files the runs in <runs folder> read (their harness_reads.txt: EI_READTRACE=1), relative to the
           installs given (default run_all's two), with the number of runs that read each; "-" before a path the run
           looked for and did not find
   check   whether every install file those runs read is in the stub set (the same relative path), and the stub
           set's files of the same size as the install's (all but the movies)
 """
-import argparse, collections, lzma, os, shutil, struct, sys, tarfile
+import argparse, collections, os, shutil, struct, sys, tarfile, time
 
 RES_MAGIC = 0x019CE23C
 RES_HEADER = struct.Struct('<IIII')        # magic, count, table offset, names size (src/game/resource.h)
@@ -261,14 +261,25 @@ def remove_tree(path):
     shutil.rmtree(path)
 
 
-# The packed set's compression: xz with a 256 MB window (unpacking needs that much memory), so that one install's copy of
-# a file right after the other's costs next to nothing (pack orders them so).
-PACK_FILTERS = [{'id': lzma.FILTER_LZMA2, 'preset': 9, 'dict_size': 256 << 20}]
+def pack_options():
+    """The packed set's compression: zstd at level 22 with a 128 MB window and long-distance matching (zstd -22 --ultra
+    --long=27; unpacking needs no flag, 128 MB is zstd's default limit), so that one install's copy of a file right after
+    the other's costs next to nothing (pack orders them so). Measured on the 2026-11-03 sets: 74.5 MB against xz -9's
+    65.0 MB (256 MB window), unpacked in 1 s against 7 to 9 s. Python 3.14's own zstd."""
+    try:
+        from compression import zstd
+    except ImportError:
+        sys.exit('stub_data pack: needs Python 3.14 or later (compression.zstd)')
+    p = zstd.CompressionParameter
+    return zstd, {p.compression_level: 22, p.window_log: 27, p.enable_long_distance_matching: 1}
 
 
 def pack(archive, folders):
-    """The stub folders in one .tar.xz, each under its folder's name, the files of the same path in each folder next to
-    each other (the two installs share most of their models, maps and databases)."""
+    """The stub folders in one .tar.zst, each under its folder's name, the files of the same path in each folder next to
+    each other (the two installs share most of their models, maps and databases). A modification time past now (some
+    install files carry the largest one Windows has) is written as now."""
+    zstd, options = pack_options()
+    now = int(time.time())
     members = []
     for folder in folders:
         top = os.path.basename(os.path.normpath(folder))
@@ -277,10 +288,11 @@ def pack(archive, folders):
                 relative = os.path.relpath(os.path.join(d, name), folder).replace(os.sep, '/')
                 members.append((relative.lower(), top, relative, os.path.join(d, name)))
     members.sort()
-    with lzma.open(archive, 'wb', format=lzma.FORMAT_XZ, filters=PACK_FILTERS) as xz, \
-            tarfile.open(fileobj=xz, mode='w', format=tarfile.PAX_FORMAT) as tar:
+    with zstd.open(archive, 'wb', options=options) as packed, \
+            tarfile.open(fileobj=packed, mode='w', format=tarfile.PAX_FORMAT) as tar:
         for _, top, relative, path in members:
             info = tar.gettarinfo(path, arcname=f'{top}/{relative}')
+            info.mtime = min(int(info.mtime), now)
             if info.isfile():
                 with open(path, 'rb') as f:
                     tar.addfile(info, f)

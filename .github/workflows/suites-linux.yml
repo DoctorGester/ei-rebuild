@@ -1,0 +1,139 @@
+# Suites (Linux): the harness's goldens on GitHub's Ubuntu runner, on the stub game data (H41; tools/stub_data.py,
+# docs/notes/linux.md, "The stub data"): the harness build, the stub set fetched from a private repository with a
+# read-only token, both suites under a virtual display on Mesa's software OpenGL.
+#
+# Off until the repository variable EI_STUB_DATA_REPO names the private repository (owner/name) and the secret
+# EI_STUB_DATA_TOKEN holds a fine-grained token that reads it (linux.md has the one-time setup). EI_STUB_DATA_KEY, a
+# second secret, decrypts the stub set when it is stored encrypted.
+#
+# The data never leaves the runner: it is fetched into the runner's temp folder, outside every cached path, and the
+# job uploads nothing (no artifacts: run folders hold saves and frames made from the data). The token and the key are
+# given only to pushes and to pull requests from branches of this repository (a fork's pull request gets no secrets,
+# and the job does not run for one).
+name: Suites (Linux)
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths-ignore: ["docs/**", "**.md"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: "Only these scenarios (space-separated; empty: the suites less LINUX_SKIP)"
+        required: false
+        default: ""
+
+concurrency:
+  group: suites-linux-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    if: >-
+      vars.EI_STUB_DATA_REPO != '' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CCACHE_MAXSIZE: 2G
+      # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b): the pairs (about 190 s a run
+      # there), the second master server (Linux refuses a closed port at once), the window resize (asynchronous under
+      # X11) and the frame checks. The scenarios whose own pixel checks fail on blank textures (render_blink,
+      # render_cursor_present, render_shadows_outside, render_smooth) still run: their goldens hold, and only a golden
+      # that differs fails the job.
+      LINUX_SKIP: >-
+        net_pair_join net_pair_kick net_pair_leave net_pair_master net_pair_quest net_pair_speed net_pair_zone
+        net_second_master render_present_window render_smooth render_terrain_seams ui_quicksave
+    steps:
+      - uses: actions/checkout@v5
+      - name: Packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build ccache libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
+            libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev \
+            xvfb mesa-utils libgl1-mesa-dri mesa-vulkan-drivers zstd
+      # The same caches as linux.yml's: the shader toolchain and the compiler's objects, no game data.
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ccache
+          key: ccache-harness-${{ runner.os }}-${{ github.sha }}
+          restore-keys: ccache-harness-${{ runner.os }}-
+      - name: sokol-shdc
+        run: |
+          mkdir -p build/tools
+          curl -sSfL https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/linux/sokol-shdc -o build/tools/sokol-shdc
+          chmod +x build/tools/sokol-shdc
+      - name: Build the harness
+        run: |
+          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build/linux-harness --target ei-rebuild
+
+      # The private repository's files: ei-stub-data.tar.zst (or its parts, .tar.zst.00, .01, ..., when split under
+      # GitHub's 100 MB a file), encrypted: the same names with .enc. Checked out with the token, which is not kept
+      # in the checkout's config (persist-credentials false), then unpacked into the temp folder and the checkout
+      # removed.
+      - name: Fetch the stub data
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ vars.EI_STUB_DATA_REPO }}
+          token: ${{ secrets.EI_STUB_DATA_TOKEN }}
+          path: stub-data-checkout
+          persist-credentials: false
+          lfs: false
+      - name: Unpack the stub data
+        env:
+          KEY: ${{ secrets.EI_STUB_DATA_KEY }}
+        run: |
+          set +x
+          DATA=$RUNNER_TEMP/ei-data
+          echo "DATA=$DATA" >> $GITHUB_ENV
+          mkdir -p "$DATA"
+          shopt -s nullglob
+          parts=(stub-data-checkout/ei-stub-data.tar.zst*)
+          [ ${#parts[@]} -gt 0 ] || { echo "::error::no ei-stub-data.tar.zst* in the stub data repository"; exit 1; }
+          case "${parts[0]}" in
+            *.enc | *.enc.*)
+              [ -n "$KEY" ] || { echo "::error::the stub data is encrypted and EI_STUB_DATA_KEY is not set"; exit 1; }
+              cat "${parts[@]}" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY | zstd -dq | tar -x -C "$DATA" ;;
+            *)
+              cat "${parts[@]}" | zstd -dq | tar -x -C "$DATA" ;;
+          esac
+          rm -rf stub-data-checkout
+          [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
+          echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
+
+      # run_all.py's own slots are this runner's; four games at once on its four cores. The summary prints run_all's
+      # table and the goldens block (scenario names, results, the digest's differences), never the data's files.
+      - name: Suites
+        env:
+          SCENARIOS: ${{ inputs.scenarios }}
+        run: |
+          export EI_BUILD_DIR=$PWD/build/linux-harness EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
+          names="$SCENARIOS"
+          if [ -z "$names" ]; then
+            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
+          fi
+          xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --golden --jobs 4 $names > suite_image.txt 2>&1 || true
+          rebirth=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:])))" $names)
+          xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --rebirth-only --golden --jobs 4 $rebirth > suite_rebirth.txt 2>&1 || true
+          for f in suite_image.txt suite_rebirth.txt; do
+            echo "### ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' "$f" | head -400 | tee -a $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+          ! grep -q "GOLDENS DIFFER" suite_*.txt
+
+      - name: Remove the data
+        if: always()
+        run: rm -rf "$DATA" stub-data-checkout build/linux-harness/runs
