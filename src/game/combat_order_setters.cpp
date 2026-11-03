@@ -117,10 +117,7 @@ void UnitServer::PlayAnimation(const char* name) {
     }
     if (!entry) return;
     action2.Reset();
-    // The entry's index byte is read together with the three bytes after it (one 4-byte read).
-    int index;
-    std::memcpy(&index, &entry->index, sizeof(index));
-    action2.param = index;
+    action2.param = entry->index;
     action2.modifier = 0;
     action2.kind = (entry->key & kEmoteKeyBit) ? UnitOrderKind::Emote : UnitOrderKind::Animation;
 }

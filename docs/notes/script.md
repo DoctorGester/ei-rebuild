@@ -126,37 +126,32 @@ the variables (object ids looked up, group members sorted).
   "##"; a one-word key = the next line whose first word equals it; several words = a line whose first words,
   lower-cased, equal the key's). The archive list keeps a failed archive (unlike `LinkFigureLoader::AddArchive`).
 
-## Original bugs and oddities kept
+## Original bugs kept
+
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
 - NaN: `IsEqual` and `Not` treat NaN as equal, `IsLess` as less; `IsInSquare`, `UnitInSquare`, `IsInArea` the same mixed
-  way; `SetDiplomacy` maps NaN to neutral; flag commands treat NaN as zero.
-- `CalcParameters` for a string-returning nested call evaluates its arguments, then FatalError "Function does not return
-  string at SSCCmd::CalcFunction" (no such functions exist; Rebirth's CalcParameters calls `CalcString` instead).
-  `IsInArea` with an unknown id creates an empty area; `GetObject` logs the id after converting the float again;
-  `Every` with no nested condition copies the constant argument as the result.
-- Parser: keyword prefixes split identifiers; `/**/` as one token does not close the comment; the tokens after `(` /
-  `,`, `Script` / `DeclareScript`, `if` / `then` and a declared variable's name are read without an end check (a script
-  ending in `Foo(` dereferences a null position); a For / ForIf whose header fails still parses its body (usually
-  "Wrong lexeme ,"); For / ForIf bodies are parsed without the script's locals (Rebirth's AllowScriptArgsInLoops fixes
-  it); `LoadVariableDeclarations` returns 0 without an error when the tokens run out; `LoadScriptBody` leaves a failed
-  pair's blocks in the list; "In script %s should be at least one condtion" (sic) prints the qualified name.
-- Runtime: `SetSpellAggression` (0x42) does nothing; `KillScript` in the WorldScript reports FatalError and then writes
-  through a null pointer; a run keeps a pointer to its instance's killed flag after the instance is removed;
-  `SleepUntilIdle` has no null check; `ResetTarget` (0xE8) on a unit without behaviour records applies nothing (the
-  original read past the list); a For counter is a global, so nested loops on the same counter overwrite it;
-  `CreatePointLight` stops at the first free slot (two lights can share an id; with 256 slots used and no match it
-  writes one slot past the array); `DeleteArea` leaves the moved-out last entry in memory; the tick saves each node's
-  successor before running it; `CreateLightning` appends without looking the id up (two bolts can share an id); its id
-  test is "negative or NaN: automatic" then `_ftol`; `CreateFX` keeps no reference (timed object only);
-  `CreateParticleSource`'s id is FISTP-rounded; `AddParameter` with a type outside 1..4 returns the name argument's
-  address and appends an empty letter.
-- Savegame: block ids resolve in the first world script's lists whatever script loads; the first block id of an if-then
-  pair reads into a variable preset to -1, the second into the same variable without a preset; list loaders re-read
-  nodes that were in the list; `AppendFrom` copies over the other set's names while the values grow by its values; the
-  definition and run savers do not null-check blocks.
-- gz2g's scripts (zone2.mob's script chunk, decoded by seeding the MSVC rand LCG with the first dword, `x = x * 0x343FD +
-  0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers; a killed
-  instance can reach command 8 (`KillScript() VTriger#0#n( this )`).
+  way; `SetDiplomacy` maps NaN to neutral; flag commands treat NaN as zero. `Every` with no nested condition copies the
+  constant argument as the result.
+- Parser: keyword prefixes split identifiers; `/**/` as one token does not close the comment; a For / ForIf whose header
+  fails still parses its body (usually "Wrong lexeme ,"); `LoadVariableDeclarations` returns 0 without an error when the
+  tokens run out; "In script %s should be at least one condtion" (sic) prints the qualified name.
+- Runtime: `SetSpellAggression` (0x42) does nothing; a For counter is a global, so nested loops on the same counter
+  overwrite it; `CreatePointLight` stops at the first free slot (two lights can share an id); `CreateLightning` appends
+  without looking the id up (two bolts can share an id); `CreateParticleSource`'s id is FISTP-rounded.
+- Savegame: block ids resolve in the first world script's lists whatever script loads.
+
+Left for C84a (bookkeeping): `IsInArea` with an unknown id creates an empty area; `LoadScriptBody` leaves a failed
+pair's blocks in the list; `DeleteArea` leaves the moved-out last entry in memory; the first block id of an if-then pair
+reads into a variable preset to -1, the second into the same variable without a preset; list loaders re-read nodes that
+were in the list; `AppendFrom` copies over the other set's names while the values grow by its values; the definition and
+run savers do not null-check blocks (a save whose block ids the loaded scripts lack faults at the first tick too: the
+loader should drop such pairs and runs).
+
+gz2g's scripts (zone2.mob's script chunk, decoded by seeding the MSVC rand LCG with the first dword, `x = x * 0x343FD +
+0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers; a killed instance
+can reach command 8 (`KillScript() VTriger#0#n( this )`).
 
 ## Leftovers: streams, matrices, text, zone exits, .mob, party manager, weather, sky, clouds
 

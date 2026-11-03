@@ -44,9 +44,7 @@ const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not
 
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0);
-    if (set->hashed) {
-        for (int& b : set->buckets) b = -1;
-    }
+    for (int& b : set->buckets) b = -1;
 }
 
 } // namespace
@@ -54,7 +52,6 @@ void ResetCellSet(FootprintCellSet* set) {
 void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
 
 void FootprintCellSet::AddTop(int x, int y, int height, OccluderKind kind, std::int8_t transparency) {
-    hashed = true;
     if (FootprintCell* cell = FindCell(this, x, y)) {
         if (!(cell->high > height)) cell->high = height;
         if (kind < cell->kind) cell->kind = kind;
@@ -66,7 +63,6 @@ void FootprintCellSet::AddTop(int x, int y, int height, OccluderKind kind, std::
 }
 
 void FootprintCellSet::AddBottom(int x, int y, int height, OccluderKind kind, std::int8_t transparency) {
-    hashed = true;
     if (FootprintCell* cell = FindCell(this, x, y)) {
         if (!(cell->low < height)) cell->low = height;
         return;

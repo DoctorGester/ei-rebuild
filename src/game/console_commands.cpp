@@ -41,7 +41,8 @@ bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, 
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 Player* LocalPlayer() {
-    return g_clientWorld.LocalView()->player;
+    PlayerClient* view = g_clientWorld.LocalView();
+    return view ? view->player : nullptr;
 }
 
 
@@ -272,6 +273,7 @@ void Give(std::vector<std::string>* args) {
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
         int count = lib::Count(player->GetParty()->members);
+        if (count == 0) return;
         // The typed number over the count.
         const float share = str::ToFloat((*args)[2]) / static_cast<float>(count);
         for (int i = 0; i < count; ++i)
@@ -311,6 +313,7 @@ void LootAll(std::vector<std::string>*) {
 // Fadeout <milliseconds>.
 void FadeOut(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
+    if (!g_interface.fade) return;
     g_interface.fade->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
@@ -323,8 +326,7 @@ void Net(std::vector<std::string>* args) {
         return PrintLine("net time 0/1   - show client time counting info");
     }
     if (text::CompareIgnoringCase((*args)[0], "client") == 0) {
-        std::string value = (*args)[1];
-        LocalPlayer()->logTraffic = str::ToInt(value);
+        if (Player* player = LocalPlayer()) player->logTraffic = str::ToInt((*args)[1]);
     }
     if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
         if (Player* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt((*args)[1]);

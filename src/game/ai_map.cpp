@@ -8,6 +8,7 @@
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -77,17 +78,15 @@ bool AIMap::CanStandAtFromHere(Unit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     int level = PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
-    // The unit's own cell is not bounds-checked, like the original.
-    if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
-        const Point own = WorldToCell(unit->localPosition);
-        if (cells[y][x].level > cells[own.y][own.x].level) return false;
-    }
+    // The unit's own cell, clamped into the map.
+    Point own = WorldToCell(unit->localPosition);
+    own.x = std::clamp(own.x, 0, cells.width - 1);
+    own.y = std::clamp(own.y, 0, cells.height - 1);
+    if (cells[y][x].level > static_cast<std::uint8_t>(level) && cells[y][x].level > cells[own.y][own.x].level)
+        return false;
     level &= 0xFF;
     *reason = 2;
-    if (waterDepth[y][x] > level) {
-        const Point own = WorldToCell(unit->localPosition);
-        if (waterDepth[y][x] > waterDepth[own.y][own.x]) return false;
-    }
+    if (waterDepth[y][x] > level && waterDepth[y][x] > waterDepth[own.y][own.x]) return false;
     *reason = 0;
     return true;
 }
@@ -388,9 +387,6 @@ bool AIMap::JoinLocalSearches(PathCells* path, int* cost) {
         backward->PathTo(x, y, &scratch);
         path->insert(path->end(), scratch.rbegin(), scratch.rend());
         PathCellsRemoveRepeats(path);
-        // Like the original, the cells keep the stack word under SearchPathTo's local cell (the forward search's
-        // address); ours get the plain words.
-        SetPlainCellWords(path);
     }
     backward->Reset();
     forward->Reset();

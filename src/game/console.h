@@ -148,6 +148,8 @@ using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 
 // The handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);
+// The handler for `key`, or null (nothing inserted).
+CommandHandler FindCommand(const CommandMap& map, const std::string& key);
 
 // The commands always available and those after the cheat word.
 extern CommandMap g_publicCommands;

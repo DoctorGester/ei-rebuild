@@ -114,14 +114,11 @@ with fights the number of draws follows how far the stream got, i.e. the machine
 
 ## Original bugs kept
 
-- `MoveEmitter` / `RemoveEmitter` accept index 16, one past the 16 emitters.
-- Per-handle controls take the first voice whose handle matches; free voices hold -1, so handle -1 changes a free
-  voice.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
 - Tick recomputes a restarted flat sound's level from its saved output level (0..127) as if it were the 0..100 base
   volume: such sounds come back louder.
-- `SetZoneMode` passes the error text to FatalError as the format string.
-- An empty theme list (`combat` with 0 names) divides by zero.
-- `FadeOutStream` / `FadeInStream` / `SetMusicVolume` change the music fader without the stream lock.
 
 ## Movies
 

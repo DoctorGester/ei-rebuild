@@ -112,11 +112,10 @@ std::uint32_t EnterBits(const MoveModeState* to, const Unit* unit) {
     }
 }
 
-// The animation key of an order of `kind` with `source` (`steps` stands in for the source of an unknown
-// skill, as in the original). Sets *frame when the unit steps out of its movement mode for it (skills, unless
-// walking).
-std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t source, const AnimationSteps* steps,
-                       std::uint32_t* weaponBit, bool* frame) {
+// The animation key of an order of `kind` with `source`. Sets *frame when the unit steps out of its movement mode
+// for it (skills, unless walking).
+std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t source, std::uint32_t* weaponBit,
+                       bool* frame) {
     *weaponBit = 0;
     *frame = false;
     if (kind != UnitOrderKind::Use) {
@@ -147,8 +146,7 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
         return key | WeaponBit(self);
     }
     default:
-        // sic: the address of `steps` where the source belongs.
-        return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(steps)) | kKeyAction;
+        return source | kKeyAction;
     }
 }
 
@@ -237,7 +235,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
     *steps = {};
     std::uint32_t weaponBit;
     bool frame;
-    std::uint32_t key = OrderKey(this, kind, source, steps, &weaponBit, &frame);
+    std::uint32_t key = OrderKey(this, kind, source, &weaponBit, &frame);
 
     FigureAnimation* animation = unit->FindAnimation(key, 0);
     if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == UnitOrderKind::Attack) {
@@ -404,15 +402,6 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
                 to = SelectLess(theirTop, low, theirTop, low);
                 break;
             }
-            case 1:
-            case 2:
-            case 3: {   // body and arms
-                float part = theirSize * kLowerPart + theirBase;
-                from = SelectLess(high, part, part, high);
-                float upper = theirSize * kUpperPart + theirBase;
-                to = SelectLess(upper, low, upper, low);
-                break;
-            }
             case 4:
             case 5: {   // legs
                 from = SelectLess(high, theirBase, theirBase, high);
@@ -420,10 +409,13 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
                 to = SelectLess(part, low, part, low);
                 break;
             }
-            default:
-                // sic: the plan's address read as a float.
-                to = std::bit_cast<float>(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(plan)));
+            default: {   // body and arms (1..3), and the body for any other location
+                float part = theirSize * kLowerPart + theirBase;
+                from = SelectLess(high, part, part, high);
+                float upper = theirSize * kUpperPart + theirBase;
+                to = SelectLess(upper, low, upper, low);
                 break;
+            }
             }
             float h = RandomHeight(to, from, low, high);
             key = BandAt(h, myBase, mySize, myTop);

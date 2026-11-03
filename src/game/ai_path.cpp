@@ -64,6 +64,9 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
     int dyCells = ty - uy, dxCells = tx - ux;
     int ady = dyCells < 0 ? -dyCells : dyCells;
     int adx = dxCells < 0 ? -dxCells : dxCells;
+    // The unit on the target cell: no line to walk back, no candidate (the original's step was 0 / 0 and every
+    // candidate failed; docs/notes/ai.md, "Original bugs kept").
+    if (adx == 0 && ady == 0) return false;
     int steps;
     float sx, sy;
     if (adx > ady) {
@@ -78,12 +81,8 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    // No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit stands on the target cell, which the
-    // suite does), and then both choices are NaN.
     float scale = 1.0f / (AbsBits(q) < AbsBits(p) ? AbsBits(p) : AbsBits(q));
-    // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes the finite one
-    // of sx / sy NaN as well; the plain scale < 1 would leave it.
-    if (!(scale >= 1.0f)) {
+    if (scale < 1.0f) {
         p = scale * p;
         q = scale * q;
         sy = scale * sy;
@@ -184,8 +183,7 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     int tx = lib::RoundEven(goal.x - 0.5f);
     int ty = lib::RoundEven(goal.y - 0.5f);
     int ux = lib::RoundEven(fx - 0.5f);
-    float uyHalf = fy - 0.5f;   // also ends up in the path cell's second half below
-    int uy = lib::RoundEven(uyHalf);
+    int uy = lib::RoundEven(fy - 0.5f);
 
     bool found = false;
     PathCell cell;
@@ -197,10 +195,9 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         }
         cell.x = static_cast<std::int16_t>(ux);
         cell.y = static_cast<std::int16_t>(uy);
-        std::memcpy(&cell.flags, &uyHalf, 4);
+        SetPlainCellWords(&cell);
         pathCells.insert(pathCells.begin(), cell);
         found = true;
-        pathCells.front().flags = 0x200;
         AdvancePath(unit, path);
         goto done;
     }
@@ -213,14 +210,12 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         bool tried = false;
         if (diff + ((shorter * 0x5A8) >> 10) <= 24) {
             pathCells.clear();
-            if (ux != tx || uy != ty) {
-                if (forwardSearch.Begin(unit, ux, uy, tx, ty)) {
-                    if (!backwardSearch.Begin(unit, tx, ty, ux, uy)) {
-                        forwardSearch.Reset();
-                    } else {
-                        found = JoinLocalSearches(&pathCells, nullptr);
-                        tried = found;
-                    }
+            if (forwardSearch.Begin(unit, ux, uy, tx, ty)) {
+                if (!backwardSearch.Begin(unit, tx, ty, ux, uy)) {
+                    forwardSearch.Reset();
+                } else {
+                    found = JoinLocalSearches(&pathCells, nullptr);
+                    tried = found;
                 }
             }
         }
@@ -239,9 +234,8 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
                 PathCell& first = *pathCells.emplace(pathCells.begin());
                 first.x = static_cast<std::int16_t>(ux);
                 first.y = static_cast<std::int16_t>(uy);
-                std::memcpy(&first.flags, &shorter, 4);
+                SetPlainCellWords(&first);
                 found = true;
-                first.flags = 0x200;
             } else {
                 int flag = path->mayExcludeRegions || path->firstSearch ? 1 : 0;
                 int rangeCells = WorldToCell(range);

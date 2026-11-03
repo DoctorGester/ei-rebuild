@@ -10,8 +10,10 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 
 #include <cmath>
 
@@ -88,9 +90,10 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
     const LeverRecord* record = g_leverTable.Named(name);
     if (!record || record->spotCount == 0) return spots;
     const Quaternion& facing = localRotation;
-    // The count is read again each time; a count above 2 reads on into the record (sic).
-    for (std::uint32_t i = 0; i < record->spotCount; ++i) {
-        const float* spot = &record->spots[0][0] + 2 * i;
+    // The record holds two spots; a larger count uses those.
+    const std::uint32_t count = std::min<std::uint32_t>(record->spotCount, std::size(record->spots));
+    for (std::uint32_t i = 0; i < count; ++i) {
+        const float* spot = record->spots[i];
         Vector3 at = localPosition;
         float along = spot[0];
         float across = spot[1];

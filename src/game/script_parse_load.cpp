@@ -60,11 +60,15 @@ int CountChar(const char* text, char c) {
     return n;
 }
 
-// Takes the token at *pos and advances (no end check, like the game's GetNext).
-const ScriptToken& NextToken(std::vector<ScriptToken>::const_iterator* pos) { return *(*pos)++; }
-
 // The last token's line ("Unexpected end of file" reports it).
 int LastLine(const std::vector<ScriptToken>* tokens) { return tokens->back().line; }
+
+// Takes the token at *pos and advances; at the end of the tokens an empty token on the last line, *pos staying (the
+// game's GetNext read past the end: a script ending in "Foo(" faulted).
+ScriptToken NextToken(std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens) {
+    if (*pos == tokens->end()) return ScriptToken{std::string(), tokens->empty() ? -1 : LastLine(tokens)};
+    return *(*pos)++;
+}
 
 const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 
@@ -100,7 +104,7 @@ bool Script::LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator*
 
     ScriptVars* vars = &globals;
     do {
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         int tokenId;
         ClassifyToken(text, &tokenId, nullptr);
@@ -117,7 +121,7 @@ bool Script::LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator*
                 return Error(this, token.line, 4, "Expected '%s'", KeywordName(kLexComma));
             }
             // The parameter (no end-of-tokens check, as in the game).
-            token = NextToken(pos);
+            token = NextToken(pos, tokens);
             text = token.text;
             ClassifyToken(text, &tokenId, nullptr);
             if (paramIndex == 0 && tokenId == kLexClose) {
@@ -238,7 +242,7 @@ bool Script::LoadConditions(std::vector<SSCCmd>* conditions, std::vector<ScriptT
     for (;;) {
         if (*pos == tokens->end()) return Error(this, token.line, 1, "Unexpected end of file");
         cmd.Clear();
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         int id;
         ClassifyToken(text, &id, nullptr);
@@ -257,7 +261,7 @@ bool Script::LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::
     for (;;) {
         if (*pos == tokens->end()) return Error(this, LastLine(tokens), 1, "Unexpected end of file");
         int id;
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) {
@@ -269,7 +273,7 @@ bool Script::LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::
             Error(this, token.line, 10, "expected if section");
             return false;
         }
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
@@ -278,14 +282,14 @@ bool Script::LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::
         }
         pair.conditions = NewCommandList();
         if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return false;
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexThen) {
             Error(this, token.line, 4, "then expected after if");
             return false;
         }
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
@@ -305,7 +309,7 @@ bool Script::LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_ite
     if (*pos == tokens->end()) {
         ok = Error(this, LastLine(tokens), 1, "Unexpected end of file");
     } else {
-        const ScriptToken token = NextToken(pos);
+        const ScriptToken token = NextToken(pos, tokens);
         std::string text(token.text);
         int id;
         ClassifyToken(text, &id, nullptr);
@@ -333,7 +337,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::vector<Scri
     bool result = 0;
     bool first = true;
     while (*pos != tokens->end()) {
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         name = token.text;
         if (str::Compare(name, ")") == 0) {
             result = 1;
@@ -342,14 +346,14 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::vector<Scri
         if (!first) {
             if (str::Compare(name, ",") != 0)
                 return Error(this, token.line, 4, "Expected , or ) after variable");
-            token = NextToken(pos);
+            token = NextToken(pos, tokens);
             name = token.text;
         }
         bool ok;
         if (*pos == tokens->end()) {
             ok = Error(this, LastLine(tokens), 1, "Unexpected end of file");
         } else {
-            const ScriptToken colon = NextToken(pos);
+            const ScriptToken colon = NextToken(pos, tokens);
             std::string text(colon.text);
             int id;
             ClassifyToken(text, &id, nullptr);
@@ -359,7 +363,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::vector<Scri
         if (qualify) {
             name = QualifyName(name);
         }
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         typeName = token.text;
         int type;
         if (str::Compare(typeName, "float") == 0) type = kScriptFloat;
@@ -386,7 +390,7 @@ bool Script::LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken
     for (;;) {
         if (*pos == tokens->end()) return Error(this, LastLine(tokens), 1, "Unexpected end of file");
         cmd->Clear();
-        token = NextToken(pos);
+        token = NextToken(pos, tokens);
         text = token.text;
         int id;
         ClassifyToken(text, &id, nullptr);
@@ -411,7 +415,7 @@ bool Script::LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken
                 if (*pos == tokens->end()) {
                     open = Error(this, LastLine(tokens), 1, "Unexpected end of file");
                 } else {
-                    const ScriptToken next = NextToken(pos);
+                    const ScriptToken next = NextToken(pos, tokens);
                     std::string nextText = next.text;
                     int nextId;
                     ClassifyToken(nextText, &nextId, nullptr);
@@ -503,7 +507,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
     if (!Tokenize(*text, &tokens)) return false;
 
     for (std::vector<ScriptToken>::const_iterator pos = tokens.begin(); pos != tokens.end();) {
-        ScriptToken token = NextToken(&pos);
+        ScriptToken token = NextToken(&pos, &tokens);
         std::string word = token.text;
         int id;
         ClassifyToken(word, &id, nullptr);
@@ -513,7 +517,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
             if (pos == tokens.end()) {
                 ok = Error(this, LastLine(&tokens), 1, "Unexpected end of file");
             } else {
-                const ScriptToken next = NextToken(&pos);
+                const ScriptToken next = NextToken(&pos, &tokens);
                 std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText, &nextId, nullptr);
@@ -527,7 +531,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
         }
         case kLexScript: {
             decl->Reset();
-            token = NextToken(&pos);
+            token = NextToken(&pos, &tokens);
             word = token.text;
             decl->name = QualifyName(word);
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
@@ -548,7 +552,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
         }
         case kLexDeclareScript: {
             decl->Reset();
-            token = NextToken(&pos);
+            token = NextToken(&pos, &tokens);
             word = token.text;
             decl->name = QualifyName(word);
             if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word);
@@ -563,7 +567,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
             if (pos == tokens.end()) {
                 ok = Error(this, LastLine(&tokens), 1, "Unexpected end of file");
             } else {
-                const ScriptToken next = NextToken(&pos);
+                const ScriptToken next = NextToken(&pos, &tokens);
                 std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText, &nextId, nullptr);

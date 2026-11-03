@@ -87,16 +87,15 @@ RefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return 
 // The footprints of walls and clouds (spell effects): one function fills a cell set with the cells of a disc
 // around a point limited by a line along a direction, the other with the cells of a disc. Positions are
 // scaled to cells by 1 / (0x73FD18 * 0.5) (2: half-metre cells); the radius is grown by a cell. Each cell gets
-// low 0, high 1, kind SpellArea, transparency 3 and is appended without hashing (the buckets are emptied when the set
-// was hashed). See ai_map.h and docs/notes/ai.md.
+// low 0, high 1, kind SpellArea, transparency 3 and is appended without hashing (the buckets are emptied). See
+// ai_map.h and docs/notes/ai.md.
 
 namespace {
 
-// Empties the set (SetSize(0, -1)) and its buckets when it was hashed.
+// Empties the set and its buckets.
 void ResetSet(FootprintCellSet* set) {
     set->SetSize(0);
-    if (set->hashed)
-        for (int& bucket : set->buckets) bucket = -1;
+    for (int& bucket : set->buckets) bucket = -1;
 }
 
 // The cell record of these footprints. The original appends it from a stack copy whose byte 0x13 and `next`

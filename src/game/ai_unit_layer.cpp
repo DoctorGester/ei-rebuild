@@ -3,6 +3,7 @@
 #include "ai_unit_layer.h"
 
 
+#include <algorithm>
 #include <cstring>
 #include <list>
 
@@ -27,15 +28,24 @@ bool AnyLevel(const UnitLayerNode* node) {
     return (rows[3] | rows[2] | rows[1] | rows[0]) != 0;
 }
 
-// The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the
-// comparisons are unsigned, so negative blocks are outside).
-bool BlockInMap(const AIMap* map, const UnitLayerNode* block, int* x, int* y) {
+// The part of a block's 4x4 cells that lies in the map: its first cell and the columns and rows inside.
+struct BlockArea {
+    int x, y, columns, rows;
+};
+
+// Whether the block's first cell lies in the map (keys are signed 16-bit halves; the comparisons are unsigned, so
+// negative blocks are outside); *area clips the block at the map's far edges.
+bool BlockInMap(const AIMap* map, const UnitLayerNode* block, BlockArea* area) {
     std::int16_t halves[2];
     std::memcpy(halves, &block->key, sizeof(halves));
-    *x = halves[0] * 4;
-    *y = halves[1] * 4;
-    return static_cast<unsigned>(*y) < static_cast<unsigned>(map->cells.height) &&
-           static_cast<unsigned>(*x) < static_cast<unsigned>(map->cells.width);
+    area->x = halves[0] * 4;
+    area->y = halves[1] * 4;
+    if (static_cast<unsigned>(area->y) >= static_cast<unsigned>(map->cells.height) ||
+        static_cast<unsigned>(area->x) >= static_cast<unsigned>(map->cells.width))
+        return false;
+    area->columns = std::min(4, map->cells.width - area->x);
+    area->rows = std::min(4, map->cells.height - area->y);
+    return true;
 }
 
 } // namespace
@@ -99,21 +109,21 @@ void UnitLayer::Remove(Unit* unit, int x, int y) {
 }
 
 void SmallUnitLayer::Set(const UnitLayerNode* block) {
-    int x, y;
-    if (!BlockInMap(map, block, &x, &y)) return;
-    for (int r = 0; r < 4; ++r) {
-        for (int c = 0; c < 4; ++c) {
-            map->cells[y + r][x + c].level = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
+    BlockArea area;
+    if (!BlockInMap(map, block, &area)) return;
+    for (int r = 0; r < area.rows; ++r) {
+        for (int c = 0; c < area.columns; ++c) {
+            map->cells[area.y + r][area.x + c].level = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
         }
     }
 }
 
 void SmallUnitLayer::Merge(const UnitLayerNode* block) {
-    int x, y;
-    if (!BlockInMap(map, block, &x, &y)) return;
-    for (int r = 0; r < 4; ++r) {
-        for (int c = 0; c < 4; ++c) {
-            std::uint8_t& level = map->cells[y + r][x + c].level;
+    BlockArea area;
+    if (!BlockInMap(map, block, &area)) return;
+    for (int r = 0; r < area.rows; ++r) {
+        for (int c = 0; c < area.columns; ++c) {
+            std::uint8_t& level = map->cells[area.y + r][area.x + c].level;
             std::uint8_t value = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
             if (level > value) value = level;
             level = value;
@@ -122,17 +132,18 @@ void SmallUnitLayer::Merge(const UnitLayerNode* block) {
 }
 
 void LargeUnitLayer::Set(const UnitLayerNode* block) {
-    int x, y;
-    if (!BlockInMap(map, block, &x, &y)) return;
-    for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
+    BlockArea area;
+    if (!BlockInMap(map, block, &area)) return;
+    for (int r = 0; r < area.rows; ++r)
+        std::memcpy(map->waterDepth[area.y + r] + area.x, &block->levels[r * 4], area.columns);
 }
 
 void LargeUnitLayer::Merge(const UnitLayerNode* block) {
-    int x, y;
-    if (!BlockInMap(map, block, &x, &y)) return;
-    for (int r = 0; r < 4; ++r) {
-        for (int c = 0; c < 4; ++c) {
-            std::int8_t& level = map->waterDepth[y + r][x + c];
+    BlockArea area;
+    if (!BlockInMap(map, block, &area)) return;
+    for (int r = 0; r < area.rows; ++r) {
+        for (int c = 0; c < area.columns; ++c) {
+            std::int8_t& level = map->waterDepth[area.y + r][area.x + c];
             std::int8_t value = block->levels[r * 4 + c];
             if (level > value) value = level;
             level = value;

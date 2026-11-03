@@ -33,9 +33,11 @@ std::uint32_t CalmDelay() {
     return platform::Milliseconds() + r + 120000;
 }
 
-// One name of a theme list: the only one, or one at random.
+// One name of a theme list: the only one, or one at random; an empty list gives an empty name.
 const std::string& PickName(const std::vector<std::string>& names) {
+    static const std::string kNoName;
     std::uint32_t n = static_cast<std::uint32_t>(names.size());
+    if (n == 0) return kNoName;
     if (n == 1) return names[0];
     return names[g_clientRandom.Next() % n];
 }
@@ -58,8 +60,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 } // namespace
 
-// The error message names the file without its path, and its text is FatalError's
-// format string (original).
+// The error message names the file without its path.
 void MusicSystem::Create() {
     FileRegistry reg;
     bool opened;
@@ -73,7 +74,7 @@ void MusicSystem::Create() {
             std::string file = kMusicReg;
             std::string message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "MusicSystem::Create()\nUnable to open file \""
             std::string full = message + "\"";    // "\""
-            game::FatalError(full);
+            game::FatalError("%s", full);
         }
         return;
     }
@@ -120,7 +121,7 @@ void MusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
     std::string name(allod);
     std::string message = "CMusicSystem::SetZoneMode()\nUnable to find sound theme for allod \"" + name;
     std::string full = message + "\"";
-    game::FatalError(full);
+    game::FatalError("%s", full);
 }
 
 void MusicSystem::Stop() {

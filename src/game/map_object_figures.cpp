@@ -180,7 +180,7 @@ constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f
 void Object3D::Create3D() {
     localPosition = {};
     localRotation = kIdentityOrientation;
-    attached = nullptr;
+    SetSpecific(nullptr);
     flags = 0;
     animations = nullptr;
     scale = {};
@@ -537,7 +537,10 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
             std::string key(partName);
             loaded = current->LoadPart(&key);
         }
-        if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
+        if (!loaded) {
+            manager->ReleaseObject(part);
+            return nullptr;
+        }
         const LinkPartHeader& piece = current->headers.find(std::string(partName))->second;
         part->materialValue = piece.materialValue;
         part->meshType = piece.meshType;

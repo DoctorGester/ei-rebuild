@@ -179,7 +179,7 @@ void Script::ScriptCreateLightning(const SSCCmd* cmd) {
     ScriptLightning& newLightning = lightning.emplace_back();
 
     const float* f = cmd->floatArgs.data();
-    if (f[0] >= 0.0f) newLightning.id = static_cast<int>(f[0]);
+    if (f[0] >= 0.0f) newLightning.id = lib::Truncate(f[0]);
     else newLightning.id = nextParticleId--;    // also NaN
 
     auto* bolt = g_serverWorld.timedObjectManager->CreateObjectAs<EffectLightning>(ClassId::EffectLightning, -1);

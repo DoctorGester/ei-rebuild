@@ -97,8 +97,9 @@ void ArmourSpell::Save(ByteStream* stream) const {
 void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
     int count = 0;
     stream->ReadValue(count);
-    // Blank entries (no item, countdown 0; `worn` is the original's stack byte).
-    if (count > 0) list->resize(list->size() + count, ArmourSpell{{}, 0, 0});
+    // Blank entries (no item, countdown 0; `worn` is the original's stack byte), replacing the list.
+    list->clear();
+    if (count > 0) list->resize(count, ArmourSpell{{}, 0, 0});
     for (ArmourSpell& entry : *list) {
         entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager));
         stream->ReadValue(entry.countdown);
@@ -162,7 +163,7 @@ void UnitServer::Load(ByteStream* stream) {
     if (stream->version < kVersionPendingHit) return;
     stream->ReadValue(pendingHit);
     if (stream->version < kVersionWaitFrame) return;
-    stream->WriteValue(waitFrame);    // sic: written, not read
+    stream->ReadValue(waitFrame);
 }
 
 void UnitServer::Save(ByteStream* stream) {
