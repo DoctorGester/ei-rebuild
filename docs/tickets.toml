@@ -7197,6 +7197,14 @@ files = ["tools/dashboard_data.py", "tools/progress.py", "tools/dashboard/index.
 note = "User 2026-11-03 agreed. (1) Cyrillic check: the 17 case sites (str::MakeLower in console.cpp, item_manager.cpp, item_stock.cpp, text_manager.cpp, ui_briefing.cpp, ui_interface_input.cpp, ui_item_info.cpp; script_addon / mod_folders stricmp-like compares) since C34 work on UTF-8 text; byte-wise lowering does not fold Cyrillic. For each, say whether the text can hold non-ASCII (player-visible names, item or text keys from the data, file names) and whether the compare's other side is lowered the same way; fix any that can mismatch (one UTF-8-aware fold in lib/text_case.h, used by both sides), list the rest as ASCII-only. (2) Retire the dashboard's text_case_compares and ftol_calls series (C82 removes the last Ftol), and text_ansi_calls if it is at 0 and held there by a build check. Keep text_fixed_buffers but count src/ only (not tests/). (3) structs_defined_twice: count only names defined in more than one file outside an anonymous namespace (a real ODR risk); fix any it finds (rename or move into an anonymous namespace). Regenerate build/dashboard/data.json (python tools/dashboard_data.py) and say the new counts; the coordinator republishes the dashboard. Goldens the same."
 
 [[ticket]]
+id = "C78b"
+title = "2D leftovers: Rect inset helpers, grid Point APIs, renderer rect uploads"
+group = "cleanup"
+model = "sonnet"
+depends = ["C78"]
+note = "From build/reviews/c78_components.txt (C78's audit: 143 functions, 717 component accesses left): Rect::Inset / Sized helpers for the per-edge layout code (about 15 functions in ui_scrollbar, ui_help_page, ui_connect_list, ui_tooltip, ui_scroll_text and others); AIMap and RegionMap int-pair APIs (x, y arguments) to Point with Index(Point) / Contains(Point); a Rect to float4 uniform helper in render_blit / render_ui / render_cursor and Point-based render::ui::Line / Pixel (tools/ui_check changes); MotionPoint / MotionWaypoint to Vector2; FrameCursor held / hot as Points; the remaining ~90 Vector3 x-and-y leftovers of c74c_components.txt (ground-plane formulas with different terms need judgement); rerun the WSL rename audit for the Windows-only files (platform/win32, d3d11, tests/verify, tools) by hand. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

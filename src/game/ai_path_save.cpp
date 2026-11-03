@@ -26,7 +26,7 @@ void AIPath::LoadPath(ByteStream* stream) {
     stream->ReadValue(failed);
     stream->ReadValue(mayExcludeRegions);
     stream->ReadValue(firstSearch);
-    std::vector<BlockPoint>* excluded = &excludedBlocks;
+    std::vector<Point>* excluded = &excludedBlocks;
     stream->ReadValue(count);
     excluded->resize(count);
     for (int i = 0; i < std::ssize(*excluded); ++i) {
@@ -47,7 +47,7 @@ void AIPath::SavePath(ByteStream* stream) {
     stream->WriteValue(failed);
     stream->WriteValue(mayExcludeRegions);
     stream->WriteValue(firstSearch);
-    const std::vector<BlockPoint>* excluded = &excludedBlocks;
+    const std::vector<Point>* excluded = &excludedBlocks;
     count = lib::Count(*excluded);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(*excluded); ++i) {

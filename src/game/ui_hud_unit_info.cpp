@@ -69,7 +69,7 @@ struct Panel {
     void DrawLine() { DrawLine(text); }
     void DrawLine(std::string_view line) {
         surface->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
-        rects::Offset(&rect, 0, kLineHeight);
+        rect.Offset(0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
     void DrawLabelled(int label, const std::string& line) {

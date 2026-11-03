@@ -21,6 +21,5 @@ render::text::TextFont* TextFontOf(const UiFont& font) {
 Size TextExtent(const UiFont& font, std::string_view text) {
     render::text::TextFont* measured = TextFontOf(font);
     if (!measured) return Size{0, 0};
-    const render::text::Extent extent = render::text::TextExtent(*measured, ::text::CodePoints(text));
-    return Size{extent.cx, extent.cy};
+    return render::text::TextExtent(*measured, ::text::CodePoints(text));
 }

@@ -94,38 +94,35 @@ void CameraInput::KeyUp(int, int, int flags) {
     camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x);
 }
 
-void CameraInput::RightDown(int, int atX, int atY) {
-    pressScreen = Point{atX, atY};
-    pressLayout = Point{atX, atY};
+void CameraInput::RightDown(int, Point at) {
+    pressScreen = at;
+    pressLayout = at;
     turning = true;
     ui->ScalePointFromScreen(&pressLayout);
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
+    g_cursor.motion = {};
     g_cursor.SetHeld(1);
     handled = true;
 }
 
-void CameraInput::RightUp(int, int, int) {
+void CameraInput::RightUp(int, Point) {
     turning = false;
     Camera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(still);
-    int positionX = g_cursor.position.x;
-    int positionY = g_cursor.position.y;
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
+    const Point position = g_cursor.position;
+    g_cursor.motion = {};
     g_cursor.SetHeld(0);
-    platform::SetCursorPosition({positionX, positionY});
+    platform::SetCursorPosition(position);
     handled = true;
 }
 
-void CameraInput::MouseMove(int, int atX, int atY) {
+void CameraInput::MouseMove(int, Point at) {
     Camera* camera = &g_camera;
     if (turning) {
-        Point point{atX, atY};
-        Point drag{g_cursor.motion.x, g_cursor.motion.y};
+        Point point = at;
+        Point drag = g_cursor.motion;
         ui->ScalePointFromScreen(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
@@ -164,17 +161,17 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         const Rect picture = ui->PictureRect();
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
-        if (atX < picture.left + margin) {
+        if (at.x < picture.left + margin) {
             direction.x = -1.0f;
             edges = kLeft;
-        } else if (atX >= picture.right - margin) {
+        } else if (at.x >= picture.right - margin) {
             direction.x = 1.0f;
             edges = kRight;
         }
-        if (atY < picture.top + margin) {
+        if (at.y < picture.top + margin) {
             direction.y = -1.0f;
             edges |= kTop;
-        } else if (atY >= picture.bottom - margin) {
+        } else if (at.y >= picture.bottom - margin) {
             direction.y = 1.0f;
             edges |= kBottom;
         }
@@ -191,7 +188,7 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         camera->Pan(direction);
         if (edges) handled = true;
     }
-    pressLayout = Point{atX, atY};
+    pressLayout = at;
 }
 
 void CameraInput::Deactivate() {
@@ -200,12 +197,11 @@ void CameraInput::Deactivate() {
     y = 0.0f;
     z = 0.0f;
     g_cursor.SetHeld(0);
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
+    g_cursor.motion = {};
     g_camera.StopMotion();
 }
 
-void CameraInput::Wheel(int, int delta, int, int) {
+void CameraInput::Wheel(int, int delta, Point) {
     int steps = static_cast<short>(delta);
     g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(steps) * kWheelStep);
 }

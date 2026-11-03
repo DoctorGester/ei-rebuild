@@ -144,8 +144,8 @@ int TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* pro
 }
 
 Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
-    float halfWidth = static_cast<float>((rect->right - rect->left) >> 1);
-    float halfHeight = static_cast<float>((rect->bottom - rect->top) >> 1);
+    float halfWidth = static_cast<float>((rect->Width()) >> 1);
+    float halfHeight = static_cast<float>((rect->Height()) >> 1);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;

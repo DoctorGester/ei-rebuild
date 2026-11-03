@@ -49,9 +49,9 @@ void HeroQuickStrip::ShowEntry(Item* item) {
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
-void HeroEquipPanel::RightDown(int, int x, int y) {
+void HeroEquipPanel::RightDown(int, Point point) {
     if (!body || !enabled) return;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region < 0) return;
     PartyUnitRecord* hero = owner->HeroRecord();
     if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
@@ -63,10 +63,10 @@ void HeroEquipPanel::RightDown(int, int x, int y) {
 
 // --- the item under a point ----------------------------------------------------------------------
 
-Item* HeroEquipPanel::ItemAt(int x, int y, int* topic) {
+Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region < 0) return nullptr;
     PartyUnitRecord* hero = owner->HeroRecord();
     if (region < kWeaponSlots) {
@@ -86,10 +86,10 @@ Item* HeroEquipPanel::ItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-Item* HeroQuickStrip::ItemAt(int x, int atY, int* topic) {
+Item* HeroQuickStrip::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, atY);
+    int region = RegionAt(point);
     PartyUnitRecord* hero = owner->HeroRecord();
     if (region < 0 || region >= kQuickSlots) return nullptr;
     *topic = kTopicEntry;

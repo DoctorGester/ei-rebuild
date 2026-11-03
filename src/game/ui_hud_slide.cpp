@@ -134,20 +134,20 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
 void HudMap::Layout() {
     screen_layout::EnterRightPanel();   // addon's 10023366
     const float slideOffset = static_cast<float>(offset);
-    const float centre = slideOffset + kMapCentreX;
+    const float middle = slideOffset + kMapCentreX;
     const float buttons = slideOffset + kMapButtonsX;
-    Place(this, 0, centre, 80.0f, 18.0f);
-    Place(this, 1, centre, 80.0f, 14.0f);
-    Place(this, 2, centre, 80.0f, 12.0f);
-    Place(this, 3, centre, 80.0f, 20.0f);
+    Place(this, 0, middle, 80.0f, 18.0f);
+    Place(this, 1, middle, 80.0f, 14.0f);
+    Place(this, 2, middle, 80.0f, 12.0f);
+    Place(this, 3, middle, 80.0f, 20.0f);
     Place(this, 4, buttons, 80.0f, 20.0f);
     Place(this, 6, buttons, 115.0f, 10.0f);
     Place(this, 7, buttons, 145.0f, 10.0f);
-    Place(this, 8, centre, 80.0f, 10.0f);
+    Place(this, 8, middle, 80.0f, 10.0f);
     Place(this, 9, slideOffset + kMapFrameX, 80.0f, 10.0f);
     Place(this, 10, slideOffset + kMapNeedleX, 84.0f, kSlingDepthBits);
     Place(this, 11, buttons, 85.0f, 10.0f);
-    surfaces[0]->MoveTo(offset + 700 + screen_layout::EdgeShift(), 80);     // WideScreen
+    surfaces[0]->MoveTo({offset + 700 + screen_layout::EdgeShift(), 80});     // WideScreen
     screen_layout::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset);
 }
@@ -208,7 +208,7 @@ void HudUnitPanel::Layout() {
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, kUnitEffectX - slideOffset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces[0]->MoveTo(20 - screen_layout::EdgeShift() - offset, 0);     // WideScreen
+    surfaces[0]->MoveTo({20 - screen_layout::EdgeShift() - offset, 0});     // WideScreen
     MoveRegions(this, -offset);
     screen_layout::LeavePanel();        // addon's 100232E9
 }
@@ -353,10 +353,8 @@ void HudMap::Setup(float newZoom, bool slid) {
     scale = kMapSide / textureSize;
     zoomMax = textureSize * kZoomRange;
     zoom = zoomMax < newZoom ? zoomMax : newZoom;
-    centreX = 0.0f;
-    centreY = 0.0f;
-    facingX = 0.0f;
-    facingY = 1.0f;
+    centre = {0.0f, 0.0f};
+    facing = {0.0f, 1.0f};
     offset = slid ? kMapTravel : 0;
     slide = slid ? 1.0f : 0.0f;
     sliding = true;
@@ -437,12 +435,12 @@ void HudMap::Setup(float newZoom, bool slid) {
 
     UiSurface* dot = new UiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
     AddSurface(dot);
-    dot->Dot(0, 0, 0xFFFFFF);
+    dot->Dot({0, 0}, 0xFFFFFF);
 
     const UiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
-            viewPolygon.push_back(UiPointF{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});
+            viewPolygon.push_back(Vector2{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});
     }
     UpdateView();
     BuildMarkers();

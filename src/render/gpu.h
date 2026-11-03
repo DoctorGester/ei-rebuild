@@ -10,7 +10,7 @@
 // draws: a draw recorded before a write still reads what it replaces. Handles are plain values; a texture, buffer or
 // download released while recorded commands still use it lives until they are done.
 
-#include "render_rect.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>

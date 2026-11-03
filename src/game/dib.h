@@ -62,8 +62,8 @@ public:
     void Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
     // The header and the bits freed; every field cleared.
     void Empty();
-    // The header's width and height, 0 x 0 without a header. Returns `out`.
-    ::Size* Size(::Size* out) const;
+    // The header's width and height, 0 x 0 without a header.
+    Size Extent() const;
     // Memory for the pixels, height rows of DibRowBytes (padded to four bytes, as `imageSize` counts them). Returns
     // the bits (unchanged without a header).
     std::uint8_t* AllocateBits();

@@ -126,8 +126,7 @@ int GroundPrint::Tick() {
 }
 
 void GroundPrint::Load(ByteStream* stream) {
-    stream->ReadValue(position.x);
-    stream->ReadValue(position.y);
+    stream->ReadValue(position);
     stream->ReadValue(halfWidth);
     stream->ReadValue(halfLength);
     stream->ReadValue(growth);
@@ -135,10 +134,8 @@ void GroundPrint::Load(ByteStream* stream) {
     char name[kNameCapacity];
     stream->ReadText(name, kNameCapacity);
     SetTexture(name);
-    stream->ReadValue(uvOffset.x);
-    stream->ReadValue(uvOffset.y);
-    stream->ReadValue(uvScale.x);
-    stream->ReadValue(uvScale.y);
+    stream->ReadValue(uvOffset);
+    stream->ReadValue(uvScale);
     stream->ReadValue(uvAngle);
     stream->ReadValue(angle);
     stream->ReadValue(lit);
@@ -149,17 +146,14 @@ void GroundPrint::Load(ByteStream* stream) {
 }
 
 void GroundPrint::Save(ByteStream* stream) {
-    stream->WriteValue(position.x);
-    stream->WriteValue(position.y);
+    stream->WriteValue(position);
     stream->WriteValue(halfWidth);
     stream->WriteValue(halfLength);
     stream->WriteValue(growth);
     stream->WriteValue(life);
     stream->WriteString(texture.name.data());
-    stream->WriteValue(uvOffset.x);
-    stream->WriteValue(uvOffset.y);
-    stream->WriteValue(uvScale.x);
-    stream->WriteValue(uvScale.y);
+    stream->WriteValue(uvOffset);
+    stream->WriteValue(uvScale);
     stream->WriteValue(uvAngle);
     stream->WriteValue(angle);
     stream->WriteValue(lit);

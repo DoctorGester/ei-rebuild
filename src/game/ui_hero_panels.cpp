@@ -23,9 +23,9 @@
 
 namespace {
 
-void Down(Rect* rect) { rects::Offset(rect, 0, 15); }
+void Down(Rect* rect) { rect->Offset(0, 15); }
 
-void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRectFrom(rect); }
+void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRect(rect); }
 
 void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->SceneMesh(i)->visible = shown;
@@ -377,10 +377,10 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
 
 // --- The item under the mouse ---------------------------------------------------------------
 
-Item* TradeGrid::ItemAt(int x, int y, int* topic) {
+Item* TradeGrid::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region >= 0 && region < kGridCellsPerList) {
         *topic = exchange ? kTopicExchangeBuy : buyKind == PriceKind::ItemBuy ? kTopicItemBuy : kTopicSpellBuy;
         if (region < std::ssize(*bought)) return (*bought)[region];
@@ -393,10 +393,10 @@ Item* TradeGrid::ItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-Item* RepairGrid::ItemAt(int x, int y, int* topic) {
+Item* RepairGrid::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region < 0 || region >= kGridCells) return nullptr;
     *topic = kTopicRepair;
     return region < std::ssize(*items) ? (*items)[region] : nullptr;
@@ -496,10 +496,10 @@ Item* NthSlot(Party* slots, int nth, Predicate matches) {
 
 } // namespace
 
-Item* SpellMakerPage::ItemAt(int x, int y, int* topic) {
+Item* SpellMakerPage::ItemAt(Point point, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region == 0) {
         *topic = kTopicSpellContainer;
         return NthSlot(slots, 0, IsSpellContainer);
@@ -517,10 +517,10 @@ Item* SpellMakerPage::ItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-Item* ConstructorPage::ItemAt(int x, int y, int* topic) {
+Item* ConstructorPage::ItemAt(Point point, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region == 0) {
         *topic = kTopicBuildable;
         return NthSlot(slots, 0, IsBuildable);

@@ -175,10 +175,10 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
             if (found) text = clientWorldTexts->ReadLine(true);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
-        rects::Offset(&line, 0, kLineHeight);
+        line.Offset(0, kLineHeight);
         number = std::format("{}", effects[i].ticksLeft / 15);
         surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
-        rects::Offset(&line, 0, kLineHeight);
+        line.Offset(0, kLineHeight);
     }
 
     // The pictures already in the texture keep their places (the last one that matches).

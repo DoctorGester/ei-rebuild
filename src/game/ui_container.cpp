@@ -60,30 +60,33 @@ void UiContainer::Show(bool show) {
 
 // --- Input dispatch ----------------------------------------------------------------------------
 
-void UiContainer::Dispatch(int slot, int first, int second, int third, bool atPoint) {
-    UiContainer* self = this;
-    handled = false;
+namespace {
+// Offers an event to a container's input sides, then to its enabled children (those holding `at`, when it is given),
+// until one handles it. `call` sends it to one input side.
+template <class Call>
+void Offer(UiContainer* self, const Point* at, Call call) {
+    self->handled = false;
     for (auto& side : self->inputs) {
         side->handled = false;
-        side->Event(slot, first, second, third);
+        call(side);
         if (side->handled) {
-            handled = true;
+            self->handled = true;
             return;
         }
     }
     for (int i = 0; i < std::ssize(self->children); ++i) {
         UiWindow* child = self->children[i];
-        if (!child->enabled) continue;
-        if (atPoint && !child->ContainsPoint(second, third)) continue;
+        if (!child->enabled || (at && !child->ContainsPoint(*at))) continue;
         child = self->children[i];
         child->handled = false;
-        child->Input()->Event(slot, first, second, third);
+        call(child->Input());
         if (self->children[i]->handled) {
-            handled = true;
+            self->handled = true;
             return;
         }
     }
 }
+} // namespace
 
 void UiContainer::Deactivate() {
     UiContainer* self = this;
@@ -91,70 +94,50 @@ void UiContainer::Deactivate() {
     for (int i = 0; i < std::ssize(self->children); ++i) self->children[i]->Input()->Deactivate();
 }
 
-void UiContainer::LeftDown(int buttons, int x, int y) {
-    Dispatch(kEventLeftDown, buttons, x, y, true);
+void UiContainer::LeftDown(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftDown(buttons, point); });
 }
 
-void UiContainer::LeftUp(int buttons, int x, int y) {
-    Dispatch(kEventLeftUp, buttons, x, y, true);
+void UiContainer::LeftUp(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftUp(buttons, point); });
 }
 
-void UiContainer::MouseMove(int buttons, int x, int y) {
-    Dispatch(kEventMouseMove, buttons, x, y, true);
+void UiContainer::MouseMove(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->MouseMove(buttons, point); });
 }
 
-void UiContainer::RightDown(int buttons, int x, int y) {
-    Dispatch(kEventRightDown, buttons, x, y, true);
+void UiContainer::RightDown(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightDown(buttons, point); });
 }
 
-void UiContainer::RightUp(int buttons, int x, int y) {
-    Dispatch(kEventRightUp, buttons, x, y, true);
+void UiContainer::RightUp(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightUp(buttons, point); });
 }
 
-void UiContainer::LeftDouble(int buttons, int x, int y) {
-    Dispatch(kEventLeftDouble, buttons, x, y, true);
+void UiContainer::LeftDouble(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftDouble(buttons, point); });
 }
 
-void UiContainer::RightDouble(int buttons, int x, int y) {
-    Dispatch(kEventRightDouble, buttons, x, y, true);
+void UiContainer::RightDouble(int buttons, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightDouble(buttons, point); });
 }
 
 // Key events reach every enabled child, wherever the mouse is.
 void UiContainer::KeyDown(int key, int repeat, int modifiers) {
-    Dispatch(kEventKeyDown, key, repeat, modifiers, false);
+    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyDown(key, repeat, modifiers); });
 }
 
 void UiContainer::Char(int key, int repeat, int modifiers) {
-    Dispatch(kEventChar, key, repeat, modifiers, false);
+    Offer(this, nullptr, [&](UiInputSide* to) { to->Char(key, repeat, modifiers); });
 }
 
 void UiContainer::KeyUp(int key, int repeat, int modifiers) {
-    Dispatch(kEventKeyUp, key, repeat, modifiers, false);
+    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyUp(key, repeat, modifiers); });
 }
 
-// The wheel's four arguments go on unchanged; the children are tested at (x, y).
-void UiContainer::Wheel(int modifiers, int delta, int x, int y) {
-    UiContainer* self = this;
-    handled = false;
-    for (auto& side : self->inputs) {
-        side->handled = false;
-        side->Wheel(modifiers, delta, x, y);
-        if (side->handled) {
-            handled = true;
-            return;
-        }
-    }
-    for (int i = 0; i < std::ssize(self->children); ++i) {
-        UiWindow* child = self->children[i];
-        if (!child->enabled || !child->ContainsPoint(x, y)) continue;
-        child = self->children[i];
-        child->handled = false;
-        child->Input()->Wheel(modifiers, delta, x, y);
-        if (self->children[i]->handled) {
-            handled = true;
-            return;
-        }
-    }
+// The children are tested at the position.
+void UiContainer::Wheel(int modifiers, int delta, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->Wheel(modifiers, delta, point); });
 }
 
 void UiContainer::AddChild(UiWindow* child) {

@@ -55,9 +55,9 @@ system). Windows (`src/platform/win32/`) has the rest; it is the only place of t
   `<windows.h>` or another system header (`<dinput.h>`, `<wingdi.h>`, `<mmsystem.h>`, `<winsock2.h>`, `<process.h>`,
   `<d3d11.h>`, ...: the script lists them), a header of a Windows backend (`platform/win32/`, `platform/d3d11/`) or calls
   sokol's Direct3D functions (`sg_d3d11_*`) (comments left out). It sees a file's own includes only.
-- Game code uses our own `Rect`, `Point`, `Size` (lib/rect.h: global structs of Windows' RECT, POINT and SIZE layout;
-  the win32 side static_asserts the sizes where it hands one to the system) and `std::uint32_t` / `std::int32_t` for
-  DWORD, COLORREF, UINT, LONG.
+- Game, renderer and platform layer share one `Rect`, `Point` and `Size` (lib/rect.h: global structs with operators and
+  value methods; the float pair is `Vector2`, vecmath.h) and `std::uint32_t` / `std::int32_t` for DWORD, COLORREF,
+  UINT, LONG.
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code holds no `HWND`. app.h's
   `g_mainWindow` and texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
 
@@ -343,14 +343,14 @@ What needed no system at all is standard C++, each checked equal to the call it 
 
 ## Rectangles
 
-`lib/rect.h` (`rects::Set`, `SetEmpty`, `Copy`, `IsEmpty`, `Contains`, `Offset`, `Intersect`, `Union`) is plain integer
-code over `RECT` / `POINT` with USER32's rules, so the UI and figure files no longer call SetRect, OffsetRect,
-IntersectRect ... (not an area of the layer: no system call is left). An empty rectangle has right <= left or
-bottom <= top; `Intersect` and `Union` write the all-zero rectangle when nothing is left and return false (`Union`
-ignores an empty operand); `Contains` excludes the right and bottom edges; `Set`, `Offset` and `Copy` do not
-normalise. bink_video.cpp's two copies are `rects::Copy` too. The edge rules were compared with USER32 on 56
-million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written `(std::min)` in the
-header because windows.h defines the macros.
+`lib/rect.h` (`Rect::IsEmpty`, `Contains`, `Offset`, `Intersection`, `Union`, `Width`, `Height`) is plain integer
+code with USER32's rules, so the UI and figure files no longer call SetRect, OffsetRect, IntersectRect ... (not an area
+of the layer: no system call is left). An empty rectangle has right <= left or bottom <= top; `Intersection` and
+`Union` return the all-zero rectangle when nothing is left (`Union` ignores an empty operand); `Contains` excludes the
+right and bottom edges; `Offset` and the aggregate initialisation do not normalise. The edge rules were compared with
+USER32 on 56 million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written
+`(std::min)` in the header because windows.h defines the macros. A mouse event's position is a `Point` (the
+`LeftDown(int buttons, Point point)` handlers).
 
 ## What the game depends on (2026-10-09 estimate, kept for scale)
 

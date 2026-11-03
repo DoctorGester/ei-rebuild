@@ -101,14 +101,14 @@ void ChatOverlay::AddLine(const char* text) {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (ui->TextExtent(line + word + ch, kLineFont).cx > kLineWidth) {
+            if (ui->TextExtent(line + word + ch, kLineFont).w > kLineWidth) {
                 if (line.size() != 0) {
                     plain.push_back(line);
                     formatted.push_back(lineFormatted);
                 }
                 line.clear();
                 lineFormatted.clear();
-                if (ui->TextExtent(word + ch, kLineFont).cx > kLineWidth) {
+                if (ui->TextExtent(word + ch, kLineFont).w > kLineWidth) {
                     if (word.size() != 0) {
                         plain.push_back(word);
                         formatted.push_back(wordFormatted);
@@ -137,7 +137,7 @@ void ChatOverlay::AddLine(const char* text) {
         ChatLine& added = lines.emplace_back();
         added.name = plain[i];
         added.time = now;
-        const int width = ui->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
+        const int width = ui->TextExtent(plain[i], kLineFont).w + kLineSurfacePad;
         added.surface = std::make_unique<UiSurface>(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
         UiSurface* surface = added.surface.get();
         surface->Clear();
@@ -150,7 +150,7 @@ void ChatOverlay::AddLine(const char* text) {
             piece = str::Mid(codes, start, at - start);
             DrawPiece(surface, piece, x, colour);
             drawn += piece;
-            x = ui->TextExtent(drawn, kLineFont).cx;
+            x = ui->TextExtent(drawn, kLineFont).w;
             colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
@@ -188,14 +188,14 @@ void ChatOverlay::DrawTyped() {
     surface->Clear();
     Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
-    int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).cx;
+    int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).w;
     if (width < kMaxTypedWidth) {
         Point top{width, 0};
         Point bottom{width, kCaretBottom};
         // WideScreen: without the margin.
         ui->ScalePointToScreenNoMargin(&top);
         ui->ScalePointToScreenNoMargin(&bottom);
-        surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
+        surface->Line(top, bottom, 1, kTypedColour);
     }
 }
 
@@ -249,7 +249,7 @@ void ChatOverlay::Char(int key, int, int) {
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one.
     if (!ui->ctrlDown && text::CharacterCount(typed) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
-        ui->TextExtent(line, kTypedFont).cx < kMaxTypedWidth) {
+        ui->TextExtent(line, kTypedFont).w < kMaxTypedWidth) {
         typed = line;
         caret += text::TypedLength(key);
     }
@@ -275,7 +275,7 @@ void ChatOverlay::Update() {
 void ChatOverlay::Redraw() {
     int y = kTop;
     for (const ChatLine& line : lines) {
-        line.surface->MoveTo(kLeft, y);
+        line.surface->MoveTo({kLeft, y});
         line.surface->Blit();
         y += kLineHeight;
     }

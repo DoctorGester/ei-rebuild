@@ -45,7 +45,7 @@ int FloorDiv(long long n, long long d) { return static_cast<int>(n >= 0 ? n / d 
 // (texel centres; the filter on texels weighted by their alpha), then through the ramp: R, G, B, A rows from the top.
 std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mask, int maskBytes, const Rect& from,
                                  int width, int height, const std::uint8_t* ramp) {
-    const int sw = from.right - from.left, sh = from.bottom - from.top;
+    const int sw = from.Width(), sh = from.Height();
     auto texel = [&](int x, int y, std::uint32_t* rgb, std::uint32_t* alpha) {
         const std::size_t i = static_cast<std::size_t>(from.top + y) * picture.width + (from.left + x);
         std::uint32_t bits = 0;
@@ -92,8 +92,8 @@ const Made* ShapeFor(const FrameCursor& cursor) {
     int frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!FrameInWindow(&frameWidth, &frameHeight, &placed) || frameWidth <= 0 || frameHeight <= 0) return nullptr;
-    g_placedWidth = placed.right - placed.left;
-    g_placedHeight = placed.bottom - placed.top;
+    g_placedWidth = placed.Width();
+    g_placedHeight = placed.Height();
     const std::uint32_t ramp = GammaRampChanges();
     for (const Made& m : g_made)
         if (m.holder == cursor.imageHolder && m.mask == cursor.mask && m.from.left == cursor.from.left &&
@@ -109,7 +109,7 @@ const Made* ShapeFor(const FrameCursor& cursor) {
         from.top < 0 || from.right > picture->width || from.bottom > picture->height || from.right <= from.left ||
         from.bottom <= from.top)
         return nullptr;
-    const int sw = from.right - from.left, sh = from.bottom - from.top;
+    const int sw = from.Width(), sh = from.Height();
     Made m{cursor.imageHolder, cursor.mask, from, g_placedWidth, g_placedHeight, ramp};
     m.width = std::max(1, (sw * g_placedWidth + frameWidth / 2) / frameWidth);
     m.height = std::max(1, (sh * g_placedHeight + frameHeight / 2) / frameHeight);
@@ -166,7 +166,7 @@ void ShowFrameCursor() {
     Show(made);
     DropStale();
     const bool held = made && g_frameCursor.held;
-    const platform::Point at{g_frameCursor.heldX, g_frameCursor.heldY};
+    const Point at{g_frameCursor.heldX, g_frameCursor.heldY};
     platform::HoldCursor(held ? &at : nullptr);
     if (held) ++g_info.presentsHeld;
     else if (made) ++g_info.presentsShown;

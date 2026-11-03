@@ -431,7 +431,7 @@ constexpr float kNoScale = 1.0f;
 
 int Object3DClientSpecific::BoundsContainPoint(const std::int32_t* point) {
     if (!(object->flags & MapObjectFlag::Shown)) return 0;
-    return rects::Contains(&object->dirtyRect, AsPoint(point));
+    return object->dirtyRect.Contains(AsPoint(point));
 }
 
 int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
@@ -440,7 +440,7 @@ int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        if (rects::Contains(PartRect(part), AsPoint(point))) return 1;
+        if (PartRect(part)->Contains(AsPoint(point))) return 1;
     }
     return 0;
 }
@@ -451,9 +451,7 @@ int Object3DClientSpecific::PartRectsMeet(const Rect* rect) {
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         FigureMesh* part = target->parts[i];
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        Rect common;
-        rects::Intersect(&common, PartRect(part), rect);
-        if (!rects::IsEmpty(&common)) return 1;
+        if (!PartRect(part)->Intersection(*rect).IsEmpty()) return 1;
     }
     return 0;
 }

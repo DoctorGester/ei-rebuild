@@ -263,7 +263,7 @@ void Object3D::RemoveAllEffectSources() {
 int Object3D::DrawFigure(SceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
 
 int Object3D::DrawCollectDirty(SceneRenderer* context) {
-    rects::SetEmpty(&dirtyRect);
+    dirtyRect = {};
     return attached ? attached->DrawParts(context, &dirtyRect) : 1;
 }
 

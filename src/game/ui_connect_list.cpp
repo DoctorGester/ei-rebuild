@@ -72,7 +72,7 @@ void DrawEllipsis(UiSurface* surface, std::string_view text, Rect* rect, int for
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
 }
-void Down(Rect* rect, int dy = kRowHeight) { rects::Offset(rect, 0, dy); }
+void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 
 } // namespace
 
@@ -133,7 +133,7 @@ void MpConnectScreen::DrawListVanilla() {
     // WideScreen: without the margin.
     ui->ScalePointToScreenNoMargin(&from);
     ui->ScalePointToScreenNoMargin(&to);
-    surface->Line(from.x, from.y, to.x, to.y, 1, g_connectTextColour);
+    surface->Line(from, to, 1, g_connectTextColour);
     Down(&row, 27);
 
     unsigned index = static_cast<unsigned>(scrollTop);

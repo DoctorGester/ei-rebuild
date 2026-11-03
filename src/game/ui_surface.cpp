@@ -42,15 +42,18 @@ UiSurface::~UiSurface() {
     Surface* currentHolder = holder;
     holder = nullptr;
     if (currentHolder) currentHolder->Release();
-    rects::SetEmpty(&rect);
+    rect = {};
 }
 
-UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
-    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom}, layoutRect{left, top, right, bottom}, scaled(scale) {
+UiSurface::UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
+    : UiSurface(ui, Rect{left, top, right, bottom}, blend, scale) {}
+
+UiSurface::UiSurface(Interface3D* ownerUi, const Rect& area, SurfaceBlend newBlend, bool scale)
+    : ui(ownerUi), blend(newBlend), rect(area), layoutRect(area), scaled(scale) {
     g_surfaces.push_back(this);
     if (scale) ui->ScaleRectToScreen(&rect);
-    width = rect.right - rect.left;
-    height = rect.bottom - rect.top;
+    width = rect.Width();
+    height = rect.Height();
     // (The interface's renderer is the device object.)
     holder = new Surface(ui->renderer, width, height);
     holder->AddRef();
@@ -58,28 +61,20 @@ UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bot
 }
 
 UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
-    : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
+    : UiSurface(ui, *rect, blend, true) {}
 
 void UiSurface::SetRect(int left, int top, int right, int bottom) {
-    rect.left = left;
-    rect.top = top;
-    rect.right = right;
-    rect.bottom = bottom;
+    rect = {left, top, right, bottom};
     layoutRect = rect;
     scaled = true;
     ui->ScaleRectToScreen(&rect);
 }
 
-void UiSurface::MoveTo(int x, int y) {
-    if (scaled) layoutRect = Rect{x, y, x + layoutRect.right - layoutRect.left, y + layoutRect.bottom - layoutRect.top};
-    Point point{x, y};
+void UiSurface::MoveTo(Point at) {
+    if (scaled) layoutRect.Offset(at - layoutRect.TopLeft());
+    Point point = at;
     ui->ScalePointToScreen(&point);
-    int rectWidth = rect.right - rect.left;
-    int rectHeight = rect.bottom - rect.top;
-    rect.left = point.x;
-    rect.top = point.y;
-    rect.right = rectWidth + point.x;
-    rect.bottom = rectHeight + point.y;
+    rect.Offset(point - rect.TopLeft());
 }
 
 // A surface over a layout rectangle takes it scaled as the layout scales now; one over the whole screen (the
@@ -95,8 +90,8 @@ void UiSurface::Relayout(const screen_layout::Layout& before) {
         rect = Rect{0, 0, now.width, now.height};
         layoutRect = rect;
     }
-    int newWidth = rect.right - rect.left, newHeight = rect.bottom - rect.top;
-    if (width != old.right - old.left || height != old.bottom - old.top) {
+    int newWidth = rect.Width(), newHeight = rect.Height();
+    if (width != old.Width() || height != old.Height()) {
         newWidth = static_cast<int>(static_cast<long long>(width) * now.width43 / before.width43);
         newHeight = static_cast<int>(static_cast<long long>(height) * now.height43 / before.height43);
     }
@@ -136,13 +131,10 @@ void UiSurface::Hide(bool release) {
 
 void UiSurface::Blit() {
     if (!holder || !shown) return;
-    Rect clipped{0, 0, ui->width, ui->height};
-    rects::Intersect(&clipped, &clipped, &rect);
-    if (rects::IsEmpty(&clipped)) return;
-    const render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
-    const int left = clipped.left - rect.left, top = clipped.top - rect.top;
-    const render::Rect part{left, top, left + (clipped.right - clipped.left), top + (clipped.bottom - clipped.top)};
-    render::ui::DrawCanvas(holder, destination, &part, blend == SurfaceBlend::Keyed, background);
+    const Rect clipped = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
+    if (clipped.IsEmpty()) return;
+    const Rect part = clipped.Offsetted(-rect.TopLeft());
+    render::ui::DrawCanvas(holder, clipped, &part, blend == SurfaceBlend::Keyed, background);
 }
 
 // --- Frame -------------------------------------------------------------------------------------------
@@ -152,41 +144,35 @@ void UiSurface::Blit() {
 // pixel (the console, the carets and lines of the edit fields, chat, connection and save lists, the HUD map's dot).
 // See docs/notes/ui.md, section 3.
 
-namespace {
-render::Rect ToRect(const Rect& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
-} // namespace
-
 void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
     if (!holder) return;
     Rect frame;
-    if (rects::IsEmpty(area)) {
-        frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
+    if (area->IsEmpty()) {
+        frame = {0, 0, rect.Width(), rect.Height()};
     } else {
         frame = *area;
         ui->ScaleRectToScreenNoMargin(&frame);   // the surface's own pixels: no window margin
     }
-    render::ui::FrameRect(holder, ToRect(frame), colour);
+    render::ui::FrameRect(holder, frame, colour);
 }
 
 void UiSurface::Fill(std::uint32_t colour) {
     if (!holder) return;
-    Rect whole = rect;
-    rects::Offset(&whole, -whole.left, -whole.top);
-    FillRect(whole, colour);
+    FillRect(rect.Offsetted(-rect.TopLeft()), colour);
 }
 
 void UiSurface::Clear() { Fill(background); }
 
 void UiSurface::FillRect(const Rect& area, std::uint32_t colour) {
-    if (holder) render::ui::Fill(holder, ToRect(area), colour);
+    if (holder) render::ui::Fill(holder, area, colour);
 }
 
-void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, std::uint32_t colour) {
-    if (holder) render::ui::Line(holder, x0, y0, x1, y1, lineWidth, colour);
+void UiSurface::Line(Point from, Point to, int lineWidth, std::uint32_t colour) {
+    if (holder) render::ui::Line(holder, from.x, from.y, to.x, to.y, lineWidth, colour);
 }
 
-void UiSurface::Dot(int x, int y, std::uint32_t colour) {
-    if (holder) render::ui::Pixel(holder, x, y, colour);
+void UiSurface::Dot(Point at, std::uint32_t colour) {
+    if (holder) render::ui::Pixel(holder, at.x, at.y, colour);
 }
 
 // --- Pixels ------------------------------------------------------------------------------------------
@@ -197,7 +183,7 @@ void UiSurface::Dot(int x, int y, std::uint32_t colour) {
 // docs/notes/ui.md, "Surface pixel work".
 
 void UiSurface::CaptureScreen() {
-    if (holder) render::ui::CopyFrame(holder, render::Rect{rect.left, rect.top, rect.right, rect.bottom});
+    if (holder) render::ui::CopyFrame(holder, rect);
 }
 
 // The original stretched the surface into a new surface of the wanted size, then packed it pixel by pixel;
@@ -237,11 +223,11 @@ void UiSurface::SwapContents(bool restore) {
     currentHolder->Release();
 }
 
-// The pixel at (x, y) of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
+// The pixel at `at` of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
 // byte, the low bits 0; 0 outside the surface or without one.
-std::uint32_t UiSurface::PixelAt(int x, int y) {
-    if (!holder || x < 0 || y < 0 || x >= width || y >= height) return 0;
+std::uint32_t UiSurface::PixelAt(Point at) {
+    if (!holder || at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
     std::uint32_t rgb = 0;
-    if (!render::ui::ReadPixel(holder, x, y, &rgb)) return 0;
+    if (!render::ui::ReadPixel(holder, at.x, at.y, &rgb)) return 0;
     return render::ui::TopBits(rgb, ScreenFormat(holder->bitsPerPixel));
 }

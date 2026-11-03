@@ -63,7 +63,7 @@ public:
     std::uint32_t sides;            // bit per unit side that sets it off
     Ref<Spell> spell;              // null: none
     std::vector<TrapCircle> area;
-    std::vector<TrapPoint> points;              // where it casts ({x, y})
+    std::vector<Vector2> points;              // where it casts ({x, y})
     std::vector<HeldRef<Unit>> inside;      // the units inside
     int period;                     // 0: casts at newcomers; else ticks between casts
     int countdown;

@@ -1204,15 +1204,15 @@ image::WindowPresents HarnessWindowPresents() { return image::WindowPresentCount
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
 // (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
 // the window through ToWindow.
-platform::Rect GameClient() {
+Rect GameClient() {
     int width = 0, height = 0;
     if (image::FrameInWindow(&width, &height) || harnessplatform::ClientSize(&width, &height))
-        return platform::Rect{0, 0, width, height};
-    return platform::Rect{0, 0, 0, 0};
+        return Rect{0, 0, width, height};
+    return Rect{0, 0, 0, 0};
 }
-platform::Point ToWindow(int x, int y) {
+Point ToWindow(int x, int y) {
     image::FrameToWindow(&x, &y);
-    return platform::Point{x, y};
+    return Point{x, y};
 }
 
 // "cursormark" / "cursorcheck": the presents' system cursor (R40).
@@ -1305,7 +1305,7 @@ std::string CursorCheck(const std::string& argument) {
     const image::CursorState game = HarnessCursor();
     harnessplatform::ShownCursor shown;
     const bool isShown = harnessplatform::CursorShown(&shown);
-    platform::Point heldAt{};
+    Point heldAt{};
     const bool isHeld = harnessplatform::CursorHeld(&heldAt);
     Log("harness: cursorcheck %s: since cursormark %u presents showed the cursor, %u held it, %u hid it; %u frame "
         "steps, %u shapes made in all (%u failed); shown %s %dx%d (hot spot %d, %d)%s; the game's image %dx%d (%d "
@@ -1387,8 +1387,8 @@ void LayoutToWindowShare(int width, int height, int* x, int* y) {
 }
 
 void PostMouse(const std::string& verb, int x, int y) {
-    platform::Rect client = GameClient();
-    platform::Point window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    Rect client = GameClient();
+    Point window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
     const std::intptr_t at = input::Point(window.x, window.y);
     g_mouseX = window.x;
     g_mouseY = window.y;
@@ -1423,8 +1423,8 @@ void PostMouse(const std::string& verb, int x, int y) {
 
 // A wheel turn at (x, y) in the 800x600 layout. The wheel message carries screen coordinates.
 void PostWheel(int x, int y, int delta) {
-    platform::Rect client = GameClient();
-    platform::Point point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    Rect client = GameClient();
+    Point point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
     input::Post(input::MouseMove, 0, input::Point(point.x, point.y));
     platform::ClientToScreen(GameWindow(), &point);
     input::Post(input::Wheel, input::WheelWord(0, delta), input::Point(point.x, point.y));
@@ -1441,13 +1441,13 @@ void PostRegionMouse(const std::string& verb, int index) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window, regions);
         return;
     }
-    platform::Point point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
+    Point point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window, region.left, region.top,
         region.right, region.bottom, region.enabled);
     int width = 0, height = 0;
     image::ScaleToScreen(&point.x, &point.y);
     image::InterfaceSize(&width, &height);
-    platform::Rect client = GameClient();
+    Rect client = GameClient();
     if (width > 0 && height > 0) {
         point.x = point.x * (client.right - client.left) / width;
         point.y = point.y * (client.bottom - client.top) / height;
@@ -1487,23 +1487,23 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
 // WorldClient::PickAt2 and UnitAt.
-void* HarnessPickAt2(void* world, const platform::Point* p) { return image::PickAt2(world, p->x, p->y); }
-void* HarnessUnitAt(void* world, const platform::Point* p) { return image::UnitAt(world, p->x, p->y); }
+void* HarnessPickAt2(void* world, const Point* p) { return image::PickAt2(world, p->x, p->y); }
+void* HarnessUnitAt(void* world, const Point* p) { return image::UnitAt(world, p->x, p->y); }
 // The client world's rectangle of object `id` in this frame's screen list (the last entry for it): 1, 0 when it is
 // not drawn, -1 without a list.
-int ScreenRect(void* world, int id, platform::Rect* rect) { return image::ScreenRect(world, id, rect); }
+int ScreenRect(void* world, int id, Rect* rect) { return image::ScreenRect(world, id, rect); }
 // A picked object's id and flags (the EngineObject's id and flags).
 int PickedId(const void* object) { return image::ObjectId(object); }
 std::uint32_t PickedFlags(const void* object) { return image::ObjectFlags(object); }
-std::string FindUnitPoint(const char* name, const char* what, platform::Point* point, void** unit) {
+std::string FindUnitPoint(const char* name, const char* what, Point* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
     int id = byId ? std::atoi(name + 1) : image::TextKey(name);
 
     void* world = HarnessClientWorld();
     // The unit's rectangle in this frame's list (the last entry for the id).
-    platform::Rect bounds{};
-    const platform::Rect* rect = &bounds;
+    Rect bounds{};
+    const Rect* rect = &bounds;
     int listed = ScreenRect(world, id, &bounds);
     if (listed < 0) return label + ": no pick list (not in a game)";
     if (listed == 0) return label + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
@@ -1511,7 +1511,7 @@ std::string FindUnitPoint(const char* name, const char* what, platform::Point* p
         Log("harness: %s: id %d, rectangle (%d,%d)-(%d,%d)", label.c_str(), id, rect->left, rect->top, rect->right,
             rect->bottom);
     // Candidates: the centre, then a 9x9 grid inside the rectangle from the middle outwards.
-    std::vector<platform::Point> candidates;
+    std::vector<Point> candidates;
     int cx = (rect->left + rect->right) / 2, cy = (rect->top + rect->bottom) / 2;
     candidates.push_back({cx, cy});
     constexpr int kSteps = 9;
@@ -1525,7 +1525,7 @@ std::string FindUnitPoint(const char* name, const char* what, platform::Point* p
             }
         }
     }
-    for (const platform::Point& p : candidates) {
+    for (const Point& p : candidates) {
         void* hit = byId ? HarnessPickAt2(world, &p) : HarnessUnitAt(world, &p);
         if (hit && PickedId(hit) == id) {
             *point = p;
@@ -1540,7 +1540,7 @@ std::string PostUnitMouse(const std::string& argument) {
     char name[64] = "", button[8] = "l";
     if (std::sscanf(argument.c_str(), "%63s %7s", name, button) < 1)
         return "clickunit needs <name> [l|r|move|dbl] [ctrl|shift|alt]";
-    platform::Point at{};
+    Point at{};
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
     if (!error.empty()) return error;
@@ -1614,7 +1614,7 @@ std::string PostGroundMouse(const std::string& argument) {
     const std::string kind = verb;
     if (kind != "click" && kind != "dblclick" && kind != "rclick" && kind != "move")
         return "clickground: '" + kind + "' is no mouse step (click, dblclick, rclick, move)";
-    const platform::Rect client = GameClient();
+    const Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
@@ -1647,7 +1647,7 @@ std::string PostGroundMouse(const std::string& argument) {
 // Logs the map points the ground pick finds at the layout's centre and corners (where the camera looks;
 // for writing a scenario's clickground steps).
 void LogGroundView() {
-    const platform::Rect client = GameClient();
+    const Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
@@ -1672,7 +1672,7 @@ std::string LookAt(const std::string& argument) {
     float wx = 0.0f, wy = 0.0f;
     if (std::sscanf(argument.c_str(), "%f %f", &wx, &wy) != 2) return "lookat needs <x> <y>";
     if (!(g_minimap.sx > 0.0f && g_minimap.sy > 0.0f)) return "lookat: no minimap step before it";
-    const platform::Rect client = GameClient();
+    const Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
     HarnessPickSurface(HarnessClientWorld(), out, 400 * cw / 800, 300 * ch / 600);
@@ -2034,7 +2034,7 @@ void RunSteps() {
     }
     if (g_waitingUnit) {
         // Checked in input loop passes: the pick list is the last frame's, and clickunit follows.
-        platform::Point at{};
+        Point at{};
         void* unit = nullptr;
         std::string why = g_inputLoop ? FindUnitPoint(g_waitUnitName.c_str(), nullptr, &at, &unit) : "not checked";
         if (why.empty()) {
@@ -2119,7 +2119,7 @@ void RunSteps() {
             int x = 0, y = 0, used = 0;
             if (space != std::string::npos && IsInputStep(verb) &&
                 std::sscanf(s.argument.c_str() + space + 1, "%d %d%n", &x, &y, &used) >= 2) {
-                const platform::Rect client = GameClient();
+                const Rect client = GameClient();
                 LayoutToWindowShare(client.right - client.left, client.bottom - client.top, &x, &y);
                 s.argument = std::to_string(x) + " " + std::to_string(y) + s.argument.substr(space + 1 + used);
                 s.verb = verb;
@@ -3030,11 +3030,11 @@ bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::Ram
 int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
 
 // The harness's mouse (the last position a step put it at, the client area's centre before), on the screen.
-bool MousePosition(platform::Point* at) {
+bool MousePosition(Point* at) {
     void* window = GameWindow();
     int width = 0, height = 0;
     if (!window || !ClientSize(&width, &height)) return false;
-    platform::Point p = g_mouseX < 0 ? platform::Point{width / 2, height / 2} : platform::Point{g_mouseX, g_mouseY};
+    Point p = g_mouseX < 0 ? Point{width / 2, height / 2} : Point{g_mouseX, g_mouseY};
     platform::ClientToScreen(window, &p);
     *at = p;
     return true;

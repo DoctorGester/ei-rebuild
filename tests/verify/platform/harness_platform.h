@@ -36,7 +36,7 @@ bool CursorShown(ShownCursor* cursor);
 // The shapes SetCursor was given while the harness asked for them (CollectCursors), each once; ForgetSeenCursors starts anew.
 const std::vector<ShownCursor>& SeenCursors();
 void ForgetSeenCursors();
-bool CursorHeld(platform::Point* at);
+bool CursorHeld(Point* at);
 // The game window's client area in pixels (false before it is made).
 bool ClientSize(int* width, int* height);
 // The game window minimised or restored, never activated (the focus steps).
@@ -57,7 +57,7 @@ bool CollectCursors();
 int TypedCharacter(int key);
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
 // The harness's mouse's position on the screen (false: none).
-bool MousePosition(platform::Point* at);
+bool MousePosition(Point* at);
 // Whether the harness answers the game's calls (a scenario runs), and the path the system is asked for when the game
 // names `path` for `use` (the run's overlay: platform::SystemPath's answer).
 bool Answering();

@@ -128,7 +128,7 @@ void OptionsWindow::RefreshRows() {
         button->tint[1] = tint;
         button->tint[2] = tint;
         surface->DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
-        rects::Offset(&title, 0, 24);
+        title.Offset(0, 24);
     }
     Rect heading = {0, 10, 600, 34};
     surface->DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
@@ -148,8 +148,8 @@ void OptionsWindow::RefreshRows() {
         } else if (OptionSetting* setting = rows[row].setting) {
             surface->DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
         }
-        rects::Offset(&name, 0, 24);
-        rects::Offset(&keys, 0, 24);
+        name.Offset(0, 24);
+        keys.Offset(0, 24);
     }
 }
 
@@ -383,13 +383,10 @@ void OptionsWindow::Apply() {
 
 void UiSlider::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track.top = newRect->bottom - 10;
-    track.bottom = newRect->bottom;
-    track.left = newRect->left + 26;
-    track.right = newRect->right - 26;
+    track = {newRect->left + 26, newRect->bottom - 10, newRect->right - 26, newRect->bottom};
 
     UiMesh* trackMesh = SceneMesh(0);
-    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->right - newRect->left - 8), 8, 4, 0x20,
+    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
                         0xFC);
     trackMesh->Place((newRect->right + newRect->left) * 0.5f,
                  static_cast<float>(newRect->bottom - 5), depth);

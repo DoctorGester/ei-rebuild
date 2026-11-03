@@ -57,7 +57,7 @@ void UiScrollbar::SetPosition(int newPosition) {
     // the game's _ftol stores the NaN as a 64-bit integer (0x8000000000000000) and returns its low
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
-                              : static_cast<int>(static_cast<float>((track.bottom - track.top) * newPosition) / maximum);
+                              : static_cast<int>(static_cast<float>(track.Height() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(track.left + kThumbInset,
                                 static_cast<float>(offset) + track.top, depth - kThumbLift);
     thumb.left = track.left;
@@ -69,10 +69,7 @@ void UiScrollbar::SetPosition(int newPosition) {
 
 void UiScrollbar::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track.left = newRect->right - 10;
-    track.right = newRect->right;
-    track.top = newRect->top + 26;
-    track.bottom = newRect->bottom - 26;
+    track = {newRect->right - 10, newRect->top + 26, newRect->right, newRect->bottom - 26};
 
     // The sprites (SetRectangle and the regions' SetRect are Rebirth-patched: through their
     // addresses).
@@ -96,18 +93,17 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
-void UiScrollbar::MouseMove(int, int x, int y) {
+void UiScrollbar::MouseMove(int, Point point) {
     if (state == kDragging) {
-        Point point{x, y};
         ui->ScalePointFromScreen(&point);
         int along = point.y - grabY;
-        SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / track.Height()));
     }
     handled = true;
 }
 
-void UiScrollbar::Wheel(int, int delta, int x, int y) {
-    if (RegionAt(x, y) == kTrackRegion) {
+void UiScrollbar::Wheel(int, int delta, Point point) {
+    if (RegionAt(point) == kTrackRegion) {
         float step = static_cast<short>(delta) * speed * kWheelStep;
         accumulated -= step;
         handled = true;
@@ -122,7 +118,7 @@ void UiSlider::SetPosition(int newPosition) {
     if (position == newPosition) return;
     position = newPosition;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
-    int offset = lib::Truncate(static_cast<float>((track.right - track.left) * newPosition) / maximum);
+    int offset = lib::Truncate(static_cast<float>(track.Width() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
     thumb.top = track.top;
@@ -132,12 +128,11 @@ void UiSlider::SetPosition(int newPosition) {
     thumb.right = centre + kSliderThumbHalfWidth;
 }
 
-void UiSlider::MouseMove(int, int x, int y) {
+void UiSlider::MouseMove(int, Point point) {
     if (state == kDragging) {
-        Point point{x, y};
         ui->ScalePointFromScreen(&point);
         int along = point.x - grabX;
-        SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / track.Width()));
     }
     handled = true;
 }

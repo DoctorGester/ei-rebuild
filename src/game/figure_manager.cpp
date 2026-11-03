@@ -388,8 +388,7 @@ int FigureManager::LoadMenuRects(Rect* rects) {
             lib::FreeStorage(values);
             return result;
         }
-        rects::Set(&rects[entry.index], values[0], values[1], values[2],
-                         values[3]);
+        rects[entry.index] = {values[0], values[1], values[2], values[3]};
     }
     lib::FreeStorage(values);
     return 1;

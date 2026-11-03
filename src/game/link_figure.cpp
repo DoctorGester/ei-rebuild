@@ -260,15 +260,14 @@ void LinkMesh::SetMorph(float s, float t, float u) {
 }
 
 void LinkMesh::UpdateScreenRect() {
-    rects::Set(&screenRect, kNoRect, kNoRect, -kNoRect, -kNoRect);
+    Point topLeft{kNoRect, kNoRect}, bottomRight{-kNoRect, -kNoRect};
     for (const auto& [part_name, header] : headers) {
         const Rect& part = header.screen;
-        if (rects::IsEmpty(&part)) continue;
-        if (part.left < screenRect.left) screenRect.left = part.left;
-        if (screenRect.right < part.right) screenRect.right = part.right;
-        if (part.top < screenRect.top) screenRect.top = part.top;
-        if (screenRect.bottom < part.bottom) screenRect.bottom = part.bottom;
+        if (part.IsEmpty()) continue;
+        topLeft = Min(topLeft, part.TopLeft());
+        bottomRight = Max(bottomRight, part.BottomRight());
     }
+    screenRect = Rect::FromCorners(topLeft, bottomRight);
 }
 
 bool LinkMesh::HasPart(const std::string* partName) { return ranges.find(*partName) != ranges.end(); }

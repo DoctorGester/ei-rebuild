@@ -19,9 +19,9 @@ struct UnitPickInput final : UiInputSide {
     // list (its id) and controlled; else each listed unit still in the client world
     // walks to the ground point under it. With Ctrl and a unit under the point: each listed unit
     // attacks it (how 6). The event is not marked used.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // The list emptied (storage freed), the world's selection cleared.
-    void RightDown(int buttons, int x, int y) override;
+    void RightDown(int buttons, Point point) override;
     // Ctrl (platform::kKeyControl) shows cursor 1; Space toggles the server
     // flag.
     void KeyDown(int key, int repeat, int flags) override;

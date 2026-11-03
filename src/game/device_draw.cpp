@@ -254,7 +254,7 @@ struct ScreenBounds {
         const int right = lib::RoundEven(maxX);
         const int top = lib::RoundEven(minY);
         const int left = lib::RoundEven(minX);
-        rects::Set(&device->drawnRect, left, top, right, bottom);
+        device->drawnRect = {left, top, right, bottom};
     }
 };
 
@@ -269,8 +269,8 @@ bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
 // this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
 // wider along that edge: an accepted difference (renderer.md section 3).
 void TextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
-    const float width = static_cast<float>(screen.right - screen.left);
-    const float height = static_cast<float>(screen.bottom - screen.top);
+    const float width = static_cast<float>(screen.Width());
+    const float height = static_cast<float>(screen.Height());
     ScreenBounds bounds;
     for (const Vector4& p : *positions) {
         if (!clipSpace) {

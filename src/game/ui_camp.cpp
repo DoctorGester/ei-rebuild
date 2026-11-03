@@ -528,12 +528,11 @@ void CampPages::UpdateAction() {
 }
 
 void CampPages::Draw(SceneRenderer* pass) {
-    int x = g_cursor.position.x;    // the mouse in screen pixels
-    int y = g_cursor.position.y;
+    const Point cursor = g_cursor.position;    // the mouse in screen pixels
     hoveredItem = nullptr;
     int topic = 0;
     // The page buttons' help topics.
-    switch (RegionAt(x, y)) {
+    switch (RegionAt(cursor)) {
     case 4: topic = 0x69; break;
     case 5: topic = 0x6A; break;
     case 6: if (spellConstructor) topic = 0x65; break;
@@ -546,7 +545,7 @@ void CampPages::Draw(SceneRenderer* pass) {
     }
     // Panel by panel until an item is found or a topic is set.
     auto probe = [&](UiItemPanel* panel) {
-        if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(x, y, &topic);
+        if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(cursor, &topic);
     };
     probe(equipment);
     probe(equipment2);
@@ -570,8 +569,8 @@ void CampPages::Draw(SceneRenderer* pass) {
     } else {
         // The statistics under the mouse: the trade panel's, else the stats panel's.
         ItemHoverInfo info;
-        if (trade->enabled) info = trade->HoverInfo(x, y);
-        if (info.kind == HoverKind::None && statsPanel->enabled) info = statsPanel->HoverInfo(x, y);
+        if (trade->enabled) info = trade->HoverInfo(cursor);
+        if (info.kind == HoverKind::None && statsPanel->enabled) info = statsPanel->HoverInfo(cursor);
         if (descPanel) descPanel->DescribeStats(info);
     }
     UpdateAction();

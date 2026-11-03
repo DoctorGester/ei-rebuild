@@ -52,9 +52,9 @@ constexpr float kAlphaScale = 255.0f;
 
 } // namespace
 
-void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    int region = RegionAt(x, y);
+void ObjectivesWindow::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    int region = RegionAt(point);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
     case kRegionOk:
@@ -148,14 +148,14 @@ void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
 }
 
 void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
-    std::vector<UiPointF>& places = questPlaces;
+    std::vector<Vector2>& places = questPlaces;
     places.clear();
     if (IsMultiplayerClient()) {
         // (The index's operator[] adds a null entry for a new name.)
         QuestRecord* record = g_questDatabase.questsByName[std::string(name)];
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)
-            places.push_back(UiPointF{record->places[i - 1], record->places[i]});
+            places.push_back(Vector2{record->places[i - 1], record->places[i]});
         return;
     }
     std::string header;
@@ -169,7 +169,7 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
         words = texts->Split(true);   // none at the end
         if (words.size() > 1) {
             for (std::size_t i = 1; i < words.size(); i += 2) {
-                UiPointF place;
+                Vector2 place;
                 place.x = str::ToFloat(words[i - 1]);
                 place.y = str::ToFloat(words[i]);
                 places.push_back(place);

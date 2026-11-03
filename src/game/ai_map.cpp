@@ -19,6 +19,8 @@ int WorldToCell(float world) {
     return lib::RoundEven(cell);
 }
 
+Point WorldToCell(const Vector3& position) { return {WorldToCell(position.x), WorldToCell(position.y)}; }
+
 namespace {
 constexpr float kSizeClassHeights[8] = /*0079169C*/ {0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.7f, 0.7f, 1.5f};
 
@@ -77,14 +79,14 @@ bool AIMap::CanStandAtFromHere(Unit* unit, int x, int y, int* reason) {
     *reason = 1;
     // The unit's own cell is not bounds-checked, like the original.
     if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
-        int ux = WorldToCell(unit->localPosition.x), uy = WorldToCell(unit->localPosition.y);
-        if (cells[y][x].level > cells[uy][ux].level) return false;
+        const Point own = WorldToCell(unit->localPosition);
+        if (cells[y][x].level > cells[own.y][own.x].level) return false;
     }
     level &= 0xFF;
     *reason = 2;
     if (waterDepth[y][x] > level) {
-        int ux = WorldToCell(unit->localPosition.x), uy = WorldToCell(unit->localPosition.y);
-        if (waterDepth[y][x] > waterDepth[uy][ux]) return false;
+        const Point own = WorldToCell(unit->localPosition);
+        if (waterDepth[y][x] > waterDepth[own.y][own.x]) return false;
     }
     *reason = 0;
     return true;
@@ -93,44 +95,43 @@ bool AIMap::CanStandAtFromHere(Unit* unit, int x, int y, int* reason) {
 bool AIMap::IsPassableWithoutSelf(Unit* unit, const Vector3& position) {
     if (unit->GetClassId() != ClassId::Unit) return true;
     sectorMap.Remove(unit);
-    int y = WorldToCell(position.y);
-    int x = WorldToCell(position.x);
+    const Point cell = WorldToCell(position);
     bool passable = true;
     if (unit->GetClassId() == ClassId::Unit) {
         int reason;
-        passable = CanStandAt(unit, x, y, &reason) &&
-                   cells[y][x].Passability(unit->sizeClass * 4) != 0;
+        passable = CanStandAt(unit, cell.x, cell.y, &reason) &&
+                   cells[cell.y][cell.x].Passability(unit->sizeClass * 4) != 0;
     }
     sectorMap.Add(unit);
     return passable;
 }
 
 bool AIMap::IsUnitCellPassable(Unit* unit) {
-    int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return cells[y][x].Passability(unit->sizeClass * 4) != 0;
+    const Point cell = WorldToCell(unit->localPosition);
+    if (!InBounds(cell)) return false;
+    return cells[cell.y][cell.x].Passability(unit->sizeClass * 4) != 0;
 }
 
 bool AIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return cells[y][x].Passability(sizeClass * 4) != 0;
+    const Point cell = WorldToCell(position);
+    if (!InBounds(cell)) return false;
+    return cells[cell.y][cell.x].Passability(sizeClass * 4) != 0;
 }
 
 bool AIMap::CanLeaveCell(Unit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
+    const Point here = WorldToCell(unit->localPosition);
+    if (!InBounds(here)) return false;
     int sizeClass = unit->sizeClass;
     const std::vector<int>& table = sizeClass == 0 ? climbSmall : climbLarge;
     const int* climbCost = table.data() + std::ssize(table) / 2;
-    int here = cells[y][x].groundLevel;
+    int hereLevel = cells[here.y][here.x].groundLevel;
     for (const auto& o : kOffsets) {
-        int nx = o[0] + x, ny = y + o[1];
-        if (nx < 0 || ny < 0 || nx >= cells.width || ny >= cells.height) continue;
-        const AIMapCell& cell = cells[ny][nx];
+        const Point next = here + Point{o[0], o[1]};
+        if (!InBounds(next)) continue;
+        const AIMapCell& cell = cells[next.y][next.x];
         if (cell.Passability(sizeClass * 4) == 0) continue;
-        if (climbCost[cell.groundLevel - here] > 0) return true;
+        if (climbCost[cell.groundLevel - hereLevel] > 0) return true;
     }
     return false;
 }
@@ -142,14 +143,15 @@ float AIMap::GroundHeight(int x, int y) {
 }
 
 float AIMap::TopHeightAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
-    const AIMapCell& cell = cells[y][x];
+    const Point at = WorldToCell(position);
+    if (!InBounds(at)) return 0.0f;
+    const AIMapCell& cell = cells[at.y][at.x];
     return static_cast<float>(cell.WaterDepth() + cell.groundLevel) / heightScale;
 }
 
 float AIMap::SlopeAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
+    const Point at = WorldToCell(position);
+    const int x = at.x, y = at.y;
     if (x < 1 || y < 1 || x > cells.width - 2 || y > cells.height - 2) return 0.0f;
     int here = cells[y][x].groundLevel;
     auto step = [here](int level) {
@@ -169,9 +171,9 @@ float AIMap::SlopeAt(const Vector3& position) {
 }
 
 bool AIMap::InWaterAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return cells[y][x].InWater();
+    const Point cell = WorldToCell(position);
+    if (!InBounds(cell)) return false;
+    return cells[cell.y][cell.x].InWater();
 }
 
 bool AIMap::HasSpellArea(int x, int y) {
@@ -186,21 +188,21 @@ bool AIMap::HasSpellArea(int x, int y) {
 }
 
 bool AIMap::HasSpellAreaAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return HasSpellArea(x, y);
+    const Point cell = WorldToCell(position);
+    if (!InBounds(cell)) return false;
+    return HasSpellArea(cell.x, cell.y);
 }
 
 int AIMap::MaterialAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return -1;
-    return static_cast<int>(occluder::Type(occluders[y][x]));
+    const Point cell = WorldToCell(position);
+    if (!InBounds(cell)) return -1;
+    return static_cast<int>(occluder::Type(occluders[cell.y][cell.x]));
 }
 
 AITerrainType* AIMap::MaterialRecordAt(const Vector3& position) {
-    int x = WorldToCell(position.x), y = WorldToCell(position.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data();
-    return materials.data() + occluder::Type(occluders[y][x]);
+    const Point cell = WorldToCell(position);
+    if (!InBounds(cell)) return materials.data();
+    return materials.data() + occluder::Type(occluders[cell.y][cell.x]);
 }
 
 void AIMap::TurnObject(MapObject* object, const Quaternion* rotation) {
@@ -310,18 +312,19 @@ bool AIMap::FindFreeCellNear(Unit* unit, const Vector3& from, Vector3* target) {
     static SpiralCache cache{0, -1.0f};
 
     int sizeClass = unit->sizeClass;
-    int x = WorldToCell(from.x), y = WorldToCell(from.y);
-    if (x < 1 || y < 1 || x >= cells.width - 1 || y >= cells.height - 1) return false;
-    short region = static_cast<short>(regionMap.DominantRegion(sizeClass, x, y));
+    const Point here = WorldToCell(from);
+    if (here.x < 1 || here.y < 1 || here.x >= cells.width - 1 || here.y >= cells.height - 1) return false;
+    short region = static_cast<short>(regionMap.DominantRegion(sizeClass, here.x, here.y));
 
-    int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
+    const Point goal = WorldToCell(*target);
     int count;
     float radius;
     std::uint32_t radiusBits = 0x60AD78EC;   // about 1e20: the whole spiral
     radius = std::bit_cast<float>(radiusBits);
     const std::int16_t* offset = cache.Get(radius, &count);
     for (int i = 0; i < count; ++i, offset += 2) {
-        int cx = offset[0] + tx, cy = offset[1] + ty;
+        const Point cell = goal + Point{offset[0], offset[1]};
+        const int cx = cell.x, cy = cell.y;
         int reason;
         if (!CanStandAt(unit, cx, cy, &reason)) continue;
         if (cells[cy][cx].Passability(sizeClass * 4) == 0) continue;

@@ -52,7 +52,7 @@ int MulDiv(int a, int b, int divisor) {
 
 int PixelsToTwips(const UiSurface* surface, int pixels) { return MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
 
-int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.bottom - surface->rect.top); }
+int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.Height()); }
 } // namespace
 
 UiScrollingSurface::UiScrollingSurface(Interface3D* ui, const Rect* rect) : UiSurface(ui, rect, SurfaceBlend::Keyed) {
@@ -71,7 +71,7 @@ bool UiScrollingSurface::Load(MappedResource* archive, const char* name) {
 
 void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     const int dpi = TitlesDpi(this);
-    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(this, rect.right - rect.left), dpi);
+    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(this, rect.Width()), dpi);
     // Drawn without smoothing, as RichEdit drew with the titles' font smoothing off.
     text = std::make_unique<render::text::RichLayout>(render::text::LayoutRichText(
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), rectWidth, dpi, false));
@@ -82,11 +82,11 @@ void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 void UiScrollingSurface::RenderText() {
     if (!holder || !text) return;
     const int dpi = TitlesDpi(this);
-    const render::Rect page{0, 0, width, height};
+    const Rect page{0, 0, width, height};
     render::ui::Fill(holder, page, background);
     const int top = render::text::TwipsToPixels(-offset, dpi);
     for (const render::text::RichDraw& draw :
-         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, render::Rect{0, 0, width, height}))
+         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, Rect{0, 0, width, height}))
         render::ui::GlyphRun(holder, *draw.font, draw.layout, draw.colour);
     const int textHeight = HeightInTwips(this);
     if (endOffset > 0) {

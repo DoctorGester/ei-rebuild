@@ -46,28 +46,25 @@ void GlobalMap::Deactivate() {
     dragging = false;
     selectPending = true;
     // The cursor stops being held and goes back to where the drag began.
-    int x = g_cursor.position.x;
-    int y = g_cursor.position.y;
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
+    const Point home = g_cursor.position;
+    g_cursor.motion = {};
     g_cursor.SetHeld(0);
-    platform::SetCursorPosition({x, y});
+    platform::SetCursorPosition(home);
 }
 
-void GlobalMap::RightDown(int, int x, int y) {
-    dragStart = Point{x, y};
+void GlobalMap::RightDown(int, Point point) {
+    dragStart = point;
     dragging = true;
     turning = 0;
     ui->ScalePointFromScreen(&dragStart);
     dragAngle = angle;
-    g_cursor.motion.y = 0;
-    g_cursor.motion.x = 0;
+    g_cursor.motion = {};
     g_cursor.SetHeld(1);
 }
 
-void GlobalMap::MouseMove(int, int x, int y) {
+void GlobalMap::MouseMove(int, Point point) {
     if (dragging) {
-        Point drag{g_cursor.motion.x, g_cursor.motion.y};
+        Point drag = g_cursor.motion;
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
@@ -78,13 +75,12 @@ void GlobalMap::MouseMove(int, int x, int y) {
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f * 0.8f);
         Quaternion rotation = tilt * spin;
         turn = rotation;
-        g_cursor.motion.x = 0;
-        g_cursor.motion.y = 0;
+        g_cursor.motion = {};
         return;
     }
     bool isLink = false;
     int index = -1;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region >= std::ssize(links) + kFirstLinkRegion) return;
     if (turning == 0) {
         if (region >= kFirstLinkRegion) {
@@ -95,7 +91,7 @@ void GlobalMap::MouseMove(int, int x, int y) {
             // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
             // part's margins come off (Rebirth's WideScreen took the margin off x).
             const Point shift = screen_layout::PickShift();
-            std::uint32_t pixel = backdrop->PixelAt(x / 2 - shift.x, y / 2 - shift.y);
+            std::uint32_t pixel = backdrop->PixelAt(point / 2 - shift);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= std::ssize(zones)) index = -1;
             if (gipat && index >= 0 && zones[index].link >= 0) {
@@ -158,15 +154,13 @@ void GlobalMap::KeyDown(int key, int repeat, int modifiers) {
 }
 
 void GlobalMap::MessageResult(int) {
-    int x = g_cursor.position.x;
-    int y = g_cursor.position.y;
     turning = 0;
     dragging = false;
     selectPending = true;
-    Input()->MouseMove(0, x, y);
+    Input()->MouseMove(0, g_cursor.position);
 }
 
-void GlobalMap::LeftUp(int, int, int) {
+void GlobalMap::LeftUp(int, Point) {
     if (turning != 0) selectPending = true;
     turning = 0;
 }

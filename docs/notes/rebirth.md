@@ -184,7 +184,7 @@ sprites' Place; the builders put the battle screen's panels at the screen's edge
 `screen_layout.{h,cpp}` for every window shape (the module overview below):
 - Places scaled without the margin (addon's ECX 0): the text surfaces' draw, the edit field, the save / load list, the
   chat line, the tooltip (right edge at `800 + extra`, `LayoutRight`), the connect list; `Interface3D::Scale*NoMargin`.
-- Text extent: pixels to layout units `cx * 800 / width43`, `cy * 600 / height` (`TextExtentToLayout`). The shape
+- Text extent: pixels to layout units `w * 800 / width43`, `h * 600 / height` (`TextExtentToLayout`). The shape
   builders move x by the panel offset (SetRectangle / SetFrame add it twice to the left + right sum, as addon).
 - Battle screen panels (the map, the unit panel, the weapon bar, the quick items, the spell and action columns, the
   movement panel, the clock; ui_hud_*.cpp) call `EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` where addon set its

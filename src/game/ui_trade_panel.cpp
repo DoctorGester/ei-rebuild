@@ -48,7 +48,7 @@ std::string PerkBaseName(const SkillLevelRecord* record) {
     return text;
 }
 
-void Down(Rect* rect) { rects::Offset(rect, 0, 15); }
+void Down(Rect* rect) { rect->Offset(0, 15); }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
@@ -65,7 +65,7 @@ void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
 void DrawSchool(TradePanel* panel, UiSurface* draw, Rect* row, const TradeRow& school) {
     draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
     Rect levelRect = *row;
-    rects::Offset(&levelRect, -40, 0);
+    levelRect.Offset(-40, 0);
     draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
         draw->DrawTextIn(TradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);
@@ -215,14 +215,14 @@ void TradePanel::Build() {
     AddRegion()->SetRect(560, 480, 580, 490);
     Rect row = {215, 135, 385, 150};
     for (int i = 0; i < 2; ++i) {
-        AddRegion()->SetRectFrom(row);
+        AddRegion()->SetRect(row);
         Down(&row);
     }
     Down(&row);
     Down(&row);
     AddRegion()->SetRect(0, 0, 0, 0);
     for (int i = 0; i < 3; ++i) {
-        AddRegion()->SetRectFrom(row);
+        AddRegion()->SetRect(row);
         Down(&row);
     }
     Down(&row);
@@ -384,8 +384,8 @@ void TradePanel::ClampScroll() {
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
-void TradePanel::LeftDown(int, int x, int y) {
-    int region = RegionAt(x, y);
+void TradePanel::LeftDown(int, Point point) {
+    int region = RegionAt(point);
     switch (region) {
     case kHeldUp: --perkTop; ClampScroll(); return;
     case kHeldDown: ++perkTop; ClampScroll(); return;
@@ -435,7 +435,7 @@ void TradePanel::LeftDown(int, int x, int y) {
 
 // --- The left button released (input release) -----------------------------------------------------------
 
-void TradePanel::LeftUp(int, int, int) {
+void TradePanel::LeftUp(int, Point) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
     holdTicks = 0;

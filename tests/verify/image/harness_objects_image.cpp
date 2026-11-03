@@ -192,11 +192,11 @@ void* UnitAt(void* world, int x, int y) {
     const Point p{x, y};
     return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(&p));
 }
-int ScreenRect(void* world, int id, platform::Rect* rect) {
+int ScreenRect(void* world, int id, Rect* rect) {
     int found = 0;
     for (const ScreenEntry& entry : static_cast<WorldClient*>(world)->screenEntries) {
         if (static_cast<int>(entry.objectId) != id) continue;
-        *rect = platform::Rect{entry.rect.left, entry.rect.top, entry.rect.right, entry.rect.bottom};
+        *rect = Rect{entry.rect.left, entry.rect.top, entry.rect.right, entry.rect.bottom};
         found = 1;
     }
     return found;

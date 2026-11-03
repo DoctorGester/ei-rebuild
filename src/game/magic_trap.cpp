@@ -100,7 +100,7 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
     from.z = world->RawSurfaceHeightAt(from.x, from.y) + from.z;
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
-            const TrapPoint& point = points[i];
+            const Vector2& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};
             g_serverWorld.CastSpell(spell, nullptr, from, nullptr, at, 0);
         }

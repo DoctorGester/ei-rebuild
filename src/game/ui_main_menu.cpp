@@ -76,10 +76,6 @@ void Interface3D::ResetSavedState() {
     fastGame = 0;
 }
 
-// --- A region's SetRect from a RECT ---------------------------------------------------
-
-void UiRegion::SetRectFrom(Rect rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
-
 // --- The version line --------------------------------------------------------------
 
 void MainMenu::AddVersionLine() {
@@ -104,8 +100,8 @@ void MainMenu::CreateScreen() {
     for (int i = 0; i < 6; ++i) {
         UiRegion* region = AddRegion();
         Rect area;
-        rects::Copy(&area, &g_menuRects[i]);
-        region->SetRectFrom(area);
+        area = g_menuRects[i];
+        region->SetRect(area);
     }
     GamePlayMusic(nullptr);
     savedEdgeFade = options::g_options.borderFogDistance;
@@ -183,9 +179,9 @@ void MainMenu::MessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void MainMenu::MouseMove(int buttons, int x, int y) {
+void MainMenu::MouseMove(int buttons, Point point) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
-        int region = RegionAt(x, y);
+        int region = RegionAt(point);
         std::string name(stones->name);
         if (region != hovered) {
             FigureAnimation* animation;
@@ -198,7 +194,7 @@ void MainMenu::MouseMove(int buttons, int x, int y) {
         }
         hovered = region;
     }
-    UiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, point);
 }
 
 void MainMenu::KeyDown(int key, int repeat, int modifiers) {

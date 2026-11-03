@@ -101,8 +101,8 @@ void FillMatrixStacks(SceneRenderer* renderer) {
 // The pipeline's viewport size and depth range (the options' fog start and far clip distances).
 void SetViewport(SceneRenderer* renderer, const GameOptions* settings) {
     const Rect& screen = renderer->device->screen;
-    float width = static_cast<float>(screen.right - screen.left);
-    float height = static_cast<float>(screen.bottom - screen.top);
+    float width = static_cast<float>(screen.Width());
+    float height = static_cast<float>(screen.Height());
     renderer->pipeline->SetViewportSize(width, height);
     renderer->pipeline->SetDepthRange(settings->fogDayStartDistance, settings->farClipDistance);
 }

@@ -275,9 +275,8 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     }
     colour.Read(&file);
     file.Close();
-    Size size;
-    colour.Size(&size);
-    const int bmpWidth = size.cx, bmpHeight = size.cy;
+    const Size size = colour.Extent();
+    const int bmpWidth = size.w, bmpHeight = size.h;
     bool withAlpha = false;
     if (alphaFile.Open(alphaPath, platform::FileMode::Read)) {
         alpha.Read(&alphaFile);

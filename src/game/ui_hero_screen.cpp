@@ -98,12 +98,11 @@ void MpHeroScreen::DrawExperience() {
 
 void MpHeroScreen::Draw(SceneRenderer* pass) {
     if (mode == kModeStats) DrawExperience();
-    int x = g_cursor.position.x;
-    int y = g_cursor.position.y;
+    const Point cursor = g_cursor.position;
     hoveredItem = nullptr;
     int topic = 0;
-    hoveredItem = weaponPanel->ItemAt(x, y, &topic);
-    if (!hoveredItem && topic == 0) hoveredItem = spellPanel->ItemAt(x, y, &topic);
+    hoveredItem = weaponPanel->ItemAt(cursor, &topic);
+    if (!hoveredItem && topic == 0) hoveredItem = spellPanel->ItemAt(cursor, &topic);
 
     if (hoveredItem) {
         if (descPanel) descPanel->Describe(hoveredItem);
@@ -111,11 +110,11 @@ void MpHeroScreen::Draw(SceneRenderer* pass) {
         if (descPanel) descPanel->ShowHelp(topic);
     } else {
         ItemHoverInfo info;
-        if (tradePanel->enabled) info = tradePanel->HoverInfo(x, y);
+        if (tradePanel->enabled) info = tradePanel->HoverInfo(cursor);
         if (info.kind == HoverKind::None) {
-            if (statsPanel->enabled) info = statsPanel->HoverInfo(x, y);
+            if (statsPanel->enabled) info = statsPanel->HoverInfo(cursor);
             if (info.kind == HoverKind::None && mode == kModeNewHero) {
-                int region = RegionAt(x, y);
+                int region = RegionAt(cursor);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
                     info.kind = HoverKind::Text;
                     info.text = kSelectVoiceKey;
@@ -195,7 +194,7 @@ void MpHeroScreen::DrawHeroList() {
         // A hero record is a party; its name the first member's text 0.
         surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], &area, 1, kListColour,
                             kListFormat, 1);
-        rects::Offset(&area, 0, 24);
+        area.Offset(0, 24);
     }
 }
 
@@ -219,7 +218,7 @@ void MpHeroScreen::DrawVoices() {
             frame->Place(97.5f, y, kFrameDepth);
         }
         surface->DrawTextIn(currentVoices[index].name, &area, 0, kListColour, kListFormat, 1);
-        rects::Offset(&area, 0, 15);
+        area.Offset(0, 15);
     }
 }
 

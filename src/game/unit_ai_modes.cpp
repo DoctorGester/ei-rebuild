@@ -710,9 +710,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             Unit* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition;
-            float oy = me->y - other->localPosition.y;
-            float ox = me->x - other->localPosition.x;
-            float d2 = LengthSquared2D(ox, oy);
+            float d2 = DistanceSquaredXY(*me, other->localPosition);
             if (d2 < best) {
                 nearest = other->localPosition;
                 best = d2;

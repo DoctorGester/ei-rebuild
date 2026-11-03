@@ -49,9 +49,9 @@ void MessageWindow::CopyEditText() {
     text::CopyFitting(editText, kEditTextSize, edit->text);
 }
 
-void MessageWindow::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    int region = RegionAt(x, y);
+void MessageWindow::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    int region = RegionAt(point);
     if (region == 0) {
         if (result == kExitResult) {
             PlayExitMovieAndQuit();
@@ -89,8 +89,8 @@ void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
 
 // --- DifficultyBox ------------------------------------------------------------------------------
 
-void DifficultyBox::LeftDown(int, int x, int y) {
-    switch (RegionAt(x, y)) {
+void DifficultyBox::LeftDown(int, Point point) {
+    switch (RegionAt(point)) {
     case 0:
         options::g_options.difficulty = easy;
         ui->PlayInterfaceSound(OkSound());

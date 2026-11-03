@@ -75,14 +75,14 @@ void SaveLoadWindow::RefreshListVanilla() {
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave && !SameFolder(entry.folder, kQuickFolder) && !SameFolder(entry.folder, kAutoFolderA) &&
                 !SameFolder(entry.folder, kAutoFolderB)) {
-                const int width = ui->TextExtent(str::Left(currentName, cursor), kFont).cx;
-                if (width < titleRect.right - titleRect.left) {
+                const int width = ui->TextExtent(str::Left(currentName, cursor), kFont).w;
+                if (width < titleRect.Width()) {
                     Point top{titleRect.left + width, titleRect.top};
                     Point bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
                     ui->ScalePointToScreenNoMargin(&top);
                     ui->ScalePointToScreenNoMargin(&bottom);
-                    surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
+                    surface->Line(top, bottom, 1, kCaretColour);
                 }
             }
             marker = SceneMesh(kMarkerSprite);
@@ -95,8 +95,8 @@ void SaveLoadWindow::RefreshListVanilla() {
             const std::string date = lib::FormatLocalTime(entry.savedAt, kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, render::text::kRight, 1);
         }
-        rects::Offset(&titleRect, 0, kRowHeight);
-        rects::Offset(&dateRect, 0, kRowHeight);
+        titleRect.Offset(0, kRowHeight);
+        dateRect.Offset(0, kRowHeight);
         y += kRowHeight;
         if (y >= kRowsEndY) break;
     }
@@ -110,10 +110,10 @@ void SaveLoadWindow::RefreshListVanilla() {
     Rect detailRect{340, 260, 590, 284};
     std::string line = str::Format(kPlainFormat, entry.AllodTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
-    rects::Offset(&detailRect, 0, kRowHeight);
+    detailRect.Offset(0, kRowHeight);
     line = str::Format(kPlainFormat, entry.ZoneTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
-    rects::Offset(&detailRect, 0, kRowHeight);
+    detailRect.Offset(0, kRowHeight);
 
     const int minutes = static_cast<int>(entry.gameTime * kMinutesPerHour);
     const int day = minutes / kMinutesPerDay;

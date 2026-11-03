@@ -98,7 +98,7 @@ void* PickAt2(void* world, int x, int y);       // WorldClient::PickAt2, as its 
 void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its EngineObject
 // The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):
 // 1, 0 when it is not drawn, -1 without a list.
-int ScreenRect(void* world, int id, platform::Rect* rect);
+int ScreenRect(void* world, int id, Rect* rect);
 int ObjectId(const void* object);               // a EngineObject's id (what PickAt2 and UnitAt give)
 std::uint32_t ObjectFlags(const void* object);  // its flags
 void* PlayerConnection(void* player);           // a Player's connection (PlayerServer / PlayerClient)

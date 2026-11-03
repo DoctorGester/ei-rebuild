@@ -89,8 +89,8 @@ public:
     }
 
     // Map coordinates of a world point (map y grows downwards).
-    float MapX(float worldX) const { return (worldX - map->centreX) * map->scale; }
-    float MapY(float worldY) const { return -((worldY - map->centreY) * map->scale); }
+    float MapX(float worldX) const { return (worldX - map->centre.x) * map->scale; }
+    float MapY(float worldY) const { return -((worldY - map->centre.y) * map->scale); }
 
     // The place of a marked object, an exit or another player: the zoomed position when it lies
     // inside the inner circle, otherwise the unzoomed one when that lies on the rim (outside the
@@ -219,17 +219,17 @@ bool Crosses(float prev, float cur, float edge) {
 // One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
 // inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
-void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
+void ClipPass(std::vector<Vector2>& points, Cut cut, Outside outside) {
     int count = lib::Count(points);
     for (int i = 0; i < count; ++i) {
-        UiPointF cur = points[i];
-        UiPointF prev = points[i == 0 ? count - 1 : i - 1];
-        UiPointF cross;
+        Vector2 cur = points[i];
+        Vector2 prev = points[i == 0 ? count - 1 : i - 1];
+        Vector2 cross;
         if (!cut(prev, cur, &cross)) continue;
         int size = lib::Count(points);
         if (i < size) {
             points.resize(size + 1);
-            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
+            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(Vector2));
         } else {
             points.resize(i + 1);
         }
@@ -240,7 +240,7 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     for (int i = 0; i < count; ++i) {
         if (!outside(points[i])) continue;
         int tail = lib::Count(points) - i - 1;
-        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
+        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(Vector2));
         points.pop_back();
         --i;
         --count;
@@ -320,8 +320,8 @@ void HudMap::BuildMarkers() {
         out.BeginQuad();
         float x, y;
         if (text::CompareIgnoringCase(world->exits[i].target, "none") != 0) {
-            Vector2 centre = world->ExitCentre(i);
-            if (out.Place(centre.x, centre.y, &x, &y)) {
+            Vector2 exitCentre = world->ExitCentre(i);
+            if (out.Place(exitCentre.x, exitCentre.y, &x, &y)) {
                 out.PutSquare(x, y);
                 out.Show(kFrameNeutral);
                 continue;
@@ -351,81 +351,74 @@ void HudMap::BuildMarkers() {
 
 void HudMap::UpdateView() {
     if (const TransformObject* camera = g_clientWorld.camera) {
-        centreX = g_camera.focus.x;
-        centreY = g_camera.focus.y;
-        Vector3 axis = camera->localRotation.AxisZ();
-        facingX = axis.x;
-        axis = camera->localRotation.AxisZ();
-        facingY = axis.y;
+        centre = XY(g_camera.focus);
+        facing = XY(camera->localRotation.AxisZ());
     }
-    float length2 = LengthSquared2D(facingX, facingY);
+    float length2 = LengthSquared2D(facing);
     if (length2 >= kTinyLength2) {
-        float length = std::sqrt(length2);
-        facingX /= length;
-        facingY /= length;
+        facing = facing / std::sqrt(length2);
     } else {
-        facingX = 0.0f;
-        facingY = 1.0f;
+        facing = {0.0f, 1.0f};
     }
-    float angle = std::atan2(-facingX, -facingY);
+    float angle = std::atan2(-facing.x, -facing.y);
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
     SceneMesh(10)->localRotation = turn;
 
     auto* area = SceneMesh(1);
-    std::vector<UiPointF>& points = visibleArea;
+    std::vector<Vector2>& points = visibleArea;
     int count = lib::Count(viewPolygon);
     points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
-        const UiPointF& v = viewPolygon[i];
+        const Vector2& v = viewPolygon[i];
         float x = v.x / zoom;
         float y = v.y / zoom;
-        points[i].x = x / scale + centreX;
-        points[i].y = centreY - y / scale;
+        points[i].x = x / scale + centre.x;
+        points[i].y = centre.y - y / scale;
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
     ClipPass(points,
-             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.x, c.x, 0.0f)) return false;
                  out->x = 0.0f;
                  out->y = p.y - (c.y - p.y) * p.x / (c.x - p.x);
                  return true;
              },
-             [](const UiPointF& v) {
+             [](const Vector2& v) {
                  EI_NAN_AUDIT(v.x);
                  return v.x < 0.0f;
              });
     ClipPass(points,
-             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.y, c.y, 0.0f)) return false;
                  out->x = p.x - (c.x - p.x) * p.y / (c.y - p.y);
                  out->y = 0.0f;
                  return true;
              },
-             [](const UiPointF& v) {
+             [](const Vector2& v) {
                  EI_NAN_AUDIT(v.y);
                  return v.y < 0.0f;
              });
     float width = worldWidth;
     float height = worldHeight;
     ClipPass(points,
-             [width](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [width](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.x, c.x, width)) return false;
                  out->x = width;
                  out->y = (width - p.x) * (c.y - p.y) / (c.x - p.x) + p.y;
                  return true;
              },
-             [width](const UiPointF& v) { return v.x > width; });
+             [width](const Vector2& v) { return v.x > width; });
     ClipPass(points,
-             [height](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [height](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.y, c.y, height)) return false;
                  out->x = (height - p.y) * (c.x - p.x) / (c.y - p.y) + p.x;
                  out->y = height;
                  return true;
              },
-             [height](const UiPointF& v) { return v.y > height; });
+             [height](const Vector2& v) { return v.y > height; });
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
     count = lib::Count(points);
@@ -453,7 +446,7 @@ void HudMap::UpdateView() {
     int quads = count / 4;
     if (count % 4 != 0) {
         ++quads;
-        UiPointF first = points[0];
+        Vector2 first = points[0];
         for (int k = 4 - count % 4; k > 0; --k) {
             int size = lib::Count(points);
             points.resize(size + 1);
@@ -463,9 +456,9 @@ void HudMap::UpdateView() {
     area->SetQuadCount(quads);
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
-            const UiPointF& v = points[q * 4 + k];
-            float x = (v.x - centreX) * scale;
-            float y = -((v.y - centreY) * scale);
+            const Vector2& v = points[q * 4 + k];
+            float x = (v.x - centre.x) * scale;
+            float y = -((v.y - centre.y) * scale);
             area->vertices[q].x()[k] = x * zoom;
             area->vertices[q].y()[k] = y * zoom;
         }
@@ -473,10 +466,10 @@ void HudMap::UpdateView() {
     area->RefreshBuffers();
 
     auto* bounds = SceneMesh(0);
-    float left = -centreX * scale;
-    float top = -(-centreY * scale);
-    float right = (worldWidth - centreX) * scale;
-    float bottom = -((worldHeight - centreY) * scale);
+    float left = -centre.x * scale;
+    float top = -(-centre.y * scale);
+    float right = (worldWidth - centre.x) * scale;
+    float bottom = -((worldHeight - centre.y) * scale);
     left = MaxKeepB(left, -1.0f);
     if (top > 1.0f) top = 1.0f;
     if (right > 1.0f) right = 1.0f;
@@ -495,10 +488,10 @@ void HudMap::UpdateView() {
     b.y()[2] = bottom;
     b.x()[3] = right;
     b.y()[3] = top;
-    float u0 = (left / scale + centreX) / textureSize;
-    float vTop = (centreY - top / scale) / textureSize;
-    float u1 = (right / scale + centreX) / textureSize;
-    float vBottom = (centreY - bottom / scale) / textureSize;
+    float u0 = (left / scale + centre.x) / textureSize;
+    float vTop = (centre.y - top / scale) / textureSize;
+    float u1 = (right / scale + centre.x) / textureSize;
+    float vBottom = (centre.y - bottom / scale) / textureSize;
     TexCoord* uv = bounds->texCoords.data();
     uv[0].u = u0;
     uv[0].v = vBottom;
@@ -512,8 +505,8 @@ void HudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void HudMap::Wheel(int, int delta, int x, int y) {
-    int region = RegionAt(x, y);
+void HudMap::Wheel(int, int delta, Point point) {
+    int region = RegionAt(point);
     if (region < 0) return;
     if (region == 0) {
         float newZoom = WheelZoomFactor(static_cast<short>(delta)) * zoom;

@@ -72,15 +72,9 @@ void Dib::Empty() {
     maskBytes = 0;
 }
 
-::Size* Dib::Size(::Size* out) const {
-    if (!header) {
-        out->cx = 0;
-        out->cy = 0;
-        return out;
-    }
-    out->cx = header->width;
-    out->cy = header->height;
-    return out;
+Size Dib::Extent() const {
+    if (!header) return {};
+    return {header->width, header->height};
 }
 
 std::uint8_t* Dib::AllocateBits() {

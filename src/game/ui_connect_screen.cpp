@@ -193,8 +193,8 @@ void MpConnectScreen::MessageResult(int answer) {
 
 // --- input ---------------------------------------------------------------------------------------
 
-void MpConnectScreen::LeftDown(int buttons, int x, int y) {
-    int region = RegionAt(x, y);
+void MpConnectScreen::LeftDown(int buttons, Point point) {
+    int region = RegionAt(point);
     switch (region) {
     case kRegionConnect:
         Connect();
@@ -256,11 +256,11 @@ void MpConnectScreen::LeftDown(int buttons, int x, int y) {
         }
         break;
     }
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
 }
 
-void MpConnectScreen::LeftDouble(int buttons, int x, int y) {
-    int region = RegionAt(x, y);
+void MpConnectScreen::LeftDouble(int buttons, Point point) {
+    int region = RegionAt(point);
     if (region >= kRegionRowFirst) {
         unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
         if (row < entries.size()) {
@@ -269,7 +269,7 @@ void MpConnectScreen::LeftDouble(int buttons, int x, int y) {
             Connect();
         }
     }
-    UiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, point);
 }
 
 void MpConnectScreen::KeyDown(int key, int repeat, int modifiers) {

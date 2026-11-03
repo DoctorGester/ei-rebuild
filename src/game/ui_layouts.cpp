@@ -241,7 +241,7 @@ void EscMenu::CreateScreen() {
     for (const Rect* source = rects; source < rects + 5; ++source) {
         UiRegion* region = AddRegion();
         Rect area;
-        rects::Copy(&area, source);
+        area = *source;
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }
     models[0]->Play(SkillAnimation::Briefing02);
@@ -250,9 +250,9 @@ void EscMenu::CreateScreen() {
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
-void EscMenu::LeftDown(int buttons, int x, int y) {
+void EscMenu::LeftDown(int buttons, Point point) {
     Interface3D* currentUi = ui;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region >= 0) {
         currentUi->PlayInterfaceSound("buttons\\menu\\ok.wav");
         handled = true;
@@ -286,15 +286,15 @@ void EscMenu::LeftDown(int buttons, int x, int y) {
         break;
     }
     if (open) currentUi->PushWindow(opened, true, true);
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
-void MainMenu::LeftDown(int buttons, int x, int y) {
+void MainMenu::LeftDown(int buttons, Point point) {
     Interface3D* currentUi = ui;
     const char* okSound = "buttons\\menu\\ok.wav";
-    switch (RegionAt(x, y)) {
+    switch (RegionAt(point)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         currentUi->PlayInterfaceSound(okSound);
@@ -342,7 +342,7 @@ void MainMenu::LeftDown(int buttons, int x, int y) {
     default:
         break;
     }
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
 }
 
 // --- Message box -----------------------------------------------------------------------
@@ -360,7 +360,7 @@ void MessageWindow::CreateScreen() {
     // An edit field takes one line of the font (the extent of "A").
     if (flags & 4)
         textHeight =
-            ui->TextExtent("A", font).cy;
+            ui->TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     area = Rect{15, top - 35, 385, 450};
@@ -429,7 +429,7 @@ void DifficultyBox::CreateScreen() {
     hard = g_clientWorld.texts->GetString("difficulty_hard");
     Size easySize = ui->TextExtent(newEasy, 2);
     Size hardSize = ui->TextExtent(hard, 2);
-    int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
+    int half = ((easySize.w + hardSize.w) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     area = Rect{0xE6 - half, row - 100, 385, 450};
     surface->DrawTextIn(newEasy, &area, 2, 0xA7D7E4, 0, 1);

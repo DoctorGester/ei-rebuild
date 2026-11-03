@@ -201,11 +201,11 @@ void DrawThroughDevice(Part& part) {
     if (!part.rect) return;
     Rect* own = &part.node->screen;
     if (result == 2) {
-        rects::SetEmpty(own);
-        rects::SetEmpty(part.rect);
+        *own = {};
+        *part.rect = {};
         return;
     }
-    rects::Copy(own, &part.device->drawnRect);
+    *own = part.device->drawnRect;
     *part.rect = *own;
     part.node->mesh->flags |= FigureMeshFlag::Drawn;
 }
@@ -243,7 +243,7 @@ void DrawThroughFigure(Part& part) {
         std::string key((part.node->mesh)->GetName());
         auto node = part.figure->headers.find(key);
         Rect* own = &part.node->screen;
-        rects::Copy(own, &node->second.screen);
+        *own = node->second.screen;
         *part.rect = *own;
     }
     if (result != 2) part.node->mesh->flags |= FigureMeshFlag::Drawn;
@@ -379,10 +379,10 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
     if (rect) {
         Rect* own = &screen;
         if (result == 2) {
-            rects::SetEmpty(own);
-            rects::SetEmpty(rect);
+            *own = {};
+            *rect = {};
         } else {
-            rects::Copy(own, &device->drawnRect);
+            *own = device->drawnRect;
             *rect = *own;
         }
     }

@@ -107,8 +107,8 @@ void HeroStatsPanel::Update() {
 
 // --- The left button (input click) -----------------------------------------------------------------
 
-void HeroStatsPanel::LeftDown(int, int x, int y) {
-    int region = RegionAt(x, y);
+void HeroStatsPanel::LeftDown(int, Point point) {
+    int region = RegionAt(point);
     if (page == kNewHeroPage) {
         heldRegion = -1;
         if (StepPoint(region)) heldRegion = region;
@@ -131,7 +131,7 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
     }
 }
 
-void HeroStatsPanel::LeftUp(int, int, int) {
+void HeroStatsPanel::LeftUp(int, Point) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
     holdTicks = 0;

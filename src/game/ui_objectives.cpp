@@ -185,10 +185,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale = marker->scaleMatrix.m[0];
         Rect area;
-        area.left = static_cast<int>(x - kExitHalf);
-        area.top = static_cast<int>(y - kExitHalf);
-        area.right = static_cast<int>(x + kExitHalf);
-        area.bottom = static_cast<int>(y + kExitHalf);
+        area = {static_cast<int>(x - kExitHalf), static_cast<int>(y - kExitHalf), static_cast<int>(x + kExitHalf), static_cast<int>(y + kExitHalf)};
         UiRegion* region = AddRegion();
         region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger
@@ -196,16 +193,16 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         if (AbsBits(sideY) >= AbsBits(sideX)) {
             if (sideY > 0.0f) {
                 Turn(marker, kExitTurnDown);
-                rects::Offset(&area, 0, -10);
+                area.Offset(0, -10);
             } else {
-                rects::Offset(&area, 0, 10);
+                area.Offset(0, 10);
             }
         } else if (sideX > 0.0f) {
             Turn(marker, -kExitTurn);
-            rects::Offset(&area, 10, 0);
+            area.Offset(10, 0);
         } else {
             Turn(marker, kExitTurn);
-            rects::Offset(&area, -10, 0);
+            area.Offset(-10, 0);
         }
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }
@@ -365,7 +362,7 @@ void ObjectivesWindow::ShowQuest() {
         float worldWidth = static_cast<float>(map->sizeX << 5);
         float worldHeight = static_cast<float>(map->sizeY << 5);
         float span = worldWidth < worldHeight ? worldHeight : worldWidth;
-        const UiPointF& place = questPlaces[i];
+        const Vector2& place = questPlaces[i];
         float x = (place.x - worldWidth * 0.5f) * kPictureSpan / span + kPictureCentreX;
         float y = kPictureCentreY - (place.y - worldHeight * 0.5f) * kPictureSpan / span;
         UiMesh* marker = AddBlankSprite();

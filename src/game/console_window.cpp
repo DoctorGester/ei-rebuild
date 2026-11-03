@@ -17,8 +17,8 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
     screenRect = *newRect;
     // The 3D interface scales 800x600 to pixels (Rebirth patches it, so it is called through its address).
     screen->ScaleRectToScreen(&screenRect);
-    width = screenRect.right - screenRect.left;
-    height = screenRect.bottom - screenRect.top;
+    width = screenRect.Width();
+    height = screenRect.Height();
     if (width < 0x4C) width = 0x4C;
     if (width > screenWidth) width = screenWidth;
     if (height < 0x45) height = 0x45;

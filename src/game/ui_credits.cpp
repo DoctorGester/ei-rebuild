@@ -51,7 +51,7 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
                 // system's font smoothing off for the titles.
                 const UiFont& font = ui->fonts[kHeaderFont];
                 const Rect& at = headerSurface->rect;
-                const Rect whole = {0, 0, at.right - at.left, at.bottom - at.top};
+                const Rect whole = {0, 0, at.Width(), at.Height()};
                 headerSurface->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, render::text::kCenter,
                                                kHeaderColour, true);
                 headerSurface->Show();

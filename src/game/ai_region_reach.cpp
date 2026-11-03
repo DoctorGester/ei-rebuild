@@ -66,7 +66,7 @@ bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGri
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
 
-    std::vector<BlockPoint> blocks;
+    std::vector<Point> blocks;
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
@@ -121,8 +121,8 @@ bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGri
 }
 
 void RegionMap::LabelRegions() {
-    std::vector<BlockPoint> queue;
-    std::vector<BlockPoint> second;
+    std::vector<Point> queue;
+    std::vector<Point> second;
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         grid.data.assign(grid.data.size(), 0);
@@ -278,10 +278,10 @@ void RegionMap::PickRepresentatives(AIMap* map, int bx, int by) {
 }
 
 bool RegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
-                                 std::vector<BlockPoint>* excluded) {
+                                 std::vector<Point>* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
-    const BlockPoint* points = excluded->data();
+    const Point* points = excluded->data();
     for (int i = 0; i < std::ssize(*excluded); ++i) {
         Exclude(forward, points[i].x, points[i].y);
         Exclude(backward, points[i].x, points[i].y);
@@ -470,7 +470,7 @@ bool RegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy) 
     return first && second;
 }
 
-void RegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label) {
+void RegionMap::FloodRegionFrom(int sizeClass, std::vector<Point>* frontier, std::vector<Point>* next, int label) {
     const int* dx = StepX();
     const int* dy = StepY();
     SearchGrid<std::int16_t>& edgeRows = edges[sizeClass];
@@ -494,7 +494,7 @@ void RegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier
             }
         }
         if (next->empty()) return;
-        std::vector<BlockPoint>* swap = frontier;
+        std::vector<Point>* swap = frontier;
         frontier = next;
         next = swap;
     }

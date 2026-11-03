@@ -112,7 +112,7 @@ void Interface3D::Create(TextureDevice* device) {
     keybind::LoadKeyBindings();
     console = new console::ConsoleWindow(this);
     root = new ChatOverlay(this);
-    mouseX = 0;
+    mouse = {};
     mouseCapture = nullptr;
     backdrop = nullptr;
     secondBackdrop = nullptr;
@@ -120,7 +120,6 @@ void Interface3D::Create(TextureDevice* device) {
     closeAll = false;
     queuedWindow = nullptr;
     drawing = true;
-    mouseY = 0;
     fade = new ScreenFade();
     hudPanelsIn[0] = 0;
     hudPanelsIn[1] = 0;
@@ -342,7 +341,7 @@ constexpr int kRepeat = 0x4000;
 
 // The input side's key-down handler of a window.
 void WindowKeyDown(UiWindow* window, int key, int repeat, int flags) {
-    window->Input()->Event(UiInputSide::kEventKeyDown, key, repeat, flags);
+    window->Input()->KeyDown(key, repeat, flags);
 }
 
 } // namespace

@@ -145,9 +145,9 @@ void HelpWindow::ShowPage() {
                 rows = str::ToInt(words[4]);
                 rowsGiven = true;
             }
-            if (pageArea.right - pageArea.left < 300) pageArea.right = pageArea.left + 300;
+            if (pageArea.Width() < 300) pageArea.right = pageArea.left + 300;
             pageArea.bottom = rows * kRowHeight + pageArea.top + 2 * kStripHeight;
-            if (pageArea.bottom - pageArea.top > 600) pageArea.bottom = pageArea.top + 600;
+            if (pageArea.Height() > 600) pageArea.bottom = pageArea.top + 600;
         }
     }
     texts->cursor = resume;
@@ -167,7 +167,7 @@ void HelpWindow::ShowPage() {
 
     // Surface 0: the page's title and the topic's with the page's number.
     std::string titleText;
-    const int width = pageArea.right - pageArea.left;
+    const int width = pageArea.Width();
     UiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
     AddSurface(header);
     header->Clear();
@@ -224,7 +224,7 @@ void HelpWindow::ShowPage() {
         const int left = entry.picture.size() != 0 && madePictures < kMaxPictures ? kPictureTextLeft : kTextLeft;
         for (std::string wrapped : ui->WrapText(entry.text, width - kTextRightMargin - left, 1)) {
             str::TrimRight(wrapped, ' ');
-            block = (std::max)(block, left - kTextLeft + static_cast<int>(ui->TextExtent(wrapped, 1).cx));
+            block = (std::max)(block, left - kTextLeft + static_cast<int>(ui->TextExtent(wrapped, 1).w));
         }
     }
     const int shift = (std::max)(0, (width - block) / 2 - kTextLeft);
@@ -285,17 +285,17 @@ void HelpWindow::ShowPage() {
     // The three buttons along the bottom, each with its region.
     Rect button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
     const int gap = (width - 150) / 6;
-    rects::Offset(&button, gap + pageArea.left, 0);
+    button.Offset(gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
-    AddRegion()->SetRectFrom(button);
+    AddRegion()->SetRect(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
-    rects::Offset(&button, step, 0);
+    button.Offset(step, 0);
     UiRegion* okRegion = AddRegion();
-    okRegion->SetRectFrom(button);
+    okRegion->SetRect(button);
     okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
-    rects::Offset(&button, step, 0);
-    AddRegion()->SetRectFrom(button);
+    button.Offset(step, 0);
+    AddRegion()->SetRect(button);
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.

@@ -86,42 +86,36 @@ void LeavePanel() { SetPanelOffset(0); }
 
 // Layout to screen: x by the 4:3 part's width plus its left margin (with `margin`), y by its height plus its top
 // margin (addon's code for x).
-void RectToScreen(Rect* rect, bool margin) {
-    const Layout& l = Get();
-    const int shiftX = margin ? l.margin : 0;
-    const int shiftY = margin ? l.marginY : 0;
-    rect->left = MulDiv64(l.width43, rect->left, kLayoutWidth) + shiftX;
-    rect->top = MulDiv64(l.height43, rect->top, kLayoutHeight) + shiftY;
-    rect->right = MulDiv64(l.width43, rect->right, kLayoutWidth) + shiftX;
-    rect->bottom = MulDiv64(l.height43, rect->bottom, kLayoutHeight) + shiftY;
-}
-
 void PointToScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
     point->y = MulDiv64(l.height43, point->y, kLayoutHeight) + (margin ? l.marginY : 0);
 }
 
-// Screen to layout: left, right, top, bottom in that order (addon's).
-void RectFromScreen(Rect* rect, bool margin) {
-    const Layout& l = Get();
-    const int shiftX = margin ? l.margin : 0;
-    const int shiftY = margin ? l.marginY : 0;
-    rect->left = MulDiv64(rect->left - shiftX, kLayoutWidth, l.width43);
-    rect->right = MulDiv64(rect->right - shiftX, kLayoutWidth, l.width43);
-    rect->top = MulDiv64(rect->top - shiftY, kLayoutHeight, l.height43);
-    rect->bottom = MulDiv64(rect->bottom - shiftY, kLayoutHeight, l.height43);
+void RectToScreen(Rect* rect, bool margin) {
+    Point topLeft = rect->TopLeft(), bottomRight = rect->BottomRight();
+    PointToScreen(&topLeft, margin);
+    PointToScreen(&bottomRight, margin);
+    *rect = Rect::FromCorners(topLeft, bottomRight);
 }
 
+// Screen to layout.
 void PointFromScreen(Point* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
-    point->y = MulDiv64(kLayoutHeight, point->y - (margin ? l.marginY : 0), l.height43);
+    point->y = MulDiv64(point->y - (margin ? l.marginY : 0), kLayoutHeight, l.height43);
+}
+
+void RectFromScreen(Rect* rect, bool margin) {
+    Point topLeft = rect->TopLeft(), bottomRight = rect->BottomRight();
+    PointFromScreen(&topLeft, margin);
+    PointFromScreen(&bottomRight, margin);
+    *rect = Rect::FromCorners(topLeft, bottomRight);
 }
 
 Size TextExtentToLayout(Size pixels) {
     const Layout& l = Get();
-    return Size{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height43)};
+    return Size{MulDiv64(pixels.w, kLayoutWidth, l.width43), MulDiv64(pixels.h, kLayoutHeight, l.height43)};
 }
 
 float AxisScale() { return Get().axisScale; }

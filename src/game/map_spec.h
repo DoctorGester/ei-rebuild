@@ -31,12 +31,6 @@ struct TrapCircle {
 };
 static_assert(sizeof(TrapCircle) == 0xC);   // saved as its 12 bytes
 
-// A point a trap casts at (zero-filled when added).
-struct TrapPoint {
-    float x;
-    float y;
-};
-static_assert(sizeof(TrapPoint) == 8);   // saved as its 8 bytes
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
@@ -45,7 +39,7 @@ struct MagicTrapRecord {
     std::string spell;         // the spell's text
     Vector3 position;           // the position when the zone loaded
     std::vector<TrapCircle> area;
-    std::vector<TrapPoint> points;
+    std::vector<Vector2> points;
     std::int32_t period;
     std::uint8_t singleTarget;
 };

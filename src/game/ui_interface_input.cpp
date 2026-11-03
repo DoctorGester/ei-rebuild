@@ -40,50 +40,48 @@ UiInputSide* Interface3D::MouseTarget() const {
 }
 
 namespace {
-void Send(const Interface3D* ui, int slot, int buttons, int x, int y) {
-    if (UiInputSide* target = ui->MouseTarget()) target->Event(slot, buttons, x, y);
-}
-
 constexpr int kScanMask = 0x1FF;
 constexpr int kScanConsoleKey = 0x29;   // the key under Esc (the console's)
 constexpr int kCursorWait = 3;
 
 } // namespace
 
-void Interface3D::OnLeftDown(int buttons, int x, int y) {
+void Interface3D::OnLeftDown(int buttons, Point point) {
     doubleClick = false;
-    Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
+    if (UiInputSide* target = MouseTarget()) target->LeftDown(buttons, point);
 }
 
-void Interface3D::OnLeftUp(int buttons, int x, int y) {
-    Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
+void Interface3D::OnLeftUp(int buttons, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->LeftUp(buttons, point);
     doubleClick = false;
 }
 
-void Interface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
+void Interface3D::OnMouseMove(int buttons, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->MouseMove(buttons, point);
+}
 
-void Interface3D::OnRightDown(int buttons, int x, int y) {
+void Interface3D::OnRightDown(int buttons, Point point) {
     rightDown = true;
-    Send(this, UiInputSide::kEventRightDown, buttons, x, y);
+    if (UiInputSide* target = MouseTarget()) target->RightDown(buttons, point);
 }
 
-void Interface3D::OnRightUp(int buttons, int x, int y) {
+void Interface3D::OnRightUp(int buttons, Point point) {
     rightDown = false;
-    Send(this, UiInputSide::kEventRightUp, buttons, x, y);
+    if (UiInputSide* target = MouseTarget()) target->RightUp(buttons, point);
 }
 
-void Interface3D::OnLeftDouble(int buttons, int x, int y) {
+void Interface3D::OnLeftDouble(int buttons, Point point) {
     doubleClick = true;
-    Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
+    if (UiInputSide* target = MouseTarget()) target->LeftDouble(buttons, point);
 }
 
-void Interface3D::OnRightDouble(int buttons, int x, int y) {
+void Interface3D::OnRightDouble(int buttons, Point point) {
     rightDown = true;
-    Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
+    if (UiInputSide* target = MouseTarget()) target->RightDouble(buttons, point);
 }
 
-void Interface3D::OnWheel(int flags, int delta, int x, int y) {
-    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, x, y);
+void Interface3D::OnWheel(int flags, int delta, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, point);
 }
 
 // --- Keys ------------------------------------------------------------------
@@ -95,10 +93,10 @@ void Interface3D::OnChar(int key, int repeat, int flags) {
         return;
     }
     if (IsMultiplayerClient() && root->chatOpen) {
-        root->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+        root->Input()->Char(key, repeat, flags);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->Char(key, repeat, flags);
 }
 
 void Interface3D::OnKeyUp(int key, int repeat, int flags) {
@@ -112,7 +110,7 @@ void Interface3D::OnKeyUp(int key, int repeat, int flags) {
         console->OnKeyUp(key, repeat, flags);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->KeyUp(key, repeat, flags);
 }
 
 void console::ConsoleWindow::OnKeyUp(int key, int, int) {
@@ -225,8 +223,7 @@ void Interface3D::Update() {
         Activate(queuedWindow);
         queuedWindow = nullptr;
     }
-    mouseX = g_cursor.position.x;
-    mouseY = g_cursor.position.y;
+    mouse = g_cursor.position;
     if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != 2) {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
@@ -418,7 +415,7 @@ constexpr float kOpaque = 255.0f;
 
 Rect ScreenOf(const SceneRenderer* renderer) {
     Rect screen;
-    rects::Copy(&screen, &renderer->device->screen);
+    screen = renderer->device->screen;
     return screen;
 }
 
@@ -444,8 +441,8 @@ int ScreenFade::LetterboxBar(int height) {
 void ScreenFade::Draw(SceneRenderer* renderer) {
     Rect screen = ScreenOf(renderer);
     if (letterbox) {
-        const int width = screen.right - screen.left;
-        const int height = screen.bottom - screen.top;
+        const int width = screen.Width();
+        const int height = screen.Height();
         const int bar = LetterboxBar(height);
         render::g_renderState.depthTest = false;
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
@@ -469,7 +466,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     }
     render::g_renderState.depthTest = false;
     screen = ScreenOf(renderer);
-    renderer->DrawRectangle(0, 0, screen.right - screen.left, screen.bottom - screen.top, static_cast<int>(alpha), 0);
+    renderer->DrawRectangle(0, 0, screen.Width(), screen.Height(), static_cast<int>(alpha), 0);
     render::g_renderState.depthTest = true;
 }
 

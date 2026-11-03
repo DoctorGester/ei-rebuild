@@ -70,8 +70,8 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     object->LoadFigures();
     if (!(object->flags & MapObjectFlag::Stationary)) object->flags &= ~MapObjectFlag::Static;
     if (dirty) {
-        rects::SetEmpty(&drawnRect);
-        rects::SetEmpty(&object->dirtyRect);
+        drawnRect = {};
+        object->dirtyRect = {};
     }
     if (object->animation) object->animation->UpdatePose();
 
@@ -150,9 +150,8 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
                     return result;
                 }
                 anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
-                if (dirty && !rects::IsEmpty(&partRect) && (part->flags & FigureMeshFlag::Drawn)) {
-                    Rect* total = &drawnRect;
-                    rects::Union(total, total, &partRect);
+                if (dirty && !partRect.IsEmpty() && (part->flags & FigureMeshFlag::Drawn)) {
+                    drawnRect = drawnRect.Union(partRect);
                 }
                 if (pushed) pipeline->PopMatrix(kStackObject);
                 pipeline->PopMatrix(kStackView);

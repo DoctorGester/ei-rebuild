@@ -18,9 +18,6 @@
 
 namespace {
 
-// World coordinate to cell: (x / (half a cell) - 0.5) rounded to float, then to the nearest integer.
-int CellOf(float world) { return lib::RoundEven(2.0f * world - 0.5f); }
-
 constexpr float kShapeMinHeight = 0.2f;
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
 
@@ -43,10 +40,7 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
         if (DistanceSquaredXY(position, other->localPosition) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
-        int unitX = CellOf(unit->localPosition.x);
-        int unitY = CellOf(unit->localPosition.y);
-        int otherX = CellOf(other->localPosition.x);
-        int otherY = CellOf(other->localPosition.y);
+        const Point apart = WorldToCell(unit->localPosition) - WorldToCell(other->localPosition);
         float otherHeight = other->standingHeight;
         ShapeCacheHandle handle;
         const UnitShape* shape = nullptr;
@@ -62,8 +56,8 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
 
         int level = lib::RoundEven((2.0f - unit->standingHeight) * 16.0f);
         int minLevel = level < 0 ? 0 : (level & 0xFF);
-        int dxCells = unitX - otherX + 8;
-        int dyCells = unitY - otherY + 8;
+        int dxCells = apart.x + 8;
+        int dyCells = apart.y + 8;
         if (!shape || dxCells < 0 || dyCells < 0 || dxCells >= 16 || dyCells >= 16 ||
             static_cast<std::int8_t>(shape->levels[dyCells][dxCells]) >= minLevel) {
             blocker = other;
@@ -120,9 +114,9 @@ bool AIMap::StandsOnCheapCell(Unit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds and ignores them.
-    int x = CellOf(unit->localPosition.x);
-    int y = CellOf(unit->localPosition.y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
+    const Point cell = WorldToCell(unit->localPosition);
+    const int x = cell.x, y = cell.y;
+    if (!InBounds(cell)) return false;
     if (HasSpellArea(x, y)) {
         int sizeClass = unit->sizeClass;
         int level = lib::RoundEven(kLevelHeights[sizeClass] * heightScale);
@@ -163,9 +157,9 @@ void FogGrid::Grow(int x, int y, int n) {
 
 void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& look, float cosLimit,
                               float targetHeight, FogGrid* grid) {
-    int eyeX = CellOf(eye.x);
-    int eyeY = CellOf(eye.y);
-    int reach = CellOf(radius) + 1;
+    const Point eyeCell = WorldToCell(eye);
+    const int eyeX = eyeCell.x, eyeY = eyeCell.y;
+    int reach = WorldToCell(radius) + 1;
     grid->Grow(eyeX, eyeY, reach);
     EI_NAN_AUDIT(cosLimit, targetHeight);
     bool anyDirection = cosLimit <= -1.0f;
@@ -356,10 +350,10 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
                 PathCells::iterator bad = failedAt->region;
                 int x = bad->x;
                 int y = bad->y;
-                std::vector<BlockPoint>* excluded = &path->excludedBlocks;
+                std::vector<Point>* excluded = &path->excludedBlocks;
                 int size = lib::Count(*excluded);
                 excluded->resize(size + 1);
-                BlockPoint* data = excluded->data();
+                Point* data = excluded->data();
                 data[size].x = x;
                 data[size].y = y;
                 retried = PlanLongPath(unit, fromX, fromY, toX, toY, path, retry, maxCells);

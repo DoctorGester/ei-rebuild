@@ -47,7 +47,7 @@ void UiSpin::SetValue(int newValue) {
     UiSurface* surface = surfaces[0];
     surface->Clear();
     Rect area = layout;
-    rects::Offset(&area, -layout.left, -layout.top);
+    area.Offset(-layout.left, -layout.top);
     // DrawText is Rebirth-patched: through its address.
     surface->DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
     changed = true;
@@ -55,7 +55,7 @@ void UiSpin::SetValue(int newValue) {
 
 // --- A click steps the value ------------------------------------------------------------------------
 
-void UiSpin::LeftDown(int, int, int) {
+void UiSpin::LeftDown(int, Point) {
     ui->PlayInterfaceSound(kOkSound);
     SetValue(value + 1);
 }

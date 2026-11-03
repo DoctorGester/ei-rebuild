@@ -88,16 +88,15 @@ static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     unit->ServerController()->brain.Walk(point, run);
 }
 
-void BriefingScreen::LeftDown(int buttons, int x, int y) {
+void BriefingScreen::LeftDown(int buttons, Point point) {
     if (chatActive) {
-        if (chat) chat->Input()->LeftDown(buttons, x, y);
+        if (chat) chat->Input()->LeftDown(buttons, point);
         return;
     }
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
     if (handled) return;
     switch (state) {
     case 0: {
-        Point point = {x, y};
         Unit* object = g_clientWorld.UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
@@ -106,11 +105,11 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
             }
             return;
         }
-        if (!noWalk) WalkLeaderTo(this, x, y, false);
+        if (!noWalk) WalkLeaderTo(this, point.x, point.y, false);
         return;
     }
     case 1: {
-        int region = RegionAt(x, y);
+        int region = RegionAt(point);
         if (region < 0 || region >= kTopicRows || region + topicTop >= std::ssize(topics)) return;
         ui->PlayInterfaceSound(kClickSound);
         topic = topics[region + topicTop];
@@ -131,16 +130,16 @@ void BriefingScreen::LeftDown(int buttons, int x, int y) {
     }
 }
 
-void BriefingScreen::MouseMove(int buttons, int x, int y) {
+void BriefingScreen::MouseMove(int buttons, Point point) {
     if (chatActive) {
         g_cursor.SetShape(kCursorChat);
-        if (chat) chat->Input()->MouseMove(buttons, x, y);
+        if (chat) chat->Input()->MouseMove(buttons, point);
         return;
     }
     g_cursor.SetShape(kCursorNormal);
-    UiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, point);
     if (state == 1) {
-        int region = RegionAt(x, y);
+        int region = RegionAt(point);
         int hovered = -1;
         if (region >= 0 && region < kTopicRows && region + topicTop < std::ssize(topics)) hovered = region + topicTop;
         if (hovered != hoveredTopic) {
@@ -154,7 +153,6 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     }
     if (ui->rightDown || state != 0) return;
 
-    Point point = {x, y};
     Unit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         int objectId = object->id;
@@ -168,13 +166,13 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
         label->Clear();
         Rect area{0, 0, 0, 0};
         label->DrawTextIn(node->second, &area, kTextFormat, kLabelColour, 1, 1);
-        Point at{x, y};
+        Point at = point;
         ui->ScalePointFromScreen(&at);
-        label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
+        label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
         label->Show();
         return;
     }
-    Vector3 ground = g_clientWorld.PickSurface(x, y);
+    Vector3 ground = g_clientWorld.PickSurface(point.x, point.y);
     int newExit = 0;
     if (!g_clientWorld.FindExitAt(ground, &newExit)) return;
     std::string zone = g_clientWorld.ExitTarget(exit);
@@ -188,23 +186,22 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     if (visited != 1.0f) g_cursor.SetShape(kCursorExit);
 }
 
-void BriefingScreen::LeftDouble(int buttons, int x, int y) {
+void BriefingScreen::LeftDouble(int buttons, Point point) {
     if (chatActive) return;
-    UiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, point);
     if (handled) return;
     if (state != 0) {
-        Input()->LeftDown(buttons, x, y);
+        Input()->LeftDown(buttons, point);
         return;
     }
-    Point point = {x, y};
     Unit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
             if (mover.person->id == object->id) return;
-        Input()->LeftDown(buttons, x, y);
+        Input()->LeftDown(buttons, point);
         return;
     }
-    if (!noWalk) WalkLeaderTo(this, x, y, true);
+    if (!noWalk) WalkLeaderTo(this, point.x, point.y, true);
 }
 
 void BriefingScreen::OpenTopics(EngineObject* speaker) {

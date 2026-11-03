@@ -89,6 +89,11 @@ inline Vector2& operator+=(Vector2& a, const Vector2& b) { a = a + b; return a; 
 inline Vector2& operator-=(Vector2& a, const Vector2& b) { a = a - b; return a; }
 inline Vector2& operator*=(Vector2& a, float s) { a = a * s; return a; }
 inline Vector2& operator/=(Vector2& a, float s) { a = a / s; return a; }
+inline bool operator==(const Vector2& a, const Vector2& b) { return a.x == b.x && a.y == b.y; }
+inline bool operator!=(const Vector2& a, const Vector2& b) { return !(a == b); }
+
+// a.x * b.y - a.y * b.x (the products commute).
+inline float Cross2D(const Vector2& a, const Vector2& b) { return a.x * b.y - a.y * b.x; }
 
 inline float Dot2D(float x, float y, float x2, float y2) { return x * x2 + y * y2; }
 inline float LengthSquared2D(float x, float y) { return x * x + y * y; }
@@ -119,6 +124,7 @@ inline Vector3 Max(const Vector3& a, const Vector3& b) {
 inline Vector3 Abs(const Vector3& v) { return {std::fabs(v.x), std::fabs(v.y), std::fabs(v.z)}; }
 
 // The 2D part (x, y) of 3D positions.
+inline Vector2 XY(const Vector3& v) { return {v.x, v.y}; }
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) { return LengthSquared2D(a.x - b.x, a.y - b.y); }
 
 inline float Dot(const Vector3& a, const Vector3& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }

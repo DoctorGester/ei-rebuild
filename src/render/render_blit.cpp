@@ -122,7 +122,7 @@ void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h) {
 #if defined(EI_RENDER_VALIDATION)
     if (!ReadBackDue(g_uploads++)) return;
     platform::graphics::Readback copy;
-    if (copy.Read(image, platform::Rect{0, 0, w, h})) {
+    if (copy.Read(image, Rect{0, 0, w, h})) {
         bool same = true;
         for (int y = 0; y < h && same; ++y)
             same = std::memcmp(copy.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
@@ -187,8 +187,8 @@ bool CreateBlitPipeline() {
 
 void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int height) {
     if (!b.texture.id || b.textureWidth <= 0 || b.textureHeight <= 0) return;
-    int dw = b.destination.right - b.destination.left, dh = b.destination.bottom - b.destination.top;
-    int sw = b.source.right - b.source.left, sh = b.source.bottom - b.source.top;
+    int dw = b.destination.Width(), dh = b.destination.Height();
+    int sw = b.source.Width(), sh = b.source.Height();
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
     sg_pipeline pipeline = PassPipeline(kBlit);
     sg_apply_pipeline(pipeline);

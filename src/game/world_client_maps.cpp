@@ -86,7 +86,7 @@ HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& ent
                           std::int32_t y, MapObjectManager* manager, HitTest test) {
     for (const ScreenEntry& entry : entries) {
         Point pt = {x, y};
-        if (!rects::Contains(&entry.rect, pt)) continue;
+        if (!entry.rect.Contains(pt)) continue;
         MapObject* object = manager->FindMapObject(entry.objectId);
         if (!object) continue;
         std::int32_t point[2] = {x, y};

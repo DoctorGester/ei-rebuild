@@ -328,7 +328,7 @@ void Draw(int width, int height, const Rect& placed) {
     }
     RefreshText();
     if (!UploadText()) return;
-    int scale = Scale(placed.bottom - placed.top);
+    int scale = Scale(placed.Height());
     float left = static_cast<float>(placed.left + Margin(scale)), top = static_cast<float>(placed.top + Margin(scale));
     float right = left + (g_imageWidth * scale), bottom = top + (g_imageHeight * scale);
     platform::graphics::ApplyViewport(0, 0, width, height);
