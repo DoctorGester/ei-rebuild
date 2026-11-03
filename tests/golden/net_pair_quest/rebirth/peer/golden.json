@@ -1,13 +1,28 @@
 {
   "scenario": "net_pair_quest",
   "install": "rebirth",
-  "recorded": "2026-10-30",
-  "commit": "b6204b4",
+  "recorded": "2026-11-03",
+  "commit": "fa001802b",
   "digest_period": 20,
   "left_out": null,
-  "clear": null,
-  "repeated_in": 4,
-  "reason": "H40: our own goldens, recorded from the image (plain twice, EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)",
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "C74b and C76: one summation order for every vector, quaternion and matrix helper, and pc24 / the game CRT maths removed (plain float maths, std:: on floats, float heights, speeds and constants). Float results differ in their last bits; outcomes are the same but net_pair_quest's fight, which ends sooner.",
   "side": "peer",
-  "source": "image"
+  "source": "image",
+  "change": [
+    "digest: 694 of 694 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes CHANGED: quest variables, party and items, script; max unit move 2.5 (obj686200, record 609); the digests have different numbers of records",
+    "  digest: after has more records; the other ends before its record 694 (world update 13900, frame 2779, tick 13497, zone bz1mpg)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 8 fields",
+    "    world (world) secondsPerTick: 0.00111111114 in before, 0.00111111125 in after (d 1.1e-10)",
+    "    obj129 (80 unanwibo \"\") rot.w: -0.142985955 in before, -0.142985836 in after (d 1.19e-07)",
+    "    obj129 (80 unanwibo \"\") rot.z: 0.989724696 in before, 0.989724755 in after (d 5.9e-08)",
+    "    ... 5 more",
+    "  outcomes: CHANGED quest variables, party and items, script; same: zone, deaths, spawns, money, game result",
+    "    quest variables: 1 variables differ (gtime); first from record 23: player0 gtime: 0.0522222221 in before, 0.0522222295 in after",
+    "    party and items: player0 objects: 17 in before, 18 in after, from record 614",
+    "    script: script run7.ticks differs (hashes only), from record 381 (+1241 more)",
+    "  world: 1 of 1 differ",
+    "... 26 more lines"
+  ]
 }

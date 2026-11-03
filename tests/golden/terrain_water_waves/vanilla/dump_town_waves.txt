@@ -1,12 +1,12 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump town_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 34 update 685 frame 137 tick 685 zone bz1g hash 83A15637 n 408
+@ 34 update 685 frame 137 tick 685 zone bz1g hash 9C4584E9 n 408
 + world world
 world tick 685
 world updates 685
 world paused 0
-world timeBase 5.96444511
-world secondsPerTick 0.00111111114
+world timeBase 5.96444464
+world secondsPerTick 0.00111111125
 world wind.x 0.0
 world wind.y 1.0
 world wind.z 0.0
@@ -164,824 +164,2683 @@ player0 var.z.gz2g_gz3g 1.0
 player0 var.zs.gz1g 1.0
 player0 var.zt.gz1g 6.37555599
 + obj299 84 stbr1
-obj299 # 44FA1913
+obj299 hp 1000.0
+obj299 mana 1000.0
+obj299 pos.x 40.2133179
+obj299 pos.y 38.9677124
+obj299 pos.z 4.1500001
+obj299 # AABC1DFD
 + obj476 84 stbr4
-obj476 # 22148C93
+obj476 hp 1000.0
+obj476 mana 1000.0
+obj476 pos.x 17.5314484
+obj476 pos.y 25.0940094
+obj476 pos.z 1.75000012
+obj476 # 66E50913
 + obj477 84 stst13
-obj477 # 7A1EAC75
+obj477 hp 1000.0
+obj477 mana 1000.0
+obj477 pos.x 10.076004
+obj477 pos.y 27.1455994
+obj477 pos.z 0.0
+obj477 # 33DCC957
 + obj708 84 stbuho6
-obj708 # 2072989E
+obj708 hp 1000.0
+obj708 mana 1000.0
+obj708 pos.x 68.293808
+obj708 pos.y 79.8158112
+obj708 pos.z 0.0500000007
+obj708 # 15A6ED2D
 + obj709 84 stst14
-obj709 # 71072C27
+obj709 hp 1000.0
+obj709 mana 1000.0
+obj709 pos.x 47.6496429
+obj709 pos.y 66.4785004
+obj709 pos.z 0.0
+obj709 # 5FD0B00D
 + obj710 84 stst4
-obj710 # AFBC809F
+obj710 hp 1000.0
+obj710 mana 1000.0
+obj710 pos.x 51.9265747
+obj710 pos.y 55.0748825
+obj710 pos.z 0.0
+obj710 # F9E92F7E
 + obj711 84 stwe3
-obj711 # BE5450F2
+obj711 hp 1000.0
+obj711 mana 1000.0
+obj711 pos.x 57.9451141
+obj711 pos.y 78.1651154
+obj711 pos.z 0.0
+obj711 # 2FCAF249
 + obj776 84 stga1
-obj776 # 92079C1E
+obj776 hp 1000.0
+obj776 mana 1000.0
+obj776 pos.x 59.6200981
+obj776 pos.y 48.7405014
+obj776 pos.z -0.100000001
+obj776 # 72E10F10
 + obj819 84 stst4
-obj819 # 060A8C18
+obj819 hp 1000.0
+obj819 mana 1000.0
+obj819 pos.x 54.2506714
+obj819 pos.y 68.1134338
+obj819 pos.z 0.0
+obj819 # AACD28C1
 + obj891 82 nafltr56
-obj891 # F6F7421B
+obj891 hp 1000.0
+obj891 mana 1000.0
+obj891 pos.x 14.121994
+obj891 pos.y 10.971199
+obj891 pos.z 0.0
+obj891 # CF706BC8
 + obj893 82 nafltr57
-obj893 # 0BE911CF
+obj893 hp 1000.0
+obj893 mana 1000.0
+obj893 pos.x 16.7449951
+obj893 pos.y 11.3707962
+obj893 pos.z 0.0
+obj893 # 4908A42B
 + obj895 82 nafltr59
-obj895 # 3F2ACC0C
+obj895 hp 1000.0
+obj895 mana 1000.0
+obj895 pos.x 8.23800659
+obj895 pos.y 25.5419006
+obj895 pos.z -0.200000003
+obj895 # 0F0EAB48
 + obj896 82 nafltr59
-obj896 # 9C4B1CF8
+obj896 hp 1000.0
+obj896 mana 1000.0
+obj896 pos.x 7.59707642
+obj896 pos.y 28.2341309
+obj896 pos.z -0.100000009
+obj896 # 1DE2F9C4
 + obj916 82 nafltr57
-obj916 # 1CF1E769
+obj916 hp 1000.0
+obj916 mana 1000.0
+obj916 pos.x 7.05705261
+obj916 pos.y 97.3072357
+obj916 pos.z 0.0
+obj916 # 8E3765FE
 + obj917 82 nafltr56
-obj917 # 3D0D0CC4
+obj917 hp 1000.0
+obj917 mana 1000.0
+obj917 pos.x 10.2005615
+obj917 pos.y 90.8883972
+obj917 pos.z 0.0
+obj917 # 4B4B9945
 + obj929 84 stbuho5
-obj929 # 901A7DD3
+obj929 hp 1000.0
+obj929 mana 1000.0
+obj929 pos.x 53.9559898
+obj929 pos.y 61.1552734
+obj929 pos.z 0.0499999933
+obj929 # 852B4945
 + obj931 84 stbuho7
-obj931 # 4B5F1977
+obj931 hp 1000.0
+obj931 mana 1000.0
+obj931 pos.x 50.31604
+obj931 pos.y 76.2735291
+obj931 pos.z 0.0
+obj931 # 62E2DE4C
 + obj933 84 stbuho7
-obj933 # C3151C32
+obj933 hp 1000.0
+obj933 mana 1000.0
+obj933 pos.x 90.5061035
+obj933 pos.y 54.7681351
+obj933 pos.z 0.0
+obj933 # 61B681F7
 + obj945 84 stwame1
-obj945 # 1D47CE43
+obj945 hp 1000.0
+obj945 mana 1000.0
+obj945 pos.x 54.3773804
+obj945 pos.y 49.3027496
+obj945 pos.z -0.299999893
+obj945 # D41B6A9E
 + obj947 84 stwame1
-obj947 # 47EA4081
+obj947 hp 1000.0
+obj947 mana 1000.0
+obj947 pos.x 50.7337341
+obj947 pos.y 50.4757919
+obj947 pos.z -0.299999893
+obj947 # 08E419CF
 + obj950 84 stwame1
-obj950 # 2F0E8E30
+obj950 hp 1000.0
+obj950 mana 1000.0
+obj950 pos.x 47.3668365
+obj950 pos.y 52.5346756
+obj950 pos.z -0.550000012
+obj950 # 8202834D
 + obj951 84 stwame1
-obj951 # A31289B2
+obj951 hp 1000.0
+obj951 mana 1000.0
+obj951 pos.x 44.4980011
+obj951 pos.y 55.1569977
+obj951 pos.z -0.650000036
+obj951 # 97C4B320
 + obj952 84 stwame1
-obj952 # 09359558
+obj952 hp 1000.0
+obj952 mana 1000.0
+obj952 pos.x 42.1928101
+obj952 pos.y 58.3078842
+obj952 pos.z -0.650000095
+obj952 # 49F2FF0F
 + obj953 84 stwame1
-obj953 # 9CEBD2BD
+obj953 hp 1000.0
+obj953 mana 1000.0
+obj953 pos.x 38.1833954
+obj953 pos.y 65.0330353
+obj953 pos.z -0.349999696
+obj953 # ED989890
 + obj954 84 stwame1
-obj954 # F0436094
+obj954 hp 1000.0
+obj954 mana 1000.0
+obj954 pos.x 36.974472
+obj954 pos.y 68.6785278
+obj954 pos.z -0.799999714
+obj954 # FDEE316F
 + obj955 84 stwame1
-obj955 # 7618DB31
+obj955 hp 1000.0
+obj955 mana 1000.0
+obj955 pos.x 40.1157379
+obj955 pos.y 61.598526
+obj955 pos.z -0.600000083
+obj955 # 372E2ED8
 + obj963 84 stwame1
-obj963 # C50681FB
+obj963 hp 1000.0
+obj963 mana 1000.0
+obj963 pos.x 37.1287537
+obj963 pos.y 72.4104767
+obj963 pos.z -0.94999975
+obj963 # 36A57D30
 + obj964 84 stwame1
-obj964 # BDC799A3
+obj964 hp 1000.0
+obj964 mana 1000.0
+obj964 pos.x 38.371994
+obj964 pos.y 76.0709991
+obj964 pos.z -0.400000036
+obj964 # 01F70F0D
 + obj965 84 stwame1
-obj965 # 6D2F5655
+obj965 hp 1000.0
+obj965 mana 1000.0
+obj965 pos.x 40.3670044
+obj965 pos.y 79.3820038
+obj965 pos.z -0.200000003
+obj965 # 18B27C75
 + obj966 84 stwame1
-obj966 # B4443AD9
+obj966 hp 1000.0
+obj966 mana 1000.0
+obj966 pos.x 42.6863556
+obj966 pos.y 82.5258942
+obj966 pos.z -0.200000003
+obj966 # 9A935DEF
 + obj967 84 stwame1
-obj967 # AC0298C0
+obj967 hp 1000.0
+obj967 mana 1000.0
+obj967 pos.x 47.3824463
+obj967 pos.y 88.7964478
+obj967 pos.z -0.200000003
+obj967 # E4019BC2
 + obj968 84 stwame1
-obj968 # 4B90170C
+obj968 hp 1000.0
+obj968 mana 1000.0
+obj968 pos.x 45.0630798
+obj968 pos.y 85.6525269
+obj968 pos.z -0.200000003
+obj968 # 757BEEB9
 + obj969 84 stwame1
-obj969 # 0F6235BB
+obj969 hp 1000.0
+obj969 mana 1000.0
+obj969 pos.x 50.1842651
+obj969 pos.y 91.3371277
+obj969 pos.z -0.25
+obj969 # 4D8A591C
 + obj970 84 stwame1
-obj970 # 511AC107
+obj970 hp 1000.0
+obj970 mana 1000.0
+obj970 pos.x 53.709198
+obj970 pos.y 92.7779694
+obj970 pos.z -0.25
+obj970 # E0C49235
 + obj971 84 stwame1
-obj971 # A25B1023
+obj971 hp 1000.0
+obj971 mana 1000.0
+obj971 pos.x 57.5276031
+obj971 pos.y 93.131958
+obj971 pos.z -0.25
+obj971 # 7E9A9362
 + obj972 84 stwame1
-obj972 # 65BAD8FE
+obj972 hp 1000.0
+obj972 mana 1000.0
+obj972 pos.x 61.3750763
+obj972 pos.y 92.6745453
+obj972 pos.z -0.300000072
+obj972 # 0F8F57D9
 + obj973 84 stwame1
-obj973 # 93777921
+obj973 hp 1000.0
+obj973 mana 1000.0
+obj973 pos.x 65.1914978
+obj973 pos.y 91.7916412
+obj973 pos.z -0.300000072
+obj973 # FB5A2A73
 + obj974 84 stwame1
-obj974 # 521DB39B
+obj974 hp 1000.0
+obj974 mana 1000.0
+obj974 pos.x 72.8561401
+obj974 pos.y 90.0494843
+obj974 pos.z -0.300000072
+obj974 # 1B414053
 + obj975 84 stwame1
-obj975 # 3E0B9FB1
+obj975 hp 1000.0
+obj975 mana 1000.0
+obj975 pos.x 69.0397339
+obj975 pos.y 90.9323883
+obj975 pos.z -0.300000072
+obj975 # B5CAF7AE
 + obj976 84 stwame1
-obj976 # 50284E76
+obj976 hp 1000.0
+obj976 mana 1000.0
+obj976 pos.x 76.6926727
+obj976 pos.y 89.187149
+obj976 pos.z -0.300000072
+obj976 # E75174E5
 + obj977 84 stwame1
-obj977 # 926884DD
+obj977 hp 1000.0
+obj977 mana 1000.0
+obj977 pos.x 80.5091095
+obj977 pos.y 88.304245
+obj977 pos.z -0.300000072
+obj977 # E448E176
 + obj978 84 stwame1
-obj978 # 1766B80E
+obj978 hp 1000.0
+obj978 mana 1000.0
+obj978 pos.x 84.4288483
+obj978 pos.y 87.6096649
+obj978 pos.z -0.300000072
+obj978 # 71B9FCB1
 + obj979 84 stwame1
-obj979 # 2956D40D
+obj979 hp 1000.0
+obj979 mana 1000.0
+obj979 pos.x 88.2455292
+obj979 pos.y 86.6667328
+obj979 pos.z -0.300000072
+obj979 # D57E58AD
 + obj980 84 stwame1
-obj980 # B08CA48A
+obj980 hp 1000.0
+obj980 mana 1000.0
+obj980 pos.x 91.5228271
+obj980 pos.y 84.817749
+obj980 pos.z -0.300000072
+obj980 # 7D0129E5
 + obj981 84 stwame1
-obj981 # 69BEF842
+obj981 hp 1000.0
+obj981 mana 1000.0
+obj981 pos.x 94.1208801
+obj981 pos.y 82.0116119
+obj981 pos.z -0.350000083
+obj981 # 6CD288C2
 + obj982 84 stwame1
-obj982 # C9EAE978
+obj982 hp 1000.0
+obj982 mana 1000.0
+obj982 pos.x 95.8787994
+obj982 pos.y 78.5924988
+obj982 pos.z -0.400000095
+obj982 # FC49B56C
 + obj984 84 stwame1
-obj984 # 31691F74
+obj984 hp 1000.0
+obj984 mana 1000.0
+obj984 pos.x 96.7613831
+obj984 pos.y 74.8477783
+obj984 pos.z -0.450000107
+obj984 # 26FD2193
 + obj985 84 stwame1
-obj985 # 13F36EEB
+obj985 hp 1000.0
+obj985 mana 1000.0
+obj985 pos.x 97.301651
+obj985 pos.y 70.954834
+obj985 pos.z -0.400000125
+obj985 # 3ECC97B7
 + obj986 84 stwame1
-obj986 # 5FBCB347
+obj986 hp 1000.0
+obj986 mana 1000.0
+obj986 pos.x 97.7658844
+obj986 pos.y 67.0402222
+obj986 pos.z -0.450000137
+obj986 # 9D42BE94
 + obj1238 82 nafltr56
-obj1238 # DF163AFB
+obj1238 hp 1000.0
+obj1238 mana 1000.0
+obj1238 pos.x 117.411987
+obj1238 pos.y 13.6302719
+obj1238 pos.z 0.0
+obj1238 # BDB586ED
 + obj1239 82 nafltr56
-obj1239 # 4AA8067C
+obj1239 hp 1000.0
+obj1239 mana 1000.0
+obj1239 pos.x 117.925995
+obj1239 pos.y 10.5114975
+obj1239 pos.z 0.0
+obj1239 # DC36135E
 + obj1240 82 nafltr59
-obj1240 # CB011FFB
+obj1240 hp 1000.0
+obj1240 mana 1000.0
+obj1240 pos.x 115.216995
+obj1240 pos.y 11.8510971
+obj1240 pos.z 0.0
+obj1240 # 12A144DB
 + obj1241 82 naflbu6
-obj1241 # D08499A1
+obj1241 hp 1000.0
+obj1241 mana 1000.0
+obj1241 pos.x 116.12648
+obj1241 pos.y 15.1942062
+obj1241 pos.z 0.0
+obj1241 # 243CB820
 + obj1242 82 naflbu6
-obj1242 # 5EE0D386
+obj1242 hp 1000.0
+obj1242 mana 1000.0
+obj1242 pos.x 113.324677
+obj1242 pos.y 11.6620331
+obj1242 pos.z 0.0
+obj1242 # D2047B34
 + obj1243 82 naflbu6
-obj1243 # 1FD9EC96
+obj1243 hp 1000.0
+obj1243 mana 1000.0
+obj1243 pos.x 116.887878
+obj1243 pos.y 9.66498566
+obj1243 pos.z 0.0
+obj1243 # 9ACF77EA
 + obj1244 82 nafltr56
-obj1244 # 380E244B
+obj1244 hp 1000.0
+obj1244 mana 1000.0
+obj1244 pos.x 122.205994
+obj1244 pos.y 46.6949997
+obj1244 pos.z 0.0
+obj1244 # 67EA6CB8
 + obj1245 82 nafltr57
-obj1245 # E56D35C4
+obj1245 hp 1000.0
+obj1245 mana 1000.0
+obj1245 pos.x 120.657745
+obj1245 pos.y 50.115181
+obj1245 pos.z 0.0
+obj1245 # 9BE5FD31
 + obj1246 82 nafltr56
-obj1246 # 4D557AC6
+obj1246 hp 1000.0
+obj1246 mana 1000.0
+obj1246 pos.x 118.830002
+obj1246 pos.y 46.8820038
+obj1246 pos.z 0.0
+obj1246 # D0D01395
 + obj1247 82 naflbu6
-obj1247 # 009E320A
+obj1247 hp 1000.0
+obj1247 mana 1000.0
+obj1247 pos.x 118.59169
+obj1247 pos.y 48.9706039
+obj1247 pos.z 0.0
+obj1247 # EEF3AE27
 + obj1248 82 naflbu6
-obj1248 # 448E0947
+obj1248 hp 1000.0
+obj1248 mana 1000.0
+obj1248 pos.x 120.380325
+obj1248 pos.y 45.0180969
+obj1248 pos.z 0.0
+obj1248 # 316D083E
 + obj1249 82 naflbu6
-obj1249 # E46CCD70
+obj1249 hp 1000.0
+obj1249 mana 1000.0
+obj1249 pos.x 121.661591
+obj1249 pos.y 48.8725967
+obj1249 pos.z 0.0
+obj1249 # 4F170D60
 + obj1250 82 nafltr59
-obj1250 # 3B39E3DC
+obj1250 hp 1000.0
+obj1250 mana 1000.0
+obj1250 pos.x 116.751007
+obj1250 pos.y 53.2249985
+obj1250 pos.z 0.0
+obj1250 # F8FF87D8
 + obj1252 82 naflbu6
-obj1252 # CD5358E1
+obj1252 hp 1000.0
+obj1252 mana 1000.0
+obj1252 pos.x 120.261627
+obj1252 pos.y 51.6873245
+obj1252 pos.z 0.0
+obj1252 # 43825D86
 + obj1253 82 naflbu6
-obj1253 # A000FCC5
+obj1253 hp 1000.0
+obj1253 mana 1000.0
+obj1253 pos.x 116.559357
+obj1253 pos.y 55.3536224
+obj1253 pos.z 0.0
+obj1253 # A9EDFFF6
 + obj1254 82 nafltr56
-obj1254 # 9CA1657D
+obj1254 hp 1000.0
+obj1254 mana 1000.0
+obj1254 pos.x 122.494965
+obj1254 pos.y 30.4560165
+obj1254 pos.z 0.0
+obj1254 # 5E3D4DC3
 + obj1256 82 nafltr57
-obj1256 # 7CD7380B
+obj1256 hp 1000.0
+obj1256 mana 1000.0
+obj1256 pos.x 123.143005
+obj1256 pos.y 31.535202
+obj1256 pos.z 0.0
+obj1256 # 09DEE110
 + obj1257 82 nafltr56
-obj1257 # 26BFE79F
+obj1257 hp 1000.0
+obj1257 mana 1000.0
+obj1257 pos.x 113.186005
+obj1257 pos.y 75.6950073
+obj1257 pos.z 0.0
+obj1257 # BF5617E2
 + obj1258 82 nafltr56
-obj1258 # 1811E994
+obj1258 hp 1000.0
+obj1258 mana 1000.0
+obj1258 pos.x 116.328003
+obj1258 pos.y 72.1170044
+obj1258 pos.z 0.0
+obj1258 # 20545F8C
 + obj1259 82 nafltr59
-obj1259 # B9C05ED6
+obj1259 hp 1000.0
+obj1259 mana 1000.0
+obj1259 pos.x 112.697998
+obj1259 pos.y 71.529007
+obj1259 pos.z 0.0
+obj1259 # 8097B25A
 + obj1260 82 nafltr59
-obj1260 # 370ACD8E
+obj1260 hp 1000.0
+obj1260 mana 1000.0
+obj1260 pos.x 110.156998
+obj1260 pos.y 76.0160065
+obj1260 pos.z 0.0
+obj1260 # 07FDBFF7
 + obj1261 82 nafltr59
-obj1261 # B15E4EF4
+obj1261 hp 1000.0
+obj1261 mana 1000.0
+obj1261 pos.x 117.257996
+obj1261 pos.y 75.4089966
+obj1261 pos.z 0.0
+obj1261 # C7C163ED
 + obj1262 82 naflbu6
-obj1262 # 5C6B7854
+obj1262 hp 1000.0
+obj1262 mana 1000.0
+obj1262 pos.x 115.255569
+obj1262 pos.y 74.5062256
+obj1262 pos.z 0.0
+obj1262 # 92ABF0F6
 + obj1263 82 naflbu6
-obj1263 # 6E500C93
+obj1263 hp 1000.0
+obj1263 mana 1000.0
+obj1263 pos.x 109.629471
+obj1263 pos.y 72.5622101
+obj1263 pos.z 0.0
+obj1263 # B07671C1
 + obj1264 82 naflbu6
-obj1264 # 13C0D201
+obj1264 hp 1000.0
+obj1264 mana 1000.0
+obj1264 pos.x 108.761917
+obj1264 pos.y 78.1039581
+obj1264 pos.z 0.0
+obj1264 # 490B2FE4
 + obj1265 82 naflbu6
-obj1265 # 52D65CBA
+obj1265 hp 1000.0
+obj1265 mana 1000.0
+obj1265 pos.x 114.923065
+obj1265 pos.y 68.7196655
+obj1265 pos.z 0.0
+obj1265 # 15913A3C
 + obj1266 82 naflbu6
-obj1266 # 85A24C52
+obj1266 hp 1000.0
+obj1266 mana 1000.0
+obj1266 pos.x 119.37149
+obj1266 pos.y 78.4569244
+obj1266 pos.z 0.0
+obj1266 # 389B48A1
 + obj1267 82 naflbu6
-obj1267 # E508B73F
+obj1267 hp 1000.0
+obj1267 mana 1000.0
+obj1267 pos.x 124.801239
+obj1267 pos.y 32.3512802
+obj1267 pos.z 0.0
+obj1267 # 64428487
 + obj1268 82 naflbu6
-obj1268 # 98FFC896
+obj1268 hp 1000.0
+obj1268 mana 1000.0
+obj1268 pos.x 122.728455
+obj1268 pos.y 33.8460541
+obj1268 pos.z 0.0
+obj1268 # F0A31007
 + obj1269 82 naflbu6
-obj1269 # D486071B
+obj1269 hp 1000.0
+obj1269 mana 1000.0
+obj1269 pos.x 122.534302
+obj1269 pos.y 29.5399475
+obj1269 pos.z 0.0
+obj1269 # 1E400542
 + obj1270 82 nafltr59
-obj1270 # DD12B234
+obj1270 hp 1000.0
+obj1270 mana 1000.0
+obj1270 pos.x 120.615005
+obj1270 pos.y 98.503006
+obj1270 pos.z 0.0
+obj1270 # C9488B88
 + obj1271 82 nafltr59
-obj1271 # C8E6526B
+obj1271 hp 1000.0
+obj1271 mana 1000.0
+obj1271 pos.x 120.018997
+obj1271 pos.y 94.2339935
+obj1271 pos.z 0.0
+obj1271 # EBDFED56
 + obj1272 82 nafltr59
-obj1272 # B2A24F3A
+obj1272 hp 1000.0
+obj1272 mana 1000.0
+obj1272 pos.x 117.309998
+obj1272 pos.y 98.5469971
+obj1272 pos.z 0.0
+obj1272 # 7F281777
 + obj1273 82 nafltr59
-obj1273 # B41B77BA
+obj1273 hp 1000.0
+obj1273 mana 1000.0
+obj1273 pos.x 119.785004
+obj1273 pos.y 101.983994
+obj1273 pos.z 0.0
+obj1273 # 9842A1FA
 + obj1275 82 nafltr56
-obj1275 # BFAB0463
+obj1275 hp 1000.0
+obj1275 mana 1000.0
+obj1275 pos.x 118.570007
+obj1275 pos.y 102.188004
+obj1275 pos.z 0.0
+obj1275 # 268EE09D
 + obj1276 82 nafltr57
-obj1276 # FDE0C607
+obj1276 hp 1000.0
+obj1276 mana 1000.0
+obj1276 pos.x 117.56308
+obj1276 pos.y 95.8688965
+obj1276 pos.z 0.0
+obj1276 # 894E9346
 + obj1277 82 nafltr56
-obj1277 # B9089D53
+obj1277 hp 1000.0
+obj1277 mana 1000.0
+obj1277 pos.x 113.489838
+obj1277 pos.y 99.9203949
+obj1277 pos.z 0.0
+obj1277 # 30C24AAE
 + obj1278 82 naflbu6
-obj1278 # 0D716B8B
+obj1278 hp 1000.0
+obj1278 mana 1000.0
+obj1278 pos.x 115.065079
+obj1278 pos.y 97.0282898
+obj1278 pos.z 0.0
+obj1278 # A927EE84
 + obj1279 82 naflbu6
-obj1279 # A9CDC3D7
+obj1279 hp 1000.0
+obj1279 mana 1000.0
+obj1279 pos.x 118.013535
+obj1279 pos.y 95.046051
+obj1279 pos.z 0.0
+obj1279 # 65F7C149
 + obj1280 82 naflbu6
-obj1280 # 6C7771DD
+obj1280 hp 1000.0
+obj1280 mana 1000.0
+obj1280 pos.x 116.377258
+obj1280 pos.y 103.556473
+obj1280 pos.z 0.0
+obj1280 # F8D18B7F
 + obj1281 82 naflbu6
-obj1281 # 9386E516
+obj1281 hp 1000.0
+obj1281 mana 1000.0
+obj1281 pos.x 112.38533
+obj1281 pos.y 100.058731
+obj1281 pos.z 0.0
+obj1281 # BF993387
 + obj1282 82 naflbu6
-obj1282 # 5655E294
+obj1282 hp 1000.0
+obj1282 mana 1000.0
+obj1282 pos.x 122.155426
+obj1282 pos.y 90.2921906
+obj1282 pos.z 0.0
+obj1282 # 7D1E7B5E
 + obj1283 82 naflbu6
-obj1283 # 1B62B51C
+obj1283 hp 1000.0
+obj1283 mana 1000.0
+obj1283 pos.x 120.311554
+obj1283 pos.y 85.5053864
+obj1283 pos.z 0.0
+obj1283 # 5FD4139B
 + obj1284 82 naflbu6
-obj1284 # 157A62B5
+obj1284 hp 1000.0
+obj1284 mana 1000.0
+obj1284 pos.x 117.458725
+obj1284 pos.y 84.677887
+obj1284 pos.z 0.0
+obj1284 # 201391E4
 + obj1285 82 naflbu6
-obj1285 # 34BD58F4
+obj1285 hp 1000.0
+obj1285 mana 1000.0
+obj1285 pos.x 120.475372
+obj1285 pos.y 81.6694946
+obj1285 pos.z 0.0
+obj1285 # 8B904944
 + obj1286 82 nafltr20
-obj1286 # 571CD69A
+obj1286 hp 1000.0
+obj1286 mana 1000.0
+obj1286 pos.x 114.774353
+obj1286 pos.y 47.5840302
+obj1286 pos.z 0.0
+obj1286 # 96C7E644
 + obj1287 82 nafltr20
-obj1287 # A55F534F
+obj1287 hp 1000.0
+obj1287 mana 1000.0
+obj1287 pos.x 109.979004
+obj1287 pos.y 56.1500015
+obj1287 pos.z 0.0
+obj1287 # D396B553
 + obj1288 82 nafltr21
-obj1288 # 01DF2623
+obj1288 hp 1000.0
+obj1288 mana 1000.0
+obj1288 pos.x 110.651016
+obj1288 pos.y 70.1004944
+obj1288 pos.z -0.100000001
+obj1288 # C4E1F07F
 + obj1289 82 nafltr22
-obj1289 # A87F3D44
+obj1289 hp 1000.0
+obj1289 mana 1000.0
+obj1289 pos.x 112.989243
+obj1289 pos.y 55.7134857
+obj1289 pos.z 0.0
+obj1289 # B59F14E7
 + obj1290 82 nafltr22
-obj1290 # E76C8851
+obj1290 hp 1000.0
+obj1290 mana 1000.0
+obj1290 pos.x 110.994446
+obj1290 pos.y 73.827652
+obj1290 pos.z 0.0
+obj1290 # 7B0C9902
 + obj1291 82 nafltr22
-obj1291 # AD7BAE75
+obj1291 hp 1000.0
+obj1291 mana 1000.0
+obj1291 pos.x 112.86969
+obj1291 pos.y 51.7417679
+obj1291 pos.z 0.0
+obj1291 # 9409EF99
 + obj1292 82 nafltr23
-obj1292 # 4F0BF5F5
+obj1292 hp 1000.0
+obj1292 mana 1000.0
+obj1292 pos.x 116.998932
+obj1292 pos.y 44.0211029
+obj1292 pos.z 0.0
+obj1292 # BDABF8DB
 + obj1293 82 nafltr23
-obj1293 # 2E6EE88F
+obj1293 hp 1000.0
+obj1293 mana 1000.0
+obj1293 pos.x 106.910202
+obj1293 pos.y 72.414566
+obj1293 pos.z 0.0
+obj1293 # 667CB72F
 + obj1294 82 nafltr21
-obj1294 # C4257D6C
+obj1294 hp 1000.0
+obj1294 mana 1000.0
+obj1294 pos.x 111.475067
+obj1294 pos.y 103.59726
+obj1294 pos.z 0.0
+obj1294 # AA50190A
 + obj1295 82 nafltr21
-obj1295 # E0A2FFAA
+obj1295 hp 1000.0
+obj1295 mana 1000.0
+obj1295 pos.x 81.461792
+obj1295 pos.y 111.138916
+obj1295 pos.z -0.200000003
+obj1295 # 8B37B7B1
 + obj1296 82 nafltr22
-obj1296 # 7D9CC637
+obj1296 hp 1000.0
+obj1296 mana 1000.0
+obj1296 pos.x 86.3148804
+obj1296 pos.y 106.784943
+obj1296 pos.z -0.350000024
+obj1296 # 2A653715
 + obj1297 82 nafltr22
-obj1297 # 3593C843
+obj1297 hp 1000.0
+obj1297 mana 1000.0
+obj1297 pos.x 75.160965
+obj1297 pos.y 113.006668
+obj1297 pos.z -0.400000036
+obj1297 # BE75F5DD
 + obj1298 82 nafltr22
-obj1298 # C2B7B645
+obj1298 hp 1000.0
+obj1298 mana 1000.0
+obj1298 pos.x 78.3306885
+obj1298 pos.y 117.324158
+obj1298 pos.z -0.300000012
+obj1298 # 5C45F598
 + obj1300 82 nafltr23
-obj1300 # B2BCC6EC
+obj1300 hp 1000.0
+obj1300 mana 1000.0
+obj1300 pos.x 82.5835419
+obj1300 pos.y 105.067307
+obj1300 pos.z -0.200000003
+obj1300 # 49269FDB
 + obj1301 82 nafltr23
-obj1301 # F614257F
+obj1301 hp 1000.0
+obj1301 mana 1000.0
+obj1301 pos.x 82.977829
+obj1301 pos.y 115.827545
+obj1301 pos.z -0.400000036
+obj1301 # 2EE2B195
 + obj1302 82 nafltr20
-obj1302 # C7A573D3
+obj1302 hp 1000.0
+obj1302 mana 1000.0
+obj1302 pos.x 82.8616333
+obj1302 pos.y 98.8406677
+obj1302 pos.z 0.0
+obj1302 # 74BF093F
 + obj1303 82 nafltr21
-obj1303 # 2DDFD975
+obj1303 hp 1000.0
+obj1303 mana 1000.0
+obj1303 pos.x 118.446304
+obj1303 pos.y 82.301712
+obj1303 pos.z 0.0
+obj1303 # AD03252B
 + obj1304 82 nafltr21
-obj1304 # A35E4690
+obj1304 hp 1000.0
+obj1304 mana 1000.0
+obj1304 pos.x 112.932861
+obj1304 pos.y 84.5979614
+obj1304 pos.z 0.0
+obj1304 # E06EF42E
 + obj1305 82 nafltr22
-obj1305 # 657FC0A8
+obj1305 hp 1000.0
+obj1305 mana 1000.0
+obj1305 pos.x 109.280914
+obj1305 pos.y 83.0755615
+obj1305 pos.z 0.0
+obj1305 # A5F2F44A
 + obj1306 82 nafltr22
-obj1306 # 798850E4
+obj1306 hp 1000.0
+obj1306 mana 1000.0
+obj1306 pos.x 111.059464
+obj1306 pos.y 87.4185486
+obj1306 pos.z 0.0
+obj1306 # 3FF34A79
 + obj1307 82 nafltr22
-obj1307 # B45B8DD7
+obj1307 hp 1000.0
+obj1307 mana 1000.0
+obj1307 pos.x 106.547363
+obj1307 pos.y 80.1070862
+obj1307 pos.z 0.0
+obj1307 # F6E1C74C
 + obj1308 82 nafltr20
-obj1308 # 13C8F02D
+obj1308 hp 1000.0
+obj1308 mana 1000.0
+obj1308 pos.x 110.896286
+obj1308 pos.y 80.9049072
+obj1308 pos.z 0.0
+obj1308 # 5AEF080A
 + obj1309 82 nafltr20
-obj1309 # CFEF0AE5
+obj1309 hp 1000.0
+obj1309 mana 1000.0
+obj1309 pos.x 103.50618
+obj1309 pos.y 104.405609
+obj1309 pos.z 0.0
+obj1309 # B8648C92
 + obj1310 82 naflbu6
-obj1310 # C24067BD
+obj1310 hp 1000.0
+obj1310 mana 1000.0
+obj1310 pos.x 78.7571716
+obj1310 pos.y 110.781479
+obj1310 pos.z 0.0
+obj1310 # 3E46DDE8
 + obj1311 82 naflbu6
-obj1311 # 8A41BDBC
+obj1311 hp 1000.0
+obj1311 mana 1000.0
+obj1311 pos.x 83.1786194
+obj1311 pos.y 107.671432
+obj1311 pos.z 0.0
+obj1311 # 26312463
 + obj1312 82 naflbu6
-obj1312 # 06599511
+obj1312 hp 1000.0
+obj1312 mana 1000.0
+obj1312 pos.x 76.5034943
+obj1312 pos.y 109.057495
+obj1312 pos.z 0.0
+obj1312 # E91B82F2
 + obj1313 82 naflbu6
-obj1313 # 4A87053B
+obj1313 hp 1000.0
+obj1313 mana 1000.0
+obj1313 pos.x 81.4401398
+obj1313 pos.y 103.274536
+obj1313 pos.z 0.0
+obj1313 # 32123AD4
 + obj1314 82 naflbu6
-obj1314 # 2945517C
+obj1314 hp 1000.0
+obj1314 mana 1000.0
+obj1314 pos.x 82.4964142
+obj1314 pos.y 118.871185
+obj1314 pos.z 0.0
+obj1314 # 11730E9C
 + obj1315 82 nafltr21
-obj1315 # 10CEB8DD
+obj1315 hp 1000.0
+obj1315 mana 1000.0
+obj1315 pos.x 33.8309937
+obj1315 pos.y 101.542999
+obj1315 pos.z 0.0
+obj1315 # 95A18325
 + obj1316 82 nafltr22
-obj1316 # C55A1133
+obj1316 hp 1000.0
+obj1316 mana 1000.0
+obj1316 pos.x 35.6033173
+obj1316 pos.y 97.4556274
+obj1316 pos.z -0.150000006
+obj1316 # 7BEA8BE1
 + obj1317 82 nafltr22
-obj1317 # C339315D
+obj1317 hp 1000.0
+obj1317 mana 1000.0
+obj1317 pos.x 29.8205872
+obj1317 pos.y 99.239624
+obj1317 pos.z -0.150000006
+obj1317 # 3DA05C5B
 + obj1318 82 nafltr23
-obj1318 # E887A285
+obj1318 hp 1000.0
+obj1318 mana 1000.0
+obj1318 pos.x 33.2437286
+obj1318 pos.y 94.6909485
+obj1318 pos.z 0.0
+obj1318 # 3DDCF114
 + obj1319 82 nafltr23
-obj1319 # 954E11D7
+obj1319 hp 1000.0
+obj1319 mana 1000.0
+obj1319 pos.x 39.2608643
+obj1319 pos.y 96.3777924
+obj1319 pos.z 0.0
+obj1319 # FB9684C2
 + obj1320 82 nafltr20
-obj1320 # 8FE10997
+obj1320 hp 1000.0
+obj1320 mana 1000.0
+obj1320 pos.x 32.0440063
+obj1320 pos.y 97.5249939
+obj1320 pos.z 0.0
+obj1320 # 62BB0D89
 + obj1322 82 naflbu6
-obj1322 # 5E50B4E2
+obj1322 hp 1000.0
+obj1322 mana 1000.0
+obj1322 pos.x 35.1726227
+obj1322 pos.y 98.8900757
+obj1322 pos.z 0.0
+obj1322 # 78CFA7FE
 + obj1323 82 naflbu6
-obj1323 # B9D0FC6A
+obj1323 hp 1000.0
+obj1323 mana 1000.0
+obj1323 pos.x 31.5614777
+obj1323 pos.y 101.830154
+obj1323 pos.z 0.0
+obj1323 # B59B2FD9
 + obj1324 82 naflbu6
-obj1324 # 5CB85058
+obj1324 hp 1000.0
+obj1324 mana 1000.0
+obj1324 pos.x 34.1970825
+obj1324 pos.y 98.2442169
+obj1324 pos.z 0.250000089
+obj1324 # 47A9D4E0
 + obj1325 82 nafltr56
-obj1325 # 66B57151
+obj1325 hp 1000.0
+obj1325 mana 1000.0
+obj1325 pos.x 34.5637817
+obj1325 pos.y 99.0795441
+obj1325 pos.z -0.100000009
+obj1325 # 6D218875
 + obj1326 82 nafltr22
-obj1326 # 839603AC
+obj1326 hp 1000.0
+obj1326 mana 1000.0
+obj1326 pos.x 69.2803955
+obj1326 pos.y 101.964203
+obj1326 pos.z -0.400000036
+obj1326 # 681CF34D
 + obj1327 82 nafltr22
-obj1327 # C300B0C8
+obj1327 hp 1000.0
+obj1327 mana 1000.0
+obj1327 pos.x 66.9745941
+obj1327 pos.y 101.725266
+obj1327 pos.z -0.400000036
+obj1327 # F5DB3E65
 + obj1328 82 nafltr22
-obj1328 # C11D9623
+obj1328 hp 1000.0
+obj1328 mana 1000.0
+obj1328 pos.x 71.4213867
+obj1328 pos.y 100.084198
+obj1328 pos.z -0.400000036
+obj1328 # 0A4D3FAA
 + obj1329 82 nafltr22
-obj1329 # F53A1503
+obj1329 hp 1000.0
+obj1329 mana 1000.0
+obj1329 pos.x 70.7707062
+obj1329 pos.y 104.648651
+obj1329 pos.z -0.400000036
+obj1329 # D86A6505
 + obj1330 82 naflbu6
-obj1330 # EE661B90
+obj1330 hp 1000.0
+obj1330 mana 1000.0
+obj1330 pos.x 68.5247345
+obj1330 pos.y 103.855255
+obj1330 pos.z 0.0
+obj1330 # 778960D2
 + obj1331 82 naflbu6
-obj1331 # 86D78AE7
+obj1331 hp 1000.0
+obj1331 mana 1000.0
+obj1331 pos.x 9.76043701
+obj1331 pos.y 86.3420563
+obj1331 pos.z 0.0
+obj1331 # A780A365
 + obj1332 82 naflbu6
-obj1332 # 942F3A9B
+obj1332 hp 1000.0
+obj1332 mana 1000.0
+obj1332 pos.x 8.03163147
+obj1332 pos.y 84.0641022
+obj1332 pos.z 0.0
+obj1332 # AD8F166D
 + obj1333 82 naflbu6
-obj1333 # E1200804
+obj1333 hp 1000.0
+obj1333 mana 1000.0
+obj1333 pos.x 4.91281128
+obj1333 pos.y 83.3643494
+obj1333 pos.z 0.0
+obj1333 # E1029BC1
 + obj1334 82 naflbu6
-obj1334 # 020860F5
+obj1334 hp 1000.0
+obj1334 mana 1000.0
+obj1334 pos.x 6.66986084
+obj1334 pos.y 73.2927551
+obj1334 pos.z 0.0
+obj1334 # E5826331
 + obj1336 83 nast16
-obj1336 # E4704109
+obj1336 hp 1000.0
+obj1336 mana 1000.0
+obj1336 pos.x 12.3834686
+obj1336 pos.y 81.0549011
+obj1336 pos.z -0.100000009
+obj1336 # 3998EB04
 + obj1337 83 nast8
-obj1337 # 2BAA6C9C
+obj1337 hp 1000.0
+obj1337 mana 1000.0
+obj1337 pos.x 14.3600006
+obj1337 pos.y 75.352005
+obj1337 pos.z -0.200000003
+obj1337 # 05E896FB
 + obj1344 84 stwame1
-obj1344 # 3A061C1C
+obj1344 hp 1000.0
+obj1344 mana 1000.0
+obj1344 pos.x 98.1124115
+obj1344 pos.y 63.1277618
+obj1344 pos.z -0.550000131
+obj1344 # BDDF605B
 + obj1346 84 stwame1
-obj1346 # 453F59F6
+obj1346 hp 1000.0
+obj1346 mana 1000.0
+obj1346 pos.x 98.3403931
+obj1346 pos.y 59.172348
+obj1346 pos.z -0.550000131
+obj1346 # 332525EE
 + obj1347 84 stwame1
-obj1347 # E5B771D8
+obj1347 hp 1000.0
+obj1347 mana 1000.0
+obj1347 pos.x 98.5763397
+obj1347 pos.y 55.2357712
+obj1347 pos.z -0.550000131
+obj1347 # 740AED0F
 + obj1349 84 stwame1
-obj1349 # 1989EE3F
+obj1349 hp 1000.0
+obj1349 mana 1000.0
+obj1349 pos.x 95.6352386
+obj1349 pos.y 48.6352005
+obj1349 pos.z -0.550000012
+obj1349 # 6C888A49
 + obj1350 84 stwame1
-obj1350 # 95C952D4
+obj1350 hp 1000.0
+obj1350 mana 1000.0
+obj1350 pos.x 97.8684082
+obj1350 pos.y 51.6657715
+obj1350 pos.z -0.550000012
+obj1350 # 4FDF908A
 + obj1353 84 stwame1
-obj1353 # B869CFB1
+obj1353 hp 1000.0
+obj1353 mana 1000.0
+obj1353 pos.x 64.8586731
+obj1353 pos.y 48.6394196
+obj1353 pos.z -0.550000131
+obj1353 # E5493D7C
 + obj1354 84 stwame1
-obj1354 # D219CB38
+obj1354 hp 1000.0
+obj1354 mana 1000.0
+obj1354 pos.x 68.8151779
+obj1354 pos.y 48.2831345
+obj1354 pos.z -0.550000131
+obj1354 # 96FC7B01
 + obj1355 84 stwame1
-obj1355 # 759E8E19
+obj1355 hp 1000.0
+obj1355 mana 1000.0
+obj1355 pos.x 72.788559
+obj1355 pos.y 47.9531479
+obj1355 pos.z -0.550000131
+obj1355 # 75B2D79E
 + obj1356 84 stwame1
-obj1356 # 95584D40
+obj1356 hp 1000.0
+obj1356 mana 1000.0
+obj1356 pos.x 76.7773972
+obj1356 pos.y 47.6047821
+obj1356 pos.z -0.550000131
+obj1356 # 5D5CA45B
 + obj1357 84 stwame1
-obj1357 # 5F540CA5
+obj1357 hp 1000.0
+obj1357 mana 1000.0
+obj1357 pos.x 80.748558
+obj1357 pos.y 47.2645912
+obj1357 pos.z -0.550000131
+obj1357 # 7F3505AC
 + obj1358 84 stwame1
-obj1358 # B9F3F274
+obj1358 hp 1000.0
+obj1358 mana 1000.0
+obj1358 pos.x 84.7076569
+obj1358 pos.y 46.9368896
+obj1358 pos.z -0.550000131
+obj1358 # B1A5772E
 + obj1359 84 stwame1
-obj1359 # 22F55B0F
+obj1359 hp 1000.0
+obj1359 mana 1000.0
+obj1359 pos.x 88.6802826
+obj1359 pos.y 46.5844879
+obj1359 pos.z -0.550000131
+obj1359 # 4D63ADE7
 + obj1360 84 stwame1
-obj1360 # FC585B05
+obj1360 hp 1000.0
+obj1360 mana 1000.0
+obj1360 pos.x 92.4940872
+obj1360 pos.y 46.8945618
+obj1360 pos.z -0.550000012
+obj1360 # 0795B85F
 + obj1363 84 stst14
-obj1363 # 4778F425
+obj1363 hp 1000.0
+obj1363 mana 1000.0
+obj1363 pos.x 47.3847198
+obj1363 pos.y 71.2245331
+obj1363 pos.z 0.0
+obj1363 # ACA4952E
 + obj1364 84 stwali1
-obj1364 # 3FECCDB7
+obj1364 hp 1000.0
+obj1364 mana 1000.0
+obj1364 pos.x 61.3950348
+obj1364 pos.y 82.9740601
+obj1364 pos.z 0.0
+obj1364 # 05E61138
 + obj1367 84 stwali1
-obj1367 # 11682B9B
+obj1367 hp 1000.0
+obj1367 mana 1000.0
+obj1367 pos.x 64.9213562
+obj1367 pos.y 83.2880096
+obj1367 pos.z -0.150000006
+obj1367 # 6793513C
 + obj1368 84 stwali1
-obj1368 # A74F6D0E
+obj1368 hp 1000.0
+obj1368 mana 1000.0
+obj1368 pos.x 63.1929436
+obj1368 pos.y 83.1331329
+obj1368 pos.z -0.150000006
+obj1368 # 1ABB6F08
 + obj1372 84 stwali1
-obj1372 # 7C969E04
+obj1372 hp 1000.0
+obj1372 mana 1000.0
+obj1372 pos.x 72.9540558
+obj1372 pos.y 84.2649231
+obj1372 pos.z 0.0
+obj1372 # A0D0694C
 + obj1374 84 stwali1
-obj1374 # F3DAEDBC
+obj1374 hp 1000.0
+obj1374 mana 1000.0
+obj1374 pos.x 73.918396
+obj1374 pos.y 85.8723907
+obj1374 pos.z 0.0
+obj1374 # 3B6C3E87
 + obj1376 84 stwali1
-obj1376 # 249C7A03
+obj1376 hp 1000.0
+obj1376 mana 1000.0
+obj1376 pos.x 74.8032227
+obj1376 pos.y 87.6817017
+obj1376 pos.z 0.0
+obj1376 # 05CECE4C
 + obj1379 84 stwali1
-obj1379 # B02C1B61
+obj1379 hp 1000.0
+obj1379 mana 1000.0
+obj1379 pos.x 57.5260315
+obj1379 pos.y 91.9972229
+obj1379 pos.z 0.0
+obj1379 # 2AF8F8A5
 + obj1380 84 stwali1
-obj1380 # 0E8ECF5E
+obj1380 hp 1000.0
+obj1380 mana 1000.0
+obj1380 pos.x 57.5768585
+obj1380 pos.y 90.1092987
+obj1380 pos.z 0.0
+obj1380 # B309BF98
 + obj1383 84 stwali1
-obj1383 # 2289EA49
+obj1383 hp 1000.0
+obj1383 mana 1000.0
+obj1383 pos.x 57.3710327
+obj1383 pos.y 87.9126892
+obj1383 pos.z 0.0
+obj1383 # E17F069F
 + obj1385 84 stwali1
-obj1385 # 359F92C3
+obj1385 hp 1000.0
+obj1385 mana 1000.0
+obj1385 pos.x 57.2698669
+obj1385 pos.y 85.8998566
+obj1385 pos.z 0.0
+obj1385 # CCF6934E
 + obj1387 84 stwali1
-obj1387 # B430BF36
+obj1387 hp 1000.0
+obj1387 mana 1000.0
+obj1387 pos.x 57.2467499
+obj1387 pos.y 84.1822662
+obj1387 pos.z 0.0
+obj1387 # 739C0103
 + obj1391 84 stwali1
-obj1391 # 349E597B
+obj1391 hp 1000.0
+obj1391 mana 1000.0
+obj1391 pos.x 57.4379578
+obj1391 pos.y 83.2935791
+obj1391 pos.z 0.0
+obj1391 # 80DEAA4E
 + obj1392 84 stwali1
-obj1392 # FB398ED6
+obj1392 hp 1000.0
+obj1392 mana 1000.0
+obj1392 pos.x 58.3154831
+obj1392 pos.y 82.1696014
+obj1392 pos.z 0.0
+obj1392 # 0E779082
 + obj1443 84 stwali1
-obj1443 # 715C62B3
+obj1443 hp 1000.0
+obj1443 mana 1000.0
+obj1443 pos.x 45.1542664
+obj1443 pos.y 68.937973
+obj1443 pos.z 0.0
+obj1443 # 2F0FE8B9
 + obj1445 84 stwali1
-obj1445 # D6664EB7
+obj1445 hp 1000.0
+obj1445 mana 1000.0
+obj1445 pos.x 42.7953796
+obj1445 pos.y 68.5054626
+obj1445 pos.z 0.0
+obj1445 # 8CB6C048
 + obj1494 82 nafltr59
-obj1494 # A0523D1F
+obj1494 hp 1000.0
+obj1494 mana 1000.0
+obj1494 pos.x 12.7030029
+obj1494 pos.y 18.3239975
+obj1494 pos.z -0.300000012
+obj1494 # AE30708B
 + obj1495 82 nafltr59
-obj1495 # 9306135F
+obj1495 hp 1000.0
+obj1495 mana 1000.0
+obj1495 pos.x 14.5478363
+obj1495 pos.y 15.8074875
+obj1495 pos.z -0.200000003
+obj1495 # 48FEB8CA
 + obj1500 84 stto6
-obj1500 # 72B94DF2
+obj1500 hp 1000.0
+obj1500 mana 1000.0
+obj1500 pos.x 62.5166779
+obj1500 pos.y 77.208252
+obj1500 pos.z 0.0
+obj1500 # 75622784
 + obj1505 83 nast8
-obj1505 # 815D9707
+obj1505 hp 1000.0
+obj1505 mana 1000.0
+obj1505 pos.x 29.6469269
+obj1505 pos.y 39.8104401
+obj1505 pos.z -0.450000048
+obj1505 # 94A59BF0
 + obj1506 83 nast13
-obj1506 # E976D0CC
+obj1506 hp 1000.0
+obj1506 mana 1000.0
+obj1506 pos.x 24.6909943
+obj1506 pos.y 40.348999
+obj1506 pos.z -0.349999994
+obj1506 # 7A066DAD
 + obj1508 82 nafltr59
-obj1508 # FDBD842C
+obj1508 hp 1000.0
+obj1508 mana 1000.0
+obj1508 pos.x 28.2149963
+obj1508 pos.y 41.7580032
+obj1508 pos.z -0.150000006
+obj1508 # 6333080D
 + obj1509 82 nafltr59
-obj1509 # 6B760C1C
+obj1509 hp 1000.0
+obj1509 mana 1000.0
+obj1509 pos.x 24.8043251
+obj1509 pos.y 37.5062828
+obj1509 pos.z -0.150000006
+obj1509 # 8C13309F
 + obj1511 84 stbuho7
-obj1511 # 7F2E3C1D
+obj1511 hp 1000.0
+obj1511 mana 1000.0
+obj1511 pos.x 82.6149139
+obj1511 pos.y 53.446579
+obj1511 pos.z 0.0999999642
+obj1511 # 6E67C4AB
 + obj1513 84 stbuho7
-obj1513 # 3B619DBC
+obj1513 hp 1000.0
+obj1513 mana 1000.0
+obj1513 pos.x 88.8171692
+obj1513 pos.y 69.6660919
+obj1513 pos.z 0.0
+obj1513 # EB84C8B9
 + obj1515 84 stbuho7
-obj1515 # C77B437D
+obj1515 hp 1000.0
+obj1515 mana 1000.0
+obj1515 pos.x 83.4033661
+obj1515 pos.y 82.2259521
+obj1515 pos.z 0.0
+obj1515 # BD62BBEF
 + obj1519 82 nafltr59
-obj1519 # 8B06B329
+obj1519 hp 1000.0
+obj1519 mana 1000.0
+obj1519 pos.x 88.4179535
+obj1519 pos.y 17.3674889
+obj1519 pos.z -0.0999999791
+obj1519 # 1ADBFEC0
 + obj1520 82 nafltr59
-obj1520 # C5737EF0
+obj1520 hp 1000.0
+obj1520 mana 1000.0
+obj1520 pos.x 91.0985413
+obj1520 pos.y 17.0815697
+obj1520 pos.z 0.0
+obj1520 # 07609D06
 + obj1521 82 nafltr59
-obj1521 # 802AAF48
+obj1521 hp 1000.0
+obj1521 mana 1000.0
+obj1521 pos.x 90.1995392
+obj1521 pos.y 14.6435728
+obj1521 pos.z -0.100000001
+obj1521 # 64DF3180
 + obj1522 82 nafltr59
-obj1522 # B1DA7018
+obj1522 hp 1000.0
+obj1522 mana 1000.0
+obj1522 pos.x 71.1200333
+obj1522 pos.y 14.9071302
+obj1522 pos.z -0.100000001
+obj1522 # BF290429
 + obj1523 82 nafltr59
-obj1523 # 69C693C9
+obj1523 hp 1000.0
+obj1523 mana 1000.0
+obj1523 pos.x 72.0193863
+obj1523 pos.y 17.3453522
+obj1523 pos.z 0.0
+obj1523 # 57D3376E
 + obj1524 82 nafltr59
-obj1524 # 59E1FEF4
+obj1524 hp 1000.0
+obj1524 mana 1000.0
+obj1524 pos.x 69.3384781
+obj1524 pos.y 17.6310501
+obj1524 pos.z -0.0999999791
+obj1524 # DE5E0A22
 + obj1525 82 nafltr59
-obj1525 # 32F70B6B
+obj1525 hp 1000.0
+obj1525 mana 1000.0
+obj1525 pos.x 68.589859
+obj1525 pos.y 51.6788864
+obj1525 pos.z -0.200000003
+obj1525 # 4DEF1B18
 + obj1527 82 nafltr56
-obj1527 # 281F4B3D
+obj1527 hp 1000.0
+obj1527 mana 1000.0
+obj1527 pos.x 41.5590057
+obj1527 pos.y 68.0529938
+obj1527 pos.z -0.0500000007
+obj1527 # 0949BC23
 + obj1528 82 nafltr59
-obj1528 # 63E66411
+obj1528 hp 1000.0
+obj1528 mana 1000.0
+obj1528 pos.x 45.2904816
+obj1528 pos.y 73.96521
+obj1528 pos.z -0.100000001
+obj1528 # AC2ADD6D
 + obj1529 82 nafltr59
-obj1529 # DE34DF84
+obj1529 hp 1000.0
+obj1529 mana 1000.0
+obj1529 pos.x 53.8028107
+obj1529 pos.y 89.2380981
+obj1529 pos.z -0.200000003
+obj1529 # CE0F74D7
 + obj1530 82 nafltr59
-obj1530 # B65DA513
+obj1530 hp 1000.0
+obj1530 mana 1000.0
+obj1530 pos.x 51.9282074
+obj1530 pos.y 90.0177307
+obj1530 pos.z -0.300000072
+obj1530 # A4795548
 + obj1531 82 nafltr59
-obj1531 # F058EAD5
+obj1531 hp 1000.0
+obj1531 mana 1000.0
+obj1531 pos.x 49.8079987
+obj1531 pos.y 88.7030029
+obj1531 pos.z -0.200000003
+obj1531 # D22B370A
 + obj1532 82 nafltr59
-obj1532 # A008CFCF
+obj1532 hp 1000.0
+obj1532 mana 1000.0
+obj1532 pos.x 55.7808075
+obj1532 pos.y 90.6462708
+obj1532 pos.z -0.200000003
+obj1532 # C150457C
 + obj1533 82 nafltr59
-obj1533 # FBC9EE83
+obj1533 hp 1000.0
+obj1533 mana 1000.0
+obj1533 pos.x 51.3059998
+obj1533 pos.y 80.927002
+obj1533 pos.z -0.299999982
+obj1533 # BD553149
 + obj1534 82 nafltr59
-obj1534 # D2D6FD36
+obj1534 hp 1000.0
+obj1534 mana 1000.0
+obj1534 pos.x 84.4580994
+obj1534 pos.y 57.6758194
+obj1534 pos.z -0.300000012
+obj1534 # 5287F537
 + obj1535 82 nafltr59
-obj1535 # 720C3196
+obj1535 hp 1000.0
+obj1535 mana 1000.0
+obj1535 pos.x 83.27388
+obj1535 pos.y 49.3326569
+obj1535 pos.z -0.300000012
+obj1535 # D9068644
 + obj1536 82 nafltr59
-obj1536 # 99E834AF
+obj1536 hp 1000.0
+obj1536 mana 1000.0
+obj1536 pos.x 87.0203857
+obj1536 pos.y 49.8013229
+obj1536 pos.z -0.300000012
+obj1536 # 80FFF8BD
 + obj1537 82 nafltr59
-obj1537 # CB969D70
+obj1537 hp 1000.0
+obj1537 mana 1000.0
+obj1537 pos.x 87.0579987
+obj1537 pos.y 52.4260025
+obj1537 pos.z -0.399999976
+obj1537 # E6C90C9E
 + obj1538 82 nafltr59
-obj1538 # 4BBC9193
+obj1538 hp 1000.0
+obj1538 mana 1000.0
+obj1538 pos.x 91.6450043
+obj1538 pos.y 48.3990021
+obj1538 pos.z -0.300000012
+obj1538 # CF2E20A4
 + obj1539 82 nafltr59
-obj1539 # 04D28E72
+obj1539 hp 1000.0
+obj1539 mana 1000.0
+obj1539 pos.x 93.0024414
+obj1539 pos.y 48.8125076
+obj1539 pos.z -0.300000012
+obj1539 # FE43D454
 + obj1541 82 nafltr59
-obj1541 # FE7CED86
+obj1541 hp 1000.0
+obj1541 mana 1000.0
+obj1541 pos.x 84.7290497
+obj1541 pos.y 66.5394135
+obj1541 pos.z -0.300000012
+obj1541 # 4EF6C15F
 + obj1542 82 nafltr59
-obj1542 # 5111AA3A
+obj1542 hp 1000.0
+obj1542 mana 1000.0
+obj1542 pos.x 95.9132538
+obj1542 pos.y 54.4764633
+obj1542 pos.z -0.300000012
+obj1542 # 8B9A2A7D
 + obj1543 82 nafltr59
-obj1543 # 2AB953A9
+obj1543 hp 1000.0
+obj1543 mana 1000.0
+obj1543 pos.x 95.6921692
+obj1543 pos.y 58.6956787
+obj1543 pos.z -0.300000012
+obj1543 # 9601E296
 + obj1544 82 nafltr23
-obj1544 # 0870D632
+obj1544 hp 1000.0
+obj1544 mana 1000.0
+obj1544 pos.x 64.6738892
+obj1544 pos.y 48.8160172
+obj1544 pos.z 2.19999981
+obj1544 # 6175AF45
 + obj1548 82 naflbu6
-obj1548 # F5F32DDF
+obj1548 hp 1000.0
+obj1548 mana 1000.0
+obj1548 pos.x 97.3751373
+obj1548 pos.y 56.4286346
+obj1548 pos.z 0.0
+obj1548 # 64EECB40
 + obj1549 82 naflbu6
-obj1549 # 43A5A0EE
+obj1549 hp 1000.0
+obj1549 mana 1000.0
+obj1549 pos.x 79.8473511
+obj1549 pos.y 51.1970673
+obj1549 pos.z 0.0
+obj1549 # 2E61D273
 + obj1550 82 naflbu6
-obj1550 # 4AFBEDB4
+obj1550 hp 1000.0
+obj1550 mana 1000.0
+obj1550 pos.x 81.1820068
+obj1550 pos.y 49.9729996
+obj1550 pos.z 0.0
+obj1550 # 9C4D6533
 + obj1552 82 nafltr56
-obj1552 # 2238BF64
+obj1552 hp 1000.0
+obj1552 mana 1000.0
+obj1552 pos.x 83.1885986
+obj1552 pos.y 71.6040344
+obj1552 pos.z -0.150000006
+obj1552 # B8E3D9A8
 + obj1553 82 naflbu6
-obj1553 # 43E52070
+obj1553 hp 1000.0
+obj1553 mana 1000.0
+obj1553 pos.x 83.2960052
+obj1553 pos.y 72.6289978
+obj1553 pos.z 0.0
+obj1553 # D8335BCF
 + obj1554 82 naflbu6
-obj1554 # 7FD94FFD
+obj1554 hp 1000.0
+obj1554 mana 1000.0
+obj1554 pos.x 83.9165039
+obj1554 pos.y 73.3304749
+obj1554 pos.z 0.0
+obj1554 # 5CF77955
 + obj1555 82 naflbu6
-obj1555 # D0114A38
+obj1555 hp 1000.0
+obj1555 mana 1000.0
+obj1555 pos.x 85.3609924
+obj1555 pos.y 72.2810059
+obj1555 pos.z 0.0
+obj1555 # 7D02BFB5
 + obj1556 82 naflbu6
-obj1556 # 30B3325A
+obj1556 hp 1000.0
+obj1556 mana 1000.0
+obj1556 pos.x 41.7890015
+obj1556 pos.y 69.7339935
+obj1556 pos.z 0.0
+obj1556 # D3E52E4D
 + obj1557 82 naflbu6
-obj1557 # 1DE30337
+obj1557 hp 1000.0
+obj1557 mana 1000.0
+obj1557 pos.x 96.7460022
+obj1557 pos.y 68.5980072
+obj1557 pos.z 0.0
+obj1557 # 9349160E
 + obj1558 82 naflbu6
-obj1558 # 96E01623
+obj1558 hp 1000.0
+obj1558 mana 1000.0
+obj1558 pos.x 96.2030029
+obj1558 pos.y 70.4539948
+obj1558 pos.z 0.0
+obj1558 # EF252008
 + obj1559 82 naflbu6
-obj1559 # 44854226
+obj1559 hp 1000.0
+obj1559 mana 1000.0
+obj1559 pos.x 96.6438141
+obj1559 pos.y 70.049118
+obj1559 pos.z 0.0
+obj1559 # E2BE133A
 + obj1560 82 naflbu6
-obj1560 # 4A5CA81C
+obj1560 hp 1000.0
+obj1560 mana 1000.0
+obj1560 pos.x 96.1324463
+obj1560 pos.y 71.6025848
+obj1560 pos.z 0.0
+obj1560 # 00EDB8F3
 + obj1561 82 naflbu6
-obj1561 # 4A37059F
+obj1561 hp 1000.0
+obj1561 mana 1000.0
+obj1561 pos.x 96.1519928
+obj1561 pos.y 72.8361511
+obj1561 pos.z 0.0
+obj1561 # 89DCE1CF
 + obj1562 82 naflbu6
-obj1562 # CC1F02CE
+obj1562 hp 1000.0
+obj1562 mana 1000.0
+obj1562 pos.x 96.8600464
+obj1562 pos.y 60.5934601
+obj1562 pos.z 0.0
+obj1562 # 7804D625
 + obj1563 82 naflbu6
-obj1563 # D83BDEAF
+obj1563 hp 1000.0
+obj1563 mana 1000.0
+obj1563 pos.x 97.0365753
+obj1563 pos.y 61.82547
+obj1563 pos.z 0.0
+obj1563 # DBC90E1A
 + obj1564 82 naflbu6
-obj1564 # 7109787D
+obj1564 hp 1000.0
+obj1564 mana 1000.0
+obj1564 pos.x 94.2840576
+obj1564 pos.y 60.9166031
+obj1564 pos.z 0.0
+obj1564 # 7FF97E7C
 + obj1565 82 naflbu6
-obj1565 # 976B189F
+obj1565 hp 1000.0
+obj1565 mana 1000.0
+obj1565 pos.x 62.7619934
+obj1565 pos.y 82.3119965
+obj1565 pos.z 0.0
+obj1565 # 54F5D6C0
 + obj1566 82 naflbu6
-obj1566 # 18129F51
+obj1566 hp 1000.0
+obj1566 mana 1000.0
+obj1566 pos.x 68.5674362
+obj1566 pos.y 75.8984375
+obj1566 pos.z 0.0
+obj1566 # 9C0CBD1B
 + obj1567 82 naflbu6
-obj1567 # 10F9BE78
+obj1567 hp 1000.0
+obj1567 mana 1000.0
+obj1567 pos.x 75.9299927
+obj1567 pos.y 88.0910034
+obj1567 pos.z 0.0
+obj1567 # 376CF860
 + obj1568 82 naflbu6
-obj1568 # 7BCBC837
+obj1568 hp 1000.0
+obj1568 mana 1000.0
+obj1568 pos.x 85.3890076
+obj1568 pos.y 86.2590027
+obj1568 pos.z 0.0
+obj1568 # D3C1902E
 + obj1569 82 naflbu6
-obj1569 # 6E463950
+obj1569 hp 1000.0
+obj1569 mana 1000.0
+obj1569 pos.x 86.7680054
+obj1569 pos.y 86.0160065
+obj1569 pos.z 0.0
+obj1569 # 2E0EDAE0
 + obj1570 82 naflbu6
-obj1570 # B7FD35DC
+obj1570 hp 1000.0
+obj1570 mana 1000.0
+obj1570 pos.x 89.3730011
+obj1570 pos.y 85.4700012
+obj1570 pos.z 0.0
+obj1570 # 060AAE80
 + obj1571 82 naflbu6
-obj1571 # 61496B37
+obj1571 hp 1000.0
+obj1571 mana 1000.0
+obj1571 pos.x 95.1119995
+obj1571 pos.y 78.5110016
+obj1571 pos.z 0.0
+obj1571 # 80EBC16D
 + obj1572 82 naflbu6
-obj1572 # F1C87294
+obj1572 hp 1000.0
+obj1572 mana 1000.0
+obj1572 pos.x 94.3040009
+obj1572 pos.y 79.625
+obj1572 pos.z 0.0
+obj1572 # 1ABE0E7F
 + obj1573 82 naflbu6
-obj1573 # D16508C8
+obj1573 hp 1000.0
+obj1573 mana 1000.0
+obj1573 pos.x 95.6799927
+obj1573 pos.y 75.0500031
+obj1573 pos.z 0.0
+obj1573 # 01F43104
 + obj1574 82 naflbu6
-obj1574 # 4827AD5E
+obj1574 hp 1000.0
+obj1574 mana 1000.0
+obj1574 pos.x 55.3880005
+obj1574 pos.y 48.3619995
+obj1574 pos.z 0.0
+obj1574 # 2119301E
 + obj1575 82 naflbu6
-obj1575 # 8765BE66
+obj1575 hp 1000.0
+obj1575 mana 1000.0
+obj1575 pos.x 63.882782
+obj1575 pos.y 47.317688
+obj1575 pos.z 0.0
+obj1575 # 754BE404
 + obj1576 82 naflbu6
-obj1576 # F07B4693
+obj1576 hp 1000.0
+obj1576 mana 1000.0
+obj1576 pos.x 65.5605774
+obj1576 pos.y 47.2861023
+obj1576 pos.z 0.0
+obj1576 # BAF74C81
 + obj1577 82 naflbu6
-obj1577 # 4D21F537
+obj1577 hp 1000.0
+obj1577 mana 1000.0
+obj1577 pos.x 37.0220032
+obj1577 pos.y 65.9420013
+obj1577 pos.z 0.0
+obj1577 # 36EC49C2
 + obj1578 82 naflbu6
-obj1578 # 927870BA
+obj1578 hp 1000.0
+obj1578 mana 1000.0
+obj1578 pos.x 37.399353
+obj1578 pos.y 64.1661377
+obj1578 pos.z 0.0
+obj1578 # F2BB98A2
 + obj1579 82 naflbu6
-obj1579 # 962143EE
+obj1579 hp 1000.0
+obj1579 mana 1000.0
+obj1579 pos.x 37.9938965
+obj1579 pos.y 63.5857544
+obj1579 pos.z 0.0
+obj1579 # BF63AE79
 + obj1580 82 naflbu6
-obj1580 # BCBDB959
+obj1580 hp 1000.0
+obj1580 mana 1000.0
+obj1580 pos.x 45.2640076
+obj1580 pos.y 53.2429962
+obj1580 pos.z 0.0
+obj1580 # 9FB04C1A
 + obj1581 82 naflbu6
-obj1581 # 90198DE4
+obj1581 hp 1000.0
+obj1581 mana 1000.0
+obj1581 pos.x 42.6162109
+obj1581 pos.y 55.8459244
+obj1581 pos.z 0.0
+obj1581 # CDF00DCC
 + obj1582 82 naflbu6
-obj1582 # A1C5DB81
+obj1582 hp 1000.0
+obj1582 mana 1000.0
+obj1582 pos.x 48.6537933
+obj1582 pos.y 50.60289
+obj1582 pos.z 0.0
+obj1582 # A79F7802
 + obj1583 82 naflbu6
-obj1583 # 63BBDBD1
+obj1583 hp 1000.0
+obj1583 mana 1000.0
+obj1583 pos.x 47.4764557
+obj1583 pos.y 51.2988281
+obj1583 pos.z 0.0
+obj1583 # D04DDE70
 + obj1584 82 naflbu6
-obj1584 # 78E64ECF
+obj1584 hp 1000.0
+obj1584 mana 1000.0
+obj1584 pos.x 46.4689941
+obj1584 pos.y 52.1320038
+obj1584 pos.z 0.0
+obj1584 # 2B900F74
 + obj1585 82 nafltr59
-obj1585 # 2D7D717E
+obj1585 hp 1000.0
+obj1585 mana 1000.0
+obj1585 pos.x 43.8148651
+obj1585 pos.y 52.8173141
+obj1585 pos.z -0.100000001
+obj1585 # 3DFE4907
 + obj1586 82 nafltr56
-obj1586 # 2EF9B9CE
+obj1586 hp 1000.0
+obj1586 mana 1000.0
+obj1586 pos.x 40.4160004
+obj1586 pos.y 81.9609985
+obj1586 pos.z -0.0500000007
+obj1586 # 2C594493
 + obj1587 82 nafltr59
-obj1587 # B46CA39F
+obj1587 hp 1000.0
+obj1587 mana 1000.0
+obj1587 pos.x 93.8488159
+obj1587 pos.y 71.8229065
+obj1587 pos.z -0.300000012
+obj1587 # 3B62DFAB
 + obj1588 82 naflbu6
-obj1588 # 182861DE
+obj1588 hp 1000.0
+obj1588 mana 1000.0
+obj1588 pos.x 71.9440002
+obj1588 pos.y 89.6799927
+obj1588 pos.z 0.0
+obj1588 # 3626114B
 + obj1589 82 naflbu6
-obj1589 # 7242939A
+obj1589 hp 1000.0
+obj1589 mana 1000.0
+obj1589 pos.x 74.6899872
+obj1589 pos.y 88.7554932
+obj1589 pos.z 0.0
+obj1589 # 64A1E811
 + obj1590 82 naflbu6
-obj1590 # 6601439B
+obj1590 hp 1000.0
+obj1590 mana 1000.0
+obj1590 pos.x 56.2279968
+obj1590 pos.y 78.2440033
+obj1590 pos.z 0.0
+obj1590 # A2C828EB
 + obj1591 82 naflbu6
-obj1591 # A770B828
+obj1591 hp 1000.0
+obj1591 mana 1000.0
+obj1591 pos.x 68.9059982
+obj1591 pos.y 84.2906876
+obj1591 pos.z 0.0
+obj1591 # 4213E90C
 + obj1592 82 naflbu6
-obj1592 # 7D36364C
+obj1592 hp 1000.0
+obj1592 mana 1000.0
+obj1592 pos.x 69.506546
+obj1592 pos.y 85.0224152
+obj1592 pos.z 0.0
+obj1592 # C0F40334
 + obj1593 82 naflbu6
-obj1593 # E711704F
+obj1593 hp 1000.0
+obj1593 mana 1000.0
+obj1593 pos.x 70.8677979
+obj1593 pos.y 85.5527191
+obj1593 pos.z 0.0
+obj1593 # AEBF595A
 + obj1594 82 naflbu6
-obj1594 # A505736D
+obj1594 hp 1000.0
+obj1594 mana 1000.0
+obj1594 pos.x 62.9064636
+obj1594 pos.y 91.3036194
+obj1594 pos.z 0.0
+obj1594 # E634FDF7
 + obj1595 82 naflbu6
-obj1595 # E5C60745
+obj1595 hp 1000.0
+obj1595 mana 1000.0
+obj1595 pos.x 40.8600006
+obj1595 pos.y 82.2720032
+obj1595 pos.z 0.0
+obj1595 # A77C1240
 + obj1596 82 naflbu6
-obj1596 # A4106A34
+obj1596 hp 1000.0
+obj1596 mana 1000.0
+obj1596 pos.x 31.6934814
+obj1596 pos.y 76.1199341
+obj1596 pos.z 0.0
+obj1596 # 29742345
 + obj1597 82 naflbu6
-obj1597 # 3DB58DFA
+obj1597 hp 1000.0
+obj1597 mana 1000.0
+obj1597 pos.x 29.4001007
+obj1597 pos.y 67.4486542
+obj1597 pos.z 0.0
+obj1597 # C5FECB8F
 + obj1598 82 naflbu6
-obj1598 # 2C39C17F
+obj1598 hp 1000.0
+obj1598 mana 1000.0
+obj1598 pos.x 29.4351807
+obj1598 pos.y 65.9236603
+obj1598 pos.z 0.0
+obj1598 # 39DEB1A8
 + obj1599 82 naflbu6
-obj1599 # 1A6016B2
+obj1599 hp 1000.0
+obj1599 mana 1000.0
+obj1599 pos.x 31.5280762
+obj1599 pos.y 71.6439362
+obj1599 pos.z 0.0
+obj1599 # 95B36B56
 + obj1600 82 naflbu6
-obj1600 # 4ADAB8B0
+obj1600 hp 1000.0
+obj1600 mana 1000.0
+obj1600 pos.x 31.8899689
+obj1600 pos.y 75.1664276
+obj1600 pos.z 0.0
+obj1600 # 4113A1B8
 + obj1601 82 nafltr59
-obj1601 # 299FFBA2
+obj1601 hp 1000.0
+obj1601 mana 1000.0
+obj1601 pos.x 25.7129974
+obj1601 pos.y 83.2389984
+obj1601 pos.z -0.449999988
+obj1601 # 6753785E
 + obj1602 82 naflbu6
-obj1602 # F3130387
+obj1602 hp 1000.0
+obj1602 mana 1000.0
+obj1602 pos.x 50.8158875
+obj1602 pos.y 93.7871399
+obj1602 pos.z 0.0
+obj1602 # 52074A4C
 + obj1603 82 naflbu6
-obj1603 # C32293F8
+obj1603 hp 1000.0
+obj1603 mana 1000.0
+obj1603 pos.x 49.3280487
+obj1603 pos.y 92.8173065
+obj1603 pos.z 0.0
+obj1603 # E46FC37A
 + obj1604 82 naflbu6
-obj1604 # C0F18E78
+obj1604 hp 1000.0
+obj1604 mana 1000.0
+obj1604 pos.x 98.7053223
+obj1604 pos.y 51.0886383
+obj1604 pos.z 0.0
+obj1604 # A411B3DE
 + obj1605 82 naflbu6
-obj1605 # A8B167FB
+obj1605 hp 1000.0
+obj1605 mana 1000.0
+obj1605 pos.x 99.5379944
+obj1605 pos.y 52.7089996
+obj1605 pos.z 0.0
+obj1605 # 8C7661C2
 + obj1606 82 naflbu6
-obj1606 # 9EFAB9D8
+obj1606 hp 1000.0
+obj1606 mana 1000.0
+obj1606 pos.x 98.8950043
+obj1606 pos.y 63.6019974
+obj1606 pos.z 0.0
+obj1606 # 842337D8
 + obj1607 82 naflbu6
-obj1607 # D69CBB93
+obj1607 hp 1000.0
+obj1607 mana 1000.0
+obj1607 pos.x 98.9819946
+obj1607 pos.y 61.7369995
+obj1607 pos.z 0.0
+obj1607 # C70DA5AA
 + obj1608 82 naflbu6
-obj1608 # 50E14B78
+obj1608 hp 1000.0
+obj1608 mana 1000.0
+obj1608 pos.x 99.1963654
+obj1608 pos.y 60.5346298
+obj1608 pos.z 0.0
+obj1608 # ACC938D1
 + obj1609 82 naflbu6
-obj1609 # 9A7D59EE
+obj1609 hp 1000.0
+obj1609 mana 1000.0
+obj1609 pos.x 80.7830048
+obj1609 pos.y 89.1100006
+obj1609 pos.z 0.0
+obj1609 # AA6FD3DE
 + obj1610 82 naflbu6
-obj1610 # C55FC451
+obj1610 hp 1000.0
+obj1610 mana 1000.0
+obj1610 pos.x 79.6999969
+obj1610 pos.y 89.7599945
+obj1610 pos.z 0.0
+obj1610 # 36A7FBE1
 + obj1611 82 naflbu6
-obj1611 # C3164691
+obj1611 hp 1000.0
+obj1611 mana 1000.0
+obj1611 pos.x 52.7130737
+obj1611 pos.y 94.1656036
+obj1611 pos.z 0.0
+obj1611 # 62F844FF
 + obj1612 82 naflbu6
-obj1612 # F75A905C
+obj1612 hp 1000.0
+obj1612 mana 1000.0
+obj1612 pos.x 57.2742004
+obj1612 pos.y 94.7900238
+obj1612 pos.z 0.0
+obj1612 # E02DAD16
 + obj1613 82 nafltr59
-obj1613 # C1882788
+obj1613 hp 1000.0
+obj1613 mana 1000.0
+obj1613 pos.x 54.1743469
+obj1613 pos.y 96.5185699
+obj1613 pos.z -0.300000012
+obj1613 # EAB708FB
 + obj1614 82 nafltr59
-obj1614 # 3563DAD6
+obj1614 hp 1000.0
+obj1614 mana 1000.0
+obj1614 pos.x 94.7487488
+obj1614 pos.y 85.5805054
+obj1614 pos.z -0.299999982
+obj1614 # 46551A72
 + obj1615 82 nafltr59
-obj1615 # 33FEBF18
+obj1615 hp 1000.0
+obj1615 mana 1000.0
+obj1615 pos.x 44.0124512
+obj1615 pos.y 20.7283783
+obj1615 pos.z -0.400000006
+obj1615 # E874C3BC
 + obj1616 82 nafltr59
-obj1616 # ABF134BE
+obj1616 hp 1000.0
+obj1616 mana 1000.0
+obj1616 pos.x 19.6190033
+obj1616 pos.y 51.7099991
+obj1616 pos.z -7.4505806e-09
+obj1616 # DC9ACB69
 + obj1617 82 nafltr59
-obj1617 # A8D38D3F
+obj1617 hp 1000.0
+obj1617 mana 1000.0
+obj1617 pos.x 28.1404877
+obj1617 pos.y 49.8586273
+obj1617 pos.z -0.200000003
+obj1617 # A11B0F2F
 + obj1618 82 nafltr59
-obj1618 # D0E58793
+obj1618 hp 1000.0
+obj1618 mana 1000.0
+obj1618 pos.x 31.1387329
+obj1618 pos.y 48.0596161
+obj1618 pos.z -0.499999791
+obj1618 # B2C23F86
 + obj1619 82 nafltr59
-obj1619 # F1B7D470
+obj1619 hp 1000.0
+obj1619 mana 1000.0
+obj1619 pos.x 9.01582336
+obj1619 pos.y 45.7807007
+obj1619 pos.z -0.100000001
+obj1619 # 1CCF511D
 + obj1620 82 nafltr59
-obj1620 # 177BFA24
+obj1620 hp 1000.0
+obj1620 mana 1000.0
+obj1620 pos.x 21.3504791
+obj1620 pos.y 54.3425789
+obj1620 pos.z -0.350000024
+obj1620 # 5EFC5088
 + obj1621 82 nafltr59
-obj1621 # 472472CC
+obj1621 hp 1000.0
+obj1621 mana 1000.0
+obj1621 pos.x 17.4794464
+obj1621 pos.y 47.1513214
+obj1621 pos.z -0.200000003
+obj1621 # 0FC091FB
 + obj1622 82 naflbu6
-obj1622 # 510732F5
+obj1622 hp 1000.0
+obj1622 mana 1000.0
+obj1622 pos.x 21.5720062
+obj1622 pos.y 40.5879974
+obj1622 pos.z 0.0
+obj1622 # DC666453
 + obj1623 82 naflbu6
-obj1623 # 9C802996
+obj1623 hp 1000.0
+obj1623 mana 1000.0
+obj1623 pos.x 20.5980072
+obj1623 pos.y 41.3089981
+obj1623 pos.z 0.0
+obj1623 # 57E81F73
 + obj1624 82 naflbu6
-obj1624 # F1011CBC
+obj1624 hp 1000.0
+obj1624 mana 1000.0
+obj1624 pos.x 20.7718201
+obj1624 pos.y 42.9065628
+obj1624 pos.z 0.0
+obj1624 # D8CD8FD0
 + obj1625 82 naflbu6
-obj1625 # 427B1332
+obj1625 hp 1000.0
+obj1625 mana 1000.0
+obj1625 pos.x 18.6098785
+obj1625 pos.y 44.164711
+obj1625 pos.z 0.0
+obj1625 # 550ABFCD
 + obj1626 82 naflbu6
-obj1626 # BFFA1365
+obj1626 hp 1000.0
+obj1626 mana 1000.0
+obj1626 pos.x 33.7489929
+obj1626 pos.y 44.875
+obj1626 pos.z 0.0
+obj1626 # 5DCB0CB8
 + obj1627 82 naflbu6
-obj1627 # 2C928FEE
+obj1627 hp 1000.0
+obj1627 mana 1000.0
+obj1627 pos.x 32.1970062
+obj1627 pos.y 47.4609985
+obj1627 pos.z 0.0
+obj1627 # 8A7CBE90
 + obj1628 82 naflbu6
-obj1628 # C0F18322
+obj1628 hp 1000.0
+obj1628 mana 1000.0
+obj1628 pos.x 28.9428711
+obj1628 pos.y 48.752243
+obj1628 pos.z 0.0
+obj1628 # A1FC5B9D
 + obj1629 82 naflbu6
-obj1629 # 34640214
+obj1629 hp 1000.0
+obj1629 mana 1000.0
+obj1629 pos.x 47.0384293
+obj1629 pos.y 41.1285782
+obj1629 pos.z 0.0
+obj1629 # E5FCF5D4
 + obj1630 82 naflbu6
-obj1630 # 3B05945A
+obj1630 hp 1000.0
+obj1630 mana 1000.0
+obj1630 pos.x 43.7727661
+obj1630 pos.y 44.5028687
+obj1630 pos.z 0.24999997
+obj1630 # 95BE2F2A
 + obj1631 82 naflbu6
-obj1631 # A390942B
+obj1631 hp 1000.0
+obj1631 mana 1000.0
+obj1631 pos.x 42.4702606
+obj1631 pos.y 47.0321426
+obj1631 pos.z 2.23517418e-08
+obj1631 # DE6271B4
 + obj1633 82 nafltr59
-obj1633 # 30821A12
+obj1633 hp 1000.0
+obj1633 mana 1000.0
+obj1633 pos.x 33.1803894
+obj1633 pos.y 17.4863091
+obj1633 pos.z -0.100000001
+obj1633 # 9901078B
 + obj1634 82 nafltr59
-obj1634 # 7467793F
+obj1634 hp 1000.0
+obj1634 mana 1000.0
+obj1634 pos.x 35.8572693
+obj1634 pos.y 18.5820923
+obj1634 pos.z -0.100000001
+obj1634 # 51B5C6F5
 + obj1645 84 stbuho7
-obj1645 # F07A4EE1
+obj1645 hp 1000.0
+obj1645 mana 1000.0
+obj1645 pos.x 73.7219696
+obj1645 pos.y 54.3889122
+obj1645 pos.z 0.0
+obj1645 # F8EFC591
 + obj1646 87 stto5
-obj1646 # 547A9656
+obj1646 hp 1000.0
+obj1646 mana 1000.0
+obj1646 pos.x 66.6798019
+obj1646 pos.y 65.5867996
+obj1646 pos.z -0.0500000007
+obj1646 # A5E1E20C
 + obj20766 82 naflbu17
-obj20766 # 31B1A2FE
+obj20766 hp 1000.0
+obj20766 mana 1000.0
+obj20766 pos.x 62.6941833
+obj20766 pos.y 51.851429
+obj20766 pos.z 0.0
+obj20766 # 3FCC0BEC
 + obj38072 82 naflbu19
-obj38072 # 4FBA13D5
+obj38072 hp 1000.0
+obj38072 mana 1000.0
+obj38072 pos.x 79.7912445
+obj38072 pos.y 82.2680206
+obj38072 pos.z 0.0
+obj38072 # 98A4C608
 + obj44799 82 nafltr86
-obj44799 # E6021811
+obj44799 hp 1000.0
+obj44799 mana 1000.0
+obj44799 pos.x 67.6138992
+obj44799 pos.y 61.6214981
+obj44799 pos.z -0.0500000007
+obj44799 # 1CC14BC0
 + obj46787 82 naflbu18
-obj46787 # E6F73F21
+obj46787 hp 1000.0
+obj46787 mana 1000.0
+obj46787 pos.x 55.0353317
+obj46787 pos.y 66.4876709
+obj46787 pos.z 0.0
+obj46787 # 6BDECA01
 + obj46954 84 stto6
-obj46954 # AABEB6F7
+obj46954 hp 1000.0
+obj46954 mana 1000.0
+obj46954 pos.x 55.3745918
+obj46954 pos.y 56.6209106
+obj46954 pos.z 0.0
+obj46954 # 20B86100
 + obj63480 84 stst155
-obj63480 # 0D31B2C7
+obj63480 hp 1000.0
+obj63480 mana 1000.0
+obj63480 pos.x 80.8199615
+obj63480 pos.y 69.811203
+obj63480 pos.z 0.0
+obj63480 # DEFB30EC
 + obj81882 84 stst155
-obj81882 # 53DC0715
+obj81882 hp 1000.0
+obj81882 mana 1000.0
+obj81882 pos.x 80.855957
+obj81882 pos.y 67.9955826
+obj81882 pos.z -0.25
+obj81882 # B1ED7CC3
 + obj85297 80 unhuma ""
+obj85297 dead 0
+obj85297 hp 22.0
+obj85297 mana 11.0
+obj85297 pos.x 90.4840012
+obj85297 pos.y 82.0238037
+obj85297 pos.z 0.0
 obj85297 #ai 6CD4B94F
-obj85297 #place DF4AB71A
+obj85297 #place A89DF659
 obj85297 #unit B40EC0D8
-obj85297 #vitals 3C415EFC
+obj85297 #vitals 2418CA05
 + obj87817 84 stto6
-obj87817 # BC750E40
+obj87817 hp 1000.0
+obj87817 mana 1000.0
+obj87817 pos.x 50.2240677
+obj87817 pos.y 67.8670654
+obj87817 pos.z 0.0
+obj87817 # E2054AD1
 + obj143005 80 unhufe ""
+obj143005 dead 0
+obj143005 hp 25.0
+obj143005 mana 11.0
+obj143005 pos.x 87.5
+obj143005 pos.y 61.0
+obj143005 pos.z 0.0
 obj143005 #ai 6CD4B94F
-obj143005 #place 3166EA7A
+obj143005 #place 8DFC2630
 obj143005 #unit EAC377FA
-obj143005 #vitals E4521614
+obj143005 #vitals D67EC3B8
 + obj182595 80 unanhopi ""
+obj182595 dead 0
+obj182595 hp 20.0
+obj182595 mana 5.0
+obj182595 pos.x 61.2672005
+obj182595 pos.y 87.383934
+obj182595 pos.z 0.0
 obj182595 #ai 11E366B7
-obj182595 #place 808EFEA5
+obj182595 #place EAC387A7
 obj182595 #unit D87EB0BA
-obj182595 #vitals 0D6AE555
+obj182595 #vitals 83B92BDA
 + obj183332 80 unanhodo ""
+obj183332 dead 0
+obj183332 hp 160.0
+obj183332 mana 31.0
+obj183332 pos.x 81.25
+obj183332 pos.y 61.25
+obj183332 pos.z 0.0
 obj183332 #ai C25823D4
-obj183332 #place AF3D80FF
+obj183332 #place C28741B4
 obj183332 #unit 224FBAED
-obj183332 #vitals 2C0B3E52
+obj183332 #vitals 10106A87
 + obj196568 80 unhuma ""
+obj196568 dead 0
+obj196568 hp 22.0
+obj196568 mana 11.0
+obj196568 pos.x 56.5615997
+obj196568 pos.y 74.8637009
+obj196568 pos.z 0.0
 obj196568 #ai 6236DA74
-obj196568 #place 4551AD7C
+obj196568 #place 20D43809
 obj196568 #unit F184816C
-obj196568 #vitals 3C415EFC
+obj196568 #vitals 2418CA05
 + obj202800 82 naflbu19
-obj202800 # B275C404
+obj202800 hp 1000.0
+obj202800 mana 1000.0
+obj202800 pos.x 54.9416771
+obj202800 pos.y 50.7285805
+obj202800 pos.z -0.100000001
+obj202800 # 6EDC34AE
 + obj204361 84 stst151
-obj204361 # 85D41822
+obj204361 hp 1000.0
+obj204361 mana 1000.0
+obj204361 pos.x 53.7089462
+obj204361 pos.y 43.1267395
+obj204361 pos.z 0.0
+obj204361 # 004BCB14
 + obj224966 84 stst151
-obj224966 # AE384E18
+obj224966 hp 1000.0
+obj224966 mana 1000.0
+obj224966 pos.x 67.5065231
+obj224966 pos.y 61.5430069
+obj224966 pos.z 0.0
+obj224966 # B795C5C8
 + obj270777 82 naflbu18
-obj270777 # 158D6D0D
+obj270777 hp 1000.0
+obj270777 mana 1000.0
+obj270777 pos.x 76.513092
+obj270777 pos.y 60.7950783
+obj270777 pos.z 0.0
+obj270777 # A07342E0
 + obj305677 82 nafltr20
-obj305677 # 86E15276
+obj305677 hp 1000.0
+obj305677 mana 1000.0
+obj305677 pos.x 75.764473
+obj305677 pos.y 60.0293274
+obj305677 pos.z -7.45058015e-09
+obj305677 # 02EEB9DE
 + obj326331 80 unhuma ""
+obj326331 dead 0
+obj326331 hp 22.0
+obj326331 mana 11.0
+obj326331 pos.x 79.0800018
+obj326331 pos.y 57.5200005
+obj326331 pos.z 0.0
 obj326331 #ai 6236DA74
-obj326331 #place B8C15E51
+obj326331 #place AEF2AA03
 obj326331 #unit 13DF7F00
-obj326331 #vitals 3C415EFC
+obj326331 #vitals 2418CA05
 + obj337572 84 stst56
-obj337572 # 0A5EB219
+obj337572 hp 1000.0
+obj337572 mana 1000.0
+obj337572 pos.x 54.8526993
+obj337572 pos.y 64.5811462
+obj337572 pos.z 0.0500000231
+obj337572 # 41434CD9
 + obj341484 80 unhuma ""
+obj341484 dead 0
+obj341484 hp 22.0
+obj341484 mana 11.0
+obj341484 pos.x 89.1603012
+obj341484 pos.y 82.8061981
+obj341484 pos.z 0.0
 obj341484 #ai 6CD4B94F
-obj341484 #place C01B0CD9
+obj341484 #place 6233E8C7
 obj341484 #unit 54521E14
-obj341484 #vitals 3C415EFC
+obj341484 #vitals 2418CA05
 + obj370619 82 naflbu18
-obj370619 # 8F38DB5A
+obj370619 hp 1000.0
+obj370619 mana 1000.0
+obj370619 pos.x 67.5002899
+obj370619 pos.y 83.4462509
+obj370619 pos.z 0.0
+obj370619 # 5A62A305
 + obj385984 82 naflbu18
-obj385984 # A6450486
+obj385984 hp 1000.0
+obj385984 mana 1000.0
+obj385984 pos.x 63.1983604
+obj385984 pos.y 76.6472397
+obj385984 pos.z 0.0
+obj385984 # B18123C2
 + obj386717 80 unhuma ""
+obj386717 dead 0
+obj386717 hp 22.0
+obj386717 mana 11.0
+obj386717 pos.x 88.6999969
+obj386717 pos.y 75.5
+obj386717 pos.z 0.0
 obj386717 #ai 6236DA74
-obj386717 #place 46DA4DCD
+obj386717 #place C5EE5502
 obj386717 #unit 7AC84D2D
-obj386717 #vitals 3C415EFC
+obj386717 #vitals 2418CA05
 + obj388258 84 stst151
-obj388258 # E6D88D29
+obj388258 hp 1000.0
+obj388258 mana 1000.0
+obj388258 pos.x 71.0831528
+obj388258 pos.y 60.0449409
+obj388258 pos.z 0.0
+obj388258 # A127A5B2
 + obj399469 80 unanhopi ""
+obj399469 dead 0
+obj399469 hp 20.0
+obj399469 mana 5.0
+obj399469 pos.x 67.75
+obj399469 pos.y 89.75
+obj399469 pos.z 0.0
 obj399469 #ai 1E3F35F1
-obj399469 #place DEC0BC50
+obj399469 #place DAC8DFA6
 obj399469 #unit 8B945346
-obj399469 #vitals 0D6AE555
+obj399469 #vitals 83B92BDA
 + obj420372 82 naflbu18
-obj420372 # 1F4ED2E6
+obj420372 hp 1000.0
+obj420372 mana 1000.0
+obj420372 pos.x 55.0779686
+obj420372 pos.y 65.8727951
+obj420372 pos.z 0.0
+obj420372 # F95B3803
 + obj424136 84 stst56
-obj424136 # 9C349BE2
+obj424136 hp 1000.0
+obj424136 mana 1000.0
+obj424136 pos.x 54.5998688
+obj424136 pos.y 63.8654442
+obj424136 pos.z 0.100000009
+obj424136 # F6E940B1
 + obj442326 84 stst151
-obj442326 # EA968CD1
+obj442326 hp 1000.0
+obj442326 mana 1000.0
+obj442326 pos.x 59.8093567
+obj442326 pos.y 37.8145523
+obj442326 pos.z 0.0
+obj442326 # 35EB7233
 + obj469697 80 unhufe ""
+obj469697 dead 0
+obj469697 hp 22.0
+obj469697 mana 11.0
+obj469697 pos.x 87.0999985
+obj469697 pos.y 75.9000015
+obj469697 pos.z 0.0
 obj469697 #ai 6236DA74
-obj469697 #place 6943C412
+obj469697 #place B2AFCD78
 obj469697 #unit 7672BB86
-obj469697 #vitals 3C415EFC
+obj469697 #vitals 2418CA05
 + obj471277 84 stto6
-obj471277 # 69417B55
+obj471277 hp 1000.0
+obj471277 mana 1000.0
+obj471277 pos.x 77.0739975
+obj471277 pos.y 61.8743515
+obj471277 pos.z 0.0
+obj471277 # 56CEC5EA
 + obj481569 80 unhuma ""
+obj481569 dead 0
+obj481569 hp 22.0
+obj481569 mana 11.0
+obj481569 pos.x 58.6763992
+obj481569 pos.y 74.700798
+obj481569 pos.z 0.0
 obj481569 #ai 6236DA74
-obj481569 #place 35A31D56
+obj481569 #place 740030EB
 obj481569 #unit 7820ADBC
-obj481569 #vitals 3C415EFC
+obj481569 #vitals 2418CA05
 + obj486564 84 stst56
-obj486564 # FDE770A3
+obj486564 hp 1000.0
+obj486564 mana 1000.0
+obj486564 pos.x 52.8190727
+obj486564 pos.y 58.7111092
+obj486564 pos.z 0.150000006
+obj486564 # 7C8DF208
 + obj534153 80 unhufe ""
+obj534153 dead 0
+obj534153 hp 22.0
+obj534153 mana 11.0
+obj534153 pos.x 75.0
+obj534153 pos.y 84.0
+obj534153 pos.z 0.0
 obj534153 #ai 6236DA74
-obj534153 #place 9BD0B2D6
+obj534153 #place BF998091
 obj534153 #unit 5F04CD4A
-obj534153 #vitals 3C415EFC
+obj534153 #vitals 2418CA05
 + obj540220 84 stst30
-obj540220 # 56A6544B
+obj540220 hp 1000.0
+obj540220 mana 1000.0
+obj540220 pos.x 73.9840775
+obj540220 pos.y 60.7330856
+obj540220 pos.z 0.0
+obj540220 # 19C770CB
 + obj552568 82 naflbu19
-obj552568 # B833CC0F
+obj552568 hp 1000.0
+obj552568 mana 1000.0
+obj552568 pos.x 82.7603836
+obj552568 pos.y 70.7844772
+obj552568 pos.z 0.0
+obj552568 # 15655260
 + obj576954 84 stst56
-obj576954 # 617A5E3C
+obj576954 hp 1000.0
+obj576954 mana 1000.0
+obj576954 pos.x 54.5751534
+obj576954 pos.y 59.3107338
+obj576954 pos.z 0.150000006
+obj576954 # DA73DA50
 + obj577836 82 naflbu19
-obj577836 # 3AF1AEF4
+obj577836 hp 1000.0
+obj577836 mana 1000.0
+obj577836 pos.x 67.6776276
+obj577836 pos.y 73.0317459
+obj577836 pos.z 0.0
+obj577836 # 498E07CA
 + obj590720 84 stst30
-obj590720 # 8518083E
+obj590720 hp 1000.0
+obj590720 mana 1000.0
+obj590720 pos.x 73.4835129
+obj590720 pos.y 61.2954063
+obj590720 pos.z 0.0
+obj590720 # 2F1C7156
 + obj601927 80 unhufe ""
+obj601927 dead 0
+obj601927 hp 22.0
+obj601927 mana 11.0
+obj601927 pos.x 62.7999992
+obj601927 pos.y 80.8000031
+obj601927 pos.z 0.0
 obj601927 #ai 6CD4B94F
-obj601927 #place FF190F9D
+obj601927 #place C32C0F90
 obj601927 #unit 5DFB6CE7
-obj601927 #vitals 3C415EFC
+obj601927 #vitals 2418CA05
 + obj603850 84 stst151
-obj603850 # ECFCF422
+obj603850 hp 1000.0
+obj603850 mana 1000.0
+obj603850 pos.x 65.2593689
+obj603850 pos.y 43.6064758
+obj603850 pos.z 0.0
+obj603850 # 55C54799
 + obj686200 80 unhuma ""
+obj686200 dead 0
+obj686200 hp 22.0
+obj686200 mana 11.0
+obj686200 pos.x 88.6999969
+obj686200 pos.y 82.5999985
+obj686200 pos.z 0.0
 obj686200 #ai 6CD4B94F
-obj686200 #place 352AAABA
+obj686200 #place F079009A
 obj686200 #unit D9F6B344
-obj686200 #vitals 3C415EFC
+obj686200 #vitals 2418CA05
 + obj732495 80 unhuma ""
+obj732495 dead 0
+obj732495 hp 22.0
+obj732495 mana 11.0
+obj732495 pos.x 57.6281013
+obj732495 pos.y 74.7471008
+obj732495 pos.z 0.0
 obj732495 #ai 6236DA74
-obj732495 #place A8AF077B
+obj732495 #place BE9E8C67
 obj732495 #unit CEAFE324
-obj732495 #vitals 3C415EFC
+obj732495 #vitals 2418CA05
 + obj740054 82 naflbu17
-obj740054 # F553D1F3
+obj740054 hp 1000.0
+obj740054 mana 1000.0
+obj740054 pos.x 72.6615524
+obj740054 pos.y 76.3003998
+obj740054 pos.z 0.0
+obj740054 # 4D26A46F
 + obj746631 84 stwali1
-obj746631 # E7CC1267
+obj746631 hp 1000.0
+obj746631 mana 1000.0
+obj746631 pos.x 39.033596
+obj746631 pos.y 66.0400391
+obj746631 pos.z -0.300000012
+obj746631 # 47CC7F36
 + obj758343 82 naflbu18
-obj758343 # 15FCBC04
+obj758343 hp 1000.0
+obj758343 mana 1000.0
+obj758343 pos.x 53.6801643
+obj758343 pos.y 66.5121078
+obj758343 pos.z 0.0
+obj758343 # 8F3DBCA5
 + obj784212 82 naflbu18
-obj784212 # 5809D530
+obj784212 hp 1000.0
+obj784212 mana 1000.0
+obj784212 pos.x 58.2316132
+obj784212 pos.y 60.2491837
+obj784212 pos.z 0.0
+obj784212 # C5E447D4
 + obj801744 84 stwali1
-obj801744 # 63AFC310
+obj801744 hp 1000.0
+obj801744 mana 1000.0
+obj801744 pos.x 40.4732361
+obj801744 pos.y 67.122612
+obj801744 pos.z 0.0
+obj801744 # F3F73AE7
 + obj812970 80 unhuma ""
+obj812970 dead 0
+obj812970 hp 22.0
+obj812970 mana 11.0
+obj812970 pos.x 94.0
+obj812970 pos.y 66.6999969
+obj812970 pos.z 0.0
 obj812970 #ai 6236DA74
-obj812970 #place 298649B9
+obj812970 #place 224C3D0B
 obj812970 #unit 92241B88
-obj812970 #vitals 3C415EFC
+obj812970 #vitals 2418CA05
 + obj831510 80 unanhodo ""
+obj831510 dead 0
+obj831510 hp 70.0
+obj831510 mana 18.0
+obj831510 pos.x 89.4227676
+obj831510 pos.y 77.3653488
+obj831510 pos.z 0.0
 obj831510 #ai 5D737CFD
-obj831510 #place 7E3F314E
+obj831510 #place 6DB45603
 obj831510 #unit B7C56B0E
-obj831510 #vitals B8D59A04
+obj831510 #vitals F28F19BB
 + obj848411 80 unanhopi ""
+obj848411 dead 0
+obj848411 hp 20.0
+obj848411 mana 5.0
+obj848411 pos.x 66.75
+obj848411 pos.y 90.25
+obj848411 pos.z 0.0
 obj848411 #ai AC6A0419
-obj848411 #place F1EAA9B6
+obj848411 #place AF4F44F8
 obj848411 #unit CB9D6CA5
-obj848411 #vitals 0D6AE555
+obj848411 #vitals 83B92BDA
 + obj868303 82 naflbu17
-obj868303 # 6C398E1A
+obj868303 hp 1000.0
+obj868303 mana 1000.0
+obj868303 pos.x 85.1152649
+obj868303 pos.y 70.1172333
+obj868303 pos.z 0.0
+obj868303 # 4B2E8724
 + obj868623 84 stst30
-obj868623 # 39412B82
+obj868623 hp 1000.0
+obj868623 mana 1000.0
+obj868623 pos.x 74.7205048
+obj868623 pos.y 59.9482994
+obj868623 pos.z 0.200000033
+obj868623 # 2D7220A3
 + obj909750 82 nafltr83
-obj909750 # 2038135E
+obj909750 hp 1000.0
+obj909750 mana 1000.0
+obj909750 pos.x 72.3873901
+obj909750 pos.y 60.0429916
+obj909750 pos.z -0.0500000007
+obj909750 # 7BAD4DC4
 + obj914074 82 nafltr20
-obj914074 # 19FC5595
+obj914074 hp 1000.0
+obj914074 mana 1000.0
+obj914074 pos.x 74.8530884
+obj914074 pos.y 60.1623344
+obj914074 pos.z -7.45058015e-09
+obj914074 # F37E4DA0
 + obj917455 82 naflbu18
-obj917455 # A2F8D2ED
+obj917455 hp 1000.0
+obj917455 mana 1000.0
+obj917455 pos.x 70.1413422
+obj917455 pos.y 58.4452438
+obj917455 pos.z 0.0
+obj917455 # 7619D8FE
 + obj927062 80 unhuma ""
+obj927062 dead 0
+obj927062 hp 22.0
+obj927062 mana 11.0
+obj927062 pos.x 56.700592
+obj927062 pos.y 64.5568466
+obj927062 pos.z 0.0
 obj927062 #ai B7504CC4
-obj927062 #place 74168A08
+obj927062 #place 6A1D40C4
 obj927062 #unit D6CFAEE4
-obj927062 #vitals 3C415EFC
+obj927062 #vitals 2418CA05
 + obj927689 82 naflbu16
-obj927689 # B00FE408
+obj927689 hp 1000.0
+obj927689 mana 1000.0
+obj927689 pos.x 85.227417
+obj927689 pos.y 68.9098206
+obj927689 pos.z 0.0
+obj927689 # 845611E1
 + obj939085 82 nafltr20
-obj939085 # 662457B7
+obj939085 hp 1000.0
+obj939085 mana 1000.0
+obj939085 pos.x 74.7002182
+obj939085 pos.y 60.0923882
+obj939085 pos.z 0.0500000007
+obj939085 # 32D76014
 + obj941236 84 stst56
-obj941236 # E9937CBD
+obj941236 hp 1000.0
+obj941236 mana 1000.0
+obj941236 pos.x 53.5836143
+obj941236 pos.y 59.5042801
+obj941236 pos.z 0.150000066
+obj941236 # A1623AB1
 + obj941984 82 nafltr20
-obj941984 # DFB99E45
+obj941984 hp 1000.0
+obj941984 mana 1000.0
+obj941984 pos.x 74.7205963
+obj941984 pos.y 60.0039864
+obj941984 pos.z -0.150000006
+obj941984 # E5B325F2
 + obj982882 82 naflbu17
-obj982882 # 215B0C98
+obj982882 hp 1000.0
+obj982882 mana 1000.0
+obj982882 pos.x 52.9011497
+obj982882 pos.y 72.4860687
+obj982882 pos.z 0.0
+obj982882 # 2494DC62
 + obj990046 82 naflbu18
-obj990046 # 31A4AC9A
+obj990046 hp 1000.0
+obj990046 mana 1000.0
+obj990046 pos.x 58.2376595
+obj990046 pos.y 76.9078827
+obj990046 pos.z 0.0
+obj990046 # 4A2C5E7E
 + obj999742 80 unhuma ""
+obj999742 dead 0
+obj999742 hp 22.0
+obj999742 mana 11.0
+obj999742 pos.x 55.2048988
+obj999742 pos.y 73.8358002
+obj999742 pos.z 0.0
 obj999742 #ai 6236DA74
-obj999742 #place D467C54F
+obj999742 #place D4ADC22D
 obj999742 #unit DDF4E370
-obj999742 #vitals 3C415EFC
+obj999742 #vitals 2418CA05
 + obj1000002436 80 unanhopi ""
+obj1000002436 dead 0
+obj1000002436 hp 1.0
+obj1000002436 mana 0.0
+obj1000002436 pos.x 64.1438293
+obj1000002436 pos.y 84.5121384
+obj1000002436 pos.z 0.0
 obj1000002436 #ai 3DA93AF6
-obj1000002436 #place 98D6DF81
+obj1000002436 #place D9D6D383
 obj1000002436 #unit 84872996
-obj1000002436 #vitals BB277587
+obj1000002436 #vitals 5151B000
 + obj1000011214 80 unhuma ""
+obj1000011214 dead 0
+obj1000011214 hp 38.7085228
+obj1000011214 mana 50.4893799
+obj1000011214 pos.x 59.25
+obj1000011214 pos.y 54.25
+obj1000011214 pos.z 0.0
 obj1000011214 #ai 0CAB51C4
-obj1000011214 #place 1B744910
+obj1000011214 #place 7CB8C9E3
 obj1000011214 #unit 8480D3ED
-obj1000011214 #vitals 97F70322
+obj1000011214 #vitals AC51EDE6
 + obj1000054752 80 unhuma ""
+obj1000054752 dead 0
+obj1000054752 hp 1.0
+obj1000054752 mana 0.0
+obj1000054752 pos.x 65.6291428
+obj1000054752 pos.y 70.3460693
+obj1000054752 pos.z 0.0
 obj1000054752 #ai 3D030727
-obj1000054752 #place FD60FF34
+obj1000054752 #place 601A0750
 obj1000054752 #unit 34A4B5AB
-obj1000054752 #vitals BB277587
+obj1000054752 #vitals 5151B000
 + obj1000059184 80 unhuma ""
+obj1000059184 dead 0
+obj1000059184 hp 48.6574707
+obj1000059184 mana 34.5311089
+obj1000059184 pos.x 65.1491013
+obj1000059184 pos.y 64.4541016
+obj1000059184 pos.z 0.0
 obj1000059184 #ai 4A0437B1
-obj1000059184 #place 780C8B61
-obj1000059184 #unit D9BB2A9D
-obj1000059184 #vitals 995F57BF
+obj1000059184 #place 70048F13
+obj1000059184 #unit 0F99B550
+obj1000059184 #vitals BACEA6D4
 + obj1000059185 80 unhuma ""
+obj1000059185 dead 0
+obj1000059185 hp 48.1515961
+obj1000059185 mana 73.3738556
+obj1000059185 pos.x 68.4386978
+obj1000059185 pos.y 66.1557007
+obj1000059185 pos.z 0.0
 obj1000059185 #ai B7504CC4
-obj1000059185 #place B9176AE3
-obj1000059185 #unit 0B434DDE
-obj1000059185 #vitals 4B0FC5A6
+obj1000059185 #place 01A5B8B3
+obj1000059185 #unit D11DDD46
+obj1000059185 #vitals 7E6D9C21
 + obj1000063817 80 unhuma ""
+obj1000063817 dead 0
+obj1000063817 hp 1.0
+obj1000063817 mana 0.0
+obj1000063817 pos.x 58.2076645
+obj1000063817 pos.y 62.4868774
+obj1000063817 pos.z 0.0
 obj1000063817 #ai 98792070
-obj1000063817 #place 292BE3D1
+obj1000063817 #place F3A0A31B
 obj1000063817 #unit 7FFB0DF3
-obj1000063817 #vitals BB277587
+obj1000063817 #vitals 5151B000
 + obj1001577495 80 unhuma ""
+obj1001577495 dead 0
+obj1001577495 hp 1.0
+obj1001577495 mana 0.0
+obj1001577495 pos.x 55.6730003
+obj1001577495 pos.y 71.3665009
+obj1001577495 pos.z 0.0
 obj1001577495 #ai 3D030727
-obj1001577495 #place 2C7AFFD1
+obj1001577495 #place CCDFAD4D
 obj1001577495 #unit 3B940A31
-obj1001577495 #vitals BB277587
+obj1001577495 #vitals 5151B000
 + obj1006565532 80 unmogo ""
+obj1006565532 dead 0
+obj1006565532 hp 1.0
+obj1006565532 mana 0.0
+obj1006565532 pos.x 57.2865334
+obj1006565532 pos.y 68.4213791
+obj1006565532 pos.z 0.0
 obj1006565532 #ai 6236DA74
-obj1006565532 #place B352C556
+obj1006565532 #place 56AFC571
 obj1006565532 #unit 6AFB813C
-obj1006565532 #vitals BB277587
+obj1006565532 #vitals 5151B000
 + obj1007671245 80 unhuma ""
+obj1007671245 dead 0
+obj1007671245 hp 1.0
+obj1007671245 mana 0.0
+obj1007671245 pos.x 54.7163315
+obj1007671245 pos.y 70.1486206
+obj1007671245 pos.z 0.0
 obj1007671245 #ai B7504CC4
-obj1007671245 #place BE240B47
+obj1007671245 #place 0B4CDFE3
 obj1007671245 #unit C58A4F2B
-obj1007671245 #vitals BB277587
+obj1007671245 #vitals 5151B000
 + timed56299 72 CEffectSound
 timed56299 # 415A2487
 + timed128022 74 CEffectParticle
@@ -1080,7 +2939,7 @@ cunit196568 #place ED3AAA59
 cunit196568 #unit 006D5FB0
 cunit196568 #vitals 368D5CFB
 + cunit399469 80 unanhopi ""
-cunit399469 #place BA6932B0
+cunit399469 #place 9871087D
 cunit399469 #unit 0F1A7968
 cunit399469 #vitals ED40ECA3
 + cunit481569 80 unhuma ""
@@ -1096,7 +2955,7 @@ cunit831510 #place 03DF68FE
 cunit831510 #unit 7AD02858
 cunit831510 #vitals 0F819E5B
 + cunit848411 80 unanhopi ""
-cunit848411 #place A5084934
+cunit848411 #place B0457DA0
 cunit848411 #unit 702A13FD
 cunit848411 #vitals ED40ECA3
 + cunit927062 80 unhuma ""
@@ -1108,7 +2967,7 @@ cunit999742 #place D1FA713D
 cunit999742 #unit 80263ABD
 cunit999742 #vitals 368D5CFB
 + cunit1000002436 80 unanhopi ""
-cunit1000002436 #place 846BB123
+cunit1000002436 #place A644D3AB
 cunit1000002436 #unit D4E2DAB4
 cunit1000002436 #vitals 8FC93AF9
 + cunit1000011214 80 unhuma ""
@@ -1120,7 +2979,7 @@ cunit1000054752 #place 21FE0740
 cunit1000054752 #unit 37F6EEE0
 cunit1000054752 #vitals 8FC93AF9
 + cunit1000059184 80 unhuma ""
-cunit1000059184 #place 0FDA3F05
+cunit1000059184 #place 76B3F718
 cunit1000059184 #unit 64372327
 cunit1000059184 #vitals 6C9EA876
 + cunit1000063817 80 unhuma ""

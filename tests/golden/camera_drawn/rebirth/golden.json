@@ -1,12 +1,28 @@
 {
   "scenario": "camera_drawn",
   "install": "rebirth",
-  "recorded": "2026-10-29",
-  "commit": "29eda0ab1",
+  "recorded": "2026-11-03",
+  "commit": "fa001802b",
   "digest_period": 20,
   "left_out": null,
-  "clear": null,
-  "repeated_in": 4,
-  "reason": "R35c: new scenario, the drawn view at frametime 8 (pan, turn, clickunit)",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "C74b and C76: one summation order for every vector, quaternion and matrix helper, and pc24 / the game CRT maths removed (plain float maths, std:: on floats, float heights, speeds and constants). Float results differ in their last bits; outcomes are the same but net_pair_quest's fight, which ends sooner.",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 6 of 6 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 4 fields",
+    "    world (world) secondsPerTick: 0.00111111114 in the old golden, 0.00111111125 in the new run (d 1.1e-10)",
+    "    obj129 (80 unanwibo \"\") #place: ED6A0B50 in the old golden, 984383BE in the new run",
+    "    cunit2 (80 unmoco2 \"\") #place: 05174B21 in the old golden, 40E7E427 in the new run",
+    "    ... 1 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  world: 1 of 1 differ",
+    "    secondsPerTick: 1 world, 6 records, from 0; max |d| 1.1e-10 (1 ulps) at world secondsPerTick, record 0: 0.00111111114 -> 0.00111111125",
+    "  units: 3 of 54 differ",
+    "    #place: 3 units, 6 records, from 0; hash only (no numbers kept)",
+    "  client units: 4 of 11 differ",
+    "... 4 more lines"
+  ]
 }
