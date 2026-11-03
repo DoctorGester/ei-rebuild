@@ -1,6 +1,7 @@
-# Release: run by hand (Actions > Release > Run workflow) with a version such as v0.1.0. It tags the chosen commit,
-# pushes the tag, builds ei-rebuild.exe for x64 (build.cmd release, the build checks included; the goldens need the
-# game's data and are not run here) and publishes a GitHub release with the exe.
+# Release: run by hand (Actions > Release > Run workflow) with a version such as v0.1.0. It builds ei-rebuild.exe for
+# x64 (build.cmd release, the build checks included) and the Linux build (ei-rebuild-linux-x64.tar.gz: built in an
+# Ubuntu 22.04 container for an old glibc, its port checks run), then tags the chosen commit, pushes the tag and
+# publishes a GitHub release with both. The goldens need the game's data and are not run here.
 name: Release
 
 on:
@@ -22,18 +23,14 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-2022
+  version:
+    runs-on: ubuntu-24.04
     steps:
-      # The generated-file checks compare bytes, so keep the repository's LF line endings.
-      - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
-
       - name: Check the version
-        shell: bash
         run: |
           if ! [[ "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "Version must look like v1.2.3 or v1.2.3-beta.1"; exit 1
@@ -41,6 +38,16 @@ jobs:
           if git rev-parse -q --verify "refs/tags/${{ inputs.version }}" >/dev/null; then
             echo "Tag ${{ inputs.version }} already exists"; exit 1
           fi
+
+  windows:
+    needs: version
+    runs-on: windows-2022
+    steps:
+      # The generated-file checks compare bytes, so keep the repository's LF line endings.
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -58,26 +65,112 @@ jobs:
         shell: cmd
         run: build.cmd release
 
-      - name: Package
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory dist | Out-Null
-          Copy-Item build\release\ei-rebuild.exe dist\ei-rebuild.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/release/ei-rebuild.exe
+          if-no-files-found: error
 
+  # Ubuntu 22.04's glibc (2.35) is the baseline: the binary runs on it and on anything newer. Its gcc 11 has no
+  # <format>, so gcc 13 comes from the toolchain PPA with its C++ runtime linked in (no newer libstdc++ needed at run
+  # time); CMakeLists.txt wants cmake 3.24, newer than 22.04's 3.22, so cmake comes from pip. SDL3 is built in
+  # statically and opens X11, sound and the rest itself; the binary needs glibc and libGL.
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    container: ubuntu:22.04
+    steps:
+      - name: Packages
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -q
+          apt-get install -y -q software-properties-common git curl ca-certificates python3-pip ninja-build binutils \
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev libxtst-dev \
+            libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev xvfb xauth mesa-utils libgl1-mesa-dri
+          add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          apt-get install -y -q g++-13
+          pip3 install cmake==3.31.6
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - name: sokol-shdc
+        run: |
+          mkdir -p build/tools
+          curl -sSfL https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/linux/sokol-shdc -o build/tools/sokol-shdc
+          chmod +x build/tools/sokol-shdc
+      - name: Build
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_EXE_LINKER_FLAGS=-static-libstdc++ -static-libgcc"
+          cmake --build build/linux
+      - name: Checks
+        run: |
+          cd build/linux
+          xvfb-run -a -s "-screen 0 1280x1024x24" ctest --output-on-failure
+      - name: Package
+        run: |
+          exe=build/linux/ei-rebuild
+          strip $exe
+          if objdump -T $exe | grep -q GLIBCXX_; then echo "libstdc++ is linked dynamically"; exit 1; fi
+          glibc=$(objdump -T $exe | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
+          echo "ei-rebuild needs glibc $glibc; libraries: $(readelf -d $exe | grep -o 'NEEDED.*' | grep -o '\[.*\]' | tr '\n' ' ')" | tee -a $GITHUB_STEP_SUMMARY
+          mkdir -p dist/ei-rebuild-linux-x64
+          cp $exe build/linux/third_party_notices.txt dist/ei-rebuild-linux-x64/
+          cat > dist/ei-rebuild-linux-x64/README.txt <<EOF
+          Evil Islands rebuild ${{ inputs.version }} for Linux (x86-64)
+
+          ei-rebuild plays an installed Evil Islands 1.06 (the GOG or the Rebirth edition); the game's data is not
+          in this archive. Copy ei-rebuild into the game folder and run it there, or run it from anywhere with the
+          game folder named:
+
+              EI_GAME_ROOT="/path/to/Evil Islands" ./ei-rebuild
+
+          The settings are the game folder's ei_settings.ini (EI_SETTINGS_PATH names another file); the log is
+          ei-rebuild.log beside the program.
+
+          It needs glibc $glibc or newer, OpenGL 4.5 (Mesa or the GPU maker's driver) and an X11 desktop (XWayland
+          on Wayland desktops).
+
+          WSL (WSLg): Mesa draws on the CPU there unless told otherwise; GALLIUM_DRIVER=d3d12 ./ei-rebuild draws on
+          the Windows GPU.
+
+          third_party_notices.txt holds the licences of the code and fonts built in.
+          EOF
+          sed -i 's/^          //' dist/ei-rebuild-linux-x64/README.txt
+          tar -C dist -czf dist/ei-rebuild-linux-x64.tar.gz ei-rebuild-linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/ei-rebuild-linux-x64.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: [windows, linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Tag
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
           git push origin "${{ inputs.version }}"
-
       - name: Publish
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           flags=""
           if [ "${{ inputs.prerelease }}" = "true" ]; then flags="--prerelease"; fi
-          gh release create "${{ inputs.version }}" dist/ei-rebuild.exe \
+          gh release create "${{ inputs.version }}" dist/ei-rebuild.exe dist/ei-rebuild-linux-x64.tar.gz \
             --title "${{ inputs.version }}" --generate-notes $flags

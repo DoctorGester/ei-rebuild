@@ -234,7 +234,8 @@ if(WIN32)
 else()
     # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
     # one-instance lock, sockets, the settings document, IPv4 text; tests/port/port_check.cpp) and the interface
-    # canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
+    # canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11) and the
+    # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
@@ -244,7 +245,8 @@ else()
     add_test(NAME port_platform COMMAND ei_port_check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES})
     target_include_directories(ei_render_check PRIVATE src tests third_party/sokol)
-    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
+    find_package(X11 REQUIRED)
+    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static X11::X11)
     add_test(NAME port_render COMMAND ei_render_check)
     set_tests_properties(port_platform port_render PROPERTIES TIMEOUT 60)
 endif()

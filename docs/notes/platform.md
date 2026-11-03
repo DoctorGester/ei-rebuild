@@ -289,7 +289,12 @@ fixed-width integers.
 - OpenGL (graphics_gl.cpp, Linux): an SDL GL 4.5 core context, made on a hidden window of its own at `Start` and moved
   onto the game's window (made with SDL's GL flag) at its first frame. `glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE)`
   gives every target Direct3D's rows, depth range and facing, so the shaders, sokol-shdc's GLSL 4.30 output, need no
-  flip; the window's drawable is a framebuffer of ours, blitted upside down into the window's at `EndDrawable`.
+  flip; the window's drawable is a framebuffer of ours, blitted upside down into the window's at `EndDrawable`. The
+  window's framebuffer is bound for that blit, not only named in it: Mesa gives it the window's new size only when it
+  is the bound one (named alone it kept its first size, and a resized window showed the frame shifted, its bottom cut
+  off, older frames above it: PL17). The blit fills it at its own size (the GLX drawable's or EGL surface's, which
+  runs ahead of SDL's while the window is dragged) with the scissor rectangle reset, since the last pass's still
+  clips it. tests/port/render_check.cpp reads the window back from the X server after resizes.
   `UpdateBuffer` is `glNamedBufferSubData`, `Readback` `glGetTextureSubImage`, `GpuTimer` GL's timestamp queries; no lost
   context is looked for.
 - What only Direct3D has is in `d3d11/graphics_d3d11.h`, never included by game code: the vertical blank rules

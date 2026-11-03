@@ -81,6 +81,39 @@ bool MakeDrawable(int width, int height) {
     return true;
 }
 
+// The size of the window's own framebuffer as the driver takes it at its next draw: the GLX drawable's (the window's
+// size on the X server now) or the EGL surface's. SDL's size, the drawable's, comes with the window's resize event,
+// a frame or more later while the window is dragged. Unchanged when neither can be asked.
+void WindowFramebufferSize(int* width, int* height) {
+    int w = 0, h = 0;
+    if (const SDL_EGLDisplay display = SDL_EGL_GetCurrentDisplay()) {
+        using QuerySurface = unsigned (*)(SDL_EGLDisplay, SDL_EGLSurface, SDL_EGLint, SDL_EGLint*);
+        static const auto query = reinterpret_cast<QuerySurface>(SDL_EGL_GetProcAddress("eglQuerySurface"));
+        const SDL_EGLSurface surface = SDL_EGL_GetWindowSurface(g_window);
+        constexpr SDL_EGLint kWidth = 0x3057, kHeight = 0x3056;   // EGL_WIDTH, EGL_HEIGHT
+        if (!query || !surface || !query(display, surface, kWidth, &w) || !query(display, surface, kHeight, &h)) return;
+    } else {
+        using CurrentDisplay = void* (*)();
+        using CurrentDrawable = unsigned long (*)();
+        using QueryDrawable = void (*)(void*, unsigned long, int, unsigned*);
+        static const auto xDisplay = reinterpret_cast<CurrentDisplay>(SDL_GL_GetProcAddress("glXGetCurrentDisplay"));
+        static const auto drawable = reinterpret_cast<CurrentDrawable>(SDL_GL_GetProcAddress("glXGetCurrentDrawable"));
+        static const auto query = reinterpret_cast<QueryDrawable>(SDL_GL_GetProcAddress("glXQueryDrawable"));
+        void* x = xDisplay ? xDisplay() : nullptr;
+        if (!x || !drawable || !query) return;
+        constexpr int kWidth = 0x801D, kHeight = 0x801E;   // GLX_WIDTH, GLX_HEIGHT
+        unsigned uw = 0, uh = 0;
+        query(x, drawable(), kWidth, &uw);
+        query(x, drawable(), kHeight, &uh);
+        w = static_cast<int>(uw);
+        h = static_cast<int>(uh);
+    }
+    if (w > 0 && h > 0) {
+        *width = w;
+        *height = h;
+    }
+}
+
 // ---- Readback -----------------------------------------------------------------------------------------------------
 
 struct TexelFormat {
@@ -180,11 +213,20 @@ bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode
     return true;
 }
 
+// The window's framebuffer is bound, not only named in the blit: Mesa's window-system framebuffers take the window's
+// new size only when they are the bound one, so named alone it kept the size of the first frame and a resized window
+// showed the frame shifted with its bottom cut off and older frames above it. The blit fills it whole at its
+// own size, which runs ahead of ours while the window is dragged (WindowFramebufferSize); the scissor rectangle is the
+// last pass's, so it is set to the whole window too (sokol sets its own at every pass).
 bool EndDrawable() {
     if (!g_drawing) return false;
     g_drawing = false;
-    glBlitNamedFramebuffer(g_framebuffer, 0, 0, 0, g_width, g_height, 0, g_height, g_width, 0, GL_COLOR_BUFFER_BIT,
-                           GL_NEAREST);
+    int width = g_width, height = g_height;
+    WindowFramebufferSize(&width, &height);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glScissor(0, 0, width, height);
+    glBlitNamedFramebuffer(g_framebuffer, 0, 0, 0, g_width, g_height, 0, height, width, 0, GL_COLOR_BUFFER_BIT,
+                           GL_LINEAR);
     if (!SDL_GL_SwapWindow(g_window)) {
         ei::Log("render: the window's present failed (%s)", SDL_GetError());
         return false;
