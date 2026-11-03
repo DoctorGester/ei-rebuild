@@ -35,8 +35,18 @@ bool g_pair = false;
 SRWLOCK g_lock = SRWLOCK_INIT;
 unsigned g_binds;
 unsigned g_scans;
-std::vector<std::string> g_outside;   // "UDP 0.0.0.0:20123", each once
 std::vector<std::uint32_t> g_redirected;   // destinations sent to 127.0.0.1 instead (network order), each logged once
+
+// What the endpoint checks keep: the system's tables (grown as asked) and the endpoints found outside loopback. Never
+// destroyed: the watchdog may be in a check (Scan) while the process exits and destroys its static objects.
+struct Scans {
+    std::vector<std::uint8_t> udp, tcp;
+    std::vector<std::string> outside;   // "UDP 0.0.0.0:20123", each once
+};
+Scans& TheScans() {
+    static Scans* const scans = new Scans;
+    return *scans;
+}
 
 bool IsLoopback(std::uint32_t address) { return (ntohl(address) >> 24) == 127; }
 
@@ -51,8 +61,9 @@ std::string Endpoint(const char* kind, std::uint32_t address, std::uint16_t port
 void Outside(const std::string& endpoint, const char* how) {
     AcquireSRWLockExclusive(&g_lock);
     bool known = false;
-    for (const std::string& seen : g_outside) known = known || seen == endpoint;
-    if (!known) g_outside.push_back(endpoint);
+    std::vector<std::string>& outside = TheScans().outside;
+    for (const std::string& seen : outside) known = known || seen == endpoint;
+    if (!known) outside.push_back(endpoint);
     ReleaseSRWLockExclusive(&g_lock);
     if (!known) Log("harness: net: %s is bound outside loopback (%s)", endpoint.c_str(), how);
 }
@@ -162,9 +173,10 @@ void Install() {
 }
 
 void Scan() {
-    static std::vector<std::uint8_t> udp, tcp;   // the watchdog's, and the report's after it stopped scanning
     static SRWLOCK scanning = SRWLOCK_INIT;
     AcquireSRWLockExclusive(&scanning);
+    std::vector<std::uint8_t>& udp = TheScans().udp;   // the watchdog's, and the report's after it stopped scanning
+    std::vector<std::uint8_t>& tcp = TheScans().tcp;
     const DWORD self = GetCurrentProcessId();
     if (Table(udp, [](void* t, DWORD* size) { return GetExtendedUdpTable(t, size, FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0); })) {
         const auto* table = reinterpret_cast<const MIB_UDPTABLE_OWNER_PID*>(udp.data());
@@ -194,12 +206,13 @@ void Scan() {
 void Report(FILE* f) {
     Scan();
     AcquireSRWLockShared(&g_lock);
-    if (g_outside.empty()) {
+    const std::vector<std::string>& outside = TheScans().outside;
+    if (outside.empty()) {
         std::fprintf(f, "\nNET: loopback only (%u binds, %u endpoint checks: nothing bound outside 127.0.0.1)\n", g_binds,
                      g_scans);
     } else {
         std::string list;
-        for (const std::string& endpoint : g_outside) list += (list.empty() ? "" : ", ") + endpoint;
+        for (const std::string& endpoint : outside) list += (list.empty() ? "" : ", ") + endpoint;
         std::fprintf(f, "\nNET: outside loopback: %s\n", list.c_str());
     }
     ReleaseSRWLockShared(&g_lock);
