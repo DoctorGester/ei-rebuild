@@ -59,9 +59,9 @@ bonus, others their stats scaled by difficulty; no defence with a bow or crossbo
   ContinueAction (target alive and seen) -> ExecuteOrder -> PlanAction (steps through the ticks of a half turn plus 3 for
   the first moment the target (predicted for moving targets and missile spells) is in reach, the unit can turn in time
   and CanActFrom holds: AI units only within 1.05 times sight range, melee / skill orders not with a living unit in the
-  way, line of sight from the eye height). When it plans: the attack interval advanced, the hit built and resolved, the
-  action started; else ApproachTarget closes in (wait when in reach, else a path to where the target will be in 2..64
-  ticks).
+  way: 0.1..0.9 of the way along it and less than 0.3 metres to the side, not a bug; line of sight from the eye height).
+  When it plans: the attack interval advanced, the hit built and resolved, the action started; else ApproachTarget
+  closes in (wait when in reach, else a path to where the target will be in 2..64 ticks).
 - The animation code calls FinishAction(location) at the order's moment: kind 3 DeliverAttack (bows / crossbows: a
   missile 0x5B carrying the hit, a timed object; otherwise the target's ReceiveHit forwards the hit to its TakeHit at once;
   then the weapon's spell and a noise when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier
