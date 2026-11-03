@@ -11,8 +11,11 @@
 
 #include <SDL3/SDL.h>
 #if !defined(__APPLE__)
+// X11's Cursor typedef renamed: the game's Cursor class (ui_cursor.h) has the name.
+#define Cursor X11Cursor
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#undef Cursor
 #endif
 
 #include <cstdint>
@@ -168,13 +171,13 @@ void CheckCursorMotion(platform::NativeWindow window, int width, int height) {
     cursor.mouse = &mouse;
     cursor.bounds = Rect{0, 0, width, height};
     cursor.motion = Point{9, -4};
-    platform::MapCursorPoints([](platform::Point* at) { *at = {31, 47}; }, nullptr);
+    platform::MapCursorPoints([](Point* at) { *at = {31, 47}; }, nullptr);
     move();
     cursor.SetHeld(true);
     const std::int32_t* state = mouse.Poll();
     Check(cursor.motion.x == 0 && cursor.motion.y == 0 && state[0] == 0 && state[1] == 0,
           "holding discards movement from before the press");
-    platform::MapCursorPoints([](platform::Point* at) { *at = {83, 96}; }, nullptr);
+    platform::MapCursorPoints([](Point* at) { *at = {83, 96}; }, nullptr);
     move();
     cursor.SetHeld(true);
     state = mouse.Poll();
@@ -203,7 +206,7 @@ int main() {
     int width = 0, height = 0;
     Check(window && platform::WindowPixelSize(window, &width, &height) && width == 640 && height == 400,
           "window drawable matches the configured pixel size");
-    platform::Point point{73, 51};
+    Point point{73, 51};
     platform::ClientToScreen(window, &point);
     platform::ScreenToClient(window, &point);
     Check(point.x == 73 && point.y == 51, "client and screen pixel coordinates round-trip");
