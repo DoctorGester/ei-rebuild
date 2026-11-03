@@ -116,10 +116,16 @@ function ticketCard(t, also = []) {
     more.map(m => actLine('note old', `n-${t.id}-${m.time}`, esc(m.text), ageOf(m.time), 'Click to show it all')).join('')) : '';
   const shown = [b, prev].find(x => x && failCount(x));
   const fails = shown ? details(`f-${t.id}-${shown.id}`, `<span class="bad">what failed in #${shown.id}</span>`, failureList(shown)) : '';
-  return `<article class="card s-${t.state} f-${f.cls}">
-    <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span></div>
-    ${also.map(o => `<div class="top also"><span class="id">${esc(o.id)}</span><span class="title">${esc(o.title)}</span></div>`).join('')}
-    <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${f.html}</span></div>
+  // Stacked tickets can differ in state (one in review, the others still running): then each row shows its own state
+  // and the card takes the least advanced one, so a card is never shown as all in review while work goes on.
+  const states = [...new Set(stacked.map(s => s.state))];
+  const mixed = states.length > 1;
+  const cardState = mixed ? (states.find(s => s !== 'review' && s !== 'done') || 'review') : t.state;
+  const rowState = s => mixed ? `<span class="pill st s-${esc(s.state)}">${esc(s.state)}</span>` : '';
+  return `<article class="card s-${cardState} f-${f.cls}">
+    <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span>${rowState(t)}</div>
+    ${also.map(o => `<div class="top also"><span class="id">${esc(o.id)}</span><span class="title">${esc(o.title)}</span>${rowState(o)}</div>`).join('')}
+    <div class="tags"><span class="pill st">${esc(mixed ? stacked.map(s => s.state).filter((x, i, a) => a.indexOf(x) === i).map(x => stacked.filter(s => s.state === x).length + ' ' + x).join(', ') : t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${f.html}</span></div>
     ${sub.length ? `<div class="subline">${sub.join('<span class="dot">·</span>')}</div>` : ''}
     ${act.length ? `<div class="acts">${act.join('')}</div>` : ''}
     ${moreNotes}${fails}</article>`;
