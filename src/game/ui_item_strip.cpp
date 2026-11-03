@@ -128,10 +128,7 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     auto cellRect = [&](int i) {
         int x = static_cast<int>((i - frac) * hundred);
         Rect rect;
-        rect.left = x + 0xF;
-        rect.top = 0;
-        rect.right = x + 0x55;
-        rect.bottom = 0x14;
+        rect = {x + 0xF, 0, x + 0x55, 0x14};
         return rect;
     };
     const char* const kNumber = "%d";

@@ -239,9 +239,7 @@ void AIBrain::UpdateMove() {
     if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
     if (owner->orderStopped) {
         Unit* unit = owner->unit;
-        float dy = move.point.y - unit->localPosition.y;
-        float dx = move.point.x - unit->localPosition.x;
-        if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
+        if (DistanceSquaredXY(move.point, unit->localPosition) > kArrivedDistanceSq) {
             StopAction();
             return;
         }

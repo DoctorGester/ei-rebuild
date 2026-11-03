@@ -199,7 +199,7 @@ bool PlayerClient::Pump() {
         return true;
     case kStateSendingCamera: {
         const Vector3* anchor = CameraAnchor(g_clientWorld.camera);
-        Vector2 point = {anchor->x, anchor->y};   // sent as two floats
+        Vector2 point = XY(*anchor);   // sent as two floats
         WriteByte(&out, kRequestCamera);
         out.Write(&point, sizeof(point));
         return SendToServer();

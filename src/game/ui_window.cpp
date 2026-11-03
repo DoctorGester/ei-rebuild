@@ -89,10 +89,7 @@ void UiRegion::SetRect(int left, int top, int right, int bottom) {
     points.clear();
     left += screen_layout::PanelOffset();
     right += screen_layout::PanelOffset();
-    bounds.left = left;
-    bounds.right = right;
-    bounds.top = top;
-    bounds.bottom = bottom;
+    bounds = {left, top, right, bottom};
     enabled = true;
     rectOnly = true;
 }
@@ -100,10 +97,7 @@ void UiRegion::SetRect(int left, int top, int right, int bottom) {
 void UiRegion::AddPoint(int x, int y) {
     x += screen_layout::PanelOffset();
     if (points.empty()) {
-        bounds.left = x;
-        bounds.top = y;
-        bounds.right = x;
-        bounds.bottom = y;
+        bounds = {x, y, x, y};
     } else {
         if (x < bounds.left) bounds.left = x;
         if (y < bounds.top) bounds.top = y;

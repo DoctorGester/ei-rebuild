@@ -384,10 +384,7 @@ void OptionsWindow::Apply() {
 
 void UiSlider::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track.top = newRect->bottom - 10;
-    track.bottom = newRect->bottom;
-    track.left = newRect->left + 26;
-    track.right = newRect->right - 26;
+    track = {newRect->left + 26, newRect->bottom - 10, newRect->right - 26, newRect->bottom};
 
     UiMesh* trackMesh = SceneMesh(0);
     trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,

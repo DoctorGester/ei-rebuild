@@ -255,9 +255,7 @@ void UnitServer::PropagateHostility() {
         ++node;
         if (!diplomacy->IsAllied(side, other->side)) continue;
         Unit* self = unit;
-        float dx = other->localPosition.x - self->localPosition.x;
-        float dy = other->localPosition.y - self->localPosition.y;
-        float distance = LengthSquared2DUnrounded(dy, dx);
+        float distance = DistanceSquaredXY(other->localPosition, self->localPosition);
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;

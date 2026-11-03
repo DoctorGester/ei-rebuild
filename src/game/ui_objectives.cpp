@@ -185,10 +185,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale = marker->scaleMatrix.m[0];
         Rect area;
-        area.left = static_cast<int>(x - kExitHalf);
-        area.top = static_cast<int>(y - kExitHalf);
-        area.right = static_cast<int>(x + kExitHalf);
-        area.bottom = static_cast<int>(y + kExitHalf);
+        area = {static_cast<int>(x - kExitHalf), static_cast<int>(y - kExitHalf), static_cast<int>(x + kExitHalf), static_cast<int>(y + kExitHalf)};
         UiRegion* region = AddRegion();
         region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger

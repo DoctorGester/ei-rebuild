@@ -493,9 +493,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         message = AckKind::NoPath;
     } else {
         path->ToMotionOrder(&end);
-        float dy = self->localPosition.y - goal.y;
-        float dx = self->localPosition.x - goal.x;
-        float reached = LengthSquared2DUnrounded(dx, dy);
+        float reached = DistanceSquaredXY(self->localPosition, goal);
         float half = kHalfCell;
         float ey = half * path->targetY - goal.y;
         float ex = half * path->targetX - goal.x;

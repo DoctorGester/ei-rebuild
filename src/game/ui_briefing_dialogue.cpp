@@ -196,9 +196,7 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
 }
 
 void BriefingScreen::ViewPreset(int preset) {
-    float dx = places[kLeaderPlace].x - places[kPersonPlace].x;
-    float dy = places[kLeaderPlace].y - places[kPersonPlace].y;
-    float apart = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float apart = std::sqrt(DistanceSquaredXY(places[kLeaderPlace], places[kPersonPlace]));
     auto view = [this](Unit* unit, float angle, float distance, float height) {
         ViewSpeaker(unit, angle, distance, height);
     };

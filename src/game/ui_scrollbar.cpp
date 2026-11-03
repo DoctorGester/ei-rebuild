@@ -69,10 +69,7 @@ void UiScrollbar::SetPosition(int newPosition) {
 
 void UiScrollbar::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track.left = newRect->right - 10;
-    track.right = newRect->right;
-    track.top = newRect->top + 26;
-    track.bottom = newRect->bottom - 26;
+    track = {newRect->right - 10, newRect->top + 26, newRect->right, newRect->bottom - 26};
 
     // The sprites (SetRectangle and the regions' SetRect are Rebirth-patched: through their
     // addresses).

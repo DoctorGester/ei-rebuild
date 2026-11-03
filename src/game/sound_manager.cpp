@@ -674,9 +674,7 @@ void SoundManager::Tick() {
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
-        float dx = listener.x - e->position.x;
-        float dy = listener.y - e->position.y;
-        float dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+        float dist = std::sqrt(DistanceSquaredXY(listener, e->position));
         std::uint32_t minInterval, maxInterval;
         EI_NAN_AUDIT(dist, e->innerRadius);
         if (dist < e->innerRadius) {

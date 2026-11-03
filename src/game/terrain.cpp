@@ -91,33 +91,34 @@ float Terrain::HeightAt(float x, float y, Layer layer) {
         if (!v01) return PlaneHeight(*v00, *v10, x, y, *v11);
 
         // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
-        const Vector2 from10to00 = {v00->x - v10->x, v00->y - v10->y};
-        const Vector2 from10to11 = {v11->x - v10->x, v11->y - v10->y};
-        const float turnS = from10to11.x * from10to00.y - from10to00.x * from10to11.y;
+        const Vector2 from10to00 = XY(*v00) - XY(*v10);
+        const Vector2 from10to11 = XY(*v11) - XY(*v10);
+        const float turnS = Cross2D(from10to11, from10to00);
         EI_NAN_AUDIT(turnS);
         if (turnS <= 0.0f) return (v11->z + v01->z) * 0.5f;
-        const Vector2 from01to00 = {v00->x - v01->x, v00->y - v01->y};
-        const Vector2 from01to11 = {v11->x - v01->x, v11->y - v01->y};
-        const float turnT = from01to00.x * from01to11.y - from01to11.x * from01to00.y;
+        const Vector2 from01to00 = XY(*v00) - XY(*v01);
+        const Vector2 from01to11 = XY(*v11) - XY(*v01);
+        const float turnT = Cross2D(from01to00, from01to11);
         EI_NAN_AUDIT(turnT);
         if (turnT <= 0.0f) return (v11->z + v01->z) * 0.5f;
 
-        const Vector2 to10 = {v10->x - x, v10->y - y};
-        const Vector2 to01 = {v01->x - x, v01->y - y};
-        float side = (x - v00->x) * (v11->y - v00->y) - (y - v00->y) * (v11->x - v00->x);
+        const Vector2 at{x, y};
+        const Vector2 to10 = XY(*v10) - at;
+        const Vector2 to01 = XY(*v01) - at;
+        float side = Cross2D(at - XY(*v00), XY(*v11) - XY(*v00));
         if (side > 0.0f) {
             // Lower-right triangle (v00, v10, v11); step to a neighbour if the point is outside it.
             if (iteration >= 10) return PlaneHeight(*v00, *v10, x, y, *v11);
-            if (from10to00.y * to10.x - from10to00.x * to10.y > 0.0f) { --iy0; --iy1; continue; }
-            if (from10to11.y * to10.x - from10to11.x * to10.y >= 0.0f) return PlaneHeight(*v00, *v10, x, y, *v11);
+            if (Cross2D(to10, from10to00) > 0.0f) { --iy0; --iy1; continue; }
+            if (Cross2D(to10, from10to11) >= 0.0f) return PlaneHeight(*v00, *v10, x, y, *v11);
             ++ix0; ++ix1;
         } else {
             // Upper-left triangle (v00, v11, v01).
             if (iteration >= 10) return PlaneHeight(*v00, *v11, x, y, *v01);
-            float across = from01to00.y * to01.x - from01to00.x * to01.y;
+            float across = Cross2D(to01, from01to00);
             EI_NAN_AUDIT(across);
             if (across < 0.0f) { --ix0; --ix1; continue; }
-            const float beyond = from01to11.y * to01.x - from01to11.x * to01.y;
+            const float beyond = Cross2D(to01, from01to11);
             EI_NAN_AUDIT(beyond);
             if (beyond <= 0.0f) return PlaneHeight(*v00, *v11, x, y, *v01);
             ++iy0; ++iy1;
@@ -426,11 +427,11 @@ void SectorData::AnimateWaves() {
     SectorPosition* positions = &vertices[kSectorVertices];
     SectorVertex* water = &records[kSectorVertices];
     const float* phaseOffset = owner->wavePhases.data();
-    Vector2 direction = {owner->waveDirection.x, owner->waveDirection.y};
+    Vector2 direction = XY(owner->waveDirection);
     float height = owner->waveHeight;
     float phase = owner->wavePhase;
     float fullTurn = kPi + kPi;
-    Vector2 first = {positions[0].x, positions[0].y};
+    Vector2 first = XY(positions[0]);
     float rowStart = std::fmod(Dot2D(direction, first) + fullTurn, fullTurn);
 
     int lastMaterial = -1;

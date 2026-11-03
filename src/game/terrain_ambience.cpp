@@ -97,8 +97,8 @@ int ByWeight(const void* a, const void* b) {
 // The pan for a class's summed offset: 0 straight ahead, up to +-100 at the sides (behind
 // mirrors in front), negative on the left.
 float PanOf(const Vector3& offset, const Vector3& axis) {
-    Vector2 flat = {offset.x, offset.y};
-    Vector2 forward = {axis.x, axis.y};
+    Vector2 flat = XY(offset);
+    Vector2 forward = XY(axis);
     float length = Length2D(flat);
     float along = Dot2D(forward, flat);
     if (along > length) return 0.0f;
@@ -183,7 +183,7 @@ void Terrain::PlayAmbience() {
                     cell.soundClass = i;
                 }
             }
-            float distance = LengthSquared2D(Vector2{cell.offset.x, cell.offset.y});
+            float distance = LengthSquared2D(XY(cell.offset));
             float within = MinKeepA(distance, radiusSquared);
             cell.weight = (radiusSquared - within) / radiusSquared * kPercent;
             ClassVotes& vote = votes[cell.soundClass];

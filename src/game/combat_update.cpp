@@ -486,9 +486,7 @@ bool UnitServer::ActionInReach() {
         if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
     Vector3 at = target->PositionAt(currentPlan.endTime);
-    float dx = at.x - unit->localPosition.x;
-    float dy = at.y - unit->localPosition.y;
-    float distanceSq = LengthSquared2DUnrounded(dx, dy);
+    float distanceSq = DistanceSquaredXY(at, unit->localPosition);
     EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer
 }

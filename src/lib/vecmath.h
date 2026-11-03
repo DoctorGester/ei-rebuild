@@ -122,6 +122,9 @@ inline Vector2& operator/=(Vector2& a, float s) { a = a / s; return a; }
 inline bool operator==(const Vector2& a, const Vector2& b) { return a.x == b.x && a.y == b.y; }
 inline bool operator!=(const Vector2& a, const Vector2& b) { return !(a == b); }
 
+// a.x * b.y - a.y * b.x (the products commute).
+inline float Cross2D(const Vector2& a, const Vector2& b) { return a.x * b.y - a.y * b.x; }
+
 // 2-term sums have one result whatever the order.
 inline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }
 inline float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
@@ -141,6 +144,7 @@ inline Vector3& operator*=(Vector3& a, float s) { a = a * s; return a; }
 inline Vector3& operator/=(Vector3& a, float s) { a = a / s; return a; }
 
 // The 2D part (x, y) of 3D positions.
+inline Vector2 XY(const Vector3& v) { return {v.x, v.y}; }
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) {
     float dx = a.x - b.x;
     float dy = a.y - b.y;

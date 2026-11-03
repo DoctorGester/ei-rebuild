@@ -286,9 +286,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     Vector3 aim = order->target ? order->target->AimPoint() : order->point;
     Vector3 delta = aim - origin;
-    float ox = origin.x - aim.x;
-    float oy = origin.y - aim.y;
-    float distanceSq = LengthSquared2DUnrounded(oy, ox);
+    float distanceSq = DistanceSquaredXY(origin, aim);
 
     float reachSq;    // the order's own range, squared
     float outerSq;    // how far the target may be and still be waited for

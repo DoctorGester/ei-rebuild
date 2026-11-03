@@ -727,9 +727,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             Unit* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition;
-            float oy = me->y - other->localPosition.y;
-            float ox = me->x - other->localPosition.x;
-            float d2 = LengthSquared2DUnrounded(ox, oy);
+            float d2 = DistanceSquaredXY(*me, other->localPosition);
             if (d2 < best) {
                 nearest = other->localPosition;
                 best = d2;
@@ -896,9 +894,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
         float limit = reach * kReachScale;
-        float dy = other->localPosition.y - unit->localPosition.y;
-        float dx = other->localPosition.x - unit->localPosition.x;
-        return limit * limit < LengthSquared2DUnrounded(dx, dy);
+        return limit * limit < DistanceSquaredXY(other->localPosition, unit->localPosition);
     });
     AddPartyTargets(brain, &candidates);
     unit->flags |= MapObjectFlag::ChoosingTarget;
@@ -1156,9 +1152,7 @@ void AIBrain::UpdateFollow() {
             return;
         }
         Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
-        float gx = goal.x - leader->localPosition.x;
-        float gy = goal.y - leader->localPosition.y;
-        if (LengthSquared2DUnrounded(gx, gy) > farSq) {
+        if (DistanceSquaredXY(goal, leader->localPosition) > farSq) {
             owner->OrderMove(leader->localPosition, 0, 0, walkTime);
             followTimer = 0;
         }
@@ -1168,14 +1162,10 @@ void AIBrain::UpdateFollow() {
     // The leader walks: where it will be in a moment.
     Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
     Vector3 soon = leader->PositionAt(now + kLeaderAhead);
-    float sx = self->localPosition.x - soon.x;
-    float sy = self->localPosition.y - soon.y;
-    float soonSq = LengthSquared2DUnrounded(sx, sy);
+    float soonSq = DistanceSquaredXY(self->localPosition, soon);
     if (soonSq >= distance * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
-        float fx = soon.x - goal.x;
-        float fy = soon.y - goal.y;
-        if (LengthSquared2DUnrounded(fy, fx) > farSq) {
+        if (DistanceSquaredXY(soon, goal) > farSq) {
             owner->OrderMove(soon, 0, 0, walkTime);
             followTimer = kFollowPause;
         }
@@ -1187,9 +1177,7 @@ void AIBrain::UpdateFollow() {
     float best = soonSq;
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later = leader->PositionAt(now + ahead);
-        float lx = self->localPosition.x - later.x;
-        float ly = self->localPosition.y - later.y;
-        float laterSq = LengthSquared2DUnrounded(lx, ly);
+        float laterSq = DistanceSquaredXY(self->localPosition, later);
         if (laterSq > best) return;
         EI_NAN_AUDIT(laterSq);
         if (laterSq < kOnTheWaySq) break;
@@ -1228,9 +1216,7 @@ void AIBrain::UpdateFollow() {
         owner->OrderMove(aside, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
-        float px = goal.x - passing.x;
-        float py = goal.y - passing.y;
-        if (LengthSquared2DUnrounded(px, py) > 0.5f) {
+        if (DistanceSquaredXY(goal, passing) > 0.5f) {
             owner->OrderMove(passing, 0, 0, kPassTime);
             followTimer = kFollowPause;
         }

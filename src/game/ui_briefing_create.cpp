@@ -101,9 +101,7 @@ void PlaceMover(BriefingMover* node) {
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const Unit* person = node->person;
-    float dy = node->target.y - person->localPosition.y;
-    float dx = node->target.x - person->localPosition.x;
-    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
+    if (DistanceSquaredXY(node->target, person->localPosition) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;

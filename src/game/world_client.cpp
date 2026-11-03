@@ -151,9 +151,7 @@ Unit* WorldClient::NearestVisibleUnit(Unit* unit) {
         if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
-        float dy = found->localPosition.y - unit->localPosition.y;
-        float dx = found->localPosition.x - unit->localPosition.x;
-        float distance = LengthSquared2DUnrounded(dx, dy);
+        float distance = DistanceSquaredXY(found->localPosition, unit->localPosition);
         EI_NAN_AUDIT(distance, best);
         if (distance < best) {
             best = static_cast<float>(distance);
@@ -415,12 +413,10 @@ bool WorldClient::RunTick() {
                     ObjectListIteratorOf<Light> lights{};
                     for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags & LightFlag::Hidden)) continue;
-                        float nodeX = effect.position.x, nodeY = effect.position.y;
-                        float dy = light->localPosition.y - nodeY;
-                        float dx = light->localPosition.x - nodeX;
-                        if (LengthSquared2DUnrounded(dx, dy) > light->rangeSquared) continue;
-                        Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
+                        const Vector2 node = effect.position;
+                        if (LengthSquared2D(XY(light->localPosition) - node) > light->rangeSquared) continue;
+                        Vector3 point = {node.x, node.y, 0.0f};
+                        point.z = static_cast<float>(terrain->HeightAt(node.x, node.y, terrain::Layer::Ground));
                         float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }

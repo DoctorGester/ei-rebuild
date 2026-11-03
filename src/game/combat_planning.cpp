@@ -133,9 +133,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float half = kHalfCell;
         position.x = half * position.x;
         position.y = half * position.y;
-        float dx = position.x - aim.x;
-        float dy = position.y - aim.y;
-        if (LengthSquared2DUnrounded(dy, dx) > reachSq) {
+        if (DistanceSquaredXY(position, aim) > reachSq) {
             t += 5.0f;
             continue;
         }

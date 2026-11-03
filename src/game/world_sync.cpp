@@ -122,9 +122,7 @@ EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, Engi
         EngineObject* object = node->second;
         auto* timed = static_cast<Effect*>(object);
         const Vector3* position = timed->Position(&state->partyUnits);
-        float dx = position->x - state->lastPosition.x;
-        float dy = position->y - state->lastPosition.y;
-        float distance = LengthSquared2DUnrounded(dy, dx);
+        float distance = DistanceSquaredXY(*position, state->lastPosition);
         float reach = static_cast<float>(timed->Radius());
         float reach2 = pc24::Mul(timed->Radius(), reach);
         if (reach2 > distance) *out++ = object;
