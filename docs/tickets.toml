@@ -7209,3 +7209,19 @@ title = "The harness redirects files, clocks and sockets in its own platform bac
 group = "port"
 depends = ["PL13"]
 note = "After PL12 and PL13 the import slots (image_imports.cpp/.inc, lib/import_table.h, lib/import_prototypes.h, win32/gameapi.h/.cpp, tools/gen_iat.py) exist only so that the harness can patch them (its file overlay, clocks, sockets, registry, message boxes, UTF-8 routes). Move each redirection into the harness's platform side (as PL12 did for the window, events and clocks: tests/verify/harness_platform.cpp answering platform:: calls), then have platform_win32.cpp call the system directly and delete the slot machinery. Goldens the same."
+
+[[ticket]]
+id = "PL15"
+title = "platform.h trimmed: slot-era duplicates collapsed, the standard library where it does the job"
+group = "port"
+model = "opus"
+depends = ["C73"]
+note = "User 2026-11-03 asked what platform.h can lose; review in build/reviews/platform_h_trim.md (sections 1, 2, 5, 6). Collapse the 'through the game's slots' vs 'asked of the system directly' pairs PL14 made pointless (ExePath/ProgramPath, ReadFile/ReadWholeFile, FileExists/PathExists/IsFile, FileFind/FolderEntries) and their slot comments; Thread/Signal to std::thread/std::condition_variable (or say why not); DateTime/LocalTime/FormatLocalTime to <chrono>/strftime in lib; ToNetwork/FromNetwork/ParseIpv4 to lib; the folder and file calls onto std::filesystem where the harness's overlay can become one path-mapping seam (design it: the overlay maps a path, it doesn't answer every call); delete PageSize, DebugOutput (log instead), LayoutControlCharacter if only tools use it, net::Start/Stop made internal, HostNameAt if unused; caller-capture macros out of platform.h (harness or lib). Goldens the same; Linux builds (the workflow). Report platform.h before/after and the backends' line counts."
+
+[[ticket]]
+id = "PL16"
+title = "Window, events and mouse made SDL-shaped instead of Win32-shaped"
+group = "port"
+model = "opus"
+depends = ["R44", "PL15"]
+note = "User 2026-11-03; review build/reviews/platform_h_trim.md sections 3-4. The platform's window and events still mimic Win32: RegisterWindowClass/ProgramInstance/NativeInstance, an EventHandler returning a window-procedure result, ShowGameWindow(nCmdShow), MarkPainted, RepaintDesktop, Paint/Destroy/SystemCommand/AutoPlay events, FindClassWindow+WindowProcess+BringToFront (one call: another copy runs, bring it forward), keyFlags with scan-code bits, MK_ button bits, UTF-16 Character units, SystemKeyDown, separate double-click events. Make Event SDL-shaped (key + modifiers, UTF-8 text, button enum + click count, window resized/focus/quit) and the window calls what the game needs on SDL; MouseDevice (DirectInput's steps and reports) becomes one 'relative motion and wheel since the last read'. Key codes stay the Windows values (bindings file). Game code that reads the old fields follows. Golden re-records only where input scenarios change for a stated reason; Linux and macOS (macos-port) keep building."
