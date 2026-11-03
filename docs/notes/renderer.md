@@ -639,7 +639,8 @@ one message box, exit. Why there is no recovery (user, 2026-11-03): Direct3D 11 
 update or reset, a TDR or a GPU switch, rare for a player and a restart away; making everything again needed every
 module to drop and remake its resources, each decoded texture to keep its file's bytes, composed textures their
 recipes and canvases their command histories (R9c1, R9c5: gone in R41), and runtime backends (R42) would need it
-twice.
+twice. Dropping the kept file bytes took the process's private bytes with the hero on zone1 (vanilla, verify build)
+from about 130 MB to about 119 MB.
 
 ### R40: the cursor is the system's
 
