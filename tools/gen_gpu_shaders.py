@@ -167,6 +167,27 @@ def stage_info(program, stage, j):
     return {'blocks': blocks, 'images': images, 'inputs': sorted(inputs), 'outputs': sorted(outputs)}
 
 
+def check_msl(program, stage, text, j):
+    """Each texture, sampler and block of the MSL entry point at its SPIR-V binding (SDL_GPU's Metal slots), no two
+    of a kind at one index. The MSL leaves out what the stage never reads, so only what it has is checked."""
+    m = re.search(r'^(?:vertex|fragment) \S+ ' + ENTRIES[stage] + r'\((.*)\)\s*$', text, re.M)
+    if not m:
+        fail(f'{program} {stage}: no {ENTRIES[stage]} in the MSL')
+        return
+    want = {'texture': {i['name']: i['binding'] for i in j.get('separate_images', [])},
+            'sampler': {s['name']: s['binding'] for s in j.get('separate_samplers', [])},
+            'buffer': {u['name'].replace('.', '_'): u['binding'] for u in j.get('ubos', [])}}
+    seen = {kind: {} for kind in want}
+    for param in re.finditer(r'([\w<>]+)&? (\w+) \[\[(texture|sampler|buffer)\((\d+)\)\]\]', m.group(1)):
+        kind, index = param.group(3), int(param.group(4))
+        name = param.group(1) if kind == 'buffer' else param.group(2)   # a block by its type's name
+        if want[kind].get(name) != index:
+            fail(f'{program} {stage}: MSL {kind} {name} at {index}, its SPIR-V binding {want[kind].get(name)}')
+        if index in seen[kind]:
+            fail(f'{program} {stage}: MSL {kind}s {seen[kind][index]} and {name} both at {index}')
+        seen[kind][index] = name
+
+
 def array(name, data, terminate):
     data = data + (b'\0' if terminate else b'')
     lines = [','.join(str(b) for b in data[i:i + 28]) + ',' for i in range(0, len(data), 28)]
@@ -195,6 +216,10 @@ def main():
             with open(os.path.join(a.compiled, f'{p}_{stage}.json'), encoding='utf-8') as f:
                 s = stage_info(p, stage, json.load(f))
             info[p][stage] = s
+            if 'msl' in formats:
+                with open(os.path.join(a.compiled, f'{p}_{stage}.msl'), encoding='utf-8') as f:
+                    with open(os.path.join(a.compiled, f'{p}_{stage}.json'), encoding='utf-8') as g:
+                        check_msl(p, stage, f.read(), json.load(g))
             for name, members, size in s['blocks'].values():
                 if name in structs and structs[name][:2] != (members, size):
                     fail(f'{p}: block {name} differs from {structs[name][2]}\'s')

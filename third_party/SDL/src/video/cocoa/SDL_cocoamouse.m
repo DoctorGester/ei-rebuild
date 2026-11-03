@@ -360,6 +360,9 @@ static bool Cocoa_WarpMouse(SDL_Window *window, float x, float y)
 
 static bool Cocoa_SetRelativeMouseMode(bool enabled)
 {
+    // Local patch: keep a visible relative cursor at its held position (see README.txt).
+    SDL_Mouse *mouse = SDL_GetMouse();
+    static bool cursor_hidden = false;
     CGError result;
 
     if (enabled) {
@@ -373,10 +376,12 @@ static bool Cocoa_SetRelativeMouseMode(bool enabled)
                 return true;
             }
 
-            // make sure the mouse isn't at the corner of the window, as this can confuse things if macOS thinks a window resize is happening on the first click.
-            const CGPoint point = CGPointMake((float)(window->x + (window->w / 2)), (float)(window->y + (window->h / 2)));
-            Cocoa_HandleMouseWarp(point.x, point.y);
-            CGWarpMouseCursorPosition(point);
+            if (mouse->relative_mode_hide_cursor) {
+                // make sure the mouse isn't at the corner of the window, as this can confuse things if macOS thinks a window resize is happening on the first click.
+                const CGPoint point = CGPointMake((float)(window->x + (window->w / 2)), (float)(window->y + (window->h / 2)));
+                Cocoa_HandleMouseWarp(point.x, point.y);
+                CGWarpMouseCursorPosition(point);
+            }
         }
         DLog("Turning on.");
         result = CGAssociateMouseAndMouseCursorPosition(NO);
@@ -391,10 +396,14 @@ static bool Cocoa_SetRelativeMouseMode(bool enabled)
     /* The hide/unhide calls are redundant most of the time, but they fix
      * https://bugzilla.libsdl.org/show_bug.cgi?id=2550
      */
-    if (enabled) {
-        [NSCursor hide];
-    } else {
-        [NSCursor unhide];
+    const bool hide_cursor = enabled && mouse->relative_mode_hide_cursor;
+    if (hide_cursor != cursor_hidden) {
+        if (hide_cursor) {
+            [NSCursor hide];
+        } else {
+            [NSCursor unhide];
+        }
+        cursor_hidden = hide_cursor;
     }
     return true;
 }

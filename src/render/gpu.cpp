@@ -68,8 +68,10 @@ std::uint32_t Align(std::uint32_t value, std::uint32_t alignment) {
 SDL_GPUDevice* CreateDevice(const std::string& driver, bool debug, std::string* error) {
     std::vector<std::string> drivers;
     if (!driver.empty()) drivers.push_back(driver);
-#ifdef _WIN32
+#if defined(_WIN32)
     else drivers = {"direct3d12", "vulkan"};
+#elif defined(__APPLE__)
+    else drivers = {"metal"};
 #else
     else drivers = {"vulkan"};
 #endif
@@ -79,15 +81,17 @@ SDL_GPUDevice* CreateDevice(const std::string& driver, bool debug, std::string* 
         SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, name.c_str());
         SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug);
         SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
-#ifdef _WIN32
+#if defined(_WIN32)
         SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, true);
+#elif defined(__APPLE__)
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN, true);
 #endif
         SDL_GPUDevice* device = SDL_CreateGPUDeviceWithProperties(props);
         SDL_DestroyProperties(props);
         if (device) return device;
         *error += (error->empty() ? "" : "; ") + name + ": " + SDL_GetError();
     }
-    *error = "no Direct3D 12 or Vulkan device (" + *error + ")";
+    *error = "no GPU device (" + *error + ")";
     return nullptr;
 }
 

@@ -782,7 +782,8 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
 {
     SDL_Mouse *mouse = SDL_GetMouse();
 
-    if (mouse->cursor_visible && mouse->cur_cursor && !mouse->relative_mode) {
+    // Local patch: honor SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE (see README.txt).
+    if (mouse->cursor_visible && mouse->cur_cursor && (!mouse->relative_mode || !mouse->relative_mode_hide_cursor)) {
         SDL_CursorData *cdata = mouse->cur_cursor->internal;
 
         if (cdata) {

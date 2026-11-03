@@ -2,7 +2,7 @@
 
 The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by our renderer (`src/render/`, static library
 `ei_render` linked into ei-rebuild.exe) on **SDL3's GPU API** through its own thin layer, `src/render/gpu.h` (section
-15c): Direct3D 12 (feature level 11_0, shader model 6.0) on Windows, Vulkan on Windows and elsewhere.
+15c): Direct3D 12 (feature level 11_0, shader model 6.0) on Windows, Vulkan on Windows and Linux, Metal on macOS.
 
 1. Game code that called the renderer hands its data over instead: camera and matrices, object transforms, figure
    meshes, terrain sectors, particles, textures, the interface windows' canvases, movie frames. Game code makes no
@@ -30,10 +30,15 @@ The build (CMakeLists.txt):
   (cache variable or environment). Its default is `build/third_party` of the main checkout, so every worktree shares
   one copy. A pin or wrapper change builds a new copy beside the old one, and a file lock lets builds that configure
   at the same time wait for each other.
-- **Compiling.** Each program's two stages are compiled to SPIR-V, MSL and, on Windows, DXIL (so no compiler runs at
-  the start): `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The output goes to `shaders/hlsl/` in the
-  build folder.
-- **Reflection.** `spirv-cross --reflect` writes each stage's interface.
+- **Compiling.** Each program's two stages are compiled to SPIR-V and, on Windows, DXIL by shadercross (so no compiler
+  runs at the start): `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The MSL is spirv-cross's from that
+  SPIR-V (`--msl --msl-version 10200 --msl-decoration-binding`): every texture, sampler and block at its SPIR-V
+  binding, which is SDL_GPU's Metal slot (texture and sampler n, uniform buffer n; vertex buffers sit at 14 and up).
+  shadercross's own MSL binds only the textures whose sampler the stage reads, plus those after the last of them in its
+  resource list, so shadow_receiver.hlsli's `shadow_range` (read with Load, its sampler unused) landed at texture(0),
+  over the stage's first texture (R43h). The output goes to `shaders/hlsl/` in the build folder.
+- **Reflection.** `spirv-cross --reflect` writes each stage's interface. The generator checks each MSL entry point's
+  `[[texture(n)]]`, `[[sampler(n)]]` and `[[buffer(n)]]` against it (each at its binding, no two of a kind at one).
 - **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes two files into `shaders/` in the build
   folder:
   - `gpu_shaders.h`: each uniform block's struct (`MeshVsParams` and so on, Matrix4 for a matrix; its size asserted),
@@ -41,9 +46,9 @@ The build (CMakeLists.txt):
     `kSampler<Texture>` (the texture-sampler pair's slot) and `kAttr<Input>` (the vertex input's location).
   - `gpu_shaders.cpp`: the program table, with each stage's code in every format, its entry point and its sampler and
     block counts for `SDL_CreateGPUShader`.
-- **The check.** `ei_shader_check` (tools/shader_check; build_checks.py on Windows, ctest `port_shaders` on Linux)
-  makes every program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and
-  Vulkan on Windows, on Vulkan on Linux (lavapipe without a GPU). A driver without a device is skipped; with
+- **The check.** `ei_shader_check` (tools/shader_check; build_checks.py on Windows, ctest `port_shaders` on Linux) makes
+  every program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and Vulkan
+  on Windows, on Vulkan on Linux (lavapipe without a GPU), on Metal on macOS. A driver without a device is skipped; with
   `--require`, as ctest runs it, that fails.
 
 Rules (SDL_GPU's, or the generator's):
@@ -450,7 +455,9 @@ The cursor is the system's with the game's pictures (render_cursor.cpp):
   another is shown, those of a picture when its holder goes (`ForgetCursor`).
 - The hold (the camera turned with the right button; the global map's drag): `platform::HoldCursor` at the game's
   position (platform.md, "The cursor": relative mode with a one-pixel mouse rectangle), so the cursor stands still while
-  the motion reaches the game.
+  the motion reaches the game. On macOS SDL's relative mode freezes the pointer itself
+  (CGAssociateMouseAndMouseCursorPosition); two local patches of the vendored SDL's Cocoa backend keep the cursor
+  visible there and skip its warp to the window's centre (third_party/SDL/README.txt; macos.md).
 - What looks different from the original: the cursor moves at the display's rate whatever the frame rate; over the
   letterbox bars it is where the mouse is (the game's position is clamped to the frame); it is not in the Scroll Lock
   screenshot or the movie recorder's frames.
@@ -940,10 +947,10 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
 
 **Shape.**
 - **Device.** `PrepareInBackground` (SDL's video started on the calling thread, then the device made on a thread of its
-  own) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12,
-  else Vulkan, on Windows; Vulkan elsewhere; `DeviceOptions::driver` picks one. Shaders: DXIL on Direct3D 12, SPIR-V on
-  Vulkan, MSL on Metal, from `gpu_shaders::kPrograms` (made at their first pipeline). `MaxSamples`, `FormatSupported`.
-  No device loss is reported (section 9).
+  own) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12, else
+  Vulkan, on Windows; Vulkan on Linux; Metal on macOS; `DeviceOptions::driver` picks one. Shaders: DXIL on Direct3D 12,
+  SPIR-V on Vulkan, MSL on Metal, from `gpu_shaders::kPrograms` (made at their first pipeline). `MaxSamples`,
+  `FormatSupported`. No device loss is reported (section 9).
 - **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
   `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
   are done (SDL's). A handle released and then bound is not: a file that replaces a buffer or texture binds the new

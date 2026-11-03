@@ -25,6 +25,9 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 
 namespace platform {
 namespace {
@@ -92,9 +95,19 @@ fs::path NativePath(std::string_view path) {
 }
 
 std::string ProgramPath() {
+#if defined(__APPLE__)
+    std::uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);
+    std::string path(size, '\0');
+    if (_NSGetExecutablePath(path.data(), &size) != 0) return {};
+    path.resize(std::strlen(path.c_str()));
+    std::error_code error;
+    return fs::canonical(path, error).string();
+#else
     std::string path(PATH_MAX, '\0');
     const ssize_t size = readlink("/proc/self/exe", path.data(), path.size());
     return size > 0 ? path.substr(0, static_cast<std::size_t>(size)) : std::string{};
+#endif
 }
 
 std::string ArgumentsAfterSeparator(int argc, char** argv) {
@@ -127,8 +140,15 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
 void PrimaryDesktopSize(int* width, int* height) {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay())) {
+#if defined(__APPLE__)
+        // In pixels, as the game's sizes are (a Retina display's points times its density; platform_sdl.cpp's
+        // CreateGameWindow makes the window in points).
+        *width = static_cast<int>(std::lround(mode->w * mode->pixel_density));
+        *height = static_cast<int>(std::lround(mode->h * mode->pixel_density));
+#else
         *width = mode->w;
         *height = mode->h;
+#endif
     }
 }
 
@@ -436,6 +456,10 @@ int Fd(Socket s) { return s == kNoSocket ? -1 : static_cast<int>(s); }
 Socket Open(Kind kind) {
     const int fd = socket(AF_INET, kind == Kind::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd < 0) return kNoSocket;
+#ifdef SO_NOSIGPIPE
+    const int yes = 1;
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+#endif
     fcntl(fd, F_SETFD, FD_CLOEXEC);
     return static_cast<Socket>(fd);
 }

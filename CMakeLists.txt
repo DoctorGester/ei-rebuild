@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
-# Two systems: Windows with MSVC (build.cmd: the release and verify builds, x64) and Linux with gcc or
-# clang (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan). The harness (for now) and the offline checks against
-# Windows' drawing and keys build on Windows.
+# Three systems: Windows with MSVC (build.cmd: the release and verify builds, x64), Linux with gcc or clang
+# (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan) and macOS with Apple Clang (docs/notes/macos.md: SDL3,
+# POSIX and Metal). The offline checks against Windows' drawing and keys build on Windows.
 project(EvilIslands CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,7 +36,7 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 add_compile_definitions($<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 
 # What differs between the systems: the compiler's options and the platform's and the renderer's backends. Floating
-# point is SSE2 on both, in the order the code writes it (MSVC's default /fp:precise: /fp:fast regrouped sums and
+# point stays in the order the code writes it (MSVC's default /fp:precise: /fp:fast regrouped sums and
 # drifted by an ulp, SV7d1; on gcc and clang no contraction of a multiply and an add into one FMA).
 if(WIN32)
     enable_language(RC)
@@ -70,7 +70,7 @@ if(WIN32)
     set(EI_SYSTEM win32)   # src/platform/win32
 else()
     add_compile_options(-ffp-contract=off)
-    set(EI_SYSTEM posix)   # src/platform/posix
+    set(EI_SYSTEM posix)   # src/platform/posix (Linux and macOS)
 endif()
 
 # The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
@@ -119,12 +119,24 @@ foreach(source ${EI_HLSL_PROGRAMS})
         foreach(format ${EI_HLSL_FORMATS})
             set(out ${EI_HLSL_DIR}/${program}_${stage}.${format})
             string(TOUPPER ${format} dest)
-            add_custom_command(OUTPUT ${out}
-                COMMAND ${EI_SHADERCROSS} ${source} -s HLSL -d ${dest} -t ${stage} -e ${entry} ${define}
-                        -I ${CMAKE_SOURCE_DIR}/src/render/shaders -o ${out}
-                DEPENDS ${EI_HLSL_SOURCES}
-                COMMENT "shadercross ${program}.hlsl ${stage} to ${format}"
-                VERBATIM)
+            if(format STREQUAL "msl")
+                # MSL from the SPIR-V by spirv-cross, each texture, sampler and block at its SPIR-V binding: SDL_GPU's
+                # Metal slots. shadercross's own MSL left out a texture whose sampler the stage never reads
+                # (shadow_receiver.hlsli's shadow_range, read with Load) and put it at texture(0), over tex0.
+                add_custom_command(OUTPUT ${out}
+                    COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --msl --msl-version 10200
+                            --msl-decoration-binding --output ${out}
+                    DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
+                    COMMENT "spirv-cross ${program} ${stage} to msl"
+                    VERBATIM)
+            else()
+                add_custom_command(OUTPUT ${out}
+                    COMMAND ${EI_SHADERCROSS} ${source} -s HLSL -d ${dest} -t ${stage} -e ${entry} ${define}
+                            -I ${CMAKE_SOURCE_DIR}/src/render/shaders -o ${out}
+                    DEPENDS ${EI_HLSL_SOURCES}
+                    COMMENT "shadercross ${program}.hlsl ${stage} to ${format}"
+                    VERBATIM)
+            endif()
             list(APPEND EI_HLSL_OUTPUTS ${out})
         endforeach()
         set(reflection ${EI_HLSL_DIR}/${program}_${stage}.json)
@@ -192,12 +204,17 @@ target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its entry is
-# main (src/main.cpp, both systems); on Windows its one resource is its version information (src/main.rc, C23):
+# main (src/main.cpp, every system); on Windows its one resource is its version information (src/main.rc, C23):
 # game.exe's own resources are not used.
 # The log is the program's, not ei_platform's: the offline checks that link the platform (tools/ui_check,
 # tools/perf_check) have their own ei::Log.
 set(EI_PROGRAM_SOURCES src/platform/log.cpp)
 add_executable(ei-rebuild WIN32 src/main.cpp ${EI_PROGRAM_SOURCES} ${EI_RESOURCES})
+# On macOS an application bundle (ei-rebuild.app/Contents/MacOS/ei-rebuild; docs/notes/macos.md).
+if(APPLE)
+    set_target_properties(ei-rebuild PROPERTIES MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER org.eirebuild.game MACOSX_BUNDLE_BUNDLE_NAME "Evil Islands")
+endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
 # The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
@@ -280,14 +297,16 @@ if(WIN32)
     target_include_directories(ei_perf_check PRIVATE src)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
-    # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
-    # one-instance lock, sockets, the settings document, IPv4 text, the maths functions; tests/port/port_check.cpp) and
-    # the interface canvases' glyph cases on Vulkan (tests/render/glyph_cases.cpp, as tools/ui_check runs them on
-    # Direct3D 12) and the window's present after resizes, read back from the X server.
+    # The POSIX checks (ctest; Linux without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini
+    # reader, the one-instance lock, sockets, the settings document, IPv4 text, the maths functions, the Bink container;
+    # tests/port/port_check.cpp), the interface canvases' glyph cases on Vulkan or Metal (tests/render/glyph_cases.cpp,
+    # as tools/ui_check runs them on Direct3D 12), the game window's pixels and the cursor's hold, and on Linux the
+    # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp src/game/ini_file.cpp src/game/asset_text.cpp
+                   src/video/bink_file.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src)
     target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)
@@ -295,10 +314,13 @@ else()
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
-    find_package(X11 REQUIRED)
-    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static X11::X11)
+    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static)
+    if(NOT APPLE)
+        find_package(X11 REQUIRED)
+        target_link_libraries(ei_render_check PRIVATE X11::X11)
+    endif()
     add_test(NAME port_render COMMAND ei_render_check)
-    # The HLSL programs and src/render/gpu.cpp on Vulkan (lavapipe without a GPU).
+    # The HLSL programs and src/render/gpu.cpp on Vulkan (Linux; lavapipe without a GPU) or Metal (macOS).
     add_test(NAME port_shaders COMMAND ei_shader_check --require)
     add_test(NAME port_gpu COMMAND ei_gpu_check --require)
     set_tests_properties(port_platform port_render port_shaders port_gpu PROPERTIES TIMEOUT 60)

@@ -10,11 +10,14 @@ usage: python tools/format_changed.py [--base REV] [--check] [file ...]
 import difflib
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CLANG_FORMAT = pathlib.Path(r'E:\bin\vs\buildtools\VC\Tools\Llvm\bin\clang-format.exe')
+# This machine's (Visual Studio's), else the one on PATH (a Mac's or Linux's).
+VS_CLANG_FORMAT = pathlib.Path(r'E:\bin\vs\buildtools\VC\Tools\Llvm\bin\clang-format.exe')
+CLANG_FORMAT = VS_CLANG_FORMAT if VS_CLANG_FORMAT.is_file() else shutil.which('clang-format')
 SUFFIXES = ('.h', '.cpp', '.inc', '.mm')
 
 
@@ -50,6 +53,8 @@ def main():
     total = 0
     for f in files:
         path = ROOT / f
+        if not path.is_file():
+            continue
         text = path.read_bytes().decode('utf-8')
         ranges = changed_ranges(f, base)
         inc = include_range(text.splitlines())

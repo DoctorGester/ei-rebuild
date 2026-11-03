@@ -33,7 +33,17 @@ set(EI_SPIRV_CROSS_PIN
     https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/vulkan-sdk-1.4.363.0.tar.gz
     f708982e88b763ef5b0394ed468fc2c3628f68cdab89f2e7a946cd628c04e721
     SPIRV-Cross-vulkan-sdk-1.4.363.0)
-if(WIN32)
+# DXC has no macOS release: there it is the one the LunarG Vulkan SDK for macOS ships (libdxcompiler.dylib and its
+# headers), found at EI_DXC_ROOT (default: the SDK's VULKAN_SDK folder; docs/notes/macos.md).
+if(APPLE)
+    set(EI_DXC_ROOT "$ENV{VULKAN_SDK}" CACHE PATH
+        "DXC on macOS: a folder with include/dxc/dxcapi.h and lib/libdxcompiler.dylib")
+    if(NOT EXISTS "${EI_DXC_ROOT}/include/dxc/dxcapi.h" OR NOT EXISTS "${EI_DXC_ROOT}/lib/libdxcompiler.dylib")
+        message(FATAL_ERROR "No DXC at EI_DXC_ROOT '${EI_DXC_ROOT}': install the Vulkan SDK for macOS (it sets "
+                            "VULKAN_SDK) or pass -DEI_DXC_ROOT=<folder with include/dxc/dxcapi.h and "
+                            "lib/libdxcompiler.dylib>")
+    endif()
+elseif(WIN32)
     set(EI_DXC_PIN
         dxc_2026_09_29.zip
         https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip
@@ -84,7 +94,12 @@ if(locked)
 endif()
 ei_fetch(EI_SHADERCROSS_PIN shadercross_source)
 ei_fetch(EI_SPIRV_CROSS_PIN spirv_cross_source)
-ei_fetch(EI_DXC_PIN dxc)
+if(APPLE)
+    set(dxc ${EI_DXC_ROOT})
+    set(EI_DXC_PIN macos ${EI_DXC_ROOT})   # in the toolchain's key, so another DXC builds beside it
+else()
+    ei_fetch(EI_DXC_PIN dxc)
+endif()
 
 set(wrapper ${CMAKE_CURRENT_LIST_DIR})
 file(SHA256 ${wrapper}/CMakeLists.txt wrapper_hash)

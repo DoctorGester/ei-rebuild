@@ -32,7 +32,7 @@ Drawing and the interface:
 Program and platform:
 - `standalone.md`: the exe: how it runs, its data, the settings file, the library ports, UTF-8, the drop-in exe.
 - `platform.md`: the platform layer (src/platform) and its rule.
-- `linux.md`: the Linux build.
+- `linux.md`: the Linux build. `macos.md`: the macOS build (SDL3, POSIX, SDL_GPU's Metal).
 
 Tests and tools:
 - `harness.md`: running scenarios, the scenario steps, what a harness run does and leaves alone.

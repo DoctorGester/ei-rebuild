@@ -56,6 +56,9 @@ int Fd(Socket s) { return s == kNoSocket ? -1 : static_cast<int>(s); }
 
 sockaddr_in Native(const Address& a) {
     sockaddr_in n{};
+#if defined(__APPLE__)
+    n.sin_len = sizeof(n);   // BSD's sockaddr carries its length
+#endif
     n.sin_family = AF_INET;
     n.sin_port = a.port;
     n.sin_addr.s_addr = a.ip;
@@ -104,7 +107,11 @@ int Send(Socket s, const void* p, int n) {
         errno = EINVAL;
         return -1;
     }
+#ifdef MSG_NOSIGNAL
     return static_cast<int>(send(Fd(s), p, n, MSG_NOSIGNAL));
+#else
+    return static_cast<int>(send(Fd(s), p, n, 0));   // macOS: the socket's SO_NOSIGPIPE (Open)
+#endif
 }
 
 int Receive(Socket s, void* p, int n) {
