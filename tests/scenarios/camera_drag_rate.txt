@@ -1,5 +1,5 @@
 # The camera's right-button turn and tilt at four frame rates (PL20; docs/notes/ui.md, "Camera mouse turn"). The same
-# mouse speed, 2 counts a millisecond across (a turn) and then 0.5 up or down (a tilt), at frame times of 32, 16, 8
+# mouse speed, 2 counts a millisecond across (a turn) and then 2 up or down (a tilt), at frame times of 32, 16, 8
 # and 4 ms turns and tilts the camera by the same amount. It used to set the turn's rate from each frame's motion, so
 # that the turn went with the frame time: eight times as far at 32 ms as at 4.
 timeout 120
@@ -23,7 +23,7 @@ mousedrag 0 0
 frames 20
 camtrace stop turn32
 camtrace start
-mousedrag 0 -16
+mousedrag 0 -64
 frames 8
 mousedrag 0 0
 frames 20
@@ -40,7 +40,7 @@ mousedrag 0 0
 frames 40
 camtrace stop turn16
 camtrace start
-mousedrag 0 8
+mousedrag 0 32
 frames 16
 mousedrag 0 0
 frames 40
@@ -57,7 +57,7 @@ mousedrag 0 0
 frames 80
 camtrace stop turn8
 camtrace start
-mousedrag 0 -4
+mousedrag 0 -16
 frames 32
 mousedrag 0 0
 frames 80
@@ -74,7 +74,7 @@ mousedrag 0 0
 frames 160
 camtrace stop turn4
 camtrace start
-mousedrag 0 2
+mousedrag 0 8
 frames 64
 mousedrag 0 0
 frames 160
