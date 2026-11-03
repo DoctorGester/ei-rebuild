@@ -32,7 +32,8 @@ import srcscan  # noqa: E402
 # its rule changes (a pattern, a path that is counted or left out), not for an edit that leaves the numbers alone.
 # A point from before this table has no `mv`: its four old groups count as version 1.
 GROUP_VERSION = {'loc': 2,        # 2: tests/golden (recorded data, 1.15M lines) is not code
-                 'cleanup': 1, 'standalone': 1, 'track': 1,
+                 'cleanup': 1, 'standalone': 1,
+                 'track': 2,       # 2: struct names are qualified by their namespaces, the graphics backends count as one file
                  'goals': 1}      # new with this table
 GROUPS = tuple(GROUP_VERSION)
 OLD_GROUPS = ('loc', 'cleanup', 'standalone', 'track')
@@ -50,17 +51,14 @@ TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.
 RATCHET = {'vector_map_set_structs': 'per-file vector/map/set struct'}
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
-# The x87 remains (C30): casts that pin a precision and the CRT's _ftol.
+# The x87 remains (C30): casts that pin a precision.
 CLEANUP = {
     'float_casts': re.compile(r'\bstatic_cast<float>'),
     'double_casts': re.compile(r'\bstatic_cast<double>'),
-    'ftol_calls': re.compile(r'\bFtol\s*\('),
 }
 
-# Single-byte text sites that a UTF-8 switch has to visit (docs/notes/standalone.md).
+# Single-byte text sites that a UTF-8 switch has to visit (docs/notes/standalone.md); counted in src/ only.
 STANDALONE = {
-    'text_case_compares': re.compile(r'\bgamecrt::mbsicmp\b|\b_?strn?icmp\b|\bMakeUpper\b|\bMakeLower\b|\bCompareNoCase\b'
-                                     r'|\bCharUpper\w*|\bCharLower\w*'),
     'text_fixed_buffers': re.compile(r'\bchar\s+\w+\[[0-9A-Za-z_]+\]'),
     'text_ansi_calls': re.compile(r'\b(?:CreateFileA|FindFirstFileA|DeleteFileA|GetFileAttributesA|CreateDirectoryA|fopen'
                                   r'|RegQueryValueExA|RegSetValueExA|GetModuleFileNameA|SetWindowTextA|MessageBoxA'
@@ -183,7 +181,7 @@ def measure(tree, groups=GROUPS):
     """{group: numbers} of one tree for the given groups, or None for the early history without the inputs."""
     if not tree.read('config/functions.csv'):
         return None
-    loc, sums, struct_files = defaultdict(int), {g: defaultdict(int) for g in groups}, defaultdict(int)
+    loc, sums, struct_files = defaultdict(int), {g: defaultdict(int) for g in groups}, defaultdict(set)
     for path in tree.paths:
         if not counted(path):
             continue
@@ -205,14 +203,14 @@ def measure(tree, groups=GROUPS):
             if group == 'track':
                 f, names = f
                 for name in names:
-                    struct_files[name] += 1
+                    struct_files[name].add(progress.struct_unit(path))
             for k, n in f.items():
                 sums[group][k] += n
     out = {g: dict(sums[g]) for g in groups if g != 'loc'}
     if 'loc' in groups:
         out['loc'] = dict(loc)
     if 'track' in groups:
-        out['track']['structs_defined_twice'] = sum(1 for n in struct_files.values() if n > 1)
+        out['track']['structs_defined_twice'] = sum(1 for units in struct_files.values() if len(units) > 1)
     return out
 
 

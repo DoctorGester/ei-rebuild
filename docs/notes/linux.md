@@ -34,6 +34,10 @@ cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build/linux
 ```
 
+The build has no gcc warnings, plain and with `-DEI_HARNESS=ON`; the Linux CI job configures with
+`-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`, so a new warning fails it (the Windows builds are not affected). Check in WSL
+from a clone in the WSL home, not under /mnt/e (9P is slow).
+
 ## Checks
 
 `ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's llvmpipe draws):

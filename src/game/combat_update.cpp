@@ -398,7 +398,8 @@ void UnitServer::EndOrder(char abort) {
                     TakeQueue(this, &rest);
                 } else {
                     rest.extra = queue.extra;
-                    rest.steps.erase(rest.steps.begin() + 1);
+                    rest.steps[1] = rest.steps[2];   // the middle step dropped (three steps here)
+                    rest.steps.pop_back();
                     PlaySteps(&rest);
                 }
             }
