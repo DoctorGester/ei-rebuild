@@ -64,12 +64,13 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
     int dyCells = ty - uy, dxCells = tx - ux;
     int ady = dyCells < 0 ? -dyCells : dyCells;
     int adx = dxCells < 0 ? -dxCells : dxCells;
-    // The unit on the target cell: no line to walk back, no candidate (the original's step was 0 / 0 and every
-    // candidate failed; docs/notes/ai.md, "Original bugs kept").
-    if (adx == 0 && ady == 0) return false;
+    // The unit on the target cell: no line to walk back, so only the target cell itself is a candidate.
     int steps;
     float sx, sy;
-    if (adx > ady) {
+    if (adx == 0 && ady == 0) {
+        steps = 0;
+        sx = sy = 0.0f;
+    } else if (adx > ady) {
         sy = static_cast<float>(dyCells) / static_cast<float>(adx);
         steps = adx;
         sx = dxCells < 0 ? -1.0f : 1.0f;
@@ -247,13 +248,10 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing = unit->localRotation.AxisY();
         float bx = -facing.x, by = -facing.y;
-        float px;
-        px = path->targetX;
-        float a = AbsBits(px - static_cast<float>(lib::RoundEven(px)));
-        px = path->targetX;    // targetX twice (not targetY), like the original
-        float b = AbsBits(px - static_cast<float>(lib::RoundEven(px)));
+        float a = AbsBits(path->targetX - static_cast<float>(lib::RoundEven(path->targetX)));
+        float b = AbsBits(path->targetY - static_cast<float>(lib::RoundEven(path->targetY)));
         float b2 = b + b, a2 = a + a;
-        float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
+        float fraction = b2 < a2 ? b2 : a2;
         int octant = lib::RoundEven(std::atan2(by, bx) * 1.273239605931458f);
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
