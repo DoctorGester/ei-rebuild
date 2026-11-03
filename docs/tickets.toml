@@ -6935,6 +6935,21 @@ model = "sonnet"
 note = "User 2026-11-03: do we need ini parsing in the platform? No. platform.h has IniSectionEntries/IniString/IniInt; Windows answers them with GetPrivateProfile*A (ANSI, in game_calls.cpp and platform_win32.cpp, which the harness redirects), POSIX already has its own parser (platform_posix.cpp). Move the POSIX parser into src/game/ini_file.cpp (reading the file through platform::ReadFile, which the harness already redirects), with GetPrivateProfile's rules that matter for the game's ini files (case-insensitive section/key, ';' comments, quotes stripped, first match wins, the 1022-byte cut if anything relies on it), and delete the platform's Ini* calls on both systems, platform_win32.h's IniSection seam and the harness's .ini answers. Text: UTF-8 as the rest (utf8-always). Goldens the same (the harness reads the same files)."
 
 [[ticket]]
+id = "C74"
+title = "Vector maths a: written-out component maths collapsed to vecmath ops (bit-identical, scripted)"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: lots of vector maths is still written out by component although src/lib/vecmath.h has the types. Part a is the mechanical, bit-identical part: per-component ops become the operators (a.x-b.x, a.y-b.y, a.z-b.z -> a - b; component-wise +, *s, /s, negation, lerp written out -> Lerp), float[2]/[3]/[4] members and locals that hold points/directions become Vector2/3/4 where nothing depends on the array form (file and network formats keep their layout: Vector3 is 12 bytes, so most can), Vector3's odd members (Construct returning this, AddInPlace returning &v, DivideInPlace) replaced by plain construction and operators. Per-component ops round the same either way, so goldens must stay the same: that is the check that it stayed mechanical. Write the rewrite as a script over src/game and src/render (scripted-retype-batches style, 1-2 batches), review its output, hand-fix the rest. Do NOT touch the ordered sums (Sum3, XYZ/ZYX/ZXY helpers, *Unrounded) here: that's C74b. Report sites rewritten per pattern."
+
+[[ticket]]
+id = "C74b"
+title = "Vector maths b: one Dot/Length/Distance/Transform; the original's summation orders dropped"
+group = "cleanup"
+model = "opus"
+depends = ["C74"]
+note = "User 2026-11-03. The game's goldens are our own (H40), so the summation orders kept to match game.exe bit for bit (Sum3 XYZ/ZYX/ZXY, DotZYX.., LengthSquaredZXY.., the *Unrounded double helpers, MatrixRows' per-row order, Matrix4::Multiply's per-element orders, SumOfProducts, written-out dot/length/cross/matrix sums in game code) have no reason left. Collapse them to one Dot, LengthSquared, Length, Distance(Squared), Normalised, Cross, Transform, Multiply each, and rewrite the remaining written-out sums of products in src/game and src/render to them. Results change in the last bits, so goldens differ: re-record once per batch with --reason, after checking that every differing scenario still plays the same (positions within a small tolerance at checkpoints, same outcomes: H45's diffs if it has landed, else compare digests by hand on a sample). Multiplayer is between our builds only, so both sides change together. Docs: vector-math.md shrinks to what the types do."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
