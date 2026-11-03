@@ -108,7 +108,7 @@ void AppendDefaultMessages(std::vector<std::string>& messages) {
 void LoadSystemMessages(std::vector<std::string>& messages) {
     messages.clear();
     std::string bytes;
-    if (platform::ReadFile(".\\res\\sysmsg.txt", &bytes))
+    if (platform::ReadWholeFile(".\\res\\sysmsg.txt", &bytes))
         for (const std::string& line : str::Lines(bytes)) messages.push_back(text::FromAssetText(line));
     if (messages.size() < kMessageLines) {
         messages.clear();
@@ -534,8 +534,6 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     ::InitGameClientPointer();
     ::InitCodeTables();
     std::atexit(app::ReleaseMouseAtExit);
-    net::StartWinsock();
-    std::atexit(net::CleanUpWinsock);
     ::BuildWeatherNoise();
 
     std::vector<std::string> messages;

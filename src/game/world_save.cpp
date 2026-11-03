@@ -155,9 +155,9 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 // first: `site`).
 bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
     const std::string file(name);
-    if (platform::FileExists(file)) return false;
+    if (platform::PathExists(file)) return false;
     modfolders::SelectMaps(name, site);
-    return !platform::FileExists(MapsFolder() + file);
+    return !platform::PathExists(MapsFolder() + file);
 }
 
 } // namespace

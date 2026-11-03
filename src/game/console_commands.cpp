@@ -215,7 +215,7 @@ void LoadVar(std::vector<std::string>* args) {
 
     std::vector<std::string> parts;
     std::string bytes;
-    if (!platform::ReadFile((*args)[1], &bytes)) {   // "Cannot open file <name> for reading"
+    if (!platform::ReadWholeFile((*args)[1], &bytes)) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for reading");
         return;
     }
@@ -246,7 +246,7 @@ void Exec(std::vector<std::string>* args) {
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
     std::string bytes;
-    if (!platform::ReadFile(name, &bytes)) {   // "Cannot open file <name> for reading"
+    if (!platform::ReadWholeFile(name, &bytes)) {   // "Cannot open file <name> for reading"
         EndLine(g_consoleOut << "Cannot open file " << (*args)[0] << " for reading");
         return;
     }

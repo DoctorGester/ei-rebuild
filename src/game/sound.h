@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -174,8 +175,7 @@ struct SoundManager : EngineObject {
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
     std::recursive_mutex streamLock;    // guarding the stream and musicFader
-    platform::Thread streamThread;      // started when the MP3 stream opened
-    platform::Signal streamStopped;     // set when the stream thread ends
+    std::thread streamThread;           // started when the MP3 stream opened, joined by Close
     volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)

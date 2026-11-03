@@ -1,7 +1,6 @@
 #include "random.h"
 
-#include "platform/platform.h"
-
+#include "lib/caller.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
 #include <cstdint>

@@ -68,7 +68,7 @@ void ResourceStream::Close() { file.Close(); }
 
 bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     Close();
-    if (!platform::FileExists(name)) return false;
+    if (!platform::PathExists(name)) return false;
     if (!file.Open(name, platform::FileMode::Read)) return false;
     if (size != nullptr) *size = file.Size();
     return true;

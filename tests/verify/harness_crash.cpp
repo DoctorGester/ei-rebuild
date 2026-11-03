@@ -5,8 +5,10 @@
 
 #include "../../src/platform/log.h"
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <string_view>
 
 namespace ei::verify::crash {
 
@@ -183,38 +185,20 @@ std::string OsErrorText(long error) {
     return text;
 }
 
-// The files the game opened (the latest kMaxOpened reads and writes, with the path as the game named it
-// and the one opened, which differs under the overlay), the "diskfull" text (lower case) and the
-// original WriteFile.
-struct OpenedFile {
-    HANDLE handle;
-    bool write;     // opened for writing
-    bool failing;   // "diskfull"
-    char path[MAX_PATH];
-    char target[MAX_PATH];
-};
-// Two rings, so that the hundreds of files a zone load reads never push out a file open for writing.
-constexpr int kMaxOpened = 128;
-OpenedFile g_opened[2 * kMaxOpened];   // reads, then writes
-int g_nextOpened[2];
-SRWLOCK g_openedLock = SRWLOCK_INIT;
+// The "diskfull" text (lower case).
 char g_failText[MAX_PATH];
 // The first write that failed for real (not "diskfull"), as the run's failure line.
 SRWLOCK g_failedLock = SRWLOCK_INIT;
 std::string g_failedWrite;
 
-// The entry of `handle` copied out; false when the game did not open it through the redirection.
-bool FindOpened(HANDLE handle, OpenedFile* out) {
-    AcquireSRWLockShared(&g_openedLock);
-    bool found = false;
-    for (const OpenedFile& f : g_opened) {
-        if (f.handle != handle) continue;
-        *out = f;
-        found = true;
-        break;
-    }
-    ReleaseSRWLockShared(&g_openedLock);
-    return found;
+// The file `handle` writes, as the system names it (the overlay's copy under the overlay); empty when unknown.
+std::string WrittenFile(HANDLE handle) {
+    wchar_t name[MAX_PATH];
+    const DWORD n = GetFinalPathNameByHandleW(handle, name, MAX_PATH, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+    if (n == 0 || n >= MAX_PATH) return {};
+    std::wstring_view path(name, n);
+    if (path.starts_with(L"\\\\?\\")) path.remove_prefix(4);
+    return text::Narrow(path);
 }
 
 } // namespace
@@ -258,32 +242,6 @@ void FailWritesTo(const char* text) {
     Log("harness: diskfull: writes to files whose path contains '%s' fail from now on", g_failText);
 }
 
-void OnFileOpened(const char* path, const char* target, HANDLE handle, bool write) {
-    if (handle == INVALID_HANDLE_VALUE) return;
-    bool failing = false;
-    if (write && g_failText[0]) {
-        char lower[MAX_PATH];
-        strncpy_s(lower, path ? path : "", _TRUNCATE);
-        _strlwr_s(lower);
-        failing = std::strstr(lower, g_failText) != nullptr;
-    }
-    AcquireSRWLockExclusive(&g_openedLock);
-    // A handle value comes back once its file is closed: the old entry goes.
-    for (OpenedFile& f : g_opened)
-        if (f.handle == handle) f.handle = nullptr;
-    {
-        int& next = g_nextOpened[write ? 1 : 0];
-        OpenedFile& f = g_opened[(write ? kMaxOpened : 0) + next];
-        next = (next + 1) % kMaxOpened;
-        f.handle = handle;
-        f.write = write;
-        f.failing = failing;
-        strncpy_s(f.path, path ? path : "", _TRUNCATE);
-        strncpy_s(f.target, target ? target : "", _TRUNCATE);
-    }
-    ReleaseSRWLockExclusive(&g_openedLock);
-}
-
 std::string FailedWrite() {
     AcquireSRWLockShared(&g_failedLock);
     std::string line = g_failedWrite;
@@ -294,11 +252,15 @@ std::string FailedWrite() {
 } // namespace ei::verify::crash
 
 // The game's file writes (game_calls.cpp's in its own builds), watched: harness_crash.h.
-BOOL platform::win32::WriteFile(HANDLE file, const void* buffer, DWORD size, DWORD* written) {
+BOOL platform::win32::WriteFile(HANDLE file, const void* buffer, DWORD size, DWORD* written, std::string_view path) {
     using namespace ei::verify::crash;
-    OpenedFile opened{};
-    const bool known = file != INVALID_HANDLE_VALUE && FindOpened(file, &opened);
-    const bool injected = known && opened.failing;   // "diskfull"
+    const std::string name(path);
+    bool injected = false;   // "diskfull"
+    if (g_failText[0]) {
+        std::string lower = name;
+        for (char& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        injected = lower.find(g_failText) != std::string::npos;
+    }
     BOOL result = FALSE;
     DWORD error = ERROR_DISK_FULL;
     if (injected) {
@@ -309,20 +271,18 @@ BOOL platform::win32::WriteFile(HANDLE file, const void* buffer, DWORD size, DWO
         error = GetLastError();
         if (error == ERROR_IO_PENDING) return result;
     }
+    const std::string target = WrittenFile(file);
     char drive[4] = "";
-    if (known && opened.target[0] && opened.target[1] == ':') std::snprintf(drive, sizeof(drive), "%c:\\", opened.target[0]);
+    if (target.size() > 1 && target[1] == ':') std::snprintf(drive, sizeof(drive), "%c:\\", target[0]);
     const long long freeMb = drive[0] ? FreeMegabytes(drive) : -1;
-    const bool redirected = known && std::strcmp(opened.path, opened.target) != 0;
+    const bool redirected = !target.empty() && _stricmp(name.c_str(), target.c_str()) != 0;
     char line[3 * MAX_PATH];
     std::snprintf(line, sizeof(line), "a file write failed: %lu bytes to %s%s%s: error %lu (%s); %lld MB free on %s", size,
-                  known ? opened.path : "a file not opened through the redirection", redirected ? " -> " : "",
-                  redirected ? opened.target : "", error, OsErrorText(static_cast<long>(error)).c_str(), freeMb,
-                  drive[0] ? drive : "its disk");
+                  name.c_str(), redirected ? " -> " : "", redirected ? target.c_str() : "", error,
+                  OsErrorText(static_cast<long>(error)).c_str(), freeMb, drive[0] ? drive : "its disk");
     static LONG logged = 0;
     if (InterlockedIncrement(&logged) <= 10) ei::Log("harness: %s%s", injected ? "diskfull: " : "", line);
-    // Only files the game opened for writing fail the run: a write to a file opened for reading (the
-    // CRT start-up checks try one) or to a handle the redirection never saw is the game's own business.
-    if (known && opened.write && !injected) {
+    if (!injected) {
         AcquireSRWLockExclusive(&g_failedLock);
         if (g_failedWrite.empty()) g_failedWrite = line;
         ReleaseSRWLockExclusive(&g_failedLock);

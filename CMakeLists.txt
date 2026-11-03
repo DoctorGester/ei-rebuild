@@ -128,14 +128,16 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
 # window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
-# (src/platform/sdl); the rest on the system's (src/platform/win32, the one place of the game's code that includes
-# <windows.h>, or src/platform/posix).
+# (src/platform/sdl); the folder calls on std::filesystem (src/platform/files.cpp); the rest on the system's
+# (src/platform/win32, the one place of the game's code that includes <windows.h>, or src/platform/posix).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
-# The calls a harness run answers itself (src/platform/win32/game_calls.cpp): in the harness's builds the game takes
-# tests/verify's definitions (below), and the other programs that link the platform take the file (EI_GAME_CALLS).
+list(APPEND EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/files.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
+# The calls a harness run answers itself (src/platform/win32/game_calls.cpp) and its mapping of the file calls' paths
+# (src/platform/system_path.cpp): in the harness's builds the game takes tests/verify's definitions (below), and the
+# other programs that link the platform take the files (EI_GAME_CALLS).
 set(EI_GAME_CALLS)
 if(EI_HARNESS AND WIN32)
-    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
     list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
 endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
@@ -179,9 +181,9 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
-    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, and its answers to
-    # the game's file, .ini, socket and desktop calls (its overlay, its sockets on 127.0.0.1) game_calls.cpp's; sokol's
-    # validation layer is on (its messages in ei-rebuild.log).
+    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, its mapping of the
+    # file calls' paths (its overlay) system_path.cpp's, and its answers to the game's socket, disc and desktop calls
+    # (its sockets on 127.0.0.1) game_calls.cpp's; sokol's validation layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)
@@ -199,11 +201,11 @@ if(WIN32)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
     target_include_directories(ei_launch PRIVATE src)
 
-    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order and the .ini reader, without
-    # the game. build.cmd runs it.
+    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader and
+    # lib::ParseIpv4, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   tests/unit/ini_file.cpp src/game/settings_document.cpp src/game/ini_file.cpp src/game/asset_text.cpp
-                   src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
+                   tests/unit/ini_file.cpp tests/unit/ipv4.cpp src/game/settings_document.cpp src/game/ini_file.cpp
+                   src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE include src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
 
@@ -229,11 +231,12 @@ if(WIN32)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
     # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
-    # one-instance lock, sockets, the settings document; tests/port/port_check.cpp) and the interface canvases' glyph
-    # cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
+    # one-instance lock, sockets, the settings document, IPv4 text; tests/port/port_check.cpp) and the interface
+    # canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
     enable_testing()
-    add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
-                   tests/unit/settings_file.cpp tests/unit/ini_file.cpp src/game/ini_file.cpp src/game/asset_text.cpp)
+    add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
+                   src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
+                   tests/unit/ipv4.cpp src/game/ini_file.cpp src/game/asset_text.cpp ${EI_PROGRAM_SOURCES})
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)

@@ -259,7 +259,7 @@ void ShowMessageBox(const char* text) {
 }
 
 void ShowLibraryMessageBox(const char* text) {
-    platform::ShowMessageBox(nullptr, text, platform::ExePath().c_str(), platform::MessageButtons::Ok,
+    platform::ShowMessageBox(nullptr, text, platform::ProgramPath().c_str(), platform::MessageButtons::Ok,
                              platform::MessageIcon::Warning);
 }
 

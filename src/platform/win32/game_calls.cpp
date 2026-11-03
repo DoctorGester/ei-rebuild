@@ -1,8 +1,8 @@
-// The platform calls a harness run answers itself (its saves and install overlay, its sockets on 127.0.0.1, its disc
-// check, its window and desktop answers): the harness's builds leave this file out and take tests/verify's
-// definitions of the same functions (CMakeLists.txt; docs/notes/platform.md, "The harness's answers"). Each is a
-// platform function whose body is the system call, or the call itself (platform_win32.h) where platform_win32.cpp's
-// function does more around it.
+// The platform calls a harness run answers itself (its disc check, its window and desktop answers, its file write
+// watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take tests/verify's definitions of the
+// same functions (CMakeLists.txt; docs/notes/platform.md, "The harness's answers"). Each is a platform function whose
+// body is the system call, or the call itself (platform_win32.h) where platform_win32.cpp's function does more around
+// it. The paths of the file calls go through one mapping of their own (src/platform/paths.h, system_path.cpp).
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
 
 #include "platform/platform.h"
@@ -15,27 +15,9 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-// ==== Folders and files ==============================================================================================
+// ==== Files ==========================================================================================================
 
 namespace platform {
-
-bool CreateFolder(const char* path) { return CreateDirectoryW(text::Wide(path).c_str(), nullptr) != FALSE; }
-
-bool RemoveFile(const char* path) { return DeleteFileW(text::Wide(path).c_str()) != FALSE; }
-
-bool RenameFile(const char* from, const char* to) {
-    return MoveFileW(text::Wide(from).c_str(), text::Wide(to).c_str()) != FALSE;
-}
-
-bool CopyFileOver(const char* from, const char* to) {
-    return CopyFileW(text::Wide(from).c_str(), text::Wide(to).c_str(), FALSE) != FALSE;
-}
-
-bool RemoveFolder(const char* path) { return RemoveDirectoryW(text::Wide(path).c_str()) != FALSE; }
-
-bool FileExists(const std::string& path) {
-    return GetFileAttributesW(text::Wide(path).c_str()) != INVALID_FILE_ATTRIBUTES;
-}
 
 std::string VolumeLabel(const char* root) {
     wchar_t label[MAX_PATH + 1] = {};
@@ -46,18 +28,8 @@ std::string VolumeLabel(const char* root) {
 
 namespace win32 {
 
-HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
-    const HANDLE handle = CreateFileW(text::Wide(path).c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
-                                      disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
-    return handle == INVALID_HANDLE_VALUE ? nullptr : handle;
-}
-
-BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written) {
+BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written, std::string_view) {
     return ::WriteFile(file, data, size, written, nullptr);
-}
-
-HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found) {
-    return FindFirstFileW(text::Wide(pattern).c_str(), found);
 }
 
 } // namespace win32

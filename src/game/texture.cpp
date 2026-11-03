@@ -73,11 +73,10 @@ int TextureManager::LoadTexture(Texture* texture) {
         return 1;
     }
 
-    platform::FileFind finder;
     std::string path = GameRoot() + "textures\\" + texture->GetName() + ".bmp";
     int result;
 
-    if (finder.FindFile(path)) {
+    if (platform::PathExists(path)) {
         // A loose .bmp overrides the archived texture.
         texture->format = BmpFormatFor(texture->type);
         return texture->LoadBmp(device, path.c_str());

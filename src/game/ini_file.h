@@ -3,7 +3,7 @@
 // IniFile: the game's .ini files read (config\movie.ini, the lights tables config\Lights*.ini, Rebirth's
 // EI_Plugin.ini), on every system, with the rules of the Windows profile reads the original made: sections and keys
 // matched without case, the first match counts, a line starting with ';' and a line without '=' skipped, a value
-// trimmed and freed of one pair of matching quotes. The file is read when the path is set (platform::ReadFile) and
+// trimmed and freed of one pair of matching quotes. The file is read when the path is set (platform::ReadWholeFile) and
 // taken from the asset code page into UTF-8; a missing file reads as empty. Lists are comma-separated values
 // ("1, 2, 3"), each item trimmed.
 

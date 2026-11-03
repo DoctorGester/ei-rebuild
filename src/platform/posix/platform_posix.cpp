@@ -1,7 +1,9 @@
-// POSIX files and sockets; SDL owns the window, input, clocks, threads and audio.
+// POSIX files and sockets; SDL owns the window, input, clocks, threads and audio, std::filesystem the folder calls
+// (src/platform/files.cpp).
 #include "platform/platform.h"
 
 #include "lib/text_case.h"
+#include "platform/paths.h"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -12,11 +14,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <cwctype>
 #include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <locale.h>
 #include <netdb.h>
 #include <sys/file.h>
@@ -28,6 +28,40 @@
 namespace platform {
 namespace {
 namespace fs = std::filesystem;
+
+std::string GamePath(fs::path path) {
+    std::string text = path.string();
+    std::replace(text.begin(), text.end(), '/', '\\');
+    return text;
+}
+
+int Descriptor(void* handle) { return handle ? static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1) : -1; }
+
+void* Handle(int fd) { return fd < 0 ? nullptr : reinterpret_cast<void*>(static_cast<std::intptr_t>(fd) + 1); }
+[[noreturn]] void FileFailure(std::string_view path) { throw FileError(errno, path); }
+
+// `path` for `use` as the system names it (paths.h).
+fs::path SystemNative(std::string_view path, PathUse use) { return NativePath(SystemPath(path, use)); }
+
+bool Matches(std::string_view pattern, std::string_view value) {
+    if (pattern == "*.*") pattern = "*";
+    std::size_t p = 0, v = 0, star = pattern.npos, retry = 0;
+    while (v < value.size()) {
+        if (p < pattern.size() && (pattern[p] == '?' || text::ToLower(pattern[p]) == text::ToLower(value[v]))) {
+            ++p;
+            ++v;
+        } else if (p < pattern.size() && pattern[p] == '*') {
+            star = p++;
+            retry = v;
+        } else if (star != pattern.npos) {
+            p = star + 1;
+            v = ++retry;
+        } else return false;
+    }
+    while (p < pattern.size() && pattern[p] == '*') ++p;
+    return p == pattern.size();
+}
+}
 
 // Asset names use backslashes and Windows case rules, including on case-sensitive volumes.
 fs::path NativePath(std::string_view path) {
@@ -56,39 +90,6 @@ fs::path NativePath(std::string_view path) {
     return resolved;
 }
 
-std::string GamePath(fs::path path) {
-    std::string text = path.string();
-    std::replace(text.begin(), text.end(), '/', '\\');
-    return text;
-}
-
-int Descriptor(void* handle) { return handle ? static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1) : -1; }
-
-void* Handle(int fd) { return fd < 0 ? nullptr : reinterpret_cast<void*>(static_cast<std::intptr_t>(fd) + 1); }
-[[noreturn]] void FileFailure(std::string_view path) { throw FileError(errno, path); }
-
-bool Matches(std::string_view pattern, std::string_view value) {
-    if (pattern == "*.*") pattern = "*";
-    std::size_t p = 0, v = 0, star = pattern.npos, retry = 0;
-    while (v < value.size()) {
-        if (p < pattern.size() && (pattern[p] == '?' || text::ToLower(pattern[p]) == text::ToLower(value[v]))) {
-            ++p;
-            ++v;
-        } else if (p < pattern.size() && pattern[p] == '*') {
-            star = p++;
-            retry = v;
-        } else if (star != pattern.npos) {
-            p = star + 1;
-            v = ++retry;
-        } else return false;
-    }
-    while (p < pattern.size() && pattern[p] == '*') ++p;
-    return p == pattern.size();
-}
-}
-
-void DebugOutput(const char* text) { std::fputs(text, stderr); }
-
 std::string ProgramPath() {
     std::string path(PATH_MAX, '\0');
     const ssize_t size = readlink("/proc/self/exe", path.data(), path.size());
@@ -106,8 +107,6 @@ std::string ArgumentsAfterSeparator(int argc, char** argv) {
     return arguments;
 }
 
-std::string ExePath() { return GamePath(ProgramPath()); }
-
 std::string CurrentFolder() { return GamePath(fs::current_path()); }
 
 std::string UserDataFolder() {
@@ -123,8 +122,6 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (error) *error = errno;
     return false;
 }
-
-std::uint32_t PageSize() { return static_cast<std::uint32_t>(sysconf(_SC_PAGESIZE)); }
 
 bool FontSmoothing() { return true; }
 
@@ -143,45 +140,6 @@ std::string EnvironmentVariable(const char* name) {
 
 void EndProcess(std::uint32_t code) { std::_Exit(static_cast<int>(code)); }
 
-bool CreateFolder(const char* path) {
-    std::error_code e;
-    return fs::create_directory(NativePath(path), e);
-}
-
-bool RemoveFile(const char* path) { return unlink(NativePath(path).c_str()) == 0; }
-
-bool RemoveFolder(const char* path) { return rmdir(NativePath(path).c_str()) == 0; }
-
-bool RenameFile(const char* from, const char* to) {
-    const auto target = NativePath(to);
-    std::error_code e;
-    if (fs::exists(target, e)) return false;
-    return rename(NativePath(from).c_str(), target.c_str()) == 0;
-}
-
-bool CopyFileOver(const char* from, const char* to) {
-    std::error_code e;
-    return fs::copy_file(NativePath(from), NativePath(to), fs::copy_options::overwrite_existing, e);
-}
-
-double FreeDiskSpace(const char* path) {
-    std::error_code e;
-    const auto space = fs::space(NativePath(path), e);
-    return e ? 0.0 : static_cast<double>(space.available);
-}
-
-bool PathExists(const std::string& path) {
-    std::error_code e;
-    return fs::exists(NativePath(path), e);
-}
-
-bool IsFile(const std::string& path) {
-    std::error_code e;
-    return fs::is_regular_file(NativePath(path), e);
-}
-
-bool FileExists(const std::string& path) { return PathExists(path); }
-
 std::string VolumeLabel(const char*) { return {}; }
 
 FileError::FileError(unsigned long code, std::string_view path)
@@ -194,7 +152,8 @@ bool File::Open(std::string_view filePath, FileMode mode) {
     const int flags = mode == FileMode::Read     ? O_RDONLY
                       : mode == FileMode::Create ? O_WRONLY | O_CREAT | O_TRUNC
                                                  : O_WRONLY;
-    handle = Handle(open(NativePath(path).c_str(), flags | O_CLOEXEC, 0666));
+    const PathUse use = mode == FileMode::Read ? PathUse::Read : mode == FileMode::Create ? PathUse::Write : PathUse::Update;
+    handle = Handle(open(SystemNative(path, use).c_str(), flags | O_CLOEXEC, 0666));
     return IsOpen();
 }
 
@@ -262,42 +221,27 @@ bool File::ReadAt(long offset, void* buffer, unsigned count) {
     }
 }
 
-bool ReadFile(const std::string& path, std::string* bytes) {
+bool ReadWholeFile(std::string_view path, std::string* bytes, std::uint32_t* error) {
     bytes->clear();
-    File file;
-    if (!file.Open(path, FileMode::Read)) return false;
-    try {
-        bytes->resize(file.Size());
-        if (file.ReadAt(0, bytes->data(), static_cast<unsigned>(bytes->size()))) return true;
-    } catch (const FileError&) {
-    }
-    bytes->clear();
-    return false;
-}
-
-WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error) {
-    if (!PathExists(path)) {
-        if (error) *error = ENOENT;
-        return WholeFile::missing;
-    }
+    errno = 0;
     try {
         File file;
-        if (file.Open(path, FileMode::Read) && file.Size() < (1 << 24)) {
+        if (file.Open(path, FileMode::Read)) {
             bytes->resize(file.Size());
             if (file.ReadAt(0, bytes->data(), static_cast<unsigned>(bytes->size()))) {
                 if (error) *error = 0;
-                return WholeFile::read;
+                return true;
             }
         }
     } catch (const FileError&) {
     }
     if (error) *error = errno ? errno : EIO;
     bytes->clear();
-    return WholeFile::failed;
+    return false;
 }
 
-bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error) {
-    const auto target = NativePath(path);
+bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32_t* error) {
+    const auto target = SystemNative(path, PathUse::Write);
     std::error_code e;
     if (!target.parent_path().empty()) fs::create_directories(target.parent_path(), e);
     std::string temp = target.string() + ".XXXXXX";
@@ -306,17 +250,18 @@ bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint
         if (error) *error = errno;
         return false;
     }
-    File file;
     bool ok = false;
-    try {
-        close(fd);
-        if (file.Open(temp, FileMode::WriteExisting)) {
-            file.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
-            file.Close();
-            ok = rename(temp.c_str(), target.c_str()) == 0;
-        }
-    } catch (const FileError&) {
+    const auto* data = bytes.data();
+    std::size_t left = bytes.size();
+    while (left) {
+        const ssize_t n = write(fd, data, left);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) break;
+        data += n;
+        left -= static_cast<std::size_t>(n);
     }
+    ok = left == 0 && close(fd) == 0 && rename(temp.c_str(), target.c_str()) == 0;
+    if (left) close(fd);
     const int saved = errno;
     unlink(temp.c_str());
     if (error) *error = ok ? 0 : saved;
@@ -327,7 +272,7 @@ MappedFile::~MappedFile() { Close(); }
 
 bool MappedFile::Open(std::string_view path) {
     Close();
-    const int fd = open(NativePath(path).c_str(), O_RDONLY | O_CLOEXEC);
+    const int fd = open(SystemNative(path, PathUse::Read).c_str(), O_RDONLY | O_CLOEXEC);
     if (fd < 0) return false;
     file = Handle(fd);
     struct stat s{};
@@ -353,71 +298,30 @@ void MappedFile::Close() {
     size = 0;
 }
 
-struct FileFind::Search {
-    std::vector<fs::directory_entry> entries;
-    std::size_t next = 0;
-};
-
-FileFind::FileFind() = default;
-FileFind::~FileFind() = default;
-void FileFind::Close() {
-    search.reset();
-    hasFound = false;
-}
-
-bool FileFind::FindFile(std::string_view pattern) {
-    Close();
-    std::string native(pattern);
-    std::replace(native.begin(), native.end(), '\\', '/');
-    const fs::path path(native);
-    const auto folder = NativePath(path.has_parent_path() ? path.parent_path().string() : ".");
-    const auto mask = path.filename().string();
+// The pattern's folder through the mapping, its entries matched with Windows' wildcards and case rules, in NTFS's name
+// order (Windows' order on its volumes); no "." or "..".
+std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
+    std::string game(pattern);
+    std::replace(game.begin(), game.end(), '\\', '/');
+    const fs::path path(game);
+    const std::string folderName = path.has_parent_path() ? path.parent_path().string() : ".";
+    const fs::path folder = SystemNative(folderName, PathUse::Read);
+    const std::string mask = path.filename().string();
     std::error_code e;
-    root = GamePath(fs::absolute(folder, e));
-    auto started = std::make_unique<Search>();
+    const std::string root = GamePath(fs::absolute(NativePath(folderName), e));
+    std::vector<fs::directory_entry> found;
     for (const auto& entry : fs::directory_iterator(folder, e))
-        if (Matches(mask, entry.path().filename().string())) started->entries.push_back(entry);
-    // Windows directory enumeration on NTFS follows name order.
-    std::sort(started->entries.begin(), started->entries.end(), [](const auto& a, const auto& b) {
+        if (Matches(mask, entry.path().filename().string())) found.push_back(entry);
+    std::sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
         return text::CompareIgnoringCase(a.path().filename().string(), b.path().filename().string()) < 0;
     });
-    if (started->entries.empty()) return false;
-    search = std::move(started);
-    return true;
-}
-
-bool FileFind::FindNext() {
-    if (!search || search->next == search->entries.size()) return false;
-    const auto& entry = search->entries[search->next++];
-    name = entry.path().filename().string();
-    std::error_code e;
-    attributes = entry.is_directory(e) ? 0x10 : 0;
-    size = attributes & 0x10 ? 0 : static_cast<std::uint32_t>(entry.file_size(e));
-    hasFound = true;
-    return search->next < search->entries.size();
-}
-
-std::string FileFind::GetFileName() const { return hasFound ? name : ""; }
-
-std::string FileFind::GetFilePath() const { return root + "\\" + GetFileName(); }
-
-std::string FileFind::GetTitle() const { return fs::path(GetFileName()).stem().string(); }
-
-unsigned long FileFind::GetLength() const { return hasFound ? size : 0; }
-
-bool FileFind::IsDirectory() const { return hasFound && (attributes & 0x10); }
-
-bool FileFind::IsDots() const { return IsDirectory() && (name == "." || name == ".."); }
-
-std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
-    FileFind find;
     std::vector<FolderEntry> entries;
-    if (find.FindFile(pattern)) {
-        bool more;
-        do {
-            more = find.FindNext();
-            entries.push_back({find.GetFileName(), find.IsDirectory()});
-        } while (more);
+    for (const fs::directory_entry& entry : found) {
+        FolderEntry& out = entries.emplace_back();
+        out.name = entry.path().filename().string();
+        out.path = root + "\\" + out.name;
+        out.folder = entry.is_directory(e);
+        out.size = out.folder ? 0 : static_cast<std::uint32_t>(entry.file_size(e));
     }
     return entries;
 }
@@ -447,7 +351,7 @@ NativeWindow FindClassWindow(const char* className, const char* title) {
         g_instanceOwner = getpid();
         const std::string pid = std::to_string(getpid());
         if (ftruncate(fd, 0) != 0 || pwrite(fd, pid.data(), pid.size(), 0) < 0)
-            DebugOutput("platform: the instance lock holds no process id\n");
+            std::fputs("platform: the instance lock holds no process id\n", stderr);
         return nullptr;
     }
     const int error = errno;
@@ -550,10 +454,6 @@ sockaddr_in Native(const Address& a) {
 
 Address Public(const sockaddr_in& n) { return {kIpv4, n.sin_port, n.sin_addr.s_addr, {}}; }
 }
-
-bool Start() { return true; }
-
-void Stop() {}
 
 Socket Open(Kind kind) {
     const int fd = socket(AF_INET, kind == Kind::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
@@ -685,34 +585,4 @@ bool LookUp(const char* name, std::uint32_t* ip) {
     freeaddrinfo(found);
     return true;
 }
-
-std::string HostNameAt(const void* address, int length) {
-    if (length != 4) return {};
-    sockaddr_in a{};
-    a.sin_family = AF_INET;
-    lib::LoadBytes(a.sin_addr.s_addr, address);
-    char name[NI_MAXHOST];
-    return getnameinfo(reinterpret_cast<sockaddr*>(&a), sizeof(a), name, sizeof(name), nullptr, 0, NI_NAMEREQD) == 0
-               ? name
-               : "";
-}
-
-std::uint32_t ParseIpv4(const char* text) { return inet_addr(text); }
-
-std::uint16_t ToNetwork(std::uint16_t v) { return htons(v); }
-
-std::uint16_t FromNetwork(std::uint16_t v) { return ntohs(v); }
 } // namespace platform::net
-
-namespace platform {
-
-std::string FormatLocalTime(std::int64_t seconds, const char* format) {
-    char buffer[128];
-    std::tm at{};
-    const std::time_t value = seconds;
-    const bool valid = localtime_r(&value, &at) != nullptr;
-    if (!valid || !std::strftime(buffer, sizeof(buffer), format, &at)) buffer[0] = '\0';
-    return buffer;
-}
-
-} // namespace platform

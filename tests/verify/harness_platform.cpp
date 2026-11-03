@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <ctime>
 #include <deque>
 #include <string>
 
@@ -128,9 +129,18 @@ std::uint32_t TickCount() { return clock::Ticks(); }
 
 void Sleep(std::uint32_t ms) { clock::Sleep(ms); }
 
-DateTime LocalTime() {
+// The harness's local date (fixed in deterministic runs) as the seconds it is.
+std::int64_t SecondsSince1970() {
     const SYSTEMTIME local = clock::LocalTime();
-    return {local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond};
+    std::tm at{};
+    at.tm_year = local.wYear - 1900;
+    at.tm_mon = local.wMonth - 1;
+    at.tm_mday = local.wDay;
+    at.tm_hour = local.wHour;
+    at.tm_min = local.wMinute;
+    at.tm_sec = local.wSecond;
+    at.tm_isdst = -1;
+    return std::mktime(&at);
 }
 
 MessageAnswer ShowMessageBox(void*, const char* text, const char* caption, MessageButtons buttons, MessageIcon) {

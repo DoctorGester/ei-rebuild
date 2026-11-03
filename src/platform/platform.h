@@ -3,8 +3,9 @@
 // The platform layer (docs/notes/platform.md): every call of the game's code into the operating system, one
 // section per area. No system type crosses it: UTF-8 text, fixed-width integers, our own enums and structs, a
 // native window as an opaque pointer. The backends: SDL3 for the window, its events, the cursor, the mouse, the
-// clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp), Windows or POSIX for
-// the rest (src/platform/win32/platform_win32.cpp, src/platform/posix/platform_posix.cpp).
+// clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp), std::filesystem for the
+// folders (src/platform/files.cpp), Windows or POSIX for the rest (src/platform/win32/platform_win32.cpp,
+// src/platform/posix/platform_posix.cpp).
 
 #include "lib/bytes.h"
 
@@ -31,26 +32,8 @@ std::uint32_t Milliseconds();
 std::uint32_t TickCount();
 // Gives up the calling thread for at least `ms` milliseconds; 0 only lets the other ready threads of its priority run.
 void Sleep(std::uint32_t ms);
-
-// A local date and time of day.
-struct DateTime {
-    int year;     // in full
-    int month;    // 1-12
-    int day;      // 1-31
-    int hour;     // 0-23
-    int minute;
-    int second;
-};
-// The local date and time now.
-DateTime LocalTime();
-// strftime of the local time of `seconds` since 1970 UTC (a save's date, the log's time of day) in at most 127
-// characters; empty when it has no local time or does not fit.
-std::string FormatLocalTime(std::int64_t seconds, const char* format);
-
-// ==== Output for a developer =========================================================================================
-
-// Writes `text` to the debugger's output (OutputDebugString); nothing happens without a debugger.
-void DebugOutput(const char* text);
+// The calendar's clock: seconds since 1970 UTC now (lib/calendar.h makes a local date of it; the harness fixes it).
+std::int64_t SecondsSince1970();
 
 // ==== The message box ================================================================================================
 
@@ -67,96 +50,85 @@ MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption,
 
 // Where the program runs from. Paths are UTF-8, with backslashes between folders as the game writes them.
 
-// The full path of the running program's file.
-std::string ExePath();
+// The full path of the running program's file, with the system's separators.
+std::string ProgramPath();
 // The process's current folder, without a trailing separator but at a drive's root ("C:\").
 std::string CurrentFolder();
-
-// For the program's own files, which never went through the game's slots (the settings file; a harness run leaves
-// them alone): the same, asked of the system directly.
-// The full path of the running program's file.
-std::string ProgramPath();
+// Makes `path` the process's current folder; false when it could not, with the system's error code in `error`.
+bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
+// The folder for the current user's program data, with a trailing separator; empty when the user has none.
+std::string UserDataFolder();
 // What follows the argument "--" on the program's command line: on Windows the command line's own text, as typed;
 // elsewhere the arguments (main's) joined by spaces. Empty without one.
 std::string ArgumentsAfterSeparator(int argc, char** argv);
-// The folder for the current user's program data, with a trailing separator; empty when the user has none.
-std::string UserDataFolder();
-// Makes `path` the process's current folder; false when it could not, with the system's error code in `error`.
-bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 
 // ==== The machine ====================================================================================================
 
-// The size of a virtual memory page in bytes.
-std::uint32_t PageSize();
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
-// The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness), straight from the
-// system, not the slots the harness fixes; both stay as they are when it cannot tell.
+// The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness); both stay as they
+// are when it cannot tell.
 void PrimaryDesktopSize(int* width, int* height);
-
-// For the standalone's start-up, which runs beside the game's slots and asks the system directly.
 // The value of the environment variable `name`; empty when it is not set (or empty).
 std::string EnvironmentVariable(const char* name);
 // Ends the program at once with `exitCode`, without running its exit functions, and never returns.
 [[noreturn]] void EndProcess(std::uint32_t exitCode);
 
-// ==== Folders, drives and whole files ================================================================================
+// ==== Files and folders ==============================================================================================
 
-// The file objects are the next section. Paths are UTF-8, with backslashes between folders as the game writes them.
+// Paths are UTF-8 (the wide calls on Windows), with backslashes between folders as the game writes them (elsewhere each
+// name is matched with Windows' case rules). Every call takes its path through one mapping, which the harness's builds
+// answer with the run's saves and install overlay (src/platform/paths.h): what a call sees depends on its path alone.
+// Every open shares the file with other readers and writers.
+//   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
+//   - ReadWholeFile / WriteWholeFile: a whole file at once (the text files, split into lines with str::Lines; the
+//     settings file);
+//   - MappedFile: a whole file mapped into memory, read only (the archives' and the registry files');
+//   - FolderEntries: a folder search (its CFileFind uses).
+// A File's read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
+// catches; an uncaught one ends the game as before (a write to a full disk).
 
 // Creates the folder `path` (its parent must exist). False when it could not, also when it exists already.
-bool CreateFolder(const char* path);
-// The bytes this user may still write on the drive of `path` (a folder on it, or its root); 0 when unknown.
-double FreeDiskSpace(const char* path);
-// Deletes the file `path`. False when it could not.
-bool RemoveFile(const char* path);
-// Renames (moves) the file `from` to `to`; false when it could not, also when `to` exists.
-bool RenameFile(const char* from, const char* to);
-// Copies the file `from` over `to`, replacing it; false when it could not.
-bool CopyFileOver(const char* from, const char* to);
+bool CreateFolder(std::string_view path);
+// Removes the file `path` (not a folder). False when it could not.
+bool RemoveFile(std::string_view path);
 // Removes the empty folder `path`. False when it could not.
-bool RemoveFolder(const char* path);
-
-// The whole file `path`, shared with any writer (an editor or a sync tool holding it open), for the standalone's own
-// files, which the system reads directly and not through the game's slots. `missing` only when the file or its folder
-// does not exist; a file of 16 MB or more fails. `error` is the system's error code of a failure.
-enum class WholeFile { read, missing, failed };
-WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32_t* error);
-// `bytes` written whole to `path`: to a file beside it, which is then moved over it (the path's folder made when it
-// is missing). False when that failed, with the system's error code in `error`.
-bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error);
-
-// Whether `path` names a file or a folder, asked of the system directly (the start-up looks at the exe's folder,
-// which a harness run does not redirect).
-bool PathExists(const std::string& path);
-
-// Rebirth's file look-ups, which reached the system the way its own code did, not through the game's file calls (the
-// harness's read redirection of File and FileFind does not apply to them).
+bool RemoveFolder(std::string_view path);
+// Renames (moves) the file `from` to `to`; false when it could not, also when `to` exists.
+bool RenameFile(std::string_view from, std::string_view to);
+// Copies the file `from` over `to`, replacing it; false when it could not.
+bool CopyFileOver(std::string_view from, std::string_view to);
+// Whether `path` names a file or a folder.
+bool PathExists(std::string_view path);
 // Whether `path` names a file, not a folder.
-bool IsFile(const std::string& path);
-// One entry of a folder search.
-struct FolderEntry {
-    std::string name;
-    bool folder;
-};
-// The entries `pattern` matches, in the system's search order (none when it matches nothing).
-std::vector<FolderEntry> FolderEntries(const std::string& pattern);
-
+bool IsFile(std::string_view path);
+// The bytes this user may still write on the drive of `path` (a folder on it, or its root); 0 when unknown.
+double FreeDiskSpace(std::string_view path);
 // The label of the volume whose root is `root` ("D:\." or "D:\"); empty when it has none or the drive has no disc.
 std::string VolumeLabel(const char* root);
 
-// ==== Files ==========================================================================================================
+// One entry of a folder search.
+struct FolderEntry {
+    std::string name;
+    std::string path;     // the search pattern's folder made absolute, a separator and the name
+    std::uint32_t size;   // a file's size, its low 32 bits
+    bool folder;
 
-// Paths are UTF-8 (the wide calls on Windows). A harness run answers the opens and searches itself, so its save /
-// install redirection applies to every file the game opens or lists. Every open shares the file with other readers
-// and writers.
-//   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
-//   - ReadFile: a whole file at once (the text files, split into lines with str::Lines);
-//   - MappedFile: a whole file mapped into memory, read only (the archives' and the registry files');
-//   - FileFind: a folder search (its CFileFind uses);
-//   - FileExists: _access.
-// A read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
-// catches; an uncaught one ends the game as before (a write to a full disk).
+    // The name without its extension (from its last '.').
+    std::string Title() const { return name.substr(0, name.find_last_of('.')); }
+    // "." or "..".
+    bool IsDots() const { return folder && (name == "." || name == ".."); }
+};
+// The entries `pattern` (a folder, a separator and a name with * and ?) matches, in the system's order ("." and ".."
+// too on Windows); none when it matches nothing.
+std::vector<FolderEntry> FolderEntries(std::string_view pattern);
+
+// The whole file `path` into `bytes`, shared with any writer (an editor or a sync tool holding it open); false (and
+// `bytes` empty) when it does not open or a read fails, with the system's error code in `error`.
+bool ReadWholeFile(std::string_view path, std::string* bytes, std::uint32_t* error = nullptr);
+// `bytes` written whole to `path`: to a file beside it, which is then moved over it (the path's folder made when it
+// is missing). False when that failed, with the system's error code in `error`.
+bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32_t* error = nullptr);
 
 // A failed file operation: the system's error code and the file's path, both in what().
 class FileError : public std::runtime_error {
@@ -237,95 +209,13 @@ private:
     std::uint32_t size = 0;
 };
 
-// A folder search as MFC's CFileFind: FindFile starts it, then each FindNext moves to the next entry and returns
-// false when that entry is the last one (it is still there to read). The paths are the search pattern's folder made
-// absolute, a separator and the entry's name.
-class FileFind {
-public:
-    FileFind();
-    ~FileFind();
-    FileFind(const FileFind&) = delete;
-    FileFind& operator=(const FileFind&) = delete;
-
-    // Whether `pattern` matches anything (no entry is current yet).
-    bool FindFile(std::string_view pattern);
-    bool FindNext();
-    void Close();
-
-    std::string GetFileName() const;
-    std::string GetFilePath() const;
-    // The name without its extension.
-    std::string GetTitle() const;
-    // The low dword of the size.
-    unsigned long GetLength() const;
-    bool IsDirectory() const;
-    // "." or "..".
-    bool IsDots() const;
-
-private:
-    struct Search;                               // the system's search handle and the entry read ahead
-    std::unique_ptr<Search> search;              // null when none
-    // The current entry.
-    bool hasFound = false;
-    std::string name;
-    unsigned long attributes = 0;
-    unsigned long size = 0;
-    std::string root;
-};
-
-// The whole file `path` into `bytes`, shared with other readers and writers; false (and `bytes` empty) when it does not
-// open or a read fails.
-bool ReadFile(const std::string& path, std::string* bytes);
-
-// Whether `path` names a file or folder (the original's _access with mode 0 or 4).
-bool FileExists(const std::string& path);
-
 // ==== Threads ========================================================================================================
 
-// Worker threads and events. A lock is a std::recursive_mutex (a critical section is
-// recursive); a thread's end is waited for with a Signal.
+// Threads are std::thread, locks std::mutex (std::recursive_mutex where a critical section was entered again).
 
-using ThreadProcedure = unsigned (*)(void* parameter);
-
-// A thread made as MFC's AfxBeginThread did: created suspended, the priority set (SetThreadPriority's values: 2 is
-// the highest), then running. It ends when the procedure returns. Closing it (or destroying the object) lets go of
-// the handle; the thread keeps running.
-class Thread {
-public:
-    Thread() = default;
-    ~Thread() { Close(); }
-    Thread(const Thread&) = delete;
-    Thread& operator=(const Thread&) = delete;
-
-    // Starts `procedure(parameter)` at `priority`; false when the thread could not be made. A held handle is
-    // closed first.
-    bool Start(ThreadProcedure procedure, void* parameter, int priority);
-    bool Started() const { return handle != nullptr; }
-    void Close();
-
-private:
-    void* handle = nullptr;
-};
-
-// An auto-reset event (a signal from one thread to another), not signalled when made.
-class Signal {
-public:
-    Signal() = default;
-    ~Signal() { Close(); }
-    Signal(const Signal&) = delete;
-    Signal& operator=(const Signal&) = delete;
-
-    // Makes the event (a made one is closed first).
-    void Create();
-    bool Created() const { return handle != nullptr; }
-    void Set();
-    // Waits until the event is signalled (no time limit).
-    void Wait();
-    void Close();
-
-private:
-    void* handle = nullptr;
-};
+// Gives the calling thread the highest priority (the music stream's thread, which AfxBeginThread started at
+// THREAD_PRIORITY_TIME_CRITICAL: its buffers must be filled in time). std::thread has no priorities.
+void MakeThreadTimeCritical();
 
 // ==== The window and its events ======================================================================================
 
@@ -409,7 +299,7 @@ using EventHandler = std::intptr_t (*)(const Event& event);
 // Registers the game window's class under `className`, its events going to `handler`; the window keeps the system's
 // cursor hidden only as the handler does (no class cursor), has no icon and gets double clicks.
 void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler);
-// The running program's own instance (the module the program was started from), asked of the system directly.
+// The running program's own instance (the module the program was started from).
 NativeInstance ProgramInstance();
 // A window of the class `className` with the title `title` (a game that runs already), or null.
 NativeWindow FindClassWindow(const char* className, const char* title);
@@ -575,9 +465,10 @@ std::string ClipboardText();
 
 // ==== Sockets ========================================================================================================
 
-// IPv4 UDP and TCP sockets, host names and addresses, waiting for readiness. The
-// calls mirror BSD sockets one to one, each failing the way the system's does (the callers rely on it), so a port
-// of the layer maps them straight onto its own sockets.
+// IPv4 UDP and TCP sockets, host names, waiting for readiness. The calls mirror BSD sockets one to one, each failing the
+// way the system's does (the callers rely on it), so a port of the layer maps them straight onto its own sockets. The
+// system's sockets start with the first call that needs them (Winsock 1.1) and stay up until the process ends. Byte
+// order and IPv4 numbers are lib/ipv4.h's.
 
 namespace net {
 
@@ -597,17 +488,11 @@ struct Address {
 static_assert(sizeof(Address) == 16);
 
 inline constexpr std::uint16_t kIpv4 = 2;
-// ParseIpv4's answer for a text that is not an IPv4 number (also the broadcast address 255.255.255.255).
-inline constexpr std::uint32_t kNoAddress = 0xFFFFFFFFu;
 
 enum class Kind : std::uint8_t { Udp, Tcp };
 
 // Why the last call of this thread failed.
 enum class Error : std::uint8_t { None, WouldBlock, AddressInUse, Refused, Other };
-
-// Starts the system's sockets (Winsock 1.1); each Start that succeeded needs a Stop. False when they cannot run.
-bool Start();
-void Stop();
 
 // A new socket of `kind` (IPv4), blocking; kNoSocket when none could be made.
 Socket Open(Kind kind);
@@ -657,15 +542,6 @@ bool HostName(char* name, int size);
 // The first IPv4 address of the host `name` (gethostbyname: a name or an IPv4 number) in network order into `ip`;
 // false when the host is unknown. Blocks while the name is looked up.
 bool LookUp(const char* name, std::uint32_t* ip);
-// The name of the host whose address is the `length` bytes at `address` (gethostbyaddr, IPv4: an address is 4
-// bytes); empty when there is none.
-std::string HostNameAt(const void* address, int length);
-// "a.b.c.d" as an address in network order (inet_addr), or kNoAddress.
-std::uint32_t ParseIpv4(const char* text);
-
-// A port between the host's byte order and the network's (htons, ntohs).
-std::uint16_t ToNetwork(std::uint16_t value);
-std::uint16_t FromNetwork(std::uint16_t value);
 
 } // namespace net
 
@@ -685,19 +561,3 @@ private:
 };
 
 } // namespace platform
-
-// ==== Caller capture =================================================================================================
-
-// For the observers that note who called (the harness's records). Used in a function's body: EI_RETURN_ADDRESS() is
-// that function's return address, EI_CALLER_FRAME() the stack from the word that holds it (the observers scan on
-// from there). Macros, not functions: the debug build inlines nothing, and a helper would return into itself.
-#if defined(_MSC_VER)
-extern "C" void* _ReturnAddress();            // declared as <intrin.h> declares them, without the rest of it
-extern "C" void* _AddressOfReturnAddress();
-#pragma intrinsic(_ReturnAddress, _AddressOfReturnAddress)
-#define EI_RETURN_ADDRESS() _ReturnAddress()
-#define EI_CALLER_FRAME() static_cast<void* const*>(_AddressOfReturnAddress())
-#else
-#define EI_RETURN_ADDRESS() __builtin_extract_return_addr(__builtin_return_address(0))
-#define EI_CALLER_FRAME() (static_cast<void* const*>(__builtin_frame_address(0)) + 1)
-#endif

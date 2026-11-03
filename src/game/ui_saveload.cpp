@@ -112,13 +112,7 @@ void SaveLoadWindow::ShowPicture() {
         return;
     }
     std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
-    platform::FileFind find;
-    bool found;
-    {
-        std::string path = folder + game::savewords::ShotFile();
-        found = find.FindFile(path);
-    }
-    if (!found) return;
+    if (!platform::PathExists(folder + game::savewords::ShotFile())) return;
     // The file's picture (the rows a short file has; the rest keeps the last picture's, as the original's read).
     std::vector<std::uint8_t> picture(kShotBytes);
     platform::File file;
@@ -215,30 +209,20 @@ void SaveLoadWindow::SaveGame() {
 
 void SaveLoadWindow::FillEntries() {
     std::string pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
-    platform::FileFind find;
     entries.clear();
     int highest = 0;     // the highest number after "save" in the folder names
-    bool more = find.FindFile(pattern);
-    while (more) {
-        more = find.FindNext();
-        if (find.IsDots() || !find.IsDirectory()) continue;
+    for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
+        if (found.IsDots() || !found.folder) continue;
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries.emplace_back();
-        entry->folder = find.GetFileName();
-        platform::FileFind infoFind;
-        bool hasInfo;
-        {
-            std::string folderPath = find.GetFilePath();
-            std::string path = folderPath + game::savewords::InfoInFolder();
-            hasInfo = infoFind.FindFile(path);
-        }
-        if (!hasInfo) {
+        entry->folder = found.name;
+        const std::string infoPath = found.path + game::savewords::InfoInFolder();
+        if (!platform::PathExists(infoPath)) {
             entry->broken = true;
             entry->title = game::savewords::BrokenTitle();
         } else {
-            infoFind.FindNext();
             netlink::FileStream info;
-            info.Open(infoFind.GetFilePath(), platform::FileMode::Read, 1);
+            info.Open(infoPath, platform::FileMode::Read, 1);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime);
                 entry->map = info.ReadString();
@@ -255,13 +239,11 @@ void SaveLoadWindow::FillEntries() {
             if (entry->title.size() == 0) entry->MakeTitle();
             entry->broken = false;
         }
-        infoFind.Close();
         if (static_cast<int>(entry->folder.size()) > 4) {
             int number = str::ToInt(str::Mid(entry->folder, 4));
             if (!(highest > number)) highest = number;
         }
     }
-    find.Close();
     // The newest first: the order is "not older than" (!(a < b)), so saves of the same time compare true both ways
     // (not a strict weak ordering: the game's sort, whose unguarded scans can then run off the range as in the
     // game, and the order it leaves such saves in).
@@ -356,7 +338,7 @@ void QuickSave(const char* slot, bool stepFrame) {
 void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
-    if (!platform::FileExists(folder)) return;
+    if (!platform::PathExists(folder)) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
@@ -412,13 +394,8 @@ void SaveLoadWindow::DeleteSave() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder = str::Format(kFolderFormat, DataFolderText(), entries[currentSelected].folder);
-    platform::FileFind find;
-    bool more = find.FindFile(folder + kEveryFile);
-    while (more) {
-        more = find.FindNext();
-        platform::RemoveFile(find.GetFilePath().c_str());
-    }
-    find.Close();
+    for (const platform::FolderEntry& entry : platform::FolderEntries(folder + kEveryFile))
+        platform::RemoveFile(entry.path);
     platform::RemoveFolder(folder.c_str());
     FillEntries();
     int count = EntryCount();

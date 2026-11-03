@@ -77,19 +77,11 @@ constexpr int kAnswerOk = 0x10001;
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
     int highest = 0;
-    platform::FileFind find;
-    if (find.FindFile(pattern)) {
-        int more;
-        do {
-            more = find.FindNext();
-            if (!find.IsDots()) {
-                std::string title = find.GetTitle();
-                int number = str::ToInt(title);
-                if (!(highest > number)) highest = number;
-            }
-        } while (more);
+    for (const platform::FolderEntry& entry : platform::FolderEntries(pattern)) {
+        if (entry.IsDots()) continue;
+        const int number = str::ToInt(entry.Title());
+        if (!(highest > number)) highest = number;
     }
-    find.Close();
     return highest;
 }
 

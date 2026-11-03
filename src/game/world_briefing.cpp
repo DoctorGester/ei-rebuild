@@ -54,7 +54,7 @@ bool ServerRuns() {
 // open) in a buffer.
 void ShareQuestFile(const std::string& path, const std::string& name) {
     std::string bytes;
-    platform::ReadFile(path, &bytes);
+    platform::ReadWholeFile(path, &bytes);
     GrowingBuffer data;
     const auto size = static_cast<std::int32_t>(bytes.size());
     data.Seek(0);
@@ -148,14 +148,8 @@ bool LoadZoneQuests(std::string_view zone) {
     if (!texts) return false;
     std::string file(zone);
     file += kQuestFileSuffix;
-    bool found;
-    {
-        platform::FileFind find;
-        modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
-        std::string pattern = MapsFolder() + file;
-        found = find.FindFile(pattern) != 0;
-    }
-    if (!found) return false;
+    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
+    if (!platform::PathExists(MapsFolder() + file)) return false;
     std::string path = MapFilePath(file);
     if (ServerRuns()) ShareQuestFile(path, file);
     // A file already loaded is not loaded again.

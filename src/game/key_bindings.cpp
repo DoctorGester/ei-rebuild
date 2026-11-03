@@ -61,7 +61,7 @@ void LoadKeyBindings() {
     std::vector<std::string> words;
     std::string bytes;
     std::memset(g_keyActions, 0, 0x200);
-    if (!platform::ReadFile(g_dataFolder + "config\\keyboard.ini", &bytes)) return;
+    if (!platform::ReadWholeFile(g_dataFolder + "config\\keyboard.ini", &bytes)) return;
     for (const std::string& line : str::Lines(bytes)) {
         words = text::SplitWords(line, ' ');
         if (words.size() <= 1) continue;

@@ -36,21 +36,19 @@ constexpr wchar_t kWideFolder[] = L"\\utf8 Проверка";
 constexpr char kContents[] = "U2: Проверка";
 
 std::string RoundTrip(const char* savesDir) {
-    if (!platform::CreateFolder(kFolder) && ::GetLastError() != ERROR_ALREADY_EXISTS) return "the folder was not made";
+    if (!platform::CreateFolder(kFolder) && !platform::PathExists(kFolder)) return "the folder was not made";
     {
         platform::File file;
         if (!file.Open(kFile, platform::FileMode::Create)) return "the file was not made";
         file.Write(kContents, sizeof(kContents) - 1);
     }
 
-    platform::FileFind find;
-    if (!find.FindFile(kPattern)) return "the file was not listed";
-    find.FindNext();
-    if (find.GetFileName() != kName) return "the file was listed as " + find.GetFileName();
-    find.Close();
+    const std::vector<platform::FolderEntry> found = platform::FolderEntries(kPattern);
+    if (found.empty()) return "the file was not listed";
+    if (found[0].name != kName) return "the file was listed as " + found[0].name;
 
     std::string contents;
-    if (!platform::ReadFile(kFile, &contents)) return "the file was not opened again";
+    if (!platform::ReadWholeFile(kFile, &contents)) return "the file was not opened again";
     if (contents != std::string(kContents, sizeof(kContents) - 1)) return "the file read back differs";
 
     // The names on disk, as UTF-16, in the run's saves folder.

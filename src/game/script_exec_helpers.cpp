@@ -207,7 +207,7 @@ namespace scriptparse {
 int ReadTextFile(const std::string& path, std::string* text) {
     text->clear();
     std::string bytes;
-    if (!platform::ReadFile(path, &bytes)) return 0;
+    if (!platform::ReadWholeFile(path, &bytes)) return 0;
     for (std::size_t i = 0; i < bytes.size(); ++i)
         if (bytes[i] != '\r' || i + 1 == bytes.size() || bytes[i + 1] != '\n') *text += bytes[i];
     return 1;
