@@ -21,7 +21,9 @@ run the scripts on Lua: `lua-scripting.md`.
   field is the "killed" flag.
 - `Script`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
   temporaries lists always keep one entry; a counter of For nesting (temporaries are not freed while it is positive);
-  the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`. FX
+  the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
+  (AddRectToArea / AddRoundToArea make a missing area; IsInArea of an unknown id is 0 and makes none). A script body
+  (`LoadScriptBody`) that fails to parse drops the blocks and pairs it added. FX
   sources are sound sources (volume, radius, idle, placement radius, min / max delay, countdown). Point lights: 256
   slots.
 - The keyword table (`ScriptKeyword`): name, id, function signature ("Fff": result + params) or command signature
@@ -105,9 +107,10 @@ with the index of its instance, found by comparing its kill-flag pointer with ea
 flag, the file counter, then the areas (read only for stream versions >= 0x57). Lists are written as count then each
 node; a variable's name is written with its terminator, or as one zero byte when the name array is shorter than the
 value array. Effect elements: object id (-1 none), then fields; loading looks the id up in the effect manager.
-`ScriptLoad` mirrors it: list loaders read the count, append that many default nodes, then read every node from the head.
+`ScriptLoad` mirrors it: list loaders replace the list with that many default nodes and read each.
 Block ids resolve in the lists of the world's first script (negative ids in the WorldScript blocks, others in the
-command blocks; unknown gives null). Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
+command blocks; unknown gives null). A definition's or instance's if-then pair and a run whose block did not resolve
+(a save made with other scripts) are dropped at load, so the savers and Execute always have their blocks. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
 the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager
@@ -140,13 +143,6 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
   overwrite it; `CreatePointLight` stops at the first free slot (two lights can share an id); `CreateLightning` appends
   without looking the id up (two bolts can share an id); `CreateParticleSource`'s id is FISTP-rounded.
 - Savegame: block ids resolve in the first world script's lists whatever script loads.
-
-Left for C84a (bookkeeping): `IsInArea` with an unknown id creates an empty area; `LoadScriptBody` leaves a failed
-pair's blocks in the list; `DeleteArea` leaves the moved-out last entry in memory; the first block id of an if-then pair
-reads into a variable preset to -1, the second into the same variable without a preset; list loaders re-read nodes that
-were in the list; `AppendFrom` copies over the other set's names while the values grow by its values; the definition and
-run savers do not null-check blocks (a save whose block ids the loaded scripts lack faults at the first tick too: the
-loader should drop such pairs and runs).
 
 gz2g's scripts (zone2.mob's script chunk, decoded by seeding the MSVC rand LCG with the first dword, `x = x * 0x343FD +
 0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers; a killed instance

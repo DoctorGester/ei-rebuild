@@ -11,6 +11,7 @@
 #include "world.h"
 #include "save_versions.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -23,7 +24,8 @@ int ReadInt(ByteStream* stream) {
     return value;
 }
 
-std::size_t ReadCount(ByteStream* stream) { return static_cast<std::size_t>(ReadInt(stream)); }
+// A count; a negative one reads as 0.
+std::size_t ReadCount(ByteStream* stream) { return static_cast<std::size_t>(std::max(ReadInt(stream), 0)); }
 
 // Areas are saved from 0x57 on.
 int StreamVersion(const ByteStream* stream) { return static_cast<int>(stream->version); }
@@ -54,13 +56,17 @@ void LoadBlockCommands(ScriptDecl* block, ByteStream* stream) {
     for (SSCCmd& cmd : block->commands) cmd.Load(stream);
 }
 
-// Each list loader reads the count, appends that many default elements, then reads every element of the
-// list from the front (a list that was not empty would have its old elements read again).
+// Each list loader reads the count, makes the list that many default elements, then reads each.
 template <typename Container, typename Read>
 void LoadList(Container* list, ByteStream* stream, Read read) {
-    const int count = ReadInt(stream);
-    for (int i = 0; i < count; ++i) list->emplace_back();
+    list->clear();
+    list->resize(ReadCount(stream));
     for (auto& element : *list) read(element);
+}
+
+// A save made with other scripts can name blocks the loaded lists lack: such pairs and runs are dropped.
+void DropUnresolvedPairs(std::vector<ScriptIfThen>* pairs) {
+    std::erase_if(*pairs, [](const ScriptIfThen& pair) { return !pair.conditions || !pair.commands; });
 }
 
 // Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
@@ -92,6 +98,7 @@ void LoadInstances(std::list<ScriptDefinition>* list, ByteStream* stream) {
         instance.params = stream->ReadString();
         instance.ifThen.resize(ReadCount(stream));
         for (ScriptIfThen& pair : instance.ifThen) pair.Load(stream);
+        DropUnresolvedPairs(&instance.ifThen);
         LoadVariables(&instance.vars, stream);
     });
 }
@@ -197,14 +204,10 @@ void ScriptSubCall::Load(ByteStream* stream) {
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
-// The ids of the condition and command blocks, resolved in the saved script's block lists (FindBlock). The
-// second read keeps the first id when it reads nothing; the first defaults to -1.
+// The ids of the condition and command blocks, resolved in the saved script's block lists (FindBlock).
 void ScriptIfThen::Load(ByteStream* stream) {
-    int id = -1;
-    stream->ReadValue(id);
-    conditions = FindBlock(id);
-    stream->ReadValue(id);
-    commands = FindBlock(id);
+    conditions = FindBlock(ReadInt(stream));
+    commands = FindBlock(ReadInt(stream));
 }
 
 // Negative ids are WorldScript blocks.
@@ -238,18 +241,16 @@ void Script::LoadState(ByteStream* stream) {
     stream->ReadValue(nextParticleId);
     stream->ReadValue(nextFxId);
 
-    // Command blocks: created empty, then each block's id and commands.
-    const int blockCount = ReadInt(stream);
-    for (int i = 0; i < blockCount; ++i) NewCommandList();
-    for (ScriptDecl& block : blocks) {
+    // Command blocks, then WorldScript blocks: each block's id and commands. The command blocks are made with
+    // their ids first (NewCommandList), so that a command's call of a later block resolves as it loads.
+    auto loadBlock = [stream](ScriptDecl& block) {
         stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
-    }
-    // WorldScript blocks: id, count, each SSCCmd.
-    LoadList(&worldBlocks, stream, [stream](ScriptDecl& block) {
-        stream->ReadValue(block.id);
-        LoadBlockCommands(&block, stream);
-    });
+    };
+    blocks.clear();
+    for (std::size_t count = ReadCount(stream); count > 0; --count) NewCommandList();
+    for (ScriptDecl& block : blocks) loadBlock(block);
+    LoadList(&worldBlocks, stream, loadBlock);
 
     definitions.resize(ReadCount(stream));
     for (ScriptDefinition& definition : definitions) {
@@ -258,12 +259,14 @@ void Script::LoadState(ByteStream* stream) {
         definition.params = stream->ReadString();
         definition.ifThen.resize(ReadCount(stream));
         for (ScriptIfThen& pair : definition.ifThen) pair.Load(stream);
+        DropUnresolvedPairs(&definition.ifThen);
         definition.vars.Load(stream);
     }
 
     LoadVariables(&globals, stream);
     LoadInstances(&instances, stream);
     LoadRuns(&runs, stream);
+    std::erase_if(runs, [](const ScriptRun& run) { return !run.block; });
     stream->ReadValue(loaded);
     stream->ReadValue(fileCount);
     g_streamedScript = nullptr;

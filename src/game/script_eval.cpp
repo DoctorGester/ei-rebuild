@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <span>
 
 namespace {
 
@@ -442,9 +443,9 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsInArea: { // IsInArea(area, x, y)
         int area = lib::RoundEven(f[0]);
         float x = f[1], y = f[2];
-        const ScriptArea* parts = script->FindArea(area);
+        const ScriptArea* found = script->FindArea(area);
         bool inside = false;
-        for (const ScriptAreaPart& part : parts->parts) {
+        for (const ScriptAreaPart& part : found ? std::span(found->parts) : std::span<const ScriptAreaPart>()) {
             EI_NAN_AUDIT(x, y, part.x, part.y, part.x2OrRadiusSquared);
             if (part.isRect) {
                 if (x < part.x) continue;

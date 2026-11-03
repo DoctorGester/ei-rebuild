@@ -255,51 +255,60 @@ bool Script::LoadConditions(std::vector<SSCCmd>* conditions, std::vector<ScriptT
 }
 
 bool Script::LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens) {
-    ScriptToken token;
-    std::string text;
-    ScriptIfThen pair;
-    for (;;) {
-        if (*pos == tokens->end()) return Error(this, LastLine(tokens), 1, "Unexpected end of file");
-        int id;
-        token = NextToken(pos, tokens);
-        text = token.text;
-        ClassifyToken(text, &id, nullptr);
-        if (id == kLexClose) {
-            if (script->ifThen.empty())
-                return Error(this, token.line, 11, "In script %s should be at least one condition", script->name);
-            return true;
+    // A body that fails leaves nothing: the blocks and pairs it added are dropped.
+    const std::size_t blockCount = blocks.size();
+    const std::size_t pairCount = script->ifThen.size();
+    auto loadPairs = [&]() -> bool {
+        ScriptToken token;
+        std::string text;
+        ScriptIfThen pair;
+        for (;;) {
+            if (*pos == tokens->end()) return Error(this, LastLine(tokens), 1, "Unexpected end of file");
+            int id;
+            token = NextToken(pos, tokens);
+            text = token.text;
+            ClassifyToken(text, &id, nullptr);
+            if (id == kLexClose) {
+                if (script->ifThen.empty())
+                    return Error(this, token.line, 11, "In script %s should be at least one condition", script->name);
+                return true;
+            }
+            if (id != kLexIf) {
+                Error(this, token.line, 10, "expected if section");
+                return false;
+            }
+            token = NextToken(pos, tokens);
+            text = token.text;
+            ClassifyToken(text, &id, nullptr);
+            if (id != kLexOpen) {
+                Error(this, token.line, 4, "If section, ( expected");
+                return false;
+            }
+            pair.conditions = NewCommandList();
+            if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return false;
+            token = NextToken(pos, tokens);
+            text = token.text;
+            ClassifyToken(text, &id, nullptr);
+            if (id != kLexThen) {
+                Error(this, token.line, 4, "then expected after if");
+                return false;
+            }
+            token = NextToken(pos, tokens);
+            text = token.text;
+            ClassifyToken(text, &id, nullptr);
+            if (id != kLexOpen) {
+                Error(this, token.line, 4, "Expected ( after then");
+                return false;
+            }
+            pair.commands = NewCommandList();
+            if (!LoadCommands(&pair.commands->commands, pos, tokens, &script->vars)) return false;
+            script->ifThen.push_back(pair);
         }
-        if (id != kLexIf) {
-            Error(this, token.line, 10, "expected if section");
-            return false;
-        }
-        token = NextToken(pos, tokens);
-        text = token.text;
-        ClassifyToken(text, &id, nullptr);
-        if (id != kLexOpen) {
-            Error(this, token.line, 4, "If section, ( expected");
-            return false;
-        }
-        pair.conditions = NewCommandList();
-        if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return false;
-        token = NextToken(pos, tokens);
-        text = token.text;
-        ClassifyToken(text, &id, nullptr);
-        if (id != kLexThen) {
-            Error(this, token.line, 4, "then expected after if");
-            return false;
-        }
-        token = NextToken(pos, tokens);
-        text = token.text;
-        ClassifyToken(text, &id, nullptr);
-        if (id != kLexOpen) {
-            Error(this, token.line, 4, "Expected ( after then");
-            return false;
-        }
-        pair.commands = NewCommandList();
-        if (!LoadCommands(&pair.commands->commands, pos, tokens, &script->vars)) return false;
-        script->ifThen.push_back(pair);
-    }
+    };
+    if (loadPairs()) return true;
+    blocks.resize(blockCount);
+    script->ifThen.resize(pairCount);
+    return false;
 }
 
 bool Script::LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens, ScriptVars* locals,
