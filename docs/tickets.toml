@@ -6860,6 +6860,22 @@ model = "sonnet"
 note = "Done 2026-10-30: src/game/settings_catalog.inc (125 rows), described defaults, docs/settings.md (tools/gen_settings_doc.py, in build_checks), Video 2 in new files (the movies were off), 21 settings nothing read dropped (options, loader, writer, defaults; OptionsResetDefaults gone)."
 
 [[ticket]]
+id = "C70"
+title = "64-bit only: the 32-bit build, its function vectors and x87 code removed"
+group = "cleanup"
+model = "opus"
+depends = ["R41"]
+note = "User 2026-11-03 asked whether we still need the 32-bit build. Since H40 game.exe is never started and the goldens are our own; the x64 suite matches the 32-bit one (154/3). Make x64 the only Windows build: build.cmd's verify/release/debug/asan/play become the x64 ones (keep the names, drop the -x64 variants), run_all/work.py/build_checks/play.cmd/main_suites.sh/the Suites workflow/docs follow. Delete what only 32-bit needs: tests/vectors (game.exe's recorded calls, 32-bit only) and ei_vectors, the #if defined(_M_IX86) blocks and the static_asserts on game.exe's layout, x87 control-word code (FpuGuard's x87 side, pc24 if only x87), the harness's inline-assembly steps and exe-only code that H40 left (exe_objects.h, addon_sites.inc, harness_digest_read.inc: check what the image still uses), vcvars32 and the 32-bit mspdbsrv notes. Before deleting the vectors, say which of them test something our own goldens don't cover and whether any is worth keeping as a plain unit test. Report lines removed. Re-record no goldens unless the 32-bit-to-x64 switch forces it (it shouldn't: x64 matched)."
+
+[[ticket]]
+id = "C71"
+title = "src/hook emptied: log and the Rebirth profile moved, function_sizes.inc and its tools judged"
+group = "cleanup"
+model = "sonnet"
+depends = ["C70"]
+note = "User 2026-11-03: do we need src/hook? It holds log.{h,cpp} (the program's log, live) and rebirth_hook.{h,cpp} (picks the Rebirth or vanilla profile, live): move them where they belong (src/platform or src/game; rename rebirth_hook to what it does) and fix the includes, CMake and docs. function_sizes.inc (12k lines, game.exe's function sizes from Ghidra) is read only by tools/coverage.py, tools/find_dead_code.py and tools/gen_function_sizes.py, which measure coverage of game.exe's addresses: delete all four unless something still uses them (say what). Batch with C70's worker if it has room."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
