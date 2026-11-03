@@ -397,6 +397,7 @@ constexpr int kRecordedFramesPerSecond = 15;
 // messages from now on: not while the renderer is inactive.
 bool RunPass() {
     TakeActivationChange();
+    TakeResolutionChange();
     std::uint32_t elapsed = TimeSinceLastPass();
     if (!(g_sceneRenderer.flags & 1)) {
         GuardPlayerData(0);

@@ -34,8 +34,8 @@ public:
     // (dy / 300) * 500 (not tilting when it is at rest and |dy| <= |dx|), or with Ctrl / Alt pans it along
     // (dx / 400, dy / 300) at the pan speed. The motion is cleared, the cursor takes shape 0x16, the event is
     // used and the layout point kept. Otherwise, when the edge margin is positive: the cursor within the
-    // margin of a screen edge pans that way (with the keys' pan added unless Ctrl / Alt is held) under the
-    // edge's arrow cursor, the event used when at an edge; the point is kept.
+    // margin of an edge of the picture (Interface3D::PictureRect) pans that way (with the keys' pan added unless
+    // Ctrl / Alt is held) under the edge's arrow cursor, the event used when at an edge; the point is kept.
     void MouseMove(int buttons, int x, int y) override;
     // The input loses the screen: no turning, the axes cleared, the cursor let go, the motion cleared and the
     // camera stopped.

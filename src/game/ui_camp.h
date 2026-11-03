@@ -267,6 +267,8 @@ public:
     PartySkill BestPartySkill(int school) override;
     // Rebirth-patched: BuildPages, then with WideScreen the two curtains over the screen's margins.
     void CreateScreen() override;
+    // The curtains over the margins of the window's new shape.
+    void LayoutChanged() override;
     // Create's body. Without the player's "constr.current" class template: back to the world, nothing built.
     // Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void BuildPages();
@@ -331,6 +333,7 @@ public:
 
     int page = 0;
     bool fromHeroScreen;             // opened from the multiplayer hero screen (closes with a pending value)
+    int curtains = -1;               // the curtains' first sprite (screen_layout::AddCurtains)
     bool spellConstructor = false;   // the spell constructor's pages are offered
     bool itemConstructor = false;    // the item constructor's pages are offered
     ClassTemplate* constructor = nullptr;    // the constructor's class template ("constr.current"), or null

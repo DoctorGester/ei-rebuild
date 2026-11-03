@@ -1,0 +1,52 @@
+# R44: input in a pillarboxed window (docs/notes/renderer.md, "Resolution changes"). Full screen keeps the settings'
+# 800x600 and scales the frame over the monitor without a display mode change, with black bars left and right on a
+# wider monitor (on 16:9 the picture is the middle three quarters of the width). The mouse maps through the same
+# transform as the picture: on the picture's first column (far from the window's edge; the harness settings' border
+# scroll area is 1 pixel) the camera pans, over the right bar it pans too (the cursor put on the picture's edge), at
+# the centre it does not; a click over the left bar is not passed on (logged).
+render checkall
+resolution 800x600
+fullscreen 1
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+waitpresent 10
+frames 30
+
+camtrace start
+move 400 300
+frames 40
+camtrace stop still
+
+# On the picture's first column: pans left.
+camtrace start
+move 0 300
+frames 10
+camtrace stop edge
+move 400 300
+frames 30
+
+# Over the right bar (frame x 840): the cursor on the picture's right edge, pans right.
+camtrace start
+move 840 300
+frames 10
+camtrace stop bar
+move 400 300
+frames 30
+camsteadier still bar pan 0.01
+camsteadier still edge pan 0.01
+
+# A click over the bar is ignored.
+click -40 300
+frames 3
+expectlog input: a press outside the picture ignored
+move 400 300
+frames 10
+report
+quit

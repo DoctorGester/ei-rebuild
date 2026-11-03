@@ -62,6 +62,26 @@ int g_movieKey;   // the blocking player's movie in the new renderer
 // The movie's last frame has been decoded.
 bool Ended(const video::Movie* movie) { return video::DecodedFrameNumber(movie) >= video::FrameCount(movie); }
 
+// Where a movie of width x height shows on the screen as it is now (each frame asks: the screen may take another size
+// while a movie plays): `centred` at its own size in the middle, otherwise as large as fits with its aspect kept
+// (across the screen's width, letterboxed; on a screen wider than the movie, as high as the screen, pillarboxed),
+// centred (divisions by 2 round towards zero).
+Rect MovieRect(int width, int height, bool centred) {
+    const Rect& screen = g_sceneRenderer.device->screen;
+    const int screenWidth = screen.right - screen.left, screenHeight = screen.bottom - screen.top;
+    int shownWidth = width, shownHeight = height;
+    if (!centred) {
+        shownWidth = screenWidth;
+        shownHeight = screenWidth * height / width;
+        if (shownHeight > screenHeight) {
+            shownHeight = screenHeight;
+            shownWidth = screenHeight * width / height;
+        }
+    }
+    const int left = (screenWidth - shownWidth) / 2, top = (screenHeight - shownHeight) / 2;
+    return Rect{left, top, left + shownWidth, top + shownHeight};
+}
+
 } // namespace
 
 unsigned BinkVideo::Frame() {
@@ -75,7 +95,7 @@ unsigned BinkVideo::Frame() {
         render::MovieFrame(this, frame.data(), video::Width(movie), video::Height(movie));
         video::Advance(movie);
     }
-    render::MovieBlit(this, ToRender(to));
+    render::MovieBlit(this, ToRender(MovieRect(video::Width(movie), video::Height(movie), centred)));
     return Ended(movie) ? 0u : 1u;
 }
 
@@ -99,24 +119,8 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = video::Width(movie), height = video::Height(movie);
-    Rect screen;
-    rects::Copy(&screen, &g_sceneRenderer.device->screen);
-    // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
-    // centred at its size; both centred vertically (divisions round towards zero).
-    Rect to;
-    if (options::g_options.video == 2) {
-        int screenWidth = screen.right - screen.left;
-        int shown = screenWidth * height / width;
-        to.left = 0;
-        to.right = screenWidth;
-        to.top = (screen.bottom - screen.top - shown) / 2;
-        to.bottom = to.top + shown;
-    } else {
-        to.left = (screen.right - width - screen.left) / 2;
-        to.top = (screen.bottom - screen.top - height) / 2;
-        to.right = width + to.left;
-        to.bottom = height + to.top;
-    }
+    // Mode 2 as large as fits, otherwise centred at its size.
+    const bool centred = options::g_options.video != 2;
     if (frameTime) SetQuitAllowed(0);
     std::uint32_t start = platform::Milliseconds() - frameTime;
     bool escaped = false;
@@ -149,8 +153,8 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         video::DecodeFrame(movie);
         CopyFrame(movie, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
-        if (clearScreen) render::Fill(ToRender(screen), 0);
-        render::MovieBlit(&g_movieKey, ToRender(to));
+        if (clearScreen) render::Fill(ToRender(g_sceneRenderer.device->screen), 0);
+        render::MovieBlit(&g_movieKey, ToRender(MovieRect(width, height, centred)));
         PresentMovieFrame();
         if (!Ended(movie)) video::Advance(movie);
         start = now;
@@ -176,8 +180,8 @@ void ShowLoadingMovie(int progress) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
         }
-        g_loadingScreen = g_sceneRenderer.device->screen;
     }
+    g_loadingScreen = g_sceneRenderer.device->screen;
     video::Movie* movie = g_loadingMovie;
     int last = static_cast<int>(video::FrameCount(movie)) - 1;
     if (last < progress) progress = last;
@@ -202,9 +206,8 @@ void ShowLoadingMovie(int progress) {
 // --- Opening a movie for the frame's player ----------------------------------------------
 
 // The titles' Create starts Titles.bik with it. The movie open before is closed, the loading screen steps when
-// asked, the movie's sound plays when the sound option is on; the screen rectangle: movies mode 1 centred at the
-// movie's size, otherwise stretched to the screen's width with the height trunc(height / width * screen width),
-// centred vertically (divisions by 2 round towards zero).
+// asked, the movie's sound plays when the sound option is on; its place: movies mode 1 centred at the movie's size,
+// otherwise as large as fits (MovieRect).
 char BinkVideo::Open(const char* name, char loadingStep) {
     video::Close(movie);
     movie = nullptr;
@@ -216,21 +219,7 @@ char BinkVideo::Open(const char* name, char loadingStep) {
         return 0;
     }
     g_cursor.ShowImage(0);
-    int width = video::Width(movie), height = video::Height(movie);
-    Rect screen;
-    rects::Copy(&screen, &g_sceneRenderer.device->screen);
-    if (options::g_options.video == 1) {
-        int x = (screen.right - width - screen.left) / 2;
-        int y = (screen.bottom - height - screen.top) / 2;
-        to = Rect{x, y, width + x, height + y};
-    } else {
-        int screenWidth = screen.right - screen.left;
-        int shown = screenWidth * height / width;
-        to.left = 0;
-        to.right = screenWidth;
-        to.top = (screen.bottom - screen.top - shown) / 2;
-        to.bottom = to.top + shown;
-    }
+    centred = options::g_options.video == 1;
     return 1;
 }
 

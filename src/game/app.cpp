@@ -10,6 +10,7 @@
 #include "game_strings.h"
 #include "present_window.h"
 #include "asset_text.h"
+#include "hook/log.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -107,6 +108,10 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
+bool IsPress(EventType type) {
+    return type == EventType::LeftDown || type == EventType::LeftDouble || type == EventType::RightDown ||
+           type == EventType::RightDouble;
+}
 } // namespace
 
 std::intptr_t HandleWindowEvent(const platform::Event& event) {
@@ -131,11 +136,20 @@ std::intptr_t HandleWindowEvent(const platform::Event& event) {
 std::intptr_t DispatchInput(const platform::Event& received) {
     // The mouse's coordinates as the frame's (present_window.h).
     platform::Event event = received;
-    present_window::MouseToGame(&event);
+    const bool onFrame = present_window::MouseToGame(&event);
     Interface3D* input = &g_interface;
     input->CloseAllPending();
     const int x = Unsigned16(event.x);
     const int y = Unsigned16(event.y);
+    // A press outside the picture (the bars of a window of another shape, the letterbox bars) is not passed on; the
+    // release still is, and moves arrive on the picture's nearest pixel.
+    if (IsPress(event.type)) {
+        const Rect picture = input->PictureRect();
+        if (!onFrame || x < picture.left || x >= picture.right || y < picture.top || y >= picture.bottom) {
+            ei::Log("input: a press outside the picture ignored (at %d, %d of the window)", received.x, received.y);
+            return Handled();
+        }
+    }
     switch (event.type) {
     case EventType::KeyDown:
         input->OnKeyDown(event.key, event.repeat, event.keyFlags);

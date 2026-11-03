@@ -32,7 +32,8 @@ struct Layout {
 };
 
 // Computes the layout for the window the game makes, at the resolution it loaded from its options (GameMain, right
-// after the options load), and writes the two layout widths. Until then the layout is an 800x600 window's.
+// after the options load), and again at each resolution change (app::SetResolution), and writes the two layout
+// widths. Until the first call the layout is an 800x600 window's.
 void Configure(int width, int height);
 
 const Layout& Get();
@@ -83,8 +84,13 @@ Point PickShift();
 // right margins, the left one the layout rectangle (-margin, 0)-(0, 600) showing texels (0xE3, 0x3E)-(0x100, 0xB0),
 // the right one (800, 0)-(800 + margin, 600) the same texels mirrored (addon takes the margin's pixels as layout
 // units: wider than the margins, harmless; with no margin both are empty), both at depth 2, scale 100, tint 0.3,
-// shown `visible` (the camp 1, the hero screen 0).
-void AddCurtains(UiWindow* window, int visible);
+// shown `visible` (the camp 1, the hero screen 0). Returns the left one's index among the window's sprites.
+int AddCurtains(UiWindow* window, int visible);
+// The two curtains from sprite `first` on (AddCurtains's) over the margins the window has now (the screen took
+// another size), shown as they were.
+void PlaceCurtains(UiWindow* window, int first);
+// The hero screen's curtains' index (its 19 sprites come first).
+constexpr int kHeroCurtains = 19;
 // After the hero screen's mode function: when the window has exactly 21 sprites (the 19 of the hero screen and the
 // curtains), the curtains (19, 20) are shown in every mode but the hero list (9).
 void ShowHeroCurtains(UiWindow* window, int mode);

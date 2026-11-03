@@ -1,11 +1,13 @@
 // The window surface's constructors and destructor (UiSurface). The holder has no DirectDraw surface and no memory:
 // the surface's pixels are its canvas on the GPU (render_ui.h), made black with it, so the original's colour fill is
 // left out. Making a window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv).
+// Every live surface is kept in a registry so a resolution change places them all again (UiSurface::RelayoutAll).
 // See docs/notes/ui.md, "Surface construction".
 #include "app.h"
 
 #include "base_manager.h"
 #include "game_singletons.h"
+#include "screen_layout.h"
 #include "surface.h"
 #include "texture.h"
 #include "ui.h"
@@ -13,8 +15,15 @@
 #include "lib/rect.h"
 #include "render/render_ui.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <vector>
+
+namespace {
+// Every surface alive, for RelayoutAll (windows, the interface's own and those a window keeps outside its list).
+std::vector<UiSurface*> g_surfaces;
+} // namespace
 
 void UiSurface::MakeCanvas() {
     if (!holder) return;
@@ -24,6 +33,10 @@ void UiSurface::MakeCanvas() {
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
 // rectangle.
 UiSurface::~UiSurface() {
+    if (auto it = std::find(g_surfaces.begin(), g_surfaces.end(), this); it != g_surfaces.end()) {
+        *it = g_surfaces.back();
+        g_surfaces.pop_back();
+    }
     if (kept) render::ui::DropCanvas(this);
     kept = false;
     Surface* currentHolder = holder;
@@ -33,7 +46,8 @@ UiSurface::~UiSurface() {
 }
 
 UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
-    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom} {
+    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom}, layoutRect{left, top, right, bottom}, scaled(scale) {
+    g_surfaces.push_back(this);
     if (scale) ui->ScaleRectToScreen(&rect);
     width = rect.right - rect.left;
     height = rect.bottom - rect.top;
@@ -51,10 +65,13 @@ void UiSurface::SetRect(int left, int top, int right, int bottom) {
     rect.top = top;
     rect.right = right;
     rect.bottom = bottom;
+    layoutRect = rect;
+    scaled = true;
     ui->ScaleRectToScreen(&rect);
 }
 
 void UiSurface::MoveTo(int x, int y) {
+    if (scaled) layoutRect = Rect{x, y, x + layoutRect.right - layoutRect.left, y + layoutRect.bottom - layoutRect.top};
     Point point{x, y};
     ui->ScalePointToScreen(&point);
     int rectWidth = rect.right - rect.left;
@@ -63,6 +80,42 @@ void UiSurface::MoveTo(int x, int y) {
     rect.top = point.y;
     rect.right = rectWidth + point.x;
     rect.bottom = rectHeight + point.y;
+}
+
+// A surface over a layout rectangle takes it scaled as the layout scales now; one over the whole screen (the
+// backdrop) the whole new screen. Its canvas: the new rectangle's size when it had the old one's, else (the global
+// map's half-size pick picture) scaled as the window's 4:3 part.
+void UiSurface::Relayout(const screen_layout::Layout& before) {
+    const screen_layout::Layout& now = screen_layout::Get();
+    const Rect old = rect;
+    if (scaled) {
+        rect = layoutRect;
+        ui->ScaleRectToScreen(&rect);
+    } else if (rect.left == 0 && rect.top == 0 && rect.right == before.width && rect.bottom == before.height) {
+        rect = Rect{0, 0, now.width, now.height};
+        layoutRect = rect;
+    }
+    int newWidth = rect.right - rect.left, newHeight = rect.bottom - rect.top;
+    if (width != old.right - old.left || height != old.bottom - old.top) {
+        newWidth = static_cast<int>(static_cast<long long>(width) * now.width43 / before.width43);
+        newHeight = static_cast<int>(static_cast<long long>(height) * now.height43 / before.height43);
+    }
+    newWidth = std::max(newWidth, 1);
+    newHeight = std::max(newHeight, 1);
+    if (newWidth == width && newHeight == height) return;
+    width = newWidth;
+    height = newHeight;
+    if (holder) {
+        holder->width = width;
+        holder->height = height;
+        render::ui::Resize(holder, width, height);
+    } else if (kept) {
+        render::ui::Resize(this, width, height);   // the canvas put aside under the surface's address
+    }
+}
+
+void UiSurface::RelayoutAll(const screen_layout::Layout& before) {
+    for (UiSurface* surface : g_surfaces) surface->Relayout(before);
 }
 
 void UiSurface::Show() {

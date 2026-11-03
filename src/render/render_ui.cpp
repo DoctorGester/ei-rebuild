@@ -49,11 +49,12 @@ struct CanvasImage {
 };
 
 struct Op {
-    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels };
+    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels, Resize };
     Kind kind = Solid;
     const void* holder = nullptr;
     unsigned canvas = 0;
-    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source; Pixels: where
+    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source; Pixels: where;
+                                 // Resize: the old size
     Rect scissor{};              // Glyphs: the clip rectangle within the canvas
     std::uint32_t colour = 0;    // Solid: 0x00RRGGBB as the canvas holds it; Glyphs: the text colour
     const text::GlyphAtlas* atlas = nullptr;
@@ -500,6 +501,37 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     sg_end_pass();
 }
 
+// The canvas's image made again at its new size, the old one (op.rect: its size) stretched over it with the copy's
+// nearest pixel.
+void ResizeImage(CanvasState& canvas, const Op& op) {
+    CanvasImage old = canvas.gpu;
+    canvas.gpu = CanvasImage{};
+    g_retired.push_back(old);
+    if (!MakeTarget(canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas", &canvas.gpu.image, &canvas.gpu.attachment,
+                    &canvas.gpu.texture)) {
+        ei::Log("render: cannot create a %dx%d canvas", canvas.width, canvas.height);
+        DestroyImage(canvas.gpu);
+        return;
+    }
+    BeginCanvasPass(canvas.gpu.attachment, true, "ei-canvas-resize");
+    if (old.texture.id) {
+        sg_apply_pipeline(g_copy);
+        sg_bindings b{};
+        b.views[0] = old.texture;
+        b.samplers[0] = g_nearest;
+        sg_apply_bindings(&b);
+        ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
+        ui_params_t fs = CanvasParams(canvas);
+        fs.source[2] = op.rect.right;
+        fs.source[3] = op.rect.bottom;
+        fs.dest[0] = canvas.width;
+        fs.dest[1] = canvas.height;
+        ApplyFs(fs);
+        sg_draw(0, 6, 1);
+    }
+    sg_end_pass();
+}
+
 // An Image's pixels drawn into the canvas, through an image of their own.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
     const Rect& r = op.rect;
@@ -612,6 +644,24 @@ void DropCanvas(const void* holder) {
     if (it == g_canvases.end()) return;
     g_retired.push_back(it->second.gpu);
     g_canvases.erase(it);
+}
+
+void Resize(const void* holder, int width, int height) {
+    if (width < 1 || height < 1 || width > kMaxCanvas || height > kMaxCanvas || !Target(holder)) return;
+    // What is queued for it was laid out at the old size.
+    RunCanvasesNow();
+    auto it = g_canvases.find(holder);
+    if (it == g_canvases.end()) return;
+    CanvasState& canvas = it->second;
+    if (canvas.width == width && canvas.height == height) return;
+    Op op;
+    op.kind = Op::Resize;
+    op.holder = holder;
+    op.canvas = canvas.id;
+    op.rect = Rect{0, 0, canvas.width, canvas.height};
+    canvas.width = width;
+    canvas.height = height;
+    Push(std::move(op));
 }
 
 void MoveCanvas(const void* from, const void* to) {
@@ -896,6 +946,7 @@ void RunCanvasCommands() {
         case Op::Copy: DrawCopy(*canvas, op); break;
         case Op::Grey: DrawGrey(*canvas); break;
         case Op::Pixels: DrawPixels(*canvas, op); break;
+        case Op::Resize: ResizeImage(*canvas, op); break;
         }
         k = end;
     }

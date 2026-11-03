@@ -178,6 +178,8 @@ public:
     explicit MpHeroScreen(Interface3D* ui) : ItemScreen(ui) {}
     // The heroes saved, the player's records handed to the client world, the preview cleared and the description panel emptied.
     void CloseScreen() override;
+    // The curtains over the margins of the window's new shape.
+    void LayoutChanged() override;
     // With a preview figure: the hero's statistics restored, its size factors, scale and unit statistics; then the statistics
     // panel redrawn.
     void RefreshStats() override;

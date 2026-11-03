@@ -160,19 +160,21 @@ void CameraInput::MouseMove(int, int atX, int atY) {
     // The width of the screen edges that pan (0: off).
     int margin = static_cast<const volatile int&>(options::g_options.cameraBorderScrollArea);
     if (margin > 0) {
+        // The edges of the picture: the screen's, or the letterbox bars' inner ones.
+        const Rect picture = ui->PictureRect();
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
-        if (atX < margin) {
+        if (atX < picture.left + margin) {
             direction.x = -1.0f;
             edges = kLeft;
-        } else if (atX >= ui->width - margin) {
+        } else if (atX >= picture.right - margin) {
             direction.x = 1.0f;
             edges = kRight;
         }
-        if (atY < margin) {
+        if (atY < picture.top + margin) {
             direction.y = -1.0f;
             edges |= kTop;
-        } else if (atY >= ui->height - margin) {
+        } else if (atY >= picture.bottom - margin) {
             direction.y = 1.0f;
             edges |= kBottom;
         }

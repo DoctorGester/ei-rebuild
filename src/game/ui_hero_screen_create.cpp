@@ -307,3 +307,5 @@ void MpHeroScreen::CreateScreen() {
     // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
     screen_layout::AddCurtains(this, 0);
 }
+
+void MpHeroScreen::LayoutChanged() { screen_layout::PlaceCurtains(this, screen_layout::kHeroCurtains); }

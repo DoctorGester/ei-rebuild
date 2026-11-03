@@ -905,6 +905,9 @@ DirectDraw surface and no memory (surface.cpp): the surface's pixels are its can
 it (UiSurface::MakeCanvas, P8), so the colour fill is left out. Making a window asks DirectDraw for nothing. (The picture constructor
 has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's
 allocation throws (freeing the holder's memory) is not reproduced: that throw ends the game.
+Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a resolution change
+places them all again and resizes their canvases (UiSurface::RelayoutAll; docs/notes/renderer.md, "Resolution
+changes").
 
 ## Surface pixel work
 
