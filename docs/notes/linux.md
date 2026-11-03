@@ -113,8 +113,9 @@ Harness runs open no sound device, so the audio lag seen when playing under WSLg
   (`LayoutKey` / `LayoutControlCharacter`), and the key names are SDL's English ones.
 - Not played with real data yet: menus, maps, movies, sound, saves and multiplayer are unchecked on Linux.
 - Frame pacing under WSLg (X11 through XWayland, GALLIUM_DRIVER=d3d12, VSync on; PL20, 2026-11-03): 64 to 85 frames a
-  second, 10 to 28 ms apart, where Windows' 60 Hz screen gives 16 / 17 ms. XTest pointer moves at 125 Hz arrive as 4, 8
-  or 12 counts a frame at a steady speed: the beat between the mouse's reports and the frames. The camera's mouse turn
-  took each frame's motion as its rate, so it ran with that beat and with the frame rate; it now takes the mouse's speed
-  over a 60 Hz frame's window (ui.md, "Camera mouse turn"). The SDL build in WSL has no Wayland backend (no
+  second, 10 to 28 ms apart, where Windows' 60 Hz screen gives 16 / 17 ms; on a busy machine 32 to 38, 16 to 66 ms
+  apart. XTest pointer moves at 125 Hz (4 counts) arrive as 4, 8 or 12 counts a frame at 70 a second and 8 to 40 at 35:
+  the beat between the mouse's reports and the frames, and the frame's length. The camera's mouse turn took each frame's
+  motion as its rate, so it ran with both; it now takes the mouse's speed over a 60 Hz frame's window (ui.md, "Camera
+  mouse turn"): the same moves give a drag of 5 to 14 (8.3 is the speed), 1000 Hz moves of 1 count 16 to 22 (16.7). The SDL build in WSL has no Wayland backend (no
   wayland-client development files), so SDL_VIDEO_DRIVER=wayland was not measured.
