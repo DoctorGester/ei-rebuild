@@ -72,17 +72,18 @@ DisableExitOnCrashReport. The cases:
   pipeline could not be made.";
 - a sokol panic (SokolLog, level 0; sokol would abort after it): "The renderer stopped: sokol_gfx panic <item>
   (<message>).";
-- a lost device that cannot be made again (five tries 200 ms apart): "The Direct3D 11 device was lost and no new one
-  could be made: <reason>." (or its pipelines);
+- a lost device ("No device-loss recovery", section 9): "The graphics device was lost (<reason>); the game will
+  close.", the reason `platform::graphics::Lost()`'s (on Direct3D 11 the loss's name and code, e.g.
+  "DXGI_ERROR_DEVICE_HUNG, 887A0006");
 - no swap chain on a working device (render_window.cpp `NoChain`): "The renderer cannot present on the game window:
-  ...". A swap chain that fails on a lost device waits for the new device instead.
+  ...". A swap chain that fails on a lost device ends the game with the lost device's message instead.
 
 A draw the renderer does not take is lost, not drawn another way: `render::MeshPass`, `TlDraw` and `ScreenDraw` return
 nothing, and render_mesh.cpp's `Refuse` logs each reason the first time ("render: <reason>; the draw is lost": a mesh or
 pre-transformed draw with no render target size, a mesh corner past its positions, a pre-transformed draw in another
 vertex format than 0x1C4 / 0xC4, too many pre-transformed vertices in one frame). An empty draw is nothing to draw, not a
-refusal. A lost device made again (section 9) is recovery, not a fallback. `EI_RENDER` (environment, or the harness step
-`render <spec>`) is a comma-separated list of options: the harness build's `removable` and `checkall`; any other word is
+refusal. `EI_RENDER` (environment, or the harness step
+`render <spec>`) is a comma-separated list of options: the harness build's `checkall`; any other word is
 logged as unknown.
 
 ## 2. Frame structure of the game
@@ -195,8 +196,9 @@ two blend factors (the particles' additive / normal switch). The line strip (`re
 ui-native.md section 3): an RGBA8 render target per holder, made with the surface (`UiSurface::MakeCanvas`), drawn into
 by the surface functions (fills, frames, lines, pixels, glyph runs in our own fonts, the screen copy, greying) and blitted
 by `UiSurface::Blit` (`render::ui::DrawCanvas`). The readers get pixels from the GPU: PixelAt (`ReadPixel`), the save
-picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A lost device brings every canvas back from
-the commands drawn on it since it was last covered whole (a screen copy's and a long history's pixels read back instead).
+picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A canvas keeps nothing but its render target.
+Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a resolution change
+places them all again and resizes their canvases (`UiSurface::RelayoutAll`, "Resolution changes").
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
 windows' holders have a canvas, the picture holders (cursor images) only a size, the textures section 7's images. A
@@ -204,7 +206,7 @@ window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format
 colour depth (16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. The cursor's mask is built from the .mmp file's
 pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the renderer keeps the picture as RGBA8
 (`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
-ui_saveload, render_device_lost.
+ui_saveload.
 
 **Save / load screen's pictures** (`ui_saveload.cpp`; ui.md, "Save / load window pictures"): two 256x256 5:6:5 textures,
 the selected save's shot.sav and the new save's picture (from the escape menu's 256x192 copy), both drawn into on the
@@ -225,8 +227,7 @@ the canvas. Rgb565Copy draws the canvas into an R16_UINT target of the picture's
 centre, (2x+1) * source / (2 * size), each channel's top bits) and reads only that back (`render::ui::ReadRgb565`): the
 escape menu's 256x192 `screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt reads one pixel from
 the GPU (`ReadPixel`, each channel cut to the screen format's top bits by `render::ui::TopBits`: the pick picture's zone
-colours exact). Once a copy is drawn the canvas's pixels are read back as its history, so a lost device brings it back
-as it was. Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
+colours exact). Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
 `ei_ui_check`.
 
 ## 7. Textures
@@ -258,9 +259,8 @@ blocks (`BlockFormat`, `ReadMmp`); there is no CPU DXT decoder. Every texture, D
 Direct3D 11 cannot box-filter a block-compressed level, and the original's texture had those levels too (1035 of the
 installs' 1792 DXT files stop early, 229 at level 0: the menus' backdrops, tree03, the decals). A DXT top level must be a
 multiple of 4 wide and high: every DXT file is, at the levels the texture quality option starts at (0..2). The cursor's
-pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). The decoded textures keep what they were
-decoded from (`TextureSource`, render_textures.cpp: the header and the bytes of the levels), so `SurfaceView` makes the
-image again after a lost device (`Remake`, once a frame).
+pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). The decoded textures do not keep the
+file's bytes.
 
 **Texture patches**: `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's texture
 shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState` gives stage
@@ -272,20 +272,20 @@ The unit's face (the blink) is its only user; check `render_blink`.
 makes a texture from images drawn over each other: the unit skins and wounds textures (items_spells.md, "Composed
 textures"). Each image is an .mmp file's pixels after its header and extra block: 32-bit 0xAARRGGBB with premultiplied
 alpha, rows from the top; "PNT3" files are packed: groups of four pixels, where a group's first pixel has alpha 0 and is
-not 0 that word instead counts target bytes left as they are. The renderer decodes an image to RGBA8 once (shared by name
-while a texture holds it: `DecodeComposeImage`), and draws into a texture of the full size with every level the texture
-uses (`ComposeRecipe`): cleared to transparent black, each image a rectangle drawn texel for texel
+not 0 that word instead counts target bytes left as they are. The renderer decodes an image to RGBA8 for the draw
+(`DecodeComposeImage`), and draws into a texture of the full size with every level the texture
+uses (`ComposeShape`): cleared to transparent black, each image a rectangle drawn texel for texel
 (texture_compose.glsl) with premultiplied blending (ONE, INV_SRC_ALPHA, alpha too), then the levels below, each drawn
 from the one above (`texture_mip`: the mean of four texels). A pass may not read the image it draws into, so a level is
 drawn into a scratch image of half the size and copied from there. The texture's view starts at level `mip` (the texture
 quality option), so its size is `size >> mip`. The work runs at once from the game's load (not inside a frame pass). The
-entry keeps its recipe, so a new device draws every composed texture again right after it is made (`RemakeComposed`).
+entry keeps the image and its shape only.
 
 **Pictures drawn into textures.** The 1:5:5:5 textures (the item screens' figure textures and the image atlases
 `CopyImage` fills: portraits, buttons, item cells) are composed textures without layers: `render::BlankTexture` makes the
 transparent texture (one level), and `render::DrawIntoTexture(holder, image, x, y, width, height)` draws an .mmp
 picture's rectangle (or white, without the file) into it, replacing what was there: blending off, alpha cut to one bit
-(at least half: opaque, else 0). The step joins the recipe (a step it covers whole leaves it). The picture is the file's
+(at least half: opaque, else 0). The picture is the file's
 pixels right after the header (the extra block not skipped, as the original read them). Colours are 8-bit.
 - The save / load pictures: a 256x192 5:6:5 picture (shot.sav's bytes as stored, or the escape menu's `screenCopy`) is
   drawn into a 5:6:5 texture's top (`ImageLayout::Rgb565`); the save window keeps the copy (`SaveLoadWindow::newPicture`)
@@ -351,13 +351,13 @@ stand-in for any of them:
   sampled like the uploads).
 - **Full screen** (FullScreen 1) without a display mode change (`present_window.cpp`, from each present): a borderless
   window over the monitor it is on (not while minimised; again after someone else resized it), the frame scaled into it;
-  a resolution below the desktop's shows in the window. The game never changes its resolution or makes its device again
-  while running: the resolution is the settings' `VideoResolution` (with `FullScreen`, `VideoColorDepthInBits`), read once
-  before WinMain makes the window; only the swap chain follows the window. The options window has no resolution; no run
-  may switch the display mode.
+  a resolution below the desktop's shows in the window. Full screen keeps the settings' resolution; no run may switch
+  the display mode.
 - **Windowed** (FullScreen 0): a decorated, movable, resizable window centred in the primary monitor's work area, its
-  client area the resolution's, made smaller when it would not fit (the frame is scaled into it).
-- The game's mouse coordinates are always mapped to frame pixels (platform.md, "Window and events").
+  client area the resolution's, made smaller when it would not fit (the frame is scaled into it until the window is
+  resized). A window resized by the user renders at its new size ("Resolution changes").
+- The game's mouse coordinates are always mapped to frame pixels (platform.md, "Window and events"); over the bars they
+  go to the frame's nearest pixel and presses there are ignored ("Resolution changes").
 - **Focus loss and return** (Alt+Tab, minimise): the game's own path (app.cpp OnActivate): inactive deactivates the
   cursor, the mouse, the sound and the network; the window stays as it is; active resumes them. Minimised the client area
   is empty and nothing is presented; on return the swap chain is resized. DXGI_STATUS_OCCLUDED counts as success.
@@ -367,43 +367,63 @@ stand-in for any of them:
   reached through the mapped clicks) and render_present_fullscreen (full screen at 800x600 on the desktop's monitor: menus
   and battle screen, focus lost and given back, the window resized from outside and covering the monitor again).
 
-### Device loss
+### No device-loss recovery
 
-- Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
-  DRIVER_INTERNAL_ERROR) and by `GetDeviceRemovedReason` (a loss nothing reported, e.g. minimised): both are
-  `platform::graphics::Lost()` (graphics_d3d11.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing
-  more is drawn in that frame; at the end of `render::Present` (the frame's commands cleared, so nothing holds a sokol
-  id), `RecreateDevice` (render.cpp): each module destroys what it made (`DropWindow`, the frame target and readback copy,
-  `DestroyTerrain`, `DestroyMeshes`, `DropBlits`, `DropTextures`), then `sg_shutdown` and `platform::graphics::Stop` (the
-  context cleared and released, the device released; the log gives the references left: 0), a new device (`Start`, up to
-  five tries 200 ms apart), `sg_setup` and the pipelines. The next frames make the frame target, the swap chain (the
-  game's gamma ramp is kept), the interface canvases (`DropCanvases`: their command histories drawn again) and the
-  composed and drawn-into textures (`RemakeComposed`). A movie shows again from its next frame. No new device: the game
-  ends (section 1).
-- Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the end of the next presented frame see a loss
-  (code 0: simulated); the rest is the real path. The step waits until the device is made again and a frame presented on
-  it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the main menu, in zone1 and in the camp,
-  the frame before and after the loss match (samecapture: 0 pixels over 8).
+A lost device ends the game. `platform::graphics::Lost()` is asked at the end of every presented frame and when the
+window's drawable cannot be had (`render::detail::CheckDevice`). On Direct3D 11 a loss is Present or ResizeBuffers
+reporting DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG / DRIVER_INTERNAL_ERROR, or `GetDeviceRemovedReason` failing; OpenGL
+looks for none (it would need a robust context). A loss is a fatal error (section 1, "When the renderer fails").
+Why no recovery (user): Direct3D 11 loses its device only on a driver update or reset, a TDR or a GPU switch, rare for a
+player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
+texture to keep its file's bytes, composed textures their recipes and canvases their command histories, and runtime
+backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private
+bytes on zone1.
 
-### A real removal of the device (harness build only)
+### Resolution changes
 
-- `removable` in the harness's render step (`render new,present,removable`; `platform::graphics::MakeRemovable` in
-  graphics_d3d11.h) makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the default
-  adapter and a direct queue (d3d12.dll loaded at run time from System32). The swap chain, the gamma ramp check and every
-  frame work on it as on the hardware device.
-- `platform::graphics::RequestRemoval` (harness step `removedevice [seconds]`) asks for a removal; it happens right before
-  the next swap chain Present (`RemoveIfAsked`): the GPU is let finish (an event query, at most 2 s), then
-  `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and `GetDeviceRemovedReason` report
-  DXGI_ERROR_DEVICE_REMOVED for real, in this process only (no driver reset, no TDR). The device-loss path then releases
-  everything (the Direct3D 12 device and queue too: Direct3D 12 devices are one per adapter while one lives) and makes a
-  new removable device.
-- The step checks that the loss seen was that removal (`GetDeviceRemovedReason` 887A0005) and that the new device is
-  removable again; `WindowPresents()` gives the last loss's code.
-- Rule from a real bug: removed with GPU work in flight, the old device's teardown crashed in a thread of d3d11on12.dll
-  or of DXGI / the driver's user-mode part, also in a small program that released everything in order; with the GPU idle
-  first it never did. So the removal waits for the GPU; a real TDR goes through the kernel and not through this teardown.
-- Scenario `render_device_removed` (vanilla; also runs on Rebirth): render_device_lost's three moments with
-  `removedevice`: the frame before and after each removal match.
+The rendering resolution is the device's `screen` (`TextureDevice::screen`): the settings' `VideoResolution` at the start.
+It changes while the game runs through one call, `app::SetResolution(width, height)` (app_resolution.cpp), between
+frames; no device is made again and the zone goes on. It sets, in order:
+- the device's screen and the pipeline's viewport and axis swap stacks (`SceneRenderer::ResizeScreen`: stacks 8 and 7
+  and their products 0, 1, 2, 5 filled again; the projection, stack 6, is kept, so the camera's near / far / field of
+  view stay), and the viewport size the projections map to;
+- the interface layout (`screen_layout::Configure`: the 4:3 part, the widescreen margins, the axis and font scales, the
+  two layout widths; it logs "Interface layout: ...");
+- the cursor's bounds;
+- the settings' `VideoResolution` (written at exit: the next start makes the window at that size);
+- the interface (`Interface3D::Resize`): its size and its three fonts, every surface placed again
+  (`UiSurface::RelayoutAll`: its rectangle scaled from the layout rectangle it was given; its canvas resized with what
+  it holds stretched, nearest pixel, `render::ui::Resize`, so keyed pixels stay exact until the window draws again),
+  then each window on the stack, bottom first, `UiContainer::LayoutChanged`. The battle screen builds its HUD panels
+  again (`BattleScreen::BuildPanels`, at the window's edges, `EdgeShift`), keeping the map's zoom, the top panel's
+  texts, the selection, the portraits and the pending action; the camp and the multiplayer hero screen move their
+  curtains (`screen_layout::PlaceCurtains`).
+
+The renderer follows by itself: the frame target is made again at the next frame at the screen's size (`EnsureTarget`
+reads `GameTargetSize`), the swap chain follows the client area, the cursor's shapes are made at the new scale. Movies
+are placed from the current screen every frame (`MovieRect`: as large as fits with the aspect kept; mode 1 centred at
+the movie's size).
+
+Who calls it: a window that is not full screen and whose client area changed since the last present (dragged,
+maximised, a DPI change). `present_window::Update` asks at each present (`app::RequestResolution`) and the next main
+loop pass takes it (`TakeResolutionChange`), so a resize during a blocking movie or loading screen is taken after it;
+meanwhile the present scales the frame. The window's first client area is not a change. A settings screen (not built)
+would call `app::SetResolution` from its apply and, windowed, size the client area to it. The options window has no
+resolution: its 26 settings (table 00787430) are volumes, keys, mouse speeds, border scroll, the three shadow switches
+(7-9), marks, footprints, selection type, path, brightness / contrast / gamma, flying HP, tutorial, autosave, tooltip
+time, filters, camera axes, stereo and difficulty (`render_options_shadows` steps the shadow switches).
+
+**Input in a window of another shape.** Mouse coordinates are frame pixels through the picture's placement
+(`render::WindowToFrame`; the cursor's through `platform::MapCursorPoints`). A point over the bars goes to the frame's
+nearest pixel (`present_window::MouseToGame`), so the edge pan works at the picture's edges; a press there is not
+passed on and is logged ("input: a press outside the picture ignored"), its release is. Inside the frame the picture is
+`Interface3D::PictureRect`: the screen less the letterbox bars while `ScreenFade::letterbox` is set (nothing in the
+game sets it). A window narrower than 4:3 has the world over its whole height.
+
+Scenarios: `render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
+`render_resize_edgepan` (full screen at 800x600 on a 16:9 monitor: the camera pans at the picture's edges, a click over
+the bar ignored), `render_present_window`, `render_cursor_present`; ei_ui_check's resize cases check
+`render::ui::Resize`.
 
 ### The cursor
 
@@ -473,8 +493,7 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
 
 ## 11. Verification and frame capture
 
-- **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present,
-  render_device_lost, ...: two captures in one frozen moment must match to the pixel); `tools/frame_preview.py` writes a
+- **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present, ...: two captures in one frozen moment must match to the pixel); `tools/frame_preview.py` writes a
   downscaled side-by-side PNG. Goldens hold no frames: renderer upgrades replace the old look.
 - The water pass writes depth (z-write stays on after the sky): without it the far sea's fully fogged sector ring blended
   over the nearer water at the top of the screen.

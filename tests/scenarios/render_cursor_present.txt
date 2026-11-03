@@ -45,7 +45,8 @@ waitpresent 10
 frames 10
 cursorcheck - gamma
 
-# A larger window (1600x900: the frame at 1200x900): the shape made again at one and a half times the size.
+# A larger window (1600x900: the game renders at 1600x900 from the next pass, R44): the shape made again at the
+# window's scale.
 windowsize 1600 900
 waitpresent 10
 frames 10

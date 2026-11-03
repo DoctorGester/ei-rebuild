@@ -40,7 +40,7 @@
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "world_glue.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -397,6 +397,7 @@ constexpr int kRecordedFramesPerSecond = 15;
 // messages from now on: not while the renderer is inactive.
 bool RunPass() {
     TakeActivationChange();
+    TakeResolutionChange();
     std::uint32_t elapsed = TimeSinceLastPass();
     if (!(g_sceneRenderer.flags & 1)) {
         GuardPlayerData(0);

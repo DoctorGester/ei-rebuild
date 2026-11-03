@@ -111,8 +111,7 @@ test <ID> --golden` compares every run that has a golden with it, its saves too,
 tools\savefile.py show|diff|rules`).
 
 Unit checks (`tests/unit`, `ei_unit_check.exe`, run by build.cmd): the settings file's format and lib::HashMap's walk
-order, without the game. Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each
-function; `coverage.py list` writes `tests/coverage/coverage.csv` and `coverage.py top` lists the largest gaps.
+order, without the game.
 
 Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
 folder>`: time per function between harness steps).
@@ -184,7 +183,7 @@ through it.
   run (about 20 to 30 minutes), so batch commits.
 - **Without the runner** a session can run the Python tools' own tests (`python -m unittest` in `tools/`) and the text
   checks that read only the source: `tools/check_cleanup.py`, `tools/comments.py check`, `tools/tickets.py`,
-  `tools/gen_iat.py --check`, `tools/data_seam.py --check`, `tools/named_data.py --check`, `tools/check_platform.py`,
+  `tools/data_seam.py --check`, `tools/named_data.py --check`, `tools/check_platform.py`,
   `tools/gen_settings_doc.py --check`. Linux builds there too (linux.md).
 - A change that should not alter behaviour keeps every golden the same; an intended change re-records the affected
   goldens and says why in the commit.

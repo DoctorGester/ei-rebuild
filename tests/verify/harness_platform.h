@@ -40,13 +40,7 @@ bool BeforeEvents();
 bool CollectCursors();
 int TypedCharacter(int key);
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
-// The harness's clocks, sleep and date (its virtual or held clocks, its fixed date) and its mouse's position on the
-// screen (false: none), and a move of it.
-std::uint32_t ClockMilliseconds();
-std::uint32_t ClockTicks();
-void ClockSleep(std::uint32_t ms);
-platform::DateTime Date();
+// The harness's mouse's position on the screen (false: none).
 bool MousePosition(platform::Point* at);
-void MoveMouse(platform::Point at);
 
 } // namespace ei::verify::harnessplatform

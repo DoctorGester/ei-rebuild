@@ -1,5 +1,5 @@
 # R9c4: the options window's settings applied in the world while our renderer presents
-# (docs/notes/renderer.md, section 9, R9c4). The game has no resolution in its options (the 26
+# (docs/notes/renderer.md, "Resolution changes"). The game has no resolution in its options (the 26
 # settings at 00787430; VideoResolution is read from the registry once, and the renderer and its
 # device are made once by WinMain), so there is no device re-creation to exercise. The settings the
 # OK applies that reach the renderer are the shadow switches (7-9: units, buildings, flora): OK

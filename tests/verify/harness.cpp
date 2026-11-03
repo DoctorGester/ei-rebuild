@@ -233,17 +233,6 @@
 //                             checked a presented frame against a gamma ramp that is not the
 //                             identity (one to one only; fails on a difference). Fails after
 //                             <seconds> or when the swap chain failed
-//   losedevice [seconds]      the new renderer acts as if its Direct3D 11 device were lost at the
-//                             end of the next presented frame (render::LoseDevice) and makes the
-//                             device, the swap chain and every image again; waits (default 10 s) until
-//                             it has, and presenting on the game window, until a frame is presented on
-//                             the new device. Fails on a timeout or when the new renderer gave up
-//   removedevice [seconds]    as losedevice, but the device is removed for real right before the next
-//                             present (platform::graphics::RequestRemoval: ID3D12Device5::RemoveDevice
-//                             on the Direct3D 12 device under a device made through D3D11On12; the
-//                             scenario's "render" step names "removable"). Also fails when the loss
-//                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
-//                             is not removable again
 //   cursormark                remember the presents' cursor counts (render::CursorState) and start keeping
 //                             the shapes shown while the gamma ramp is the identity ("cursorcheck gamma")
 //   cursorcheck <name>|- shown|hidden|held|animated|gamma [min]
@@ -259,7 +248,7 @@
 //                             the kept one; some changed when the ramp is not the identity)
 //   windowtitle               require the game window's title to be "Evil Islands" and its class "EIGAME"
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
-//                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
+//                             the format of EI_RENDER: "checkall"). Read before the game starts.
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
@@ -366,7 +355,6 @@
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
-#include "harness_imports.h"
 #include "harness_camera.h"
 #include "harness_capture.h"
 #include "harness_address_order.h"
@@ -393,7 +381,9 @@
 #include "harness_timing.h"
 #include "harness_utf8.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
+#include "platform/platform.h"
+#include "platform/win32/platform_win32.h"
 #include "platform/win32/thread_context.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
@@ -559,12 +549,6 @@ bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
 Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
-// A pending "losedevice" (R9c1) or "removedevice" (R9c5): the new devices made when it started, its
-// deadline, whether the device was removed for real.
-bool g_waitingNewDevice = false;
-bool g_newDeviceRemoved = false;
-int g_newDeviceFrom = 0;
-DWORD g_newDeviceDeadline = 0;
 // A pending "waitwindow": the window's name, when it started and gives up, and the frame from which it has been
 // ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
@@ -621,7 +605,7 @@ std::uintptr_t g_selfBase, g_selfEnd;
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
     else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei-rebuild+%X", label, unsigned(a - g_selfBase));
-    else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
+    else {   // Direct3D and DXGI frames too (crashes inside their threads and the driver's)
         HMODULE m = nullptr;
         char name[MAX_PATH] = "";
         if (a > 0x10000 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -666,89 +650,29 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// WinMain (00456060) looks for another game window with FindWindowA and, when it finds one,
-// brings it to the front and exits. Harness runs go in parallel (run_all.py --jobs), each game in
-// its own output folder, so in harness runs no other window counts. The other way (ST1b): a game
-// the user starts without the harness runs the real check, so a harness game's window has a title
-// of its own (CreateWithoutActivating) and a play launch never finds it. Nothing reads the title.
-decltype(&::FindWindowA) g_findWindow;
-HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
-    ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
-    return nullptr;
-}
-
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front, and it
 // plays in a small window (harness_starter.h). The game's own code still runs, so scenarios test the same paths.
 
-decltype(&::SetForegroundWindow) g_setForegroundWindow;
-decltype(&::BringWindowToTop) g_bringWindowToTop;
-
-decltype(&::ShowWindow) g_showWindow;
-decltype(&::CreateWindowExA) g_createWindowEx;
-decltype(&::SetCursorPos) g_setCursorPos;
-
-BOOL WINAPI NoForeground(HWND) { return TRUE; }
-BOOL WINAPI NoBringToTop(HWND) { return TRUE; }
-
-BOOL WINAPI NoCursorMove(int, int) { return TRUE; }
-
-// The game reads the real cursor with GetCursorPos (edge scrolling among others). The user's cursor
-// can be anywhere, e.g. on a second screen to the right, which the game took as panning right and
-// which moved the camera under the scenario's clicks. The game sees the harness's own mouse instead:
-// the last position a move/click step posted (client coordinates), the window's centre until then.
-decltype(&::GetCursorPos) g_getCursorPos;
+// The game reads the mouse's position (edge scrolling among others). The user's cursor can be anywhere, e.g. on a
+// second screen to the right, which the game took as panning right and which moved the camera under the scenario's
+// clicks. The game sees the harness's own mouse instead (harness_platform.h, MousePosition): the last position a
+// move/click step posted (client coordinates), the window's centre until then.
 volatile LONG g_mouseX = -1, g_mouseY = -1;
 // The "mousedrag" step's motion a frame (DirectInput counts; 0, 0: none).
 int g_dragX = 0, g_dragY = 0;
 HWND GameWindow();
-BOOL WINAPI HarnessCursorPos(LPPOINT point) {
-    if (!point) return FALSE;
-    HWND window = GameWindow();
-    RECT client{};
-    if (!window || !GetClientRect(window, &client)) return g_getCursorPos(point);
-    if (g_mouseX < 0) {
-        point->x = (client.right - client.left) / 2;
-        point->y = (client.bottom - client.top) / 2;
-    } else {
-        point->x = g_mouseX;
-        point->y = g_mouseY;
-    }
-    ClientToScreen(window, point);
-    return TRUE;
-}
-BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
-    switch (command) {
-    case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
-    case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
-    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;
-    default: break;
-    }
-    return g_showWindow(window, command);
-}
-HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h,
-                                    HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
-    if (!parent) exStyle |= WS_EX_NOACTIVATE;
-    char harnessTitle[300];
-    if (!parent && name && std::strcmp(name, HarnessWindowTitle()) == 0) {   // the game window (title = WinMain's)
-        std::snprintf(harnessTitle, sizeof(harnessTitle), "%s (harness)", name);
-        name = harnessTitle;
-    }
-    return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
-}
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
 // starts or loads a game, so a harness run would overwrite the player's own progress. In harness
 // runs every path whose directory is "saves" goes to harness_saves\ in the run folder instead.
 
 char g_savesDir[MAX_PATH];
-decltype(&::CreateFileA) g_createFile;
-decltype(&::DeleteFileA) g_deleteFile;
-decltype(&::CopyFileA) g_copyFile;
-decltype(&::MoveFileA) g_moveFile;
-decltype(&::FindFirstFileA) g_findFirstFile;
-decltype(&::CreateDirectoryA) g_createDirectory;
-decltype(&::RemoveDirectoryA) g_removeDirectory;
-decltype(&::GetFileAttributesA) g_getFileAttributes;
+// Whether the harness answers the game's file, .ini and desktop calls (the end of this file): set once the overlay's
+// folders are known at the harness's start; a game started without the harness gets the system's answers.
+bool g_answering = false;
+
+// The system's attributes of a game's path (UTF-8, platform_win32.h).
+DWORD Attributes(const char* path) { return GetFileAttributesW(text::Wide(path).c_str()); }
 
 // Returns `path` with everything up to its "\saves" directory replaced by g_savesDir, or `path`
 // itself when it has no such directory. `buffer` holds the rewritten path.
@@ -834,7 +758,7 @@ void MakeParentDirs(const char* file) {
     for (char* p = dir + std::strlen(g_savesDir) + 1; *p; ++p) {
         if (*p != '\\') continue;
         *p = '\0';
-        g_createDirectory(dir, nullptr);
+        CreateDirectoryW(text::Wide(dir).c_str(), nullptr);
         *p = '\\';
     }
 }
@@ -892,11 +816,12 @@ bool OverlayOnly(const char* relative) {
 // For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
 // without an overlay copy reads as the missing overlay path.
 const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
+    if (!g_answering) return path;
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
     if (shadow && OverlayOnly(shadow + std::strlen(g_savesDir) + 1)) return shadow;
-    if (shadow && g_getFileAttributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
+    if (shadow && Attributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
     if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
         static int logged = 0;
         if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
@@ -927,6 +852,7 @@ bool CopiedForWrite(const char* original) {
 // For a write: the overlay path (its directories created; with `keep` an install file not yet in
 // the overlay is copied first).
 const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
+    if (!g_answering) return path;
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
@@ -939,9 +865,9 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     MakeParentDirs(shadow);
     char pinned[MAX_PATH];
     const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
-    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
-        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
-        g_copyFile(original, shadow, TRUE);
+    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && Attributes(shadow) == INVALID_FILE_ATTRIBUTES &&
+        Attributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
+        CopyFileW(text::Wide(original).c_str(), text::Wide(shadow).c_str(), TRUE);
     LogInstallWrite(path, shadow);
     return shadow;
 }
@@ -950,44 +876,6 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
 bool InInstall(const char* path) {
     char b[MAX_PATH];
     return ShadowOf(path, b) != nullptr || (path && IsGameRoot(path));
-}
-
-HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
-                                   DWORD disposition, DWORD flags, HANDLE templ) {
-    char b[MAX_PATH];
-    bool write = install::WritesFile(access, disposition);
-    bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
-    const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
-    // The game opens some data files for reading without sharing them; parallel harness runs read
-    // the same install, so reads always let others read too.
-    if (!write) share |= FILE_SHARE_READ;
-    if (write) savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
-    HANDLE file = g_createFile(target, access, share, sa, disposition, flags, templ);
-    crash::OnFileOpened(name, target, file, write);   // "diskfull" (harness_crash.h)
-    return file;
-}
-
-// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
-// it off and "restores" a value it never read (off), so a harness game left it off for every program
-// on the machine, and text in runs before and after differed (GDI's grey edges or none: the
-// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's text is drawn
-// without smoothing, as it looks once the titles have switched it off, whatever the desktop's setting and
-// other programs do to it during the run: the image's interface text asks the setting (ui_font.cpp) and reads
-// it as off.
-constexpr UINT kGetFontSmoothing = 0x4A;                             // SPI_GETFONTSMOOTHING
-constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
-decltype(&::SystemParametersInfoA) g_systemParametersInfo;
-
-BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
-    if (action == kGetFontSmoothing && pvParam) {
-        *static_cast<BOOL*>(pvParam) = FALSE;
-        return TRUE;
-    }
-    if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
-    static bool logged = false;
-    if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
-    logged = true;
-    return TRUE;
 }
 
 // Game speed. The main loop runs one world update per UpdatePeriod milliseconds of real time (55 by
@@ -1027,61 +915,6 @@ int HeldClientSegment(void* client) {
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
-}
-
-// Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
-// GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
-decltype(&::GetPrivateProfileStringA) g_getProfileString;
-
-DWORD WINAPI HarnessGetProfileString(LPCSTR app, LPCSTR key, LPCSTR fallback, LPSTR out, DWORD size, LPCSTR file) {
-    std::size_t length = file ? std::strlen(file) : 0;
-    if (key && _stricmp(key, "movies") == 0 && length >= 9 && _stricmp(file + length - 9, "movie.ini") == 0) {
-        if (out && size) out[0] = '\0';
-        return 0;
-    }
-    char b[MAX_PATH];
-    return g_getProfileString(app, key, fallback, out, size, ReadPath(file, b));
-}
-
-// The section reads take the overlay copy too.
-decltype(&::GetPrivateProfileSectionA) g_getProfileSection;
-
-DWORD WINAPI RedirectedGetProfileSection(LPCSTR app, LPSTR out, DWORD size, LPCSTR file) {
-    char b[MAX_PATH];
-    return g_getProfileSection(app, out, size, ReadPath(file, b));
-}
-
-BOOL WINAPI RedirectedDeleteFile(LPCSTR name) {
-    char b[MAX_PATH];
-    return g_deleteFile(WritePath(name, b, false));
-}
-BOOL WINAPI RedirectedCopyFile(LPCSTR from, LPCSTR to, BOOL failIfExists) {
-    char b1[MAX_PATH], b2[MAX_PATH];
-    return g_copyFile(ReadPath(from, b1), WritePath(to, b2, false), failIfExists);
-}
-BOOL WINAPI RedirectedMoveFile(LPCSTR from, LPCSTR to) {
-    char b1[MAX_PATH], b2[MAX_PATH], b3[MAX_PATH];
-    const char* source = ReadPath(from, b1);
-    const char* target = WritePath(to, b2, false);
-    // An install file is never moved away: it is copied into the overlay instead.
-    if (source == from && ShadowOf(from, b3)) return g_copyFile(source, target, TRUE);
-    return g_moveFile(source, target);
-}
-HANDLE WINAPI RedirectedFindFirstFile(LPCSTR name, LPWIN32_FIND_DATAA data) {
-    char b[MAX_PATH];
-    return g_findFirstFile(ReadPath(name, b), data);
-}
-BOOL WINAPI RedirectedCreateDirectory(LPCSTR name, LPSECURITY_ATTRIBUTES sa) {
-    char b[MAX_PATH];
-    return g_createDirectory(WritePath(name, b, false), sa);
-}
-BOOL WINAPI RedirectedRemoveDirectory(LPCSTR name) {
-    char b[MAX_PATH];
-    return g_removeDirectory(WritePath(name, b, false));
-}
-DWORD WINAPI RedirectedGetFileAttributes(LPCSTR name) {
-    char b[MAX_PATH];
-    return g_getFileAttributes(ReadPath(name, b));
 }
 
 namespace noforeground {
@@ -1127,13 +960,6 @@ bool g_deterministic = true;
 bool g_clockTrace = false;
 // "randtrace": log every random draw (harness_clock.h), installed at the first message loop pass.
 bool g_randomTrace = false;
-
-decltype(&::GetLocalTime) g_getLocalTime;
-decltype(&::GetSystemTime) g_getSystemTime;
-// GetLocalTime/GetSystemTime (the main menu's time of day, save dates) return a fixed date.
-void WINAPI FixedTime(LPSYSTEMTIME t) {
-    *t = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
-}
 
 // Frozen clocks ("freeze" / "unfreeze", for frame captures). While frozen, the game's timeGetTime
 // and GetTickCount return what they returned when frozen: the main loop (004571DC) sees no time
@@ -1253,8 +1079,8 @@ struct HeldModifiers {
     unsigned mods = 0;
 };
 
-// The game's TranslateMessage (import slot 0073B450; WinMain's loop and the movie loop call it). Windows makes a
-// WM_CHAR from a key message with the thread's keyboard layout and key state, which follow the user's own layout
+// The character a key types in harness runs (TypedCharacter, which harness_platform.cpp asks for each key down, in
+// place of the system's text input). Windows makes a WM_CHAR from a key message with the thread's keyboard layout and key state, which follow the user's own layout
 // switches and held keys even though the harness's game never has the focus: in pairs a typed hero name came out
 // "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
@@ -1512,7 +1338,7 @@ std::string WindowTitleStep() {
     GetWindowTextA(window, title, sizeof(title));
     GetClassNameA(window, cls, sizeof(cls));
     Log("harness: windowtitle: title \"%s\", class \"%s\"", title, cls);
-    // The harness adds " (harness)" to the title of the window it creates (CreateWithoutActivating).
+    // The harness adds " (harness)" to the title of the window it creates (harness_platform.cpp's CreateGameWindow).
     if (std::strcmp(title, "Evil Islands") != 0 && std::strcmp(title, "Evil Islands (harness)") != 0) return std::string("windowtitle: the window's title is \"") + title + "\"";
     if (std::strcmp(cls, "EIGAME") != 0) return std::string("windowtitle: the window's class is \"") + cls + "\"";
     return {};
@@ -2523,40 +2349,6 @@ void RunSteps() {
             return;
         }
     }
-    if (g_waitingNewDevice) {
-        const image::WindowPresents now = HarnessWindowPresents();
-        // Made again, and (presenting on the game window) a frame presented on the new device.
-        bool presented = now.presents > now.presentsAtRecovery;
-        const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
-        if (now.deviceRecoveries > g_newDeviceFrom && presented) {
-            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX%s) presents on the "
-                "game window", verb, now.deviceLosses, now.deviceRecoveries,
-                static_cast<unsigned long>(now.lastLossCode), now.lastLossCode ? "" : ", simulated");
-
-            // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
-            // device removable again.
-            const auto removed = static_cast<std::uint32_t>(DXGI_ERROR_DEVICE_REMOVED);
-            if (g_newDeviceRemoved && (now.lastLossCode != removed || !now.removable)) {
-                char what[200];
-                std::snprintf(what, sizeof(what),
-                              "removedevice: not a real removal (the loss %08lX) or the new device is not removable (%d)",
-                              static_cast<unsigned long>(now.lastLossCode), now.removable);
-                Log("harness: %s", what);
-                g_failures.push_back(what);
-            }
-            g_waitingNewDevice = false;
-        } else if (Now() >= g_newDeviceDeadline) {
-            char what[200];
-            std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
-                          "timed out", now.deviceLosses,
-                          now.deviceRecoveries, now.presents - now.presentsAtRecovery);
-            Log("harness: %s", what);
-            g_failures.push_back(what);
-            g_waitingNewDevice = false;
-        } else {
-            return;
-        }
-    }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
         if (!WindowReady(g_waitWindowName)) g_waitWindowReadyFrom = kNotReady;
@@ -3168,21 +2960,6 @@ void RunSteps() {
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
             return;
-        } else if (s.verb == "losedevice" || s.verb == "removedevice") {
-            int seconds = 10;
-            sscanf_s(s.argument.c_str(), "%d", &seconds);
-            g_newDeviceFrom = image::WindowPresentCounts().deviceRecoveries;
-
-            g_newDeviceRemoved = s.verb == "removedevice";
-            if (!g_newDeviceRemoved) {
-                image::LoseDevice();
-            } else if (!image::RemoveDevice()) {
-                g_failures.push_back("removedevice: the device is not removable (\"render removable\")");
-                continue;
-            }
-            g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
-            g_waitingNewDevice = true;
-            return;
         } else if (s.verb == "cursormark") {
             g_cursorMark = image::CursorPresentCounts();
             g_cursorCollecting = true;
@@ -3383,7 +3160,7 @@ DWORD WINAPI Watchdog(void*) {
 // runs leave only one game in front, so the harness keeps every game active: its platform backend tells the game no
 // activation change of the system's (harness_platform.h); the focus steps tell it their own.
 // The window is shown and made without activating it, and nothing in the process brings it to the
-// front (ShowWithoutActivating, noforeground::), so Windows never sends it the WM_ACTIVATE that
+// front (harness_platform.cpp, noforeground::), so Windows never sends it the WM_ACTIVATE that
 // sets the game's active flag 0079BC5C and starts its frames. (Under dgVoodoo its exclusive
 // cooperative level used to activate the window; without DirectDraw, the switch-over in device.h,
 // nothing did.) Once the device object exists and the game is not active, the harness sends the
@@ -3407,12 +3184,12 @@ std::string FocusStep(const std::string& argument) {
     if (argument == "off") {
         Log("harness: focus off (deactivated, the window minimised)");
         harnessplatform::Activate(false);
-        g_showWindow(window, SW_SHOWMINNOACTIVE);
+        ShowWindow(window, SW_SHOWMINNOACTIVE);
         return "";
     }
     if (argument == "on") {
         Log("harness: focus on (the window restored, activated)");
-        g_showWindow(window, SW_SHOWNOACTIVATE);
+        ShowWindow(window, SW_SHOWNOACTIVATE);
         harnessplatform::Activate(true);
         return "";
     }
@@ -3679,14 +3456,6 @@ struct Harness {
         if (!WideCharToMultiByte(CP_ACP, 0, install::GameFolder().c_str(), -1, g_rootDirs[0], MAX_PATH, nullptr, nullptr))
             g_rootDirs[0][0] = '\0';
 
-        PatchImport(&ImportTable::FindWindowA, &NoOtherGameWindow, g_findWindow);
-        PatchImport(&ImportTable::SetForegroundWindow, &NoForeground, g_setForegroundWindow);
-        PatchImport(&ImportTable::BringWindowToTop, &NoBringToTop, g_bringWindowToTop);
-
-        PatchImport(&ImportTable::ShowWindow, &ShowWithoutActivating, g_showWindow);
-        PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
-        PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
-        PatchImport(&ImportTable::GetCursorPos, &HarnessCursorPos, g_getCursorPos);
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
@@ -3698,18 +3467,7 @@ struct Harness {
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
 
         image::ObserveConsoleLines(&OnConsoleLine);
-        PatchImport(&ImportTable::CreateFileA, &RedirectedCreateFile, g_createFile);
-        crash::WatchWrites();
-        PatchImport(&ImportTable::DeleteFileA, &RedirectedDeleteFile, g_deleteFile);
-        PatchImport(&ImportTable::CopyFileA, &RedirectedCopyFile, g_copyFile);
-        PatchImport(&ImportTable::MoveFileA, &RedirectedMoveFile, g_moveFile);
-        PatchImport(&ImportTable::FindFirstFileA, &RedirectedFindFirstFile, g_findFirstFile);
-        PatchImport(&ImportTable::CreateDirectoryA, &RedirectedCreateDirectory, g_createDirectory);
-        PatchImport(&ImportTable::RemoveDirectoryA, &RedirectedRemoveDirectory, g_removeDirectory);
-        PatchImport(&ImportTable::GetFileAttributesA, &RedirectedGetFileAttributes, g_getFileAttributes);
-        PatchImport(&ImportTable::SystemParametersInfoA, &HarnessSystemParametersInfo, g_systemParametersInfo);
-        PatchImport(&ImportTable::GetPrivateProfileStringA, &HarnessGetProfileString, g_getProfileString);
-        PatchImport(&ImportTable::GetPrivateProfileSectionA, &RedirectedGetProfileSection, g_getProfileSection);
+        g_answering = true;   // the overlay, the font smoothing, the other game window (the end of this file)
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
@@ -3717,14 +3475,12 @@ struct Harness {
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());
             image::SetWaitForVsync(false);   // frames need not wait for the display
-            PatchImport(&ImportTable::GetLocalTime, &FixedTime, g_getLocalTime);
-            PatchImport(&ImportTable::GetSystemTime, &FixedTime, g_getSystemTime);
+            clock::FixDate();
             image::SetFixedSeed(&FillFixedSeed);
             Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
             clock::InstallHeld();
-            PatchImport(&ImportTable::GetLocalTime, &FixedTime, g_getLocalTime);
-            PatchImport(&ImportTable::GetSystemTime, &FixedTime, g_getSystemTime);
+            clock::FixDate();
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
         if (g_clockTrace) clock::InstallTrace();
@@ -3754,22 +3510,20 @@ namespace harnessplatform {
 bool BeforeEvents() { return ei::verify::BeforeEvents(); }
 bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::RampIsIdentity(); }
 int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
-// Through the import slots the harness drives: its virtual or held clocks, its fixed date, its own mouse.
-std::uint32_t ClockMilliseconds() { return ei::Imports().timeGetTime(); }
-std::uint32_t ClockTicks() { return ei::Imports().GetTickCount(); }
-void ClockSleep(std::uint32_t ms) { ei::Imports().Sleep(ms); }
-platform::DateTime Date() {
-    SYSTEMTIME local;
-    ei::Imports().GetLocalTime(&local);
-    return {local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond};
-}
 bool MousePosition(platform::Point* at) {
     POINT p{};
-    if (!ei::Imports().GetCursorPos(&p)) return false;
+    HWND window = GameWindow();
+    RECT client{};
+    if (!window || !GetClientRect(window, &client)) {
+        if (!GetCursorPos(&p)) return false;
+    } else {
+        p = g_mouseX < 0 ? POINT{(client.right - client.left) / 2, (client.bottom - client.top) / 2}
+                         : POINT{g_mouseX, g_mouseY};
+        ClientToScreen(window, &p);
+    }
     *at = platform::Point{static_cast<int>(p.x), static_cast<int>(p.y)};
     return true;
 }
-void MoveMouse(platform::Point at) { ei::Imports().SetCursorPos(at.x, at.y); }
 
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons) {
     const int answer = HarnessMessageBoxA(nullptr, text, caption, buttons == platform::MessageButtons::OkCancel ? MB_OKCANCEL : MB_OK);
@@ -3779,3 +3533,108 @@ platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, 
 } // namespace harnessplatform
 
 } // namespace ei::verify
+
+// ==== The game's calls the harness answers ===========================================================================
+
+// The harness's builds leave src/platform/win32/game_calls.cpp out and take these: the saves and the install's files
+// through the run's overlay (ReadPath / WritePath above), the startup movies left out, the font smoothing off, no
+// other game window. Without the harness (g_answering false) each is the system's call, as game_calls.cpp's.
+
+namespace platform {
+
+namespace {
+
+using ei::verify::ReadPath;
+using ei::verify::WritePath;
+
+std::wstring Wide(const char* path) { return text::Wide(path); }
+
+} // namespace
+
+bool CreateFolder(const char* path) {
+    char b[MAX_PATH];
+    return CreateDirectoryW(Wide(WritePath(path, b, false)).c_str(), nullptr) != FALSE;
+}
+
+bool RemoveFile(const char* path) {
+    char b[MAX_PATH];
+    return DeleteFileW(Wide(WritePath(path, b, false)).c_str()) != FALSE;
+}
+
+// An install file is never moved away: it is copied into the overlay instead.
+bool RenameFile(const char* from, const char* to) {
+    char b1[MAX_PATH], b2[MAX_PATH], b3[MAX_PATH];
+    const char* source = ReadPath(from, b1);
+    const char* target = WritePath(to, b2, false);
+    if (source == from && ei::verify::ShadowOf(from, b3))
+        return CopyFileW(Wide(source).c_str(), Wide(target).c_str(), TRUE) != FALSE;
+    return MoveFileW(Wide(source).c_str(), Wide(target).c_str()) != FALSE;
+}
+
+bool CopyFileOver(const char* from, const char* to) {
+    char b1[MAX_PATH], b2[MAX_PATH];
+    return CopyFileW(Wide(ReadPath(from, b1)).c_str(), Wide(WritePath(to, b2, false)).c_str(), FALSE) != FALSE;
+}
+
+bool RemoveFolder(const char* path) {
+    char b[MAX_PATH];
+    return RemoveDirectoryW(Wide(WritePath(path, b, false)).c_str()) != FALSE;
+}
+
+bool FileExists(const std::string& path) {
+    char b[MAX_PATH];
+    return ei::verify::Attributes(ReadPath(path.c_str(), b)) != INVALID_FILE_ATTRIBUTES;
+}
+
+// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switched it off and
+// "restored" a value it never read (off), so a harness game left it off for every program on the machine, and text in
+// runs before and after differed (GDI's grey edges or none: the widescreen comparison of two runs). The game's text is
+// drawn without smoothing in harness runs, as it looks once the titles have switched it off, whatever the desktop's
+// setting and other programs do to it during the run: the interface text asks the setting (ui_font.cpp) and reads it
+// as off.
+bool FontSmoothing() {
+    if (ei::verify::g_answering) return false;
+    BOOL smoothing = FALSE;
+    if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;
+    return smoothing != FALSE;
+}
+
+// WinMain looks for another game window and, when it finds one, brings it to the front and exits. Harness runs go in
+// parallel (run_all.py --jobs), each game in its own output folder, so in harness runs no other window counts. The
+// other way (ST1b): a game the user starts without the harness runs the real check, so a harness game's window has a
+// title of its own (harness_platform.cpp's CreateGameWindow) and a play launch never finds it.
+NativeWindow FindClassWindow(const char* className, const char* title) {
+    if (!ei::verify::g_answering) return FindWindowW(Wide(className).c_str(), Wide(title).c_str());
+    ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
+    return nullptr;
+}
+
+namespace win32 {
+
+// A write goes to the overlay (its directories made, an install file it keeps copied first), a read takes the
+// overlay's copy when there is one; the saves trace and the "diskfull" step see each open. The startup movies:
+// config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik); harness runs read it as missing, so nothing
+// plays.
+HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
+    char b[MAX_PATH];
+    const char* name = path.c_str();
+    const bool write = ei::verify::install::WritesFile(access, disposition);
+    if (ei::verify::g_answering && !write && path.size() >= 9 && _stricmp(name + path.size() - 9, "movie.ini") == 0)
+        return nullptr;
+    const bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
+    const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
+    if (write) ei::verify::savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
+    const HANDLE file = CreateFileW(Wide(target).c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                                    disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+    ei::verify::crash::OnFileOpened(name, target, file, write);   // "diskfull" (harness_crash.h)
+    return file == INVALID_HANDLE_VALUE ? nullptr : file;
+}
+
+HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found) {
+    char b[MAX_PATH];
+    return FindFirstFileW(Wide(ReadPath(pattern.c_str(), b)).c_str(), found);
+}
+
+} // namespace win32
+
+} // namespace platform

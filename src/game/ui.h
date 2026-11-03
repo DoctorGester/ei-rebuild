@@ -41,6 +41,9 @@ class Texture;
 class TextureDevice;
 class UiSurface;
 class ItemScreen;
+namespace screen_layout {
+struct Layout;
+}
 
 // The interface's screen fade and letterbox, drawn over everything by the interface's draw.
 struct ScreenFade {
@@ -49,6 +52,8 @@ struct ScreenFade {
     void Draw(SceneRenderer* renderer);
     // Starts a fade over `ms` milliseconds, from alpha 0 (ms > 0) or 255.
     void Start(int ms);
+    // The height of each letterbox bar on a screen `height` pixels high.
+    static int LetterboxBar(int height);
 
     float rate = 0.0f;               // alpha per millisecond
     float alpha = 0.0f;              // 0..255
@@ -191,6 +196,13 @@ public:
     // with), reads the key bindings and config\tutorial.ini's help topics, and makes the console, debug
     // panel, chat overlay and fade.
     void Create(TextureDevice* device);
+    // The device's screen took another size (app::SetResolution, between frames; `before`: the layout it had): the
+    // interface's size and fonts, every surface placed again (UiSurface::RelayoutAll), then each window on the stack,
+    // the bottom one first, built again where its layout depends on the window's shape (UiContainer::LayoutChanged).
+    void Resize(const screen_layout::Layout& before);
+    // Where the game's picture is on the screen: the whole screen, less the letterbox bars while they are shown.
+    // Presses outside it are not passed on (app.cpp's input dispatch) and the camera's edge pan works at its edges.
+    Rect PictureRect() const;
 
     int width = 0;                   // screen width
     int height = 0;                  // screen height
@@ -318,6 +330,12 @@ public:
     // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~UiSurface();
+    UiSurface(const UiSurface&) = delete;
+    UiSurface& operator=(const UiSurface&) = delete;
+    // Every surface placed again after the screen's size changed from `before` (app::SetResolution): its rectangle
+    // scaled from its layout rectangle as the layout scales now, its canvas resized with what it holds stretched (the
+    // window draws what it draws next at the new size).
+    static void RelayoutAll(const screen_layout::Layout& before);
     // Onto the render target, when shown.
     virtual void Blit();
 
@@ -366,6 +384,8 @@ public:
     void Dot(int x, int y, std::uint32_t colour);
     // The holder's canvas, black, of the surface's size in the screen's format.
     void MakeCanvas();
+    // RelayoutAll's step for this surface.
+    void Relayout(const screen_layout::Layout& before);
 
     Interface3D* ui;
     SurfaceBlend blend;
@@ -375,6 +395,8 @@ public:
     int height = 0;
     bool kept = false;               // while swapped out: the canvas is kept under the surface's address
     Rect rect;                       // screen coordinates
+    Rect layoutRect;                 // what rect is scaled from (layout coordinates); screen pixels when not `scaled`
+    bool scaled = true;              // made over a layout rectangle (not the screen's pixels)
     std::uint32_t background = 0;         // the colour Clear fills with
 };
 
@@ -1132,6 +1154,10 @@ public:
     virtual void DebugFill() {}                                        // the console's "give <player> assortment"
     virtual void SaveState() {}                                        // the window's part of a save game
     virtual const char* HelpTopic() { return nullptr; }
+    // The screen took another size (Interface3D::Resize), after every surface was placed again: what of the
+    // window was built for the window's old shape is built again (the battle screen's panels at the edges, the
+    // camp's curtains over the margins). Most windows have nothing of that.
+    virtual void LayoutChanged() {}
 
     void Deactivate() override;                                        // every side and child, no flags
     void LeftDown(int buttons, int x, int y) override;
@@ -1202,6 +1228,11 @@ public:
     // Reads the screen's saved state when a game is being loaded, else remembers the local player's first
     // hero.
     void CreateScreen() override;
+    // The panels built again for the window's new shape (they sit at its edges), showing what they showed: the
+    // party's portraits, the selection, the pending action, the map's zoom and the message log.
+    void LayoutChanged() override;
+    // The HUD panels (the children, in their order) for the window's shape, the map at `mapZoom`.
+    void BuildPanels(float mapZoom);
     // Rebirth's AddNewConsoleCommands applies "nogui" first.
     void Draw(SceneRenderer* pass) override;
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the

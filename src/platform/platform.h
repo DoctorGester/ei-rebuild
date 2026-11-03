@@ -126,13 +126,12 @@ WholeFile ReadWholeFile(const std::string& path, std::string* bytes, std::uint32
 // is missing). False when that failed, with the system's error code in `error`.
 bool WriteWholeFile(const std::string& path, const std::string& bytes, std::uint32_t* error);
 
-// Whether `path` names a file or a folder, asked of the system directly (the standalone's start-up looks at the exe's
-// folder beside the game's slots).
+// Whether `path` names a file or a folder, asked of the system directly (the start-up looks at the exe's folder,
+// which a harness run does not redirect).
 bool PathExists(const std::string& path);
 
-// Rebirth's file look-ups, which reached the system the way its own code did and not through the game's import slots
-// (the harness's read redirection of the slots does not apply to them): the same calls as the slots' UTF-8 versions,
-// made directly.
+// Rebirth's file look-ups, which reached the system the way its own code did, not through the game's file calls (the
+// harness's read redirection of File and FileFind does not apply to them).
 // Whether `path` names a file, not a folder.
 bool IsFile(const std::string& path);
 // One entry of a folder search.
@@ -148,10 +147,9 @@ std::string VolumeLabel(const char* root);
 
 // ==== Files ==========================================================================================================
 
-// Paths are UTF-8. The Windows implementation goes through the game's import slots
-// (CreateFileA, FindFirstFileA, GetFileAttributesA, ...): a mod's hook in the import table and the harness's save /
-// install redirection apply to every file the game opens or lists. Every open shares the file with other readers and
-// writers.
+// Paths are UTF-8 (the wide calls on Windows). A harness run answers the opens and searches itself, so its save /
+// install redirection applies to every file the game opens or lists. Every open shares the file with other readers
+// and writers.
 //   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
 //   - ReadFile: a whole file at once (the text files, split into lines with str::Lines);
 //   - MappedFile: a whole file mapped into memory, read only (the archives' and the registry files');
@@ -282,25 +280,10 @@ bool ReadFile(const std::string& path, std::string* bytes);
 // Whether `path` names a file or folder (the original's _access with mode 0 or 4).
 bool FileExists(const std::string& path);
 
-// ==== The .ini files =================================================================================================
-
-// The system's profile reads. Paths and values are bytes as the file holds them (the config\*.ini files are the game's
-// own and their names are ASCII).
-
-// The entries ("key=value", in file order) of `section` in the file `path`; none when the section or file is missing.
-// At most 0x5000 bytes of them are read.
-std::vector<std::string> IniSectionEntries(const char* section, const char* path);
-// The string of `key` in `section` of the file `path`, `defaultValue` when it is not there; at most 1023 bytes.
-std::string IniString(const char* section, const char* key, const char* defaultValue, const char* path);
-
-// The number `key` holds in `section` of the file `path`, `defaultValue` when it is not there or is no number; asked of
-// the system directly (the standalone's start-up reads EI_Plugin.ini, beside the game's slots).
-int IniInt(const char* section, const char* key, int defaultValue, const char* path);
-
 // ==== Threads ========================================================================================================
 
 // Worker threads and events. A lock is a std::recursive_mutex (a critical section is
-// recursive); a thread's end is waited for with a Signal, whose calls stay on the import slots the harness traces.
+// recursive); a thread's end is waited for with a Signal.
 
 using ThreadProcedure = unsigned (*)(void* parameter);
 

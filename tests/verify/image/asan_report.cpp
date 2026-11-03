@@ -3,7 +3,7 @@
 // Set at the exe's static initialisation, before the game starts. Nothing in the other builds.
 #if defined(__SANITIZE_ADDRESS__)
 
-#include "../../../src/hook/log.h"
+#include "../../../src/platform/log.h"
 
 #include <windows.h>
 

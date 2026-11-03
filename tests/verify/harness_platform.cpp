@@ -3,6 +3,7 @@
 // takes is dropped (the real keyboard and mouse never reach the game: counted for the report); the game's events are
 // the harness's, and so are its clocks, date, mouse position and message box answers.
 #include "harness_platform.h"
+#include "harness_clock.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
@@ -36,7 +37,6 @@ std::vector<ShownCursor> g_seen;
 bool g_holding = false;
 platform::Point g_held{};
 platform::PointMap g_toGame = nullptr;
-platform::PointMap g_toScreen = nullptr;
 std::string g_clipboard;
 
 SDL_Window* WindowOf(platform::NativeWindow window) { return window && window == g_native ? g_window : nullptr; }
@@ -118,16 +118,20 @@ bool CursorHeld(platform::Point* at) {
 namespace platform {
 
 namespace hp = ei::verify::harnessplatform;
+namespace clock = ei::verify::clock;
 
 // ---- Clocks, the message box -------------------------------------------------------------------------------------
 
-std::uint32_t Milliseconds() { return hp::ClockMilliseconds(); }
+std::uint32_t Milliseconds() { return clock::Milliseconds(); }
 
-std::uint32_t TickCount() { return hp::ClockTicks(); }
+std::uint32_t TickCount() { return clock::Ticks(); }
 
-void Sleep(std::uint32_t ms) { hp::ClockSleep(ms); }
+void Sleep(std::uint32_t ms) { clock::Sleep(ms); }
 
-DateTime LocalTime() { return hp::Date(); }
+DateTime LocalTime() {
+    const SYSTEMTIME local = clock::LocalTime();
+    return {local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond};
+}
 
 MessageAnswer ShowMessageBox(void*, const char* text, const char* caption, MessageButtons buttons, MessageIcon) {
     return hp::AnswerMessageBox(text, caption, buttons);
@@ -166,8 +170,8 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
         int top = 0, left = 0, bottom = 0, right = 0;
         SDL_GetWindowBordersSize(hp::g_window, &top, &left, &bottom, &right);
-        width = std::min(width, work.w - left - right);
-        height = std::min(height, work.h - top - bottom);
+        width = (std::min)(width, work.w - left - right);
+        height = (std::min)(height, work.h - top - bottom);
         SDL_SetWindowSize(hp::g_window, width, height);
         SDL_SetWindowPosition(hp::g_window, work.x + left + (work.w - left - right - width) / 2,
                               work.y + top + (work.h - top - bottom - height) / 2);
@@ -312,16 +316,13 @@ void SetCursor(CursorShape shape) {
     SDL_ShowCursor();
 }
 
-// The harness's mouse moves only by its steps: a hold is only recorded.
+// The harness's mouse moves only by its steps: a hold is only recorded, a move ends it.
 void HoldCursor(const Point* at) {
     hp::g_holding = at != nullptr;
     if (at) hp::g_held = *at;
 }
 
-void MapCursorPoints(PointMap toGame, PointMap toScreen) {
-    hp::g_toGame = toGame;
-    hp::g_toScreen = toScreen;
-}
+void MapCursorPoints(PointMap toGame, PointMap) { hp::g_toGame = toGame; }
 
 bool CursorPosition(Point* at) {
     Point point{};
@@ -331,11 +332,7 @@ bool CursorPosition(Point* at) {
     return true;
 }
 
-void SetCursorPosition(Point at) {
-    HoldCursor(nullptr);
-    if (hp::g_toScreen) hp::g_toScreen(&at);
-    hp::MoveMouse(at);
-}
+void SetCursorPosition(Point) { HoldCursor(nullptr); }
 
 struct MouseDevice::Device {};
 

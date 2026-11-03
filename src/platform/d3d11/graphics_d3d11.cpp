@@ -3,17 +3,13 @@
 
 #include "platform/d3d11/graphics_d3d11.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi1_5.h>
-#if defined(EI_RENDER_VALIDATION)
-#include <d3d11on12.h>
-#include <d3d12.h>
-#endif
 
 #include <cstddef>
 #include <cstdio>
@@ -57,14 +53,26 @@ ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
 char g_error[160] = "";
 HRESULT g_failure = S_OK;   // a lost device reported by Present or ResizeBuffers (Lost)
+char g_lost[64] = "";       // Lost's reason
 
 bool IsLoss(HRESULT hr) {
     return hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG ||
            hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR;
 }
 
-// The call `where` found the device lost: nothing more is drawn into the swap chain, and the renderer makes everything
-// again at the end of the frame.
+// A loss's code as Lost names it.
+const char* LossName(HRESULT hr) {
+    switch (hr) {
+    case DXGI_ERROR_DEVICE_REMOVED: return "DXGI_ERROR_DEVICE_REMOVED";
+    case DXGI_ERROR_DEVICE_RESET: return "DXGI_ERROR_DEVICE_RESET";
+    case DXGI_ERROR_DEVICE_HUNG: return "DXGI_ERROR_DEVICE_HUNG";
+    case DXGI_ERROR_DRIVER_INTERNAL_ERROR: return "DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+    default: return "Direct3D 11 error";
+    }
+}
+
+// The call `where` found the device lost: nothing more is drawn into the swap chain, and the renderer ends the game at
+// the end of the frame.
 void LostBy(const char* where, HRESULT hr) {
     ei::Log("render: the Direct3D 11 device was lost (%s: %08lX, reason %08lX)", where, static_cast<unsigned long>(hr),
             static_cast<unsigned long>(g_device->GetDeviceRemovedReason()));
@@ -117,100 +125,6 @@ ID3D11DeviceContext* Context() {
 ID3D11Texture2D* Texture(sg_image image) {
     return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
 }
-
-#if defined(EI_RENDER_VALIDATION)
-// ---- The harness build's removable device -------------------------------------------------------------------------
-
-bool g_makeRemovable = false;
-ID3D12Device* g_d3d12 = nullptr;
-ID3D12CommandQueue* g_queue = nullptr;
-bool g_removeAsked = false;   // RequestRemoval: removed right before the next present (RemoveIfAsked)
-int g_removals = 0;
-
-void ReleaseRemovable() {
-    if (g_queue) g_queue->Release();
-    g_queue = nullptr;
-    if (g_d3d12) {
-        ULONG left = g_d3d12->Release();
-        if (left)
-            ei::Log("render: the Direct3D 12 device under the removable one keeps %lu references",
-                    static_cast<unsigned long>(left));
-    }
-    g_d3d12 = nullptr;
-}
-
-HRESULT CreateRemovableDevice(D3D_FEATURE_LEVEL* got) {
-    HMODULE d3d12 = LoadLibraryExW(L"d3d12.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    HMODULE d3d11 = GetModuleHandleW(L"d3d11.dll");
-    auto create12 =
-        d3d12 ? reinterpret_cast<PFN_D3D12_CREATE_DEVICE>(GetProcAddress(d3d12, "D3D12CreateDevice")) : nullptr;
-    auto create11on12 =
-        d3d11 ? reinterpret_cast<PFN_D3D11ON12_CREATE_DEVICE>(GetProcAddress(d3d11, "D3D11On12CreateDevice")) : nullptr;
-    if (!create12 || !create11on12) {
-        ei::Log("render: removable device: no D3D12CreateDevice or D3D11On12CreateDevice");
-        return E_NOINTERFACE;
-    }
-    HRESULT hr = create12(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&g_d3d12));
-    if (FAILED(hr)) {
-        ei::Log("render: removable device: D3D12CreateDevice failed (%08lX)", static_cast<unsigned long>(hr));
-        g_d3d12 = nullptr;
-        return hr;
-    }
-    // Direct3D 12 devices are one per adapter while one lives: a removed one still referenced somewhere would come
-    // back here.
-    HRESULT removed = g_d3d12->GetDeviceRemovedReason();
-    if (FAILED(removed)) {
-        ei::Log("render: removable device: D3D12CreateDevice gave a removed device (%08lX)",
-                static_cast<unsigned long>(removed));
-        ReleaseRemovable();
-        return removed;
-    }
-    D3D12_COMMAND_QUEUE_DESC queue{};
-    queue.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    hr = g_d3d12->CreateCommandQueue(&queue, IID_PPV_ARGS(&g_queue));
-    if (SUCCEEDED(hr)) {
-        IUnknown* queues[] = {g_queue};
-        hr = create11on12(g_d3d12, D3D11_CREATE_DEVICE_BGRA_SUPPORT, kLevels, kLevelCount, queues, 1, 0, &g_device,
-                          &g_context, got);
-    }
-    if (FAILED(hr)) {
-        ei::Log("render: removable device: D3D11On12CreateDevice failed (%08lX)", static_cast<unsigned long>(hr));
-        g_device = nullptr;
-        g_context = nullptr;
-        ReleaseRemovable();
-    }
-    return hr;
-}
-
-void RemoveIfAsked() {
-    if (!g_removeAsked || !g_d3d12) return;
-    g_removeAsked = false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) return;
-    // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown crashed in a
-    // thread of D3D11On12 / DXGI / the driver, also in a small program that presented on its own window; with the GPU
-    // idle it never did (docs/notes/renderer.md, "a real removal of the device").
-    int waited = 0;
-    D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
-    ID3D11Query* idle = nullptr;
-    if (SUCCEEDED(g_device->CreateQuery(&desc, &idle))) {
-        g_context->End(idle);
-        g_context->Flush();
-        BOOL done = FALSE;
-        while (g_context->GetData(idle, &done, sizeof(done), 0) == S_FALSE && waited < 2000) {
-            ::Sleep(1);
-            ++waited;
-        }
-        idle->Release();
-    }
-    device5->RemoveDevice();
-    device5->Release();
-    ++g_removals;
-    ei::Log("render: the removable device removed (ID3D12Device5::RemoveDevice, the GPU idle after %d ms); its "
-            "GetDeviceRemovedReason now %08lX",
-            waited, static_cast<unsigned long>(g_device->GetDeviceRemovedReason()));
-}
-#endif
 
 // ---- The swap chain -----------------------------------------------------------------------------------------------
 
@@ -324,9 +238,6 @@ bool EnsureChain(HWND window, int width, int height) {
 // ---- graphics.h ---------------------------------------------------------------------------------------------------
 
 void PrepareInBackground() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_makeRemovable) return;   // made at Start (CreateRemovableDevice)
-#endif
     if (g_prepared.thread || g_device) return;
     g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
 }
@@ -335,11 +246,7 @@ bool Start(sg_environment* environment) {
     g_failure = S_OK;
     D3D_FEATURE_LEVEL got{};
     HRESULT hr = S_OK;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_makeRemovable) hr = CreateRemovableDevice(&got);
-    else
-#endif
-        if (!TakePreparedDevice(&hr, &got)) hr = CreatePlainDevice(&g_device, &g_context, &got);
+    if (!TakePreparedDevice(&hr, &got)) hr = CreatePlainDevice(&g_device, &g_context, &got);
     if (FAILED(hr)) {
         std::snprintf(g_error, sizeof(g_error), "no Direct3D 11 device (D3D11CreateDevice failed, %08lX)",
                       static_cast<unsigned long>(hr));
@@ -348,14 +255,7 @@ bool Start(sg_environment* environment) {
     }
     environment->d3d11.device = g_device;
     environment->d3d11.device_context = g_context;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_d3d12)
-        ei::Log("render: Direct3D 11 device ready (feature level %X), through D3D11On12 on a Direct3D 12 device: "
-                "removable",
-                static_cast<unsigned>(got));
-    else
-#endif
-        ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
+    ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
     return true;
 }
 
@@ -373,9 +273,6 @@ void Stop() {
     g_context = nullptr;
     g_device = nullptr;
     g_failure = S_OK;
-#if defined(EI_RENDER_VALIDATION)
-    ReleaseRemovable();
-#endif
 }
 
 const char* Error() { return g_error; }
@@ -393,12 +290,13 @@ int MaxSamples(int most) {
     return 1;
 }
 
-std::optional<std::uint32_t> Lost() {
-    if (!g_device) return std::nullopt;
-    const HRESULT reason = g_device->GetDeviceRemovedReason();
-    if (FAILED(reason)) return static_cast<std::uint32_t>(reason);
-    if (FAILED(g_failure)) return static_cast<std::uint32_t>(g_failure);
-    return std::nullopt;
+const char* Lost() {
+    if (!g_device) return nullptr;
+    HRESULT hr = g_device->GetDeviceRemovedReason();
+    if (SUCCEEDED(hr)) hr = g_failure;
+    if (SUCCEEDED(hr)) return nullptr;
+    std::snprintf(g_lost, sizeof(g_lost), "%s, %08lX", LossName(hr), static_cast<unsigned long>(hr));
+    return g_lost;
 }
 
 void ApplyViewport(int x, int y, int width, int height) { sg_apply_viewport(x, y, width, height, true); }
@@ -420,10 +318,6 @@ bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode
 
 bool EndDrawable() {
     if (!g_chain) return false;
-#if defined(EI_RENDER_VALIDATION)
-    // A removal asked for happens here, after the frame was drawn on a working device: this Present reports it.
-    RemoveIfAsked();
-#endif
     const HRESULT hr = g_chain->Present(SyncIntervalFor(g_mode.vsync), PresentFlagsFor(g_mode.vsync, g_chainFlags));
     if (IsLoss(hr)) {
         LostBy("Present", hr);
@@ -562,28 +456,6 @@ std::uint32_t PresentFlagsFor(bool vsync, std::uint32_t chainFlags) {
     const bool tearing = !vsync && (chainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
     return tearing ? static_cast<std::uint32_t>(DXGI_PRESENT_ALLOW_TEARING) : 0u;
 }
-
-#if defined(EI_RENDER_VALIDATION)
-void MakeRemovable() { g_makeRemovable = true; }
-
-bool Removable() { return g_d3d12 != nullptr; }
-
-bool RequestRemoval() {
-    if (!g_d3d12) return false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
-        ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
-        return false;
-    }
-    device5->Release();
-    g_removeAsked = true;
-    return true;
-}
-
-int Removals() { return g_removals; }
-#endif
-
-
 
 bool Staging::Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region) {
     Unmap();

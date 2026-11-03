@@ -2,7 +2,7 @@
 // game says they changed. See docs/notes/renderer.md, "The renderer's source files".
 #include "../game/model.h"
 #include "../game/terrain_sector.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 
@@ -483,14 +483,6 @@ sg_view LevelView(sg_view page) {
     g_levelImages.push_back(l);
     return l.view;
 }
-
-void DropLevelImages() {
-    for (const LevelImage& l : g_levelImages) {
-        sg_destroy_view(l.view);
-        sg_destroy_image(l.image);
-    }
-    g_levelImages.clear();
-}
 #endif
 
 // --- The pool -------------------------------------------------------------------------------------------
@@ -694,20 +686,6 @@ void TerrainFrameDone() {
         if (!it->second.pending && now - it->second.lastUsed > kPageLife) it = g_pages.erase(it);
         else ++it;
     }
-}
-
-void DestroyTerrain() {
-#if defined(EI_RENDER_VALIDATION)
-    DropLevelImages();
-#endif
-    // The pages keep what they were built from; they are placed in a new pool at their next draw.
-    g_pool.Drop();
-    DropTerrainCasters();
-    RetireBuffers();
-    for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
-    g_pipelines.clear();
-    if (g_shader.id) sg_destroy_shader(g_shader);
-    g_shader = sg_shader{};
 }
 
 } // namespace detail
@@ -932,12 +910,6 @@ void TerrainCastersDone() {
         else ++it;
     }
 }
-
-void DropTerrainCasters() {
-    g_casterPool.Drop();   // the sectors keep their vertices: placed and written again at their next draw
-    g_frameCasters.clear();
-}
-
 } // namespace detail
 
 } // namespace render

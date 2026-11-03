@@ -4,7 +4,7 @@
 
 #include "ui.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 #include "lib/rect.h"
 
 #include <algorithm>
@@ -133,22 +133,42 @@ Point PickShift() {
     return Point{l.margin / 2, l.marginY / 2};
 }
 
+namespace {
+
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
-void AddCurtains(UiWindow* window, int visible) {
+void ShapeCurtains(UiMesh* left, UiMesh* right) {
     const int margin = Get().margin;
-    UiMesh* left = window->AddBlankSprite();
     left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
-    SetCurtainLook(left, visible);
-    UiMesh* right = window->AddBlankSprite();
     right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, margin + 800.0f, 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
+}
+
+} // namespace
+
+int AddCurtains(UiWindow* window, int visible) {
+    const int first = static_cast<int>(std::ssize(window->sceneObjects));
+    UiMesh* left = window->AddBlankSprite();
+    UiMesh* right = window->AddBlankSprite();
+    ShapeCurtains(left, right);
+    SetCurtainLook(left, visible);
+    SetCurtainLook(right, visible);
+    return first;
+}
+
+void PlaceCurtains(UiWindow* window, int first) {
+    if (first < 0 || first + 1 >= std::ssize(window->sceneObjects)) return;
+    UiMesh* left = window->SceneMesh(first);
+    UiMesh* right = window->SceneMesh(first + 1);
+    const int visible = left->visible;
+    ShapeCurtains(left, right);
+    SetCurtainLook(left, visible);
     SetCurtainLook(right, visible);
 }
 
 void ShowHeroCurtains(UiWindow* window, int mode) {
     if (std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
-    window->SceneMesh(kHeroScreenSprites - 2)->visible = shown;
-    window->SceneMesh(kHeroScreenSprites - 1)->visible = shown;
+    window->SceneMesh(kHeroCurtains)->visible = shown;
+    window->SceneMesh(kHeroCurtains + 1)->visible = shown;
 }
 
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.

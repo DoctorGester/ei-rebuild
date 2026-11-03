@@ -1,11 +1,11 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures from the file's levels (DXT1-5
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
-// (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
-// device. Also the cursor pictures' pixels as RGBA8 (render::PictureFromMmp).
+// (render_compose.cpp), kept as sokol images until the holder goes. Also the cursor pictures' pixels as RGBA8
+// (render::PictureFromMmp).
 #include "render_internal.h"
 #include "render_ui.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include "../game/texture.h"
 
@@ -18,24 +18,15 @@ namespace render::detail {
 
 namespace {
 
-// What a texture was made from: the .mmp file's levels as the file has them, or the images it was composed of.
-// A new Direct3D 11 device gets the texture made again from it.
-struct TextureSource {
-    enum Kind : std::uint8_t { None, Mmp, Composed } kind = None;
-    std::vector<std::uint8_t> header;   // the file's header
-    std::vector<std::uint8_t> bytes;    // the file's bytes from `firstOffset` on
-    std::uint32_t firstOffset = 0;      // where `bytes` start after the header
-    unsigned mip = 0, levels = 0;       // the levels decoded
-    std::shared_ptr<ComposeRecipe> recipe;   // Composed
-};
-
 struct Texture {
     sg_image image{};
     sg_view view{};
-    std::uint32_t checkedFrame = 0xFFFFFFFFu;
-    int width = 0, height = 0;
-    TextureSource source;            // what it was made from, to make it again on a new device
-    std::size_t bytes = 0;           // .mmp textures: the image's bytes on the GPU
+    int width = 0, height = 0;    // the first level shown
+    bool composed = false;        // drawn on the GPU (shape), else from an .mmp file
+    ComposeShape shape;           // composed: what DrawIntoTexture and DrawClouds draw into
+    std::uint32_t mmpFormat = 0;  // .mmp: the file's format
+    int levels = 0;               // .mmp: the levels uploaded
+    std::size_t bytes = 0;        // .mmp: the image's bytes on the GPU
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
@@ -108,8 +99,6 @@ int LevelCount(int width, int height) {
     }
     return levels;
 }
-
-void Remake(Texture& t);
 
 struct Patch {
     const void* source = nullptr;
@@ -187,13 +176,9 @@ struct MmpLevels {
     std::vector<std::vector<std::uint8_t>> levels;
 };
 
-// The levels from `mip` on (`levels` of them, at least one). `pixels` holds the file's bytes after the header from
-// offset `pixelsOffset` on; the bytes the levels take go to `*first` .. `*end`.
-bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, std::uint32_t pixelsOffset, unsigned mip, unsigned levels,
-             MmpLevels* read, std::uint32_t* first, std::uint32_t* end) {
+// The levels from `mip` on (`levels` of them, at least one); `pixels`: the file's bytes after the header.
+bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip, unsigned levels, MmpLevels* read) {
     *read = MmpLevels{};
-    *first = 0xFFFFFFFFu;
-    *end = 0;
     const sg_pixel_format blocks = BlockFormat(h.format);
     read->format = blocks != SG_PIXELFORMAT_NONE ? blocks : SG_PIXELFORMAT_RGBA8;
     // The game's offset of the first level (MmpHeader::MipOffset) for the level the texture starts at only: its
@@ -205,9 +190,8 @@ bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, std::uint32_t pixel
         int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
         if (w < 1) w = 1;
         if (hh < 1) hh = 1;
-        if (offset < pixelsOffset) break;
         std::uint32_t bytes = MmpFileLevelBytes(h, m);
-        const std::uint8_t* source = pixels + (offset - pixelsOffset);
+        const std::uint8_t* source = pixels + offset;
         if (bytes < MmpLevelBytes(h, w, hh)) {
             // A level the fill copies only part of (a DXT level under 4 x 4: the start of its block): the rest as zeros.
             padded.assign(MmpLevelBytes(h, w, hh), 0);
@@ -222,8 +206,6 @@ bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, std::uint32_t pixel
             read->height = hh;
         }
         read->levels.push_back(std::move(level));
-        if (offset < *first) *first = offset;
-        if (offset + bytes > *end) *end = offset + bytes;
         offset += bytes;
     }
     return !read->levels.empty() && read->width > 0 && read->height > 0;
@@ -248,7 +230,7 @@ struct MmpImageCounts {
 void CountMmpImage(const void* holder, long long ticks) {
     std::uint64_t held = 0;
     for (const auto& entry : g_textures)
-        if (entry.second.source.kind == TextureSource::Mmp && entry.second.image.id) held += entry.second.bytes;
+        if (!entry.second.composed && entry.second.image.id) held += entry.second.bytes;
     auto made = g_textures.find(holder);
     if (made != g_textures.end() && made->second.image.id) g_mmpImageCounts.bytes += made->second.bytes;
     ++g_mmpImageCounts.made;
@@ -257,56 +239,28 @@ void CountMmpImage(const void* holder, long long ticks) {
 }
 #endif
 
-void Remake(Texture& t) {
-    const TextureSource& s = t.source;
-    // (A composed texture is drawn again right after the device is made again, RemakeComposed: here a pass may be
-    // in progress.)
-    if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpHeader)) return;
-    MmpHeader h{};
-    std::memcpy(&h, s.header.data(), sizeof(h));
-    MmpLevels read;
-    std::uint32_t first = 0, end = 0;
-    if (!ReadMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &read, &first, &end)) return;
-    t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-texture-again", FrameStats::Mmp);
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id) {
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-    }
-}
-
 std::unordered_map<const void*, Picture> g_pictures;
 
 // `step` (its rectangle `to` relative to the texture, clipped to it) drawn into the texture BlankTexture made for
-// `holder` and kept in its recipe.
+// `holder`.
 void DrawStep(const void* holder, ComposeStep step) {
     auto found = holder ? g_textures.find(holder) : g_textures.end();
-    if (found == g_textures.end() || found->second.source.kind != TextureSource::Composed || !found->second.source.recipe) {
+    if (found == g_textures.end() || !found->second.composed) {
         if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
         return;
     }
-    Texture& t = found->second;
-    ComposeRecipe& recipe = *t.source.recipe;
+    const Texture& t = found->second;
     const Rect wanted = step.to;
     Rect to = wanted;
     if (to.left < 0) to.left = 0;
     if (to.top < 0) to.top = 0;
-    if (to.right > recipe.width) to.right = recipe.width;
-    if (to.bottom > recipe.height) to.bottom = recipe.height;
+    if (to.right > t.shape.width) to.right = t.shape.width;
+    if (to.bottom > t.shape.height) to.bottom = t.shape.height;
     if (Empty(to)) return;
     step.fromX = to.left - wanted.left;
     step.fromY = to.top - wanted.top;
     step.to = to;
-    // Steps this one covers whole are left out of the recipe (an atlas's cells are drawn again and again, the clouds
-    // every frame).
-    auto& steps = recipe.steps;
-    for (auto it = steps.begin(); it != steps.end();)
-        it = it->to.left >= to.left && it->to.top >= to.top && it->to.right <= to.right && it->to.bottom <= to.bottom
-                 ? steps.erase(it)
-                 : std::next(it);
-    steps.push_back(std::move(step));
-    if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
-    DrawComposed(recipe, t.image, &steps.back(), 1);
+    DrawComposed(t.shape, t.image, &step, 1);
 }
 
 sg_wrap Wrap(std::uint8_t address) {
@@ -322,25 +276,19 @@ sg_wrap Wrap(std::uint8_t address) {
 
 sg_view SurfaceView(const void* holder) {
     StatsTimer timer(&FrameStats::textureMs);
-    std::uint32_t frame = FrameNumber();
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
-    if (decoded == g_textures.end()) return White().view;
-    Texture& t = decoded->second;
-    if (!t.view.id && t.checkedFrame != frame) {
-        // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
-        t.checkedFrame = frame;
-        Remake(t);
-    }
-    if (!t.view.id) return White().view;
-    return t.view;
+    if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
+    return decoded->second.view;
 }
 
-// The entry of `holder` from an .mmp file's levels: the texture until the holder goes, `source` kept to make it
-// again on a new device.
-bool StoreMmp(const void* holder, MmpLevels read, TextureSource source) {
+// The entry of `holder` from an .mmp file's levels (of the file's `format`): the texture until the holder goes.
+bool StoreMmp(const void* holder, MmpLevels read, std::uint32_t format) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
     Retire(t);
+    t.composed = false;
+    t.mmpFormat = format;
+    t.levels = static_cast<int>(read.levels.size());
     t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp,
                         &t.bytes);
     t.view = MakeTextureView(t.image);
@@ -348,37 +296,23 @@ bool StoreMmp(const void* holder, MmpLevels read, TextureSource source) {
         if (t.image.id) sg_destroy_image(t.image);
         t.image = sg_image{};
     }
-    t.checkedFrame = FrameNumber();
     t.width = read.width;
     t.height = read.height;
-    t.source = std::move(source);
     return t.view.id != 0;
 }
 
 sg_view WhiteView() { return White().view; }
 
-// The entry of `holder` composed on the GPU from `recipe` (render::ComposeTexture, BlankTexture): the recipe kept to
-// draw it again on a new device.
-bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
+bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
     Retire(t);
-    MakeComposed(*recipe, &t.image, &t.view);
-    t.checkedFrame = FrameNumber();
-    t.width = recipe->width >> recipe->firstLevel;
-    t.height = recipe->height >> recipe->firstLevel;
-    t.source = TextureSource{};
-    t.source.kind = TextureSource::Composed;
-    t.source.recipe = std::move(recipe);
+    MakeComposed(shape, steps, count, &t.image, &t.view);
+    t.width = shape.width >> shape.firstLevel;
+    t.height = shape.height >> shape.firstLevel;
+    t.composed = true;
+    t.shape = shape;
     return t.view.id != 0;
-}
-
-void RemakeComposed() {
-    for (auto& entry : g_textures) {
-        Texture& t = entry.second;
-        if (t.source.kind != TextureSource::Composed || !t.source.recipe || t.view.id) continue;
-        MakeComposed(*t.source.recipe, &t.image, &t.view);
-    }
 }
 
 StagePatch PatchOf(const void* holder) {
@@ -423,21 +357,13 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     const long long started = Ticks();
 #endif
     MmpLevels read;
-    std::uint32_t first = 0, end = 0;
-    if (!ReadMmp(h, base, 0, mip, levels, &read, &first, &end)) {
+    if (!ReadMmp(h, base, mip, levels, &read)) {
         if (g_mmpFailures++ < 10)
             ei::Log("render: .mmp format %08X (%u bits) not decoded",
                     static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    TextureSource source;
-    source.kind = TextureSource::Mmp;
-    source.header.assign(static_cast<const std::uint8_t*>(data), base);
-    source.bytes.assign(base + first, base + end);
-    source.firstOffset = first;
-    source.mip = mip;
-    source.levels = levels;
-    bool made = StoreMmp(holder, std::move(read), std::move(source));
+    bool made = StoreMmp(holder, std::move(read), h.format);
 #if defined(EI_RENDER_VALIDATION)
     CountMmpImage(holder, Ticks() - started);
 #endif
@@ -546,48 +472,6 @@ void ForgetHolder(const void* holder) {
     g_textures.erase(it);
 }
 
-void DestroyTextures() {
-    RetireTextures();
-    for (auto& entry : g_textures) {
-        if (entry.second.image.id) {
-            sg_destroy_view(entry.second.view);
-            sg_destroy_image(entry.second.image);
-        }
-    }
-    g_textures.clear();
-    if (g_white.image.id) {
-        sg_destroy_view(g_white.view);
-        sg_destroy_image(g_white.image);
-    }
-    g_white = Texture{};
-    if (g_linear.id) sg_destroy_sampler(g_linear);
-    g_linear = sg_sampler{};
-    for (auto& s : g_samplers) sg_destroy_sampler(s.second);
-    g_samplers.clear();
-}
-
-void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
-    *kept = *keptBytes = 0;
-    // The textures stay without their images (made again from their sources at their next use).
-    std::unordered_map<const void*, Texture> remaining;
-    for (auto& entry : g_textures) {
-        Texture& t = entry.second;
-        if (t.source.kind == TextureSource::None) continue;
-        if (t.image.id) {
-            sg_destroy_view(t.view);
-            sg_destroy_image(t.image);
-        }
-        t.image = sg_image{};
-        t.view = sg_view{};
-        t.checkedFrame = 0xFFFFFFFFu;
-        ++*kept;
-        *keptBytes += t.source.bytes.size();
-        remaining.emplace(entry.first, std::move(t));
-    }
-    DestroyTextures();
-    g_textures = std::move(remaining);
-}
-
 } // namespace render::detail
 
 namespace render {
@@ -606,25 +490,27 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     Start();
     platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
-    auto recipe = std::make_shared<ComposeRecipe>();
-    recipe->width = recipe->height = size;
-    recipe->firstLevel = static_cast<int>(mip);
-    recipe->levels = static_cast<int>(mip + (levels ? levels : 1));
-    if (recipe->levels > LevelCount(size, size) || recipe->firstLevel >= recipe->levels) {
+    ComposeShape shape;
+    shape.width = shape.height = size;
+    shape.firstLevel = static_cast<int>(mip);
+    shape.levels = static_cast<int>(mip + (levels ? levels : 1));
+    if (shape.levels > LevelCount(size, size) || shape.firstLevel >= shape.levels) {
         if (g_failures++ < 10)
             ei::Log("render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
                     size, mip, levels);
         ForgetHolder(holder);
         return false;
     }
+    std::vector<ComposeImage> decoded(static_cast<std::size_t>(count > 0 ? count : 0));
+    std::vector<ComposeStep> steps;
     for (int k = 0; k < count; ++k) {
+        if (!DecodeComposeImage(images[k], &decoded[static_cast<std::size_t>(k)])) continue;
         ComposeStep step;
-        step.image = DecodeComposeImage(images[k]);
-        if (!step.image) continue;
+        step.image = &decoded[static_cast<std::size_t>(k)];
         step.to = Rect{0, 0, size, size};
-        recipe->steps.push_back(std::move(step));
+        steps.push_back(step);
     }
-    return StoreComposed(holder, std::move(recipe));
+    return StoreComposed(holder, shape, steps.data(), steps.size());
 }
 
 bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
@@ -633,12 +519,12 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
     Start();
     platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
-    auto recipe = std::make_shared<ComposeRecipe>();
-    recipe->width = width;
-    recipe->height = height;
-    recipe->levels = mipmapped ? LevelCount(width, height) : 1;
-    recipe->alpha = alpha;
-    return StoreComposed(holder, std::move(recipe));
+    ComposeShape shape;
+    shape.width = width;
+    shape.height = height;
+    shape.levels = mipmapped ? LevelCount(width, height) : 1;
+    shape.alpha = alpha;
+    return StoreComposed(holder, shape, nullptr, 0);
 }
 
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
@@ -646,14 +532,15 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
     Start();
     platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
+    ComposeImage decoded;
     ComposeStep step;
     step.over = false;
     if (image) {
-        step.image = DecodeComposeImage(*image);
-        if (!step.image) return;
+        if (!DecodeComposeImage(*image, &decoded)) return;
+        step.image = &decoded;
     }
     step.to = Rect{x, y, x + width, y + height};
-    DrawStep(holder, std::move(step));
+    DrawStep(holder, step);
 }
 
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
@@ -661,16 +548,16 @@ void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to
     Start();
     platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::textureMs);
-    auto clouds = std::make_shared<CloudsDraw>();
-    clouds->from = from;
-    clouds->to = to;
-    clouds->blend = blend;
-    std::memcpy(clouds->ramp, ramp, sizeof(clouds->ramp));
+    CloudsDraw clouds;
+    clouds.from = from;
+    clouds.to = to;
+    clouds.blend = blend;
+    std::memcpy(clouds.ramp, ramp, sizeof(clouds.ramp));
     ComposeStep step;
     step.over = false;
-    step.clouds = std::move(clouds);
+    step.clouds = &clouds;
     step.to = Rect{0, 0, 256, 256};
-    DrawStep(holder, std::move(step));
+    DrawStep(holder, step);
 }
 
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
@@ -741,30 +628,20 @@ MmpLevelCheck CheckMmpLevels() {
     using namespace detail;
     MmpLevelCheck c;
     for (const auto& entry : g_textures) {
-        const TextureSource& s = entry.second.source;
-        if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpHeader)) continue;
-        MmpHeader h{};
-        std::memcpy(&h, s.header.data(), sizeof(h));
-        MmpLevels read;
-        std::uint32_t first = 0, end = 0;
-        if (!ReadMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &read, &first, &end)) continue;
-        const int width = read.width, height = read.height;
-        std::vector<std::vector<std::uint8_t>>& levels = read.levels;
-        if (read.format != SG_PIXELFORMAT_RGBA8) {
-            // Blocks: the levels as the GPU decodes them.
-            int w = width, hh = height;
-            bool all = entry.second.image.id != 0;
-            for (std::size_t l = 0; l < levels.size() && all; ++l) {
-                if (w < 4 || hh < 4) {
-                    levels.resize(l);
-                    break;
-                }
-                all = ReadImageLevel(entry.second.image, static_cast<int>(l), w, hh, &levels[l]);
-                w = w > 1 ? w / 2 : 1;
-                hh = hh > 1 ? hh / 2 : 1;
-            }
-            if (!all || levels.empty()) continue;
+        const Texture& t = entry.second;
+        if (t.composed || !t.image.id) continue;
+        // The levels as the GPU reads them, down to 4 x 4 (DXT levels under 4 x 4 are only partly in the file).
+        const int width = t.width, height = t.height;
+        std::vector<std::vector<std::uint8_t>> levels;
+        int w = width, hh = height;
+        bool all = true;
+        for (int l = 0; l < t.levels && w >= 4 && hh >= 4 && all; ++l) {
+            levels.emplace_back();
+            all = ReadImageLevel(t.image, l, w, hh, &levels.back());
+            w = w > 1 ? w / 2 : 1;
+            hh = hh > 1 ? hh / 2 : 1;
         }
+        if (!all || levels.empty()) continue;
         ++c.textures;
         // Each level and level 0 box-filtered down to 4 x 4 (or less): the file's own filtering of
         // a level (1-bit alpha kept 0 or 1, sharpened colours) changes its texels, not those averages.
@@ -773,11 +650,11 @@ MmpLevelCheck CheckMmpLevels() {
             return level;
         };
         const std::vector<std::uint8_t> reference = summary(levels[0], width, height);
-        int w = width, hh = height;
+        w = width;
+        hh = height;
         for (std::size_t l = 1; l < levels.size(); ++l) {
             w = w > 1 ? w / 2 : 1;
             hh = hh > 1 ? hh / 2 : 1;
-            if (w < 4 || hh < 4) break;   // DXT levels under 4 x 4 are only partly in the file
             const std::vector<std::uint8_t> mine = summary(levels[l], w, hh);
             std::uint32_t sum = 0;
             for (std::size_t i = 0; i < reference.size(); ++i)
@@ -789,7 +666,7 @@ MmpLevelCheck CheckMmpLevels() {
                 c.worstWidth = width;
                 c.worstHeight = height;
                 c.worstLevel = static_cast<int>(l);
-                c.worstFormat = h.format;
+                c.worstFormat = t.mmpFormat;
             }
         }
     }

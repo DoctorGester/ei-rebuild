@@ -3,7 +3,7 @@
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -626,24 +626,6 @@ void BindPointShadows(sg_bindings& b) {
     const bool on = g_atlasTexture.id && g_frame.shadow.point.params.on[0] > 0.5f;
     b.views[VIEW_point_shadow_map] = on ? g_atlasTexture : NoShadowTexture();
     b.samplers[SMP_point_shadow_smp] = ShadowCompareSampler();
-}
-
-void DestroyPointShadows() {
-    if (g_atlasAttachment.id) sg_destroy_view(g_atlasAttachment);
-    if (g_atlasTexture.id) sg_destroy_view(g_atlasTexture);
-    if (g_atlas.id) sg_destroy_image(g_atlas);
-    g_atlas = sg_image{};
-    g_atlasAttachment = g_atlasTexture = sg_view{};
-    g_faceDraws.Destroy();
-    if (g_clearPipeline.id) sg_destroy_pipeline(g_clearPipeline);
-    if (g_clearShader.id) sg_destroy_shader(g_clearShader);
-    g_clearPipeline = sg_pipeline{};
-    g_clearShader = sg_shader{};
-    for (AtlasRow& row : g_rows) row = AtlasRow{};
-    g_atlasKnown = false;
-    g_casters.clear();
-    g_units.clear();
-    g_mappedCount = 0;
 }
 
 } // namespace detail

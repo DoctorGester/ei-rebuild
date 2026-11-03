@@ -139,7 +139,7 @@ name has none and differs from the fallback name, the fallback's is tried; no la
 is skipped (logged), one of another size is FatalError's result. `Texture::CreateComposed` hands the layers' file pixels
 to the renderer, which decodes them (32-bit premultiplied, "PNT3" run-length packed), draws them over transparent black
 and makes the levels below with a box filter, 8 bits a channel. `ForgetComposedTextures` (map load, texture manager
-create / destroy, shutdown) drops them all; a new device makes them again (`RemakeComposed`).
+create / destroy, shutdown) drops them all.
 
 ## Materials
 

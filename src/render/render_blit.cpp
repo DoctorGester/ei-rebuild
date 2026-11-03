@@ -5,7 +5,7 @@
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -215,19 +215,6 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
 
 void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(kFill, fill.rect, 0.0f, fill.colour, width, height); }
 
-void DestroyBlits() {
-    DestroyMultisampledPipelines();
-    for (sg_pipeline& p : g_pipelines) {
-        if (p.id) sg_destroy_pipeline(p);
-        p = sg_pipeline{};
-    }
-    if (g_blitShader.id) sg_destroy_shader(g_blitShader);
-    if (g_solidShader.id) sg_destroy_shader(g_solidShader);
-    if (g_nearest.id) sg_destroy_sampler(g_nearest);
-    g_blitShader = g_solidShader = sg_shader{};
-    g_nearest = sg_sampler{};
-}
-
 } // namespace detail
 
 namespace detail {
@@ -307,17 +294,5 @@ void Fill(const Rect& to, std::uint32_t colour) {
     g_frame.fills.push_back(FillBatch{to, colour});
     g_frame.commands.push_back(Command{Command::Fill, static_cast<int>(g_frame.fills.size()) - 1});
 }
-
-namespace detail {
-void DropBlits() {
-    RetireFrameImages();
-    for (auto& entry : g_movies) {
-        if (entry.second.view.id) sg_destroy_view(entry.second.view);
-        if (entry.second.image.id) sg_destroy_image(entry.second.image);
-    }
-    g_movies.clear();   // a movie shows again from its next frame
-    DestroyBlits();
-}
-} // namespace detail
 
 } // namespace render

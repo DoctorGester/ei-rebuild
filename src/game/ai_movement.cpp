@@ -16,9 +16,6 @@
 #include <cstdint>
 #include <cstring>
 
-// The unit shape cache. Here, not in ai_unit_shape.cpp, so the path vectors' replay links it.
-UnitShapeCache g_unitShapes;
-
 namespace {
 
 // World coordinate to cell: (x / (half a cell) - 0.5) rounded to float, then to the nearest integer.

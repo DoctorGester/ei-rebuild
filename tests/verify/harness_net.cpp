@@ -5,12 +5,12 @@
 #include <iphlpapi.h>
 
 #include "harness_net.h"
-#include "harness_imports.h"
 #include "harness_pair.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "image/image_side.h"
-
+#include "platform/platform.h"
+#include "platform/win32/platform_win32.h"
 
 #include <cstdint>
 #include <cstring>
@@ -27,29 +27,26 @@ namespace {
 constexpr int kFirstPort = 20000;                   // below the dynamic range (49152 and up)
 constexpr int kPortCount = 20000;
 
-using BindFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
-using SendToFn = int(WINAPI*)(SOCKET, const char*, int, int, const sockaddr*, int);
-using RecvFromFn = int(WINAPI*)(SOCKET, char*, int, int, sockaddr*, int*);
-using CloseSocketFn = int(WINAPI*)(SOCKET);
-using ConnectFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
-using SelectFn = int(WINAPI*)(int, fd_set*, fd_set*, fd_set*, const timeval*);
-using SendFn = int(WINAPI*)(SOCKET, const char*, int, int);
-using RecvFn = int(WINAPI*)(SOCKET, char*, int, int);
-BindFn g_bind;
-SendToFn g_sendTo;
-RecvFromFn g_recvFrom;
-CloseSocketFn g_closeSocket;
-ConnectFn g_connect;
-SelectFn g_select;
-SendFn g_send;
-RecvFn g_recv;
+// Whether the game's binds and datagrams stay on 127.0.0.1 (Install), and whether it plays on a pair's network.
+bool g_loopback = false;
+bool g_pair = false;
 
 // What the binds and the endpoint checks saw (the game's thread binds, the watchdog's checks).
 SRWLOCK g_lock = SRWLOCK_INIT;
 unsigned g_binds;
 unsigned g_scans;
-std::vector<std::string> g_outside;   // "UDP 0.0.0.0:20123", each once
 std::vector<std::uint32_t> g_redirected;   // destinations sent to 127.0.0.1 instead (network order), each logged once
+
+// What the endpoint checks keep: the system's tables (grown as asked) and the endpoints found outside loopback. Never
+// destroyed: the watchdog may be in a check (Scan) while the process exits and destroys its static objects.
+struct Scans {
+    std::vector<std::uint8_t> udp, tcp;
+    std::vector<std::string> outside;   // "UDP 0.0.0.0:20123", each once
+};
+Scans& TheScans() {
+    static Scans* const scans = new Scans;
+    return *scans;
+}
 
 bool IsLoopback(std::uint32_t address) { return (ntohl(address) >> 24) == 127; }
 
@@ -64,8 +61,9 @@ std::string Endpoint(const char* kind, std::uint32_t address, std::uint16_t port
 void Outside(const std::string& endpoint, const char* how) {
     AcquireSRWLockExclusive(&g_lock);
     bool known = false;
-    for (const std::string& seen : g_outside) known = known || seen == endpoint;
-    if (!known) g_outside.push_back(endpoint);
+    std::vector<std::string>& outside = TheScans().outside;
+    for (const std::string& seen : outside) known = known || seen == endpoint;
+    if (!known) outside.push_back(endpoint);
     ReleaseSRWLockExclusive(&g_lock);
     if (!known) Log("harness: net: %s is bound outside loopback (%s)", endpoint.c_str(), how);
 }
@@ -99,119 +97,14 @@ void LogBind(SOCKET s, const char* why, int result) {
     if (!IsLoopback(bound.sin_addr.s_addr)) Outside(endpoint, why);
 }
 
-// bind: every address (INADDR_ANY) becomes 127.0.0.1, the port as asked.
-int WINAPI LoopbackBind(SOCKET s, const sockaddr* name, int length) {
-    sockaddr_in local{};
-    const char* why = "the game's";
-    if (pair::Active() && name && length == sizeof(local) && name->sa_family == AF_INET && IsUdp(s)) {
-        // A pair's game: the port asked is a virtual port on the pair's network (harness_pair.h); the socket
-        // itself is bound on 127.0.0.1, any port.
-        std::memcpy(&local, name, sizeof(local));
-        if (!pair::Bind(s, ntohs(local.sin_port))) {
-            WSASetLastError(WSAEADDRINUSE);
-            return SOCKET_ERROR;
-        }
-        sockaddr_in loopback{};
-        loopback.sin_family = AF_INET;
-        loopback.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        const int result = g_bind(s, reinterpret_cast<const sockaddr*>(&loopback), sizeof(loopback));
-        const int error = WSAGetLastError();
-        LogBind(s, "the game's, on the pair's network", result);
-        if (result != 0) pair::Close(s);
-        WSASetLastError(error);
-        return result;
-    }
-    if (name && length == sizeof(local) && name->sa_family == AF_INET) {
-        std::memcpy(&local, name, sizeof(local));
-        if (local.sin_addr.s_addr == htonl(INADDR_ANY)) {
-            local.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            name = reinterpret_cast<const sockaddr*>(&local);
-            why = "the game's, asked on every address";
-        }
-    }
-    const int result = g_bind(s, name, length);
-    const int error = WSAGetLastError();
-    LogBind(s, why, result);
-    WSASetLastError(error);
-    return result;
-}
-
-// sendto: a socket not bound yet is bound to 127.0.0.1 first (Winsock would bind it on every address);
-// a destination outside loopback (the lobby's broadcast) becomes 127.0.0.1 on the same port.
-int WINAPI LoopbackSendTo(SOCKET s, const char* data, int length, int flags, const sockaddr* to, int toLength) {
-    sockaddr_in local{};
-    int localLength = sizeof(local);
-    if (getsockname(s, reinterpret_cast<sockaddr*>(&local), &localLength) != 0 && WSAGetLastError() == WSAEINVAL) {
-        sockaddr_in loopback{};
-        loopback.sin_family = AF_INET;
-        loopback.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        LogBind(s, "before its first datagram, which would bind it on every address",
-                g_bind(s, reinterpret_cast<const sockaddr*>(&loopback), sizeof(loopback)));
-    }
-    sockaddr_in destination{};
-    if (pair::Active() && to && toLength == sizeof(destination) && to->sa_family == AF_INET && IsUdp(s)) {
-        std::memcpy(&destination, to, sizeof(destination));
-        const bool broadcast = (ntohl(destination.sin_addr.s_addr) & 0xFF) == 0xFF;
-        return pair::SendTo(s, data, length, ntohs(destination.sin_port), broadcast);   // the pair's network
-    }
-    if (to && toLength == sizeof(destination) && to->sa_family == AF_INET) {
-        std::memcpy(&destination, to, sizeof(destination));
-        const std::uint32_t address = destination.sin_addr.s_addr;
-        if (!IsLoopback(address)) {
-            destination.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            to = reinterpret_cast<const sockaddr*>(&destination);
-            AcquireSRWLockExclusive(&g_lock);
-            bool known = false;
-            for (std::uint32_t seen : g_redirected) known = known || seen == address;
-            if (!known) g_redirected.push_back(address);
-            ReleaseSRWLockExclusive(&g_lock);
-            if (!known)
-                Log("harness: net: datagrams to %s go to 127.0.0.1 instead",
-                    Endpoint("UDP", address, destination.sin_port).c_str());
-        }
-    }
-    return g_sendTo(s, data, length, flags, to, toLength);
-}
-
-// recvfrom and closesocket of a pair's game: its UDP sockets read the pair's mailbox.
-int WINAPI PairRecvFrom(SOCKET s, char* data, int length, int flags, sockaddr* from, int* fromLength) {
-    if (!IsUdp(s)) return g_recvFrom(s, data, length, flags, from, fromLength);
-    return pair::RecvFrom(s, data, length, from, fromLength);
-}
-
-int WINAPI PairCloseSocket(SOCKET s) {
-    pair::Close(s);
-    return g_closeSocket(s);
-}
-
-// connect, select, send and recv of a pair's game: a TCP link to the fake master is the harness's (SV5d4).
-int WINAPI PairConnect(SOCKET s, const sockaddr* name, int length) {
-    sockaddr_in address{};
-    if (name && length == sizeof(address) && name->sa_family == AF_INET && !IsUdp(s)) {
-        std::memcpy(&address, name, sizeof(address));
-        if (pair::MasterConnect(s, ntohs(address.sin_port))) {
-            WSASetLastError(WSAEWOULDBLOCK);   // as a nonblocking connect under way
-            return SOCKET_ERROR;
-        }
-    }
-    return g_connect(s, name, length);
-}
-
-int WINAPI PairSelect(int count, fd_set* read, fd_set* write, fd_set* except, const timeval* timeout) {
-    int ready = 0;
-    if (pair::MasterSelect(read, write, except, &ready)) return ready;
-    return g_select(count, read, write, except, timeout);
-}
-
-int WINAPI PairSend(SOCKET s, const char* data, int length, int flags) {
-    if (pair::MasterSend(s, data, length)) return length;
-    return g_send(s, data, length, flags);
-}
-
-int WINAPI PairRecv(SOCKET s, char* data, int length, int flags) {
-    int received = 0;
-    if (pair::MasterRecv(s, data, length, &received)) return received;
-    return g_recv(s, data, length, flags);
+// A datagram to `address` (outside loopback, network order) sent to 127.0.0.1 instead: logged once each.
+void Redirected(std::uint32_t address, std::uint16_t port) {
+    AcquireSRWLockExclusive(&g_lock);
+    bool known = false;
+    for (std::uint32_t seen : g_redirected) known = known || seen == address;
+    if (!known) g_redirected.push_back(address);
+    ReleaseSRWLockExclusive(&g_lock);
+    if (!known) Log("harness: net: datagrams to %s go to 127.0.0.1 instead", Endpoint("UDP", address, port).c_str());
 }
 
 // True when a UDP socket can bind `port` on 127.0.0.1 (as SocketDriver::Open 004409A0 binds in harness runs).
@@ -271,27 +164,19 @@ bool Table(std::vector<std::uint8_t>& buffer, Get get) {
 } // namespace
 
 void Install() {
-    if (pair::Install()) {
-        // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h). Its datagrams
-        // and the master link's (MasterLink 00440C60 / 00440DE0, SV5d4) go through the pair.
-        PatchImport(&ImportTable::recvfrom, &PairRecvFrom, g_recvFrom);
-        PatchImport(&ImportTable::closesocket, &PairCloseSocket, g_closeSocket);
-        PatchImport(&ImportTable::connect, &PairConnect, g_connect);
-        PatchImport(&ImportTable::select, &PairSelect, g_select);
-        PatchImport(&ImportTable::send, &PairSend, g_send);
-        PatchImport(&ImportTable::recv, &PairRecv, g_recv);
-    } else {
-        InstallPort();
-    }
-    PatchImport(&ImportTable::bind, &LoopbackBind, g_bind);
-    PatchImport(&ImportTable::sendto, &LoopbackSendTo, g_sendTo);
-    Log("harness: net: the game's binds and datagrams stay on 127.0.0.1 (import slots 0073B6DC, 0073B70C)");
+    // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h). Its datagrams and the master
+    // link's (MasterLink 00440C60 / 00440DE0, SV5d4) go through the pair.
+    g_pair = pair::Install();
+    if (!g_pair) InstallPort();
+    g_loopback = true;
+    Log("harness: net: the game's binds and datagrams stay on 127.0.0.1");
 }
 
 void Scan() {
-    static std::vector<std::uint8_t> udp, tcp;   // the watchdog's, and the report's after it stopped scanning
     static SRWLOCK scanning = SRWLOCK_INIT;
     AcquireSRWLockExclusive(&scanning);
+    std::vector<std::uint8_t>& udp = TheScans().udp;   // the watchdog's, and the report's after it stopped scanning
+    std::vector<std::uint8_t>& tcp = TheScans().tcp;
     const DWORD self = GetCurrentProcessId();
     if (Table(udp, [](void* t, DWORD* size) { return GetExtendedUdpTable(t, size, FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0); })) {
         const auto* table = reinterpret_cast<const MIB_UDPTABLE_OWNER_PID*>(udp.data());
@@ -321,15 +206,139 @@ void Scan() {
 void Report(FILE* f) {
     Scan();
     AcquireSRWLockShared(&g_lock);
-    if (g_outside.empty()) {
+    const std::vector<std::string>& outside = TheScans().outside;
+    if (outside.empty()) {
         std::fprintf(f, "\nNET: loopback only (%u binds, %u endpoint checks: nothing bound outside 127.0.0.1)\n", g_binds,
                      g_scans);
     } else {
         std::string list;
-        for (const std::string& endpoint : g_outside) list += (list.empty() ? "" : ", ") + endpoint;
+        for (const std::string& endpoint : outside) list += (list.empty() ? "" : ", ") + endpoint;
         std::fprintf(f, "\nNET: outside loopback: %s\n", list.c_str());
     }
     ReleaseSRWLockShared(&g_lock);
 }
 
 } // namespace ei::verify::netlocal
+
+// ==== The game's socket calls ========================================================================================
+
+// What game_calls.cpp's calls are in the game's builds, kept on 127.0.0.1 and a pair's network once Install ran.
+
+namespace platform::net {
+
+namespace {
+
+using namespace ei::verify::netlocal;
+namespace pair = ei::verify::pair;
+
+constexpr int kAddressLength = sizeof(sockaddr_in);
+
+sockaddr_in Native(const Address& address) {
+    sockaddr_in native;
+    std::memcpy(&native, &address, sizeof(native));
+    return native;
+}
+
+const sockaddr* Generic(const sockaddr_in& address) { return reinterpret_cast<const sockaddr*>(&address); }
+
+int BindLoopback(SOCKET s) {
+    sockaddr_in loopback{};
+    loopback.sin_family = AF_INET;
+    loopback.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    return bind(s, Generic(loopback), kAddressLength);
+}
+
+} // namespace
+
+// Every address (INADDR_ANY) becomes 127.0.0.1, the port as asked. A pair's game: the port asked is a virtual port
+// on the pair's network (harness_pair.h); the socket itself is bound on 127.0.0.1, any port.
+bool Bind(Socket socket, const Address& address) {
+    sockaddr_in local = Native(address);
+    if (!g_loopback) return bind(socket, Generic(local), kAddressLength) == 0;
+    if (g_pair && local.sin_family == AF_INET && IsUdp(socket)) {
+        if (!pair::Bind(socket, ntohs(local.sin_port))) {
+            WSASetLastError(WSAEADDRINUSE);
+            return false;
+        }
+        const int result = BindLoopback(socket);
+        const int error = WSAGetLastError();
+        LogBind(socket, "the game's, on the pair's network", result);
+        if (result != 0) pair::Close(socket);
+        WSASetLastError(error);
+        return result == 0;
+    }
+    const char* why = "the game's";
+    if (local.sin_family == AF_INET && local.sin_addr.s_addr == htonl(INADDR_ANY)) {
+        local.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        why = "the game's, asked on every address";
+    }
+    const int result = bind(socket, Generic(local), kAddressLength);
+    const int error = WSAGetLastError();
+    LogBind(socket, why, result);
+    WSASetLastError(error);
+    return result == 0;
+}
+
+// A socket not bound yet is bound to 127.0.0.1 first (Winsock would bind it on every address); a destination outside
+// loopback (the lobby's broadcast) becomes 127.0.0.1 on the same port; a pair's game sends on the pair's network.
+int SendTo(Socket socket, const void* data, int length, const Address& to) {
+    sockaddr_in destination = Native(to);
+    const char* bytes = static_cast<const char*>(data);
+    if (!g_loopback) return sendto(socket, bytes, length, 0, Generic(destination), kAddressLength);
+    sockaddr_in local{};
+    int localLength = sizeof(local);
+    if (getsockname(socket, reinterpret_cast<sockaddr*>(&local), &localLength) != 0 && WSAGetLastError() == WSAEINVAL)
+        LogBind(socket, "before its first datagram, which would bind it on every address", BindLoopback(socket));
+    if (g_pair && destination.sin_family == AF_INET && IsUdp(socket)) {
+        const bool broadcast = (ntohl(destination.sin_addr.s_addr) & 0xFF) == 0xFF;
+        return pair::SendTo(socket, bytes, length, ntohs(destination.sin_port), broadcast);   // the pair's network
+    }
+    if (destination.sin_family == AF_INET && !IsLoopback(destination.sin_addr.s_addr)) {
+        Redirected(destination.sin_addr.s_addr, destination.sin_port);
+        destination.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    }
+    return sendto(socket, bytes, length, 0, Generic(destination), kAddressLength);
+}
+
+// A pair's game: its UDP sockets read the pair's mailbox.
+int ReceiveFrom(Socket socket, void* data, int length, Address* from) {
+    int fromLength = kAddressLength;
+    auto* sender = reinterpret_cast<sockaddr*>(from);
+    if (!g_pair || !IsUdp(socket)) return recvfrom(socket, static_cast<char*>(data), length, 0, sender, &fromLength);
+    return pair::RecvFrom(socket, static_cast<char*>(data), length, sender, &fromLength);
+}
+
+void Close(Socket socket) {
+    if (g_pair) pair::Close(socket);
+    closesocket(socket);
+}
+
+// A pair's game: a TCP link to the fake master is the harness's (SV5d4).
+bool Connect(Socket socket, const Address& address) {
+    const sockaddr_in native = Native(address);
+    if (g_pair && native.sin_family == AF_INET && !IsUdp(socket) && pair::MasterConnect(socket, ntohs(native.sin_port))) {
+        WSASetLastError(WSAEWOULDBLOCK);   // as a nonblocking connect under way
+        return false;
+    }
+    return connect(socket, Generic(native), kAddressLength) == 0;
+}
+
+int Send(Socket socket, const void* data, int length) {
+    if (g_pair && pair::MasterSend(socket, static_cast<const char*>(data), length)) return length;
+    return send(socket, static_cast<const char*>(data), length, 0);
+}
+
+int Receive(Socket socket, void* data, int length) {
+    int received = 0;
+    if (g_pair && pair::MasterRecv(socket, static_cast<char*>(data), length, &received)) return received;
+    return recv(socket, static_cast<char*>(data), length, 0);
+}
+
+} // namespace platform::net
+
+int platform::win32::Select(fd_set* read, fd_set* write, fd_set* failed, const timeval* timeout) {
+    using ei::verify::netlocal::g_pair;
+    int ready = 0;
+    if (g_pair && ei::verify::pair::MasterSelect(read, write, failed, &ready)) return ready;
+    return select(0, read, write, failed, timeout);
+}

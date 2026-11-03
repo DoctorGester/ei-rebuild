@@ -825,7 +825,7 @@ int wmain(int argc, wchar_t** argv) {
             if (side > 0) SetEnvironmentVariableW(L"EI_OUT_DIR", game.outDir.c_str());
         }
         std::wstring line = cmd;
-        // A drop-in exe starts in the output folder: it must enter its own (EnterGameFolder), as from a shortcut.
+        // A drop-in exe starts in the output folder: it must enter its own (main.cpp GameFolder), as from a shortcut.
         if (!CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED, nullptr,
                             dropIn ? outDir.c_str() : gameDir.c_str(), &si, &game.pi)) {
             for (Game& started : games)

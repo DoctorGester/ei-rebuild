@@ -1,0 +1,69 @@
+# R44: the window resized in the middle of a zone changes the rendering resolution (app::SetResolution;
+# docs/notes/renderer.md, "Resolution changes"): the frame, the layout (4:3 part, widescreen margins, the axis
+# scales), the camera's viewport, the interface's fonts and surfaces and the battle screen's panels follow, the zone
+# goes on. Windowed at 800x600 (4:3), then 1280x720 (wider: the panels move out to the edges by 134 layout units),
+# then 1000x800 (narrower than 4:3: the layout letterboxed in the 1000x750 part, the world over the whole window),
+# with the Esc menu open over the battle screen (the screen built again under it), then 800x600 again. Captures to
+# look at: r4x3, wide, narrow_menu, narrow, back (each at its window's size).
+render checkall
+resolution 800x600
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+waitpresent 10
+freeze
+capture r4x3
+unfreeze
+
+# Wider than 4:3.
+windowsize 1280 720
+waitpresent 10
+frames 5
+expectlog Resolution: 1280x720 (was 800x600)
+expectlog Interface layout: 1280x720, 4:3 part 960x720, margins 160, 0 pixels (134 layout units)
+waitwindow 10 battle
+move 400 300
+waitpresent 10
+freeze
+capture wide
+unfreeze
+
+# Narrower than 4:3, under the Esc menu.
+key esc
+waitwindow 10 escmenu
+windowsize 1000 800
+waitpresent 10
+frames 5
+expectlog Resolution: 1000x800 (was 1280x720)
+expectlog Interface layout: 1000x800, 4:3 part 1000x750, margins 0, 25 pixels (0 layout units)
+freeze
+capture narrow_menu
+unfreeze
+key esc
+waitwindow 10 battle
+move 400 300
+waitpresent 10
+freeze
+capture narrow
+unfreeze
+
+# Back to 4:3: the panels where they were.
+windowsize 800 600
+waitpresent 10
+frames 5
+expectlog Resolution: 800x600 (was 1000x800)
+waitwindow 10 battle
+move 400 300
+waitpresent 10
+freeze
+capture back
+unfreeze
+report
+quit

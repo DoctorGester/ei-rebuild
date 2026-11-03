@@ -2,7 +2,7 @@
 // See docs/notes/renderer.md, "The renderer's source files".
 #include "../game/model.h"   // TransformPipeline
 #include "../game/texture.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_state.h"
@@ -399,15 +399,6 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
     sg_draw(first, batch.indexCount, 1);
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
-}
-
-void DestroyMeshes() {
-    g_geometry.Destroy();
-    DropMeshCache();
-    for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
-    g_pipelines.clear();
-    if (g_shader.id) sg_destroy_shader(g_shader);
-    g_shader = sg_shader{};
 }
 
 } // namespace detail

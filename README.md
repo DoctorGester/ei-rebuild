@@ -115,7 +115,6 @@ game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` on
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
-- `src/hook/` the image's start-up support: logging, the profiler, failure reports and the Rebirth options.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `comment-guide.md`), the tickets, and one

@@ -51,7 +51,7 @@ constexpr int kVisibleRows = 16;
 // The 256x192 5:6:5 picture `pixels` (`bytes` of it: whole rows) drawn into the top of `texture`.
 void DrawPicture(Texture* texture, const void* pixels, std::uint32_t bytes) {
     const int rows = static_cast<int>(bytes / (kShotWidth * 2));
-    const render::TextureImage picture{nullptr, pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
+    const render::TextureImage picture{pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
     if (rows > 0) render::DrawIntoTexture(texture->surface, &picture, 0, 0, kShotWidth, rows);
 }
 

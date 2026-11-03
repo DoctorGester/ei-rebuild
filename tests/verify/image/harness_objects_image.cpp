@@ -2,7 +2,7 @@
 // harness.cpp).
 #include "image_side.h"
 
-#include "../../../src/hook/log.h"
+#include "../../../src/platform/log.h"
 
 #include "game/app.h"
 #include "game/camera.h"
@@ -121,7 +121,6 @@ std::string HudStateOf(void* window, const std::string& argument) {
 
 } // namespace
 
-const char* WindowTitle() { return app::g_windowTitle; }
 void* MainWindow() { return app::g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }

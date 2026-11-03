@@ -115,11 +115,12 @@ then copies that frame, which otherwise came out black (`ui_compare` and `ei_ui_
 `Rgb565Copy` (`ReadRgb565`; the escape-menu and QuickSave pictures only need to be within tolerance). In-game screenshots
 come from render::ReadFrame (renderer.md).
 
-**Lost device.** With no memory behind it a canvas comes back by itself: each canvas keeps the commands drawn on it since a
-command last covered it whole (a whole fill or picture starts the list again), and `DropCanvases` queues them again, after a
-Make, for the new device. A screen copy cannot be drawn again, so once one is drawn the canvas's pixels are read back as its
-history (one whole picture, `Compact`); so is a history past 256 commands. `ei_ui_check`'s "lost" holds it;
-render_device_lost compares the frames before and after a loss.
+**Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery"): a canvas keeps nothing but its
+render target.
+
+**Resolution changes.** Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a
+resolution change places them all again and resizes their canvases, what they hold stretched to the nearest pixel
+(`UiSurface::RelayoutAll`, `render::ui::Resize`; renderer.md, "Resolution changes").
 
 **GDI rules the canvases follow** (measured on Windows 10; `ei_ui_check` holds them): 16-bit surfaces truncate 8-bit colours
 (no rounding, no dithering) for fills, pens and pixels. FrameRect draws a 1-px border inside the rectangle. A 1-px pen leaves
@@ -132,7 +133,7 @@ colour may become transparent, as in the original.
 prints each check and the difference maps) plays render.cpp's part itself (its frame, `SplitFrame`, `RunCanvasesNow`).
 Fills, frames, lines and pixels are compared with GDI drawing into a DIB section in 5:6:5, 5:5:5 and 8:8:8; glyph runs
 (`tests/render/glyph_cases.{h,cpp}`, no platform code) with `ComposeAgainstBlack`; greying, screen copies, frame blits (keyed,
-a source part, split, hoisted) and the lost-device history too. Any sokol warning or `ei::Log` line fails. `ui_compare`
+a source part, split, hoisted) and the resize too. Any sokol warning or `ei::Log` line fails. `ui_compare`
 opens the options and the help over them twice and requires the same frames.
 
 ### The gallery
@@ -257,9 +258,7 @@ calls it at the start of DrawPending, so a canvas's drawing lands before the fra
 read-back. Solid shapes are quads of a colour quantised on the CPU; a glyph run is three steps (its coverage into an R8
 scratch target with MAX blending, a copy of what the canvas held there, the composition of the two into the canvas), each a
 pass; copies and an Image's pixels are drawn texel for texel (`ui_move`); greying works on a copy of the canvas; the screen
-copy samples the frame target. Each command drawn joins its canvas's history (cleared when a command covers the canvas
-whole); a screen copy or a history past 256 commands is replaced by the canvas's pixels read back (Compact), and
-DropCanvases queues every canvas's history again for the new device. Every pixel the shaders write is quantised to the
+copy samples the frame target. Every pixel the shaders write is quantised to the
 surface format. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the frame's passes), SplitFrame and
 RunCanvasesNow. The offline check tools/ui_check plays that part itself.
 

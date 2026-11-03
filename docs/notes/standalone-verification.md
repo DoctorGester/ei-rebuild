@@ -7,8 +7,7 @@ from real differences. Running scenarios and the steps: harness.md.
 
 ## 1. How verification works
 
-- **A change is checked** by a golden scenario that reaches it, or by a unit check where no game is needed;
-  `tools/coverage.py` says which scenarios reach a function (section 3).
+- **A change is checked** by a golden scenario that reaches it, or by a unit check where no game is needed.
 - **The suite**: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone` (vanilla data,
   Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data (`standalone-rebirth`,
   `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`). GOLDENS THE SAME / GOLDENS DIFFER
@@ -74,7 +73,7 @@ decoded saves; one that does not keeps its old golden. It names each golden it w
 golden.json changed) or changed. An intended change re-records the affected goldens and says why in the commit; anything
 else that differs is a regression.
 
-Renderer-only scenarios (render_cursor_present, render_present_shot, render_device_lost, render_device_removed,
+Renderer-only scenarios (render_cursor_present, render_present_shot,
 render_present_window, render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
 world moves only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
@@ -97,11 +96,8 @@ the right panels (2.7 pixels) fails.
 
 ## 3. Coverage
 
-`tools/coverage.py list` writes tests/coverage/coverage.csv: per function its status, golden (a golden scenario reaches
-it), suite (only scenarios without a golden), unreached, startup / dead (tests/coverage/unreachable.txt), with a risk rank
-(size x area weight, x2 unreached); `who <name>`, `top [N] [--area]`. The reach data, tests/coverage/reach.txt, is
-collected from runs: `coverage.py collect build\verify\runs --add` (a pair's peer\ log counts for its scenario; scenarios
-not in the runs keep their rows).
+None is measured now: the game.exe-address coverage (tools/coverage.py, tests/coverage) went with the original's runs;
+H43 measures our source's coverage.
 - Not reachable from a scenario: WinMain's second-instance exit, the low-disk-space box, Dib's error handlers (a failing
   disk). Dib::Read runs only for a loose `textures\<name>.bmp`.
 - Dead: the fake unit (class 0x39): no shipped data makes one; the map object factory makes nothing for class 0x39

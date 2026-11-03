@@ -3,7 +3,7 @@
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -566,13 +566,6 @@ void MeshCacheFrameDone() {
             if (!it->second.pending && now - it->second.lastUsed > kMeshLife) it = meshes->erase(it);
             else ++it;
         }
-}
-
-// The entries keep what they were built from; they are placed in a new pool at their next draw. The
-// pool's buffers are destroyed now (the device goes: they may not outlive sokol).
-void DropMeshCache() {
-    g_pool.Drop();
-    RetireBuffers();
 }
 
 } // namespace detail

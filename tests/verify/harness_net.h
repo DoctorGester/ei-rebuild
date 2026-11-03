@@ -16,9 +16,8 @@
 //
 // Loopback only (WB14): Windows Firewall asks the user about a program that listens on an address other
 // than loopback, once per program path (worktrees' builds, the standalone host's copies). The harness
-// routes WSOCK32's bind and sendto through the game's import slots (0073B6DC, 0073B70C; the image calls every
-// WSOCK32 function through them, in every build): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60)
-// binds 127.0.0.1, a datagram from a socket not bound yet (the client session's, Open(-1): Winsock
+// answers the game's socket calls itself (platform::net's, game_calls.cpp's in the game's builds: harness_net.cpp
+// defines them): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60) binds 127.0.0.1, a datagram from a socket not bound yet (the client session's, Open(-1): Winsock
 // would bind it on every address) binds it to 127.0.0.1 first, and a datagram to another address
 // (the lobby's ping to the host's broadcast address, 00440A90) goes to 127.0.0.1 on the same port,
 // which reaches the same game's server as the broadcast did. Nothing leaves the machine. A check of
@@ -26,14 +25,14 @@
 // it; the report's NET: line says what it saw (run_all lists the runs with one).
 //
 // The two games of a pair (harness_pair.h, SV5d) keep 8888 and play over the pair's own network: their
-// UDP binds, sendto, recvfrom and closesocket go to harness_pair.cpp's virtual ports (the real sockets
+// UDP binds, sends, receives and closes go to harness_pair.cpp's virtual ports (the real sockets
 // are still bound on 127.0.0.1, so the checks above see the same). A pair's games need no port of their
 // own: none is written.
 
 namespace ei::verify::netlocal {
 
-// Picks a free UDP port for this game, stores it as the game's port, and routes the game's binds and
-// datagrams to 127.0.0.1 (once, at harness start).
+// Picks a free UDP port for this game, stores it as the game's port (or joins the pair's network), and keeps the
+// game's binds and datagrams on 127.0.0.1 from now on (once, at harness start).
 void Install();
 
 // Checks the process's UDP endpoints and TCP listeners for addresses outside loopback (from the

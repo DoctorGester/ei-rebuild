@@ -8,7 +8,7 @@
 // nothing. Code whose purpose is detecting NaN (data checks) tests it itself (std::isnan).
 
 #if defined(EI_NAN_AUDIT_LOG)
-#include "hook/log.h"
+#include "platform/log.h"
 
 #include <cmath>
 

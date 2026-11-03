@@ -25,15 +25,15 @@ std::string DescribeThrow(const EXCEPTION_RECORD* record);
 // Free megabytes on the disk holding `path` (a folder), -1 when unknown.
 long long FreeMegabytes(const char* path);
 
-// Watches the game's WriteFile (its import slot, patched at start): a write that fails is logged with
-// the file, the error and the free space on its disk, and the first one is a failure of the run
-// (FailedWrite). "diskfull" writes fail here.
-void WatchWrites();
+// The game's file writes (platform::win32::WriteFile, which harness_crash.cpp answers) are watched: a write that fails
+// is logged with the file, the error and the free space on its disk, and the first one is a failure of the run
+// (FailedWrite). "diskfull" writes fail there.
+
 // "diskfull <text>": the files opened for writing from now on whose path contains <text>
 // (case-insensitive) fail every write.
 void FailWritesTo(const char* text);
-// The harness's CreateFileA redirection: `handle` was opened for `path` as the game named it,
-// `target` the file actually opened (the overlay's copy, or `path`).
+// The harness's file opens (platform::win32::OpenFile, harness.cpp): `handle` was opened for `path` as the game named
+// it, `target` the file actually opened (the overlay's copy, or `path`).
 void OnFileOpened(const char* path, const char* target, HANDLE handle, bool write);
 // The first write that failed for real, "" when none: "a file write failed: <bytes> to <file>: error
 // 112 (There is not enough space on the disk); <n> MB free on E:\".

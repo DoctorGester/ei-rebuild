@@ -8,8 +8,8 @@
 #include <string>
 
 // File names (ticket U2): "utf8files" makes, lists, reads back and removes a folder and a file with Cyrillic names
-// through the game's own file calls (the image's UTF-8 versions in its import slots, under the harness's saves
-// redirect: the calls CFile, CFileFind and the CRT make), and checks the name on disk as UTF-16.
+// through the game's own file calls (the platform's File, FileFind and folder calls, under the harness's saves
+// redirect), and checks the name on disk as UTF-16.
 namespace ei::verify::utf8files {
 
 // The check, under the game's saves folder (the harness's saves redirect takes it to the run's overlay):
@@ -36,7 +36,7 @@ namespace ei::verify::utf8text {
 
 // "utf8text": case and classes without the locale (lib/text_case.h): the CRT's case-insensitive compares
 // (_stricmp, _strnicmp, _memicmp, _mbsicmp) match Cyrillic in either case and tell apart letters whose
-// UTF-8 bytes share a trail; CString::MakeLower and CharUpperA change Cyrillic case; tolower / isspace of a
+// UTF-8 bytes share a trail; str::MakeLower and text::UpperInPlace change Cyrillic case; tolower / isspace of a
 // UTF-8 byte leave it alone; the network's player name filter (IsPrintableText 0047ADA0) passes a Cyrillic
 // name and rejects a cut sequence and a control character. Empty, or what failed.
 std::string Check();

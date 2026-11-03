@@ -153,7 +153,7 @@ folder: where `starter\addon.dll` or `EI_Plugin.asi` is, `config/rebirth_profile
 pause mode; none when `EI_REBIRTH` is set); the settings file's `[patches]` (`Name = true|false`, and `NPlayers`,
 `Pause`, `SecondMaster`); the `EI_REBIRTH` environment variable (`ei_launch --rebirth <spec>`; `none`, `defaults`); a
 scenario's `rebirthflags` line. Harness runs set `EI_REBIRTH`, so they take no folder's profile. A file naming a patch
-with no flag logs it and leaves it out. `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run
+with no flag logs it and leaves it out. `rebirth_profile::RebirthLaunch()` (a flag other than the fixes on) makes a run
 count as the Rebirth install.
 
 ### One test profile
@@ -211,8 +211,9 @@ width43 = min(W, H * 800 / 600), height43 = min(H, W * 600 / 800). A window wide
 of it (margin pixels each, `extra` layout units: addon's layout); a window narrower than 4:3 (5:4, portrait) has bands
 above and below it (marginY pixels: the 4:3 part letterboxed, nothing moves into the bands, the 3D view keeps its
 proportions over the whole window through the axis swap's y scale); at exactly 4:3 both are 0 and every value is the
-original's. `screen_layout::Configure` computes them once, right after the options load, from the resolution the game
-loaded and makes its window at (the settings file's [video] VideoResolution; tests/scenarios/
+original's. `screen_layout::Configure` computes them right after the options load, from the resolution the game loaded and makes
+its window at, and again at each resolution change (`app::SetResolution`; renderer.md, "Resolution changes") (the
+settings file's [video] VideoResolution; tests/scenarios/
 ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
 - At 4:3 every branch's wide side gives the plain side's values (checked on every vanilla golden at 960x720). Two things
   are not addon's: the unit panel's setup keeps the original's slide and moves the original's rectangle by the shift,

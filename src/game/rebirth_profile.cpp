@@ -1,6 +1,7 @@
-#include "rebirth_hook.h"
+#include "rebirth_profile.h"
 
-#include "log.h"
+#include "ini_file.h"
+#include "platform/log.h"
 
 #include "game/settings.h"
 #include "lib/text_case.h"
@@ -10,7 +11,7 @@
 #include <cstring>
 #include <vector>
 
-namespace ei::rebirth_hook {
+namespace ei::rebirth_profile {
 
 using rebirth::Patch;
 
@@ -76,8 +77,10 @@ void Load(const std::string& gameFolder) {
     rebirth::Reset(profile);
     const std::string plugin = gameFolder + "\\EI_Plugin.ini";
     if (profile == kRebirthProfile && platform::PathExists(plugin)) {
-        rebirth::SetPluginNPlayers(platform::IniInt("CONFIG", "NPlayers", 7, plugin.c_str()));
-        rebirth::SetPluginPause(platform::IniInt("CONFIG", "Pause", 1, plugin.c_str()));
+        IniFile ini;
+        ini.SetPath(plugin);
+        rebirth::SetPluginNPlayers(ini.GetInt("CONFIG", "NPlayers", 7));
+        rebirth::SetPluginPause(ini.GetInt("CONFIG", "Pause", 1));
         Log("Rebirth: EI_Plugin.ini's players %d, pause mode %d", rebirth::PluginNPlayers(), rebirth::PluginPause());
     }
     // Whether this is a Rebirth launch is the harness's (RebirthLaunch): its run's settings file, which the first read
@@ -95,4 +98,4 @@ void Load(const std::string& gameFolder) {
 
 bool RebirthLaunch() { return g_rebirthLaunch; }
 
-} // namespace ei::rebirth_hook
+} // namespace ei::rebirth_profile

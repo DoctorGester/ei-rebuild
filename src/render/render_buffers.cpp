@@ -4,7 +4,7 @@
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 
@@ -59,12 +59,6 @@ int StreamBuffer::Append(const void* data, std::size_t bytes) {
     return sg_query_buffer_overflow(buffer) ? -1 : offset;
 }
 
-void StreamBuffer::Destroy() {
-    if (buffer.id) sg_destroy_buffer(buffer);
-    buffer = sg_buffer{};
-    capacity = 0;
-}
-
 void RetireBuffers() {
     for (sg_buffer b : g_retiredBuffers) sg_destroy_buffer(b);
     g_retiredBuffers.clear();
@@ -94,13 +88,6 @@ bool GeometryStream::Bind(sg_bindings& b) const {
     b.index_buffer = indices.Buffer();
     b.index_buffer_offset = indexOffset;
     return true;
-}
-
-void GeometryStream::Destroy() {
-    vertices.Destroy();
-    indices.Destroy();
-    frame = 0xFFFFFFFFu;
-    vertexOffset = indexOffset = -1;
 }
 
 // --- Pools -------------------------------------------------------------------------------------------------

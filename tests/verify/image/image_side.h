@@ -53,7 +53,6 @@ std::vector<std::string> NetState();
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
-const char* WindowTitle();             // app::g_windowTitle
 void* MainWindow();                    // app::g_mainWindow (an HWND)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames
@@ -162,12 +161,6 @@ struct WindowPresents {
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
     bool rampCheckPending = false;
     bool rampIdentity = true;
-    int deviceLosses = 0;
-    int deviceRecoveries = 0;
-    std::uint32_t presentsAtRecovery = 0;
-    std::uint32_t lastLossCode = 0;   // 0: LoseDevice's
-    bool removable = false;
-    int removals = 0;
 };
 CursorPresents CursorPresentCounts();
 // The gamma ramp the present applies: 256 RGBA8 entries (render::GammaRampTable).
@@ -180,8 +173,6 @@ void FrameToWindow(int* x, int* y);
 void WindowToFrame(int* x, int* y);
 void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
-void LoseDevice();
-bool RemoveDevice();
 void EndFrame();
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 // The renderer's steps (terrainlevels .. renderstats; harness.cpp, IsRenderStep): false for another verb.

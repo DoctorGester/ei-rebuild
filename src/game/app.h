@@ -64,6 +64,19 @@ void ShowMessageBox(const char* text);
 // The box of the game's library code (AfxMessageBox): no owner, the program's file name as its title, OK with the
 // warning icon.
 void ShowLibraryMessageBox(const char* text);
+// The rendering resolution changed while the game runs, the one way every change takes (a window resized: the present
+// asks through RequestResolution; a resolution chosen in the settings can call it directly, between frames): the
+// device's screen, the interface layout (screen_layout.h: the 4:3 part, the widescreen margins and axis scales), the
+// camera's viewport and axis swap, the cursor's bounds, the interface (fonts, surfaces and the windows built for the
+// window's shape: Interface3D::Resize) and the settings' VideoResolution (written at exit) take width x height.
+// The renderer's frame target follows at the next frame and the window's swap chain at its present; no device is
+// made again and the zone goes on. False (nothing changed) for a size outside 1..16384 or the size it has.
+bool SetResolution(int width, int height);
+// SetResolution asked for at the next main loop pass: the present notices a window's new size in the middle of a
+// frame (and the movie players and loading screens present outside the loop, which takes it after them).
+void RequestResolution(int width, int height);
+// At a main loop pass's start: the requested resolution taken.
+void TakeResolutionChange();
 // WinMain: the application's start-up, main loop and shutdown.
 int GameMain(platform::NativeInstance instance, platform::NativeInstance previous, char* commandLine, int show);
 // A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its

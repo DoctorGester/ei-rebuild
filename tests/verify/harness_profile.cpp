@@ -4,7 +4,7 @@
 // The stack is scanned, not walked (the game's code omits frame pointers), so a stale return address
 // can show up as a caller; only words that follow a CALL instruction in our module count.
 #include "harness_timing.h"
-#include "hook/log.h"
+#include "platform/log.h"
 #include "platform/win32/thread_context.h"
 
 #include <windows.h>

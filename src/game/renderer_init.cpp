@@ -61,19 +61,11 @@ constexpr int kStackD = 5;   // the same
 constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
-void FillMatrixStacks(SceneRenderer* renderer) {
-    TransformPipeline* pipeline = renderer->pipeline;
-    MatrixStack* stacks = pipeline->stacks;
-    // The camera's near and far distances and field of view.
-    const Camera* cam = &g_camera;
-    float zNear, zFar, fov;
-    zNear = cam->nearDistance;
-    zFar = cam->farDistance;
-    fov = cam->fieldOfView;
+// The stacks from the projection on: the viewport (the screen's size), the axis swap and their products. Each stack
+// is filled from empty.
+void FillScreenStacks(SceneRenderer* renderer) {
+    MatrixStack* stacks = renderer->pipeline->stacks;
     Matrix4 m;
-    static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
-    ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
-    StackPush(stacks[kProjection], &m);
     ViewportMatrix(&m, &renderer->device->screen);
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
@@ -87,6 +79,22 @@ void FillMatrixStacks(SceneRenderer* renderer) {
         StackPush(stacks[stack], StackTop(stacks[kAxisSwap]));
         StackPush(stacks[stack], StackTop(stacks[kProjection]));
     }
+}
+
+void FillMatrixStacks(SceneRenderer* renderer) {
+    TransformPipeline* pipeline = renderer->pipeline;
+    MatrixStack* stacks = pipeline->stacks;
+    // The camera's near and far distances and field of view.
+    const Camera* cam = &g_camera;
+    float zNear, zFar, fov;
+    zNear = cam->nearDistance;
+    zFar = cam->farDistance;
+    fov = cam->fieldOfView;
+    Matrix4 m;
+    static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
+    ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
+    StackPush(stacks[kProjection], &m);
+    FillScreenStacks(renderer);
     // The projection, for the fog's depth.
     pipeline->projection = *StackTop(stacks[kProjection]);
 }
@@ -152,6 +160,16 @@ void CreateHelper(SceneRenderer* renderer, const GameOptions* settings) {
 }
 
 } // namespace
+
+void SceneRenderer::ResizeScreen(int width, int height) {
+    device->screen = Rect{0, 0, width, height};
+    MatrixStack* stacks = pipeline->stacks;
+    // Between frames each stack holds only what the creation pushed (the frame's pushes are popped again).
+    for (int stack : {kViewport, kAxisSwap, kProductStacks[0], kProductStacks[1], kSwapStacks[0], kSwapStacks[1]})
+        stacks[stack].count = 0;
+    FillScreenStacks(this);
+    pipeline->SetViewportSize(static_cast<float>(width), static_cast<float>(height));
+}
 
 void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's

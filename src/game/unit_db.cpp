@@ -255,7 +255,11 @@ int SkillDatabase::IndexOf(std::string_view levelName) const {
     return -1;
 }
 
-// SkillDatabase::IndexOfLevel is in unit_skill_price.cpp.
+int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
+    for (const SkillLevelRecord& level : levels)
+        if (&level == record) return static_cast<int>(&level - levels.data());
+    return -1;
+}
 
 // --- Load --------------------------------------------------------------------------------------------
 
@@ -438,7 +442,7 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
 
 // Small functions of the unit statistics and databases: the packed vitals' and parameters' network fields,
 // the attack parameters' difficulty scale and the databases' record lookups. The stat ratios are in
-// unit_stats.cpp and the school's price in unit_skill_price.cpp. Plain C++ float
+// unit_stats.cpp, with the skill and school prices. Plain C++ float
 // maths (rule 7).
 
 namespace {
@@ -452,6 +456,19 @@ void AttackParams::ScaleForDifficulty(int keyed) {
 }
 
 // --- Database records ---------------------------------------------------------------------------------
+
+// The unit database and the skill database (unit.h, unit_create.h): plain globals the C++ runtime builds empty and
+// destroys.
+UnitDatabase g_unitDatabase;
+SkillDatabase g_skillDatabase;
+
+namespace unitdb {
+
+// What UnitPrototypeTable::At and UnitModelTable::At answer.
+UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) { return RecordAt(g_unitDatabase.prototypes.records, index); }
+UnitModelRecord* ModelRecord(std::uint32_t index) { return RecordAt(g_unitDatabase.models.records, index); }
+
+} // namespace unitdb
 
 UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return unitdb::RecordAt(records, index); }
 

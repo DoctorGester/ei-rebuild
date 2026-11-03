@@ -82,7 +82,7 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 } // namespace
 
 int WorldClient::LoadLights(const std::string& file) {
-    IniFile ini;   // the empty path, freed at the end
+    IniFile ini;
     {
         std::string folder = g_dataFolder + ConfigFolder();
         std::string path = folder + file;

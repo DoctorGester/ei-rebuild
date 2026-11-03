@@ -63,7 +63,7 @@ void FrameDone(unsigned frame);
 void Signal(const std::string& tag);
 bool Signaled(const std::string& tag);
 
-// The pair's network for UDP sockets (harness_net.cpp routes the game's import slots here).
+// The pair's network for UDP sockets (harness_net.cpp's answers of the platform's socket calls come here).
 // Bind: claims the virtual port (0: one of this side's own); false when another socket holds it.
 bool Bind(std::uintptr_t s, std::uint16_t port);
 // SendTo: into the mailbox, to the virtual port `port`; the socket gets a port of its own first. `broadcast`:

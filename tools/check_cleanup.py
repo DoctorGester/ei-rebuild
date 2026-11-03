@@ -108,8 +108,7 @@ def strip_comments(text):
 def counts():
     out = {}
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True):
-        # The hook framework and the standalone host describe the exe's layout, not game code.
-        if not path.endswith(('.cpp', '.h', '.inc')) or any(os.sep + d + os.sep in path for d in ('hook', 'standalone')):
+        if not path.endswith(('.cpp', '.h', '.inc')):
             continue
         text = strip_comments(open(path, encoding='utf-8', errors='replace').read())
         rel = os.path.relpath(path, ROOT).replace(os.sep, '/')

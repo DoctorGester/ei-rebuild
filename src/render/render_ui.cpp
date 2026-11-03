@@ -3,7 +3,7 @@
 #include "render_internal.h"
 #include "render_text.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -49,11 +49,12 @@ struct CanvasImage {
 };
 
 struct Op {
-    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels };
+    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels, Resize };
     Kind kind = Solid;
     const void* holder = nullptr;
     unsigned canvas = 0;
-    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source; Pixels: where
+    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source; Pixels: where;
+                                 // Resize: the old size
     Rect scissor{};              // Glyphs: the clip rectangle within the canvas
     std::uint32_t colour = 0;    // Solid: 0x00RRGGBB as the canvas holds it; Glyphs: the text colour
     const text::GlyphAtlas* atlas = nullptr;
@@ -61,10 +62,6 @@ struct Op {
     std::vector<std::uint32_t> pixels;   // Pixels: RGBA8, rect's rows
 };
 std::vector<Op> g_queue;
-
-// A canvas's commands drawn since it was last covered whole are kept (its history) and drawn again on a new
-// device; a history grown past this many is replaced by the canvas's pixels read back (Compact).
-constexpr std::size_t kMaxHistory = 256;
 
 struct CanvasState {
     unsigned id = 0;   // queued commands name the canvas they were made for
@@ -74,8 +71,6 @@ struct CanvasState {
     std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
     CanvasImage gpu;                     // made by RunCanvasCommands
     bool blitPending = false;            // blitted in the frame, the blit not drawn yet
-    std::vector<Op> history;             // drawn on `gpu` since it was made or last covered whole
-    bool copied = false;                 // a screen copy drawn: its pixels become the history (Compact)
 };
 std::unordered_map<const void*, CanvasState> g_canvases;
 unsigned g_nextId = 1;
@@ -506,6 +501,37 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     sg_end_pass();
 }
 
+// The canvas's image made again at its new size, the old one (op.rect: its size) stretched over it with the copy's
+// nearest pixel.
+void ResizeImage(CanvasState& canvas, const Op& op) {
+    CanvasImage old = canvas.gpu;
+    canvas.gpu = CanvasImage{};
+    g_retired.push_back(old);
+    if (!MakeTarget(canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas", &canvas.gpu.image, &canvas.gpu.attachment,
+                    &canvas.gpu.texture)) {
+        ei::Log("render: cannot create a %dx%d canvas", canvas.width, canvas.height);
+        DestroyImage(canvas.gpu);
+        return;
+    }
+    BeginCanvasPass(canvas.gpu.attachment, true, "ei-canvas-resize");
+    if (old.texture.id) {
+        sg_apply_pipeline(g_copy);
+        sg_bindings b{};
+        b.views[0] = old.texture;
+        b.samplers[0] = g_nearest;
+        sg_apply_bindings(&b);
+        ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
+        ui_params_t fs = CanvasParams(canvas);
+        fs.source[2] = op.rect.right;
+        fs.source[3] = op.rect.bottom;
+        fs.dest[0] = canvas.width;
+        fs.dest[1] = canvas.height;
+        ApplyFs(fs);
+        sg_draw(0, 6, 1);
+    }
+    sg_end_pass();
+}
+
 // An Image's pixels drawn into the canvas, through an image of their own.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
     const Rect& r = op.rect;
@@ -554,36 +580,6 @@ CanvasState* Find(const void* holder, unsigned id) {
 // The read-backs' copies, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's; unmapped after reading.
 platform::graphics::Readback g_staging, g_pictureStaging;
 
-// `op`, just drawn on `canvas`, joins its history. One that covers the canvas whole (its making, a fill or
-// picture of all of it) starts the history again. A screen copy is not kept (the frame it copied is gone on a new
-// device): the canvas is marked to be read back (Compact) once the queue is drawn.
-void Remember(CanvasState& canvas, Op&& op) {
-    const bool whole = op.rect.left <= 0 && op.rect.top <= 0 && op.rect.right >= canvas.width && op.rect.bottom >= canvas.height;
-    if (op.kind == Op::Make || op.kind == Op::Copy || ((op.kind == Op::Solid || op.kind == Op::Pixels) && whole))
-        canvas.history.clear();
-    if (op.kind == Op::Copy) canvas.copied = true;
-    if (op.kind != Op::Make && op.kind != Op::Copy) canvas.history.push_back(std::move(op));
-}
-
-// A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
-void Compact(const void* holder, CanvasState& canvas) {
-    canvas.copied = false;
-    const int w = canvas.width, h = canvas.height;
-    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return;
-    Op op;
-    op.kind = Op::Pixels;
-    op.holder = holder;
-    op.canvas = canvas.id;
-    op.rect = Rect{0, 0, canvas.width, canvas.height};
-    op.pixels.resize(static_cast<std::size_t>(w) * h);
-    for (int y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
-        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y),
-                    static_cast<std::size_t>(w) * 4);
-    g_staging.Unmap();
-    canvas.history.clear();
-    canvas.history.push_back(std::move(op));
-}
-
 } // namespace
 
 // ---- The public commands --------------------------------------------------------------------------------
@@ -622,7 +618,6 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
         return true;
     CanvasState* canvas = it != g_canvases.end() ? Target(holder) : &g_canvases[holder];
     canvas->id = g_nextId++;
-    canvas->history.clear();
     canvas->width = width;
     canvas->height = height;
     canvas->format = format;
@@ -649,6 +644,24 @@ void DropCanvas(const void* holder) {
     if (it == g_canvases.end()) return;
     g_retired.push_back(it->second.gpu);
     g_canvases.erase(it);
+}
+
+void Resize(const void* holder, int width, int height) {
+    if (width < 1 || height < 1 || width > kMaxCanvas || height > kMaxCanvas || !Target(holder)) return;
+    // What is queued for it was laid out at the old size.
+    RunCanvasesNow();
+    auto it = g_canvases.find(holder);
+    if (it == g_canvases.end()) return;
+    CanvasState& canvas = it->second;
+    if (canvas.width == width && canvas.height == height) return;
+    Op op;
+    op.kind = Op::Resize;
+    op.holder = holder;
+    op.canvas = canvas.id;
+    op.rect = Rect{0, 0, canvas.width, canvas.height};
+    canvas.width = width;
+    canvas.height = height;
+    Push(std::move(op));
 }
 
 void MoveCanvas(const void* from, const void* to) {
@@ -908,12 +921,11 @@ void RunCanvasCommands() {
         return;
     }
     std::size_t k = 0;
-    bool readBack = false;
     while (k < g_queue.size()) {
         const Op& op = g_queue[k];
         CanvasState* canvas = Find(op.holder, op.canvas);
-        // A canvas without its image (made again after a lost device) starts black.
-        if (canvas && op.kind != Op::Make && !canvas->gpu.image.id && !MakeImage(*canvas)) canvas = nullptr;
+        // A canvas whose image could not be made takes no commands.
+        if (canvas && op.kind != Op::Make && !canvas->gpu.image.id) canvas = nullptr;
         if (!canvas) {
             ++k;
             continue;
@@ -934,16 +946,11 @@ void RunCanvasCommands() {
         case Op::Copy: DrawCopy(*canvas, op); break;
         case Op::Grey: DrawGrey(*canvas); break;
         case Op::Pixels: DrawPixels(*canvas, op); break;
+        case Op::Resize: ResizeImage(*canvas, op); break;
         }
-        for (; k < end; ++k) Remember(*canvas, std::move(g_queue[k]));
-        readBack = readBack || canvas->copied || canvas->history.size() > kMaxHistory;
+        k = end;
     }
     g_queue.clear();
-    if (readBack) {
-        platform::FloatingPointGuard fpu;
-        for (auto& [holder, canvas] : g_canvases)
-            if ((canvas.copied || canvas.history.size() > kMaxHistory) && canvas.gpu.image.id) Compact(holder, canvas);
-    }
 }
 
 void CanvasBlitsDrawn() {
@@ -978,60 +985,6 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     fs.key[3] = batch.keyed ? 1 : 0;
     ApplyFs(fs);
     sg_draw(0, 6, 1);
-}
-
-void DropCanvases() {
-    // Each canvas is queued to be made again on the new device (black) with its history drawn on it, before
-    // what was queued since the last frame.
-    std::vector<Op> replay;
-    for (auto& [holder, canvas] : g_canvases) {
-        DestroyImage(canvas.gpu);
-        Op make;
-        make.kind = Op::Make;
-        make.holder = holder;
-        make.canvas = canvas.id;
-        replay.push_back(std::move(make));
-        for (Op& op : canvas.history) {
-            op.holder = holder;   // (MoveCanvas leaves the history under the key it was drawn with)
-            replay.push_back(std::move(op));
-        }
-        canvas.history.clear();
-        canvas.copied = false;
-    }
-    for (Op& op : g_queue) replay.push_back(std::move(op));
-    g_queue = std::move(replay);
-    for (CanvasImage& i : g_retired) DestroyImage(i);
-    g_retired.clear();
-    for (auto& entry : g_atlases) {
-        if (entry.second.view.id) sg_destroy_view(entry.second.view);
-        if (entry.second.image.id) sg_destroy_image(entry.second.image);
-    }
-    g_atlases.clear();
-    for (Scratch* s : {&g_coverage, &g_under, &g_picture}) {
-        if (s->attachment.id) sg_destroy_view(s->attachment);
-        if (s->texture.id) sg_destroy_view(s->texture);
-        if (s->image.id) sg_destroy_image(s->image);
-        *s = Scratch{};
-    }
-    if (g_vertices.id) sg_destroy_buffer(g_vertices);
-    g_vertices = sg_buffer{};
-    g_vertexCapacity = 0;
-    for (const BlitPipeline& b : g_blits) sg_destroy_pipeline(b.pipeline);
-    g_blits.clear();
-    for (sg_pipeline* p : {&g_solid, &g_glyph, &g_compose, &g_grey, &g_copy, &g_move, &g_rgb565}) {
-        if (p->id) sg_destroy_pipeline(*p);
-        *p = sg_pipeline{};
-    }
-    for (sg_shader* s : {&g_solidShader, &g_glyphShader, &g_composeShader, &g_greyShader, &g_copyShader, &g_moveShader,
-                         &g_rgb565Shader, &g_blitShader}) {
-        if (s->id) sg_destroy_shader(*s);
-        *s = sg_shader{};
-    }
-    if (g_nearest.id) sg_destroy_sampler(g_nearest);
-    g_nearest = sg_sampler{};
-    g_pipelinesTried = g_pipelinesMade = false;
-    g_staging.Release();
-    g_pictureStaging.Release();
 }
 
 } // namespace detail

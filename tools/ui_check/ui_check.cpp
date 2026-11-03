@@ -19,9 +19,6 @@
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
 //           first, so the blit shows the canvas as it was.
-//   lost    a lost device (DropCanvases): every canvas comes back as it was from its history (fills, lines,
-//           glyph runs, pictures, a moved canvas), a screen copy's and a long history's from their pixels
-//           read back.
 // Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include "render/glyph_cases.h"
@@ -504,6 +501,56 @@ void CheckPicture() {
     sg_commit();
 }
 
+// ---- resize: a surface's canvas placed again for another screen size --------------------------------------------
+
+// A canvas with a picture and a fill still queued, resized (larger, smaller, another shape): each pixel the one under
+// it at the old size (x * old width / new width, CopyFrame's rule), the fill drawn at the old size first; then a
+// fill at the new size lands where it is asked to.
+void CheckResize() {
+    if (g_verbose) std::printf("resize:\n");
+    struct Case {
+        int width, height, newWidth, newHeight;
+    };
+    const Case cases[] = {{80, 60, 128, 72}, {128, 72, 100, 80}, {37, 29, 74, 58}, {200, 150, 50, 75}};
+    for (const Format& f : kFormats) {
+        for (const Case& c : cases) {
+            const void* holder = &c;
+            ui::Canvas(holder, c.width, c.height, f.format);
+            std::mt19937 random(11);
+            std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.width) * c.height);
+            for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
+            ui::Image(holder, Rect{0, 0, c.width, c.height}, picture.data(), c.width);
+            ui::Fill(holder, Rect{0, 0, c.width / 2, c.height / 2}, RGB(10, 200, 30));
+            std::vector<std::uint32_t> before;
+            const bool readBefore = ui::ReadPixels(holder, &before);
+            // Queued when the canvas is resized: drawn at the old size first.
+            ui::Fill(holder, Rect{c.width / 2, 0, c.width, c.height}, RGB(250, 40, 90));
+            for (int y = 0; y < c.height && readBefore; ++y)
+                for (int x = c.width / 2; x < c.width; ++x)
+                    before[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] = RefQuantise(0xFA285A, f.format);
+            ui::Resize(holder, c.newWidth, c.newHeight);
+            std::vector<std::uint32_t> after;
+            int width = 0, height = 0;
+            const bool read = readBefore && ui::ReadPixels(holder, &after, &width, &height) && width == c.newWidth && height == c.newHeight;
+            int differ = read ? 0 : -1;
+            for (int y = 0; y < c.newHeight && read; ++y)
+                for (int x = 0; x < c.newWidth; ++x) {
+                    const int sx = x * c.width / c.newWidth, sy = y * c.height / c.newHeight;
+                    differ += after[static_cast<std::size_t>(y) * c.newWidth + static_cast<std::size_t>(x)] !=
+                              before[static_cast<std::size_t>(sy) * c.width + static_cast<std::size_t>(sx)];
+                }
+            ui::Fill(holder, Rect{c.newWidth - 1, c.newHeight - 1, c.newWidth, c.newHeight}, RGB(255, 255, 255));
+            std::uint32_t corner = 0;
+            const bool filled = ui::ReadPixel(holder, c.newWidth - 1, c.newHeight - 1, &corner) && corner == 0xFFFFFF;
+            Check(differ == 0 && filled, std::string(f.name) + " " + std::to_string(c.width) + "x" + std::to_string(c.height) + " canvas resized to " +
+                                             std::to_string(c.newWidth) + "x" + std::to_string(c.newHeight) + ": " + std::to_string(differ) +
+                                             " pixels differ" + (filled ? "" : ", the fill at the new size missing"));
+            ui::DropCanvas(holder);
+        }
+    }
+    sg_commit();
+}
+
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
@@ -627,62 +674,6 @@ void CheckFrame() {
     sg_commit();
 }
 
-// ---- lost: the canvases made again from their histories ---------------------------------------------------------
-
-void CheckLost() {
-    if (g_verbose) std::printf("lost:\n");
-    const render::PixelFormat f565 = kFormats[0].format, f888 = kFormats[2].format;
-    int drawn = 0, moved = 0, copied = 0, longOne = 0, from = 0;
-    // Fills, a frame, lines, a pixel, a picture and a glyph run; one canvas moved to another key.
-    ui::Canvas(&drawn, 64, 40, f565);
-    ui::Fill(&drawn, Rect{0, 0, 64, 40}, RGB(20, 40, 60));
-    ui::Fill(&drawn, Rect{5, 5, 30, 20}, RGB(200, 10, 10));
-    ui::FrameRect(&drawn, Rect{2, 2, 60, 38}, RGB(250, 250, 0));
-    ui::Line(&drawn, 3, 30, 50, 30, 2, RGB(0, 255, 0));
-    ui::Pixel(&drawn, 62, 1, RGB(255, 255, 255));
-    std::vector<std::uint32_t> picture(10 * 6);
-    std::mt19937 random(99);
-    for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
-    ui::Image(&drawn, Rect{40, 8, 50, 14}, picture.data(), 10);
-    if (text::TextFont* font = text::GetTextFont("Times New Roman", 15, false)) {
-        text::TextLayout layout;
-        if (text::Layout(*font, text::DecodeCp1251("Lost"), Rect{8, 18, 60, 36}, 0, layout))
-            ui::GlyphRun(&drawn, *font, layout, RGB(255, 255, 255));
-    }
-    ui::Canvas(&from, 16, 8, f888);
-    ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
-    detail::RunCanvasCommands();
-    ui::MoveCanvas(&from, &moved);
-    ui::Fill(&moved, Rect{0, 0, 8, 4}, RGB(200, 100, 50));
-    // A screen copy, greyed after it (both kept as the pixels read back).
-    if (!g_frameTexture.id) MakeFrameTexture();
-    ui::Canvas(&copied, 50, 40, f888);
-    ui::CopyFrame(&copied, Rect{10, 10, 110, 90});
-    ui::Greyscale(&copied);
-    // More commands than the history keeps (read back too), the last ones after the read-back.
-    ui::Canvas(&longOne, 32, 32, f888);
-    for (int i = 0; i < 300; ++i) ui::Pixel(&longOne, i % 32, (i / 32) % 32, RGB(i & 0xFF, (i * 7) & 0xFF, (i * 13) & 0xFF));
-    detail::RunCanvasCommands();
-    ui::Fill(&longOne, Rect{20, 20, 24, 24}, RGB(1, 2, 3));
-    detail::RunCanvasCommands();
-    const int* const holders[] = {&drawn, &moved, &copied, &longOne};
-    const char* const names[] = {"drawn", "moved", "copied", "long"};
-    std::vector<std::uint32_t> before[4];
-    for (int i = 0; i < 4; ++i) Check(ui::ReadPixels(holders[i], &before[i]), std::string("lost: ") + names[i] + " read before");
-    detail::DropCanvases();
-    for (int i = 0; i < 4; ++i) {
-        std::vector<std::uint32_t> after;
-        std::string example;
-        const int width = i == 0 ? 64 : i == 1 ? 16 : i == 2 ? 50 : 32;
-        const int differ = ui::ReadPixels(holders[i], &after) ? Differ(before[i], after, width, &example) : -1;
-        Check(differ == 0, std::string("lost: the ") + names[i] + " canvas made again: " + std::to_string(differ) + " pixels differ" +
-                               (example.empty() ? "" : " (" + example + ")"));
-        ui::DropCanvas(holders[i]);
-    }
-    detail::RunCanvasCommands();
-    sg_commit();
-}
-
 bool StartDevice(bool hardware) {
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
@@ -728,9 +719,8 @@ int main(int argc, char** argv) {
     CheckImage();
     CheckCopy();
     CheckPicture();
+    CheckResize();
     CheckFrame();
-    CheckLost();
-    detail::DropCanvases();
     sg_shutdown();
     std::printf("ui_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);
     return g_failures == 0 && g_problems == 0 ? 0 : 1;

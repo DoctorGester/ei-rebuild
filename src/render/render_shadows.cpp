@@ -3,7 +3,7 @@
 #include "render_internal.h"
 #include "render_perf.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -281,14 +281,6 @@ bool MakeColour(int size, sg_pixel_format format, const char* label, sg_image* i
     return ok;
 }
 
-void DestroyTarget(sg_image* image, sg_view* attachment, sg_view* texture) {
-    if (attachment->id) sg_destroy_view(*attachment);
-    if (texture->id) sg_destroy_view(*texture);
-    if (image->id) sg_destroy_image(*image);
-    *image = sg_image{};
-    *attachment = *texture = sg_view{};
-}
-
 sg_sampler PointSampler() {
     if (g_point.id) return g_point;
     sg_sampler_desc d{};
@@ -380,12 +372,6 @@ void EnsureDummy() {
 // Each frame's three stamps: the shadow pass's start and end, the frame's end.
 platform::graphics::GpuTimer g_timers[4];
 int g_timing = -1;   // the timer of the frame being drawn, -1: none
-
-void ReleaseTimers() {
-    for (platform::graphics::GpuTimer& timer : g_timers) timer.Release();
-    g_timing = -1;
-}
-
 void CollectTimes() {
     std::vector<double> times;
     for (platform::graphics::GpuTimer& timer : g_timers) {
@@ -915,11 +901,6 @@ void CasterDraws::Clear() {
     instanceOffset = -1;
 }
 
-void CasterDraws::Destroy() {
-    Clear();
-    instances.Destroy();
-}
-
 void ShadowFrameDone() {
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
@@ -1164,44 +1145,6 @@ void BindShadowMap(sg_bindings& b) {
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
     b.views[VIEW_shadow_range] = on ? g_rangeTexture : g_rangeDummyTexture;
     b.samplers[SMP_shadow_linear] = RangeSampler();
-}
-
-void DestroyShadows() {
-#if defined(EI_RENDER_VALIDATION)
-    ReleaseTimers();
-#endif
-    DestroyPointShadows();
-    g_casterDraws.Destroy();
-    DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
-    DestroyTarget(&g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
-    DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);
-    g_dummyCleared = false;
-    DestroyTarget(&g_cells, &g_cellsAttachment, &g_cellsTexture);
-    DestroyTarget(&g_range, &g_rangeAttachment, &g_rangeTexture);
-    for (sg_sampler* s : {&g_point, &g_rangeLinear}) {
-        if (s->id) sg_destroy_sampler(*s);
-        *s = sg_sampler{};
-    }
-    for (sg_pipeline* p : {&g_reducePipeline, &g_dilatePipeline}) {
-        if (p->id) sg_destroy_pipeline(*p);
-        *p = sg_pipeline{};
-    }
-    for (sg_shader* sh : {&g_reduceShader, &g_dilateShader}) {
-        if (sh->id) sg_destroy_shader(*sh);
-        *sh = sg_shader{};
-    }
-    if (g_compare.id) sg_destroy_sampler(g_compare);
-    g_compare = sg_sampler{};
-    for (sg_pipeline& p : g_casterPipelines) {
-        if (p.id) sg_destroy_pipeline(p);
-        p = sg_pipeline{};
-    }
-    if (g_terrainCasterPipeline.id) sg_destroy_pipeline(g_terrainCasterPipeline);
-    g_terrainCasterPipeline = sg_pipeline{};
-    if (g_terrainCasterShader.id) sg_destroy_shader(g_terrainCasterShader);
-    g_terrainCasterShader = sg_shader{};
-    if (g_casterShader.id) sg_destroy_shader(g_casterShader);
-    g_casterShader = sg_shader{};
 }
 
 } // namespace detail

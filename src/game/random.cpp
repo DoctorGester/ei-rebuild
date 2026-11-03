@@ -62,7 +62,6 @@ std::uint32_t IsaacRandom::Next() {
     return value;
 }
 
-// Defined here so that the function vectors link it.
 float IsaacRandom::Range(float min, float max) {
     // The draw (a 32-bit integer) times the range, rounded once to a float as the original's multiply at 24-bit
     // precision; the scale is exact (in the normal float range); the sum is the float sum.

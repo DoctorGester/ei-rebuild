@@ -1,11 +1,10 @@
 // The game settings a harness run reads: the registry snapshot and the pinned install files. See
 // harness_settings.h.
 #include "harness_settings.h"
-#include "harness_imports.h"
 
 #include "harness_starter.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "image/image_side.h"
 
 

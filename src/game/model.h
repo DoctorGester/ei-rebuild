@@ -253,6 +253,9 @@ public:
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
     int SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
+    // The device's screen made `width` x `height` (app::SetResolution, between frames): the viewport and the axis swap
+    // (the window's 4:3 part, screen_layout.h) on the pipeline's stacks again, the projection kept.
+    void ResizeScreen(int width, int height);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
     // 0 unless flags bit 0 is set. Takes the frame time, clears the frame and begins the scene (a

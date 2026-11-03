@@ -5,12 +5,18 @@
 #include "game_singletons.h"
 #include "model.h"
 
-#include "../hook/log.h"
+#include "app.h"
+
+#include "../platform/log.h"
 #include "platform/platform.h"
 #include "render/render.h"
 
+#include <algorithm>
+
 namespace present_window {
 namespace {
+
+int g_clientWidth = 0, g_clientHeight = 0;   // the window's client area at the last present (0: none yet)
 
 platform::NativeWindow Window() {
     TextureDevice* device = g_sceneRenderer.device;
@@ -44,21 +50,37 @@ void Update(TextureDevice* device) {
                 "(%d,%d)-(%d,%d)",
                 was.left, was.top, was.right, was.bottom, monitor.left, monitor.top, monitor.right, monitor.bottom);
     }
+    // Full screen keeps the resolution of the settings, scaled over the monitor; a window renders at its size once
+    // it changes (the size it was made at may be smaller than the settings': the frame is scaled into it).
+    int width = 0, height = 0;
+    if (!device->window || !platform::WindowPixelSize(device->window, &width, &height)) return;   // (minimised)
+    const bool changed = g_clientWidth != 0 && (width != g_clientWidth || height != g_clientHeight);
+    g_clientWidth = width;
+    g_clientHeight = height;
+    if (changed && !device->fullScreen) app::RequestResolution(width, height);
 }
 
-void MouseToGame(platform::Event* event) {
+bool MouseToGame(platform::Event* event) {
     using platform::EventType;
     const bool client = event->type >= EventType::MouseMove && event->type <= EventType::RightDouble;
-    if (!client && event->type != EventType::Wheel) return;
+    if (!client && event->type != EventType::Wheel) return true;
     platform::Point p{event->x, event->y};
     if (event->type == EventType::Wheel) {
         platform::NativeWindow window = Window();
-        if (!window) return;
+        if (!window) return true;
         platform::ScreenToClient(window, &p);
     }
     render::WindowToFrame(&p.x, &p.y);
+    bool onFrame = true;
+    if (const TextureDevice* device = g_sceneRenderer.device) {
+        const Rect& screen = device->screen;
+        const int x = std::clamp(p.x, 0, screen.right - 1), y = std::clamp(p.y, 0, screen.bottom - 1);
+        onFrame = x == p.x && y == p.y;
+        p = platform::Point{x, y};
+    }
     event->x = p.x;
     event->y = p.y;
+    return onFrame;
 }
 
 } // namespace present_window

@@ -64,7 +64,7 @@ if(WIN32)
     else()
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
-    set(EI_SYSTEM win32)   # src/platform/win32, with game.exe's import slots (gameapi.h)
+    set(EI_SYSTEM win32)   # src/platform/win32
     set(EI_GRAPHICS d3d11)
     set(EI_GRAPHICS_BACKEND SOKOL_D3D11)
     set(EI_GRAPHICS_LIBRARIES d3d11 dxgi)
@@ -131,6 +131,13 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # (src/platform/sdl); the rest on the system's (src/platform/win32, the one place of the game's code that includes
 # <windows.h>, or src/platform/posix).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
+# The calls a harness run answers itself (src/platform/win32/game_calls.cpp): in the harness's builds the game takes
+# tests/verify's definitions (below), and the other programs that link the platform take the file (EI_GAME_CALLS).
+set(EI_GAME_CALLS)
+if(EI_HARNESS AND WIN32)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp)
+    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
+endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
@@ -139,11 +146,13 @@ target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its entry is
 # main (src/main.cpp, both systems); on Windows its one resource is its version information (src/main.rc, C23):
 # game.exe's own resources are not used.
-set(EI_PROGRAM_SOURCES src/hook/log.cpp src/hook/rebirth_hook.cpp)
+# The log is the program's, not ei_platform's: the offline checks that link the platform (tools/ui_check,
+# tools/perf_check) have their own ei::Log.
+set(EI_PROGRAM_SOURCES src/platform/log.cpp)
 add_executable(ei-rebuild WIN32 src/main.cpp ${EI_PROGRAM_SOURCES} ${EI_RESOURCES})
 target_include_directories(ei-rebuild PRIVATE include src)
 target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
-# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/hook/rebirth_hook.cpp):
+# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
 # into config/rebirth_profile.inc in the build folder.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini)
@@ -155,7 +164,7 @@ foreach(line ${EI_REBIRTH_PROFILE_LINES})
 endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
-set_source_files_properties(src/hook/rebirth_hook.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
+set_source_files_properties(src/game/rebirth_profile.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 # The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
@@ -170,9 +179,9 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
-    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place; sokol's validation
-    # layer is on (its messages in ei-rebuild.log), with the Direct3D backend's removable device
-    # (src/platform/d3d11/graphics_d3d11.h), which the harness's image side (tests/verify/image) reaches.
+    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, and its answers to
+    # the game's file, .ini, socket and desktop calls (its overlay, its sockets on 127.0.0.1) game_calls.cpp's; sokol's
+    # validation layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)
@@ -190,10 +199,11 @@ if(WIN32)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
     target_include_directories(ei_launch PRIVATE src)
 
-    # The unit checks (tests/unit): the settings file's format and lib::HashMap's walk order, without the game.
-    # build.cmd runs it.
+    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order and the .ini reader, without
+    # the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   src/game/settings_document.cpp src/lib/hash_map.cpp src/lib/text_case.cpp)
+                   tests/unit/ini_file.cpp src/game/settings_document.cpp src/game/ini_file.cpp src/game/asset_text.cpp
+                   src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE include src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
 
@@ -218,12 +228,12 @@ if(WIN32)
     target_include_directories(ei_perf_check PRIVATE include src third_party/sokol)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
-    # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, .ini files, the
+    # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
     # one-instance lock, sockets, the settings document; tests/port/port_check.cpp) and the interface canvases' glyph
     # cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
-                   tests/unit/settings_file.cpp)
+                   tests/unit/settings_file.cpp tests/unit/ini_file.cpp src/game/ini_file.cpp src/game/asset_text.cpp)
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)

@@ -7,7 +7,7 @@
 #include "platform/platform.h"
 
 #include "ei/rebirth.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <cstdint>
 #include <cstdio>

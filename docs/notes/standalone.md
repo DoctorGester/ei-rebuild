@@ -11,8 +11,7 @@ The code still names some of game.exe's data by the original's addresses: commen
 build reads no game.exe.
 
 **Finding game.exe.** Every tool that reads game.exe goes through `tools/exe_path.py`. That covers exe_strings,
-rdata_literals, retired_vtables without `--check`, gen_iat without `--check`, find_vtables, find_dead_code and
-named_data `--emit`. The lookup order:
+rdata_literals, retired_vtables without `--check`, find_vtables and named_data `--emit`. The lookup order:
 1. `--exe` (or `EI_EXE`);
 2. `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the
    main checkout's).
@@ -91,28 +90,10 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
   - The pi * (1/180) product is `ei::kRadiansPerDegree` (src/game/angles.h).
   - The cells addon.dll writes are not literals: the WideScreen layout widths 00742B08 and 007428AC are
     `screen_layout::g_layoutWidth` / `g_panelRight`, and tests/verify/addon_sites.inc lists the sites.
-- **Own import table** (src/platform/win32/import_table.h, src/platform/win32/image_imports.cpp, gameapi.h). The
-  table holds the slots of game.exe's imports that a call of ours or the harness goes through (gen_iat.py's
-  `reached()`). A slot is reached by `ImportTable::X` in the harness, `Imports().X`, or `gameapi::X`. The reached
-  slots are:
-  - Winsock 1.1 by ordinal (WSOCK32; prototypes in src/platform/win32/import_prototypes.h);
-  - the clocks;
-  - the files, folders and profile reads;
-  - the window and cursor calls the harness redirects.
-
-  How the slots are set up:
-  - **When:** image_imports.cpp resolves them from System32 at static initialisation (`init_seg(compiler)`). That is
-    before the harness's static constructor takes its slots.
-  - **Text calls:** a text call's slot takes its UTF-8 version ("U2: the system boundary").
-  - **Calling:** our code calls a slot as `gameapi::X`, a reference bound in gameapi.cpp under `init_seg(lib)`. Every
-    other Windows function is called as `::X`.
-  - **Generated files:** `tools/gen_iat.py` writes import_table.h, image_imports.inc and gameapi.h / .cpp. Its
-    `--check` (a build check) fails on any of these:
-    - a hand edit;
-    - a new harness route on a slot;
-    - a `gameapi::` call of an import the table lacks;
-    - a slot nothing reaches any more.
-  - **Moving off:** a slot goes from the table once the harness redirects that call in its own platform backend.
+- **No table of game.exe's imports.** The exe's imports are its own, from the linker, and the platform calls the
+  system directly (the wide calls for text). The slots of game.exe's imports that the program once kept existed only
+  for the harness to patch; the harness now answers the calls it redirects at link time (docs/notes/platform.md, "The
+  harness's answers").
 
 ### Named data (C18)
 
@@ -184,7 +165,6 @@ Three kinds of object keep the game's exit order instead:
 - **Containers whose exit function frees into the game's order** are `constinit` with no destructor, their exit
   function ported beside them and registered with `std::atexit`.
 
-A plain global's constructor may call `gameapi`: the import slots are resolved before every other static constructor.
 
 ### Compiler-made vtables (C19)
 
@@ -241,8 +221,6 @@ Classes are ordinary C++: constructors, virtual destructors, virtual overrides w
 ### In place of game.exe's module
 
 - **Command line:** `ei-rebuild ... -- <game args>` is WinMain's line. Nothing of ours calls GetCommandLineA.
-- **DirectInput:** called from System32's dinput.dll with the exe's module as hInstance. c_dfDIMouse is our copy,
-  `DirectInputMouse::MouseDataFormat`.
 - **Hook points:** code bytes the harness reached in game.exe are hook points in ours (`ei::mainloop::g_harnessHooks`,
   main_loop.h).
 - **Rebirth:** the start-up reads the flags first ("The Rebirth profile"). What addon.dll and EI_Plugin patch is
@@ -396,7 +374,8 @@ The rest:
 - **Host functions:** atof, sscanf, fmod, modf, floor and ceil are the host's.
 - **Conversions:** `_ftol` and FISTP are `static_cast<int>(static_cast<std::int64_t>(x))` and `lib::RoundEven`
   (float-maths.md, "Conversions and copies").
-- **Files:** every open goes through the import slots, so the harness's redirection and a mod's hooks apply.
+- **Files:** every open goes through platform/platform.h, which the harness answers in its builds for its save /
+  install redirection.
   - `platform::File` is a Win32 handle; text lines are written with `WriteLine`.
   - `platform::ReadFile` reads a whole file.
   - `platform::FileFind` does CFileFind's read-ahead.
@@ -490,39 +469,25 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U2: the system boundary
 
-- **Where:** src/platform/win32/platform_win32.h. The import slot of each ANSI call that takes or gives text holds its
-  UTF-8 version (`text::utf8::<Name>A`, with the same signature). `text::SystemRoute` routes it, from the `TEXT_ROUTE`
-  list that gen_iat.py's `routed()` reads.
-- **Routed calls:**
-  - the files: CreateFile, FindFirstFile / FindNextFile, Delete / Move / CopyFile, Create- / RemoveDirectory,
-    GetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName, GetDiskFreeSpace,
-    GetVolumeInformation;
-  - CreateWindowEx (a non-ASCII title is set through `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
-    GetKeyNameText;
-  - the window's class and messages (U4).
-
-  Every call through `gameapi::` passes and receives UTF-8. The harness wraps the UTF-8 versions, so its redirects work
-  on the same bytes. A new `gameapi::` call that takes or gives text needs its version and route.
-- **Direct calls:** our own code calls `text::utf8::<Name>A` by name: mod_folders, script_addon_*, console_addon,
-  settings, world_client_maps.
-- **Input that is not UTF-8** is taken in the ANSI code page. Output is always UTF-8.
-- **Not routed:** the profile calls (`IniFile`; their values round-trip as bytes and the config\*.ini names are
-  ASCII), OutputDebugString.
+- **Where:** src/platform/win32/platform_win32.h. The Windows backend (platform_win32.cpp, game_calls.cpp) calls the
+  wide (UTF-16) functions wherever text crosses and converts with `text::Wide` / `text::Narrow`: file and folder names
+  (create, find, delete, move, copy, attributes, mapping), the current folder and full paths, the program's path, the
+  volume label, the key names, the other game window's class. The window, its title, the message box and typed text are
+  SDL's (UTF-8). The harness's saves redirect, overlay and settings snapshot work on the UTF-8 path before the wide
+  call.
+- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h) through `platform::ReadFile`, their
+  text taken from the asset code page into UTF-8.
+- **ANSI still:** OutputDebugString.
 - **Save names:** saves are folders `saves\save<n>` with the title inside info.sav, so a title never reaches a file
   name. Cyrillic file names are checked by utf8_typing's `utf8files` step (tests/verify/harness_utf8.h).
 
 ### U4: typing
 
-- **The window is a Unicode one.** The slots of `RegisterClassExA`, `DefWindowProcA`, `GetMessageA`, `PeekMessageA`
-  and `DispatchMessageA` take the wide calls. Retrieval and dispatch must both be wide: a message taken with an A call
-  is converted to the ANSI code page whatever the window.
-- **Characters:** WM_CHAR carries a UTF-16 unit. `TypedCharacter` (app.cpp) joins a surrogate pair, drops a lone half,
-  and passes the interface a code point.
+- **Typed text** (platform_sdl.cpp `TakeText`): SDL's text input is UTF-8; each character is queued as UTF-16 units
+  (a pair past U+FFFF). `TypedCharacter` (app.cpp) joins a surrogate pair, drops a lone half, and passes the interface
+  a code point.
 - **The editors:** the caret stays a byte offset at a character's start. They are the message box's edit field (its
   letter class past ASCII is `platform::IsLetter`), the console line, the chat line and the save window's name.
-- **Rule from a real bug:** a route must be a function of ours (`text::utf8::DefWindowProcA` calling
-  `DefWindowProcW`), never `&::DefWindowProcW`. The routes table is read during static initialisation, before an
-  import's address is set.
 - **Check:** tests/scenarios/utf8_typing.txt.
   - `typeunicode` types Cyrillic and a character past U+FFFF, and `consoleline` checks the line's bytes and caret after
     editing keys.
@@ -578,7 +543,7 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
 - **What a play needs** (release build): the exe alone.
   - **From the game folder:** the data (res, maps, camera, movies, stream, ...), but no DLL of the game's (no Miles,
     Bink or `*.asi`).
-  - **Built in:** the shaders, the interface fonts, the import table, the Rebirth profile and the version resource.
+  - **Built in:** the shaders, the interface fonts, the Rebirth profile and the version resource.
   - **Written when missing:** `ei_settings.ini`.
   - **Written as output:** `ei-rebuild.log` beside the exe (EI_OUT_DIR under the harness), and the saves.
   - **Not read:** `third_party_notices.txt` is the licences, shipped beside the exe.
@@ -625,22 +590,24 @@ Every Windows build is x64 (release, verify, debug, asan, play; vcvars64).
 
 The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (EI_HARNESS), with its image side
 (tests/verify/image) calling our code by name. The release and play builds have none of it.
-- **Why linked, not a DLL:** the image side reaches about 120 functions (image_side.h) and must take import slots
-  before the exe's static initialisers.
+- **Why linked, not a DLL:** the image side reaches about 120 functions (image_side.h), and the platform calls it
+  answers are resolved at link time.
 - **Where it reaches into game code:**
   - image/image_side.h and harness_digest_read.h;
-  - the hook points: `ei::mainloop::g_harnessHooks` (main_loop.h), `g_directInputObserver` (ui_cursor.h), the settings
+  - the hook points: `ei::mainloop::g_harnessHooks` (main_loop.h), the settings
     file's read filters and pin, the random generators' draw observers and seed hook, the console line observer, the
     memory stream write observer;
-  - the import slots it routes (harness_imports.h);
+  - the platform calls it answers (harness_platform.cpp: the backend's input, window and clocks; game_calls.cpp's files,
+    folders, sockets, volume label and other windows: platform.md, "The harness's answers");
   - the data seam;
   - `ei::SetMissingCodeHandler`;
   - the log.
 - **Logs:** our addresses are `ei-rebuild+offset`. resolve_crash.py, randtrace.py and profile_report.py read
   ei-rebuild.map; check_x87.py reads ei-rebuild.exe.
-- **The user's real mouse is kept out:** the game window's subclass answers WM_NCHITTEST with HTNOWHERE, and the
-  DirectInput mouse state is zeroed after each read (through `g_directInputObserver`). The report's `MOUSE:` line
-  counts reads, real moves left out and hit tests.
+- **The user's real keyboard and mouse are kept out** (harness_input.h): a harness game reads its input only from the
+  harness's own platform backend (harness_platform.h), which drops every system event. The steps still speak window
+  messages; `input::Post` makes each into the game's event. The report's `MOUSE:` line counts the real events left
+  out.
 
 ## 5. game.exe's role
 
@@ -652,10 +619,8 @@ original-oracle has the last build that ran it as the harness's reference. What 
   - comments and config/functions.csv name the original functions by address;
   - the data seam keeps unnamed data at its addresses;
   - the digest keeps the AI modes' ids as game.exe's table addresses.
-- **Its recordings:** the WideScreen references (run_all.py --widescreen) and tests/coverage/reach.txt.
-- **Function sizes:** src/hook/function_sizes.inc (from Ghidra) and config/extra_function_sizes.csv, for coverage and
-  find_dead_code. Add rows by hand, in order: gen_function_sizes.py rewrites every size from the Ghidra database.
-  config/library.csv's names are often wrong for STLport / MFC rows; read the code.
+- **Its recordings:** the WideScreen references (run_all.py --widescreen).
+- config/library.csv's names are often wrong for STLport / MFC rows; read the code.
 
 ## 6. The image's source files
 
@@ -664,22 +629,10 @@ original-oracle has the last build that ran it as the harness's reference. What 
 The program's `main`, the same on every system: the game folder, the settings file's game paths, the Rebirth flags,
 the renderer's device in the background, then WinMain (app::GameMain) with what follows `--`. "How it runs" above.
 
-### platform/win32/image_imports.cpp
-
-game.exe's imports in the program's own table ("Own import table"). `g_table`, an ordinary ImportTable of ours, is what
-platform/win32/import_table.h's Imports() returns. So everything that calls through a slot reaches it: gameapi.h's
-routed imports, Winsock, and the harness's slot routes.
-- **The slots:** every slot of image_imports.inc (written by tools/gen_iat.py: ImportTable member, DLL, function or
-  ordinal) resolves from System32.
-- **Text calls:** a text call's slot takes its UTF-8 version (text::SystemRoute).
-- **Failure:** a slot that does not resolve is logged and stays null.
-- **Order:** it runs before every other static constructor of the exe (init_seg(compiler)), because the harness takes
-  import slots in its own.
-
 ### platform/platform.h
 
-The game's files go through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
-redirection and a mod's hooks apply. The types:
+The game's files (the wide calls on Windows; the harness answers the opens and searches in its builds for its
+redirection). The types:
 - `File`: binary, a Win32 handle, three open modes, every open shared; text lines with `WriteLine`;
 - `MappedFile`: read only;
 - `ReadFile`: a whole file;

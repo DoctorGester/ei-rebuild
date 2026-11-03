@@ -91,7 +91,7 @@ struct SectorSpiral {
     RadiusTree radii;
     std::vector<SpiralOffset> offsets;
 };
-// The tables, built on first use (sector_spiral.cpp).
+// The tables, built on first use.
 const SectorSpiral& SectorSpiralTables();
 
 // The AI map's sector map (one virtual: the destructor).

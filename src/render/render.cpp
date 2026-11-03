@@ -6,7 +6,7 @@
 #include "render_perf.h"
 #include "render_ui.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include "render_state.h"
 #include "../game/texture.h"
@@ -15,15 +15,12 @@
 #include "../game/model.h"
 #include "platform/graphics.h"
 
-#include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
-#include <optional>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -267,79 +264,21 @@ bool g_started = false;
 std::uint32_t g_frameNumber = 0;
 std::uint32_t g_commits = 0;
 
-// The device, sokol and the pipelines at the first use. The game cannot run without them: a failure ends it.
-void MakePipelines(const char* what) {
-    if (!CreateTerrainShader()) Fatal("%s: the terrain shader could not be made.", what);
-    if (!CreateMeshShader()) Fatal("%s: the mesh shader could not be made.", what);
-    if (!CreateBlitPipeline()) Fatal("%s: the blit pipeline could not be made.", what);
-}
-
 } // namespace
 
+// The device, sokol and the pipelines at the first use. The game cannot run without them: a failure ends it.
 void detail::Start() {
     EnsureConfigured();
     if (g_started) return;
     platform::FloatingPointGuard fpu;
     if (!CreateDevice()) Fatal("Can't start the renderer: %s.", g_deviceError);
-    MakePipelines("Can't start the renderer");
+    if (!CreateTerrainShader()) Fatal("Can't start the renderer: the terrain shader could not be made.");
+    if (!CreateMeshShader()) Fatal("Can't start the renderer: the mesh shader could not be made.");
+    if (!CreateBlitPipeline()) Fatal("Can't start the renderer: the blit pipeline could not be made.");
     g_started = true;
 }
 
 namespace {
-
-// --- A lost device -------------------------------------------------------------------------------------
-
-bool g_simulateLoss = false;   // render::LoseDevice: taken at the end of the next presented frame
-int g_losses = 0, g_recoveries = 0;
-std::uint32_t g_lastLossCode = 0;   // the backend's code of the last loss (0: LoseDevice's)
-
-// Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
-// the device with them; a new device gets sokol again and the pipelines. The frame target, the
-// window's swap chain and textures are made again as the next frames ask for them (from the file levels kept for
-// them), the interface canvases from the commands each keeps. No new device ends the game.
-void RecreateDevice() {
-    platform::FloatingPointGuard fpu;
-    ++g_losses;
-    std::size_t kept = 0, keptBytes = 0;
-    DropWindow();
-    DestroyTarget();
-    DestroyTerrain();
-    DestroyMeshes();
-    DropBlits();
-    DropCanvases();
-    DestroyCompose();
-    DestroySmooth();
-    DestroyShadows();
-    perf::Release();
-    DropTextures(&kept, &keptBytes);
-    sg_shutdown();
-    platform::graphics::Stop();
-    ei::Log("render: making a new device (%zu textures to make again from %zu KB of their files)", kept,
-            keptBytes / 1024);
-    // A device right after a driver reset may not be available at once.
-    bool made = false;
-    for (int attempt = 0; attempt < 5 && !made; ++attempt) {
-        if (attempt) std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        made = CreateDevice();
-    }
-    if (!made) Fatal("The device was lost and no new one could be made: %s.", g_deviceError);
-    MakePipelines("The device was lost and made again");
-    RemakeComposed();
-    ++g_recoveries;
-}
-
-// The end of a presented frame (nothing of it holds sokol resources any more): a loss a call reported during the
-// frame, one the device reports (e.g. while minimised, when nothing presents), or one asked for makes everything
-// again.
-void CheckDevice() {
-    const std::optional<std::uint32_t> lost = platform::graphics::Lost();
-    if (!lost && !g_simulateLoss) return;
-    g_lastLossCode = lost ? *lost : 0;
-    if (lost) ei::Log("render: the device was lost (%08X)", static_cast<unsigned>(*lost));
-    else ei::Log("render: the device's loss asked for (render::LoseDevice)");
-    g_simulateLoss = false;
-    RecreateDevice();
-}
 
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
@@ -636,20 +575,10 @@ bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.e
 
 namespace detail {
 
-void DeviceLossCounts(WindowPresentInfo* info) {
-    info->deviceLosses = g_losses;
-    info->deviceRecoveries = g_recoveries;
-    info->lastLossCode = g_lastLossCode;
+void CheckDevice() {
+    if (const char* reason = platform::graphics::Lost())
+        Fatal("The graphics device was lost (%s); the game will close.", reason);
 }
-
-} // namespace detail
-
-void LoseDevice() {
-    if (!g_started) return;
-    g_simulateLoss = true;
-}
-
-namespace detail {
 
 void Fatal(const char* format, ...) {
     char text[512];

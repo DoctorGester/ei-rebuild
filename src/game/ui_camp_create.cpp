@@ -73,8 +73,10 @@ double FramesNow() { return platform::Milliseconds() * (15.0 / 1024.0); }
 
 void CampPages::CreateScreen() {
     BuildPages();
-    screen_layout::AddCurtains(this, 1);
+    curtains = screen_layout::AddCurtains(this, 1);
 }
+
+void CampPages::LayoutChanged() { screen_layout::PlaceCurtains(this, curtains); }
 
 void CampPages::BuildPages() {
     spellConstructor = false;

@@ -4,7 +4,7 @@
 
 #include "harness_pair.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 
 #include <cstring>
 #include <vector>
