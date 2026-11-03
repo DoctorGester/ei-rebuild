@@ -7205,6 +7205,14 @@ depends = ["C78"]
 note = "From build/reviews/c78_components.txt (C78's audit: 143 functions, 717 component accesses left): Rect::Inset / Sized helpers for the per-edge layout code (about 15 functions in ui_scrollbar, ui_help_page, ui_connect_list, ui_tooltip, ui_scroll_text and others); AIMap and RegionMap int-pair APIs (x, y arguments) to Point with Index(Point) / Contains(Point); a Rect to float4 uniform helper in render_blit / render_ui / render_cursor and Point-based render::ui::Line / Pixel (tools/ui_check changes); MotionPoint / MotionWaypoint to Vector2; FrameCursor held / hot as Points; the remaining ~90 Vector3 x-and-y leftovers of c74c_components.txt (ground-plane formulas with different terms need judgement); rerun the WSL rename audit for the Windows-only files (platform/win32, d3d11, tests/verify, tools) by hand. Goldens the same."
 
 [[ticket]]
+id = "C84"
+title = "Original bugs: triage the kept list, fix crashes/UB and leaks, rule 9 dropped"
+group = "cleanup"
+model = "opus"
+files = ["docs/notes/{ai", "combat", "console", "map_objects", "script", "sound", "units", "unit_ai}.md 'Original bugs kept'", "docs/rewrite-guide.md rule 9", "the code they name"]
+note = "User 2026-11-03 agreed. The eight 'Original bugs kept' sections (about 130 entries) were kept so results matched game.exe; since H40 (own goldens) and C76 that reason is gone. (1) Sort every entry into A: crash / undefined behaviour (null dereference, out-of-bounds read or write such as CreatePointLight's slot past 256 and the emitters' index 16, NaN-endless while loops, divide by zero, uninitialised fields, KillScript writing through null), B: leaks and wrong bookkeeping nobody sees (Create3D's dropped half, AttachMeshes overwriting a held mesh, scratch-set buckets, Load reading counts into the argument's slot), C: visible to the player (gameplay, balance, sound, messages: restarted flat sounds louder, RaiseSkill byte wrap, trap victims twice, AppendPoint's half-cell offset, 'termical', the 0.20000002 melee floor ...). Write the table to build/reviews/c84_original_bugs.md (entry, file:function, group, one-line fix). (2) Fix all of A and B; for each say whether goldens moved (re-record with --reason only where a fix changes a recorded run, 2 agreeing runs, and say which). (3) For C fix nothing; list each with a recommendation (fix / keep / Rebirth already fixes it, which flag) and the goldens it would change, for the user to decide. (4) Rewrite rule 9 in rewrite-guide.md (bugs are fixed unless they shape gameplay; those need the user) and trim each area's section to what is left. Split into C84a/C84b by area if it is more than one usage session's work; keep each run of the equivalence suites short."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
