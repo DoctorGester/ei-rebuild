@@ -889,8 +889,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 theirs->StopAction();
             }
         }
-        AITargetChoice now = brain->CurrentAttack();
-        if (now.object != best.object || now.part != best.part) brain->AttackTarget(chosen);
+        brain->ApplyAttack(&best);
         target.Reset();
     }
 }

@@ -518,18 +518,12 @@ void AIBrain::CallAllies(const Vector3& point) {
 
 // --- Perception memory ----------------------------------------------------------------------------
 
-bool AIMemory::Notice(const Vector3& point, int level, int decay) {
-    if (level <= noticedLevel) return false;
-    bool changed = true;
-    if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
-        // Farther than the limit; NaN is not.
-        changed = LengthSquared(point - NoticedPoint()) > 10.0f;
-    }
+void AIMemory::Notice(const Vector3& point, int level, int decay) {
+    if (level <= noticedLevel) return;
     noticedLevel = level;
     noticedX = point.x;
     noticedY = point.y;
     noticedDecay = decay;
-    return changed;
 }
 
 void AIMemory::Forget(EngineObject* object) {
@@ -551,11 +545,11 @@ void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
             console::EndLine(kAiLog << "Unit " << unit->id << " hear delayed sound: " << call->text);
             unit->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < kNoticeCallLevel) {
-            // Notice's work in float: logged when the level rises by more than 100 or the point is more than
-            // sqrt(10) away (NaN is near).
+            // Logged when the level rises by more than 100 or the point is more than sqrt(10) away in the plane
+            // (the memory keeps no z; NaN is near).
             bool changed = true;
             if (kNoticeCallLevel - memory->noticedLevel <= 100) {
-                changed = LengthSquared(call->point - memory->NoticedPoint()) > 10.0f;
+                changed = DistanceSquaredXY(call->point, memory->NoticedPoint()) > 10.0f;
             }
             memory->noticedX = call->point.x;
             memory->noticedLevel = kNoticeCallLevel;
@@ -571,7 +565,8 @@ void AIMemory::Update(UnitServer* who) {
     reports.Tick();
     calls.Update(who->unit, this);
     g_serverWorld.aiMap.events.Update(who, this);
-    noticedLevel += noticedDecay;
+    // Not below kPriorityNone: Suspection claims with the level, and no mode or test tells it from lower ones.
+    if (noticedLevel > kPriorityNone) noticedLevel = (std::max)(noticedLevel + noticedDecay, kPriorityNone);
 }
 
 bool AIMemory::CanTrack(Unit* self, Unit* other) {
