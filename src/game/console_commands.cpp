@@ -439,11 +439,12 @@ void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, 2); }
 // Ban [name].
 void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, 3); }
 
-// Fps 1|on|0|off (anything else: nothing).
+// Fps [1|on|0|off]: shows or hides the frame rate; anything else toggles it.
 void Fps(std::vector<std::string>* args) {
-    if (args->size() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
-    if (ArgOn(args, 0)) g_interface.ShowFps(1);
-    else if (ArgOff(args, 0)) g_interface.ShowFps(0);
+    bool on = g_interface.fpsSurface == nullptr;
+    if (!args->empty() && ArgOn(args, 0)) on = true;
+    else if (!args->empty() && ArgOff(args, 0)) on = false;
+    g_interface.ShowFps(on);
 }
 
 // Rate <bytes per second>.
