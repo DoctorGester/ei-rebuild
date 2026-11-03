@@ -196,11 +196,6 @@ if(WIN32)
     # The game is a windowed program whose entry is main.
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
 
-    # The launcher: starts the image (ei_launch), the harness's runs and play.cmd's.
-    add_executable(ei_launch tools/launcher/launch.cpp)
-    target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
-    target_include_directories(ei_launch PRIVATE src)
-
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader and
     # lib::ParseIpv4, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp

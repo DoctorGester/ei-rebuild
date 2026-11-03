@@ -1,9 +1,9 @@
-"""Tests of run_all.py's time limit handling without games (SV1d): a stand-in ei_launch.
+"""Tests of run_all.py's game runs without games (SV1d): launch() replaced, or a Python stand-in for the game.
 
 usage: python tools/test_run_all_timeout.py [-v]
 The real checks with a game are tests/scenarios/watchdog_*.txt ("# expect: TIMEOUT").
 """
-import os, shutil, subprocess, sys, tempfile, unittest
+import os, shutil, sys, tempfile, time, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,41 +32,38 @@ class Limits(unittest.TestCase):
 
 
 class Run(unittest.TestCase):
-    """run_once() with ei_launch replaced: its exit code and the report decide the result."""
+    """run_once() with launch() replaced: its result code and the report decide the result."""
 
-    def run_scenario(self, scenario_text, returncode, report, stdout='', stderr=''):
+    def run_scenario(self, scenario_text, returncode, report, text=''):
         with tempfile.TemporaryDirectory() as root:
             os.makedirs(os.path.join(root, 'tests', 'scenarios'))
             build = os.path.join(root, 'build')
             with open(os.path.join(root, 'tests', 'scenarios', 'x.txt'), 'w') as f:
                 f.write(scenario_text)
 
-            def fake(cmd, **kwargs):
-                out = cmd[cmd.index('--out') + 1]
+            def fake(scenario, out, data, build, env=None):
                 if report is not None:
                     with open(os.path.join(out, 'harness_report.txt'), 'w') as f:
                         f.write(report)
-                self.timeout = kwargs.get('timeout')
-                return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
+                return returncode, text
 
-            with mock.patch.object(subprocess, 'run', fake):
+            with mock.patch.object(run_all, 'launch', fake):
                 return run_all.run_once('x', 'standalone', None, root, build, False, None, None)
 
-    def test_ei_launch_ended_the_game(self):
+    def test_run_all_ended_the_game(self):
         result, _, failures, _, notes = self.run_scenario(
             'timeout 3\nhang all\n', run_all.TIMEOUT_EXIT, 'RESULT: RUNNING\n',
-            stderr='ei_launch: TIMEOUT: the game is still running 23 s after its start; terminating it\n')
+            'run_all: TIMEOUT: the game is still running 23 s after its start; terminating it\n')
         self.assertEqual(result, 'TIMEOUT')
         self.assertIn('3 s time limit', failures[0])
-        self.assertEqual(self.timeout, 3 + run_all.LIMIT_MARGIN_S + 90)
         self.assertTrue(any('terminating' in n for n in notes))
 
-    def test_silent_end_names_ei_launch_exit_code(self):
+    def test_silent_end_names_the_result_code(self):
         # C36b: the game died with no line in ei-rebuild.log and the report still said RUNNING.
-        result, _, failures, _, _ = self.run_scenario('quit\n', 1, 'RESULT: RUNNING\n', stdout='ei_launch: started\n')
+        result, _, failures, _, _ = self.run_scenario('quit\n', 1, 'RESULT: RUNNING\n', 'run_all: started\n')
         self.assertEqual(result, 'RUNNING')
         self.assertEqual(len(failures), 1)
-        self.assertIn('ei_launch exit code 1', failures[0])
+        self.assertIn('result code 1', failures[0])
 
     def test_watchdog_ended_the_game(self):
         result, _, failures, _, _ = self.run_scenario(
@@ -76,7 +73,7 @@ class Run(unittest.TestCase):
 
     def test_unkillable_game(self):
         result, _, failures, _, _ = self.run_scenario(
-            'quit\n', run_all.UNKILLABLE_EXIT, 'RESULT: RUNNING\n', stderr='ei_launch: the game (pid 1) is still alive\n')
+            'quit\n', run_all.UNKILLABLE_EXIT, 'RESULT: RUNNING\n', 'run_all: the game (pid 1) is still alive\n')
         self.assertEqual(result, 'TIMEOUT')
         self.assertIn('still alive', failures[-1])
 
@@ -91,6 +88,124 @@ class Run(unittest.TestCase):
         self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n')[0], 'PASS')
         self.assertEqual(self.run_scenario('quit\n', 1, 'FAILED: a check\nRESULT: FAIL\n')[0], 'FAIL')
         self.assertEqual(self.run_scenario('quit\n', 2, None)[0], 'NO REPORT')
+
+
+# A stand-in game for launch(): FAKE_GAME says what it does; it sees EI_OUT_DIR, EI_HARNESS and EI_PAIR as the image does.
+FAKE_GAME = r'''
+import os, sys, time
+out, mode = os.environ['EI_OUT_DIR'], os.environ['FAKE_GAME']
+peer = os.environ.get('EI_PAIR', ',0').endswith(',1')
+report = lambda text: open(os.path.join(out, 'harness_report.txt'), 'w').write(text)
+print('ei-rebuild: started', os.environ['EI_HARNESS'], os.environ.get('EI_PAIR', ''),
+      os.path.samefile(os.getcwd(), os.environ['EI_GAME_ROOT']))
+sys.stdout.flush()
+if mode == 'nostart':
+    time.sleep(60)
+report('RESULT: RUNNING\n')
+if mode == 'die':
+    sys.exit(3)
+if mode == 'hang':
+    time.sleep(60)
+if mode == 'settings':
+    open(os.path.join(out, 'ei_settings.ini'), 'w').write('[a]\nx = 2\n')
+report('console output:\n  hello\nRESULT: ' + ('FAIL' if peer and mode == 'peerfails' else 'PASS') + '\n')
+open(os.path.join(out, 'harness_quit'), 'w').close()
+if mode == 'exithang':
+    time.sleep(60)
+'''
+
+
+class Launch(unittest.TestCase):
+    """launch() with a Python stand-in for the game: the environment, the time limits, the report's completion."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.root = self.dir.name
+        self.game = os.path.join(self.root, 'game.py')
+        with open(self.game, 'w') as f:
+            f.write(FAKE_GAME)
+        self.install = os.path.join(self.root, 'install')
+        os.makedirs(self.install)
+        self.out = os.path.join(self.root, 'out')
+        os.makedirs(self.out)
+        for p in (mock.patch.dict(os.environ, {'EI_GAME_VANILLA': self.install, 'EI_GAME_REBIRTH': self.install}),
+                  mock.patch.object(run_all, 'LIMIT_MARGIN_S', 1), mock.patch.object(run_all, 'HARNESS_START_S', 2),
+                  mock.patch.object(run_all, 'EXIT_HANG_S', 1)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def scenario(self, text, name='x'):
+        path = os.path.join(self.root, 'scenarios', name + '.txt')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            f.write(text)
+        return path
+
+    def launch(self, mode, text='quit\n'):
+        """(result code, launch()'s text, the report) of a run of the stand-in in `mode` on a scenario of `text`."""
+        env = dict(os.environ, FAKE_GAME=mode)
+        start = time.time()
+        code, output = run_all.launch(self.scenario(text), self.out, 'vanilla', self.root, env, [sys.executable, self.game])
+        self.seconds = time.time() - start
+        path = os.path.join(self.out, 'harness_report.txt')
+        report = ''
+        if os.path.exists(path):
+            with open(path) as f:
+                report = f.read()
+        return code, output, report
+
+    def test_pass(self):
+        code, output, _ = self.launch('pass')
+        self.assertEqual(code, 0)
+        self.assertIn('ei-rebuild: started', output)
+        self.assertIn('True', output)                      # the working directory is the install
+        self.assertIn(os.path.join(self.root, 'scenarios', 'x.txt'), output)
+        self.assertFalse(os.path.exists(os.path.join(self.out, 'harness_quit')))
+        self.assertIn('result code 0', output)
+
+    def test_silent_end(self):
+        code, _, report = self.launch('die')
+        self.assertEqual(code, 1)
+        self.assertIn('FAILED: the game ended (exit code 3) before the harness wrote its result', report)
+        self.assertTrue(report.endswith('RESULT: FAIL\n'))
+
+    def test_no_harness(self):
+        code, output, _ = self.launch('nostart')
+        self.assertEqual(code, 2)
+        self.assertIn('the harness did not start', output)
+        self.assertLess(self.seconds, 20)
+
+    def test_timeout(self):
+        code, output, _ = self.launch('hang', 'timeout 1\nquit\n')
+        self.assertEqual(code, run_all.TIMEOUT_EXIT)
+        self.assertIn('TIMEOUT: the game is still running', output)
+        self.assertLess(self.seconds, 20)
+
+    def test_exit_hang(self):
+        code, output, _ = self.launch('exithang')
+        self.assertEqual(code, 0)
+        self.assertIn('still running 1 s after the scenario quit', output)
+        self.assertTrue(os.path.exists(os.path.join(self.out, 'exit_hang.txt')))
+
+    def test_settings_file(self):
+        os.makedirs(os.path.join(self.root, 'scenarios', 'settings'))
+        with open(os.path.join(self.root, 'scenarios', 'settings', 'x.ini'), 'w') as f:
+            f.write('[a]\nx = 1\n')
+        code, _, report = self.launch('settings', '# settings-file: settings/x.ini\nquit\n')
+        self.assertEqual(code, 1)
+        self.assertIn('FAILED: settings file line 2: expected "x = 1", got "x = 2"', report)
+
+    def test_pair(self):
+        self.scenario('quit\n', os.path.join('peer', 'p'))
+        code, output, report = self.launch('peerfails', 'peer p\nquit\n')
+        self.assertEqual(code, 1)
+        self.assertIn('FAILED: peer: did not pass', report)
+        with open(os.path.join(self.out, 'peer', 'launch.txt')) as f:
+            self.assertIn(',1 ', f.read())                 # EI_PAIR's side
+        self.assertIn(',0 ', output)
+        code, _, report = self.launch('pass', 'peer p\nquit\n')
+        self.assertEqual(code, 0, report)
 
 
 class Retries(unittest.TestCase):

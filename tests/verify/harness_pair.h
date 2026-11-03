@@ -6,7 +6,7 @@
 #include <vector>
 
 // Two harness games played together (verify build only; harness_pair.cpp, SV5d): a scenario with a
-// "peer <name>" line makes ei_launch start a second game beside it on tests/scenarios/peer/<name>.txt,
+// "peer <name>" line makes run_all start a second game beside it on tests/scenarios/peer/<name>.txt,
 // each with EI_PAIR=<pair name>,<side> (0 the scenario's own game, 1 the peer).
 //
 // What makes a pair repeat, so that each side has a golden of its own (tools/golden.py, the run

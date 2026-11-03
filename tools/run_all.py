@@ -4,24 +4,15 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                                [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
-  default          the standalone image (H40: game.exe is no longer run), as
-                   --standalone: ei_launch --standalone, build\\verify\\ei-rebuild.exe lays out game.exe's data
-                   without its code (it reads no game.exe, S18k1), the game and the harness linked in (S23), on the vanilla install's data
-                   (install "standalone", vanilla goldens), and on the Rebirth install's data
-                   with the patches of config/rebirth_profile.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
-                   EI_Plugin.asi either way; install "standalone-rebirth", Rebirth goldens). Every scenario runs
-                   on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
-                   --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's marks and every
-                   scenario with a step for one install, rebirthflags, addonpath or widescreen) or the named
-                   scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both.
-  drop-in          a scenario with a line "# drop-in: <why>" (tests/scenarios/dropin_*.txt) checks the exe dropped
-                   into a game folder (S23a; docs/notes/standalone.md, "The drop-in exe"): ei_launch sees the line and
-                   (as with --drop-in) copies the build's ei-rebuild.exe into <run folder>\\dropin, a folder made
-                   like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
-                   install), and starts it from the run folder with no EI_GAME_ROOT or EI_REBIRTH.
-                   On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
-                   --rebirth-only: one); never with --widescreen. Their goldens are their own runs' (H40; no
-                   EI_REBIRTH: the Rebirth install's run plays in the vanilla runs' 4:3 window, harness_starter.h).
+  default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
+                   tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
+                   install folder's own Rebirth profile as a player's exe does (EI_REBIRTH only when the caller sets
+                   it). Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
+                   (Rebirth goldens); the folders are EI_GAME_VANILLA and EI_GAME_REBIRTH (install_dir()). Every
+                   scenario runs on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after
+                   every merge): --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's
+                   marks and every scenario with a step for one install, rebirthflags, addonpath or widescreen) or
+                   the named scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both.
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
                    change), so its runs never need the machine to themselves. EI_RENDER reaches no run: a scenario's
                    "render" step sets the image's renderer options (EI_RENDER_EXTRA adds words to them).
@@ -50,12 +41,17 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
-game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
+game's watchdog ends it at the limit, launch() LIMIT_MARGIN_S later if the watchdog could not.
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, msvcrt, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
-import frame_store, prepare_scenario
+import frame_store, game_process, prepare_scenario
+
+if os.name == 'nt':
+    import msvcrt
+else:
+    import fcntl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens',
@@ -71,7 +67,7 @@ GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's g
 # Games running at once on this machine, over every checkout and every run_all (2026-10-14: three
 # workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
 # NVIDIA driver until Windows crashed twice). A slot is a byte lock on a file in the temp folder;
-# Windows drops it when the process ends, so a killed run never leaves a slot taken.
+# the system drops it when the process ends, so a killed run never leaves a slot taken.
 MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS', '16'))
 SLOT_DIR = os.path.join(tempfile.gettempdir(), 'ei_harness_slots')
 
@@ -80,7 +76,10 @@ def _lock(path):
     """Takes the one-byte lock on path without waiting; the open file, or None if another holds it."""
     f = open(path, 'a+b')
     try:
-        msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        if os.name == 'nt':
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, 0)
         return f
     except OSError:
         f.close()
@@ -89,7 +88,10 @@ def _lock(path):
 
 def _unlock(f):
     f.seek(0)
-    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+    if os.name == 'nt':
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        fcntl.lockf(f, fcntl.LOCK_UN, 1, 0)
     f.close()
 
 
@@ -141,34 +143,25 @@ def machine_slot(alone=False, count=1):
             _unlock(gate)
 
 
-@functools.lru_cache(maxsize=None)
-def run_dir(root):
-    """root's run dir (the installs' game.exe copies). EI_RUN_DIR names it for a checkout that is not a worktree (the
-    self-hosted runner's, .github/workflows/suites.yml), with no junction for a clean to follow. A worktree without
-    its own (a worker that forgot the junction, so every game ended NO REPORT) uses the main checkout's: its .git file
-    names <main>/.git/worktrees/<name>."""
-    if os.environ.get('EI_RUN_DIR'):
-        return os.environ['EI_RUN_DIR']
-    own = os.path.join(root, 'run')
-    if os.path.isdir(own):
-        return own
-    with contextlib.suppress(OSError):
-        with open(os.path.join(root, '.git'), encoding='utf8') as f:
-            gitdir = f.read().strip().removeprefix('gitdir:').strip()
-        main = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(gitdir))), 'run')
-        if os.path.isdir(main):
-            return main
-    return own
+# The installs whose data the runs play, read only (EI_GAME_VANILLA, EI_GAME_REBIRTH; play.cmd takes the same).
+INSTALL_ENV = {'vanilla': 'EI_GAME_VANILLA', 'rebirth': 'EI_GAME_REBIRTH'}
+DEFAULT_INSTALLS = {'vanilla': r'F:\games\EvilIslands', 'rebirth': r'F:\games\Evil Islands (Rebirth)'}
 
 
-# EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and
-# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_SAVETRACE, ...) is read by a game.
+def install_dir(data):
+    """The folder of the install whose data a run plays: data 'vanilla' or 'rebirth' (GOLDEN_INSTALL's names)."""
+    return os.environ.get(INSTALL_ENV[data]) or DEFAULT_INSTALLS[data]
+
+
+# EI_* variables that are not settings of a game: where the build, the installs and the references are, the machine's
+# slots, and what launch() sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_SAVETRACE, ...) is read by
+# a game.
 NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_WIDESCREEN_DIR', 'EI_PAIR',
-                'EI_PAIR_SLOT_HELD')
+                'EI_GAME_ROOT', 'EI_INSTALL_ROOTS', 'EI_GAME_VANILLA', 'EI_GAME_REBIRTH')
 
 
 def peer_scenario(scenario):
-    """The peer's scenario of a pair (SV5d): a scenario's "peer <name>" line makes ei_launch start a second game on
+    """The peer's scenario of a pair (SV5d): a scenario's "peer <name>" line makes launch() start a second game on
     tests/scenarios/peer/<name>.txt beside it (tests/verify/harness_pair.h); None without one."""
     with contextlib.suppress(OSError):
         with open(scenario, encoding='utf-8', errors='replace') as f:
@@ -190,12 +183,14 @@ def game_environment(environ=None):
             if k.startswith('EI_') and k not in NOT_GAME_ENV}
 
 
-# A run past its time limit. ei_launch exits with TIMEOUT_EXIT when it had to end the game itself and
-# UNKILLABLE_EXIT when the game stayed alive after TerminateProcess (a thread stuck in a driver call); the
-# game's own watchdog writes this failure into the report.
+# launch()'s results besides 0 (passed), 1 (failed) and 2 (no report, not started): the run passed its limit plus
+# LIMIT_MARGIN_S and the game had to be ended from outside (TIMEOUT_EXIT), or it stayed alive after that (a thread stuck
+# in a driver call: UNKILLABLE_EXIT). The game's own watchdog ends it at the limit and writes that into the report.
 TIMEOUT_EXIT = 4
 UNKILLABLE_EXIT = 5
-LIMIT_MARGIN_S = 20          # ei_launch's margin past the scenario's limit (launch.cpp kTimeoutMarginMs)
+LIMIT_MARGIN_S = 20
+HARNESS_START_S = 30         # the harness writes its report as it loads: none by then means it never started
+EXIT_HANG_S = 3              # a game still running this long after its scenario quit is hung on exit
 IN_GAME_TIMEOUT = 'scenario exceeded its'
 EXPECT_PREFIX = '# expect:'
 
@@ -222,49 +217,14 @@ def expected_result(scenario):
     return None
 
 
-DROP_IN_PREFIX = '# drop-in:'
-
-
-def drop_in(scenario):
-    """Whether the scenario has a line "# drop-in: <why>": it checks the drop-in exe (S23a). ei_launch makes its runs
-    drop-in runs (--drop-in); plan() runs it on both of the image's installs by default."""
-    with contextlib.suppress(OSError):
-        with open(scenario, encoding='utf-8', errors='replace') as f:
-            return any(text.startswith(DROP_IN_PREFIX) for text in f)
-    return False
-
-
-def remove_drop_in_folder(out):
-    """Removes a drop-in run's <out>/dropin (ei_launch's, left when it was killed) without following its junctions:
-    each junction is removed itself, never the install folder it names."""
-    def remove(path):
-        for entry in os.scandir(path):
-            if entry.is_junction():
-                os.rmdir(entry.path)   # the junction, not the folder it names
-            elif entry.is_symlink():
-                (os.rmdir if entry.is_dir() else os.unlink)(entry.path)
-            elif entry.is_dir():
-                remove(entry.path)
-            else:
-                os.chmod(entry.path, 0o666)
-                os.unlink(entry.path)
-        os.rmdir(path)
-    folder = os.path.join(out, 'dropin')
-    with contextlib.suppress(OSError):
-        if os.path.isjunction(folder) or os.path.islink(folder):
-            os.rmdir(folder)
-        elif os.path.isdir(folder):
-            remove(folder)
-
-
 def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, held=1,
         slots=None):
     """One game of a scenario on an install (a pair's two games for a scenario with a "peer" line, the peer's in
     the run folder's peer\\): the image on standalone (the vanilla data) or standalone-rebirth. root: the checkout
-    whose tests/scenarios it uses; build: the verify build folder (ei_launch.exe; the run folder is
+    whose tests/scenarios it uses; build: the verify build folder (ei-rebuild.exe; the run folder is
     <build>/runs/<folder>).
     take_slot False: the caller already holds held machine slots for it (tools/work_sched.py); a pair whose caller
-    holds one has ei_launch take the second. slots (with take_slot False): those slots as an object with release()
+    holds one takes the second here. slots (with take_slot False): those slots as an object with release()
     (called once the game has ended: the frame packing runs without them, SV10h) and acquire() (before the game
     starts: waits until they are held again).
     clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
@@ -348,6 +308,284 @@ def asan_failure(out):
     return None
 
 
+# ---- Starting a run's games
+#
+# launch() starts the image as a player's game starts (working directory and EI_GAME_ROOT the install), with the
+# harness's variables: EI_HARNESS (the scenario), EI_OUT_DIR (the run folder: log, report, saves), EI_INSTALL_ROOTS (the
+# installs no run may write in, tests/verify/harness_install.h) and for a pair EI_PAIR. The games print into launch.txt
+# in their run folders, followed by launch()'s own lines. A run ends whatever state the game is in: the game's watchdog
+# ends it at the scenario's limit; if it cannot, launch() ends it LIMIT_MARGIN_S later. The games are in a
+# game_process.Group, so none outlives this process.
+#
+# A pair (SV5d; tests/verify/harness_pair.h): a scenario's "peer <name>" line starts a second game beside the scenario's
+# own on tests/scenarios/peer/<name>.txt, writing to <run folder>/peer. Each gets EI_PAIR=<pair name>,<side> (0 the
+# scenario's game, 1 the peer) and the harness puts the two in lockstep on a network of their own. A game past its limit,
+# or whose harness never started, ends both; the peer's result goes into the scenario's report (FAILED: peer: lines), so
+# a pair has one result.
+
+EXE = 'ei-rebuild.exe' if os.name == 'nt' else 'ei-rebuild'
+BREAKPOINT_CODES = (0x80000003, -5)   # an INT3: the Windows exception code, SIGTRAP
+
+
+class Game:
+    """One game of a run: the scenario's own, or a pair's peer (label 'peer: ')."""
+
+    def __init__(self, scenario, out, label=''):
+        self.scenario, self.out, self.label = scenario, out, label
+        self.limit = scenario_limit(scenario)
+        self.report = os.path.join(out, 'harness_report.txt')
+        self.quit = os.path.join(out, 'harness_quit')   # the harness writes it when its scenario quits, after the report
+        self.proc = None
+        self.quit_seen = None
+
+
+def launch(scenario, out, data, build, env=None, command=None):
+    """Plays the scenario with <build>/ei-rebuild.exe on the install `data` ('vanilla' or 'rebirth'), writing to out.
+    env: the game's environment (None: this process's); command: what to start instead of the exe (tests). Returns
+    (code, text): code 0 passed, 1 failed, 2 no report or not started, TIMEOUT_EXIT or UNKILLABLE_EXIT; text what the
+    scenario's game printed and launch()'s own lines."""
+    said = []
+    games = [Game(scenario, out)]
+    peer = peer_scenario(scenario)
+    if peer:
+        if not os.path.exists(peer):
+            return 2, f"the peer's scenario {peer} not found\n"
+        games.append(Game(peer, os.path.join(out, 'peer'), 'peer: '))
+    game_root = install_dir(data)
+    base = dict(os.environ if env is None else env, EI_GAME_ROOT=game_root,
+                EI_INSTALL_ROOTS=os.pathsep.join([game_root, install_dir('vanilla'), install_dir('rebirth')]))
+    pair = f'ei_pair_{os.getpid()}_{time.monotonic_ns()}'
+    group = game_process.Group()
+    outputs = []
+    timed_out = unkillable = False
+    try:
+        for side, game in enumerate(games):
+            os.makedirs(game.out, exist_ok=True)
+            for path in (game.quit, game.report):     # an earlier run's report must not pass for this one
+                with contextlib.suppress(OSError):
+                    os.remove(path)
+            game_env = dict(base, EI_OUT_DIR=game.out, EI_HARNESS=os.path.abspath(game.scenario))
+            if len(games) > 1:
+                game_env['EI_PAIR'] = f'{pair},{side}'
+            outputs.append(open(os.path.join(game.out, 'launch.txt'), 'wb'))
+            try:
+                game.proc = group.start(command or [os.path.join(build, EXE)], game_root, game_env, outputs[-1])
+            except OSError as e:
+                said.append(f'cannot start {game.label}{os.path.join(build, EXE)}: {e}')
+                break
+            said.append(f'started {game.label}{EXE} (pid {game.proc.pid})')
+        else:
+            timed_out, unkillable = watch(games, group, said.append)
+    finally:
+        group.close()
+        for game in games:
+            if game.proc is not None:
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    game.proc.wait(5)
+        for f in outputs:
+            f.close()
+    code = finish(games, data, timed_out, unkillable, said.append)
+    for game in games:
+        with contextlib.suppress(OSError):
+            os.remove(game.quit)
+    with contextlib.suppress(OSError), open(os.path.join(out, 'launch.txt'), 'a', encoding='utf8') as f:
+        f.write(''.join(f'run_all: {line}\n' for line in said) + f'run_all: result code {code}\n')
+    text = ''
+    with contextlib.suppress(OSError), open(os.path.join(out, 'launch.txt'), encoding='utf8', errors='replace') as f:
+        text = f.read()
+    return code, text
+
+
+def end_game(game, group, say):
+    """Ends the game (and what it started), naming the windows it still has open (a dialog it waits on says why).
+    False when it is still alive 15 s later (a thread stuck in a driver call keeps a killed process alive)."""
+    for line in game_process.open_windows_bounded(game.proc.pid):
+        say(f'{game.label}open window {line}')
+    for _ in range(3):
+        group.kill(game.proc)
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            game.proc.wait(5)
+            return True
+    say(f'{game.label}the game (pid {game.proc.pid}) is still alive 15 s after it was ended: a thread of it is stuck in '
+        'the kernel (a driver call) and the system cannot end it yet')
+    return False
+
+
+def watch(games, group, say):
+    """Waits for the games, ending them at their limit plus LIMIT_MARGIN_S, when their harness has not started after
+    HARNESS_START_S, or (that game alone) when it still runs EXIT_HANG_S after its scenario quit; where the threads of
+    such a game wait goes to exit_hang.txt first. Returns (timed out, unkillable)."""
+    started = time.monotonic()
+    timed_out = unkillable = False
+    also = ' and the other' if len(games) > 1 else ''
+
+    def end_all():
+        nonlocal unkillable
+        for other in games:
+            if other.proc.poll() is None:
+                unkillable = not end_game(other, group, say) or unkillable
+
+    while any(g.proc.poll() is None for g in games):
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            next(g for g in games if g.proc.poll() is None).proc.wait(0.5)
+        elapsed = time.monotonic() - started
+        for game in games:
+            if game.proc.poll() is not None:
+                continue
+            if elapsed >= game.limit + LIMIT_MARGIN_S:
+                say(f"TIMEOUT: the {game.label}game is still running {elapsed:.0f} s after its start (the scenario's time "
+                    f'limit is {game.limit} s); terminating it{also}')
+                timed_out = True
+                end_all()
+                break
+            if elapsed >= HARNESS_START_S and not os.path.exists(game.report):
+                say(f'the harness did not start in the {game.label}game; terminating it{also}')
+                end_all()
+                break
+            if not os.path.exists(game.quit):
+                continue
+            game.quit_seen = game.quit_seen or time.monotonic()
+            if time.monotonic() - game.quit_seen >= EXIT_HANG_S:
+                with contextlib.suppress(OSError), open(os.path.join(game.out, 'exit_hang.txt'), 'w') as f:
+                    f.write(game_process.thread_stacks(game.proc))
+                say(f'{game.label}game still running {EXIT_HANG_S} s after the scenario quit (its threads: exit_hang.txt); '
+                    'terminating it')
+                unkillable = not end_game(game, group, say) or unkillable
+    return timed_out, unkillable
+
+
+def read_lines(path):
+    """The file's lines as bytes (line ends kept), or None when it cannot be read."""
+    try:
+        with open(path, 'rb') as f:
+            return f.read().splitlines(keepends=True)
+    except OSError:
+        return None
+
+
+def write_lines(path, lines):
+    with contextlib.suppress(OSError), open(path, 'wb') as f:
+        f.write(b''.join(lines))
+
+
+def add_failures(report, failures):
+    """"FAILED: <failure>" lines in the report in place of its result line, then the result FAIL."""
+    if not failures:
+        return
+    added = [f'FAILED: {f}\n'.encode('ascii', 'replace') for f in failures] + [b'RESULT: FAIL\n']
+    lines = read_lines(report) or []
+    at = next((i for i, l in enumerate(lines) if l.startswith(b'RESULT: ')), None)
+    write_lines(report, lines + added if at is None else lines[:at] + added + lines[at + 1:])
+
+
+def finish(games, data, timed_out, unkillable, say):
+    """The run's result code once its games have ended, the report completed: a game that died before its harness wrote
+    a result, the peer's result, the settings file the scenario expects."""
+    if not timed_out and not unkillable:
+        for game in games:
+            if game.proc is not None and not game.quit_seen:
+                report_silent_end(game, say)
+    main = games[0]
+    if not os.path.exists(main.report):
+        if main.proc is not None:
+            say(f'the game exited (code {main.proc.returncode}) without a harness report')
+        return 2
+    if len(games) > 1:
+        merge_peer_report(main.report, games[1].report, say)
+    if not timed_out and not unkillable:
+        check_settings_file(main.report, main.scenario, main.out, data == 'rebirth', say)
+    if timed_out:
+        return UNKILLABLE_EXIT if unkillable else TIMEOUT_EXIT
+    return 0 if any(l.startswith(b'RESULT: PASS') for l in read_lines(main.report) or []) else 1
+
+
+def report_silent_end(game, say):
+    """A game that ended by itself while its report still says RUNNING died before the harness could write a result
+    (an INT3, a crash the harness did not see): the report gets the reason instead of a silent RUNNING."""
+    lines = read_lines(game.report)
+    at = next((i for i, l in enumerate(lines or []) if l.startswith(b'RESULT: RUNNING')), None)
+    if at is None or game.proc.returncode is None:
+        return
+    code = game.proc.returncode
+    if code in BREAKPOINT_CODES or code & 0xFFFFFFFF == BREAKPOINT_CODES[0]:
+        why = (f'the game ended on a breakpoint (exit code {code & 0xFFFFFFFF:08X}) before the harness wrote its result: '
+               'an INT3 of the image with no code there (ei-rebuild.log, the run notes)')
+    else:
+        why = f'the game ended (exit code {code}) before the harness wrote its result'
+    say(f'{game.label}{why}')
+    lines[at:at + 1] = [f'FAILED: {why}\n'.encode(), b'RESULT: FAIL\n']
+    write_lines(game.report, lines)
+
+
+def merge_peer_report(report, peer_report, say):
+    """The peer's result in the scenario's report: a peer that did not pass (or whose window or network checks saw
+    something) adds "FAILED: peer: ..." lines and makes the result FAIL."""
+    lines = read_lines(peer_report)
+    failures = []
+    if lines is None:
+        failures.append('peer: no report (peer/harness_report.txt)')
+    else:
+        text = [l.decode('utf8', 'replace').rstrip('\r\n') for l in lines]
+        failures += ['peer: ' + l[8:] for l in text if l.startswith('FAILED: ')]
+        failures += ['peer: ' + l for l in text if l.startswith('WINDOW: ') and not l.startswith('WINDOW: out of sight')]
+        failures += ['peer: ' + l for l in text if l.startswith('NET: ') and not l.startswith('NET: loopback only')]
+        if not failures and not any(l.startswith('RESULT: PASS') for l in text):
+            failures.append('peer: did not pass (peer/harness_report.txt)')
+    say(f'peer: {"passed" if not failures else "did not pass"}')
+    add_failures(report, failures)
+
+
+# The image's settings file after the run (ST1a): a scenario line "# settings-file: <expected>" (a path from the
+# scenario's folder) says the run leaves an ei_settings.ini in its folder that must equal the expected file line by line
+# (line breaks apart): what the game saved on exit in a "settingsfile writable|import" run
+# (tests/verify/harness_settings.h). On the Rebirth install the expected file is <name>.rebirth<ext> (none: not
+# checked). The exit save comes after the report, so the check is here, once the game has ended.
+SETTINGS_FILE_PREFIX = '# settings-file:'
+
+
+def expected_settings_file(scenario, rebirth):
+    """The expected file the scenario names, or None (none named, or none for this install)."""
+    with contextlib.suppress(OSError), open(scenario, encoding='utf-8', errors='replace') as f:
+        for text in f:
+            if not text.startswith(SETTINGS_FILE_PREFIX):
+                continue
+            name = text[len(SETTINGS_FILE_PREFIX):].strip()
+            if not name:
+                return None
+            if rebirth:
+                stem, ext = os.path.splitext(name)
+                name = stem + '.rebirth' + ext
+            path = os.path.join(os.path.dirname(scenario), *name.split('/'))
+            return None if rebirth and not os.path.exists(path) else path
+    return None
+
+
+def check_settings_file(report, scenario, out, rebirth, say):
+    expected_path = expected_settings_file(scenario, rebirth)
+    if not expected_path or not any(l.startswith(b'RESULT: PASS') for l in read_lines(report) or []):
+        return   # nothing to check, or another failure comes first
+    failures = []
+    actual_path = os.path.join(out, 'ei_settings.ini')
+    if os.path.exists(actual_path + '.tmp'):
+        failures.append('settings file: ei_settings.ini.tmp was left behind (the save did not finish its move)')
+    actual, expected = read_lines(actual_path), read_lines(expected_path)
+    if actual is None:
+        failures.append('settings file: the run left no ei_settings.ini')
+    elif expected is None:
+        failures.append(f'settings file: cannot read the expected file ({expected_path})')
+    else:
+        a = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in actual]
+        e = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in expected]
+        shown = lambda lines, i: '(none)' if i >= len(lines) else '"' + lines[i][:150] + ('...' if len(lines[i]) > 150 else '') + '"'
+        differing = [i for i in range(max(len(a), len(e))) if a[i:i + 1] != e[i:i + 1]]
+        for i in differing[:6]:
+            failures.append(f'settings file line {i + 1}: expected {shown(e, i)}, got {shown(a, i)}')
+        if len(differing) > 6:
+            failures.append(f'settings file: {len(differing)} lines differ from the expected file ({expected_path})')
+    say(f'settings file: {"as expected" if not failures else "differs"}')
+    add_failures(report, failures)
+
+
 def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1, slots=None):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
@@ -356,23 +594,13 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
                              'is no longer run since H40)'], {}, []
     if low_disk := wait_for_disk(build):
         return 'FAIL', 0.0, [low_disk], {}, []
-    remove_drop_in_folder(out)   # its junctions first: nothing may reach into the install
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
-    cmd = [os.path.join(build, 'ei_launch.exe'), '--harness', scenario, '--out', out]
     env = None
     if game_env is not None:
         env = {k: v for k, v in os.environ.items() if k not in game_environment()}
         env.update(game_env)
-    if install == 'standalone':
-        # Never the display mode: our renderer whatever the environment says. The image reads no game.exe (S18k1):
-        # --game is the install whose data it plays (ei_launch sets EI_GAME_ROOT from it).
-        cmd += ['--game', r'F:\games\EvilIslands', '--standalone']
-    else:
-        # ei_launch's default game folder is the Rebirth install's.
-        cmd += ['--standalone']
-        env = dict(os.environ if env is None else env, EI_REBIRTH=standalone_rebirth_flags(root))
     environ = os.environ if env is None else env
     if 'EI_RENDER' in environ:
         # The image's renderer options are its scenario's "render" step, never the environment's.
@@ -380,49 +608,38 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if clock:
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     games = games_of(scenario)
-    if games > 1 and (take_slot or held >= games):
-        env = dict(os.environ if env is None else env, EI_PAIR_SLOT_HELD='1')   # ei_launch takes no slot itself
-    with machine_slot(count=games) if take_slot else contextlib.nullcontext():
+    # A pair whose caller holds one slot takes the second here.
+    with machine_slot(count=games) if take_slot else \
+            machine_slot(count=games - held) if games > held else contextlib.nullcontext():
         if slots:
             slots.acquire()
         start = time.time()
-        # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
-        # takes the game down with it).
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env,
-                                  timeout=scenario_limit(scenario) + LIMIT_MARGIN_S + 90)
-        except subprocess.TimeoutExpired as e:
-            proc = subprocess.CompletedProcess(cmd, TIMEOUT_EXIT, '', f'ei_launch did not end in time; terminating it ({e})')
+            code, text = launch(scenario, out, GOLDEN_INSTALL[install], build, env)
         finally:
             if slots:
                 slots.release()       # the game has ended: the rest of the run needs no slot
         seconds = time.time() - start
-    remove_drop_in_folder(out)   # a drop-in run's: ei_launch removes it, not when it was killed
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
     failures = [l[8:] for l in report.splitlines() if l.startswith('FAILED: ')]
-    # ei_launch's own output beside the run's log (C36b: a game that died with no line in ei-rebuild.log left a report
-    # saying RUNNING and nothing else to tell why).
-    with contextlib.suppress(OSError):
-        with open(os.path.join(out, 'ei_launch.txt'), 'w', encoding='utf8', errors='replace') as f:
-            f.write(f'exit code {proc.returncode}\n{proc.stdout}{proc.stderr}')
-    if result == 'RUNNING' and not failures and proc.returncode not in (TIMEOUT_EXIT, UNKILLABLE_EXIT):
-        failures = [f'the game ended before the harness wrote its result (ei_launch exit code {proc.returncode}; '
-                    'its output in ei_launch.txt)']
+    if result == 'RUNNING' and not failures and code not in (TIMEOUT_EXIT, UNKILLABLE_EXIT):
+        failures = [f'the game ended before the harness wrote its result (result code {code}; the game\'s output and '
+                    'run_all\'s lines in launch.txt)']
     # The per-function totals (verify wrappers, until S21d); the slot stays in the result (the work database's run
     # rows keep its shape), always empty.
     counts = {}
-    notes = [l for l in (proc.stdout + proc.stderr).splitlines()
+    notes = [l for l in text.splitlines()
              if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
              or l.startswith('ei-rebuild: ')]
-    if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
+    if code in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
         result = 'TIMEOUT'
         if not failures:
-            failures = [f'scenario exceeded its {scenario_limit(scenario)} s time limit; ei_launch ended the game'
-                        + ('' if proc.returncode != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
-        if proc.returncode == UNKILLABLE_EXIT:
-            failures.append('the game process is still alive after TerminateProcess')
+            failures = [f'scenario exceeded its {scenario_limit(scenario)} s time limit; run_all ended the game'
+                        + ('' if code != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
+        if code == UNKILLABLE_EXIT:
+            failures.append('the game process is still alive after it was ended')
     if any('the game crashed' in f or 'no code at' in f for f in failures):
         notes.append(crash_stack_note(out, build, root))
     if asan := asan_failure(out):
@@ -430,7 +647,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         if result == 'PASS':
             result = 'FAIL'
     expected = expected_result(scenario)
-    if expected and result == expected and proc.returncode != UNKILLABLE_EXIT:
+    if expected and result == expected and code != UNKILLABLE_EXIT:
         result = 'PASS'
         failures = []
         notes.append(f'ended as the scenario expects ({expected})')
@@ -670,18 +887,6 @@ def widescreen_check(jobs, out=None, root=ROOT, build=BUILD):
     return ok
 
 
-def standalone_rebirth_flags(root=ROOT):
-    """EI_REBIRTH for the standalone image on the Rebirth install: the patch names config/rebirth_profile.ini sets
-    true, comma-separated (S19)."""
-    names = []
-    with open(os.path.join(root, 'config', 'rebirth_profile.ini'), encoding='utf-8') as f:
-        for text in f:
-            m = re.match(r'\s*(\w+)\s*=\s*true\s*$', text)
-            if m and m.group(1) not in ('Default', 'NPlayers', 'Pause'):
-                names.append(m.group(1))
-    return ','.join(names)
-
-
 # A scenario line that makes the run depend on the install (SV9): a step for one install only, Rebirth's flags, its
 # mod folder or WideScreen switch.
 REBIRTH_LINE = re.compile(r'^\s*(?:rebirth|vanilla|rebirthflags|addonpath|widescreen)\s', re.M)
@@ -748,20 +953,10 @@ def plan(args, root=ROOT):
         rebirth = rebirth_scenarios(names, root)
     else:
         rebirth = set()
-    path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
-    # The drop-in exe's scenarios (S23a): the image only, on both installs unless one is asked for alone.
-    drop_ins = {n for n in names if drop_in(path(n))}
-    if args.widescreen:
-        for n in sorted(drop_ins):
-            print(f'{n}: left out, a drop-in scenario ("{DROP_IN_PREFIX}") runs the image\'s exe in a copy of the install',
-                  file=sys.stderr)
-        names = [n for n in names if n not in drop_ins]
-        drop_ins = set()
-    drop_in_installs = installs if args.vanilla_only or args.rebirth_only else list(STANDALONE_INSTALLS)
     if args.rebirth_only:
-        names = [n for n in names if n in rebirth or n in drop_ins]
-    jobs = [(name, install) for name in names for install in (drop_in_installs if name in drop_ins else installs)
-            if install not in ('rebirth', 'standalone-rebirth') or name in rebirth or name in drop_ins]
+        names = [n for n in names if n in rebirth]
+    jobs = [(name, install) for name in names for install in installs
+            if install != 'standalone-rebirth' or name in rebirth]
     if args.widescreen:
         # addon's WideScreen exists on the Rebirth install only
         names = args.scenarios or WIDESCREEN_SCENARIOS

@@ -3,7 +3,7 @@
 # (quotes, spaces at the ends, '=' and ';' inside, UTF-8, an empty value) and a comment, and the game's exit save
 # (WinMain's GameOptions::Save; settings::Save writes the file when a value changed, to ei_settings.ini.tmp and
 # moved over it) rewrites it. The options window's water waves setting is switched on in memory, so the save has a
-# change to write; ei_launch compares the file after the exit with settings/settings_save.ini (the save's whole
+# change to write; run_all compares the file after the exit with settings/settings_save.ini (the save's whole
 # output: every value the game writes, and the probe section kept as it was) and fails when ei_settings.ini.tmp is
 # left behind. The user's registry is never read or written.
 # To change the expected file: copy the run's ei_settings.ini over it after reading the difference.

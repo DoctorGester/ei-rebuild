@@ -2,8 +2,7 @@
 # installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to main and claude/** branches (cloud
 # sessions; docs/notes/harness.md, "The Suites workflow") and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
-# local work; EI_RUN_DIR names the main checkout's run folder (game.exe copies for the tools that read its file), so no
-# junction sits in this checkout.
+# local work. The runs read the installs' data where tools/run_all.py's install_dir() finds them.
 # By hand with "record" set, it re-records the goldens from the image instead (H40; tools/golden.py record) and pushes
 # them to the branch as a commit of its own; that push starts no run, so check the branch with another run after it.
 name: Suites
@@ -78,7 +77,6 @@ jobs:
         shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
-      EI_RUN_DIR: E:\workspace\ei\run
       SUITES: ${{ inputs.suites || 'full' }}
     steps:
       - uses: actions/checkout@v4
@@ -136,7 +134,6 @@ jobs:
         shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
-      EI_RUN_DIR: E:\workspace\ei\run
       # The ref input, or with its default (main) the branch the run was started on
       REF: ${{ inputs.ref != 'main' && inputs.ref || github.ref_name }}
       RECORD: ${{ inputs.record }}
@@ -231,7 +228,6 @@ jobs:
         shell: E:\bin\git\bin\bash.exe --noprofile --norc -eo pipefail {0}
     env:
       WORK_DB: E:\workspace\ei\build\live\work.db
-      EI_RUN_DIR: E:\workspace\ei\run
       REF: ${{ inputs.ref != 'main' && inputs.ref || github.ref_name }}
       BASE: ${{ inputs.diff_base }}
       SCENARIOS: ${{ inputs.scenarios }}

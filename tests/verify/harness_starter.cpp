@@ -29,7 +29,7 @@ char g_addonPath[MAX_PATH]; // its full path (Install)
 // On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
 // patches, and its DLL_PROCESS_DETACH starts <system32>\CTFMon.exe again and waits up to 2 s for it: every
 // run ended the user's input service (the new one dies with the run's job object), and the exit stood in
-// that CreateProcess, under the loader lock, until ei_launch ended the game 3 s after the scenario quit.
+// that CreateProcess, under the loader lock, until the launcher ended the game 3 s after the scenario quit.
 // Nothing in the game or in the patches reads the switch.
 constexpr DWORD kCtfMon = 0;
 
@@ -39,7 +39,7 @@ constexpr DWORD kCtfMon = 0;
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
 // same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
 // apart as the image's start-up tells the profiles apart (src/game/rebirth_profile.cpp): Rebirth's has starter\addon.dll
-// or EI_Plugin.asi. (EI_REBIRTH does not: ei_launch sets it to "defaults" for every run that names no flags.)
+// or EI_Plugin.asi. (EI_REBIRTH does not: a caller may set it on either install.)
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";
 

@@ -136,7 +136,7 @@ server's updates, the digest, the client's ticks, the steps, a pair's wait, the 
 the first frame; frames of 200 ms or more) and EI_PROFILE samples (`tools/profile_report.py`).
 - The suite's wall is net_pair_quest's (it starts first; the other runs fill the free slots). Median run 6-7 s; start-up
   about a second.
-- A slot is for a game on the GPU: run_all gives it back when ei_launch returns and takes it again before a retry's game
+- A slot is for a game on the GPU: run_all gives it back when the game has ended and takes it again before a retry's game
   (work_sched.GameSlots; work-board.md). Frames are packed by a Python process of its own (frame_store.pack_run), outside
   the slot: packing in the runner's process held the GIL and slowed every other run's set-up.
 - A frame on the virtual clock does not wait for vsync (Present(0, 0) on a flip-discard chain); most of it is the game's
@@ -197,7 +197,7 @@ always does the close instead of whichever real message came first.
   ping reaches the same game's server). Every game also gets a UDP port of its own instead of 8888 (games side by side
   otherwise joined each other's servers). The watchdog checks the process's endpoints every second; the report's `NET:`
   line, run_all's `network:` summary.
-- **Pairs** (tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second game on
+- **Pairs** (tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes run_all start a second game on
   tests/scenarios/peer/<name>.txt (one job object, either side's hang ends both; the peer's report in the run folder's
   peer\, merged into the host's as `FAILED: peer: ...`). The two run in lockstep, a turn at a time through a shared
   mapping, and their UDP sockets talk through a mailbox of virtual ports. A game's turn runs from its after-frame peek
@@ -232,7 +232,7 @@ MoveFile*, CopyFile*, CreateDirectory, RemoveDirectory, SetFileAttributes, ANSI 
 import slots, which the harness takes: a write of an install file goes to the run's overlay (harness_saves\<relative
 path>; reads prefer the overlay copy), so another DLL's writes (the graphics driver's caches, SDL's) land in the run
 folder like the game's. The guard, below every other layer: ntdll's NtCreateFile, NtOpenFile, NtSetInformationFile
-(rename, link, delete) and NtDeleteFile. Anything under an install root (the game folder, EI_INSTALL_ROOTS: ei_launch's
+(rename, link, delete) and NtDeleteFile. Anything under an install root (the game folder, EI_INSTALL_ROOTS: run_all's
 two installs) opened for writing, created, renamed, linked or deleted is refused and fails the run (`install: write
 refused: <call> <path> (<module>+<offset>)`, with the return addresses from the refused call up; `ei-rebuild.map` names
 ours). A run that reports it found a write the redirect does not cover. A log (*.log) or a file over 16 MB is not copied

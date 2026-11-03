@@ -7,11 +7,11 @@ rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default 
 rem                      The interface follows the window's shape on both (widescreen on a wide window).
 rem   The profile is the data folder's (src/game/rebirth_profile.cpp); a patch named in ei_settings.ini's [patches]
 rem   (name = true or false) wins over it in either mode.
-rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
-rem game left open never locks a build, and drawn with the smooth camera. The settings are
-rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults
-rem (docs/notes/standalone.md "Settings file": borderless full screen at the desktop's size, every graphics option
-rem at its best; the registry is never read). Delete it to start from them again.
+rem The release build (build\play, apart from the builds the suites use) is copied to build\play_game, so a game left
+rem open never locks a build, and drawn with the smooth camera. The exe starts on the install's data (EI_GAME_ROOT).
+rem The settings are build\play_game\ei_settings.ini, next to the exe; when it is missing the first start writes it with
+rem the defaults (docs/notes/standalone.md "Settings file": borderless full screen at the desktop's size, every graphics
+rem option at its best; the registry is never read). Delete it to start from them again.
 rem The renderer's switches are in that file's [renderer] section:
 rem   Msaa = 8             the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives;
 rem                        docs/notes/renderer.md section 11)
@@ -29,8 +29,8 @@ for %%a in (%*) do (
 )
 set _MSPDBSRV_ENDPOINT_=play
 set CFG=play
-set PLAY=%~dp0run\play
-set FILES=ei_launch.exe ei_launch.pdb ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt
+set PLAY=%~dp0build\play_game
+set FILES=ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt
 echo play: building the release (build\%CFG%)...
 call "%~dp0build.cmd" %CFG% > "%~dp0build\%CFG%_build.log" 2>&1
 if errorlevel 1 (
@@ -46,8 +46,6 @@ rem The Rebirth patches follow the data folder's profile; ei_settings.ini's [pat
 rem (docs/notes/rebirth.md).
 if not defined EI_GAME_REBIRTH set "EI_GAME_REBIRTH=F:\games\Evil Islands (Rebirth)"
 if not defined EI_GAME_VANILLA set "EI_GAME_VANILLA=F:\games\EvilIslands"
-set "GAME=%EI_GAME_REBIRTH%"
-if /i "%MODE%"=="vanilla" set "GAME=%EI_GAME_VANILLA%"
-cd /d "%PLAY%"
-rem No --exe: ei_launch starts the ei-rebuild.exe next to it, so the settings file is run\play's too.
-"%PLAY%\ei_launch.exe" --game "%GAME%" --standalone
+set "EI_GAME_ROOT=%EI_GAME_REBIRTH%"
+if /i "%MODE%"=="vanilla" set "EI_GAME_ROOT=%EI_GAME_VANILLA%"
+start "" /D "%EI_GAME_ROOT%" "%PLAY%\ei-rebuild.exe"

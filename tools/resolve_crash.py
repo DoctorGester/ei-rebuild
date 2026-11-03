@@ -320,13 +320,13 @@ def find_crash(lines):
 
 
 def guess_game_exe(logdir, root=ROOT):
-    """run/<install>/game.exe for a run folder named <scenario>-<install> (vanilla when unknown)."""
-    install = os.path.basename(os.path.normpath(logdir)).rsplit('-', 1)[-1]
-    for r in (root, os.path.dirname(os.path.dirname(os.path.dirname(root)))):    # a worktree's run\ may be absent
-        for inst in (install, 'vanilla'):
-            p = os.path.join(r, 'run', inst, 'game.exe')
-            if os.path.exists(p):
-                return p
+    """The install's game.exe for a run folder named <scenario>-<install> (tools/exe_path.py; vanilla's when it is not a
+    Rebirth run), or None."""
+    import exe_path
+    vanilla, rebirth = exe_path.install_exes(root)
+    for p in (rebirth, vanilla) if os.path.basename(os.path.normpath(logdir)).endswith('-rebirth') else (vanilla,):
+        if os.path.exists(p):
+            return p
     return None
 
 
@@ -334,8 +334,8 @@ def resolve(logdir, build=None, game_exe=None, raw=False, root=ROOT):
     """Lines of the named stack of the last crash in logdir/ei-rebuild.log (see the module text), or
     ['no crash logged']. build: the folder with our module's map and binary (<module>.map and .exe or .dll; default:
     logdir when it holds the map, else the build whose runs folder holds logdir, else
-    build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by
-    the folder's name). Without our binary or the exe the words of that module are not judged."""
+    build/verify). game_exe: the run's game.exe (default: its install's, by the folder's
+    name). Without our binary or the exe the words of that module are not judged."""
     with open(os.path.join(logdir, 'ei-rebuild.log'), errors='replace') as f:
         lines = f.read().splitlines()
     start = find_crash(lines)

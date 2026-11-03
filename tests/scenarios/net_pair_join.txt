@@ -1,4 +1,4 @@
-# SV5d: two games over the network. ei_launch starts a second game beside this one (the "peer" line:
+# SV5d: two games over the network. run_all starts a second game beside this one (the "peer" line:
 # tests/scenarios/peer/net_pair_join.txt); the two run in lockstep on a network of their own (harness_pair.h:
 # virtual UDP ports, this game's server on the game's own 8888). This game makes a hero and hosts a new game as
 # ui_mp_host does (GameFlow::StartServer, the multiplayer start zone and its base screen); the peer makes its

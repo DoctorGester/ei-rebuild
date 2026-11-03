@@ -151,8 +151,9 @@ each patch is the second argument in `src/lib/rebirth_patches.inc` and the `stan
 order (`src/standalone/startup.cpp`): the defaults; the game data folder's profile (`EI_GAME_ROOT`, else the exe's
 folder: where `starter\addon.dll` or `EI_Plugin.asi` is, `config/rebirth_profile.ini` with EI_Plugin.ini's players and
 pause mode; none when `EI_REBIRTH` is set); the settings file's `[patches]` (`Name = true|false`, and `NPlayers`,
-`Pause`, `SecondMaster`); the `EI_REBIRTH` environment variable (`ei_launch --rebirth <spec>`; `none`, `defaults`); a
-scenario's `rebirthflags` line. Harness runs set `EI_REBIRTH`, so they take no folder's profile. A file naming a patch
+`Pause`, `SecondMaster`); the `EI_REBIRTH` environment variable (a spec; `none`, `defaults`); a
+scenario's `rebirthflags` line. Harness runs set no `EI_REBIRTH`, so they take their install folder's profile as a
+player's exe does (a caller's `EI_REBIRTH` replaces it). A file naming a patch
 with no flag logs it and leaves it out. `rebirth_profile::RebirthLaunch()` (a flag other than the fixes on) makes a run
 count as the Rebirth install.
 

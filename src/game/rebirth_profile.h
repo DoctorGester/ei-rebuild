@@ -10,7 +10,7 @@ namespace ei::rebirth_profile {
 
 // The flags for the game in `gameFolder`: the defaults, then the folder's profile (Rebirth's, config/rebirth_profile.ini
 // with EI_Plugin.ini's player count and pause mode, where Rebirth's addon or plugin is; else the plain install's; none
-// when EI_REBIRTH names the flags: a harness run, ei_launch --rebirth), then the settings file's [patches], then
+// when EI_REBIRTH names the flags), then the settings file's [patches], then
 // EI_REBIRTH and the harness's specs. Logs the flags that are on.
 void Load(const std::string& gameFolder);
 

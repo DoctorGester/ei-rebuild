@@ -5,25 +5,33 @@ references) is in `standalone-verification.md`.
 
 ## Running a scenario
 
-`harness.cmd <scenario>` runs a scenario on `ei-rebuild.exe` with the vanilla install's data and exits with 0 when it
-passes. It writes the report (`build\verify\harness_report.txt`): everything the game console printed, and any failed
+`harness.cmd tests\scenarios\<name>.txt` runs one scenario on `ei-rebuild.exe` with the vanilla install's data
+(`run_all.py <name> --vanilla-only --retries 0`) and exits with 0 when it passes. The report
+(`build\verify\runs\<name>-standalone\harness_report.txt`) holds everything the game console printed, and any failed
 checks. Scenarios live in `tests/scenarios/`; the steps are listed at the top of `tests/verify/harness.cpp`.
 
     harness.cmd tests\scenarios\sandbox_actions.txt
 
 `python tools\run_all.py` runs every scenario on the vanilla install's data, several games at once (`--jobs N`,
 default 16; the whole suite takes about 2 minutes); workers run it through `python tools/work.py test <ID> [run_all
-args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`ei_launch --out`,
-`EI_OUT_DIR`): its `ei-rebuild.log`, report and `harness_saves`, emptied first. Installs: `standalone` (the vanilla
-data) and `standalone-rebirth` (the Rebirth data and goldens, the patches of `config/rebirth_profile.ini` as
-`EI_REBIRTH`; only on demand: `--rebirth` adds the smoke set of config/rebirth_scenarios.csv and the scenarios with
-Rebirth-specific steps, `--rebirth-only` runs those alone, `--all-rebirth` every scenario). `EI_BUILD_DIR` points
-run_all at another verify build.
+args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`EI_OUT_DIR`): its
+`ei-rebuild.log`, report and `harness_saves`, emptied first. Installs: `standalone` (the vanilla data) and
+`standalone-rebirth` (the Rebirth data and goldens; only on demand: `--rebirth` adds the smoke set of
+config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
+`--all-rebirth` every scenario). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
+`F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also play.cmd's and the tools that read
+game.exe, tools/exe_path.py). `EI_BUILD_DIR` points run_all at another verify build.
 
-A scenario with a line `# drop-in: <why>` (dropin_boot, dropin_profile) runs as a drop-in run: ei_launch copies the
-build's exe into `<run folder>\dropin`, a folder made like the install, and starts it from the run folder with no
-EI_GAME_ROOT (standalone.md, "The drop-in exe"). The line is read by ei_launch, so the scheduler's run_all (main's) runs
-a worktree's drop-in scenarios with the worktree's ei_launch.
+How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
+the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. No
+`EI_REBIRTH`: a run takes the install folder's own profile, as a player's exe does (rebirth.md; a caller's `EI_REBIRTH`,
+such as the Suites workflow's diff `flags`, replaces it on both installs). The game prints into the run folder's
+`launch.txt`, followed by run_all's own lines (`run_all: ...`). The games run in a job object on Windows (a session of
+their own with PR_SET_PDEATHSIG on Linux), so none outlives run_all.
+
+The scheduler that `work.py test` feeds is the main checkout's code: it plays a worktree's build with main's run_all. A
+branch that changes how run_all starts a game is checked with its own `python tools\run_all.py` (machine slots still
+apply), not through the scheduler, until it is merged.
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]` before the game starts
 (`tools/prepare_scenario.py`): the game sees those files under its `saves\` (e.g. `magic_traps.txt` and
@@ -74,14 +82,14 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   two captures or two runs' frames with a tolerance (`--mask` restricts it to where two other frames differ). A
   finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py). `render <spec>` sets the renderer's
   options for the run (renderer.md).
-- `peer <name>` makes a pair (`tests/verify/harness_pair.h`, `net_pair_join.txt`): ei_launch starts a second game on
+- `peer <name>` makes a pair (`tests/verify/harness_pair.h`, `net_pair_join.txt`): run_all starts a second game on
   `tests\scenarios\peer\<name>.txt` beside this one, the two in lockstep on a network of their own (the second joins the
   first's hosted game over virtual UDP ports); `peersignal <tag>` / `peerwait <seconds> <tag>` order the two scenarios.
   The peer's report and logs are in the run folder's `peer\`; a pair takes two of run_all's slots. `netcut` cuts one
   game's network (`net_pair_leave.txt`); `hidefile <path>` makes an install file read as missing in that game until it
   writes the file itself.
-- `rebirthflags <names>` turns on Rebirth patch flags for the run (run_all: `--rebirth all` or names; rebirth.md). A
-  harness run never takes a game folder's profile: ei_launch sets `EI_REBIRTH=defaults` when the caller set none.
+- `rebirthflags <names>` turns on Rebirth patch flags for the run, on top of the install folder's profile (rebirth.md).
+  `folderprofile` checks that profile itself (harness_folder_profile.h, `dropin_profile.txt`).
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`). A scenario with a `resolution` step runs alone on the machine.
@@ -149,15 +157,18 @@ check it. Harness runs open no sound device (sound.md).
 - A game that hangs on exit is ended 3 s after the scenario quits (where its threads were: `exit_hang.txt` in the run
   folder). Exit hangs come and go with the machine's load and are only a note. An empty `exit_hang.txt`, or one that
   lists only threads at `ntdll!RtlUserThreadStart` with no frames, means the process was still ending in the kernel.
-- ei_launch's own output and exit code go to the run's `ei_launch.txt`; a report left at `RESULT: RUNNING` with no
-  failure fails with its exit code.
+- The game's output and run_all's lines for the run go to its `launch.txt`; a game that ends while its report still
+  says `RESULT: RUNNING` gets a failure with its exit code (an INT3's named as such), and a harness that has not written
+  its report 30 s after the start ends the run without one. A scenario's `# settings-file:` line is checked after the
+  game has ended (run_all.check_settings_file).
 - When the game crashes, the stack is in `ei-rebuild.log`; run_all prints it by function names under the run's line
   (outermost first) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word).
 - A run that exceeds its time limit logs where the main thread waits. No game outlives its limit: the watchdog thread in
-  the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that thread cannot run, ei_launch
-  ends the game 20 s later (and the game runs in a job object that dies with ei_launch, children included). run_all
-  reports both as `TIMEOUT`; ei_launch exits 4 (or 5 when Windows could not end the process).
-  `tests\scenarios\watchdog_*.txt` check this (`# expect: TIMEOUT`).
+  the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that thread cannot run, run_all
+  ends the game 20 s later (and the game runs in a job object that dies with run_all, children included). run_all
+  reports both as `TIMEOUT` (and says when the system could not end the process).
+  `tests\scenarios\watchdog_*.txt` check this (`# expect: TIMEOUT`); `tools/test_run_all_timeout.py` checks run_all's
+  side with a Python stand-in for the game.
 
 ## The Suites workflow
 

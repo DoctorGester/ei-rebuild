@@ -2,7 +2,7 @@
 # to the end: the main menu's region 4 opens the titles, the text scrolls in from below at 25 twips a game-time
 # unit, and the window closes once the text has scrolled through and the movie has ended. Captures at four moments
 # of the scroll (the lines' places show the layout's heights; the last one is after the text has stopped), then
-# the main menu again (its frame number in ei_launch.txt is where the titles ended).
+# the main menu again (its frame number in launch.txt is where the titles ended).
 timeout 120
 reject Script error
 waitmenu
