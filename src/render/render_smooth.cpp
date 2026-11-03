@@ -1,9 +1,11 @@
 // The render quality's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
 // commands into a multisampled colour and depth target and resolves the colour into the frame target at the
-// end of each such pass; the interface draws into the frame target as without the option. Here: the two copies
-// between the targets where the frame changes from one to the other (the frame target's colour and depth into every
-// sample before a world run that follows interface draws; sample 0 of the multisampled depth into the frame target's
-// depth after a world run).
+// end of each such pass; the interface draws into the frame target as without the option. A multisampled depth
+// cannot be read back (SDL_GPU neither samples a multisampled texture nor resolves a depth), so every pipeline of
+// such a pass also writes each fragment's depth into a second, R32F, colour attachment, resolved with the colour.
+// Here: that attachment on the pipelines, and the two copies between the targets where the frame changes from one
+// to the other (the frame target's colour and depth into every sample before a world run that follows interface
+// draws; the resolved depth copy into the frame target's depth after a world run).
 #include "render.h"
 #include "render_internal.h"
 
@@ -31,6 +33,7 @@ sg_pipeline CopyPipeline(sg_shader shader, int samples, bool writeColour, const 
     p.colors[0].pixel_format = kColourFormat;
     p.colors[0].write_mask = writeColour ? SG_COLORMASK_RGBA : SG_COLORMASK_NONE;
     p.sample_count = samples;
+    AddDepthCopy(p);
     p.label = label;
     return sg_make_pipeline(&p);
 }
@@ -48,6 +51,13 @@ void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
 
 namespace detail {
 
+void AddDepthCopy(sg_pipeline_desc& p) {
+    if (p.sample_count <= 1) return;
+    p.color_count = 2;
+    p.colors[1].pixel_format = kDepthCopyFormat;
+    p.colors[1].write_mask = p.depth.write_enabled ? SG_COLORMASK_R : SG_COLORMASK_NONE;
+}
+
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
     DestroySmooth();
@@ -57,9 +67,9 @@ bool PrepareSmoothCopies(int samples) {
     d.label = "ei-smooth-copy";
     g_point = sg_make_sampler(&d);
     g_intoShader = sg_make_shader(into_multisampled_shader_desc(sg_query_backend()));
-    g_fromShader = sg_make_shader(depth_from_multisampled_shader_desc(sg_query_backend()));
+    g_fromShader = sg_make_shader(depth_from_resolved_shader_desc(sg_query_backend()));
     g_into = CopyPipeline(g_intoShader, samples, true, "ei-into-multisampled");
-    g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-multisampled");
+    g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-resolved");
     bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;
     if (!ok) {
         ei::Log("render: msaa: the copies between the targets could not be made (see the sokol messages above)");
@@ -75,7 +85,7 @@ void CopyIntoMultisampled(sg_view colour, sg_view depth) {
     Draw(g_into, views, 2);
 }
 
-void CopyDepthFromMultisampled(sg_view depth) { Draw(g_from, &depth, 1); }
+void CopyDepthFromResolved(sg_view depth) { Draw(g_from, &depth, 1); }
 
 void DestroySmooth() {
     if (g_into.id) sg_destroy_pipeline(g_into);

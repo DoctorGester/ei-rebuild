@@ -3,6 +3,7 @@
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
 // alpha it keeps).
 #include "bindings.hlsli"
+#include "depth_copy.hlsli"
 struct VsIn {
     [[vk::location(0)]] float3 pos : TEXCOORD0;
     [[vk::location(1)]] float4 col : TEXCOORD1;
@@ -188,7 +189,7 @@ float4 stage(int3 colourOp, int3 alphaOp, float4 current, float4 diffuse, float4
     return saturate(float4(c, a));
 }
 
-float4 ps_main(VsOut i) : SV_Target0 {
+float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     // The face normal in the landscape's space, turned to the camera (point shadows).
     float3 face = cross(ddx(i.land), ddy(i.land));
@@ -233,4 +234,6 @@ float4 ps_main(VsOut i) : SV_Target0 {
     if (fs.switches.y != 0) rgb = lerp(fs.fogColour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }
+
+DepthCopyOut ps_main(VsOut i) { return WithDepthCopy(Shade(i), i.pos.z); }
 #endif

@@ -176,7 +176,9 @@ vec4 stage(ivec3 colourOp, ivec3 alphaOp, vec4 current, vec4 diffuse, vec4 texel
     return clamp(vec4(c, a), 0.0, 1.0);
 }
 layout(location = 0) out vec4 frag_colour;
+layout(location = 1) out float frag_depth;   // the depth copy of a multisampled pass (render_smooth.cpp)
 void main() {
+    frag_depth = gl_FragCoord.z;
     vec3 dsx = dFdx(v_shadow.xyz), dsy = dFdy(v_shadow.xyz);
     // The face normal in the landscape's space, turned to the camera (point shadows).
     vec3 face = cross(dFdx(v_land), dFdy(v_land));

@@ -138,20 +138,24 @@ sg_image g_colour{}, g_depth{};
 sg_view g_colourAttachment{}, g_colourTexture{}, g_depthAttachment{};
 bool g_haveFrame = false;
 // With multisampling (SetMsaa) the world's runs of commands draw into a multisampled target of
-// g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour; the frame
-// target's depth has a texture view then (copied into the multisampled one before a world run).
+// g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour and whose depth copy
+// (kDepthCopyFormat) into g_resolvedDepth; the frame target's depth has a texture view then (copied into the
+// multisampled one before a world run).
 int g_targetSamples = 1;
-sg_image g_multiColour{}, g_multiDepth{};
-sg_view g_multiColourAttachment{}, g_multiDepthAttachment{}, g_multiDepthTexture{}, g_resolveAttachment{}, g_depthTexture{};
+sg_image g_multiColour{}, g_multiDepth{}, g_multiDepthCopy{}, g_resolvedDepth{};
+sg_view g_multiColourAttachment{}, g_multiDepthAttachment{}, g_multiDepthCopyAttachment{}, g_resolveAttachment{},
+    g_depthResolveAttachment{}, g_resolvedDepthTexture{}, g_depthTexture{};
 
 void DestroyMultisampled() {
-    for (sg_view* v : {&g_multiColourAttachment, &g_multiDepthAttachment, &g_multiDepthTexture, &g_resolveAttachment, &g_depthTexture}) {
+    for (sg_view* v : {&g_multiColourAttachment, &g_multiDepthAttachment, &g_multiDepthCopyAttachment, &g_resolveAttachment,
+                       &g_depthResolveAttachment, &g_resolvedDepthTexture, &g_depthTexture}) {
         if (v->id) sg_destroy_view(*v);
         *v = sg_view{};
     }
-    if (g_multiColour.id) sg_destroy_image(g_multiColour);
-    if (g_multiDepth.id) sg_destroy_image(g_multiDepth);
-    g_multiColour = g_multiDepth = sg_image{};
+    for (sg_image* i : {&g_multiColour, &g_multiDepth, &g_multiDepthCopy, &g_resolvedDepth}) {
+        if (i->id) sg_destroy_image(*i);
+        *i = sg_image{};
+    }
     g_targetSamples = 1;
 }
 
@@ -168,16 +172,25 @@ void DestroyTarget() {
     g_haveFrame = false;
 }
 
-// The multisampled colour and depth of `samples`; false when the device refused them.
+// A colour image of `format` and `samples` drawn into (resolved into when single-sampled: `resolved`).
+sg_image MakeColourImage(int width, int height, sg_pixel_format format, int samples, bool resolved, const char* label) {
+    sg_image_desc d{};
+    d.usage.color_attachment = true;
+    d.usage.resolve_attachment = resolved;
+    d.width = width;
+    d.height = height;
+    d.pixel_format = format;
+    d.sample_count = samples;
+    d.label = label;
+    return sg_make_image(&d);
+}
+
+// The multisampled colour, depth and depth copy of `samples` and the copy's resolve; false when the device
+// refused them.
 bool MakeMultisampled(int width, int height, int samples) {
-    sg_image_desc colour{};
-    colour.usage.color_attachment = true;
-    colour.width = width;
-    colour.height = height;
-    colour.pixel_format = kColourFormat;
-    colour.sample_count = samples;
-    colour.label = "ei-frame-colour-multisampled";
-    g_multiColour = sg_make_image(&colour);
+    g_multiColour = MakeColourImage(width, height, kColourFormat, samples, false, "ei-frame-colour-multisampled");
+    g_multiDepthCopy = MakeColourImage(width, height, kDepthCopyFormat, samples, false, "ei-frame-depth-copy-multisampled");
+    g_resolvedDepth = MakeColourImage(width, height, kDepthCopyFormat, 1, true, "ei-frame-depth-copy");
     sg_image_desc depth{};
     depth.usage.depth_stencil_attachment = true;
     depth.width = width;
@@ -193,17 +206,25 @@ bool MakeMultisampled(int width, int height, int samples) {
     v.depth_stencil_attachment.image = g_multiDepth;
     g_multiDepthAttachment = sg_make_view(&v);
     v = sg_view_desc{};
-    v.texture.image = g_multiDepth;
-    g_multiDepthTexture = sg_make_view(&v);
+    v.color_attachment.image = g_multiDepthCopy;
+    g_multiDepthCopyAttachment = sg_make_view(&v);
     v = sg_view_desc{};
     v.resolve_attachment.image = g_colour;
     g_resolveAttachment = sg_make_view(&v);
     v = sg_view_desc{};
+    v.resolve_attachment.image = g_resolvedDepth;
+    g_depthResolveAttachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = g_resolvedDepth;
+    g_resolvedDepthTexture = sg_make_view(&v);
+    v = sg_view_desc{};
     v.texture.image = g_depth;
     g_depthTexture = sg_make_view(&v);
-    bool ok = sg_query_image_state(g_multiColour) == SG_RESOURCESTATE_VALID &&
-              sg_query_image_state(g_multiDepth) == SG_RESOURCESTATE_VALID;
-    for (sg_view view : {g_multiColourAttachment, g_multiDepthAttachment, g_multiDepthTexture, g_resolveAttachment, g_depthTexture})
+    bool ok = true;
+    for (sg_image image : {g_multiColour, g_multiDepth, g_multiDepthCopy, g_resolvedDepth})
+        ok = ok && sg_query_image_state(image) == SG_RESOURCESTATE_VALID;
+    for (sg_view view : {g_multiColourAttachment, g_multiDepthAttachment, g_multiDepthCopyAttachment, g_resolveAttachment,
+                         g_depthResolveAttachment, g_resolvedDepthTexture, g_depthTexture})
         ok = ok && sg_query_view_state(view) == SG_RESOURCESTATE_VALID;
     ok = ok && PrepareSmoothCopies(samples);
     if (!ok) {
@@ -407,7 +428,7 @@ bool InWorld(std::size_t k) {
 }
 
 // A pass on the frame target. After a multisampled run its colour is the resolve's; its depth is
-// set from the multisampled one.
+// set from the resolved depth copy.
 void BeginFramePass() {
     bool first = g_holder == Holder::None;
     bool afterWorld = g_holder == Holder::Multisampled;
@@ -423,7 +444,7 @@ void BeginFramePass() {
     ++g_stats.passes;
     g_passSamples = 1;
     if (afterWorld) {
-        CopyDepthFromMultisampled(g_multiDepthTexture);
+        CopyDepthFromResolved(g_resolvedDepthTexture);
         ++g_counts.depthCopiesBack;
     }
     g_holder = Holder::Frame;
@@ -440,7 +461,9 @@ void BeginMultisampledPass() {
         copy.action.colors[0].store_action = SG_STOREACTION_STORE;
         copy.action.depth.load_action = SG_LOADACTION_DONTCARE;
         copy.action.depth.store_action = SG_STOREACTION_STORE;
+        copy.action.colors[1] = copy.action.colors[0];
         copy.attachments.colors[0] = g_multiColourAttachment;
+        copy.attachments.colors[1] = g_multiDepthCopyAttachment;
         copy.attachments.depth_stencil = g_multiDepthAttachment;
         copy.label = "ei-frame-into-multisampled";
         sg_begin_pass(&copy);
@@ -454,11 +477,16 @@ void BeginMultisampledPass() {
     pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
     pass.action.colors[0].store_action = SG_STOREACTION_STORE;
+    pass.action.colors[1].load_action = pass.action.colors[0].load_action;
+    pass.action.colors[1].clear_value = {1.0f, 0.0f, 0.0f, 0.0f};   // the depth's clear
+    pass.action.colors[1].store_action = SG_STOREACTION_STORE;
     pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.depth.clear_value = 1.0f;
     pass.action.depth.store_action = SG_STOREACTION_STORE;
     pass.attachments.colors[0] = g_multiColourAttachment;
+    pass.attachments.colors[1] = g_multiDepthCopyAttachment;
     pass.attachments.resolves[0] = g_resolveAttachment;
+    pass.attachments.resolves[1] = g_depthResolveAttachment;
     pass.attachments.depth_stencil = g_multiDepthAttachment;
     pass.label = "ei-frame-multisampled";
     sg_begin_pass(&pass);

@@ -37,6 +37,7 @@ sg_pipeline MakePipeline(PipelineKind kind, int samples) {
     p.colors[0].pixel_format = kColourFormat;
     p.colors[0].write_mask = kind == kClearDepth ? SG_COLORMASK_NONE : SG_COLORMASK_RGB;
     p.sample_count = samples;
+    AddDepthCopy(p);
     p.label = kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill";
     return sg_make_pipeline(&p);
 }

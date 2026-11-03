@@ -677,13 +677,19 @@ constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 // drawn; every pipeline drawing into it is made for it.
 int PassSampleCount();
 constexpr int kSmoothSamples = 8;   // the most the render quality asks for
+// The multisampled target's second colour attachment: each fragment's depth, written where the depth is (the
+// depth itself cannot be read back from a multisampled target), resolved into a plain texture.
+constexpr sg_pixel_format kDepthCopyFormat = SG_PIXELFORMAT_R32F;
+// A pipeline made for more than one sample: that attachment added, written when `p` writes the depth.
+void AddDepthCopy(sg_pipeline_desc& p);
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
-// Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample.
+// Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample (and the
+// depth into the depth copy's).
 void CopyIntoMultisampled(sg_view colour, sg_view depth);
-// Inside a pass on the frame target: its depth set to sample 0 of the multisampled depth; the colour comes
-// from the multisampled pass's resolve.
-void CopyDepthFromMultisampled(sg_view depth);
+// Inside a pass on the frame target: its depth set from the resolved depth copy; the colour comes from the
+// multisampled pass's resolve.
+void CopyDepthFromResolved(sg_view depth);
 void DestroySmooth();
 
 } // namespace render::detail

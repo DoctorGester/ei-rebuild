@@ -126,6 +126,7 @@ sg_pipeline Pipeline(const PassState& s, bool lines, bool cached) {
     p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
     p.sample_count = samples;
+    AddDepthCopy(p);
     p.label = "ei-mesh";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     g_pipelines.emplace(key, pipeline);
