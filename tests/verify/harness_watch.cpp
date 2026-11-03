@@ -3,7 +3,7 @@
 
 #include "image/image_side.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "platform/win32/thread_context.h"
 
 #include <windows.h>

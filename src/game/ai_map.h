@@ -24,12 +24,10 @@ constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height 
 constexpr std::uint8_t kCellWater = 0x80;    // under water (AIMap::InWaterAt)
 
 // One AI map cell: a 4-bit passability per unit size class, then heights.
-#pragma pack(push, 1)
 struct AIMapCell {
     std::uint32_t passable;     // per size class (Passability): 0 not passable, else the index into its cost table
     std::uint16_t groundLevel;  // terrain height in AI height units; blocks lines of sight
     std::uint8_t flags;         // the water's depth, kCellBridge, kCellWater
-    std::uint8_t unused_7;      // (the vector recordings keep game.exe's 9-byte cell)
     std::uint8_t level;         // compared with the unit's standing level
 
     // The passability of the size class whose field starts at bit `shift` (4 * size class; its low 5 bits count):
@@ -38,8 +36,6 @@ struct AIMapCell {
     int WaterDepth() const { return flags & kCellDepthMask; }
     bool InWater() const { return (flags & kCellWater) != 0; }
 };
-#pragma pack(pop)
-static_assert(sizeof(AIMapCell) == 9);
 
 // A cell's occluder word (AIMap::occluders). Bits 0-4: the cell's terrain type (AIMap::materials). Bit 8 set:
 // no occluder. Else with bit 7 clear one occluder is packed into the word: bits 5-6 its transparency, 9-11 its

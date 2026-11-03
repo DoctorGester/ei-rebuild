@@ -5,7 +5,7 @@
 
 #include "platform/graphics.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 
 #include <SDL3/SDL.h>
 

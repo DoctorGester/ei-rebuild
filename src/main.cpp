@@ -4,10 +4,10 @@
 //   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's game paths (Work path, CD-ROM Path)
 //   are read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
 #include "game/app.h"
+#include "game/rebirth_profile.h"
 #include "game/settings.h"
-#include "hook/log.h"
-#include "hook/rebirth_hook.h"
 #include "lib/text_case.h"
+#include "platform/log.h"
 #include "platform/platform.h"
 #include "render/render.h"
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     if (!settingsFile.empty()) settings::Pin(settingsFile.c_str(), nullptr, false);
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
-    ei::rebirth_hook::Load(folder);
+    ei::rebirth_profile::Load(folder);
     render::PrepareDevice();   // the renderer's device made while the game starts up
     return app::GameMain(platform::ProgramInstance(), nullptr, arguments.data(), 1);
 }

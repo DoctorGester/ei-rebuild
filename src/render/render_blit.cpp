@@ -5,7 +5,7 @@
 #include "render.h"
 #include "render_internal.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <cstring>
 #include <unordered_map>

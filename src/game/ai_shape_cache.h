@@ -43,5 +43,5 @@ public:
     std::unordered_map<float, SharedRef<RefObject>> shapes;
 };
 
-// The cache (defined in ai_movement.cpp).
+// The cache (defined in ai_unit_shape.cpp).
 extern UnitShapeCache g_unitShapes;

@@ -3,7 +3,7 @@
 #include "render_internal.h"
 #include "render_text.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>

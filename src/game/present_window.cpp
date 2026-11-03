@@ -7,7 +7,7 @@
 
 #include "app.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "platform/platform.h"
 #include "render/render.h"
 

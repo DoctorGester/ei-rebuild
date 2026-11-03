@@ -305,7 +305,7 @@ function render(data) {
                   { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
       { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11) and duplicated layouts.' }),
     lineChart(h, [{ name: 'Files calling Windows', color: accent, get: tr('platform_files') }],
-      { title: 'Platform layer', note: "Files of src/ (src/platform, src/render and src/hook aside) that include windows.h or call game.exe's imports (gameapi::); the platform layer (src/platform) takes their calls area by area." }),
+      { title: 'Platform layer', note: "Files of src/ (src/platform and src/render aside) that include windows.h or call game.exe's imports (gameapi::); the platform layer (src/platform) takes their calls area by area." }),
     lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],
       { title: 'Game data addresses', note: "Distinct literal addresses of game.exe's .rdata and .data in src/; C18 turns them into named globals." }),
     lineChart(h, [{ name: 'Named data ranges', color: accent, get: tr('named_ranges') },

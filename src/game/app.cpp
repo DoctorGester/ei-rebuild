@@ -10,7 +10,7 @@
 #include "game_strings.h"
 #include "present_window.h"
 #include "asset_text.h"
-#include "hook/log.h"
+#include "platform/log.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"

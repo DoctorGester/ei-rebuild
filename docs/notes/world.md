@@ -284,7 +284,7 @@ Facts a worker needs that the code comments do not say:
 - The AI's tables that game.exe's static initialisers build are built on first use in ours (C50a1): the smoother's 81
   transition tables (ai_path_smooth.cpp SmoothTables; game.exe's 007C3058 by 005C42B0, BuildSmoothEdges 005C3690 with the
   state lists 005C3840 / 005C3A00, SmoothTable::Build 005C3E10, MakeSmoothStep 005C4050 with cost factors 0x400 / 0x5A8 /
-  0x479 / 0x46E / 0x648 / 0x200 / 0) and the sector spiral (sector_spiral.cpp SectorSpiralTables; game.exe's 005BF8F0:
+  0x479 / 0x46E / 0x648 / 0x200 / 0) and the sector spiral (sector_map.cpp SectorSpiralTables; game.exe's 005BF8F0:
   441 offsets of a 21 x 21 square sorted by sector distance with the game's qsort, a length per distinct distance, last
   radius 1e30, RadiusTree::Build 005BF5F0). The path vectors' @PathTables record holds game.exe's tables; the replay
   compares ours with them. The shape cache `UnitShapeCache` (game.exe's an STLport hash_map of handle to shape, ours a

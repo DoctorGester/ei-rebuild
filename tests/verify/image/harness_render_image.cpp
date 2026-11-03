@@ -4,7 +4,7 @@
 
 #include "../harness_capture.h"
 
-#include "../../../src/hook/log.h"
+#include "../../../src/platform/log.h"
 
 #include "render/render.h"
 

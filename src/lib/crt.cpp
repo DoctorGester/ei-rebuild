@@ -95,7 +95,6 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
     }
 }
 
-#ifndef EI_VECTORS_REPLAY   // no replay reaches rand (tests/vectors/replay_unlinked.cpp)
 namespace {
 
 RandObserver g_randObserver;
@@ -119,6 +118,5 @@ int Rand() {
 
 void Srand(unsigned seed) { RandSeed() = seed; }
 unsigned& RandState() { return RandSeed(); }
-#endif
 
 } // namespace libcrt

@@ -183,7 +183,7 @@ writes one uninitialised stack byte (ours sends 0: A-Z1, items_spells.md).
 ### Message handlers (client table +0x24, server table; research from DR-H16 / DR-C4)
 
 Reached only through the handler tables, so Ghidra made no functions for them; they are rows in config/functions.csv (gap to
-the next function), config/extra_function_sizes.csv (code sizes, capstone) and src/hook/function_sizes.inc.
+the next function).
 
 Client (PlayerClient table +0x24; thiscall, +0x1C the player, +0x34 the received stream read through its slot 1 Read(buffer,
 n); no stack arguments; returns 1, 0 on a failed lookup or read where noted):

@@ -48,7 +48,7 @@ void Install(const char* savesDir);
 // ResOverride did): its size must be <bytes> (0: not found). An error message, empty when it matches.
 std::string ModFileStep(const std::string& argument);
 
-// Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_hook::SettingsOnly; S19).
+// Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_profile::SettingsOnly; S19).
 // Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.
 
 bool RebirthInstall();

@@ -13,8 +13,8 @@ and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue 
 `this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_static_init,
-retired_vtables, find_vtables,
-find_dead_code; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
+retired_vtables, find_vtables;
+the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
 
@@ -41,7 +41,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   exe) that reads no game.exe and lays out nothing at game.exe's addresses; nothing runs in or jumps through game.exe's
   code. `ei-rebuild [-- <game args>]` from anywhere: main enters the game folder (EI_GAME_ROOT when a launcher names
   it, else the exe's own), reads the settings file's game paths as EI_GAME_ROOT when it is set, loads the Rebirth flags
-  (src/hook/rebirth_hook.cpp: the folder's profile, the settings file's [patches], EI_REBIRTH), starts the renderer's
+  (src/game/rebirth_profile.cpp: the folder's profile, the settings file's [patches], EI_REBIRTH), starts the renderer's
   device in the background and calls WinMain (`app::GameMain`) with the game's arguments, what follows `--`
   (`platform::ArgumentsAfterSeparator`: on Windows the command line's own text). WinMain's first lines do what
   game.exe's static initialisers did beyond setting values (the sessions' pointers, the coder's tables, Winsock, the
@@ -930,9 +930,6 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   game.exe's functions to ours; progress / the dashboard dropped the port counts.
 - **game.exe's side** (until H40; the tag original-oracle): the vector recorders (`EI_RECORD`, tests/vectors/
   record_*.cpp) were game.exe's only hooks, installed with EI_VECTORS=1 and checked by check_stolen.py.
-- **Function sizes** (src/hook/function_sizes.inc from Ghidra, config/extra_function_sizes.csv for what Ghidra lacks
-  or cuts short) are the tools' (coverage, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
-  006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
@@ -991,7 +988,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   the same order, so those callers are std::sort (C35h): SetSun's lit sectors by (sy, sx) (one per grid cell),
   the script groups by id (the live objects' ids are unique; copies of one reference are equal), and the fake unit
   scene's corner records and pairs (dead code: equal records hold the same fields the sort's reader takes). Qsort
-  stays for the sector spiral's cells by distance (sector_spiral.cpp: many cells share a distance and the order
+  stays for the sector spiral's cells by distance (sector_map.cpp: many cells share a distance and the order
   among them is the walk order) and the ambience's class votes by weight (two classes can weigh the same; the first
   three heard are taken in that order).
 - **Formatting** (crt_format.cpp, C35c): one printf of ours, `libcrt::Format` (the full text) behind `str::Format` /
@@ -1179,7 +1176,7 @@ S2a (short getters as named members), S11b, S16e (`find_vtables.py` should take 
 function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
 WorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
 segment then ends the game in its "packet parsing error" box, the original's too. Multiplayer client paths and many container members are reached by no
-scenario (tests/coverage/coverage.csv).
+scenario.
 
 ## 3. Runtime: MFC, STLport, CRT later
 
@@ -1262,9 +1259,9 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   is lib/text_case.h's `UpperInPlace` / `LowerInPlace`; no cursor file is loaded (the world's wincurs cursor was
   never used).
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- **ANSI still**: the profile calls (`IniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
-  round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide, with
-  the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/: the exe's
+- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h, C73) through platform::ReadFile,
+  their text taken from the asset code page into UTF-8.
+- **ANSI still**: OutputDebugString, the loader's own calls (hook/, standalone/: the exe's
   folder, EI_GAME_ROOT through `RedirectGamePaths`).
 - **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never reaches
   a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked by utf8_typing's
@@ -1411,7 +1408,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   The defaults name no patch, so play.cmd's two modes share run\play's file and each takes its data folder's profile.
   When EI_REBIRTH is set no profile is taken: ei_launch sets it to `defaults` for a harness run whose caller set none,
   run_all to the Rebirth profile's names on the Rebirth install, so the harness's runs and goldens are as before and do
-  not read the install's EI_Plugin.ini. The harness's settings file follows `rebirth_hook::RebirthLaunch`, which is
+  not read the install's EI_Plugin.ini. The harness's settings file follows `rebirth_profile::RebirthLaunch`, which is
   taken from the flags before the file's first read (that file names no patch); EI_REBIRTH and the queued specs go on
   again after the file's lines.
 - **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
@@ -1485,7 +1482,7 @@ the original's runs (the tag original-oracle).
   generators' draw observers and seed hook, the console line observer, the memory stream write observer (each set
   through image_side.h); the platform calls it answers (harness_platform.cpp: the
   backend's input, window, clocks; game_calls.cpp's files, folders, profile reads, sockets, volume label, other
-  windows: docs/notes/platform.md, "The harness's answers"); the data seam (game_data.h); `ei::SetMissingCodeHandler`; the log (hook/log.h).
+  windows: docs/notes/platform.md, "The harness's answers"); the data seam (game_data.h); `ei::SetMissingCodeHandler`; the log (platform/log.h).
 - **Logs**: our code's addresses are `<module>+offset`, `ei::OwnModuleName()`: `ei-rebuild+` (the user chose the
   names ei-rebuild.exe and ei-rebuild.log, S23b; resolve_crash.py still reads older logs' ei_harness+, ei_standalone+
   and ei_hook+); resolve_crash.py, randtrace.py and profile_report.py take ei-rebuild.map; check_x87.py reads
@@ -1502,7 +1499,7 @@ references, coverage), with ei_harness.dll and the vector recorders its only cod
 - **Its addresses as names**: the comments and function lists name the original functions by address (config/
   functions.csv), the data seam keeps the unnamed data at its addresses, and the harness's digest keeps the AI modes'
   ids as game.exe's table addresses (ExeTableId, harness_digest.cpp: the goldens hash them).
-- **Its recordings**: the widescreen references (run_all.py --widescreen), tests/coverage/reach.txt. The function
+- **Its recordings**: the widescreen references (run_all.py --widescreen). The function
   vectors (game.exe's recorded calls, 32-bit payloads) went with the 32-bit build (C70); the tag original-oracle and
   git history have them.
 - EI_PROFILE=1 samples the image: StandaloneMain calls InstallProfiler before WinMain, and profile_report names the

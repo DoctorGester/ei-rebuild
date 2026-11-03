@@ -2,7 +2,7 @@
 #include "harness_clock.h"
 
 #include "../../src/game/game_data.h"
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "ei/main_loop.h"
 #include "image/image_side.h"
 

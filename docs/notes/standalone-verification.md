@@ -8,7 +8,7 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
 ## 1. How verification works now
 
 - **A rewrite is checked** by a golden scenario that reaches it, or by a unit check (tests/unit) where no game is
-  needed (rewrite guide, "Verification"); `tools/coverage.py` says which scenarios reach it (section 4).
+  needed (rewrite guide, "Verification").
 - **The suite** is the image's: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone`
   (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
   (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
@@ -136,16 +136,8 @@ the goldens' ever since. The two checks of ei_vectors that never needed the orig
 
 ## 4. Coverage
 
-`tools/coverage.py list` writes tests/coverage/coverage.csv: per rewritten function its status, golden (a golden
-scenario reaches it), vector (tests/vectors/data has its file), suite (only scenarios without a golden), unreached,
-startup / dead (tests/coverage/unreachable.txt), with a risk rank (size x area weight, x2 unreached); `who <address or
-name>`, `top [N] [--area]`. The reach data, tests/coverage/reach.txt: runs of the original with `EI_COVER=<file>`
-until H40 (src/hook/cover.cpp, in the tag original-oracle: a one-shot INT3 at each listed address; `coverage.py
-addresses <file>` lists every rewrite), then `coverage.py collect build\verify\runs --add` (a pair's peer\ log counts for its scenario; scenarios not in the runs keep
-their rows, those last collected before S21c from the hook build's EI_COVER=hooks). A-I23 collected the scenarios added
-since that the original runs on vanilla. Cover runs are for reach only: the breakpoints' first hits cost real time, an
-app_record run with them drew a different crt.rand at its first digest record and net_pair_quest fails with them (its
-reach is that failed run's, a lower bound), so goldens come from runs without EI_COVER.
+None measured since C71: the game.exe-address coverage (tools/coverage.py, tests/coverage, from runs of the
+original) went with the original's runs; H43 measures our source's coverage.
 - Start-up (A-I23): `app_record` (the frame recorder's pass length and files), `app_disc_prompt` (the disc check's
   second-disc boxes, harness_startup.h; app.md). Not reachable from a scenario: WinMain's second-instance exit (the run
   would end in WinMain before any step, with no state for a golden), the DirectX 7 check, the low-disk-space box

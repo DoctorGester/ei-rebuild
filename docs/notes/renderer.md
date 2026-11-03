@@ -493,8 +493,7 @@ come first, then what holds for the present path (the subsection names are cited
   skins and the item pictures on the GPU, R28a the screen copies (the menu backdrop, its greying, the save's picture,
   the pick picture); the global map's clouds and the save / load pictures are still written on the CPU (R28b).
 - **DirectDraw left after R11c**: R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only ports no
-  code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
-  them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
+  code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). R27b: the holder is `Surface` (no surface pointer),
   pixel formats are `render::PixelFormat` (bits and channel masks, render.h; R30g: the canvases' too) and the texture
   formats one fixed list

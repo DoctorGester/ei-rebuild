@@ -8,7 +8,7 @@
 #include "dib.h"
 #include "dx_errors.h"
 #include "texture.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "../render/render.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"

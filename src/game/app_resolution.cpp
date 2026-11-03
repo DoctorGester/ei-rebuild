@@ -10,7 +10,7 @@
 #include "ui.h"
 #include "ui_cursor.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 
 namespace app {
 

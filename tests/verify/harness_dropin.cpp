@@ -1,7 +1,7 @@
 // The drop-in exe's start-up checked in a run. See harness_dropin.h.
 #include "harness_dropin.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "ei/rebirth.h"
 #include "image/image_side.h"
 

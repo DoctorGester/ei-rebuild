@@ -9,7 +9,7 @@ Windows Registry Editor Version 5.00
 ; Rebirth's), Game Specific Settings\ShowTutorial 0 (docs/notes/standalone-verification.md, "Install files and
 ; registry"). A value or key a run reads that is not here fails the run; "name"=- and [-key] mark ones that are
 ; read but absent on purpose (the game takes its default). Work path / CD-ROM Path are replaced by the run's game
-; folder (EI_GAME_ROOT, src/hook/paths.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
+; folder (EI_GAME_ROOT, src/main.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
 ; addonpath lines and CtfMon (always 0) are answered before this file (harness_starter.h).
 
 [HKEY_CURRENT_USER\Software\Nival Interactive]

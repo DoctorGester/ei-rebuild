@@ -2,7 +2,7 @@
 #include "harness_camera.h"
 
 #include "image/image_side.h"
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 
 #include <cmath>
 #include <cstdio>

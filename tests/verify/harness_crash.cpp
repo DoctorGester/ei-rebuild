@@ -3,7 +3,7 @@
 #include "platform/win32/platform_win32.h"
 #include "image/image_side.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 
 #include <cstdio>
 #include <cstring>

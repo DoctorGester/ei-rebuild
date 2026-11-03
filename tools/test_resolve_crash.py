@@ -60,15 +60,9 @@ MAP = """ ei-rebuild
 """
 
 FUNCTIONS = """address,size_est,name,kind,status,source
-00401000,256,FUN_00401000,game,original,
-00401100,256,FUN_00401100,game,original,
+00401000,256,CWorldClient::Dress,game,original,
+00401100,256,ComposeTexture,game,original,
 00401200,256,entry,lib,original,
-"""
-
-COVERAGE = """# comment
-address,name,file,size,wrapper,status,risk,scenarios,golden,vector,reached_by
-00401000,CWorldClient::Dress,src/x.cpp,256,ours,golden,0,1,a,,
-00401100,ComposeTexture,src/game/texture_compose.cpp,256,ours,golden,0,1,a,,
 """
 
 
@@ -91,9 +85,7 @@ class Fixture(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
         os.makedirs(os.path.join(self.root, 'config'))
-        os.makedirs(os.path.join(self.root, 'tests', 'coverage'))
         write(os.path.join(self.root, 'config', 'functions.csv'), FUNCTIONS)
-        write(os.path.join(self.root, 'tests', 'coverage', 'coverage.csv'), COVERAGE)
         self.map = os.path.join(self.root, 'ei-rebuild.map')
         write(self.map, MAP)
 
@@ -166,7 +158,7 @@ class Lists(Fixture):
     def test_game_names(self):
         starts, names = rc.load_game_functions(self.root)
         self.assertEqual(starts, [0x401000, 0x401100, 0x401200])
-        self.assertEqual(names, ['CWorldClient::Dress', 'ComposeTexture', 'entry'])   # coverage.csv names beat FUN_
+        self.assertEqual(names, ['CWorldClient::Dress', 'ComposeTexture', 'entry'])
 
 
 class Chain(Fixture):

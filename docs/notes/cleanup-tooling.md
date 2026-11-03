@@ -14,7 +14,6 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 | `check_x87.py` | in the game sources (src/game, src/lib, src/render) an `x87::` helper, a `libcrt::Ftol` or a `D()` register (C30c): the build is SSE2 throughout, the original's x87 maths is plain float maths or `lib/pc24.h` ("The x87 files to SSE2" below) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | the cleanup artefact counts (below) |
-| `find_dead_code.py` | updates `config/dead_code.csv`: keeps every hand-added row, rewrites its own generated rows in place, never removes (prints generated rows no longer dead); refuses arguments |
 
 ## Build time
 
@@ -49,7 +48,7 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   ui_edit_field, ui_font), files and mappings (file_io, resource_stream's mmio, settings), threads and waits
   (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, platform_win32's UTF-16 calls), sockets
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
-  (the loader: exception handlers, VirtualAlloc, the environment) and src/hook.
+  (the loader: exception handlers, VirtualAlloc, the environment).
 - Files go through `platform/platform.h` (no SDK header): File (`FileMode` Read / Create / WriteExisting, Seek's
   `SeekFrom`; ReadAt, a seek and an exact read that return false instead of throwing, as the archive and the seed
   file checked SetFilePointer and ReadFile), MappedFile (the mapped archives, read only) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
@@ -172,8 +171,7 @@ and a float the original reloads after storing is read back from the float. Chec
 for every `static_cast<float>`. The register / stack shims
 `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick) went in C12b: their callers are
 ours on the standalone, so the helper's flag is passed whole (the constructor reads its low byte), the codec's close is a plain
-`__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `src/hook` (the hook
-framework, game.exe's side) keeps its `__asm` by design.
+`__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick").
 
 ## SSE2 build
 
