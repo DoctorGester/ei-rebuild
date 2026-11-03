@@ -40,11 +40,7 @@ static_assert(sizeof(Vector2) == 8);
 struct Vector3 {
     float x, y, z;
 
-    // The constructor Vector3(x, y, z): callers use the returned `this`.
-    Vector3* Construct(float x, float y, float z);
     float Length() const;                           // XYZ
-    const Vector3* AddInPlace(const Vector3& v);    // returns &v
-    void DivideInPlace(float d);
     double LengthSquared() const;                   // unrounded
 };
 static_assert(sizeof(Vector3) == 12);

@@ -77,15 +77,15 @@ bool OrderSpell(UnitServer* self, std::uint32_t source, Spell** spell) {
 
 // AI units only act on a target within 1.05 times their sight range: the larger of a stats value and the
 // movement factor times the sight; the original's select picks the stats value for a NaN product.
-bool OutOfSightRange(UnitServer* self, const float* point) {
+bool OutOfSightRange(UnitServer* self, const Vector3& point) {
     float limit = self->stats.perception[2].current;
     float range = self->moveFactors[3] * self->stats.perception[0].current;
     float rangeValue = range;
     float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;
     Unit* unit = self->unit;
-    float dy = unit->localPosition.y - point[1];
-    float dx = unit->localPosition.x - point[0];
+    float dy = unit->localPosition.y - point.y;
+    float dx = unit->localPosition.x - point.x;
     EI_NAN_AUDIT(reach, dx, dy);
     return reach * reach < LengthSquared2DUnrounded(dx, dy);
 }
@@ -93,11 +93,11 @@ bool OutOfSightRange(UnitServer* self, const float* point) {
 // A melee or skill order fails when a living unit other than the target stands between the unit
 // and `point` at `time`: within 0.1..0.9 along the way (in units of the squared distance, sic)
 // and less than 0.3 to the side.
-bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const float* point, int time) {
+bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& point, int time) {
     Unit* unit = self->unit;
-    float dx = point[0] - unit->localPosition.x;
-    float dy = point[1] - unit->localPosition.y;
-    float dz = point[2] - unit->localPosition.z;
+    float dx = point.x - unit->localPosition.x;
+    float dy = point.y - unit->localPosition.y;
+    float dz = point.z - unit->localPosition.z;
     float lengthSq = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
     float ux = dx / lengthSq;
     float uy = dy / lengthSq;
@@ -201,7 +201,7 @@ bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
 
 // --- Can the order be carried out from here ----------------------------------------------------
 
-bool UnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
+bool UnitServer::CanActFrom(const AIOrder* order, const Vector3& point, int time) {
     if (order->target == unit) return true;
     if (order->pointIsUseSpot) return true;
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
@@ -216,8 +216,8 @@ bool UnitServer::CanActFrom(const AIOrder* order, const float* point, int time) 
     if (!FindSightTarget(order, &sight)) return true;
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
-        lib::LoadBytes(sight.point, point);
-        float ground = static_cast<float>(sight.unit->GroundHeight(point[0], point[1]));
+        sight.point = point;
+        float ground = static_cast<float>(sight.unit->GroundHeight(point.x, point.y));
         sight.point.z = sight.unit->ModeSpeed() + ground;
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
@@ -226,10 +226,7 @@ bool UnitServer::CanActFrom(const AIOrder* order, const float* point, int time) 
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
-    Vector3 eye;
-    eye.x = unit->localPosition.x;
-    eye.y = unit->localPosition.y;
-    eye.z = unit->localPosition.z;
+    Vector3 eye = unit->localPosition;
     eye.z = pc24::Add(unit->GroundHeight(eye.x, eye.y), sight.eyeHeight);   // the double ground height plus a float
     AIMap* map = &ServerWorld()->aiMap;
     float visibility = map->LineOfSight(eye, sight.point);
@@ -283,7 +280,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis = unit->localRotation.AxisY();
-    Vector3 facing = {-axis.x, -axis.y, -axis.z};
+    Vector3 facing = -axis;
     float heading = pc24::Round(pc24::Atan2(facing.y, facing.x));
     const float turnSpeed = unit->GetMoveSpeeds().turn;
     float halfTurn = kPi / turnSpeed;
@@ -294,10 +291,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     int castDelay = 0;
 
     Vector3 aim = order->target ? order->target->AimPoint() : order->point;
-    Vector3 delta;
-    delta.x = aim.x - origin.x;
-    delta.y = aim.y - origin.y;
-    delta.z = aim.z - origin.z;
+    Vector3 delta = aim - origin;
     float ox = origin.x - aim.x;
     float oy = origin.y - aim.y;
     float distanceSq = LengthSquared2DUnrounded(oy, ox);
@@ -350,9 +344,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
             aim = order->target->PositionAt(tick + castDelay + duration + now);
-            delta.x = aim.x - origin.x;
-            delta.y = aim.y - origin.y;
-            delta.z = aim.z - origin.z;
+            delta = aim - origin;
         }
         float squared = LengthSquared2DUnrounded(delta.y, delta.x);
         bool tryHere = true;
@@ -382,15 +374,13 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                 }
             }
             if (facingIt) {
-                if (!CanActFrom(order, &aim.x, tick + duration + now)) break;
+                if (!CanActFrom(order, aim, tick + duration + now)) break;
                 plan->targetId = order->target ? order->target->id : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
                 plan->animation = steps;
                 plan->notSkill = order->source != kSkillSource;
-                plan->direction.x = delta.x;
-                plan->direction.y = delta.y;
-                plan->direction.z = delta.z;
+                plan->direction = delta;
                 if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) FillCastKind(plan, spell);
                 return true;
             }

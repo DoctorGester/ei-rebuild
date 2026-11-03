@@ -124,10 +124,10 @@ void UnitServer::FinishCast() {
     action.source = kNoSource;
 }
 
-void UnitServer::OrderTurn(const float* direction, std::uint32_t time) {
+void UnitServer::OrderTurn(const Vector3& direction, std::uint32_t time) {
     ResetOrder(&action2);
     action2.kind = UnitOrderKind::Turn;
-    lib::LoadBytes(action2.point, direction);
+    action2.point = direction;
     ReleaseTarget(&action2);
     action2.modifier = 0;
     action2.param = static_cast<int>(time);

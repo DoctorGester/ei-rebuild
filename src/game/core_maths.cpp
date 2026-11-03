@@ -29,11 +29,6 @@ Vector3 ScaleVector(const Vector3& v, float s) {
     return s * v;
 }
 
-const Vector3* Vector3::AddInPlace(const Vector3& v) {
-    *this += v;   // v.x + x in the game's code: the same sum
-    return &v;
-}
-
 float ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
     return MaxKeepB(v, -1.0f);   // -1 also for NaN
@@ -78,13 +73,6 @@ float CubicSegment::Evaluate(float t) const {
 
 // --- Maths -------------------------------------------------------------------------------------------
 
-Vector3* Vector3::Construct(float newX, float newY, float newZ) {
-    x = newX;
-    y = newY;
-    z = newZ;
-    return this;
-}
-
 // Dot, Length and the squared length in FromAxisAngle use the unrounded forms: the game keeps the
 // sum unrounded, and DotZYX / LengthXYZ / LengthSquaredXYZ (the same groupings) round it to
 // float. That is the same value at the main thread's 24-bit precision, where this code runs.
@@ -94,12 +82,6 @@ float Dot(const Vector3& a, const Vector3& b) {
 
 float Vector3::Length() const {
     return std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(*this));
-}
-
-// --- Object maths ------------------------------------------------------------------------------------
-
-void Vector3::DivideInPlace(float d) {
-    *this /= d;
 }
 
 // --- Quaternion --------------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ SkyObject::~SkyObject() {  }
 const char* SkyObject::ClassName() { return kClassName; }
 ClassId SkyObject::GetClassId() { return ClassId::SkyObject; }
 
-void SkyObject::ApplyLight(const float* direction, SkyColour ambient, SkyColour light) {
+void SkyObject::ApplyLight(const Vector3& direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
@@ -74,7 +74,7 @@ void SkyObject::ApplyLight(const float* direction, SkyColour ambient, SkyColour 
             colorsA[i] = (r << 8 | g) << 8 | b;
             continue;
         }
-        float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction[0], direction[1], direction[2]);
+        float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction.x, direction.y, direction.z);
         cosine = MaxKeepB(cosine, 0.0f);
         const float strength = cosine * cosine;
         std::uint32_t specular = Truncate(distance * kColourScale);
@@ -87,7 +87,7 @@ void SkyObject::ApplyLight(const float* direction, SkyColour ambient, SkyColour 
     render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps
 }
 
-void Sky::ApplyLight(const float* direction, SkyColour ambient, SkyColour light) {
+void Sky::ApplyLight(const Vector3& direction, SkyColour ambient, SkyColour light) {
     if (object) object->ApplyLight(direction, ambient, light);
 }
 

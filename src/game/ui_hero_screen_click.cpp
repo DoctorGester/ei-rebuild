@@ -419,7 +419,7 @@ void MpHeroScreen::RefreshStats() {
         stats->RestoreSlots();
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, 0);
-        previewModel->SetFigureScale(&hero->scaleX);
+        previewModel->SetFigureScale({hero->scaleX, hero->scaleY, hero->height});
         Unit* unit = previewModel;
         unit->SetFromStats(&HeroRecord()->stats);
 

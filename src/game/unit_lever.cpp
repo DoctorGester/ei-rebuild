@@ -91,7 +91,7 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
-        Vector3 at{localPosition.x, localPosition.y, localPosition.z};
+        Vector3 at = localPosition;
         float along = spot[0];
         float across = spot[1];
         float length = std::sqrt(across * across + along * along);
@@ -102,13 +102,9 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
         float phase = scale.z;
         float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;
         Vector3 axis = facing.AxisX();
-        at.x = axis.x * along * distance + at.x;
-        at.y = axis.y * along * distance + at.y;
-        at.z = axis.z * along * distance + at.z;
+        at += axis * along * distance;
         axis = facing.AxisY();
-        at.x = axis.x * across * distance + at.x;
-        at.y = axis.y * across * distance + at.y;
-        at.z = axis.z * across * distance + at.z;
+        at += axis * across * distance;
         spots.push_back(at);
     }
     return spots;

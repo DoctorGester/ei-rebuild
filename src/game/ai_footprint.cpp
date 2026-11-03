@@ -159,9 +159,7 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
             p.y = y + placed->bounds.center.y;
             p.z = z + placed->bounds.center.z;
             p = object->worldMatrix.rows.Transform(p);
-            p.x = position.x + p.x;
-            p.y = position.y + p.y;
-            p.z = position.z + p.z;
+            p += position;
         }
         for (Vector3& v : normal) v = object->worldMatrix.rows.Transform(v);
 

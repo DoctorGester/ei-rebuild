@@ -704,11 +704,10 @@ Matrix4 Product(const Matrix4& a, const Matrix4& b) {
 
 } // namespace detail
 
-void ShadowSun(const float direction[3]) {
-    if (!direction) return;
+void ShadowSun(const Vector3& direction) {
     ShadowFrame& s = g_frame.shadow;
     s.haveSun = true;
-    s.sun = Vector3{direction[0], direction[1], direction[2]};
+    s.sun = direction;
 }
 
 void BeginCaster(const void* object, bool figure) {

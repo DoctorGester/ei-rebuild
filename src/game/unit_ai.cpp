@@ -258,7 +258,7 @@ void AIBrain::UpdateMove() {
         direction.z = 0.0f;
         direction.x = pc24::Round(pc24::Cos(look.angle));
         direction.y = pc24::Round(pc24::Sin(look.angle));
-        owner->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
+        owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }
     if (actionTime == kLookStarted) {
@@ -344,7 +344,7 @@ void AIBrain::Walk(const Vector3& point, int run) {
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {
     action = kActionWalk;
-    owner->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
+    owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
 
 void AIBrain::CastAt(int spell, const Vector3& point, int run) {

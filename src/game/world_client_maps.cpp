@@ -241,17 +241,17 @@ bool InFinalZone() {
 } // namespace
 
 void SectorGrid::Move(MapObject* object, const float* position) {
-    float* stored = &object->localPosition.x;    // x, y, z
-    std::uint32_t oldX = CellOf(stored[0]);
-    std::uint32_t oldY = CellOf(stored[1]);
+    Vector3& stored = object->localPosition; // x, y, z
+    std::uint32_t oldX = CellOf(stored.x);
+    std::uint32_t oldY = CellOf(stored.y);
     std::uint32_t newX = CellOf(position[0]);
     std::uint32_t newY = CellOf(position[1]);
     if (oldX == newX && oldY == newY) {
-        std::memcpy(stored, position, 12);
+        std::memcpy(&stored, position, 12);
         return;
     }
     if (oldX < width && oldY < height) RemoveHeld(rows[oldY][oldX], object);
-    std::memcpy(stored, position, 12);
+    std::memcpy(&stored, position, 12);
     if (newX < width && newY < height) rows[newY][newX].emplace_back(object);
 }
 
@@ -509,7 +509,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->WriteFullState();
         MapObject* slots = unit;
         slots->SetStats(&record->stats);
-        unit->SetFigureScale(&record->scaleX);
+        unit->SetFigureScale({record->scaleX, record->scaleY, record->height});
         std::memcpy(&unit->AsMapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();

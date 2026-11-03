@@ -176,7 +176,7 @@ void BriefingScreen::MouseMove(int buttons, int x, int y) {
     }
     Vector3 ground = g_clientWorld.PickSurface(x, y);
     int newExit = 0;
-    if (!g_clientWorld.FindExitAt(&ground.x, &newExit)) return;
+    if (!g_clientWorld.FindExitAt(ground, &newExit)) return;
     std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone,
                         kNoZone) == 0)

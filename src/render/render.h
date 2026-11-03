@@ -62,7 +62,7 @@ bool PerfOverlaySupported();
 void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (z negative by day). Without it no
 // shadow map is made.
-void ShadowSun(const float direction[3]);
+void ShadowSun(const Vector3& direction);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights) and the camera. The terrain shader lights each pixel and SectorData::Light

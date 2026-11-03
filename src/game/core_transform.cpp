@@ -178,9 +178,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
     Vector3 t = MakeVector(side.y * forward.z - side.z * forward.y, side.z * forward.x - forward.z * side.x,
                            forward.y * side.x - side.y * forward.x);
     float inv = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(t));
-    t.x = inv * t.x;
-    t.y = t.y * inv;
-    t.z = t.z * inv;
+    t *= inv;
     *toward = t;
     *axis = MakeVector(from.y * t.z - from.z * t.y, from.z * t.x - t.z * from.x, t.y * from.x - from.y * t.x);
 }
@@ -346,9 +344,9 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 }
 
 // The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the heading offset, pi / 2).
-void TransformObject::SetHeading(const float* dir) {
+void TransformObject::SetHeading(const Vector3& dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, pc24::Add(pc24::Atan2(dir[1], dir[0]), kHeadingOffset));
+    const Quaternion* r = heading.SetAxisAngle(axis, pc24::Add(pc24::Atan2(dir.y, dir.x), kHeadingOffset));
     localRotation = *r;
 }

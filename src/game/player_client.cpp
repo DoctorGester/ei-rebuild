@@ -199,9 +199,9 @@ bool PlayerClient::Pump() {
         return true;
     case kStateSendingCamera: {
         const Vector3* anchor = CameraAnchor(g_clientWorld.camera);
-        float point[2] = {anchor->x, anchor->y};
+        Vector2 point = {anchor->x, anchor->y};   // sent as two floats
         WriteByte(&out, kRequestCamera);
-        out.Write(point, sizeof(point));
+        out.Write(&point, sizeof(point));
         return SendToServer();
     }
     default:
@@ -506,7 +506,7 @@ int PlayerClient::OnNewObject() {
     object->name = model;
     bool isUnit = created->GetClassId() == ClassId::Unit;
     created->prototypeId = header.prototype;
-    figure->SetFigureScale(&scale.x);
+    figure->SetFigureScale(scale);
     object->baseScale = scale;
     object->ApplyBaseScale();
     object->name2 = secondName.c_str();

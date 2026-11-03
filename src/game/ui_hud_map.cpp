@@ -324,9 +324,8 @@ void HudMap::BuildMarkers() {
         out.BeginQuad();
         float x, y;
         if (text::CompareIgnoringCase(world->exits[i].target, "none") != 0) {
-            float centre[2];
-            world->ExitCentre(centre, i);
-            if (out.Place(centre[0], centre[1], &x, &y)) {
+            Vector2 centre = world->ExitCentre(i);
+            if (out.Place(centre.x, centre.y, &x, &y)) {
                 out.PutSquare(x, y);
                 out.Show(kFrameNeutral);
                 continue;

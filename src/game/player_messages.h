@@ -249,7 +249,7 @@ public:
     void LeaveAndFlush();
     // Message 0x0E about a path of `unit` (nothing for null): kind, flag, the point's two dwords, the unit's
     // id and `limitBits`; except for kind 3 the path written through a delta field.
-    void SendPathMessage(EngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
+    void SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
                          std::uint32_t limitBits);
 
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the

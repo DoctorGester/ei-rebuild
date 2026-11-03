@@ -80,9 +80,7 @@ void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
     float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
     if (length > 0.0f) {
         float scale = speed / length;
-        way.x = way.x * scale;
-        way.y = way.y * scale;
-        way.z = way.z * scale;
+        way *= scale;
         float ticks = length / speed;
         int rounded = lib::RoundEven(ticks);
         framesLeft = rounded < 0 ? 0 : static_cast<int>(rounded);
@@ -99,7 +97,7 @@ bool EffectTornado::RunTick() {
         localPosition = Vector3{static_cast<float>(localPosition.x + velocity.x), static_cast<float>(localPosition.y + velocity.y),
                                  static_cast<float>(localPosition.z + velocity.z)};
         if (source != nullptr) source->localPosition = localPosition;
-        if (sound != -1) g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, kSoundNear, kSoundFar);
+        if (sound != -1) g_clientWorld.sounds->SetSoundPosition(sound, localPosition, kSoundNear, kSoundFar);
     }
     if (framesLeft <= kStopEmittingTicks && source != nullptr) source->Stop();
     World* world = WorldContext();
@@ -141,7 +139,7 @@ void EffectTornado::Start(int update) {
     }
     if (source != nullptr) return;
     if (sound == -1) {
-        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, &localPosition.x, kSoundNear, kSoundFar, 1);
+        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, localPosition, kSoundNear, kSoundFar, 1);
     }
     ParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
     source.Assign(particles);

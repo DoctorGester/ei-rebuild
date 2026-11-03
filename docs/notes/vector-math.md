@@ -60,14 +60,11 @@ Hooked out-of-line originals (none is Rebirth-patched; all stay hooked):
 
 | address | function | order / notes |
 |---|---|---|
-| 00401DE0 | Vector3::Construct | returns this |
 | 00401E00 | Dot | ZYX, ST0 unrounded; 45 callers in the exe |
 | 00401E20 | Vector3::Length | XYZ, FSQRT; 7 callers |
 | 004D8470 | Vector3::LengthSquared | XYZ, returned as double |
 | 0040CDC0 / 0044A230 / 00402200 | AddVectors / SubtractVectors / NegateVector | all components before stores |
 | 00410770 = 00448A10 | ScaleVector | `s * v` |
-| 00410750 | Vector3::AddInPlace | returns &v |
-| 004679B0 | Vector3::DivideInPlace | divides each component |
 | 00488940 | DivideVector (effects.cpp) | |
 | 004489D0 | CrossProduct | 18 callers |
 | 0044CC10 | SubtractVectors2 | |

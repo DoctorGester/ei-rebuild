@@ -344,7 +344,7 @@ void Camera::Update(float dt) {
         if (g_clientWorld.terrain) listener.z = pc24::Add(g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y), focusHeight);
     }
     Vector3 forward = localRotation.AxisZ();
-    g_clientWorld.sounds->SetListener(&listener.x, &forward.x);
+    g_clientWorld.sounds->SetListener(listener, forward);
     if (flags & kPlaced) return;
 
     Object3D* target = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(targetId));
@@ -383,13 +383,13 @@ void Camera::Update(float dt) {
     // Pan: the velocity eases towards its target.
     Vector3& velocity = panVelocity;
     const Vector3& wanted = panTarget;
-    Vector3 change = {wanted.x - velocity.x, wanted.y - velocity.y, wanted.z - velocity.z};
+    Vector3 change = wanted - velocity;
     Vector3 accel = ScaleVector(change, panResponse);
     bool snap = true;
     if (accel.Length() >= 0.001) {   // the double constant (exact as a compare)
         float before = static_cast<float>(Dot(velocity, velocity));
         Vector3 step = ScaleVector(accel, dt);
-        velocity.AddInPlace(step);
+        velocity += step;
         float after = static_cast<float>(Dot(velocity, velocity));
         float goal = static_cast<float>(Dot(wanted, wanted));
         EI_NAN_AUDIT(before, after, goal);

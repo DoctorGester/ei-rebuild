@@ -330,7 +330,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->WriteFullState();
     };
     auto place = [spec](MapObject* object) {
-        object->SetFigureScale(&spec->scale.x);
+        object->SetFigureScale(spec->scale);
         Copy(&object->baseScale, &spec->scale, 12);
         object->ApplyBaseScale();
         Copy(&object->localPosition.x, &spec->position, 12);
@@ -360,10 +360,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         float level = AbsBits(sum);
         EI_NAN_AUDIT(level);
         if (level < worlddata::kCampfireHeight) {
-            Vector3 at;
-            at.z = flame->offset.z + base.position.z;
-            at.y = flame->offset.y + base.position.y;
-            at.x = flame->offset.x + base.position.x;
+            Vector3 at = flame->offset + base.position;
             Spell* spell = GetSpellManager()->CreateSpellFromText(worlddata::CampfireText());
             if (spell) spell->AddRef();
             CastSpell(spell, nullptr, at, nullptr, at, 0);

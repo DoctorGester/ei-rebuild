@@ -115,18 +115,18 @@ bool EffectSound::RunTick() {
     if (moving != 0) {
         MoveByVelocity(this);
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
-        if (sound != 0) g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
+        if (sound != 0) g_clientWorld.sounds->SetSoundPosition(sound, localPosition, volume, radius);
     }
     return looping != 0 || wasFresh != 0;
 }
 
 void EffectSound::Start(int update) {
     if (update == 0) {
-        sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, &localPosition.x,
+        sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, localPosition,
                                             volume, radius, looping);
         return;
     }
-    g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
+    g_clientWorld.sounds->SetSoundPosition(sound, localPosition, volume, radius);
 }
 
 int EffectSound::Unpack(int update, DeltaField* field) {
@@ -198,7 +198,7 @@ bool EffectSoundSeq::RunTick() {
     if (moving != 0) {
         MoveByVelocity(this);
         if (sound != 0)
-            g_clientWorld.sounds->UpdateSequence(sound, &localPosition.x, volume, radius, -1);
+            g_clientWorld.sounds->UpdateSequence(sound, localPosition, volume, radius, -1);
     }
     return true;
 }
@@ -255,11 +255,11 @@ void EffectAmbientSound::Reset() {
 
 void EffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound = g_clientWorld.sounds->AddEmitter(&names, &localPosition.x, volume, radius,
+        sound = g_clientWorld.sounds->AddEmitter(&names, localPosition, volume, radius,
                              minInterval, maxInterval);
         return;
     }
-    g_clientWorld.sounds->MoveEmitter(sound, &localPosition.x, volume, radius, minInterval,
+    g_clientWorld.sounds->MoveEmitter(sound, localPosition, volume, radius, minInterval,
                 maxInterval);
 }
 

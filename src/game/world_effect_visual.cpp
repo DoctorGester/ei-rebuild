@@ -128,14 +128,8 @@ bool EffectPointLight::RunTick() {
 void EffectPointLight::Start(int update) {
     if (update == 0) {
         light.Assign(g_clientWorld.lightFactory->CreateLight(0x31));
-        Vector3 position;
-        position.x = localPosition.x;
-        position.y = localPosition.y;
-        position.z = localPosition.z;
-        Vector3 tint;
-        tint.x = color.x;
-        tint.y = color.y;
-        tint.z = color.z;
+        Vector3 position = localPosition;
+        Vector3 tint = color;
         light->SetPoint(tint, position);
         SetLightRange(light, Bits(range) & 0x7FFFFFFFu);
         LightFlags(light) |= lightFlags;

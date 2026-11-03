@@ -363,14 +363,10 @@ bool Object3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
     if (flags & kHalfShown) return true;
     const Vector3& at = object->localPosition;
-    sphere.center.x = sphere.center.x + at.x;
-    sphere.center.y = at.y + sphere.center.y;
-    sphere.center.z = at.z + sphere.center.z;
+    sphere.center += at;
     int side = g_sceneRenderer.pipeline->ClipTest(&sphere);
     const Vector3& back = object->localPosition;
-    sphere.center.x = sphere.center.x - back.x;
-    sphere.center.y = sphere.center.y - back.y;
-    sphere.center.z = sphere.center.z - back.z;
+    sphere.center -= back;
     return side != kOutsideView;
 }
 

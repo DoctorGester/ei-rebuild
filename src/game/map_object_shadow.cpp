@@ -80,9 +80,7 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
         towards = kDefaultLight;
     } else {
         float inverse = 1.0f / std::sqrt(distanceSquared);
-        towards.x = towards.x * inverse;
-        towards.y = towards.y * inverse;
-        towards.z = towards.z * inverse;
+        towards *= inverse;
     }
     float scale = intensity;
     if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
@@ -140,9 +138,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         } else {
             DirectionalShare(light, &share);
         }
-        sum.x = share.x + sum.x;
-        sum.y = share.y + sum.y;
-        sum.z = share.z + sum.z;
+        sum += share;
     }
     if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;

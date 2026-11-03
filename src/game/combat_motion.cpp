@@ -481,7 +481,7 @@ std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
 void UnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
     Unit* self = unit;
-    const float* goal = &path->goal.x;
+    const Vector3& goal = path->goal;
     // The path as a motion order for the message. The header is left uninitialised when the path is not partial
     // (the message does not read it for kind 3).
     LocalMotionOrder end;
@@ -494,12 +494,12 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         message = AckKind::NoPath;
     } else {
         path->ToMotionOrder(&end);
-        float dy = self->localPosition.y - goal[1];
-        float dx = self->localPosition.x - goal[0];
+        float dy = self->localPosition.y - goal.y;
+        float dx = self->localPosition.x - goal.x;
         float reached = LengthSquared2DUnrounded(dx, dy);
         float half = kHalfCell;
-        float ey = half * path->targetY - goal[1];
-        float ex = half * path->targetX - goal[0];
+        float ey = half * path->targetY - goal.y;
+        float ex = half * path->targetX - goal.x;
         float left = LengthSquared2DUnrounded(ex, ey);
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)

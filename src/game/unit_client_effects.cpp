@@ -154,7 +154,7 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material);
     if (sound.size() != 0) {
         auto* world = ClientWorld();
-        world->sounds->Play3D(sound, kSoundPriority, &unit->localPosition.x, kSoundNear, kSoundFar, 0);
+        world->sounds->Play3D(sound, kSoundPriority, unit->localPosition, kSoundNear, kSoundFar, 0);
     }
 
     if (location < 0 || location > 5) return;
@@ -179,8 +179,7 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     float reach = MaxKeepB(1.0f, smaller);
     float sizeStored = (part->box.bounds.boxMax.y + part->box.bounds.boxMax.x) * 0.5f * kDecalScale;
     float size = sizeStored;
-    Vector3 at;
-    unit->PartWorldPosition(&at.x, part);
+    Vector3 at = unit->PartWorldPosition(part);
     float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
     int offset = ClientRandBelow(lib::RoundEven(spread));
@@ -212,13 +211,11 @@ void UnitClientSpecific::Died() {
     if (auto* body = unit->FindPartByPrefix("bd")) {
         float stored = (body->box.bounds.boxMax.y + body->box.bounds.boxMax.x) * 0.5f;
         size = stored;
-        unit->PartWorldPosition(&at.x, body);
+        at = unit->PartWorldPosition(body);
     } else {
         float stored = SmallerExtent(unit) * kDeathDecalScale;
         size = stored;
-        at.x = unit->localPosition.x;
-        at.y = unit->localPosition.y;
-        at.z = unit->localPosition.z;
+        at = unit->localPosition;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
@@ -371,7 +368,7 @@ void UnitClientSpecific::PlayStepSounds() {
     const FigureAnimationState* state = unit->AsObject3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
-    Vector3 position{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
+    Vector3 position = unit->localPosition;
     int priority = 0;
     std::string sound;
     if (lastAnimation != current) {
@@ -393,7 +390,7 @@ void UnitClientSpecific::PlayStepSounds() {
         if (PassedFrame(static_cast<int>(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
             if (std::optional<std::string> miss = ActionSound(current, lastAnimationTime, now, static_cast<std::uint8_t>(unit->actionSound)))
-                sounds->Play3D(*miss, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);
+                sounds->Play3D(*miss, kPriorityAction, position, kSoundNear, kSoundFar, 0);
         }
         priority = kPriorityAction;
         action = true;
@@ -451,8 +448,7 @@ void UnitClientSpecific::PlayStepSounds() {
         std::snprintf(partName, sizeof(partName), left ? "ll%d" : "rl%d", part);
         FigureMesh* foot = unit->AsObject3D()->FindPartByPrefix(partName);
         if (!foot) break;
-        Vector3 footAt;
-        unit->AsObject3D()->PartWorldPosition(&footAt.x, foot);
+        Vector3 footAt = unit->AsObject3D()->PartWorldPosition(foot);
         Vector3 facing = unit->localRotation.AxisY();
         float length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
@@ -488,11 +484,11 @@ void UnitClientSpecific::PlayStepSounds() {
         int handle = -1;
         if (kind == AnimationKind::Attack) {
             if (!SoundBusy(speechSound)) {
-                handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0);
+                handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, 0);
                 speechSound = handle;
             }
         } else {
-            handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0);
+            handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, 0);
         }
         if (kind == AnimationKind::Idle) idleSound = handle;
     }

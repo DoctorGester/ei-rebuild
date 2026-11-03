@@ -939,7 +939,7 @@ struct EffectSoundRecord {
 // An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
 // (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
 // the bare suffix) or stops it and plays its end sound.
-void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, SpellType kind,
                      const char* suffix);
 
 // The client-side companion of a map object (ClassName "MapObjectClientSpecific"); its owner is a unit for IsDead

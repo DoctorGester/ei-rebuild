@@ -172,25 +172,12 @@ void MapObject::RecomputeScale() {
 
 void MapObject::ResetScale() { scale = baseScale; }
 
-float* MapObject::GetPosition(float* out) {
-    std::memcpy(out, &localPosition.x, 3 * sizeof(float));
-    return out;
-}
-
-float* MapObject::GetPosition2(float* out) {
-    std::memcpy(out, &localPosition.x, 3 * sizeof(float));
-    return out;
-}
-
-float* MapObject::GroundPoint(float* out) {
+Vector3 MapObject::GroundPoint() {
     float x = localPosition.x + bounds.center.x;    // each stored to a float local
     float y = localPosition.y + bounds.center.y;
     float z = localPosition.z + bounds.center.z;
     double height = OwningWorld()->GridHeightAt(x, y);
-    out[0] = x;
-    out[1] = y;
-    out[2] = pc24::Add(height, z);
-    return out;
+    return {x, y, pc24::Add(height, z)};
 }
 
 void MapObject::PlaceOnGround(float offset) {
@@ -330,21 +317,9 @@ bool MapObject::AcceptsKey(const LockKey*) { return false; }
 bool MapObject::KeepsMapFlag() { return true; }
 std::vector<Vector3> MapObject::UseSpots(float) { return {}; }
 std::uint32_t MapObject::SetStunned(int) { return 0; }
-Vector3 MapObject::EyePoint() {
-    Vector3 out;
-    GroundPoint(&out.x);
-    return out;
-}
-Vector3 MapObject::PositionAt(int) {
-    Vector3 out;
-    GetPosition(&out.x);
-    return out;
-}
-Vector3 MapObject::AimPoint() {
-    Vector3 out;
-    GetPosition2(&out.x);
-    return out;
-}
+Vector3 MapObject::EyePoint() { return GroundPoint(); }
+Vector3 MapObject::PositionAt(int) { return localPosition; }
+Vector3 MapObject::AimPoint() { return localPosition; }
 bool MapObject::IsLargeUnit() { return false; }
 bool MapObject::IsDead() { return companion->IsDead(); }
 int MapObject::ForgetObject(EngineObject*) { return 0; }

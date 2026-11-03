@@ -246,10 +246,7 @@ bool UnitServer::StartMove() {
         return true;
     }
     // Already there: the order is done and the next one starts.
-    Vector3 offset;
-    offset.x = unit->localPosition.x - action.point.x;
-    offset.y = unit->localPosition.y - action.point.y;
-    offset.z = unit->localPosition.z - action.point.z;
+    Vector3 offset = unit->localPosition - action.point;
     float lengthSq = LengthSquaredZYX(offset);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
@@ -611,7 +608,7 @@ void UnitServer::ApproachTarget() {
     Vector3 aim = target->AimPoint();
     if (!target->IsLargeUnit()) {
         if (reach * reach >= DistanceSquaredXYUnrounded<float>(aim, unit->localPosition) &&
-            CanActFrom(&action, &aim.x, now)) {
+            CanActFrom(&action, aim, now)) {
             // In reach of a standing target: wait.
             if (state != UnitState::Turning) StandIdle(this);
             return;
@@ -622,10 +619,7 @@ void UnitServer::ApproachTarget() {
         if (lead > 0) {
             // A moving target that comes into reach before the next attack: wait for it.
             Vector3 p = target->PositionAt(lead + now);
-            Vector3 offset;
-            offset.x = p.x - unit->localPosition.x;
-            offset.y = p.y - unit->localPosition.y;
-            offset.z = p.z - unit->localPosition.z;
+            Vector3 offset = p - unit->localPosition;
             float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // Unit::MoveSpeed: a float
             if (closing > 0.0f) {
                 float distance = LengthXYZ(offset);
@@ -654,10 +648,7 @@ void UnitServer::ApproachTarget() {
         }
     }
     Vector3 where = chased->AimPoint();
-    Vector3 offset;
-    offset.x = where.x - unit->localPosition.x;
-    offset.y = where.y - unit->localPosition.y;
-    offset.z = where.z - unit->localPosition.z;
+    Vector3 offset = where - unit->localPosition;
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
     float closing;
@@ -729,10 +720,7 @@ void UnitServer::ApproachTarget() {
         path->Clear();
         int time = OwningWorld()->tick;
         Vector3 axis = unit->localRotation.AxisY();
-        Vector3 back;
-        back.x = -axis.x;
-        back.y = -axis.y;
-        back.z = -axis.z;
+        Vector3 back = -axis;
         if (path->Start(unit->localPosition, back, time)) unit->RefreshMotion();
         ClearStanding();
         state = UnitState::Stopped;

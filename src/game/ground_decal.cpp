@@ -36,9 +36,7 @@ namespace decal {
 
 void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq) {
     float scale = 1.0f / (dq - dp);
-    out->position.x = (dq * p->position.x - dp * q->position.x) * scale;
-    out->position.y = (dq * p->position.y - dp * q->position.y) * scale;
-    out->position.z = (dq * p->position.z - dp * q->position.z) * scale;
+    out->position = (dq * p->position - dp * q->position) * scale;
     out->u = (dq * p->u - dp * q->u) * scale;
     out->v = (dq * p->v - dp * q->v) * scale;
 }
@@ -126,18 +124,18 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
     Vector3 part = {along * dir.x, along * dir.y,
                     along * dir.z};
     uAxis = {uAxis.x - part.x, uAxis.y - part.y, uAxis.z - part.z};
-    uAxis.DivideInPlace(static_cast<float>(uAxis.LengthSquared()));
+    uAxis /= static_cast<float>(uAxis.LengthSquared());
 
     vAxis = {vCorner.x - newOrigin.x, vCorner.y - newOrigin.y, vCorner.z - newOrigin.z};
     float vAlong = Dot(vAxis, dir);
     part = {dir.x * vAlong, dir.y * vAlong, dir.z * vAlong};
     vAxis = {vAxis.x - part.x, vAxis.y - part.y, vAxis.z - part.z};
-    vAxis.DivideInPlace(static_cast<float>(vAxis.LengthSquared()));
+    vAxis /= static_cast<float>(vAxis.LengthSquared());
 
     float slopeDivisor = std::fabs(dir.z);
     slope = {dir.x / slopeDivisor, dir.y / slopeDivisor, dir.z / slopeDivisor};
     origin = newOrigin;
-    Vector3 negated = {-origin.x, -origin.y, -origin.z};
+    Vector3 negated = -origin;
     uOffset = Dot(negated, uAxis);
     vOffset = Dot(negated, vAxis);
     uLength = uAxis.Length();
@@ -146,8 +144,8 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
     // The cut-off plane faces along the direction through point - direction * depth * 0.33.
     float back = depth * 0.33f;
     normal = dir;
-    Vector3 scaled = {dir.x * back, dir.y * back, dir.z * back};
-    Vector3 planePoint = {point.x - scaled.x, point.y - scaled.y, point.z - scaled.z};
+    Vector3 scaled = dir * back;
+    Vector3 planePoint = point - scaled;
     planeOffset = -Dot(planePoint, normal);
 }
 

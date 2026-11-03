@@ -217,7 +217,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
 
 void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid) {
     Vector3 axis = seer->localRotation.AxisY();
-    Vector3 look{-axis.x, -axis.y, -axis.z};
+    Vector3 look = -axis;
     Vector3 eye = seer->EyePoint();
     grid->x0 = kNoGridOrigin;
     grid->y0 = kNoGridOrigin;

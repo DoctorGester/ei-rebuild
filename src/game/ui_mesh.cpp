@@ -595,8 +595,7 @@ void UiMesh::SetRectangle(float depth, float scale, float left, float top, float
     // WideScreen (addon's handler): both edges moved.
     const float sumX = MovedX(MovedX(left + right));
     float x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
-    Vector3 centre;
-    localPosition = *centre.Construct(x, y, depth);
+    localPosition = {x, y, depth};
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();
@@ -739,8 +738,7 @@ void UiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1,
     // WideScreen (addon's handler): the first point moved.
     const float firstX = MovedX(x0);
     float x = (firstX * 0.0025f - 1.0f) * kViewHalfWidth * depth;
-    Vector3 first;
-    localPosition = *first.Construct(x, y, depth);
+    localPosition = {x, y, depth};
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();

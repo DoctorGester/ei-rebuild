@@ -780,7 +780,7 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     // update to ask about leaving (exitPending and the exit).
     exitPending = false;
     int exit;
-    if (g_clientWorld.FindExitAt(&point.x, &exit) && selected > 0) {
+    if (g_clientWorld.FindExitAt(point, &exit) && selected > 0) {
         std::string name = g_clientWorld.ExitTarget(exit);
         if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {

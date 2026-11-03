@@ -207,7 +207,7 @@ void UnitSpec::Apply() {
     g_serverWorld.aiMap.sectorMap.Move(unit, position);
     g_serverWorld.aiMap.TurnObject(unit, &rotation);
     unit->localRotation = rotation;
-    unit->SetFigureScale(&scale.x);
+    unit->SetFigureScale(scale);
     unit->baseScale = scale;
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags;

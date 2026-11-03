@@ -125,9 +125,7 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->drift.x = std::cos(angle) * spread;
     p->drift.y = std::sin(angle) * spread;
     float scale = s->size * EI_POINT_THREE;
-    p->drift.x = scale * p->drift.x;
-    p->drift.y = scale * p->drift.y;
-    p->drift.z = scale * p->drift.z;
+    p->drift *= scale;
     p->drift.z = 0.0f;
     p->pos.x = points[0].pos.x + p->drift.x;
     p->pos.y = points[0].pos.y + p->drift.y;
@@ -417,9 +415,7 @@ int ParticleSource::UpdateGlow(Particle* p) {
 int ParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
-    p->pos.x = p->velocity.x + p->pos.x;
-    p->pos.y = p->velocity.y + p->pos.y;
-    p->pos.z = p->velocity.z + p->pos.z;
+    p->pos += p->velocity;
     float lifted = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y)) + EI_TENTH;
     p->pos.z = lifted;
     const auto& plane = elements[0].plane;
@@ -428,9 +424,7 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     float ground = lifted;
     p->pos.z = SelectLess(ground, onPlane, onPlane, ground);
     p->size = p->aux0;
-    p->velocity.x = p->velocity.x * EI_DUST_GROWTH;
-    p->velocity.y = p->velocity.y * EI_DUST_GROWTH;
-    p->velocity.z = p->velocity.z * EI_DUST_GROWTH;
+    p->velocity *= EI_DUST_GROWTH;
     p->aux0 = p->aux1 * p->aux0;
     return 1;
 }
@@ -513,13 +507,9 @@ int ParticleSource::UpdateSparks(Particle* p) {
     }
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kSparkAlpha[p->life]) << 24) | 0xFFFFFF;
-    p->pos.x = p->drift.x + p->pos.x;
-    p->pos.y = p->drift.y + p->pos.y;
-    p->pos.z = p->drift.z + p->pos.z;
+    p->pos += p->drift;
     p->size = p->size * EI_POINT_NINE;
-    p->drift.x = p->drift.x * EI_POINT_SIX;
-    p->drift.y = p->drift.y * EI_POINT_SIX;
-    p->drift.z = p->drift.z * EI_POINT_SIX;
+    p->drift *= EI_POINT_SIX;
     ++p->frame;
     return 1;
 }
@@ -539,9 +529,7 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
     float angle = WordToFloat(roll) * twoPi * EI_SCALE_1;
     p->velocity.x = std::cos(angle) * EI_FEEBLE_SPEED;
     p->velocity.y = std::sin(angle) * EI_FEEBLE_SPEED;
-    p->pos.x = p->velocity.x + p->pos.x;
-    p->pos.y = p->velocity.y + p->pos.y;
-    p->pos.z = p->velocity.z + p->pos.z;
+    p->pos += p->velocity;
     float grow = (WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_2 + EI_POINT_NINE) * size *
                        EI_FEEBLE_SIZE;
     p->aux2 = grow;

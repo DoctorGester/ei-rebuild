@@ -166,11 +166,11 @@ const VertexPacket* MovedPositionsOf(FigureMesh* mesh) {
     moved.resize(mesh->buffers.vertexCount);
     std::memcpy(moved.data(), mesh->buffers.vertices, static_cast<std::size_t>(mesh->buffers.vertexCount) * 64);
     for (int i = 0; i < std::ssize(mesh->offsets); ++i) {
-        const float* offset = &mesh->offsets[i].x;
+        const Vector3& offset = mesh->offsets[i];
         VertexPacket& packet = moved[i >> 2];
-        AddOffset(&offset[0], &packet.block[0][i & 3]);
-        AddOffset(&offset[1], &packet.block[1][i & 3]);
-        AddOffset(&offset[2], &packet.block[2][i & 3]);
+        AddOffset(&offset.x, &packet.block[0][i & 3]);
+        AddOffset(&offset.y, &packet.block[1][i & 3]);
+        AddOffset(&offset.z, &packet.block[2][i & 3]);
     }
     return moved.data();
 }
@@ -314,15 +314,15 @@ void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
     if (!(ContextOf(this)->flags & kShowBounds)) return;
     LineBatch lines{{}, 0, 0xFFFF0000u};
     const ClipBounds& bounds = mesh->box.bounds;
-    const float* origin = &bounds.center.x;
-    const float* nearExtent = &bounds.boxMin.x;
-    const float* farExtent = &bounds.boxMax.x;
+    const Vector3& origin = bounds.center;
+    const Vector3& nearExtent = bounds.boxMin;
+    const Vector3& farExtent = bounds.boxMax;
     // corner[i]: bit 2 near x, bit 1 near y, bit 0 near z (else far).
     float corner[8][3];
     for (int i = 0; i < 8; ++i) {
-        corner[i][0] = origin[0] + ((i & 4) ? nearExtent[0] : farExtent[0]);
-        corner[i][1] = origin[1] + ((i & 2) ? nearExtent[1] : farExtent[1]);
-        corner[i][2] = origin[2] + ((i & 1) ? nearExtent[2] : farExtent[2]);
+        corner[i][0] = origin.x + ((i & 4) ? nearExtent.x : farExtent.x);
+        corner[i][1] = origin.y + ((i & 2) ? nearExtent.y : farExtent.y);
+        corner[i][2] = origin.z + ((i & 1) ? nearExtent.z : farExtent.z);
     }
     static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
     for (int index : kOrder) lines.AddPoint(corner[index]);

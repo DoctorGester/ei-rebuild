@@ -813,8 +813,8 @@ public:
     // FALSE without a local view or while the local player's controller is busy.
     bool IsLocalPlayerIdle();
     // Index of the exit whose area contains `point` and that leads somewhere.
-    bool FindExitAt(const float* point, int* index);
-    float* ExitCentre(float* out, int index);
+    bool FindExitAt(const Vector3& point, int* index);
+    Vector2 ExitCentre(int index);
     // One ZoneExit particle source (0x2038) per exit that leads somewhere, in exitMarkers at the exit's index (the old
     // markers released), then UpdateExitMarkers.
     void CreateExitMarkers();

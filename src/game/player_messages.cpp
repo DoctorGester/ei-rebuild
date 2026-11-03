@@ -298,7 +298,7 @@ void PlayerServer::ReleaseSentObjects() {
 
 void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
 
-void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
+void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
                                     std::uint32_t limitBits) {
     if (!unit) return;
     std::uint8_t messageType = kPathMessage;
@@ -306,9 +306,9 @@ void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const fl
     out.WriteValue(kind);
     out.WriteValue(flag);
     std::uint32_t word;
-    word = std::bit_cast<std::uint32_t>(point[0]);
+    word = std::bit_cast<std::uint32_t>(point.x);
     out.WriteValue(word);
-    word = std::bit_cast<std::uint32_t>(point[1]);
+    word = std::bit_cast<std::uint32_t>(point.y);
     out.WriteValue(word);
     int unitId = unit->id;
     out.WriteValue(unitId);

@@ -134,15 +134,15 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
     float spotLow = -spot;
     position.x = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.x;
     position.y = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.y;
-    sounds->Play3D(name, 1, &position.x, spot + spot, kRadiusCells, 0);
+    sounds->Play3D(name, 1, position, spot + spot, kRadiusCells, 0);
 }
 
 } // namespace
 
 void Terrain::PlayAmbience() {
     SoundManager* sounds = g_clientWorld.sounds;
-    Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
-    Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
+    Vector3 listener = sounds->listener;
+    Vector3 axis = sounds->listenerAxis;
     int centreX = SectorOf(listener.x);
     int centreY = SectorOf(listener.y);
     const float radiusSquared = kRadiusCells * kRadiusCells;

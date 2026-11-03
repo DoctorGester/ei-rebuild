@@ -48,12 +48,8 @@ constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLi
 // --- Source setters -----------------------------------------------------------------------------
 
 void ParticleSource::ScaleSize(float factor) {
-    spreadMin.x = factor * spreadMin.x;
-    spreadMin.y = factor * spreadMin.y;
-    spreadMin.z = factor * spreadMin.z;
-    spreadMax.x = factor * spreadMax.x;
-    spreadMax.y = factor * spreadMax.y;
-    spreadMax.z = factor * spreadMax.z;
+    spreadMin *= factor;
+    spreadMax *= factor;
     size = factor * size;
     baseSize = factor * baseSize;
     height = factor * height;
@@ -78,9 +74,7 @@ int ParticleSource::UpdateFalling(Particle* p) {
     if (p->pos.z < 0.0f) return 0;
     float terminal;
     terminal = p->velocity.y;
-    p->pos.x = p->drift.x + p->pos.x;
-    p->pos.y = p->drift.y + p->pos.y;
-    p->pos.z = p->drift.z + p->pos.z;
+    p->pos += p->drift;
     p->size = p->velocity.x * p->size;
     float fall = p->velocity.z + p->drift.z;
     p->drift.z = MaxKeepB(fall, terminal);
@@ -134,9 +128,7 @@ int ParticleSource::UpdateSmoke(Particle* p) {
     float oldSize = p->size;
     p->size = oldSize * kSmokeGrowth;
     float push = oldSize * kSmokeGrowth * windStrength * kSmokeDrift;
-    p->pos.x = push * windDirection.x + p->pos.x;
-    p->pos.y = push * windDirection.y + p->pos.y;
-    p->pos.z = push * windDirection.z + p->pos.z;
+    p->pos += push * windDirection;
     return 1;
 }
 
@@ -161,9 +153,7 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
     p->velocity.y = WordToFloat(r) * (hi - lo) * kRandomScale + lo;
-    p->velocity.x = p->velocity.x * 0.5f;
-    p->velocity.y = p->velocity.y * 0.5f;
-    p->velocity.z = p->velocity.z * 0.5f;
+    p->velocity *= 0.5f;
     p->pos.x = origin.x + p->velocity.x;
     p->pos.y = origin.y + p->velocity.y;
     float h = height;
@@ -233,7 +223,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         Vector3 along;
-        along.Construct(t * n.x, t * n.y, t * n.z);
+        along = t * n;
         offset = p->velocity - along;
     } else {
         offset = p->velocity;

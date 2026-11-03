@@ -296,9 +296,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         EI_NAN_AUDIT(norm);
         if (norm == 0.0f) return sample;
         float inverse = 1.0f / norm;
-        sample.direction.x = inverse * sample.direction.x;
-        sample.direction.y = inverse * sample.direction.y;
-        sample.direction.z = inverse * sample.direction.z;
+        sample.direction *= inverse;
         return sample;
     }
     case 4: {

@@ -576,7 +576,7 @@ void MapObjectManager::ApplyPrototype(MapObject* object, const std::string& name
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         scale = prototype->scale;
-        object->SetFigureScale(&scale.x);
+        object->SetFigureScale(scale);
         object->baseScale = scale;
         object->ApplyBaseScale();
         UnitOrNull(object)->SetSecondPrototype(prototype);

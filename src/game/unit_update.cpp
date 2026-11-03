@@ -46,7 +46,7 @@ void Unit::EffectsChanged() {
     Controller()->EffectsChanged();
 }
 
-void Unit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
+void Unit::ApplyBaseScale() { SetFigureScale(baseScale); }
 
 void Unit::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
@@ -297,10 +297,10 @@ static Vector3 ActionPoint(Unit* unit) {
     // The world's IsServer; the server's AI map.
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
-        Vector3 point = {offset.x + unit->localPosition.x, offset.y + unit->localPosition.y, offset.z + unit->localPosition.z};
+        Vector3 point = offset + unit->localPosition;
         if (!world->aiMap.IsPassableForClass(3, point)) return unit->localPosition;
     }
-    return {offset.x + unit->localPosition.x, offset.y + unit->localPosition.y, offset.z + unit->localPosition.z};
+    return offset + unit->localPosition;
 }
 
 Vector3 Unit::PositionAt(int time) { return PredictPosition(this, time); }

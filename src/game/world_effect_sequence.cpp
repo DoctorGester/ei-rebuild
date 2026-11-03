@@ -60,7 +60,7 @@ bool SnapshotReadToEnd() {
 void EffectSoundSeq::Start(int update) {
     SoundManager* sounds = g_clientWorld.sounds;
     if (update != 0) {
-        sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
+        sounds->SetSoundPosition(sound, localPosition, volume, radius);
         return;
     }
     std::vector<std::string> list;
@@ -71,7 +71,7 @@ void EffectSoundSeq::Start(int update) {
     Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);
     sound = sounds->AddSequence(&list, noFade != 0 ? 1000 : 0,
-                                 &localPosition.x, volume, radius, 0, -1, chooser);
+                                 localPosition, volume, radius, 0, -1, chooser);
 }
 
 int EffectSoundSeq::Unpack(int update, DeltaField* field) {

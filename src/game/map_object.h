@@ -175,7 +175,7 @@ public:
     virtual void PlaceOnGround(float offset);
     // Where the object is at world time `time` (units: along their path; other objects ignore the time).
     virtual Vector3 PositionAt(int time);
-    virtual Vector3 AimPoint();        // GetPosition2
+    virtual Vector3 AimPoint();
     virtual bool IsLargeUnit();                      // 0; units their own
     virtual bool IsDead();                           // non-zero when dead or gone
     // `object` is going away (the world server's RemoveObject tells every object). Empty (0); units: the
@@ -209,12 +209,8 @@ public:
     // scale = base scale.
     void ResetScale();
 
-    // The position into `out`.
-    float* GetPosition(float* out);
-    float* GetPosition2(float* out);
-
     // The point at the object's offset, moved to the ground height there plus the offset's z.
-    float* GroundPoint(float* out);
+    Vector3 GroundPoint();
 
     // Replaces the companion: the old one is detached and released, the new one points back here and gains a
     // reference.

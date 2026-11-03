@@ -195,9 +195,7 @@ void EffectMoshka::Update(float now) {
         float speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             float scale = speed / distance;
-            move.x = scale * move.x;
-            move.y = scale * move.y;
-            move.z = scale * move.z;
+            move *= scale;
         }
         Vector3 to{static_cast<float>(move.x + birdAt.x), static_cast<float>(move.y + birdAt.y), static_cast<float>(move.z + birdAt.z)};
         g_clientWorld.objectGrid.Move(bird, &to.x);

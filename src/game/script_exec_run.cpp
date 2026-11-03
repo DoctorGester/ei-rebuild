@@ -76,9 +76,7 @@ void UpdatePointLights(Script* script) {
             continue;
         }
         Vector3& position = light.object->localPosition;
-        position.x = position.x + light.step.x;
-        position.y = position.y + light.step.y;
-        position.z = position.z + light.step.z;
+        position += light.step;
         EffectMoved(light.object.get());
     }
 }
@@ -95,9 +93,7 @@ void UpdateParticleSources(Script* script) {
             source.steps = count - 1;
             if (count > 0) {
                 Vector3& position = source.object->localPosition;
-                position.x = source.step.x + position.x;
-                position.y = source.step.y + position.y;
-                position.z = source.step.z + position.z;
+                position += source.step;
                 EffectMoved(source.object.get());
             } else {
                 source.moving = 0;

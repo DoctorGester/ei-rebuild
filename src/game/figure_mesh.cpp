@@ -218,9 +218,7 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         Vector3 mx = MorphVector(data + 0x30, s, t, u);
         float radius = MorphScalar(data + 0x48, s, t, u);
         out->flags |= 1;
-        out->center.x = c.x;
-        out->center.y = c.y;
-        out->center.z = c.z;
+        out->center = c;
         out->radius = radius;
         boxMin = {mn.x, mn.y, mn.z};
         boxMax = {mx.x, mx.y, mx.z};
@@ -239,13 +237,11 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     Vector3 mn = MorphVector6(data + 0x12, s, t, u);
     Vector3 mx = MorphVector6(data + 0x24, s, t, u);
     float radius = MorphScalar6(data + 0x36, s, t, u);
-    out->center.x = c.x;
-    out->center.y = c.y;
-    out->center.z = c.z;
+    out->center = c;
     out->flags |= 1;
     out->radius = radius;
-    Vector3 boxMin{mn.x, mn.y, mn.z};
-    Vector3 boxMax{mx.x, mx.y, mx.z};
+    Vector3 boxMin = mn;
+    Vector3 boxMax = mx;
     out->SetBox(&boxMin.x, &boxMax.x);
 }
 
@@ -581,20 +577,19 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     float z = v.z * twice;
     float y = v.y * twice;
     float x = twice * v.x;
-    Vector3 along;
-    along.Construct(x, y, z);
+    Vector3 along = {x, y, z};
     float w = rotation.w;
     Vector3 turned = ScaleVector(Cross(v, *p), w + w);
     float ww = w * w;
     float k = ww - Dot(v, v);
     Vector3 rotated = AddVectors(AddVectors(ScaleVector(*p, k), turned), along);
-    float* moved = &worldPosition.x;
+    Vector3& moved = worldPosition;
     float mx = rotated.x + offset.x;
     float my = rotated.y + offset.y;
     float mz = rotated.z + offset.z;
-    moved[0] = mx;
-    moved[1] = my;
-    moved[2] = mz;
+    moved.x = mx;
+    moved.y = my;
+    moved.z = mz;
 
     // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
     float* m = poseMatrix.m;
@@ -625,9 +620,9 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     m[2] = xz - wy;
     m[6] = yz + wx;
     m[10] = 1.0f - (yy + xx);
-    m[12] = moved[0];
-    m[13] = moved[1];
-    m[14] = moved[2];
+    m[12] = moved.x;
+    m[13] = moved.y;
+    m[14] = moved.z;
 }
 
 // --- Life --------------------------------------------------------------------------------------------

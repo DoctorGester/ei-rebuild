@@ -62,7 +62,7 @@ struct LocalUnitMotion {
 };
 
 
-void PathMessage(Unit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
+void PathMessage(Unit* unit, PathOrder* motion, const Vector3& point, int kind, int flag, float limit) {
     if (unit->player) unit->player->Server()->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
@@ -150,7 +150,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float sx = sight.point.x - position.x;
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
-        Vector3 from = {position.x, position.y, position.z};
+        Vector3 from = position;
         from.z = pc24::Add(unit->GroundHeight(position.x, position.y), sight.eyeHeight);   // a double plus a float
         float visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
         EI_NAN_AUDIT(visible);
@@ -172,13 +172,13 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     else point = order->target->AimPoint();
     bool ok;
     if (!FindUseSpot(order, &route)) {
-        PathMessage(unit, &route, &point.x, 3, 1, kFar);
+        PathMessage(unit, &route, point, 3, 1, kFar);
         ok = false;
     } else {
         if (!player) return true;
         if (CanReachTarget(order) && CanPlanAction(order)) {
             // The action can be done from here.
-            PathMessage(unit, &route, &point.x, 3, 0, kFar);
+            PathMessage(unit, &route, point, 3, 0, kFar);
             if (IsShoutable(shout) && unit->player) PlayerMessage(unit->player->Server(), unit, shout);
             return true;
         }
@@ -201,9 +201,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             Vector3 at = route.Destination();
             if (!CanReachTarget(order)) return false;
             float x = unit->localPosition.x, y = unit->localPosition.y, z = unit->localPosition.z;
-            unit->localPosition.x = at.x;
-            unit->localPosition.y = at.y;
-            unit->localPosition.z = at.z;
+            unit->localPosition = at;
             bool can = CanPlanAction(order);
             unit->localPosition.x = x;
             unit->localPosition.y = y;
@@ -236,7 +234,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         } else {
             ok = actsFromDestination();
         }
-        PathMessage(unit, &route, &point.x, kind, ok ? 0 : 1, best);
+        PathMessage(unit, &route, point, kind, ok ? 0 : 1, best);
         if (ok) {
             Shout(shout);
             return true;

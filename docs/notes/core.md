@@ -24,7 +24,7 @@ File: `core_maths.cpp`, `core_transform.cpp`, `core_transform.cpp`, `core_maths.
 `verify_random_init`.
 
 Rewritten (grep the address): `AddVectors` 0040CDC0, `NegateVector` 00402200, `ScaleVector`
-00410770, `ClampUnit` 004022D0 ([-1, 1], NaN gives -1), `Vector3::AddInPlace` 00410750 (returns its argument),
+00410770, `ClampUnit` 004022D0 ([-1, 1], NaN gives -1),
 `Quaternion::SetIdentity` 0040CB00 (returns this), `PreMultiply` 004018A0 (`*this = r * *this`), `AxisX/Y/Z` 0040D940 / 0040F560 /
 0040D6B0, `SetAngleAxis` 0049E790, `SetAxisAngle` 0049E800, `PreMultiplyConjugate` 0049E870, `MultiplyByConjugate` 0049E950, `Slerp`
 0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440 (`CubicCurve3::Evaluate` 0040E460 and its struct: no port, nothing calls them), `TransformObject` slots 13-17
