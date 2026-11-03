@@ -278,7 +278,7 @@ id = "R14"
 title = "Option: stay on screen when focus is lost in borderless full screen"
 group = "renderer"
 size = 1
-note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
+note = "Done 2026-11-03: MAC3j1 (548a85ad0) removed minimising on focus loss in every mode; the game stays on screen. User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
 
 [[ticket]]
 id = "R15"
@@ -1915,7 +1915,7 @@ id = "SV4c1"
 title = "Path vectors on more maps: smaller AI map snapshots"
 group = "verification"
 depends = ["SV4c"]
-note = "SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
+note = "Dropped 2026-11-03: path vectors cannot be recorded again (recorders deleted in H40). SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
 
 [[ticket]]
 id = "SV7b2a"
@@ -1951,7 +1951,7 @@ title = "TryTame and the AI's charm: a caster with enough mana"
 group = "verification"
 size = 1
 depends = ["SV5a"]
-note = "SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
+note = "Dropped 2026-11-03: reach was measured on game.exe through coverage breakpoints, gone since H40. SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
 
 [[ticket]]
 id = "SV5a2"
@@ -1959,7 +1959,7 @@ title = "Hook-reach for AI hooks our code calls directly (LookAroundHook, SeeCor
 group = "verification"
 size = 1
 depends = ["SV5a"]
-note = "SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
+note = "Dropped 2026-11-03: the hook framework and coverage breakpoints are gone (S21, H40). SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
 
 [[ticket]]
 id = "SV5a3"
@@ -1967,7 +1967,7 @@ title = "Verify wrapper for UseOnUnit with a potion (synchronously consumed)"
 group = "verification"
 size = 1
 depends = ["SV5a"]
-note = "SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
+note = "Dropped 2026-11-03: verify wrappers compared ours with the original at run time; gone since H40. SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
 
 [[ticket]]
 id = "S20a"
@@ -2283,7 +2283,7 @@ note = "Build warnings C4244 (world_rules.cpp:48-49) and C4458 (map_object_clien
 id = "X38"
 title = "Regenerate function_sizes.inc from a whole Ghidra database"
 group = "harness"
-note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it. Re-review 2026-10-28: still valid but low value. function_sizes.inc is still read by check_signatures, check_stolen, coverage, find_dead_code and gen_static_init; the two hand-patched sizes are correct. Keep parked until a tool gets a size wrong."
+note = "Dropped 2026-11-03: function_sizes.inc feeds only game.exe-era tools; the hand-patched sizes are right. Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it. Re-review 2026-10-28: still valid but low value. function_sizes.inc is still read by check_signatures, check_stolen, coverage, find_dead_code and gen_static_init; the two hand-patched sizes are correct. Keep parked until a tool gets a size wrong."
 
 [[ticket]]
 id = "X39"
@@ -2426,7 +2426,7 @@ id = "T2c"
 title = "PickEnvironmentSpeech coverage (random bored remark)"
 group = "harness"
 size = 1
-note = "Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state H40: the vector recorders are gone (recording needs a checkout of the tag original-oracle), so a forced ISAAC state is the way here."
+note = "Dropped 2026-11-03: coverage was game.exe breakpoints (gone since H40). Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state H40: the vector recorders are gone (recording needs a checkout of the tag original-oracle), so a forced ISAAC state is the way here."
 
 [[ticket]]
 id = "T2d"
@@ -2903,7 +2903,7 @@ id = "C16d"
 title = "Before the SSE2 switch: doubles, chop rounding, check_x87, goldens (C16 follow-up)"
 group = "cleanup"
 depends = ["C16"]
-note = "C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
+note = "Dropped 2026-11-03: superseded by C30 (SSE2 by judgement, user 2026-10-29); goldens are our own since H40. C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
 
 [[ticket]]
 id = "C16e"
@@ -3168,7 +3168,7 @@ id = "C20g"
 title = "Dead functions after the registration drops"
 group = "cleanup"
 model = "sonnet"
-note = "Result: 296 dead functions deleted (src/lib 25 files, src/game 153 files; 2,425 lines; 394 EI_REWRITTEN lines of them), not the ~4,900 a first scan suggested. Method: scratch builds of the verify config (build/c20g-od and c20g-odu, EI_UTF8 off and on, /Od so no call is inlined away, EI_REWRITTEN made empty so the records root nothing), a COFF relocation graph of the objects (checked against the linker's /OPT:REF map: 4 differences, all library inlines) giving the functions no root reaches; dead = unreached in both configs. First attempt on /O2 objects found 6,254 dead non-inline symbols (5,220 without templates, 3,866 after a closure), but /Ob2 had inlined the calls away: the sources still called them (3,074 compile errors) - those are false positives. /Od + union of the two configs: 439 / 373 dead, 327 planned, 296 compiled clean (31 kept: named by a constexpr table or template argument). Kept and why: files held by C14a (script_*, console*, text_split, mfc_string, string_map, mfc_coll) and C20e (short_functions, particle_create): 15; templates/lambdas 5; compiler-made members and ambiguous overloads 27; names in tests/tools/config only in generated lists (tests/coverage, config/functions.csv, library.csv): none were code. tools/ and tests/ compile (verify build). Not done: C14a batch 11 / C20 batch 3 files, header inline and template functions, static data only the dead code used. Verify, release and verify utf8 build with all checks 0; check_signatures 0; image suite 145 runs ALL PASS, 121 goldens the same, 0 differ."
+note = "Done earlier: 296 dead functions deleted (see the note). Result: 296 dead functions deleted (src/lib 25 files, src/game 153 files; 2,425 lines; 394 EI_REWRITTEN lines of them), not the ~4,900 a first scan suggested. Method: scratch builds of the verify config (build/c20g-od and c20g-odu, EI_UTF8 off and on, /Od so no call is inlined away, EI_REWRITTEN made empty so the records root nothing), a COFF relocation graph of the objects (checked against the linker's /OPT:REF map: 4 differences, all library inlines) giving the functions no root reaches; dead = unreached in both configs. First attempt on /O2 objects found 6,254 dead non-inline symbols (5,220 without templates, 3,866 after a closure), but /Ob2 had inlined the calls away: the sources still called them (3,074 compile errors) - those are false positives. /Od + union of the two configs: 439 / 373 dead, 327 planned, 296 compiled clean (31 kept: named by a constexpr table or template argument). Kept and why: files held by C14a (script_*, console*, text_split, mfc_string, string_map, mfc_coll) and C20e (short_functions, particle_create): 15; templates/lambdas 5; compiler-made members and ambiguous overloads 27; names in tests/tools/config only in generated lists (tests/coverage, config/functions.csv, library.csv): none were code. tools/ and tests/ compile (verify build). Not done: C14a batch 11 / C20 batch 3 files, header inline and template functions, static data only the dead code used. Verify, release and verify utf8 build with all checks 0; check_signatures 0; image suite 145 runs ALL PASS, 121 goldens the same, 0 differ."
 
 [[ticket]]
 id = "C20d1"
@@ -3605,7 +3605,7 @@ group = "cleanup"
 size = 1
 model = "opus"
 files = ["tests/vectors/record_*.cpp"]
-note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records. H40: the recorders were deleted (the tag original-oracle has them); this applies only to recording in such a checkout."
+note = "Dropped 2026-11-03: the vector recorders were deleted in H40; vectors are only replayed. From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records. H40: the recorders were deleted (the tag original-oracle has them); this applies only to recording in such a checkout."
 
 [[ticket]]
 id = "C22g"
@@ -7098,7 +7098,7 @@ id = "LX3"
 title = "Linux: the cursor between frames on OpenGL"
 group = "port"
 depends = ["LX1"]
-note = "graphics_gl.cpp's KeepPresent refuses (the GL context is the main thread's), so the cursor stays put during a long load. A second context sharing the first's objects, current on the cursor thread, drawing the kept present into the window (ordered with the main thread under the renderer's present lock), or note it as accepted."
+note = "Dropped 2026-11-03: R40 made the cursor an SDL cursor; no cursor thread or present-again on any backend. graphics_gl.cpp's KeepPresent refuses (the GL context is the main thread's), so the cursor stays put during a long load. A second context sharing the first's objects, current on the cursor thread, drawing the kept present into the window (ordered with the main thread under the renderer's present lock), or note it as accepted."
 
 [[ticket]]
 id = "LX4"
@@ -7111,7 +7111,7 @@ note = "platform_posix.cpp's LayoutKey / LayoutControlCharacter give nothing (sd
 id = "PL13"
 title = "One main.cpp for both systems: src/standalone's start-up and game.exe scaffolding deleted"
 group = "port"
-note = "User 2026-10-31: why is any of src/standalone needed. Of 1,500 lines, about 15 did work: src/main.cpp (both systems) enters the game folder, redirects the game paths under EI_GAME_ROOT, loads the Rebirth flags (moved into src/hook/rebirth_hook.cpp), starts the renderer's device and calls WinMain with what follows '--' (platform::ArgumentsAfterSeparator). game.exe's static initialisers (static_init.cpp, 1,143 generated lines doing 8 calls; static_exit.cpp, empty) are WinMain's first lines and g_dampScale's initialiser; tools/gen_static_init.py, config/static_init_ports.csv and named_data's --emit went. Deleted: the start-up action registry (no users), the handlers of jumps into game.exe's code (InGameText, OnOldCode, ReportNoCode, DescribeCode), include/ei/hook.h, both host.cpp, --check, the unhandled-exception log line, SetProcessDPIAware (SDL sets the awareness). image_imports.cpp moved to src/platform/win32 and resolves from System32 only; the profiler (EI_PROFILE) and thread_context.h moved to the harness / platform. Check: Windows suites the same; Linux ctest."
+note = "Done (95ca00fc2): one main.cpp, src/standalone start-up deleted. User 2026-10-31: why is any of src/standalone needed. Of 1,500 lines, about 15 did work: src/main.cpp (both systems) enters the game folder, redirects the game paths under EI_GAME_ROOT, loads the Rebirth flags (moved into src/hook/rebirth_hook.cpp), starts the renderer's device and calls WinMain with what follows '--' (platform::ArgumentsAfterSeparator). game.exe's static initialisers (static_init.cpp, 1,143 generated lines doing 8 calls; static_exit.cpp, empty) are WinMain's first lines and g_dampScale's initialiser; tools/gen_static_init.py, config/static_init_ports.csv and named_data's --emit went. Deleted: the start-up action registry (no users), the handlers of jumps into game.exe's code (InGameText, OnOldCode, ReportNoCode, DescribeCode), include/ei/hook.h, both host.cpp, --check, the unhandled-exception log line, SetProcessDPIAware (SDL sets the awareness). image_imports.cpp moved to src/platform/win32 and resolves from System32 only; the profiler (EI_PROFILE) and thread_context.h moved to the harness / platform. Check: Windows suites the same; Linux ctest."
 
 [[ticket]]
 id = "PL14"
