@@ -6849,7 +6849,7 @@ group = "renderer"
 size = 1
 model = "opus"
 depends = ["R43"]
-note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 1). depth_from_multisampled.glsl reads sample 0 of the world's multisampled depth into the frame target. SDL_GPU cannot sample a multisampled texture and resolves only colour. Options: (a) an R32F colour copy of the depth, resolved (edge pixels get a mean); (b) a second depth-only world pass without MSAA; (c) the later passes into the MSAA target. Decide on render_smooth captures, on sokol first."
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 1). depth_from_multisampled.glsl reads sample 0 of the world's multisampled depth into the frame target. SDL_GPU cannot sample a multisampled texture and resolves only colour. Options: (a) an R32F colour copy of the depth, resolved (edge pixels get a mean); (b) a second depth-only world pass without MSAA; (c) the later passes into the MSAA target. Decide on render_smooth captures, on sokol first.  User 2026-11-03 approved: D3D12 (FL 11_0, SM 6.0) or Vulkan is the minimum hardware; the smooth option's depth redesign is the worker's pick if it looks the same; the overlay's per-pass GPU times become one whole-frame GPU time."
 
 [[ticket]]
 id = "R43c"
@@ -6867,7 +6867,7 @@ group = "renderer"
 size = 1.5
 model = "opus"
 depends = ["R43a"]
-note = "From R43 (build/reviews/r43_sdl_gpu.md, 'Shape'). The device is made on the start thread (PrepareDevice) and SDL_ClaimWindowForGPUDevice takes the window. Present modes: VSYNC, IMMEDIATE (tearing) and MAILBOX. One command buffer per frame. A cycled transfer-buffer upload ring replaces UpdateBuffer and append. Download(texture, rect) returns a fence ticket. Pipeline cache. Unit-checked on hardware and lavapipe. Not yet used by the game."
+note = "From R43 (build/reviews/r43_sdl_gpu.md, 'Shape'). The device is made on the start thread (PrepareDevice) and SDL_ClaimWindowForGPUDevice takes the window. Present modes: VSYNC, IMMEDIATE (tearing) and MAILBOX. One command buffer per frame. A cycled transfer-buffer upload ring replaces UpdateBuffer and append. Download(texture, rect) returns a fence ticket. Pipeline cache. Unit-checked on hardware and lavapipe. Not yet used by the game.  User 2026-11-03 approved: D3D12 (FL 11_0, SM 6.0) or Vulkan is the minimum hardware; the smooth option's depth redesign is the worker's pick if it looks the same; the overlay's per-pass GPU times become one whole-frame GPU time."
 
 [[ticket]]
 id = "R43e"
@@ -6876,7 +6876,7 @@ group = "renderer"
 size = 3
 model = "opus"
 depends = ["R43a", "R43b", "R43c", "R43d"]
-note = "From R43 (build/reviews/r43_sdl_gpu.md). Move every sg_* in src/render (19 files, 383 calls) onto gpu.h, along with ui_check, perf_check and tests/port/render_check (their WARP device becomes hardware D3D12, or lavapipe on Linux). Decide GpuTimer first: SDL_GPU has no timestamp queries, so the overlay's GPU line goes or becomes a whole-frame fence time. Re-baseline the image suite once. Delete graphics.h, graphics_d3d11.cpp, graphics_gl.cpp, third_party/sokol, EI_SHDC (build.cmd, play.cmd, workflows) and the GLSL. May be split by file group, with the switch in the last part."
+note = "From R43 (build/reviews/r43_sdl_gpu.md). Move every sg_* in src/render (19 files, 383 calls) onto gpu.h, along with ui_check, perf_check and tests/port/render_check (their WARP device becomes hardware D3D12, or lavapipe on Linux). Decide GpuTimer first: SDL_GPU has no timestamp queries, so the overlay's GPU line goes or becomes a whole-frame fence time. Re-baseline the image suite once. Delete graphics.h, graphics_d3d11.cpp, graphics_gl.cpp, third_party/sokol, EI_SHDC (build.cmd, play.cmd, workflows) and the GLSL. May be split by file group, with the switch in the last part.  User 2026-11-03 approved: D3D12 (FL 11_0, SM 6.0) or Vulkan is the minimum hardware; the smooth option's depth redesign is the worker's pick if it looks the same; the overlay's per-pass GPU times become one whole-frame GPU time."
 
 [[ticket]]
 id = "R43f"
