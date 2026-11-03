@@ -632,7 +632,7 @@ public:
     Vector3 boundsMax;
     // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
     // boundsMax less the centre) relative to the centre; the radius is not written.
-    ClipBounds clip;
+    ClipBounds clip = {};
     std::vector<Particle*> particles;
     std::vector<SourceFrame> frames;
     EmitCallback emitFn;
@@ -759,9 +759,9 @@ public:
     // The cells as sprites through the scene renderer; 1 without cells or when the bounds are out of view.
     int Draw(class SceneRenderer* renderer);
 
-    ClipBounds bounds;              // flags 3 once computed; the box relative to the centre
+    ClipBounds bounds = {};         // flags 3 once computed; the box relative to the centre
     CellMap cells;
-    std::uint8_t boundsValid;
+    std::uint8_t boundsValid = 0;
 };
 
 // The size of an orbiting sphere's particle by the ticks it has left (the fire, electricity and air spheres'

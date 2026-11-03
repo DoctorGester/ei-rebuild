@@ -386,6 +386,7 @@
 #include "platform/platform.h"
 #include "game/main_loop.h"
 #include "lib/rebirth.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 #include "harness_objects.h"
 #include "image/image_side.h"
@@ -432,7 +433,7 @@ void SetCurrentConstructor(float constructor) { image::SetConstructionVariable(s
 
 // The single-player hero's player number in the server world: world players' +0x24 is 0 for the
 // local player, and the world script commands that act on "the player" (GSSetVar(0, ...),
-// LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(Ftol(f[0])) and its +0x20)
+// LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(int(f[0])) and its +0x20)
 // use 0.
 constexpr int kLocalPlayer = 0;
 
@@ -2547,15 +2548,14 @@ void RunSteps() {
                 g_failures.push_back("checkshot needs [recorder] <n> <frame>");
                 continue;
             }
-            char path[kPath];
-            std::snprintf(path, sizeof(path), "%s\\%sshot%.4d.bmp", g_savesDir, recorder ? "capture\\" : "", index);
+            const std::string path = str::Format("%s\\%sshot%.4d.bmp", g_savesDir, recorder ? "capture\\" : "", index);
             double differing = 0;
             int largest = 0;
             std::string how;
             const char* why = "";
-            if (!capture::CompareFile(path, frame, tolerance, &differing, &largest, &how, &why)) {
+            if (!capture::CompareFile(path.c_str(), frame, tolerance, &differing, &largest, &how, &why)) {
                 g_failures.push_back(std::string("checkshot ") + std::to_string(index) + " " + frame + ": " + why);
-                Log("harness: checkshot %d %s: %s (%s)", index, frame, why, path);
+                Log("harness: checkshot %d %s: %s (%s)", index, frame, why, path.c_str());
                 continue;
             }
             char text[240];
@@ -2580,14 +2580,13 @@ void RunSteps() {
             bool centre = std::strncmp(rest, "centre", 6) == 0;
             if (centre) rest += 6;
             std::sscanf(rest, "%d %lf", &tolerance, &limit);
-            char path[kPath];
-            std::snprintf(path, sizeof(path), "%s\\%s\\shot.sav", g_savesDir, slot);
+            const std::string path = str::Format("%s\\%s\\shot.sav", g_savesDir, slot);
             double differing = 0;
             int largest = 0;
             const char* why = "";
-            if (!capture::CompareSavePicture(path, frame, centre, tolerance, &differing, &largest, &why)) {
+            if (!capture::CompareSavePicture(path.c_str(), frame, centre, tolerance, &differing, &largest, &why)) {
                 g_failures.push_back(std::string("checksave ") + slot + " " + frame + ": " + why);
-                Log("harness: checksave %s %s: %s (%s)", slot, frame, why, path);
+                Log("harness: checksave %s %s: %s (%s)", slot, frame, why, path.c_str());
                 continue;
             }
             char text[200];

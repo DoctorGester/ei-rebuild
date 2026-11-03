@@ -37,7 +37,6 @@ float Lit(float base, float amount, float color) {
 Light::Light() {
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation.SetIdentity();
-    std::memset(&kind, 0, offsetof(Light, rangeSquared) - offsetof(Light, kind));
     // The root of FLT_MAX and its square (2^128 - 2^105, one below FLT_MAX).
     const float root = std::sqrt(FLT_MAX);
     const float squared = root * root;

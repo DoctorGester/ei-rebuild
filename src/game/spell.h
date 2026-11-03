@@ -434,10 +434,10 @@ public:
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
                   float distance) const;
 
-    int kind;                       // 1 point, 3 directional
-    float color[3];                 // r, g, b
-    Vector3 pointPosition;          // SetPoint's position
-    Vector3 direction;              // a directional light's (the sun's) direction
+    int kind = 0;                   // 1 point, 3 directional
+    float color[3] = {};            // r, g, b
+    Vector3 pointPosition = {};     // SetPoint's position
+    Vector3 direction = {};         // a directional light's (the sun's) direction
     float range;
     float rangeSquared;
     float inverseRangeSquared;

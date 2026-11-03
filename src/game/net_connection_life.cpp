@@ -108,10 +108,15 @@ Connection::Connection(const Connection& other)
     lastReceived = other.lastReceived;
     sequenceHigh = other.sequenceHigh;
     received = other.received;
-    // id, round trips; timers, clock, budget: copied bit for bit.
-    std::memcpy(&id, &other.id, offsetof(Connection, address) - offsetof(Connection, id));
+    id = other.id;
+    roundTrip = other.roundTrip;
+    roundTripSquare = other.roundTripSquare;
     address = other.address;
-    std::memcpy(&sendInterval, &other.sendInterval, offsetof(Connection, idPools) - offsetof(Connection, sendInterval));
+    sendInterval = other.sendInterval;
+    sendTimer = other.sendTimer;
+    idleTime = other.idleTime;
+    clock = other.clock;
+    updateBudget = other.updateBudget;
     for (int i = 0; i < kMessageTypes; ++i) idPools[i] = other.idPools[i];
     freedTimer = other.freedTimer;
     headerSequence = other.headerSequence;
