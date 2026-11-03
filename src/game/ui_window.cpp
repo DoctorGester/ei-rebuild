@@ -69,9 +69,9 @@ bool UiRegion::HitTest(Point point) const {
     // bits like the original's.
     int count = lib::Count(points);
     for (int i = 0; i < count;) {
-        const UiPoint& a = points[i];
+        const Point& a = points[i];
         ++i;
-        const UiPoint& b = points[i % count];
+        const Point& b = points[i % count];
         int lhs = Mul(point.y, b.x) + Mul(b.y, a.x) + Mul(a.y, point.x);
         int rhs = Mul(a.y, b.x) + Mul(point.y, a.x) + Mul(b.y, point.x);
         if (lhs < rhs) return false;

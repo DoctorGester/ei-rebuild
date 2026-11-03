@@ -201,7 +201,7 @@ void UiScrollText::DrawLines(int scroll) {
         const UiTextToken* last = tokens[end - 1];
         if (align != kAlignLeft && !(last->type == kFormatType && last->AsFormat()->newline) && words >= 2 &&
             end != std::ssize(tokens)) {
-            const int stretched = (textRect.right - textRect.left - wordsWidth) / (words - 1);
+            const int stretched = (textRect.Width() - wordsWidth) / (words - 1);
             if (stretched <= kMaxStretch * normalGap) gap = stretched;
         }
 
@@ -222,7 +222,7 @@ void UiScrollText::DrawLines(int scroll) {
         row.top += height;
         drawn += height;
         ++line;
-    } while (drawn < textRect.bottom - textRect.top - offset && line < std::ssize(lines));
+    } while (drawn < textRect.Height() - offset && line < std::ssize(lines));
 }
 
 // --- Construction, texts, layout ----------------------------------------------------------
@@ -248,8 +248,8 @@ void UiScrollText::DeleteTokens() {
 }
 
 void UiScrollText::PlaceText(const Rect& area) {
-    if (!surfaces.empty() && surfaces[0]) surfaces[0]->MoveTo(area.left, area.top);
-    textRect = {0, 0, area.right - area.left, area.bottom - area.top};
+    if (!surfaces.empty() && surfaces[0]) surfaces[0]->MoveTo(area.TopLeft());
+    textRect = {0, 0, area.Width(), area.Height()};
     textRect.right -= kBarWidth;
     LayOut(this);
 }
@@ -295,7 +295,7 @@ void UiScrollText::Clear() {
 
 void UiScrollText::Layout() {
     int total = 0;
-    int width = textRect.right - textRect.left;
+    int width = textRect.Width();
     int font = kDefaultFont;
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {

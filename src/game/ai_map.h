@@ -165,12 +165,6 @@ struct BlockCost {
 
 struct RegionMap;
 
-// A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the region map's
-// work lists are arrays of BlockPoint.
-struct BlockPoint {
-    int x, y;
-};
-
 // The first 0x20 bytes of PathOrder: what the unit is told to do. Kinds:
 // 0 stand at (x, y) facing `angle` (set by Start / Reset),
 // 1 turn to direction `arg5` (an angle) at rate `arg6` (0: the unit's own rate),
@@ -259,7 +253,7 @@ struct AIPath : PathOrder {
     // from Clear until the first search ends.
     bool mayExcludeRegions, firstSearch;
     // the blocks the long-range plan avoids (PlanLongPath adds the region it failed in).
-    std::vector<BlockPoint> excludedBlocks;
+    std::vector<Point> excludedBlocks;
     int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
 
@@ -436,7 +430,7 @@ struct RegionMap {
     void PickRepresentatives(class AIMap* map, int bx, int by);
     // The chain of regions from (fromX, fromY) to (toX, toY) into `chain`, avoiding the blocks in `excluded`.
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
-                         std::vector<BlockPoint>* excluded);
+                         std::vector<Point>* excluded);
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCells* chain);
     // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
@@ -447,7 +441,7 @@ struct RegionMap {
     // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
-    void FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label);
+    void FloodRegionFrom(int sizeClass, std::vector<Point>* frontier, std::vector<Point>* next, int label);
     // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
     // block y, cost}.
     std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, int x, int y);
@@ -713,6 +707,9 @@ public:
     // else the product of the transparencies of the objects it passes (at least 0.0001).
     float LineOfSight(const Vector3& from, const Vector3& to);
 
+    // Whether the cell is on the map.
+    bool InBounds(Point cell) const { return cell.x >= 0 && cell.y >= 0 && cell.x < cells.width && cell.y < cells.height; }
+
     float GroundHeight(int x, int y);
     // Terrain height plus the water's depth, at `position`.
     float TopHeightAt(const Vector3& position);
@@ -849,6 +846,7 @@ struct SpiralCache {
 // World coordinate to AI map cell (half-unit cells), as every AI map function computes it: rounded to float,
 // then to the nearest integer.
 int WorldToCell(float world);
+Point WorldToCell(const Vector3& position);   // the cell holding a position's x, y
 
 void InitCostTables(AIMap* map);
 // The map's six area lists (areaLists) from the level tables.

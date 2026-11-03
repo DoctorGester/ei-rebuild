@@ -298,7 +298,7 @@ void ConsoleWindow::DrawInput() {
     Rect area{8, height - 0x17, width - 8, height - 3};
     std::string text = std::string(game::consoletexts::Prompt()) + input;
     currentSurface->DrawTextPixels(font, text, area, kDrawLine, kInputText, false);
-    if (caretX < width - 0x10) currentSurface->Line(caretX + 8, height - 0x17, caretX + 8, height - 8, 2, kInputText);
+    if (caretX < width - 0x10) currentSurface->Line({caretX + 8, height - 0x17}, {caretX + 8, height - 8}, 2, kInputText);
 }
 
 } // namespace console

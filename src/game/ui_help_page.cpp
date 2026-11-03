@@ -145,9 +145,9 @@ void HelpWindow::ShowPage() {
                 rows = str::ToInt(words[4]);
                 rowsGiven = true;
             }
-            if (pageArea.right - pageArea.left < 300) pageArea.right = pageArea.left + 300;
+            if (pageArea.Width() < 300) pageArea.right = pageArea.left + 300;
             pageArea.bottom = rows * kRowHeight + pageArea.top + 2 * kStripHeight;
-            if (pageArea.bottom - pageArea.top > 600) pageArea.bottom = pageArea.top + 600;
+            if (pageArea.Height() > 600) pageArea.bottom = pageArea.top + 600;
         }
     }
     texts->cursor = resume;
@@ -167,7 +167,7 @@ void HelpWindow::ShowPage() {
 
     // Surface 0: the page's title and the topic's with the page's number.
     std::string titleText;
-    const int width = pageArea.right - pageArea.left;
+    const int width = pageArea.Width();
     UiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
     AddSurface(header);
     header->Clear();

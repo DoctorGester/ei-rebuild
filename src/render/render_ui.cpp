@@ -291,7 +291,7 @@ void DrawMoved(sg_view source, const Rect& from, int left, int top, int width, i
     b.views[0] = source;
     b.samplers[0] = g_nearest;
     sg_apply_bindings(&b);
-    ApplyRect(Rect{left, top, left + from.right - from.left, top + from.bottom - from.top}, width, height);
+    ApplyRect(Rect{left, top, left + from.Width(), top + from.Height()}, width, height);
     ui_params_t fs{};
     fs.source[0] = left - from.left;
     fs.source[1] = top - from.top;
@@ -406,8 +406,8 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (std::size_t k = from; k < to; ++k) {
         const Op& op = g_queue[k];
         const int row = height;
-        width = std::max(width, op.rect.right - op.rect.left);
-        height += op.rect.bottom - op.rect.top;
+        width = std::max(width, op.rect.Width());
+        height += op.rect.Height();
         if (!op.atlas) continue;
         sg_view atlas = AtlasView(*op.atlas);
         int offset = AppendVertices(op.vertices);
@@ -422,7 +422,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     sg_apply_pipeline(g_glyph);
     for (const Run& run : runs) {
         const Rect& r = run.op->rect;
-        platform::graphics::ApplyScissorRect(0, run.row, r.right - r.left, r.bottom - r.top);
+        platform::graphics::ApplyScissorRect(0, run.row, r.Width(), r.Height());
         sg_bindings b{};
         b.vertex_buffers[0] = g_vertices;
         b.vertex_buffer_offsets[0] = run.offset;
@@ -463,10 +463,10 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
 // them (each run's composition reads what the canvas held before it), the stacked rows within a target's size.
 bool JoinsRuns(const Op& op, std::size_t from, std::size_t to) {
     if (op.kind != Op::Glyphs || op.holder != g_queue[from].holder || op.canvas != g_queue[from].canvas) return false;
-    int height = op.rect.bottom - op.rect.top;
+    int height = op.rect.Height();
     for (std::size_t k = from; k < to; ++k) {
         if (!op.rect.Intersection(g_queue[k].rect).IsEmpty()) return false;
-        height += g_queue[k].rect.bottom - g_queue[k].rect.top;
+        height += g_queue[k].rect.Height();
     }
     return height <= kMaxCanvas;
 }
@@ -487,8 +487,8 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     ui_params_t fs = CanvasParams(canvas);
     fs.source[0] = r.left;
     fs.source[1] = r.top;
-    fs.source[2] = r.right - r.left;
-    fs.source[3] = r.bottom - r.top;
+    fs.source[2] = r.Width();
+    fs.source[3] = r.Height();
     fs.dest[0] = canvas.width;
     fs.dest[1] = canvas.height;
     ApplyFs(fs);
@@ -531,8 +531,8 @@ void ResizeImage(CanvasState& canvas, const Op& op) {
 void DrawPixels(const CanvasState& canvas, const Op& op) {
     const Rect& r = op.rect;
     sg_image_desc d{};
-    d.width = r.right - r.left;
-    d.height = r.bottom - r.top;
+    d.width = r.Width();
+    d.height = r.Height();
     d.pixel_format = SG_PIXELFORMAT_RGBA8;
     d.data.mip_levels[0] = sg_range{op.pixels.data(), op.pixels.size() * sizeof(std::uint32_t)};
     d.label = "ei-canvas-pixels";
@@ -771,7 +771,7 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     };
     for (const text::GlyphQuad& q : layout.quads)
         quad(q.x, q.y, q.width, q.height, static_cast<float>(q.atlasX), static_cast<float>(q.atlasY));
-    for (const Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
+    for (const Rect& u : layout.underlines) quad(u.left, u.top, u.Width(), u.Height(), -1.0f, -1.0f);
     op.rect = bounds.Intersection(scissor);
     if (op.rect.IsEmpty()) return;
     Push(std::move(op));
@@ -891,7 +891,7 @@ void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb
     op.holder = holder;
     op.canvas = canvas->id;
     op.rect = r;
-    const int w = r.right - r.left, h = r.bottom - r.top;
+    const int w = r.Width(), h = r.Height();
     op.pixels.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
     for (int y = 0; y < h; ++y) {
         const std::uint32_t* in = rgb + static_cast<std::ptrdiff_t>(y + r.top - destination.top) * pitch + (r.left - destination.left);
@@ -956,8 +956,8 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
     auto it = g_canvases.find(batch.holder);
     if (it == g_canvases.end() || !it->second.gpu.texture.id || !g_pipelinesMade) return;
     const CanvasState& canvas = it->second;
-    int dw = batch.destination.right - batch.destination.left, dh = batch.destination.bottom - batch.destination.top;
-    int sw = batch.source.right - batch.source.left, sh = batch.source.bottom - batch.source.top;
+    int dw = batch.destination.Width(), dh = batch.destination.Height();
+    int sw = batch.source.Width(), sh = batch.source.Height();
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
     sg_apply_pipeline(BlitPipelineFor(PassSampleCount()));
     sg_bindings b{};

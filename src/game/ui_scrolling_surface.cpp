@@ -52,7 +52,7 @@ int MulDiv(int a, int b, int divisor) {
 
 int PixelsToTwips(const UiSurface* surface, int pixels) { return MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
 
-int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.bottom - surface->rect.top); }
+int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.Height()); }
 } // namespace
 
 UiScrollingSurface::UiScrollingSurface(Interface3D* ui, const Rect* rect) : UiSurface(ui, rect, SurfaceBlend::Keyed) {
@@ -71,7 +71,7 @@ bool UiScrollingSurface::Load(MappedResource* archive, const char* name) {
 
 void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     const int dpi = TitlesDpi(this);
-    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(this, rect.right - rect.left), dpi);
+    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(this, rect.Width()), dpi);
     // Drawn without smoothing, as RichEdit drew with the titles' font smoothing off.
     text = std::make_unique<render::text::RichLayout>(render::text::LayoutRichText(
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), rectWidth, dpi, false));

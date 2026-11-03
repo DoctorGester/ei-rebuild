@@ -20,6 +20,9 @@ inline Point operator*(Point a, int s) { return {a.x * s, a.y * s}; }
 inline Point operator/(Point a, int s) { return {a.x / s, a.y / s}; }
 inline Point& operator+=(Point& a, Point b) { a = a + b; return a; }
 inline Point& operator-=(Point& a, Point b) { a = a - b; return a; }
+// Each coordinate's smaller and larger.
+inline Point Min(Point a, Point b) { return {(std::min)(a.x, b.x), (std::min)(a.y, b.y)}; }
+inline Point Max(Point a, Point b) { return {(std::max)(a.x, b.x), (std::max)(a.y, b.y)}; }
 inline bool operator==(Point a, Point b) { return a.x == b.x && a.y == b.y; }
 inline bool operator!=(Point a, Point b) { return !(a == b); }
 

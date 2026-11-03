@@ -127,7 +127,7 @@ void GlobalMap::LeftDown(int, Point point) {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
         // part's margins come off (Rebirth's WideScreen took the margin off x).
         const Point shift = screen_layout::PickShift();
-        const std::uint32_t pixel = backdrop->PixelAt(point.x / 2 - shift.x, point.y / 2 - shift.y);
+        const std::uint32_t pixel = backdrop->PixelAt(point / 2 - shift);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;
         ui->PlayInterfaceSound(kOkSound);

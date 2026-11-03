@@ -322,7 +322,7 @@ bool Staging::Map(GLuint texture, sg_pixel_format format, const Rect& region) {
     if (!texture || !TexelFormatOf(format, &texel) || region.left < 0 || region.top < 0 || region.right <= region.left ||
         region.bottom <= region.top)
         return false;
-    const int width = region.right - region.left, height = region.bottom - region.top;
+    const int width = region.Width(), height = region.Height();
     pitch = static_cast<std::size_t>(sg_query_row_pitch(format, width, 1));
     texels.resize(pitch * static_cast<std::size_t>(height));
     while (glGetError() != GL_NO_ERROR) {}

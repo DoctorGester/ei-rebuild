@@ -119,6 +119,8 @@ inline Vector2& operator+=(Vector2& a, const Vector2& b) { a = a + b; return a; 
 inline Vector2& operator-=(Vector2& a, const Vector2& b) { a = a - b; return a; }
 inline Vector2& operator*=(Vector2& a, float s) { a = a * s; return a; }
 inline Vector2& operator/=(Vector2& a, float s) { a = a / s; return a; }
+inline bool operator==(const Vector2& a, const Vector2& b) { return a.x == b.x && a.y == b.y; }
+inline bool operator!=(const Vector2& a, const Vector2& b) { return !(a == b); }
 
 // 2-term sums have one result whatever the order.
 inline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }

@@ -133,7 +133,7 @@ void MpConnectScreen::DrawListVanilla() {
     // WideScreen: without the margin.
     ui->ScalePointToScreenNoMargin(&from);
     ui->ScalePointToScreenNoMargin(&to);
-    surface->Line(from.x, from.y, to.x, to.y, 1, g_connectTextColour);
+    surface->Line(from, to, 1, g_connectTextColour);
     Down(&row, 27);
 
     unsigned index = static_cast<unsigned>(scrollTop);

@@ -57,7 +57,7 @@ void UiScrollbar::SetPosition(int newPosition) {
     // the game's _ftol stores the NaN as a 64-bit integer (0x8000000000000000) and returns its low
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
-                              : static_cast<int>(static_cast<float>((track.bottom - track.top) * newPosition) / maximum);
+                              : static_cast<int>(static_cast<float>(track.Height() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(track.left + kThumbInset,
                                 static_cast<float>(offset) + track.top, depth - kThumbLift);
     thumb.left = track.left;
@@ -100,7 +100,7 @@ void UiScrollbar::MouseMove(int, Point point) {
     if (state == kDragging) {
         ui->ScalePointFromScreen(&point);
         int along = point.y - grabY;
-        SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / track.Height()));
     }
     handled = true;
 }
@@ -121,7 +121,7 @@ void UiSlider::SetPosition(int newPosition) {
     if (position == newPosition) return;
     position = newPosition;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
-    int offset = lib::Truncate(static_cast<float>((track.right - track.left) * newPosition) / maximum);
+    int offset = lib::Truncate(static_cast<float>(track.Width() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
     thumb.top = track.top;
@@ -135,7 +135,7 @@ void UiSlider::MouseMove(int, Point point) {
     if (state == kDragging) {
         ui->ScalePointFromScreen(&point);
         int along = point.x - grabX;
-        SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / track.Width()));
     }
     handled = true;
 }

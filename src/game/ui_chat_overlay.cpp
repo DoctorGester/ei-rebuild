@@ -195,7 +195,7 @@ void ChatOverlay::DrawTyped() {
         // WideScreen: without the margin.
         ui->ScalePointToScreenNoMargin(&top);
         ui->ScalePointToScreenNoMargin(&bottom);
-        surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
+        surface->Line(top, bottom, 1, kTypedColour);
     }
 }
 
@@ -275,7 +275,7 @@ void ChatOverlay::Update() {
 void ChatOverlay::Redraw() {
     int y = kTop;
     for (const ChatLine& line : lines) {
-        line.surface->MoveTo(kLeft, y);
+        line.surface->MoveTo({kLeft, y});
         line.surface->Blit();
         y += kLineHeight;
     }

@@ -62,8 +62,7 @@ void BattleScreen::LeftDouble(int buttons, Point point) {
         if (handled) return;
     }
     viewPressed = true;
-    pressX = point.x;
-    pressY = point.y;
+    press = point;
     boxSelecting = false;
 }
 
@@ -382,14 +381,11 @@ void BattleScreen::MouseMove(int buttons, Point point) {
     g_cursor.SetShape(kCursorArrow);
     if (viewPressed && options::g_options.cameraFrameSelectionArea > 0 && !IsMultiplayerClient()) {
         int threshold = options::g_options.cameraFrameSelectionArea;
-        if (Distance(point.x, pressX) > threshold || Distance(point.y, pressY) > threshold) boxSelecting = true;
+        if (Distance(point.x, press.x) > threshold || Distance(point.y, press.y) > threshold) boxSelecting = true;
         if (boxSelecting) {
             HudUnitPanel* panel = unitPanel;
             if (panel->hoverUnit) panel->hoverUnit = nullptr;
-            selectionBox.left = point.x < pressX ? point.x : pressX;
-            selectionBox.top = point.y < pressY ? point.y : pressY;
-            selectionBox.right = point.x > pressX ? point.x : pressX;
-            selectionBox.bottom = point.y > pressY ? point.y : pressY;
+            selectionBox = Rect::FromCorners(Min(point, press), Max(point, press));
             return;
         }
     } else {
@@ -413,8 +409,7 @@ void BattleScreen::LeftDown(int buttons, Point point) {
         if (handled) return;
     }
     viewPressed = true;
-    pressX = point.x;
-    pressY = point.y;
+    press = point;
     boxSelecting = false;
 }
 

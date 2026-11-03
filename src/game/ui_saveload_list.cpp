@@ -76,13 +76,13 @@ void SaveLoadWindow::RefreshListVanilla() {
             if (isSave && !SameFolder(entry.folder, kQuickFolder) && !SameFolder(entry.folder, kAutoFolderA) &&
                 !SameFolder(entry.folder, kAutoFolderB)) {
                 const int width = ui->TextExtent(str::Left(currentName, cursor), kFont).w;
-                if (width < titleRect.right - titleRect.left) {
+                if (width < titleRect.Width()) {
                     Point top{titleRect.left + width, titleRect.top};
                     Point bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
                     ui->ScalePointToScreenNoMargin(&top);
                     ui->ScalePointToScreenNoMargin(&bottom);
-                    surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
+                    surface->Line(top, bottom, 1, kCaretColour);
                 }
             }
             marker = SceneMesh(kMarkerSprite);

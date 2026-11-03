@@ -147,7 +147,7 @@ void HudMap::Layout() {
     Place(this, 9, slideOffset + kMapFrameX, 80.0f, 10.0f);
     Place(this, 10, slideOffset + kMapNeedleX, 84.0f, kSlingDepthBits);
     Place(this, 11, buttons, 85.0f, 10.0f);
-    surfaces[0]->MoveTo(offset + 700 + screen_layout::EdgeShift(), 80);     // WideScreen
+    surfaces[0]->MoveTo({offset + 700 + screen_layout::EdgeShift(), 80});     // WideScreen
     screen_layout::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset);
 }
@@ -208,7 +208,7 @@ void HudUnitPanel::Layout() {
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, kUnitEffectX - slideOffset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces[0]->MoveTo(20 - screen_layout::EdgeShift() - offset, 0);     // WideScreen
+    surfaces[0]->MoveTo({20 - screen_layout::EdgeShift() - offset, 0});     // WideScreen
     MoveRegions(this, -offset);
     screen_layout::LeavePanel();        // addon's 100232E9
 }
@@ -437,12 +437,12 @@ void HudMap::Setup(float newZoom, bool slid) {
 
     UiSurface* dot = new UiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
     AddSurface(dot);
-    dot->Dot(0, 0, 0xFFFFFF);
+    dot->Dot({0, 0}, 0xFFFFFF);
 
     const UiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
-            viewPolygon.push_back(UiPointF{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});
+            viewPolygon.push_back(Vector2{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});
     }
     UpdateView();
     BuildMarkers();

@@ -365,7 +365,7 @@ void ObjectivesWindow::ShowQuest() {
         float worldWidth = static_cast<float>(map->sizeX << 5);
         float worldHeight = static_cast<float>(map->sizeY << 5);
         float span = worldWidth < worldHeight ? worldHeight : worldWidth;
-        const UiPointF& place = questPlaces[i];
+        const Vector2& place = questPlaces[i];
         float x = (place.x - worldWidth * 0.5f) * kPictureSpan / span + kPictureCentreX;
         float y = kPictureCentreY - (place.y - worldHeight * 0.5f) * kPictureSpan / span;
         UiMesh* marker = AddBlankSprite();

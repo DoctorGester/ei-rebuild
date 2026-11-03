@@ -54,9 +54,9 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
 int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxLines, int font, std::uint32_t colour,
                                 std::uint32_t format, bool shadow) {
     if (!holder) return 0;
-    const std::vector<std::string> lines = ui->WrapText(text, area->right - area->left, font);
+    const std::vector<std::string> lines = ui->WrapText(text, area->Width(), font);
     Rect at = *area;
-    int boxHeight = area->bottom - area->top;
+    int boxHeight = area->Height();
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {
         DrawTextIn(lines[i], &at, font, colour, format, shadow);
@@ -98,7 +98,7 @@ int UiSurface::DrawTextIn(std::string_view text, const Rect* area, int font, std
     if (!holder) return 0;
     Rect frame;
     if (area->IsEmpty()) {
-        frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
+        frame = {0, 0, rect.Width(), rect.Height()};
     } else {
         frame = *area;
         // WideScreen (addon replaces the interface argument by 0): without the margin.

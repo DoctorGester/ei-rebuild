@@ -67,7 +67,7 @@ bool Ended(const video::Movie* movie) { return video::DecodedFrameNumber(movie) 
 // centred (divisions by 2 round towards zero).
 Rect MovieRect(int width, int height, bool centred) {
     const Rect& screen = g_sceneRenderer.device->screen;
-    const int screenWidth = screen.right - screen.left, screenHeight = screen.bottom - screen.top;
+    const int screenWidth = screen.Width(), screenHeight = screen.Height();
     int shownWidth = width, shownHeight = height;
     if (!centred) {
         shownWidth = screenWidth;

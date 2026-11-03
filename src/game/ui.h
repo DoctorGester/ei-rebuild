@@ -273,11 +273,6 @@ extern Interface3D g_interface;
 class UiRegion;
 struct UiTooltip;
 
-struct UiPoint {
-    int x;
-    int y;
-};
-
 // A clickable area of a window, created by UiWindow::AddRegion: a rectangle, optionally narrowed to a
 // convex polygon, and an optional tooltip.
 class UiRegion {
@@ -303,7 +298,7 @@ public:
     void SetRectFrom(Rect rect);
 
     Interface3D* ui;
-    std::vector<UiPoint> points;    // polygon vertices
+    std::vector<Point> points;    // polygon vertices
     Rect bounds;
     bool rectOnly;
     bool enabled;
@@ -339,10 +334,10 @@ public:
     // Onto the render target, when shown.
     virtual void Blit();
 
-    std::uint32_t PixelAt(int x, int y);
+    std::uint32_t PixelAt(Point at);
     // Layout coordinates.
     void SetRect(int left, int top, int right, int bottom);
-    void MoveTo(int x, int y);
+    void MoveTo(Point at);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
     int DrawWrappedText(std::string_view text, const Rect* rect, int maxLines, int font, std::uint32_t colour, std::uint32_t format,
@@ -377,11 +372,11 @@ public:
     void Fill(std::uint32_t colour);
     void Clear();
     // In surface pixels, with a surface: `rect` filled (CDC::FillSolidRect); a solid pen's line of `width`
-    // pixels from (x0, y0) to (x1, y1) (MoveTo, LineTo: the game's 1 and 2 pixel pens, render_ui.h's Line); one
+    // pixels from `from` to `to` (MoveTo, LineTo: the game's 1 and 2 pixel pens, render_ui.h's Line); one
     // pixel (SetPixel).
     void FillRect(const Rect& rect, std::uint32_t colour);
-    void Line(int x0, int y0, int x1, int y1, int width, std::uint32_t colour);
-    void Dot(int x, int y, std::uint32_t colour);
+    void Line(Point from, Point to, int width, std::uint32_t colour);
+    void Dot(Point at, std::uint32_t colour);
     // The holder's canvas, black, of the surface's size in the screen's format.
     void MakeCanvas();
     // RelayoutAll's step for this surface.
@@ -428,24 +423,10 @@ public:
 
 // An input side: a window's own (UiWindow's second base) or a separate handler a container keeps in its
 // list (e.g. the battle camera's keys, CameraInput). The interface hands each event to the top window's
-// side (arguments: buttons / x, y in screen pixels; key, repeat, scan code and flags; wheel: key flags,
-// delta, x, y; only the wheel's result is read). The base does nothing, except that a double click is a
+// side (arguments: buttons and the position in screen pixels; key, repeat, scan code and flags; wheel: key flags,
+// delta, position; only the wheel's result is read). The base does nothing, except that a double click is a
 // press and the wheel is unused.
 struct UiInputSide {
-    enum Slot : int {
-        kEventDeactivate = 1,
-        kEventLeftDown = 2,
-        kEventLeftUp = 3,
-        kEventMouseMove = 4,
-        kEventRightDown = 5,
-        kEventRightUp = 6,
-        kEventLeftDouble = 7,
-        kEventRightDouble = 8,
-        kEventKeyDown = 9,
-        kEventChar = 10,
-        kEventKeyUp = 11,
-        kEventWheel = 12,
-    };
     // The handled flag is left as it is (a dispatcher clears it before each event).
     explicit UiInputSide(Interface3D* ownerUi) : ui(ownerUi) {}
     virtual ~UiInputSide() = default;
@@ -461,8 +442,6 @@ struct UiInputSide {
     virtual void Char(int, int, int) {}
     virtual void KeyUp(int, int, int) {}
     virtual void Wheel(int flags, int delta, Point point);
-    // Events 2-11 by number (the containers' dispatch).
-    void Event(int slot, int first, int second, int third);
 
     Interface3D* ui;
     bool handled;                    // set by a handler that used the event
@@ -921,11 +900,6 @@ public:
 inline UiMesh* AsUiMesh(EngineObject* object) { return static_cast<UiMesh*>(object); }
 inline UiMesh* UiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects[index]); }
 
-struct UiPointF {
-    float x;
-    float y;
-};
-
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
 class HudMap : public UiWindow {
@@ -967,8 +941,8 @@ public:
     float zoom;                      // 1 .. zoomMax (the view buttons change it)
     float zoomMax;
     float halfSide;                  // 80: half the map's side in layout units (a click's offset over it)
-    std::vector<UiPointF> viewPolygon;        // the round map's outline in map units (the disc's corners)
-    std::vector<UiPointF> visibleArea;        // the outline in world units, clipped to the world
+    std::vector<Vector2> viewPolygon;        // the round map's outline in map units (the disc's corners)
+    std::vector<Vector2> visibleArea;        // the outline in world units, clipped to the world
     bool sliding;                    // set when the sling button (or its key) starts the slide
     int offset;                      // current slide offset in pixels (to the right)
     int travel;                      // full slide distance
@@ -1183,9 +1157,6 @@ public:
     std::vector<UiWindow*> children;
     std::vector<UiInputSide*> inputs;         // extra input sides
 
-private:
-    // `atPoint` limits the children to those holding (b, c).
-    void Dispatch(int slot, int first, int second, int third, bool atPoint);
 };
 // A window on the interface's stack as the screen it is (every window pushed there is a container).
 inline UiContainer* ScreenOf(UiWindow* window) { return static_cast<UiContainer*>(window); }
@@ -1349,8 +1320,7 @@ public:
     HudTopPanel* topPanel;
     bool viewPressed;                // the left button went down on the view
     bool boxSelecting;               // a selection box is being dragged
-    int pressX;                      // where the button went down on the view (screen)
-    int pressY;
+    Point press;                     // where the button went down on the view (screen)
     Rect selectionBox;               // the box
     std::vector<std::uint32_t> heroes;             // ids of the heroes shown (saved with the game)
     std::map<int, std::string> personTexts;       // the "pers" texts by person
@@ -1759,7 +1729,7 @@ public:
     int firstRow;                    // the first quest row shown (the bar's position)
     float markerScale;
     float blinkTime;                 // seconds since the exit was selected (the markers' blink)
-    std::vector<UiPointF> questPlaces;    // the selected quest's places
+    std::vector<Vector2> questPlaces;    // the selected quest's places
     std::vector<std::string> objectiveTexts;    // obj_0..obj_2
     std::uint8_t savedAlphaRef;
 };

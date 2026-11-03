@@ -222,17 +222,17 @@ bool Crosses(float prev, float cur, float edge) {
 // One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
 // inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
-void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
+void ClipPass(std::vector<Vector2>& points, Cut cut, Outside outside) {
     int count = lib::Count(points);
     for (int i = 0; i < count; ++i) {
-        UiPointF cur = points[i];
-        UiPointF prev = points[i == 0 ? count - 1 : i - 1];
-        UiPointF cross;
+        Vector2 cur = points[i];
+        Vector2 prev = points[i == 0 ? count - 1 : i - 1];
+        Vector2 cross;
         if (!cut(prev, cur, &cross)) continue;
         int size = lib::Count(points);
         if (i < size) {
             points.resize(size + 1);
-            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
+            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(Vector2));
         } else {
             points.resize(i + 1);
         }
@@ -243,7 +243,7 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     for (int i = 0; i < count; ++i) {
         if (!outside(points[i])) continue;
         int tail = lib::Count(points) - i - 1;
-        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
+        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(Vector2));
         points.pop_back();
         --i;
         --count;
@@ -378,11 +378,11 @@ void HudMap::UpdateView() {
     SceneMesh(10)->localRotation = turn;
 
     auto* area = SceneMesh(1);
-    std::vector<UiPointF>& points = visibleArea;
+    std::vector<Vector2>& points = visibleArea;
     int count = lib::Count(viewPolygon);
     points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
-        const UiPointF& v = viewPolygon[i];
+        const Vector2& v = viewPolygon[i];
         float x = v.x / zoom;
         float y = v.y / zoom;
         points[i].x = x / scale + centreX;
@@ -391,45 +391,45 @@ void HudMap::UpdateView() {
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
     ClipPass(points,
-             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.x, c.x, 0.0f)) return false;
                  out->x = 0.0f;
                  out->y = p.y - (c.y - p.y) * p.x / (c.x - p.x);
                  return true;
              },
-             [](const UiPointF& v) {
+             [](const Vector2& v) {
                  EI_NAN_AUDIT(v.x);
                  return v.x < 0.0f;
              });
     ClipPass(points,
-             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.y, c.y, 0.0f)) return false;
                  out->x = p.x - (c.x - p.x) * p.y / (c.y - p.y);
                  out->y = 0.0f;
                  return true;
              },
-             [](const UiPointF& v) {
+             [](const Vector2& v) {
                  EI_NAN_AUDIT(v.y);
                  return v.y < 0.0f;
              });
     float width = worldWidth;
     float height = worldHeight;
     ClipPass(points,
-             [width](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [width](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.x, c.x, width)) return false;
                  out->x = width;
                  out->y = (width - p.x) * (c.y - p.y) / (c.x - p.x) + p.y;
                  return true;
              },
-             [width](const UiPointF& v) { return v.x > width; });
+             [width](const Vector2& v) { return v.x > width; });
     ClipPass(points,
-             [height](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+             [height](const Vector2& p, const Vector2& c, Vector2* out) {
                  if (!Crosses(p.y, c.y, height)) return false;
                  out->x = (height - p.y) * (c.x - p.x) / (c.y - p.y) + p.x;
                  out->y = height;
                  return true;
              },
-             [height](const UiPointF& v) { return v.y > height; });
+             [height](const Vector2& v) { return v.y > height; });
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
     count = lib::Count(points);
@@ -457,7 +457,7 @@ void HudMap::UpdateView() {
     int quads = count / 4;
     if (count % 4 != 0) {
         ++quads;
-        UiPointF first = points[0];
+        Vector2 first = points[0];
         for (int k = 4 - count % 4; k > 0; --k) {
             int size = lib::Count(points);
             points.resize(size + 1);
@@ -467,7 +467,7 @@ void HudMap::UpdateView() {
     area->SetQuadCount(quads);
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
-            const UiPointF& v = points[q * 4 + k];
+            const Vector2& v = points[q * 4 + k];
             float x = (v.x - centreX) * scale;
             float y = -((v.y - centreY) * scale);
             area->vertices[q].x()[k] = x * zoom;

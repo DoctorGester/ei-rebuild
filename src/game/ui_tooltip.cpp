@@ -130,8 +130,8 @@ void UiTooltip::OnMouseMove(Point point) {
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         ui->ScalePointFromScreenNoMargin(&offset);
         const int layoutRight = screen_layout::LayoutRight();
-        area.Offset(offset.x, offset.y);
-        area.Offset(point.x, point.y);
+        area.Offset(offset);
+        area.Offset(point);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
         if (area.right > layoutRight) {
             area.Offset(-(area.right - layoutRight), 0);

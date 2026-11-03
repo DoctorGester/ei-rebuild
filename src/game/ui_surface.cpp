@@ -46,11 +46,11 @@ UiSurface::~UiSurface() {
 }
 
 UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
-    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom}, layoutRect{left, top, right, bottom}, scaled(scale) {
+    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom}, layoutRect(rect), scaled(scale) {
     g_surfaces.push_back(this);
     if (scale) ui->ScaleRectToScreen(&rect);
-    width = rect.right - rect.left;
-    height = rect.bottom - rect.top;
+    width = rect.Width();
+    height = rect.Height();
     // (The interface's renderer is the device object.)
     holder = new Surface(ui->renderer, width, height);
     holder->AddRef();
@@ -61,25 +61,17 @@ UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
     : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
 
 void UiSurface::SetRect(int left, int top, int right, int bottom) {
-    rect.left = left;
-    rect.top = top;
-    rect.right = right;
-    rect.bottom = bottom;
+    rect = {left, top, right, bottom};
     layoutRect = rect;
     scaled = true;
     ui->ScaleRectToScreen(&rect);
 }
 
-void UiSurface::MoveTo(int x, int y) {
-    if (scaled) layoutRect = Rect{x, y, x + layoutRect.right - layoutRect.left, y + layoutRect.bottom - layoutRect.top};
-    Point point{x, y};
+void UiSurface::MoveTo(Point at) {
+    if (scaled) layoutRect.Offset(at - layoutRect.TopLeft());
+    Point point = at;
     ui->ScalePointToScreen(&point);
-    int rectWidth = rect.right - rect.left;
-    int rectHeight = rect.bottom - rect.top;
-    rect.left = point.x;
-    rect.top = point.y;
-    rect.right = rectWidth + point.x;
-    rect.bottom = rectHeight + point.y;
+    rect.Offset(point - rect.TopLeft());
 }
 
 // A surface over a layout rectangle takes it scaled as the layout scales now; one over the whole screen (the
@@ -95,8 +87,8 @@ void UiSurface::Relayout(const screen_layout::Layout& before) {
         rect = Rect{0, 0, now.width, now.height};
         layoutRect = rect;
     }
-    int newWidth = rect.right - rect.left, newHeight = rect.bottom - rect.top;
-    if (width != old.right - old.left || height != old.bottom - old.top) {
+    int newWidth = rect.Width(), newHeight = rect.Height();
+    if (width != old.Width() || height != old.Height()) {
         newWidth = static_cast<int>(static_cast<long long>(width) * now.width43 / before.width43);
         newHeight = static_cast<int>(static_cast<long long>(height) * now.height43 / before.height43);
     }
@@ -172,12 +164,12 @@ void UiSurface::FillRect(const Rect& area, std::uint32_t colour) {
     if (holder) render::ui::Fill(holder, area, colour);
 }
 
-void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, std::uint32_t colour) {
-    if (holder) render::ui::Line(holder, x0, y0, x1, y1, lineWidth, colour);
+void UiSurface::Line(Point from, Point to, int lineWidth, std::uint32_t colour) {
+    if (holder) render::ui::Line(holder, from.x, from.y, to.x, to.y, lineWidth, colour);
 }
 
-void UiSurface::Dot(int x, int y, std::uint32_t colour) {
-    if (holder) render::ui::Pixel(holder, x, y, colour);
+void UiSurface::Dot(Point at, std::uint32_t colour) {
+    if (holder) render::ui::Pixel(holder, at.x, at.y, colour);
 }
 
 // --- Pixels ------------------------------------------------------------------------------------------
@@ -228,11 +220,11 @@ void UiSurface::SwapContents(bool restore) {
     currentHolder->Release();
 }
 
-// The pixel at (x, y) of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
+// The pixel at `at` of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
 // byte, the low bits 0; 0 outside the surface or without one.
-std::uint32_t UiSurface::PixelAt(int x, int y) {
-    if (!holder || x < 0 || y < 0 || x >= width || y >= height) return 0;
+std::uint32_t UiSurface::PixelAt(Point at) {
+    if (!holder || at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
     std::uint32_t rgb = 0;
-    if (!render::ui::ReadPixel(holder, x, y, &rgb)) return 0;
+    if (!render::ui::ReadPixel(holder, at.x, at.y, &rgb)) return 0;
     return render::ui::TopBits(rgb, ScreenFormat(holder->bitsPerPixel));
 }

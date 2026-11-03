@@ -134,7 +134,7 @@ void UiEditField::Char(int key, int, int) {
     std::string tail = str::Mid(currentText, caret);
     std::string head = str::Left(currentText, caret);
     std::string typed = text::Typed(head, key) + tail;
-    if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).w < area.right - area.left) {
+    if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).w < area.Width()) {
         currentText = typed;
         changed = true;
         caret += text::TypedLength(key);
@@ -175,8 +175,8 @@ void UiEditField::DrawContentsVanilla() {
     UiSurface* surface = surfaces[0];
     if (!surface->holder) return;
     surface->Clear();
-    const int width = area.right - area.left;
-    const int height = area.bottom - area.top;
+    const int width = area.Width();
+    const int height = area.Height();
     Rect box{0, 0, width, height};
     surface->DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
     // The caret stands after the first caret characters; a centred text starts half its width left
@@ -189,6 +189,6 @@ void UiEditField::DrawContentsVanilla() {
         // WideScreen: without the margin.
         ui->ScalePointToScreenNoMargin(&top);
         ui->ScalePointToScreenNoMargin(&bottom);
-        surface->Line(top.x, top.y, bottom.x, bottom.y, 1, caretColour);
+        surface->Line(top, bottom, 1, caretColour);
     }
 }

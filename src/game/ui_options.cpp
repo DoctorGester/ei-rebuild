@@ -390,7 +390,7 @@ void UiSlider::SetRect(const Rect* newRect) {
     track.right = newRect->right - 26;
 
     UiMesh* trackMesh = SceneMesh(0);
-    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->right - newRect->left - 8), 8, 4, 0x20,
+    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
                         0xFC);
     trackMesh->Place((newRect->right + newRect->left) * 0.5f,
                  static_cast<float>(newRect->bottom - 5), depth);

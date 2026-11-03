@@ -166,7 +166,7 @@ bool DrawToWindow() {
     pass.swapchain = drawable;
     pass.label = "ei-present";
     sg_begin_pass(&pass);
-    platform::graphics::ApplyViewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top);
+    platform::graphics::ApplyViewport(placed.left, placed.top, placed.Width(), placed.Height());
     sg_apply_pipeline(g_pipeline);
     sg_bindings b{};
     b.views[0] = FrameTexture();
@@ -259,7 +259,7 @@ void WindowToFrame(int* x, int* y) {
     int fw = 0, fh = 0;
     Rect r{};
     if (!FrameInWindow(&fw, &fh, &r)) return;
-    int w = r.right - r.left, h = r.bottom - r.top;
+    int w = r.Width(), h = r.Height();
     if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
     // Floor division, so that points left of / above the frame stay negative.
     long long px = static_cast<long long>(*x - r.left) * fw, py = static_cast<long long>(*y - r.top) * fh;
@@ -271,7 +271,7 @@ void FrameToWindow(int* x, int* y) {
     int fw = 0, fh = 0;
     Rect r{};
     if (!FrameInWindow(&fw, &fh, &r)) return;
-    int w = r.right - r.left, h = r.bottom - r.top;
+    int w = r.Width(), h = r.Height();
     if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
     // The centre of the window pixels that map to the frame pixel.
     *x = r.left + static_cast<int>((static_cast<long long>(*x) * w * 2 + w) / (2LL * fw));

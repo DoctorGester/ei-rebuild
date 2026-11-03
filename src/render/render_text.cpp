@@ -437,13 +437,13 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     }
 
     const FontMetrics& metrics = font.Metrics();
-    const int rectWidth = rect.right - rect.left;
+    const int rectWidth = rect.Width();
     LineMaker maker(font, text, format);
     GlyphAtlas& atlas = font.Atlas();
     const int size = static_cast<int>(text.size());
     int y = rect.top;
     // One line centred in the rectangle's height: half the room left, rounded towards zero (also when negative).
-    if ((format & kSingleLine) && (format & kVCenter)) y = rect.top + (rect.bottom - rect.top - metrics.height) / 2;
+    if ((format & kSingleLine) && (format & kVCenter)) y = rect.top + (rect.Height() - metrics.height) / 2;
     int widest = 0;
     int at = 0;
     for (;;) {

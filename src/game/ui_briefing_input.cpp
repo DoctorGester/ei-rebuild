@@ -168,7 +168,7 @@ void BriefingScreen::MouseMove(int buttons, Point point) {
         label->DrawTextIn(node->second, &area, kTextFormat, kLabelColour, 1, 1);
         Point at = point;
         ui->ScalePointFromScreen(&at);
-        label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
+        label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
         label->Show();
         return;
     }

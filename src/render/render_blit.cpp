@@ -187,8 +187,8 @@ bool CreateBlitPipeline() {
 
 void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int height) {
     if (!b.texture.id || b.textureWidth <= 0 || b.textureHeight <= 0) return;
-    int dw = b.destination.right - b.destination.left, dh = b.destination.bottom - b.destination.top;
-    int sw = b.source.right - b.source.left, sh = b.source.bottom - b.source.top;
+    int dw = b.destination.Width(), dh = b.destination.Height();
+    int sw = b.source.Width(), sh = b.source.Height();
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
     sg_pipeline pipeline = PassPipeline(kBlit);
     sg_apply_pipeline(pipeline);
