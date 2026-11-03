@@ -204,7 +204,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
         c->motion.Clear();
         int time = c->OwningWorld()->tick;
         Vector3 axis = c->unit->localRotation.AxisY();
-        if (c->motion.Start(c->unit->localPosition, NegateVector(axis), time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition, -axis, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = wasFlag;
@@ -214,7 +214,7 @@ void MotionOver(UnitServer* c, WorldServer* world) {
         c->motion.Clear();
         int time = c->OwningWorld()->tick;
         Vector3 axis = c->unit->localRotation.AxisY();
-        if (c->motion.Start(c->unit->localPosition, NegateVector(axis), time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition, -axis, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = 0;

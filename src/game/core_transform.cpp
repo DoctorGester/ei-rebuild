@@ -49,7 +49,7 @@ void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
 #define EI_SCALE (q.w * q.w - LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz))
     Vector3 scaled = {static_cast<float>(EI_SCALE * l.x), static_cast<float>(EI_SCALE * l.y), static_cast<float>(EI_SCALE * l.z)};
 #undef EI_SCALE
-    Vector3 sum2 = AddVectors(AddVectors(scaled, around), along);
+    Vector3 sum2 = scaled + around + along;
     float x = sum2.x + p.x;
     float y = sum2.y + p.y;
     float z = sum2.z + p.z;
@@ -337,7 +337,7 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     }
     if (angle > kPiDouble) {
         angle = pc24::Sub(kPiDouble + kPiDouble, angle);   // the double 2 pi minus the float, one rounding
-        axis = NegateVector(axis);
+        axis = -axis;
     }
     if (reduced) angle = angle * kHalfTurn;
     Rotate(axis, angle);

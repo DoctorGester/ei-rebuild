@@ -56,7 +56,7 @@ void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
     int now = self->OwningWorld()->tick;
     Vector3 axis = self->unit->localRotation.AxisY();
-    if (self->motion.Start(self->unit->localPosition, NegateVector(axis), now)) self->unit->RefreshMotion();
+    if (self->motion.Start(self->unit->localPosition, -axis, now)) self->unit->RefreshMotion();
     self->ClearStanding();
     self->SetState(UnitState::Stopped);
 }
@@ -534,7 +534,7 @@ void UnitServer::ResyncWithUnit() {
     motion.Clear();
     int now = OwningWorld()->tick;
     Vector3 axis = unit->localRotation.AxisY();
-    if (motion.Start(unit->localPosition, NegateVector(axis), now)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition, -axis, now)) unit->RefreshMotion();
     ClearStanding();
     SetState(UnitState::Stopped);
     unit->UpdateSizeClass();

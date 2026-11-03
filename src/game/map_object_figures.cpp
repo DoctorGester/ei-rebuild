@@ -89,34 +89,15 @@ void Object3D::ComputeBounds() {
     }
     if (parts.empty()) return;
 
-    float lowX = lib::FloatFromBits(box.low[0]);
-    float lowY = lib::FloatFromBits(box.low[1]);
-    float lowZ = lib::FloatFromBits(box.low[2]);
-    float highX = lib::FloatFromBits(box.high[0]);
-    float highY = lib::FloatFromBits(box.high[1]);
-    float highZ = lib::FloatFromBits(box.high[2]);
-    float centerX = (lowX + highX) * 0.5f;
-    float centerY = (lowY + highY) * 0.5f;
-    float centerZ = (lowZ + highZ) * 0.5f;
-    float aboveX = highX - centerX;
-    float aboveY = highY - centerY;
-    float aboveZ = highZ - centerZ;
-    float belowX = lowX - centerX;
-    float belowY = lowY - centerY;
-    float belowZ = lowZ - centerZ;
-    bounds.boxMin.x = belowX;
-    bounds.boxMin.y = belowY;
-    bounds.boxMin.z = belowZ;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(belowX, belowY, belowZ));
-    bounds.boxMax.x = aboveX;
-    bounds.boxMax.y = aboveY;
-    bounds.boxMax.z = aboveZ;
+    Vector3 low = {lib::FloatFromBits(box.low[0]), lib::FloatFromBits(box.low[1]), lib::FloatFromBits(box.low[2])};
+    Vector3 high = {lib::FloatFromBits(box.high[0]), lib::FloatFromBits(box.high[1]), lib::FloatFromBits(box.high[2])};
+    Vector3 center = (low + high) * 0.5f;
+    bounds.boxMin = low - center;
+    bounds.boxMax = high - center;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = length;
-    bounds.center.x = centerX;
-    bounds.center.y = centerY;
-    bounds.center.z = centerZ;
+    bounds.radius = std::sqrt(LengthSquaredZYX(bounds.boxMin));
+    bounds.center = center;
 }
 
 void Object3D::SetFigureScale(const Vector3& newScale) {
@@ -522,22 +503,15 @@ void Object3D::UpdatePartBounds() {
         parts[i]->UpdateWorld(localRotation, localPosition);
         parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
-    // The x sum stays on the FPU stack; the y and z sums are stored first.
-    float centreX = static_cast<float>((highX + lowX) * 0.5f);
-    float centreY = static_cast<float>(static_cast<float>(highY + lowY) * 0.5f);
-    float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * 0.5f);
-    bounds.boxMax.x = highX - centreX;
-    bounds.boxMax.y = highY - centreY;
-    bounds.boxMax.z = highZ - centreZ;
-    bounds.boxMin.x = lowX - centreX;
-    bounds.boxMin.y = lowY - centreY;
-    bounds.boxMin.z = lowZ - centreZ;
+    Vector3 high = {highX, highY, highZ};
+    Vector3 low = {lowX, lowY, lowZ};
+    Vector3 centre = (high + low) * 0.5f;
+    bounds.boxMax = high - centre;
+    bounds.boxMin = low - centre;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
     bounds.radius = LengthZYX(bounds.boxMin);
-    bounds.center.x = centreX - localPosition.x;
-    bounds.center.y = centreY - localPosition.y;
-    bounds.center.z = centreZ - localPosition.z;
+    bounds.center = centre - localPosition;
 }
 
 // --- Parts by name prefix -----------------------------------------------------------------------

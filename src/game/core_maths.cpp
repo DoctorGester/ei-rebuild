@@ -17,18 +17,6 @@
 // could spill and round) is needed. The vector operators are vecmath.h's: one operation per component,
 // rounded when stored, the whole result computed before `*out` is written (out may alias an input).
 
-Vector3 AddVectors(const Vector3& a, const Vector3& b) {
-    return a + b;
-}
-
-Vector3 NegateVector(const Vector3& v) {
-    return -v;
-}
-
-Vector3 ScaleVector(const Vector3& v, float s) {
-    return s * v;
-}
-
 float ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
     return MaxKeepB(v, -1.0f);   // -1 also for NaN

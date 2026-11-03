@@ -235,12 +235,7 @@ int Camera::PlaybackStep(float time) {
     float u = 0.0f;
     EI_NAN_AUDIT(span);
     if (span != 0.0f) u = (time - start) / span;
-    float dx = b.position.x - a.position.x;
-    float dy = b.position.y - a.position.y;
-    float dz = b.position.z - a.position.z;
-    localPosition.x = dx * u + a.position.x;
-    localPosition.y = dy * u + a.position.y;
-    localPosition.z = dz * u + a.position.z;
+    localPosition = Lerp(a.position, b.position, u);
     localRotation.Slerp(u, a.rotation, b.rotation);
     return 1;
 }
@@ -274,7 +269,7 @@ void Camera::StopMotion() {
     up.x = zero * up.x;
     up.y = up.y * zero;
     up.z = 0.0f;
-    panTarget = AddVectors(right, up);
+    panTarget = right + up;
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate, turnRate);
@@ -300,15 +295,7 @@ void Camera::ApplyView() {
     tilt.SetAngleAxis(-(CAM_RIGHT_ANGLE + pitch), right);
     localRotation.PreMultiply(tilt);
     Vector3 forward = localRotation.AxisZ();
-    const float d = distance;
-    float ox = forward.x * d;
-    float oy = forward.y * d;
-    float px = focus.x - ox;
-    float py = focus.y - oy;
-    float pz = focus.z - d * forward.z;
-    localPosition.x = px;
-    localPosition.y = py;
-    localPosition.z = pz;
+    localPosition = focus - forward * distance;
     float before;
     before = localPosition.z;
     ClampAboveObjects();
@@ -384,11 +371,11 @@ void Camera::Update(float dt) {
     Vector3& velocity = panVelocity;
     const Vector3& wanted = panTarget;
     Vector3 change = wanted - velocity;
-    Vector3 accel = ScaleVector(change, panResponse);
+    Vector3 accel = change * panResponse;
     bool snap = true;
     if (accel.Length() >= 0.001) {   // the double constant (exact as a compare)
         float before = static_cast<float>(Dot(velocity, velocity));
-        Vector3 step = ScaleVector(accel, dt);
+        Vector3 step = accel * dt;
         velocity += step;
         float after = static_cast<float>(Dot(velocity, velocity));
         float goal = static_cast<float>(Dot(wanted, wanted));

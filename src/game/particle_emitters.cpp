@@ -45,37 +45,18 @@ constexpr float kTwoPi = 6.28318f;
 void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     float radius = g_clientRandom.Range(0.0f, 1.0f);
     float angle = g_clientRandom.Range(0.0f, kTwoPi);
-    float dx = std::sin(angle) * radius;
-    float dy = std::cos(angle) * radius;
-    dir.x = dx;
-    dir.y = dy;
-    dir.z = 0.0f;
+    dir = {std::sin(angle) * radius, std::cos(angle) * radius, 0.0f};
     if (i == 0) dir = {};
-    float size = s->size;
-    float ax = size * dir.x;
-    float ay = dir.y * size;
-    float az = size * dir.z;
-    float bx = ax * EI_POINT_THREE;
-    float by = ay * EI_POINT_THREE;
-    float bz = az * EI_POINT_THREE;
-    float cx = bx + s->origin.x;
-    float cy = by + s->origin.y;
-    (void)(bz + s->origin.z);
-    float cz = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(cx, cy) + EI_POINT_THREE);
+    Vector3 point = s->size * dir * EI_POINT_THREE + s->origin;
+    point.z = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + EI_POINT_THREE);
     ParticleElement* points = s->elements.data();
-    points[i].pos = {cx, cy, cz};
-    points[i].bolt.base = {cx, cy, cz};
+    points[i].pos = point;
+    points[i].bolt.base = point;
 
     float inverse = EI_ONE / std::sqrt(LengthSquared2DUnrounded(dir.y, dir.x) + EI_QUARTER);
-    dir.x = inverse * dir.x;
-    dir.y = dir.y * inverse;
-    float halfInverse = inverse * EI_HALF;
-    dir.z = halfInverse;
-    float fz = halfInverse * EI_HALF;
-    float fy = dir.y * EI_HALF;
-    float fx = dir.x * EI_HALF;
-    points = s->elements.data();
-    points[i].bolt.fork = {fx, fy, fz};
+    dir *= inverse;
+    dir.z = inverse * EI_HALF;
+    points[i].bolt.fork = dir * EI_HALF;
     points[i].bolt.emitted = 0;
     points[i].ticks = 0;   // bursts
 }
@@ -151,15 +132,7 @@ int EmitSpark(ParticleSource* s, Particle* p) {
     p->pos = points[index].pos;
     p->size = 0.0f;
     const ParticleElement& n = s->elements[index];
-    float bx = w * n.bolt.base.x;
-    float by = w * n.bolt.base.y;
-    float bz = w * n.bolt.base.z;
-    float px = u * n.pos.x;
-    float py = u * n.pos.y;
-    float pz = u * n.pos.z;
-    p->velocity.x = px + bx;
-    p->velocity.y = py + by;
-    p->velocity.z = pz + bz;
+    p->velocity = u * n.pos + w * n.bolt.base;
     return 1;
 }
 
@@ -216,20 +189,14 @@ void PlaceModifierPoints(ParticleSource* s) {
     Vector3 axis = ModifierAxis(s, twice);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         s->elements[i].ticks = 0;   // the fade step
-        float x, y;
-        float z, lengthSq;
+        Vector3 v;
+        float lengthSq;
         for (;;) {
-            x = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-            y = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-            z = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-            float dot = DotUnrounded<Sum3::ZYX>(axis.x, axis.y, axis.z, x, y, z);
-            float px = axis.x * dot;
-            float py = axis.y * dot;
-            float pz = dot * axis.z;
-            x = x - px;
-            y = y - py;
-            z = z - pz;
-            lengthSq = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
+            v.x = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+            v.y = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+            v.z = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+            v -= axis * DotZYX(axis, v);
+            lengthSq = LengthSquaredZYX(v);
             EI_NAN_AUDIT(lengthSq);
             if (lengthSq != 0.0f) break;   // a NaN ends the search too
         }
@@ -237,18 +204,8 @@ void PlaceModifierPoints(ParticleSource* s) {
         EI_NAN_AUDIT(s->size);
         if (s->size < EI_ZERO) scale = scale * EI_SMALL_RING;
         ParticleElement& point = s->elements[i];
-        float ex = scale * x;
-        float ey = scale * y;
-        float ez = scale * z;
-        point.ring.offset.x = ex;
-        point.ring.offset.y = ey;
-        point.ring.offset.z = ez;
-        float wx = ex + s->origin.x;
-        float wy = ey + s->origin.y;
-        float wz = ez + s->origin.z;
-        point.pos.x = wx;
-        point.pos.y = wy;
-        point.pos.z = wz;
+        point.ring.offset = scale * v;
+        point.pos = point.ring.offset + s->origin;
         point.pos.z = s->spreadMin.x + point.pos.z;
         point.ring.start = point.pos;
     }
@@ -345,15 +302,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
     const ParticleElement& e = elements[pick];
-    float b0 = w * e.ring.start.x;
-    float b1 = w * e.ring.start.y;
-    float b2 = w * e.ring.start.z;
-    float a0 = u * e.pos.x;
-    float a1 = u * e.pos.y;
-    float a2 = u * e.pos.z;
-    p->velocity.x = a0 + b0;
-    p->velocity.y = a1 + b1;
-    p->velocity.z = a2 + b2;
+    p->velocity = u * e.pos + w * e.ring.start;
     std::uint32_t ra = g_clientRandom.Next();
     std::uint32_t rb = g_clientRandom.Next();
     std::uint32_t rc = g_clientRandom.Next();
@@ -556,15 +505,7 @@ int ParticleSource::EmitFeetCloud(Particle* p, int) {
         if (!(--tries > 0)) break;
     }
     float scale = e.foot.radius;
-    float dx = x * EI_TENTH;
-    float dy = y * EI_TENTH;
-    float dz = 0.0f * EI_TENTH;
-    float sx = dx * scale;
-    float sy = dy * scale;
-    float sz = dz * scale;
-    p->drift.x = sx * size;
-    p->drift.y = sy * size;
-    p->drift.z = sz * size;
+    p->drift = Vector3{x, y, 0.0f} * EI_TENTH * scale * size;
     p->aux0 = 0.0f;
     p->aux1 = 0.0f;
     p->aux2 = 0.0f;

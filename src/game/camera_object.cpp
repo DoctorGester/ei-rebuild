@@ -301,11 +301,9 @@ void Camera::AlignToTarget() {
     const Vector3 zAxis = q.AxisZ();
     const Vector3 xAxis = q.AxisX();
     float hy = -zAxis.x;
-    float hz = 0.0f;
     float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
-    float hx = inv * zAxis.y;
-    hy = hy * inv;
-    float dot = DotUnrounded<Sum3::ZYX, float>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
+    Vector3 h = {inv * zAxis.y, hy * inv, 0.0f};
+    float dot = DotZYX(xAxis, h);
     float cosine = dot;
     EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
@@ -313,14 +311,8 @@ void Camera::AlignToTarget() {
     float angle = static_cast<float>(libcrt::CiAcos(cosine));
     float magnitude = AbsBits(angle);
     if (CAM_DEGREE > magnitude) return;
-    float cx = xAxis.y * hz - xAxis.z * hy;
-    float cy = xAxis.z * hx - hz * xAxis.x;
-    float cz = hy * xAxis.x - xAxis.y * hx;
-    float invC = CAM_ONE / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(cx, cy, cz));
-    Vector3 axis;
-    axis.x = cx * invC;
-    axis.y = cy * invC;
-    axis.z = cz * invC;
+    Vector3 c = Cross(xAxis, h);
+    Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquaredZYX(c)));
     float axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(axis));
     if (axisLength > CAM_ALIGN_EPSILON) {   // the double constant (exact as a compare)
         Quaternion turn;
