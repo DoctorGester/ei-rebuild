@@ -385,11 +385,8 @@ int WorldClient::SendFlag10(int value) {
 }
 
 void WorldClient::DropShadows() {
-    for (MapObject* object : objects) {
-        Object3DClientSpecific* half = object->ClientSpecific();
-        // Only the low byte is tested (ShadowsShown's "off" leaves the setting's upper bytes).
-        if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
-    }
+    if (options::g_options.shadows) return;
+    for (MapObject* object : objects) object->ClientSpecific()->ClearShadow();
 }
 
 void WorldClient::RemoveObject(int objectId) {
@@ -779,10 +776,6 @@ void WorldClient::Create() {
     rainSnow.PrepareBuffers();
     rainSnow.world = this;
     platforms.Create();
-    if (worlddata::ShadowSetting() > 0)
-        flags |= WorldClientFlag::DrawShadows;
-    else
-        flags &= ~WorldClientFlag::DrawShadows;
 
     if (GetSpellManager()) ReferenceEveryObject(GetSpellManager());
 
@@ -954,9 +947,7 @@ int WorldClient::LoadZone(ByteStream* block) {
 
     FitGrid(objectGrid, currentTerrain);
     FitGrid(secondGrid, currentTerrain);
-    if (!worlddata::WaterWavesOption()) currentTerrain->landscapeFlags &= ~terrain::LandscapeFlag::Waves;
     if (newCave == kCave) currentTerrain->landscapeFlags |= terrain::LandscapeFlag::Waves;
-    if (!worlddata::SelfShadowingOption()) currentTerrain->landscapeFlags &= ~terrain::LandscapeFlag::SunShadows;
     if (skyDome) {
         Ref<Texture>& skyColour = skyDome->texture;
         if (newCave == kCave) {
@@ -992,10 +983,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     LocalView()->AppendReceived(&g_serverWorld.zoneHeader);
     ticksRun = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
-    // A wind option other than 0 sets the waves.
-    const float wind = worlddata::DefaultWindForceOption();
-    EI_NAN_AUDIT(wind);
-    if (wind != 0.0f) g_clientWorld.terrain->SetWaveStrength(wind);
+    g_clientWorld.terrain->SetWaveStrength(options::kDefaultWindForce);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

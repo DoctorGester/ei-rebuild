@@ -251,8 +251,8 @@ const Described* Describe(std::string_view section, std::string_view name) {
 namespace {
 
 // What a game install writes and the game's own defaults lack (the original's installer and Rebirth's agree; the
-// game's defaults are placeholders: a camera turning about 7 and pitching about 700 times as fast, objects lit half
-// as bright). The camera's whole section:
+// game's defaults are placeholders: a camera turning about 7 and pitching about 700 times as fast). The camera's
+// whole section:
 struct InstallFloat {
     const char* name;
     float value;
@@ -295,17 +295,6 @@ constexpr InstallFloat kInstallCamera[] = {
 // Each of the four shortcuts: the default distance, looking along Z, 45 degrees of pitch.
 constexpr InstallFloat kInstallShortcut[] = {{"AxisX", 0.0f}, {"AxisY", 0.0f}, {"AxisZ", 1.0f},
                                              {"Angle", 0.0f}, {"Distance", 30.0f}, {"Pitch", 45.0f}};
-// The game settings that differ from the game's own: the selection type, the hero's and the quest light (R, G, B of
-// 255, radius).
-struct InstallInt {
-    const char* name;
-    int value;
-};
-constexpr InstallInt kInstallGameInts[] = {
-    {"SelectionType", 1}, {"Hero Light R", 216},  {"Hero Light G", 216}, {"Hero Light B", 116},     {"Hero Light Radius", 5},
-    {"Quest Light R", 120}, {"Quest Light G", 72}, {"Quest Light B", 120}, {"Quest Light Radius", 5},
-};
-
 // A setting's description as comment lines of at most kCommentWidth characters: the text, then its values in
 // parentheses (left out for true / false).
 constexpr std::size_t kCommentWidth = 108;
@@ -353,22 +342,11 @@ Document Defaults(int width, int height) {
     set(kVideo, "VideoResolution", std::to_string(width) + "x" + std::to_string(height));
     set(kVideo, "FullScreen", BoolText(true));
     set(kVideo, "Video", IntText(2));             // the movies, stretched to the screen's width (the installers' value)
-    set(kVideo, "VideoColorDepthInBits", IntText(32));
-    set(kVideo, "Mipmapping", BoolText(true));
-    set(kVideo, "Filtering", IntText(2));        // smoothed (1 is the same)
-    set(kVideo, "TextureQuality", IntText(0));   // no mip level dropped (texture.cpp)
 
     set(kSound, "Audio", BoolText(true));
     for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) set(kSound, volume, IntText(100));
 
-    set(kShadows, "ShadowQuality", IntText(2));
-    for (const char* shadow : {"UnitShadow", "BuildingShadow", "FloraShadow"})
-        set(kShadows, shadow, BoolText(true));
-
-    // Rebirth's starter (EIStarter.exe 1.46) writes water waves on for its best landscape detail.
-    for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableFootprints", "EnableBloodprints",
-                                "EnableFireprints"})
-        set(kTerrain, feature, BoolText(true));
+    set(kShadows, "Shadows", BoolText(true));
 
     // The install's camera and game settings.
     set(kCamera, "CameraFlipXAxis", BoolText(false));
@@ -379,10 +357,7 @@ Document Defaults(int width, int height) {
     for (int shortcut = 0; shortcut < 4; ++shortcut)
         for (const InstallFloat& value : kInstallShortcut)
             set(kCamera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, FloatText(value.value));
-    for (const InstallInt& value : kInstallGameInts) set(kGame, value.name, IntText(value.value));
-    set(kGame, "ObjectsLightingCoeff", FloatText(2.0f));
-    set(kGame, "DefaultMapName", "Zone1.mpr");
-    set(kGame, "DefaultStreamingSound", "melody.mp3");
+    set(kGame, "SelectionType", IntText(1));
     set(kNetwork, "Master Server Name", "a3master.nival.com");
 
     // The renderer's (device_mesh.cpp).

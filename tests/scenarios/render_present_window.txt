@@ -2,7 +2,7 @@
 # the gamma ramp as a shader step, and a window that is not the frame's size. The game runs windowed
 # at 800x600 (no display mode change in the switch-over; run_all runs a "resolution" scenario alone).
 #
-# Gamma: the options' gamma slider (group 0, row 12; its right arrow at 674,456 in the 800x600
+# Gamma: the options' gamma slider (group 0, row 7; its right arrow at 674,336 in the 800x600
 # layout) held for 0.6 s (the slider scrolls while an arrow is held, 0065B360): the options
 # window's Update (00650A30) calls SetGamma (00504A60), which hands the ramp to the new renderer;
 # "waitpresent 10 gamma" needs a presented frame checked against it (verify
@@ -20,9 +20,9 @@ waitpresent 10
 
 clickregion 3
 waitwindow 10 options
-ldown 674 456
+ldown 674 336
 wait 600
-lup 674 456
+lup 674 336
 waitpresent 10 gamma
 move 400 20
 wait 300

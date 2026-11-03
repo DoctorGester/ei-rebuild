@@ -135,8 +135,7 @@
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
-//   waterwaves 0|1            the options' EnableWaterWaves (0079BD38) for this run, not saved (the
-//                             harness's settings have it off); before newgame, which reads it
+//   shadows 0|1               the options' Shadows for this run, not saved (the harness's settings have it on)
 //   fakemaster <port> [list|badsize|short]
 //                             in a pair's game: a master server on the pair's virtual port <port> answers
 //                             this game's announcements and its master requests with the announced games'
@@ -2373,9 +2372,9 @@ void RunSteps() {
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
             HarnessSetMasterHost(s.argument.c_str());
-        } else if (s.verb == "waterwaves") {
-            if (s.argument == "0" || s.argument == "1") HarnessSetWaterWaves(s.argument == "1");
-            else g_failures.push_back("waterwaves needs 0 or 1");
+        } else if (s.verb == "shadows") {
+            if (s.argument == "0" || s.argument == "1") HarnessSetShadows(s.argument == "1");
+            else g_failures.push_back("shadows needs 0 or 1");
         } else if (s.verb == "fakemaster") {
             int port = 0;
             char reply[16] = "list";

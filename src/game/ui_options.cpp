@@ -41,7 +41,10 @@ constexpr int kOptionRows = 14;
 constexpr int kFirstRowRegion = 13;     // regions 13-26: the rows
 constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's highlight
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
-constexpr int kDifficultySetting = 25;  // its spin control says hard / easy
+constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
+constexpr const char* kShadowsName = "shadows";     // the one shadows switch: the game's texts have no entry for it
+constexpr const char* kShadowsLabel = "Shadows";
+constexpr const char* kShadowsTip = "Shadows of units, buildings and trees.";
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 
@@ -51,13 +54,13 @@ constexpr std::uint32_t kColourWaiting = 0x0000FF;   // a binding waiting for it
 
 constexpr float kFromStep = 50.0f;   // value = setting * 50
 constexpr float kToStep = 0.02f;     // setting = value * 0.02
-constexpr float kScrollFrom = 4.0f; // setting 20's value
-constexpr float kScrollTo = 0.25f;   // setting 20 from it
+constexpr float kScrollFrom = 4.0f; // setting 15's value
+constexpr float kScrollTo = 0.25f;   // setting 15 from it
 constexpr float kThumbLift = 0.1f;  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
-constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
+// Setting 13: help windows (Rebirth's ForceShowTutorial patches its store).
+constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {0, "volume_sfx", 0, 100, 1, 0},
     {1, "volume_stream", 0, 100, 1, 1},
     {2, "volume_voice", 0, 100, 1, 2},
@@ -65,38 +68,35 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {4, "power_mouse", 0, 100, 2, 1},
     {5, "scroll_border", 0, 10, 2, 2},
     {6, "rubber_select", 0, 10, 2, 3},
-    {7, "shadow_units", 1, 2, 0, 0},
-    {8, "shadow_buildings", 1, 2, 0, 1},
-    {9, "shadow_flora", 1, 2, 0, 2},
-    {10, "marks", 1, 2, 0, 4},
-    {11, "footprints", 1, 2, 0, 5},
-    {12, "select_type", 1, 2, 0, 6},
-    {13, "show_path", 1, 2, 0, 7},
-    {14, "brightness", 0, 100, 0, 10},
-    {15, "contrast", 0, 100, 0, 11},
-    {16, "gamma", 0, 100, 0, 12},
-    {17, "show_flying_hp", 1, 2, 0, 8},
-    {18, "show_tutorial", 1, 2, 10, 11},
-    {19, "autosave", 1, 2, 3, 11},
-    {20, "tooltip_time", 0, 20, 2, 4},
-    {21, "switch_filters", 1, 2, 3, 12},
-    {22, "camera_reverse_x", 1, 2, 2, 6},
-    {23, "camera_reverse_y", 1, 2, 2, 7},
-    {24, "reverse_stereo", 1, 2, 1, 4},
-    {25, "difficulty", 1, 2, 3, 0},
+    {7, kShadowsName, 1, 2, 0, 0},
+    {8, "select_type", 1, 2, 0, 2},
+    {9, "show_path", 1, 2, 0, 3},
+    {10, "brightness", 0, 100, 0, 6},
+    {11, "gamma", 0, 100, 0, 7},
+    {12, "show_flying_hp", 1, 2, 0, 4},
+    {13, "show_tutorial", 1, 2, 10, 11},
+    {14, "autosave", 1, 2, 3, 11},
+    {15, "tooltip_time", 0, 20, 2, 4},
+    {16, "switch_filters", 1, 2, 3, 12},
+    {17, "camera_reverse_x", 1, 2, 2, 6},
+    {18, "camera_reverse_y", 1, 2, 2, 7},
+    {19, "reverse_stereo", 1, 2, 1, 4},
+    {20, "difficulty", 1, 2, 3, 0},
 };
 
-// The text `key` up to the next '#', or the key itself without one.
-std::string TipText(const std::string& key) {
-    std::string tip = key;
+// The text `key` up to the next '#', or the key itself without one (`fallback` when given).
+std::string TipText(const std::string& key, const char* fallback = nullptr) {
+    std::string tip = fallback ? fallback : key;
     if (g_clientWorld.texts->TextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
     return tip;
 }
 
-// The text `prefix` + `name`, or the name itself without one.
-std::string ShownName(const char* prefix, const char* name) {
-    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(name);
+// The text `prefix` + `name`, or the name itself without one (`fallback` when given).
+std::string ShownName(const char* prefix, const char* name, const char* fallback = nullptr) {
+    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(fallback ? fallback : name);
 }
+
+bool IsShadows(const OptionDefinition& definition) { return std::strcmp(definition.name, kShadowsName) == 0; }
 
 void RebuildKeysText(OptionBinding& binding) {
     binding.keysText.clear();
@@ -169,7 +169,8 @@ void OptionsWindow::ShowGroup(int groupIndex) {
         const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group != groupIndex) continue;
         rows[definition.row].setting = &settings[i];
-        regions[kFirstRowRegion + definition.row]->SetTipString(TipText(str::Format(kTextTipOption, definition.name)));
+        regions[kFirstRowRegion + definition.row]->SetTipString(
+            TipText(str::Format(kTextTipOption, definition.name), IsShadows(definition) ? kShadowsTip : nullptr));
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
@@ -212,7 +213,7 @@ void OptionsWindow::BuildSettings() {
         const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.value = 0;
         setting.definition = definition;
-        setting.text = ShownName(kTextOptionPrefix, definition->name);
+        setting.text = ShownName(kTextOptionPrefix, definition->name, IsShadows(*definition) ? kShadowsLabel : nullptr);
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
@@ -297,7 +298,7 @@ void OptionsWindow::LoadSettings() {
     s[0].value = options::g_options.audioSfx;
     s[1].value = options::g_options.audioStreaming;
     s[2].value = options::g_options.audioSpeech;
-    s[24].value = options::g_options.reverseStereo;
+    s[19].value = options::g_options.reverseStereo;
     // _ftol: truncation.
     s[3].value = static_cast<int>(options::g_options.cameraScroll.powerKeyboard * fromStep);
     s[4].value = static_cast<int>(options::g_options.cameraScroll.powerMouse * fromStep);
@@ -305,26 +306,21 @@ void OptionsWindow::LoadSettings() {
     float sign22 = options::g_options.cameraFlipX;
     float sign23 = options::g_options.cameraFlipY;
     EI_NAN_AUDIT(sign22, sign23);
-    s[22].value = sign22 == one ? 0 : 1;
-    s[23].value = sign23 == one ? 0 : 1;
+    s[17].value = sign22 == one ? 0 : 1;
+    s[18].value = sign23 == one ? 0 : 1;
     s[5].value = options::g_options.cameraBorderScrollArea;
     s[6].value = options::g_options.cameraFrameSelectionArea / 10;
-    s[20].value = static_cast<int>(options::g_options.toolTipTime * kScrollFrom);
-    s[7].value = options::g_options.unitShadow;
-    s[8].value = options::g_options.buildingShadow;
-    s[9].value = options::g_options.floraShadow;
-    s[10].value = options::g_options.enableBloodprints;
-    s[11].value = options::g_options.enableFootprints;
-    s[12].value = options::g_options.selectionType;
-    s[13].value = options::g_options.drawPath;
-    s[17].value = options::g_options.drawFlyingHp;
-    s[18].value = options::g_options.showTutorial;
-    s[19].value = options::g_options.autosave;
-    s[21].value = options::g_options.switchFilters;
-    s[14].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
-    s[15].value = static_cast<int>((options::g_options.contrast + one) * fromStep);
-    s[16].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
-    s[25].value = options::g_options.difficulty;
+    s[15].value = static_cast<int>(options::g_options.toolTipTime * kScrollFrom);
+    s[7].value = options::g_options.shadows;
+    s[8].value = options::g_options.selectionType;
+    s[9].value = options::g_options.drawPath;
+    s[12].value = options::g_options.drawFlyingHp;
+    s[13].value = options::g_options.showTutorial;
+    s[14].value = options::g_options.autosave;
+    s[16].value = options::g_options.switchFilters;
+    s[10].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
+    s[11].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
+    s[20].value = options::g_options.difficulty;
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         if (s[i].bar)
@@ -342,7 +338,7 @@ void OptionsWindow::Apply() {
     options::g_options.audioSfx = s[0].value;
     options::g_options.audioStreaming = s[1].value;
     options::g_options.audioSpeech = s[2].value;
-    options::g_options.reverseStereo = s[24].value;
+    options::g_options.reverseStereo = s[19].value;
     float speedA = s[3].value * toStep;
     float speedB = s[4].value * toStep;
     options::g_options.cameraScroll.powerKeyboard = speedA;
@@ -353,28 +349,23 @@ void OptionsWindow::Apply() {
     options::g_options.cameraPitch.powerMouse = speedB;
     options::g_options.cameraZoom.powerMouse = speedB;
     options::g_options.cameraRotate.powerMouse = speedB;
-    options::g_options.cameraFlipX = s[22].value == 1 ? -1.0f : 1.0f;
-    options::g_options.cameraFlipY = s[23].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraFlipX = s[17].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraFlipY = s[18].value == 1 ? -1.0f : 1.0f;
     options::g_options.cameraBorderScrollArea = s[5].value;
     options::g_options.cameraFrameSelectionArea = s[6].value * 10;
-    options::g_options.toolTipTime = s[20].value * kScrollTo;
-    options::g_options.unitShadow = s[7].value;
-    options::g_options.buildingShadow = s[8].value;
-    options::g_options.floraShadow = s[9].value;
-    options::g_options.enableBloodprints = s[10].value;
-    options::g_options.enableFootprints = s[11].value;
-    options::g_options.selectionType = s[12].value;
-    options::g_options.drawPath = s[13].value;
-    options::g_options.drawFlyingHp = s[17].value;
-    options::g_options.showTutorial = s[18].value;
-    options::g_options.autosave = s[19].value;
-    options::g_options.switchFilters = s[21].value;
-    options::g_options.brightness = s[14].value * toStep - one;
-    options::g_options.contrast = s[15].value * toStep - one;
-    options::g_options.gamma = s[16].value * toStep - one;
+    options::g_options.toolTipTime = s[15].value * kScrollTo;
+    options::g_options.shadows = s[7].value;
+    options::g_options.selectionType = s[8].value;
+    options::g_options.drawPath = s[9].value;
+    options::g_options.drawFlyingHp = s[12].value;
+    options::g_options.showTutorial = s[13].value;
+    options::g_options.autosave = s[14].value;
+    options::g_options.switchFilters = s[16].value;
+    options::g_options.brightness = s[10].value * toStep - one;
+    options::g_options.gamma = s[11].value * toStep - one;
     if (!IsMultiplayerClient()) {
-        options::g_options.difficultyStored = s[25].value;
-        options::g_options.difficulty = s[25].value;
+        options::g_options.difficultyStored = s[20].value;
+        options::g_options.difficulty = s[20].value;
     }
     if (shadowsChanged) g_clientWorld.DropShadows();
 }

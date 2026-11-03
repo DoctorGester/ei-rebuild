@@ -93,9 +93,9 @@ OnNewObject leaves an object it cannot read made and unreleased.
 
 ## Original behaviour kept elsewhere in this area
 
-- Options: "Joystick" always 0; "LightingFreq" read under two subkeys; light colours convert 0..1 <-> 0..255 with a
-  truncating `_ftol`; camera flips stored as -1 / 1 floats; "Difficulty Level" goes to two fields and is written from
-  the second.
+- Options: camera flips stored as -1 / 1 floats; "Difficulty Level" goes to two fields and is written from the second.
+  The settings the modern renderer made fixed (C81) are constants in options.h: the lights, the fog distances, the
+  wind, the clock's scale, the lighting coefficient.
 - The window procedure logs every WM_SYSKEYUP ("<key>:<lParam>") and turns Alt+Tab into a deactivation; keyboard flags
   are sign-extended, mouse positions unsigned 16-bit (`platform.md`, "Window and events").
 - Item's base slots 17-20 return an empty text, 21 zeroes the caller's ItemUse (every class but the quest item).

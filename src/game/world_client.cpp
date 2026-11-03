@@ -388,33 +388,31 @@ bool WorldClient::RunTick() {
         RunEffects(bloodPrints);
         RunEffects(footprints);
         RunEffects(scorchMarks);
-        if (!paused && options::g_options.enableBloodprintsRelight != 0) {
-            lightLevelsCountdown -= worlddata::g_updatePeriod;
-            if (lightLevelsCountdown <= 0) {
-                lightLevelsCountdown = options::g_options.shadowLightingFreq;
-                // Each blood print gets a grey level: the brightest of the sun at
-                // the reference point and the lights whose range reaches the effect's point.
-                Light* sun = g_sceneRenderer.sun;
-                for (BloodPrint& effect : bloodPrints) {
-                    float level = sun->GetIntensityAt(worlddata::kOrigin);
-                    ObjectListIteratorOf<Light> lights{};
-                    for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
-                        if (light == sun || (light->flags & LightFlag::Hidden)) continue;
-                        const Vector2 node = effect.position;
-                        if (LengthSquared2D(XY(light->localPosition) - node) > light->rangeSquared) continue;
-                        Vector3 point = {node.x, node.y, 0.0f};
-                        point.z = terrain->HeightAt(node.x, node.y, terrain::Layer::Ground);
-                        float intensity = light->GetIntensityAt(point);
-                        level = SelectLess(level, intensity, intensity, level);
-                    }
-                    float clamped = SelectLess(1.0f, level, 1.0f, level);
-                    float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
-                    float scaled = floor * worlddata::kColourScale;
-                    std::uint32_t grey = static_cast<std::uint32_t>(lib::RoundEven(scaled));
-                    std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
-                    effect.colour = colour;
-                    EndWalk(lights);
+        lightLevelsCountdown -= worlddata::g_updatePeriod;
+        if (lightLevelsCountdown <= 0) {
+            lightLevelsCountdown = options::kLightingPeriod;
+            // Each blood print gets a grey level: the brightest of the sun at
+            // the reference point and the lights whose range reaches the effect's point.
+            Light* sun = g_sceneRenderer.sun;
+            for (BloodPrint& effect : bloodPrints) {
+                float level = sun->GetIntensityAt(worlddata::kOrigin);
+                ObjectListIteratorOf<Light> lights{};
+                for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
+                    if (light == sun || (light->flags & LightFlag::Hidden)) continue;
+                    const Vector2 node = effect.position;
+                    if (LengthSquared2D(XY(light->localPosition) - node) > light->rangeSquared) continue;
+                    Vector3 point = {node.x, node.y, 0.0f};
+                    point.z = terrain->HeightAt(node.x, node.y, terrain::Layer::Ground);
+                    float intensity = light->GetIntensityAt(point);
+                    level = SelectLess(level, intensity, intensity, level);
                 }
+                float clamped = SelectLess(1.0f, level, 1.0f, level);
+                float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
+                float scaled = floor * worlddata::kColourScale;
+                std::uint32_t grey = static_cast<std::uint32_t>(lib::RoundEven(scaled));
+                std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
+                effect.colour = colour;
+                EndWalk(lights);
             }
         }
     }

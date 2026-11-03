@@ -119,7 +119,7 @@ MapObject* World::ObjectWithId(int objectId) {
 
 namespace {
 
-// The client's flags after construction: every draw but the shadows (Create decides them).
+// The client's flags after construction: the draws.
 constexpr WorldClientFlag kClientFlags = WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits | WorldClientFlag::DrawTerrain |
                                          WorldClientFlag::DrawEffects | WorldClientFlag::Draw800 | WorldClientFlag::DrawSky |
                                          WorldClientFlag::DrawNumbers;

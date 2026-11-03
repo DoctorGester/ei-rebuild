@@ -101,7 +101,6 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     };
     const float* diffuse = l.diffuseColour;
     p.on[0] = 1.0f;
-    p.on[1] = l.crown ? 0.6f : 0.0f;
     if (l.sun) {
         const Vector3 towards = toModel(-l.sunDirection);   // as the figure part draw's TransformSun (no translation)
         p.sun[0] = towards.x;

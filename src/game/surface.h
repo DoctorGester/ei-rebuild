@@ -13,8 +13,8 @@
 class TextureDevice;
 struct MmpHeader;
 
-// The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
-render::PixelFormat ScreenFormat(int bitsPerPixel);
+// The screen's pixel format: X8R8G8B8.
+render::PixelFormat ScreenFormat();
 
 // A pixel format's channels as mask, bit count and shift.
 struct ChannelLayout {

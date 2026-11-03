@@ -1,7 +1,6 @@
 # R47: tree shadows (docs/notes/renderer.md section 13, items 9 and 10). The trees cast into the sun's map cut out
 # by their leaves' alpha; the soft edge's width grows with the distance from the caster, so a crown high above the
-# ground blurred into one dark mass (the user's "blocky" tree shadows). Flora shadows on (the user's setting,
-# through the options window as render_shadows_mound does), msaa 8 and anisotropy 16 (the user's). Frozen in the
+# ground blurred into one dark mass (the user's "blocky" tree shadows). Shadows on (the default), msaa 8 and anisotropy 16 (the user's). Frozen in the
 # forest of gz2g at noon, at the default zoom and zoomed out, and the town bz1g's gate (the tuned soft shadow):
 # each frame and the shadow alone ("shadowview on": white lit, black fully shadowed); then gz2g at night with a
 # script point light under the trees (its cube faces cut out alike). Frames only; EI_RESOLUTION=3840x2160 gives
@@ -17,23 +16,6 @@ newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 15 battle
-key esc
-waitwindow 10 escmenu
-move 395 260
-click 395 260
-waitwindow 10 options
-clickregion 2
-frames 5
-key down
-frames 3
-key down
-frames 3
-key enter
-frames 3
-moveregion 0
-frames 3
-clickregion 0
-waitwindow 10 battle
 
 zone gz2g 0
 waitzone 20 gz2g

@@ -86,7 +86,7 @@ struct MeshFsParams {
 ConstantBuffer<MeshFsParams> fs : FS_BLOCK(0);
 // A figure part lit on the GPU (render_lighting.cpp, MeshLightUniforms): the sun and lights in the part's model space.
 struct MeshLightParams {
-    float4 on;               // x: lit here, y: the crown's pull, z: the lights
+    float4 on;               // x: lit here, z: the lights
     float4 sun;              // xyz: towards the sun in model space
     float4 sunColour;        // rgb: the sun's lit colour
     float4 ambient;          // rgb
@@ -130,12 +130,6 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn) {
         lit = max(lit, colour.rgb * c * falloff * seen);
     }
     float3 c = min(1.0, lit + lighting.emissive.rgb);
-    if (lighting.on.y > 0.0) {
-        float3 s = lighting.sunColour.rgb * length(lighting.sun.xyz);
-        float3 t = clamp(ambient / max(s, 1e-6), -1.0, 1.0);
-        float3 mean = 0.5 * (ambient * (t + 1.0) + s * (1.0 - t * t) * 0.5);
-        c = lerp(c, min(1.0, mean + lighting.emissive.rgb), lighting.on.y);
-    }
     return c;
 }
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {

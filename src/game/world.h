@@ -702,8 +702,7 @@ struct ClientArrayManager : BaseManager {
 void VisFogManagerDestroy(ClientArrayManager* manager);
 EngineObject* VisFogManagerAdd(ClientArrayManager* manager);
 
-// The bits of EngineObject::flags on the client world. The constructor sets the draw bits but DrawShadows (the
-// shadow setting decides it at Create).
+// The bits of EngineObject::flags on the client world (the constructor sets the draw bits).
 enum class WorldClientFlag : std::uint32_t {
     NoCamOption = 0x8,      // cleared by the command line's "-nocam"; nothing sets or reads it
     RecordingCamera = 0x10, // a camera file is being recorded (Camera::OpenFile; the command line's camera options
@@ -712,7 +711,6 @@ enum class WorldClientFlag : std::uint32_t {
     DrawObjects = 0x40,     // the objects but units
     DrawUnits = 0x80,       // the units and the selection markers
     DrawTerrain = 0x100,    // the ground and the water
-    DrawShadows = 0x200,
     DrawEffects = 0x400,    // the alpha pass: the client arrays, the particles, the lightning lists, the rain and snow
     Draw800 = 0x800,        // set by the constructor; nothing reads it
     DrawSky = 0x1000,

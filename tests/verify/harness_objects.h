@@ -22,7 +22,7 @@ inline void HarnessSetLoadTarget(const char* slot) { ei::verify::image::SetLoadT
 // The options the harness sets: the tutorial windows off, the master server's host, the water's waves.
 inline void HarnessClearShowTutorial() { ei::verify::image::ClearShowTutorial(); }
 inline void HarnessSetMasterHost(const char* host) { ei::verify::image::SetMasterHost(host); }
-inline void HarnessSetWaterWaves(bool on) { ei::verify::image::SetWaterWaves(on); }
+inline void HarnessSetShadows(bool on) { ei::verify::image::SetShadows(on); }
 
 // The cursor's state the cursor check logs and compares.
 inline ei::verify::image::CursorState HarnessCursor() { return ei::verify::image::Cursor(); }

@@ -77,12 +77,6 @@ void VectorClear(std::vector<MapObject*>* v) { v->clear(); }
 constexpr float kMapEdgeMargin = 1.0f;
 // The length of the shadows' projection along the camera's Z axis.
 constexpr float kShadowLength = -0.02f;
-// The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
-// single player).
-int LightEffectsSetting(const int& setting) { return setting; }
-int LightEffects1B8() { return LightEffectsSetting(options::g_options.enableBloodprints); }
-int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFootprints); }
-int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints); }
 const char* MarkerPartName() { return "hp"; }
 
 // a < b, or unordered.
@@ -344,19 +338,19 @@ int WorldClient::DrawPass() {
         for (MapObject** p = FrameObjects(FrameList::VisibleUnits).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
     }
 
-    // Light effects (three lists of the client, each behind its setting).
+    // Light effects (three lists of the client).
     if (!bloodPrints.empty() || !footprints.empty() || !scorchMarks.empty()) {
         state.stages[0].combiner = kAlphaPassStage;
         state.alphaTest = false;
         state.depthWrite = false;
-        if (LightEffects1B8()) DrawLightEffects(bloodPrints);
-        if (LightEffects1BC()) DrawLightEffects(footprints);
-        if (LightEffects1C0()) DrawLightEffects(scorchMarks);
+        DrawLightEffects(bloodPrints);
+        DrawLightEffects(footprints);
+        DrawLightEffects(scorchMarks);
         state.depthWrite = true;
     }
 
     // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
-    if (flags & WorldClientFlag::DrawShadows) {
+    if (options::g_options.shadows) {
         SortByModel(FrameList::ShadowBuildings);
         SortByModel(FrameList::ShadowOther);
         SortByModel(FrameList::ShadowLevers);

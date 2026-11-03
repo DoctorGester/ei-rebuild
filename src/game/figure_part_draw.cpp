@@ -129,8 +129,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[0] = c.emissive.x;
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
-    l.coefficient = options::g_options.objectsLightingCoeff;
-    l.crown = options::g_options.floraSpecialLight != 0 && text::CompareIgnoringCase((part.node->mesh)->GetName(), "crown") == 0;
+    l.coefficient = options::kObjectsLightingCoeff;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const Light* light = (*part.lights)[i];

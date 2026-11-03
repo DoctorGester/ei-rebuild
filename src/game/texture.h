@@ -61,15 +61,13 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // Starts the new renderer (its failure ends the game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on
-    // `window`.
-    TextureDevice(platform::NativeWindow window, bool fullScreen, int width, int height, int bitsPerPixel);
+    // Starts the new renderer (its failure ends the game). `width` x `height` pixels on `window`.
+    TextureDevice(platform::NativeWindow window, bool fullScreen, int width, int height);
     ~TextureDevice() override;
 
     bool fullScreen = false;    // the window covers the monitor
     Rect screen = {};           // (0, 0, width, height): the screen's size
     platform::NativeWindow window = nullptr;
-    int bitsPerPixel = 32;      // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     TransformPipeline* pipeline = nullptr;
     Surface* stageSurfaces[8] = {};    // the holder bound to each texture stage
     DeviceMaterial* material = nullptr;

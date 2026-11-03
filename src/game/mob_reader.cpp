@@ -89,8 +89,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     WorldServer* server = &g_serverWorld;
     server->WorldServer::SetTime(time);
-    float limit = options::g_options.defaultWindForce;
-    server->ChangeWind(direction, MinKeepA(limit, strength));
+    server->ChangeWind(direction, MinKeepA(options::kDefaultWindForce, strength));
 }
 
 // 0xDDDDDDD1: the relation table and the player names.

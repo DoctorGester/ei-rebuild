@@ -30,7 +30,7 @@ void World::SetTimeSpeed(float speed) {
     // The time of day now, stored as a float before the speed changes.
     float now = TimeOfDay();
     if (speed > 0.0f) secondsPerTick = 1.0f / speed;
-    else if (speed < 0.0f) secondsPerTick = 1.0f / static_cast<float>(options::g_options.defaultTimeScale);
+    else if (speed < 0.0f) secondsPerTick = 1.0f / static_cast<float>(options::kDefaultTimeScale);
     else secondsPerTick = 0.0f;      // 0 or NaN (equal or unordered)
     secondsPerTick *= kHoursPerSecond;
     SetTime(now);

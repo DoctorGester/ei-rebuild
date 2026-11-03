@@ -191,7 +191,6 @@ int Texture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsig
         }
         levels = header->mipCount - mip;
     }
-    if (!options::g_options.mipmapping) levels = 1;
     height = mipHeight;
     width = mipWidth;
 
@@ -443,7 +442,6 @@ int Texture::CreateComposed(TextureDevice* device, const ComposedTexture& compos
     if (flags & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;
-    if (!options::g_options.mipmapping) levels = 1;
     width = header.width >> (mip & 31);
     height = header.height >> (mip & 31);
     Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(width), static_cast<int>(height),

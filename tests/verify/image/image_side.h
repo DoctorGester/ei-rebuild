@@ -61,7 +61,7 @@ int& FlowState();                      // GameFlow::state
 void SetLoadTarget(const char* slot);  // GameFlow::requestTarget
 void ClearShowTutorial();
 void SetMasterHost(const char* host);
-void SetWaterWaves(bool on);
+void SetShadows(bool on);
 
 struct CursorState {
     int imageShown = 0;

@@ -295,15 +295,11 @@ writes the registry.
   - A line the parser does not understand is dropped on the next save (logged).
 - **Defaults** (`settings::Defaults`, settings_document.cpp). They are made for the primary monitor's mode in physical
   pixels; with no size known, the defaults for 1024x768 are used in memory and not written.
-  - **video:** the monitor's resolution, FullScreen true (a borderless window over the monitor), 32 bits,
-    Antialiasing, Mipmapping, Filtering 2, TextureQuality 0, ShowParticles.
+  - **video:** the monitor's resolution, FullScreen true (a borderless window over the monitor), Video 2.
   - **sound:** Audio, and the three volumes at 100.
-  - **shadows:** ShadowQuality 2 and the five shadow switches.
-  - **terrain:** the starter's best landscape detail: water waves, LightingFreq 1000, self shadowing, dynamic lights
-    and the prints.
+  - **shadows:** Shadows true.
   - **camera:** the whole section as a game install writes it (config/harness/registry.reg).
-  - **game:** ObjectsLightingCoeff 2, the hero's and the quest's lights, UseSWCursors false, SelectionType 1, the
-    default map and stream, and the master server a3master.nival.com.
+  - **game:** SelectionType 1 and the master server a3master.nival.com.
   - **renderer:** VSync true, Msaa 8, Anisotropy 16, PerfOverlay false.
   - **Left out:** everything else, which the game reads as absent and takes its own defaults for. The game's exit save
     then adds every option it keeps.

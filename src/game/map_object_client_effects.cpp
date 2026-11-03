@@ -135,7 +135,7 @@ constexpr int kPointLight = 0x31;
 constexpr float kLightHeight = 2.0f;
 
 // The default light of mode 1 (r, g, b, radius).
-const float* DefaultLightColour() { return &options::g_options.questLight.red; }
+const float* DefaultLightColour() { return &options::kQuestLight.red; }
 
 Object3DSpecific* SideHalf(MapObject* owner) {
     return owner->attached;
@@ -392,7 +392,7 @@ void MapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
-            CreateLight(colour, options::g_options.questLight.radius, true);
+            CreateLight(colour, options::kQuestLight.radius, true);
         } else {
             light->flags &= ~LightFlag::Held;
             ShowLight();

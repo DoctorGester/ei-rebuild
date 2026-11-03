@@ -190,21 +190,21 @@ void Defaults() {
     is("video", "VideoResolution", "2560x1440");
     is("video", "FullScreen", "true");
     is("video", "Video", "2");   // the movies (the game's own 0 plays none)
-    is("video", "VideoColorDepthInBits", "32");
-    is("video", "Mipmapping", "true");
-    is("video", "Filtering", "2");
-    is("video", "TextureQuality", "0");
     is("sound", "Audio", "true");
     for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) is("sound", volume, "100");
-    is("shadows", "ShadowQuality", "2");
-    for (const char* shadow : {"UnitShadow", "BuildingShadow", "FloraShadow"}) is("shadows", shadow, "true");
-    for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableFootprints",
-                                "EnableBloodprints", "EnableFireprints"})
-        is("terrain", feature, "true");
+    is("shadows", "Shadows", "true");
     CHECK(!document.Find("terrain", "LOD1") && !document.Find("terrain", "LOD2"));
     // The original's settings nothing here reads are not written.
-    for (const char* dropped : {"Antialiasing", "ShowParticles", "Dithering", "VideoRefreshRate"}) CHECK(!document.Find("video", dropped));
-    CHECK(!document.Find("terrain", "LightingFreq") && !document.Find("shadows", "HeroShadow") && !document.Find("game", "UseSWCursors"));
+    for (const char* dropped : {"Antialiasing", "ShowParticles", "Dithering", "VideoRefreshRate", "DrawingTarget",
+                                "VideoColorDepthInBits", "Specular", "TextureQuality", "Mipmapping", "Filtering", "Contrast"})
+        CHECK(!document.Find("video", dropped));
+    for (const char* dropped : {"ShadowQuality", "UnitShadow", "BuildingShadow", "FloraShadow", "HeroShadow", "LightingFreq"})
+        CHECK(!document.Find("shadows", dropped));
+    for (const char* dropped : {"EnableWaterWaves", "EnableSelfShadowing", "EnableFootprints", "EnableBloodprints",
+                                "EnableFireprints", "EnableBloodprintsRelight", "LightingFreq"})
+        CHECK(!document.Find("terrain", dropped));
+    CHECK(!document.Find("game", "UseSWCursors") && !document.Find("game", "Hero Light B") && !document.Find("game", "ObjectsLightingCoeff") &&
+          !document.Find("game", "DefaultMapName") && !document.Find("game", "Keyboard Layout"));
     is("camera", "CameraFlipXAxis", "false");
     is("camera", "CameraMinHeight", "3");
     is("camera", "CameraDefaultRotateSpeed", "0.15");
@@ -214,11 +214,6 @@ void Defaults() {
     is("camera", "CameraShortcut 3 Pitch", "45");
     is("camera", "CameraShortcut 0 AxisZ", "1");
     is("game", "SelectionType", "1");
-    is("game", "Hero Light B", "116");
-    is("game", "Quest Light G", "72");
-    is("game", "ObjectsLightingCoeff", "2");
-    is("game", "DefaultMapName", "Zone1.mpr");
-    is("game", "DefaultStreamingSound", "melody.mp3");
     is("network", "Master Server Name", "a3master.nival.com");
     is("renderer", "VSync", "true");
     is("renderer", "Msaa", "8");

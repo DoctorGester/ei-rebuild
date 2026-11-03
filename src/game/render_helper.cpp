@@ -30,44 +30,32 @@ State TextureStage(render::TextureOp operation, std::uint8_t argument, bool alph
     return state;
 }
 
-State Blended(State state, render::Blend source, render::Blend dest) {
-    state.blend = true;
-    state.sourceBlend = source;
-    state.destBlend = dest;
-    return state;
-}
-
 // The state list of built-in preset `index` (below 9). Presets 0 and 8 have no states.
 std::vector<State> BuiltInStates(unsigned index) {
     using Op = render::TextureOp;
-    using Blend = render::Blend;
     const State unset{};
     std::vector<State> states;
     switch (index) {
     case 1:   // texture x frame
         states.resize(2, unset);
-        states[1] = Blended(TextureStage(Op::Modulate, render::kArgTexture, true), Blend::DestColour, Blend::Zero);
+        states[1] = TextureStage(Op::Modulate, render::kArgTexture, true);
         break;
     case 2:   // the texture's alpha x frame
         states.resize(2, unset);
-        states[1] = Blended(TextureStage(Op::Modulate, render::kArgTexture | render::kArgAlphaReplicate, true),
-                            Blend::Zero, Blend::SourceAlpha);
+        states[1] = TextureStage(Op::Modulate, render::kArgTexture | render::kArgAlphaReplicate, true);
         break;
     case 3:   // added
         states.resize(2, unset);
-        states[1] = Blended(TextureStage(Op::Add, render::kArgTexture, true), Blend::One, Blend::One);
+        states[1] = TextureStage(Op::Add, render::kArgTexture, true);
         break;
     case 4:   // blended by the texture's alpha
         states.resize(2, unset);
-        states[1] = Blended(TextureStage(Op::BlendTextureAlpha, render::kArgTexture, true), Blend::SourceAlpha,
-                            Blend::InvSourceAlpha);
+        states[1] = TextureStage(Op::BlendTextureAlpha, render::kArgTexture, true);
         break;
     case 5:
         states.resize(3, unset);
-        states[0] = Blended(unset, Blend::One, Blend::Zero);
-        states[1] = Blended(TextureStage(Op::Add, render::kArgTexture, false), Blend::One, Blend::One);
-        states[2] = Blended(TextureStage(Op::Modulate2x, render::kArgTexture, false), Blend::DestColour,
-                            Blend::SourceColour);
+        states[1] = TextureStage(Op::Add, render::kArgTexture, false);
+        states[2] = TextureStage(Op::Modulate2x, render::kArgTexture, false);
         break;
     case 6:
     case 7:   // bump mapped (7: with luminance), a texture added
@@ -83,21 +71,17 @@ std::vector<State> BuiltInStates(unsigned index) {
 
 // ---- The helper -------------------------------------------------------------------------------------
 
-// The first pass takes the texture stages of all the states (of one with `singleStage`); each state from there on
-// is a pass of its own. (The game took as many stages as the Direct3D device had and checked their operations
+// The one pass takes the texture stages of all the states. (The game took as many stages as the Direct3D device had and checked their operations
 // against its capabilities; the presets have at most three states, and the device the game ran on (dgVoodoo's) had
 // eight stages and every operation.)
-void RenderHelper::Record(const std::vector<State>& states, unsigned index, bool singleStage) {
-    const int count = static_cast<int>(states.size());
-    const int stages = singleStage && count > 1 ? 1 : count;
-    auto* preset = new RenderPreset(states, stages);
+void RenderHelper::Record(const std::vector<State>& states, unsigned index) {
+    auto* preset = new RenderPreset(states);
     preset->AddRef();
     presets[index] = preset;
 }
 
-RenderHelper::RenderHelper(std::uint32_t flag) {
-    for (unsigned index = 0; index < kPresetCount; ++index)
-        Record(BuiltInStates(index), index, static_cast<std::uint8_t>(flag) != 0);
+RenderHelper::RenderHelper() {
+    for (unsigned index = 0; index < kPresetCount; ++index) Record(BuiltInStates(index), index);
 }
 
 RenderHelper::~RenderHelper() {
@@ -109,22 +93,15 @@ RenderHelper::~RenderHelper() {
 
 // ---- The preset -------------------------------------------------------------------------------------
 
-// The renderer draws with two texture stages: what the first pass sets on later ones is not kept.
-void RenderPreset::ApplyPass(int pass) const {
+// The renderer draws with two texture stages; the stage after the preset's is turned off.
+void RenderPreset::Apply() const {
     render::RenderState& state = render::g_renderState;
     constexpr int kStages = static_cast<int>(std::size(state.stages));
-    if (pass == 0) {
-        for (int i = 0; i < stages && i < kStages; ++i)
-            if (states[i].enabled) state.stages[i].combiner = states[i].combiner;
-        if (stages < kStages) {
-            state.stages[stages].combiner.colourOp = render::TextureOp::Disable;
-            state.stages[stages].combiner.alphaOp = render::TextureOp::Disable;
-        }
-        return;
-    }
-    const State& passState = states[stages + pass - 1];
-    if (passState.blend) {
-        state.sourceBlend = passState.sourceBlend;
-        state.destBlend = passState.destBlend;
+    const int stages = StageCount();
+    for (int i = 0; i < stages && i < kStages; ++i)
+        if (states[i].enabled) state.stages[i].combiner = states[i].combiner;
+    if (stages < kStages) {
+        state.stages[stages].combiner.colourOp = render::TextureOp::Disable;
+        state.stages[stages].combiner.alphaOp = render::TextureOp::Disable;
     }
 }

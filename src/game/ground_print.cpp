@@ -46,9 +46,6 @@ constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi / 180.
 constexpr float kPerDegree = 0.0055555557f;
-bool BloodPrintsOn() { return options::g_options.enableBloodprints != 0; }
-bool FootprintsOn() { return options::g_options.enableFootprints != 0; }
-bool ScorchMarksOn() { return options::g_options.enableFireprints != 0; }
 
 template <typename T>
 void Read(ByteStream* stream, T* value) {
@@ -314,7 +311,6 @@ void BloodPrint::Save(ByteStream* stream) {
 // ---- The client world's prints ------------------------------------------------------------------
 
 void WorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize, std::uint32_t tile, int fresh) {
-    if (!BloodPrintsOn()) return;
     const PrintRecord* entry = EntryAt(g_printsDatabase.blood, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);
@@ -327,7 +323,6 @@ void WorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize
 
 int WorldClient::AddFootprint(float x, float y, float halfWidth, float halfLength, float angle, std::uint32_t tile,
                                float scale, int visible, int bloodKind) {
-    if (!FootprintsOn()) return -1;
     // Stepping into a blood print (not a fresh hit's) makes bloody footprints of its kind.
     bool inBlood = false;
     float reach = (halfWidth + halfLength) * 0.5f;
@@ -355,7 +350,6 @@ int WorldClient::AddFootprint(float x, float y, float halfWidth, float halfLengt
 }
 
 void WorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha) {
-    if (!ScorchMarksOn()) return;
     const PrintRecord* entry = EntryAt(g_printsDatabase.scorch, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);

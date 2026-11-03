@@ -108,7 +108,7 @@ void Interface3D::Create(TextureDevice* device) {
     height = device->screen.bottom;
     if (!MakeFonts(fonts, width)) return;
 
-    platform::ActivateKeyboardLayout(static_cast<std::uint32_t>(options::g_options.keyboardLayout), kEnglish);
+    platform::ActivateKeyboardLayout(kEnglish, kEnglish);
     keybind::LoadKeyBindings();
     console = new console::ConsoleWindow(this);
     root = new ChatOverlay(this);

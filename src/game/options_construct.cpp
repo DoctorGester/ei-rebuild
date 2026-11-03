@@ -8,37 +8,19 @@ namespace options {
 
 // The strings start empty (the members' own constructors).
 GameOptions::GameOptions() {
-    driverIndex = 0;
     resolutionX = 800;
     resolutionY = 600;
-    colourDepth = 16;
     fullScreen = 1;
     video = 0;
     audio = 1;
     audioStreaming = 100;
     audioSfx = 100;
     audioSpeech = 100;
-    specular = 0;
-    textureQuality = 1;
-    mipmapping = 0;
-    filtering = 1;
-    shadowLightingFreq = 10000;
-    floraSpecialLight = 0;
     brightness = 0.0f;
-    contrast = 0.0f;
     gamma = 0.0f;
     reverseStereo = 0;
-    shadowQuality = 0;
-    unitShadow = 1;
-    buildingShadow = 0;
-    floraShadow = 0;
+    shadows = 1;
     borderFogDistance = 16.0f;   // the installed game's value (the original constructor had 32, which fogs the menu map over)
-    enableSelfShadowing = 0;
-    enableWaterWaves = 1;
-    enableFootprints = 1;
-    enableBloodprints = 1;
-    enableFireprints = 1;
-    enableBloodprintsRelight = 0;
 
     workPath = ".\\";
     resourcesPath = ".\\res\\";
@@ -76,8 +58,6 @@ GameOptions::GameOptions() {
 
     nearClipDistance = 2.0f;
     farClipDistance = 100.0f;
-    defaultWindForce = 0.4f;
-    defaultTimeScale = 60;
     selectionType = 0;
     drawVisibleOnly = 1;
     drawPath = 1;
@@ -87,17 +67,8 @@ GameOptions::GameOptions() {
     toolTipTime = 0.5f;
     switchFilters = 1;
 
-    keyboardLayout = 0x409;    // US English
-    objectsLightingCoeff = 1.0f;
-    heroLight = {1.0f, 0.925490201f, 0.666666687f, 10.0f};    // 255, 236, 170 of 255
-    questLight = {0.784313738f, 1.0f, 1.0f, 10.0f};           // 200 of 255
     difficulty = 0;
     difficultyStored = 0;
-
-    defaultMapName = "none";
-    defaultStreamingSound = "none";
-    fogNightStartDistance = 50.0f;
-    fogDayStartDistance = 90.0f;
 }
 
 // The game's options: constructed by the C++ runtime before the static initialisers and WinMain (Load fills them),
