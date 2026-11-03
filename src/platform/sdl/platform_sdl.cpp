@@ -1,11 +1,12 @@
 // The platform layer on SDL3 (platform/platform.h; docs/notes/platform.md, "SDL3"): the clocks, the message box, the
 // threads, the window and its events, the cursor, the mouse and the clipboard, in platform.h's order. Built into the
 // builds without the harness (release, debug, play, x64); the harness's builds take its own
-// (tests/verify/platform/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through EventWaits / NextEvent / TakeEvent); the renderer keeps its own
-// swap chain on the window's native handle.
+// (tests/verify/platform/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through
+// EventWaits / NextEvent / TakeEvent); the renderer takes the window's SDL_Window (sdl_window.h) for its swap chain.
 #include "platform/platform.h"
 #include "platform/log.h"
 #include "platform/sdl/sdl_keys.h"
+#include "platform/sdl/sdl_window.h"
 
 #define SDL_MAIN_HANDLED   // SDL_main.h only for SDL_RegisterApp: the program keeps its own entry
 #include <SDL3/SDL.h>
@@ -31,6 +32,8 @@ NativeWindow g_native = nullptr;
 SDL_Window* WindowOf(NativeWindow window) { return window && window == g_native ? g_window : nullptr; }
 
 } // namespace
+
+SDL_Window* SdlWindow(NativeWindow window) { return WindowOf(window); }
 
 // ==== Clocks =========================================================================================================
 
@@ -367,9 +370,6 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
-#if !defined(_WIN32)
-    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);   // graphics_gl.cpp's context
-#endif
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;

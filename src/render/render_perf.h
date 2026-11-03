@@ -4,6 +4,7 @@
 // See docs/notes/renderer.md, section 15 and "The renderer's source files".
 
 #include "lib/rect.h"
+#include "render/gpu.h"
 
 #include <cstdint>
 #include <string>
@@ -16,23 +17,20 @@ bool On();
 // off in the harness build).
 void SetOn(bool on);
 
-// ---- The frame's GPU time and draws (render.cpp, render_shadows.cpp, inside the frame's draws) ------------
+// ---- The frame's draws (render.cpp, render_shadows.cpp, inside the frame's draws) -------------------------
 
-// What the frame's work goes to, each from its first draw up to the next one's (a timestamp at each change): the
-// sun's shadow map with its range passes, the point lights' shadow faces, the ground and water pages, the models
-// that cast shadows (objects and units), the rest of the world view (the other models, effects, decals,
-// pre-transformed draws, the uploads, the frame passes' clears, copies and resolve), the interface (with the
-// canvases' queued drawing at the frame's start), and the present's pass (the frame onto the window, the cursor,
-// this overlay).
+// What the frame's draws go to: the sun's shadow map with its range passes, the point lights' shadow faces, the
+// ground and water pages, the models that cast shadows (objects and units), the rest of the world view (the other
+// models, effects, decals, pre-transformed draws), the interface (with the canvases' queued drawing at the frame's
+// start), and the present's pass (the frame onto the window, this overlay).
 enum class Pass : int { Sun, Point, Terrain, Objects, Other, Ui, Present, Count };
 constexpr int kPasses = static_cast<int>(Pass::Count);
-// The frame's first draws (once a frame): its work counted from here, in Ui; a set of queries begun (the results
-// of earlier frames that are ready are collected first) unless every set still waits for the GPU. Nothing when off.
-void BeginGpuFrame();
-// The frame's work from here on is `pass`'s.
+// The frame's first draws (once a frame): its draws counted from here, in Ui. Nothing when off.
+void BeginDraws();
+// The frame's draws from here on are `pass`'s.
 void Enter(Pass pass);
-// After the present's draws: the frame's last timestamp, the set closed (its results read at a later frame).
-void EndGpuFrame();
+// After the present's draws.
+void EndDraws();
 // The draws made so far in the frame, every pass's (render.cpp, from FrameStats; tools/perf_check has its own).
 std::uint64_t FrameDrawCount();
 
@@ -51,14 +49,17 @@ private:
     long long start = 0;
 };
 
-// The frame presented (render::Present): its interval since the last one, its CPU times and draws.
+// The frame presented (render::Present): its interval since the last one, its CPU times and draws, and the GPU time
+// of the latest frame the GPU finished (gpu::FrameGpuTime, timed while the overlay is on).
 void FrameDone();
 
-// ---- The overlay (render_window.cpp, in the present's pass on the back buffer) -----------------------------
+// ---- The overlay (render_window.cpp, in the present's pass on the swap chain's texture) --------------------
 
-// Draws the overlay over `placed` (the frame's rectangle in the back buffer of `width` x `height`).
-void Draw(int width, int height, const Rect& placed);
-// The device is lost or the renderer stops: the queries and sokol objects released (before sg_shutdown).
+// Before the present's pass: the text made again when due and its image written.
+void Prepare();
+// Inside the pass: the overlay over `placed` (the frame's rectangle in a target of `format`, `width` x `height`).
+void Draw(gpu::Format format, int width, int height, const Rect& placed);
+// The renderer stops: the text's image released and the frame timing off (before gpu::Stop).
 void Release();
 
 // ---- What the overlay shows (also for tools/perf_check) ----------------------------------------------------
@@ -66,9 +67,8 @@ void Release();
 struct Numbers {
     double fps = 0.0;                      // frames presented in the last second
     double frameMs = 0.0, worstFrameMs = 0.0;
-    bool gpu = false;                      // GPU times known (timestamps of the last second)
-    double gpuMs = 0.0, worstGpuMs = 0.0;  // the frame's draws and the present
-    double passMs[kPasses] = {};           // of it, each pass's (by Pass)
+    bool gpu = false;                      // GPU times known (frames finished in the last second)
+    double gpuMs = 0.0, worstGpuMs = 0.0;  // the whole frame's (its submission's work)
     double submitMs = 0.0, shadowCpuMs = 0.0;
     double draws[kPasses] = {};            // each pass's draws
 };

@@ -4,6 +4,7 @@
 // counted for the report); the game's events are the harness's, and so are its clocks, date, mouse position and
 // message box answers.
 #include "harness_platform.h"
+#include "platform/sdl/sdl_window.h"
 #include "harness_clock.h"
 #include "system/harness_system.h"
 
@@ -148,6 +149,8 @@ namespace platform {
 namespace hp = ei::verify::harnessplatform;
 namespace clock = ei::verify::clock;
 
+SDL_Window* SdlWindow(NativeWindow window) { return hp::WindowOf(window); }
+
 // ---- Clocks, the message box -------------------------------------------------------------------------------------
 
 std::uint32_t Milliseconds() { return clock::Milliseconds(); }
@@ -202,9 +205,6 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
-#if !defined(SDL_PLATFORM_WINDOWS)
-    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);   // graphics_gl.cpp's context
-#endif
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!hp::g_window) return nullptr;

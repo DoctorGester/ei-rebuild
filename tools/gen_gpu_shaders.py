@@ -1,12 +1,10 @@
 """The HLSL programs' code and reflection for SDL_GPU (docs/notes/renderer.md, "HLSL and SDL_shadercross"), run by
 CMakeLists.txt at build time. It reads each program's compiled stages (shadercross's output in --compiled:
 <program>_<stage>.<format>) and their SPIR-V's reflection (spirv-cross --reflect: <program>_<stage>.json), checks
-the binding rules and writes three files into --out:
+the binding rules and writes two files into --out:
 
 - gpu_shaders.h: the uniform blocks' structs, each program's slots and counts, and the program table's types;
-- gpu_shaders.cpp: the program table with every stage's code;
-- gpu_shaders_sokol.h: static_asserts of the blocks and vertex inputs against sokol-shdc's from the GLSL (tools/shader_check
-  includes it after shaders/shaders.h, while both shader sources exist), and the table of sokol-shdc's descriptions.
+- gpu_shaders.cpp: the program table with every stage's code.
 
 usage: python tools/gen_gpu_shaders.py --sources DIR --compiled DIR --out DIR --formats spirv,msl[,dxil] PROGRAM...
 """
@@ -36,10 +34,6 @@ def fail(message):
 
 def camel(name):
     return ''.join(part[:1].upper() + part[1:] for part in name.split('_') if part)
-
-
-def snake(name):
-    return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
 
 
 def io_type(t):
@@ -234,7 +228,7 @@ def main():
          'extern const Program kPrograms[kProgramCount];', '',
          '// The uniform blocks as the C++ fills them: 16-byte members (float4, int4) and Matrix4s, without padding.']
     for name, (members, size, _) in sorted(structs.items()):
-        h.append(f'struct alignas(16) {name} {{')
+        h.append(f'struct {name} {{')
         for member, ctype, extent, _, _ in members:
             h.append(f'    {ctype} {member}{extent};')
         h += ['};', f'static_assert(sizeof({name}) == {size});']
@@ -290,32 +284,8 @@ def main():
     c += ['', '}  // namespace', '', 'const Program kPrograms[kProgramCount] = {'] + table + ['};', '',
           '}  // namespace gpu_shaders', '']
 
-    k = ['// The HLSL programs\' blocks and vertex inputs (gpu_shaders.h) against sokol-shdc\'s from the GLSL',
-         '// (shaders/shaders.h, included first), written by tools/gen_gpu_shaders.py; not committed. A block T is',
-         '// sokol-shdc\'s t_t (snake case): the same size, members, offsets and types. An input `x` is its program\'s',
-         '// in_x or x.', '#pragma once', '#include <cstddef>', '#include <type_traits>', '',
-         '#include "gpu_shaders.h"', '']
-    for name, (members, size, _) in sorted(structs.items()):
-        theirs = snake(name) + '_t'
-        k.append(f'static_assert(sizeof(gpu_shaders::{name}) == sizeof({theirs}));')
-        for member, _, _, _, _ in members:
-            k.append(f'static_assert(offsetof(gpu_shaders::{name}, {member}) == offsetof({theirs}, {member}));')
-            k.append(f'static_assert(std::is_same_v<decltype(gpu_shaders::{name}::{member}), '
-                     f'decltype({theirs}::{member})>);')
-    for p in programs:
-        for loc, n in sorted(info[p]['names'].items()):
-            ours = f'gpu_shaders::{p}::kAttr{camel(n)}'
-            k += [f'#if defined(ATTR_{p}_in_{n})', f'static_assert({ours} == ATTR_{p}_in_{n});',
-                  f'#elif defined(ATTR_{p}_{n})', f'static_assert({ours} == ATTR_{p}_{n});', '#else',
-                  f'#error "{p}: sokol-shdc has no input in_{n} or {n}"', '#endif']
-    k += ['', '// sokol-shdc\'s description of each program, in kPrograms\' order.',
-          'namespace gpu_shaders {',
-          'inline const sg_shader_desc* (*const kSokolDescs[kProgramCount])(sg_backend) = {']
-    k += [f'    &::{p}_shader_desc,' for p in programs]
-    k += ['};', '}  // namespace gpu_shaders', '']
-
     os.makedirs(a.out, exist_ok=True)
-    for name, lines in (('gpu_shaders.h', h), ('gpu_shaders.cpp', c), ('gpu_shaders_sokol.h', k)):
+    for name, lines in (('gpu_shaders.h', h), ('gpu_shaders.cpp', c)):
         path = os.path.join(a.out, name)
         with open(path, 'w', encoding='utf-8', newline='\n') as f:
             f.write('\n'.join(lines))

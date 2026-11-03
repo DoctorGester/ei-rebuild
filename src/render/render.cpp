@@ -1,6 +1,5 @@
-// The new renderer's frame: the switch, the device behind sokol_gfx (platform/graphics.h), the off-screen target the
-// frame is drawn into (the game's resolution) and reading it back for captures. See render.h and
-// docs/notes/renderer.md.
+// The new renderer's frame: the switch, the device (gpu.h), the off-screen target the frame is drawn into (the game's
+// resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
@@ -13,9 +12,9 @@
 #include "../game/app.h"
 #include "../game/game_singletons.h"
 #include "../game/model.h"
-#include "platform/graphics.h"
-#ifdef EI_GPU_SPIKE
-#include "gpu_spike/record.h"
+
+#if defined(_M_X64) || defined(__x86_64__)
+#include <xmmintrin.h>
 #endif
 
 #include <cstdarg>
@@ -74,159 +73,80 @@ void EnsureConfigured() {
 
 std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
 
-sg_color FromD3DColour(std::uint32_t c) {
-    return sg_color{((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f,
-                    (c & 0xFF) / 255.0f, 1.0f};
+void SetClear(float out[4], std::uint32_t c) {
+    out[0] = ((c >> 16) & 0xFF) / 255.0f;
+    out[1] = ((c >> 8) & 0xFF) / 255.0f;
+    out[2] = (c & 0xFF) / 255.0f;
+    out[3] = 1.0f;
 }
-
 
 int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
 
-void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
-              const char* /*file*/, void* /*user*/) {
-    static const char* const kLevels[] = {"panic", "error", "warning", "info"};
-    // Each message at most 10 times (a full pool would otherwise log every frame).
-    static unsigned char counts[1024];
-    if (level > 0 && item < 1024 && counts[item]++ >= 10) {
-        counts[item] = 11;
-        return;
-    }
-    ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
-            message ? message : "");
-    // sokol cannot go on after a panic (it would abort): the game ends with the message.
-    if (level == 0) Fatal("The renderer stopped: sokol_gfx panic %u (%s).", item, message ? message : "");
-}
-
-// Why the last CreateDevice failed (for the fatal error's message).
-const char* g_deviceError = "";
+#if defined(_M_X64) || defined(__x86_64__)
+// The SSE control bits (rounding, flush-to-zero, denormals-are-zero, the exception masks) the renderer started with.
+// The game's code does not change them; a driver or library that did would change every float of the frame.
+unsigned g_mxcsr = 0;
+#endif
 
 bool CreateDevice() {
-    sg_desc desc{};
-    if (!platform::graphics::Start(&desc.environment)) {
-        g_deviceError = platform::graphics::Error();
-        return false;
-    }
-    desc.environment.defaults.color_format = kColourFormat;
-    desc.environment.defaults.depth_format = kDepthFormat;
-    desc.environment.defaults.sample_count = 1;
-    desc.logger.func = &SokolLog;
-    // The game's textures, canvases and the images replaced within a frame are far more than sokol's
-    // default pools (128 images, 256 views); a full pool made sg_make_image fail.
-    desc.image_pool_size = 16384;
-    desc.view_pool_size = 16384;
-    desc.buffer_pool_size = 512;
-    desc.pipeline_pool_size = 1024;
-    desc.sampler_pool_size = 256;
-    sg_setup(&desc);
-    if (!sg_isvalid()) {
-        g_deviceError = "sokol_gfx could not be set up on the device";
-        ei::Log("render: %s", g_deviceError);
-        platform::graphics::Stop();
-        return false;
-    }
-    g_deviceSamples = platform::graphics::MaxSamples(kSmoothSamples);
-#ifdef EI_GPU_SPIKE
-    gpu_spike::InstallRecorder();   // the SDL_GPU spike's build only (tools/gpu_spike)
+    if (!gpu::Start()) return false;
+    g_deviceSamples = gpu::MaxSamples(kColourFormat, kDepthFormat, kSmoothSamples);
+    const int copySamples = gpu::MaxSamples(kDepthCopyFormat, gpu::Format::None, kSmoothSamples);
+    if (copySamples < g_deviceSamples) g_deviceSamples = copySamples;
+#if defined(_M_X64) || defined(__x86_64__)
+    g_mxcsr = _mm_getcsr() & 0xFFC0u;
 #endif
     return true;
+}
+
+// Once a frame on the main thread: the SSE control bits as at the start, else logged (verify builds) and set back.
+void CheckFloatControl() {
+#if defined(_M_X64) || defined(__x86_64__)
+    const unsigned now = _mm_getcsr();
+    if ((now & 0xFFC0u) == g_mxcsr) return;
+#if defined(EI_RENDER_VALIDATION)
+    static int logged = 0;
+    if (logged++ < 10) ei::Log("render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u, g_mxcsr);
+#endif
+    _mm_setcsr((now & 0x3Fu) | g_mxcsr);
+#endif
 }
 
 // --- The off-screen target ---------------------------------------------------------------------------
 
 int g_width = 0, g_height = 0;
-sg_image g_colour{}, g_depth{};
-sg_view g_colourAttachment{}, g_colourTexture{}, g_depthAttachment{};
+gpu::Texture g_colour, g_depth;
 bool g_haveFrame = false;
 // With multisampling (SetMsaa) the world's runs of commands draw into a multisampled target of
 // g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour and whose depth copy
-// (kDepthCopyFormat) into g_resolvedDepth; the frame target's depth has a texture view then (copied into the
-// multisampled one before a world run).
+// (kDepthCopyFormat) into g_resolvedDepth; the frame target's depth is sampled then (copied into the multisampled
+// one before a world run).
 int g_targetSamples = 1;
-sg_image g_multiColour{}, g_multiDepth{}, g_multiDepthCopy{}, g_resolvedDepth{};
-sg_view g_multiColourAttachment{}, g_multiDepthAttachment{}, g_multiDepthCopyAttachment{}, g_resolveAttachment{},
-    g_depthResolveAttachment{}, g_resolvedDepthTexture{}, g_depthTexture{};
+gpu::Texture g_multiColour, g_multiDepth, g_multiDepthCopy, g_resolvedDepth;
 
 void DestroyMultisampled() {
-    for (sg_view* v : {&g_multiColourAttachment, &g_multiDepthAttachment, &g_multiDepthCopyAttachment, &g_resolveAttachment,
-                       &g_depthResolveAttachment, &g_resolvedDepthTexture, &g_depthTexture}) {
-        if (v->id) sg_destroy_view(*v);
-        *v = sg_view{};
-    }
-    for (sg_image* i : {&g_multiColour, &g_multiDepth, &g_multiDepthCopy, &g_resolvedDepth}) {
-        if (i->id) sg_destroy_image(*i);
-        *i = sg_image{};
-    }
+    for (gpu::Texture* t : {&g_multiColour, &g_multiDepth, &g_multiDepthCopy, &g_resolvedDepth}) gpu::Release(*t);
     g_targetSamples = 1;
 }
 
 void DestroyTarget() {
     DestroyMultisampled();
-    if (g_colourAttachment.id) sg_destroy_view(g_colourAttachment);
-    if (g_colourTexture.id) sg_destroy_view(g_colourTexture);
-    if (g_depthAttachment.id) sg_destroy_view(g_depthAttachment);
-    if (g_colour.id) sg_destroy_image(g_colour);
-    if (g_depth.id) sg_destroy_image(g_depth);
-    g_colourAttachment = g_colourTexture = g_depthAttachment = sg_view{};
-    g_colour = g_depth = sg_image{};
+    gpu::Release(g_colour);
+    gpu::Release(g_depth);
     g_width = g_height = 0;
     g_haveFrame = false;
-}
-
-// A colour image of `format` and `samples` drawn into (resolved into when single-sampled: `resolved`).
-sg_image MakeColourImage(int width, int height, sg_pixel_format format, int samples, bool resolved, const char* label) {
-    sg_image_desc d{};
-    d.usage.color_attachment = true;
-    d.usage.resolve_attachment = resolved;
-    d.width = width;
-    d.height = height;
-    d.pixel_format = format;
-    d.sample_count = samples;
-    d.label = label;
-    return sg_make_image(&d);
 }
 
 // The multisampled colour, depth and depth copy of `samples` and the copy's resolve; false when the device
 // refused them.
 bool MakeMultisampled(int width, int height, int samples) {
-    g_multiColour = MakeColourImage(width, height, kColourFormat, samples, false, "ei-frame-colour-multisampled");
-    g_multiDepthCopy = MakeColourImage(width, height, kDepthCopyFormat, samples, false, "ei-frame-depth-copy-multisampled");
-    g_resolvedDepth = MakeColourImage(width, height, kDepthCopyFormat, 1, true, "ei-frame-depth-copy");
-    sg_image_desc depth{};
-    depth.usage.depth_stencil_attachment = true;
-    depth.width = width;
-    depth.height = height;
-    depth.pixel_format = kDepthFormat;
-    depth.sample_count = samples;
-    depth.label = "ei-frame-depth-multisampled";
-    g_multiDepth = sg_make_image(&depth);
-    sg_view_desc v{};
-    v.color_attachment.image = g_multiColour;
-    g_multiColourAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.depth_stencil_attachment.image = g_multiDepth;
-    g_multiDepthAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.color_attachment.image = g_multiDepthCopy;
-    g_multiDepthCopyAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.resolve_attachment.image = g_colour;
-    g_resolveAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.resolve_attachment.image = g_resolvedDepth;
-    g_depthResolveAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.texture.image = g_resolvedDepth;
-    g_resolvedDepthTexture = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.texture.image = g_depth;
-    g_depthTexture = sg_make_view(&v);
-    bool ok = true;
-    for (sg_image image : {g_multiColour, g_multiDepth, g_multiDepthCopy, g_resolvedDepth})
-        ok = ok && sg_query_image_state(image) == SG_RESOURCESTATE_VALID;
-    for (sg_view view : {g_multiColourAttachment, g_multiDepthAttachment, g_multiDepthCopyAttachment, g_resolveAttachment,
-                         g_depthResolveAttachment, g_resolvedDepthTexture, g_depthTexture})
-        ok = ok && sg_query_view_state(view) == SG_RESOURCESTATE_VALID;
-    ok = ok && PrepareSmoothCopies(samples);
+    g_multiColour = gpu::MakeTexture({width, height, 1, samples, kColourFormat, gpu::kColourTarget, "ei-frame-colour-multisampled"});
+    g_multiDepthCopy =
+        gpu::MakeTexture({width, height, 1, samples, kDepthCopyFormat, gpu::kColourTarget, "ei-frame-depth-copy-multisampled"});
+    g_resolvedDepth =
+        gpu::MakeTexture({width, height, 1, 1, kDepthCopyFormat, gpu::kColourTarget | gpu::kSampled, "ei-frame-depth-copy"});
+    g_multiDepth = gpu::MakeTexture({width, height, 1, samples, kDepthFormat, gpu::kDepthTarget, "ei-frame-depth-multisampled"});
+    const bool ok = g_multiColour && g_multiDepthCopy && g_resolvedDepth && g_multiDepth && PrepareSmoothCopies(samples);
     if (!ok) {
         DestroyMultisampled();
         return false;
@@ -239,35 +159,11 @@ bool MakeMultisampled(int width, int height, int samples) {
 // multisampling (SetMsaa: at most the device's samples). A change takes effect at a frame's first pass (`mayChange`).
 bool EnsureTarget(int width, int height, bool mayChange) {
     int samples = g_msaa < g_deviceSamples ? g_msaa : g_deviceSamples;
-    if (width == g_width && height == g_height && g_colour.id && (samples == g_targetSamples || !mayChange)) return true;
+    if (width == g_width && height == g_height && g_colour && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
-    sg_image_desc colour{};
-    colour.usage.color_attachment = true;
-    colour.usage.resolve_attachment = samples > 1;
-    colour.width = width;
-    colour.height = height;
-    colour.pixel_format = kColourFormat;
-    colour.sample_count = 1;
-    colour.label = "ei-frame-colour";
-    g_colour = sg_make_image(&colour);
-    sg_image_desc depth{};
-    depth.usage.depth_stencil_attachment = true;
-    depth.width = width;
-    depth.height = height;
-    depth.pixel_format = kDepthFormat;
-    depth.sample_count = 1;
-    depth.label = "ei-frame-depth";
-    g_depth = sg_make_image(&depth);
-    sg_view_desc v{};
-    v.color_attachment.image = g_colour;
-    g_colourAttachment = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.texture.image = g_colour;
-    g_colourTexture = sg_make_view(&v);
-    v = sg_view_desc{};
-    v.depth_stencil_attachment.image = g_depth;
-    g_depthAttachment = sg_make_view(&v);
-    if (sg_query_image_state(g_colour) != SG_RESOURCESTATE_VALID || sg_query_image_state(g_depth) != SG_RESOURCESTATE_VALID) {
+    g_colour = gpu::MakeTexture({width, height, 1, 1, kColourFormat, gpu::kColourTarget | gpu::kSampled, "ei-frame-colour"});
+    g_depth = gpu::MakeTexture({width, height, 1, 1, kDepthFormat, gpu::kDepthTarget | gpu::kSampled, "ei-frame-depth"});
+    if (!g_colour || !g_depth) {
         ei::Log("render: cannot create the %dx%d frame target", width, height);
         DestroyTarget();
         return false;
@@ -293,15 +189,16 @@ std::uint32_t g_commits = 0;
 
 } // namespace
 
-// The device, sokol and the pipelines at the first use. The game cannot run without them: a failure ends it.
+// The device, the first pipelines and the white texture (written here, outside any pass) at the first use. The game
+// cannot run without them: a failure ends it.
 void detail::Start() {
     EnsureConfigured();
     if (g_started) return;
-    platform::FloatingPointGuard fpu;
-    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", g_deviceError);
-    if (!CreateTerrainShader()) Fatal("Can't start the renderer: the terrain shader could not be made.");
-    if (!CreateMeshShader()) Fatal("Can't start the renderer: the mesh shader could not be made.");
+    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", gpu::Error());
+    if (!CreateTerrainShader()) Fatal("Can't start the renderer: the terrain pipeline could not be made.");
+    if (!CreateMeshShader()) Fatal("Can't start the renderer: the mesh pipeline could not be made.");
     if (!CreateBlitPipeline()) Fatal("Can't start the renderer: the blit pipeline could not be made.");
+    if (!WhiteView()) Fatal("Can't start the renderer: the white texture could not be made.");
     g_started = true;
 }
 
@@ -333,7 +230,8 @@ GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 #endif
 
 FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
-std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
+const void* g_lastPipeline = nullptr;   // applied last in this frame
+const void* g_lastTexture = nullptr;
 #if defined(EI_RENDER_VALIDATION)
 StatsTimer* g_innerTimer = nullptr;
 // CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
@@ -394,11 +292,8 @@ void AddFrameStats() {
         s.*field += f.*field;
     s.shadowDraws += f.shadowDraws;
     s.shadowMs += f.shadowMs;
-    s.gpuFrames += f.gpuFrames;
-    s.gpuShadowMs += f.gpuShadowMs;
-    s.gpuFrameMs += f.gpuFrameMs;
     g_stats = FrameStats{};
-    g_lastPipeline = g_lastTexture = 0;
+    g_lastPipeline = g_lastTexture = nullptr;
 #if defined(EI_RENDER_VALIDATION)
     g_lastHashes.swap(g_hashes);
     g_hashes.clear();
@@ -432,19 +327,19 @@ bool InWorld(std::size_t k) {
 void BeginFramePass() {
     bool first = g_holder == Holder::None;
     bool afterWorld = g_holder == Holder::Multisampled;
-    sg_pass pass{};
-    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
-    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : afterWorld ? SG_LOADACTION_DONTCARE : SG_LOADACTION_LOAD;
-    pass.action.depth.clear_value = 1.0f;
-    pass.attachments.colors[0] = g_colourAttachment;
-    pass.attachments.depth_stencil = g_depthAttachment;
+    gpu::PassDesc pass;
+    pass.colour.texture = g_colour;
+    pass.colour.load = first ? gpu::Load::Clear : gpu::Load::Keep;
+    SetClear(pass.colour.clear, GameClearColour());
+    pass.depth.texture = g_depth;
+    pass.depth.load = first ? gpu::Load::Clear : afterWorld ? gpu::Load::DontCare : gpu::Load::Keep;
+    pass.depth.clear = 1.0f;
     pass.label = "ei-frame";
-    sg_begin_pass(&pass);
+    if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
     ++g_stats.passes;
     g_passSamples = 1;
     if (afterWorld) {
-        CopyDepthFromResolved(g_resolvedDepthTexture);
+        CopyDepthFromResolved(g_resolvedDepth);
         ++g_counts.depthCopiesBack;
     }
     g_holder = Holder::Frame;
@@ -456,40 +351,35 @@ void BeginFramePass() {
 void BeginMultisampledPass() {
     bool first = g_holder == Holder::None;
     if (g_holder == Holder::Frame) {
-        sg_pass copy{};
-        copy.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
-        copy.action.colors[0].store_action = SG_STOREACTION_STORE;
-        copy.action.depth.load_action = SG_LOADACTION_DONTCARE;
-        copy.action.depth.store_action = SG_STOREACTION_STORE;
-        copy.action.colors[1] = copy.action.colors[0];
-        copy.attachments.colors[0] = g_multiColourAttachment;
-        copy.attachments.colors[1] = g_multiDepthCopyAttachment;
-        copy.attachments.depth_stencil = g_multiDepthAttachment;
+        gpu::PassDesc copy;
+        copy.colour.texture = g_multiColour;
+        copy.colour.load = gpu::Load::DontCare;
+        copy.second.texture = g_multiDepthCopy;
+        copy.second.load = gpu::Load::DontCare;
+        copy.depth.texture = g_multiDepth;
+        copy.depth.load = gpu::Load::DontCare;
         copy.label = "ei-frame-into-multisampled";
-        sg_begin_pass(&copy);
+        if (!gpu::BeginPass(copy)) Fatal("The renderer cannot draw the frame.");
         ++g_stats.passes;
         g_passSamples = g_targetSamples;
-        CopyIntoMultisampled(g_colourTexture, g_depthTexture);
-        sg_end_pass();
+        CopyIntoMultisampled(g_colour, g_depth);
+        gpu::EndPass();
         ++g_counts.copiesInto;
     }
-    sg_pass pass{};
-    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
-    pass.action.colors[0].store_action = SG_STOREACTION_STORE;
-    pass.action.colors[1].load_action = pass.action.colors[0].load_action;
-    pass.action.colors[1].clear_value = {1.0f, 0.0f, 0.0f, 0.0f};   // the depth's clear
-    pass.action.colors[1].store_action = SG_STOREACTION_STORE;
-    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.depth.clear_value = 1.0f;
-    pass.action.depth.store_action = SG_STOREACTION_STORE;
-    pass.attachments.colors[0] = g_multiColourAttachment;
-    pass.attachments.colors[1] = g_multiDepthCopyAttachment;
-    pass.attachments.resolves[0] = g_resolveAttachment;
-    pass.attachments.resolves[1] = g_depthResolveAttachment;
-    pass.attachments.depth_stencil = g_multiDepthAttachment;
+    gpu::PassDesc pass;
+    pass.colour.texture = g_multiColour;
+    pass.colour.load = first ? gpu::Load::Clear : gpu::Load::Keep;
+    SetClear(pass.colour.clear, GameClearColour());
+    pass.colour.resolve = g_colour;
+    pass.second.texture = g_multiDepthCopy;
+    pass.second.load = pass.colour.load;
+    pass.second.clear[0] = 1.0f;   // the depth's clear
+    pass.second.resolve = g_resolvedDepth;
+    pass.depth.texture = g_multiDepth;
+    pass.depth.load = first ? gpu::Load::Clear : gpu::Load::Keep;
+    pass.depth.clear = 1.0f;
     pass.label = "ei-frame-multisampled";
-    sg_begin_pass(&pass);
+    if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
     ++g_stats.passes;
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
@@ -501,7 +391,7 @@ void BeginMultisampledPass() {
 // after a world run it takes the depth back from sample 0.
 void EmptyFramePass() {
     BeginFramePass();
-    sg_end_pass();
+    gpu::EndPass();
     ++g_passes;
 }
 #endif
@@ -545,7 +435,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
 // multisampling one pass per run of world and other commands. The interface canvases' queued drawing goes first.
 bool DrawPending() {
-    perf::BeginGpuFrame();
+    perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
     RunCanvasCommands();
     int width = 0, height = 0;
@@ -561,8 +451,8 @@ bool DrawPending() {
         PrepareShadows(g_frame);
         DrawShadowMap(g_frame);
     }
-    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further: the 3D
-    // draws move their positions by half a pixel (Frame::pixelShift); sokol takes whole pixels only.
+    // Direct3D 7 puts pixel centres at integer screen coordinates, today's GPUs half a pixel further: the 3D
+    // draws move their positions by half a pixel (Frame::pixelShift); the viewport is kept in whole pixels.
     g_frame.pixelShift[0] = 1.0f / width;
     g_frame.pixelShift[1] = -1.0f / height;
     std::size_t k = g_drawnCommands, end = g_frame.commands.size();
@@ -588,7 +478,7 @@ bool DrawPending() {
         else BeginFramePass();
         DrawCommands(k, stop, width, height);
         if (world) perf::Enter(perf::Pass::Other);
-        sg_end_pass();
+        gpu::EndPass();
         g_passSamples = 1;
         ++g_passes;
 #if defined(EI_RENDER_VALIDATION)
@@ -609,11 +499,6 @@ bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.e
 
 namespace detail {
 
-void CheckDevice() {
-    if (const char* reason = platform::graphics::Lost())
-        Fatal("The graphics device was lost (%s); the game will close.", reason);
-}
-
 void Fatal(const char* format, ...) {
     char text[512];
     va_list args;
@@ -629,12 +514,11 @@ Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 
-sg_image FrameImage() { return g_colour; }
-sg_view FrameTexture() { return g_colourTexture; }
+const gpu::Texture& FrameTexture() { return g_colour; }
 bool FrameSize(int* width, int* height) {
     *width = g_width;
     *height = g_height;
-    return g_colour.id != 0;
+    return static_cast<bool>(g_colour);
 }
 
 TextureDevice* DeviceObject() { return g_sceneRenderer.device; }
@@ -679,7 +563,7 @@ void Configure(const char* spec) {
 
 void PrepareDevice() {
     EnsureConfigured();
-    if (!g_started) platform::graphics::PrepareInBackground();
+    if (!g_started) gpu::PrepareInBackground();
 }
 
 void BeginDeviceMeshTime() {
@@ -812,16 +696,16 @@ StatsTimer::~StatsTimer() {
 #endif
 }
 
-void CountPipeline(sg_pipeline pipeline) {
+void CountPipeline(gpu::Pipeline pipeline) {
     ++g_stats.pipelineApplies;
-    if (pipeline.id != g_lastPipeline) ++g_stats.pipelineChanges;
-    g_lastPipeline = pipeline.id;
+    if (pipeline.pipeline != g_lastPipeline) ++g_stats.pipelineChanges;
+    g_lastPipeline = pipeline.pipeline;
 }
 
-void CountBindings(const sg_bindings& b) {
+void CountBindings(const gpu::Texture& first) {
     ++g_stats.bindings;
-    if (b.views[0].id != g_lastTexture) ++g_stats.textureChanges;
-    g_lastTexture = b.views[0].id;
+    if (first.texture != g_lastTexture) ++g_stats.textureChanges;
+    g_lastTexture = first.texture;
 }
 
 void CountDraw(std::size_t uniformBytes) {
@@ -870,13 +754,11 @@ namespace detail {
 
 void SplitFrame() {
     if (!g_started || g_frameDrawn || BetweenFrames()) return;
-    platform::FloatingPointGuard fpu;
     DrawPending();
 }
 
 void RunCanvasesNow() {
     Start();
-    platform::FloatingPointGuard fpu;
     RunCanvasCommands();
 }
 
@@ -888,17 +770,15 @@ void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    platform::FloatingPointGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
-    // Onto the game window through the renderer's swap chain.
+    // Onto the game window through the swap chain.
     if (!DrawPending()) return;
     perf::Enter(perf::Pass::Present);
     bool toWindow = DrawToWindow();
-    perf::EndGpuFrame();
-    ShadowFrameEnd();
-    sg_commit();
-    submitTime.Stop();   // the present's wait for the display is not the renderer's work
+    perf::EndDraws();
+    gpu::Submit();
+    submitTime.Stop();
     ++g_commits;
     if (toWindow) PresentWindow();
     g_haveFrame = true;
@@ -938,11 +818,8 @@ void Present() {
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
-        platform::FloatingPointGuard fpu;
         RetireTextures();
-        RetireBuffers();
-        RetireFrameImages();
-        CheckDevice();
+        CheckFloatControl();
     }
     ++g_frameNumber;
 }
@@ -970,17 +847,17 @@ SmoothInfo SmoothState() {
 }
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
-    if (!g_started || !g_haveFrame || !g_colour.id) return false;
-    platform::FloatingPointGuard fpu;
-    platform::graphics::Readback copy;
+    if (!g_started || !g_haveFrame || !g_colour) return false;
     const int w = g_width, h = g_height;
-    const bool read = copy.Read(g_colour, Rect{0, 0, w, h});
+    gpu::Ticket copy = gpu::Download(g_colour, 0, Rect{0, 0, w, h});
+    gpu::Texels texels;
+    const bool read = gpu::Wait(copy) && gpu::Read(copy, &texels);
     if (read) {
         *width = w;
         *height = h;
         bgr->resize(static_cast<std::size_t>(w) * h * 3);
         for (int y = 0; y < h; ++y) {
-            const std::uint8_t* row = copy.Row(y);
+            const std::uint8_t* row = texels.Row(y);
             std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
             for (int x = 0; x < w; ++x) {
                 out[x * 3 + 0] = row[x * 4 + 2];
@@ -989,7 +866,7 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
             }
         }
     }
-    copy.Release();
+    gpu::Release(copy);
     return read;
 }
 

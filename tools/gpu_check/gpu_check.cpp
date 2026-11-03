@@ -489,6 +489,44 @@ void CheckTargets() {
     g::Release(r);
     Check(!g::Download(multi, 0, {0, 0, w, h}), "a multisampled texture is not downloaded");
     ++g_misuses;
+
+    // A second colour target beside the first (the depth copy of render_smooth.cpp): R32F, resolved with it.
+    if (g::MaxSamples(g::Format::R32Float, g::Format::None, 4) < 4) {
+        Fail("no 4 samples for R32F");
+    } else {
+        g::Texture multiCopy = g::MakeTexture({w, h, 1, 4, g::Format::R32Float, g::kColourTarget, "multisampled copy"});
+        g::Texture copyResolved =
+            g::MakeTexture({w, h, 1, 1, g::Format::R32Float, g::kColourTarget | g::kSampled, "resolved copy"});
+        m.second.texture = multiCopy;
+        m.second.load = g::Load::Clear;
+        m.second.clear[0] = 1.0f;
+        m.second.store = false;
+        m.second.resolve = copyResolved;
+        g::BeginPass(m);
+        g::PipelineDesc desc = SolidDesc(g::Format::Rgba8, g::Format::Depth32Float, g::Compare::Less, 4);
+        desc.second = g::Format::R32Float;
+        desc.secondMask = g::kWriteRed;
+        g::ApplyPipeline(g::MakePipeline(desc));
+        Solid({0, 0, w / 2, h}, w, h, 0.25f, 1, 0, 0);
+        g::EndPass();
+        g::Ticket c = g::Download(copyResolved, 0, {0, 0, w, h});
+        g::Ticket r2 = g::Download(resolved, 0, {0, 0, w, h});
+        bool ok = g::Wait(c) && g::Read(c, &t) && t.format == g::Format::R32Float;
+        float left = 0, right = 0;
+        if (ok) {
+            std::memcpy(&left, t.Row(3) + 3 * 4, 4);
+            std::memcpy(&right, t.Row(20) + 28 * 4, 4);
+        }
+        Check(ok && std::abs(left - 0.25f) < 1e-6f && right == 1.0f,
+              "a second R32F target resolved beside the colour (left 0.25, right the clear)");
+        ok = g::Wait(r2) && g::Read(r2, &t);
+        Check(ok && Near(TexelAt(t, 3, 3), 255, 0, 0) && Near(TexelAt(t, 28, 20), 0, 0, 255),
+              "the first target of a pass with two resolved as well");
+        g::Release(c);
+        g::Release(r2);
+        g::Release(multiCopy);
+        g::Release(copyResolved);
+    }
     g::Release(multi);
     g::Release(multiDepth);
     g::Release(resolved);

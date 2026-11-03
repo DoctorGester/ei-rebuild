@@ -298,7 +298,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "CPU ms terrain %.3f, hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f), device mesh draws %.3f; "
             "decals projected: %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
-            "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
+            "shadow map %.1f draws, CPU ms %.3f; morphed meshes %.1f "
             "(%.0f corners); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
             argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
@@ -314,8 +314,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             t.terrainMs / n, t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
             per(t.decalPrints), t.decalPrintMs / n, per(t.decalVertices),
             per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
-            per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
-            t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
+            per(t.shadowDraws), t.shadowMs / n, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
             frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);

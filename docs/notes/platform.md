@@ -7,8 +7,8 @@ our own enums and structs, a native window as an opaque `void*`), and one implem
 and the threads' priority in the builds without the harness; the harness's builds have their own backend for those
 areas on SDL ("SDL3 and the harness" below). The folder calls are std::filesystem's (`src/platform/files.cpp`, every
 system). Windows (`src/platform/win32/`) has the rest; it is the only place of the game's code that includes
-`<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it (linux.md). The renderer (`src/render`) reaches its device and the window's drawable through
-`src/platform/graphics.h` ("Graphics" below). Game code does not change between the systems.
+`<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it (linux.md). The renderer (`src/render`) reaches its device and the window's swap chain through
+SDL's GPU API ("Graphics" below). Game code does not change between the systems.
 
 ## Files
 
@@ -24,15 +24,10 @@ system). Windows (`src/platform/win32/`) has the rest; it is the only place of t
 | `src/platform/win32/game_calls.cpp`, `src/platform/posix/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"), each system's; the harness's builds leave them out and take tests/verify/platform's |
 | `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow`; POSIX's one-instance look-up (`posix::OtherInstance`, game_calls.cpp's FindClassWindow) |
 | `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
-| `src/platform/graphics.h` | the renderer's device, the window's drawable, read-backs and GPU timestamps ("Graphics" below) |
-| `src/platform/gl/graphics_gl.cpp` | its OpenGL 4.5 backend on Linux (built into ei_render with sokol_gfx's implementation) |
-| `src/platform/d3d11/graphics_d3d11.h`, `.cpp` | its Direct3D 11 backend (built into ei_render with sokol_gfx's implementation), and what only Windows has: the vertical blank switch's rules |
-| `src/platform/floating_point.cpp` | `FloatingPointGuard` (platform.h; built into ei_render with the graphics backend: the offline checks link the renderer without the game) |
 
 - CMakeLists.txt's ei_platform builds src/platform/sdl/*.cpp, files.cpp, system_path.cpp and src/platform/win32/*.cpp
-  or (Linux) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp);
-  ei_render builds the graphics backend
-  (src/platform/d3d11 or src/platform/gl) and floating_point.cpp. The sound and the movies are not the platform's:
+  or (Linux) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp).
+  The sound and the movies are not the platform's:
   src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type: `MouseDevice`
   holds a backend's private `Device` and `Event::window` is the event's window. Still Windows' values, on purpose: the
   key codes and key flags (the bindings file and the interface keep them; SDL's backend maps its keys to them).
@@ -53,8 +48,8 @@ system). Windows (`src/platform/win32/`) has the rest; it is the only place of t
   (net_second_master.cpp's `GetTickCount`) must not start reading the harness's.
 - `tools/check_platform.py` (a build check) fails on a file under `src/` outside `src/platform` that includes
   `<windows.h>` or another system header (`<dinput.h>`, `<wingdi.h>`, `<mmsystem.h>`, `<winsock2.h>`, `<process.h>`,
-  `<d3d11.h>`, ...: the script lists them), a header of a Windows backend (`platform/win32/`, `platform/d3d11/`) or calls
-  sokol's Direct3D functions (`sg_d3d11_*`) (comments left out). It sees a file's own includes only.
+  `<d3d12.h>`, ...: the script lists them) or a header of the Windows backend (`platform/win32/`; comments left out).
+  It sees a file's own includes only.
 - Game, renderer and platform layer share one `Rect`, `Point` and `Size` (lib/rect.h: global structs with operators and
   value methods; the float pair is `Vector2`, vecmath.h) and `std::uint32_t` / `std::int32_t` for DWORD, COLORREF,
   UINT, LONG.
@@ -92,8 +87,8 @@ through the same platform calls (the harness's answers touch only its binds and 
 (`std::thread`, a future, `steady_clock`): the real clock, never the harness's.
 
 The two clocks stay two: the original reads `timeGetTime` and `GetTickCount` in different places, and the harness
-drives each separately, so a call keeps the clock it had. sokol_time (QueryPerformanceCounter) is not used for them: it
-would bypass the harness's clocks.
+drives each separately, so a call keeps the clock it had. QueryPerformanceCounter is not used for them: it would
+bypass the harness's clocks.
 
 ## Files and the harness's overlay
 
@@ -167,13 +162,14 @@ harness's backend), WaitForSingleObject and GetMessageA (the threads and events 
 
 ### SDL3 and the harness
 
-sokol_app was not taken (it owns the loop and the swap chain; the game has nested loops, our renderer its own swap chain,
-the harness its own input). SDL3 fits: it pumps from the game's own loops (`SDL_PollEvent` inside `EventWaits` /
+A framework that owns the loop and the swap chain does not fit (the game has nested loops, our renderer its own swap
+chain, the harness its own input). SDL3 does: it pumps from the game's own loops (`SDL_PollEvent` inside `EventWaits` /
 `NextEvent` / `TakeEvent`, `SDL_WaitEvent` while NextEvent waits), and the renderer keeps its device and swap chain on the
-window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the NativeWindow the game holds).
+window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WINDOW_WIN32_HWND_POINTER`).
 
 - **Linkage: static.** third_party/SDL (3.4.18, zlib licence) is built by CMakeLists.txt as SDL3-static with only
-  video and audio (no GPU, renderer, camera, joystick, haptic, HID, sensor, power, dialog, OpenGL, Vulkan), before the
+  video, audio and the GPU API on Direct3D 12 and Vulkan (no 2D renderer, camera, joystick, haptic, HID, sensor, power,
+  dialog, OpenGL), before the
   game's compile options, into ei-rebuild.exe: the exe stays one file dropped into a game folder (S23), for x86 and
   x64 alike. Its sources compile without a warning under its own flags.
 - **The harness has its own platform backend on SDL** (tests/verify/harness_platform.cpp), built in its builds in
@@ -262,44 +258,12 @@ What SDL's backend does (platform_sdl.cpp):
 
 ## Graphics
 
-`src/platform/graphics.h` (namespace `platform::graphics`) is what the renderer needs of a graphics backend and no more;
-sokol_gfx draws everything, so a backend is small. No backend type crosses it: sokol's own structs, our `Rect`,
-fixed-width integers.
-
-- The device: `PrepareInBackground` (made on a thread while the game starts up), `Start` (sokol's environment), `Stop`
-  (after `sg_shutdown`: everything the backend made released), `Error`, `MaxSamples` (the frame target's multisampling)
-  and `Lost` (a loss in words: a failed present or resize, or the device's own removed reason; null while the device
-  works). The renderer asks `Lost` at the end of every presented frame and ends the game on a loss (renderer.md, "No
-  device-loss recovery").
-- The window: `BeginDrawable` gives sokol the window's drawable for the frame (`PresentMode`: the vertical blank and
-  tearing, renderer.md section 15), `EndDrawable` presents it after `sg_commit`. The window's size in pixels is
-  platform.h's `WindowPixelSize` (SDL: `SDL_GetWindowSizeInPixels`, false while minimised; Windows: the client rectangle).
-- Viewports and scissor rectangles go through `ApplyViewport` / `ApplyScissorRect`, from the target's top left on every
-  backend (sokol's own flip is off on OpenGL, whose clip control already counts rows from the top).
-- Buffers: `UpdateBuffer` writes a range of a buffer and keeps the rest (render_buffers.cpp's `GpuPool`: terrain pages and
-  meshes kept on the GPU, only their changed ranges sent). It is the one transfer sokol cannot do (it writes a buffer only
-  whole, once a frame); the buffer is a sokol one, made with `usage.write_unsealed` and sealed at once. Every other
-  transfer is sokol's own or a draw: an image's pixels go in as an image of their own drawn texel for texel, a copy is a
-  draw, the levels below are drawn one from the other (renderer.md section 7).
-- Diagnostics: `Readback` (a region of an image or of the drawable, mapped until the next read; the backend's `Staging`
-  behind it) and `GpuTimer` (timestamps read frames later without waiting; the backend's `Queries` behind it). Both are
-  typed pimpls: render code holds no backend object.
-- `platform::FloatingPointGuard` (platform.h) puts MXCSR's control bits back after the driver changed them; the renderer
-  holds one around every call into sokol that may reach the driver.
-- OpenGL (graphics_gl.cpp, Linux): an SDL GL 4.5 core context, made on a hidden window of its own at `Start` and moved
-  onto the game's window (made with SDL's GL flag) at its first frame. `glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE)`
-  gives every target Direct3D's rows, depth range and facing, so the shaders, sokol-shdc's GLSL 4.30 output, need no
-  flip; the window's drawable is a framebuffer of ours, blitted upside down into the window's at `EndDrawable`. The
-  window's framebuffer is bound for that blit, not only named in it: Mesa gives it the window's new size only when it
-  is the bound one (named alone it kept its first size, and a resized window showed the frame shifted, its bottom cut
-  off, older frames above it: PL17). The blit fills it at its own size (the GLX drawable's or EGL surface's, which
-  runs ahead of SDL's while the window is dragged) with the scissor rectangle reset, since the last pass's still
-  clips it. tests/port/render_check.cpp reads the window back from the X server after resizes.
-  `UpdateBuffer` is `glNamedBufferSubData`, `Readback` `glGetTextureSubImage`, `GpuTimer` GL's timestamp queries; no lost
-  context is looked for.
-- What only Direct3D has is in `d3d11/graphics_d3d11.h`, never included by game code: the vertical blank rules
-  tools/perf_check checks on real chains (`TearingSupported`, `ChainFlagsFor`, `SyncIntervalFor`, `PresentFlagsFor`).
-  No render file calls Direct3D (MAC3g, MAC3h).
+The renderer has no graphics layer of the platform's: SDL's GPU API is one (Direct3D 12 on Windows, Vulkan elsewhere),
+and `src/render/gpu.h` is the renderer's own thin layer over it (renderer.md section 15c): the device, the window's
+swap chain and present modes, textures, buffers, passes, downloads and the frame's GPU time. No render file includes a
+system graphics header. The window's size in pixels is platform.h's `WindowPixelSize` (SDL:
+`SDL_GetWindowSizeInPixels`, false while minimised). MXCSR's control bits are checked once a frame and set back when a
+driver changed them (render.cpp's `CheckFloatControl`; float-maths.md, "The control word").
 
 ## Left for the next areas
 
@@ -357,7 +321,7 @@ USER32 on 56 million edge and random rectangle pairs (H33h's scratch test); `std
 |---|---|---|
 | Window, messages, cursor, input | USER32 (151 imports), DINPUT (1) | SDL3 since PL9 (the harness's builds: the window procedure) |
 | 2D text and surfaces | GDI32 (83) | the native interface (P track) replaces GDI |
-| Rendering | DDRAW, D3D7 through COM | isolated: sokol_gfx behind the DDraw7 / D3D7 boundary |
+| Rendering | DDRAW, D3D7 through COM | isolated: SDL_GPU behind the DDraw7 / D3D7 boundary |
 | Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | none since PL6: SDL3's audio device (miniaudio until PL9), our Bink 1 decoder |
 | Network | WSOCK32 (22, by ordinal) | BSD sockets map almost 1:1 (PL5) |
 | Files, threads, time | KERNEL32 (159), WINMM (5), ADVAPI32 (11) | PL3, PL4; time done here |

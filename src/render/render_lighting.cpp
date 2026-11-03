@@ -1,6 +1,6 @@
 // The GPU lighting's scene light (docs/notes/renderer.md section 13): what the world's draw hands
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
-// (shaders/scene_lighting.glsl). The point lights nearest the camera (by the distance to their reach)
+// (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
 // shader's uniforms (MeshLightUniforms) in the part's model space.
 #include "render.h"
@@ -17,14 +17,14 @@ namespace {
 using namespace detail;
 
 // Until the first hand-over: a sun from above, half ambient.
-scene_light_params_t g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
+SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
 // Per kept point light: it casts point shadows (ScenePointLight::shadows).
 bool g_shadows[kMostSceneLights] = {};
 
 } // namespace
 
 void SceneLighting(const SceneLights& lights) {
-    scene_light_params_t p{};
+    SceneLightParams p{};
     const Vector3& d = lights.sunDirection;
     const float length = std::sqrt(LengthSquared(d));
     const float sun[3] = {d.x, d.y, d.z};
@@ -63,7 +63,7 @@ void SceneLighting(const SceneLights& lights) {
 
 namespace detail {
 
-void LightUniforms(scene_light_params_t* params) {
+void LightUniforms(SceneLightParams* params) {
     *params = g_params;
     const Frame& f = g_frame;
     for (int k = 0; k < kMostSceneLights; ++k)
@@ -76,8 +76,8 @@ void LightUniforms(scene_light_params_t* params) {
     params->mapSun[2] = travel.z;
 }
 
-void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
-    mesh_light_params_t p{};
+void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
+    MeshLightParams p{};
     Matrix4 model = l.model;
     if (l.camera && !UnderCamera(*l.camera, l.model, &model)) model = Matrix4{};
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
@@ -134,7 +134,7 @@ void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
     *params = p;
 }
 
-const scene_light_params_t& KeptSceneLight() { return g_params; }
+const SceneLightParams& KeptSceneLight() { return g_params; }
 
 bool SceneLightCastsShadows(int k) { return k >= 0 && k < kMostSceneLights && g_shadows[k]; }
 

@@ -34,13 +34,13 @@ int Octave(uint k, uint2 p, int scale, uint shift) {
     return lower + upper;
 }
 
-uint ps_main(float4 pos : SV_Position) : SV_Target0 {
+float ps_main(float4 pos : SV_Position) : SV_Target0 {
     uint2 p = uint2(pos.xy);
     int value = Octave(0u, p, 8, 3u) - 0x1C00;
     value += Octave(1u, p, 4, 2u) * 2;
     int fine = Octave(2u, p, 2, 1u) + Layer(3u, (p.y & 31u) * 32u + (p.x & 31u)) * 2;
     value = (value + fine * 4) >> 6;
-    // Over 255 is 255; under 0 keeps its low byte (the game's byte store).
-    return uint(min(value, 255)) & 0xFFu;
+    // Over 255 is 255; under 0 keeps its low byte (the game's byte store); as an R8 texel (exactly v / 255).
+    return float(uint(min(value, 255)) & 0xFFu) / 255.0;
 }
 #endif

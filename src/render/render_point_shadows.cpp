@@ -20,7 +20,7 @@ using namespace detail;
 constexpr int kFaces = 6;
 constexpr int kAtlasWidth = kFaces * kPointFaceTexels;
 constexpr int kAtlasHeight = kMostPointShadows * kPointFaceTexels;
-// The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.glsl).
+// The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.hlsl).
 constexpr float kNear = 0.05f;
 // A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength (units
 // fading in) cast none, as for the sun.
@@ -31,7 +31,7 @@ constexpr float kLeastStrength = 0.5f;
 constexpr float kHoldMargin = 0.5f;
 
 // The cube's faces: the axis a face looks along and the two across it (its clip x and y). The
-// receivers pick the face and its coordinates the same way (shaders/point_shadow.glsl, point_seen).
+// receivers pick the face and its coordinates the same way (shaders/point_shadow.hlsli, point_seen).
 struct CubeFace {
     Vector3 forward, right, up;
 };
@@ -111,7 +111,8 @@ struct FaceCaster {
     std::uint32_t version;    // CachedMeshVersion
     int firstIndex, indexCount;
     Matrix4 model;
-    std::uint32_t texture, sampler;
+    gpu::Texture texture;
+    gpu::Sampler sampler;
     float alpha[2];   // CasterInstance's
     float uv[2];
 };
@@ -135,7 +136,8 @@ bool CloseModel(const Matrix4& a, const Matrix4& b) {
 
 bool SameCaster(const FaceCaster& a, const FaceCaster& b) {
     return a.mesh && a.mesh == b.mesh && a.version == b.version && a.firstIndex == b.firstIndex &&
-           a.indexCount == b.indexCount && a.texture == b.texture && a.sampler == b.sampler && CloseModel(a.model, b.model) &&
+           a.indexCount == b.indexCount && a.texture.texture == b.texture.texture && a.sampler.sampler == b.sampler.sampler &&
+           CloseModel(a.model, b.model) &&
            std::memcmp(a.alpha, b.alpha, sizeof(a.alpha)) == 0 && std::memcmp(a.uv, b.uv, sizeof(a.uv)) == 0;
 }
 
@@ -206,8 +208,8 @@ const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
     d.firstIndex = batch.firstIndex;
     d.indexCount = batch.indexCount;
     d.model = ps.models[static_cast<std::size_t>(c.model)];
-    d.texture = st.texture.id;
-    d.sampler = StageSampler(st).id;
+    d.texture = st.texture ? st.texture : SurfaceView(nullptr);
+    d.sampler = StageSampler(st);
     d.alpha[0] = d.alpha[1] = 0.0f;
     if ((s.alphaTest || s.blend) && st.hasTexture) {
         d.alpha[0] = 1.0f;
@@ -237,31 +239,24 @@ struct RedrawnFace {
     std::size_t from, to;
 };
 std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
-// A face cleared alone (shaders/solid.glsl: a rectangle at a depth, written whatever is there).
-sg_shader g_clearShader{};
-sg_pipeline g_clearPipeline{};
-sg_image g_atlas{};
-sg_view g_atlasAttachment{}, g_atlasTexture{};
+// A face cleared alone (shaders/solid.hlsl: a rectangle at a depth, written whatever is there).
+gpu::Pipeline g_clearPipeline;
+bool g_clearTried = false;
+gpu::Texture g_atlas;
 
 bool MakePipelines() {
-    if (g_clearPipeline.id) return sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
-    bool ok = true;
-    {
-        g_clearShader = sg_make_shader(solid_shader_desc(sg_query_backend()));
-        sg_pipeline_desc p{};
-        p.shader = g_clearShader;
-        p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-        p.colors[0].pixel_format = SG_PIXELFORMAT_NONE;
-        p.depth.pixel_format = kDepthFormat;
-        p.depth.compare = SG_COMPAREFUNC_ALWAYS;
-        p.depth.write_enabled = true;
-        p.sample_count = 1;
-        p.label = "ei-point-shadow-clear";
-        g_clearPipeline = sg_make_pipeline(&p);
-        ok = sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
+    if (!g_clearTried) {
+        g_clearTried = true;
+        gpu::PipelineDesc p;
+        p.program = gpu_shaders::solid::kIndex;
+        p.colour = gpu::Format::None;
+        p.depth = kDepthFormat;
+        p.depthCompare = gpu::Compare::Always;
+        p.depthWrite = true;
+        g_clearPipeline = gpu::MakePipeline(p, "ei-point-shadow-clear");
+        if (!g_clearPipeline) ei::Log("render: the point shadows' pipeline could not be created (see the gpu messages above)");
     }
-    if (!ok) ei::Log("render: the point shadows' pipeline could not be created (see the sokol messages above)");
-    return ok;
+    return static_cast<bool>(g_clearPipeline);
 }
 
 // sqrt(squared) <= limit, decided as with the root, which is taken only where the two lie too close to tell.
@@ -344,7 +339,7 @@ void PreparePointShadows(Frame& f) {
     g_casters.clear();
     g_units.clear();
     g_mappedCount = 0;
-    const scene_light_params_t& scene = KeptSceneLight();
+    const SceneLightParams& scene = KeptSceneLight();
     const int sceneCount = static_cast<int>(scene.counts[0]);
     Matrix4 camera;
     Vector3 eye;
@@ -523,10 +518,11 @@ void DrawPointShadows(Frame& f) {
     if (g_mappedCount == 0) return;
     StatsTimer timer(&FrameStats::shadowMs);
     PointShadowFrame& ps = f.shadow.point;
-    if (!g_atlas.id) g_atlasKnown = false;
-    bool ok = MakePipelines() &&
-              (g_atlas.id || MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows", &g_atlas, &g_atlasAttachment,
-                                             &g_atlasTexture));
+    if (!g_atlas) {
+        g_atlasKnown = false;
+        g_atlas = MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows");
+    }
+    const bool ok = MakePipelines() && g_atlas;
     if (!ok) {
         ps.params.on[0] = 0.0f;
         for (int& s : ps.sceneSlots) s = 0;
@@ -563,15 +559,13 @@ void DrawPointShadows(Frame& f) {
             for (int index : casters) {
                 const FaceCaster& d = DrawOf(ps, index);
                 const MeshBatch& batch = *g_casters[static_cast<std::size_t>(index)].batch;
-                sg_bindings b{};
+                Geometry b;
                 int first = 0;
                 if (!BindMeshBatch(batch, b, &first)) {
                     kept.known = false;   // drawn again next frame
                     continue;
                 }
-                const StageState& st = batch.state.stages[0];
-                g_faceDraws.Add(b, batch.cached != nullptr, st.texture.id ? st.texture : SurfaceView(nullptr),
-                                sg_sampler{d.sampler}, first, batch.indexCount,
+                g_faceDraws.Add(b, batch.cached != nullptr, d.texture, d.sampler, first, batch.indexCount,
                                 CasterInstance{Product(view, d.model), {d.uv[0], d.uv[1]}, {d.alpha[0], d.alpha[1]}});
                 ++g_stats.shadowDraws;
                 kept.casters.push_back(d);
@@ -586,35 +580,32 @@ void DrawPointShadows(Frame& f) {
     if (!haveDraws)
         for (const RedrawnFace& r : redrawn)
             if (r.from != r.to) r.face->known = false;   // cleared only: drawn again next frame
-    sg_pass pass{};
-    pass.action.depth.load_action = fresh ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.depth.clear_value = 1.0f;
-    pass.action.depth.store_action = SG_STOREACTION_STORE;
-    pass.attachments.depth_stencil = g_atlasAttachment;
+    gpu::PassDesc pass;
+    pass.depth = {g_atlas, 0, fresh ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
     pass.label = "ei-point-shadows";
-    sg_begin_pass(&pass);
+    if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the point shadows' pass could not begin (%s).", gpu::Error());
     ++g_stats.passes;
     // The faces' clears first (the faces do not overlap), then their casters.
     bool clearApplied = false;
     for (const RedrawnFace& r : redrawn) {
         if (!r.clear) continue;
         if (!clearApplied) {
-            sg_apply_pipeline(g_clearPipeline);
+            gpu::ApplyPipeline(g_clearPipeline);
             clearApplied = true;
         }
-        platform::graphics::ApplyViewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels);
+        gpu::SetViewport({r.x, r.y, r.x + kPointFaceTexels, r.y + kPointFaceTexels});
         const auto side = static_cast<float>(kPointFaceTexels);
-        solid_params_t vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
-        sg_apply_uniforms(UB_solid_params, SG_RANGE(vs));
-        sg_draw(0, 6, 1);
+        SolidParams vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
+        gpu::PushUniforms(gpu::Stage::Vertex, gpu_shaders::solid::kBlockSolidParams, vs);
+        gpu::Draw(0, 6);
     }
     if (haveDraws)
         for (const RedrawnFace& r : redrawn) {
             if (r.from == r.to) continue;
-            platform::graphics::ApplyViewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels);
+            gpu::SetViewport({r.x, r.y, r.x + kPointFaceTexels, r.y + kPointFaceTexels});
             g_faceDraws.Draw(r.from, r.to);
         }
-    sg_end_pass();
+    gpu::EndPass();
 }
 
 int PointShadowSlot(const Frame& f, int sceneLight) {
@@ -622,10 +613,10 @@ int PointShadowSlot(const Frame& f, int sceneLight) {
     return f.shadow.point.sceneSlots[sceneLight] - 1;
 }
 
-void BindPointShadows(sg_bindings& b) {
-    const bool on = g_atlasTexture.id && g_frame.shadow.point.params.on[0] > 0.5f;
-    b.views[VIEW_point_shadow_map] = on ? g_atlasTexture : NoShadowTexture();
-    b.samplers[SMP_point_shadow_smp] = ShadowCompareSampler();
+void BindPointShadows(int slot) {
+    const bool on = g_atlas && g_frame.shadow.point.params.on[0] > 0.5f;
+    const gpu::TextureBinding b{on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
+    gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 
 } // namespace detail

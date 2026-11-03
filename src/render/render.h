@@ -1,9 +1,9 @@
 #pragma once
 
-// The renderer: draws the game's frame with sokol_gfx (on the device platform/graphics.h makes) from the data the game
-// hands over and presents it on the game window. No fallback of any kind: when it cannot start, or cannot go on (a
-// sokol panic, a lost device not made again, nothing to present into), the game ends with the reason in the
-// game's error box (renderer.md, "When the renderer fails"). See docs/notes/renderer.md.
+// The renderer: draws the game's frame on SDL3's GPU API (render/gpu.h: Direct3D 12 or Vulkan) from the data the game
+// hands over and presents it on the game window. No fallback of any kind: when it cannot start, or cannot go on (no
+// device, a pass or a submission refused, nothing to present into), the game ends with the reason in the game's
+// error box (renderer.md, "When the renderer fails"). See docs/notes/renderer.md.
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words: "checkall"
 // (the harness's own "removable" never reaches it).
 
@@ -192,12 +192,9 @@ struct FrameStats {
     double decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
     std::uint64_t decalPrints = 0, decalVertices = 0;
     std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-// The shadow map's draws and CPU time (left out of the times around it); harness build, GPU time of the
-// shadow pass and all passes (timestamp queries read a few frames later, summed over gpuFrames).
+// The shadow map's draws and CPU time (left out of the times around it).
     std::uint64_t shadowDraws = 0;
     double shadowMs = 0.0;
-    std::uint32_t gpuFrames = 0;
-    double gpuShadowMs = 0.0, gpuFrameMs = 0.0;
 // Meshes handed over with per-vertex offsets (an animation's morph).
     std::uint64_t morphMeshes = 0, morphCorners = 0;
 };

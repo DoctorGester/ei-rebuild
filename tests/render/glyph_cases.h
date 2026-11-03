@@ -2,7 +2,7 @@
 
 // The glyph-run cases of the interface canvases (src/render/render_ui) against an independent CPU rule, for every
 // surface format, and the reference rules the other canvas checks share (tools/ui_check). Nothing here is platform
-// code: the caller has started sokol on its device and the canvas layer.
+// code: the caller has started the renderer's GPU (render/gpu.h) and the canvas layer.
 
 #include "render/render.h"
 

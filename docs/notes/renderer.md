@@ -1,8 +1,8 @@
 # Renderer
 
 The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by our renderer (`src/render/`, static library
-`ei_render` linked into ei-rebuild.exe) on **sokol_gfx** (`third_party/sokol`, zlib) over the platform's graphics backend
-(`src/platform/graphics.h`: Direct3D 11 on Windows, OpenGL 4.5 on Linux; platform.md, "Graphics").
+`ei_render` linked into ei-rebuild.exe) on **SDL3's GPU API** through its own thin layer, `src/render/gpu.h` (section
+15c): Direct3D 12 (feature level 11_0, shader model 6.0) on Windows, Vulkan on Windows and elsewhere.
 
 1. Game code that called the renderer hands its data over instead: camera and matrices, object transforms, figure
    meshes, terrain sectors, particles, textures, the interface windows' canvases, movie frames. Game code makes no
@@ -16,52 +16,12 @@ objects, sky, interface sprites and 3D previews), the flat geometry (selection m
 windows' canvases, the renderer's rectangles (rubber band, fades), the depth clears mid-frame, every pre-transformed draw
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points), the weather and the movies
 (also the players outside the frame). The escape menu's and the save game's screen copies come from its frame. The
-Direct3D 11 device is made on a thread of its own from the program's start (`render::PrepareDevice`, before WinMain)
-and taken at the renderer's first use.
+device is made on a thread of its own from the program's start (`render::PrepareDevice`, before WinMain) and taken
+at the renderer's first use.
 
-### Shader authoring
+### Shader authoring: HLSL and SDL_shadercross
 
-The shaders are GLSL 4.5 in sokol-shdc's annotated form, `src/render/shaders/*.glsl`. `shaders.glsl` includes the
-rest, and `CMakeLists.txt` compiles it at build time into one header, `<build>/shaders/shaders.h`. Every slang
-is compiled: hlsl5 for Direct3D 11 (to bytecode, so no compiler runs at start), glsl430 for Linux and metal_macos for
-the macOS port. The compiler is `EI_SHDC`. build.cmd and play.cmd default it to `E:\bin\sokol-shdc\sokol-shdc.exe`, and
-the Suites workflow sets the same.
-
-The header gives:
-- each program `<program>_shader_desc(sg_query_backend())`, which `sg_make_shader` takes at its use;
-- each uniform block a `<block>_t` struct and a `UB_<block>` slot;
-- each texture and sampler a `VIEW_` / `SMP_` slot, and each vertex input an `ATTR_<program>_<name>` slot.
-
-`render_shaders.cpp` compiles the descriptions once (`SOKOL_SHDC_IMPL`), and `render_internal.h` includes the header.
-
-Rules (sokol-shdc's, or the shaders'):
-- **Bindings.** Every block, texture and sampler has `layout(binding = n)`. On Direct3D 11 that is its register.
-  A name used by several programs keeps one binding:
-  - the rectangle's vertex block `rect_params` is 0 (`rect.glsl`'s `rect_vs`, set by `ApplyRect`);
-  - a program's own fragment block is 1;
-  - the receivers' shared blocks are `shadow_params` 2, `scene_light_params` / `mesh_light_params` 3 and
-    `point_shadow_params` 4;
-  - their maps are `shadow_map` 3, `shadow_range` 4 and `point_shadow_map` 5 (`BindShadowMap`, `BindPointShadows`).
-- **Block members.** Members are `vec4`, `ivec4`, `mat4` or arrays of them, never structs. An unsigned value goes in
-  an `int`, bit for bit.
-- **Indexing.** No variable index into a component of a uniform vector: copy the vector into a local first.
-- **Matrices.** `mat4` is `Matrix4` (`@ctype`), uploaded as it is in memory. A mat4's column k is the matrix's row k.
-- **Sample types.** A texture read with `texelFetch` / `textureGather` that is not filterable, and its sampler, are
-  named in `shaders.glsl`'s `@image_sample_type` / `@sampler_type` lines.
-- **Shared code.** Code shared between programs goes in an `@block` taken with `@include_block`. The rectangle
-  programs use `rect_vs` and the full-screen passes use `fullscreen_vs`.
-- **Device.** The Direct3D device is feature level 11_0 (shader model 5). One `texture2DMS` shader copies the depth at
-  any sample count.
-
-A new shader is its `.glsl` file, an `@include` line in `shaders.glsl`, and `<program>_shader_desc` at its use.
-The build finds the file by itself. `tools/comments.py` reads the `.glsl` comments like the C++ ones.
-
-### HLSL and SDL_shadercross
-
-The same programs are also HLSL, for the renderer's move to SDL_GPU (section 15b): `src/render/shaders/<program>.hlsl`,
-one file a program, with shared parts in `.hlsli` files. Until the switch the GLSL above is what the game draws
-with, and both sources must change together. Only `ei_shader_check` and `src/render/gpu.cpp` (section 15c, not used by
-the game yet) use the HLSL so far.
+The shaders are HLSL, `src/render/shaders/<program>.hlsl`, one file a program, with shared parts in `.hlsli` files.
 
 The build (CMakeLists.txt):
 - **Toolchain.** `tools/shader_toolchain/toolchain.cmake` fetches SDL_shadercross's sources (a pinned commit),
@@ -70,24 +30,21 @@ The build (CMakeLists.txt):
   (cache variable or environment). Its default is `build/third_party` of the main checkout, so every worktree shares
   one copy. A pin or wrapper change builds a new copy beside the old one, and a file lock lets builds that configure
   at the same time wait for each other.
-- **Compiling.** Each program's two stages are compiled to SPIR-V, MSL and, on Windows, DXIL:
-  `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The output goes to `shaders/hlsl/` in the build folder.
+- **Compiling.** Each program's two stages are compiled to SPIR-V, MSL and, on Windows, DXIL (so no compiler runs at
+  the start): `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The output goes to `shaders/hlsl/` in the
+  build folder.
 - **Reflection.** `spirv-cross --reflect` writes each stage's interface.
-- **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes three files into `shaders/` in the
-  build folder:
-  - `gpu_shaders.h`: each uniform block's struct (`MeshVsParams` and so on, Matrix4 for a matrix), and per program a
-    namespace with its index in `kPrograms` and its slots: `kBlock<Type>` (the uniform push slot),
-    `kSampler<Texture>` (the texture-sampler pair's slot) and `kAttr<Input>` (the vertex input's location). These
-    replace sokol-shdc's `UB_` / `VIEW_` / `SMP_` / `ATTR_`.
+- **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes two files into `shaders/` in the build
+  folder:
+  - `gpu_shaders.h`: each uniform block's struct (`MeshVsParams` and so on, Matrix4 for a matrix; its size asserted),
+    and per program a namespace with its index in `kPrograms` and its slots: `kBlock<Type>` (the uniform push slot),
+    `kSampler<Texture>` (the texture-sampler pair's slot) and `kAttr<Input>` (the vertex input's location).
   - `gpu_shaders.cpp`: the program table, with each stage's code in every format, its entry point and its sampler and
     block counts for `SDL_CreateGPUShader`.
-  - `gpu_shaders_sokol.h`: compile-time checks of the HLSL blocks against sokol-shdc's structs (block `T` against
-    `t_t`: size, members, offsets, types) and of the inputs against `ATTR_<program>_in_<name>`.
 - **The check.** `ei_shader_check` (tools/shader_check; build_checks.py on Windows, ctest `port_shaders` on Linux)
-  compares each program's blocks, textures and inputs per stage with sokol-shdc's description. Then it makes every
-  program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and Vulkan on
-  Windows, on Vulkan on Linux (lavapipe without a GPU). A driver without a device is skipped; with `--require`, as
-  ctest runs it, that fails.
+  makes every program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and
+  Vulkan on Windows, on Vulkan on Linux (lavapipe without a GPU). A driver without a device is skipped; with
+  `--require`, as ctest runs it, that fails.
 
 Rules (SDL_GPU's, or the generator's):
 - **Spaces.** Through `bindings.hlsli`'s macros:
@@ -100,19 +57,20 @@ Rules (SDL_GPU's, or the generator's):
 - **Inputs and outputs.** Each varying is `[[vk::location(n)]] ... : TEXCOORDn`: the location for SPIR-V, the
   semantic for DXIL.
 - **Blocks.** `ConstantBuffer<T>`, whose members are `float4`, `int4` or arrays of them, and `row_major float4x4`. The
-  matrix's register k is the Matrix4's row k, as `m[k]` reads it. An unsigned value goes in an `int` (`asuint`
-  reads it back), as in the GLSL.
-- **Names.** A block's type is the GLSL block's name in CamelCase (`mesh_vs_params` is `MeshVsParams`). Its members
-  are named as in the GLSL. A vertex input is the GLSL's without `in_`.
+  matrix's register k is the Matrix4's row k, as `m[k]` reads it; a Matrix4 is uploaded as it is in memory. An
+  unsigned value goes in an `int` (`asuint` reads it back). No variable index into a component of a block's vector:
+  copy the vector into a local first.
+- **Names.** A block's type is its HLSL struct's name (`MeshVsParams`), its members named as there.
 - **Shared parts.** `rect_vs.hlsli` and `fullscreen.hlsli` are the two vertex stages most programs share. The
   receivers' `shadow_receiver.hlsli`, `point_shadow.hlsli` and `scene_lighting.hlsli` take their slots from the
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
 - **The depth copy.** The programs that write the depth (`mesh`, `terrain`, `solid`, `into_multisampled`) also
-  output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`; the GLSL's `frag_depth`). Only a
+  output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`). Only a
   multisampled pass's pipelines have that target (the smooth option); with one target it is dropped. The check's
   `kDraws` marks those draws `depthCopy`, and a second output must be one float.
 
 A new program is its `.hlsl` file, which the build finds by itself, and a line in the check's `kDraws`.
+`tools/comments.py` reads the `.hlsl` / `.hlsli` comments like the C++ ones.
 
 ## 1. No fallbacks
 
@@ -124,17 +82,14 @@ presents it through its own swap chain on the game window (section 9); captures 
 `render::detail::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
 error box (`app::ShowMessageBox`; the harness ends the run on it) and exits with -1, also with Rebirth's
 DisableExitOnCrashReport. The cases:
-- no device at the start (the first use): "Can't start the renderer: no Direct3D 11 device (...)" or "...: sokol_gfx
-  could not be set up on the Direct3D 11 device.";
-- a shader or pipeline the start makes: "Can't start the renderer: the terrain shader / the mesh shader / the blit
-  pipeline could not be made.";
-- a sokol panic (SokolLog, level 0; sokol would abort after it): "The renderer stopped: sokol_gfx panic <item>
-  (<message>).";
-- a lost device ("No device-loss recovery", section 9): "The graphics device was lost (<reason>); the game will
-  close.", the reason `platform::graphics::Lost()`'s (on Direct3D 11 the loss's name and code, e.g.
-  "DXGI_ERROR_DEVICE_HUNG, 887A0006");
-- no swap chain on a working device (render_window.cpp `NoChain`): "The renderer cannot present on the game window:
-  ...". A swap chain that fails on a lost device ends the game with the lost device's message instead.
+- no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan
+  device: "no Direct3D 12 or Vulkan device (...)");
+- a pipeline or texture the start makes: "Can't start the renderer: the terrain pipeline / the mesh pipeline / the
+  blit pipeline / the white texture could not be made.";
+- a pass that cannot begin: "The renderer cannot draw the frame." (the shadow map's and the point shadows' passes name
+  themselves);
+- no swap chain, or a swap chain texture SDL refuses (render_window.cpp): "The renderer cannot present on the game
+  window: <gpu::Error()>." A lost device ends the game here ("No device-loss recovery", section 9).
 
 A draw the renderer does not take is lost, not drawn another way: `render::MeshPass`, `TlDraw` and `ScreenDraw` return
 nothing, and render_mesh.cpp's `Refuse` logs each reason the first time ("render: <reason>; the draw is lost": a mesh or
@@ -166,8 +121,8 @@ capture) draws them with depth; the swap chain's present shows it (section 9). P
 unless kept on the GPU (section 13); textures and canvases are kept per holder.
 
 Conventions taken over: Direct3D clip space (the game's projection already produces it), Direct3D 7 pixel centres (3D
-draws shift their clip positions by half a pixel, `Frame::pixelShift`, because sokol truncates its float viewport to
-whole pixels; a clip -0.5..0.5 square covers pixels 16..47 of 64, a screen-pixel mesh from 8 to 24 covers 8..23),
+draws shift their clip positions by half a pixel, `Frame::pixelShift`, because the viewport is kept in whole pixels
+(gpu.h's `SetViewport` takes a `Rect`); a clip -0.5..0.5 square covers pixels 16..47 of 64, a screen-pixel mesh from 8 to 24 covers 8..23),
 D3DCOLOR vertex colours (B, G, R, A bytes), vertex fog in the specular alpha (255 = no fog), specular added after
 texturing. Textures have the .mmp file's own mip levels and no others (section 7).
 
@@ -314,7 +269,7 @@ overflowed from level 6 of a 1024 x 1024 DXT1 and level 5 of a 2048 x 2048 DXT3 
 strips); ours does not. A DXT level under 4 x 4 gets only those bytes (the start of its block) and zeros for the rest of
 the block it is uploaded as. A DXT texture is a BC1 (DXT1), BC2 (DXT2 / DXT3) or BC3 (DXT4 / DXT5) image of the file's
 blocks (`BlockFormat`, `ReadMmp`); there is no CPU DXT decoder. Every texture, DXT or RGB, has the file's levels only:
-Direct3D 11 cannot box-filter a block-compressed level, and the original's texture had those levels too (1035 of the
+no GPU API makes a block-compressed level from the one above, and the original's texture had those levels too (1035 of the
 installs' 1792 DXT files stop early, 229 at level 0: the menus' backdrops, tree03, the decals). A DXT top level must be a
 multiple of 4 wide and high: every DXT file is, at the levels the texture quality option starts at (0..2). The cursor's
 pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). The decoded textures do not keep the
@@ -333,7 +288,7 @@ alpha, rows from the top; "PNT3" files are packed: groups of four pixels, where 
 not 0 that word instead counts target bytes left as they are. The renderer decodes an image to RGBA8 for the draw
 (`DecodeComposeImage`), and draws into a texture of the full size with every level the texture
 uses (`ComposeShape`): cleared to transparent black, each image a rectangle drawn texel for texel
-(texture_compose.glsl) with premultiplied blending (ONE, INV_SRC_ALPHA, alpha too), then the levels below, each drawn
+(texture_compose.hlsl) with premultiplied blending (ONE, INV_SRC_ALPHA, alpha too), then the levels below, each drawn
 from the one above (`texture_mip`: the mean of four texels). A pass may not read the image it draws into, so a level is
 drawn into a scratch image of half the size and copied from there. The texture's view starts at level `mip` (the texture
 quality option), so its size is `size >> mip`. The work runs at once from the game's load (not inside a frame pass). The
@@ -350,9 +305,9 @@ pixels right after the header (the extra block not skipped, as the original read
   and writes shot.sav from it, so the file's bytes are as before.
 - The global map's clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each
   of a frame's four layers (`render::CloudFrame`: the game's random numbers are drawn as before), and `render::DrawClouds`
-  each frame draws the 4:4:4:4 texture from two frames, the blend and the 256-entry alpha ramp (texture_clouds.glsl:
+  each frame draws the 4:4:4:4 texture from two frames, the blend and the 256-entry alpha ramp (texture_clouds.hlsl:
   white, alpha ramp[(to x blend + from x (256 - blend)) >> 8], 8-bit alpha). A frame's 256 x 256 grey levels are built
-  once by the GPU from its words (`texture_clouds_frame_fs`, into an R8UI texture, at most 4 kept): the layers' hash, the
+  once by the GPU from its words (`texture_clouds_frame.hlsl`, into an R8 texture, at most 4 kept): the layers' hash, the
   3 x 3 smoothing in the cells' order, the octaves' bilinear sums and the byte store, integer for integer as the CPU code
   did.
 
@@ -371,12 +326,11 @@ The harness's input steps are not posted inside a movie (the harness empties mov
 render_movie_present (PlayMovie("crdtfin.bik") after a new game); the loading movie runs in every new game
 (render_cursor_present: the cursor hidden there).
 
-Images kept across frames (`render_blit.cpp`): a movie keeps one dynamic image per player, updated with `sg_update_image`
-in place unless it was already blitted or updated in this frame (sokol allows one update per image and frame, and the
-blits are drawn at the end of the frame; then a new one replaces it after the present). `render::Fill` is a solid
-rectangle command drawn with the depth clear's shader (`solid.glsl`) through a pipeline that writes the colour only.
-Every read-back of a texture (the frame, the canvases, the composed levels, the harness build's checks) goes through
-`platform::graphics::Readback`. Harness build: counts per purpose in ei-rebuild.log (`render: images ...`), and in-place
+Images kept across frames (`render_blit.cpp`): a movie keeps one texture per player, written whole (`Discard`) in
+place unless it was already blitted in this frame (the blits are drawn at the end of the frame; then a new one replaces
+it, the old one released after the present). `render::Fill` is a solid rectangle command drawn with the depth clear's
+program (`solid.hlsl`) through a pipeline that writes the colour only. Every read-back of a texture (the frame, the
+canvases, the composed levels, the harness build's checks) is a gpu.h download (`Download`, `Wait`, `Read`). Harness build: counts per purpose in ei-rebuild.log (`render: images ...`), and in-place
 uploads are read back and compared with the pixels written (`render: MISMATCH`; sampled: the first 64 of each kind, then
 every 16th, all with `checkall`).
 
@@ -396,17 +350,17 @@ stand-in for any of them:
 - No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which the renderer draws with), the
   frame clear is the renderer's (its colour is the scene renderer's `fogColour`).
-- The present ends the frame (`render::Present`): `EndFrame` draws the frame into a flip-model swap chain (FLIP_DISCARD,
-  BGRA8, two buffers, no Alt+Enter / window changes by DXGI) on the game window, sized to its client area (resized when
-  it changes), the frame stretched over it. The movie players and the loading screen present through it too.
+- The present ends the frame (`render::Present`): `EndFrame` draws the frame into the swap chain's texture on the game
+  window (gpu.h's `ClaimWindow` / `AcquireSwapchain`: SDL_GPU's chain in its 8-bit SDR format, at the window's pixel
+  size each frame), the frame stretched over it, and `Submit` presents it. The movie players and the loading screen
+  present through it too.
 - **The window** (`src/render/render_window.cpp`): the frame is drawn by a full-screen triangle (shader "ei-present") into
   the client area with its aspect kept, centred, black bars (`render::FrameInWindow`, `WindowToFrame`, `FrameToWindow`).
-  A failed resize (other than a lost device) makes the swap chain again once.
 - **Gamma** as a shader step: `SetGamma` (`renderer_marker.cpp`) keeps the three values, builds the ramp (full scale 65280)
   and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the present shader reads per channel. The ramp applies
-  only to what is presented, not to the frame (captures, ReadFrame). Harness build: after a ramp change the presented
-  back buffer is read back at a 17x17 grid and compared with the frame through the ramp ("render: gamma ramp check";
-  sampled like the uploads).
+  only to what is presented, not to the frame (captures, ReadFrame). Harness build: after a ramp change the present is
+  drawn into a texture of the swap chain's size and format too (the swap chain's own is never read back), read back at
+  a 17x17 grid and compared with the frame through the ramp ("render: gamma ramp check"; sampled like the uploads).
 - **Full screen** (FullScreen 1) without a display mode change (`present_window.cpp`, from each present): a borderless
   window over the monitor it is on (not while minimised; again after someone else resized it), the frame scaled into it;
   a resolution below the desktop's shows in the window. Full screen keeps the settings' resolution; no run may switch
@@ -418,7 +372,7 @@ stand-in for any of them:
   go to the frame's nearest pixel and presses there are ignored ("Resolution changes").
 - **Focus loss and return** (Alt+Tab, minimise): the game's own path (app.cpp OnActivate): inactive deactivates the
   cursor, the mouse, the sound and the network; the window stays as it is; active resumes them. Minimised the client area
-  is empty and nothing is presented; on return the swap chain is resized. DXGI_STATUS_OCCLUDED counts as success.
+  is empty: the swap chain gives no texture and nothing is presented.
 - Harness steps: `fullscreen 0|1`, `focus off|on`, `windowsize <w> <h>`, `waitpresent <seconds> [gamma]` (a frame
   presented on the game window; with gamma, checked against a ramp that is not the identity). Scenarios
   render_present_window (windowed 800x600: the gamma slider held, the ramp checked; resized to 1600x900, the options
@@ -427,12 +381,9 @@ stand-in for any of them:
 
 ### No device-loss recovery
 
-A lost device ends the game. `platform::graphics::Lost()` is asked at the end of every presented frame and when the
-window's drawable cannot be had (`render::detail::CheckDevice`). On Direct3D 11 a loss is Present or ResizeBuffers
-reporting DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG / DRIVER_INTERNAL_ERROR, or `GetDeviceRemovedReason` failing; OpenGL
-looks for none (it would need a robust context). A loss is a fatal error (section 1, "When the renderer fails").
-Why no recovery (user): Direct3D 11 loses its device only on a driver update or reset, a TDR or a GPU switch, rare for a
-player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
+A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as a swap chain texture SDL
+refuses (render_window.cpp), a fatal error (section 1, "When the renderer fails"). Why no recovery (user): a device is
+lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
 texture to keep its file's bytes, composed textures their recipes and canvases their command histories, and runtime
 backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private
 bytes on zone1.
@@ -602,11 +553,9 @@ with its own level.
   the pixel centre (as without multisampling); an edge pixel the mean over its samples of each one's surface depth at
   the centre. Only draws after the world that test the depth see it. Chosen over drawing the world's depth again
   without multisampling (twice the world's draw calls) and over drawing the interface multisampled (its edges half
-  covered). The GL backend (Linux) blends the copy with the colour's blend state (sokol has one blend state for all of a
-  pipeline's attachments): a blended draw that writes the depth stores a blended depth there.
-- Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): sokol's
-  validation skips a draw whose pipeline's count differs. A change of the sample count remakes the targets at a frame's
-  first pass.
+  covered). The copy's target is never blended (`PipelineDesc::second`), so a blended draw stores its own depth there.
+- Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): a pipeline's
+  count must match its pass's targets. A change of the sample count remakes the targets at a frame's first pass.
 - Check (scenario `render_smooth`, vanilla and Rebirth): in zone1 at one frozen moment the frame with msaa 8 and
   anisotropy 16, with both 1 (`plain`) and with them again: the two with them match; `smoothcheck plain smooth 0.002 0.2`
   requires the levels drawn and the frames to differ in 0.2% .. 20% of the pixels; the quick save's picture matches the
@@ -680,7 +629,7 @@ Figure animation stays on the CPU: creatures animate by their bones (each part's
 per-vertex morph is almost unused, and its result is read by game code (projection for picking).
 
 **3. Terrain pages kept on the GPU** (`render_terrain.cpp`). Each sector page is built once, all four quarters, into a
-pool of buffers written in place, only the changed ranges (`platform::graphics::UpdateBuffer`): positions, texture
+pool of buffers written in place, only the changed ranges (gpu.h's `Write` with `Keep`): positions, texture
 coordinates and normals in one stream, the lit colours in another, and absolute indices. A frame keeps the visible
 quarters of each page handed over (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is
 built again when its tile lists, records or animated tiles moved or the game rebuilt the sector
@@ -717,7 +666,7 @@ casters out of view come from the outside walk (item 10).
 colours (draw flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking, section 3) and hand
 every pass to the renderer. Not made: pre-transformed vertices, the fog, the z scale, the CPU clip of a crossing mesh.
 
-**9. GPU lighting** (`render_lighting.cpp`, `shaders/scene_lighting.glsl`, `render_terrain.cpp`, `shaders/mesh.glsl`).
+**9. GPU lighting** (`render_lighting.cpp`, `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`).
 The light objects stay the game's (the sun, its colour and the ambient, the torches and point lights with their positions,
 colours and ranges); what they light is done per pixel.
 - **The ground.** The world's draw hands over the frame's light (`render::SceneLighting`: the sun, the ambient, the
@@ -733,7 +682,7 @@ colours and ranges); what they light is done per pixel.
 - **The figures.** The part draw (`figure_part_draw.cpp`) hands over `render::MeshLighting`: the model matrix (the world
   stack's top with the scene's camera taken off), the sun, the ambient colour (`AmbientColour`), the material's colours
   times the objects' lighting coefficient, the draw's lights in reach, with the part's normals and corner words;
-  `mesh.glsl`'s `figure_light` lights each pixel as 3DfpFPU's LightMesh lit each vertex (below). The colour arrays hold
+  `mesh.hlsl`'s `figure_light` lights each pixel as 3DfpFPU's LightMesh lit each vertex (below). The colour arrays hold
   white with the material's alpha (`Material::GpuLitColour`).
 - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light with the sun
   hidden (the ambient plus the material's own) and the sunlit light x (1 - hidden x strength x the normal's turn towards
@@ -750,7 +699,7 @@ colours and ranges); what they light is done per pixel.
   N.L alone. Lost: two intertwined units do not shadow each other. Static objects keep the face-normal rule.
 - **What stays on the CPU**: the blood prints' levels (saved), the sky's lighting (`SkyObject::Light`, small), the
   terrain's edge fade (also read by the figures' draws and the ground prints).
-- **Point-light shadows** (`render_point_shadows.cpp`, `shaders/point_shadow.glsl`). Once a frame (PreparePointShadows,
+- **Point-light shadows** (`render_point_shadows.cpp`, `shaders/point_shadow.hlsli`). Once a frame (PreparePointShadows,
   from PrepareShadows, counted as the shadow map's) the kept scene lights (`SceneLighting`'s nearest 16) whose reach is in
   the camera's view and that may cast (`ScenePointLight::shadows`) are taken strongest first (brightest channel x range), at
   most `kMostPointShadows` (4); each one that some caster reaches gets a cube of six 512 x 512 D32 faces (perspective, 90
@@ -788,12 +737,12 @@ every second vertex inside them, tested against the planes it crosses only. The 
 each; alpha-tested or blended passes cut out by stage 0's alpha read from the texture's level 0: a smaller level seen
 from the sun at a grazing angle averages fronds away) go into it in a depth-only pass. Receivers: the ground pages (not
 water: the ground under it) and the world's model meshes after the ground (not the sky, the flat geometry or additive
-passes) sample it (`shaders/shadow_receiver.glsl`) and darken by up to half (the old decal's alpha 0x80) before fog. The
+passes) sample it (`shaders/shadow_receiver.hlsli`) and darken by up to half (the old decal's alpha 0x80) before fog. The
 map is the only shadow look.
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
-  make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.glsl`: nearest and farthest texel;
-  `shadow_dilate.glsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
-  nearest; one 256 x 256 RGBA32F image). Details: "shaders/shadow_receiver.glsl" below. Radius = the mean blocker
+  make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
+  `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
+  nearest; one 256 x 256 RGBA32F image). Details: "shaders/shadow_receiver.hlsli" below. Radius = the mean blocker
   distance x `kSunSize` (0.01, about twice the real sun's angular radius), 1.5 texels to `kWidestRadius` (0.6 units); 8
   (under 4 texels) or 16 bilinear comparisons on a Vogel disc, turned per pixel by interleaved gradient noise. First
   tuned on the town gate at 0.025 (its edge about 125 px at 4K), which blurred a tree's crown, 8-12 units above the
@@ -829,7 +778,8 @@ map is the only shadow look.
   render_shadows_shimmer (the user's save in tests/saves/shadow_corrupt).
 - **The casters' draws** (both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the light x
   model matrix, the texture offsets, the alpha cut) goes into an instance-rate vertex buffer, read at the draw's first
-  instance (`sg_draw_ex`; D3D11's SV_InstanceID leaves the first instance out, an instance-step attribute does not), so a
+  instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
+  attribute does not), so a
   draw applies no uniforms. The draws are sorted by what they bind, and the pipeline and bindings are applied only when
   these change: a depth-only map with LESS_EQUAL keeps the nearest depth whatever the order. The sun map's GPU span in a
   crowd is mostly a wait at one point of the command stream, not its draws (the main thread is the frame's limit).
@@ -847,10 +797,7 @@ map is the only shadow look.
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
 camera at its default and tilted low, noon and night, the town at night with a crowd of 12 fighting. Findings: the main
 thread is the limit (wall time equals CPU time; no GPU waits); shadow work is the largest share of the renderer's CPU
-(the fit, the walk of outside casters, the passes' submission, point shadows); shadow draws are 50-65% of all draws. The
-canvases' GPU time at the frame's start (a fill and six glyph runs a frame on the battle screen, about 0.055 ms) shows
-larger in means because other GPU work (another process, the desktop's composition) lands between their timestamps:
-read such a pass by its median.
+(the fit, the walk of outside casters, the passes' submission, point shadows); shadow draws are 50-65% of all draws.
 
 ### Loose .bmp textures
 
@@ -933,36 +880,26 @@ scaled to 800x600): the same counts turn the camera faster at a lower resolution
   ```
   FPS 144   FRAME 6.96 MS   WORST 9.13
   GPU 2.10 MS   WORST 2.60
-    SHADOW 0.31 (SUN 0.25  POINT 0.06)
-    WORLD 1.20 (TERRAIN 0.50  OBJECTS 0.40  OTHER 0.30)
-    UI 0.40   PRESENT 0.19
   CPU SUBMIT 1.10 MS   SHADOW 0.12
   DRAWS WORLD 370   SUN 120   POINT 80   UI 25
   ```
-  `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the frame's draws and
-  the present (worst too), split by pass (`perf::Pass`): `SUN` the sun's shadow map with its two range passes (and the
-  shadows' preparation), `POINT` the point lights' faces, `TERRAIN` the ground and water pages, `OBJECTS` the models that
-  cast shadows, `OTHER` the rest of the world view (the models that cast none, effects, flat decals, pre-transformed draws,
-  depth clears, the uploads, the passes' clears, copies into the multisampled target and its resolve), `UI` the interface
-  (with the canvases' queued drawing at the frame's start) and `PRESENT` (the window's pass: the frame through the gamma
-  ramp, the overlay); `SHADOW` and `WORLD` are their parts' sums. `CPU SUBMIT` the main thread's time in EndFrame's draws up
-  to the present, and of it `SHADOW` the shadow map's fitting and pass; `DRAWS` the frame's draws by pass. `GPU -` until
-  timestamps come back (or when the device has none).
-- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.glsl`): `BeginGpuFrame` at the first DrawPending begins the frame
-  in UI, `Enter(pass)` marks each change, `EndGpuFrame` after DrawToWindow. Each change is a timestamp (at most 64 a frame;
-  past them the last stamped pass takes the rest), the time between two stamps the first one's pass, so the passes add up
-  to the total exactly. A disjoint query around them; five sets in flight, read without flushing when a later frame begins
-  (never waiting). A stamp is written when the GPU reaches it, so a pass's time is the GPU's time between its stamps, idle
-  included: while the main thread is the limit the GPU waits for commands at some place of the frame and that pass shows
-  the wait. Other GPU work lands mostly in the UI pass at the frame's start (section 13, item 12). The text is a built-in
-  5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image, uploaded when the text changed, and drawn as one
-  quad by whole-pixel scale (`Scale`: one per 540 rows of the game image) over a 60% black box, in the present's pass after
-  the frame.
+  `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the whole frame's GPU
+  time (one submission's work, the present's pass with it; the worst too: section 15c, "The frame's GPU time"). `CPU
+  SUBMIT` the main thread's time in EndFrame's draws up to the present, and of it `SHADOW` the shadow map's fitting and
+  pass; `DRAWS` the frame's draws by pass (`perf::Pass`: the sun's map with its range passes, the point lights' faces,
+  the world view, the interface). `GPU -` until a frame's time comes back.
+- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): `BeginDraws` at the first DrawPending begins the frame
+  in UI, `Enter(pass)` marks each change of pass for the draw counts, `EndDraws` after DrawToWindow; `FrameDone` at the
+  present takes the latest `gpu::FrameGpuTime` (the frame timing is on while the overlay is). The text is a built-in
+  5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 texture, written before the present's pass when the
+  text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540 rows of the game image) over a 60%
+  black box, in the present's pass after the frame.
 - **Never in the frame target**: captures, frame checks, the screenshot, the movie recorder and the escape menu's / save
   game's pictures read the frame target, which never holds it.
-- **Check**: `ei_perf_check` (tools/perf_check, a build check) on a WARP device: the lines of known numbers, the font, the
-  image's pixels; the overlay over a cleared target at 720 and 2160 rows against the image scaled up; 40 frames through
-  every pass (the GPU times come back, the passes add up to the total).
+- **Check**: `ei_perf_check` (tools/perf_check, a build check) on gpu.h's device (hardware Direct3D 12): the lines of
+  known numbers, the font, the image's pixels; the overlay over a cleared BGRA8 target at 720 and 2160 rows against the
+  image scaled up; frames through every pass (each pass's draws, the CPU times and the whole frame's GPU time come
+  back).
 
 ## 15a. The vertical blank switch
 
@@ -971,39 +908,24 @@ scaled to 800x600): the same counts turn the camera faster at a lower resolution
   [renderer]
   VSync = false
   ```
-  On when absent or true (sync interval 1); false turns it off. Read once the renderer starts (`VsyncSetting`,
+  On when absent or true (`PresentMode::Vsync`); false turns it off. Read once the renderer starts (`VsyncSetting`,
   device_mesh.cpp, before the first present) into `render::SetVsync`. **Never in a harness run**:
   `render::VsyncSwitchSupported()` is false in the harness build; the harness's own `SetWaitForVsync(false)` under the
-  virtual clock stays interval 0 without tearing flags.
-- **Off**: sync interval 0. Where the system supports tearing (`TearingSupported` in graphics_d3d11.cpp, asked of the
-  factory at each chain creation) the flip-model chain is made with `DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING` and every present
-  carries `DXGI_PRESENT_ALLOW_TEARING`: without it a windowed flip-model chain stays composed and capped at the display's
-  rate even at interval 0. Without support: interval 0 and no flags. `ResizeBuffers` takes the flags the chain was made
-  with, and Present's flag follows them. The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor`
-  (graphics_d3d11.h).
+  virtual clock presents in `Mailbox` (no wait, no tearing).
+- **Off**: `PresentMode::Immediate` (no wait; may tear), which gpu.h's `SetPresentMode` turns into `Mailbox` where the
+  swap chain has no immediate mode, and `Mailbox` into `Vsync` where it has neither (render_window.cpp logs the mode it
+  got: "render: presenting on the game window through the <driver> swap chain, <mode>").
 - **Nothing else relies on vsync pacing**: game time is the world updates (section 3); an unlocked game runs the main
   thread flat out, which is the point of the switch.
-- **Check**: `ei_perf_check`'s `vsync` part: the rules for every combination, and on a hidden window's flip-model chain on
-  the WARP device: the flags it reports, `ResizeBuffers` with them, a `Present` with the switch's interval and flags.
+- **Check**: `ei_gpu_check` presents four frames in each mode, with the fallbacks (section 15c).
 
-## 15b. SDL_GPU (the spike)
+## 15b. SDL_GPU's limits
 
-The renderer is meant to move from sokol_gfx to SDL3's GPU API, which picks Direct3D 12, Vulkan or Metal when it
-makes the device and can read textures back. Its shaders would be HLSL compiled by SDL_shadercross. The spike in
-`tools/gpu_spike` (README there, CMake option `EI_GPU_SPIKE`, off in every build.cmd build) draws recorded game
-frames both ways.
+The renderer draws with SDL3's GPU API (R43e; sokol_gfx on Direct3D 11 and OpenGL before it). The spike that compared
+the two (build/reviews/r43_sdl_gpu.md) found the same pixels and close frame times, the device about 150 ms slower to
+make (made in the background from the program's start, `render::PrepareDevice`).
 
-What it found:
-- Both APIs draw the same pixels.
-- The frame times are close.
-- SDL_GPU's device costs about 150 ms more at start.
-- Its full-frame readback is somewhat slower than sokol's, but it is general: any texture, any time.
-
-The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md; the layer the port draws with is section 15c. The shaders' HLSL and its toolchain are in the
-main build now ("HLSL and SDL_shadercross" above, with the binding rules the spike found). The spike's own copies
-of the world's seven programs stay in `tools/gpu_spike/shaders`, with its hand-made `kBindings`, until it is deleted.
-
-Rules the spike found:
+Rules it found:
 - **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
   slot number. The renderer's pipelines do this: the casters' instances are slot 1, `kInstanceBuffer`.
 - **What SDL_GPU lacks:**
@@ -1011,14 +933,13 @@ Rules the spike found:
   - linear filtering of RGBA32F on every Vulkan device (the receivers read the shadow range with four loads and a lerp);
   - D24S8 on AMD Vulkan and Metal (the renderer's depth is D32F everywhere, `kDepthFormat`, and it has no stencil);
   - sampling a multisampled texture, and depth resolve (the smooth option keeps an R32F depth copy instead);
-  - timestamp queries (GpuTimer);
-  - a WARP device.
+  - timestamp queries (the overlay's GPU time is the whole frame's, from the submissions' fences);
+  - a software device on Windows (the offline checks run on the GPU; Linux's on lavapipe).
 
 ## 15c. gpu.h: the renderer's layer on SDL_GPU
 
-`src/render/gpu.{h,cpp}` (namespace `render::gpu`) is what the renderer's files are to draw with once they leave
-sokol: plain C++, no SDL type but forward-declared handles, so the files include no SDL header. Nothing in the game
-uses it yet; `ei_gpu_check` checks it.
+`src/render/gpu.{h,cpp}` (namespace `render::gpu`) is what the renderer's files draw with: plain C++, no SDL type but
+forward-declared handles, so the files include no SDL header. `ei_gpu_check` checks it.
 
 **Shape.**
 - **Device.** `PrepareInBackground` (SDL's video started on the calling thread, then the device made on a thread of its
@@ -1028,9 +949,10 @@ uses it yet; `ei_gpu_check` checks it.
   No device loss is reported (section 9).
 - **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
   `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
-  are done (SDL's), so the sokol renderer's retire lists (`RetireBuffers`, `RetireFrameImages`, the replaced images)
-  are not needed. Release after `Stop` does nothing (globals destroyed at exit).
-- **Formats**: RGBA8, BGRA8 (the swap chain), R8, R8 / R16 uint, RGBA32F, BC1-3, D32F. No stencil. An integer
+  are done (SDL's). A handle released and then bound is not: a file that replaces a buffer or texture binds the new
+  one (`StreamBuffer::Append` may replace its buffer, so an offset holds only until the next append). Release after
+  `Stop` does nothing (globals destroyed at exit).
+- **Formats**: RGBA8, BGRA8 (the swap chain), R8, R8 / R16 uint, R32F, RGBA32F, BC1-3, D32F. No stencil. An integer
   texture is never sampled (SDL_GPU's rule; refused). Direct3D 12 copies a compressed texture's region only in whole
   4x4 blocks, also on a level smaller than one, and Vulkan only at the level's own size there: gpu.cpp rounds the
   copy's extent up on Direct3D 12 alone.
@@ -1038,22 +960,24 @@ uses it yet; `ei_gpu_check` checks it.
   description gives the same object, made at its first use and kept until `Stop`, so callers keep no maps of their own
   beyond a cheap key if they want one. A `PipelineDesc` is the program, the vertex buffers (0..n-1, no gaps: SDL's
   Direct3D 12 backend looks a layout up by its index) and attributes, primitive, cull and winding, colour format, write
-  mask and blend, depth format, compare, write and bias, and the sample count.
+  mask and blend, a second colour target's format and mask (never blended), depth format, compare, write and bias, and
+  the sample count. A sampler's `maxLod` 0 samples level 0 only (D3DTFP_NONE, the options' Mipmapping 0), as the
+  original did.
 - **One command buffer per frame**, taken at the first command; `Submit` sends it and presents the swap chain's
   texture if one was taken. A burst of writes (64 MB in one command buffer, a load) submits early unless the swap
   chain's texture was taken.
-- **Passes**: `BeginPass` (one colour target with a level, load Keep / Clear / DontCare, store, a resolve target;
-  a depth target) .. `EndPass`. A target cleared or not cared about is cycled (a free copy of it takes the pass while
+- **Passes**: `BeginPass` (a colour target with a level, load Keep / Clear / DontCare, store, a resolve target; a
+  second colour target, resolved with the first; a depth target) .. `EndPass`. A target cleared or not cared about is cycled (a free copy of it takes the pass while
   the GPU still reads the old one). Viewport and scissor in target pixels from the top-left on every driver. Bindings
   (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
-  `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (the spike's
-  replay bound everything for every draw). `Draw`, `DrawIndexed` (with a first instance).
+  `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again.
+  `Draw`, `DrawIndexed` (with a first instance).
 - **Writes** (`Write` of a buffer range or a texture region, `Copy` of a texture region) go between passes, never
   inside one (refused and logged). The bytes are copied into the upload ring at once; the copies wait and are recorded
   in one copy pass before the next pass, download wait or submission, so they are in order with the draws: a draw
   before a write reads what it replaces. `Contents::Discard`: nothing else of the buffer or texture is read by later
-  commands, so the write may go into a fresh copy (a stream written from its start again: the sokol renderer's
-  `StreamBuffer` appends; `Keep` for `GpuPool`'s writes in place).
+  commands, so the write may go into a fresh copy (a stream written from its start again, `StreamBuffer`'s first
+  append of a frame; `Keep` for its later appends and `GpuPool`'s writes in place).
 - **The upload ring** is one 16 MB transfer buffer filled from its start each command buffer. It is mapped while writes
   go into it, unmapped when the waiting copies are recorded (SDL wants it so), and mapped again without cycling to go
   on after them. A new command buffer or a full ring maps it cycling (SDL gives a free copy while the GPU reads the
@@ -1075,39 +999,6 @@ uses it yet; `ei_gpu_check` checks it.
   `FrameGpuTime` gives the latest. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
   submit lock while it waits, so a waiting thread would stall the main thread's submissions.
 - `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses.
-
-**Porting the renderer (R43e).**
-
-| sokol / graphics.h | gpu.h |
-|---|---|
-| `sg_setup`, `graphics::Start` / `PrepareInBackground` / `Stop` / `Error` | `Start`, `PrepareInBackground`, `Stop`, `Error` |
-| `graphics::MaxSamples` | `MaxSamples(Rgba8, Depth32Float, kSmoothSamples)`, at most that of the depth copy's R32F (a `Format` to add) |
-| `graphics::Lost` / `CheckDevice` | nothing |
-| `sg_make_image` with data, `sg_update_image` | `MakeTexture`, then `Write` per level (`Discard` for a whole one-level rewrite) |
-| `sg_make_view` (texture, attachment) | none: the texture itself; a level is the pass target's `level`; a view from level k on is a sampler with `minLod` k |
-| `sg_make_sampler`, the files' sampler maps | `MakeSampler` (kept by description) |
-| `sg_make_shader` | none (shaders come with the pipeline's program) |
-| `sg_make_pipeline`, the files' pipeline maps | `MakePipeline` |
-| `sg_make_buffer`, `sg_append_buffer` (`StreamBuffer`) | `MakeBuffer`, `Write(..., used == 0 ? Discard : Keep)` at the frame's offset |
-| `graphics::UpdateBuffer` (`GpuPool`) | `Write(..., Keep)` |
-| `sg_begin_pass` / `sg_end_pass`, `graphics::BeginDrawable` / `EndDrawable` | `BeginPass` / `EndPass`, `AcquireSwapchain` / `Submit` |
-| `graphics::ApplyViewport` / `ApplyScissorRect` | `SetViewport` / `SetScissor` |
-| `sg_apply_pipeline` / `_bindings` / `_uniforms`, `sg_draw` / `_ex` | `ApplyPipeline`, `BindVertexBuffers` / `BindIndexBuffer` / `BindTextures`, `PushUniforms`, `Draw` / `DrawIndexed` |
-| `sg_commit` | `Submit` |
-| `graphics::Readback` (`Read`, `Row`, `Unmap`, `Release`) | `Download`, `Wait`, `Read` (`Texels::Row`), `Release`; or `Done` a frame later |
-| `graphics::GpuTimer` | `SetFrameTiming`, `FrameGpuTime` |
-| `PresentMode` (vsync, tearing) | `SetPresentMode(Vsync / Immediate / Mailbox)` |
-
-What the port has to change besides the calls:
-- The game's window to the device: `ClaimWindow` takes the platform layer's `SDL_Window` (a small accessor in
-  `src/platform/sdl` and the harness's platform).
-- Writes inside a pass: none may stay (`render_perf`'s text image and the gamma ramp are written before their pass).
-- The gamma ramp check (`CheckRamp`) reads the drawable back, which SDL_GPU cannot: it needs the present drawn into a
-  texture of its own in the harness build, or a check of the ramp on the frame target.
-- A multisampled pass's second target (the depth copy, R32F) resolves with the colour: two resolve targets per pass.
-- Index buffers are 32-bit only; `sg_draw` with an index buffer bound becomes `DrawIndexed`.
-- Integer textures cannot be sampled: the clouds' R8UI frame, which `texture_clouds` reads, becomes R8 (read back
-  exactly as round(v * 255)) or a storage texture; `ui_rgb565`'s R16UI target is only drawn into and downloaded.
 
 **Check**: `ei_gpu_check` (tools/gpu_check; build_checks.py on Windows, ctest `port_gpu --require` on Linux), per driver
 (Direct3D 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), in a few seconds:
@@ -1169,8 +1060,8 @@ and uploaded again is what the game says changed:
 ### render_point_shadows.cpp: point-light shadows
 
 Section 13, item 9: the few strongest point lights in view get a cube of six depth faces each, drawn from the sun map's
-casters, and the receivers lit on the GPU take each such light away where it is hidden: the ground (scene_lighting.glsl's
-point loop) and the figure parts (mesh.glsl's figure_light). The faces are drawn in one pass: their clears first (the
+casters, and the receivers lit on the GPU take each such light away where it is hidden: the ground (scene_lighting.hlsli's
+point loop) and the figure parts (mesh.hlsl's figure_light). The faces are drawn in one pass: their clears first (the
 faces do not overlap), then each face's casters through `CasterDraws` (render_shadows.cpp), sorted within the face.
 
 ### render_shadows.cpp: object shadows through a sun shadow map
@@ -1193,12 +1084,12 @@ stay on the GPU (section 13, item 3).
 
 ### render_perf.h: the performance overlay
 
-Section 15: frames a second, the frame time, the GPU time of the frame's passes, the renderer's CPU time and the draws by
-pass, as a few lines of text in the frame's top left corner, drawn by the present into the game window's back buffer after
+Section 15: frames a second, the frame time, the whole frame's GPU time, the renderer's CPU time and the draws by
+pass, as a few lines of text in the frame's top left corner, drawn by the present into the swap chain's texture after
 the frame (render_window.cpp, DrawToWindow), never into the frame target. Off unless the settings file switches it on;
 the harness build never draws it.
 
-### shaders/mesh.glsl: figure_light
+### shaders/mesh.hlsl: figure_light
 
 A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with the
 normal `n`: per channel the largest of the ambient colour, the sun's lit colour times the cosine to it and each light's
@@ -1209,7 +1100,7 @@ reaches `land` (the point in the landscape's space; `face`: its face normal ther
 compares from the unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
 `face`), looked up moved along `face`.
 
-### shaders/scene_lighting.glsl: ground_light
+### shaders/scene_lighting.hlsli: ground_light
 
 The landscape lit as the game's vertex lighting lit each vertex, at a point `p` (the landscape's space) with the unit
 normal `n`: `m` the material colour the sun and ambient light start from (the water's; on the ground the water's above
@@ -1223,7 +1114,7 @@ under the water by the light's vertical part) take the largest per channel, dark
 apart (`spec`, added after the texture as the specular word was). A light with a point shadow adds only what reaches the
 point; the ground casts none, so the point is looked up moved along its own normal.
 
-### shaders/shadow_receiver.glsl: the receivers and the soft edges
+### shaders/shadow_receiver.hlsli: the receivers and the soft edges
 
 How much of the sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, or take the sun's
 light away by it). `s` is the pixel's position in the map's clip space, `dsx` / `dsy` its screen derivatives (taken before

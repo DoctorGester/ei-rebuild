@@ -109,26 +109,24 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-sg_shader g_shader{};
-std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
+// The pipelines by their pass state's key (gpu.h keeps them by description; this skips building one per draw).
+std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh", false);
 
-sg_pipeline Pipeline(const PassState& s, bool lines, bool cached) {
+gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
     int samples = PassSampleCount();
     std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
                         (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
-    sg_pipeline_desc p{};
-    p.shader = g_shader;
+    gpu::PipelineDesc p;
+    p.program = gpu_shaders::mesh::kIndex;
     MeshLayout(p, cached, false);
-    p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
+    p.primitive = lines ? gpu::Primitive::Lines : gpu::Primitive::Triangles;
     ApplyPassState(p, s);
-    p.sample_count = samples;
+    p.samples = samples;
     AddDepthCopy(p);
-    p.label = "ei-mesh";
-    sg_pipeline pipeline = sg_make_pipeline(&p);
+    gpu::Pipeline pipeline = gpu::MakePipeline(p, "ei-mesh");
     g_pipelines.emplace(key, pipeline);
     return pipeline;
 }
@@ -182,109 +180,97 @@ PassState ReadPassState(char* device) {
 
 namespace {
 
-sg_blend_factor Factor(std::uint8_t d3d) {
+gpu::BlendFactor Factor(std::uint8_t d3d) {
     switch (d3d) {   // D3DBLEND
-    case 1: return SG_BLENDFACTOR_ZERO;
-    case 2: return SG_BLENDFACTOR_ONE;
-    case 3: return SG_BLENDFACTOR_SRC_COLOR;
-    case 4: return SG_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
-    case 5: return SG_BLENDFACTOR_SRC_ALPHA;
-    case 6: return SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-    case 7: return SG_BLENDFACTOR_DST_ALPHA;
-    case 8: return SG_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
-    case 9: return SG_BLENDFACTOR_DST_COLOR;
-    case 10: return SG_BLENDFACTOR_ONE_MINUS_DST_COLOR;
-    case 11: return SG_BLENDFACTOR_SRC_ALPHA_SATURATED;
-    default: return SG_BLENDFACTOR_ONE;
+    case 1: return gpu::BlendFactor::Zero;
+    case 2: return gpu::BlendFactor::One;
+    case 3: return gpu::BlendFactor::SourceColour;
+    case 4: return gpu::BlendFactor::OneMinusSourceColour;
+    case 5: return gpu::BlendFactor::SourceAlpha;
+    case 6: return gpu::BlendFactor::OneMinusSourceAlpha;
+    case 7: return gpu::BlendFactor::DestAlpha;
+    case 8: return gpu::BlendFactor::OneMinusDestAlpha;
+    case 9: return gpu::BlendFactor::DestColour;
+    case 10: return gpu::BlendFactor::OneMinusDestColour;
+    case 11: return gpu::BlendFactor::SourceAlphaSaturate;
+    default: return gpu::BlendFactor::One;
     }
 }
 
-sg_compare_func Compare(std::uint8_t d3d) {
+gpu::Compare Compare(std::uint8_t d3d) {
     switch (d3d) {   // D3DCMPFUNC
-    case 1: return SG_COMPAREFUNC_NEVER;
-    case 2: return SG_COMPAREFUNC_LESS;
-    case 3: return SG_COMPAREFUNC_EQUAL;
-    case 4: return SG_COMPAREFUNC_LESS_EQUAL;
-    case 5: return SG_COMPAREFUNC_GREATER;
-    case 6: return SG_COMPAREFUNC_NOT_EQUAL;
-    case 7: return SG_COMPAREFUNC_GREATER_EQUAL;
-    default: return SG_COMPAREFUNC_ALWAYS;
+    case 1: return gpu::Compare::Never;
+    case 2: return gpu::Compare::Less;
+    case 3: return gpu::Compare::Equal;
+    case 4: return gpu::Compare::LessEqual;
+    case 5: return gpu::Compare::Greater;
+    case 6: return gpu::Compare::NotEqual;
+    case 7: return gpu::Compare::GreaterEqual;
+    default: return gpu::Compare::Always;
     }
 }
 
 } // namespace
 
-void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
+void ApplyPassState(gpu::PipelineDesc& p, const PassState& s) {
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
     // down in both APIs).
     if (s.cull == 2) {
-        p.cull_mode = SG_CULLMODE_BACK;
-        p.face_winding = SG_FACEWINDING_CCW;
+        p.cull = gpu::Cull::Back;
+        p.front = gpu::Winding::CounterClockwise;
     } else if (s.cull == 3) {
-        p.cull_mode = SG_CULLMODE_BACK;
-        p.face_winding = SG_FACEWINDING_CW;
+        p.cull = gpu::Cull::Back;
+        p.front = gpu::Winding::Clockwise;
     } else {
-        p.cull_mode = SG_CULLMODE_NONE;
+        p.cull = gpu::Cull::None;
     }
-    p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = s.depthTest ? Compare(s.depthFunc) : SG_COMPAREFUNC_ALWAYS;
-    p.depth.write_enabled = s.depthTest && s.depthWrite;
-    p.colors[0].pixel_format = kColourFormat;
+    p.depth = kDepthFormat;
+    p.depthCompare = s.depthTest ? Compare(s.depthFunc) : gpu::Compare::Always;
+    p.depthWrite = s.depthTest && s.depthWrite;
+    p.colour = kColourFormat;
     // The old render target has no alpha channel: destination alpha reads as one, so the new
     // target's alpha stays at the clear value.
-    p.colors[0].write_mask = SG_COLORMASK_RGB;
+    p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
     if (s.blend) {
-        sg_blend_factor source = Factor(s.sourceBlend), dest = Factor(s.destBlend);
+        gpu::BlendFactor source = Factor(s.sourceBlend), dest = Factor(s.destBlend);
         if (s.sourceBlend == 12) {   // D3DBLEND_BOTHSRCALPHA
-            source = SG_BLENDFACTOR_SRC_ALPHA;
-            dest = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+            source = gpu::BlendFactor::SourceAlpha;
+            dest = gpu::BlendFactor::OneMinusSourceAlpha;
         } else if (s.sourceBlend == 13) {   // D3DBLEND_BOTHINVSRCALPHA
-            source = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-            dest = SG_BLENDFACTOR_SRC_ALPHA;
+            source = gpu::BlendFactor::OneMinusSourceAlpha;
+            dest = gpu::BlendFactor::SourceAlpha;
         }
-        p.colors[0].blend.enabled = true;
-        p.colors[0].blend.src_factor_rgb = source;
-        p.colors[0].blend.dst_factor_rgb = dest;
-        p.colors[0].blend.src_factor_alpha = source;
-        p.colors[0].blend.dst_factor_alpha = dest;
+        p.blend = {true, source, dest, source, dest};
     }
 }
 
 bool CreateMeshShader() {
-    g_shader = sg_make_shader(mesh_shader_desc(sg_query_backend()));
-    bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the mesh shader could not be created (see the sokol messages above)");
+    bool ok = static_cast<bool>(Pipeline(PassState{}, false, false));
+    if (!ok) ei::Log("render: the mesh pipeline could not be created (see the gpu messages above)");
     return ok;
 }
 
-void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly) {
+void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly) {
     // The frame's stream: Vertex (position, colour, specular, texture coordinates, normal) in buffer 0. A
     // mesh kept on the GPU: position, texture coordinates and normal in buffer 0, colour and specular in
-    // buffer 1.
-    const int uv = positionsOnly ? 1 : 3;
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[uv].format = SG_VERTEXFORMAT_FLOAT2;
-    if (cached) {
-        p.layout.buffers[0].stride = static_cast<int>(kCachedVertexBytes);
-        p.layout.attrs[uv].offset = 12;
-    } else {
-        p.layout.buffers[0].stride = sizeof(Vertex);
-        p.layout.attrs[uv].offset = 20;
-    }
+    // buffer 1. The locations are the mesh program's (the casters': position 0, texture coordinates 1).
+    static_assert(gpu_shaders::mesh::kAttrPos == 0 && gpu_shaders::mesh::kAttrCol == 1 && gpu_shaders::mesh::kAttrSpec == 2 &&
+                  gpu_shaders::mesh::kAttrUv == 3 && gpu_shaders::mesh::kAttrNormal == 4 &&
+                  gpu_shaders::shadow_caster::kAttrPos == 0 && gpu_shaders::shadow_caster::kAttrUv == 1);
+    const std::uint8_t uv = positionsOnly ? 1 : 3;
+    p.bufferCount = cached && !positionsOnly ? 2 : 1;
+    p.buffers[0].stride = cached ? static_cast<std::uint16_t>(kCachedVertexBytes) : static_cast<std::uint16_t>(sizeof(Vertex));
+    p.attributes[0] = {0, 0, gpu::VertexFormat::Float3, 0};
+    p.attributes[1] = {uv, 0, gpu::VertexFormat::Float2, static_cast<std::uint16_t>(cached ? 12 : 20)};
+    p.attributeCount = 2;
     if (positionsOnly) return;
-    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[4].offset = cached ? 20 : 28;
-    for (int k = 1; k <= 2; ++k) {
-        p.layout.attrs[k].format = SG_VERTEXFORMAT_UBYTE4N;
-        if (cached) {
-            p.layout.attrs[k].buffer_index = 1;
-            p.layout.attrs[k].offset = (k - 1) * 4;
-        } else {
-            p.layout.attrs[k].offset = 12 + (k - 1) * 4;
-        }
+    p.attributes[2] = {4, 0, gpu::VertexFormat::Float3, static_cast<std::uint16_t>(cached ? 20 : 28)};
+    for (std::uint8_t k = 1; k <= 2; ++k) {
+        p.attributes[2 + k] = {k, static_cast<std::uint8_t>(cached ? 1 : 0), gpu::VertexFormat::UByte4Norm,
+                               static_cast<std::uint16_t>(cached ? (k - 1) * 4 : 12 + (k - 1) * 4)};
     }
-    if (cached) p.layout.buffers[1].stride = static_cast<int>(kColourPairBytes);
+    p.attributeCount = 5;
+    if (cached) p.buffers[1].stride = static_cast<std::uint16_t>(kColourPairBytes);
 }
 
 void UploadMeshes(const Frame& f) {
@@ -293,37 +279,40 @@ void UploadMeshes(const Frame& f) {
     if (!f.meshVertices.empty()) g_geometry.Upload(f.meshVertices, f.meshIndices);
 }
 
-bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex) {
+bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex) {
     if (batch.cached) {
-        if (!BindCachedMesh(*batch.cached, b, firstIndex)) return false;
+        if (!BindCachedMesh(*batch.cached, g, firstIndex)) return false;
         *firstIndex += batch.firstIndex;
         return true;
     }
     *firstIndex = batch.firstIndex;
-    return g_geometry.Bind(b);
+    return g_geometry.Bind(g);
 }
 
 void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
-    sg_bindings b{};
+    namespace program = gpu_shaders::mesh;
+    Geometry g;
     int first = 0;
-    if (batch.indexCount <= 0 || !BindMeshBatch(batch, b, &first)) return;
+    if (batch.indexCount <= 0 || !BindMeshBatch(batch, g, &first)) return;
     const PassState& s = batch.state;
-    sg_pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
-    if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
-    sg_apply_pipeline(pipeline);
+    gpu::Pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
+    if (!pipeline) return;
+    gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
+    g.Bind();
+    gpu::TextureBinding textures[3];
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
-        b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
-        b.samplers[t] = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
+        textures[t].texture = st.texture ? st.texture : SurfaceView(nullptr);
+        textures[t].sampler = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
     }
-    b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
-    b.samplers[2] = b.samplers[0];
-    BindShadowMap(b);
-    BindPointShadows(b);
-    sg_apply_bindings(&b);
-    CountBindings(b);
-    mesh_vs_params_t vs{};
+    textures[2] = {s.patch.texture ? s.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
+    static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2);
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
+    BindShadowMap(program::kSamplerShadowMap);
+    BindPointShadows(program::kSamplerPointShadowMap);
+    CountBindings(textures[0].texture);
+    MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
         vs.distanceFog[0] = 1.0f;
@@ -337,10 +326,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
-    mesh_fs_params_t fs{};
-    const shadow_params_t& shadow = ShadowUniforms(f, batch.light >= 0);
+    MeshFsParams fs{};
+    const ShadowParams& shadow = ShadowUniforms(f, batch.light >= 0);
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
-    mesh_light_params_t lighting{};   // unlit: on[0] 0
+    MeshLightParams lighting{};   // unlit: on[0] 0
     if (batch.lighting >= 0) {
         lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
         // Its lights' scene light becomes their point shadow, taken with the landscape's rows.
@@ -386,19 +375,19 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.switches[1] = s.fog ? 1 : 0;
     fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
     fs.switches[3] = s.alphaReference;
-    if (s.patch.texture.id) {
+    if (s.patch.texture) {
         for (int k = 0; k < 4; ++k) {
             fs.patchTo[k] = s.patch.to[k];
             fs.patchMap[k] = s.patch.map[k];
             fs.patchInside[k] = s.patch.inside[k];
         }
     }
-    sg_apply_uniforms(UB_mesh_vs_params, SG_RANGE(vs));
-    sg_apply_uniforms(UB_mesh_fs_params, SG_RANGE(fs));
-    sg_apply_uniforms(UB_shadow_params, SG_RANGE(shadow));
-    sg_apply_uniforms(UB_mesh_light_params, SG_RANGE(lighting));
-    sg_apply_uniforms(UB_point_shadow_params, SG_RANGE(f.shadow.point.params));
-    sg_draw(first, batch.indexCount, 1);
+    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockMeshVsParams, vs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, fs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshLightParams, lighting);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::DrawIndexed(static_cast<std::uint32_t>(first), static_cast<std::uint32_t>(batch.indexCount));
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }
 
@@ -437,7 +426,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        mesh_light_params_t params;
+        MeshLightParams params;
         MeshLightUniforms(*lighting, &params);
         f.meshLights.push_back(params);
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
@@ -488,7 +477,6 @@ void MeshPass(void* device) {
         }
     }
     if (g_pending.indexCount > 0) {
-        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = g_pending.matrix;
         batch.firstIndex = g_pending.firstIndex;
@@ -565,7 +553,6 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
@@ -613,7 +600,6 @@ void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        platform::FloatingPointGuard fpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;

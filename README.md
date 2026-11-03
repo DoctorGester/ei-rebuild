@@ -20,7 +20,7 @@ test suite plays out exactly as on the original: the same world state and the sa
 - **Your saves and multiplayer still work.** Saves are in the original's format, so your old saves load. Hosting and joining
   network games work as before.
 - **A 64-bit exe** with the original's behaviour.
-- **A new renderer** on Direct3D 11: per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
+- **A new renderer** on Direct3D 12 or Vulkan (SDL3's GPU API): per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
   a smooth camera, vsync, and an optional performance overlay.
 - **Widescreen** at any resolution, with the interface scaled to the window.
 - **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
@@ -49,8 +49,6 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 - Windows 10 or later.
 - The VS 2022 Build Tools with MSVC 14.43 for x64, and CMake and Ninja from the same install. `build.cmd` looks in
   `E:\bin\vs\buildtools`; set `EI_VSROOT` to your Build Tools folder if it is elsewhere.
-- sokol-shdc, the shader compiler. `build.cmd` uses `E:\bin\sokol-shdc\sokol-shdc.exe`; set `EI_SHDC` to it if it
-  is elsewhere (`docs/notes/renderer.md`, "Shader authoring").
 - Python 3 (the build runs checks written in Python).
 - An installed copy of the game for its data:
   - the GOG release (`EI_GAME_VANILLA`, default `F:\games\EvilIslands`), and/or
@@ -114,7 +112,7 @@ installs' (`tools/exe_path.py`).
 
 - `src/game/` the game code. Each function names the original function it replaces.
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
-- `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
+- `src/render/` the renderer (SDL3's GPU API through `src/render/gpu.h`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.

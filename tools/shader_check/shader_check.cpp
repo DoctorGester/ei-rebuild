@@ -1,9 +1,7 @@
 // The HLSL programs' check (docs/notes/renderer.md, "HLSL and SDL_shadercross"; tools/build_checks.py runs it on
-// Windows, ctest on Linux). First every program's interface against sokol-shdc's description of the same GLSL program:
-// the uniform blocks and textures per stage and the vertex inputs (gpu_shaders_sokol.h holds the blocks' layouts
-// against sokol-shdc's structs, checked when this file compiles). Then, on each GPU driver SDL_GPU has here (Direct3D
-// 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), every program's two shaders and a pipeline for
-// each kind of target the renderer draws it into (kDraws).
+// Windows, ctest on Linux). On each GPU driver SDL_GPU has here (Direct3D 12 and Vulkan on Windows, Vulkan on Linux:
+// lavapipe without a GPU), every program's two shaders and a pipeline for each kind of target the renderer draws it
+// into (kDraws).
 //
 // usage: ei_shader_check [--require]   (--require: a driver that makes no device fails; without it, it is skipped)
 
@@ -16,9 +14,7 @@
 #include <vector>
 
 #include "lib/vecmath.h"
-#include "sokol_gfx.h"
-#include "shaders/shaders.h"
-#include "shaders/gpu_shaders_sokol.h"
+#include "shaders/gpu_shaders.h"
 
 namespace {
 
@@ -38,41 +34,6 @@ void Fail(const char* format, ...) {
     std::fputc('\n', stdout);
     va_end(args);
     ++g_failures;
-}
-
-// ---- Against sokol-shdc --------------------------------------------------------------------------------------------
-
-#ifdef _WIN32
-constexpr sg_backend kSokolBackend = SG_BACKEND_D3D11;
-#else
-constexpr sg_backend kSokolBackend = SG_BACKEND_GLCORE;
-#endif
-
-void CompareWithSokol() {
-    for (int k = 0; k < kProgramCount; ++k) {
-        const Program& p = kPrograms[k];
-        const sg_shader_desc* d = gpu_shaders::kSokolDescs[k](kSokolBackend);
-        if (!d) {
-            Fail("%s: sokol-shdc has no description", p.name);
-            continue;
-        }
-        int blocks[2] = {}, textures[2] = {}, inputs = 0;
-        for (const sg_shader_uniform_block& b : d->uniform_blocks)
-            if (b.stage != SG_SHADERSTAGE_NONE) ++blocks[b.stage == SG_SHADERSTAGE_VERTEX ? 0 : 1];
-        for (const sg_shader_view& v : d->views)
-            if (v.texture.stage != SG_SHADERSTAGE_NONE) ++textures[v.texture.stage == SG_SHADERSTAGE_VERTEX ? 0 : 1];
-        for (const sg_shader_vertex_attr& a : d->attrs)
-            if (a.base_type != SG_SHADERATTRBASETYPE_UNDEFINED || a.glsl_name || a.hlsl_sem_name) ++inputs;
-        const gpu_shaders::Stage* stages[2] = {&p.vertex, &p.fragment};
-        for (int s = 0; s < 2; ++s) {
-            const char* stage = s == 0 ? "vertex" : "fragment";
-            if (stages[s]->uniformBlocks != blocks[s])
-                Fail("%s %s: %d uniform blocks, the GLSL %d", p.name, stage, stages[s]->uniformBlocks, blocks[s]);
-            if (stages[s]->samplers != textures[s])
-                Fail("%s %s: %d textures, the GLSL %d", p.name, stage, stages[s]->samplers, textures[s]);
-        }
-        if (p.inputCount != inputs) Fail("%s: %d vertex inputs, the GLSL %d", p.name, p.inputCount, inputs);
-    }
 }
 
 // ---- On the GPU ----------------------------------------------------------------------------------------------------
@@ -115,7 +76,7 @@ const Draw kDraws[] = {
     // Composed textures and the clouds' frames (render_compose.cpp).
     {"texture_compose", kRgba8, false, 1},
     {"texture_mip", kRgba8, false, 1},
-    {"texture_clouds_frame", SDL_GPU_TEXTUREFORMAT_R8_UINT, false, 1},
+    {"texture_clouds_frame", SDL_GPU_TEXTUREFORMAT_R8_UNORM, false, 1},
     {"texture_clouds", kRgba8, false, 1},
     // The shadow maps and their range (render_shadows.cpp, render_point_shadows.cpp).
     {"shadow_caster", kNone, true, 1, 2},   // the caster's rows and cut per instance
@@ -314,7 +275,6 @@ int main(int argc, char** argv) {
             return 2;
         }
     }
-    CompareWithSokol();
     CheckDrawTable();
     // SDL_GPU's Vulkan driver loads the Vulkan library through the video subsystem.
     if (!SDL_Init(SDL_INIT_VIDEO)) {

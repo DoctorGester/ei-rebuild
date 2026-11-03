@@ -1,7 +1,7 @@
 // The global map's clouds (render_compose.cpp, render::DrawClouds), the block of both programs: texture_clouds_frame
-// builds one 256 x 256 frame of grey levels (R8UI) from the random words of its four layers (global_map_clouds.cpp
+// builds one 256 x 256 frame of grey levels (R8) from the random words of its four layers (global_map_clouds.cpp
 // keeps them), integer for integer as the game's CPU code did; texture_clouds blends two frames and takes each
-// texel's alpha from the ramp. The words are unsigned: the block holds them as ints (as sokol's uniform types) and the
+// texel's alpha from the ramp. The words are unsigned: the block holds them as ints (as the C++ structs do) and the
 // code reads them back as uints, bit for bit.
 #include "rect_vs.hlsli"
 #ifdef EI_FRAGMENT
