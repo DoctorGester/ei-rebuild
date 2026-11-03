@@ -213,12 +213,9 @@ void LocalSearch::PathTo(int x, int y, PathCells* out) {
     int wx = x - originX;
     int wy = y - originY;
     if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return;
-    // The cells' second dword is a stack word the original never writes. Its only caller,
-    // AIMap::JoinLocalSearches, leaves the forward search's address there.
-    auto stale = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(&map->forwardSearch));
     auto cellAt = [&](int cx, int cy) {
         return PathCell{static_cast<std::int16_t>(originX + cx), static_cast<std::int16_t>(originY + cy),
-                        static_cast<std::uint16_t>(stale), static_cast<std::uint16_t>(stale >> 16)};
+                        kPlainStepSpeed, 0};
     };
     // Walk back along the directions, then turn the cells round: the start first.
     for (;;) {
@@ -373,7 +370,13 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     int oldX = originX, oldY = originY;
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
-    if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
+    if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) {
+        // Too far to shift the nodes: the window stays where they are.
+        originX = oldX;
+        originY = oldY;
+        FillCellRows(this);
+        return false;
+    }
     const SearchGrid<SearchNode> old = nodes;
     int shiftX = originX - oldX, shiftY = originY - oldY;
     // Shift the nodes; remember the cheapest one kept on the old window's inner ring.

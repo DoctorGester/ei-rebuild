@@ -513,6 +513,12 @@ void UnitMotion::Build(PathOrder* path) {
     Subdivide();
     LimitSpeeds(baseTurnRate);
 
+    // A path with no steps has no trajectory point to face.
+    if (points.empty()) {
+        turn = 0.0f;
+        AssignCells(path);
+        return;
+    }
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data();
     if (std::cos(std::atan2(p->dirY, p->dirX) - startAngle) > 0.9f) {

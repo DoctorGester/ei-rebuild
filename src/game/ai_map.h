@@ -109,9 +109,8 @@ struct FootprintCellSet {
     std::array<int, 4> GetBounds() const;
 
     std::vector<FootprintCell> cells;
-    // first index per (x + y) & 15, -1 when empty; zero until the first footprint empties them
-    int buckets[16] = {};
-    bool hashed = true;     // set again by every insertion, never cleared
+    // first index per (x + y) & 15, -1 when empty
+    int buckets[16] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 };
 
 // The passability cost tables of one size class, filled by AIMap::CostContext.
