@@ -8,7 +8,7 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "map_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "text_manager.h"
 #include "text_split.h"
 #include "ui_briefing.h"

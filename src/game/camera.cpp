@@ -105,7 +105,7 @@ Quaternion TurnedBack(const Quaternion& r, const Quaternion& undo, float t) {
 }
 
 // The camera's distance from its focus in `pose`.
-float Reach(const camera::ViewPose& pose) { return std::sqrt(DistanceSquaredZYX(pose.position, pose.focus)); }
+float Reach(const camera::ViewPose& pose) { return std::sqrt(DistanceSquared(pose.position, pose.focus)); }
 
 void ResetMotion(Camera* c) {
     c->panVelocity = camera::kZeroVector;
@@ -129,7 +129,7 @@ void camera::NoteViewTick(const Camera* camera) {
     const ViewPose& before = step.before;
     const float reachNow = Reach(now), reachBefore = Reach(before);
     const bool kept =
-        DistanceSquaredZYX(now.focus, before.focus) <= kViewCut * kViewCut && std::fabs(reachNow - reachBefore) <= kViewCut;
+        DistanceSquared(now.focus, before.focus) <= kViewCut * kViewCut && std::fabs(reachNow - reachBefore) <= kViewCut;
     step.focus = kept ? now.focus - before.focus : kZeroVector;
     step.distance = kept ? now.distance - before.distance : 0.0f;
     step.stretch = kept && reachNow > 0.0f ? 1.0f - reachBefore / reachNow : 0.0f;
@@ -243,10 +243,10 @@ int Camera::PlaybackStep(float time) {
 void Camera::Pan(const Vector3& direction) {
     Vector3 right = localRotation.AxisX();
     Vector3 up = localRotation.AxisY();
-    float k1 = (1.0f / std::sqrt(LengthSquared2DUnrounded<float>(right.y, right.x))) * direction.x;
+    float k1 = (1.0f / std::sqrt(LengthSquared2D(right.y, right.x))) * direction.x;
     right.x = k1 * right.x;
     float rightY = k1 * right.y;
-    float k2 = (1.0f / std::sqrt(LengthSquared2DUnrounded<float>(up.y, up.x))) * direction.y;
+    float k2 = (1.0f / std::sqrt(LengthSquared2D(up.y, up.x))) * direction.y;
     up.x = k2 * up.x;
     float upY = k2 * up.y;
     panTarget.x = up.x + right.x;
@@ -300,14 +300,7 @@ void Camera::ApplyView() {
     const Vector3 axis = s.AxisX();
     Quaternion q;
     q.SetAngleAxis(tiltAngle, axis);
-    float y = ((q.z * s.x - s.z * q.x) + s.w * q.y) + s.y * q.w;
-    float z = ((q.x * s.y - s.x * q.y) + s.w * q.z) + s.z * q.w;
-    float w = s.w * q.w - DotUnrounded<Sum3::ZXY>(s.x, s.y, s.z, q.x, q.y, q.z);
-    float x = ((s.z * q.y - q.z * s.y) + s.w * q.x) + s.x * q.w;
-    localRotation.y = y;
-    localRotation.z = z;
-    localRotation.w = w;
-    localRotation.x = x;
+    localRotation = q * s;
 }
 
 void Camera::Update(float dt) {
@@ -358,7 +351,7 @@ void Camera::Update(float dt) {
     Vector3 change = wanted - velocity;
     Vector3 accel = change * panResponse;
     bool snap = true;
-    if (accel.Length() >= 0.001) {   // the double constant (exact as a compare)
+    if (Length(accel) >= 0.001) {   // the double constant (exact as a compare)
         float before = static_cast<float>(Dot(velocity, velocity));
         Vector3 step = accel * dt;
         velocity += step;
@@ -369,7 +362,7 @@ void Camera::Update(float dt) {
     }
     if (snap) velocity = wanted;
 
-    if (LengthSquaredUnrounded<Sum3::XYZ, float>(velocity) > 0.0f) {
+    if (LengthSquared(velocity) > 0.0f) {
         const CameraLimits limits = Limits();
         float scale = (distance - limits.min) / ((limits.max - limits.min) * kPanZoomSpan) + kTrackGain;
         float moveX = dt * velocity.x;
@@ -386,7 +379,7 @@ void Camera::Update(float dt) {
         if (flags & kBounded) {
             float bx = focus.x - boundsCenter.x;
             float by = focus.y - boundsCenter.y;
-            float d2 = LengthSquared2DUnrounded(by, bx);
+            float d2 = LengthSquared2D(by, bx);
             float radius = boundsRadius;
             if (d2 > radius * radius) {
                 float inv = 1.0f / std::sqrt(d2);
@@ -426,15 +419,7 @@ void Camera::Update(float dt) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
         q.SetAxisAngle(up, dt * turnRate);
-        const Quaternion r = viewRotation;
-        float x = ((r.z * q.y - r.y * q.z) + q.w * r.x) + r.w * q.x;
-        float y = ((r.x * q.z - r.z * q.x) + q.w * r.y) + r.w * q.y;
-        float z = ((r.y * q.x - q.y * r.x) + r.z * q.w) + r.w * q.z;
-        float w = q.w * r.w - DotUnrounded<Sum3::ZYX>(q.x, q.y, q.z, r.x, r.y, r.z);
-        viewRotation.z = z;
-        viewRotation.y = y;
-        viewRotation.w = w;
-        viewRotation.x = x;
+        viewRotation = q * viewRotation;
     }
 
     float currentZoomTarget = zoomTarget;
@@ -527,7 +512,7 @@ void Camera::ViewsToSettings(options::GameOptions* gameOptions) {
         r.distance = v.distance;
         r.pitch = v.pitch;
         const Quaternion& q = v.rotation;
-        float sum = LengthSquaredUnrounded<Sum3::ZXY>(q.x, q.y, q.z);
+        float sum = LengthSquared(Vector3{q.x, q.y, q.z});
         if (sum > kAxisTiny) {
             const double arc = libcrt::CiAcos(q.w);   // the CRT's double (FPATAN's 64 bits stored)
             float inv = 1.0f / std::sqrt(sum);

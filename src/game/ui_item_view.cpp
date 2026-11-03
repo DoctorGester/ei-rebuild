@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/vecmath.h"
-#include "maths.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -123,24 +122,6 @@ Quaternion HalfTurn(float ax, float ay, float az) {
     return q;
 }
 
-// The two products the original game inlines (a * b), each with its own order of the w sum.
-Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
-    Quaternion r;
-    r.w = a.w * b.w - DotUnrounded<Sum3::XYZ>(a.x, a.y, a.z, b.x, b.y, b.z);
-    r.x = ((b.y * a.z - a.y * b.z) + a.w * b.x) + a.x * b.w;
-    r.y = ((a.x * b.z - b.x * a.z) + a.w * b.y) + a.y * b.w;
-    r.z = ((a.y * b.x - a.x * b.y) + b.w * a.z) + a.w * b.z;
-    return r;
-}
-Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
-    Quaternion r;
-    r.w = a.w * b.w - DotUnrounded<Sum3::ZYX>(a.x, a.y, a.z, b.x, b.y, b.z);
-    r.x = ((b.y * a.z - b.z * a.y) + a.w * b.x) + b.w * a.x;
-    r.y = ((b.z * a.x - b.x * a.z) + a.w * b.y) + b.w * a.y;
-    r.z = ((b.x * a.y - b.y * a.x) + a.z * b.w) + a.w * b.z;
-    return r;
-}
-
 bool IsRecordLoot(const Item* item, LootRecordType recordType) {
     if (item->Kind() != ItemKind::Loot) return false;
     const auto* loot = AsLoot(item);
@@ -224,7 +205,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
-            model->localRotation = ProductA(a, b);
+            model->localRotation = b * a;
         } else if (IsRecordLoot(item, LootRecordType::Weapon) || IsRecordLoot(item, LootRecordType::Armor) || IsRecordLoot(item, LootRecordType::Quick)) {
             model->localRotation = HalfTurn(1.0f, 0.0f, 0.0f);    // blueprints lie still
         } else {
@@ -233,7 +214,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
             const Vector3 axis = {0.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
-            model->localRotation = ProductB(a, b);
+            model->localRotation = b * a;
         }
 
         float frameDepth = cell.depth * 1.3f;
@@ -362,8 +343,7 @@ void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
     tilt.SetAxisAngle(axis, (cell.y - 300.0f) * 0.001f);
-    Quaternion orientation;
-    model->localRotation = *MultiplyQuaternions(&orientation, &tilt, &turn);
+    model->localRotation = tilt * turn;
 
     float frameDepth = cell.depth * 1.3f;
     UiMesh* frame = AddBlankSprite();

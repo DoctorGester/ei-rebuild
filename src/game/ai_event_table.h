@@ -3,7 +3,7 @@
 // The world's AI events: the viewer the brain sees through (AIViewer) and the table of events a time wheel
 // and a grid hold (AIEventTable, a member of AIMap). See docs/notes/ai.md.
 
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit.h"
 
 #include <cstddef>

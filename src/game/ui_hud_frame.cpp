@@ -5,7 +5,6 @@
 #include "ui.h"
 
 #include "game_singletons.h"
-#include "maths.h"
 #include "text_manager.h"
 #include "ui_float.h"
 #include "screen_layout.h"

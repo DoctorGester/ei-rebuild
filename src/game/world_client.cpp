@@ -67,12 +67,10 @@ const char* WorldClient::AmbienceTimeOfDay() const {
     return hour < 6.0f ? "morning" : "evening";
 }
 
-// The (u, v) of `d` (a point relative to the platform's origin) moved along z onto the platform's plane, the sums
-// grouped O.
-template <Sum3 O>
+// The (u, v) of `d` (a point relative to the platform's origin) moved along z onto the platform's plane.
 Vector2 PlaneUV(const Platform& p, Vector3 d) {
-    d.z = d.z - vecmath::Dot<O>(p.normal, d) / p.normal.z;
-    return {vecmath::Dot<O>(p.axisU, d), vecmath::Dot<O>(p.axisV, d)};
+    d.z = d.z - Dot(p.normal, d) / p.normal.z;
+    return {Dot(p.axisU, d), Dot(p.axisV, d)};
 }
 
 float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
@@ -81,8 +79,8 @@ float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
         float dx = point.x - p.centre.x;
         float dy = point.y - p.centre.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
-        if (p.radius * p.radius < LengthSquared2DUnrounded(dy, dx)) continue;
-        const auto [u, v] = PlaneUV<Sum3::XYZ>(p, point - p.origin);
+        if (p.radius * p.radius < LengthSquared2D(dy, dx)) continue;
+        const auto [u, v] = PlaneUV(p, point - p.origin);
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
@@ -98,8 +96,8 @@ bool PlatformSet::Contains(float x, float y) {
         float dx = x - p.centre.x;
         float dy = y - p.centre.y;
         EI_NAN_AUDIT(p.radius, dx, dy);
-        if (p.radius * p.radius < LengthSquared2DUnrounded(dx, dy)) continue;
-        const auto [u, v] = PlaneUV<Sum3::ZYX>(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
+        if (p.radius * p.radius < LengthSquared2D(dx, dy)) continue;
+        const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.1f || v < -0.1f) continue;
         if (p.sizeU + 0.1f < u || p.sizeV + 0.1f < v) continue;
@@ -114,7 +112,7 @@ PlatformSet::SurfacePlaneResult PlatformSet::SurfacePlane(float x, float y) {
         const Platform& p = node;
         EI_NAN_AUDIT(p.radius, x, y, p.centre.x, p.centre.y);
         if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.centre.x, p.centre.y})) continue;
-        const auto [u, v] = PlaneUV<Sum3::ZYX>(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
+        const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
@@ -126,9 +124,6 @@ PlatformSet::SurfacePlaneResult PlatformSet::SurfacePlane(float x, float y) {
     }
     return result;
 }
-
-// x is summed ZYX, y and z ZXY.
-Vector3 MatrixRows::Transform(const Vector3& v) const { return TransformColumnNormal<Sum3::ZYX, Sum3::ZXY>(*this, v); }
 
 // ---- Units and players ---------------------------------------------------------------------------
 
@@ -408,7 +403,7 @@ bool WorldClient::RunTick() {
                         float nodeX = effect.position.x, nodeY = effect.position.y;
                         float dy = light->localPosition.y - nodeY;
                         float dx = light->localPosition.x - nodeX;
-                        if (LengthSquared2DUnrounded(dx, dy) > light->rangeSquared) continue;
+                        if (LengthSquared2D(dx, dy) > light->rangeSquared) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
                         point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
                         float intensity = light->GetIntensityAt(point);

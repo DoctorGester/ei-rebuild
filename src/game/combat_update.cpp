@@ -347,7 +347,7 @@ void UnitServer::StandStill() {
     motion.Clear();
     int now = OwningWorld()->tick;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    Vector3 direction = -RotatedAxisY(unit->localRotation);
+    Vector3 direction = -(unit->localRotation).AxisY();
     if (motion.Start(unit->localPosition, direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }

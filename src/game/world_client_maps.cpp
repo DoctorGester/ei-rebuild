@@ -559,7 +559,7 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
             float dx = ox - point.x;
             float dy = oy - point.y;
             float dz = pz - point.z;
-            float distance = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+            float distance = LengthSquared(Vector3{dx, dy, dz});
             float limit = reach * reach;
             // Skipped when the limit is below (or unordered).
             if (limit >= distance) found.push_back(object);
@@ -582,8 +582,8 @@ int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, c
     *out = record;
     const Vector3 u = b - a;
     const Vector3 v = c - a;
-    record->sizeU = LengthZYX(u);
-    record->sizeV = LengthZYX(v);
+    record->sizeU = Length(u);
+    record->sizeV = Length(v);
     record->normal = normal;
     record->origin = a;
     record->axisU = u / record->sizeU;
@@ -614,18 +614,18 @@ void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& po
     m.m[10] = 1.0f - (t2q2 + t1q1);
 
     // The box's corners (two of them repeated, as the faces walk them), moved by the pivot and the
-    // offset (stored), rotated (rows summed ZYX, stored) and placed.
+    // offset, rotated and placed.
     Vector3 corners[8] = {{high.x, low.y, low.z},  {low.x, low.y, low.z},   {low.x, high.y, low.z},
                           {low.x, high.y, high.z}, {high.x, high.y, high.z}, {high.x, low.y, high.z},
                           {high.x, low.y, low.z},  {low.x, low.y, low.z}};
-    for (Vector3& corner : corners) corner = position + TransformColumnNormal<Sum3::ZYX>(m, (pivot + corner) + offset);
+    for (Vector3& corner : corners) corner = position + TransformColumnNormal(m, (pivot + corner) + offset);
     Vector3 normals[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
-    for (Vector3& n : normals) n = TransformColumnNormal<Sum3::ZXY>(m, n);
+    for (Vector3& n : normals) n = TransformColumnNormal(m, n);
     for (int i = 0; i < 6; ++i) {
         Platform* record;
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
         record->id = newId;
-        record->centre = m.Transform(pivot + offset) + position;
+        record->centre = TransformColumnNormal(m, pivot + offset) + position;
         record->radius = item->bounds.radius;   // a dword move
     }
 }

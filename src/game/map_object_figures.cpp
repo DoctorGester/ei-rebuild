@@ -56,26 +56,25 @@ void AnimationSetScale(void* state, float x, float y, float z) {
 std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= lib::FloatFromBits(bound) ? bound : Bits(v); }
 std::uint32_t KeepHigher(std::uint32_t bound, float v) { return lib::FloatFromBits(bound) >= v ? bound : Bits(v); }
 
-// a + b + c in that order, stored to a float.
-float Sum3(float a, float b, float c) { return (a + b) + c; }
-
 // The box being grown, as float bits (the original selects bits, never loading them twice).
 struct BoxBits {
     std::uint32_t low[3] = {kFloatMax, kFloatMax, kFloatMax};
     std::uint32_t high[3] = {kFloatLowest, kFloatLowest, kFloatLowest};
 };
 
-// (x * x + y * y) + z * z of the part's position.
-float DistanceSquared(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ>(part->localPosition); }
+// The squared distance of the part's position from the figure's origin.
+float DistanceSquared(const FigureMesh* part) { return LengthSquared(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->box.bounds.boxMin.x, p->localPosition.x, p->box.bounds.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->box.bounds.boxMax.x, p->localPosition.x, p->box.bounds.center.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->box.bounds.boxMin.y, p->localPosition.y, p->box.bounds.center.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->box.bounds.boxMax.y, p->localPosition.y, p->box.bounds.center.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->box.bounds.boxMin.z, p->localPosition.z, p->box.bounds.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->box.bounds.boxMax.z, p->localPosition.z, p->box.bounds.center.z));
+    const Vector3 low = p->box.bounds.boxMin + p->localPosition + p->box.bounds.center;
+    const Vector3 high = p->box.bounds.boxMax + p->localPosition + p->box.bounds.center;
+    box.low[0] = KeepLower(box.low[0], low.x);
+    box.high[0] = KeepHigher(box.high[0], high.x);
+    box.low[1] = KeepLower(box.low[1], low.y);
+    box.high[1] = KeepHigher(box.high[1], high.y);
+    box.low[2] = KeepLower(box.low[2], low.z);
+    box.high[2] = KeepHigher(box.high[2], high.z);
 }
 
 } // namespace
@@ -96,7 +95,7 @@ void Object3D::ComputeBounds() {
     bounds.boxMax = high - center;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = std::sqrt(LengthSquaredZYX(bounds.boxMin));
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMin));
     bounds.center = center;
 }
 
@@ -482,7 +481,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
     bounds.boxMin = low - bounds.center;
     bounds.boxMax = high - bounds.center;
     bounds.flags |= BoundsFlag::Box;
-    bounds.radius = LengthXYZ(bounds.boxMax);
+    bounds.radius = Length(bounds.boxMax);
     bounds.flags |= BoundsFlag::Sphere;
 }
 
@@ -504,7 +503,7 @@ void Object3D::UpdatePartBounds() {
     bounds.boxMin = low - centre;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = LengthZYX(bounds.boxMin);
+    bounds.radius = Length(bounds.boxMin);
     bounds.center = centre - localPosition;
 }
 

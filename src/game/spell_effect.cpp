@@ -76,7 +76,7 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
         const Unit* at = unit;
         Vector3 d = at->localPosition - position;
-        float distance = DotUnrounded<Sum3::ZYX>(d.x, d.y, d.z, normalX, normalY, normalZ);
+        float distance = Dot(Vector3{d.x, d.y, d.z}, Vector3{normalX, normalY, normalZ});
         distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;
         if (!AcceptsAreaSpells(unit)) continue;

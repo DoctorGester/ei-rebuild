@@ -127,7 +127,7 @@ void GuardMode::Execute(AIBrain* brain) {
     Vector3 direction = order.point - point;
     // A radius of 0 leaves the direction unscaled.
     EI_NAN_AUDIT(radius);
-    if (radius != 0.0f) direction *= std::sqrt(LengthSquaredZYX(direction)) / radius * 0.5f;
+    if (radius != 0.0f) direction *= std::sqrt(LengthSquared(direction)) / radius * 0.5f;
     bool farLook = g_random.Next() % 11 == 0;
     brain->PlanLooks(&order, direction, wander, farLook);
     brain->StartMove(&order);
@@ -257,11 +257,11 @@ void SuspectionMode::Execute(AIBrain* brain) {
         float dx = point.x - brain->move.point.x;
         // A new move only when the distance is greater.
         EI_NAN_AUDIT(dx, dy);
-        if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
+        if (LengthSquared2D(dx, dy) <= kArrivedSq) {
             const Vector3& at = brain->owner->unit->localPosition;
             Vector3 u = at - point;
             EI_NAN_AUDIT(u.x, u.y, u.z);
-            if (LengthSquaredZYX(u) < kCloseSq) level -= 5;
+            if (LengthSquared(u) < kCloseSq) level -= 5;
             return;
         }
     }
@@ -625,7 +625,7 @@ bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
     Vector3 away{dx, dy, foe.z - me.z};
-    float length = LengthZXY(away);
+    float length = Length(away);
     if (!IsZero(length)) {
         float scale = kFlightStep / length;
         away *= scale;
@@ -637,7 +637,7 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
     Vector3 dest{back.x + jitterX, back.y + jitterY, back.z};
 
     AIPath path;
-    float way = DistanceZXY(dest, me);
+    float way = Distance(dest, me);
     float range = way * kThree + kRangeBase;
     if (!g_serverWorld.aiMap.FindPath(self, dest, &path, range, kMinDistance)) return false;
     float scale = 0.5f;
@@ -651,7 +651,7 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
     if (!brain->owner->CanReachAndPlanFrom(&order, end)) return false;
     Vector3 e = dest - end;
     EI_NAN_AUDIT(e.x, e.y, e.z);
-    if (LengthSquaredZYX(e) >= 1.0f) return false;
+    if (LengthSquared(e) >= 1.0f) return false;
     *out = dest;
     return true;
 }
@@ -667,7 +667,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         const Vector3* at = &seen->localPosition;
         brain->memory.Notice(*at, kNoticeSeenLevel, kNoticeSeenDecay);
         const Vector3* me = &brain->owner->unit->localPosition;
-        float reach = std::sqrt(LengthSquaredZXY(*me - *at)) * kSeenScale;
+        float reach = std::sqrt(LengthSquared(*me - *at)) * kSeenScale;
         // The larger of the two; an unordered pair takes the new one.
         distance = MaxKeepB(distance, reach);
     }
@@ -683,7 +683,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         Vector3 foe = enemy->localPosition;
         float dx = foe.x - me.x;
         float dy = foe.y - me.y;
-        if (range * range > LengthSquared2DUnrounded(dx, dy)) {
+        if (range * range > LengthSquared2D(dx, dy)) {
             if (brain->owner->action.kind == UnitOrderKind::Move || brain->owner->action2.kind == UnitOrderKind::Move) return kFlee;
             Vector3 flight;
             if (FindFlightPoint(brain, self, enemy, me, foe, dx, dy, &flight)) {
@@ -714,7 +714,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             const Vector3* me = &brain->owner->unit->localPosition;
             float oy = me->y - other->localPosition.y;
             float ox = me->x - other->localPosition.x;
-            float d2 = LengthSquared2DUnrounded(ox, oy);
+            float d2 = LengthSquared2D(ox, oy);
             if (d2 < best) {
                 nearest = other->localPosition;
                 best = d2;
@@ -727,11 +727,8 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     if (brain->memory.noticedLevel > kCalmLevel) {
         if (brain->current == this) return brain->memory.noticedLevel / 6;
-        const Vector3* me = &brain->owner->unit->localPosition;
-        float nx = me->x - brain->memory.noticedX;
-        float ny = me->y - brain->memory.noticedY;
-        float z = me->z;   // not a difference: the memory keeps no z
-        if (distance * distance > z * z + ny * ny + nx * nx) return brain->memory.noticedLevel / 6;
+        const Vector3 apart = brain->owner->unit->localPosition - brain->memory.NoticedPoint();
+        if (distance * distance > LengthSquared(apart)) return brain->memory.noticedLevel / 6;
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
@@ -761,7 +758,7 @@ void FearMode::Execute(AIBrain* brain) {
         brain->memory.noticedDecay = 0;
     }
 
-    float near2 = DistanceSquaredZYX(*here, from);
+    float near2 = DistanceSquared(*here, from);
     if (distance * distance > near2 && brain->owner->action.kind != UnitOrderKind::Move &&
         brain->owner->action2.kind != UnitOrderKind::Move) {
         Vector3 dest;
@@ -770,7 +767,7 @@ void FearMode::Execute(AIBrain* brain) {
             fleePoint.z = 0.0f;
         } else {
             Vector3 step = from - *here;
-            float length = std::sqrt(LengthSquaredXYZ(step));
+            float length = std::sqrt(LengthSquared(step));
             float limit = distance * kSpreadScale;
             // The smaller of the two.
             EI_NAN_AUDIT(spread, limit);
@@ -788,7 +785,7 @@ void FearMode::Execute(AIBrain* brain) {
             dest = {back.x + jitterX, back.y + jitterY, back.z};
         }
         AIPath path;
-        float way = DistanceZYX(dest, *here);
+        float way = Distance(dest, *here);
         float range = way * kThree + kRangeBase;
         if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
@@ -809,7 +806,7 @@ void FearMode::Execute(AIBrain* brain) {
             order.point = brain->owner->unit->localPosition;
             Vector3 v = from - *here;
             Vector3 direction = v;
-            float length = LengthXYZ(v);
+            float length = Length(v);
             if (!IsZero(length)) {
                 float twice = length + length;
                 direction = v / twice;
@@ -962,7 +959,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         Vector3 d = member->localPosition - unit->localPosition;
         float limit = g_logicSettings.followMaxDist * slack + 1.0f;
         EI_NAN_AUDIT(limit, d.x, d.y, d.z);
-        if (limit * limit < LengthSquaredZYX(d)) return false;
+        if (limit * limit < LengthSquared(d)) return false;
     }
     return true;
 }
@@ -1062,7 +1059,7 @@ std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radiu
     float radiusSq = radius * radius;
     for (int tries = 9;;) {
         EI_NAN_AUDIT(dy, dx, radiusSq);
-        if (LengthSquared2DUnrounded(dy, dx) <= radiusSq) break;
+        if (LengthSquared2D(dy, dx) <= radiusSq) break;
         dx = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
         dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
         if (--tries < 0) break;
@@ -1081,7 +1078,7 @@ std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radiu
     bool result = true;
     {
         AIPath path;
-        float distance = std::sqrt(LengthSquaredXYZ(self->localPosition - spot));
+        float distance = std::sqrt(LengthSquared(self->localPosition - spot));
         float range = distance * kRangePerDistance + kRangeBase;
         bool found = map->FindPath(self, spot, &path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
@@ -1111,7 +1108,7 @@ void AIBrain::UpdateFollow() {
     auto* leader = static_cast<Unit*>(target.Get());
     Vector3 toLeader = leader->localPosition - self->localPosition;
     int now = g_serverWorld.tick;
-    float distance = std::sqrt(LengthSquaredZYX(toLeader));
+    float distance = std::sqrt(LengthSquared(toLeader));
     UnitServer* leaderController = leader->ServerController();
     float walkTime = distance * kRangePerDistance + kRangeBase;
 
@@ -1169,7 +1166,7 @@ void AIBrain::UpdateFollow() {
     side.z = side.z * scale;
     Vector3 u = self->localPosition - leader->localPosition;
     EI_NAN_AUDIT(side.x, side.y, side.z, u.x, u.y, u.z);
-    if (DotZYX(side, u) < 0.0f) {
+    if (Dot(side, u) < 0.0f) {
         side = -side;
     }
 
@@ -1181,7 +1178,7 @@ void AIBrain::UpdateFollow() {
     float offY = aside.y - targetY;
     float offX = aside.x - half * path.targetX;
     EI_NAN_AUDIT(offX, offY);
-    if (LengthSquared2DUnrounded(offX, offY) < kReachedSq) {
+    if (LengthSquared2D(offX, offY) < kReachedSq) {
         owner->OrderMove(aside, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
@@ -1196,11 +1193,11 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3& from, const Vector3& t
     float fy = from.y - to.y;
     float fx = from.x - to.x;
     EI_NAN_AUDIT(fx, fy);
-    if (LengthSquared2DUnrounded(fx, fy) < kSamePointSq) return false;
+    if (LengthSquared2D(fx, fy) < kSamePointSq) return false;
     AIPath path;
     Unit* unit = brain->owner->unit;
     Vector3 saved = unit->localPosition;
-    float range = 2.0f * std::sqrt(LengthSquaredZYX(from - to));
+    float range = 2.0f * std::sqrt(LengthSquared(from - to));
     g_serverWorld.aiMap.sectorMap.Move(unit, from);
     bool found = g_serverWorld.aiMap.FindPath(unit, to, &path, range, 0.0f);
     g_serverWorld.aiMap.sectorMap.Move(unit, saved);

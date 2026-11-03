@@ -7,7 +7,7 @@
 #include "core_streams.h"
 #include "core_transform.h"
 #include "game_singletons.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "options.h"
 
 

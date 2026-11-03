@@ -4,7 +4,7 @@
 // live objects. See docs/notes/objects.md.
 #include "chunk_stream.h"
 #include "lock_key.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit_record.h"
 #include <cstddef>
 #include <cstdint>

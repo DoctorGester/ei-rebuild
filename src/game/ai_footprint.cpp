@@ -152,18 +152,18 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
 
         for (Vector3& p : corner) {
             const FootprintPart* placed = &object->partBoxes[index];
-            p = object->worldMatrix.rows.Transform(p + placed->pivot + placed->bounds.center) + position;
+            p = TransformColumnNormal(object->worldMatrix, p + placed->pivot + placed->bounds.center) + position;
         }
-        for (Vector3& v : normal) v = object->worldMatrix.rows.Transform(v);
+        for (Vector3& v : normal) v = TransformColumnNormal(object->worldMatrix, v);
 
         // Sample each face on a grid fine enough to hit every cell it covers.
         for (int k = 0; k < 6; ++k) {
             const Vector3 &p0 = corner[k], &p1 = corner[k + 1], &p2 = corner[k + 2];
             const Vector3 a = p0 - p1;
             const Vector3 b = p2 - p1;
-            float la = std::sqrt(LengthSquared2DUnrounded(a.y, a.x));
+            float la = std::sqrt(LengthSquared2D(a.y, a.x));
             int stepsA = lib::RoundEven((la + la) * 1.5f) + 2;
-            float lb = std::sqrt(LengthSquared2DUnrounded(b.y, b.x));
+            float lb = std::sqrt(LengthSquared2D(b.y, b.x));
             int stepsB = lib::RoundEven((lb + lb) * 1.5f) + 2;
             const Vector3 da = a / static_cast<float>(stepsA);
             const Vector3 db = b / static_cast<float>(stepsB);

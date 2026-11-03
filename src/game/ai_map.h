@@ -2,7 +2,7 @@
 
 #include "ai_event_table.h"
 #include "engine_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "search_grid.h"
 #include "sector_map.h"
 #include "unit.h"

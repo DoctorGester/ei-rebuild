@@ -125,11 +125,11 @@ inline void HeightPlusProduct(World* world, double (World::*height)(float, float
 }
 
 // *out = sqrt(y*y + x*x).
-inline void PlanarLength(const Vector3& v, float* out) { *out = std::sqrt(LengthSquared2DUnrounded<float>(v.y, v.x)); }
+inline void PlanarLength(const Vector3& v, float* out) { *out = std::sqrt(LengthSquared2D(v.y, v.x)); }
 
 // The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z).
 inline void ScaleToSpeed(Vector3* v, const float* speed) {
-    const float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v));
+    const float length = std::sqrt(LengthSquared(*v));
     const float k = *speed * 0.06666667f / length;
     *v *= k;
 }
@@ -141,7 +141,7 @@ inline int FlightTicks(const float* distance, const float* speed) { return lib::
 // radius / sqrt(n.y*n.y + n.x*n.x), then each component times k. The normal is written to `out` first and read back.
 inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out) {
     *out = {-direction.y, direction.x, 0.0f};
-    *out *= *radius / std::sqrt(LengthSquared2DUnrounded<float>(out->y, out->x));
+    *out *= *radius / std::sqrt(LengthSquared2D(out->y, out->x));
 }
 
 // The light wall's half extent from its lightning's ends.

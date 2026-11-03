@@ -1,9 +1,9 @@
 #pragma once
 
-// Out-of-line vector helpers from the engine core. The Vector3 and Quaternion
-// members implemented in core_maths.cpp are declared in maths.h.
+// Out-of-line helpers from the engine core. The Quaternion members implemented in core_maths.cpp are declared
+// in lib/vecmath.h.
 
-#include "maths.h"
+#include "lib/vecmath.h"
 
 // Clamps to [-1, 1]; NaN gives -1.
 float ClampUnit(float v);

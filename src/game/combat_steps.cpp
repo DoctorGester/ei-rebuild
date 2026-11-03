@@ -4,7 +4,7 @@
 #include "combat_plan.h"
 #include "item.h"
 #include "map_object_figures.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "random.h"
 #include "unit.h"
 
@@ -355,7 +355,7 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
 
     const Vector3 here = unit->localPosition;
     Vector3 aim = target->AimPoint();
-    float distance = std::sqrt(LengthSquaredXYZ(here - aim));
+    float distance = std::sqrt(LengthSquared(here - aim));
     float orderDistance = ActionDistance(&order);
     float reach = SelectLess(distance, orderDistance, distance, orderDistance);
 

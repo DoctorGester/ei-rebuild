@@ -124,7 +124,7 @@ bool MapObjectClientSpecific::RunTick() {
         float dx = lightPosition.x - followed->localPosition.x;
         float dy = lightPosition.y - followed->localPosition.y;
         float dz = lightZ - followed->localPosition.z;
-        float distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+        float distance2 = LengthSquared(Vector3{dx, dy, dz});
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0f) {
             Vector3& position = light->localPosition;

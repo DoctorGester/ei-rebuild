@@ -74,7 +74,7 @@ void SkyObject::ApplyLight(const Vector3& direction, SkyColour ambient, SkyColou
             colorsA[i] = (r << 8 | g) << 8 | b;
             continue;
         }
-        float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction.x, direction.y, direction.z);
+        float cosine = Dot(Vector3{x, y, z}, Vector3{direction.x, direction.y, direction.z});
         cosine = MaxKeepB(cosine, 0.0f);
         const float strength = cosine * cosine;
         std::uint32_t specular = Truncate(distance * kColourScale);

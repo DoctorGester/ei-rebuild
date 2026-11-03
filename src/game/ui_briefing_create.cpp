@@ -71,16 +71,6 @@ constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 
-// A copy of `v`, normalised unless its length is zero.
-Vector3 NormalisedUnlessZero(const Vector3& v) {
-    Vector3 out = v;
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
-    EI_NAN_AUDIT(length);
-    if (length == 0.0f) return out;
-    out *= 1.0f / length;
-    return out;
-}
-
 // A mover that took too long is put at its place, facing its direction, at once.
 void PlaceMover(BriefingMover* node) {
     Unit* unit = g_serverWorld.FindUnit(node->person->id);
@@ -114,7 +104,7 @@ void StepTurning(BriefingMover* node) {
     Vector3 direction = NormalisedUnlessZero(node->direction);
     float dy = direction.y - facingY;
     float dx = direction.x - facingX;
-    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
+    if (LengthSquared2D(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kDone;
 }
 

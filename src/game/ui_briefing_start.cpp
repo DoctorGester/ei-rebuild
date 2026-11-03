@@ -50,14 +50,6 @@ constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistanc
 
 Vector3 Facing(const Unit* unit) { return -unit->localRotation.AxisY(); }
 
-// Normalised unless its length is zero.
-void Normalise(Vector3* v) {
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
-    EI_NAN_AUDIT(length);
-    if (length == 0.0f) return;
-    *v *= 1.0f / length;
-}
-
 // The first mover of `person` is dropped; its target goes to `place` / `direction` unless the
 // dialogue waited for it.
 void DropMover(std::vector<BriefingMover>& movers, const Unit* person, Vector3* place, Vector3* direction) {
@@ -160,7 +152,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     directions[1].z = 0.0f;
     directions[2] = middle - newThirdPlace;
     directions[2].z = 0.0f;
-    for (Vector3& direction : directions) Normalise(&direction);
+    for (Vector3& direction : directions) direction = NormalisedUnlessZero(direction);
 
     if (third) DropMover(movers, third, &thirdPlace, &thirdDirection);
     if (noWalk) DropMover(movers, person, &personHome, &personHomeDirection);

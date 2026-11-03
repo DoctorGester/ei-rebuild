@@ -409,7 +409,7 @@ float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     float speedRatio = theirs.speed / (kSpeedScale * mine.speed);
     const Unit* self = unit;
     const Unit* other = attacker->unit;
-    float distance = std::sqrt(LengthSquaredZYX(self->localPosition - other->localPosition));
+    float distance = std::sqrt(LengthSquared(self->localPosition - other->localPosition));
     float twice = distance + distance;
     float radius = unit->Radius() * kDistanceScale;
     float penalty = twice / (radius + radius);

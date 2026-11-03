@@ -90,7 +90,7 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     ry = rotation.x;
     rz = rotation.y;
     rw = rotation.z;
-    float axis = LengthSquaredUnrounded<Sum3::XYZ>(ry, rz, rw);
+    float axis = LengthSquared(Vector3{ry, rz, rw});
     float angle;
     EI_NAN_AUDIT(axis);
     if (axis <= worlddata::kAxisEpsilon) {
@@ -154,7 +154,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
         const Vector3 heroStart = {worlddata::kHeroStartX, worlddata::kHeroStartY, 0.0f};
-        float distance = LengthSquaredXYZ(position - heroStart);
+        float distance = LengthSquared(position - heroStart);
         EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
     }

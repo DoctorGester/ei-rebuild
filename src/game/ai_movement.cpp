@@ -184,11 +184,11 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
             float dx = cell.x - eye.x;
             float dy = cell.y - eye.y;
             float dz = -eye.z;
-            float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+            float distance = std::sqrt(LengthSquared2D(dy, dx));
             EI_NAN_AUDIT(radius, distance);
             if (radius < distance) continue;
             if (!anyDirection) {
-                float dot = DotUnrounded<Sum3::ZYX>(dx, dy, dz, look.x, look.y, look.z);
+                float dot = Dot(Vector3{dx, dy, dz}, Vector3{look.x, look.y, look.z});
                 if (distance * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {

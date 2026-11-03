@@ -176,8 +176,8 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         MapObject* const& entry = object;
         if (where != 2) {
             object->flags |= MapObjectFlag::Shown;
-            // View-space position: x summed ZYX, y and z XYZ, each rounded.
-            o3d->worldPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition);
+            // View-space position.
+            o3d->worldPosition = TransformColumnNormal(*view, o3d->localPosition);
             switch (object->GetClassId()) {
             case ClassId::Unit:
                 PushBack(g_visibleUnits, entry);

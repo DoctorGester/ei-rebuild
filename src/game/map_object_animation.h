@@ -3,7 +3,7 @@
 // Animation tracks of figure parts. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
 
 #include "engine_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>

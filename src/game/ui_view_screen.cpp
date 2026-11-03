@@ -4,7 +4,7 @@
 #include "ui_view_screen.h"
 
 #include "camera.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "player_client.h"
 #include "ui_cursor.h"
 #include "world.h"

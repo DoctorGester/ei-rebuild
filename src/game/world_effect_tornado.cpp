@@ -77,7 +77,7 @@ void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
     float speed = pc24::Mul(static_cast<double>(g_random.Next()), kRandomScale) * kSpeedRange + kSpeedMin;
     Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
     framesLeft = 0;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
+    float length = std::sqrt(LengthSquared(way));
     if (length > 0.0f) {
         float scale = speed / length;
         way *= scale;

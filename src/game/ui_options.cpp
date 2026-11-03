@@ -3,7 +3,7 @@
 #include "ui.h"
 
 #include "text_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "world.h"
 
 #include "lib/nan_audit.h"

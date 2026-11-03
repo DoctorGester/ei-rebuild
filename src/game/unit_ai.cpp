@@ -196,7 +196,7 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float dx = position.x - point.x;
     float dy = position.y - point.y;
     EI_NAN_AUDIT(dy, dx, radiusSq);
-    if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
+    if (LengthSquared2D(dy, dx) < radiusSq) return true;
     // The unit has not moved -> not near.
     EI_NAN_AUDIT(position.x, previousPosition.x, position.y, previousPosition.y);
     if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
@@ -204,14 +204,14 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float pointY = point.y;
     float segX = previousPosition.x - position.x;
     float segY = previousPosition.y - position.y;
-    float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / LengthSquared2DUnrounded(segY, segX);
+    float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / LengthSquared2D(segY, segX);
     // Clamp to [0, 1] with selects: a NaN t gives 1.
     float u = MaxKeepB(0.0f, t);
     u = MinKeepA(1.0f, u);
     float ex = position.x - (pointX - u * segX);
     float ey = position.y - (pointY - u * segY);
     EI_NAN_AUDIT(ey, ex);
-    return LengthSquared2DUnrounded(ey, ex) < radiusSq;
+    return LengthSquared2D(ey, ex) < radiusSq;
 }
 
 bool AIBrain::IsAlliedUnit(EngineObject* object) {
@@ -512,7 +512,7 @@ void AIBrain::CallAllies(const Vector3& point) {
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
-                           std::sqrt(LengthSquaredXYZ(self->localPosition - other->localPosition)));
+                           std::sqrt(LengthSquared(self->localPosition - other->localPosition)));
         }
         ally->memory.HearCall(point, kCallDelay, message);
     }
@@ -524,11 +524,8 @@ bool AIMemory::Notice(const Vector3& point, int level, int decay) {
     if (level <= noticedLevel) return false;
     bool changed = true;
     if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
-        float dx = point.x - noticedX;
-        float dy = point.y - noticedY;
-        float z = point.z;
         // Farther than the limit; NaN is not.
-        changed = z * z + dy * dy + dx * dx > 10.0f;
+        changed = LengthSquared(point - NoticedPoint()) > 10.0f;
     }
     noticedLevel = level;
     noticedX = point.x;
@@ -560,10 +557,7 @@ void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
             // sqrt(10) away (NaN is near).
             bool changed = true;
             if (kNoticeCallLevel - memory->noticedLevel <= 100) {
-                float dx = call->point.x - memory->noticedX;
-                float dy = call->point.y - memory->noticedY;
-                float dz = call->point.z - 0.0f;
-                changed = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 10.0f;
+                changed = LengthSquared(call->point - memory->NoticedPoint()) > 10.0f;
             }
             memory->noticedX = call->point.x;
             memory->noticedLevel = kNoticeCallLevel;

@@ -85,16 +85,7 @@ void BriefingScreen::StartPhrases() {
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const Camera* camera = &g_camera;
     savedCamera = camera->localPosition;
-    const Quaternion& q = camera->localRotation;
-    float zz = q.z * q.z;
-    float axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
-    float axisY = (q.y * q.z - q.x * q.w) * 2.0f;
-    // x and y are doubled before multiplying; here the compiler doubles z instead of x,
-    // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2 would regroup the sum.
-    float axisX = Dot2DUnrounded(q.x * 2.0f, q.y * 2.0f, q.z, q.w);
-    lookAt.x = savedCamera.x + axisX;
-    lookAt.y = savedCamera.y + axisY;
-    lookAt.z = axisZ + savedCamera.z;
+    lookAt = savedCamera + camera->localRotation.AxisZ();
 
     dialogueText.clear();
     text->SetText(game::kEmptyText);
@@ -173,7 +164,7 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
         x = facing.x;
         y = facing.y;
     }
-    float length = std::sqrt(LengthSquared2DUnrounded(y, x));
+    float length = std::sqrt(LengthSquared2D(y, x));
     // Compared with zero.
     EI_NAN_AUDIT(length);
     if (length != 0.0f) {

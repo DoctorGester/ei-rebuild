@@ -3,7 +3,7 @@
 // Model and resource loading: the 3D library side of figures and the
 // databases read at startup (prints.db, acks.db). See docs/notes/models.md.
 
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "renderer_base.h"
 #include "script.h"   // ScriptStream

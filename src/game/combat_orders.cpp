@@ -5,7 +5,7 @@
 
 #include "item.h"
 #include "item_db.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"

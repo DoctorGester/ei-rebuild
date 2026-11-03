@@ -67,7 +67,7 @@ int EffectMissile::Steer() {
         velocity.y = target->localPosition.y - localPosition.y;
         velocity.z = aimZ - localPosition.z;
         float speed = kMissileSpeed;
-        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity.y, velocity.x)));
+        float distance = static_cast<float>(std::sqrt(LengthSquared2D(velocity.y, velocity.x)));
         if (GetClassId() == ClassId::EffectArrowFigure) speed = speed + speed;
         EI_NAN_AUDIT(distance);
         if (distance < speed) {   // within one step

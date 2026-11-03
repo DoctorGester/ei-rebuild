@@ -25,12 +25,11 @@ void CopyVertex(DecalVertex* to, const DecalVertex* from) { std::memcpy(to, from
 
 // ((a.z * p.z + a.y * p.y) + p.x * a.x) + offset, the order of the corner and plane sums.
 float Project(const Vector3& axis, const Vector3& p, float offset) {
-    return DotUnrounded<Sum3::ZYX>(axis, p) + offset;
+    return Dot(axis, p) + offset;
 }
 
 } // namespace
 
-double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>(*this); }
 
 namespace decal {
 
@@ -116,17 +115,17 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
     Vector3 vCorner = {quad.x()[0], quad.y()[0], quad.z()[0]};
 
     Vector3& dir = direction;
-    dir = Normalised<Sum3::XYZ>(dir);
+    dir = Normalised(dir);
 
     // The u edge without its part along the direction, over its squared length.
     uAxis = {quad.x()[2] - newOrigin.x, quad.y()[2] - newOrigin.y, quad.z()[2] - newOrigin.z};
-    float along = DotZYX(uAxis, dir);
+    float along = Dot(uAxis, dir);
     uAxis -= dir * along;
-    uAxis /= static_cast<float>(uAxis.LengthSquared());
+    uAxis /= LengthSquared(uAxis);
 
     vAxis = vCorner - newOrigin;
     vAxis -= dir * Dot(vAxis, dir);
-    vAxis /= static_cast<float>(vAxis.LengthSquared());
+    vAxis /= LengthSquared(vAxis);
 
     float slopeDivisor = std::fabs(dir.z);
     slope = dir / slopeDivisor;
@@ -134,8 +133,8 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
     Vector3 negated = -origin;
     uOffset = Dot(negated, uAxis);
     vOffset = Dot(negated, vAxis);
-    uLength = uAxis.Length();
-    vLength = vAxis.Length();
+    uLength = Length(uAxis);
+    vLength = Length(vAxis);
 
     // The cut-off plane faces along the direction through point - direction * depth * 0.33.
     float back = depth * 0.33f;
@@ -146,12 +145,12 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
 }
 
 bool DecalBuilder::Touches(const Vector3& center, float radius) const {
-    float v = DotZYX(vAxis, center) + vOffset;
+    float v = Dot(vAxis, center) + vOffset;
     float vReach = radius * vLength;
     if (v - vReach > 1.0f) return false;
     EI_NAN_AUDIT(v, vReach);
     if (v + vReach < 0.0f) return false;
-    float u = DotZYX(uAxis, center) + uOffset;
+    float u = Dot(uAxis, center) + uOffset;
     float uReach = radius * uLength;
     if (u - uReach > 1.0f) return false;
     return u + uReach >= 0.0f;

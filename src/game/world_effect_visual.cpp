@@ -52,8 +52,8 @@ Vector3& LightPosition(Light* light) { return light->localPosition; }
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
 int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
-    const float speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(velocity));
-    const float dist = std::sqrt(LengthSquared2DUnrounded(dxdy.y, dxdy.x));
+    const float speed = std::sqrt(LengthSquared(velocity));
+    const float dist = std::sqrt(LengthSquared2D(dxdy.y, dxdy.x));
     // On only when above.
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
@@ -95,7 +95,7 @@ std::uint32_t InlineRandom() {
 // sqrt(x*x + y*y) + half + 0.3, in x87 order.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = pc24::Round(pc24::Atan2(direction.y, direction.x));
-    const float outer = std::sqrt(LengthSquared2DUnrounded(direction.x, direction.y));
+    const float outer = std::sqrt(LengthSquared2D(direction.x, direction.y));
     angleAndOuter[1] = (outer + *half) + 0.3f;
 }
 

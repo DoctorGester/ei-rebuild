@@ -163,7 +163,7 @@ int Finish(RainSnow& layer, SceneRenderer* renderer, int used) {
 int RainSnow::BuildRain(SceneRenderer* renderer) {
     const ParticleFrame frame = Begin(*this, kRainSink, kRainRise);
     // The drop's tail: its length against the wind.
-    const float length = LengthXYZ(frame.wind);
+    const float length = Length(frame.wind);
     const float tailX = -(frame.wind.x / length * kDropLength);
     const float tailY = -(frame.wind.y / length * kDropLength);
 

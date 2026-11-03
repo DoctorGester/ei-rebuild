@@ -342,7 +342,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     EI_NAN_AUDIT(span);
     if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
-    float moved = std::sqrt(LengthSquaredZYX(direction));
+    float moved = std::sqrt(LengthSquared(direction));
     float numerator = moved * sample.speed * kAnimationRate;
     float denominator = 2.0f * (frames * length);
     unit->animationSpeed = numerator / denominator;

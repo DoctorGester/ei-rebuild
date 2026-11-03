@@ -66,30 +66,6 @@ void MakePlain(UiMesh* sprite) {
     sprite->flags |= FigureMeshFlag::Flat;
 }
 
-// q * r as the weapon bar's first product sums it.
-Quaternion ProductFirst(const Quaternion& q, const Quaternion& r) {
-    Vector3 qv = {q.x, q.y, q.z};
-    Vector3 rv = {r.x, r.y, r.z};
-    Quaternion out;
-    out.w = r.w * q.w - DotXYZ(qv, rv);
-    out.x = ((q.y * r.z - r.y * q.z) + q.x * r.w) + r.x * q.w;
-    out.y = ((r.x * q.z - q.x * r.z) + q.y * r.w) + r.y * q.w;
-    out.z = ((q.x * r.y - q.y * r.x) + r.z * q.w) + r.w * q.z;
-    return out;
-}
-
-// q * r as its second product sums it.
-Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
-    Vector3 qv = {q.x, q.y, q.z};
-    Vector3 rv = {r.x, r.y, r.z};
-    Quaternion out;
-    out.z = ((q.x * r.y - q.y * r.x) + q.w * r.z) + q.z * r.w;
-    out.y = ((q.z * r.x - q.x * r.z) + q.w * r.y) + q.y * r.w;
-    out.x = ((q.y * r.z - q.z * r.y) + q.w * r.x) + q.x * r.w;
-    out.w = q.w * r.w - DotZYX(qv, rv);
-    return out;
-}
-
 } // namespace
 
 // --- Weapon bar ------------------------------------------------------------------------------------------------
@@ -151,9 +127,9 @@ void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
         Quaternion first, second, third;
         first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * (-0.05f));
         second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, kPi * (-0.33333334f));
-        Quaternion both = ProductFirst(first, second);
+        Quaternion both = first * second;
         third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * 0.75f);
-        sprite->localRotation = ProductSecond(both, third);
+        sprite->localRotation = both * third;
     } else {
         sprite = AddBlankSprite();
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats

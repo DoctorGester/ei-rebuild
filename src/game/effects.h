@@ -11,7 +11,7 @@
 #include "base_manager.h"
 #include "clip.h"   // TLVertex
 #include "core_transform.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"   // ClipBounds
 #include "search_grid.h"
 

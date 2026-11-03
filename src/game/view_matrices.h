@@ -3,7 +3,7 @@
 // The view matrix of the 3D transform library side. Matrices are row-major 4x4
 // float arrays (translation in column 3). See docs/notes/script.md ("Leftovers").
 
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 

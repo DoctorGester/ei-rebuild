@@ -7,7 +7,7 @@
 #include "ui_screens.h"
 
 #include "base_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "player_client.h"
 #include "spell.h"
 #include "unit.h"
@@ -104,12 +104,12 @@ public:
         float zoomedX = mapX * map->zoom;
         float zoomedY = mapY * map->zoom;
         EI_NAN_AUDIT(zoomedY, zoomedX);
-        if (LengthSquared2DUnrounded(zoomedY, zoomedX) <= kInnerRadius2) {
+        if (LengthSquared2D(zoomedY, zoomedX) <= kInnerRadius2) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
         }
-        if (LengthSquared2DUnrounded(mapY, mapX) < kRimRadius2) return false;
+        if (LengthSquared2D(mapY, mapX) < kRimRadius2) return false;
         if (AbsBits(mapX) > kRimExtent) return false;
         if (AbsBits(mapY) > kRimExtent) return false;
         *x = mapX;
@@ -181,7 +181,7 @@ void PutArrow(VertexPacket& packet, const Unit* unit, float x, float y) {
     Vector3 second = rotation->AxisY();
     float dirY = second.y;
 
-    float length2 = LengthSquared2DUnrounded(dirY, dirX);
+    float length2 = LengthSquared2D(dirY, dirX);
     float nx;
     float ny;
     if (length2 >= kTinyLength2) {
@@ -287,7 +287,7 @@ void HudMap::BuildMarkers() {
         }
         float x = out.MapX(unit->localPosition.x) * zoom;
         float y = out.MapY(unit->localPosition.y) * zoom;
-        if (LengthSquared2DUnrounded(y, x) > kUnitRadius2) {
+        if (LengthSquared2D(y, x) > kUnitRadius2) {
             out.Hide();
             continue;
         }
@@ -362,7 +362,7 @@ void HudMap::UpdateView() {
         axis = camera->localRotation.AxisZ();
         facingY = axis.y;
     }
-    float length2 = LengthSquared2DUnrounded(facingX, facingY);
+    float length2 = LengthSquared2D(facingX, facingY);
     if (length2 >= kTinyLength2) {
         float length = std::sqrt(length2);
         facingX = facingX / length;

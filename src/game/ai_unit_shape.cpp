@@ -144,14 +144,14 @@ void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const
     float cx = scale * position.x;
     float cy = scale * position.y;
     float dx = direction.x, dy = direction.y, dz = direction.z;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    float length = std::sqrt(LengthSquared(Vector3{dx, dy, dz}));
     float reach = length * scale + 1.0f;
     float r = reach;
     float r2 = reach * r;
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction.y;
     float ny = direction.x;
-    float side = std::sqrt(LengthSquared2DUnrounded(ny, nx));
+    float side = std::sqrt(LengthSquared2D(ny, nx));
     float divisor = side * (scale * kWidth + 1.0f);
     nx = nx / divisor;
     ny = ny / divisor;
@@ -163,8 +163,8 @@ void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const
             float fy = cy - static_cast<float>(y);
             float fx = cx - static_cast<float>(x);
             EI_NAN_AUDIT(fy, fx, r2, ny, nx);
-            if (LengthSquared2DUnrounded(fy, fx) >= r2) continue;
-            if (Dot2DUnrounded(fy, fx, ny, nx) >= 1.0f) continue;
+            if (LengthSquared2D(fy, fx) >= r2) continue;
+            if (Dot2D(fy, fx, ny, nx) >= 1.0f) continue;
             AddCell(this, x, y);
         }
 }

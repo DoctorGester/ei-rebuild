@@ -12,7 +12,7 @@
 
 #include "console.h"
 #include "text_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"
 #include "net_second_master.h"
 #include "resource.h"

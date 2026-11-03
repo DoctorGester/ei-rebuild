@@ -2,7 +2,7 @@
 #include "effects.h"
 
 #include "core_maths.h"
-#include "object_maths.h"
+#include "lib/vecmath.h"
 #include "random.h"
 
 #include "lib/crt.h"
@@ -205,7 +205,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
     float d = elements[0].sphere.speed;
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = -(DotZYX(p->velocity, n) / d);
+        float t = -(Dot(p->velocity, n) / d);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         Vector3 along;
@@ -246,7 +246,7 @@ void ParticleSource::TickNuke(ParticleElement* e) {
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void ParticleSource::TickTendril(ParticleElement*) {
-    int n = static_cast<int>(LengthXYZ(extent) * kTendrilDensity);
+    int n = static_cast<int>(Length(extent) * kTendrilDensity);
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;

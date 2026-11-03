@@ -53,7 +53,7 @@ void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     points[i].pos = point;
     points[i].bolt.base = point;
 
-    float inverse = EI_ONE / std::sqrt(LengthSquared2DUnrounded(dir.y, dir.x) + EI_QUARTER);
+    float inverse = EI_ONE / std::sqrt(LengthSquared2D(dir.y, dir.x) + EI_QUARTER);
     dir *= inverse;
     dir.z = inverse * EI_HALF;
     points[i].bolt.fork = dir * EI_HALF;
@@ -194,8 +194,8 @@ void PlaceModifierPoints(ParticleSource* s) {
         for (;;) {
             auto draw = [] { return WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE; };
             v = {draw(), draw(), draw()};
-            v -= axis * DotZYX(axis, v);
-            lengthSq = LengthSquaredZYX(v);
+            v -= axis * Dot(axis, v);
+            lengthSq = LengthSquared(v);
             EI_NAN_AUDIT(lengthSq);
             if (lengthSq != 0.0f) break;   // a NaN ends the search too
         }

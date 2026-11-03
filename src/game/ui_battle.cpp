@@ -9,7 +9,7 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"
 #include "net_classes.h"
 #include "net_messages.h"

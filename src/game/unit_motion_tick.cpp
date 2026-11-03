@@ -43,7 +43,7 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
     const float dx = a[0] - b[0];
     const float dy = a[1] - b[1];
     const float dz = a[2] - b[2];
-    return LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz) > *limit;
+    return LengthSquared(Vector3{dx, dy, dz}) > *limit;
 }
 
 bool SpeedBelow(MapObject* object, const float* than) {

@@ -9,7 +9,6 @@
 #include "link_figure.h"
 #include "manager_context.h"
 #include "model.h"
-#include "object_maths.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
@@ -360,21 +359,20 @@ void SharedFigureMesh::LoadOld(char** cursor) {
 // ---- World-space box ----------------------------------------------------------------------------
 
 void FigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
-    // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double distance = LengthSquaredXYZ(localPosition);
+    // The squared distance from the figure's origin; NaN passes.
+    float distance = LengthSquared(localPosition);
     if (distance > kFarLimit) return;
 
     Matrix4 m = WorldMatrix();
 
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
-    // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner
-    // sums stay on the FPU in the original (the same at the main thread's 24-bit precision).
+    // a row vector.
     const Vector3& c = box.bounds.center;
     const Vector3& lo = box.bounds.boxMin;
     const Vector3& hi = box.bounds.boxMax;
     for (int corner = 0; corner < 8; ++corner) {
         Vector3 p = {((corner & 4) ? lo : hi).x + c.x, ((corner & 2) ? lo : hi).y + c.y, ((corner & 1) ? lo : hi).z + c.z};
-        Vector3 w = TransformRow<Sum3::ZYX>(m, p);
+        Vector3 w = TransformRow(m, p);
         Extend(*maxX, *minX, w.x);
         Extend(*maxY, *minY, w.y);
         Extend(*maxZ, *minZ, w.z);
@@ -544,52 +542,10 @@ void FigureMesh::CopyFigure(const FigureMesh* other) {
 void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
     // The pose virtual stores the quaternion as the world rotation.
     CombineRotation(rotation);
-    // The position (+0x1C) rotated by the quaternion (w, v):
-    // 2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
-    Vector3 v{rotation.x, rotation.y, rotation.z};
-    auto* p = &localPosition;
-    float dot = DotUnrounded<Sum3::ZYX>(v, *p);
-    Vector3 along = v * (dot + dot);
-    float w = rotation.w;
-    Vector3 turned = Cross(v, *p) * (w + w);
-    float ww = w * w;
-    float k = ww - Dot(v, v);
-    Vector3 rotated = *p * k + turned + along;
-    Vector3& moved = worldPosition;
-    moved = rotated + offset;
+    // The position rotated by the quaternion, then moved by `offset`.
+    worldPosition = rotation.Rotate(localPosition) + offset;
 
-    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
-    float* m = poseMatrix.m;
-    std::memset(m, 0, sizeof(poseMatrix));
-    m[15] = 1.0f;
-    m[10] = 1.0f;
-    m[5] = 1.0f;
-    m[0] = 1.0f;
-    float qw = worldRotation.w, qx = worldRotation.x, qy = worldRotation.y, qz = worldRotation.z;
-    float x2 = qx + qx;
-    float y2 = qy + qy;
-    float z2 = qz + qz;
-    float wx = x2 * qw;
-    float wy = y2 * qw;
-    float wz = z2 * qw;
-    float xx = x2 * qx;
-    float xy = y2 * qx;
-    float xz = z2 * qx;
-    float yy = y2 * qy;
-    float yz = z2 * qy;
-    float zz = z2 * qz;
-    m[0] = 1.0f - (zz + yy);
-    m[4] = xy - wz;
-    m[8] = wy + xz;
-    m[1] = xy + wz;
-    m[5] = 1.0f - (zz + xx);
-    m[9] = yz - wx;
-    m[2] = xz - wy;
-    m[6] = yz + wx;
-    m[10] = 1.0f - (yy + xx);
-    m[12] = moved.x;
-    m[13] = moved.y;
-    m[14] = moved.z;
+    poseMatrix = WorldMatrix();
 }
 
 // --- Life --------------------------------------------------------------------------------------------

@@ -52,7 +52,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, Unit* c
     float radius2 = option->radius * option->radius;
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        float distance2 = DistanceSquaredXYUnrounded<float>(member->localPosition, candidate->localPosition);
+        float distance2 = DistanceSquaredXY(member->localPosition, candidate->localPosition);
         EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
@@ -140,7 +140,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     if (self == object || fromHere) {
         point = self->localPosition;
     } else {
-        float distance = std::sqrt(LengthSquaredXYZ(self->localPosition - object->localPosition));
+        float distance = std::sqrt(LengthSquared(self->localPosition - object->localPosition));
         float range = self->ScaledValue(distance);
         float targetRadius = object->Radius();
         float minDistance = self->Radius() + targetRadius;
@@ -180,7 +180,7 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
         float dy = at.y - other->localPosition.y;
         float dx = at.x - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
+        if (LengthSquared2D(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
@@ -189,7 +189,7 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     float dx = self->localPosition.x - at.x;
     float radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
-    return radius * radius < LengthSquared2DUnrounded(dx, dy);
+    return radius * radius < LengthSquared2D(dx, dy);
 }
 
 namespace {
@@ -264,7 +264,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = std::sqrt(DistanceSquaredXYUnrounded<float>(candidate->localPosition, from)) - reach;
+    float beyond = std::sqrt(DistanceSquaredXY(candidate->localPosition, from)) - reach;
     float penalty = MaxKeepB(0.0f, beyond);
     float result = score - penalty * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);

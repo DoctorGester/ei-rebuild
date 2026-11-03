@@ -6,7 +6,7 @@
 #include "engine_object.h"
 #include "item.h"
 #include "map_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit_motion.h"
 
 #include "lib/containers.h"

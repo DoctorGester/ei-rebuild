@@ -18,31 +18,13 @@ TransformObject* TransformObject::CopyTransform(const TransformObject& other) {
 }
 
 void TransformObject::CombineRotation(const Quaternion& g) {
-    const Quaternion& f = localRotation;
-    float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
-    float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
-    float y = ((f.x * g.z - f.z * g.x) + f.y * g.w) + f.w * g.y;
-    float z = ((f.y * g.x - f.x * g.y) + f.z * g.w) + f.w * g.z;
-    worldRotation.w = w;
-    worldRotation.x = x;
-    worldRotation.y = y;
-    worldRotation.z = z;
+    worldRotation = g * localRotation;
 }
 
-// world = parent + rotate(parentRotation, local), with the rotation expanded as
-// (w^2 - u.u) L + 2w (u x L) + 2 (u.L) u. Each term is rounded to float where the game passes
-// it to the Vector3 constructor; the shared factors (2 u.L, w^2 - u.u) stay unrounded, so they are
-// recomputed (identically) in each component rather than held in a float local. 2 u.L is written
-// (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),
-// and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
+// The world rotation and position: the local ones turned by the parent's rotation `q` and moved to its position `p`.
 void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
-    const Vector3 u = {q.x, q.y, q.z};
-    const Vector3& l = localPosition;
-    const Vector3 along = u * DotZXY(u * 2.0f, l);
-    const Vector3 around = Cross(u, l) * (q.w * 2.0f);
-    const Vector3 scaled = l * (q.w * q.w - LengthSquaredZYX(u));
-    worldPosition = scaled + around + along + p;
+    worldPosition = q.Rotate(localPosition) + p;
 }
 
 void TransformObject::SaveTransform(platform::File* file) {
@@ -59,7 +41,7 @@ void Camera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation;
     const Vector3& pos = localPosition;
     // The rotated Z axis (AxisZ's order), every component rounded to float.
-    const Vector3 axis = RotatedAxisZ(r);
+    const Vector3 axis = (r).AxisZ();
     if (std::fabs(axis.z) > 1e-5 && -(pos.z / axis.z) > 0.0f) {
         *out = axis * -(pos.z / axis.z) + pos;
         return;
@@ -116,7 +98,7 @@ constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initiali
 // forward normalised, `axis` = from x toward.
 void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from, Vector3* toward, Vector3* axis) {
     Vector3 t = Cross(Cross(forward, dir), forward);
-    t *= 1.0f / std::sqrt(LengthSquaredZYX(t));
+    t *= 1.0f / std::sqrt(LengthSquared(t));
     *toward = t;
     *axis = Cross(from, t);
 }
@@ -131,37 +113,17 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
 // The world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
 // position).
 Matrix4 TransformObject::WorldMatrix() const {
+    // Quaternion::ToMatrix's rotation is for column vectors; this matrix's rows are its columns.
+    Matrix4 rotation = {};
+    worldRotation.ToMatrix(rotation.m);
     Matrix4 result = {};
-    float* m = result.m;
-    m[15] = 1.0f;
-    m[10] = 1.0f;
-    m[5] = 1.0f;
-    m[0] = 1.0f;
-    const Quaternion& q = worldRotation;
-    float x2 = q.x + q.x;
-    float y2 = q.y + q.y;
-    float z2 = q.z + q.z;
-    float wx = x2 * q.w;
-    float wy = y2 * q.w;
-    float wz = z2 * q.w;
-    float xx = x2 * q.x;
-    float xy = y2 * q.x;
-    float xz = z2 * q.x;
-    float yy = y2 * q.y;
-    float yz = z2 * q.y;
-    float zz = z2 * q.z;
-    m[0] = 1.0f - (zz + yy);
-    m[4] = xy - wz;
-    m[8] = xz + wy;
-    m[1] = xy + wz;
-    m[5] = 1.0f - (zz + xx);
-    m[9] = yz - wx;
-    m[2] = xz - wy;
-    m[6] = yz + wx;
-    m[10] = 1.0f - (yy + xx);
-    m[12] = worldPosition.x;
-    m[13] = worldPosition.y;
-    m[14] = worldPosition.z;
+    for (int row = 0; row < 3; ++row) {
+        for (int column = 0; column < 3; ++column) result.m[row * 4 + column] = rotation.m[column * 4 + row];
+    }
+    result.m[12] = worldPosition.x;
+    result.m[13] = worldPosition.y;
+    result.m[14] = worldPosition.z;
+    result.m[15] = 1.0f;
     return result;
 }
 
@@ -170,13 +132,13 @@ Matrix4 TransformObject::WorldMatrix() const {
 // No turn when the axis is shorter than 1e-5.
 void TransformObject::TiltTowards(const Vector3& target) {
     const Vector3 down = -localRotation.AxisY();
-    const Vector3 n = target * (1.0f / std::sqrt(LengthSquaredZYX(target)));
+    const Vector3 n = target * (1.0f / std::sqrt(LengthSquared(target)));
     Vector3 axis = Cross(down, n);
-    float length = std::sqrt(LengthSquaredZYX(axis));
+    float length = std::sqrt(LengthSquared(axis));
     float angle;
     if (length >= kMinAxis) {
         // The game clamps a second time while storing the float; the value is in range by now.
-        const double arc = libcrt::CiAcos(ClampUnit(DotZYX(n, down)));
+        const double arc = libcrt::CiAcos(ClampUnit(Dot(n, down)));
         angle = pc24::Mul(arc, kTiltStep);   // the double arc cosine times the step, one rounding
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
@@ -192,14 +154,14 @@ void TransformObject::TiltTowards(const Vector3& target) {
 // shorter than 1e-5.
 void TransformObject::TurnTowards(const Vector3& target) {
     const Vector3 forward = localRotation.AxisZ();
-    const Vector3 n = target * (1.0f / std::sqrt(LengthSquaredZYX(target)));
+    const Vector3 n = target * (1.0f / std::sqrt(LengthSquared(target)));
     Vector3 r = Cross(forward, n);
-    float length = std::sqrt(LengthSquaredZYX(r));
+    float length = std::sqrt(LengthSquared(r));
     Vector3 axis;
     float angle;
     if (length >= kMinAxis) {
         axis = r * (1.0f / length);
-        angle = static_cast<float>(libcrt::CiAcos(ClampUnit(DotZYX(n, forward))));
+        angle = static_cast<float>(libcrt::CiAcos(ClampUnit(Dot(n, forward))));
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
@@ -217,7 +179,7 @@ void TransformObject::RollTowards(const Vector3& dir) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, down, &toward, &axis);
     float angle;
-    if (axis.Length() >= kMinAxis) {
+    if (Length(axis) >= kMinAxis) {
         angle = AngleBetween(down, toward);
     } else {   // also NaN
         axis = Vector3{1.0f, 0.0f, 0.0f};
@@ -229,15 +191,7 @@ void TransformObject::RollTowards(const Vector3& dir) {
 void TransformObject::Rotate(const Vector3& axis, float angle) {
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, axis);
-    Quaternion& q = localRotation;
-    float x = ((q.z * r.y - q.y * r.z) + q.w * r.x) + r.w * q.x;
-    float y = ((q.x * r.z - q.z * r.x) + r.w * q.y) + q.w * r.y;
-    float z = ((q.y * r.x - r.y * q.x) + r.w * q.z) + q.w * r.z;
-    float w = r.w * q.w - DotUnrounded<Sum3::ZYX>(r.x, r.y, r.z, q.x, q.y, q.z);
-    q.y = y;
-    q.z = z;
-    q.w = w;
-    q.x = x;
+    localRotation = r * localRotation;
 }
 
 // As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns towards `dir`; an angle
@@ -248,7 +202,7 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, from, &toward, &axis);
     float angle = 0.0f;
-    if (axis.Length() >= kMinAxis) {
+    if (Length(axis) >= kMinAxis) {
         angle = AngleBetween(from, toward);
     } else {   // also NaN
         axis = Vector3{1.0f, 0.0f, 0.0f};

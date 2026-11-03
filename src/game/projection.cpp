@@ -63,10 +63,8 @@ void SetPosition(TLVertex& v, float x, float y, float z, float rhw) {
 }   // namespace
 
 Vector4 ToClip(const Matrix4& m, const Vector3& p) {
-    const float* r = m.m;
-    const float x = p.x, y = p.y, z = p.z;
-    return {((x * r[0] + r[3]) + y * r[1]) + z * r[2], ((x * r[4] + r[7]) + y * r[5]) + z * r[6],
-            ((x * r[8] + r[11]) + y * r[9]) + z * r[10], ((x * r[12] + r[15]) + y * r[13]) + z * r[14]};
+    const Vector3 c = TransformColumn(m, p);
+    return {c.x, c.y, c.z, TransformColumnW(m, p)};
 }
 
 // The packets from the last to the first (which of two equal extremes stays, +0 or -0, follows from the order).
@@ -82,7 +80,7 @@ void ClipBounds::Fit(const VertexPacket* packets, int blocks) {
     center = (high + low) * 0.5f;
     boxMax = high - center;
     boxMin = low - center;
-    radius = LengthXYZ(boxMax);
+    radius = Length(boxMax);
     flags |= static_cast<std::uint32_t>(BoundsFlag::Sphere | BoundsFlag::Box);
 }
 
@@ -101,8 +99,8 @@ void TransformPipeline::SetDepthRange(float start, float end) {
 void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks) {
     for (int i = 0; i < blocks * 4; ++i) {
         const Vector3 p = PacketPoint(positions, i);
-        const Vector3 transformed = TransformColumn<Sum3::XYZ>(m, p);
-        projected[i] = Divided({transformed.x, transformed.y, transformed.z, TransformColumnW<Sum3::XYZ>(m, p)});
+        const Vector3 transformed = TransformColumn(m, p);
+        projected[i] = Divided({transformed.x, transformed.y, transformed.z, TransformColumnW(m, p)});
     }
 }
 
@@ -177,61 +175,21 @@ void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
 // The 4x4 matrix helpers: the product, a quaternion's rotation matrix and the
 // transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
 
-namespace {
-
-// The order in which each product element sums its four terms a[r][k] * b[k][c], per column, for row 0 and
-// for rows 1-3 (the game's instruction order). The partial sums are rounded to float; on the game's main
-// thread (24-bit x87 precision) they equal the ones the game keeps on the FPU stack.
-using SumOrder = std::uint8_t[2][4][4];
-constexpr SumOrder kProductOrder = {
-    {{0, 2, 1, 3}, {2, 0, 1, 3}, {0, 2, 1, 3}, {3, 1, 0, 2}},
-    {{1, 3, 2, 0}, {1, 0, 3, 2}, {1, 3, 2, 0}, {0, 3, 2, 1}},
-};
-constexpr SumOrder kPushOrder = {
-    {{3, 2, 1, 0}, {1, 0, 3, 2}, {0, 3, 1, 2}, {2, 1, 0, 3}},
-    {{2, 1, 0, 3}, {0, 3, 2, 1}, {3, 2, 0, 1}, {3, 2, 1, 0}},
-};
-
-// out = a * b, element by element in memory order, reading the inputs again for each element.
-void Multiply(float* out, const float* a, const float* b, const SumOrder& order) {
-    for (int r = 0; r < 4; ++r) {
-        for (int c = 0; c < 4; ++c) {
-            const std::uint8_t* k = order[r ? 1 : 0][c];
-            const float* row = a + r * 4;
-            float sum = static_cast<float>(row[k[0]] * b[k[0] * 4 + c] + row[k[1]] * b[k[1] * 4 + c]);
-            sum = static_cast<float>(sum + row[k[2]] * b[k[2] * 4 + c]);
-            out[r * 4 + c] = sum + row[k[3]] * b[k[3] * 4 + c];
-        }
-    }
-}
-
-} // namespace
-
-void Matrix4::Multiply(const float* a, const float* b) { ::Multiply(m, a, b, kProductOrder); }
-
 void Quaternion::ToMatrix(float* out) const {
-    // Twice the vector part; the products the game stores as floats are rounded to float.
-    float x2 = x + x;
-    float y2 = static_cast<float>(y + y);
-    float z2 = static_cast<float>(z + z);
-    float wx = static_cast<float>(x2 * w);
-    float wy = static_cast<float>(y2 * w);
-    float wz = static_cast<float>(z2 * w);
-    float xx = x2 * x;
-    float xy = y2 * x;
-    float xz = static_cast<float>(z2 * x);
-    float yy = static_cast<float>(y2 * y);
-    float yz = static_cast<float>(z2 * y);
-    float zz = static_cast<float>(z2 * z);
-    out[0] = 1.0f - static_cast<float>(zz + yy);
+    // The unit quaternion's rotation matrix, from twice the vector part.
+    const float x2 = x + x, y2 = y + y, z2 = z + z;
+    const float wx = x2 * w, wy = y2 * w, wz = z2 * w;
+    const float xx = x2 * x, xy = y2 * x, xz = z2 * x;
+    const float yy = y2 * y, yz = z2 * y, zz = z2 * z;
+    out[0] = 1.0f - (yy + zz);
     out[1] = xy - wz;
     out[2] = xz + wy;
     out[4] = xy + wz;
-    out[5] = 1.0f - static_cast<float>(zz + xx);
+    out[5] = 1.0f - (xx + zz);
     out[6] = yz - wx;
     out[8] = xz - wy;
     out[9] = yz + wx;
-    out[10] = 1.0f - static_cast<float>(yy + xx);
+    out[10] = 1.0f - (xx + yy);
 }
 
 void TransformPipeline::PushMatrix(const float* m, int index) {
@@ -242,38 +200,26 @@ void TransformPipeline::PushMatrix(const float* m, int index) {
         return;
     }
     ++stack.count;
-    Multiply(stack.matrices[stack.count - 1].m, stack.matrices[stack.count - 2].m, m, kPushOrder);
+    stack.matrices[stack.count - 1].Multiply(stack.matrices[stack.count - 2].m, m);
 }
 
 // --- View matrices -----------------------------------------------------------------------------------
 
-// The view matrix: see view_matrices.h. The sums keep the game's order.
+// The view matrix: the camera's rotated axes as rows, each with its offset from the camera (view_matrices.h).
 
 namespace view {
 
 Matrix4 ViewMatrix(const Vector3& position, const Quaternion& q) {
     Matrix4 result = {};
-    float* out = result.m;
-    Vector3 axisX = q.AxisX();
-    Vector3 axisY = RotatedAxisY(q);   // inlined copies, the same orders
-    Vector3 axisZ = RotatedAxisZ(q);
-    const Vector3 p = position;
-    out[0] = axisX.x;
-    out[1] = axisX.y;
-    out[2] = axisX.z;
-    out[4] = axisY.x;
-    out[5] = axisY.y;
-    out[6] = axisY.z;
-    out[8] = axisZ.x;
-    out[3] = -DotZYX(p, axisX);
-    out[9] = axisZ.y;
-    out[10] = axisZ.z;
-    out[7] = -DotZYX(p, axisY);
-    out[11] = -DotZYX(p, axisZ);
-    out[14] = 0.0f;
-    out[13] = 0.0f;
-    out[12] = 0.0f;
-    out[15] = 1.0f;
+    const Vector3 axes[3] = {q.AxisX(), q.AxisY(), q.AxisZ()};
+    for (int row = 0; row < 3; ++row) {
+        float* out = result.m + row * 4;
+        out[0] = axes[row].x;
+        out[1] = axes[row].y;
+        out[2] = axes[row].z;
+        out[3] = -Dot(position, axes[row]);
+    }
+    result.m[15] = 1.0f;
     return result;
 }
 

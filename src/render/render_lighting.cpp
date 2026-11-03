@@ -26,7 +26,7 @@ bool g_shadows[kMostSceneLights] = {};
 void SceneLighting(const SceneLights& lights) {
     scene_light_params_t p{};
     const Vector3& d = lights.sunDirection;
-    const float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(d));
+    const float length = std::sqrt(LengthSquared(d));
     const float sun[3] = {d.x, d.y, d.z};
     for (int k = 0; k < 3; ++k) {
         p.sun[k] = length > 1e-09f ? sun[k] / length : (k == 2 ? -1.0f : 0.0f);
@@ -39,7 +39,7 @@ void SceneLighting(const SceneLights& lights) {
     for (int i = 0; i < lights.pointCount && lights.points; ++i) {
         const ScenePointLight& l = lights.points[i];
         if (!(l.inverseRangeSquared > 0.0f)) continue;
-        const float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(l.position - lights.camera));
+        const float distance = std::sqrt(LengthSquared(l.position - lights.camera));
         const float outside = distance - 1.0f / std::sqrt(l.inverseRangeSquared);
         order.emplace_back(outside, i);
     }
@@ -86,7 +86,7 @@ void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
     const Vector3 ax{m[0], m[4], m[8]}, ay{m[1], m[5], m[9]}, az{m[2], m[6], m[10]};
     const Vector3 at{m[3], m[7], m[11]};
     Vector3 r0 = Cross(ay, az), r1 = Cross(az, ax), r2 = Cross(ax, ay);
-    const float determinant = vecmath::Dot<Sum3::XYZ>(ax, r0);
+    const float determinant = Dot(ax, r0);
     if (std::fabs(determinant) > 1e-20f) {
         r0 /= determinant;
         r1 /= determinant;
@@ -97,7 +97,7 @@ void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
         r2 = Vector3{0.0f, 0.0f, 1.0f};
     }
     auto toModel = [&](const Vector3& v) {
-        return Vector3{vecmath::Dot<Sum3::XYZ>(r0, v), vecmath::Dot<Sum3::XYZ>(r1, v), vecmath::Dot<Sum3::XYZ>(r2, v)};
+        return Vector3{Dot(r0, v), Dot(r1, v), Dot(r2, v)};
     };
     const float* diffuse = l.diffuseColour;
     p.on[0] = 1.0f;
@@ -117,7 +117,7 @@ void MeshLightUniforms(const MeshLighting& l, mesh_light_params_t* params) {
     static std::vector<std::pair<float, int>> order;
     order.clear();
     for (int i = 0; i < l.lightCount && l.lights; ++i)
-        order.emplace_back(LengthSquared<Sum3::XYZ>(l.lights[i].position - at), i);
+        order.emplace_back(LengthSquared(l.lights[i].position - at), i);
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     const int count = (std::min)(static_cast<int>(order.size()), kMostMeshLights);
     for (int k = 0; k < count; ++k) {

@@ -6,7 +6,6 @@
 #include "game_singletons.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "maths.h"
 #include "model.h"
 #include "object.h"
 #include "options.h"
@@ -61,7 +60,7 @@ float Brightness(const Light* light) {
 bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     const Vector3& at = object->localPosition;
     const Vector3& from = light->localPosition;
-    float distanceSquared = LengthSquaredZYX(at - from);
+    float distanceSquared = LengthSquared(at - from);
     if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
     float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = Brightness(light) * falloff;
@@ -86,16 +85,16 @@ void DirectionalShare(Light* light, Vector3* out) {
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
 void LightDirection(const Vector3& sum, Vector3* direction) {
-    float lengthSquared = LengthSquaredUnrounded<Sum3::ZXY>(sum);   // (x + z) + y
+    float lengthSquared = LengthSquared(sum);   // (x + z) + y
     *direction = sum;
     EI_NAN_AUDIT(lengthSquared);
     if (lengthSquared != 0.0f) *direction = sum * (1.0f / std::sqrt(lengthSquared));
-    float horizontal = std::sqrt(LengthSquared2DUnrounded(direction->y, direction->x));
+    float horizontal = std::sqrt(LengthSquared2D(direction->y, direction->x));
     float height = AbsBits(direction->z);
     float elevation = std::atan2(height, horizontal);
     if (elevation >= kMinimumTilt) return;   // NaN tilts
     const Vector3 tilted = {direction->x, direction->y, horizontal * kTiltSlope};
-    *direction = tilted * (1.0f / std::sqrt(LengthSquaredZYX(tilted)));
+    *direction = tilted * (1.0f / std::sqrt(LengthSquared(tilted)));
 }
 
 // The shadow's sphere about the object (the original projected the parts from the lights' direction and
@@ -141,7 +140,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     ObjectWorldMatrix(&object->localRotation, object->localPosition, &placement);
     const Vector3& scale = self->figureScale;
     const Vector3 local = {bounds.center.x * scale.x, bounds.center.y * scale.y, bounds.center.z * scale.z};
-    const Vector3 centre = TransformColumn<Sum3::XYZ>(placement, local);
+    const Vector3 centre = TransformColumn(placement, local);
     const float radius = bounds.radius * (std::max)({std::fabs(scale.x), std::fabs(scale.y), std::fabs(scale.z)});
     const Vector3& at = object->localPosition;
     const float ground = (std::min)(at.z, centre.z - radius);
@@ -154,7 +153,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         Vector3{(std::max)(centre.x, end.x), (std::max)(centre.y, end.y), (std::max)(centre.z, end.z)} + grow;
     const Vector3 middle = (low + high) * 0.5f - at;
     const Vector3 half = (high - low) * 0.5f;
-    const float diagonal = LengthXYZ(half);
+    const float diagonal = Length(half);
     if (!std::isfinite(diagonal) || !std::isfinite(middle.x) || !std::isfinite(middle.y) || !std::isfinite(middle.z)) {
         sphere.flags = 0;
         return;

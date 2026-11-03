@@ -4,7 +4,7 @@
 // loaders. See docs/notes/world.md, "Figure meshes".
 
 #include "core_transform.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"
 
 #include "lib/bit_flags.h"

@@ -32,19 +32,6 @@ constexpr std::int32_t kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290,
 constexpr std::int32_t kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
 constexpr std::int32_t kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
-// The products the original inlines (q * r), with the two orders of the w sum it uses.
-Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
-    Quaternion out;
-    out.z = ((q.x * r.y - q.y * r.x) + q.w * r.z) + q.z * r.w;
-    out.y = ((q.z * r.x - q.x * r.z) + q.y * r.w) + q.w * r.y;
-    out.x = ((q.y * r.z - q.z * r.y) + q.x * r.w) + q.w * r.x;
-    if (!second)
-        out.w = q.w * r.w - DotUnrounded<Sum3::ZYX>(q.x, q.y, q.z, r.x, r.y, r.z);
-    else
-        out.w = q.w * r.w - DotUnrounded<Sum3::XYZ>(q.x, q.y, q.z, r.x, r.y, r.z);
-    return out;
-}
-
 } // namespace
 
 void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, float depth, bool wide) {
@@ -95,14 +82,11 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    q = Product(q, *tilt.SetAxisAngle(xAxis, kTilt), false);
+    q = q * *tilt.SetAxisAngle(xAxis, kTilt);
     if (depth > 400.0f) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
         Quaternion side;
-        q = Product(q,
-                    *side.SetAxisAngle(zAxis,
-                                                    kTilt * 0.15f),
-                    true);
+        q = q * *side.SetAxisAngle(zAxis, kTilt * 0.15f);
     }
     model->localRotation = q;
 

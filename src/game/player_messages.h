@@ -7,7 +7,7 @@
 
 #include "ack_kind.h"
 #include "engine_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "net_delta.h"
 #include "party_storage.h"
 #include "script.h"
@@ -291,8 +291,6 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);   // sent as its bytes
 // original took the game's isprint of each signed char.)
 bool IsPrintableText(const char* text);
 
-// |a - b| squared, summed z, y, x (the use order's nearest-unit test).
-float UseOrderDistanceSquared(const Vector3& a, const Vector3& b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
 void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* offsets);

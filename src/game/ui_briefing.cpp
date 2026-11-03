@@ -10,7 +10,7 @@
 #include "core_transform.h"
 #include "game_singletons.h"
 #include "item_db.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_tables.h"
 #include "options.h"
 #include "party.h"
@@ -256,16 +256,6 @@ constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
-// A copy of `v`, normalised unless its length is zero.
-Vector3 Normalised(const Vector3& v) {
-    Vector3 out = v;
-    float length = static_cast<float>(std::sqrt(LengthSquaredZXY(v)));
-    EI_NAN_AUDIT(length);
-    if (length == 0.0f) return out;
-    out *= 1.0f / length;
-    return out;
-}
-
 } // namespace
 
 void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3& direction, bool waited,
@@ -277,7 +267,7 @@ void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3&
     Vector3 target{place.x, place.y, serverUnit->localPosition.z};
     if (immediately) {
         g_serverWorld.aiMap.sectorMap.Move(serverUnit, target);
-        Vector3 facing = Normalised(direction);
+        Vector3 facing = NormalisedUnlessZero(direction);
         serverUnit->SetHeading(facing);
         unit->SetHeading(facing);
         controller->ResyncWithUnit();

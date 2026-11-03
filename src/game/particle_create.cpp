@@ -96,7 +96,7 @@ void SetupExplosion(ParticleSource* s) {
             x = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
             y = g_clientRandom.Range(-1.0f, 1.0f);
             z = g_clientRandom.Range(-1.0f, 1.0f) + EI_POINT_SEVEN;
-            lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
+            lengthSquared = LengthSquared(Vector3{x, y, z});
             if (lengthSquared < EI_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }

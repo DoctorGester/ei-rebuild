@@ -164,7 +164,7 @@ void EffectMoshka::Update(float now) {
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
         EI_NAN_AUDIT(dy, dx);
-        if (LengthSquared2DUnrounded(dy, dx) < kNearSquared) {   // close: start circling from here
+        if (LengthSquared2D(dy, dx) < kNearSquared) {   // close: start circling from here
             pc24::Unrounded heading = pc24::Atan2(-toFollowed.x, toFollowed.y);
             state = kCircling;
             timer = kCirclingFrames;
@@ -174,7 +174,7 @@ void EffectMoshka::Update(float now) {
         // Approach the point 1.5 to the side of the followed object, 3.2 above it.
         float sideX = toFollowed.y;
         float sideY = static_cast<float>(-toFollowed.x);
-        float scale = static_cast<float>(kCircleRadius / std::sqrt(LengthSquared2DUnrounded(sideY, sideX)));
+        float scale = static_cast<float>(kCircleRadius / std::sqrt(LengthSquared2D(sideY, sideX)));
         target.x = static_cast<float>(target.x + static_cast<float>(scale * sideX));
         target.y = static_cast<float>(target.y + static_cast<float>(scale * sideY));
         target.z = static_cast<float>(kCircleHeight + target.z);
@@ -186,9 +186,9 @@ void EffectMoshka::Update(float now) {
     float floor = static_cast<float>(g_clientWorld.platforms.SurfaceHeight(ground, static_cast<float>(raw)) + kClearance);
     float z = MaxKeepB(target.z, floor);
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
-    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
+    float distance = static_cast<float>(std::sqrt(LengthSquared(move)));
     if (!Same(distance, 0.0f)) {
-        float range = std::sqrt(std::sqrt(LengthSquaredZYX(birdAt - followed)));
+        float range = std::sqrt(std::sqrt(LengthSquared(birdAt - followed)));
         float speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             float scale = speed / distance;

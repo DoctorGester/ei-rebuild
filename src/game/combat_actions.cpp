@@ -10,7 +10,7 @@
 #include "item.h"
 #include "item_manager.h"
 #include "map_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_diplomacy.h"
 #include "party.h"
 #include "player_messages.h"
@@ -203,9 +203,9 @@ BlowSide UnitServer::HitDirection(Unit* attacker, int hitKind) {
     const Quaternion* rotation = &self->localRotation;
     Vector3 axisY = rotation->AxisY();
     // The unit's Y axis points backwards: "front" is the negated projection on it.
-    float front = -DotZYX(axisY, d);
+    float front = -Dot(axisY, d);
     Vector3 axisX = rotation->AxisX();
-    float side = -DotZYX(axisX, d);
+    float side = -Dot(axisX, d);
     if (AbsBits(side) >= AbsBits(front)) return side > 0.0f ? BlowSide::MinusX : BlowSide::PlusX;
     return front > 0.0f ? BlowSide::Front : BlowSide::Back;
 }

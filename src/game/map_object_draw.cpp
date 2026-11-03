@@ -34,12 +34,12 @@ constexpr int kStackObject = 3;
 bool InReach(const Object3D* object, const Light* light) {
     const Vector3& at = light->localPosition;
     float reach = light->range + kLightMargin;
-    float distanceSquared = LengthSquaredZXY(object->localPosition - at);
+    float distanceSquared = LengthSquared(object->localPosition - at);
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
 bool PartTooFar(const FigureMesh* part) {
-    return LengthSquaredUnrounded<Sum3::XYZ>(part->localPosition) > kNearSquared;
+    return LengthSquared(part->localPosition) > kNearSquared;
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.

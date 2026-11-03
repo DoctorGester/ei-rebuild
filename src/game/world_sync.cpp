@@ -58,7 +58,7 @@ void DiffSets(std::vector<EngineObject*>* known, std::vector<EngineObject*>* cur
 bool OutOfView(const float* point, const PlayerServer* state) {
     float dx = point[0] - state->lastPosition.x;
     float dy = point[1] - state->lastPosition.y;
-    float distance = LengthSquared2DUnrounded(dy, dx);
+    float distance = LengthSquared2D(dy, dx);
     float range = kViewRange * kViewRange;
     return distance >= range;
 }
@@ -124,7 +124,7 @@ EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, Engi
         const Vector3* position = timed->Position(&state->partyUnits);
         float dx = position->x - state->lastPosition.x;
         float dy = position->y - state->lastPosition.y;
-        float distance = LengthSquared2DUnrounded(dy, dx);
+        float distance = LengthSquared2D(dy, dx);
         float reach = static_cast<float>(timed->Radius());
         float reach2 = pc24::Mul(timed->Radius(), reach);
         if (reach2 > distance) *out++ = object;

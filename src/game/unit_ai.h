@@ -9,7 +9,7 @@
 #include "core_refcount.h"
 #include "engine_object.h"
 #include "map_spec.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <memory>
@@ -590,6 +590,8 @@ struct AIMemory {
     // the reports, the heard calls (point, delay, text, hostileMask) and the noticed decay (-1 until read).
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
+    // The noticed point at height 0 (the memory keeps no z).
+    Vector3 NoticedPoint() const { return {noticedX, noticedY, 0.0f}; }
 
     SpiralCache spareCells{0, -1.0f};   // not read
     SpiralCache sightCells{0, -1.0f};   // the cells around the unit it looks for units in

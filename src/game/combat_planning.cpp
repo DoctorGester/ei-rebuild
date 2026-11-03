@@ -91,7 +91,7 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             float ex = half * path.targetX - spot.x;
             float limitSquared = static_cast<float>(0.2f * 0.2f);   // rounded to 24 bits
             EI_NAN_AUDIT(ex, ey);
-            if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
+            if (LengthSquared2D(ex, ey) >= limitSquared) continue;
             if (path.smoothing >= best) continue;
             best = path.smoothing;
             bestSpot = spot;
@@ -145,7 +145,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
-        if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
+        if (LengthSquared2D(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = position;
         from.z = pc24::Add(unit->GroundHeight(position.x, position.y), sight.eyeHeight);   // a double plus a float
         float visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);

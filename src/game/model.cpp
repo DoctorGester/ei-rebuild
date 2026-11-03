@@ -55,16 +55,16 @@ public:
     // NaN or an infinity anywhere fails every test and gives kNearPlane.
     int Classify(const Vector3& c, const Vector3& lo, const Vector3& hi) const {
         const Vector3 reaches = Abs(c) + Max(Abs(hi), Abs(lo));
-        const float margin = (vecmath::Dot<Sum3::XYZ>(scale, reaches) + scaleW) * 0x1p-16f + 1e-30f;
+        const float margin = (Dot(scale, reaches) + scaleW) * 0x1p-16f + 1e-30f;
         if (!(margin < 1e30f)) return kNearPlane;
         const Vector3 middle = c + (lo + hi) * 0.5f;
         const Vector3 half = Abs(hi - lo) * 0.5f;
-        const Vector3 clip = TransformColumn<Sum3::XYZ>(m, middle);
-        const float w = TransformColumnW<Sum3::XYZ>(m, middle);
+        const Vector3 clip = TransformColumn(m, middle);
+        const float w = TransformColumnW(m, middle);
         const float centres[6] = {clip.x + w, w - clip.x, clip.y + w, w - clip.y, clip.z, w - clip.z};
         bool undecided = false, crossing = false;
         for (int i = 0; i < 6; ++i) {
-            const float extent = vecmath::Dot<Sum3::XYZ>(reach[i], half);
+            const float extent = Dot(reach[i], half);
             const float most = centres[i] + extent, least = centres[i] - extent;
             if (most < -margin) return 2;   // every corner outside this plane
             if (least > margin) continue;   // every corner inside it
@@ -93,11 +93,10 @@ std::uint32_t ClipBounds::SetBox(const Vector3& min, const Vector3& max) {
     return flags;
 }
 
-// Clip code of one corner p under matrix m (ClipCodeOf): M * (p, 1), rows x, y and w summed ZXY, z ZYX, each rounded
-// to float. The corner coordinates are kept on the FPU stack (the same at the main thread's 24-bit precision).
+// Clip code of one corner p under matrix m (ClipCodeOf): M * (p, 1).
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
-    Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
-    float cw = TransformColumnW<Sum3::ZXY>(m, p);
+    Vector3 c = TransformColumn(m, p);
+    float cw = TransformColumnW(m, p);
     return ClipCodeOf(c.x, c.y, c.z, cw);
 }
 

@@ -5,7 +5,7 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "text_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_tables.h"
 #include "quest_records.h"
 #include "render/render_state.h"

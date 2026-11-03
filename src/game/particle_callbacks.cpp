@@ -4,7 +4,6 @@
 #include "angles.h"
 #include "core_maths.h"
 #include "map_object_figures.h"
-#include "object_maths.h"
 #include "unit.h"
 
 #include "lib/containers.h"
@@ -48,14 +47,20 @@ constexpr std::int32_t kCastAlphaByLife[15] = /*0078A9BC*/ {0, 255, 255, 255, 25
 // A random point of the cube [-1, 1)^3, drawn x, y, z (SignedUnit and Range(-1, 1) are the same draw).
 Vector3 RandomInCube() { return {SignedUnit(), SignedUnit(), SignedUnit()}; }
 
-// A random point in the unit ball (ten tries; the last one is kept), as the set-up draws it.
-Vector3 RandomInBall() {
+// A random point in the unit ball (ten tries, the last one kept) and its squared length.
+Vector3 RandomInBall(float& lengthSquared) {
     Vector3 v;
     for (int tries = 10;;) {
         v = RandomInCube();
-        if (LengthSquaredZXY(v) < EI_P_ONE) return v;   // random: never NaN
+        lengthSquared = LengthSquared(v);
+        if (lengthSquared < EI_P_ONE) return v;   // random: never NaN
         if (!(--tries > 0)) return v;
     }
+}
+
+Vector3 RandomInBall() {
+    float lengthSquared;
+    return RandomInBall(lengthSquared);
 }
 
 // The first emission: element 0 from the carrier's size, elements 1..lifetime random swirls.
@@ -109,22 +114,6 @@ bool SetUpCasting(ParticleSource* s) {
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
 
-// A random point in the unit ball (ten tries, the last one kept) and its squared length, summed z, y, x.
-Vector3 RandomInBallZYX(float& lengthSquared) {
-    Vector3 v;
-    for (int tries = 10;;) {
-        v = RandomInCube();
-        lengthSquared = LengthSquaredZYX(v);
-        if (lengthSquared < EI_P_ONE) return v;   // random: never NaN
-        if (!(--tries > 0)) return v;
-    }
-}
-
-Vector3 RandomInBallZYX() {
-    float lengthSquared;
-    return RandomInBallZYX(lengthSquared);
-}
-
 // Once per tick (the first emission): the sphere's height and radius ease towards the carrier's
 // figure, the emission rate follows the source's size, and element 1 smooths the carrier's motion.
 bool FollowCarrier(ParticleSource* s) {
@@ -155,7 +144,7 @@ bool FollowCarrier(ParticleSource* s) {
     smoothed = smoothed * EI_MOTION_KEEP + s->motion;
     const Vector3& m = s->elements[1].pos;
     float* speed = &s->elements[0].sphere.speed;
-    *speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(m));
+    *speed = std::sqrt(LengthSquared(m));
     EI_NAN_AUDIT(*speed);
     if (s->elements[0].sphere.speed < EI_STILL_SPEED) s->elements[0].sphere.speed = 0.0f;
     return true;
@@ -370,29 +359,29 @@ template <std::floating_point T> inline float F(T) = delete;
 void SetUpLink(ParticleSource* s) {
     s->elements.resize(4);
     const Vector3& x = s->extent;
-    s->elements[0].link.length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x));
+    s->elements[0].link.length = std::sqrt(LengthSquared(x));
     s->elements[0].link.inverseLength = EI_P_ONE / s->elements[0].link.length;
 
     // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
     Vector3 side;
     float zero = EI_P_ZERO;
     side = {x.y - zero, zero - x.x, 0.0f};
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(side));
+    float length = std::sqrt(LengthSquared(side));
     EI_NAN_AUDIT(length);
     if (length < EI_LINK_DEGENERATE) {
         float ex = x.x;
         Vector3 other = {x.y - x.z, -ex, ex};
-        length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(other));
+        length = std::sqrt(LengthSquared(other));
         side = other;
     }
     float inverse = EI_P_ONE / length;
     side *= inverse;
 
     Vector3 cross = Cross(x, side);
-    float crossInverse = EI_P_ONE / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(cross));
+    float crossInverse = EI_P_ONE / std::sqrt(LengthSquared(cross));
     cross *= crossInverse;
 
-    float extentLength = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x));
+    float extentLength = std::sqrt(LengthSquared(x));
     Vector3 direction;
     direction = x / extentLength;
     s->elements[1].linkAxis.axis = direction;
@@ -491,7 +480,7 @@ void ChooseShowerRays(ParticleSource* s) {
     s->elements.resize(rays);
     for (int i = 0; i < s->frameDelay; ++i) {
         float lengthSquared;
-        Vector3 v = RandomInBallZYX(lengthSquared);
+        Vector3 v = RandomInBall(lengthSquared);
         s->elements[i].pos = v / std::sqrt(lengthSquared);
         s->elements[i].ray.age = 0;
     }
@@ -858,7 +847,7 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     float lengthSquared;
     for (;;) {
         v = RandomInCube();
-        lengthSquared = LengthSquaredZYX(v);
+        lengthSquared = LengthSquared(v);
         if (lengthSquared > EI_P_ONE) continue;
         if (lengthSquared <= EI_P_ZERO) continue;   // random: never NaN
         break;
@@ -867,7 +856,7 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     int pick = static_cast<int>(Next() % span);
     if (pick > 0) {
         v += elements[(pick - 1) % lifetime].swirl.position;
-        lengthSquared = LengthSquaredZYX(v);
+        lengthSquared = LengthSquared(v);
     }
     float inverse = EI_P_ONE / std::sqrt(lengthSquared);
     p->velocity = inverse * v;
@@ -955,9 +944,9 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     }
     p->drift.x = big;
 
-    p->velocity = RandomInBallZYX();
+    p->velocity = RandomInBall();
     float shell = radius * EI_SHELL;
-    float scale = shell / std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(p->velocity));
+    float scale = shell / std::sqrt(LengthSquared(p->velocity));
     p->velocity *= scale;
     p->color = 0xFFFFFFFF;
     p->frame = static_cast<int>(Next() % 11);
@@ -970,7 +959,7 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     float speed = elements[0].sphere.speed;
     if (speed > EI_STILL_SPEED) {
         const Vector3& m = elements[1].pos;
-        float t = -(DotUnrounded<Sum3::ZYX>(m, p->velocity) / speed);
+        float t = -(Dot(m, p->velocity) / speed);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         offset = p->velocity - m * t;
@@ -1342,8 +1331,8 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     }
     if (kind < 0) {
         p->life = 0;
-        Vector3 v = RandomInBallZYX();
-        float outside = EI_P_ONE - LengthSquaredUnrounded<Sum3::ZYX>(v);
+        Vector3 v = RandomInBall();
+        float outside = EI_P_ONE - LengthSquared(v);
         float outsideRounded = outside;
         float scale = size;
         v *= scale;
@@ -1601,7 +1590,7 @@ int ParticleSource::EmitShower(Particle* p, int) {
     p->pos = origin;
     p->size = typeParam;
     Vector3 d = size * (jitter + ray.pos);
-    float speed = EI_P_ONE / std::sqrt(LengthSquaredZYX(d)) * size * EI_SHOWER_SPEED;
+    float speed = EI_P_ONE / std::sqrt(LengthSquared(d)) * size * EI_SHOWER_SPEED;
     if ((Next() & 7) == 0) speed = speed * EI_SHOWER_FAST;
     p->drift = speed * d;
     p->velocity.x = 0.9f;     // 0.9: the speed kept per tick
@@ -1723,7 +1712,7 @@ void ParticleSource::TickBag(ParticleElement* e) {
         e->pos.y = r + low + e->pos.y;
         r = BagSpread(this, low, high);
         e->pos.z = r + e->pos.z + low;
-        e->ball.velocity = RandomInBallZYX() * size * EI_BAG_SPREAD_HIGH;
+        e->ball.velocity = RandomInBall() * size * EI_BAG_SPREAD_HIGH;
         e->ticks = static_cast<int>(Next() % 3) + 7;
         e->ball.step = {};
         return;
@@ -1733,7 +1722,7 @@ void ParticleSource::TickBag(ParticleElement* e) {
         Vector3 v;
         for (int tries = 10;;) {
             v = RandomInCube();
-            if (LengthSquaredXYZ(v) < EI_P_ONE) break;   // random: never NaN
+            if (LengthSquared(v) < EI_P_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
         e->ball.velocity += v * size * EI_BAG_KICK;
@@ -1801,7 +1790,7 @@ int ParticleSource::EmitMushroom(Particle* p, int) {
     }
     float spread = (WordToFloat(Next()) * EI_MUSHROOM_W_SCALE + EI_MUSHROOM_W_BASE) * elements[0].pos.x;
     Vector3 d = {SignedUnit(), SignedUnit(), WordToFloat(Next()) * EI_MUSHROOM_UP_SCALE + EI_MUSHROOM_UP_BASE};
-    d = EI_MUSHROOM_ONE / std::sqrt(LengthSquaredZYX(d)) * d;
+    d = EI_MUSHROOM_ONE / std::sqrt(LengthSquared(d)) * d;
     d.z = d.z + EI_MUSHROOM_UP;
     p->pos = d * spread + origin;
     p->pos.z = p->pos.z + elements[0].pos.z;
@@ -1911,7 +1900,7 @@ int ParticleSource::UpdateStench(Particle* p) {
         p->frameTimer = frameDelay;
     }
     p->pos -= p->velocity;
-    float turnedY = Dot2DUnrounded(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
+    float turnedY = Dot2D(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
     float turnedX = p->drift.y * p->velocity.x - p->velocity.y * p->drift.x;
     p->velocity.x = turnedX;
     p->velocity.y = turnedY;
@@ -2036,7 +2025,7 @@ void ParticleSource::TickTornado(ParticleElement* e) {
     } else {
         elements[0].pos.z = GroundHeight(origin.x, origin.y) - origin.z + EI_P_ONE;
         Vector3 n = (motion * EI_FUNNEL_LEAN + elements[0].pos) * EI_FUNNEL_BACK;
-        float length = std::sqrt(LengthSquaredZYX(n));
+        float length = std::sqrt(LengthSquared(n));
         EI_NAN_AUDIT(length);
         if (length != 0.0f) n *= EI_P_ONE / length;
         float lean = length * EI_FUNNEL_HALF;
@@ -2142,12 +2131,12 @@ int ParticleSource::UpdateCylinder(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kCylinderAlpha[life]) << 24) | 0xFFFFFF;
     Vector3& step = p->aux;
     p->velocity += step;
-    float k = elements[0].star.orbit / std::sqrt(LengthSquared2DUnrounded(p->velocity.x, p->velocity.y));
+    float k = elements[0].star.orbit / std::sqrt(LengthSquared2D(p->velocity.x, p->velocity.y));
     float kx = k * p->velocity.x;
     p->velocity.x = kx;
     float ky = k * p->velocity.y;
     p->velocity.y = ky;
-    float reach = std::sqrt(LengthSquaredXYZ(step)) * elements[0].star.inverseOrbit;
+    float reach = std::sqrt(LengthSquared(step)) * elements[0].star.inverseOrbit;
     step = Vector3{ky * reach, -kx * reach, step.z} * EI_CYL_SPARK_PULL;
     p->pos = p->velocity + origin;
     p->size = p->size * EI_CYL_SPARK_SHRINK;
@@ -2168,7 +2157,7 @@ void ParticleSource::TickCylinder(ParticleElement* e) {
         return;
     }
     float* rotation = e->star.rotation;
-    float nx = Dot2DUnrounded(rotation[1], rotation[0], e->pos.y, e->pos.x);
+    float nx = Dot2D(rotation[1], rotation[0], e->pos.y, e->pos.x);
     float ny = rotation[0] * e->pos.y - rotation[1] * e->pos.x;
     float& rise = e->star.rise;
     Vector3 next = {nx, ny, e->pos.z + rise};
@@ -2492,7 +2481,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     float speed = WordToFloat(Next()) * 1.3969838e-10f + 0.8f;
     Vector3 v;
     float lengthSquared;
-    v = RandomInBallZYX(lengthSquared);
+    v = RandomInBall(lengthSquared);
     Vector3 direction = v / std::sqrt(lengthSquared);
     float k = speed * size * speed * 0.2f;
     p->drift = direction * k;
@@ -2758,14 +2747,8 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
     target = origin;
     if (attachedTo) {
         const Object3D* carrier = attachedTo;
-        const Quaternion& turn = carrier->localRotation;
-        float w = turn.w, x = turn.x, y = turn.y, z = turn.z;
-        float xx = x * x;
-        float axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
-        float axisY = Dot2DUnrounded(x, z, y, w) * 2.0f;   // (xy + zw) * 2
-        float axisZ = (x * z - y * w) * 2.0f;
         float scale = carrier->bounds.radius * p->velocity.x * 0.65f;
-        target += Vector3{axisX, axisY, axisZ} * scale;
+        target += carrier->localRotation.AxisX() * scale;
     }
     p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     0.25f;                       // (0.8 + [0, 0.4)) * size / 4
@@ -2958,7 +2941,7 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     const Particle* orb = *node;
     float t = WordToFloat(Next()) * EI_P_SCALE_1;
     Vector3 start = orb->pos - t * orb->drift;
-    Vector3 v = RandomInBallZYX();
+    Vector3 v = RandomInBall();
     p->size = 0.0f;
     p->pos = v * orb->size * 0.8f + start;
     p->velocity.x = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
@@ -3007,7 +2990,7 @@ int ParticleSource::UpdateSilence(Particle* p) {
     p->color = 0xFFFFFFFF;
     float sn = std::sin(p->velocity.x);
     Vector3 circle = {c, sn, std::sin(p->aux.x) * 0.5f};
-    Vector3 next = circle * (radius / std::sqrt(LengthSquaredZYX(circle))) + origin;
+    Vector3 next = circle * (radius / std::sqrt(LengthSquared(circle))) + origin;
     next.z = radius * 0.5f + next.z;
     p->size = 1.0f;
     p->drift = next - p->pos;
@@ -3207,10 +3190,10 @@ void ParticleSource::TickTeleport(ParticleElement* e) {
 int ParticleSource::EmitCurseStars(Particle* p, int) {
     p->color = 0xFFFFFF;
     p->frame = static_cast<int>(Next() & 15);
-    Vector3 a = RandomInBallZYX() * size;
+    Vector3 a = RandomInBall() * size;
     p->size = 0.0f;
     p->pos = a + origin;
-    float length = std::sqrt(LengthSquaredZYX(a));
+    float length = std::sqrt(LengthSquared(a));
     p->life = 20;
     if (length > EI_P_ZERO) {
         p->drift = a * (size * 0.1f) / length;
@@ -3261,7 +3244,7 @@ int ParticleSource::EmitStartTrans(Particle* p, int) {
         p->state = 0;
         p->frame = static_cast<int>(Next() % 12);
         float lengthSquared;
-        Vector3 v = RandomInBallZYX(lengthSquared);
+        Vector3 v = RandomInBall(lengthSquared);
         p->velocity = v / std::sqrt(lengthSquared) * size;
         p->pos = p->velocity + origin;
         p->drift = -p->velocity / static_cast<float>(p->life + 3);
@@ -3435,7 +3418,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     auto [offset, radius] = AttachmentOffset();
     p->color = 0xFFFFFF;
     p->frame = 3;
-    Vector3 v = RandomInBallZYX();
+    Vector3 v = RandomInBall();
     p->size = 0.0f;
     p->pos = v * (radius * 0.8f) + origin;
     p->life = 20;

@@ -6,7 +6,7 @@
 
 #include <cstdint>
 #include <string>
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include "unit_create.h"
 

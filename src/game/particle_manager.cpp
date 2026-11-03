@@ -176,7 +176,7 @@ ParticleSource::Attachment ParticleSource::AttachmentOffset() {
     if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
         radius = object->bounds.radius;
     } else {
-        radius = std::sqrt(LengthSquaredXYZ(object->bounds.boxMax - object->bounds.boxMin)) * 0.5f;
+        radius = std::sqrt(LengthSquared(object->bounds.boxMax - object->bounds.boxMin)) * 0.5f;
     }
     return {{0.0f, 0.0f, object->bounds.center.z}, radius};
 }
@@ -262,7 +262,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         Vector3 p = source->WorldPosition();
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = DotUnrounded<Sum3::ZYX>(axis, p);
+        entry.depth = Dot(axis, p);
         lib::SetAtGrow(order, lib::Count(order), entry);
         source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }
@@ -448,7 +448,7 @@ struct TickSteps {
     // up = normalize(motion x side); both zero when the source barely moved.
     void BuildBasis() {
         const Vector3& m = s->motion;
-        float distance = LengthXYZ(m);
+        float distance = Length(m);
         s->distance = distance;
         EI_NAN_AUDIT(distance);
         if (distance <= EI_STILL) {
@@ -458,15 +458,15 @@ struct TickSteps {
         }
         float zero = EI_ZERO;
         s->side = {m.y - zero, zero - m.x, 0.0f};
-        float length = LengthXYZ(s->side);
+        float length = Length(s->side);
         EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
             s->side = {m.y - m.z, -m.x, m.x};
-            length = LengthZYX(s->side);
+            length = Length(s->side);
         }
         Normalize(s->side, length);
         s->up = Cross(m, s->side);
-        Normalize(s->up, LengthXYZ(s->up));
+        Normalize(s->up, Length(s->up));
     }
 
     void RunElements() {

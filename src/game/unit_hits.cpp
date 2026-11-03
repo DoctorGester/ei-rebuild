@@ -214,7 +214,7 @@ void UnitVitals::TakeHit(const DamageInfo* hit) {
 bool Unit::IsBehind(const MapObject* t) {
     if (!player) return false;
     Vector3 towards = t->localPosition - localPosition;
-    float length = std::sqrt(LengthSquaredZYX(towards));
+    float length = std::sqrt(LengthSquared(towards));
     if (length > 0.0f) towards /= length;
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
@@ -229,19 +229,8 @@ bool Unit::IsBehind(const MapObject* t) {
         if (weapon->GetType() == 5) return false;
         if (weapon->GetType() == 6) return false;
     }
-    // The target's facing from its orientation quaternion.
-    float a = t->localRotation.w;
-    float b = t->localRotation.x;
-    float c = t->localRotation.y;
-    float d = t->localRotation.z;
-    float x = c * b - a * d;
-    x = x + x;
-    float cc = c * c;
-    float rest = a * a - ((d * d + b * b) + cc);
-    float y = cc + cc + rest;
-    float z = a * b + c * d;
-    z = z + z;
-    float facing = DotZYX(Vector3{x, y, z}, towards);
+    // The target's rotated Y axis (a unit faces -Y) along the direction to it.
+    float facing = Dot(t->localRotation.AxisY(), towards);
 
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack;

@@ -245,7 +245,7 @@ SoundSlot* SoundManager::SlotForHandle(int handle) const {
 void SoundManager::UpdatePositional(SoundSlot* slot) {
     float dx = slot->position.x - listener.x;
     float dy = slot->position.y - listener.y;
-    float dist2 = LengthSquared2DUnrounded(dy, dx);
+    float dist2 = LengthSquared2D(dy, dx);
     if (dist2 > slot->farDistance * slot->farDistance) {
         slot->volume = 0;
         return;
@@ -257,7 +257,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
     slot->volume = FlatVolume(level, 1, slot->speech);
 
-    float ahead = AbsBits(Dot2DUnrounded(dy, dx, listenerAxis.y, listenerAxis.x));
+    float ahead = AbsBits(Dot2D(dy, dx, listenerAxis.y, listenerAxis.x));
     if (ahead > dist) {
         slot->pan = 0;
         return;
@@ -293,7 +293,7 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     if (enabled == 0) return;
     listener = position;
     listenerAxis = axis;
-    float len = std::sqrt(LengthSquared2DUnrounded(listenerAxis.x, listenerAxis.y));
+    float len = std::sqrt(LengthSquared2D(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
     if (len == 0.0f) {
         listenerAxis = {1.0f, 0.0f, 0.0f};

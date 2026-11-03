@@ -163,7 +163,7 @@ void LightningSegment::Animate(float time, float amplitude) {
 void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     start = from;
     step = to - from;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(step));
+    float length = std::sqrt(LengthSquared(step));
 
     // Point count and the length the displacement axes are scaled to.
     int count;
@@ -184,7 +184,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     up = Cross(side, step);
 
     for (Vector3* axis : {&side, &up}) {
-        float norm = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(*axis));
+        float norm = std::sqrt(LengthSquared(*axis));
         if (norm > 0.0f) {
             *axis *= scale / norm;
         } else {
@@ -230,7 +230,7 @@ void Lightning::UpdateBounds() {
     bounds.boxMin -= bounds.center;
     bounds.boxMax -= bounds.center;
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
-    bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(bounds.boxMax));
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMax));
 }
 
 void Lightning::Animate() {
@@ -276,7 +276,7 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
         // Power 0: six more bolts parallel to the main one, shifted by a random offset of up to
         // 5% of its length on each axis.
         for (int i = 0; i < 6; ++i) {
-            float reach = std::sqrt(LengthSquaredZYX(from - to)) * kOffsetFactor;
+            float reach = std::sqrt(LengthSquared(from - to)) * kOffsetFactor;
             float low = -reach;
             std::uint32_t r1 = g_clientRandom.Next();
             std::uint32_t r2 = g_clientRandom.Next();
@@ -387,7 +387,7 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
     } else {
         main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
-            float reach = std::sqrt(LengthSquaredZYX(from - to)) * 0.05f;
+            float reach = std::sqrt(LengthSquared(from - to)) * 0.05f;
             float low = -reach;
             const float scale = 2.3283064e-10f;
             float offsetY = (reach - low) * g_clientRandom.Next() * scale + low;
@@ -405,7 +405,7 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
     UpdateBounds();
     bounds.boxMin -= Vector3{1.0f, 1.0f, 1.0f};
     bounds.boxMax += Vector3{1.0f, 1.0f, 1.0f};
-    bounds.radius = bounds.boxMax.Length();
+    bounds.radius = Length(bounds.boxMax);
     if (demon) {
         LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "DemonLight");
         LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "DemonLightning");
@@ -518,7 +518,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     // Towards the camera, normalised unless zero.
     const Vector3& eye = camera::FrameView().position;
     Vector3 towards = eye - position;
-    float length = LengthZYX(towards);
+    float length = Length(towards);
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
@@ -552,11 +552,11 @@ int Lightning::Draw(SceneRenderer* device) {
         for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main.step) * std::ssize(main.points) * 0.6f;
+        float span = Length(main.step) * std::ssize(main.points) * 0.6f;
         renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * std::ssize(b.points) * 0.6f;
+            span = Length(b.step) * std::ssize(b.points) * 0.6f;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
@@ -565,7 +565,7 @@ int Lightning::Draw(SceneRenderer* device) {
     Vector3 start = main.start;
     Vector3 run = count * main.step;
     Vector3 end = start + run;
-    float size = std::sqrt(LengthSquaredZYX(start - end)) * 0.11f;
+    float size = std::sqrt(LengthSquared(start - end)) * 0.11f;
     if (power > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;

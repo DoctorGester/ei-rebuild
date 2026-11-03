@@ -60,7 +60,7 @@ void TryLightningStrike(WorldServer* world) {
 
     float dx = RandomTimes(kOffsetScale) - kOffsetCentre;
     float dy = RandomTimes(kOffsetScale) - kOffsetCentre;
-    if (LengthSquared2DUnrounded(dy, dx) <= kMinDistance2) return;   // random: never NaN
+    if (LengthSquared2D(dy, dx) <= kMinDistance2) return;   // random: never NaN
 
     Vector3 sky = {ground.x + dx, ground.y + dy, ground.z};
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)

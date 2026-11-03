@@ -5,7 +5,7 @@
 // reaches the file through File(): a chunk asks its parent, the root returns the file it embeds. See
 // docs/notes/core.md.
 
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "platform/platform.h"
 #include <cstddef>
 #include <cstdint>

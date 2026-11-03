@@ -109,7 +109,7 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
                 bestIndex = i;
                 break;
             } else {
-                float distance = LengthSquaredXYZ(to - unit->localPosition);
+                float distance = LengthSquared(to - unit->localPosition);
                 float bestDistance;
                 bestDistance = std::bit_cast<float>(bestBits);
                 EI_NAN_AUDIT(distance, bestDistance);

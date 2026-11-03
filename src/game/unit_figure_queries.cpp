@@ -37,24 +37,6 @@ constexpr float kNoExtent = 0.0f;
 constexpr float kExtentScale = 1.0f;
 constexpr float kMosquitoExtentScale = 2.0f;
 
-// `v` turned by the rotation `q`, spelled out as: 2 (u.v) u + (s^2 - u.u) v + 2 s (u x v), with u the
-// vector part and s the scalar part.
-Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
-    float ux = q.x;
-    float uy = q.y;
-    float uz = q.z;
-    // Precise helpers: /fp:fast regrouped an inlined unrounded dot with the `2 *` into
-    // (2xx' + d) + d with d = yy' + zz' (a second rounding, V3c); written out it had become
-    // (2yy' + 2zz') + 2xx', which is exact.
-    Vector3 u = {ux, uy, uz};
-    float twiceDot = 2.0f * DotZYX(v, u);
-    Vector3 along = {twiceDot * ux, twiceDot * uy, twiceDot * uz};
-    float twiceS = q.w + q.w;
-    Vector3 cross = {uy * v.z - uz * v.y, uz * v.x - ux * v.z, ux * v.y - uy * v.x};
-    Vector3 turn = twiceS * cross;
-    float k = q.w * q.w - LengthSquaredXYZ(u);
-    return k * v + turn + along;
-}
 } // namespace
 
 FigureAnimation* Unit::FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random) {
@@ -85,7 +67,7 @@ float Unit::BodyExtent() {
     float extentScale = kExtentScale;
     if (MapType() == MapObjectType::Creature && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
     const Vector3& corner = partBoxes[part].bounds.boxMax;
-    return extentScale * std::sqrt(LengthSquared2DUnrounded(corner.y, corner.x));
+    return extentScale * std::sqrt(LengthSquared2D(corner.y, corner.x));
 }
 
 double Unit::GroundHeight(float x, float y) {
@@ -115,6 +97,6 @@ Vector3 Unit::EffectPoint() {
             return localPosition + bounds.center;
         }
     }
-    Vector3 turned = RotateVector(localRotation, local);
+    Vector3 turned = localRotation.Rotate(local);
     return turned + localPosition;
 }

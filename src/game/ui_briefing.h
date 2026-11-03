@@ -6,7 +6,7 @@
 // rewards). See docs/notes/ui.md, "Briefing / base screen". Dialogue states: 0 walking, 1 choosing a topic,
 // 2 the dialogue starting (people still walking to their places), 3 phrases, 4 rewards.
 
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_tables.h"
 #include "ui_camp.h"
 

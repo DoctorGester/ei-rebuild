@@ -6,7 +6,7 @@
 
 #include "engine_object.h"
 #include "map_object_figures.h"   // Object3D, the base
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "net_delta.h"          // DeltaState
 
 #include "lib/bit_flags.h"

@@ -7,7 +7,7 @@
 // mirrors it through two globals set by BeginField in the read modes. See docs/notes/network.md.
 
 #include "core_streams.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

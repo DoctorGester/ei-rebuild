@@ -205,21 +205,6 @@ constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and th
 constexpr int kDisplaysEnd = 32;
 constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without the model
 
-// The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
-// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
-// other way round.
-Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
-    const Vector3 av = {a.x, a.y, a.z};
-    const Vector3 bv = {b.x, b.y, b.z};
-    const Vector3 cross = Cross(av, bv);
-    Quaternion out;
-    out.w = a.w * b.w - DotXYZ(av, bv);
-    out.x = (cross.x + b.w * a.x) + a.w * b.x;
-    out.y = (cross.y + b.w * a.y) + a.w * b.y;
-    out.z = second ? ((cross.z + b.w * a.z) + a.w * b.z) : ((cross.z + a.w * b.z) + b.w * a.z);
-    return out;
-}
-
 } // namespace
 
 void HudUnitPanel::Draw(SceneRenderer* pass) {
@@ -284,9 +269,9 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             Quaternion first, second, third;
             Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * kTurnAboutZ);
             Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
-            const Quaternion tilted = Product(*q1, *q2, false);
+            const Quaternion tilted = *q1 * *q2;
             Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
-            model->localRotation = Product(tilted, *q3, true);
+            model->localRotation = tilted * *q3;
 
             const float scale = 1.0f / size;
             unit->AsObject3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};

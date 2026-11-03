@@ -7,7 +7,7 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"   // ClipBounds
 
 #include "lib/containers.h"

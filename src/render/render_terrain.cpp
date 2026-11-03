@@ -182,7 +182,7 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
         for (int x = 0; x < kSectorRow; ++x) {
             Vector3 p = at(x, y);
             Vector3 n = Cross(at(x + 1, y) - at(x - 1, y), at(x, y + 1) - at(x, y - 1));
-            float length = Length<Sum3::XYZ>(n);
+            float length = Length(n);
             if (length > 1e-12f) {
                 float k = (n.z < 0.0f ? -1.0f : 1.0f) / length;   // turned up
                 n *= k;
@@ -194,7 +194,7 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
             hi = Max(hi, p);
         }
     const Vector3 centre = (lo + hi) * 0.5f;
-    c.sphere = ShadowCasterSphere{centre.x, centre.y, centre.z, Length<Sum3::XYZ>((hi - lo) * 0.5f)};
+    c.sphere = ShadowCasterSphere{centre.x, centre.y, centre.z, Length((hi - lo) * 0.5f)};
     if (g_gridIndices.empty()) {
         for (int y = 0; y < terrain::kSectorCells; ++y)
             for (int x = 0; x < terrain::kSectorCells; ++x) {

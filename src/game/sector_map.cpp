@@ -150,7 +150,7 @@ std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float r
         Sector& sector = grid->sectors[grid->width * gy + gx];
         for (Unit* unit : sector.units) {
             float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
-            const auto distance = LengthSquared2DUnrounded(dy, dx);
+            const auto distance = LengthSquared2D(dy, dx);
             EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result.push_back(unit);
         }

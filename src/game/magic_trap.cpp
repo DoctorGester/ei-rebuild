@@ -39,7 +39,7 @@ bool StaysInside(MagicTrap* trap, MapObject* unit) {
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
-        if (circle->radius * circle->radius > LengthSquared2DUnrounded(dy, dx)) return !unit->IsDead();
+        if (circle->radius * circle->radius > LengthSquared2D(dy, dx)) return !unit->IsDead();
     }
     return false;
 }
@@ -112,7 +112,7 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
             for (Unit* unit : *units) {
                 Vector3 d = unit->localPosition - origin;
                 EI_NAN_AUDIT(d.x, d.y, d.z);
-                if (LengthSquaredZYX(d) < kFar) closest = unit;
+                if (LengthSquared(d) < kFar) closest = unit;
             }
             if (!closest) return;
             units->clear();

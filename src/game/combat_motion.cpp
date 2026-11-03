@@ -449,7 +449,7 @@ std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     if (!player || player->sessionKind != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
-    if (LengthSquaredZYX(point - unit->localPosition) > 16.0f) {
+    if (LengthSquared(point - unit->localPosition) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
         const ScriptGroup* group = &player->Server()->partyUnits;
         for (Unit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
@@ -494,7 +494,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         float half = kHalfCell;
         float ey = half * path->targetY - goal.y;
         float ex = half * path->targetX - goal.x;
-        float left = LengthSquared2DUnrounded(ex, ey);
+        float left = LengthSquared2D(ex, ey);
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
             self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);

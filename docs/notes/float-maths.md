@@ -8,10 +8,10 @@ The game code builds as SSE code with `/fp:precise` (x64, no x87 anywhere). `pyt
 The original's main thread ran its x87 at 24-bit precision (the control word Direct3D left): every add, subtract,
 multiply, divide and square root rounded to a float significand, as the float operation does. So float maths in the
 original's order and grouping gives the original's results; a "double register" of the original is a float.
-- **Grouping decides the rounding.** `+` and `*` commute exactly; only the grouping of a sum matters. A 3-term sum has
-  three results, named by the pair added first: XYZ `(x+y)+z`, ZYX `(z+y)+x`, ZXY `(z+x)+y`. The grouping written is
-  the grouping compiled under `/fp:precise`; `/fp:fast` regrouped sums and distributed products
-  (FearMode's `(30x + d) * (1/31)` settled on another fixed point), so never use it.
+- **Grouping decides the rounding.** `+` and `*` commute exactly; only the grouping of a sum matters. The grouping
+  written is the grouping compiled under `/fp:precise`; `/fp:fast` regrouped sums and distributed products
+  (FearMode's `(30x + d) * (1/31)` settled on another fixed point), so never use it. The vector helpers sum left to
+  right; the original's per-site groupings are gone: the goldens are our build's own.
 - **Constant products.** A product of two constants the original computed at run time rounds to 24 bits there; the
   compiler folds it at double precision. Write it as the float (`static_cast<float>(kPi * kPerDegree)`, checking the
   rounding) or keep the operation. The build inlines at /Ob2, so a constant behind a helper folds too.
@@ -94,17 +94,14 @@ rows of a 4x4): aggregates, so `{x, y, z}` works. Two matrix conventions: `Trans
 code use row vectors (`v * M`, translation m[12..14]); the transform pipeline, clip codes, decals and view code column
 vectors (`M * v`, translation m[3], m[7], m[11]).
 
-| helper | evaluation |
-|---|---|
-| `+ - * /`, `+= -= *= /=` | one operation per component (`/ s` divides, no reciprocal) |
-| `Dot2D`, `LengthSquared2D`, `Length2D`, `DistanceSquared2D`, `DistanceSquaredXY` | `x*x' + y*y'` |
-| `Cross(a, b)`, `Lerp(a, b, t)` (`(b - a) * t + a`), `Conjugate(q)` | |
-| `DotXYZ / DotZYX / DotZXY`, `vecmath::Dot<Sum3>`, `LengthSquared<Sum3>`, `Length<Sum3>`, `Distance*<Sum3>`, `Normalised<Sum3>`, `NormalisedReciprocal<Sum3>` | the named grouping (`enum class Sum3 { XYZ, ZYX, ZXY }`); no default order |
-| `TransformRow<OX, OY, OZ>` / `TransformColumn<...>` (+ `Normal`, `TransformColumnW<Sum3>`) | `v * M` / `M * v`: each component's grouped products, then the translation |
-| `...Unrounded<Sum3, T>` forms (`DotUnrounded`, `LengthSquaredUnrounded`, `Dot2DUnrounded`, `DistanceSquaredXYUnrounded` (dy first), `OffsetDot2DUnrounded` (`(d + x*x2) + y*y2`), `DotWZYXUnrounded`, `AxisXUnrounded`) | the written-out sums in T, for sums that are compared, stored, passed or square-rooted |
-| `RotatedAxisX / Y / Z(q)` | the quaternion's axes in Quaternion::AxisX / Y / Z's orders, each component rounded |
+- `+ - * /`, `+= -= *= /=`: one operation per component (`/ s` divides, no reciprocal); `Min`, `Max`, `Abs` per
+  component (float_select.h's `MinKeepA` / `MaxKeepB` where a NaN must keep the bound).
+- `Dot`, `LengthSquared`, `Length`, `Distance`, `DistanceSquared`, `Normalised`, `NormalisedUnlessZero`, `Cross`,
+  `Lerp` (`(b - a) * t + a`); the 2D forms `Dot2D`, `LengthSquared2D`, `Length2D`, `DistanceSquaredXY` (also on
+  scalars).
+- `TransformRow` / `TransformRowNormal` (`v * M`), `TransformColumn` / `TransformColumnNormal` / `TransformColumnW`
+  (`M * v`), `Matrix4::Multiply`.
+- Quaternions: `a * b` (Hamilton), `Dot`, `AxisX / AxisY / AxisZ` (the rotation's columns), `Rotate(v)`, `ToMatrix`.
 
-Where a caller doubles a dot, double the operands (`(2u) . v`: exact). Quaternion products and MatrixMultiply's
-per-element orders stay written out at their sites. No `Matrix4 operator*` for game code (src/render may add one).
 `tools/check_cleanup.py` counts hand-written vector maths (two-product sums whose operands differ only in axis,
 `float n[3]`-style members) and keeps it at 0; exceptions are listed in it (`_VEC_NOT_VECTOR`).

@@ -5,7 +5,7 @@
 // [0, 1]) and appended to the caller's arrays. See docs/notes/models.md ("Ground decals").
 
 #include "figure_mesh.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>

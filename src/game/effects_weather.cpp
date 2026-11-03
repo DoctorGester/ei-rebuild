@@ -136,7 +136,7 @@ void VisibilityFog::ComputeBounds() {
     bounds.center = (bounds.boxMax + bounds.boxMin) * 0.5f;
     bounds.boxMin -= bounds.center;
     bounds.boxMax -= bounds.center;
-    bounds.radius = std::sqrt(LengthSquaredXYZ(bounds.boxMax));
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMax));
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     boundsValid = 1;
 }

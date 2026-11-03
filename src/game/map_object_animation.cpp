@@ -5,7 +5,7 @@
 #include "base_manager.h"
 #include "figure_manager.h"
 #include "map_object_figures.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "world.h"
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"

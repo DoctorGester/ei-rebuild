@@ -8,7 +8,7 @@
 #include "item.h"
 #include "item_db.h"
 #include "map_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "player_messages.h"
 #include "random.h"
 #include "sector_map.h"
@@ -243,7 +243,7 @@ bool UnitServer::StartMove() {
     }
     // Already there: the order is done and the next one starts.
     Vector3 offset = unit->localPosition - action.point;
-    float lengthSq = LengthSquaredZYX(offset);
+    float lengthSq = LengthSquared(offset);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
         action.Reset();
@@ -265,7 +265,7 @@ bool UnitServer::StartMove() {
             float dy = action.point.y - unit->localPosition.y;
             float dx = action.point.x - unit->localPosition.x;
             EI_NAN_AUDIT(dx, dy);
-            close = LengthSquared2DUnrounded(dx, dy) < kLong;
+            close = LengthSquared2D(dx, dy) < kLong;
         }
         if (close) arrived = true;
         else ReportPath(&motion, found);
@@ -572,15 +572,15 @@ void UnitServer::ApproachTarget() {
         Vector3 goal;
         goal = action.point;
         if (state == UnitState::Idle) {
-            EI_NAN_AUDIT(DistanceSquaredXYUnrounded<float>(goal, motion.goal));
-            if (DistanceSquaredXYUnrounded<float>(goal, motion.goal) <= kNearPoint) return;
+            EI_NAN_AUDIT(DistanceSquaredXY(goal, motion.goal));
+            if (DistanceSquaredXY(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(goal, kFar)) {
             const Vector3 heading = {kHalfScale * motion.targetX, kHalfScale * motion.targetY, 0.0f};
             float dx = heading.x - goal.x;
             float dy = heading.y - goal.y;
             EI_NAN_AUDIT(dy, dx);
-            if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
+            if (LengthSquared2D(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 const Vector3 saved = unit->localPosition;
                 unit->localPosition = heading;
@@ -599,7 +599,7 @@ void UnitServer::ApproachTarget() {
     float reach = ActionDistance(&action);
     Vector3 aim = target->AimPoint();
     if (!target->IsLargeUnit()) {
-        if (reach * reach >= DistanceSquaredXYUnrounded<float>(aim, unit->localPosition) &&
+        if (reach * reach >= DistanceSquaredXY(aim, unit->localPosition) &&
             CanActFrom(&action, aim, now)) {
             // In reach of a standing target: wait.
             if (state != UnitState::Turning) StandIdle(this);
@@ -614,7 +614,7 @@ void UnitServer::ApproachTarget() {
             Vector3 offset = p - unit->localPosition;
             float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // Unit::MoveSpeed: a float
             if (closing > 0.0f) {
-                float distance = LengthXYZ(offset);
+                float distance = Length(offset);
                 float ticks = (distance - reach) / closing;
                 if (static_cast<double>(lead) > ticks) {   // the int and the float compared exactly
                     if (state != UnitState::Turning) StandIdle(this);
@@ -641,17 +641,17 @@ void UnitServer::ApproachTarget() {
     }
     Vector3 where = chased->AimPoint();
     Vector3 offset = where - unit->localPosition;
-    float distance = LengthZXY(offset);
+    float distance = Length(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
     float closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<Unit*>(chased);
         Vector3 v = other->localPosition - unit->localPosition;
-        float length = std::sqrt(LengthSquaredZYX(v));
+        float length = std::sqrt(LengthSquared(v));
         if (length > 0.0f) v /= length;
         Vector3 axis = other->localRotation.AxisY();
-        float along = DotZYX(axis, v);
+        float along = Dot(axis, v);
         closing = static_cast<float>(other->MoveSpeed()) * along + mySpeed;
     } else {
         closing = mySpeed;
@@ -666,7 +666,7 @@ void UnitServer::ApproachTarget() {
 
     if (state == UnitState::Idle) {
         float close = (distance + 1.0f) * kPointOne;
-        if (close * close > DistanceSquaredXYUnrounded<float>(goal, motion.goal)) {
+        if (close * close > DistanceSquaredXY(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
             motion.goal.z = unit->ScaledValue(distance) + kFive;
             return;
@@ -676,8 +676,8 @@ void UnitServer::ApproachTarget() {
     AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<float>(unit->localPosition, goal));
-    if (DistanceSquaredXYUnrounded<float>(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
+    EI_NAN_AUDIT(DistanceSquaredXY(unit->localPosition, goal));
+    if (DistanceSquaredXY(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
 
     g_serverWorld.aiMap.sectorMap.Remove(chased);
     float farOffset = goal.y * kShort;
@@ -696,7 +696,7 @@ void UnitServer::ApproachTarget() {
     float fx = goal.x - headX;
     aiMap->refreshUnits = savedFlag;
     EI_NAN_AUDIT(reach, fx, fy);
-    if (reach * reach < LengthSquared2DUnrounded(fx, fy)) {
+    if (reach * reach < LengthSquared2D(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();

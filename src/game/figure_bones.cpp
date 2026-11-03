@@ -3,7 +3,6 @@
 // rescaled, with the figure's scaled time factor as the origin. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone, AnimationDatabase
 
-#include "bone_pose.h"
 #include "figure_mesh.h"          // FigureMesh
 #include "map_object_animation.h" // AnimationTrack
 #include "lib/containers.h"
@@ -11,25 +10,12 @@
 
 namespace {
 
-// The pose's rotation `t` times the parent's `r` (Hamilton order) with the original's sums (its w subtracts
-// the vector parts' dot, z + x first).
-Quaternion Combine(const Quaternion& r, const Quaternion& t) {
-    Vector3 tv = {t.x, t.y, t.z};
-    Vector3 rv = {r.x, r.y, r.z};
-    Quaternion q;
-    q.w = t.w * r.w - DotZXY(tv, rv);
-    q.x = ((r.z * t.y - t.z * r.y) + t.w * r.x) + t.x * r.w;
-    q.y = ((t.z * r.x - t.x * r.z) + t.w * r.y) + r.w * t.y;
-    q.z = ((t.x * r.y - t.y * r.x) + t.w * r.z) + t.z * r.w;
-    return q;
-}
-
 } // namespace
 
 void FigureBone::Place(const Vector3& origin) {
     if (parent) {
-        position = TurnByQuaternion(parent->rotation, offset) + parent->position;
-        rotation = Combine(parent->rotation, pose->rotation);
+        position = parent->rotation.Rotate(offset) + parent->position;
+        rotation = pose->rotation * parent->rotation;
     } else if (pose) {
         if (pose->animation) {
             float factor = AnimationDatabase::Of(pose->animation)->TimeFactor(morphU);

@@ -6,7 +6,6 @@
 #include "combat_plan.h"
 
 #include "item.h"
-#include "maths.h"
 #include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -81,7 +80,7 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
     float dy = unit->localPosition.y - point.y;
     float dx = unit->localPosition.x - point.x;
     EI_NAN_AUDIT(reach, dx, dy);
-    return reach * reach < LengthSquared2DUnrounded(dx, dy);
+    return reach * reach < LengthSquared2D(dx, dy);
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
@@ -90,8 +89,8 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
 bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& point, int time) {
     Unit* unit = self->unit;
     Vector3 d = point - unit->localPosition;
-    Vector3 u = d / LengthSquaredZYX(d);
-    float side = std::sqrt(LengthSquared2DUnrounded(u.x, u.y));
+    Vector3 u = d / LengthSquared(d);
+    float side = std::sqrt(LengthSquared2D(u.x, u.y));
     Vector3 v = Vector3{u.y, -u.x, 0.0f} / side;
 
     // The units the brain lists as nearby.
@@ -101,8 +100,8 @@ bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& poin
         if (other == order->target) continue;
         if (other->IsDead() != 0) continue;
         Vector3 offset = other->PositionAt(time) - unit->localPosition;
-        float along = DotZYX(offset, u);
-        float across = DotZYX(offset, v);
+        float along = Dot(offset, u);
+        float across = Dot(offset, v);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
             across < kPointThree)
             return true;
@@ -205,7 +204,7 @@ bool UnitServer::CanActFrom(const AIOrder* order, const Vector3& point, int time
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
     }
-    float apartSq = DistanceSquaredXYUnrounded<float>(sight.point, unit->localPosition);
+    float apartSq = DistanceSquaredXY(sight.point, unit->localPosition);
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
@@ -228,7 +227,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (order->pointIsUseSpot) {
         float distance = ActionDistance(order);
         float limitSq = distance * distance;
-        float apartSq = DistanceSquaredXYUnrounded<float>(order->point, unit->localPosition);
+        float apartSq = DistanceSquaredXY(order->point, unit->localPosition);
         EI_NAN_AUDIT(limitSq, apartSq);
         if (limitSq < apartSq) return false;
     }
@@ -288,7 +287,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         reachSq = range * range;
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
-            float dot = DotZYX(delta, facing);
+            float dot = Dot(delta, facing);
             float cone = std::sqrt(distanceSq) * kFrontCosine;
             EI_NAN_AUDIT(cone, dot);
             inFront = cone < dot;
@@ -327,7 +326,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             aim = order->target->PositionAt(tick + castDelay + duration + now);
             delta = aim - origin;
         }
-        float squared = LengthSquared2DUnrounded(delta.y, delta.x);
+        float squared = LengthSquared2D(delta.y, delta.x);
         bool tryHere = true;
         if (Greater(squared, reach)) {
             // Out of reach: wait while the target comes closer, give up once it moves off.

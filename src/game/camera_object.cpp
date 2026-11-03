@@ -240,7 +240,7 @@ void Camera::Save(ByteStream* stream) {
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool Camera::LookDirection(float dx, float dy, float dz) {
-    float lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, float>(dx, dy, dz);
+    float lengthSquare = LengthSquared(Vector3{dx, dy, dz});
     EI_NAN_AUDIT(lengthSquare);
     if (lengthSquare <= CAM_LOOK_EPSILON) return false;   // the double constant (exact as a compare)
     float inv = 1.0f / std::sqrt(lengthSquare);
@@ -266,15 +266,7 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
     float angle = -(CAM_RIGHT_ANGLE + elevation);
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
-    Quaternion& t = localRotation;
-    float x = ((t.z * r.y - t.y * r.z) + r.w * t.x) + t.w * r.x;
-    float y = ((t.x * r.z - t.z * r.x) + r.w * t.y) + t.w * r.y;
-    float zz = ((t.y * r.x - r.y * t.x) + r.w * t.z) + t.w * r.z;
-    float w = r.w * t.w - DotUnrounded<Sum3::ZYX>(r.x, r.y, r.z, t.x, t.y, t.z);
-    t.z = zz;
-    t.y = y;
-    t.w = w;
-    t.x = x;
+    localRotation = r * localRotation;
     return true;
 }
 
@@ -288,7 +280,7 @@ void Camera::AlignToTarget() {
     float hy = -zAxis.x;
     float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
     Vector3 h = {inv * zAxis.y, hy * inv, 0.0f};
-    float dot = DotZYX(xAxis, h);
+    float dot = Dot(xAxis, h);
     float cosine = dot;
     EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
@@ -297,19 +289,12 @@ void Camera::AlignToTarget() {
     float magnitude = AbsBits(angle);
     if (CAM_DEGREE > magnitude) return;
     Vector3 c = Cross(xAxis, h);
-    Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquaredZYX(c)));
-    float axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(axis));
+    Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquared(c)));
+    float axisLength = std::sqrt(LengthSquared(axis));
     if (axisLength > CAM_ALIGN_EPSILON) {   // the double constant (exact as a compare)
         Quaternion turn;
         const Quaternion& r = *turn.SetAngleAxis(angle * CAM_TENTH, axis);
-        float x = ((r.y * q.z - q.y * r.z) + q.x * r.w) + r.x * q.w;
-        float y = ((q.x * r.z - r.x * q.z) + q.y * r.w) + r.y * q.w;
-        float z = ((q.y * r.x - r.y * q.x) + r.w * q.z) + r.z * q.w;
-        float w = r.w * q.w - DotUnrounded<Sum3::ZXY>(q.x, q.y, q.z, r.x, r.y, r.z);
-        q.z = z;
-        q.y = y;
-        q.w = w;
-        q.x = x;
+        q = r * q;
     }
     ClampAboveObjects();
 }
@@ -337,7 +322,7 @@ void Camera::ClampAboveObjects() {
         float dy = cy - p->y;
         float dz = cz - p->z;
         // The distance less _hypot's double, rounded once at 24 bits.
-        float outside = pc24::Sub(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)), radius);
+        float outside = pc24::Sub(std::sqrt(LengthSquared(Vector3{dx, dy, dz})), radius);
         float factor = CAM_ZERO;
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;

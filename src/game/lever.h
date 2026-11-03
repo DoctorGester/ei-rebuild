@@ -3,7 +3,7 @@
 #include "lock_key.h"
 #include "map_object.h"
 #include "map_spec.h"   // LeverSetup
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit.h"
 
 #include <cstddef>

@@ -9,7 +9,7 @@
 #include "engine_object.h"
 #include "game_singletons.h"
 #include "item_db.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "resource_manager.h"
 
 #include "lib/bit_flags.h"

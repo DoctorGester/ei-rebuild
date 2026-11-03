@@ -8,7 +8,7 @@
 #include "engine_object.h"
 #include "game_singletons.h"
 #include "ground_print.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_diplomacy.h"
 #include "party.h"
 #include "player_messages.h"

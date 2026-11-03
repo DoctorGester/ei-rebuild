@@ -322,7 +322,7 @@ void Terrain::SetWaveStrength(float strength) {
     waveSpeed = kWaveSpeedScale * strength;
     // The game CRT's arc sine (its 64-bit result) plus the turn, one 24-bit rounding.
     const float step = pc24::Add(libcrt::CiAsin(1.0f - strength), kPi * kWaveStepTurn);
-    float length = LengthXYZ(waveDirection);
+    float length = Length(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
     waveDirection.x = kWaveDirectionScale * waveDirection.x * step;
     waveDirection.y = kWaveDirectionScale * waveDirection.y * step;

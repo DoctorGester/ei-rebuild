@@ -123,7 +123,7 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
     MotionOrder* order = OrderOf(this);
     float dx = direction.x;
     float dy = direction.y;
-    float length = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float length = std::sqrt(LengthSquared2D(dy, dx));
     // FPATAN's 64-bit result: compared with the stored angle unrounded.
     pc24::Unrounded angle = length > 0.0f ? pc24::Atan2(dy / length, dx / length) : pc24::Unrounded{};
     float x = kHalfCellScale * position.x;
@@ -361,7 +361,7 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
             std::memcpy(&toX, &to.x, 4 * sizeof(float));
             float dx = fromX - toX;
             float dy = fromY - toY;
-            float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+            float distance = std::sqrt(LengthSquared2D(dy, dx));
             length = distance;
             speed = from.speed;
             end = end + distance / speed;
@@ -576,7 +576,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoi
                                   float endOffset, int* stepIndex) {
     float dx = from->x - to->x;
     float dy = from->y - to->y;
-    float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float distance = std::sqrt(LengthSquared2D(dy, dx));
     EI_NAN_AUDIT(distance);
     if (distance == 0.0f) distance = kMinLength;
     MotionPoint p;
@@ -625,7 +625,7 @@ void UnitMotion::LimitSpeeds(float rate) {
         float angle = AbsBits(pc24::Sub(a1.hi + a1.lo, pc24::Atan2(p[1].dirY, p[1].dirX)));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
-        float distance = std::sqrt(LengthSquared2DUnrounded(p[0].x - p[1].x, p[0].y - p[1].y));
+        float distance = std::sqrt(LengthSquared2D(p[0].x - p[1].x, p[0].y - p[1].y));
         float turnTime = angle / rate;
         float wayTime = distance / p[0].speed;
         if (turnTime > wayTime) p[0].speed = distance / turnTime;

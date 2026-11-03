@@ -69,7 +69,7 @@ bool WorldSphere(const Object3D* object, const Matrix4& world, const Vector3& sc
     if ((object->bounds.flags & kBoundsValid) != kBoundsValid) return false;
     const Vector3& center = object->bounds.center;
     const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
-    const Vector3 out = TransformColumn<Sum3::XYZ>(world, c);
+    const Vector3 out = TransformColumn(world, c);
     *sphere = {out.x, out.y, out.z, object->bounds.radius * LargestScale(scale)};
     return std::isfinite(sphere->x) && std::isfinite(sphere->y) && std::isfinite(sphere->z) && std::isfinite(sphere->radius);
 }
@@ -78,7 +78,7 @@ bool WorldSphere(const Object3D* object, const Matrix4& world, const Vector3& sc
 float TopOf(const Object3D* object, const Vector3& scale) {
     const Vector3& center = object->bounds.center;
     const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
-    return object->localPosition.z + std::sqrt(LengthSquared<Sum3::XYZ>(c)) + object->bounds.radius * LargestScale(scale);
+    return object->localPosition.z + std::sqrt(LengthSquared(c)) + object->bounds.radius * LargestScale(scale);
 }
 
 // Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
@@ -124,7 +124,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
-                if (LengthSquared<Sum3::XYZ>(part->localPosition) > kNearSquared) continue;
+                if (LengthSquared(part->localPosition) > kNearSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
                 render::ShadowMesh mesh{};
                 const VertexPacket* positions = nullptr;
