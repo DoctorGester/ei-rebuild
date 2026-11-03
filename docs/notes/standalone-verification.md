@@ -255,6 +255,8 @@ check after the run looks for that yet (the harness's kernel32 and ntdll hooks d
   [,from,to]` (one dword's reads and writes), `EI_STACK_SCRUB`, `EI_SPIN_US` (tests/verify/harness_watch.h).
 - `EI_SAVETRACE=1` (every memory stream write up to each saved file, savetrace.txt) with `tools/save_trace.py plain | diff
   A B` (the writers of differing save bytes).
+- `EI_READTRACE=1`: every install path a run reads, lists or looks for, once each, in its harness_reads.txt ("+" found,
+  "-" missing); `tools/stub_data.py reads <runs folder>` sums a suite's (linux.md, "The stub data").
 - The Suites workflow's `diff_base` (harness.md) shows where two builds part.
 
 ## 8. Rules from real differences

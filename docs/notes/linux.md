@@ -88,8 +88,10 @@ build machine); the first release's summary line is the measured answer.
 Linux workflow builds it. Scenarios run with run_all.py as on Windows (`python3 tools/run_all.py ...`), with
 `EI_BUILD_DIR` the build folder, `EI_GAME_VANILLA` / `EI_GAME_REBIRTH` the game folders (copies: a run never writes
 into them, but WSL reads /mnt slowly), and `EI_HARNESS_SETTINGS=<checkout>/config/harness` when the build folder is not
-two levels below the checkout. run_all's machine slots are the system's own: games in WSL do not count against
-Windows' 16, so hold slots on the Windows side while they run. Under WSL keep the checkout and the build in WSL's home
+two levels below the checkout. run_all's machine slots are the system's own (lock files in its temp folder, Linux's
+/tmp under WSL): games in WSL do not count against Windows' 16, so under WSL run_all allows 6 at once by default (WSL's
+memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite runs only while no Windows suite
+does (hold slots on the Windows side for a few WSL games beside Windows work). Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
 
 First runs (WSLg, llvmpipe: Mesa's software OpenGL; 2026-11-03), the image suite against the Windows goldens: 141 of
@@ -121,6 +123,85 @@ does the same, so it is the WSLg / RDP path, not ours; nothing in the game can m
 does see to: its thread never waits for the device (sound.md), so a stalled sink leaves the game silent but running at
 its frame rate (before, the first jingle after the stall froze the main loop until the 60 s limit). Frame rate and
 sound are unrelated there: the menu's passes fall from 100 to about 30 a second over a minute with no device too.
+
+## The stub data
+
+The suites can run without the game's files: `tools/stub_data.py build <install> <folder>` writes a copy of an install
+with every picture, sound and movie blanked in its own format, so the game reads it through its ordinary loaders, and
+the goldens stay those of the install. The repository is public: the stub set is still the game's data (maps, models,
+scripts, texts) and lives only under `build/` and in a private repository, never in git here, a public release or an
+Actions cache.
+
+What the runs read (`EI_READTRACE=1`, summed by `stub_data.py reads`; both suites, 2026-11-03): from Res\ every
+archive the game opens at start (aiinfo, database, databaselmp, figures, gfx, materials, menus, outro, redress, sfx,
+speech, texts, textslmp, textures) and music.reg, smessbase.reg, streamsn.reg, sysmsg.txt; the maps the scenarios play
+(.mpr, .mob, every .mq); camera\mainmenu.cam and a zone's .cam; config\ai.reg and the lights .ini files; the loading
+screen's, the titles' and the credits' movies (progres*.bik, titles.bik, crdtfin.bik); the music the zones choose
+(stream\*.mp3); on Rebirth also EI_Plugin.ini, 2utoexec.cfg and starter\mods\standard\config.reg. Looked for and
+absent: autoexec.cfg, the loose textures\*.bmp overrides, the mod folder's copies, and starter\addon.dll /
+EI_Plugin.asi (whose presence picks the Rebirth profile). Never read: the install's saves\ (a run's are its own
+folder's), its programs, the starter's own files.
+
+What of them reaches game state, and so what the stubs keep:
+- Kept whole: maps (terrain, sectors, objects, scripts, quests), figures (geometry, skeletons, animations and their
+  events), databases, texts, registry files, cameras, configs, fonts, the Rebirth mods.
+- Textures (.mmp, in any archive and inside nested ones: .mpr, .mod are archives too) and loose .bmp: the header (size,
+  format, levels) and the .mmp's extra block; the pixels 0.
+- Sounds (.wav): every chunk; the samples 0. A voice ends by its data's bytes over its byte rate (sound.md).
+- MP3 (speech, music): every frame header (the game counts frames: ScanMp3), the frames' data 0, an info frame whole.
+- Movies (.bik): header and frame index (frame count, size, rate, keyframes); every frame emptied (no sound packet, no
+  video packet: the decoder keeps the frame before). The game reads a movie's frame numbers, never its pixels.
+- Programs (.exe, .dll, .asi): empty files, for the profile's presence check.
+
+Checked (2026-11-03, the read-traced install runs against the stub runs): on Windows the image suite on the stub set
+149 the same / 5 without a golden and the Rebirth suite 28 the same, as on the installs. Four scenarios fail their own
+pixel checks on blank textures, their goldens the same: render_blink, render_cursor_present, render_shadows_outside,
+render_smooth. `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
+the install's size (the movies aside). In WSL (the packed set unpacked as the CI job does)
+each run on the stub set against the same run on the install copies, digest for digest (golden.py diff): the image
+suite less the pairs 142 of 142 comparable runs the same (4 of them only once rerun on a quiet machine: under load
+llvmpipe's frame waits run out), camera_smooth and camera_spin cut by their 120 s limit on both, the watchdog
+scenarios without a digest; the Rebirth set less the pairs 22 of 22. Against the Windows goldens every Linux run
+differs from record 0, on the install copies as on the stubs (H47c), so the CI job fails on every golden until H47c is
+fixed. Over 60 s on llvmpipe besides the pairs: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado.
+
+Sizes: the vanilla set 724 MB on disk (121 MB of it not zero: figures.res 53, the maps 59), Rebirth's 1850 MB (240 MB
+not zero): its high-resolution textures.res is 655 MB of blanked pixels and the LostInAstral mod 711 MB (its speech and
+sfx blanked; 119 MB of maps and figures that no run reads). The blanks cost next to nothing packed; truncating them
+would change the archives' layout and only save the runner's disk. `stub_data.py pack` (Python 3.14's zstd) puts both
+in one .tar.zst of about 75 MB: level 22 with a 128 MB window and long matching, the two installs' copies of a file next
+to each other. Against xz -9 with a 256 MB window: 65.0 MB, but 7 to 9 s to unpack against zstd's 1 s; zstd -19
+--long=27 76.3 MB. Leaving out LostInAstral would give 49 MB. Building takes about 20 s an install, packing 5 minutes.
+
+### The CI job
+
+`.github/workflows/suites-linux.yml` ("Suites (Linux)") builds the harness on GitHub's Ubuntu runner, checks out the
+private repository with a read-only token, unpacks the stub set into the runner's temp folder, removes the checkout
+and plays both suites under xvfb on llvmpipe, less `LINUX_SKIP` (the scenarios that do not match on llvmpipe yet, "The
+harness" above); it fails when a golden differs. It runs on pushes to main and `claude/**`, on pull requests from this
+repository's own branches (a fork's gets no secrets and the job is skipped) and by hand; it uploads nothing, and the
+data is outside every cached path. It is off until the variable below is set.
+
+One-time setup (the user's; nothing here creates repositories or tokens):
+1. Build and pack on the machine with the installs:
+   `python tools/stub_data.py build F:\games\EvilIslands build\stub\vanilla`,
+   `python tools/stub_data.py build "F:\games\Evil Islands (Rebirth)" build\stub\rebirth`,
+   `python tools/stub_data.py pack build\stub\ei-stub-data.tar.zst build\stub\vanilla build\stub\rebirth`.
+   The folder names must stay `vanilla` and `rebirth` (the job looks for them); pack needs Python 3.14 (its zstd).
+2. Optionally encrypt it (Git for Windows' openssl, in its bash): a key `export EI_KEY=$(openssl rand -base64 32)`, then
+   `openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in build\stub\ei-stub-data.tar.zst -out ei-stub-data.tar.zst.enc -pass env:EI_KEY`.
+   A file over GitHub's 100 MB goes in parts: `split -b 90m -d <file> <file>.` (names `<file>.00`, `.01`, ...).
+3. Create a private repository on GitHub (e.g. `DoctorGester/ei-stub-data`), and push the file(s) to its default
+   branch at the top level: `ei-stub-data.tar.zst` (or `ei-stub-data.tar.zst.enc`, or their parts). A new set later: a
+   new commit replacing them (the job takes the default branch's).
+4. Create a fine-grained personal access token (GitHub > Settings > Developer settings > Fine-grained tokens):
+   resource owner your account, "Only select repositories": the stub data repository alone, permissions: Contents
+   read-only (Metadata read-only comes with it), an expiry you will renew.
+5. In this repository's Settings > Secrets and variables > Actions: the secret `EI_STUB_DATA_TOKEN` (the token), the
+   secret `EI_STUB_DATA_KEY` (the key of step 2, only when encrypted), and under Variables the repository variable
+   `EI_STUB_DATA_REPO` = `owner/name` of the private repository. The variable switches the job on; deleting it
+   switches it off.
+6. Start it once by hand (Actions > Suites (Linux) > Run workflow) and read the summary's goldens blocks.
 
 ## What differs from Windows
 

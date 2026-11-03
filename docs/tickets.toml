@@ -6264,6 +6264,13 @@ depends = ["H47"]
 note = "From H47's WSL runs (docs/notes/linux.md, The harness): render_smooth and ui_quicksave's saved picture differs in 94% of the pixels on GL (read-back orientation or format?), render_terrain_seams' level steps 0.9% (vanilla data), render_present_window's windowsize is asynchronous under X11 (wait for the size before the next step), net_second_master's refused connect comes at once (Windows retries about 1 s: wait on the box instead of a fixed wait 2500?), the pair scenarios run about 190 s on llvmpipe. Also: a prepare tool failing raises out of run_all (prepare_scenario.prepare) and ends the whole suite instead of failing the run."
 
 [[ticket]]
+id = "H47c"
+title = "Linux harness runs differ from every golden at record 0 (the main menu's animals)"
+group = "harness"
+depends = ["H41"]
+note = "Found in H41 (2026-11-03, WSL, llvmpipe, at main 7ebf23793 + H41): every image and Rebirth golden differs on Linux, on the install copies as on the stub set (the same hashes): from digest record 0 (world update 20, frame 3) obj129 (unanwibo) and cunit148 (unanwiwo) #place differ; outcomes the same, later records add the hero's party units' places and mission.sav obj 5. H47 had 141 of 149 the same, so it came with a merge since (a Linux-only path: float maths under gcc, a timer, the main menu zone's animal movement?). Find the first differing field with golden.py diff of a Windows and a Linux run of boot (full digests, digest 1). Until it is fixed the Suites (Linux) job (H41) fails on every golden."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
