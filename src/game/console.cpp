@@ -65,6 +65,11 @@ Stream& Stream::Flush() {
 
 CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
 
+CommandHandler FindCommand(const CommandMap& map, const std::string& name) {
+    auto found = map.find(name);
+    return found != map.end() ? found->second : nullptr;
+}
+
 void EndLine(Stream& os) { (os << '\n').Flush(); }
 
 void PrintLine(const char* text) { EndLine(g_consoleOut << text); }
@@ -167,8 +172,8 @@ void Execute(const std::string& text) {
         app::QuitGame(0);
         return;
     }
-    if (Command(&g_publicCommands, command)) {
-        (Command(&g_publicCommands, command))(&args);
+    if (CommandHandler handler = FindCommand(g_publicCommands, command)) {
+        handler(&args);
         return;
     }
     if (!g_cheatEnabled) {
@@ -180,8 +185,8 @@ void Execute(const std::string& text) {
             PrintLine("Activated!");
             return;
         }
-    } else if (Command(&g_cheatCommands, command)) {
-        if (!IsMultiplayerClient()) (Command(&g_cheatCommands, command))(&args);
+    } else if (CommandHandler handler = FindCommand(g_cheatCommands, command)) {
+        if (!IsMultiplayerClient()) handler(&args);
         return;
     }
     PrintLine("Unknown command");

@@ -227,8 +227,9 @@ void SoundManager::EndSlot(SoundSlot* slot) {
     slot->handle = -1;
 }
 
-// The first voice whose handle matches (free voices hold -1), or null.
+// The first voice whose handle matches, or null (free voices hold -1, which matches none).
 SoundSlot* SoundManager::SlotForHandle(int handle) const {
+    if (handle == -1) return nullptr;
     for (int i = 0; i < 15; ++i)
         if (slots[i].handle == handle) return &slots[i];
     return nullptr;
@@ -306,9 +307,12 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
 void SoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
-    musicFader.volume = v;
-    musicFader.Recalc();
-    if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
+    {
+        std::lock_guard<std::recursive_mutex> guard(streamLock);
+        musicFader.volume = v;
+        musicFader.Recalc();
+        if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
+    }
     if (v == 0) StopStream(4);
 }
 
@@ -435,7 +439,7 @@ int SoundManager::StopSound(int handle) {
 
 void SoundManager::MoveEmitter(int index, const Vector3& position, float inner, float outer, int minInterval,
                                 int maxInterval) {
-    if (index < 0 || index > 16) return;
+    if (index < 0 || index >= 16) return;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return;
     e->position = position;
@@ -462,7 +466,7 @@ int SoundManager::AddEmitter(const std::vector<std::string>* names, const Vector
 
 // Always -1. The name list is kept.
 int SoundManager::RemoveEmitter(int index) {
-    if (index < 0 || index > 16) return -1;
+    if (index < 0 || index >= 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return -1;
     e->position = {};
@@ -702,9 +706,10 @@ void SoundManager::Tick() {
 
 // --- Music stream ---------------------------------------------------------------------------------
 
-// Starts a fade of the stream (no lock).
+// Starts a fade of the stream.
 void SoundManager::FadeOutStream() {
     if (enabled == 0) return;
+    std::lock_guard<std::recursive_mutex> guard(streamLock);
     musicFader.mode = 2;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
@@ -714,6 +719,7 @@ void SoundManager::FadeOutStream() {
 
 void SoundManager::FadeInStream() {
     if (enabled == 0) return;
+    std::lock_guard<std::recursive_mutex> guard(streamLock);
     musicFader.mode = 1;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
