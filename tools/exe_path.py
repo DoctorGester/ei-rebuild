@@ -29,6 +29,21 @@ def install_exes(root=ROOT):
             os.path.join(run_all.install_dir('rebirth'), 'starter', 'Engine', 'game.exe')]
 
 
+def install_file(data, *names):
+    """The file <install>/<names...> of the install `data` ('vanilla' or 'rebirth'; run_all.install_dir), each name
+    matched without case as Windows matches it (a copy of the install on Linux keeps Windows' spellings); the path as
+    named when no entry matches."""
+    import run_all
+    path = run_all.install_dir(data)
+    for name in names:
+        exact = os.path.join(path, name)
+        if not os.path.exists(exact) and os.path.isdir(path):
+            exact = next((os.path.join(path, entry) for entry in sorted(os.listdir(path))
+                          if entry.lower() == name.lower()), exact)
+        path = exact
+    return path
+
+
 def find_exe(explicit=None, root=ROOT):
     """The game.exe to read: `explicit` (or $EI_EXE), else the first of the installs'. ExeNotFound names what was looked for."""
     explicit = explicit or os.environ.get('EI_EXE')

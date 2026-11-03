@@ -98,6 +98,8 @@ std::string FullPath(const std::string& path) {
     if (full.empty() || whole.back() == '\\') full += "\\";
     return full;
 }
+
+long long FreeMegabytes(const std::string& folder) {
     struct statvfs s;
     if (folder.empty() || statvfs(Native(folder).c_str(), &s) != 0) return -1;
     return static_cast<long long>(s.f_bavail) * static_cast<long long>(s.f_frsize) / (1024 * 1024);
@@ -505,7 +507,10 @@ void ScanTable(const char* file, const char* kind, bool listenersOnly, const std
     FILE* f = std::fopen(file, "r");
     if (!f) return;
     char line[512];
-    std::fgets(line, sizeof(line), f);   // the heading
+    if (!std::fgets(line, sizeof(line), f)) {   // the heading
+        std::fclose(f);
+        return;
+    }
     while (std::fgets(line, sizeof(line), f)) {
         unsigned address = 0, port = 0, state = 0;
         unsigned long inode = 0;

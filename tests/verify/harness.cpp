@@ -186,7 +186,8 @@
 //   diskfull <text>           TEST ONLY (harness_disk_full.txt): writes to files whose path contains
 //                             <text> fail with ERROR_DISK_FULL from now on (harness_crash.h)
 //   expectcrash <text>        the run passes when the game crashes with a failure line containing
-//                             <text>, and fails at "quit" when it has not crashed
+//                             <text> (or one of "<text> | <text> ..."), and fails at "quit" when it has not
+//                             crashed
 //   quit                      write the report and exit the game through the console
 //   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
 //                             with fixed seeds, where runs repeat exactly (see below)
@@ -1772,8 +1773,20 @@ bool IsInputStep(const std::string& verb) {
            verb == "typeunicode";
 }
 
-// "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
+// "expectcrash <text>": the crash the scenario is about (its failure line contains <text>, or one of the texts
+// between " | ": each system's error code, say).
 std::string g_expectedCrash;
+
+bool ExpectedCrash(const std::string& what) {
+    for (std::size_t at = 0; at <= g_expectedCrash.size();) {
+        std::size_t end = g_expectedCrash.find(" | ", at);
+        if (end == std::string::npos) end = g_expectedCrash.size();
+        const std::string text = g_expectedCrash.substr(at, end - at);
+        if (!text.empty() && what.find(text) != std::string::npos) return true;
+        at = end + 3;
+    }
+    return false;
+}
 // The crash's failure line gives the free space for a C++ throw (a write failing on a full disk throws
 // a platform::FileError) or when it is below kLowDiskMb.
 constexpr long long kLowDiskMb = 1024;
@@ -1796,7 +1809,7 @@ void Fatal(const sys::Fault& fault) {
     Log("harness: %lld MB free on the run folder's disk", freeMb);
     LogModuleOf(fault.pc);
     LogStack(fault.sp, 1024);
-    if (!g_expectedCrash.empty() && what.find(g_expectedCrash) != std::string::npos) {
+    if (!g_expectedCrash.empty() && ExpectedCrash(what)) {
         Log("harness: the crash the scenario expects (expectcrash %s)", g_expectedCrash.c_str());
         g_expectedCrash.clear();
     } else {
