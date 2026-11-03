@@ -34,11 +34,6 @@ void WriteItemIds(ByteStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id : -1);
 }
 
-// The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
-UnitPrototypeRecord* PrototypeByName(std::string_view name) {
-    std::string key(name);
-    return g_unitDatabase.prototypes.byName[key];
-}
 
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
@@ -123,13 +118,13 @@ void Unit::LoadUnit(ByteStream* stream) {
 
     std::string prototypeName;
     prototypeName = stream->ReadString();
-    prototypeId = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
+    prototypeId = static_cast<std::uint32_t>(PrototypeIndexOf(g_unitDatabase.prototypes.FindByName(prototypeName)));
     UnitPrototypeRecord* second;
     if (stream->version < kVersionSecondName) {
         second = g_unitDatabase.prototypes.FindByName(prototypeName);
     } else {
         prototypeName = stream->ReadString();
-        second = PrototypeByName(prototypeName);
+        second = g_unitDatabase.prototypes.FindByName(prototypeName);
     }
     secondPrototype = PrototypeIndexOf(second);
 }

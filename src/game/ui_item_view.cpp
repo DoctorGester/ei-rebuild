@@ -310,12 +310,12 @@ HeroFaceNames FaceNames(const char* prototype) {
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
-        unit = g_unitDatabase.prototypes.byName[key];   // an unknown name gets a null entry
+        unit = g_unitDatabase.prototypes.FindByName(key);
     }
     UnitModelRecord* figure;
     {
         std::string key(unit->modelName);
-        figure = unitdb::ModelNamed(key);
+        figure = g_unitDatabase.models.FindByName(key);
     }
     std::string sex;
     const std::string& figureModel = figure->figureName;

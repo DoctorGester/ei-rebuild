@@ -41,11 +41,12 @@ Party* RecordsOf(Player* player) { return player->GetParty(); }
 // records.
 bool IsPartyUnit(Unit* unit) { return unit->controller->GetClassId() == ClassId::UnitClientSpecific; }
 
-// Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
-// already there (whatever its slot), -1 when full.
+// Puts `item` into the first free slot of `slots`, taking a reference: the slot that holds it (the one it was
+// in already, if any), -1 when it is null or every slot is taken.
 int AddToSlots(Unit* unit, Item** slots, std::uint32_t count, Item* item) {
+    if (!item) return -1;
     for (std::uint32_t i = 0; i < count; ++i) {
-        if (slots[i] == item) return 1;
+        if (slots[i] == item) return static_cast<int>(i);
         if (!slots[i]) {
             slots[i] = item;
             item->AddRef();
@@ -170,20 +171,11 @@ std::array<std::uint32_t, 11> Unit::GetEquipmentIds() {
     return out;
 }
 
-int Unit::AddWeapon(Item* item) {
-    if (!item) return 0;
-    return AddToSlots(this, weapons, 4, item);
-}
+int Unit::AddWeapon(Item* item) { return AddToSlots(this, weapons, 4, item); }
 
-int Unit::AddQuickItem(Item* item) {
-    if (!item) return 0;
-    return AddToSlots(this, quickItems, 4, item);
-}
+int Unit::AddQuickItem(Item* item) { return AddToSlots(this, quickItems, 4, item); }
 
-int Unit::AddSpell(Item* item) {
-    // No null check here: a null item "is already there" at the first empty slot (returns 1).
-    return AddToSlots(this, spells, 8, item);
-}
+int Unit::AddSpell(Item* item) { return AddToSlots(this, spells, 8, item); }
 
 void Unit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, slot); }
 

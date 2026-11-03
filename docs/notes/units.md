@@ -10,8 +10,8 @@ and every scenario that starts the game.
 
 - Party units keep their items in the owning player's party records (found by unit id) instead of the unit's own lists.
 - Prototype tables (`UnitDatabase`, unit_db.h): prototypes (a prototype's `modelIndex` indexes models), NPCs, models,
-  skill level records; the skill (perk) database separately. The name lookups are `operator[]` on name maps (an unknown
-  name is inserted with a null record).
+  skill level records; the skill (perk) database separately. The name lookups (`FindByName`) find; an unknown name gives null
+  and adds nothing.
 - `Unit` (class 0x50) is a MapObject; `CreateUnit` is its Create (a member named Create would override EngineObject's
   virtual). Its controller (`Unit::Controller()`) is `UnitServer` (combat.md) on the server and `UnitClientSpecific`
   (class 0x3D) on the client, called through the `UnitController` interface.
@@ -117,7 +117,7 @@ spec (particle type + offset + scale, point light offset + radius + colour, soun
 ## Levers
 
 The lever table (`lever_table.cpp`, records from `Levers.ldb` in database.res: chunk 1, entered into a name index;
-missing: "Can't open Levers database"), found by model name (unknown names add a null record). `SetState`: a negative (or
+missing: "Can't open Levers database"), found by model name (null for an unknown one). `SetState`: a negative (or
 NaN) duration takes the model's default or 10; a negative state is the next (wraps when cycling); with a live world
 units within radius + 0.5 leave the sector map around the move, the end tick is (tick + duration) + 1, lifted units that
 cannot stay go to a free cell and are resynced. `CollectUseSpots` (from FindUseSpot). `levers.txt` switches zone1's gate
@@ -150,14 +150,6 @@ By design (user 2026-11-03): IsBehind is never true without a player (NPCs never
 
 RaiseStrength raises the strength in use with its base before the maxima, so the slots scale to the new maximum (a
 hero at full health stays there; a wounded one keeps the fraction).
-
-Left for C84a (bookkeeping): AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (1 is
-also slot 1) and AddSpell has no null check; UnitStats::Reset leaves some fields alone; name lookups insert unknown
-names (null record); CollectArmourPartNames pushes the five empty names of the helmet row; WearArmourModel stores the
-id even for armour slots 3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives
-broken pieces to the player and releases the unit's reference after; Unit::Reset clears item slots without releasing;
-LoadTrap appends the loaded victims to the list instead of replacing it; a trap's 0x100000 flag changes nothing but is
-cleared when nobody is near.
 
 ## Ack kinds
 

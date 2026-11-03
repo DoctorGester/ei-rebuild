@@ -282,9 +282,7 @@ bool TrapObject::RunTick() {
     if (!WorldContext()->IsServer()) return false;
     auto* world = ServerWorld();
     std::vector<Unit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
-    if ((flags & MapObjectFlag::ArmedFresh) && units.empty()) {
-        flags &= ~MapObjectFlag::ArmedFresh;
-    } else if (!units.empty()) {
+    if (!units.empty()) {
         std::string line;
         float x = localPosition.x;
         float y = localPosition.y;

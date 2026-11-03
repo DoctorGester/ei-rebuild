@@ -303,19 +303,13 @@ void LoadTable(MemoryStream* stream, int id, SerializeTable<Record> serialize, T
 // --- Name lookups ---------------------------------------------------------------------------------
 
 UnitModelRecord* UnitModelTable::FindByName(std::string_view name) {
-    // As UnitPrototypeTable::FindByName: the key is built twice (a string, then the pair the
-    // original would insert) and both are freed afterwards.
-    std::string key(name);
-    std::string pairKey(key);
-    UnitModelRecord* record = byName[pairKey];
-    return record;
+    auto found = byName.find(std::string(name));
+    return found != byName.end() ? found->second : nullptr;
 }
 
 UnitLevelRecord* UnitLevelTable::FindByName(std::string_view name) {
-    std::string key(name);
-    std::string pairKey(key);
-    UnitLevelRecord* record = byName[pairKey];
-    return record;
+    auto found = byName.find(std::string(name));
+    return found != byName.end() ? found->second : nullptr;
 }
 
 // --- The unit database ----------------------------------------------------------------------------

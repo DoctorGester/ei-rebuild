@@ -445,12 +445,12 @@ void HudPortraits::Rebuild(bool wide) {
 
         UnitPrototypeRecord* prototype;
         {
-            prototype = unitdb::PrototypeNamed(std::string(player->text));
+            prototype = g_unitDatabase.prototypes.FindByName(std::string(player->text));
             // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
-        const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName));
+        const UnitModelRecord* figure = g_unitDatabase.models.FindByName(std::string(prototype->modelName));
         SexOf(figure->figureName, sex);
         build = "me";
         model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);

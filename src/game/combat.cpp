@@ -789,19 +789,11 @@ void UnitServer::RepackStats() {
     if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
 
-bool UnitServer::ArmourPutOn(std::uint32_t key) {
+void UnitServer::ArmourPutOn(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
     auto* record = itemdb::ArmorAt(key >> 16);
     stats.AddArmourLayer(unit->armor[record->type]);
-    return false;
 }
-
-bool UnitServer::RebuildArmourLayers() {
-    stats.RebuildArmourLayers(unit);
-    return true;
-}
-
-int UnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
 
 void UnitServer::RefreshEquipment() {
     RefreshItemSpells();

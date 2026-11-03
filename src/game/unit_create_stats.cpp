@@ -217,10 +217,8 @@ constexpr FactoryEntry kFactory[] = {
 // --- Name lookups -----------------------------------------------------------------------------
 
 UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
-    std::string key(name);
-    std::string pairKey(key);
-    UnitNpcRecord* record = byName[pairKey];
-    return record;
+    auto found = byName.find(std::string(name));
+    return found != byName.end() ? found->second : nullptr;
 }
 
 // --- Builders ---------------------------------------------------------------------------------
@@ -280,11 +278,9 @@ int MapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, s
     const UnitModelRecord* model = ModelOf(prototype);
     const UnitNpcRecord* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
-    // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare absorb
-    // values, the high bits of builtFlags, ...) are 0, not what the caller's stack held (a determinism fix;
-    // the harness zeroes them in the original too).
+    // The vitals start zeroed: the fields their reset and this builder leave are 0, not what the caller's stack
+    // held (a determinism fix; the harness zeroes them in the original too). The statistics' reset zeroes all.
     std::memset(vitals, 0, sizeof(UnitVitals));
-    std::memset(stats, 0, sizeof(UnitStats));
     vitals->Reset();
     stats->Reset();
 

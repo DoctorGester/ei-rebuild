@@ -64,7 +64,7 @@ constexpr int kGameResultLost = 2;
 void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
     UnitPrototypeRecord* prototype;
     {
-        prototype = unitdb::PrototypeNamed(std::string(prototypeName));    // find_or_insert of {name, null}
+        prototype = g_unitDatabase.prototypes.FindByName(prototypeName);
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
@@ -452,7 +452,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             UnitPrototypeRecord* prototype;
             {
                 std::string key(prototypeName);
-                prototype = unitdb::PrototypeNamed(key);
+                prototype = g_unitDatabase.prototypes.FindByName(key);
             }
             // No prototype record: model 0 (Rebirth's FixAddMapObject; the original read through the null record).
             const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;

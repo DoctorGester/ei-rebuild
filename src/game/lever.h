@@ -34,8 +34,11 @@ struct LeverRecordTable {
     // every record in the index under its name. Returns 1, or the fatal error's result when the archive
     // or the file does not open.
     int Load(const std::string& folder);
-    // The record filed under `name`, or null; like the index's operator[], an unknown name gets a null entry.
-    LeverRecord* Named(std::string_view name) { return byName[std::string(name)]; }
+    // The record filed under `name`, or null.
+    LeverRecord* Named(std::string_view name) {
+        auto found = byName.find(std::string(name));
+        return found != byName.end() ? found->second : nullptr;
+    }
 
     std::vector<LeverRecord> records;
     std::unordered_map<std::string, LeverRecord*> byName;

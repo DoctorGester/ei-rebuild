@@ -178,7 +178,8 @@ public:
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }
-    bool ArmourTakenOff(std::uint32_t) override { return RebuildArmourLayers(); }
+    // The armour layers rebuilt (the slot unread).
+    void ArmourTakenOff(std::uint32_t) override { stats.RebuildArmourLayers(unit); }
     void ObjectDeleted(EngineObject* object) override { OnObjectDeleted(object); }
 
     // The active weapon's reach, else the natural reach.
@@ -338,12 +339,9 @@ public:
     // motionChanged set when the movement speeds changed.
     void RepackStats() override;
     // The armour piece the unit wears in the slot of armour prototype `key >> 16` (its type) added to the
-    // layers. Returns false.
-    bool ArmourPutOn(std::uint32_t key) override;
-    // The armour layers rebuilt (the argument unread; returns true) / the outer layers cleared (returns
-    // UnitStats::ClearOuterLayers's 0).
-    bool RebuildArmourLayers();
-    int ClearOuterArmourLayers() override;
+    // layers.
+    void ArmourPutOn(std::uint32_t key) override;
+    void ClearOuterArmourLayers() override { stats.ClearOuterLayers(); }
     void RefreshEquipment() override;
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;

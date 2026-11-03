@@ -60,7 +60,6 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
             else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i], name);
         }
         if (Named(prototype->weaponName)) {
-            // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
             int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
             if (slot != -1) unit->pendingWeapon = slot;
         }

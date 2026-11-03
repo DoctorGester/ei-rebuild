@@ -152,9 +152,9 @@ public:
     virtual void UpdateSizeClasses() {}
     virtual int Level() = 0;
     virtual int ShowWeapon(std::uint32_t slot) = 0;   // the weapon the figure holds (-1 none)
-    virtual bool ArmourPutOn(std::uint32_t itemId) = 0;
-    virtual bool ArmourTakenOff(std::uint32_t slot) = 0;
-    virtual int ClearOuterArmourLayers() { return 0; }
+    virtual void ArmourPutOn(std::uint32_t itemId) = 0;
+    virtual void ArmourTakenOff(std::uint32_t slot) = 0;
+    virtual void ClearOuterArmourLayers() {}
     // After the items changed; the client reloads a hero's two figure textures when their names change.
     virtual void RefreshEquipment() {}
     virtual int RefreshModel() { return 0; }     // after a weapon change
@@ -302,7 +302,7 @@ public:
     std::uint32_t SetSecondPrototype(const UnitPrototypeRecord* record);
 
     // Puts an item into the first free weapon (4), quick item (4) or spell (8) slot and takes a reference:
-    // returns the slot, 1 if already there (sic), -1 if full, 0 for null (weapons and quick items only).
+    // returns the slot that holds it (where it was already, if anywhere), -1 for null or when full.
     int AddWeapon(Item* item);
     int AddQuickItem(Item* item);
     int AddSpell(Item* item);
@@ -495,10 +495,10 @@ public:
     UnitParams params;
     int fightAtWill;                    // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts;         // set: path searches use the AI map's alternative cost table
-    Item* weapons[4];
-    Item* quickItems[4];
-    Item* spells[8];
-    ItemArmor* armor[7];           // a piece per armour type
+    Item* weapons[4] = {};
+    Item* quickItems[4] = {};
+    Item* spells[8] = {};
+    ItemArmor* armor[7] = {};           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
     float actionSpeeds[6];          // per action kind (ActionSpeed; from the model record)
     std::array<float, 5> exposure;             // any at most 2 (or NaN) asks for a party refresh
@@ -702,9 +702,10 @@ struct UnitStats {
 
     // The rounded values into `params`.
     void Pack(UnitParams* params);
-    int Reset();
+    // Zeroes the block; the attack spread becomes 1, the natural weapon none and the slot types 4.
+    void Reset();
     // Clears layers 1 and 2 of every slot.
-    int ClearOuterLayers();
+    void ClearOuterLayers();
 
     // Adds the armour piece to the slots its type covers (up to three, table kArmourCoverage; 7 none): for
     // each covered slot that is used, layer GetTypeGroup() gains the piece's absorb values (one set for the

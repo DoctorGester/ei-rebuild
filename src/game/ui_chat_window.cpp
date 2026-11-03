@@ -135,7 +135,7 @@ void ChatWindow::ShowPlayers() {
         net::PlayerMessage* player = PlayerOf(p);
         UnitPrototypeRecord* prototype;
         {
-            prototype = unitdb::PrototypeNamed(std::string(player->text));
+            prototype = g_unitDatabase.prototypes.FindByName(std::string(player->text));
             // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
@@ -143,7 +143,7 @@ void ChatWindow::ShowPlayers() {
         UnitModelRecord* figure;
         {
             std::string key(prototype->modelName);
-            figure = unitdb::ModelNamed(key);
+            figure = g_unitDatabase.models.FindByName(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
         if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : figure->figureName == "unhuma")

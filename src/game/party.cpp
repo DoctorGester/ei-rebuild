@@ -370,8 +370,8 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, Party* party)
 PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
     if (!itemManager) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
-    // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
-    // which the game took from its stack and saved with the party (a determinism fix).
+    // defaults leave the statistics, which the game took from its stack and saved with the party (a
+    // determinism fix).
     PartyUnitRecord* record = &members.emplace_back();
     record->texts[1] = name;
     record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
@@ -427,7 +427,7 @@ bool Party::EquipFromPrototype(PartyUnitRecord* record) {
             list->erase(list->begin() + 0, list->begin() + (0 + 1));
         }
     }
-    auto* npc = g_unitDatabase.npcs.byName[std::string(record->texts[5])];
+    auto* npc = g_unitDatabase.npcs.FindByName(record->texts[5]);
     if (!npc) return false;
 
     const std::vector<std::string>& spellNames = npc->startSpells;
