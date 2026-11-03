@@ -6950,6 +6950,13 @@ depends = ["C74"]
 note = "User 2026-11-03. The game's goldens are our own (H40), so the summation orders kept to match game.exe bit for bit (Sum3 XYZ/ZYX/ZXY, DotZYX.., LengthSquaredZXY.., the *Unrounded double helpers, MatrixRows' per-row order, Matrix4::Multiply's per-element orders, SumOfProducts, written-out dot/length/cross/matrix sums in game code) have no reason left. Collapse them to one Dot, LengthSquared, Length, Distance(Squared), Normalised, Cross, Transform, Multiply each, and rewrite the remaining written-out sums of products in src/game and src/render to them. Results change in the last bits, so goldens differ: re-record once per batch with --reason, after checking that every differing scenario still plays the same (positions within a small tolerance at checkpoints, same outcomes: H45's diffs if it has landed, else compare digests by hand on a sample). Multiplayer is between our builds only, so both sides change together. Docs: vector-math.md shrinks to what the types do."
 
 [[ticket]]
+id = "C75"
+title = "static_asserts: keep the ones guarding byte formats, drop the game.exe-matching ones"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: do we need all the static_asserts? 276 in 94 files. (1) 111 std::bit_cast checks that a float constant has the original's bits (kPointOne == 0x3DCCCCCD ...): delete all; the literal is the constant and the goldens catch an edit. Keep kPi's only if something relies on the exact value. (2) 137 sizeof/offsetof: keep those on types read or written as bytes (save records, data files, network messages, GPU vertex layouts like TLVertex, net_coder buffers: say 'saved as' / 'sent as' next to each kept one if it isn't said); delete those that only pinned game.exe's in-memory layout (unit.h's 22 offsetofs, effects.h's ParticleElement offsets, unit_record.h, map_object_figures.h, link_figure.h, logic_settings.h: check each is not a file/network format first). (3) type-trait asserts: keep. Goldens the same. Report kept vs removed per category. Batch with C74 (same worker)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
