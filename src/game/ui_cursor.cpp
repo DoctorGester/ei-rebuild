@@ -3,6 +3,7 @@
 // image, mask and background through Locks of the holders' surfaces, is gone: the cursor is the system's.)
 #include "ui_cursor.h"
 
+#include "camera_trace.h"
 #include "game_singletons.h"
 #include "model.h"
 #include "surface.h"
@@ -207,7 +208,8 @@ void Cursor::Shutdown() {
 
 bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
-    const std::uint32_t steps = (platform::Milliseconds() - frameTime) / kFramePeriod;
+    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t steps = (now - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;
@@ -215,6 +217,8 @@ bool Cursor::UpdatePosition() {
     const std::int32_t* state = mouse->Poll();
     motion.x += state[0];
     motion.y += state[1];
+    camera_trace::Poll(now, now - pollTime, Point{state[0], state[1]}, motion, held);
+    pollTime = now;
     Point point;
     if (held) {
         point = heldPosition;

@@ -4,6 +4,7 @@
 #include "ui_camera_keys.h"
 
 #include "camera.h"
+#include "camera_trace.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "ui.h"
@@ -122,7 +123,8 @@ void CameraInput::MouseMove(int, Point at) {
     Camera* camera = &g_camera;
     if (turning) {
         Point point = at;
-        Point drag = g_cursor.motion;
+        const Point motion = g_cursor.motion;
+        Point drag = motion;
         ui->ScalePointFromScreen(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
@@ -147,6 +149,7 @@ void CameraInput::MouseMove(int, Point at) {
             Vector3 direction{across * speed, along * speed, 0.0f};
             camera->Pan(direction);
         }
+        camera_trace::Drag(motion, drag);
         g_cursor.motion.y = 0;
         g_cursor.motion.x = 0;
         g_cursor.SetShape(kDragCursor);

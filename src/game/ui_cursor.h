@@ -110,6 +110,7 @@ public:
     bool held = false;               // the cursor stays at heldPosition
     bool enabled = false;            // the cursor exists (created)
     std::uint32_t frameTime = 0;             // when the image's frame last stepped
+    std::uint32_t pollTime = 0;              // when UpdatePosition last polled the mouse
 };
 // The frame's cursor handed to the renderer before the present, which shows it as the system's.
 void CursorDrawFrame(Cursor* self);
