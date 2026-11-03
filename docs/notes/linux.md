@@ -59,7 +59,7 @@ The Linux workflow (.github/workflows/linux.yml) runs them on GitHub's Ubuntu ru
 ## Run
 
 `build/linux/ei-rebuild` plays the game folder named by `EI_GAME_ROOT`, else the one it sits in; `EI_SETTINGS_PATH`
-pins the settings file. The folder's `Work path` and `CD-ROM Path` are read as the game folder itself. Game data
+pins the settings file. The folder's `Work path` is read as the game folder itself. Game data
 names are matched as Windows matches them: `res\database.res` opens `Res/Database.RES` (one folder at a time; the
 exact spelling first). Arguments for the game follow `--`. Under WSLg Mesa draws on llvmpipe (the CPU) unless
 `GALLIUM_DRIVER=d3d12` puts it on the Windows GPU.

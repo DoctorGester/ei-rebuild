@@ -13,9 +13,6 @@ EI_SETTING(kPaths, "Work path", ".\\", "a folder",
 EI_SETTING(kPaths, "Resources path", ".\\res\\", "a folder",
            "Where the game's .res archives are: databases, texts, sound effects, models, textures. Relative to "
            "the game's folder; end it with a backslash.")
-EI_SETTING(kPaths, "CD-ROM Path", ".\\", "a folder",
-           "Where the movies (Movies\\) and the voices (res\\speech.res) are. If it differs from Work path, the "
-           "game asks for disc 2 at start.")
 
 // [video]
 EI_SETTING(kVideo, "DrawingTarget", "0", "a number",
@@ -254,9 +251,6 @@ EI_SETTING(kGame, "ToolTip Time", "0.5", "seconds",
            "How long the pointer must rest on a control before its tooltip shows. 0: no tooltips.")
 EI_SETTING(kGame, "SwitchFilters", "true", "true / false",
            "In the camp's screens the item lists jump to the tab that fits the page or item you pick.")
-EI_SETTING(kGame, "CD2 Label", "EICD2", "a disc label",
-           "When CD-ROM Path is not the game's folder, the game asks for the disc with this volume label until "
-           "it is in.")
 EI_SETTING(kGame, "Keyboard Layout", "1033", "a Windows language id",
            "At start Windows' keyboard layout switches to this language (1033 US English, 1049 Russian) if "
            "installed, else to US English.")

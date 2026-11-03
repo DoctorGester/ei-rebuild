@@ -74,7 +74,6 @@ extern const unsigned long kDiskFull;
 
 // ---- The game's calls as the system answers them (the backend's answers while the harness does not answer) ----
 
-std::string VolumeLabel(const char* root);
 bool FontSmoothing();
 // Another running game's window of this class and title (the game's builds' platform::FindClassWindow), null for none.
 void* OtherGameWindow(const char* className, const char* title);

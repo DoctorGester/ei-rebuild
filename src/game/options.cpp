@@ -154,10 +154,6 @@ struct StringValue {
 constexpr StringValue kPathValues[] = {
     {kPaths, "Work path", &StringOf<&GameOptions::workPath>},
     {kPaths, "Resources path", &StringOf<&GameOptions::resourcesPath>},
-    {kPaths, "CD-ROM Path", &StringOf<&GameOptions::cdRomPath>},
-};
-constexpr StringValue kCdValues[] = {
-    {kGame, "CD2 Label", &StringOf<&GameOptions::cd2Label>},
 };
 constexpr StringValue kDefaultValues[] = {
     {kGame, "DefaultMapName", &StringOf<&GameOptions::defaultMapName>},
@@ -309,7 +305,6 @@ void GameOptions::Load() {
     l.ReadCameraMotions();
     l.ReadCameraShortcuts();
     l.Read(kGameValues);
-    l.Read(kCdValues);
     l.Read(kGameValues2);
     l.ReadLight(heroLight, kHeroLightNames);
     l.ReadLight(questLight, kQuestLightNames);
@@ -334,7 +329,6 @@ void GameOptions::Save() {
     s.WriteCameraMotions();
     s.WriteCameraShortcuts();
     s.Write(kGameValues);
-    s.Write(kCdValues);
     s.Write(kGameValues2);
     s.WriteLight(heroLight, kHeroLightNames);
     s.WriteLight(questLight, kQuestLightNames);

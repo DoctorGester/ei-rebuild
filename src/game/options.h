@@ -48,7 +48,6 @@ public:
 
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
-    std::string cdRomPath;          // CD-ROM Path
     int driverIndex;                 // DrawingTarget: the Direct3D driver (-1: the first hardware one)
     int resolutionX;                 // VideoResolution
     int resolutionY;
@@ -120,7 +119,6 @@ public:
     int autosave;
     float toolTipTime;               // "ToolTip Time"
     int switchFilters;
-    std::string cd2Label;           // "CD2 Label": the disc asked for when the CD-ROM Path is not the Work path
     int keyboardLayout;              // "Keyboard Layout"
     float objectsLightingCoeff;
     LightOptions heroLight;

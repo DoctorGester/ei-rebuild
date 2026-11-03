@@ -5,18 +5,17 @@ window and input in `platform.md`.
 
 ## WinMain
 
-`app_main.cpp` (`app::GameMain`). Start-up order: the system messages (res\sysmsg.txt, three lines, built-in ones as
+`app_main.cpp` (`app::GameMain`). Start-up order: the system messages (res\sysmsg.txt, two lines, built-in ones as
 a fallback), the command line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files, "-devicetarget_"), a second
 instance's hand-over (a running game is brought forward and this one exits), the settings (`ei_settings.ini`,
 `docs/settings.md`), the two worlds and the camera (field of view pi * 2 / 7), the free disk space (a 300 MB warning,
-`platform::FreeDiskSpace` of the data folder itself) and the second disc's label, the mouse object, the saves / mp /
+`platform::FreeDiskSpace` of the data folder itself), the mouse object, the saves / mp /
 textures folders, the window, the renderer, the sound, the intro movies (list from the .ini), the databases, the
 cursors, the interface, the map list (`MapDatabase::LoadAll`: map.txt, then map-LMP.txt) and the first map or the main
 menu.
 
-The disc check: with a "CD-ROM Path" whose text differs from the data folder's, start-up reads the disc folder's
-volume label and asks for the second disc ("Warning" box) until it is the options' "CD2 Label" (scenario
-`app_disc_prompt`). The GOG game.exe skipped the check; ours follows the Rebirth copy.
+There is no disc check and no "CD-ROM Path" setting: the movies (`Movies\`) and the voices (`res\speech.res`) are read
+under the data folder (`Work path`), the game's own folder.
 
 ## Main loop
 

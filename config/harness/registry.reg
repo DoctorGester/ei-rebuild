@@ -8,7 +8,7 @@ Windows Registry Editor Version 5.00
 ; set it 0: no streamed music, and the world's random draws differ), AudioSFX 0x1c and AudioSpeech 0x19 (as
 ; Rebirth's), Game Specific Settings\ShowTutorial 0 (docs/notes/standalone-verification.md, "Install files and
 ; registry"). A value or key a run reads that is not here fails the run; "name"=- and [-key] mark ones that are
-; read but absent on purpose (the game takes its default). Work path / CD-ROM Path are replaced by the run's game
+; read but absent on purpose (the game takes its default). Work path is replaced by the run's game
 ; folder (EI_GAME_ROOT, src/main.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
 ; addonpath lines and CtfMon (always 0) are answered before this file (harness_starter.h).
 

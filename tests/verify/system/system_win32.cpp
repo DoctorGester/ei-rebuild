@@ -110,13 +110,6 @@ const unsigned long kDiskFull = ERROR_DISK_FULL;
 
 // ==== The game's calls as the system answers them ====================================================================
 
-std::string VolumeLabel(const char* root) {
-    wchar_t label[MAX_PATH + 1] = {};
-    if (!GetVolumeInformationW(text::Wide(root).c_str(), label, MAX_PATH + 1, nullptr, nullptr, nullptr, nullptr, 0))
-        return {};
-    return text::Narrow(label);
-}
-
 bool FontSmoothing() {
     BOOL smoothing = FALSE;
     if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;

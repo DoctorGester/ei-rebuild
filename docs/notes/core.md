@@ -4,8 +4,8 @@ Maths and transforms, reference counting, the object manager, streams and chunke
 containers. Network code is in `network.md`, the application layer in `app.md`, float rules in `float-maths.md`.
 
 The original: `starter\Engine\game.exe` (1.06, Russian, VC6, 2001), MFC 4.2 and STLport linked in, no RTTI. The GOG
-copy differs from the Rebirth one only in the Large-Address-Aware flag and a disabled CD check (`EB` for `74` at
-00456BB5): ours follows the Rebirth copy and asks for the second disc (`app.md`).
+copy differs from the Rebirth one only in the Large-Address-Aware flag and a disabled CD check; ours has no disc
+check (`app.md`).
 
 ## Transforms
 

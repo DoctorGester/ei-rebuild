@@ -1,8 +1,8 @@
 // ei-rebuild: the game.
 // usage: ei-rebuild [-- <game arguments>]
 //   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's, play.cmd's), else the program's
-//   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's game paths (Work path, CD-ROM Path)
-//   are read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
+//   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's Work path
+//   is read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
 #include "game/app.h"
 #include "game/rebirth_profile.h"
 #include "game/settings.h"
@@ -20,8 +20,7 @@ namespace {
 std::string g_gameRoot;   // EI_GAME_ROOT with a trailing separator
 
 void RedirectGamePath(const char* name, std::string& value) {
-    if (text::CompareIgnoringCase(name, "Work path") == 0 || text::CompareIgnoringCase(name, "CD-ROM Path") == 0)
-        value = g_gameRoot;
+    if (text::CompareIgnoringCase(name, "Work path") == 0) value = g_gameRoot;
 }
 
 std::string GameFolder() {

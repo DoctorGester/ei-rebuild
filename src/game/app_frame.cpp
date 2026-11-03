@@ -81,7 +81,7 @@ void PlayMovies(const std::string& section, bool loadingStep) {
     ini.SetPath(g_dataFolder + "config\\movie.ini");
     for (const std::string& movie : ini.GetList(section.c_str(), "movies", ',')) {
         {
-            const std::string full = g_discFolder.c_str() + std::string("Movies\\") + movie;
+            const std::string full = g_dataFolder.c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, true, false, false, loadingStep);
         }
     }

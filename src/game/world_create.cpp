@@ -57,7 +57,6 @@ void World::Create() {
     paused = 0;
     g_dataFolder = worlddata::ConfiguredDataPath();
     g_textFolder = worlddata::ConfiguredTextPath();
-    g_discFolder = worlddata::ConfiguredBasePath();
     tick = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

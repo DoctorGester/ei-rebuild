@@ -13,7 +13,7 @@
 // takes no real input and shows no box, its window is never activated (and kept out of sight where the system can),
 // its events are the harness's, its clocks, mouse and message boxes the harness's answers. game_answers.cpp takes
 // game_calls.cpp's and system_path.cpp's: the file paths mapped onto the run's overlay, the game's file writes
-// watched, its sockets on 127.0.0.1, the disc, desktop and other-instance answers. Each is the system's call while the
+// watched, its sockets on 127.0.0.1, the desktop and other-instance answers. Each is the system's call while the
 // harness is not answering (a harness's build started without a scenario).
 
 namespace ei::verify::harnessplatform {

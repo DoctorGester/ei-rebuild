@@ -58,7 +58,7 @@ The user's standing decisions:
 - Every build is x64; the platform layer (`src/platform`, SDL3) is the direction; Linux builds and runs its checks.
 
 Safety on the machine:
-- Never write under `F:\games` (the installs) or the registry; scratch runs set `Work path` and `CD-ROM Path` to
+- Never write under `F:\games` (the installs) or the registry; scratch runs set `Work path` to
   `.\` in their own `ei_settings.ini`. Don't install anything.
 - Never recursive-delete a folder that holds junctions: remove each link with `cmd /c rmdir <link>` first.
 - Never switch the display mode or use exclusive full screen. A game lasts at most 60 s.

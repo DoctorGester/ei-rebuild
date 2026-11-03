@@ -92,7 +92,7 @@ ResConfig ReadResConfig() {
     if (mod.empty()) return config;
     // The game's paths (addon reads them from the starter's tree of the registry).
     const std::string resources = WithSlash(settings::GetString(settings::kPaths, "Resources path", ".\\Res\\"));
-    const std::string cd = WithSlash(settings::GetString(settings::kPaths, "CD-ROM Path", ".\\"));
+    const std::string work = WithSlash(settings::GetString(settings::kPaths, "Work path", ".\\"));
 
     FileRegistry registry;
     const std::string file = mod + "config.reg";
@@ -100,13 +100,13 @@ ResConfig ReadResConfig() {
         return config;
     }
     // The game's archives addon knows (its table at 10009100): an archive's mod entries override it,
-    // '-' entries make the game's own archive ignored. speech.res lies on the CD.
+    // '-' entries make the game's own archive ignored. speech.res lies under Work path.
     static const char* const kOverridden[] = {"aiinfo.res", "database.Res", "databaseLmp.Res", "gfx.res",
                                               "materials.res", "outro.res", "redress.res", "sfx.res",
                                               "speech.res", "texts.res", "textsLmp.res", "textures.res"};
     for (const char* name : kOverridden) {
         const std::string key =
-            Lower(text::CompareIgnoringCase("speech.res", name) == 0 ? cd + "Res\\" + name : resources + name);
+            Lower(text::CompareIgnoringCase("speech.res", name) == 0 ? work + "Res\\" + name : resources + name);
         std::vector<std::string> paths;
         for (const std::string& value : ResValues(registry, name)) {
             if (!value.empty() && value[0] == '-')
