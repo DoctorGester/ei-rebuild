@@ -1,4 +1,4 @@
-// lib::HashMap (src/lib/hash_map.h): STLport's walk order on cases worked out by hand. Not recorded vectors.
+// lib::HashMap (src/lib/hash_map.h): STLport's walk order on cases worked out by hand.
 #include "../../src/lib/hash_map.h"
 
 #include <cstdint>
@@ -17,7 +17,7 @@ void Check(bool ok, const char* what) {
     ++g_checks;
     if (ok) return;
     ++g_failures;
-    std::printf("ei_vectors: hash map: %s\n", what);
+    std::printf("ei_unit_check: hash map: %s\n", what);
 }
 
 std::vector<std::uint32_t> Walk(const Map& map) {
@@ -90,13 +90,13 @@ void Text() {
 
 } // namespace
 
-// replay_main.cpp: the number of failed checks.
+// The number of failed checks.
 int RunHashMapChecks() {
     g_checks = g_failures = 0;
     Order();
     Growth();
     Multi();
     Text();
-    std::printf("ei_vectors: hash map: %d checks, %d failed\n", g_checks, g_failures);
+    std::printf("ei_unit_check: hash map: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;
 }

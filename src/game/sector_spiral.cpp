@@ -1,7 +1,6 @@
 // The sector spiral's tables (sector_map.h): the offsets of a 21 x 21 square of sectors ordered by distance,
 // the number of offsets within each distinct distance and the tree that finds a distance's place among them,
-// built on first use. Here, not in sector_map.cpp, so the path vectors' replay (tests/vectors/replay_path.cpp)
-// links them.
+// built on first use.
 #include "sector_map.h"
 
 #include "lib/containers.h"

@@ -1,6 +1,6 @@
 // The settings file's text, its values' text, the catalog of what every setting does and the defaults (no file, no
 // game): Document, the Parse / Text functions of the values, Describe, Defaults. See settings.h;
-// tests/vectors/replay_settings.cpp checks them without the game.
+// tests/unit/settings_file.cpp checks them without the game.
 #include "settings.h"
 
 #include "lib/text_case.h"

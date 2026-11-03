@@ -11,7 +11,7 @@ the operand's type. The worktree's own sources are not touched.
 
 Before dropping a cast (rewrite guide, "Clean code"):
 - SAME: drop it (`(&x)->f()` becomes `x.f()`).
-- CONST: keep the ones that add volatile (the x87 reads), and the ones that choose a const overload.
+- CONST: keep the ones that add volatile, and the ones that choose a const overload.
 - UP: drop it only when no class between the two declares a member with the called name (the cast picks
   the base's hidden member, as `static_cast<CUiContainer*>(w)->Construct(ui)` does; write
   `w->CUiContainer::Construct(ui)` there), and give an `auto*` local the base type it had.
@@ -90,7 +90,7 @@ def build(out, tree, header, jobs):
     script = os.path.join(out, 'scan.cmd')
     open(script, 'w').write('\r\n'.join([
         '@echo off',
-        'call "%s\\VC\\Auxiliary\\Build\\vcvars32.bat" >nul || exit /b 1' % vs,
+        'call "%s\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul || exit /b 1' % vs,
         'set PATH=%s\\CMake\\bin;%s\\Ninja;%%PATH%%' % (tools, tools),
         'set CL=/FI"%s"' % header,
         'cmake -S "%s" -B "%s\\b" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=OFF >nul || exit /b 1' % (tree, out),

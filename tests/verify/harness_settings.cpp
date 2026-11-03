@@ -491,8 +491,7 @@ void PatchSlot(T* slot, T replacement, T& original) {
     VirtualProtect(slot, sizeof(*slot), old, &old);
 }
 
-#if defined(_M_X64)
-// x64 (build.cmd verify-x64): advapi32's export `name` jumps through, or (RegEnumValue, RegEnumKeyExA) is a wrapper that
+// advapi32's export `name` jumps through, or (RegEnumValue, RegEnumKeyExA) is a wrapper that
 // calls through, advapi32's own import of the same name (kernelbase's, by an API set): every module's call comes
 // through that slot, found by its name in advapi32's import table.
 template <class T>
@@ -516,23 +515,6 @@ bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
     Problem(std::string("advapi32 imports no ") + name + ": its callers read the user's registry");
     return false;
 }
-#else
-// advapi32's export `name` is a stub (MOV EDI,EDI; PUSH EBP; MOV EBP,ESP; POP EBP; JMP [slot]) that jumps
-// through advapi32's own import of kernelbase's: every module's call comes through that slot.
-template <class T>
-bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
-    auto* code = reinterpret_cast<const BYTE*>(GetProcAddress(advapi, name));
-    static const BYTE kStub[] = {0x8B, 0xFF, 0x55, 0x8B, 0xEC, 0x5D, 0xFF, 0x25};
-    if (!code || std::memcmp(code, kStub, sizeof(kStub)) != 0) {
-        Problem(std::string("advapi32's ") + name + " is not the expected stub: its callers read the user's registry");
-        return false;
-    }
-    T* slot;
-    std::memcpy(&slot, code + sizeof(kStub), sizeof(slot));
-    PatchSlot(slot, replacement, original);
-    return true;
-}
-#endif
 
 // ---- the standalone's settings file (game/settings.h) ----
 

@@ -255,7 +255,7 @@ int SkillDatabase::IndexOf(std::string_view levelName) const {
     return -1;
 }
 
-// SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).
+// SkillDatabase::IndexOfLevel is in unit_skill_price.cpp.
 
 // --- Load --------------------------------------------------------------------------------------------
 
@@ -438,7 +438,7 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
 
 // Small functions of the unit statistics and databases: the packed vitals' and parameters' network fields,
 // the attack parameters' difficulty scale and the databases' record lookups. The stat ratios are in
-// unit_stats.cpp and the school's price in unit_skill_price.cpp (ei_vectors links those). Plain C++ float
+// unit_stats.cpp and the school's price in unit_skill_price.cpp. Plain C++ float
 // maths (rule 7).
 
 namespace {

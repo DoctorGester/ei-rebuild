@@ -651,9 +651,9 @@ def cmd_test(db, args):
     argv = args.run_all_args
     ra = run_all.parse_args(argv)           # run_all's own errors and exit
     jobs = run_all.plan(ra)
-    root, build = work.norm(run_all.ROOT), work.norm(run_all.build_of(ra))
+    root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
     if not os.path.exists(os.path.join(build, 'ei_launch.exe')):
-        sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd {"verify-x64" if ra.x64 else "verify"} first')
+        sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd verify first')
     expected = work.expected_times(db, root, jobs, run_all.load_times(build))    # timing table, else run_times.json
     env = run_all.game_environment()
     if ra.golden:
@@ -664,8 +664,6 @@ def cmd_test(db, args):
     # --widescreen's frames are compared here too, after the batch: its runs are plain runs of the image on the
     # Rebirth install
     argv = [a for a in argv if a != '--widescreen']
-    # --x64 is the batch's build folder (its runs take the build from the batch row)
-    argv = [a for a in argv if a != '--x64']
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')

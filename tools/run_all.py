@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--x64]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (H40: game.exe is no longer run), as
@@ -47,8 +47,6 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
                    compare with the vanilla golden, on Rebirth's with the Rebirth golden
-  --x64            the x64 image's runs (build.cmd verify-x64: build\\verify-x64, its ei-rebuild.exe started by its own
-                   x64 ei_launch; runs in build\\verify-x64\\runs), against the same goldens. EI_BUILD_DIR still wins.
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
@@ -64,7 +62,6 @@ WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hu
                         'ui_widescreen_dialogue']   # --widescreen without scenario names
 STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')   # the image on the vanilla and the Rebirth data
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
-BUILD_X64 = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify-x64')   # --x64: build.cmd verify-x64
 GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
@@ -725,13 +722,7 @@ def parse_args(argv=None):
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
-    ap.add_argument('--x64', action='store_true')
     return ap.parse_args(argv)
-
-
-def build_of(args):
-    """The verify build args' runs use: build\\verify-x64 with --x64 (BUILD_X64), else build\\verify (BUILD)."""
-    return BUILD_X64 if getattr(args, 'x64', False) else BUILD
 
 
 def has_golden(name, install, root=ROOT):
@@ -934,7 +925,7 @@ def main():
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     jobs = plan(args)
-    build = build_of(args)
+    build = BUILD
     db = timing_db()
     times = expected_times(jobs, build=build, db=db)
     order = sorted(jobs, key=lambda j: -(times[j] if times[j] is not None else 1000))   # new scenarios first

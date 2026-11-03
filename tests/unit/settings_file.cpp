@@ -1,7 +1,7 @@
 // The standalone's settings file without the game: Document::Text / Parse round trips of every kind of value, the
 // format's rules (case, quotes, comments, bad lines, a file of another format) and the defaults a missing file is
-// written with. Not recorded vectors: ei_vectors runs these after the replays and counts their failures
-// (replay_main.cpp). The file save (.tmp, then moved) and the defaults in a running game are the harness scenarios
+// written with. ei_unit_check (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The file
+// save (.tmp, then moved) and the defaults in a running game are the harness scenarios
 // settings_save and settings_defaults (tests/scenarios).
 #include "../../src/game/settings.h"
 
@@ -241,7 +241,7 @@ void Defaults() {
 
 } // namespace
 
-// replay_main.cpp: the number of failed checks.
+// The number of failed checks.
 // The catalog (settings_catalog.inc): every line the defaults write has its row, with the same default and its
 // description as the comment line(s) right above it (a pattern's above its first line only); the lookup's patterns.
 void Catalog() {
@@ -284,6 +284,6 @@ int RunSettingsFileChecks() {
     BadLines();
     Defaults();
     Catalog();
-    std::printf("ei_vectors: settings file: %d checks, %d failed\n", g_checks, g_failures);
+    std::printf("ei_unit_check: settings file: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;
 }

@@ -1,5 +1,5 @@
 // The game-state digest of harness runs (harness_digest.h): the records, their writing and the steps. The state is
-// read by harness_digest_read.inc over our objects (image/harness_digest_image.cpp).
+// read over our objects by image/harness_digest_image.cpp.
 #include "harness_digest.h"
 #include "harness_digest_read.h"
 

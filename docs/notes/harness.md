@@ -1,7 +1,7 @@
 # The harness
 
 How to run scenarios, the scenario steps and what a run does. How changes are
-checked against the original (goldens, vectors, WideScreen references) is in `standalone-verification.md`.
+checked against the original (goldens, WideScreen references) is in `standalone-verification.md`.
 
 `harness.cmd <scenario>` runs a scenario on the image with the vanilla install's data and exits with 0 when it
 passes. It writes the report (`build\verify\harness_report.txt`):
@@ -82,17 +82,15 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   The image's malloc is the host CRT's (C26), whose low-fragmentation heap moves its blocks in every run, so a
   golden never follows heap addresses. The trace tools (`EI_SAVETRACE`, `EI_WATCH_*`) are in
   docs/notes/standalone-verification.md, section 7.
-- AddressSanitizer: `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL
-  copied beside them) into `build\asan`; the product builds never have it. Run the suite on it with
+- AddressSanitizer: `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL,
+  clang_rt.asan_dynamic-x86_64.dll, copied beside them) into `build\asan`; the product builds never have it. Run the suite on it with
   `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden --jobs 4` (any run_all
   arguments). The exe sends the reports to `asan.<pid>` in the run's folder (tests/verify/image/asan_report.cpp;
   `ASAN_OPTIONS` still works for other options): the first heap error (use after free, double free, overflow of a heap, stack or global block, a
   new / delete mismatch) ends the game with its report, symbolised from the PDB, and run_all fails
   the run with the error and its first frames. For a flaky heap crash this finds the cause in one run: a freed
-  block stays poisoned in the quarantine, so the write that only sometimes hit live memory always reports. The
-  runtime takes part of game.exe's range before the host's main (ei-rebuild.log's "NOT all guarded" line): the image's
-  guard has holes there in this build only. The host is large-address-aware in this build (with 2 GB the shadow and
-  quarantine left too little: 4K frame buffers failed to allocate). The whole suite takes about 6 to 8 minutes at
+  block stays poisoned in the quarantine, so the write that only sometimes hit live memory always reports. The whole
+  suite takes about 6 to 8 minutes at
   `--jobs 4`; the scenarios that wait on real time (frame counts, `render_stats`, `camera_smooth`, `app_record`,
   `ui_compare`, the cursor and device-removed renders, the long pairs) run out of time there: judge those by their
   `asan.*` files, not their result.
@@ -104,10 +102,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `record` input; docs/notes/standalone-verification.md, section 2). The suite checks them with
   `python tools\work.py test <ID> --golden` (any run_all arguments): every run that has a golden is compared with it,
   its saves too, decoded field by field (`python tools\savefile.py show|diff|rules`).
-- Function vectors (`tests/vectors/vectors.h`): until H40 runs of the original (`EI_VECTORS=1` with `--no-hooks`)
-  wrote a sample of the calls of each function that has a recorder (`tests/vectors/record_<family>.cpp`);
-  `tests/vectors/data` keeps them and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
-  game (docs/notes/standalone-verification.md, section 3). Recording again needs the tag original-oracle.
+- Unit checks (`tests/unit`, `ei_unit_check.exe`, run by build.cmd): the settings file's format and lib::HashMap's
+  walk order, without the game. The function vectors (game.exe's recorded calls, replayed against our code) went with
+  the 32-bit build (docs/notes/standalone-verification.md, section 3).
 - Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each rewrite in
   runs of the original with EI_COVER, collected until H40 (`coverage.py addresses` / `collect`); `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
   only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps.

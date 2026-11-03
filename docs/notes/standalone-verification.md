@@ -1,14 +1,14 @@
 # Verifying the standalone image
 
 The image has no original code to compare with at run time, so every check was recorded beforehand: whole-run
-goldens (from the original game until H40, our own since, all the same as the original's then), function vectors for
-what scenarios reach rarely, and frame references for Rebirth's WideScreen (both from the original game). This file says how that works, what the harness does to make runs repeat, and the rules that came from
+goldens (from the original game until H40, our own since, all the same as the original's then) and frame references
+for Rebirth's WideScreen (from the original game); unit checks (tests/unit) cover what needs no game. This file says how that works, what the harness does to make runs repeat, and the rules that came from
 real differences. Per-ticket history: `git log --grep=<ID>`.
 
 ## 1. How verification works now
 
-- **A rewrite is checked** by a golden scenario that reaches it or by function vectors that replay it (rewrite guide,
-  "Verification"); `tools/coverage.py` says which (section 4).
+- **A rewrite is checked** by a golden scenario that reaches it, or by a unit check (tests/unit) where no game is
+  needed (rewrite guide, "Verification"); `tools/coverage.py` says which scenarios reach it (section 4).
 - **The suite** is the image's: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone`
   (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
   (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
@@ -22,9 +22,7 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
 - **Heap layout**: the image's malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in
   every run, so a golden that held across runs holds under any layout. The harness's heap jitter and fill
   (`EI_HEAP_JITTER`, `EI_HEAP_FILL`, `heaptrace`; SV7a, SV7c) acted on game.exe's heap only and went with H40.
-- **Function vectors**: recorded until H40 by runs of the original code with the recorders as its only hooks
-  (`EI_VECTORS=1` with `--no-hooks`; the tag original-oracle has them); `vectors.py merge`, replayed by
-  `ei_vectors.exe` in build.cmd (section 3).
+- **Function vectors**: gone with the 32-bit build (section 3).
 - **WideScreen references**: addon's frames, recorded from game.exe until H40 (`<main checkout>\build\
   widescreen\<scenario>\<steps key>\`); `run_all --widescreen` compares the image's frames on the Rebirth install with
   them (docs/notes/rebirth.md; S21b in git for the tolerance study). Rebirth install only.
@@ -112,49 +110,29 @@ gave a golden to 36 scenario / install pairs that had none: the ones game.exe co
 recorded the same but `console` (vanilla), whose help screen no longer lists DEBUGINFO (C55). `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
 lands; `compare --strict` keeps them) are empty.
 
-## 3. Function vectors
+## 3. Function vectors (removed)
 
-**Record mode** (until H40; the tag original-oracle has it: `EI_VECTORS=1`, game.exe with `--no-hooks`): a family's
-recorders (`EI_RECORD(addr, recorder, stolen, orig, rewrite)` in tests/vectors/record_<family>.cpp) copied the
-arguments and the state the function reads, the x87 control word, called the original and copied the result and
-state after, as a plain payload (tests/vectors/<family>_vectors.h) offered to a `Sampler`: repeats dropped by hash, a
-fixed-seed reservoir of `cap` distinct calls per bucket (so a rare path is kept). The report wrote
-`<run>/vectors/<family>/<function>.vec`.
+Until the 32-bit build went (C70), build.cmd replayed calls of the original game.exe against our code
+(`ei_vectors.exe`, tests/vectors): recorded until H40 by runs of the original with recorders as its only hooks, each
+record a 32-bit payload (the arguments, the state read, the x87 control word, the result and the state after),
+replayed under its control word and compared bitwise. The tag original-oracle has the recorders; git history before
+C70 has the data and the replay. Families: `maths` (vectors, quaternions, matrices, CubicSegment::Evaluate,
+TransformPipeline::PushMatrix), `random` (IsaacRandom), `stats` (unit statistics, damage, skill and school prices,
+protection, hit location, LockKey::Opens), `crt` (vsprintf, atof, the locale's point and classes), `coder` (CoderState
+Compress / Decompress, the code tables), `script` (the lexer and the loader), `path` (AIMap::FindPath, PlanLongPath,
+PathSmoother::Smooth).
 
-**Data** (tests/vectors/data/<family>/<function>.vec, checked in): `python tools/vectors.py merge <run folders>`
-(repeats dropped, `cap` per bucket by a stable hash), `vectors.py show`. The vectors are the original's behaviour, so a
-change of ours is never a reason to re-record; an intended difference needs its own check.
-
-**Replay** (`ei_vectors.exe`, every configuration, run by build.cmd): links the families' sources without the game
-(tests/vectors/hook_stub.cpp has ei::Standalone; ports no replay reaches are stubs in replay_unlinked.cpp). Each
-record runs under its recorded control word and is compared bitwise. It fails on a differing record, a file without a
-check, another payload size, or no files.
-- Variable-size records: payload size 0 in the header; `Writer` / `Reader`, `Sampler::OfferBytes`,
-  `EI_VECTOR_CHECK_BYTES`; a check must read its payload to the end; large state by `HashBytes`.
-- Fixtures: a name starting with '@' replays first and its game data stays for the other checks; a failed fixture stops
-  the run.
-- The game's data seam (src/game/game_data.h, SV4d): `ei::GameData<T>(address)` is the address in the game and, with
-  `EI_VECTORS_REPLAY`, a zeroed stand-in image of 00401000-007D7000 that a check fills (replay_game_data.cpp) and
-  replay_main clears before every record. Named accessors go through it (GameLogicSettings, GameDifficulty,
-  unitdb::Skills, g_skillDatabase, IsaacRandom::Global, the coder tables, the keyword table).
-- CRT in the replay: replay_crt.cpp (the replay's heap;
-  "@GameCrtCtype" checks text_case.h's ASCII classes and case against the game's; the code under test calls
-  text_case.h, C35b). Finding (SV4b): isdigit / isspace of a negative char
-  read heap memory before the locale's table, so the answers vary between runs; no record carries them (C35j: no
-  script record has a byte past ASCII, and the fixture records ASCII only).
-
-Families: `maths` (vectors, quaternions, matrices, CubicSegment::Evaluate via its live copy 004E5660,
-TransformPipeline::PushMatrix), `random` (IsaacRandom Next / Refill / Range), `stats` (SV4a, SV4d; unit statistics, damage, skill
-and school prices, protection, hit location, LockKey::Opens), `crt` (vsprintf, atof, fixture "@CrtFormatLocale"),
-`coder` (CoderState Compress / Decompress, "@CoderTables"), `script` (ClassifyToken, FunctionSignature, KeywordName,
-Tokenize, ApplyDefines, the loader's Load / LoadFunction / LoadCommands / ExpectLexeme), `path` (SV4c; AIMap::FindPath,
-PlanLongPath, PathSmoother::Smooth with "@PathTables" and "@AIMap"; `tools/path_vectors.py prune --keep` keeps the maps
-small). Not reached by any scenario: CubicSegment::SetBSpline (dead), BackstabFactor, GetFactors, PickLocation's draw.
-
-Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name, sizeof(payload),
-cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record run and `vectors.py merge`. A
-family whose functions read game objects needs their state in the payload (copied, never pointers) and a way to build
-them outside the game. Check each new family with a corrupted copy (one bit of a result must fail).
+What they checked that the goldens do not, when they went:
+- The coder's bytes against the original's: the goldens' pairs are our build on both sides, and no digest holds a
+  message's bytes, so a change to Compress that both sides share would pass. The format still meets vanilla peers'
+  and saves': a stream the original wrote must decompress (old saves load: the save scenarios), and ours must be one
+  the original reads.
+- Calls the scenarios do not make: the script loader's error paths (no game script is malformed), vsprintf's and
+  atof's rarer formats, PickLocation's draw, BackstabFactor, GetFactors.
+- Bitwise results of single calls, where a golden sees only what reaches the digest.
+None was kept as a unit test: the payloads are game.exe's 32-bit layouts and its control word, and the functions are
+the goldens' ever since. The two checks of ei_vectors that never needed the original are tests/unit
+(`ei_unit_check.exe`, build.cmd; the settings file's format, lib::HashMap's walk order).
 
 ## 4. Coverage
 

@@ -649,14 +649,6 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
         return EXCEPTION_CONTINUE_SEARCH;
     if (logged++ >= 5) return EXCEPTION_CONTINUE_SEARCH;
     const CONTEXT* c = e->ContextRecord;
-#if defined(_M_IX86)
-    const std::uintptr_t pc = c->Eip, sp = c->Esp;
-    Log("harness: exception %08lX at %08lX (address %08lX); eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX "
-        "esi=%08lX edi=%08lX ebp=%08lX esp=%08lX",
-        code, c->Eip,
-        e->ExceptionRecord->NumberParameters > 1 ? static_cast<unsigned long>(e->ExceptionRecord->ExceptionInformation[1]) : 0ul,
-        c->Eax, c->Ebx, c->Ecx, c->Edx, c->Esi, c->Edi, c->Ebp, c->Esp);
-#else
     const std::uintptr_t pc = c->Rip, sp = c->Rsp;
     Log("harness: exception %08lX at %p (address %p); rax=%p rbx=%p rcx=%p rdx=%p rsi=%p rdi=%p rbp=%p rsp=%p",
         code, reinterpret_cast<void*>(pc),
@@ -664,7 +656,6 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
         reinterpret_cast<void*>(c->Rax), reinterpret_cast<void*>(c->Rbx), reinterpret_cast<void*>(c->Rcx),
         reinterpret_cast<void*>(c->Rdx), reinterpret_cast<void*>(c->Rsi), reinterpret_cast<void*>(c->Rdi),
         reinterpret_cast<void*>(c->Rbp), reinterpret_cast<void*>(sp));
-#endif
     LogModuleOf(pc);
     LogCodeAddress("at", pc);
     const auto* stack = reinterpret_cast<const std::uintptr_t*>(sp);
@@ -1846,8 +1837,8 @@ std::string LookAt(const std::string& argument) {
 // party member's selection (flags 0x10) and quick items (Unit::GetQuickItem 00531920, slots
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
-// fewer than that many of its unit's own quick items (regions 0-3). The reading is harness_hud_read.inc's
-// (image/harness_objects_image.cpp).
+// fewer than that many of its unit's own quick items (regions 0-3). The reading is
+// image/harness_objects_image.cpp's.
 std::string HudState(const std::string& argument) {
     void* screen = TopWindow();
     if (!screen) return "hudstate: no window on top";
@@ -2020,8 +2011,7 @@ int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
     return IDABORT;
 }
 
-#if defined(_M_X64)
-// x64 (build.cmd verify-x64): user32's exports have no hot-patch padding. An export that is only "jmp qword ptr
+// user32's x64 exports have no hot-patch padding. An export that is only "jmp qword ptr
 // [rip+disp32]" into win32u has that slot swapped. Any other starts with a 12-byte jump to the replacement ("mov rax,
 // replacement / jmp rax": RAX holds no argument at a call); when the original is wanted, its first instructions go to a
 // trampoline that then jumps back past them, which only works for the instructions PrologueLength knows (the prologues
@@ -2119,38 +2109,6 @@ void* HotPatch(const char* name, void* replacement, bool wantOriginal) {
     FlushInstructionCache(GetCurrentProcess(), p, kPatchBytes);
     return original;
 }
-#else
-// Hot patch: user32's exports start with "mov edi, edi" after five bytes of padding. The padding
-// becomes a JMP to the replacement and the first two bytes a short jump back to it. Returns the
-// original function (its code after the "mov edi, edi"), nullptr when the prologue is not that.
-void* HotPatch(const char* name, void* replacement, bool /*wantOriginal*/) {
-    auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
-    if (p && p[0] == 0xFF && p[1] == 0x25) {
-        // Some exports are only "jmp dword ptr [slot]" into win32u: the slot is swapped instead.
-        auto** slot = *reinterpret_cast<void***>(p + 2);
-        DWORD old;
-        VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-        void* original = *slot;
-        *slot = replacement;
-        VirtualProtect(slot, sizeof(*slot), old, &old);
-        return original;
-    }
-    if (!p || p[0] != 0x8B || p[1] != 0xFF) {
-        Log("harness: cannot hot-patch %s (unexpected prologue)", name);
-        return nullptr;
-    }
-    DWORD old;
-    VirtualProtect(p - 5, 7, PAGE_EXECUTE_READWRITE, &old);
-    p[-5] = 0xE9;
-    *reinterpret_cast<std::int32_t*>(p - 4) = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(replacement) -
-                                                                        reinterpret_cast<std::uintptr_t>(p));
-    p[0] = 0xEB;
-    p[1] = 0xF9;
-    VirtualProtect(p - 5, 7, old, &old);
-    FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
-    return p + 2;
-}
-#endif
 
 // No window of a harness game takes the foreground (SV1c). The game's own calls are kept from it
 // by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but a DLL
@@ -3421,28 +3379,6 @@ DWORD WINAPI Watchdog(void*) {
     }
 }
 
-// The x87 control word of the calling thread (precision, rounding). The game runs its world on the
-// main thread at whatever precision Direct3D and the DLLs loaded later leave (24-bit in the vanilla
-// install, more under Rebirth): logged when it changes, to find out who changes it.
-unsigned short FpuControlWord() {
-#if defined(_M_IX86)
-    unsigned short cw;
-    __asm fnstcw cw
-    return cw;
-#else
-    return 0;   // x64: no x87 maths (the image's side only, which does not trace it)
-#endif
-}
-void TraceFpu(const char* where) {
-    static unsigned short last = 0xFFFF;
-    static int changes = 0;
-    unsigned short cw = FpuControlWord();
-    if (cw == last) return;
-    if (++changes <= 20) Log("harness: FPU control word %04X (was %04X) %s", cw, last, where);
-    else if (changes == 21) Log("harness: FPU control word keeps changing; no more reports");
-    last = cw;
-}
-
 // The game pauses itself when its window loses focus (it stops the cursor, the mouse and the sound). Parallel harness
 // runs leave only one game in front, so the harness keeps every game active: its platform backend tells the game no
 // activation change of the system's (harness_platform.h); the focus steps tell it their own.
@@ -3561,7 +3497,6 @@ bool HoldMessagesForCloseAll() {
 // while the close-all holds the events.
 bool BeforeEvents() {
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
-    TraceFpu("in the message loop");
     KeepGameWindowActive();
     // A frame has been drawn: the rewritten loop's after-frame call.
     const bool afterFrame = ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;

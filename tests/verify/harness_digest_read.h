@@ -1,8 +1,8 @@
 #pragma once
 
 // What the digest's reader shares with the rest of the harness (harness_digest.h): the record's entities and fields,
-// and the reader's entry points. The reading code (harness_digest_read.inc) is compiled against our classes
-// (image/harness_digest_image.cpp); this header includes no game header (ticket H30b).
+// and the reader's entry points. The reading code is image/harness_digest_image.cpp, over our
+// classes; this header includes no game header (ticket H30b).
 
 #include "harness_digest.h"
 
@@ -139,7 +139,7 @@ inline std::uint32_t TextHash(const char* text) {
 }
 inline std::uint32_t TextHash(const std::string& text) { return TextHash(text.c_str()); }
 
-// The readers (harness_digest_read.inc), each over the server world `server`: the whole state into `s` (Read), a unit
+// The readers (image/harness_digest_image.cpp), each over the server world `server`: the whole state into `s` (Read), a unit
 // now (Unit) and the local leader (LocalLeader), over our objects (image/harness_digest_image.cpp).
 namespace image_side {
 

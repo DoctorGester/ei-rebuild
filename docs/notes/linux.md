@@ -35,7 +35,7 @@ cmake --build build/linux
 `ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's llvmpipe draws):
 
 - `port_platform` (tests/port/port_check.cpp): path folding, files and mappings, .ini reads and writes, the
-  one-instance lock, UDP, the settings document's checks (tests/vectors/replay_settings.cpp).
+  one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp).
 - `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on OpenGL against their CPU
   reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11).
 

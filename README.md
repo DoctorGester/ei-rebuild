@@ -1,6 +1,6 @@
 # Evil Islands (Проклятые Земли) rebuild
 
-Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern MSVC (x86 and x64). The goal is
+Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern MSVC for 64-bit Windows. The goal is
 identical game behaviour, not identical bytes: the same world, saves and network play as the original, with a new
 renderer and the Rebirth edition's fixes on top.
 
@@ -19,7 +19,7 @@ test suite plays out exactly as on the original: the same world state and the sa
   `game.exe`, no `binkw32.dll`, no `mss32.dll` and no registry entries.
 - **Your saves and multiplayer still work.** Saves are in the original's format, so your old saves load. Hosting and joining
   network games work as before.
-- **A 64-bit build** next to the classic 32-bit one, with the same behaviour.
+- **A 64-bit exe** with the original's behaviour.
 - **A new renderer** on Direct3D 11: per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
   a smooth camera, vsync, and an optional performance overlay.
 - **Widescreen** at any resolution, with the interface scaled to the window.
@@ -47,7 +47,7 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
 ## Requirements
 
 - Windows 10 or later.
-- The VS 2022 Build Tools with MSVC 14.43 for x86 and x64, and CMake and Ninja from the same install. `build.cmd` looks in
+- The VS 2022 Build Tools with MSVC 14.43 for x64, and CMake and Ninja from the same install. `build.cmd` looks in
   `E:\bin\vs\buildtools`; set `EI_VSROOT` to your Build Tools folder if it is elsewhere.
 - sokol-shdc, the shader compiler. `build.cmd` uses `E:\bin\sokol-shdc\sokol-shdc.exe`; set `EI_SHDC` to it if it
   is elsewhere (`docs/notes/renderer.md`, "Shader authoring").
@@ -72,7 +72,6 @@ The build also runs the source checks (`tools/check_*.py`, the generated files' 
 ```
 play.cmd            builds the UTF-8 release and plays it on the Rebirth install's data, every option on
 play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes and widescreen
-play.cmd x64        the 64-bit build (build\play-x64, run\play-x64) on the same data; `play.cmd vanilla x64` too
 launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
 ```
 
@@ -94,7 +93,6 @@ setting at its best; the registry is never read). The render quality (MSAA sampl
 anisotropy), the performance overlay and vsync are set in its `[renderer]` section (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
 `run\play\ei-rebuild.log`.
-`play.cmd x64` does the same in `run\play-x64` (its own settings and log) with the 64-bit build.
 
 ## Test
 
@@ -118,7 +116,7 @@ game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` on
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the exe's start-up and the generated parts of the image.
 - `src/hook/` the image's start-up support: logging, the profiler, failure reports and the Rebirth options.
-- `tests/verify/` the harness; `tests/vectors/` function-level comparisons with the original; `tests/scenarios/`.
+- `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).

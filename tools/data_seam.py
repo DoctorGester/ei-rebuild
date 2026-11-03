@@ -1,7 +1,6 @@
 """The data seam (S18): every use of game.exe's data by its original address goes through
-ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's ExeTableId, so that
-ei_vectors.exe's replay can hand a stand-in and no code of the image reads game.exe's data by a raw cast
-(docs/notes/standalone.md, "Own data").
+ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's ExeTableId, so that no code of the
+image reads game.exe's data by a raw cast (docs/notes/standalone.md, "Own data").
 
 A literal of the exe's data range (0073B000-007D7000: the import address table, .rdata, .data, its
 zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:

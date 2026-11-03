@@ -689,8 +689,7 @@ std::uint16_t FromNetwork(std::uint16_t value);
 // ==== Floating point =================================================================================================
 
 // Puts the floating-point control state back at the end of a scope that calls code which may change it (the graphics
-// driver): the x87 control word on 32-bit x86 (the game's main thread runs at 24-bit precision,
-// docs/notes/rebirth.md), MXCSR's control bits on x64. Set back only when it changed.
+// driver): MXCSR's control bits. Set back only when they changed.
 class FloatingPointGuard {
 public:
     FloatingPointGuard();

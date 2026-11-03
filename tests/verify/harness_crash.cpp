@@ -12,18 +12,13 @@ namespace ei::verify::crash {
 
 namespace {
 
-// An x86 MSVC throw: ExceptionInformation[0] the magic (0x19930520..22), [1] the thrown object's
-// address, [2] its throw information. The throw information lists the types a handler can catch it
-// as, the thrown type first, each named by its decorated name (".PAVCFileException@@" is a
-// CFileException*, ".?AVexception@std@@" a std::exception). An x64 throw (build.cmd verify-x64) names the same tables
-// by 32-bit offsets from the throwing module's base, ExceptionInformation[3].
+// An MSVC throw: ExceptionInformation[0] the magic (0x19930520..22), [1] the thrown object's address, [2] its throw
+// information, [3] the throwing module's base. The throw information lists the types a handler can catch it as, the
+// thrown type first, each named by its decorated name (".PAVCFileException@@" is a CFileException*,
+// ".?AVexception@std@@" a std::exception), by 32-bit offsets from that base.
 constexpr DWORD kMsvcThrow = 0xE06D7363;
 
-#if defined(_M_X64)
-using Ref = std::int32_t;    // an offset from the module's base
-#else
-using Ref = std::uint32_t;   // an address (the base is 0)
-#endif
+using Ref = std::int32_t;   // an offset from the module's base
 template <class T>
 const T* At(Ref ref, std::uintptr_t base) {
     return reinterpret_cast<const T*>(base + static_cast<std::uintptr_t>(ref));
@@ -131,11 +126,7 @@ bool ReadThrow(const EXCEPTION_RECORD* record, Facts* facts) {
     __try {
         const auto* info = reinterpret_cast<const ThrowInfo*>(record->ExceptionInformation[2]);
         const auto* object = reinterpret_cast<const void*>(record->ExceptionInformation[1]);
-#if defined(_M_X64)
         const std::uintptr_t base = record->NumberParameters > 3 ? record->ExceptionInformation[3] : 0;
-#else
-        const std::uintptr_t base = 0;
-#endif
         if (!info || !info->catchable) return false;
         const auto* catchable = At<CatchableTypes>(info->catchable, base);
         if (catchable->count <= 0) return false;

@@ -4,8 +4,8 @@ How to write and change the game's code in this repo (ports, cleanup and fixes).
 starting; every rule here comes from a bug we already hit.
 
 Our code runs only in the standalone image (docs/notes/standalone.md), which contains no game.exe code.
-The harness no longer runs game.exe (H40): the goldens are the image's own runs, and the function vectors were
-recorded from the original before that (the tag original-oracle has the harness that ran it).
+The harness no longer runs game.exe (H40): the goldens are the image's own runs (the tag original-oracle has the
+harness that ran it).
 
 ## Setup
 
@@ -23,8 +23,7 @@ recorded from the original before that (the tag original-oracle has the harness 
   `check` and `waitfor`); its golden is recorded centrally.
 - Run `python tools/check_x87.py` (after `build.cmd release`) before handing back. Nothing of ours meets game.exe's
   code any more (H40 removed the vector recorders and the harness's forwarders), so a rewrite is free to change its
-  signature (a std::string_view for a const char*), except that a rewrite the recorded vectors replay must still
-  take the recorded arguments (ei_vectors fails otherwise).
+  signature (a std::string_view for a const char*).
 
 ## Where code goes
 
@@ -47,7 +46,7 @@ recorded from the original before that (the tag original-oracle has the harness 
   `src/platform/win32/` implements them and is the only game-side place that includes windows.h or calls
   `gameapi::` (docs/notes/platform.md; tools/check_platform.py fails on a new file that does). A new system call
   goes there, not into a game file.
-- `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
+- `tests/unit/`: checks of our code without the game (ei_unit_check; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (EngineObject virtual interface),
   `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum
   groupings, docs/notes/vector-math.md; `maths.h` includes it), `ai_map.h`, `resource*.h`,
@@ -106,7 +105,7 @@ recorded from the original before that (the tag original-oracle has the harness 
      point) and kept float locals unrounded; keep `/fp:precise`.
    - A product of two constants that the original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler
      folds it at double precision: write it as the float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the
-     operation; the goldens and vectors catch the drift. The build inlines at /Ob2 (R16c5), so a constant behind a helper function
+     operation; the goldens catch the drift. The build inlines at /Ob2 (R16c5), so a constant behind a helper function
      (`Pi() * FaceStep()`) folds too.
    - Rounding mode matters: FISTP rounds to nearest, ties to even (`lib::RoundEven`), a C++ cast truncates, `_ftol` truncates and gives the
      low half of the 64-bit integer (`static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond the int range can
@@ -228,7 +227,7 @@ does not need a second pass:
 
 ## Verification
 
-A change is held to the behaviour the goldens and vectors pinned by the two checks below. Neither depends on the
+A change is held to the behaviour the goldens pinned by the two checks below. Neither depends on the
 heap or on memory layout, so a change of a class's layout is checked like any other change.
 
 - **Goldens** (tests/golden, docs/notes/standalone-verification.md): a scenario's run of the image, recorded
@@ -236,9 +235,9 @@ heap or on memory layout, so a change of a class's layout is checked like any ot
   original's then), replayed with `work.py test <ID> --golden`, its state digest and saves compared field by
   field. Reach the function from a scenario that has a golden, or add one under `tests/scenarios/` (its golden is
   recorded by the Suites workflow's `record` input).
-- **Function vectors** (tests/vectors): calls of the original sampled by recorders in `--no-hooks` runs until H40
-  (the recorders and recording again: the tag original-oracle), and `ei_vectors.exe` (build.cmd) replays them
-  against ours without the game. For pure functions and ones that only write an output object.
+- **Unit checks** (tests/unit, `ei_unit_check.exe`, run by build.cmd): our code without the game, for what needs
+  none (the settings file's format, lib::HashMap's order). The function vectors (game.exe's recorded calls) went with
+  the 32-bit build (docs/notes/standalone-verification.md, section 3).
 
 ## Notes
 
@@ -247,7 +246,7 @@ Record in `docs/notes/<area>.md`:
   docs/standalone-cleanup.md;
 - original bugs you kept;
 - functions you skipped and why;
-- how each rewrite is checked (the scenario with a golden that reaches it, or its vectors).
+- how each rewrite is checked (the scenario with a golden that reaches it, or its unit check).
 
 Commit on your branch with clear messages. End commit messages with the co-author line used in this
 repo's history.
