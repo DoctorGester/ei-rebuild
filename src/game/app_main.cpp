@@ -289,7 +289,7 @@ constexpr int kLongestPassTicks = 5;
 
 // The world tick's length in milliseconds, and milliseconds in the camera's time (times 1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
-float CameraSeconds(std::uint32_t milliseconds) { return (static_cast<float>(milliseconds)) * 0.018181818f; }
+float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(milliseconds) * 0.018181818f; }
 
 // Three calls of the loop take a harness hook (ei/main_loop.h, set by tests/verify/harness.cpp) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's

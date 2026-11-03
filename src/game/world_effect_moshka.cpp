@@ -174,8 +174,8 @@ void EffectMoshka::Update(float now) {
         float sideX = toFollowed.y;
         float sideY = -toFollowed.x;
         float scale = kCircleRadius / std::sqrt(LengthSquared2D(sideY, sideX));
-        target.x += (scale * sideX);
-        target.y += (scale * sideY);
+        target.x += scale * sideX;
+        target.y += scale * sideY;
         target.z = kCircleHeight + target.z;
     }
 

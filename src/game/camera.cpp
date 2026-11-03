@@ -160,7 +160,7 @@ camera::ViewPose camera::DrawnView(const Camera* camera) {
     part.Slerp(back, kIdentityRotation, step.undoRotation);
     const Vector3 turned = part.Rotate(offset) * (1.0f - step.stretch * back);
     out.focus -= step.focus * back;
-    out.position -= (step.focus * back + (offset - turned));
+    out.position -= step.focus * back + (offset - turned);
     out.rotation.PreMultiply(part);
     out.heading = TurnedBack(out.heading, step.undoHeading, back);
     out.distance -= step.distance * back;

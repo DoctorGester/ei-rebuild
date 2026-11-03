@@ -17,7 +17,7 @@ constexpr float kHoursPerSecond = 1.0f / 15.0f;  // as the game counts its speed
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
-float World::Elapsed() const { return (static_cast<float>(tick)) * secondsPerTick; }
+float World::Elapsed() const { return static_cast<float>(tick) * secondsPerTick; }
 
 float World::TimeOfDay() const { return std::fmod(Elapsed() + timeBase, kHoursPerDay); }
 

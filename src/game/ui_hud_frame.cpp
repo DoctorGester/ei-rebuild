@@ -145,7 +145,7 @@ void HudClock::Update() {
         float y = kCentreY - c * kDialRadius;
         float x = std::sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
-        angle -= (kPi * kDialStep);
+        angle -= kPi * kDialStep;
     }
 
     SetTint(scene[6], highlight ? pulse : 1.0f);

@@ -94,7 +94,7 @@ bool Less(float a, float b) {
 // The client world's time: the tick (an int) plus the tick's fraction.
 float AnimationTime() {
     const WorldClient* world = &g_clientWorld;
-    return (static_cast<float>(world->tick)) + world->tickFraction;
+    return static_cast<float>(world->tick) + world->tickFraction;
 }
 
 // Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's

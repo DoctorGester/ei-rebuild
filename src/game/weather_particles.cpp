@@ -286,9 +286,9 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
         // A triangle around the point, in the projection's units.
         triangle[0].x -= kFlakeWidth * 0.5f;
         triangle[1].x += kFlakeWidth * 0.5f;
-        triangle[0].y -= (kFlakeHeight * kFlakeAbove);
-        triangle[1].y -= (kFlakeHeight * kFlakeAbove);
-        triangle[2].y += (kFlakeHeight * kFlakeBelow);
+        triangle[0].y -= kFlakeHeight * kFlakeAbove;
+        triangle[1].y -= kFlakeHeight * kFlakeAbove;
+        triangle[2].y += kFlakeHeight * kFlakeBelow;
         SetFrame(triangle, *frameOf, kSnowTop, kSnowBottom);
         used += 3;
     }
