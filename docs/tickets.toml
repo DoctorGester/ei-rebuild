@@ -6240,6 +6240,22 @@ depends = ["H45"]
 note = "H45 made new goldens keep golden_explain.OUTCOME_CLEAR (units' pos.xyz, hp, mana, dead) in clear next to the hashes, so a later difference has numbers; the 150 existing goldens still hold hashes for those fields (the summary says 'hash only'). Re-record them all in one pass (record --reason, two agreeing passes: only digest.txt changes, record reports 'what it checks is the same') after the C74b/C76 re-records land, or before them so their before-numbers exist. About +35% digest size (24 MB -> ~32 MB).  2026-11-03: C76's golden re-record (after C74b) re-records every golden with the clear fields, so H45b is done by it unless C76 re-records only some."
 
 [[ticket]]
+id = "H47a"
+title = "run_all checks that no run wrote into an install"
+group = "harness"
+size = 0.3
+depends = ["H47"]
+note = "H47 deleted the kernel32/ntdll install guard: the game's own writes still pass MapPath (refused under an install root), but another library's file calls (a driver's cache, SDL's) are no longer seen in the process, and the runs' working directory is the install. run_all could list the install trees' file names, sizes and times before a suite and compare after, failing the runs that overlap a change. Windows and Linux alike."
+
+[[ticket]]
+id = "H47b"
+title = "Linux harness runs: the remaining differences"
+group = "harness"
+size = 0.5
+depends = ["H47"]
+note = "From H47's WSL runs (docs/notes/linux.md, The harness): render_smooth and ui_quicksave's saved picture differs in 94% of the pixels on GL (read-back orientation or format?), render_terrain_seams' level steps 0.9% (vanilla data), render_present_window's windowsize is asynchronous under X11 (wait for the size before the next step), net_second_master's refused connect comes at once (Windows retries about 1 s: wait on the box instead of a fixed wait 2500?), the pair scenarios run about 190 s on llvmpipe. Also: a prepare tool failing raises out of run_all (prepare_scenario.prepare) and ends the whole suite instead of failing the run."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
