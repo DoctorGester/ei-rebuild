@@ -44,11 +44,11 @@ void Poll(std::uint32_t now, std::uint32_t interval, Point motion, Point drag, b
     g_second.shortest = std::min(g_second.shortest, interval);
     g_second.longest = std::max(g_second.longest, interval);
     g_second.motion = g_second.motion + motion;
-    if (held) {
-        ei::Log("camera trace: poll %u +%u ms motion %d %d drag %d %d, %d drags taken; heading %.5f pitch %.5f, turn %.5f "
+    if (held || motion.x != 0 || motion.y != 0) {
+        ei::Log("camera trace: poll (%s) %u +%u ms motion %d %d drag %d %d, %d drags taken; heading %.5f pitch %.5f, turn %.5f "
                 "(target %.5f) tilt %.5f (target %.5f)",
-                now, interval, motion.x, motion.y, drag.x, drag.y, g_drags, Heading(), g_camera.pitch, g_camera.turnRate,
-                g_camera.turnTarget, g_camera.tiltRate, g_camera.tiltTarget);
+                held ? "held" : "free", now, interval, motion.x, motion.y, drag.x, drag.y, g_drags, Heading(), g_camera.pitch,
+                g_camera.turnRate, g_camera.turnTarget, g_camera.tiltRate, g_camera.tiltTarget);
     }
     g_drags = 0;
     if (now - g_second.start < 1000) return;
