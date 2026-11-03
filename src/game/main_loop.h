@@ -1,20 +1,20 @@
 #pragma once
 
-// The calls of the main loop that tools tell apart by where they come from.
+// Where the main loop (app_main.cpp) lets the verify harness (tests/verify) in.
 //
-// The verify harness (tests/verify/harness.cpp) recognises three calls of the original WinMain
-// (00456440) by their return addresses: the two PeekMessageA calls that take posted input (before
-// and after a frame) and the timeGetTime call that measures a frame. The rewritten WinMain
-// (src/game/app_main.cpp) makes the same calls from other addresses, so it names the call it is
-// making here for the duration of the call.
+// The harness reaches the loop in two ways: it is told which call of the loop is being made (Site), and it may stand
+// in for a few of the loop's calls (HarnessHooks). Both are empty in the game itself.
 
 namespace ei::mainloop {
 
+// The call of the loop that is being made, for the harness's platform seam: the loop's message peek and clock read go
+// through platform::EventWaits and platform::Milliseconds, which the harness answers (tests/verify/harness_platform.h),
+// and it must tell the loop's calls from any other caller of them (the movie player's, a window switch's wait).
 enum class Site {
     None,
-    PeekBeforeFrame,   // the original's return address 00457119
-    PeekAfterFrame,    // 00457610
-    FrameTime,         // 004571E2
+    PeekBeforeFrame,   // the peek for a waiting message before a pass: posted input and scenario steps are taken here
+    PeekAfterFrame,    // the peek after a pass: a frame was drawn, so the harness counts it and runs the steps
+    FrameTime,         // the clock read that measures how long the pass lasted: the virtual clock advances here
 };
 
 inline Site g_site = Site::None;
@@ -27,22 +27,21 @@ struct InSite {
     InSite& operator=(const InSite&) = delete;
 };
 
-// Calls of the main loop and the frame step that a test harness steps into (tests/verify/harness.cpp,
-// harness_capture.cpp). The rewritten callers (src/game/app_main.cpp, app_frame.cpp) call the hook
-// instead of the function when one is set; in game.exe the harness redirects the original's CALLs at
-// these points to entries in the original's register convention that call the same hooks. Null: the
-// function itself. Each hook ends by calling the function it stands in for (beforePresent stands in for none).
+// Calls of the loop and the frame step that the harness replaces (tests/verify/harness.cpp, harness_capture.cpp). The
+// loop calls the hook instead of the function when one is set. A hook ends by calling the function it stands in for,
+// except beforePresent, which stands in for none. Null: the function itself.
 struct HarnessHooks {
     using WorldUpdate = int (*)(void* world);   // 0 stops the frame
     using CameraUpdate = void (*)(void* camera, float seconds);
     using BeforePresent = void (*)();
     using FrameStep = void (*)(bool draw, bool cursor);
-    WorldUpdate serverUpdate = nullptr;         // CALL 0058DFF0 at 00457314 in WinMain
-    WorldUpdate clientSegment = nullptr;        // CALL 005641F0 at 00457368 in WinMain
-    CameraUpdate frameCameraUpdate = nullptr;   // CALL 0040FB30 at 00457595 in WinMain (the frame's last)
-    BeforePresent beforePresent = nullptr;      // the frame step 00458010 before the cursor and the present (004580D7,
-                                                // where the original took the cursor's lock 005E65F0)
-    FrameStep frameStep = nullptr;              // CALL 00458010 at 004575FD in WinMain (a pass's frame step)
+    WorldUpdate serverUpdate = nullptr;         // the server world's tick; the harness's "speed" hold follows it
+    WorldUpdate clientSegment = nullptr;        // the client world's tick; the "speed" hold follows it too
+    CameraUpdate frameCameraUpdate = nullptr;   // the pass's last camera update for the real time; "freeze" holds it still
+    BeforePresent beforePresent = nullptr;      // in the frame step, after the interface is drawn and before the cursor
+                                                // and the present: the frame capture reads the finished frame here
+    FrameStep frameStep = nullptr;              // a pass's frame step (draw, cursor): overlapping paired games hand
+                                                // over to each other before it
 };
 
 inline HarnessHooks g_harnessHooks;

@@ -9,7 +9,7 @@
 #include "object_tables.h"      // FindCommandByKey
 #include "screen_layout.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/rect.h"
 #include <cstddef>
 #include <cstdint>

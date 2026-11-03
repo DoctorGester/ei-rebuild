@@ -15,7 +15,7 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

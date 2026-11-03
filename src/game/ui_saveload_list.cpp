@@ -10,7 +10,7 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

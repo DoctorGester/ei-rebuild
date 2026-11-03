@@ -28,7 +28,7 @@ from balance = waiting updates - fraction (e^(balance / 10) when negative, 1 up 
 kept within 0.1 .. 10; 1 in a local game), the camera for the real time of the pass, the camera file's record /
 playback, the interface and a frame (`FrameStep`). A waiting message goes to the interface's input.
 
-The harness's hook points (`include/ei/main_loop.h`, `g_harnessHooks`) sit at the loop's calls: the frame capture
+The harness's hook points (`src/game/main_loop.h`, `g_harnessHooks`) sit at the loop's calls: the frame capture
 between the interface draw and the cursor blit, "freeze" (the camera's update), "speed" (the server and client
 updates), and the loop's message peeks and clock reads named in `ei::mainloop::g_site`.
 

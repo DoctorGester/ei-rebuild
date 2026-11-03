@@ -2,7 +2,7 @@
 #include "harness_dropin.h"
 
 #include "../../src/platform/log.h"
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "image/image_side.h"
 
 #include <windows.h>

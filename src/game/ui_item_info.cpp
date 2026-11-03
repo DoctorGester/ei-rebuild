@@ -14,7 +14,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

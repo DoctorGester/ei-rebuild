@@ -196,7 +196,7 @@
 //   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
 //                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
 //                             their points over the whole window): the same place at any resolution
-//   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
+//   rebirthflags <spec>       turn Rebirth patch flags on for this run (src/lib/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
 //                             "SecondMaster=<host[:port]>" sets NewMaster's second master server.
@@ -385,8 +385,8 @@
 #include "platform/platform.h"
 #include "platform/win32/platform_win32.h"
 #include "platform/win32/thread_context.h"
-#include "ei/main_loop.h"
-#include "ei/rebirth.h"
+#include "game/main_loop.h"
+#include "lib/rebirth.h"
 #include "harness_objects.h"
 #include "image/image_side.h"
 #include "../../src/game/game_data.h"
@@ -3484,7 +3484,7 @@ struct Harness {
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
         if (g_clockTrace) clock::InstallTrace();
-        // The main loop's calls: the rewritten loop's hook point (ei/main_loop.h) for each one taken.
+        // The main loop's calls: the rewritten loop's hook point (game/main_loop.h) for each one taken.
         ei::mainloop::HarnessHooks& hooks = ei::mainloop::g_harnessHooks;
         Log("harness: the main loop and the frame step through the rewritten callers' hook points only");
         if (g_freezeUsed || g_cameraTraceUsed) hooks.frameCameraUpdate = &HeldCameraUpdate;

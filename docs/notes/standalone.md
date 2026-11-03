@@ -66,7 +66,7 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
   reader; the harness's `ExeTableId(a)` is a game.exe table kept as an id and never read. src/ names no such address
   any more.
 - **The check** (`python tools/data_seam.py --check`, a build check). Every literal in game.exe's data range
-  (0073B000-007D7000) in src/, tests/ and include/ must be one of these, or the check fails:
+  (0073B000-007D7000) in src/ and tests/ must be one of these, or the check fails:
   - an argument to the seam;
   - an argument to a helper whose every definition hands the address to the seam;
   - a constant whose every use does.

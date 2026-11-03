@@ -6,7 +6,7 @@
 #include "net_coder.h"
 #include "platform/platform.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "../platform/log.h"
 
 #include <cstdint>

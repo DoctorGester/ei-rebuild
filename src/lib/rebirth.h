@@ -7,7 +7,7 @@
 //
 //     if (ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)) { ...patched behaviour... }
 //
-// Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour (C68) and have no flag. Every
+// Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour and have no flag. Every
 // flag is off by default and can be switched either way. Every flag is off until Reset, which the standalone image's
 // start-up calls once, before any rewritten code runs (src/game/rebirth_profile.cpp): the defaults, then the game
 // folder's profile (Rebirth's in a Rebirth install:

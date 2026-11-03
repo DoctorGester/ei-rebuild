@@ -1,12 +1,12 @@
 // Frame capture for the harness (verify build only): "capture <name>" writes the next presented
 // frame to <output folder>\frames\<name>.bmp. See harness_capture.h and docs/notes/renderer.md.
 //
-// Where: the rewritten frame step's cursor lock (the harness's hook point, ei/main_loop.h): the new renderer has
+// Where: the rewritten frame step's cursor lock (the harness's hook point, game/main_loop.h): the new renderer has
 // presented the frame by then, and the capture is its frame (image::ReadFrame).
 #include "harness_capture.h"
 
 #include "../../src/platform/log.h"
-#include "ei/main_loop.h"
+#include "game/main_loop.h"
 #include "image/image_side.h"
 
 #include <windows.h>

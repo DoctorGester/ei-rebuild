@@ -8,7 +8,7 @@ usage: python tools/gen_settings_doc.py            writes docs/settings.md
 
 The settings the code reads are found by their spelling: options.cpp's tables (section and name, the camera's
 motion values, the shortcuts, the lights), every Get*(section, "name") under src/, the renderer's QualitySetting
-names, Rebirth's patches (include/ei/rebirth_patches.inc) and the [patches] names rebirth_profile.cpp understands.
+names, Rebirth's patches (src/lib/rebirth_patches.inc) and the [patches] names rebirth_profile.cpp understands.
 """
 import os, re, sys
 
@@ -106,7 +106,7 @@ def read_names(names_of):
                     found.add(('kPatches', name))
             if 'GetValues(settings::kAutoExec)' in text:
                 found.add(('kAutoExec', '<name>'))
-    for name in re.findall(r'^EI_REBIRTH_PATCH\((\w+)\)', read(os.path.join(ROOT, 'include', 'ei', 'rebirth_patches.inc')), re.M):
+    for name in re.findall(r'^EI_REBIRTH_PATCH\((\w+)\)', read(os.path.join(ROOT, 'src', 'lib', 'rebirth_patches.inc')), re.M):
         found.add(('kPatches', name))
     return found
 

@@ -20,7 +20,7 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include <cstdint>

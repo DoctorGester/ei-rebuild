@@ -28,7 +28,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <bit>
 #include <cstdint>

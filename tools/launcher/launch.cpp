@@ -7,7 +7,7 @@
 //                  [--out <dir>] [--standalone] [--drop-in] [-- game args...]
 // --out puts what the run writes (ei-rebuild.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_launch.exe (EI_OUT_DIR), so several runs can go at once.
-// --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
+// --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; src/lib/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1. With EI_REBIRTH set the image takes no game
 // folder's profile; a run of a scenario without one sets it to "defaults".
 // The image reads no game.exe (S18k): --exe only places the shared copy of a launch without a scenario. It has the
@@ -711,7 +711,7 @@ int wmain(int argc, wchar_t** argv) {
         // The image reads no game.exe (S18k): the data folder is the install's.
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
         // A harness run names its flags (the defaults, EI_REBIRTH's and the scenario's), never the data folder's
-        // profile (include/ei/rebirth.h): the image takes none when EI_REBIRTH is set.
+        // profile (src/lib/rebirth.h): the image takes none when EI_REBIRTH is set.
         if (!harness.empty() && GetEnvironmentVariableW(L"EI_REBIRTH", nullptr, 0) == 0)
             SetEnvironmentVariableW(L"EI_REBIRTH", L"defaults");
     }

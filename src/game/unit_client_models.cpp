@@ -20,7 +20,7 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"

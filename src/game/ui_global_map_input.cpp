@@ -11,7 +11,7 @@
 #include "ui_screens.h"
 #include "screen_layout.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "platform/platform.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"

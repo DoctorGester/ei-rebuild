@@ -83,7 +83,7 @@ endif()
 # listed: the static objects' initialisers too), ahead of the renderer and the platform it calls.
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp src/audio/*.cpp src/video/*.cpp)
 add_library(ei_game STATIC ${EI_GAME_SOURCES})
-target_include_directories(ei_game PRIVATE include src third_party)
+target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-static)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx with its graphics backend (src/platform/graphics.h; Direct3D 11
@@ -92,7 +92,7 @@ target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-st
 # the game.
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp src/platform/${EI_GRAPHICS}/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/floating_point.cpp)
-target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
+target_include_directories(ei_render PRIVATE src third_party third_party/sokol)
 target_compile_definitions(ei_render PRIVATE ${EI_GRAPHICS_BACKEND})
 target_link_libraries(ei_render PRIVATE ${EI_GRAPHICS_LIBRARIES})
 # Its shaders (docs/notes/renderer.md, "Shader authoring"): src/render/shaders/*.glsl, one input (shaders.glsl)
@@ -139,7 +139,7 @@ if(EI_HARNESS AND WIN32)
     list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
 endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
-target_include_directories(ei_platform PRIVATE include src)
+target_include_directories(ei_platform PRIVATE src)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
@@ -150,7 +150,7 @@ target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 # tools/perf_check) have their own ei::Log.
 set(EI_PROGRAM_SOURCES src/platform/log.cpp)
 add_executable(ei-rebuild WIN32 src/main.cpp ${EI_PROGRAM_SOURCES} ${EI_RESOURCES})
-target_include_directories(ei-rebuild PRIVATE include src)
+target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
 # The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
@@ -204,7 +204,7 @@ if(WIN32)
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp src/game/settings_document.cpp src/game/ini_file.cpp src/game/asset_text.cpp
                    src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
-    target_include_directories(ei_unit_check PRIVATE include src)
+    target_include_directories(ei_unit_check PRIVATE src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
@@ -215,17 +215,17 @@ if(WIN32)
     # Offline check of the SDL backend's keys (src/platform/sdl/sdl_keys.cpp, ticket PL9a) against the key codes and control
     # characters Windows' layouts give, for every layout the machine has.
     add_executable(ei_input_check tools/input_check/input_check.cpp src/platform/sdl/sdl_keys.cpp)
-    target_include_directories(ei_input_check PRIVATE include src)
+    target_include_directories(ei_input_check PRIVATE src)
     target_link_libraries(ei_input_check PRIVATE SDL3::SDL3-static user32)
     # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
     # a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
     add_executable(ei_ui_check tools/ui_check/ui_check.cpp tests/render/glyph_cases.cpp)
-    target_include_directories(ei_ui_check PRIVATE include src tests third_party/sokol)
+    target_include_directories(ei_ui_check PRIVATE src tests third_party/sokol)
     target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
     # Offline check of the performance overlay (render_perf, ticket R21) on a WARP device: its text, its pixels over a
     # back buffer, the GPU timestamps.
     add_executable(ei_perf_check tools/perf_check/perf_check.cpp)
-    target_include_directories(ei_perf_check PRIVATE include src third_party/sokol)
+    target_include_directories(ei_perf_check PRIVATE src third_party/sokol)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
     # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
@@ -234,11 +234,11 @@ else()
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
                    tests/unit/settings_file.cpp tests/unit/ini_file.cpp src/game/ini_file.cpp src/game/asset_text.cpp)
-    target_include_directories(ei_port_check PRIVATE include src)
+    target_include_directories(ei_port_check PRIVATE src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES})
-    target_include_directories(ei_render_check PRIVATE include src tests third_party/sokol)
+    target_include_directories(ei_render_check PRIVATE src tests third_party/sokol)
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
     add_test(NAME port_render COMMAND ei_render_check)
     set_tests_properties(port_platform port_render PROPERTIES TIMEOUT 60)

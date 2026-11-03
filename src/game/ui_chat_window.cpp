@@ -15,7 +15,7 @@
 
 #include "lib/vecmath.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <cstdint>
 #include <cstdio>

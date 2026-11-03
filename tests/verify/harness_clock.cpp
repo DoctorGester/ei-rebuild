@@ -3,7 +3,7 @@
 
 #include "../../src/game/game_data.h"
 #include "../../src/platform/log.h"
-#include "ei/main_loop.h"
+#include "game/main_loop.h"
 #include "image/image_side.h"
 
 #include <windows.h>

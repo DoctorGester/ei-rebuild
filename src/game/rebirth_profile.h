@@ -2,7 +2,7 @@
 // the harness's specs (rebirth::Reset). No addon.dll and no EI_Plugin.asi run: the game has their fixes as flags.
 #pragma once
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <string>
 

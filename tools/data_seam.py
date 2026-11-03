@@ -3,7 +3,7 @@ ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's ExeT
 image reads game.exe's data by a raw cast (docs/notes/standalone.md, "Own data").
 
 A literal of the exe's data range (0073B000-007D7000: the import address table, .rdata, .data, its
-zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:
+zero-filled tail .bss, .rsrc) in src/ or tests/ is one of:
   seam       the address argument of GameData<T> / GamePointer<T> / DataId / ExeTableId
   helper     the address argument of a function whose every definition hands that parameter to the
              seam (per-file helpers such as GameFloat(std::uintptr_t)); found from the definitions
@@ -20,7 +20,7 @@ usage: python tools/data_seam.py [--check | --list SECTION [--all]]
 import argparse, collections, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TOPS = ('src', 'tests', 'include')
+TOPS = ('src', 'tests')
 
 # game.exe 1.06's data sections (tools/pe.py): .rdata 0073B000 (its first 0x820 bytes the import
 # address table), .data 00783000 with its zero-filled tail from 0079C000, .rsrc 007CD000; SizeOfImage

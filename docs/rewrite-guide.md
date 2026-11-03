@@ -52,7 +52,7 @@ compare function pointers for identity.
 7. **Iteration order is behaviour** where it feeds game logic or a save: `lib::HashMap` / `lib::IntroSort` keep the
    original's orders; don't swap a container without checking who walks it.
 8. **Rebirth's changes** are our code's own (`docs/notes/rebirth.md`); the few left behind flags are
-   `ei::rebirth::Enabled(Patch::<name>)` (`include/ei/rebirth.h`). With a flag off the code behaves as the original.
+   `ei::rebirth::Enabled(Patch::<name>)` (`src/lib/rebirth.h`). With a flag off the code behaves as the original.
 9. **Keep the original's bugs** (leaks, odd messages, kept quirks) unless a ticket decides otherwise, and note them
    in the area's notes under "Original bugs kept".
 

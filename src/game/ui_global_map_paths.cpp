@@ -16,7 +16,7 @@
 #include "screen_layout.h"
 #include "world.h"
 #include "world_glue.h"
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

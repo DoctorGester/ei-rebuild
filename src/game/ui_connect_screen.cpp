@@ -20,7 +20,7 @@
 #include "world.h"
 #include "text_manager.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "lib/intro_sort.h"

@@ -8,7 +8,7 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
 #include "lib/str.h"
