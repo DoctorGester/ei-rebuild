@@ -13,7 +13,6 @@
 #include "world.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -60,7 +59,6 @@ SplitVertex SplitOf(int v) {
 
 const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
     if (ix < 0 || iy < 0) return nullptr;
-    EI_NAN_AUDIT(width, height);
     if (width < static_cast<float>(ix) || height < static_cast<float>(iy)) return nullptr;
 
     const SplitVertex x = SplitOf(ix), y = SplitOf(iy);
@@ -94,12 +92,10 @@ float Terrain::HeightAt(float x, float y, Layer layer) {
         const Vector2 from10to00 = XY(*v00) - XY(*v10);
         const Vector2 from10to11 = XY(*v11) - XY(*v10);
         const float turnS = Cross2D(from10to11, from10to00);
-        EI_NAN_AUDIT(turnS);
         if (turnS <= 0.0f) return (v11->z + v01->z) * 0.5f;
         const Vector2 from01to00 = XY(*v00) - XY(*v01);
         const Vector2 from01to11 = XY(*v11) - XY(*v01);
         const float turnT = Cross2D(from01to00, from01to11);
-        EI_NAN_AUDIT(turnT);
         if (turnT <= 0.0f) return (v11->z + v01->z) * 0.5f;
 
         const Vector2 at{x, y};
@@ -116,10 +112,8 @@ float Terrain::HeightAt(float x, float y, Layer layer) {
             // Upper-left triangle (v00, v11, v01).
             if (iteration >= 10) return PlaneHeight(*v00, *v11, x, y, *v01);
             float across = Cross2D(to01, from01to00);
-            EI_NAN_AUDIT(across);
             if (across < 0.0f) { --ix0; --ix1; continue; }
             const float beyond = Cross2D(to01, from01to11);
-            EI_NAN_AUDIT(beyond);
             if (beyond <= 0.0f) return PlaneHeight(*v00, *v11, x, y, *v01);
             ++iy0; ++iy1;
         }
@@ -143,7 +137,6 @@ int Terrain::SurfaceClass(float x, float y) {
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
         float water = HeightAt(x, y, Layer::Water);
         const float ground = HeightAt(x, y, Layer::Ground);
-        EI_NAN_AUDIT(ground, water);
         if (ground < water) return textureClass[sector->tileTextures[tile + kLayerTiles]];
     }
     return textureClass[sector->tileTextures[tile]];

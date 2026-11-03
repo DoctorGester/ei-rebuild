@@ -11,7 +11,6 @@
 #include "unit.h"
 #include "game_singletons.h"
 #include "world.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <vector>
@@ -77,7 +76,6 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
             tip += line;
             const float one = 1.0f;
             float duration = Get<float>(data, 0x30);
-            EI_NAN_AUDIT(duration);
             if (duration < one)
                 line = std::format("{} {} \n", currentLabels[3], currentLabels[8]);
             else

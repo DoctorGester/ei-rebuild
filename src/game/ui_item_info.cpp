@@ -15,7 +15,6 @@
 
 #include "lib/maths.h"
 #include "lib/rebirth.h"
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "platform/platform.h"
@@ -131,7 +130,6 @@ public:
 unsigned FirstDamageKind(const float* weights) {
     unsigned i = 0;
     for (; i < 7; ++i) {
-        EI_NAN_AUDIT(weights[i]);
         if (weights[i] != 0.0f) break;
     }
     return i;
@@ -569,7 +567,6 @@ void ItemInfoPanel::DescribeSpellRecord() {
     bool known = record->allowedModifiers[3] != 0;
     SpellLevelLine(w, known, known ? static_cast<int>(record->damage) : 0);
     float power = record->speed;
-    EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line = std::format("{} {}", w.T(9), w.T(21));
     else
@@ -581,7 +578,6 @@ void ItemInfoPanel::DescribeSpellRecord() {
     w.Text(w.line);
     w.Down();
     float radius = record->area;
-    EI_NAN_AUDIT(radius);
     if (radius < 1.0f)
         w.line = std::format("{} {}", w.T(11), w.T(22));
     else
@@ -649,7 +645,6 @@ void ItemInfoPanel::DescribeCarriedSpell() {
     bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
     SpellLevelLine(w, known, known ? static_cast<int>(spell->damage) : 0);
     float power = spell->speed;
-    EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line = std::format("{} {}", w.T(9), w.T(21));
     else

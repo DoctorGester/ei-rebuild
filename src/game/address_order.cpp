@@ -10,7 +10,6 @@
 #include "map_object_shadow.h"
 #include "texture.h"
 
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -48,7 +47,6 @@ int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
 }
 
 bool DepthBefore(EngineObject* a, EngineObject* b) {
-    EI_NAN_AUDIT(AsObject3D(a)->worldPosition.z, AsObject3D(b)->worldPosition.z);
     return AsObject3D(a)->worldPosition.z < AsObject3D(b)->worldPosition.z;
 }
 

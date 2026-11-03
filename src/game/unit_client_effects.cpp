@@ -22,7 +22,6 @@
 #include "world.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -139,7 +138,6 @@ std::uint8_t HitSoundKind(Unit* unit) {
 
 void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t statFlags) {
     if (statFlags & UnitStatsFlag::Alive) return;
-    EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
     std::string material = unit->GetPrototypeModel()->hitMaterial;
     if (unit->MapType() == MapObjectType::Hero) {
@@ -325,7 +323,6 @@ std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     int frame = animation->soundFrame;
     if (frame == 0) return std::nullopt;
-    EI_NAN_AUDIT(from);
     if (frame < from) return std::nullopt;   // before `from`
     if (frame >= to) return std::nullopt;
     if (miss) return std::string("weapons\\miss.wav");
@@ -378,7 +375,6 @@ void UnitClientSpecific::PlayStepSounds() {
         lastAnimationTime = 0.0f;
         lastAnimation = current;
     }
-    EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
     SoundManager* sounds = g_clientWorld.sounds;
@@ -457,7 +453,6 @@ void UnitClientSpecific::PlayStepSounds() {
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = facing.y / length;
         float clamped = cosine;
-        EI_NAN_AUDIT(clamped, facing.x);
         if (clamped > 1.0f) clamped = 1.0f;
         else if (clamped < -1.0f) clamped = -1.0f;
         float angle = kPi - lib::Acos(clamped);

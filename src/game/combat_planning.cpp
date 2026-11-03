@@ -21,7 +21,6 @@
 #include "lib/bytes.h"
 
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -87,7 +86,6 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             float ey = half * path.targetY - spot.y;
             float ex = half * path.targetX - spot.x;
             float limitSquared = 0.2f * 0.2f;   // rounded to 24 bits
-            EI_NAN_AUDIT(ex, ey);
             if (LengthSquared2D(ex, ey) >= limitSquared) continue;
             if (path.smoothing >= best) continue;
             best = path.smoothing;
@@ -141,12 +139,10 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         }
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
-        EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
         if (LengthSquared2D(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = position;
         from.z = unit->GroundHeight(position.x, position.y) + sight.eyeHeight;
         float visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
-        EI_NAN_AUDIT(visible);
         if (visible >= 0.1f) break;
         t += 5.0f;
     }

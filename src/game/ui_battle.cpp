@@ -33,7 +33,6 @@
 #include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "render/render.h"
 
 #include <algorithm>
@@ -589,7 +588,6 @@ bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
 
 // Equal.
 bool Equal(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a == b;
 }
 
@@ -787,7 +785,6 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             float current = LocalPlayerVariable(variable);
-            EI_NAN_AUDIT(current);
             if (current == 0.0f) return;
         }
         const char* key;

@@ -9,7 +9,6 @@
 #include "net_messages.h"
 #include "ui.h"
 #include "world_data.h"
-#include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
 #include <bit>
@@ -370,7 +369,6 @@ std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariab
 
 // Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
 void ServerSession::SetVariable(const std::string* newName, float value) {
-    EI_NAN_AUDIT(value);
     if (value != 0.0f) {
         VariableMessage* variable = FindOrAddVariable(newName)->Get();
         variable->value = value;
@@ -400,7 +398,6 @@ void ServerSession::RaiseVariable(const std::string* variableName, float value) 
     found->Get()->serial = g_variableSerial;
     ++g_variableSerial;
     ++found->Get()->version;
-    EI_NAN_AUDIT(found->Get()->value);
     if (found->Get()->value == 0.0f) {
         auto node = FindVariable(variableName);
         if (node != variables.end()) variables.erase(node);

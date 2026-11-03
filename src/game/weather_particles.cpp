@@ -20,7 +20,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -188,7 +187,6 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
                 do z -= band;
                 while (z > frame.high);
             }
-            EI_NAN_AUDIT(z, frame.low);
             if (z < frame.low) {
                 const float band = kHalfHeight + kHalfHeight;
                 do z += band;
@@ -225,7 +223,6 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
         const std::uint8_t* codes = outcodes.data() + first;
         if (codes[0] != 0 || codes[1] != 0 || codes[2] != 0) continue;
         const Vector4* corners = projected.data() + first;
-        EI_NAN_AUDIT(corners[0].z);
         if (corners[0].z < kNearDepth) continue;
         TLVertex* triangle = vertices.data() + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], corners[corner]);
@@ -251,7 +248,6 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = phase - cycle * kSnowCycle;
             float z = fall * frame.wind.z + kSnowRise;
-            EI_NAN_AUDIT(z);
             if (z < frame.low) continue;
             if (z > frame.high) continue;
             const float cell = kCellSize;

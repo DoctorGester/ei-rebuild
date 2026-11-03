@@ -17,7 +17,6 @@
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -68,7 +67,6 @@ int EffectMissile::Steer() {
         float speed = kMissileSpeed;
         float distance = std::sqrt(LengthSquared2D(velocity.y, velocity.x));
         if (GetClassId() == ClassId::EffectArrowFigure) speed = speed + speed;
-        EI_NAN_AUDIT(distance);
         if (distance < speed) {   // within one step
             flying = 0;
             arrived = 1;

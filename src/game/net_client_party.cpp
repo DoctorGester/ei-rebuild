@@ -12,7 +12,6 @@
 #include "spell.h"
 #include "world.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -259,7 +258,6 @@ void ClientSession::Tick(double dt) {
     for (auto node = self->timers.begin(); node != self->timers.end();) {
         float& seconds = node->seconds;
         seconds -= step;
-        EI_NAN_AUDIT(seconds);
         if (seconds < 0.0f) {
             node = self->timers.erase(node);
         } else {

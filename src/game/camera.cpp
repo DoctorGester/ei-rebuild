@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
@@ -40,7 +39,6 @@ float ClampToMap(float v, float last) {
 // step is tiny or the rate's magnitude passes the target's.
 void Approach(float* rate, const float* target, float response, float dt) {
     float step = (*target - *rate) * response;
-    EI_NAN_AUDIT(step);
     if (AbsBits(step) < 0.001f) {
         *rate = *target;
         return;
@@ -50,7 +48,6 @@ void Approach(float* rate, const float* target, float response, float dt) {
     *rate = after;
     float after2 = after * after;
     float target2 = *target * *target;
-    EI_NAN_AUDIT(before, after2, target2);
     if ((before < target2 && after2 > target2) || (before > target2 && after2 < target2))
         *rate = *target;
 }
@@ -231,7 +228,6 @@ int Camera::PlaybackStep(float time) {
     float start = a.time + timeOffset;
     float span = next - start;
     float u = 0.0f;
-    EI_NAN_AUDIT(span);
     if (span != 0.0f) u = (time - start) / span;
     localPosition = Lerp(a.position, b.position, u);
     localRotation.Slerp(u, a.rotation, b.rotation);
@@ -260,7 +256,6 @@ void Camera::StopMotion() {
     panTarget = Vector3{right.x * zero, right.y * zero, 0.0f} + Vector3{up.x * zero, up.y * zero, 0.0f};
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
-    EI_NAN_AUDIT(tiltRate, turnRate);
     tiltTarget = 0.0f;
     if (std::fabs(tiltRate) < std::fabs(tiltTarget)) tiltRate = tiltTarget;
     turnTarget = 0.0f;
@@ -354,7 +349,6 @@ void Camera::Update(float dt) {
         velocity += step;
         float after = Dot(velocity, velocity);
         float goal = Dot(wanted, wanted);
-        EI_NAN_AUDIT(before, after, goal);
         snap = (before < goal && after > goal) || (before > goal && after < goal);
     }
     if (snap) velocity = wanted;
@@ -399,7 +393,6 @@ void Camera::Update(float dt) {
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(&tiltRate, &tiltTarget, tiltResponse, dt);
-    EI_NAN_AUDIT(tiltRate);
     if (tiltRate != 0.0f) {
         float newPitch = dt * tiltRate + pitch;
         pitch = newPitch;
@@ -411,7 +404,6 @@ void Camera::Update(float dt) {
     }
 
     Approach(&turnRate, &turnTarget, turnResponse, dt);
-    EI_NAN_AUDIT(turnRate);
     if (turnRate != 0.0f) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
@@ -421,11 +413,9 @@ void Camera::Update(float dt) {
 
     float currentZoomTarget = zoomTarget;
     Approach(&zoomRate, &currentZoomTarget, zoomResponse, dt);
-    EI_NAN_AUDIT(zoomRate);
     if (zoomRate != 0.0f) distance = dt * zoomRate + distance;
 
     const CameraLimits limits = Limits();
-    EI_NAN_AUDIT(distance, limits.hardMin, limits.min);
     if (distance < limits.hardMin) {
         distance = limits.hardMin;
     } else if (distance < limits.min) {
@@ -461,7 +451,6 @@ void Camera::ZoomBy(float steps) {
     distance = d;
     if (!settings) return;
     const CameraLimits limits = Limits();
-    EI_NAN_AUDIT(d, limits.min);
     if (d < limits.min) {
         distance = limits.min;
         return;

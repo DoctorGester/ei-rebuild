@@ -15,7 +15,6 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <concepts>
@@ -55,7 +54,6 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
         MapEffect* e = &object->effects[i];
         bool outdated = e->type == effect->type && e->ticksLeft <= effect->ticksLeft && e->ending == effect->ending;
         if (outdated) {
-            EI_NAN_AUDIT(lib::FloatFromBits(effect->value), lib::FloatFromBits(e->value));
             outdated = !(lib::FloatFromBits(effect->value) < lib::FloatFromBits(e->value));
         }
         if (outdated) {

@@ -27,7 +27,6 @@
 #include "world_glue.h"
 #include "game_singletons.h"
 #include "ui_cursor.h"
-#include "lib/nan_audit.h"
 
 #include <cmath>
 
@@ -274,7 +273,6 @@ int CampPages::Price(Item* item, PriceKind kind) {
         float worn = WornFraction(item);
         repair = ItemPrice(item) * repairWeight * worn;
         if (kind == PriceKind::Repair) {
-            EI_NAN_AUDIT(worn, repairWeight);
             if (worn == kPriceZero) return 0;
             if (repairWeight == kPriceZero) return 0;
             int price = static_cast<int>(repair);
@@ -383,7 +381,6 @@ bool CampPages::CanEquip(Item* item, int mode) {
         // The container's charge maximum below the spell's mana cost fails.
         float need = spell->manaCost;
         float room = itemMade->chargeMax;
-        EI_NAN_AUDIT(room, need);
         if (room < need) return false;
         return std::ranges::none_of(itemResults->items, IsSpellContainer);
     }

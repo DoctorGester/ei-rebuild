@@ -24,7 +24,6 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -281,7 +280,6 @@ void BriefingScreen::Update() {
             if (VoiceEnded(voice)) NextPhrase(false);
         } else {
             phraseTime -= FrameTime();
-            EI_NAN_AUDIT(phraseTime);
             if (phraseTime < 0.0f) NextPhrase(false);
         }
         break;
@@ -293,7 +291,6 @@ void BriefingScreen::Update() {
             if (speaking && VoiceEnded(voice)) StopTalking(speaking);
         } else {
             phraseTime -= FrameTime();
-            EI_NAN_AUDIT(phraseTime);
             if (speaking && phraseTime < 0.0f) StopTalking(speaking);
         }
         break;
@@ -334,7 +331,6 @@ void BriefingScreen::LeaveIfExitOpen() {
     std::string variable = kZoneVariablePrefix;
     variable += zone;
     float visited = PlayerZeroVariable(variable);
-    EI_NAN_AUDIT(visited);
     if (visited == 1.0f) return;
     std::vector<PartyUnitRecord*> records{};
     std::vector<PartyUnitRecord*> second{};

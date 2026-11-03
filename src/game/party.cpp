@@ -21,7 +21,6 @@
 #include "world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -476,7 +475,6 @@ void Party::OpenEdgeExits() {
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name);
         float value = currentVariables.Get(variable);
-        EI_NAN_AUDIT(value);
         if (value == 0.0f) currentVariables.Set(variable, kOpened);
     }
 }

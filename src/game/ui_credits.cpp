@@ -13,7 +13,6 @@
 #include <cstdint>
 #include "ui_cursor.h"
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "render/text_format.h"
 
 #include <memory>
@@ -33,7 +32,6 @@ void CreditsScreen::MessageResult(int) { player.Close(); }
 // --- the frame -----------------------------------------------------------------------------------
 
 void CreditsScreen::Draw(SceneRenderer* pass) {
-    EI_NAN_AUDIT(textSurface->speed);
     if (GameTime() > nextLineAt && textSurface->speed == 0.0f) {
         nextLineAt = 0.0f;
         textSurface->Hide(false);

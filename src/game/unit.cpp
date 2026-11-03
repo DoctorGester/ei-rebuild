@@ -4,7 +4,6 @@
 #include "ai_motion.h"   // UnitMotion
 #include "item.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "party.h"
@@ -253,7 +252,6 @@ bool Unit::CanCastSpell(std::uint32_t slot) {
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
     float needed = params.Period() * cost;
-    EI_NAN_AUDIT(needed);
     return !(available < needed);   // a NaN cost can cast
 }
 
@@ -263,7 +261,6 @@ bool Unit::CanUseQuickItem(std::uint32_t slot) {
     Item* item = object;
     if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
     if (item->GetCategory() == QuickItemCategory::Wand) {
-        EI_NAN_AUDIT(item->charge, SpellCost(item->spell));
         if (item->charge < SpellCost(item->spell)) return false;
     }
     return true;

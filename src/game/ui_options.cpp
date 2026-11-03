@@ -6,7 +6,6 @@
 #include "lib/vecmath.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include <cstddef>
@@ -42,9 +41,6 @@ constexpr int kFirstRowRegion = 13;     // regions 13-26: the rows
 constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's highlight
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
-constexpr const char* kShadowsName = "shadows";     // the one shadows switch: the game's texts have no entry for it
-constexpr const char* kShadowsLabel = "Shadows";
-constexpr const char* kShadowsTip = "Shadows of units, buildings and trees.";
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 
@@ -68,7 +64,7 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {4, "power_mouse", 0, 100, 2, 1},
     {5, "scroll_border", 0, 10, 2, 2},
     {6, "rubber_select", 0, 10, 2, 3},
-    {7, kShadowsName, 1, 2, 0, 0},
+    {7, "shadow_other", 1, 2, 0, 0},   // the one shadows switch, with the original's "all shadows" texts
     {8, "select_type", 1, 2, 0, 2},
     {9, "show_path", 1, 2, 0, 3},
     {10, "brightness", 0, 100, 0, 6},
@@ -84,19 +80,17 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {20, "difficulty", 1, 2, 3, 0},
 };
 
-// The text `key` up to the next '#', or the key itself without one (`fallback` when given).
-std::string TipText(const std::string& key, const char* fallback = nullptr) {
-    std::string tip = fallback ? fallback : key;
+// The text `key` up to the next '#', or the key itself without one.
+std::string TipText(const std::string& key) {
+    std::string tip = key;
     if (g_clientWorld.texts->TextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
     return tip;
 }
 
-// The text `prefix` + `name`, or the name itself without one (`fallback` when given).
-std::string ShownName(const char* prefix, const char* name, const char* fallback = nullptr) {
-    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(fallback ? fallback : name);
+// The text `prefix` + `name`, or the name itself without one.
+std::string ShownName(const char* prefix, const char* name) {
+    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(name);
 }
-
-bool IsShadows(const OptionDefinition& definition) { return std::strcmp(definition.name, kShadowsName) == 0; }
 
 void RebuildKeysText(OptionBinding& binding) {
     binding.keysText.clear();
@@ -170,7 +164,7 @@ void OptionsWindow::ShowGroup(int groupIndex) {
         if (definition.group != groupIndex) continue;
         rows[definition.row].setting = &settings[i];
         regions[kFirstRowRegion + definition.row]->SetTipString(
-            TipText(str::Format(kTextTipOption, definition.name), IsShadows(definition) ? kShadowsTip : nullptr));
+            TipText(str::Format(kTextTipOption, definition.name)));
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
@@ -213,7 +207,7 @@ void OptionsWindow::BuildSettings() {
         const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.value = 0;
         setting.definition = definition;
-        setting.text = ShownName(kTextOptionPrefix, definition->name, IsShadows(*definition) ? kShadowsLabel : nullptr);
+        setting.text = ShownName(kTextOptionPrefix, definition->name);
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
@@ -305,7 +299,6 @@ void OptionsWindow::LoadSettings() {
     // Equal gives 0.
     float sign22 = options::g_options.cameraFlipX;
     float sign23 = options::g_options.cameraFlipY;
-    EI_NAN_AUDIT(sign22, sign23);
     s[17].value = sign22 == one ? 0 : 1;
     s[18].value = sign23 == one ? 0 : 1;
     s[5].value = options::g_options.cameraBorderScrollArea;

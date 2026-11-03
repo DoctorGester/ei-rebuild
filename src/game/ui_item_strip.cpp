@@ -6,7 +6,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -192,7 +191,6 @@ void UiItemStrip::Update() {
         pending = scrollDirection == 1 ? pending - steps : steps + pending;
     }
 
-    EI_NAN_AUDIT(pending);
     if (pending != zero) {
         float speed;
         if (std::fabs(pending) > nearDistance) {
@@ -231,7 +229,6 @@ void UiItemStrip::Update() {
         // 0.01 above or 0.01 below one.
         const float whole = static_cast<float>(static_cast<int>(position[tab]));
         bool done = false;
-        EI_NAN_AUDIT(position[tab], pending);
         if (position[tab] - whole < snapLow && std::fabs(pending) < snapPending) {
             position[tab] = whole;
             pending = 0.0f;
@@ -242,13 +239,11 @@ void UiItemStrip::Update() {
             pending = 0.0f;
         }
     }
-    EI_NAN_AUDIT(pending);
     if (pending == zero) velocity = 0.0f;
 
     RebuildList();
     // Kept within [0, size - 7].
     const float last = static_cast<float>(count - 7);
-    EI_NAN_AUDIT(position[tab]);
     if (last < position[tab]) {
         position[tab] = last;
         pending = 0.0f;

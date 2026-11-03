@@ -4,7 +4,6 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <cfloat>
@@ -128,7 +127,6 @@ float Light::GetIntensityAt(const Vector3& point) {
         return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
     }
     float distanceSquared = LengthSquared(point - localPosition);
-    EI_NAN_AUDIT(distanceSquared, rangeSquared);
     if (distanceSquared < rangeSquared) {
         return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *
                (1.0f - distanceSquared * inverseRangeSquared);

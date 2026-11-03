@@ -3,7 +3,6 @@
 #include "effects.h"   // ParticleSource
 #include "game_singletons.h"
 #include "lib/bytes.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "map_object.h"
 #include "net_delta.h"
@@ -115,7 +114,6 @@ bool MapObjectClientSpecific::RunTick() {
         float dy = lightPosition.y - followed->localPosition.y;
         float dz = lightZ - followed->localPosition.z;
         float distance2 = LengthSquared(Vector3{dx, dy, dz});
-        EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0f) {
             Vector3& position = light->localPosition;
             std::memcpy(&position, &followed->localPosition.x, 2 * sizeof(float));

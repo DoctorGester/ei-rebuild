@@ -242,7 +242,6 @@ void UnitServer::PropagateHostility() {
         if (!diplomacy->IsAllied(side, other->side)) continue;
         Unit* self = unit;
         float distance = DistanceSquaredXY(other->localPosition, self->localPosition);
-        EI_NAN_AUDIT(distance, squaredRadius);
         if (!(distance < squaredRadius)) continue;
         std::uint32_t mine = self->relationsA;
         UnitServer* theirController = other->ServerController();

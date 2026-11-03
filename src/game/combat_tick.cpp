@@ -20,7 +20,6 @@
 #include "lib/bytes.h"
 
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -242,7 +241,6 @@ bool UnitServer::StartMove() {
     }
     // Already there (in the plane: a move point's z is no height): the order is done and the next one starts.
     float lengthSq = DistanceSquaredXY(unit->localPosition, action.point);
-    EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
         action.Reset();
         if (action2.kind == UnitOrderKind::None) Idle();
@@ -262,7 +260,6 @@ bool UnitServer::StartMove() {
         if (!found) {
             float dy = action.point.y - unit->localPosition.y;
             float dx = action.point.x - unit->localPosition.x;
-            EI_NAN_AUDIT(dx, dy);
             close = LengthSquared2D(dx, dy) < kLong;
         }
         if (close) arrived = true;
@@ -570,14 +567,12 @@ void UnitServer::ApproachTarget() {
         Vector3 goal;
         goal = action.point;
         if (state == UnitState::Idle) {
-            EI_NAN_AUDIT(DistanceSquaredXY(goal, motion.goal));
             if (DistanceSquaredXY(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(goal, kFar)) {
             const Vector3 heading = {kHalfScale * motion.targetX, kHalfScale * motion.targetY, 0.0f};
             float dx = heading.x - goal.x;
             float dy = heading.y - goal.y;
-            EI_NAN_AUDIT(dy, dx);
             if (LengthSquared2D(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 const Vector3 saved = unit->localPosition;
@@ -671,7 +666,6 @@ void UnitServer::ApproachTarget() {
         }
     }
     float patience = unit->ScaledValue(distance) + kFive;
-    EI_NAN_AUDIT(DistanceSquaredXY(unit->localPosition, goal));
     if (DistanceSquaredXY(unit->localPosition, goal) <= kPointOne) return;
     AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;
@@ -693,7 +687,6 @@ void UnitServer::ApproachTarget() {
     float fy = goal.y - kHalfScale * motion.targetY;
     float fx = goal.x - headX;
     aiMap->refreshUnits = savedFlag;
-    EI_NAN_AUDIT(reach, fx, fy);
     if (reach * reach < LengthSquared2D(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;

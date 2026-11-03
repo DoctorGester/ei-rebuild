@@ -32,7 +32,6 @@
 
 #include "lib/rebirth.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "bink_video.h"
 #include "game_singletons.h"
@@ -49,7 +48,6 @@
 namespace {
 
 bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
 
@@ -130,7 +128,6 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     map->MoveInSectors(object, point);
     if (Unit* unit = UnitOrNull(object)) {
         unit->ServerController()->ResyncWithUnit();
-        EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;
     }

@@ -13,7 +13,6 @@
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 
 #include <array>
 #include <bit>
@@ -50,7 +49,6 @@ const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 // fadeDuration, towards targetMode; when done, switches mode and stops the sound if it is off.
 void RainSnow::UpdateFade(float now) {
     // A NaN duration takes the last branch, which does the same as the first.
-    EI_NAN_AUDIT(now, fadeStart);
     if (fadeDuration == 0.0f) {   // no fade running
         mode = targetMode;
         if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
@@ -152,7 +150,6 @@ bool VisibilityFog::RunTick() {
             cell.alpha = 1.0f - (1.0f - cell.alpha) * 0.5f;
         else
             cell.alpha *= 0.5f;
-        EI_NAN_AUDIT(cell.alpha);
         if (cell.alpha < kFogMinAlpha) {
             dead.push_back(key);
         }

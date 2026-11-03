@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
@@ -172,7 +171,6 @@ void HudTopPanel::Update() {
             eased = 1.0f - (r2 + r2);
         }
         offset = static_cast<int>(travel * eased);
-        EI_NAN_AUDIT(slide);
         if (Bits(slide) == 0x3F800000 || slide == 0.0f) sliding = false;
         Layout();
         EngineObject* sling = sceneObjects[2];

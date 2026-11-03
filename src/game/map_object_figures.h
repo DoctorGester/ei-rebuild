@@ -14,7 +14,6 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 
 #include <cstddef>
@@ -207,7 +206,6 @@ struct AnimationDatabase {
     }
     // (start + (end - start) * t) / length; 1 for a length of 0.
     float TimeFactor(float t) const {
-        EI_NAN_AUDIT(length);
         if (length == 0.0f) return 1.0f;
         return ((end - start) * t + start) / length;
     }

@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -156,7 +155,6 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
     g_currentU = 0.0f;
     float step = uLength / (pointCount - 1);
     float zero = 0.0f;
-    EI_NAN_AUDIT(uLength);
     if (uLength == zero) g_currentU = 0.875f;
     g_bottomV = vStart + vSize;
     g_topV = vStart;

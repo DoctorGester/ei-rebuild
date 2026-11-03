@@ -15,7 +15,6 @@
 #include <memory>
 #include "game_singletons.h"
 #include "world.h"
-#include "lib/nan_audit.h"
 
 namespace {
 constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";
@@ -36,7 +35,6 @@ constexpr int kResultLoad = 0x30001;
 // The windows slide in: the model's y goes from 700 to its resting place with an ease-in-out
 // curve over the slide (0..1).
 float Ease(float slide) {
-    EI_NAN_AUDIT(slide);
     if (slide < 0.5f) {
         float s = slide;
         float e = s * s;
@@ -332,7 +330,6 @@ void UiScrollbar::Update() {
         accumulated = rest;
     } else {
         if (accumulated > -1.0f) return;
-        EI_NAN_AUDIT(accumulated);
         float rest;
         do {
             rest = accumulated + 1.0f;

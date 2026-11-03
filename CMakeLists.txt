@@ -32,8 +32,6 @@ add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 # network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
 set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
 add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
-# The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
-add_compile_definitions($<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 
 # What differs between the systems: the compiler's options and the platform's and the renderer's backends. Floating
 # point stays in the order the code writes it (MSVC's default /fp:precise: /fp:fast regrouped sums and

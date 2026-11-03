@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -70,9 +69,7 @@ void Item::Destroy() {
 }
 
 bool Item::RunTick() {
-    EI_NAN_AUDIT(charge, chargeMax);
     if (charge == chargeMax) return false;
-    EI_NAN_AUDIT(chargeRate);
     if (chargeRate <= 0.0f) {
         charge = chargeMax;
         return true;
@@ -97,9 +94,6 @@ void Item::InitFromRecord(const ItemRecordHead* head) {
 bool Item::IsSameAs(Item* other) {
     if (other == this) return true;
     if (type != other->type || prototypeId != other->prototypeId) return false;
-    EI_NAN_AUDIT(condition, other->condition, conditionMax, other->conditionMax, charge,
-                 other->charge, chargeMax, other->chargeMax, weight, other->weight, price, other->price,
-                 unreadValue, other->unreadValue);
     if (condition != other->condition || conditionMax != other->conditionMax ||
         charge != other->charge || chargeMax != other->chargeMax || weight != other->weight ||
         price != other->price || unreadValue != other->unreadValue)
@@ -235,7 +229,6 @@ void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
 
 // ((high - low) * roll) * 2^-32 + low.
 float ItemWeapon::RollDamage() {
-    EI_NAN_AUDIT(damageSpread);
     if (damageSpread == 0.0f) return damage;
     float high = damageSpread + damage;
     float low = damage;
@@ -254,7 +247,6 @@ bool ItemWeapon::IsSameAs(Item* item) {
     if (!Item::IsSameAs(item)) return false;
     ItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
     if (other->actionValue != actionValue) return false;
-    EI_NAN_AUDIT(other->damage, damage, other->damageSpread, damageSpread, other->reach, reach);
     if (other->damage != damage) return false;
     if (other->damageSpread != damageSpread) return false;
     if (other->reach != reach) return false;
@@ -493,7 +485,6 @@ float WeaponWeight(std::uint32_t packedId) {
 int WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     for (int i = 0; i < kDamageTypeCount; ++i) {
-        EI_NAN_AUDIT(weapon->damageTypes[i]);
         if (weapon->damageTypes[i] != 0.0f) return i;
     }
     return kDamageTypeCount - 1;

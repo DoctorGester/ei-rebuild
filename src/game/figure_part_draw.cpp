@@ -16,7 +16,6 @@
 #include "world.h"
 #include "world_data.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"
 #include "render/render.h"

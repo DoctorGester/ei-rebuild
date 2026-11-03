@@ -13,7 +13,6 @@
 
 #include "lib/bytes.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 #include "lib/float_select.h"
@@ -76,7 +75,6 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
     Unit* unit = self->unit;
     float dy = unit->localPosition.y - point.y;
     float dx = unit->localPosition.x - point.x;
-    EI_NAN_AUDIT(reach, dx, dy);
     return reach * reach < LengthSquared2D(dx, dy);
 }
 
@@ -114,7 +112,6 @@ bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = self->unit->ActiveWeapon();
     float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::kReach];
-    EI_NAN_AUDIT(reach);
     return reach < kMeleeReach;
 }
 
@@ -202,7 +199,6 @@ bool UnitServer::CanActFrom(const AIOrder* order, const Vector3& point, int time
         // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
     }
     float apartSq = DistanceSquaredXY(sight.point, unit->localPosition);
-    EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
     Vector3 eye = unit->localPosition;
@@ -225,7 +221,6 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         float distance = ActionDistance(order);
         float limitSq = distance * distance;
         float apartSq = DistanceSquaredXY(order->point, unit->localPosition);
-        EI_NAN_AUDIT(limitSq, apartSq);
         if (limitSq < apartSq) return false;
     }
 
@@ -286,7 +281,6 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         if (!Greater(distanceSq, reachSq)) {
             float dot = Dot(delta, facing);
             float cone = std::sqrt(distanceSq) * kFrontCosine;
-            EI_NAN_AUDIT(cone, dot);
             inFront = cone < dot;
         }
         if (inFront) {
@@ -334,7 +328,6 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             }
         }
         if (tryHere) {
-            EI_NAN_AUDIT(delta.x, delta.y);
             bool facingIt = (delta.x == 0.0f && delta.y == 0.0f) ||
                             (targetUnit && targetUnit->id == unit->id);
             int turnTicks = -1;

@@ -14,7 +14,6 @@
 #include "spell.h"
 
 #include <cstring>
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "lib/float_select.h"
@@ -58,7 +57,6 @@ void Remark(Unit* unit, AckKind kind) {
 } // namespace
 
 void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
-    EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= 0.0f) return;
     float before = item->condition;
     float threshold = item->conditionMax * g_logicSettings.itemDurabilityCritical;
@@ -74,7 +72,6 @@ void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKin
         return;
     }
     float t = threshold;
-    EI_NAN_AUDIT(before, t, condition);
     if (before < t) return;          // was already below
     if (condition < t) Remark(unit, wornRemark);
 }
@@ -106,13 +103,11 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
     if (slot.kind < 2) return 0;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = hit->typeWeights[type] * hit->amount;
-        EI_NAN_AUDIT(typeDamage);
         if (typeDamage <= 0.0f) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage -= hit->multiplier * slot.layers[layer].absorb[type];
             WearArmour(unit, hit->location, layer, MaxKeepB(0.0f, typeDamage));
-            EI_NAN_AUDIT(typeDamage);
             if (typeDamage <= 0.0f) break;
         }
         if (weapon) {
@@ -120,14 +115,12 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
             WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, AckKind::WeaponBroken,
                      AckKind::WeaponWorn);
         }
-        EI_NAN_AUDIT(typeDamage);
         if (typeDamage <= 0.0f) continue;
         damaged = 1;
         if (hit->backstabFactor > 1.0f) typeDamage = typeDamage * hit->backstabFactor;
         float current = slot.current - typeDamage;
         slot.current = current;
         // Severed by a full hit on a vital damage type, or below -5 times its maximum.
-        EI_NAN_AUDIT(current, slot.maximum);
         bool severed = (typeDamage >= slot.maximum && (slot.vitalMask & (1u << type)) != 0) ||
                        current < slot.maximum * kOverkill;
         if (severed) {
@@ -156,7 +149,6 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
 int UnitStats::ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= UnitStatsFlag::Head;
-    EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
     if (hit->typeWeights[5] != 0.0f) flags |= UnitStatsFlag::Electrical;
     DamageInfo copy = *hit;
     if (copy.amount == 0.0f) return 0;
@@ -174,7 +166,6 @@ int UnitStats::ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, I
                      AckKind::WeaponWorn);
         }
     }
-    EI_NAN_AUDIT(total);
     if (total <= 0.0f) return 0;
     if (copy.location != kAllLocations) {
         int result = DamageSlot(unit, vitals, &copy, weapon);
@@ -220,6 +211,5 @@ bool Unit::IsBehind(const MapObject* t) {
     // The target's rotated Y axis (a unit faces -Y) along the direction to it.
     float facing = Dot(t->localRotation.AxisY(), towards);
 
-    EI_NAN_AUDIT(facing);
     return facing < kHalfBack;
 }

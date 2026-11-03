@@ -8,7 +8,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/nan_audit.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -25,7 +24,6 @@ const char* const kWrongGroupCount = "Wrong number of script %s group parameters
 
 // Compared with 0.0 (a NaN counts as zero).
 bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
 

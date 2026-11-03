@@ -10,7 +10,6 @@
 #include "ui_float.h"
 #include "unit.h"
 #include "world.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -277,7 +276,6 @@ void HudWeaponBar::SetUnit(Unit* newUnit) {
         weapon->GetDamageTypes(types);
         const float zero = 0.0f;
         unsigned tipType = 0;
-        EI_NAN_AUDIT(types[0], types[1], types[2], types[3], types[4], types[5], types[6]);
         while (tipType < 7 && types[tipType] == zero) ++tipType;
         description = "Unknown";
         if (tipType < 7) {
@@ -336,7 +334,6 @@ std::string HudQuickItems::ItemTip(unsigned index) {
             line = std::format("{} {}  ", labels[1], Truncate(data->damage));
         text += line;
         float duration = data->speed;
-        EI_NAN_AUDIT(duration);
         if (duration < one)
             line = std::format("{} {} \n", labels[2], labels[7]);
         else

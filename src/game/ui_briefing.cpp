@@ -25,7 +25,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/intro_sort.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

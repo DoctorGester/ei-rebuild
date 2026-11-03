@@ -11,7 +11,6 @@
 #include "lib/vecmath.h"
 #include "world.h"
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
 #include <bit>
@@ -197,11 +196,9 @@ void PlaceModifierPoints(ParticleSource* s) {
             v = {draw(), draw(), draw()};
             v -= axis * Dot(axis, v);
             lengthSq = LengthSquared(v);
-            EI_NAN_AUDIT(lengthSq);
             if (lengthSq != 0.0f) break;   // a NaN ends the search too
         }
         float scale = twice / std::sqrt(lengthSq);
-        EI_NAN_AUDIT(s->size);
         if (s->size < EI_ZERO) scale = scale * EI_SMALL_RING;
         ParticleElement& point = s->elements[i];
         point.ring.offset = scale * v;
@@ -324,7 +321,6 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
     int count = std::lround(alpha * typeParam);
     if (count > 40) count = 40;
     emitCount = count;
-    EI_NAN_AUDIT(extent.x);
     p->color = extent.x != 0.0f ? 0x00FF6060u : 0x00FFFFFFu;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
     p->life = 15;
@@ -392,7 +388,6 @@ void ParticleSource::TickGroundPlane(ParticleElement* e) {
 int ParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
-        EI_NAN_AUDIT(size);
         if (size < EI_ONE) {
             p->size = 0.0f;
             return 1;
@@ -441,7 +436,6 @@ void ParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
 int ParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
-        EI_NAN_AUDIT(p->size);
         if (p->size != 0.0f) {
             p->size = 0.0f;
             return 0;

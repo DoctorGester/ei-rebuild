@@ -18,7 +18,6 @@
 #include "world.h"
 #include "world_glue.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
@@ -182,7 +181,6 @@ void BriefingScreen::MouseMove(int buttons, Point point) {
     std::string variable = kZoneVariablePrefix;
     variable += zone;
     float visited = PlayerZeroVariable(variable);
-    EI_NAN_AUDIT(visited);
     if (visited != 1.0f) g_cursor.SetShape(kCursorExit);
 }
 

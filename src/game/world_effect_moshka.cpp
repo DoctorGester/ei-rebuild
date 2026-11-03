@@ -18,7 +18,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -58,7 +57,6 @@ constexpr float kRandomAngle = 6.28f * 0x1p-32f;   // a random word to [0, 6.28)
 
 // a == b, or unordered.
 bool Same(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a == b;
 }
 
@@ -120,7 +118,6 @@ void EffectMoshka::Update(float now) {
     float step = 0.0f < elapsed ? elapsed : 0.0f;
     float frames = step < kMaxStep ? step : kMaxStep;
     timer -= frames;
-    EI_NAN_AUDIT(timer);
     bool timeUp = timer < 0.0f;
 
     Vector3 target{};   // unset in the original for other states (Follow sets 0, so none occur)
@@ -163,7 +160,6 @@ void EffectMoshka::Update(float now) {
                            target.z - birdAt.z};
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
-        EI_NAN_AUDIT(dy, dx);
         if (LengthSquared2D(dy, dx) < kNearSquared) {   // close: start circling from here
             float heading = lib::Atan2(-toFollowed.x, toFollowed.y);
             state = kCircling;

@@ -10,7 +10,6 @@
 #include "world.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
@@ -177,7 +176,6 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     float fx = 2.0f * from.x;
     float fy = 2.0f * from.y;
     float ddx = fx - goal.x, ddy = fy - goal.y;
-    EI_NAN_AUDIT(ddy, ddx);
     if (LengthSquared2D(ddy, ddx) < 0.001f) {
         sectorMap.Add(unit);
         return false;

@@ -220,7 +220,7 @@ places them all again and resizes their canvases (`UiSurface::RelayoutAll`, "Res
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
 windows' holders have a canvas, the picture holders (cursor images) only a size, the textures section 7's images. A
-window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` (X8R8G8B8): a canvas quantises to it. The cursor's mask is built from the .mmp file's
+window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` (X8R8G8B8); a canvas is 8 bits a channel. The cursor's mask is built from the .mmp file's
 pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the renderer keeps the picture as RGBA8
 (`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
 ui_saveload.
@@ -239,11 +239,11 @@ against a capture of the same frozen moment as 8x8 block averages).
 
 **Screen copies on the GPU.** A surface the screen is copied into (the escape menu's and the camp's backdrops, the
 global map's pick picture, the quick save's copy) gets the copy as its canvas's `ui_copy_fs` from the frame target (x *
-source / size, as DirectDraw's Blt picked), the greying as its `ui_grey_fs` (the format's own bits), and the blit draws
+source / size, as DirectDraw's Blt picked), the greying as its `ui_grey_fs`, and the blit draws
 the canvas. Rgb565Copy draws the canvas into an R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each
 centre, (2x+1) * source / (2 * size), each channel's top bits) and reads only that back (`render::ui::ReadRgb565`): the
 escape menu's 256x192 `screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt reads one pixel from
-the GPU (`ReadPixel`, each channel cut to the screen format's top bits by `render::ui::TopBits`: the pick picture's zone
+the GPU (`ReadPixel`: the pick picture's zone
 colours exact). Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
 `ei_ui_check`.
 

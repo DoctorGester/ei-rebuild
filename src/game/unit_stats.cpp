@@ -9,7 +9,6 @@
 #include "unit_db.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -170,7 +169,6 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
 }
 
 bool HasElementalDamage(const DamageInfo* info) {
-    EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
     if (info->typeWeights[3] == 0.0f && info->typeWeights[4] == 0.0f && info->typeWeights[5] == 0.0f) {
         return false;
     }
@@ -417,7 +415,6 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     if (leading >= kTwoDigitsBelow) return lib::Truncate(std::floor(leading + 0.5f) * power);
     // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it
     // occurs; the plain leading < 4 would return the NaN's integer conversion).
-    EI_NAN_AUDIT(power);
     if (power <= kRoundUpTo) return lib::Truncate(std::ceil(price));
     power *= kTenth;
     leading = price / power;

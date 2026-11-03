@@ -10,7 +10,6 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -83,7 +82,6 @@ int LowestPriorityWaterMaterial(const SectorData& s, int vertex) {
     for (int i = 1; i < around.count; ++i) {
         int other = s.waterTiles[around.tiles[i]];
         if (other == -1) continue;
-        if (material != -1) EI_NAN_AUDIT(materials[other].priority, materials[material].priority);
         if (material == -1 || materials[other].priority < materials[material].priority) material = other;
     }
     return material;
@@ -375,7 +373,6 @@ void SectorData::ApplyWaterLevels() {
     const std::span<float> levels = owner->SectorWaterLevels(sx, sy);
     for (std::uint8_t id : waterMaterials) {
         const float level = levels[id];
-        EI_NAN_AUDIT(level);
         if (level == 0.0f) continue;
         for (int i = kSectorVertices; i < 2 * kSectorVertices; ++i) {
             SectorVertex& record = records[i];

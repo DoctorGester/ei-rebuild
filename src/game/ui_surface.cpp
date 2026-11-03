@@ -27,7 +27,7 @@ std::vector<UiSurface*> g_surfaces;
 
 void UiSurface::MakeCanvas() {
     if (!holder) return;
-    render::ui::Canvas(holder, width, height, ScreenFormat());
+    render::ui::Canvas(holder, width, height);
 }
 
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
@@ -223,11 +223,10 @@ void UiSurface::SwapContents(bool restore) {
     currentHolder->Release();
 }
 
-// The pixel at `at` of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
-// byte, the low bits 0; 0 outside the surface or without one.
+// The pixel at `at` of the surface as 0x00RRGGBB; 0 outside the surface or without one.
 std::uint32_t UiSurface::PixelAt(Point at) {
     if (!holder || at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
     std::uint32_t rgb = 0;
     if (!render::ui::ReadPixel(holder, at.x, at.y, &rgb)) return 0;
-    return render::ui::TopBits(rgb, ScreenFormat());
+    return rgb;
 }

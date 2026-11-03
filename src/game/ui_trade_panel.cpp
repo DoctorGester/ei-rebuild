@@ -17,7 +17,6 @@
 #include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/str.h"
 #include "render/render.h"
@@ -292,7 +291,6 @@ void TradePanel::RestoreRecord() {
     const float newMaximum = stats->HitPointCurve();
     // Only when both maxima are above 1: the slots are healed by what keeps the hit points in the
     // old proportion to the new maximum.
-    EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= 1.0f || newMaximum <= 1.0f) return;
     const float hitPoints = stats->Reduce(newMaximum);
     stats->HealSlots(newMaximum, oldHitPoints / oldMaximum * newMaximum - hitPoints);

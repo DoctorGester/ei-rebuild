@@ -20,27 +20,6 @@ using namespace detail;
 
 constexpr int kMaxCanvas = 8192;
 
-// ---- Pixel formats --------------------------------------------------------------------------------------
-
-// An 8-bit channel value cut to its top `bits` and widened back to 8.
-std::uint32_t QuantiseChannel(std::uint32_t value, int bits) {
-    return bits >= 8 ? value : WidenTop(value >> (8 - bits), bits);
-}
-// `colour` (a COLORREF) as a surface of `format` keeps it (each channel's top bits) widened back to 8 bits a
-// channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
-std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format) {
-    std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
-    return (QuantiseChannel(r, Channel(format.redMask).bits) << 16) | (QuantiseChannel(g, Channel(format.greenMask).bits) << 8) |
-           QuantiseChannel(b, Channel(format.blueMask).bits);
-}
-// A pixel of `format` (a colour key) widened to 0x00RRGGBB.
-std::uint32_t Widen(std::uint32_t pixel, const PixelFormat& format) {
-    std::uint32_t out = 0;
-    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) out = (out << 8) | Channel(masks[i]).Widen(pixel);
-    return out;
-}
-
 // ---- Canvases and their queue -------------------------------------------------------------------------
 
 
@@ -62,9 +41,6 @@ std::vector<Op> g_queue;
 struct CanvasState {
     unsigned id = 0;   // queued commands name the canvas they were made for
     int width = 0, height = 0;
-    PixelFormat format;
-    std::uint32_t bits[3] = {8, 8, 8};   // red, green, blue (at most 8)
-    std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
     gpu::Texture gpu;                    // made by RunCanvasCommands
     bool blitPending = false;            // blitted in the frame, the blit not drawn yet
 };
@@ -99,14 +75,14 @@ void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::u
     Push(std::move(op));
 }
 
-std::uint32_t CanvasColour(std::uint32_t colour, const CanvasState& canvas) { return Quantise(colour, canvas.format); }
+// `colour` (a COLORREF) as 0x00RRGGBB.
+std::uint32_t CanvasColour(std::uint32_t colour) {
+    return ((colour & 0xFF) << 16) | (colour & 0xFF00) | ((colour >> 16) & 0xFF);
+}
 
-// 0x00RRGGBB quantised to the canvas's bits, as the RGBA8 texel the canvas holds (red in the low byte).
-std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
-    std::uint32_t r = QuantiseChannel((rgb >> 16) & 0xFF, static_cast<int>(canvas.bits[0]));
-    std::uint32_t g = QuantiseChannel((rgb >> 8) & 0xFF, static_cast<int>(canvas.bits[1]));
-    std::uint32_t b = QuantiseChannel(rgb & 0xFF, static_cast<int>(canvas.bits[2]));
-    return r | (g << 8) | (b << 16) | 0xFF000000u;
+// 0x00RRGGBB as the RGBA8 texel the canvas holds (red in the low byte).
+std::uint32_t CanvasTexel(std::uint32_t rgb) {
+    return ((rgb >> 16) & 0xFF) | (rgb & 0xFF00) | ((rgb & 0xFF) << 16) | 0xFF000000u;
 }
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
@@ -211,13 +187,6 @@ bool BeginCanvasPass(const gpu::Texture& target, bool clear, const char* label) 
     return gpu::BeginPass(pass);
 }
 
-UiParams CanvasParams(const CanvasState& canvas) {
-    UiParams fs{};
-    for (int i = 0; i < 3; ++i) fs.bits[i] = static_cast<int>(canvas.bits[i]);
-    fs.bits[3] = static_cast<int>(canvas.greyMode);
-    return fs;
-}
-
 // Every canvas program's fragment block is UiParams at slot 0.
 static_assert(gpu_shaders::ui_blit::kBlockUiParams == 0 && gpu_shaders::ui_compose::kBlockUiParams == 0 &&
               gpu_shaders::ui_copy::kBlockUiParams == 0 && gpu_shaders::ui_grey::kBlockUiParams == 0 &&
@@ -256,7 +225,7 @@ void DrawSolids(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (std::size_t k = from; k < to; ++k) {
         const Op& op = g_queue[k];
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        UiParams fs{};
         fs.colour[0] = ((op.colour >> 16) & 0xFF) / 255.0f;
         fs.colour[1] = ((op.colour >> 8) & 0xFF) / 255.0f;
         fs.colour[2] = (op.colour & 0xFF) / 255.0f;
@@ -338,7 +307,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
     for (const Run& run : runs) {
         const Op& op = *run.op;
         ApplyRect(op.rect, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        UiParams fs{};
         fs.colour[0] = static_cast<float>(op.colour & 0xFF);
         fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
         fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
@@ -372,7 +341,7 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     gpu::ApplyPipeline(CopyPipeline());
     BindTexture(frame);
     ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-    UiParams fs = CanvasParams(canvas);
+    UiParams fs{};
     fs.source[0] = r.left;
     fs.source[1] = r.top;
     fs.source[2] = r.Width();
@@ -399,7 +368,7 @@ void ResizeImage(CanvasState& canvas, const Op& op) {
         gpu::ApplyPipeline(CopyPipeline());
         BindTexture(old);
         ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-        UiParams fs = CanvasParams(canvas);
+        UiParams fs{};
         fs.source[2] = op.rect.right;
         fs.source[3] = op.rect.bottom;
         fs.dest[0] = canvas.width;
@@ -433,7 +402,7 @@ void DrawGrey(const CanvasState& canvas) {
     gpu::ApplyPipeline(GreyPipeline());
     BindTexture(g_under);
     ApplyRect(whole, canvas.width, canvas.height);
-    ApplyFs(CanvasParams(canvas));
+    ApplyFs(UiParams{});
     gpu::Draw(0, 6);
     gpu::EndPass();
 }
@@ -455,46 +424,14 @@ bool ReadBack(const gpu::Texture& texture, const Rect& region, gpu::Ticket* tick
 
 namespace ui {
 
-std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format) {
-    std::uint32_t out = 0;
-    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) {
-        const Channel c(masks[i]);
-        if (!c.bits) continue;
-        std::uint32_t v = (rgb >> (16 - 8 * i)) & 0xFF;
-        out |= (c.bits >= 8 ? v << (c.shift + c.bits - 8) : (v >> (8 - c.bits)) << c.shift) & c.mask;
-    }
-    return out;
-}
-
-std::uint32_t TopBits(std::uint32_t rgb, const PixelFormat& format) {
-    std::uint32_t out = 0;
-    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) {
-        const int bits = std::min(Channel(masks[i]).bits, 8);
-        const std::uint32_t v = (rgb >> (16 - 8 * i)) & 0xFF;
-        out = (out << 8) | (bits ? v & (0xFFu << (8 - bits)) & 0xFF : 0);
-    }
-    return out;
-}
-
-bool Canvas(const void* holder, int width, int height, const PixelFormat& format) {
+bool Canvas(const void* holder, int width, int height) {
     if (!holder || width < 1 || height < 1 || width > kMaxCanvas || height > kMaxCanvas) return false;
     auto it = g_canvases.find(holder);
-    if (it != g_canvases.end() && it->second.width == width && it->second.height == height &&
-        it->second.format.bitsPerPixel == format.bitsPerPixel && it->second.format.redMask == format.redMask &&
-        it->second.format.greenMask == format.greenMask && it->second.format.blueMask == format.blueMask)
-        return true;
+    if (it != g_canvases.end() && it->second.width == width && it->second.height == height) return true;
     CanvasState* canvas = it != g_canvases.end() ? Target(holder) : &g_canvases[holder];
     canvas->id = g_nextId++;
     canvas->width = width;
     canvas->height = height;
-    canvas->format = format;
-    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) canvas->bits[i] = static_cast<std::uint32_t>(std::min(Channel(masks[i]).bits, 8));
-    bool is565 = format.bitsPerPixel == 16 && format.redMask == 0xF800 && format.greenMask == 0x7E0 && format.blueMask == 0x1F;
-    bool is555 = format.bitsPerPixel == 16 && format.redMask == 0x7C00 && format.greenMask == 0x3E0 && format.blueMask == 0x1F;
-    canvas->greyMode = is565 ? 0 : is555 ? 1 : 2;
     Op op;
     op.kind = Op::Make;
     op.holder = holder;
@@ -547,13 +484,13 @@ void MoveCanvas(const void* from, const void* to) {
 
 void Fill(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
-    if (canvas) PushSolid(holder, *canvas, rect, CanvasColour(colour, *canvas));
+    if (canvas) PushSolid(holder, *canvas, rect, CanvasColour(colour));
 }
 
 void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas || rect.IsEmpty()) return;
-    std::uint32_t rgb = CanvasColour(colour, *canvas);
+    std::uint32_t rgb = CanvasColour(colour);
     PushSolid(holder, *canvas, Rect{rect.left, rect.top, rect.right, rect.top + 1}, rgb);
     PushSolid(holder, *canvas, Rect{rect.left, rect.bottom - 1, rect.right, rect.bottom}, rgb);
     PushSolid(holder, *canvas, Rect{rect.left, rect.top + 1, rect.left + 1, rect.bottom - 1}, rgb);
@@ -563,7 +500,7 @@ void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour) {
 void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas) return;
-    std::uint32_t rgb = CanvasColour(colour, *canvas);
+    std::uint32_t rgb = CanvasColour(colour);
     if (width < 1) width = 1;
     if (x0 == x1 && y0 == y1) {   // nothing with a one-pixel pen; GDI's two-pixel pen leaves a dot
         if (width == 2) PushSolid(holder, *canvas, Rect{x0, y0, x0 + 1, y0 + 1}, rgb);
@@ -616,7 +553,7 @@ void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::ui
 
 void Pixel(const void* holder, int x, int y, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
-    if (canvas) PushSolid(holder, *canvas, Rect{x, y, x + 1, y + 1}, CanvasColour(colour, *canvas));
+    if (canvas) PushSolid(holder, *canvas, Rect{x, y, x + 1, y + 1}, CanvasColour(colour));
 }
 
 void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour) {
@@ -754,7 +691,7 @@ void DrawCanvas(const void* holder, const Rect& destination, const Rect* source,
     CanvasState& canvas = it->second;
     Frame& f = g_frame;
     CanvasBatch batch{holder, destination, source ? *source : Rect{0, 0, canvas.width, canvas.height}, keyed,
-                      Widen(key, canvas.format)};
+                      key & 0xFFFFFF};
     f.canvasBatches.push_back(batch);
     f.commands.push_back(Command{Command::Canvas, static_cast<int>(f.canvasBatches.size()) - 1});
     canvas.blitPending = true;
@@ -775,7 +712,7 @@ void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb
     for (int y = 0; y < h; ++y) {
         const std::uint32_t* in = rgb + static_cast<std::ptrdiff_t>(y + r.top - destination.top) * pitch + (r.left - destination.left);
         std::uint32_t* out = op.pixels.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(w);
-        for (int x = 0; x < w; ++x) out[x] = CanvasTexel(in[x], *canvas);
+        for (int x = 0; x < w; ++x) out[x] = CanvasTexel(in[x]);
     }
     Push(std::move(op));
 }

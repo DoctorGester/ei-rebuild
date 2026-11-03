@@ -8,7 +8,6 @@
 
 #include "lib/crt.h"
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
 #include <bit>
@@ -62,7 +61,6 @@ void ParticleSource::Stop() {
 // Falling drops: move by the drift, scale the size, accelerate down to the terminal speed in
 // velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
 int ParticleSource::UpdateFalling(Particle* p) {
-    EI_NAN_AUDIT(p->pos.z);
     if (p->pos.z < 0.0f) return 0;
     float terminal;
     terminal = p->velocity.y;
@@ -175,7 +173,6 @@ int ParticleSource::UpdateDebris(Particle* p) {
     std::uint32_t a = static_cast<std::uint32_t>((p->color >> 24) * kDebrisFadeIn);
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
-    EI_NAN_AUDIT(p->drift.z);
     if (p->drift.z < 0.0f && size * 0.5f + origin.z > p->pos.z) {
         float speed = AbsBits(p->drift.z);
         p->state = 1;

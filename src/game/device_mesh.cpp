@@ -8,7 +8,6 @@
 #include "model.h"
 #include "settings.h"
 #include "texture.h"
-#include "lib/nan_audit.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -91,7 +90,6 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     m.cornerCount = args.cornerCount;
     m.indices = args.indices;
     m.indexCount = args.indexCount;
-    EI_NAN_AUDIT(*args.uOffset, *args.vOffset);
     m.moveUv = *args.uOffset != 0.0f || *args.vOffset != 0.0f;
     m.uOffset = *args.uOffset;
     m.vOffset = *args.vOffset;

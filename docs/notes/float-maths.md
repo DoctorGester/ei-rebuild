@@ -63,9 +63,7 @@ ifLess, otherwise)` is the general one. Their deleted overloads make an int or d
 
 VC6 compared with FCOM / FNSTSW / TEST AH, where a NaN counted as equal and less. Ours are the plain comparisons the
 source had (C3 `==`, C0 `<`, C0|C3 `<=`, a C0 mask `a < b ? x : y`), IEEE for NaN: a behaviour change for NaN only,
-and none reaches them in the suite. Next to a comparison whose result changes for a NaN, `EI_NAN_AUDIT(values...)`
-(src/lib/nan_audit.h) logs `NaN audit: a NaN compared at <file>:<line>` to ei-rebuild.log once per site in the verify
-and debug builds. Where an equally plain form keeps the original's NaN result, it is used instead (`a > b`; `x < low ?
+and none reaches them in the suite; nothing marks them. Where an equally plain form keeps the original's NaN result, it is used instead (`a > b`; `x < low ?
 x : low` for a bound a NaN never replaces; `if (!(gap > limit)) break;` for a loop a NaN must still end). Kept as the
 original's test, with the reason in a comment: ai_path's free-cell scale (a NaN step occurs in the suite),
 `UnitStats::HealSlots` (LearnSkill passes a NaN heal while a new unit's stats are set up), `unit_skill_price`'s

@@ -9,7 +9,6 @@
 #include "sound.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
 
 #include <initializer_list>
 #include <new>
@@ -65,7 +64,6 @@ bool Lever::RunTick() {
         g_clientWorld.RefreshPlatforms(this);
         return true;
     }
-    EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
         shown.y = to;
         AsObject3D()->SetFigureScale(shown);
@@ -117,7 +115,6 @@ void Lever::WriteLeverNetState() {
     MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return;
-    EI_NAN_AUDIT(to, scale.y);
     if (to != scale.y) {
         rate = 0.0f;
         to = scale.y;
@@ -150,7 +147,6 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     g_clientWorld.QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = g_leverTable.Named(name);
-        EI_NAN_AUDIT(from, to);
         if (record && from != to)
             g_clientWorld.sounds->Play3D(record->sound, 0, localPosition, kSoundNear, kSoundFar, 0);
     }

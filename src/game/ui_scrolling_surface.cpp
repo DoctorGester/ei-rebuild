@@ -12,7 +12,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "render/render_rich_text.h"
 #include "render/render_ui.h"
 
@@ -100,7 +99,6 @@ void UiScrollingSurface::RenderText() {
 }
 
 void UiScrollingSurface::Blit() {
-    EI_NAN_AUDIT(speed);
     if (speed != 0.0f) {
         const float now = GameTime();
         offset = static_cast<int>((now - startTime) * speed + offset);

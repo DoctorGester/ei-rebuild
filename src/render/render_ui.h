@@ -14,15 +14,9 @@ struct TextLayout;
 
 namespace render::ui {
 
-// 0x00RRGGBB to a pixel of `format` (the channels' top bits).
-std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format);
-// 0x00RRGGBB with each channel cut to its top bits in `format` (the low bits 0): what a pixel of the format keeps,
-// each channel at the top of its byte.
-std::uint32_t TopBits(std::uint32_t rgb, const PixelFormat& format);
-
-// The canvas of `holder`: made (or made again at another size or format) all black, as the original's new
+// The canvas of `holder`, 8 bits a channel: made (or made again at another size) all black, as the original's new
 // surface was. False for a size outside 1..8192.
-bool Canvas(const void* holder, int width, int height, const PixelFormat& format);
+bool Canvas(const void* holder, int width, int height);
 bool HasCanvas(const void* holder);
 // The holder is gone (HolderGone): its canvas and queued commands are dropped.
 void DropCanvas(const void* holder);
@@ -52,9 +46,9 @@ void Pixel(const void* holder, int x, int y, std::uint32_t colour);
 // text::ComposeAgainstBlack. The font (and its atlas) must outlive the canvas's queued commands.
 void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour);
 // The screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
-// pixel (CopyFrameTo's rule), quantised to the format.
+// pixel (CopyFrameTo's rule).
 void CopyFrame(const void* holder, const Rect& source);
-// The greying, on the format's bits.
+// The greying.
 void Greyscale(const void* holder);
 
 // The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false
@@ -65,16 +59,16 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width 
 bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb);
 // The canvas after every queued command stretched to `width` x `height` on the GPU (each pixel the canvas
 // pixel under its centre, (2 x + 1) * canvas width / (2 width)) as 5:6:5 pixels (each channel's top bits),
-// rows from the top, read back into `out` (width x height): the save's picture.
+// rows from the top, read back into `out` (width x height): the save's picture (shot.sav keeps 5:6:5).
 bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out);
 
 // Draws the canvas onto the frame at this point of the frame's draws (the window surface's blit):
 // `source` (null: all of it) onto `destination`, stretched when the sizes differ, and with `keyed`
-// leaving out pixels equal to `key` (a pixel of the canvas's format).
+// leaving out pixels equal to `key` (0x00RRGGBB).
 void DrawCanvas(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
 
 // `rgb` (0x00RRGGBB rows from the top, `pitch` pixels apart) written over `destination` of the canvas
-// (clipped to it), quantised to the format: a picture drawn on the CPU (ei_ui_check's; the game draws none).
+// (clipped to it): a picture drawn on the CPU (ei_ui_check's; the game draws none).
 void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch);
 
 } // namespace render::ui

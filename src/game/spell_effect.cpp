@@ -17,7 +17,6 @@
 #include "world.h"
 #include "world_effect.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -35,7 +34,6 @@ constexpr float kSplitDamage = 4.0f;
 bool AcceptsAreaSpells(Unit* unit) {
     if (unit->sizeClass != 0) return true;
     float value = unit->GetPrototype()->height;
-    EI_NAN_AUDIT(value);
     return value < kTargetThreshold;
 }
 
@@ -308,7 +306,6 @@ Next StartAcidColumn(SpellEffect* e) {
 // (both 0).
 Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
     Vector3 d = centre - from;
-    EI_NAN_AUDIT(d.x, d.y);
     if (d.x == 0.0f && d.y == 0.0f) d.x = 1.0f;
     return d;
 }

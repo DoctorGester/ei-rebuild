@@ -5,7 +5,6 @@
 #include "sector_map.h"
 #include "world_data.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <algorithm>
@@ -239,7 +238,6 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
     float dx = to.x - from.x, dy = to.y - from.y;
     float dz = to.z - from.z;
     float length = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) / 0.5f;   // half-cells
-    EI_NAN_AUDIT(length);
     if (length == 0.0f) return 1.0f;
     float inverse = 1.0f / length;
     int steps = lib::RoundEven(length);
@@ -274,7 +272,6 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
             int high = occluder::Top(word), low = occluder::Bottom(word);
             if (high < cz || low > cz) continue;
             visibility *= kTransparency[occluder::Transparency(word)];
-            EI_NAN_AUDIT(visibility);
             if (visibility < kMinVisibility) return kMinVisibility;
             continue;
         }
@@ -284,7 +281,6 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
             const SectorOccluder& o = records[index];
             if (o.top < cz || o.bottom > cz) continue;
             visibility *= kTransparency[o.transparency];
-            EI_NAN_AUDIT(visibility);
             if (visibility < kMinVisibility) return kMinVisibility;
         }
     }
@@ -294,7 +290,6 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
 // --- Free cell search ----------------------------------------------------------------------------
 
 const std::int16_t* SpiralCache::Get(float r, int* count) {
-    EI_NAN_AUDIT(r, radius);
     if (r == radius) {
         *count = length;
         return SpiralOffsets();

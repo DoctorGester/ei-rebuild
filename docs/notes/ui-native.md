@@ -94,16 +94,15 @@ different word than GDI did. `--titles` checks the titles' rich text against a r
 frame; incremental (drawing without a Clear adds to what is there); some are redrawn every frame (the unit panel's name,
 tooltips). So each surface's holder has a render target, not a per-frame draw list. A canvas is made black with the surface
 (`UiSurface::MakeCanvas`; again after SwapContents brings a surface back without one); it holds what the surface's memory
-would: each channel cut to the format's bits and widened again, so 16-bit surfaces quantise as GDI did and the colour key
-compares exactly. The surface functions queue commands on it in surface pixels, after the game's own scaling (so the
+would: 8 bits a channel (X8R8G8B8; the colour key compares exactly). The surface functions queue commands on it in surface pixels, after the game's own scaling (so the
 WideScreen rectangles stay upstream); the blit draws it at the blit's rectangle, keyed by the stored colour.
 
-**Commands**: `Fill`, `FrameRect`, `Line`, `Pixel` (colour quantised on the CPU), `GlyphRun(font, layout, colour)`,
+**Commands**: `Fill`, `FrameRect`, `Line`, `Pixel`, `GlyphRun(font, layout, colour)`,
 `CopyFrame(source)`, `Greyscale`, `Image` (CPU pixels; only `ei_ui_check` uses it). `GlyphRun` composes colour x coverage over
 what is there (max coverage between glyphs, underlines full), so over black it is `ComposeAgainstBlack`; consecutive runs on
 a canvas that overlap none of each other are drawn together in one coverage pass and one compose pass (the vertex stream is
 grown for the whole group before its first run is appended: a buffer replaced between them voided the earlier runs'
-vertices). `Greyscale` follows the format's bits (5:6:5, 5:5:5, else 8-bit channels).
+vertices). `Greyscale` is (2 r + 4 g + b) / 16 on the 8-bit channels.
 
 **Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes. A command on a canvas
 whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn, so the blit shows the old contents).
@@ -111,7 +110,7 @@ whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far 
 blit is not drawn yet draws the frame so far first: backdrop mode 3 puts the old backdrop away after the frame blitted it and
 then copies that frame, which otherwise came out black (`ui_compare` and `ei_ui_check` hold it).
 
-**Readers** read the GPU: `PixelAt` (`ReadPixel`, packed back to the screen format; the global-map pick must stay exact),
+**Readers** read the GPU: `PixelAt` (`ReadPixel`; the global-map pick must stay exact),
 `Rgb565Copy` (`ReadRgb565`; the escape-menu and QuickSave pictures only need to be within tolerance). In-game screenshots
 come from render::ReadFrame (renderer.md).
 
@@ -122,16 +121,14 @@ render target.
 resolution change places them all again and resizes their canvases, what they hold stretched to the nearest pixel
 (`UiSurface::RelayoutAll`, `render::ui::Resize`; renderer.md, "Resolution changes").
 
-**GDI rules the canvases follow** (measured on Windows 10; `ei_ui_check` holds them): 16-bit surfaces truncate 8-bit colours
-(no rounding, no dithering) for fills, pens and pixels. FrameRect draws a 1-px border inside the rectangle. A 1-px pen leaves
+**GDI rules the canvases follow** (measured on Windows 10; `ei_ui_check` holds them): FrameRect draws a 1-px border inside the rectangle. A 1-px pen leaves
 out the end point. A 2-px pen (round ends) draws both end points; vertical, it covers the column left of the line too;
 horizontal, the row above too, without the start column; a zero-length 2-px line is one dot. The game uses only 1 and 2 px
-pens, horizontal or vertical. 16-bit mode quantises colours before the key test: 0x080808 survives, but a near-black text
-colour may become transparent, as in the original.
+pens, horizontal or vertical.
 
 **Checks.** `ei_ui_check` (tools/ui_check; build.cmd runs it on gpu.h's device, hardware Direct3D 12; `--verbose`
 prints each check and the difference maps) plays render.cpp's part itself (its frame, `SplitFrame`, `RunCanvasesNow`).
-Fills, frames, lines and pixels are compared with GDI drawing into a DIB section in 5:6:5, 5:5:5 and 8:8:8; glyph runs
+Fills, frames, lines and pixels are compared with GDI drawing into an 8:8:8 DIB section; glyph runs
 (`tests/render/glyph_cases.{h,cpp}`, no platform code) with `ComposeAgainstBlack`; greying, screen copies, frame blits (keyed,
 a source part, split, hoisted) and the resize too. Any `ei::Log` line (gpu.h's problems among them) fails. `ui_compare`
 opens the options and the help over them twice and requires the same frames.
@@ -252,14 +249,12 @@ The rules (measured against user32's DrawTextA on Windows 10; the synthetic case
 
 ### render_ui.cpp
 
-The interface's 2D canvases (render_ui.h; section 3). A canvas is an RGBA8 render target holding a surface's pixels widened
-to 8 bits a channel. Its commands queue in call order (g_queue) and RunCanvasCommands draws them, outside any pass: render.cpp
+The interface's 2D canvases (render_ui.h; section 3). A canvas is an RGBA8 render target holding a surface's pixels. Its commands queue in call order (g_queue) and RunCanvasCommands draws them, outside any pass: render.cpp
 calls it at the start of DrawPending, so a canvas's drawing lands before the frame's next pass, and RunCanvasesNow for a
-read-back. Solid shapes are quads of a colour quantised on the CPU; a glyph run is three steps (its coverage into an R8
+read-back. Solid shapes are quads of one colour; a glyph run is three steps (its coverage into an R8
 scratch target with MAX blending, a copy of what the canvas held there, the composition of the two into the canvas), each a
 pass; copies and an Image's pixels are drawn texel for texel (`ui_move`); greying works on a copy of the canvas; the screen
-copy samples the frame target. Every pixel the shaders write is quantised to the
-surface format. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the frame's passes), SplitFrame and
+copy samples the frame target. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the frame's passes), SplitFrame and
 RunCanvasesNow. The offline check tools/ui_check plays that part itself.
 
 ### render_ui.h

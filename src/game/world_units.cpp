@@ -42,7 +42,6 @@
 #include "lib/maths.h"
 #include "lib/text_case.h"
 
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/float_select.h"
 
@@ -92,14 +91,12 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     rw = rotation.z;
     float axis = LengthSquared(Vector3{ry, rz, rw});
     float angle;
-    EI_NAN_AUDIT(axis);
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
         float arc = lib::Acos(rx);
         angle = arc + arc;
         float sign = 1.0f / std::sqrt(axis) * rw;
-        EI_NAN_AUDIT(sign);
         if (sign < 0.0f) angle = -angle;
     }
     angle += worlddata::kLineAngleOffset;
@@ -155,7 +152,6 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
     if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
         const Vector3 heroStart = {worlddata::kHeroStartX, worlddata::kHeroStartY, 0.0f};
         float distance = LengthSquared(position - heroStart);
-        EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
     }
     script = worlddata::ScriptBeginText();
@@ -349,7 +345,6 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         float height = flame->offset.z + base.position.z;
         float sum = height;
         float level = AbsBits(sum);
-        EI_NAN_AUDIT(level);
         if (level < worlddata::kCampfireHeight) {
             Vector3 at = flame->offset + base.position;
             Spell* spell = GetSpellManager()->CreateSpellFromText(worlddata::CampfireText());

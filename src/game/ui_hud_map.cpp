@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "camera.h"
 #include "lib/text_case.h"
 #include "lib/float_select.h"
@@ -101,7 +100,6 @@ public:
         float mapY = MapY(worldY);
         float zoomedX = mapX * map->zoom;
         float zoomedY = mapY * map->zoom;
-        EI_NAN_AUDIT(zoomedY, zoomedX);
         if (LengthSquared2D(zoomedY, zoomedX) <= kInnerRadius2) {
             *x = zoomedX;
             *y = zoomedY;
@@ -213,7 +211,6 @@ void PutArrow(VertexPacket& packet, const Unit* unit, float x, float y) {
 
 // Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
 bool Crosses(float prev, float cur, float edge) {
-    EI_NAN_AUDIT(prev, cur, edge);
     return (prev < edge && cur > edge) || (prev > edge && cur < edge);
 }
 
@@ -388,7 +385,6 @@ void HudMap::UpdateView() {
                  return true;
              },
              [](const Vector2& v) {
-                 EI_NAN_AUDIT(v.x);
                  return v.x < 0.0f;
              });
     ClipPass(points,
@@ -399,7 +395,6 @@ void HudMap::UpdateView() {
                  return true;
              },
              [](const Vector2& v) {
-                 EI_NAN_AUDIT(v.y);
                  return v.y < 0.0f;
              });
     float width = worldWidth;

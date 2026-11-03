@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "logic_settings.h"
@@ -194,10 +193,8 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float radiusSq = radius * radius;
     float dx = position.x - point.x;
     float dy = position.y - point.y;
-    EI_NAN_AUDIT(dy, dx, radiusSq);
     if (LengthSquared2D(dy, dx) < radiusSq) return true;
     // The unit has not moved -> not near.
-    EI_NAN_AUDIT(position.x, previousPosition.x, position.y, previousPosition.y);
     if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
     float pointX = point.x;
     float pointY = point.y;
@@ -209,7 +206,6 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     u = MinKeepA(1.0f, u);
     float ex = position.x - (pointX - u * segX);
     float ey = position.y - (pointY - u * segY);
-    EI_NAN_AUDIT(ey, ex);
     return LengthSquared2D(ey, ex) < radiusSq;
 }
 
@@ -637,7 +633,6 @@ void AIBrain::Load(ByteStream* stream) {
     stream->ReadValue(alarmCountdown);
     // A radius saved as the default one becomes the configured one.
     LogicSettings& settings = g_logicSettings;
-    EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
     if (callRadius == settings.callForHelpRadiusDefault)
         callRadius = settings.callForHelpRadius;
     stream->ReadValue(alwaysUpdated);
@@ -737,11 +732,9 @@ enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
 
 // Equal.
 bool Same(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a == b;
 }
 bool IsZero(float v) {
-    EI_NAN_AUDIT(v);
     return v == 0.0f;
 }
 

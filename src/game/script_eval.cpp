@@ -1,7 +1,7 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
 // AddNewScriptCommands dispatches to addon's functions first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
-// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h).
+// old x87 compare counted it as equal and less).
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
@@ -22,7 +22,6 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -128,11 +127,9 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::IsEqual:
-        EI_NAN_AUDIT(f[0], f[1]);
         *result = FromBool(f[0] == f[1]);
         return;
     case ScriptFunction::IsLess:
-        EI_NAN_AUDIT(f[0], f[1]);
         *result = FromBool(f[0] < f[1]);
         return;
     case ScriptFunction::IsGreater:
@@ -154,7 +151,6 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = f[0] / f[1];
         return;
     case ScriptFunction::Not:
-        EI_NAN_AUDIT(f[0]);
         *result = FromBool(f[0] == 0.0f);
         return;
 
@@ -334,7 +330,6 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         if (!condition) {
             if (function == ScriptFunction::Every) *result = floatArgs[0];
             else if (function == ScriptFunction::Any) {
-                EI_NAN_AUDIT(floatArgs[0]);
                 *result = FromBool(floatArgs[0] != 0.0f);
             }
             else *result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
@@ -348,13 +343,11 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             *objectArgs[0] = (*g)[static_cast<std::size_t>(k)];
             CalcParameters(script, vars, condition);
             if (function == ScriptFunction::Every) {
-                EI_NAN_AUDIT(floatArgs[0]);
                 if (floatArgs[0] == 0.0f) {
                     *result = 0.0f;
                     return;
                 }
             } else if (function == ScriptFunction::Any) {
-                EI_NAN_AUDIT(floatArgs[0]);
                 if (floatArgs[0] != 0.0f) {
                     *result = 1.0f;
                     return;
@@ -410,7 +403,6 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = WorldTimeOfDay();
         return;
     case ScriptFunction::IsInSquare: { // IsInSquare(x, y, x1, y1, x2, y2)
-        EI_NAN_AUDIT(f[0], f[1], f[2], f[3], f[4], f[5]);
         bool inside = f[0] >= f[2] && f[0] <= f[4] && f[1] >= f[3] && f[1] <= f[5];
         *result = static_cast<float>(inside ? 1 : 0);
         return;
@@ -420,7 +412,6 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = 0.0f;
         if (!o) return;
         float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y;
-        EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);
         return;
@@ -446,7 +437,6 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         const ScriptArea* found = script->FindArea(area);
         bool inside = false;
         for (const ScriptAreaPart& part : found ? std::span(found->parts) : std::span<const ScriptAreaPart>()) {
-            EI_NAN_AUDIT(x, y, part.x, part.y, part.x2OrRadiusSquared);
             if (part.isRect) {
                 if (x < part.x) continue;
                 if (x > part.x2OrRadiusSquared) continue;
@@ -574,7 +564,6 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     }
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
-        EI_NAN_AUDIT(floatArgs[0]);
         for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
             Unit* unit = UnitOrNull(o);
             if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(o);

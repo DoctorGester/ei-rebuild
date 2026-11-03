@@ -18,7 +18,6 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 
@@ -46,7 +45,6 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
 }
 
 bool SpeedBelow(MapObject* object, const float* than) {
-    EI_NAN_AUDIT(object->MoveSpeed(), *than);
     return object->MoveSpeed() < *than;
 }
 
@@ -56,7 +54,6 @@ void SpeedOf(MapObject* object, float* out) { *out = object->MoveSpeed(); }
 bool Drain(float* value, const float* rate) {
     const float drained = *value - (*rate * kDrainStep);
     *value = drained;
-    EI_NAN_AUDIT(drained);
     return drained < 0.0f;
 }
 
@@ -275,7 +272,6 @@ void Exhaustion(UnitServer* c) {
         const float* rate = &vitals.maxMana;
         float value;
         value = *stamina;
-        EI_NAN_AUDIT(value);
         if (value == 0.0f) {
             c->moveMode2.wasMode3 = 0;
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;

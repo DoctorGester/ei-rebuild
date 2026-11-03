@@ -11,7 +11,6 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "world.h"
 
@@ -146,7 +145,6 @@ bool FollowCarrier(ParticleSource* s) {
     const Vector3& m = s->elements[1].pos;
     float* speed = &s->elements[0].sphere.speed;
     *speed = std::sqrt(LengthSquared(m));
-    EI_NAN_AUDIT(*speed);
     if (s->elements[0].sphere.speed < EI_STILL_SPEED) s->elements[0].sphere.speed = 0.0f;
     return true;
 }
@@ -368,7 +366,6 @@ void SetUpLink(ParticleSource* s) {
     float zero = EI_P_ZERO;
     side = {x.y - zero, zero - x.x, 0.0f};
     float length = std::sqrt(LengthSquared(side));
-    EI_NAN_AUDIT(length);
     if (length < EI_LINK_DEGENERATE) {
         float ex = x.x;
         Vector3 other = {x.y - x.z, -ex, ex};
@@ -798,7 +795,6 @@ constexpr std::int32_t kModifierAlphaOut[34] = /*0078A88C*/ {0, 32, 64, 128, 255
 constexpr std::int32_t kLightningAlpha[16] = /*0078A9F8*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};   // by life
 
 bool IsZero(float f) {
-    EI_NAN_AUDIT(f);
     return f == 0.0f;
 }
 
@@ -817,7 +813,6 @@ constexpr float kDustAxisX[4] = /*0078AAB8*/ {0.707f, -0.707f, -0.707f, 0.707f};
 constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
 
 bool Same(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a == b;
 }
 
@@ -909,7 +904,6 @@ int ParticleSource::UpdateCasting(Particle* p) {
 // table (frozen while an emitting source is attached); the swirls (pos.x zero, or NaN) move by
 // their velocity, which gets a random kick in [-k, k), damping and a pull back to the centre.
 void ParticleSource::TickCasting(ParticleElement* e) {
-    EI_NAN_AUDIT(e->pos.x);
     if (e->pos.x != 0.0f) {
         if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
@@ -1255,7 +1249,6 @@ int ParticleSource::EmitLink(Particle* p, int) {
     Vector3 start = p->velocity + origin;
     p->PlaceAt(start);
     float factor;
-    EI_NAN_AUDIT(reachRounded);
     if ((Next() & 3) == 0 && reachRounded < EI_LINK_HALF) {
         p->drift.y = g_clientRandom.Range(F(0x3DCCCCCD), F(0x3DF5C28F));     // 0.1 .. 0.12
         factor = g_clientRandom.Range(F(0x3E051EB8), F(0x3E23D70A));                           // 0.13 .. 0.16
@@ -1343,7 +1336,6 @@ int ParticleSource::EmitBlast(Particle* p, int) {
         p->size = 0.0f;
         int age = fragments->fragment.age;
         float threshold = (age / 7) + EI_BLAST_POINT_TWO;
-        EI_NAN_AUDIT(outside);
         if (outside < threshold) {
             p->frame = 8;
             BlastFlameTiming(this, p);
@@ -1360,7 +1352,6 @@ int ParticleSource::EmitBlast(Particle* p, int) {
 
     p->frame = static_cast<int>(Next() % 3);
     ParticleElement* e = &fragments[kind];
-    EI_NAN_AUDIT(e->fragment.frame);
     if (e->fragment.frame == 0.0f) p->frame = 8;
     float u = WordToFloat(Next()) * EI_P_SCALE_1;
     p->pos = e->pos + origin - u * e->fragment.velocity * size;
@@ -1392,7 +1383,6 @@ int ParticleSource::UpdateBlast(Particle* p) {
     int frame = p->frame;
     if (frame >= 14) {
         if (state != kBlastCore) return 0;
-        EI_NAN_AUDIT(p->size);
         if (p->size == 0.0f) p->size = size * EI_BLAST_CORE_SIZE;
         else p->size = 0.0f;
         return fragments->fragment.age < 3;
@@ -1684,7 +1674,6 @@ int ParticleSource::UpdateBag(Particle* p) {
     p->color = (static_cast<std::uint32_t>(BagAlpha()[fade]) << 24) | BagRgb(age);
     const Vector3& step = ball->ball.step;
     auto isZero = [](float f) {
-        EI_NAN_AUDIT(f);
         return f == 0.0f;
     };
     if (isZero(step.x) && isZero(step.y) && isZero(step.z)) {
@@ -2011,7 +2000,6 @@ void ParticleSource::TickTornado(ParticleElement* e) {
     ParticleElement* bottom = elements.data();
     float bend;
     bend = bottom->funnel.bend;
-    EI_NAN_AUDIT(bend);
     if (bend == 0.0f) {
         Vector3 sway = bottom->pos - motion;
         sway.x *= EI_FUNNEL_SWAY;
@@ -2027,7 +2015,6 @@ void ParticleSource::TickTornado(ParticleElement* e) {
         elements[0].pos.z = GroundHeight(origin.x, origin.y) - origin.z + EI_P_ONE;
         Vector3 n = (motion * EI_FUNNEL_LEAN + elements[0].pos) * EI_FUNNEL_BACK;
         float length = std::sqrt(LengthSquared(n));
-        EI_NAN_AUDIT(length);
         if (length != 0.0f) n *= EI_P_ONE / length;
         float lean = length * EI_FUNNEL_HALF;
         if (lean > EI_FUNNEL_MAX_LEAN) lean = EI_FUNNEL_MAX_LEAN;
@@ -2042,7 +2029,6 @@ void ParticleSource::TickTornado(ParticleElement* e) {
     if (!attachedTo) {
         float b;
         b = elements[0].funnel.bend;
-        EI_NAN_AUDIT(b);
         if (b == 0.0f && !particles.empty()) {
             flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
             Attach(nullptr);
@@ -2096,7 +2082,6 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     if (life < 0) return 0;
     const Vector3& step = e.star.step;
     auto isZero = [](float f) {
-        EI_NAN_AUDIT(f);
         return f == 0.0f;
     };
     if (isZero(step.x) && isZero(step.y)) return 0;
@@ -2203,7 +2188,6 @@ int ParticleSource::EmitFireBall(Particle* p, int index) {
         p->state = 0;
         t = WordToFloat(r) * EI_P_SCALE_1 - EI_P_ONE;
     }
-    EI_NAN_AUDIT(distance);
     if (distance <= EI_TRAIL_MOVING) {
         p->velocity = {};
         return 1;
@@ -2264,7 +2248,6 @@ int ParticleSource::EmitArrowSmoke(Particle* p, int index) {
         if (Next() % 100 > 70) p->state = 1;
         p->frame = static_cast<int>(Next() & 1) + 2;
     }
-    EI_NAN_AUDIT(distance);
     if (distance <= EI_TRAIL_MOVING) {
         p->velocity = {};
         return 1;
@@ -2576,7 +2559,6 @@ void ParticleSource::TickClayRing(ParticleElement* e) {
     direction.x = turnedY;
     direction.y = turnedX;
     auto isZero = [](float f) {
-        EI_NAN_AUDIT(f);
         return f == 0.0f;
     };
     if (isZero(previous.x) && isZero(previous.y)) e->clay.previous = e->pos;
@@ -2736,7 +2718,6 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         float shrunk = size * 0.75f;
         size = shrunk;
-        EI_NAN_AUDIT(shrunk);
         if (shrunk < 0.02f) {
             p->size = 0.0f;
             p->color = 0xFFFFFF;
@@ -2818,7 +2799,6 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
     if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return 1;
     p->size = eased * 0.95f;
     size = 0.0f;
-    EI_NAN_AUDIT(p->size);
     if (p->size < 0.03f) {
         p->size = 0.0f;
         p->color = 0xFFFFFF;
@@ -2961,7 +2941,6 @@ int ParticleSource::EmitSilence(Particle* p, int) {
 int ParticleSource::UpdateSilence(Particle* p) {
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         if (p->state) size = size * 0.85f;
-        EI_NAN_AUDIT(size);
         if (size < 0.02f) {
             p->size = 0.0f;
             p->color = 0xFFFFFF;
@@ -3016,7 +2995,6 @@ int ParticleSource::UpdateModifier(Particle* p) {
         const ParticleElement& e = elements[p->state];
         p->pos = e.pos;
         p->size = 1.0f;
-        EI_NAN_AUDIT(size);
         if (size < EI_P_ZERO) {
             p->size = oldSize * 0.9345794f;    // 1 / 1.07
             p->color = (static_cast<std::uint32_t>(kModifierAlphaIn[elements[p->state].ticks]) << 24) | 0xFFFFFF;
@@ -3215,7 +3193,6 @@ int ParticleSource::UpdateCurseStars(Particle* p) {
         return 0;
     }
     p->color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
-    EI_NAN_AUDIT(p->size);
     if (p->size == 0.0f) {
         p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                         0.04f;
@@ -3376,7 +3353,6 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     if (std::ssize(elements) == 0) {
         elements.resize(1);
         elements[0].glow.mark = {-1.0f, -1.0f, -1.0f};
-        EI_NAN_AUDIT(alpha);
         if (alpha == 0.0f) {
             elements[0].glow.color = 0xB0B0B0;
         } else if (Bits(&alpha) == 0x3F800000) {

@@ -5,7 +5,6 @@
 #include "random.h"
 
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <utility>
@@ -23,7 +22,6 @@ void GlobalMapClouds::Start() {
 
 void GlobalMapClouds::Draw(const void* holder, float seconds) {
     phase = seconds * speed + phase;
-    EI_NAN_AUDIT(phase);
     while (phase >= 1.0f) {    // a NaN phase ends it (it looped for ever in the game)
         phase -= 1.0f;
         Generate(&frames[2], step);

@@ -19,7 +19,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -100,7 +99,6 @@ void Object3D::ComputeBounds() {
 }
 
 void Object3D::SetFigureScale(const Vector3& newScale) {
-    EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale.x, newScale.y, newScale.z);
     if (scale.x == newScale.x && scale.y == newScale.y && scale.z == newScale.z)
         return;
     scale = newScale;

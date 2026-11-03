@@ -15,7 +15,6 @@
 #include "lib/maths.h"
 #include "lib/rebirth.h"
 #include "lib/vecmath.h"
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "render/render.h"
@@ -96,7 +95,6 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 // next full turn (4 * (2 pi - angle)), or stops below 0.1. At most 5. The angle advances by
 // dt * speed and wraps at 2 pi.
 void Turn(ItemTurn* turn, float dt, bool hovered) {
-    EI_NAN_AUDIT(turn->speed);
     if (hovered) {
         turn->speed = 8.0f * dt + turn->speed;
     } else if (turn->speed < 0.1f) {
@@ -175,7 +173,6 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         model->localRotation = LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f);
         // The larger of the box's x and y extents: y when x is below it (or NaN), selected by their bits.
         const Vector3& extents = model->box.bounds.boxMax;
-        EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
         float half = 0.5f;
         float y = model->box.bounds.center.y * cell.size * half + cell.y;

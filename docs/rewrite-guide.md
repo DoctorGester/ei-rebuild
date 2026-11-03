@@ -43,9 +43,7 @@ compare function pointers for identity.
    (`/fp:precise`, never `/fp:fast`); no `__asm`, no `#pragma float_control`. FISTP's rounding is `lib::RoundEven`,
    `_ftol` is `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive; not
    `std::lrint` or `std::lround`. A select of two floats on `>=` / `<=` goes through `lib/float_select.h`.
-5. **Comparisons** are the plain C++ ones; a NaN compares as IEEE says. Next to a comparison whose result changes
-   for a NaN (where the original counted NaN as equal and less), `EI_NAN_AUDIT(values...)` logs the first NaN per
-   site in the verify and debug builds.
+5. **Comparisons** are the plain C++ ones; a NaN compares as IEEE says (the original counted NaN as equal and less).
 6. **Random draws.** Game state draws from the game's generators in the original's order; a draw whose result is
    unused still happens. Client-only effects draw from their own generator (`docs/notes/core.md`, "Random
    generators").

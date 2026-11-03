@@ -4,7 +4,6 @@
 #include "core_maths.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "platform/platform.h"
 
 #include <cmath>
@@ -53,13 +52,11 @@ void Camera::GroundPoint(Vector3* out) const {
 
 void Camera::SetTurnRate(float rate) {
     turnTarget = rate;
-    EI_NAN_AUDIT(turnRate, rate);
     if (std::fabs(turnRate) < std::fabs(rate)) turnRate = turnTarget;
 }
 
 void Camera::SetTiltRate(float rate) {
     tiltTarget = rate;
-    EI_NAN_AUDIT(tiltRate, rate);
     if (std::fabs(tiltRate) < std::fabs(rate)) tiltRate = tiltTarget;
 }
 

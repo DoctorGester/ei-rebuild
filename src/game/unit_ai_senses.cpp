@@ -8,7 +8,6 @@
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -39,7 +38,6 @@ constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 
 bool IsZero(float v) {
-    EI_NAN_AUDIT(v);
     return v == 0.0f;
 }
 
@@ -119,7 +117,6 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
         bool seen = false;
         if (sight >= distance) {
             float along = Dot(d, facing);
-            EI_NAN_AUDIT(coneLimit, distance, along);
             if (coneLimit * distance <= along) {
                 Vector3 to = eye + d;
                 seen = map->LineOfSight(eye, to) * sight > distance;
@@ -133,7 +130,6 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
                 seen = true;
             } else {
                 if (dead) continue;
-                EI_NAN_AUDIT(theirs->stats.conspicuity[2].current, ours->stats.perception[2].current, distance);
                 if (theirs->stats.conspicuity[2].current * ours->stats.perception[2].current <= distance) continue;
                 console::EndLine(kAiLog << "using sense life");
                 alive = true;
@@ -224,7 +220,6 @@ void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid) {
     float sight = theirs->moveFactors[2] * mine->moveFactors[3] * theirs->stats.conspicuity[0].current *
                   mine->stats.perception[0].current;
     // The larger of 0 and the sight.
-    EI_NAN_AUDIT(sight);
     float radius = 0.0f < sight ? sight : 0.0f;
     float height = observer->ModeSpeed();
     AIMap* map = &g_serverWorld.aiMap;
@@ -273,7 +268,6 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
         const float hearing = control->moveFactors[1] * control->stats.perception[3].current;
         const float distance = Distance(at, other->localPosition);
-        EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         std::string text;
         if (console::g_filterMask & 1) {
@@ -304,7 +298,6 @@ constexpr float kMaxExposure = 3.0f;
 
 // distance / range, at most 3 (NaN kept); 3 for a zero range.
 float Exposure(float distance, float range) {
-    EI_NAN_AUDIT(range);
     if (range == 0.0f) return kMaxExposure;
     float ratio = distance / range;
     return MinKeepA(ratio, kMaxExposure);
@@ -351,7 +344,6 @@ Unit* AIMemory::NearestEnemy(Unit* self) {
         Unit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead()) continue;
         float d2 = LengthSquared(self->localPosition - other->localPosition);
-        EI_NAN_AUDIT(d2, best);
         if (d2 < best) {
             best = d2;
             nearest = other;
@@ -404,7 +396,6 @@ std::array<float, 5> AIMemory::MeasureExposure(UnitServer* self) {
         float distance = std::sqrt(LengthSquared(other->localPosition - unit->localPosition));
         float sight = theirs->moveFactors[3] * self->moveFactors[2] * theirs->stats.perception[0].current *
                       self->stats.conspicuity[0].current;
-        EI_NAN_AUDIT(distance, sight);
         if (distance < sight) {
             Vector3 to = other->EyePoint();
             float range = g_serverWorld.aiMap.LineOfSight(eye, to) * sight;

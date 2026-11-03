@@ -27,7 +27,6 @@
 
 #include "lib/containers.h"
 #include "platform/platform.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -219,7 +218,6 @@ void GlobalMap::CreateScreen() {
             variable = std::format("z.{}", way->name);
             if (way->kind != 2) continue;
             float state = LocalPlayerVariable(variable);
-            EI_NAN_AUDIT(state);
             if (state != 2.0f) continue;
             if (way->figure.empty()) continue;
             if (zones[i].state == 2) zones[i].link = lib::Count(links);
@@ -365,7 +363,6 @@ void GlobalMap::Update() {
         tilt.SetAxisAngle(side, 3.1415927f * 0.8f);
         Quaternion rotation = tilt * spin;
         turn = rotation;
-        EI_NAN_AUDIT(turn.w);
         if (turn.w < 0.0f) {
             turn.w = -turn.w;
             turn.x = -turn.x;
