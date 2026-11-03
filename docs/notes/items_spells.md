@@ -370,8 +370,8 @@ which decodes them (32-bit premultiplied, "PNT3" run-length packed) and draws th
 levels below made by the GPU (a plain box filter: the original's alpha +128 per level is not kept), the colours kept
 at 8 bits a channel (the original's 1:5:5:5 / 4:4:4:4 cut is gone). `ForgetComposedTextures` (map load, texture
 manager create / destroy, shutdown) drops them all, as the original deleted the files. Checked by every golden that
-dresses a unit (combat, camera, ... the coverage list of 00693010 / 00693180) and visually by render_blink, units,
-render_device_lost (made again on a new device: RemakeComposed) and ui_gallery_camp.
+dresses a unit (combat, camera, ... the coverage list of 00693010 / 00693180) and visually by render_blink, units
+and ui_gallery_camp.
 
 00693970 and 0068F860 (a texture
 from a surface description; its one caller 00691D50 is dead) are dead. `FindTypedTexture` 00692D30 and `FreeCache` 00692F00

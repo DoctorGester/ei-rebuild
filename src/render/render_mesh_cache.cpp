@@ -568,13 +568,6 @@ void MeshCacheFrameDone() {
         }
 }
 
-// The entries keep what they were built from; they are placed in a new pool at their next draw. The
-// pool's buffers are destroyed now (the device goes: they may not outlive sokol).
-void DropMeshCache() {
-    g_pool.Drop();
-    RetireBuffers();
-}
-
 } // namespace detail
 
 void SetMeshSource(const MeshSource* source) {

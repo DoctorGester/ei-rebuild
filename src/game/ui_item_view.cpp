@@ -161,11 +161,10 @@ void SetShade(UiMesh* sprite, float grey) {
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // An item picture's file as the renderer takes it: `width` x `height` pixels right after the header (the extra block
-// not skipped, as the original read them), premultiplied 32-bit or "PNT3" packed. Valid while `file` and the file are.
-render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, std::uint32_t fileBytes, int width,
-                               int height) {
+// not skipped, as the original read them), premultiplied 32-bit or "PNT3" packed. Valid while the file is.
+render::TextureImage PictureOf(const MmpHeader* image, std::uint32_t fileBytes, int width, int height) {
     const std::uint32_t header = static_cast<std::uint32_t>(sizeof(MmpHeader));
-    return render::TextureImage{file.c_str(), image + 1, fileBytes > header ? fileBytes - header : 0, width, height,
+    return render::TextureImage{image + 1, fileBytes > header ? fileBytes - header : 0, width, height,
                                 image->format == kPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
 }
 
@@ -393,7 +392,7 @@ Texture* ItemFigureTexture(std::string_view name) {
     } else {
         // The picture at the texture's bottom left.
         const int width = static_cast<int>(image->width), height = static_cast<int>(image->height);
-        const render::TextureImage picture = PictureOf(file, image, size, width, height);
+        const render::TextureImage picture = PictureOf(image, size, width, height);
         render::DrawIntoTexture(texture->surface, &picture, 0, 0x100 - height, width, height);
     }
     manager->FreeAllFiles();
@@ -411,7 +410,7 @@ bool UiWindow::CopyImage(Texture* texture, std::string_view name, int imageWidth
     if (!image) {
         render::DrawIntoTexture(texture->surface, nullptr, x, y, width, height);    // white
     } else {
-        const render::TextureImage picture = PictureOf(file, image, size, imageWidth, imageHeight);
+        const render::TextureImage picture = PictureOf(image, size, imageWidth, imageHeight);
         render::DrawIntoTexture(texture->surface, &picture, x, y, width, height);
     }
     manager->FreeAllFiles();

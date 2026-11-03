@@ -295,7 +295,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     // Drawn into the texture on the GPU.
     TakeBlankHolder(device, bmpWidth, bmpHeight, true);
     const std::vector<std::uint32_t> pixels = ReadPixels(bmpWidth, bmpHeight, colour.bits.data(), alphaBits);
-    const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), bmpWidth, bmpHeight,
+    const render::TextureImage image{pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), bmpWidth, bmpHeight,
                                      render::ImageLayout::Argb};
     render::DrawIntoTexture(surface, &image, 0, 0, bmpWidth, bmpHeight);
     flags |= TextureFlag::Loaded;
@@ -461,7 +461,7 @@ int Texture::CreateComposed(TextureDevice* device, const ComposedTexture& compos
         files.push_back(data);
         const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + data->extraSize;
         const render::ImageLayout layout = data->format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
-        images.push_back(render::TextureImage{layer.c_str(), reinterpret_cast<const std::uint8_t*>(data) + skipped,
+        images.push_back(render::TextureImage{reinterpret_cast<const std::uint8_t*>(data) + skipped,
                                               size > skipped ? size - skipped : 0, static_cast<int>(data->width),
                                               static_cast<int>(data->height), layout});
     }

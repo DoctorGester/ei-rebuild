@@ -89,7 +89,7 @@ golden.json changed) or changed. An intended change (a fix, the UTF-8 switch, W1
 goldens and says why in the commit; anything else that differs is a regression.
 
 **Image goldens before H40** (S20a): the scenarios game.exe could not run (`# no original:`, renderer-only checks:
-render_cursor_present, render_present_shot, render_device_lost, render_device_removed, render_present_window,
+render_cursor_present, render_present_shot, render_device_lost and render_device_removed (both gone in R41), render_present_window,
 render_present_fullscreen) already had the image's goldens. Their digests do not follow the renderer: the world moves
 only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 

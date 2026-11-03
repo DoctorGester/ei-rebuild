@@ -19,9 +19,6 @@
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
 //           first, so the blit shows the canvas as it was.
-//   lost    a lost device (DropCanvases): every canvas comes back as it was from its history (fills, lines,
-//           glyph runs, pictures, a moved canvas), a screen copy's and a long history's from their pixels
-//           read back.
 // Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include "render/glyph_cases.h"
@@ -627,62 +624,6 @@ void CheckFrame() {
     sg_commit();
 }
 
-// ---- lost: the canvases made again from their histories ---------------------------------------------------------
-
-void CheckLost() {
-    if (g_verbose) std::printf("lost:\n");
-    const render::PixelFormat f565 = kFormats[0].format, f888 = kFormats[2].format;
-    int drawn = 0, moved = 0, copied = 0, longOne = 0, from = 0;
-    // Fills, a frame, lines, a pixel, a picture and a glyph run; one canvas moved to another key.
-    ui::Canvas(&drawn, 64, 40, f565);
-    ui::Fill(&drawn, Rect{0, 0, 64, 40}, RGB(20, 40, 60));
-    ui::Fill(&drawn, Rect{5, 5, 30, 20}, RGB(200, 10, 10));
-    ui::FrameRect(&drawn, Rect{2, 2, 60, 38}, RGB(250, 250, 0));
-    ui::Line(&drawn, 3, 30, 50, 30, 2, RGB(0, 255, 0));
-    ui::Pixel(&drawn, 62, 1, RGB(255, 255, 255));
-    std::vector<std::uint32_t> picture(10 * 6);
-    std::mt19937 random(99);
-    for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
-    ui::Image(&drawn, Rect{40, 8, 50, 14}, picture.data(), 10);
-    if (text::TextFont* font = text::GetTextFont("Times New Roman", 15, false)) {
-        text::TextLayout layout;
-        if (text::Layout(*font, text::DecodeCp1251("Lost"), Rect{8, 18, 60, 36}, 0, layout))
-            ui::GlyphRun(&drawn, *font, layout, RGB(255, 255, 255));
-    }
-    ui::Canvas(&from, 16, 8, f888);
-    ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
-    detail::RunCanvasCommands();
-    ui::MoveCanvas(&from, &moved);
-    ui::Fill(&moved, Rect{0, 0, 8, 4}, RGB(200, 100, 50));
-    // A screen copy, greyed after it (both kept as the pixels read back).
-    if (!g_frameTexture.id) MakeFrameTexture();
-    ui::Canvas(&copied, 50, 40, f888);
-    ui::CopyFrame(&copied, Rect{10, 10, 110, 90});
-    ui::Greyscale(&copied);
-    // More commands than the history keeps (read back too), the last ones after the read-back.
-    ui::Canvas(&longOne, 32, 32, f888);
-    for (int i = 0; i < 300; ++i) ui::Pixel(&longOne, i % 32, (i / 32) % 32, RGB(i & 0xFF, (i * 7) & 0xFF, (i * 13) & 0xFF));
-    detail::RunCanvasCommands();
-    ui::Fill(&longOne, Rect{20, 20, 24, 24}, RGB(1, 2, 3));
-    detail::RunCanvasCommands();
-    const int* const holders[] = {&drawn, &moved, &copied, &longOne};
-    const char* const names[] = {"drawn", "moved", "copied", "long"};
-    std::vector<std::uint32_t> before[4];
-    for (int i = 0; i < 4; ++i) Check(ui::ReadPixels(holders[i], &before[i]), std::string("lost: ") + names[i] + " read before");
-    detail::DropCanvases();
-    for (int i = 0; i < 4; ++i) {
-        std::vector<std::uint32_t> after;
-        std::string example;
-        const int width = i == 0 ? 64 : i == 1 ? 16 : i == 2 ? 50 : 32;
-        const int differ = ui::ReadPixels(holders[i], &after) ? Differ(before[i], after, width, &example) : -1;
-        Check(differ == 0, std::string("lost: the ") + names[i] + " canvas made again: " + std::to_string(differ) + " pixels differ" +
-                               (example.empty() ? "" : " (" + example + ")"));
-        ui::DropCanvas(holders[i]);
-    }
-    detail::RunCanvasCommands();
-    sg_commit();
-}
-
 bool StartDevice(bool hardware) {
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
@@ -729,8 +670,6 @@ int main(int argc, char** argv) {
     CheckCopy();
     CheckPicture();
     CheckFrame();
-    CheckLost();
-    detail::DropCanvases();
     sg_shutdown();
     std::printf("ui_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);
     return g_failures == 0 && g_problems == 0 ? 0 : 1;

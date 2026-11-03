@@ -155,7 +155,7 @@ int MaxSamples(int most) {
 }
 
 // No lost context is looked for (it would need a robust context).
-std::optional<std::uint32_t> Lost() { return std::nullopt; }
+const char* Lost() { return nullptr; }
 
 void ApplyViewport(int x, int y, int width, int height) { sg_apply_viewport(x, y, width, height, false); }
 

@@ -262,10 +262,13 @@ TextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();
-// The renderer cannot go on (no device, a sokol panic, a lost device not made again, no swap chain): the reason is
-// logged and shown in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not.
-// There is no other way to draw: no fallback.
+// The renderer cannot go on (no device, a sokol panic, a lost device, no swap chain): the reason is logged and shown
+// in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other
+// way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
+// A lost device (platform::graphics::Lost) ends the game (Fatal): at the end of every presented frame, and when the
+// window's drawable could not be had.
+void CheckDevice();
 
 // `r` on a `width` x `height` target as the rectangle shaders' vertex uniforms (shaders/rect.glsl).
 inline void ApplyRect(const Rect& r, int width, int height) {
@@ -308,16 +311,12 @@ bool PresentWindow();
 // The gamma ramp the present applies (256 RGBA8 entries) and how often SetGammaRamp changed it.
 const std::uint8_t* GammaRamp();
 std::uint32_t GammaRampChanges();
-// Releases everything the window module made on the device (before sg_shutdown); the next DrawToWindow makes them
-// on the new device.
-void DropWindow();
 #if defined(EI_RENDER_VALIDATION)
 // Whether the verify build's GPU read-backs (a stall each) run for the `count`th of their kind: the first
 // kReadBackAlways, then every 16th, and every one with "checkall" in EI_RENDER.
 constexpr long kReadBackAlways = 64;
 bool ReadBackDue(long count);
 #endif
-void DeviceLossCounts(WindowPresentInfo* info);
 
 // Filled with sg_append_buffer, so a frame can be drawn in several passes; replaced by a larger one when an
 // append does not fit.
@@ -326,7 +325,6 @@ public:
     StreamBuffer(bool newIndex, const char* newLabel) : index(newIndex), label(newLabel) {}
     int Append(const void* data, std::size_t bytes);
     sg_buffer Buffer() const { return buffer; }
-    void Destroy();
 
 private:
     bool index;
@@ -346,7 +344,6 @@ public:
     GeometryStream(const char* label, bool newTerrain) : vertices(false, label), indices(true, label), terrain(newTerrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     bool Bind(sg_bindings& b) const;
-    void Destroy();
 
 private:
     StreamBuffer vertices, indices;
@@ -402,7 +399,7 @@ private:
 // The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
 // vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved), and
 // TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
-// drawn for a long time. DestroyTerrain keeps the pages (placed again at their next draw).
+// drawn for a long time.
 struct TerrainGroup {
     Vector3 low, high;              // the box of its positions in the landscape's space
     std::uint32_t first, count;     // its vertices in the page's
@@ -415,7 +412,6 @@ const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece);
 void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();
-void DestroyTerrain();
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
 // 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
 struct TerrainCasterVertex {
@@ -427,13 +423,11 @@ std::size_t TerrainCasterCount();
 void UploadTerrainCasters();
 int DrawTerrainCasters(sg_pipeline pipeline);
 void TerrainCastersDone();
-void DropTerrainCasters();
 
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
 // `anisotropy` above 1: the stages sampled anisotropically at that level (AnisotropicSampler).
 void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
-void DestroyMeshes();
 
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
@@ -443,7 +437,7 @@ void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
 // Meshes kept on the GPU (docs/notes/renderer.md section 13). KeepMesh: the mesh being handed over brought up
 // to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
 // no corners, the cache off, or the mesh already drawn this frame with other data). MeshCacheFrameDone drops
-// meshes not drawn for a long time; after DropMeshCache meshes are placed again at their next draw.
+// meshes not drawn for a long time.
 constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: position, texture coordinates, normal
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
@@ -463,7 +457,6 @@ std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex);
 void MeshCacheFrameDone();
-void DropMeshCache();
 const void* MeshSourceOwner();
 const MeshLighting* MeshSourceLighting();
 // The model-space normal of the corners with colour index `index`, zero without normals or words.
@@ -484,7 +477,6 @@ inline float ShadowNormalOffset(const shadow_params_t& shadow) {
     if (!(shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)) return 0.0f;
     return shadow.scale[0] * 2.0f / shadow.soft[3] * 1.5f;
 }
-void DestroyShadows();
 // The clip matrix of the frame's first ground batch and the camera in the landscape's space; false without
 // ground drawn.
 bool WorldCamera(const Frame& frame, Matrix4* clip, Vector3* eye);
@@ -517,7 +509,6 @@ public:
     bool Upload();
     void Draw(std::size_t from, std::size_t to);
     void Clear();
-    void Destroy();
 
 private:
     struct Entry {
@@ -548,7 +539,6 @@ void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(sg_bindings& b);
 int PointShadowSlot(const Frame& frame, int sceneLight);
-void DestroyPointShadows();
 // The object whose meshes are being handed over. ShadowFrameEnd: the frame's passes are recorded (the harness
 // build's GPU time); ShadowFrameDone: the frame is presented.
 const void* CurrentCaster();
@@ -563,13 +553,10 @@ void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int he
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
 void RetireFrameImages();
-void DestroyBlits();
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
 void ShowFrameCursor();
 // The holder is gone: the cursor shapes made from its picture let go.
 void ForgetCursor(const void* holder);
-// The device is lost: DestroyBlits, and every image kept across frames (the movies').
-void DropBlits();
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
@@ -601,11 +588,10 @@ void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices,
 
 // The interface canvases (render_ui.cpp). RunCanvasCommands draws the queued canvas commands outside any pass
 // (at the start of DrawPending, under the present's lock); CanvasBlitsDrawn: the commands recorded so far are
-// drawn; DropCanvases: the device is lost (each canvas is made again on the new one and its history drawn).
+// drawn.
 void RunCanvasCommands();
 void CanvasBlitsDrawn();
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height);
-void DropCanvases();
 // SplitFrame draws the commands recorded so far (a pass split; not between frames); RunCanvasesNow runs
 // RunCanvasCommands at once.
 void SplitFrame();
@@ -636,12 +622,12 @@ sg_sampler LinearSampler();
 sg_view WhiteView();
 
 // Textures the game builds from images on the GPU (render::ComposeTexture; render_compose.cpp): an image
-// decoded to premultiplied RGBA8 rows from the top, shared by the textures drawn from it.
+// decoded to premultiplied RGBA8 rows from the top. False (nothing decoded) for an image without pixels or too large.
 struct ComposeImage {
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
 };
-std::shared_ptr<const ComposeImage> DecodeComposeImage(const TextureImage& image);
+bool DecodeComposeImage(const TextureImage& image, ComposeImage* decoded);
 // The global map's clouds drawn into a texture (render::DrawClouds).
 struct CloudsDraw {
     CloudFrame from{}, to{};
@@ -650,35 +636,31 @@ struct CloudsDraw {
 };
 // One image drawn into the texture's first level, or the clouds.
 struct ComposeStep {
-    std::shared_ptr<const ComposeImage> image;   // null: `to` filled white (unless `clouds`)
-    std::shared_ptr<const CloudsDraw> clouds;    // the clouds over all of `to`
-    bool over = true;                            // over what is there (premultiplied alpha), else replacing it
-    int fromX = 0, fromY = 0;                    // the image texel drawn at `to`'s top-left texel
-    Rect to{};                                   // first-level texels
+    const ComposeImage* image = nullptr;   // null: `to` filled white (unless `clouds`)
+    const CloudsDraw* clouds = nullptr;    // the clouds over all of `to`
+    bool over = true;                      // over what is there (premultiplied alpha), else replacing it
+    int fromX = 0, fromY = 0;              // the image texel drawn at `to`'s top-left texel
+    Rect to{};                             // first-level texels
 };
-// What a composed texture is made of, kept to make it again on a new device.
-struct ComposeRecipe {
+// A composed texture's image.
+struct ComposeShape {
     int width = 0, height = 0;   // the first level
     int levels = 1;              // the image's levels (the ones below the first made by the GPU)
     int firstLevel = 0;          // the first level the texture shows
     BlankAlpha alpha = BlankAlpha::Full;   // what is drawn keeps of the alpha (None: cleared to opaque black)
-    std::vector<ComposeStep> steps;
 };
-// The image of `recipe` made and drawn, with a view of the levels it shows; false (nothing made) on failure.
-bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view);
-// More steps drawn into an image MakeComposed made for `recipe` (its levels made again).
-void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep* steps, std::size_t count);
-// The device is lost: the pipelines and the clouds' frames go (made again at the next use).
-void DestroyCompose();
+// The image of `shape` made with `steps` drawn into it, with a view of the levels it shows; false (nothing made) on
+// failure.
+bool MakeComposed(const ComposeShape& shape, const ComposeStep* steps, std::size_t count, sg_image* image, sg_view* view);
+// More steps drawn into an image MakeComposed made for `shape` (its levels made again).
+void DrawComposed(const ComposeShape& shape, sg_image image, const ComposeStep* steps, std::size_t count);
 #if defined(EI_RENDER_VALIDATION)
 // Level `level` (`width` x `height`) of a texture image as RGBA8 rows from the top, as the GPU reads it (drawn texel
-// for texel into a target and read back): render::CheckMmpLevels's block-compressed levels. No pass in progress.
+// for texel into a target and read back): render::CheckMmpLevels's levels. No pass in progress.
 bool ReadImageLevel(sg_image image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
 #endif
-// render::ComposeTexture's entry for `holder` (render_textures.cpp); RemakeComposed draws every composed texture
-// again on a new device (no pass in progress).
-bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
-void RemakeComposed();
+// render::ComposeTexture's and BlankTexture's entry for `holder` (render_textures.cpp): `shape` made with `steps`.
+bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 sg_sampler StageSampler(const StageState& stage);
 // Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
 // stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render
@@ -687,11 +669,6 @@ constexpr std::uint32_t kMostAnisotropy = 16;
 sg_sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
 // After a present: images replaced during the frame destroyed, entries unused for a long time dropped.
 void RetireTextures();
-void DestroyTextures();
-// The device is lost: every texture image destroyed (before sg_shutdown). The textures keep their sources: an
-// .mmp texture is made again at its next use (`kept`, with `keptBytes` of sources), a composed or drawn-into one
-// by RemakeComposed.
-void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;

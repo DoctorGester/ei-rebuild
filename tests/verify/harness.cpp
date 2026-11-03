@@ -233,17 +233,6 @@
 //                             checked a presented frame against a gamma ramp that is not the
 //                             identity (one to one only; fails on a difference). Fails after
 //                             <seconds> or when the swap chain failed
-//   losedevice [seconds]      the new renderer acts as if its Direct3D 11 device were lost at the
-//                             end of the next presented frame (render::LoseDevice) and makes the
-//                             device, the swap chain and every image again; waits (default 10 s) until
-//                             it has, and presenting on the game window, until a frame is presented on
-//                             the new device. Fails on a timeout or when the new renderer gave up
-//   removedevice [seconds]    as losedevice, but the device is removed for real right before the next
-//                             present (platform::graphics::RequestRemoval: ID3D12Device5::RemoveDevice
-//                             on the Direct3D 12 device under a device made through D3D11On12; the
-//                             scenario's "render" step names "removable"). Also fails when the loss
-//                             seen was not that removal (DXGI_ERROR_DEVICE_REMOVED) or the new device
-//                             is not removable again
 //   cursormark                remember the presents' cursor counts (render::CursorState) and start keeping
 //                             the shapes shown while the gamma ramp is the identity ("cursorcheck gamma")
 //   cursorcheck <name>|- shown|hidden|held|animated|gamma [min]
@@ -259,7 +248,7 @@
 //                             the kept one; some changed when the ramp is not the identity)
 //   windowtitle               require the game window's title to be "Evil Islands" and its class "EIGAME"
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
-//                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
+//                             the format of EI_RENDER: "checkall"). Read before the game starts.
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
@@ -559,12 +548,6 @@ bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
 Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
-// A pending "losedevice" (R9c1) or "removedevice" (R9c5): the new devices made when it started, its
-// deadline, whether the device was removed for real.
-bool g_waitingNewDevice = false;
-bool g_newDeviceRemoved = false;
-int g_newDeviceFrom = 0;
-DWORD g_newDeviceDeadline = 0;
 // A pending "waitwindow": the window's name, when it started and gives up, and the frame from which it has been
 // ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
@@ -621,7 +604,7 @@ std::uintptr_t g_selfBase, g_selfEnd;
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
     else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei-rebuild+%X", label, unsigned(a - g_selfBase));
-    else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
+    else {   // Direct3D and DXGI frames too (crashes inside their threads and the driver's)
         HMODULE m = nullptr;
         char name[MAX_PATH] = "";
         if (a > 0x10000 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -2565,40 +2548,6 @@ void RunSteps() {
             return;
         }
     }
-    if (g_waitingNewDevice) {
-        const image::WindowPresents now = HarnessWindowPresents();
-        // Made again, and (presenting on the game window) a frame presented on the new device.
-        bool presented = now.presents > now.presentsAtRecovery;
-        const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
-        if (now.deviceRecoveries > g_newDeviceFrom && presented) {
-            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX%s) presents on the "
-                "game window", verb, now.deviceLosses, now.deviceRecoveries,
-                static_cast<unsigned long>(now.lastLossCode), now.lastLossCode ? "" : ", simulated");
-
-            // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
-            // device removable again.
-            const auto removed = static_cast<std::uint32_t>(DXGI_ERROR_DEVICE_REMOVED);
-            if (g_newDeviceRemoved && (now.lastLossCode != removed || !now.removable)) {
-                char what[200];
-                std::snprintf(what, sizeof(what),
-                              "removedevice: not a real removal (the loss %08lX) or the new device is not removable (%d)",
-                              static_cast<unsigned long>(now.lastLossCode), now.removable);
-                Log("harness: %s", what);
-                g_failures.push_back(what);
-            }
-            g_waitingNewDevice = false;
-        } else if (Now() >= g_newDeviceDeadline) {
-            char what[200];
-            std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
-                          "timed out", now.deviceLosses,
-                          now.deviceRecoveries, now.presents - now.presentsAtRecovery);
-            Log("harness: %s", what);
-            g_failures.push_back(what);
-            g_waitingNewDevice = false;
-        } else {
-            return;
-        }
-    }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
         if (!WindowReady(g_waitWindowName)) g_waitWindowReadyFrom = kNotReady;
@@ -3209,21 +3158,6 @@ void RunSteps() {
             g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
-            return;
-        } else if (s.verb == "losedevice" || s.verb == "removedevice") {
-            int seconds = 10;
-            sscanf_s(s.argument.c_str(), "%d", &seconds);
-            g_newDeviceFrom = image::WindowPresentCounts().deviceRecoveries;
-
-            g_newDeviceRemoved = s.verb == "removedevice";
-            if (!g_newDeviceRemoved) {
-                image::LoseDevice();
-            } else if (!image::RemoveDevice()) {
-                g_failures.push_back("removedevice: the device is not removable (\"render removable\")");
-                continue;
-            }
-            g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
-            g_waitingNewDevice = true;
             return;
         } else if (s.verb == "cursormark") {
             g_cursorMark = image::CursorPresentCounts();
