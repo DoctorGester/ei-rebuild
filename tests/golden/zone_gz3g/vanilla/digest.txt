@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz3g hash F264F041 n 1225
+@ 2 update 60 frame 11 tick 60 zone gz3g hash 48565575 n 1225
 world tick 60
 world updates 60
 world timeBase 5.96444464
@@ -14712,11 +14712,11 @@ obj4643 #vitals 1E140B5E
 obj4644 dead 0
 obj4644 hp 31.0
 obj4644 mana 12.0
-obj4644 pos.x 57.3925209
-obj4644 pos.y 103.975296
+obj4644 pos.x 57.4671135
+obj4644 pos.y 104.018433
 obj4644 pos.z 0.0
 obj4644 #ai 4A9F9546
-obj4644 #place C209A590
+obj4644 #place 1C91AE5E
 obj4644 #unit 55CD7D59
 obj4644 #vitals 0DB1A729
 + obj4645 80 unanwibo ""
@@ -15707,11 +15707,11 @@ obj4764 #vitals 4C7FE9DC
 obj4765 dead 0
 obj4765 hp 20.0
 obj4765 mana 10.0
-obj4765 pos.x 53.1780052
-obj4765 pos.y 160.349548
+obj4765 pos.x 53.2196121
+obj4765 pos.y 160.361328
 obj4765 pos.z 0.0
 obj4765 #ai D2B070FA
-obj4765 #place F8908A7D
+obj4765 #place 2C899392
 obj4765 #unit FA281F15
 obj4765 #vitals D576B866
 + obj4766 80 unanhoha ""
@@ -16535,7 +16535,7 @@ cunit4768 #unit 3EADA932
 cunit4768 #vitals F464C324
 cunit1000011214 #place D90EBF7C
 cunit1000011214 #unit 494A526D
-@ 3 update 80 frame 15 tick 80 zone gz3g hash 8990C466 n 1223
+@ 3 update 80 frame 15 tick 80 zone gz3g hash E34A5689 n 1223
 world tick 80
 world updates 80
 random isaac.count 92
@@ -16635,10 +16635,10 @@ obj4615 #ai DF7A1B11
 obj4615 #place C8D97A83
 obj4615 #unit 46DF4082
 obj4615 #vitals 28ACAB1D
-obj4644 pos.x 57.6876183
-obj4644 pos.y 103.314278
+obj4644 pos.x 57.9867439
+obj4644 pos.y 103.51326
 obj4644 #ai A8A1178A
-obj4644 #place D3B07B13
+obj4644 #place 7A9774F3
 obj4644 #vitals 9A637EA1
 obj4645 pos.x 35.4808693
 obj4645 pos.y 91.1648483
@@ -16716,10 +16716,11 @@ obj4747 #ai 763FDA38
 obj4747 #place 92D982E5
 obj4747 #unit FB3ACA9A
 obj4747 #vitals D8A54B8A
-obj4765 pos.x 54.7163849
-obj4765 pos.y 156.966385
+obj4765 pos.x 54.7698898
+obj4765 pos.y 156.953873
 obj4765 #ai ECF45914
-obj4765 #place E600222E
+obj4765 #place 07BDBAFD
+obj4765 #unit C8151094
 obj4765 #vitals 42A461EE
 obj4766 pos.x 52.8054314
 obj4766 pos.y 157.927597
@@ -16771,7 +16772,7 @@ cunit4767 #unit 45BCD9D1
 - cunit4768
 cunit1000011214 #place 210CDDFF
 cunit1000011214 #unit 8581F250
-@ 4 update 100 frame 19 tick 100 zone gz3g hash 013AE1BC n 1223
+@ 4 update 100 frame 19 tick 100 zone gz3g hash FFC3AC47 n 1223
 world tick 100
 world updates 100
 random isaac.count 160
@@ -16863,10 +16864,10 @@ obj4615 #ai 954FC665
 obj4615 #place 80AAF774
 obj4615 #unit 064A3127
 obj4615 #vitals D67EC3B8
-obj4644 pos.x 58.2033958
-obj4644 pos.y 102.7966
+obj4644 pos.x 58.526474
+obj4644 pos.y 102.973526
 obj4644 #ai 7995C40D
-obj4644 #place 4A9D696F
+obj4644 #place 46899B24
 obj4644 #vitals 1D5BC5D2
 obj4645 pos.x 35.0796928
 obj4645 pos.y 90.5621796
@@ -16940,11 +16941,9 @@ obj4722 #place B444E921
 obj4722 #vitals B1A5FAA7
 obj4747 #ai 4760416B
 obj4747 #vitals B1A5FAA7
-obj4765 pos.x 54.7698898
-obj4765 pos.y 156.953873
-obj4765 #ai 273456E8
+obj4765 #ai DB4EF8CC
 obj4765 #place B464A53F
-obj4765 #unit 63C07299
+obj4765 #unit F80011F9
 obj4765 #vitals FBE05ECC
 obj4766 #ai 20343DA3
 obj4766 #vitals FBE05ECC
@@ -16975,7 +16974,7 @@ cunit4720 #unit 5B8606A7
 cunit4747 #place 0173F61B
 cunit4767 #place 2AFEF378
 cunit1000011214 #place FCC5B9F3
-@ 5 update 120 frame 23 tick 120 zone gz3g hash 73F3497F n 1224
+@ 5 update 120 frame 23 tick 120 zone gz3g hash BA737E10 n 1224
 world tick 120
 world updates 120
 random isaac.count 228
@@ -17027,10 +17026,10 @@ obj4548 #vitals 4F779202
 obj4549 #ai 41A87D87
 obj4549 #unit 52D5D5C2
 obj4549 #vitals 0DB1A729
-obj4550 pos.x 45.977932
-obj4550 pos.y 99.909996
+obj4550 pos.x 45.9722328
+obj4550 pos.y 99.9104385
 obj4550 #ai 63F98E5B
-obj4550 #place 1C18C5DA
+obj4550 #place E6B2CCFA
 obj4550 #vitals 4F779202
 obj4551 pos.x 48.7721519
 obj4551 pos.y 122.54731
@@ -17063,10 +17062,10 @@ obj4615 #ai 879E370F
 obj4615 #place 40F579C9
 obj4615 #unit 98C91CA9
 obj4615 #vitals A6143737
-obj4644 pos.x 58.7653275
-obj4644 pos.y 102.234673
+obj4644 pos.x 59.112072
+obj4644 pos.y 102.387924
 obj4644 #ai 291D74BF
-obj4644 #place 2AB00C62
+obj4644 #place 6B3E1341
 obj4644 #vitals 0DB1A729
 obj4645 pos.x 34.7240219
 obj4645 pos.y 89.9480438
@@ -17144,7 +17143,7 @@ obj4722 #vitals 4F779202
 obj4747 #ai FC800F70
 obj4747 #place D8FAA957
 obj4747 #vitals 4F779202
-obj4765 #ai 495B6BFE
+obj4765 #ai F64B8C7B
 obj4765 #vitals D576B866
 obj4766 #ai 7A08A486
 obj4766 #vitals D576B866

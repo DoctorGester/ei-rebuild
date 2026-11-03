@@ -6,7 +6,7 @@
   Rate has one parameter - connection rate in bytes per second
   LocalRate has one parameter - connection rate in bytes per second
   usage: exec<ute> [input file name]
-  Cannot open file "no such console file.txt" for reading
+  Cannot open file No Such Console File.txt for reading
   Invalid console position
   Activated!
   Unknown command
@@ -43,26 +43,28 @@
   DDMMYYYY - current date
   example:
   > days 25011978 01072000
-  Your age: 8192 days
+  Your age: 8193 days
   Your age: 10 days
+  Your age: 8193 days
+  Your age: 3653 days
   usage: days [ddmmyyyy] [DDMMYYYY]
   ddmmyyyy - date of birth
   DDMMYYYY - current date
   example:
   > days 25011978 01072000
-  Your age: 8192 days
+  Your age: 8193 days
   usage: days [ddmmyyyy] [DDMMYYYY]
   ddmmyyyy - date of birth
   DDMMYYYY - current date
   example:
   > days 25011978 01072000
-  Your age: 8192 days
+  Your age: 8193 days
   usage: days [ddmmyyyy] [DDMMYYYY]
   ddmmyyyy - date of birth
   DDMMYYYY - current date
   example:
   > days 25011978 01072000
-  Your age: 8192 days
+  Your age: 8193 days
   net client 0/1 - show client traffic
   net server 0/1 - show server traffic
   net time 0/1   - show client time counting info

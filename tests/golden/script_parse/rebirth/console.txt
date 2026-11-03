@@ -50,7 +50,8 @@
   Script error: Unexpected 'Sleep'
   Script error: Wrong lexeme x
   Script error: Function returning float expected
-  Script error: In script !27!PTestE should be at least one condtion
+  Script error: In script !27!PTestE should be at least one condition
+  Script error: Unexpected end of file
   Script error: expected if section
   Script error: If section, ( expected
   Script error: then expected after if

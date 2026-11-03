@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump lever
 # compact (tools/golden.py): objects as hashes of their fields
-@ 29 update 590 frame 118 tick 552 zone gz1g hash 1A02224B n 792
+@ 29 update 590 frame 118 tick 552 zone gz1g hash 7027B94C n 792
 + world world
 world tick 552
 world updates 590
@@ -5328,7 +5328,7 @@ obj1943 pos.x 135.269974
 obj1943 pos.y 133.616104
 obj1943 pos.z 0.0
 obj1943 #ai D84B164B
-obj1943 #place 431E59E9
+obj1943 #place A20D99BD
 obj1943 #unit D19ECDA3
 obj1943 #vitals 62E90F76
 + obj1944 80 unmoba2 ""
@@ -5360,9 +5360,9 @@ obj1947 mana 5.0
 obj1947 pos.x 192.773987
 obj1947 pos.y 82.5875092
 obj1947 pos.z 0.0
-obj1947 #ai 8F004201
+obj1947 #ai 1ABB87A3
 obj1947 #place C611DAC9
-obj1947 #unit 7BB0AA97
+obj1947 #unit 97416A16
 obj1947 #vitals 8B456C81
 + obj1948 80 unanhopi ""
 obj1948 dead 0
@@ -5390,12 +5390,12 @@ obj1949 #vitals 8B456C81
 obj1950 dead 0
 obj1950 hp 20.0
 obj1950 mana 5.0
-obj1950 pos.x 224.239166
-obj1950 pos.y 73.717514
+obj1950 pos.x 224.337631
+obj1950 pos.y 73.6752548
 obj1950 pos.z 0.0
 obj1950 #ai 611D460F
-obj1950 #place 6719E9E7
-obj1950 #unit E69E7F7D
+obj1950 #place CC4EA39F
+obj1950 #unit 91994FEB
 obj1950 #vitals F4BE1B4C
 + obj1952 80 unanwibo ""
 obj1952 dead 0
@@ -5882,7 +5882,7 @@ cunit1913 #unit DACE3DDF
 cunit1913 #vitals F464C324
 + cunit1947 80 unanhopi ""
 cunit1947 #place B707EA6E
-cunit1947 #unit FE0624C8
+cunit1947 #unit B74933F7
 cunit1947 #vitals ED40ECA3
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place F246682E

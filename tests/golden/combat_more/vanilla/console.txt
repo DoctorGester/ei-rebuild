@@ -28,8 +28,8 @@
   0
   0
   0
-  Unit 1000066549 was attacked by 1000011214 skill=3.40282e+038 damage=9.79718 destHL=LHand
-  impaling passed damage = 9.79718 HL was crippled
+  Unit 1000066549 was attacked by 1000011214 skill=3.40282e+038 damage=9.36907 destHL=LHand
+  impaling passed damage = 9.36907 HL was crippled
   Unit 1000066549 damaged to death
   Unit 1000011214 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000066549
@@ -43,28 +43,21 @@
   Unit 1001324934 sees corpse of unit 1000066549
   38.7939
   0
-  Unit 1000011214 was attacked by 1001324934 skill=-3.40282e+038 damage=12.92 destHL=RHand
-  0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1001324934 from 1.974538m distance
-  0
-  0
-  0
-  Unit 1804 acknowledges with idleSound = AAn4XyU
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1001324934 skill=3.40282e+038 damage=9.85 destHL=RHand
-  impaling passed damage = 7.86003
+  Unit 1000011214 was attacked by 1001324934 skill=3.40282e+038 damage=10.58 destHL=Body
+  impaling passed damage = 8.59002
   1
-  30.9706
+  30.3119
   Unit 1000011214 was healed
   38.7939
   0
   Delayed sound: Unit 1000011214 heard unit 1001324934 from 1.974538m distance
-  Unit 1001324934 was attacked by 1000011214 skill=3.40282e+038 damage=10.1487 destHL=LLeg
-  impaling passed damage = 10.1487 HL was crippled
+  0
+  Unit 1001324934 was attacked by 1000011214 skill=-3.40282e+038 damage=10.3603 destHL=RLeg
+  0
+  0
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  Unit 1001324934 was attacked by 1000011214 skill=3.40282e+038 damage=11.5065 destHL=Head!
+  impaling passed damage = 11.5065 HL was crippled
   Unit 1000066549 sees unit 1000011214 from 1.97454m distance
   Unit 1000066549 sees unit 1001324934 from 0m distance
   Unit 1001324934 damaged to death
@@ -86,18 +79,17 @@
   Unit 1000010834 sees corpse of unit 1001324934
   Unit 1000010834 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010834
-  Unit 1000011214 sees unit 1000010835 from 1.50571m distance
-  Unit 1000010835 sees unit 1000011214 from 1.50571m distance
+  Unit 1000010835 sees unit 1000011214 from 1.74044m distance
   Unit 1000010835 new motivation Player with power of 10
   1
+  Unit 1000011214 sees unit 1000010835 from 1.74044m distance
   Unit 1000010835 sees corpse of unit 1001324934
   Unit 1000010835 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010835
-  Unit 1000010836 sees unit 1000011214 from 1.50571m distance
+  Unit 1000010836 sees unit 1000011214 from 1.74044m distance
   Unit 1000010836 new motivation Player with power of 10
   1
-  Unit 1000011214 sees unit 1000010836 from 1.50571m distance
-  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 sees unit 1000010836 from 1.74044m distance
   Unit 1000010836 sees corpse of unit 1001324934
   Unit 1000010836 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010836
