@@ -41,7 +41,7 @@ struct UnitByteBlock {      // 5 bytes
     std::uint8_t value;
 };
 #pragma pack(pop)
-static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);
+static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);   // sent as these bytes
 
 void WriteType(MemoryStream& out, std::uint8_t type) { out.WriteValue(type); }
 

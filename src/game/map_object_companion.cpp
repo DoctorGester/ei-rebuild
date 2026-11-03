@@ -90,7 +90,7 @@ bool MapObjectClientSpecific::RunTick() {
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition.x,
+            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, CompanionOwner(this)->localPosition,
                                                   kEndSoundNear, kEndSoundFar, 0);
         }
     }
@@ -108,9 +108,9 @@ bool MapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds->Play3D(name, 0, &CompanionOwner(this)->localPosition.x, kStenchNear, kStenchFar, 0);
+            g_clientWorld.sounds->Play3D(name, 0, CompanionOwner(this)->localPosition, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition.x);
+            g_clientWorld.sounds->MoveSequence(sound->handle, CompanionOwner(this)->localPosition);
         }
     }
 
@@ -127,9 +127,9 @@ bool MapObjectClientSpecific::RunTick() {
         float distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0f) {
-            float* position = &light->localPosition.x;
-            std::memcpy(position, &followed->localPosition.x, 2 * sizeof(float));
-            position[2] = kLightHeight + followed->localPosition.z;
+            Vector3& position = light->localPosition;
+            std::memcpy(&position, &followed->localPosition.x, 2 * sizeof(float));
+            position.z = kLightHeight + followed->localPosition.z;
         }
     }
     return true;

@@ -29,14 +29,14 @@ struct TrapCircle {
     float y;
     float radius;
 };
-static_assert(sizeof(TrapCircle) == 0xC);
+static_assert(sizeof(TrapCircle) == 0xC);   // saved as its 12 bytes
 
 // A point a trap casts at (zero-filled when added).
 struct TrapPoint {
     float x;
     float y;
 };
-static_assert(sizeof(TrapPoint) == 8);
+static_assert(sizeof(TrapPoint) == 8);   // saved as its 8 bytes
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
@@ -80,7 +80,7 @@ struct Waypoint {
     std::int16_t lookWait;       // the wait after the look (AILook::wait; chunk BBBE0002)
     std::uint16_t stopFirst;     // bit 0: AILook::stopFirst (chunk BBBE0004)
 };
-static_assert(sizeof(Waypoint) == 0x14);
+static_assert(sizeof(Waypoint) == 0x14);   // saved as its 20 bytes
 
 // A patrol: where it starts and its waypoints.
 struct Patrol {

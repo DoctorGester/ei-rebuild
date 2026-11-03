@@ -189,9 +189,9 @@ bool WorldClient::IsLocalPlayerIdle() {
 
 // ---- Exits ---------------------------------------------------------------------------------------
 
-bool WorldClient::FindExitAt(const float* point, int* index) {
+bool WorldClient::FindExitAt(const Vector3& point, int* index) {
     for (int i = 0; i < std::ssize(exits); ++i) {
-        if (!exits[i].Contains(point[0], point[1])) continue;
+        if (!exits[i].Contains(point.x, point.y)) continue;
         if (str::Compare(exits[i].target, "none") == 0) continue;
         if (index) *index = i;
         return true;
@@ -256,7 +256,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
         if (!found || found->IsDead() != 0) continue;
         ++living;
         int index = 0;
-        if (!FindExitAt(&found->localPosition.x, &index) || index != exit) {
+        if (!FindExitAt(found->localPosition, &index) || index != exit) {
             result = 0;
             continue;
         }
@@ -307,13 +307,11 @@ void WorldClient::ApplyObjectVariables() {
     }
 }
 
-float* WorldClient::ExitCentre(float* out, int index) {
+Vector2 WorldClient::ExitCentre(int index) {
     const ZoneExit& exit = exits[index];
     float y = (exit.y2 + exit.y1) * 0.5f;
     float x = (exit.x2 + exit.x1) * 0.5f;
-    out[0] = x;
-    out[1] = y;
-    return out;
+    return {x, y};
 }
 
 std::uint32_t WorldClient::EnvironmentFlags(Unit* unit) {

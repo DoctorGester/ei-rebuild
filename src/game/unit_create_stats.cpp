@@ -32,7 +32,6 @@
 namespace {
 
 constexpr float kThird = 0.33333334f;
-static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kStat25 = 25.0f;
 constexpr float kRate15 = 15.0f;
 constexpr float kDefaultStat = 50.0f;
@@ -138,10 +137,8 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
 
 constexpr float kOneF = 1.0f;
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = 0.2f;
-static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTenF = 10.0f;
 constexpr float kMinusTwo = -2.0f;
 constexpr int kSkillBodyB0 = 15;
@@ -576,7 +573,7 @@ void MapObjectManager::ApplyPrototype(MapObject* object, const std::string& name
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         scale = prototype->scale;
-        object->SetFigureScale(&scale.x);
+        object->SetFigureScale(scale);
         object->baseScale = scale;
         object->ApplyBaseScale();
         UnitOrNull(object)->SetSecondPrototype(prototype);

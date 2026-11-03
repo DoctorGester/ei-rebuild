@@ -132,7 +132,7 @@ void AIMap::AdvancePath(Unit* unit, AIPath* path) {
     path->Reset();
     int count = g_serverWorld.tick;
     Vector3 facing = unit->localRotation.AxisY();
-    Vector3 backwards = {-facing.x, -facing.y, -facing.z};
+    Vector3 backwards = -facing;
     path->Start(unit->localPosition, backwards, count - 1);
 
     PathCells& pathCells = path->cells;

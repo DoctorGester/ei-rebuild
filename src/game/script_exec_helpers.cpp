@@ -26,11 +26,11 @@ int LightCount(Script* script) { return static_cast<int>(script->pointLights.siz
 
 // MovePointLight's step: (target - position) * (1 / steps) per axis. steps is a float rounded to an int, so a
 // float holds it.
-void LightStep(ScriptPointLight* light, const float* target, const float* position) {
+void LightStep(ScriptPointLight* light, const Vector3& target, const Vector3& position) {
     const float inverse = 1.0f / static_cast<float>(light->steps);
-    light->step.x = (target[0] - position[0]) * inverse;
-    light->step.y = (target[1] - position[1]) * inverse;
-    light->step.z = (target[2] - position[2]) * inverse;
+    light->step.x = (target.x - position.x) * inverse;
+    light->step.y = (target.y - position.y) * inverse;
+    light->step.z = (target.z - position.z) * inverse;
 }
 
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
@@ -112,7 +112,7 @@ void Script::MovePointLight(const SSCCmd* cmd) {
     light->moving = 1;
     light->removeWhenDone = lib::RoundEven(f[5]);
     light->steps = lib::RoundEven(f[4]);
-    LightStep(light, &f[1], &light->object->localPosition.x);
+    LightStep(light, {f[1], f[2], f[3]}, light->object->localPosition);
 }
 
 void Script::DeletePointLight(const SSCCmd* cmd) {

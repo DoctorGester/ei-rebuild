@@ -28,7 +28,6 @@
 // Pi as the game's float and as a double (the game uses both; the bits are 0x40490FDB).
 constexpr float kPi = 3.14159274f;
 constexpr double kPiDouble = 3.141592653589793;
-static_assert(std::bit_cast<std::uint32_t>(kPi) == 0x40490FDBu);
 
 // ---- Types ---------------------------------------------------------------------------------------
 
@@ -40,11 +39,7 @@ static_assert(sizeof(Vector2) == 8);
 struct Vector3 {
     float x, y, z;
 
-    // The constructor Vector3(x, y, z): callers use the returned `this`.
-    Vector3* Construct(float x, float y, float z);
     float Length() const;                           // XYZ
-    const Vector3* AddInPlace(const Vector3& v);    // returns &v
-    void DivideInPlace(float d);
     double LengthSquared() const;                   // unrounded
 };
 static_assert(sizeof(Vector3) == 12);

@@ -54,7 +54,7 @@ static_assert(offsetof(UnitRecordStats, protectionScale) == 0x70);
 static_assert(offsetof(UnitRecordStats, perception) == 0x74);
 static_assert(offsetof(UnitRecordStats, conspicuity) == 0x8C);
 static_assert(offsetof(UnitRecordStats, attributes) == 0xA4);
-static_assert(sizeof(UnitRecordStats) == 0xAC);
+static_assert(sizeof(UnitRecordStats) == 0xAC);   // read and written as the unit record's 0xAC-byte chunk
 
 class UnitRecord {
 public:

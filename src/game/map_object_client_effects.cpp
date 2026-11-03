@@ -153,7 +153,7 @@ void DropLight(MapObjectClientSpecific* self) {
 
 } // namespace
 
-void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, SpellType kind,
                      const char* suffix) {
     SoundManager* sounds = g_clientWorld.sounds;
     if (kind == SpellType::Stench) {
@@ -330,7 +330,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
-        PlayEffectSound(!first, &added, &CompanionOwner(this)->localPosition.x, added.kind, "\\start.wav");
+        PlayEffectSound(!first, &added, CompanionOwner(this)->localPosition, added.kind, "\\start.wav");
         sounds.push_back(added);
     }
 
@@ -339,7 +339,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         if (record->present) continue;
         MapObject* target = CompanionOwner(this);
         bool alive = !target->IsDead();
-        PlayEffectSound(alive, record, &target->localPosition.x, record->kind, "\\end.wav");
+        PlayEffectSound(alive, record, target->localPosition, record->kind, "\\end.wav");
         sounds.erase(sounds.begin() + i);
         --i;
     }

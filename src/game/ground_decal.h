@@ -16,7 +16,6 @@ struct DecalVertex {
     Vector3 position;
     float u, v;
 };
-static_assert(sizeof(DecalVertex) == 0x14 && offsetof(DecalVertex, u) == 0x0C);
 
 struct DecalTexCoord {
     float u, v;

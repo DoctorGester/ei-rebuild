@@ -284,8 +284,8 @@ void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3&
     if (immediately) {
         g_serverWorld.aiMap.sectorMap.Move(serverUnit, target);
         Vector3 facing = Normalised(direction);
-        serverUnit->SetHeading(&facing.x);
-        unit->SetHeading(&facing.x);
+        serverUnit->SetHeading(facing);
+        unit->SetHeading(facing);
         controller->ResyncWithUnit();
         return;
     }

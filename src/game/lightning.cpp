@@ -172,9 +172,7 @@ void LightningSegment::Animate(float time, float amplitude) {
 
 void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     start = from;
-    step.x = to.x - from.x;
-    step.y = to.y - from.y;
-    step.z = to.z - from.z;
+    step = to - from;
     float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(step));
 
     // Point count and the length the displacement axes are scaled to.
@@ -271,12 +269,8 @@ void Lightning::UpdateBounds() {
     boundsSpare.x = 0.0f;
     boundsSpare.y = 0.0f;
     boundsSpare.z = 0.0f;
-    bounds.boxMin.x = bounds.boxMin.x - bounds.center.x;
-    bounds.boxMin.y = bounds.boxMin.y - bounds.center.y;
-    bounds.boxMin.z = bounds.boxMin.z - bounds.center.z;
-    bounds.boxMax.x = bounds.boxMax.x - bounds.center.x;
-    bounds.boxMax.y = bounds.boxMax.y - bounds.center.y;
-    bounds.boxMax.z = bounds.boxMax.z - bounds.center.z;
+    bounds.boxMin -= bounds.center;
+    bounds.boxMax -= bounds.center;
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(bounds.boxMax));
 }
@@ -472,10 +466,7 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
             float along = branchPos[i];
             float newAmplitude = KeyAmplitude(power);
             float rest = 1.0f - along;
-            Vector3 origin;
-            origin.x = along * from.x + rest * to.x;
-            origin.y = along * from.y + rest * to.y;
-            origin.z = along * from.z + rest * to.z;
+            Vector3 origin = along * from + rest * to;
             branches[i].Init(origin, to);
             FreshKeys(branches[i], time, newAmplitude);
             branches[i].width = (g_clientRandom.Next() * 1.8626452e-10f + 0.7f) * strength * 0.5f;
@@ -629,7 +620,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     int frame = (OwningWorld()->tick + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = j * 0.125f;   // 1/8
-        Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
+        Vector3 along = towards * t * size;
         LightningPoint& p = g_glowPoints[j];
         p.x = position.x + along.x;
         p.y = position.y + along.y;
@@ -670,8 +661,8 @@ int Lightning::Draw(SceneRenderer* device) {
 
     float count = static_cast<float>(std::ssize(main.points));
     Vector3 start = main.start;
-    Vector3 run{count * main.step.x, count * main.step.y, count * main.step.z};
-    Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
+    Vector3 run = count * main.step;
+    Vector3 end = start + run;
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f;
     if (power > zero) {

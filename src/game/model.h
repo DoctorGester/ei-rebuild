@@ -351,7 +351,6 @@ struct MeshCorner {
     std::uint16_t normal;
     std::uint16_t texCoord;
 };
-static_assert(sizeof(MeshCorner) == 6);
 
 class MappedResource;
 

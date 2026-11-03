@@ -27,10 +27,7 @@ FigureMesh* AsMesh(EngineObject* part) { return static_cast<FigureMesh*>(part); 
 void PlaceRoot(FigureAnimationState* state) {
     Object3D* owner = state->owner;
     float factor = owner->AnimationFactor(owner->scale.z);
-    Vector3 origin;
-    origin.z = factor * owner->defaultScale.z;
-    origin.y = factor * owner->defaultScale.y;
-    origin.x = factor * owner->defaultScale.x;
+    Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin);
 }
 

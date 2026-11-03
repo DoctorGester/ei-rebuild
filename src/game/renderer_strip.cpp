@@ -91,18 +91,18 @@ TLVertex* StripAt(int i) { return g_strip.data() + i; }
 // The cross section at `src` across `direction`: k = width * rhw * 15 / hypot(dx, dy);
 // vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved by (-k*dy, k*dx) with v at the
 // bottom, both with the current u. Appends both to `*array` at `*count`.
-void EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
+void EmitSection(const TLVertex* src, const Vector2& direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = width * src->rhw * kWidthScale;
-    const float k = scale / std::hypot(direction[0], direction[1]);
+    const float k = scale / std::hypot(direction.x, direction.y);
     *top = *src;
-    top->x = k * direction[1] + top->x;
-    top->y = top->y - k * direction[0];
+    top->x = k * direction.y + top->x;
+    top->y = top->y - k * direction.x;
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *src;
-    bottom->x = bottom->x - k * direction[1];
-    bottom->y = k * direction[0] + bottom->y;
+    bottom->x = bottom->x - k * direction.y;
+    bottom->y = k * direction.x + bottom->y;
     SetUv(bottom, g_bottomV);
 }
 
@@ -110,20 +110,16 @@ void EmitSection(const TLVertex* src, const float* direction, TLVertex** array, 
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
 // the previous one), else (1, 0). Returns out.
-float* StripDirection(float* out, int index, int mode, const void* array) {
+Vector2 StripDirection(int index, int mode, const void* array) {
     const auto* points = static_cast<const std::vector<TLVertex>*>(array);
     const TLVertex* v = points->data();
     if (mode == 1 || (mode == 2 && !(index < std::ssize(*points) - 1))) {
-        out[0] = v[index].x - v[index - 1].x;
-        out[1] = v[index].y - v[index - 1].y;
-    } else if (mode == 2) {
-        out[0] = v[index + 1].x - v[index - 1].x;
-        out[1] = v[index + 1].y - v[index - 1].y;
-    } else {
-        out[0] = 1.0f;
-        out[1] = 0.0f;
+        return {v[index].x - v[index - 1].x, v[index].y - v[index - 1].y};
     }
-    return out;
+    if (mode == 2) {
+        return {v[index + 1].x - v[index - 1].x, v[index + 1].y - v[index - 1].y};
+    }
+    return {1.0f, 0.0f};
 }
 
 // Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog set
@@ -193,8 +189,7 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), &ribbon, &count, widthBits);
             g_currentU = g_currentU + step;
-            float direction[2];
-            StripDirection(direction, i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
+            Vector2 direction = StripDirection(i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, true);
@@ -210,13 +205,11 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
                 continue;
             }
             if (!started) {
-                float direction[2];
-                StripDirection(direction, i, 1, &g_strip);
+                Vector2 direction = StripDirection(i, 1, &g_strip);
                 EmitSection(StripAt(i - 1), direction, &ribbon, &count, width);
             }
             g_currentU = g_currentU + step;
-            float direction[2];
-            StripDirection(direction, i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
+            Vector2 direction = StripDirection(i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
             AddQuad(count, false);

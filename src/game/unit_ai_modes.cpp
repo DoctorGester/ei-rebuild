@@ -57,7 +57,7 @@ void SetPositions(AIBrain* brain, const Vector3& where, float nearRange, float f
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear), the run flag,
 // and the references dropped (the leader only while the party is not in danger).
 void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3& to, bool run, const Vector3& offset) {
-    Vector3 shifted{to.x + offset.x, to.y + offset.y, to.z + offset.z};
+    Vector3 shifted = to + offset;
     self->point = self->PathClear(brain, to, shifted) ? shifted : to;
     self->runs = run;
     if (!PartyInDanger(brain->owner->unit)) self->leader.Reset();
@@ -607,18 +607,14 @@ constexpr int kLargeSizeClass = 6;
 
 constexpr float kThree = 3.0f;
 constexpr float kThird = 0.33333334f;
-static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kSeenScale = 1.5f;
 constexpr float kMaxLoadFactor = 0.6f;
-static_assert(std::bit_cast<std::uint32_t>(kMaxLoadFactor) == 0x3F19999Au);
 constexpr float kFlightStep = 5.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kSmoothingScale = 5000.0f;
 constexpr float kFar = 1e30f;
-static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 constexpr float kDistanceWeight = 30.0f;
 constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
-static_assert(std::bit_cast<std::uint32_t>(kDistanceDivisor) == 0x3D042108u);
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
 constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
@@ -642,9 +638,7 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
     float length = LengthZXY(away);
     if (!IsZero(length)) {
         float scale = kFlightStep / length;
-        away.x = scale * away.x;
-        away.y = away.y * scale;
-        away.z = away.z * scale;
+        away *= scale;
     }
     IsaacRandom& random = g_random;
     float jitterX = pc24::Mul(static_cast<double>(random.Next()), kRandomSix) - kThree;
@@ -802,9 +796,7 @@ void FearMode::Execute(AIBrain* brain) {
             spread = width;
             if (!IsZero(length)) {
                 float scale = kFlightStep / length;
-                step.x = scale * step.x;
-                step.y = step.y * scale;
-                step.z = step.z * scale;
+                step *= scale;
             }
             float low = -width;
             IsaacRandom& random = g_random;
@@ -842,9 +834,7 @@ void FearMode::Execute(AIBrain* brain) {
             float length = LengthXYZ(v);
             if (!IsZero(length)) {
                 float twice = length + length;
-                direction.x = v.x / twice;
-                direction.y = v.y / twice;
-                direction.z = v.z / twice;
+                direction = v / twice;
             }
             brain->PlanLooks(&order, direction, kNoWander, false);
             brain->StartMove(&order);
@@ -858,10 +848,8 @@ void FearMode::Execute(AIBrain* brain) {
 namespace {
 constexpr int kStandby = 1;                                     // Unit::fightAtWill: may fight
 constexpr float kReachScale = 1.1f;
-static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = 1.4f;
-static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
@@ -1024,7 +1012,6 @@ constexpr float kAllySpace = 2.5f;                  // x the standing height
 constexpr float kRangePerDistance = 3.0f;
 constexpr float kDetourFactor = 5000.0f;
 constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
-static_assert(std::bit_cast<std::uint32_t>(kCooldownPerDistance) == 0x3EAAAAABu);
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -1035,7 +1022,6 @@ constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
 constexpr float kOnTheWaySq = 1.3f;
 constexpr float kSideOffset = 1.3649999f;    // (1.365)
-static_assert(std::bit_cast<std::uint32_t>(kSideOffset) == 0x3FAEB851u);
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;
@@ -1076,7 +1062,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
             dy = sine + direction.y;
             if (tries-- < 0) break;
             Vector3 reach{dx + dx, dy + dy, direction.z + direction.z};
-            Vector3 to{reach.x + eye.x, reach.y + eye.y, reach.z + eye.z};
+            Vector3 to = reach + eye;
             float sight = g_serverWorld.aiMap.LineOfSight(eye, to);
             EI_NAN_AUDIT(sight);
             if (sight == 1.0f) break;
@@ -1227,13 +1213,11 @@ void AIBrain::UpdateFollow() {
     float uz = self->localPosition.z - leader->localPosition.z;
     EI_NAN_AUDIT(side.x, side.y, side.z, ux, uy, uz);
     if (DotUnrounded<Sum3::ZYX>(side.x, side.y, side.z, ux, uy, uz) < 0.0f) {
-        side.x = -side.x;
-        side.y = -side.y;
-        side.z = -side.z;
+        side = -side;
     }
 
     AIPath path;
-    Vector3 aside{passing.x + side.x, passing.y + side.y, side.z + passing.z};
+    Vector3 aside = passing + side;
     g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
     float half = 0.5f;
     float targetY = half * path.targetY;

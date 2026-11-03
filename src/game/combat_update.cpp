@@ -36,7 +36,6 @@ namespace {
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // Unit flags, cleared every update
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
-static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 

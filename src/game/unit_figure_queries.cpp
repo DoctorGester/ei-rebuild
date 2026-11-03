@@ -51,9 +51,9 @@ Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
     Vector3 along = {twiceDot * ux, twiceDot * uy, twiceDot * uz};
     float twiceS = q.w + q.w;
     Vector3 cross = {uy * v.z - uz * v.y, uz * v.x - ux * v.z, ux * v.y - uy * v.x};
-    Vector3 turn = {twiceS * cross.x, twiceS * cross.y, twiceS * cross.z};
+    Vector3 turn = twiceS * cross;
     float k = q.w * q.w - LengthSquaredXYZ(u);
-    return {k * v.x + turn.x + along.x, k * v.y + turn.y + along.y, k * v.z + turn.z + along.z};
+    return k * v + turn + along;
 }
 } // namespace
 
@@ -106,15 +106,15 @@ Vector3 Unit::EffectPoint() {
         if (MapType() == MapObjectType::Hero) {
             if (FigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
-                PartWorldPosition(&at.x, hand);
+                at = PartWorldPosition(hand);
                 return at;
             }
         } else if (std::optional<Vector3> weapon = ClientController()->WeaponPoint()) {
             local = *weapon;
         } else {
-            return {localPosition.x + bounds.center.x, localPosition.y + bounds.center.y, localPosition.z + bounds.center.z};
+            return localPosition + bounds.center;
         }
     }
     Vector3 turned = RotateVector(localRotation, local);
-    return {turned.x + localPosition.x, turned.y + localPosition.y, turned.z + localPosition.z};
+    return turned + localPosition;
 }

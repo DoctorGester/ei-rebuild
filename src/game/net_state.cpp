@@ -157,7 +157,7 @@ std::uint32_t MapObject::ReadNetState(int first) {
     if (DeltaField* field = state->BeginField(1)) {
         Vector3 figureScale;
         field->ReadDelta(&figureScale, 0xC);
-        SetFigureScale(&figureScale.x);
+        SetFigureScale(figureScale);
         complete &= SnapshotConsumed();
         field->EndField();
     }

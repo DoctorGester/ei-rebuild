@@ -96,7 +96,7 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, 
 void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition;
-    Vector3 from = {origin.x, origin.y, origin.z};
+    Vector3 from = origin;
     auto* world = OwningWorld();
     from.z = pc24::Add(world->RawSurfaceHeightAt(from.x, from.y), from.z);   // the double height: one rounding
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {

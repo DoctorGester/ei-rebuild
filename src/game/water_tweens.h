@@ -15,7 +15,7 @@ struct TweenEntry {
     float value;
     float step;
 };
-static_assert(sizeof(TweenEntry) == 16);
+static_assert(sizeof(TweenEntry) == 16);   // saved as its 16 bytes
 
 // The world's water level changes, in the order they were first set.
 struct WaterTweens {

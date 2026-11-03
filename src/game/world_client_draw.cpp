@@ -164,9 +164,7 @@ int WorldClient::Render() {
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
     // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
     if (terrain && terrain->sun) {
-        const Vector3& d = terrain->sun->direction;
-        const float direction[3] = {d.x, d.y, d.z};
-        render::ShadowSun(direction);
+        render::ShadowSun(terrain->sun->direction);
     }
     HandOverSceneLights(this);
     Matrix4 view = view::ViewMatrix(drawn.position, drawn.rotation);
@@ -410,9 +408,7 @@ int WorldClient::DrawPass() {
                 Vector3 point;
                 point = object->localPosition;
                 if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
-                    Vector3 scratch;
-                    const float* at = object->PartWorldPosition(&scratch.x, part);
-                    lib::LoadBytes(point, at);
+                    point = object->PartWorldPosition(part);
                     point.z = Reload(object->localPosition.z);
                 }
                 const Quaternion* orientation = &object->localRotation;

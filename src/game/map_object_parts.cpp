@@ -64,7 +64,7 @@ FigureMesh* Object3D::RemovePartNamed(std::string_view partName) {
     return part;
 }
 
-float* Object3D::PartWorldPosition(float* out, const FigureMesh* part) {
+Vector3 Object3D::PartWorldPosition(const FigureMesh* part) {
     const Vector3 figureScale = attached->GetScale();
     const float scaleX = figureScale.x, scaleY = figureScale.y, scaleZ = figureScale.z;
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
@@ -82,10 +82,7 @@ float* Object3D::PartWorldPosition(float* out, const FigureMesh* part) {
     float x = (along * vx + twiceW * crossX) + twiceDot * ux;
     float y = (along * vy + twiceW * crossY) + twiceDot * uy;
     float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
-    out[0] = x * scaleX + localPosition.x;
-    out[1] = y * scaleY + localPosition.y;
-    out[2] = z * scaleZ + localPosition.z;
-    return out;
+    return {x * scaleX + localPosition.x, y * scaleY + localPosition.y, z * scaleZ + localPosition.z};
 }
 
 // --- The animation database -------------------------------------------------------------------

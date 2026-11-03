@@ -74,7 +74,7 @@ constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 // A copy of `v`, normalised unless its length is zero.
 Vector3 NormalisedUnlessZero(const Vector3& v) {
-    Vector3 out{v.x, v.y, v.z};
+    Vector3 out = v;
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return out;
@@ -90,11 +90,11 @@ void PlaceMover(BriefingMover* node) {
     Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
     UnitServer* controller = unit->ServerController();
-    Vector3 target{node->target.x, node->target.y, node->target.z};
+    Vector3 target = node->target;
     g_serverWorld.aiMap.sectorMap.Move(unit, target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
-    unit->SetHeading(&facing.x);
-    node->person->SetHeading(&facing.x);
+    unit->SetHeading(facing);
+    node->person->SetHeading(facing);
     controller->ResyncWithUnit();
 }
 

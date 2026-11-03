@@ -183,10 +183,7 @@ void LightWall(SpellEffect* e) {
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
             auto* bolt = e->Visual<EffectLightning>();
-            Vector3 along;
-            along.x = bolt->to.x - bolt->from.x;
-            along.y = bolt->to.y - bolt->from.y;
-            along.z = bolt->to.z - bolt->from.z;
+            Vector3 along = bolt->to - bolt->from;
             e->HitUnitsAlong(along);
             e->flags |= 1;
         }

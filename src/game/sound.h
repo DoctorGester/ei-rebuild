@@ -208,18 +208,18 @@ struct SoundManager : EngineObject {
     DeferredSound* FindDeferred(std::uint32_t handle);
     void UpdatePositional(SoundSlot* slot);
     int SetSoundVolume(int handle, int volume, int pan);
-    int SetSoundPosition(int handle, const float* position, float nearDist, float farDist);
+    int SetSoundPosition(int handle, const Vector3& position, float nearDist, float farDist);
     int StopSound(int handle);
-    void SetListener(const float* position, const float* axis);
-    int AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer, int minInterval,
+    void SetListener(const Vector3& position, const Vector3& axis);
+    int AddEmitter(const std::vector<std::string>* names, const Vector3& position, float inner, float outer, int minInterval,
                    int maxInterval);
-    void MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
+    void MoveEmitter(int index, const Vector3& position, float inner, float outer, int minInterval,
                      int maxInterval);
     int RemoveEmitter(int index);
-    int AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist, float farDist,
+    int AddSequence(const std::vector<std::string>* names, int priority, const Vector3& position, float nearDist, float farDist,
                     int random, int count, int(*chooser)(int, int));
-    int MoveSequence(std::uint32_t id, const float* position);
-    int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);
+    int MoveSequence(std::uint32_t id, const Vector3& position);
+    int UpdateSequence(std::uint32_t id, const Vector3& position, float nearDist, float farDist, int count);
     int RemoveSequence(std::uint32_t id);
     void Tick();
     void FadeOutStream();
@@ -279,7 +279,7 @@ struct SoundManager : EngineObject {
     void DeleteDeferred();
 
     void StreamNotify();                                                          // empty
-    int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop);
+    int Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, int loop);
     int Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
     // From the cache, or read from the archives (with `compressed` an MP3, decoded whole); a new handle. 0 when the

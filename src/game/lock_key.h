@@ -22,4 +22,4 @@ struct LockKey {
     std::uint32_t id;
     std::uint32_t level;
 };
-static_assert(sizeof(LockKey) == 0xC);
+static_assert(sizeof(LockKey) == 0xC);   // sent as its 12 bytes

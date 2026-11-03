@@ -439,7 +439,7 @@ public:
 
     // Sets the scale and, when it changed, rebuilds the figure at that scale through the figure manager, copies
     // each part's piece record from it, rescales the animation and recomputes the bounds.
-    void SetFigureScale(const float* newScale);
+    void SetFigureScale(const Vector3& newScale);
 
     // The first part whose name starts with `prefix` (case-sensitive), or null.
     FigureMesh* FindPartByPrefix(std::string_view prefix);
@@ -457,7 +457,7 @@ public:
     FigureMesh* RemovePartNamed(std::string_view partName);
     // `part`'s position turned by the object's rotation, scaled by the side half's GetScale and moved to the
     // object's position.
-    float* PartWorldPosition(float* out, const FigureMesh* part);
+    Vector3 PartWorldPosition(const FigureMesh* part);
 
     // The animation database, loaded on first use through the owner's GetFile ("<name>.adb"; nothing without
     // an owner). Null when there is none.

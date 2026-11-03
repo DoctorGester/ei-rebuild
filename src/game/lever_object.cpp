@@ -58,19 +58,19 @@ void Lever::Create() {
 bool Lever::RunTick() {
     Update();
     if (WorldContext()->IsServer()) return false;
-    Vector3 shown = {scale.x, scale.y, scale.z};
+    Vector3 shown = scale;
     // The tick (an int) subtracted with one rounding.
     float t = pc24::Sub(endTick, static_cast<double>(g_clientWorld.tick)) * rate;
     if (t > 0.0f) {
         shown.y = to - (to - from) * t;
-        AsObject3D()->SetFigureScale(&shown.x);
+        AsObject3D()->SetFigureScale(shown);
         g_clientWorld.RefreshPlatforms(this);
         return true;
     }
     EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
         shown.y = to;
-        AsObject3D()->SetFigureScale(&shown.x);
+        AsObject3D()->SetFigureScale(shown);
         g_clientWorld.RefreshPlatforms(this);
     }
     return false;
@@ -154,7 +154,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
         const LeverRecord* record = g_leverTable.Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            g_clientWorld.sounds->Play3D(record->sound, 0, &localPosition.x, kSoundNear, kSoundFar, 0);
+            g_clientWorld.sounds->Play3D(record->sound, 0, localPosition, kSoundNear, kSoundFar, 0);
     }
     return complete;
 }

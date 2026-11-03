@@ -24,19 +24,13 @@
 
 namespace {
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kPercentB = 0.01f;      // 0.01, a second copy
-static_assert(std::bit_cast<std::uint32_t>(kPercentB) == 0x3C23D70Au);
 constexpr float kHitPointEffect = 0.005f;
-static_assert(std::bit_cast<std::uint32_t>(kHitPointEffect) == 0x3BA3D70Au);
 constexpr float kDamageEffect = 0.003f;
-static_assert(std::bit_cast<std::uint32_t>(kDamageEffect) == 0x3B449BA6u);
 constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = 0.2f;
-static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTen = 10.0f;
 constexpr float kRevived = 0.001f;
-static_assert(std::bit_cast<std::uint32_t>(kRevived) == 0x3A83126Fu);
 constexpr double kMinHeal = 0.001;                                  // a double
 constexpr float kNoCapacity = 1000000.0f;
 constexpr float kKeyedUnknown044 = -2.0f;

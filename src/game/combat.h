@@ -281,7 +281,7 @@ public:
     void FinishCast();
     // Order setters: each replaces the queued order (action2). Kind 2 (turn) towards `direction`; param =
     // `time`.
-    void OrderTurn(const float* direction, std::uint32_t time);
+    void OrderTurn(const Vector3& direction, std::uint32_t time);
     // Kind 1 (move) to `point`: source = `walk` != 0, modifier = `run`, the point's z replaced by `range`
     // (sic). A party unit with a real point (z not -1313) gets param 1 while the world is not paused, else
     // plans the move within `range`.
@@ -357,7 +357,7 @@ public:
     bool FindSightTarget(const AIOrder* order, struct SightTarget* out);
     // Can the unit carry out `order` at `time` with its target at `point`: in range for AI units, no living
     // unit in the way of a melee or skill order, and a line of sight when the order needs one.
-    bool CanActFrom(const AIOrder* order, const float* point, int time);
+    bool CanActFrom(const AIOrder* order, const Vector3& point, int time);
     // Builds the animation (which draws random numbers), then looks for the first moment at which the target
     // is in reach, the unit can turn to it in time, and CanActFrom holds; fills `plan` then.
     bool PlanAction(const AIOrder* order, struct OrderPlan* plan);

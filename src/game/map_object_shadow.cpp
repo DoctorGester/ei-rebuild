@@ -41,14 +41,10 @@ constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: fit the shad
 constexpr float kLeastDown = 0.3f;
 
 constexpr float kRed = 0.3f;
-static_assert(std::bit_cast<std::uint32_t>(kRed) == 0x3E99999Au);
 constexpr float kGreen = 0.6f;
-static_assert(std::bit_cast<std::uint32_t>(kGreen) == 0x3F19999Au);
 constexpr float kBlue = 0.1f;
-static_assert(std::bit_cast<std::uint32_t>(kBlue) == 0x3DCCCCCDu);
 constexpr float kStrongFactor = 10.0f;
 constexpr float kTiltSlope = -0.36397f;  // -tan(20 degrees)
-static_assert(std::bit_cast<std::uint32_t>(kTiltSlope) == 0xBEBA5A47u);
 
 constexpr float kMinimumTilt = kPi / 180.0f * 20.0f;   // radians
 
@@ -80,9 +76,7 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
         towards = kDefaultLight;
     } else {
         float inverse = 1.0f / std::sqrt(distanceSquared);
-        towards.x = towards.x * inverse;
-        towards.y = towards.y * inverse;
-        towards.z = towards.z * inverse;
+        towards *= inverse;
     }
     float scale = intensity;
     if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
@@ -140,9 +134,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         } else {
             DirectionalShare(light, &share);
         }
-        sum.x = share.x + sum.x;
-        sum.y = share.y + sum.y;
-        sum.z = share.z + sum.z;
+        sum += share;
     }
     if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;

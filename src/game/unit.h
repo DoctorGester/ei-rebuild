@@ -117,7 +117,7 @@ static_assert(offsetof(UnitParams, combat) == 0x18);
 static_assert(offsetof(UnitParams, slots) == 0x30);
 static_assert(offsetof(UnitParams, attributes) == 0xD8);
 static_assert(offsetof(UnitParams, flags) == 0x107);
-static_assert(sizeof(UnitParams) == 0x108);
+static_assert(sizeof(UnitParams) == 0x108);   // sent as its 264 bytes
 
 struct PathOrder;
 struct SpeechRecord;
@@ -577,9 +577,6 @@ struct UnitVitals {
     float manaRegen;
     UnitStatPair protection[7];     // per damage type (current: what a hit loses to it)
 };
-static_assert(offsetof(UnitVitals, hitPoints) == 0x08);
-static_assert(offsetof(UnitVitals, protection) == 0x20);
-static_assert(sizeof(UnitVitals) == 0x58);
 
 // A creature's computed statistics (built from the unit's parameters).
 struct UnitStats {
@@ -790,7 +787,7 @@ static_assert(offsetof(UnitStats, damageWeights) == 0x90 && offsetof(UnitStats, 
 static_assert(offsetof(UnitStats, perception) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
-static_assert(sizeof(UnitStats) == 0x704);
+static_assert(sizeof(UnitStats) == 0x704);   // saved as its bytes (UnitStats::SaveTo / LoadFrom)
 
 // The record the player keeps for each unit of the party (found by unit id through a party's record array).
 // Each item list is an aligned pointer array of the record's own copies of the items.
@@ -939,7 +936,7 @@ struct EffectSoundRecord {
 // An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
 // (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
 // the bare suffix) or stops it and plays its end sound.
-void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, SpellType kind,
                      const char* suffix);
 
 // The client-side companion of a map object (ClassName "MapObjectClientSpecific"); its owner is a unit for IsDead

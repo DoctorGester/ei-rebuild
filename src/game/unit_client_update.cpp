@@ -182,7 +182,7 @@ void UnitClientSpecific::AdvanceTime(float time) {
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
-        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
+        Vector3 position = unit->localPosition;
         position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
         OwningWorld()->MoveObject(unit, &position.x);
         return;
@@ -316,7 +316,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         direction.x = pc24::Round(pc24::Cos(heading));
         direction.y = pc24::Round(pc24::Sin(heading));
         direction.z = 0.0f;
-        unit->SetHeading(&direction.x);
+        unit->SetHeading(direction);
     }
 
     // The animation the figure plays.

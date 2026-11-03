@@ -45,9 +45,7 @@ constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr float kPerDegree = 1.0f / 180.0f;
 constexpr float kRadiansPerDegree = kPi * kPerDegree;
 constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
-static_assert(std::bit_cast<std::uint32_t>(kPerHour) == 0x3D2AAAABu);
 // A cave's sun: (0.5, 0.5, -0.70710677).
-static_assert(std::bit_cast<std::uint32_t>(-0.707106f) == 0xBF3504E6u);
 const Vector3 kCaveSun = {0.5f, 0.5f, -0.707106f};
 
 // The hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
@@ -155,7 +153,7 @@ int WorldClient::UpdateLighting() {
         display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
         if (skyDome) {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
-            skyDome->ApplyLight(&kCaveSun.x, black, black);
+            skyDome->ApplyLight(kCaveSun, black, black);
         }
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
@@ -211,7 +209,7 @@ int WorldClient::UpdateLighting() {
     if (skyDome) {
         const SkyColour ambientColour = {skyAmbient.r, skyAmbient.g, skyAmbient.b, skyAmbient.a};
         const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
-        skyDome->ApplyLight(&direction.x, ambientColour, sunColour);
+        skyDome->ApplyLight(direction, ambientColour, sunColour);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;

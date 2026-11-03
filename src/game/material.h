@@ -23,7 +23,6 @@ struct MaterialColors {
     Vector4 emissive;
     float power;
 };
-static_assert(sizeof(MaterialColors) == 0x44);
 
 // An element of the material's entries (16 bytes): an emissive colour kept while the object's light
 // is on (Object3DClientSpecific::SetLit pushes and pops them).

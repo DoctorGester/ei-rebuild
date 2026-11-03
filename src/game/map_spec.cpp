@@ -175,7 +175,7 @@ void ObjectSpec::Apply() {
     MapObject* mapObject = MadeMapObject();
     mapObject->localPosition = position;
     mapObject->localRotation = rotation;
-    mapObject->SetFigureScale(&scale.x);
+    mapObject->SetFigureScale(scale);
     mapObject->baseScale = scale;
     mapObject->ApplyBaseScale();
     std::uint32_t& flags = mapObject->flags;

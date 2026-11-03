@@ -19,21 +19,14 @@
 
 namespace {
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kHundred = 100.0f;
 constexpr float kLowerPart = 0.4f;
-static_assert(std::bit_cast<std::uint32_t>(kLowerPart) == 0x3ECCCCCDu);
 constexpr float kUpperPart = 0.8f;
-static_assert(std::bit_cast<std::uint32_t>(kUpperPart) == 0x3F4CCCCDu);
 constexpr float kEyeLevel = 0.7f;
-static_assert(std::bit_cast<std::uint32_t>(kEyeLevel) == 0x3F333333u);
 constexpr float kNearReach = 5.0f;
 constexpr float kSteepUp = 1.73205f;
-static_assert(std::bit_cast<std::uint32_t>(kSteepUp) == 0x3FDDB3D0u);
 constexpr float kSteepDown = -1.73205f;
-static_assert(std::bit_cast<std::uint32_t>(kSteepDown) == 0xBFDDB3D0u);
 constexpr float kReachSlack = 0.15f;
-static_assert(std::bit_cast<std::uint32_t>(kReachSlack) == 0x3E19999Au);
 
 constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
 constexpr int kWeaponBow = 5;

@@ -91,7 +91,6 @@ void FillMatrixStacks(SceneRenderer* renderer) {
     zFar = cam->farDistance;
     fov = cam->fieldOfView;
     Matrix4 m;
-    static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
     ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
     FillScreenStacks(renderer);

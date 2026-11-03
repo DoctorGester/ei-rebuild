@@ -60,7 +60,6 @@ int RoundTimeOffset(int time, float extra) {
 
 constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
-static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CA);
 
 // (float)(int)b: converts 0/1 exactly.
 float FromBool(bool value) { return static_cast<float>(value ? 1 : 0); }

@@ -119,11 +119,11 @@ void Object3D::ComputeBounds() {
     bounds.center.z = centerZ;
 }
 
-void Object3D::SetFigureScale(const float* newScale) {
-    EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
-    if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
+void Object3D::SetFigureScale(const Vector3& newScale) {
+    EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale.x, newScale.y, newScale.z);
+    if (scale.x == newScale.x && scale.y == newScale.y && scale.z == newScale.z)
         return;
-    lib::LoadBytes(scale, newScale);
+    scale = newScale;
     if (LinkMesh* current = figure) {
         LinkFigureLoader* loader = WorldContext()->FigureLoader();
         LinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
@@ -504,12 +504,8 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
     bounds.center.x = static_cast<float>((low.x + high.x) * 0.5f);
     bounds.center.y = static_cast<float>((low.y + high.y) * 0.5f);
     bounds.center.z = static_cast<float>((low.z + high.z) * 0.5f);
-    bounds.boxMin.x = low.x - bounds.center.x;
-    bounds.boxMin.y = low.y - bounds.center.y;
-    bounds.boxMin.z = low.z - bounds.center.z;
-    bounds.boxMax.x = high.x - bounds.center.x;
-    bounds.boxMax.y = high.y - bounds.center.y;
-    bounds.boxMax.z = high.z - bounds.center.z;
+    bounds.boxMin = low - bounds.center;
+    bounds.boxMax = high - bounds.center;
     bounds.flags |= BoundsFlag::Box;
     bounds.radius = LengthXYZ(bounds.boxMax);
     bounds.flags |= BoundsFlag::Sphere;

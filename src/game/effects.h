@@ -346,26 +346,6 @@ struct ParticleElement {
     };
     int ticks;                  // (lightning point 0: bursts; modifier point 0: the fade step)
 };
-static_assert(sizeof(ParticleElement) == 0x38);
-static_assert(offsetof(ParticleElement, bolt.emitted) == 0x30 && offsetof(ParticleElement, ring.offset) == 0x18);
-static_assert(offsetof(ParticleElement, plane.normal) == 0x18 && offsetof(ParticleElement, plane.color) == 0x30);
-static_assert(offsetof(ParticleElement, foot.radius) == 0x18 && offsetof(ParticleElement, foot.countdown) == 0x30);
-static_assert(offsetof(ParticleElement, cast.radius) == 0x18 && offsetof(ParticleElement, cast.alpha) == 0x30);
-static_assert(offsetof(ParticleElement, swirl.velocity) == 0x24 && offsetof(ParticleElement, sphere.speed) == 0x20);
-static_assert(offsetof(ParticleElement, sphereTilt.tiltSin) == 0x1C && offsetof(ParticleElement, flames.centre) == 0x18);
-static_assert(offsetof(ParticleElement, orbiter.previous) == 0x24 && offsetof(ParticleElement, link.inverseLength) == 0x1C);
-static_assert(offsetof(ParticleElement, linkAxis.axis) == 0x18 && offsetof(ParticleElement, fragment.sizeFactor) == 0x28);
-static_assert(offsetof(ParticleElement, fragment.age) == 0x30 && offsetof(ParticleElement, vent.pause) == 0x30);
-static_assert(offsetof(ParticleElement, ray.age) == 0x30 && offsetof(ParticleElement, ball.velocity) == 0x18);
-static_assert(offsetof(ParticleElement, ball.age) == 0x30 && offsetof(ParticleElement, column.foot) == 0x2C);
-static_assert(offsetof(ParticleElement, column.height) == 0x20 && offsetof(ParticleElement, mushroom.stem) == 0x18);
-static_assert(offsetof(ParticleElement, gas.height) == 0x20 && offsetof(ParticleElement, funnel.height) == 0x24);
-static_assert(offsetof(ParticleElement, funnel.damping) == 0x2C && offsetof(ParticleElement, star.rotation) == 0x18);
-static_assert(offsetof(ParticleElement, star.inverseOrbit) == 0x24 && offsetof(ParticleElement, star.rise) == 0x2C);
-static_assert(offsetof(ParticleElement, banshee.radius) == 0x0C && offsetof(ParticleElement, clay.direction) == 0x18);
-static_assert(offsetof(ParticleElement, wind.direction) == 0x10 && offsetof(ParticleElement, wind.age) == 0x30);
-static_assert(offsetof(ParticleElement, trans.count) == 0x1C && offsetof(ParticleElement, glow.mark) == 0x18);
-static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(ParticleElement, word[9]) == 0x30);
 
 class ParticleSource;
 class Object3D;

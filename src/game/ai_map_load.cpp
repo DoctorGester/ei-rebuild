@@ -211,7 +211,6 @@ int ReadTerrainTypes(AIMap& map) {
 // sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not 1 / 65535 (with that the ground levels
 // of a few dozen cells per map were one unit off). Written as the exact fraction.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
-static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
 
 constexpr float kQuarter = 0.25f;
 

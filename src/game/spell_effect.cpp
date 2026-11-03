@@ -245,10 +245,7 @@ Next StartAcidRay(SpellEffect* e, const Vector3& from) {
 // Fireball: a particle source flying at the target point; it explodes in state 1.
 Next StartFireball(SpellEffect* e, const Vector3& from) {
     float speed = e->HeldSpell()->speed;
-    Vector3 velocity;
-    velocity.x = e->targetPoint.x - e->position.x;
-    velocity.y = e->targetPoint.y - e->position.y;
-    velocity.z = e->targetPoint.z - e->position.z;
+    Vector3 velocity = e->targetPoint - e->position;
     velocity.z = 0.0f;
     float distance;
     PlanarLength(velocity, &distance);
@@ -312,10 +309,7 @@ Next StartAcidColumn(SpellEffect* e) {
 // The direction from the caster to the wall's centre; straight along x when it has no ground part
 // (both 0).
 Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
-    Vector3 d;
-    d.x = centre.x - from.x;
-    d.y = centre.y - from.y;
-    d.z = centre.z - from.z;
+    Vector3 d = centre - from;
     EI_NAN_AUDIT(d.x, d.y);
     if (d.x == 0.0f && d.y == 0.0f) d.x = 1.0f;
     return d;
@@ -349,12 +343,8 @@ Next StartLightWall(SpellEffect* e, const Vector3& from) {
     Vector3 span;
     WallSpan(direction, &e->HeldSpell()->radius, &span);
     Vector3 a, b;
-    a.x = e->targetPoint.x - span.x;
-    a.y = e->targetPoint.y - span.y;
-    a.z = e->targetPoint.z - span.z;
-    b.x = span.x + e->targetPoint.x;
-    b.y = span.y + e->targetPoint.y;
-    b.z = span.z + e->targetPoint.z;
+    a = e->targetPoint - span;
+    b = span + e->targetPoint;
     a.z = GroundPlus(e, kRawSurfaceHeight, a, ConstPtr(worlddata::OneRef()));
     b.z = GroundPlus(e, kRawSurfaceHeight, b, ConstPtr(worlddata::OneRef()));
     auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
@@ -476,10 +466,7 @@ Next StartLink(SpellEffect* e) {
     e->CreateParticle(1, static_cast<int>(ParticleType::Link), from, 1.0f, 1.0f, kZeroVector, nullptr);
     if (e->visual) {
         Vector3 to = e->target->EyePoint();
-        Vector3 direction;
-        direction.x = to.x - from.x;
-        direction.y = to.y - from.y;
-        direction.z = to.z - from.z;
+        Vector3 direction = to - from;
         e->Visual<EffectWall>()->SetDirection(direction);
     }
     e->CreateSoundSequence(from, kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1);

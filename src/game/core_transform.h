@@ -32,7 +32,7 @@ public:
     void RollTowards(const Vector3& dir);                // down axis towards dir about forward
     void Rotate(const Vector3& axis, float angle);       // localRotation = turn * localRotation
     void TurnUpTowards(const Vector3& dir, int reduced); // up axis towards dir (0.4 of it if reduced)
-    void SetHeading(const float* dir);                   // turn about +Z by atan2(dir[1], dir[0])
+    void SetHeading(const Vector3& dir);                   // turn about +Z by atan2(dir[1], dir[0])
 
     Vector3 localPosition;
     Vector3 worldPosition;

@@ -20,27 +20,18 @@ namespace {
 
 constexpr float kRandomScale = 2.3283064e-10f;   // 2^-32: a random word to a fraction
 constexpr float kPointThree = 0.3f;
-static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
 constexpr float kCloudAlpha = 4.5f;
 constexpr float kSmokeGrowth = 1.06f;
-static_assert(std::bit_cast<std::uint32_t>(kSmokeGrowth) == 0x3F87AE14u);
 constexpr float kSmokeDrift = 0.15f;
-static_assert(std::bit_cast<std::uint32_t>(kSmokeDrift) == 0x3E19999Au);
 constexpr float kDebrisDamping = 0.85f;
-static_assert(std::bit_cast<std::uint32_t>(kDebrisDamping) == 0x3F59999Au);
 constexpr float kDebrisGravity = 0.055f;
-static_assert(std::bit_cast<std::uint32_t>(kDebrisGravity) == 0x3D6147AEu);
 constexpr float kDebrisFadeIn = 4.0f;
 constexpr float kDebrisGrowth = 1.13f;
-static_assert(std::bit_cast<std::uint32_t>(kDebrisGrowth) == 0x3F90A3D7u);
 constexpr float kTendrilDensity = 14.285714f;
-static_assert(std::bit_cast<std::uint32_t>(kTendrilDensity) == 0x41649249u);
 constexpr float kMushroomWidth = 0.2f;
 constexpr float kMushroomRise = 0.12f;
-static_assert(std::bit_cast<std::uint32_t>(kMushroomRise) == 0x3DF5C28Fu);
 constexpr float kOrbitMinRadius = 0.01f;
 constexpr float kSphereScale = 1.6f;
-static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 } // namespace
@@ -48,12 +39,8 @@ constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLi
 // --- Source setters -----------------------------------------------------------------------------
 
 void ParticleSource::ScaleSize(float factor) {
-    spreadMin.x = factor * spreadMin.x;
-    spreadMin.y = factor * spreadMin.y;
-    spreadMin.z = factor * spreadMin.z;
-    spreadMax.x = factor * spreadMax.x;
-    spreadMax.y = factor * spreadMax.y;
-    spreadMax.z = factor * spreadMax.z;
+    spreadMin *= factor;
+    spreadMax *= factor;
     size = factor * size;
     baseSize = factor * baseSize;
     height = factor * height;
@@ -78,9 +65,7 @@ int ParticleSource::UpdateFalling(Particle* p) {
     if (p->pos.z < 0.0f) return 0;
     float terminal;
     terminal = p->velocity.y;
-    p->pos.x = p->drift.x + p->pos.x;
-    p->pos.y = p->drift.y + p->pos.y;
-    p->pos.z = p->drift.z + p->pos.z;
+    p->pos += p->drift;
     p->size = p->velocity.x * p->size;
     float fall = p->velocity.z + p->drift.z;
     p->drift.z = MaxKeepB(fall, terminal);
@@ -134,9 +119,7 @@ int ParticleSource::UpdateSmoke(Particle* p) {
     float oldSize = p->size;
     p->size = oldSize * kSmokeGrowth;
     float push = oldSize * kSmokeGrowth * windStrength * kSmokeDrift;
-    p->pos.x = push * windDirection.x + p->pos.x;
-    p->pos.y = push * windDirection.y + p->pos.y;
-    p->pos.z = push * windDirection.z + p->pos.z;
+    p->pos += push * windDirection;
     return 1;
 }
 
@@ -161,9 +144,7 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
     p->velocity.y = WordToFloat(r) * (hi - lo) * kRandomScale + lo;
-    p->velocity.x = p->velocity.x * 0.5f;
-    p->velocity.y = p->velocity.y * 0.5f;
-    p->velocity.z = p->velocity.z * 0.5f;
+    p->velocity *= 0.5f;
     p->pos.x = origin.x + p->velocity.x;
     p->pos.y = origin.y + p->velocity.y;
     float h = height;
@@ -233,7 +214,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         Vector3 along;
-        along.Construct(t * n.x, t * n.y, t * n.z);
+        along = t * n;
         offset = p->velocity - along;
     } else {
         offset = p->velocity;

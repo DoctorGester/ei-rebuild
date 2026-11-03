@@ -54,7 +54,7 @@ struct UnitByte {
     std::uint8_t value;
 };
 #pragma pack(pop)
-static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && sizeof(UnitByte) == 5);
+static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && sizeof(UnitByte) == 5);   // received as these bytes
 
 } // namespace
 

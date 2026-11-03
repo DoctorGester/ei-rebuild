@@ -75,9 +75,7 @@ int EffectMissile::Steer() {
             arrived = 1;
         } else {
             float scale = speed / distance;
-            velocity.x = scale * velocity.x;
-            velocity.y = scale * velocity.y;
-            velocity.z = scale * velocity.z;
+            velocity *= scale;
         }
     }
     if (!world->IsServer()) {
@@ -102,9 +100,7 @@ void EffectMissile::SetTarget(int objectId) {
 bool EffectArrow::RunTick() {
     fromCaster = 0;
     int flying = Steer();
-    localPosition.x = localPosition.x + velocity.x;
-    localPosition.y = localPosition.y + velocity.y;
-    localPosition.z = localPosition.z + velocity.z;
+    localPosition += velocity;
     if (!WorldContext()->IsServer()) MoveParts();
     return flying;
 }
@@ -255,9 +251,7 @@ void EffectArrowFigure::Reset() {
 bool EffectArrowFigure::RunTick() {
     fromCaster = 0;
     Steer();
-    localPosition.x = localPosition.x + velocity.x;
-    localPosition.y = localPosition.y + velocity.y;
-    localPosition.z = localPosition.z + velocity.z;
+    localPosition += velocity;
     if (!WorldContext()->IsServer()) MoveParts();
     World* world = OwningWorld();
     if (arrived != 0 && world->IsServer()) {

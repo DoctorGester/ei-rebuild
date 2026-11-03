@@ -508,7 +508,7 @@ void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
     if (ui->altDown) {
         Vector3 at = pick();
         int exit;
-        if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
+        if (!g_clientWorld.FindExitAt(at, &exit)) return;
         g_cursor.SetShape(kCursorExit);
         return;
     }
@@ -546,7 +546,7 @@ void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
             // is asked as is).
             Vector3 at = pick();
             int exit;
-            if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
+            if (!g_clientWorld.FindExitAt(at, &exit)) return;
             std::string name = g_clientWorld.ExitTarget(exit);
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
@@ -759,9 +759,7 @@ void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
         if (member == unit) {
             Vector3 axis = unit->localRotation.AxisY();
             const float k = 0.1f;
-            point.x = point.x + -axis.x * k;
-            point.y = point.y + -axis.y * k;
-            point.z = point.z + -axis.z * k;
+            point += -axis * k;
         }
         bool able;
         if (quick) {

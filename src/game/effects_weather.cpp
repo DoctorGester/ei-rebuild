@@ -32,10 +32,8 @@ constexpr float kFadePi = 3.14159f;   // sic
 constexpr float kVolumeScale = 100.0f;
 constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kFogMinAlpha) == 0x3C23D70Au);
 constexpr float kFogJitter = 1.1641532e-10f;   // 2^-33: a fog cell centre's random jitter
 constexpr float kFar = 1e30f;
-static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 
 constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;

@@ -360,7 +360,7 @@ void UpdateMotion(UnitServer* c) {
     }
     if (!replan && canStand && world->aiMap.sectorMap.Move(c->unit, position)) {
         SetObstacle(c, c->state == UnitState::Idle ? 1 : 0);
-        c->unit->SetHeading(&direction.x);
+        c->unit->SetHeading(direction);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, position);

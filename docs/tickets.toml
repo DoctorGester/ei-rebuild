@@ -7012,6 +7012,13 @@ model = "sonnet"
 note = "User 2026-11-03: are the include folder's files up to date? include/ held what game.exe's hook DLL and the tools shared; with one exe it has no reason. include/ei/rebirth.h + rebirth_patches.inc (current) move beside src/lib/rebirth.cpp; include/ei/main_loop.h (stale: Site's comments are the original's return addresses 00457119/00457610/004571E2, HarnessHooks' comments are CALL addresses in game.exe's WinMain and 'in game.exe the harness redirects the original's CALLs') moves to src/game with comments saying what each hook and site is for now. If the Site/InSite global (app_main.cpp names the call it makes; harness.cpp and harness_clock.cpp read it) is simpler as HarnessHooks callbacks, do it, else leave for H47. Drop include/ from CMake's include paths and fix the ~50 includes. Goldens the same. Batch with WB18."
 
 [[ticket]]
+id = "C74c"
+title = "Vector maths a, rest: per-component code that went through scalar locals, Vector4 ops, stream float readers"
+group = "cleanup"
+depends = ["C74"]
+note = "Left by C74: (1) particle_callbacks.cpp (~120 .x/.y/.z assignments) and particle_emitters/lightning/camera/map_object_figures: x, y, z computed into separate locals (px, py, pz; ax, ay, az) and stored one by one; becomes Vector3 locals and operators (hand work, bit-identical). (2) Vector4 has no operators; the float[4] colour and the Vector4 points stay. (3) Pointer parameters left on purpose: SectorGrid::Move / AIMap chain, LineBatch::AddPoint(float[8][3] corners), DeltaField::WritePosition2D, figure_bones Lerp/Corner and map_object_animation LerpPoint (read from file streams as float*), script argument arrays f[]. (4) A few float* aliases kept because they loop with an index (particle_callbacks swirl, orbiter, ring offset)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

@@ -147,8 +147,7 @@ Vector3 ParticleSource::PartPoint(Object3D* object, const char* prefix) {
     FigureMesh* part = object->FindPartByPrefix(prefix);
     if (!part) part = object->FindPartByPrefix("bd");
     if (part) {
-        Vector3 point;
-        object->PartWorldPosition(&point.x, part);
+        Vector3 point = object->PartWorldPosition(part);
         return point;
     }
     return {object->localPosition.x, object->localPosition.y, object->localPosition.z + object->bounds.boxMax.z};
@@ -418,9 +417,7 @@ void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 // v *= 1 / length.
 void Normalize(Vector3& v, float length) {
     float scale = EI_ONE / length;
-    v.x = scale * v.x;
-    v.y = scale * v.y;
-    v.z = scale * v.z;
+    v *= scale;
 }
 
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
@@ -468,9 +465,7 @@ struct TickSteps {
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = s->localPosition.x - s->origin.x;
-            s->motion.y = s->localPosition.y - s->origin.y;
-            s->motion.z = s->localPosition.z - s->origin.z;
+            s->motion = s->localPosition - s->origin;
             s->origin = s->localPosition;
         }
     }

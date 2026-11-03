@@ -101,8 +101,7 @@ void SetupExplosion(ParticleSource* s) {
             if (!(--tries > 0)) break;
         }
         float length = std::sqrt(lengthSquared);
-        Vector3 v;
-        v.Construct(x, y, z);
+        Vector3 v = {x, y, z};
         Vector3 direction = v / length;
         float speed = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
         float vx = direction.x * speed;
@@ -241,10 +240,10 @@ void SetupClayRing(ParticleSource* s) {
     s->elements.resize(10);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         float angle = i * EI_RING_STEP;
-        float* direction = &s->elements[i].clay.direction.x;
-        direction[0] = std::sin(angle);
-        direction[1] = std::cos(angle);
-        direction[2] = 0.0f;
+        Vector3& direction = s->elements[i].clay.direction;
+        direction.x = std::sin(angle);
+        direction.y = std::cos(angle);
+        direction.z = 0.0f;
         s->elements[i].pos = s->localPosition;
         s->elements[i].clay.previous = s->localPosition;
         s->elements[i].ticks = 14;
@@ -752,8 +751,7 @@ void ParticleSource::Create() {
     boundsMin.x = farBound;
     boundsMin.y = farBound;
     boundsMin.z = farBound;
-    Vector3 nearBound;
-    nearBound.Construct(-100000.0f, -100000.0f, -100000.0f);
+    Vector3 nearBound = {-100000.0f, -100000.0f, -100000.0f};
     boundsMax = nearBound;
     frameColumns = 4;
     emitChance = 100;

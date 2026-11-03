@@ -39,12 +39,9 @@ constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full belo
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
 constexpr float kOutputScale = 0.0127f;   // 0..100 times 0..100 to the output's 0..127
-static_assert(std::bit_cast<std::uint32_t>(kOutputScale) == 0x3C5013A9u);
 constexpr float kLevelMax = 127.0f;
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kEmitterMargin = 0.001f;
-static_assert(std::bit_cast<std::uint32_t>(kEmitterMargin) == 0x3A83126Fu);
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
@@ -103,13 +100,13 @@ SoundSequence* SequenceForId(SoundManager* m, std::uint32_t id) {
 }
 
 // Moves a sequence's current sound (MoveSequence / UpdateSequence).
-void MoveSequenceSound(SoundManager* m, int handle, const float* position, float nearDist, float farDist) {
+void MoveSequenceSound(SoundManager* m, int handle, const Vector3& position, float nearDist, float farDist) {
     SoundSlot* slot = m->SlotForHandle(handle);
     if (slot != nullptr) {
         if (slot->finished != 0) {
             if (slot->playing != 0) m->EndSlot(slot);
         } else {
-            lib::LoadBytes(slot->position, position);
+            slot->position = position;
             slot->flat = 0;
             slot->nearDistance = nearDist;
             slot->farDistance = farDist;
@@ -122,7 +119,7 @@ void MoveSequenceSound(SoundManager* m, int handle, const float* position, float
     auto node = m->deferred.find(handle);
     if (node == m->deferred.end() || node->second == nullptr) return;
     DeferredSound* rec = node->second;
-    lib::LoadBytes(rec->position, position);
+    rec->position = position;
     rec->flat = 0;
     rec->nearDistance = nearDist;
     rec->farDistance = farDist;
@@ -292,10 +289,10 @@ void SoundManager::SetSpeechVolume(int volume) {
 }
 
 // The camera's position and direction (Camera::Update every frame).
-void SoundManager::SetListener(const float* position, const float* axis) {
+void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     if (enabled == 0) return;
-    lib::LoadBytes(listener, position);
-    lib::LoadBytes(listenerAxis, axis);
+    listener = position;
+    listenerAxis = axis;
     float len = std::sqrt(LengthSquared2DUnrounded(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
     if (len == 0.0f) {
@@ -304,9 +301,7 @@ void SoundManager::SetListener(const float* position, const float* axis) {
         listenerAxis.z = 0.0f;
     } else {
         float inv = 1.0f / len;
-        listenerAxis.x = inv * listenerAxis.x;
-        listenerAxis.y = inv * listenerAxis.y;
-        listenerAxis.z = inv * listenerAxis.z;
+        listenerAxis *= inv;
     }
     RefreshVoices(this);
 }
@@ -393,14 +388,14 @@ int SoundManager::SetSoundVolume(int handle, int volume, int pan) {
 }
 
 // Makes a sound 3D at `position`.
-int SoundManager::SetSoundPosition(int handle, const float* position, float nearDist, float farDist) {
+int SoundManager::SetSoundPosition(int handle, const Vector3& position, float nearDist, float farDist) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
         if (slot != nullptr) {
             if (slot->finished != 0) {
                 if (slot->playing != 0) EndSlot(slot);
             } else {
-                lib::LoadBytes(slot->position, position);
+                slot->position = position;
                 slot->nearDistance = nearDist;
                 slot->farDistance = farDist;
                 slot->flat = 0;
@@ -414,7 +409,7 @@ int SoundManager::SetSoundPosition(int handle, const float* position, float near
         auto node = deferred.find(handle);
         if (node != deferred.end() && node->second != nullptr) {
             DeferredSound* rec = node->second;
-            lib::LoadBytes(rec->position, position);
+            rec->position = position;
             rec->flat = 0;
             rec->nearDistance = nearDist;
             rec->farDistance = farDist;
@@ -442,12 +437,12 @@ int SoundManager::StopSound(int handle) {
 
 // --- Ambient emitters -----------------------------------------------------------------------------
 
-void SoundManager::MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
+void SoundManager::MoveEmitter(int index, const Vector3& position, float inner, float outer, int minInterval,
                                 int maxInterval) {
     if (index < 0 || index > 16) return;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return;
-    lib::LoadBytes(e->position, position);
+    e->position = position;
     e->innerRadius = inner;
     e->outerRadius = outer;
     e->minInterval = minInterval;
@@ -455,7 +450,7 @@ void SoundManager::MoveEmitter(int index, const float* position, float inner, fl
 }
 
 // Returns the emitter index or -1.
-int SoundManager::AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer,
+int SoundManager::AddEmitter(const std::vector<std::string>* names, const Vector3& position, float inner, float outer,
                               int minInterval, int maxInterval) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -497,14 +492,14 @@ int SoundSequence::PlayNext(SoundManager* manager) {
         index = next;
         if (next < 0) return 0;
         index = next & ~kSequenceLoop;
-        int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance,
+        int h = manager->Play3D(names[index], priority, position, nearDistance, farDistance,
                                 next & kSequenceLoop);
         handle = h;
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
     if (random != 0) index = static_cast<std::int32_t>(g_clientRandom.Next() % static_cast<std::uint32_t>(names.size()));
-    int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance, 0);
+    int h = manager->Play3D(names[index], priority, position, nearDistance, farDistance, 0);
     handle = h;
     if (h == -1) return 0;
     index = (index + 1) % static_cast<int>(names.size());
@@ -513,7 +508,7 @@ int SoundSequence::PlayNext(SoundManager* manager) {
 }
 
 // Returns the sequence id (generation << 8 | slot) or -1.
-int SoundManager::AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist,
+int SoundManager::AddSequence(const std::vector<std::string>* names, int priority, const Vector3& position, float nearDist,
                                float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -524,7 +519,7 @@ int SoundManager::AddSequence(const std::vector<std::string>* names, int priorit
     s->id = s->generation << 8 | i;
     s->active = 1;
     s->names = *names;
-    lib::LoadBytes(s->position, position);
+    s->position = position;
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->random = randomOrder;
@@ -542,20 +537,20 @@ int SoundManager::AddSequence(const std::vector<std::string>* names, int priorit
     return -1;
 }
 
-int SoundManager::MoveSequence(std::uint32_t sequenceId, const float* position) {
+int SoundManager::MoveSequence(std::uint32_t sequenceId, const Vector3& position) {
     if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
-    lib::LoadBytes(s->position, position);
+    s->position = position;
     if (enabled != 0) MoveSequenceSound(this, s->handle, position, s->nearDistance, s->farDistance);
     return 1;
 }
 
-int SoundManager::UpdateSequence(std::uint32_t sequenceId, const float* position, float nearDist, float farDist, int count) {
+int SoundManager::UpdateSequence(std::uint32_t sequenceId, const Vector3& position, float nearDist, float farDist, int count) {
     if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
-    lib::LoadBytes(s->position, position);
+    s->position = position;
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->remaining = count;
@@ -994,14 +989,14 @@ int SoundManager::Play2D(std::string_view name, int priority, int volume, int pa
 // Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the pan from the
 // listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound without a voice is
 // deferred; the record's volume, base volume, pan and length are left as operator new returned them.
-int SoundManager::Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop) {
+int SoundManager::Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, int loop) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(priority);
     if (index == -1) {
         if (loop == 0) return -1;
         auto* rec = new DeferredSound;
         rec->name.assign(name);
-        lib::LoadBytes(rec->position, position);
+        rec->position = position;
         rec->nearDistance = nearDist;
         rec->farDistance = farDist;
         rec->flat = 0;
@@ -1017,7 +1012,7 @@ int SoundManager::Play3D(std::string_view name, int priority, const float* posit
     SoundSlot* slot = &slots[index];
     audio::ResetVoice(slot->voice);
     slot->looping = loop;
-    lib::LoadBytes(slot->position, position);
+    slot->position = position;
     slot->nearDistance = nearDist;
     slot->farDistance = farDist;
     slot->flat = 0;
