@@ -66,7 +66,7 @@ if(WIN32)
     else()
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
-    set(EI_SYSTEM win32)   # src/platform/win32, with game.exe's import slots (gameapi.h)
+    set(EI_SYSTEM win32)   # src/platform/win32
     set(EI_GRAPHICS d3d11)
     set(EI_GRAPHICS_BACKEND SOKOL_D3D11)
     set(EI_GRAPHICS_LIBRARIES d3d11 dxgi)
@@ -133,6 +133,13 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # (src/platform/sdl); the rest on the system's (src/platform/win32, the one place of the game's code that includes
 # <windows.h>, or src/platform/posix).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
+# The calls a harness run answers itself (src/platform/win32/game_calls.cpp): in the harness's builds the game takes
+# tests/verify's definitions (below), and the other programs that link the platform take the file (EI_GAME_CALLS).
+set(EI_GAME_CALLS)
+if(EI_HARNESS AND WIN32)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp)
+    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
+endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
@@ -172,8 +179,9 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
-    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place; sokol's validation
-    # layer is on (its messages in ei-rebuild.log), with the Direct3D backend's removable device
+    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, and its answers to
+    # the game's file, .ini, socket and desktop calls (its overlay, its sockets on 127.0.0.1) game_calls.cpp's; sokol's
+    # validation layer is on (its messages in ei-rebuild.log), with the Direct3D backend's removable device
     # (src/platform/d3d11/graphics_d3d11.h), which the harness's image side (tests/verify/image) reaches.
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
@@ -235,7 +243,7 @@ if(WIN32)
             src/lib/text_case.cpp)
     list(TRANSFORM EI_VECTORS_GAME_SOURCES PREPEND "${CMAKE_SOURCE_DIR}/")
     # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
-    add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_GAME_SOURCES})
+    add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_GAME_SOURCES} ${EI_GAME_CALLS})
     target_include_directories(ei_vectors PRIVATE include src)
     target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
     target_link_libraries(ei_vectors PRIVATE ei_platform)

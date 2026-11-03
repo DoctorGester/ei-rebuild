@@ -22,9 +22,8 @@ def checks(out, x64):
         # Game data by address only through the data seam (src/game/game_data.h, the harness's ExeTableId):
         # no raw use.
         py + [tool('data_seam.py'), '--check'],
-        # Generated and listed files against what they come from, without game.exe: the import files (gameapi.h by
-        # hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables.
-        py + [tool('gen_iat.py'), '--check'],
+        # Generated and listed files against what they come from, without game.exe: the named ranges' csv and their
+        # rules, the retired vtables.
         py + [tool('named_data.py'), '--check'],
         py + [tool('retired_vtables.py'), '--check'],
         # The game's code calls Windows only through src/platform (tools/check_platform.py).

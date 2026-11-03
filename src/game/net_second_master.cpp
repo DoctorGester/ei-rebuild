@@ -2,8 +2,8 @@
 // EI_Plugin.asi: 10005110 (start the look-up), 100050C0 (the thread), 100051B0,
 // 10004E20, 100052D0. Its state lives in its block
 // (+0xC7 the second master's sockaddr, whose address is -1 until known; +0xD7 the "a.b.c.d:port"
-// text); ours is here. The sockets are the platform's (game.exe's import slots, as the plugin's calls
-// went but for gethostbyname and select, which it imported itself). Its times are the real clock's, not
+// text); ours is here. The sockets are the platform's (the plugin called game.exe's imports, but for
+// gethostbyname and select, which it imported itself). Its times are the real clock's, not
 // the game's.
 #include "net_second_master.h"
 

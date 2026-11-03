@@ -11,7 +11,7 @@
 #include "../harness_platform.h"
 #include "platform/win32/platform_win32.h"
 #include "game/ui.h"
-#include "platform/win32/gameapi.h"
+#include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -36,35 +36,29 @@ constexpr wchar_t kWideFolder[] = L"\\utf8 Проверка";
 constexpr char kContents[] = "U2: Проверка";
 
 std::string RoundTrip(const char* savesDir) {
-    if (!gameapi::CreateDirectoryA(kFolder, nullptr) && ::GetLastError() != ERROR_ALREADY_EXISTS)
-        return "the folder was not made";
-    HANDLE file = gameapi::CreateFileA(kFile, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE) return "the file was not made";
-    DWORD written = 0;
-    const BOOL wrote = gameapi::WriteFile(file, kContents, sizeof(kContents) - 1, &written, nullptr);
-    ::CloseHandle(file);
-    if (!wrote || written != sizeof(kContents) - 1) return "the file was not written";
+    if (!platform::CreateFolder(kFolder) && ::GetLastError() != ERROR_ALREADY_EXISTS) return "the folder was not made";
+    {
+        platform::File file;
+        if (!file.Open(kFile, platform::FileMode::Create)) return "the file was not made";
+        file.Write(kContents, sizeof(kContents) - 1);
+    }
 
-    WIN32_FIND_DATAA found{};
-    HANDLE find = gameapi::FindFirstFileA(kPattern, &found);
-    if (find == INVALID_HANDLE_VALUE) return "the file was not listed";
-    ::FindClose(find);
-    if (std::strcmp(found.cFileName, kName) != 0) return std::string("the file was listed as ") + found.cFileName;
+    platform::FileFind find;
+    if (!find.FindFile(kPattern)) return "the file was not listed";
+    find.FindNext();
+    if (find.GetFileName() != kName) return "the file was listed as " + find.GetFileName();
+    find.Close();
 
-    file = gameapi::CreateFileA(kFile, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE) return "the file was not opened again";
-    char contents[64] = {};
-    DWORD read = 0;
-    ::ReadFile(file, contents, sizeof(contents) - 1, &read, nullptr);
-    ::CloseHandle(file);
-    if (read != sizeof(kContents) - 1 || std::memcmp(contents, kContents, read) != 0) return "the file read back differs";
+    std::string contents;
+    if (!platform::ReadFile(kFile, &contents)) return "the file was not opened again";
+    if (contents != std::string(kContents, sizeof(kContents) - 1)) return "the file read back differs";
 
     // The names on disk, as UTF-16, in the run's saves folder.
     const std::wstring saves = text::Wide(savesDir);
     if (GetFileAttributesW((saves + kWideFile).c_str()) == INVALID_FILE_ATTRIBUTES)
         return "the file is not on disk under its UTF-16 name";
-    if (!gameapi::DeleteFileA(kFile)) return "the file was not deleted";
-    if (!gameapi::RemoveDirectoryA(kFolder)) return "the folder was not removed";
+    if (!platform::RemoveFile(kFile)) return "the file was not deleted";
+    if (!platform::RemoveFolder(kFolder)) return "the folder was not removed";
     if (GetFileAttributesW((saves + kWideFolder).c_str()) != INVALID_FILE_ATTRIBUTES) return "the folder is still on disk";
     return {};
 }
@@ -159,8 +153,8 @@ std::string CaseFailure() {
     str::MakeLower(lower);
     if (lower != "привет ёж ґ abc") return "str::MakeLower gave \"" + lower + "\"";
     char upper[] = "ёжик abc";
-    text::utf8::CharUpperA(upper);
-    if (std::strcmp(upper, "ЁЖИК ABC") != 0) return std::string("CharUpperA gave \"") + upper + "\"";
+    text::UpperInPlace(upper);
+    if (std::strcmp(upper, "ЁЖИК ABC") != 0) return std::string("UpperInPlace gave \"") + upper + "\"";
     // 0xD0 (a lead byte) is 'Ð' and 0xA0 (the trail of "Р") a space in code page 1252's tables.
     if (text::ToLower(0xD0) != 0xD0) return "ToLower changes the byte D0";
     if (text::IsSpace(0xA0) || text::IsAlpha(0xD0)) return "a UTF-8 byte has a character class";

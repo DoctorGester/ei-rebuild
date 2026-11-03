@@ -39,13 +39,11 @@ recorded from the original before that (the tag original-oracle has the harness 
   functions, file I/O),
   `containers.h` (helpers for the std::vector the engine's arrays are), `hash_map.h` (STLport's walk order),
   `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `platform/platform.h`,
-  `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports our code calls; generated: the
-  ones the harness or the image routes go through the image's import slots; declared by `platform/win32/win_api.h` over
-  the SDK's basic types, so no windows.h). Containers and strings are standard
+  `gdi.h`, `thread.h`, `calendar.h`. Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
 - `src/platform/`: the game's calls of the operating system by area (clock, message box, paths, ...), no SDK types;
-  `src/platform/win32/` implements them and is the only game-side place that includes windows.h or calls
-  `gameapi::` (docs/notes/platform.md; tools/check_platform.py fails on a new file that does). A new system call
+  `src/platform/win32/` implements them and is the only game-side place that includes windows.h
+  (docs/notes/platform.md; tools/check_platform.py fails on a new file that does). A new system call
   goes there, not into a game file.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (EngineObject virtual interface),
@@ -89,7 +87,7 @@ recorded from the original before that (the tag original-oracle has the harness 
    let a helper write past the size into the spare capacity (the sprite clipper's vertices) is undefined on a
    std::vector, so resize it first; `build.cmd asan` (docs/notes/harness.md) finds these. Containers are
    `std::`. Call the CRT functions whose game behaviour differs from the host's through
-   `libcrt::` (C26 decides which those are) and Win32 through `gameapi::`.
+   `libcrt::` (C26 decides which those are) and the system through `src/platform`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact; the build is
    `/arch:SSE2 /fp:precise` for all of the game code. When an integer or a branch follows from a float that sits on a rounding edge, a rare

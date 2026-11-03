@@ -106,7 +106,6 @@ HOOK_ERA_COUNTS = [
     ('mfc:: uses', r'\bmfc::'),
     ('stlp:: uses', r'\bstlp::'),
     ('gamecrt:: uses', r'\bgamecrt::'),
-    ('gameapi:: uses', r'\bgameapi::'),
 ]
 
 

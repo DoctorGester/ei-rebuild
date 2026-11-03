@@ -7,7 +7,7 @@
 // import slots (its exports are stubs jumping through them, or call them), which the harness takes, as WB16
 // took advapi32's: a write of an install file goes to the run's overlay (harness.cpp's WritePath: harness_saves
 // <relative path>, saves and config\tutorial.ini as the game's own calls). So another DLL's writes (the graphics
-// driver's caches, SDL's) land in the run folder like the game's (whose import slots harness.cpp takes first).
+// driver's caches, SDL's) land in the run folder like the game's (whose file calls harness.cpp answers first).
 //
 // The guard: ntdll's NtCreateFile, NtOpenFile, NtSetInformationFile (rename, link, delete) and NtDeleteFile,
 // below every other layer. A file or folder under an install root (the game folder, GameFolder below;

@@ -60,7 +60,6 @@ int WeaponType(ItemWeapon* weapon) { return weapon->GetType(); }
 
 } // namespace
 
-const char* WindowTitle() { return app::g_windowTitle; }
 void* MainWindow() { return app::g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }

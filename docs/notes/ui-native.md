@@ -537,8 +537,7 @@ unsmoothed by its own layout (P8a) and the header is drawn in an unsmoothed font
 the interface follows SPI_GETFONTSMOOTHING (the harness reports it off).
 
 **GDI left.** None in the interface since P8a (the titles' text: next section). Outside it: the tools' references
-(`ei_ui_check` draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA and RichEdit), and gameapi.h's
-generated import declarations.
+(`ei_ui_check` draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA and RichEdit).
 
 **Checks.** `--golden`: 145 runs pass, 121 goldens the same, 24 without a golden; `ei_ui_check` 102 checks. Frames
 against main's default (GDI) path, 1280x720 unless said: glyph shapes everywhere (the camp's pages 1.8-3.4% of the

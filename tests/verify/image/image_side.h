@@ -53,7 +53,6 @@ std::vector<std::string> NetState();
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
-const char* WindowTitle();             // app::g_windowTitle
 void* MainWindow();                    // app::g_mainWindow (an HWND)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames

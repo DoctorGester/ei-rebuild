@@ -12,7 +12,6 @@
 #include <cstdint>
 
 // The application's globals (app.h).
-inline const char* HarnessWindowTitle() { return ei::verify::image::WindowTitle(); }
 inline HWND HarnessMainWindow() { return static_cast<HWND>(ei::verify::image::MainWindow()); }
 inline std::uint8_t& HarnessInterfaceHasScreen() { return ei::verify::image::InterfaceHasScreen(); }
 inline std::uint8_t& HarnessRecordingFrames() { return ei::verify::image::RecordingFrames(); }
