@@ -6215,7 +6215,7 @@ id = "H47"
 title = "One harness platform backend; no system hooks; the harness builds and runs on Linux"
 group = "harness"
 model = "opus"
-depends = ["PL15"]
+depends = ["PL15", "H48"]
 note = "User 2026-11-03: gather the harness's platform answers into one backend folder (tests/verify/platform/ or similar) that implements platform.h and nothing else: harness_platform.cpp's window/events/clocks/mouse/message box and the game_calls answers now spread over harness.cpp, harness_net.cpp, harness_crash.cpp, harness_startup.cpp (after PL15 the file overlay is one path-mapping seam). Replace the remaining system hooks (harness_install.h, harness_settings.h: kernel32/advapi32 import-slot hooks, user32 hot patches) with platform calls or delete them if nothing needs them now (say which). Then build the harness on Linux (EI_HARNESS with the posix backend; the image side's D3D11-only parts behind the backend) and run scenarios there: in WSL/WSLg on this machine against the installs (read-only, a copied data folder, never write F:\\games), report which pass/differ and why (GL frames are expected to differ; digests should not). Windows: goldens the same. CI: the Linux workflow builds the harness (no game data there)."
 
 [[ticket]]
@@ -6224,6 +6224,13 @@ title = "Progress dashboard: history kept across tool changes; finished series r
 group = "harness"
 model = "sonnet"
 note = "User 2026-11-03: regenerating the Rebuild progress board takes long though it should reuse its cache. Cause: dashboard_data.py's cache key is one hash over dashboard_data.py, check_cleanup.py, check_platform.py, progress.py and srcscan.py; any code change in one (today C71 changed check_cleanup.py, PL14 check_platform/progress) drops all ~400 history points and re-measures every sampled commit. Fix: a measured history point is kept (only new commits and the working tree are measured), and a metric whose rule changed is recomputed only for the working tree unless --no-cache asks for all (or per-metric versions if that is as simple; say which). Then retire the series that are finished and stay at 0 (the hook-era cleanup and standalone counts: offset_access, vcall, asm_blocks, float_control, x87_helpers, raw_addresses, at_views, slot_placeholders, mfc_*, stlp_*, crt_*, data_addresses, image_ties, fastcall_shims, platform_files, retired_vtables, named_ranges if obsolete) and the src/hook line count; keep lines of code by area and the live counts, and add today's goals where cheap (pc24 uses, ordered-sum helpers, UI canvas calls). Check why tests/verify counts 1.17M lines (generated data counted as code?) and fix it. Report regeneration time before/after, warm and after a tool edit."
+
+[[ticket]]
+id = "H48"
+title = "ei_launch folded into run_all.py and the exe; tools/launcher deleted"
+group = "harness"
+model = "opus"
+note = "User 2026-11-03: do we still need tools/launcher? ei_launch (955 lines of Win32 C++) starts ei-rebuild.exe for a run: environment (EI_OUT_DIR, EI_REBIRTH, EI_GAME_ROOT, EI_DROPIN), the drop-in folder of junctions and copies, the firewall-friendly shared copy for play launches, a job object so the game never outlives it, a timeout margin over the harness's own watchdog, exit codes 0-4, the INT3/missing-code report. Its game.exe-era parts are dead (--exe, --no-hooks, --dll, --standalone kept as a no-op, the comments on injection) and its Windows-only C++ blocks H47 (the harness on Linux). Move what is still needed into tools/run_all.py (Python: env, timeout and kill, process tree, the drop-in folder with junctions on Windows / symlinks on Linux, exit codes) and the exe itself (EI_* read at start-up already; anything else ei_launch passes), play.cmd / launch-vanilla.cmd / harness.cmd start the exe directly, then delete tools/launcher and its CMake target. Never write into the installs; drop-in cleanup must not follow junctions (remove each link first). Goldens the same; the drop-in and watchdog scenarios pass; run_all's tests updated."
 
 [[ticket]]
 id = "C20t"
