@@ -264,7 +264,7 @@ void HudPortraits::LeftUp(int, Point point) {
     handled = true;
     BattleScreen* currentOwner = owner;
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < std::ssize(currentOwner->party)) currentOwner->SelectUnit(currentOwner->party[region], 0, 0);
+    if (region < std::ssize(currentOwner->party)) currentOwner->SelectUnit(currentOwner->party[region], {});
 }
 
 void HudPortraits::MouseMove(int, Point point) {
@@ -273,7 +273,7 @@ void HudPortraits::MouseMove(int, Point point) {
         if (region < 0) return;
         handled = true;
         BattleScreen* currentOwner = owner;
-        if (region < std::ssize(currentOwner->party)) currentOwner->HoverUnit(currentOwner->party[region], 0, 0);
+        if (region < std::ssize(currentOwner->party)) currentOwner->HoverUnit(currentOwner->party[region], {});
         return;
     }
     if (region >= 0 && region < count) g_cursor.SetShape(0);
@@ -322,8 +322,8 @@ void HudMap::LeftUp(int, Point point) {
             right /= zoom;
             down /= zoom;
         }
-        const float worldX = static_cast<float>(right / scale + centreX);
-        const float worldY = static_cast<float>(centreY - down / scale);
+        const float worldX = static_cast<float>(right / scale + centre.x);
+        const float worldY = static_cast<float>(centre.y - down / scale);
         if (worldX > 0.0f && worldX < worldWidth && worldY > 0.0f && worldY < worldHeight) {
             // The camera stops following its unit and looks there.
             Camera* camera = &g_camera;
@@ -574,13 +574,13 @@ void HudTopPanel::Wheel(int, int, Point point) {
 
 // --- BattleScreen::SelectUnit --------------------------------------------------------
 
-void BattleScreen::SelectUnit(Unit* unit, int x, int y) {
+void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
     const bool ctrl = ui->doubleClick;
     auto unitDead = [](Unit* u) { return u->IsDead(); };
-    auto pick = [x, y]() { return g_clientWorld.PickSurface(x, y); };
+    auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
     auto unitPosition = [](Unit* u) { return u->localPosition; };
-    auto objectAt = [x, y]() {
-        Point point = {x, y};
+    auto objectAt = [mouse]() {
+        Point point = mouse;
         return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
     };
     // The portrait of member `index` nods after a short random delay.

@@ -198,7 +198,7 @@ public:
     static std::string FormatPrice(int price);
     // Regions 4-9 the schools (Skill), 10 science (Science), 11 up the perks (Perk: the perk's record name
     // without its level digits, plus "0"; held ones with their level).
-    ItemHoverInfo HoverInfo(int x, int y);
+    ItemHoverInfo HoverInfo(Point at);
     // One record per party member (recordIndex is left at the last).
     void ResetRecords();
     // Record recordIndex (when >= 0) from the party member's statistics; bought cleared.
@@ -385,7 +385,7 @@ public:
     // Page 0: rows 2-5 the body parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9
     // encumbrance, 10 the magic skills; other pages the attributes (page 10: row 14 the points left, row 5
     // the height).
-    ItemHoverInfo HoverInfo(int x, int y);
+    ItemHoverInfo HoverInfo(Point at);
     // `title` may be null; the hero arrows show only for a party of more than one; points = the hero's
     // height * 100 (truncated).
     void SetHero(int heroIndex, std::optional<std::string_view> title);

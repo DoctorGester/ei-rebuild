@@ -76,10 +76,6 @@ void Interface3D::ResetSavedState() {
     fastGame = 0;
 }
 
-// --- A region's SetRect from a RECT ---------------------------------------------------
-
-void UiRegion::SetRectFrom(Rect rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
-
 // --- The version line --------------------------------------------------------------
 
 void MainMenu::AddVersionLine() {
@@ -105,7 +101,7 @@ void MainMenu::CreateScreen() {
         UiRegion* region = AddRegion();
         Rect area;
         area = g_menuRects[i];
-        region->SetRectFrom(area);
+        region->SetRect(area);
     }
     GamePlayMusic(nullptr);
     savedEdgeFade = options::g_options.borderFogDistance;

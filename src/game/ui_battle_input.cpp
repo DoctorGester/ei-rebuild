@@ -394,7 +394,7 @@ void BattleScreen::MouseMove(int buttons, Point point) {
     }
     // The (x, y) pair is read back through its address.
     Unit* unit = g_clientWorld.UnitAt(&point);
-    HoverUnit(unit, point.x, point.y);
+    HoverUnit(unit, point);
 }
 
 // --- the left button went down on the battle screen ----------------------------------------------
@@ -457,11 +457,11 @@ bool IsZero(float value) {
 
 } // namespace
 
-void BattleScreen::HoverUnit(Unit* unit, int x, int y) {
+void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     auto unitDead = [](Unit* u) { return u->IsDead(); };
-    auto pick = [x, y]() { return g_clientWorld.PickSurface(x, y); };
-    auto objectAt = [x, y]() {
-        Point point = {x, y};
+    auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
+    auto objectAt = [mouse]() {
+        Point point = mouse;
         return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
     };
     auto unitPosition = [](Unit* u) {

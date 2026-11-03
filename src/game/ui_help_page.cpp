@@ -287,15 +287,15 @@ void HelpWindow::ShowPage() {
     const int gap = (width - 150) / 6;
     button.Offset(gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
-    AddRegion()->SetRectFrom(button);
+    AddRegion()->SetRect(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
     button.Offset(step, 0);
     UiRegion* okRegion = AddRegion();
-    okRegion->SetRectFrom(button);
+    okRegion->SetRect(button);
     okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
     button.Offset(step, 0);
-    AddRegion()->SetRectFrom(button);
+    AddRegion()->SetRect(button);
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.

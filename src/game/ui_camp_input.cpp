@@ -249,12 +249,12 @@ constexpr int kTipNextHero = 0x4F4D;
 
 // --- the trade panel -----------------------------------------------------------------------------
 
-ItemHoverInfo TradePanel::HoverInfo(int x, int y) {
+ItemHoverInfo TradePanel::HoverInfo(Point at) {
     ItemHoverInfo info;
     if (!enabled) return info;
     // The region is tested with unsigned compares, so -1 (no region) falls through
     // every range and ends on a held-perk index far past the list.
-    unsigned region = static_cast<unsigned>(RegionAt(Point{x, y}));
+    unsigned region = static_cast<unsigned>(RegionAt(at));
     if (region >= 4 && region < 10) {
         info.kind = HoverKind::Skill;
         info.index = static_cast<int>(region - 4);
@@ -289,11 +289,11 @@ ItemHoverInfo TradePanel::HoverInfo(int x, int y) {
 
 // --- the statistics column -----------------------------------------------------------------------
 
-ItemHoverInfo HeroStatsPanel::HoverInfo(int x, int y) {
+ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
     PartyUnitRecord* hero = owner->HeroRecord();
     ItemHoverInfo info;
     info.stats = &hero->stats;
-    int row = RegionAt(Point{x, y});
+    int row = RegionAt(at);
     if (((page == 1 || page == 11) && row >= 2) || (page == 10 && row >= 2 && row < 5)) {
         info.kind = HoverKind::Attribute;
         info.index = row - 2;

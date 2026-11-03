@@ -45,8 +45,11 @@ UiSurface::~UiSurface() {
     rect = {};
 }
 
-UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
-    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom}, layoutRect(rect), scaled(scale) {
+UiSurface::UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
+    : UiSurface(ui, Rect{left, top, right, bottom}, blend, scale) {}
+
+UiSurface::UiSurface(Interface3D* ownerUi, const Rect& area, SurfaceBlend newBlend, bool scale)
+    : ui(ownerUi), blend(newBlend), rect(area), layoutRect(area), scaled(scale) {
     g_surfaces.push_back(this);
     if (scale) ui->ScaleRectToScreen(&rect);
     width = rect.Width();
@@ -58,7 +61,7 @@ UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bot
 }
 
 UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
-    : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
+    : UiSurface(ui, *rect, blend, true) {}
 
 void UiSurface::SetRect(int left, int top, int right, int bottom) {
     rect = {left, top, right, bottom};

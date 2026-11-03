@@ -223,8 +223,7 @@ void Interface3D::Update() {
         Activate(queuedWindow);
         queuedWindow = nullptr;
     }
-    mouseX = g_cursor.position.x;
-    mouseY = g_cursor.position.y;
+    mouse = g_cursor.position;
     if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != 2) {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's

@@ -215,14 +215,14 @@ void TradePanel::Build() {
     AddRegion()->SetRect(560, 480, 580, 490);
     Rect row = {215, 135, 385, 150};
     for (int i = 0; i < 2; ++i) {
-        AddRegion()->SetRectFrom(row);
+        AddRegion()->SetRect(row);
         Down(&row);
     }
     Down(&row);
     Down(&row);
     AddRegion()->SetRect(0, 0, 0, 0);
     for (int i = 0; i < 3; ++i) {
-        AddRegion()->SetRectFrom(row);
+        AddRegion()->SetRect(row);
         Down(&row);
     }
     Down(&row);

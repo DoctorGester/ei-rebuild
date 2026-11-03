@@ -92,8 +92,8 @@ public:
     }
 
     // Map coordinates of a world point (map y grows downwards).
-    float MapX(float worldX) const { return (worldX - map->centreX) * map->scale; }
-    float MapY(float worldY) const { return -((worldY - map->centreY) * map->scale); }
+    float MapX(float worldX) const { return (worldX - map->centre.x) * map->scale; }
+    float MapY(float worldY) const { return -((worldY - map->centre.y) * map->scale); }
 
     // The place of a marked object, an exit or another player: the zoomed position when it lies
     // inside the inner circle, otherwise the unzoomed one when that lies on the rim (outside the
@@ -324,8 +324,8 @@ void HudMap::BuildMarkers() {
         out.BeginQuad();
         float x, y;
         if (text::CompareIgnoringCase(world->exits[i].target, "none") != 0) {
-            Vector2 centre = world->ExitCentre(i);
-            if (out.Place(centre.x, centre.y, &x, &y)) {
+            Vector2 exitCentre = world->ExitCentre(i);
+            if (out.Place(exitCentre.x, exitCentre.y, &x, &y)) {
                 out.PutSquare(x, y);
                 out.Show(kFrameNeutral);
                 continue;
@@ -355,23 +355,16 @@ void HudMap::BuildMarkers() {
 
 void HudMap::UpdateView() {
     if (const TransformObject* camera = g_clientWorld.camera) {
-        centreX = g_camera.focus.x;
-        centreY = g_camera.focus.y;
-        Vector3 axis = camera->localRotation.AxisZ();
-        facingX = axis.x;
-        axis = camera->localRotation.AxisZ();
-        facingY = axis.y;
+        centre = XY(g_camera.focus);
+        facing = XY(camera->localRotation.AxisZ());
     }
-    float length2 = LengthSquared2DUnrounded(facingX, facingY);
+    float length2 = LengthSquared2D(facing);
     if (length2 >= kTinyLength2) {
-        float length = std::sqrt(length2);
-        facingX = facingX / length;
-        facingY = facingY / length;
+        facing = facing / std::sqrt(length2);
     } else {
-        facingX = 0.0f;
-        facingY = 1.0f;
+        facing = {0.0f, 1.0f};
     }
-    float angle = pc24::Round(pc24::Atan2(-facingX, -facingY));
+    float angle = pc24::Round(pc24::Atan2(-facing.x, -facing.y));
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
@@ -385,8 +378,8 @@ void HudMap::UpdateView() {
         const Vector2& v = viewPolygon[i];
         float x = v.x / zoom;
         float y = v.y / zoom;
-        points[i].x = x / scale + centreX;
-        points[i].y = centreY - y / scale;
+        points[i].x = x / scale + centre.x;
+        points[i].y = centre.y - y / scale;
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
@@ -468,8 +461,8 @@ void HudMap::UpdateView() {
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
             const Vector2& v = points[q * 4 + k];
-            float x = (v.x - centreX) * scale;
-            float y = -((v.y - centreY) * scale);
+            float x = (v.x - centre.x) * scale;
+            float y = -((v.y - centre.y) * scale);
             area->vertices[q].x()[k] = x * zoom;
             area->vertices[q].y()[k] = y * zoom;
         }
@@ -477,10 +470,10 @@ void HudMap::UpdateView() {
     area->RefreshBuffers();
 
     auto* bounds = SceneMesh(0);
-    float left = -centreX * scale;
-    float top = -(-centreY * scale);
-    float right = (worldWidth - centreX) * scale;
-    float bottom = -((worldHeight - centreY) * scale);
+    float left = -centre.x * scale;
+    float top = -(-centre.y * scale);
+    float right = (worldWidth - centre.x) * scale;
+    float bottom = -((worldHeight - centre.y) * scale);
     left = MaxKeepB(left, -1.0f);
     if (top > 1.0f) top = 1.0f;
     if (right > 1.0f) right = 1.0f;
@@ -499,10 +492,10 @@ void HudMap::UpdateView() {
     b.y()[2] = bottom;
     b.x()[3] = right;
     b.y()[3] = top;
-    float u0 = (left / scale + centreX) / textureSize;
-    float vTop = (centreY - top / scale) / textureSize;
-    float u1 = (right / scale + centreX) / textureSize;
-    float vBottom = (centreY - bottom / scale) / textureSize;
+    float u0 = (left / scale + centre.x) / textureSize;
+    float vTop = (centre.y - top / scale) / textureSize;
+    float u1 = (right / scale + centre.x) / textureSize;
+    float vBottom = (centre.y - bottom / scale) / textureSize;
     TexCoord* uv = bounds->texCoords.data();
     uv[0].u = u0;
     uv[0].v = vBottom;

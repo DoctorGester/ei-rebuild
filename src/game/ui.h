@@ -228,8 +228,7 @@ public:
     std::vector<std::uint16_t> screenCopy;   // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture)
     std::uint8_t serverFlag = 0;     // the server flag kept for the first window (PushWindow)
     UiSurface* statusSurface = nullptr;    // only while ShowStatusText runs
-    int mouseX = 0;
-    int mouseY = 0;
+    Point mouse;
     // The three interface fonts (Create: "Times New Roman", sized with the screen width).
     UiFont fonts[3];
     // Set by the key-down handler from the scan codes, cleared by key-up and when the windows change.
@@ -281,6 +280,7 @@ public:
     bool HasActiveTip() const;
     // Also enables the region.
     void SetRect(int left, int top, int right, int bottom);
+    void SetRect(const Rect& area);
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(Point point);
@@ -295,7 +295,6 @@ public:
     // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
     void SetTip(int textId, int command = 0);
     void SetTipString(std::string_view text, int command = 0);
-    void SetRectFrom(Rect rect);
 
     Interface3D* ui;
     std::vector<Point> points;    // polygon vertices
@@ -320,6 +319,7 @@ public:
     // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown, its
     // holder's canvas made black.
     UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
+    UiSurface(Interface3D* ui, const Rect& rect, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
     UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend);
     // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
@@ -930,10 +930,8 @@ public:
     void Setup(float zoom, bool slid);
 
     BattleScreen* owner;
-    float centreX;                   // world point at the map's centre (the camera's)
-    float centreY;
-    float facingX;                   // view direction (normalised by the camera follow)
-    float facingY;
+    Vector2 centre;                  // world point at the map's centre (the camera's)
+    Vector2 facing;                  // view direction (normalised by the camera follow)
     float worldWidth;                // the zone's extent (clipping rectangle 0..width)
     float worldHeight;
     float textureSize;               // world units per map texture (texture coordinates)
@@ -1186,9 +1184,9 @@ public:
     // and 6 spell on an object, 7 follow, 8 order on an object) or the modifier keys; with nobody selected
     // it selects the clicked member. Rebirth's FixSpellSelfCasting #1 drops the Ctrl flag of a spell on a
     // unit.
-    void SelectUnit(Unit* unit, int x, int y);
+    void SelectUnit(Unit* unit, Point at);
     // The unit panel's hover unit, and with party members selected the cursor for what a click would do.
-    void HoverUnit(Unit* unit, int x, int y);
+    void HoverUnit(Unit* unit, Point at);
     // Orders the selected party units to the point (`goTo`: with a modifier, else a walk); a point on a zone
     // exit whose "z.<zone>" variable is not 1 is remembered (exitPending).
     void OrderAt(Vector3 point, bool goTo, bool run);

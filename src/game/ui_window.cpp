@@ -85,14 +85,15 @@ bool UiRegion::HasActiveTip() const {
 
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
 // is moved by the panel offset its panel builders set (screen_layout.h; 0 outside them).
-void UiRegion::SetRect(int left, int top, int right, int bottom) {
+void UiRegion::SetRect(const Rect& area) {
     points.clear();
-    left += screen_layout::PanelOffset();
-    right += screen_layout::PanelOffset();
-    bounds = {left, top, right, bottom};
+    bounds = area;
+    bounds.Offset(screen_layout::PanelOffset(), 0);
     enabled = true;
     rectOnly = true;
 }
+
+void UiRegion::SetRect(int left, int top, int right, int bottom) { SetRect(Rect{left, top, right, bottom}); }
 
 void UiRegion::AddPoint(int x, int y) {
     x += screen_layout::PanelOffset();
@@ -138,7 +139,7 @@ bool UiWindow::ContainsPoint(Point point) const {
 }
 
 void UiWindow::UpdateRegionTips() {
-    Point mouse{ui->mouseX, ui->mouseY};
+    Point mouse = ui->mouse;
     ui->ScalePointFromScreen(&mouse);
     // Inlines UiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < std::ssize(regions); ++i) {
@@ -149,7 +150,7 @@ void UiWindow::UpdateRegionTips() {
 
 // The same per region, each tooltip then redrawn (the tooltip is re-read).
 void UiWindow::RedrawTips() {
-    Point mouse{ui->mouseX, ui->mouseY};
+    Point mouse = ui->mouse;
     ui->ScalePointFromScreen(&mouse);
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];

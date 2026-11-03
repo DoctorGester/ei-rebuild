@@ -25,7 +25,7 @@ namespace {
 
 void Down(Rect* rect) { rect->Offset(0, 15); }
 
-void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRectFrom(rect); }
+void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRect(rect); }
 
 void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->SceneMesh(i)->visible = shown;

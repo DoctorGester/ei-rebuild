@@ -73,10 +73,9 @@ bool MouseToGame(platform::Event* event) {
     render::WindowToFrame(&p.x, &p.y);
     bool onFrame = true;
     if (const TextureDevice* device = g_sceneRenderer.device) {
-        const Rect& screen = device->screen;
-        const int x = std::clamp(p.x, 0, screen.right - 1), y = std::clamp(p.y, 0, screen.bottom - 1);
-        onFrame = x == p.x && y == p.y;
-        p = Point{x, y};
+        const Point clamped = Min(Max(p, Point{}), device->screen.BottomRight() - Point{1, 1});
+        onFrame = clamped == p;
+        p = clamped;
     }
     event->x = p.x;
     event->y = p.y;

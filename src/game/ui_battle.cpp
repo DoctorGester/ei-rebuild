@@ -705,7 +705,7 @@ void BattleScreen::LeftUp(int buttons, Point point) {
         // The (x, y) pair is read back through its address.
         Unit* unit = world->UnitAt(&point);
         if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
-        SelectUnit(unit, point.x, point.y);
+        SelectUnit(unit, point);
         return;
     }
 
