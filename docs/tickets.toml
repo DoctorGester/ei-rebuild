@@ -6286,6 +6286,14 @@ files = ["tools/run_all.py", "tools/golden.py", "tools/savefile.py"]
 note = "User 2026-11-03: after a suite the Python step sits at ~5% CPU (one core of 32) for a long time. Measured (cProfile, 167 vanilla runs): run_all.golden_check takes 103 s, all in golden.compare_one, one run after another: half compacting the digests (golden.compact / compact_entity), half decoding the saves (savefile.decode: read_world / read_unit, and a pure-Python decompress, 15 s). Run compare_one per run in a process pool (os.cpu_count()), print in the jobs' order as now; the same for golden.py record and snapshot over many scenarios, and cache decoded saves by hash (most runs share the same autosave). Look at savefile.decompress: prefer the pool first, then a faster loop. Check: the same output text as before on a full suite's runs (diff it), and the time before / after."
 
 [[ticket]]
+id = "H50"
+title = "Linux harness runs on the GPU in WSL through Mesa's Dozen (Vulkan on D3D12)"
+group = "harness"
+model = "opus"
+depends = ["H47d"]
+note = "User 2026-11-04: WSL runs draw on lavapipe (CPU), about 12 cores a game and up to 190 s for a pair scenario. WSL exposes the GPU only as D3D12 (/dev/dxg, /usr/lib/wsl/lib); Ubuntu's Mesa has no dzn ICD. Build Mesa with -Dvulkan-drivers=microsoft-experimental (and the d3d12 gallium driver if useful) into ~/mesa-dzn in WSL home, never system-wide; point runs at it with VK_ICD_FILENAMES (an opt-in, e.g. EI_VK_ICD or a run_all --gpu-dzn flag; lavapipe stays the default and CI's reference). Check: SDL_GPU starts on dzn (ei_gpu_check, port_render), the image suite's goldens the same as on lavapipe, and the time of a full Linux image suite on dzn against lavapipe at the same --jobs. Say which SDL_GPU features dzn lacks, if any, and whether it is stable enough to be the local default. Document in docs/notes/linux.md."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
