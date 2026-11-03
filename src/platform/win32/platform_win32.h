@@ -6,8 +6,6 @@
 // so the backend calls the wide (UTF-16) Windows functions, converting with Wide and Narrow at the call. Text going
 // in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI calls took it (8-bit text that has not
 // crossed text::FromAssetText, game/asset_text.h). Text coming out is UTF-8.
-// Not wide (still ANSI): the profile calls (GetPrivateProfile*), whose values round-trip as bytes in the ANSI calls
-// (the config\*.ini files are the game's own and their names are ASCII).
 
 #include <windows.h>
 
@@ -26,7 +24,7 @@ std::string Narrow(std::wstring_view wide);
 
 } // namespace text
 
-// The system calls of platform_win32.cpp's file objects, .ini sections and socket waits that a harness run answers
+// The system calls of platform_win32.cpp's file objects and socket waits that a harness run answers
 // itself: game_calls.cpp's, which the harness's builds replace with their own (docs/notes/platform.md, "SDL3 and the
 // harness").
 namespace platform::win32 {
@@ -38,8 +36,6 @@ HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition);
 BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written);
 // A folder search started on `pattern`, its first entry in `found`; INVALID_HANDLE_VALUE when nothing matches.
 HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found);
-// GetPrivateProfileSectionA's call.
-DWORD IniSection(const char* section, char* buffer, DWORD size, const char* path);
 // select's call (the count is ignored by Winsock).
 int Select(fd_set* read, fd_set* write, fd_set* failed, const timeval* timeout);
 

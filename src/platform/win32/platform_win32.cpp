@@ -458,31 +458,6 @@ bool ReadFile(const std::string& path, std::string* bytes) {
 
 } // namespace platform
 
-// ==== The .ini files =================================================================================================
-
-// The section and string reads are game_calls.cpp's (the harness reads its overlay's copies).
-
-namespace platform {
-
-std::vector<std::string> IniSectionEntries(const char* section, const char* path) {
-    std::vector<std::string> entries;
-    char buffer[0x5000];
-    win32::IniSection(section, buffer, sizeof(buffer), path);
-    // Each entry ends with a zero byte, the last one with a second.
-    const char* start = buffer;
-    while (start < buffer + sizeof(buffer) && *start != '\0') {
-        entries.emplace_back(start);
-        start += entries.back().size() + 1;
-    }
-    return entries;
-}
-
-int IniInt(const char* section, const char* key, int defaultValue, const char* path) {
-    return static_cast<int>(GetPrivateProfileIntA(section, key, static_cast<INT>(defaultValue), path));
-}
-
-} // namespace platform
-
 // ==== The other game window ==========================================================================================
 
 // A game that runs already (its window's class and title: FindClassWindow, game_calls.cpp's, which the harness

@@ -280,21 +280,6 @@ bool ReadFile(const std::string& path, std::string* bytes);
 // Whether `path` names a file or folder (the original's _access with mode 0 or 4).
 bool FileExists(const std::string& path);
 
-// ==== The .ini files =================================================================================================
-
-// The system's profile reads. Paths and values are bytes as the file holds them (the config\*.ini files are the game's
-// own and their names are ASCII).
-
-// The entries ("key=value", in file order) of `section` in the file `path`; none when the section or file is missing.
-// At most 0x5000 bytes of them are read.
-std::vector<std::string> IniSectionEntries(const char* section, const char* path);
-// The string of `key` in `section` of the file `path`, `defaultValue` when it is not there; at most 1023 bytes.
-std::string IniString(const char* section, const char* key, const char* defaultValue, const char* path);
-
-// The number `key` holds in `section` of the file `path`, `defaultValue` when it is not there or is no number; asked of
-// the system directly (the standalone's start-up reads EI_Plugin.ini, beside the game's slots).
-int IniInt(const char* section, const char* key, int defaultValue, const char* path);
-
 // ==== Threads ========================================================================================================
 
 // Worker threads and events. A lock is a std::recursive_mutex (a critical section is

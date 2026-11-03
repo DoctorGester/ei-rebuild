@@ -3586,18 +3586,6 @@ bool FileExists(const std::string& path) {
     return ei::verify::Attributes(ReadPath(path.c_str(), b)) != INVALID_FILE_ATTRIBUTES;
 }
 
-// Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik). Harness runs read the "movies"
-// keys as empty, so nothing plays.
-std::string IniString(const char* section, const char* key, const char* defaultValue, const char* path) {
-    const std::size_t length = std::strlen(path);
-    if (ei::verify::g_answering && _stricmp(key, "movies") == 0 && length >= 9 && _stricmp(path + length - 9, "movie.ini") == 0)
-        return {};
-    char b[MAX_PATH];
-    char buffer[0x400] = {};
-    GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, ReadPath(path, b));
-    return std::string(buffer);
-}
-
 // Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switched it off and
 // "restored" a value it never read (off), so a harness game left it off for every program on the machine, and text in
 // runs before and after differed (GDI's grey edges or none: the widescreen comparison of two runs). The game's text is
@@ -3624,11 +3612,15 @@ NativeWindow FindClassWindow(const char* className, const char* title) {
 namespace win32 {
 
 // A write goes to the overlay (its directories made, an install file it keeps copied first), a read takes the
-// overlay's copy when there is one; the saves trace and the "diskfull" step see each open.
+// overlay's copy when there is one; the saves trace and the "diskfull" step see each open. The startup movies:
+// config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik); harness runs read it as missing, so nothing
+// plays.
 HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
     char b[MAX_PATH];
     const char* name = path.c_str();
     const bool write = ei::verify::install::WritesFile(access, disposition);
+    if (ei::verify::g_answering && !write && path.size() >= 9 && _stricmp(name + path.size() - 9, "movie.ini") == 0)
+        return nullptr;
     const bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
     const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
     if (write) ei::verify::savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
@@ -3641,11 +3633,6 @@ HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
 HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found) {
     char b[MAX_PATH];
     return FindFirstFileW(Wide(ReadPath(pattern.c_str(), b)).c_str(), found);
-}
-
-DWORD IniSection(const char* section, char* buffer, DWORD size, const char* path) {
-    char b[MAX_PATH];
-    return GetPrivateProfileSectionA(section, buffer, size, ReadPath(path, b));
 }
 
 } // namespace win32

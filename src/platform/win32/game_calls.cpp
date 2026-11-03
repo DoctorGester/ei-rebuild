@@ -15,7 +15,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-// ==== Folders, files and the .ini files ==============================================================================
+// ==== Folders and files ==============================================================================================
 
 namespace platform {
 
@@ -44,12 +44,6 @@ std::string VolumeLabel(const char* root) {
     return text::Narrow(label);
 }
 
-std::string IniString(const char* section, const char* key, const char* defaultValue, const char* path) {
-    char buffer[0x400] = {};
-    GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path);
-    return std::string(buffer);
-}
-
 namespace win32 {
 
 HANDLE OpenFile(const std::string& path, DWORD access, DWORD disposition) {
@@ -64,10 +58,6 @@ BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written) {
 
 HANDLE FindFirst(const std::string& pattern, WIN32_FIND_DATAW* found) {
     return FindFirstFileW(text::Wide(pattern).c_str(), found);
-}
-
-DWORD IniSection(const char* section, char* buffer, DWORD size, const char* path) {
-    return GetPrivateProfileSectionA(section, buffer, size, path);
 }
 
 } // namespace win32

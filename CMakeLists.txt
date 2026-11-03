@@ -199,10 +199,11 @@ if(WIN32)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
     target_include_directories(ei_launch PRIVATE src)
 
-    # The unit checks (tests/unit): the settings file's format and lib::HashMap's walk order, without the game.
-    # build.cmd runs it.
+    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order and the .ini reader, without
+    # the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   src/game/settings_document.cpp src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
+                   tests/unit/ini_file.cpp src/game/settings_document.cpp src/game/ini_file.cpp src/game/asset_text.cpp
+                   src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE include src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
 
@@ -227,12 +228,12 @@ if(WIN32)
     target_include_directories(ei_perf_check PRIVATE include src third_party/sokol)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
-    # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, .ini files, the
+    # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
     # one-instance lock, sockets, the settings document; tests/port/port_check.cpp) and the interface canvases' glyph
     # cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
-                   tests/unit/settings_file.cpp)
+                   tests/unit/settings_file.cpp tests/unit/ini_file.cpp src/game/ini_file.cpp src/game/asset_text.cpp)
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)

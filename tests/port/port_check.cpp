@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 int RunSettingsFileChecks();
+int RunIniFileChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -29,6 +30,7 @@ void Check(bool ok, const char* message) {
 }
 int main() {
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
+    Check(RunIniFileChecks() == 0, "ini file checks");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(platform::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');
@@ -63,9 +65,8 @@ int main() {
     std::uint32_t error = 0;
     Check(platform::WriteWholeFile("Config\\Test.ini", "[Game]\r\nCount=42\r\nName=\"value\"\r\n", &error),
           "atomic ini write");
-    Check(platform::IniInt("game", "count", 0, "config\\test.INI") == 42, "ini case folding");
-    Check(platform::IniString("GAME", "name", "", "config/test.ini") == "value", "ini quoting");
-    Check(platform::IniString("game", "absent", "default", "config/test.ini") == "default", "ini default");
+    std::string written;
+    Check(platform::ReadFile("config\\test.INI", &written) && written.size() == 32, "ini read back with folded case");
     Check(!platform::RenameFile("empty", "Res/Database.RES"), "rename refuses existing target");
     Check(platform::CopyFileOver("Res/Database.RES", "res/COPY.res"), "copy file");
     Check(platform::FreeDiskSpace(".") > 0, "free disk space");

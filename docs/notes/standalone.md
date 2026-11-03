@@ -1259,9 +1259,9 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   is lib/text_case.h's `UpperInPlace` / `LowerInPlace`; no cursor file is loaded (the world's wincurs cursor was
   never used).
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- **ANSI still**: the profile calls (`IniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
-  round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide, with
-  the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/: the exe's
+- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h, C73) through platform::ReadFile,
+  their text taken from the asset code page into UTF-8.
+- **ANSI still**: OutputDebugString, the loader's own calls (hook/, standalone/: the exe's
   folder, EI_GAME_ROOT through `RedirectGamePaths`).
 - **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never reaches
   a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked by utf8_typing's

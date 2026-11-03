@@ -20,7 +20,7 @@ that includes `<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it
 | `tests/verify/harness_platform.cpp` | the harness's builds' window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp |
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), output for a developer, paths, the machine, folders and files, the .ini files, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
 | `src/platform/win32/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"); the harness's builds leave it out and take tests/verify's definitions |
-| `src/platform/win32/platform_win32.h` | the Windows backend's own declarations: `text::Wide` / `Narrow` and game_calls.cpp's system calls (`platform::win32::OpenFile`, `WriteFile`, `FindFirst`, `IniSection`, `Select`), for the backend's files and the harness |
+| `src/platform/win32/platform_win32.h` | the Windows backend's own declarations: `text::Wide` / `Narrow` and game_calls.cpp's system calls (`platform::win32::OpenFile`, `WriteFile`, `FindFirst`, `Select`), for the backend's files and the harness |
 | `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files and mappings with Windows' case rules, .ini files, the one-instance lock, key names, sockets |
 | `src/platform/graphics.h` | the renderer's device, the window's drawable, read-backs and GPU timestamps ("Graphics" below) |
 | `src/platform/gl/graphics_gl.cpp` | its OpenGL 4.5 backend on Linux (built into ei_render with sokol_gfx's implementation) |
@@ -86,7 +86,6 @@ platform.h's sections (the sockets in `platform::net`, the sound in `platform::a
 | The machine | `PageSize()`, `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | GetSystemInfo; SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
 | Folders, drives and whole files | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `FreeDiskSpace`, `VolumeLabel`; `ReadWholeFile` / `WriteWholeFile`, `PathExists`, `IsFile`, `FolderEntries` | game_calls.cpp's CreateDirectoryW, RemoveDirectoryW, DeleteFileW, MoveFileW, CopyFileW and GetVolumeInformationW (the harness's overlay and disc label); GetDiskFreeSpaceExW; the last five direct (below) |
 | Files | `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `ReadFile` (a whole file), `MappedFile` (read only), `FileFind` (`IsDirectory`, `IsDots`), `FileExists`, `FileError` | CreateFileW, WriteFile, FindFirstFileW and GetFileAttributesW through game_calls.cpp (the harness's save / install overlay); ReadFile, SetFilePointer, CreateFileMappingW, MapViewOfFile, FindNextFileW direct |
-| The .ini files | `IniSectionEntries`, `IniString`; `IniInt` | GetPrivateProfileSectionA / StringA through game_calls.cpp (ANSI: the config\*.ini names are ASCII; the harness reads its overlay); `IniInt` direct |
 | The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
 | The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: FindWindowW (game_calls.cpp: the harness finds none), GetWindowThreadProcessId, the foreground calls, `ProgramInstance` |
 | The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
@@ -135,7 +134,8 @@ would change what they see in verify runs). Each has its own platform function t
   redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
   its lock is a `std::mutex`.
 - The program's start-up (src/main.cpp, src/game/rebirth_profile.cpp): `ProgramPath`, `ArgumentsAfterSeparator`,
-  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt` and `ProgramInstance`. `app::GameMain` takes
+  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `ReadFile` (EI_Plugin.ini, through
+  the game's IniFile) and `ProgramInstance`. `app::GameMain` takes
   `platform::NativeInstance`.
 
 No file outside src/platform calls Windows.
@@ -148,9 +148,9 @@ game's calls in its own builds, as harness_platform.cpp does for SDL's areas: CM
 src/platform/win32/game_calls.cpp out of them, and tests/verify defines the same functions:
 
 - harness.cpp: `CreateFolder`, `RemoveFile`, `RenameFile` (an install file is copied, never moved), `CopyFileOver`,
-  `RemoveFolder`, `FileExists`, `IniString` (config\movie.ini's "movies" read as empty), `FontSmoothing` (off),
-  `FindClassWindow` (none; the disc check's answers start there), `win32::OpenFile`, `win32::FindFirst`,
-  `win32::IniSection`: the saves and the install's files through the run's overlay (ReadPath / WritePath).
+  `RemoveFolder`, `FileExists`, `FontSmoothing` (off), `FindClassWindow` (none; the disc check's answers start
+  there), `win32::OpenFile`, `win32::FindFirst`: the saves and the install's files through the run's overlay
+  (ReadPath / WritePath); config\movie.ini reads as missing (no startup movies).
 - harness_crash.cpp: `win32::WriteFile` (failed writes fail the run; "diskfull").
 - harness_startup.cpp: `VolumeLabel` (the "discprompt" labels).
 - harness_net.cpp: `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `win32::Select`

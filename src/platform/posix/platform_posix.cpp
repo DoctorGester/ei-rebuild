@@ -85,13 +85,6 @@ bool Matches(std::string_view pattern, std::string_view value) {
     while (p < pattern.size() && pattern[p] == '*') ++p;
     return p == pattern.size();
 }
-
-std::string_view Trim(std::string_view text) {
-    while (!text.empty() && (text.front() == ' ' || text.front() == '\t' || text.front() == '\r'))
-        text.remove_prefix(1);
-    while (!text.empty() && (text.back() == ' ' || text.back() == '\t' || text.back() == '\r')) text.remove_suffix(1);
-    return text;
-}
 }
 
 void DebugOutput(const char* text) { std::fputs(text, stderr); }
@@ -427,49 +420,6 @@ std::vector<FolderEntry> FolderEntries(const std::string& pattern) {
         } while (more);
     }
     return entries;
-}
-
-std::vector<std::string> IniSectionEntries(const char* section, const char* path) {
-    std::string bytes;
-    std::vector<std::string> entries;
-    if (!ReadFile(path, &bytes)) return entries;
-    bool active = false;
-    std::size_t start = 0, used = 0;
-    while (start < bytes.size()) {
-        const auto end = bytes.find('\n', start);
-        const auto line = Trim(std::string_view(bytes).substr(start, (end == bytes.npos ? bytes.size() : end) - start));
-        start = end == bytes.npos ? bytes.size() : end + 1;
-        if (line.empty() || line.front() == ';') continue;
-        if (line.front() == '[') {
-            const auto close = line.find(']');
-            active = close != line.npos && text::CompareIgnoringCase(line.substr(1, close - 1), section) == 0;
-        } else if (active && line.find('=') != line.npos) {
-            used += line.size() + 1;
-            if (used + 1 >= 0x5000) break;
-            entries.emplace_back(line);
-        }
-    }
-    return entries;
-}
-
-std::string IniString(const char* section, const char* key, const char* fallback, const char* path) {
-    for (const auto& entry : IniSectionEntries(section, path)) {
-        const auto equal = entry.find('=');
-        if (text::CompareIgnoringCase(Trim(std::string_view(entry).substr(0, equal)), key) != 0) continue;
-        auto value = Trim(std::string_view(entry).substr(equal + 1));
-        if (value.size() >= 2 && (value.front() == '\'' || value.front() == '"') && value.front() == value.back())
-            value = value.substr(1, value.size() - 2);
-        return std::string(value.substr(0, 1022));
-    }
-    return std::string(fallback ? fallback : "").substr(0, 1022);
-}
-
-int IniInt(const char* section, const char* key, int fallback, const char* path) {
-    const auto value = IniString(section, key, "", path);
-    if (value.empty()) return fallback;
-    char* end;
-    const long n = std::strtol(value.c_str(), &end, 10);
-    return end == value.c_str() ? fallback : static_cast<int>(n);
 }
 
 namespace {
