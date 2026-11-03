@@ -40,13 +40,6 @@ const std::string& PickName(const std::vector<std::string>& names) {
     return names[g_clientRandom.Next() % n];
 }
 
-// Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
-// that file.
-void WaitAndEndAfter(SoundManager* snd) {
-    while (snd->streamState == 2) platform::Sleep(0);
-    snd->StopStream(1);
-}
-
 // ---- Theme loading ----
 
 
@@ -163,15 +156,16 @@ void MusicSystem::PlayJingle(std::string_view name) {
         path += kMp3;
         jingle = path;
     }
-    g_clientWorld.sounds->RequestStream(jingle, 4);
-    WaitAndEndAfter(g_clientWorld.sounds);
+    g_clientWorld.sounds->PlayStreamOnce(jingle);
     jinglePlaying = 1;
 }
 
 // Every world frame. Always 1.
 void MusicSystem::UpdateMusic() {
     SoundManager* snd = g_clientWorld.sounds;
-    if (state != 1 || holding == 1) return;
+    // Nothing is chosen while a jingle or calm track waits for the stream thread: the stream still names the file
+    // before it.
+    if (state != 1 || holding == 1 || snd->StreamSwitchPending()) return;
     std::string current;
     {
         std::string playing = snd->CurrentStreamName();
@@ -208,8 +202,7 @@ void MusicSystem::UpdateMusic() {
                 std::string track;
                 track = PickName(t.calm);
                 track += kMp3;
-                snd->RequestStream(track, 4);
-                WaitAndEndAfter(snd);
+                snd->PlayStreamOnce(track);
             }
         }
     }

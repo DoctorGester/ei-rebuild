@@ -104,7 +104,19 @@ were fixed (a run of the rest); the Rebirth set without its pairs 22 of 23. What
   differ: the read-back's orientation or format), render_terrain_seams' level steps on the vanilla data (0.9% against
   at most 0.3%).
 
-Harness runs open no sound device, so the audio lag seen when playing under WSLg (PL17a) does not show in them.
+Harness runs open no sound device; `EI_HARNESS_SOUND=1` keeps the real one (sound.md, "How the sound keeps up").
+
+### Sound under WSLg
+
+WSLg's only output is pulseaudio's "RDP Sink" (`PULSE_SERVER=unix:/mnt/wslg/PulseServer`), and on the build machine
+(2026-11-03) it plays slower than real time: the sink takes 44100 frames a second while the latency it reports grows
+by 80 to 90 ms each second (44.1 or 48 kHz, writes of 768 to 4096 frames alike), so the sound lags further and
+further; at 1.1 to 1.7 s of backlog, 13 to 18 s in, it nearly stops taking anything (768 frames every 1 to 3 s), and a
+game started a little later finds it stalled from the start. A plain libpulse writer (pa_simple, no SDL, no game)
+does the same, so it is the WSLg / RDP path, not ours; nothing in the game can make the sink play. What the game
+does see to: its thread never waits for the device (sound.md), so a stalled sink leaves the game silent but running at
+its frame rate (before, the first jingle after the stall froze the main loop until the 60 s limit). Frame rate and
+sound are unrelated there: the menu's passes fall from 100 to about 30 a second over a minute with no device too.
 
 ## What differs from Windows
 

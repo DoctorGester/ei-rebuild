@@ -13,6 +13,7 @@
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <list>
@@ -175,6 +176,9 @@ struct SoundManager : EngineObject {
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
     std::recursive_mutex streamLock;    // guarding the stream and musicFader
+    // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
+    // (StopStream(1)); any other request clears it.
+    std::atomic<bool> endAfterSwitch;
     std::thread streamThread;           // started when the MP3 stream opened, joined by Close
     volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
@@ -226,6 +230,11 @@ struct SoundManager : EngineObject {
     void FadeInStream();
     int RequestStream(std::string_view name, int mode);
     void StopStream(int mode);
+    // `name` from the current position (RequestStream mode 4), then silence once it has played (StopStream(1)): the
+    // stream thread makes the second request when it switches to the file, so the caller never waits for the device.
+    void PlayStreamOnce(std::string_view name);
+    // A PlayStreamOnce file the stream thread has not switched to yet.
+    bool StreamSwitchPending() const { return endAfterSwitch; }
 
     // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
