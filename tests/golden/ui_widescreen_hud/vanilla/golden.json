@@ -2,22 +2,16 @@
   "scenario": "ui_widescreen_hud",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, PropagateHostility floats, PlanOrderRoute's spell, GetQuickItem for non-party units, trap victims once, thermal log text, sense life line end, console exec message and days text",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry, fps toggles, the cheat word whole",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 28 records differ, first at record 5 (world update 120, tick 120, frame 23, zone -); outcomes the same; max unit move 0.000241 (obj129, record 5)",
-    "  first difference at record 5 (world update 120, tick 120, frame 23, zone -): 3 fields",
-    "    obj129 (80 unanwibo \"\") pos.x: 35.7238312 in the old golden, 35.7240295 in the new run (d 0.000198)",
-    "    obj129 (80 unanwibo \"\") pos.y: 31.2758331 in the old golden, 31.2759705 in the new run (d 0.000137)",
-    "    obj129 (80 unanwibo \"\") #place: 3BC77EE2 in the old golden, C050098B in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 1 of 52 differ",
-    "    pos: 1 unit, 1 record, from 5; moved 0.000241 at obj129 80 unanwibo \"\", record 5"
+    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
+    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

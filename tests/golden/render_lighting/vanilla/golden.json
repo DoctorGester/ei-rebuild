@@ -2,27 +2,18 @@
   "scenario": "render_lighting",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "bde8162fd",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b: Combat 10 reverted to the original arithmetic (not a bug); these scenarios move back from the first C84b recording",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry, fps toggles, the cheat word whole",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 37: the old golden 'Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=8.19 destHL=Head!', the new run 'Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=10.58 destHL=RLeg'",
-    "digest: 15 of 34 records differ, first at record 8 (world update 180, tick 180, frame 41, zone gz1g); outcomes the same; max unit move 0.115 (obj1000000400, record 9)",
-    "  first difference at record 8 (world update 180, tick 180, frame 41, zone gz1g): 11 fields",
-    "    random (random) isaac.count: 205 in the old golden, 201 in the new run (d 4)",
-    "    obj1000000399 (80 unanwiwo \"F1\") #unit: 48E78319 in the old golden, 7734C11C in the new run",
-    "    obj1000000400 (80 unanwiwo \"F2\") pos.x: 52.256691 in the old golden, 52.370636 in the new run (d 0.114)",
-    "    ... 8 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 1 record, from 8; max |d| 4 at random isaac.count, record 8: 205 -> 201",
-    "  units: 3 of 94 differ",
-    "    pos: 1 unit, 2 records, from 8; moved 0.115 at obj1000000400 80 unanwiwo \"F2\", record 8",
-    "... 5 more lines"
+    "save current/gz1g.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1934 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)",
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

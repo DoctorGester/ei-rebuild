@@ -2,27 +2,16 @@
   "scenario": "combat",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, PropagateHostility floats, PlanOrderRoute's spell, GetQuickItem for non-party units, trap victims once, thermal log text, sense life line end, console exec message and days text",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry, fps toggles, the cheat word whole",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 31: the old golden 'Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=9.79718 destHL=LHand', the new run 'Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=9.36907 destHL=LHand'",
-    "digest: 12 of 20 records differ, first at record 8 (world update 180, tick 180, frame 35, zone gz1g); outcomes the same; no unit position differs",
-    "  first difference at record 8 (world update 180, tick 180, frame 35, zone gz1g): 2 fields",
-    "    random (random) isaac.count: 101 in the old golden, 100 in the new run (d 1)",
-    "    random (random) crt.rand: 0x1A3D81A5 in the old golden, 0x010C970A in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    crt: 1 generator, 10 records, from 8; e.g. random crt.rand: 0x1A3D81A5 in the old golden, 0x010C970A in the new run",
-    "    isaac: 1 generator, 12 records, from 8; max |d| 25 at random isaac.count, record 14: 77 -> 52",
-    "  units: 4 of 54 differ",
-    "    #ai: 4 units, 7 records, from 9; hash only (no numbers kept)",
-    "    #unit: 3 units, 11 records, from 9; hash only (no numbers kept)",
-    "... 4 more lines"
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

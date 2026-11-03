@@ -2,12 +2,12 @@
   Current FPS: 3.63636
   Current FPS: 3.63636
   Unknown command
-  Invalid number of parameters for command "FPS"
   Rate has one parameter - connection rate in bytes per second
   LocalRate has one parameter - connection rate in bytes per second
   usage: exec<ute> [input file name]
   Cannot open file No Such Console File.txt for reading
   Invalid console position
+  Unknown command
   Activated!
   Unknown command
   Commands are:

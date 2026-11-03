@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 2454 zone gz1g hash DC0787E5 n 792
+@ 1 update 40 frame 7 tick 2454 zone gz1g hash AC5F51EB n 792
 world tick 2454
 world updates 42
 world timeBase 5.91888809
@@ -624,7 +624,7 @@ world hostile4 0x00000001
 world hostile6 0x00000001
 world hostile7 0x00000001
 world hostile8 0x00000001
-random isaac.count 59
+random isaac.count 70
 random crt.rand 0x27EA97EC
 player0 sessionKind 1
 player0 lastTick 2443
@@ -6371,11 +6371,11 @@ cunit1922 #vitals 1F5A7471
 cunit1000011214 #place 9F1D99B9
 cunit1000011214 #unit 638F5C6A
 cunit1000011214 #vitals 95F03AB2
-@ 2 update 60 frame 11 tick 2470 zone gz1g hash 17E169F3 n 792
+@ 2 update 60 frame 11 tick 2470 zone gz1g hash 542E79A3 n 792
 world tick 2470
 world updates 62
 world paused 1
-random isaac.count 203
+random isaac.count 230
 random isaac.a 0xE413B414
 random isaac.b 0xE17CADAA
 random isaac.c 0x00000002
@@ -6412,29 +6412,29 @@ cunit1916 #unit 7EB71816
 cunit1921 #place 8F4F2889
 cunit1922 #place 19277FE1
 cunit1000011214 #place 3C3B6754
-@ 3 update 80 frame 15 tick 2470 zone gz1g hash 2651ED55 n 792
+@ 3 update 80 frame 15 tick 2470 zone gz1g hash 659EFD05 n 792
 world updates 82
 client ticksRun 53
-@ 4 update 100 frame 19 tick 2470 zone gz1g hash 847F7E30 n 792
+@ 4 update 100 frame 19 tick 2470 zone gz1g hash C7B06E60 n 792
 world updates 102
 client ticksRun 73
-@ 5 update 120 frame 23 tick 2470 zone gz1g hash 306015D8 n 792
+@ 5 update 120 frame 23 tick 2470 zone gz1g hash 73AF0588 n 792
 world updates 122
 client ticksRun 93
-@ 6 update 140 frame 27 tick 2470 zone gz1g hash DC024F32 n 792
+@ 6 update 140 frame 27 tick 2470 zone gz1g hash 9FCD5F62 n 792
 world updates 142
 client ticksRun 113
-@ 7 update 160 frame 31 tick 2470 zone gz1g hash C722E4F2 n 792
+@ 7 update 160 frame 31 tick 2470 zone gz1g hash 84EDF4A2 n 792
 world updates 162
 client ticksRun 133
-@ 8 update 180 frame 35 tick 2470 zone gz1g hash 2EF0C927 n 792
+@ 8 update 180 frame 35 tick 2470 zone gz1g hash 6D3FD977 n 792
 world updates 182
 client ticksRun 153
-@ 9 update 200 frame 39 tick 2479 zone gz1g hash 63F5C598 n 792
+@ 9 update 200 frame 39 tick 2479 zone gz1g hash 0A4419D6 n 792
 world tick 2479
 world updates 202
 world paused 0
-random isaac.count 140
+random isaac.count 176
 random crt.rand 0x3AE2E100
 obj1916 pos.x 58.3557396
 obj1916 pos.y 62.5508194
@@ -6463,10 +6463,10 @@ client ticksRun 173
 cunit1916 #place 0E748C87
 cunit1916 #unit 0707EB2A
 cunit1922 #place 4F1DF5CB
-@ 10 update 220 frame 43 tick 2499 zone gz1g hash 2411F1B5 n 792
+@ 10 update 220 frame 43 tick 2499 zone gz1g hash 01D8A34D n 792
 world tick 2499
 world updates 222
-random isaac.count 17
+random isaac.count 55
 random crt.rand 0xE73EB413
 player0 lastTick 2499
 player0 var.gtime 8.69333363
@@ -6493,10 +6493,10 @@ client tick 2498
 client ticksRun 193
 cunit1916 #place 0ACF915B
 cunit1916 #unit B30490A3
-@ 11 update 240 frame 47 tick 2519 zone gz1g hash 752BE60A n 792
+@ 11 update 240 frame 47 tick 2519 zone gz1g hash 184E3FEE n 792
 world tick 2519
 world updates 242
-random isaac.count 153
+random isaac.count 191
 random isaac.a 0xB18A1865
 random isaac.b 0x4B6758B8
 random isaac.c 0x00000003
@@ -6524,10 +6524,10 @@ aievents tick 2519
 client tick 2518
 client ticksRun 213
 cunit1916 #place 8A80371A
-@ 12 update 260 frame 51 tick 2539 zone gz1g hash AF5376D1 n 792
+@ 12 update 260 frame 51 tick 2539 zone gz1g hash DE1CD461 n 792
 world tick 2539
 world updates 262
-random isaac.count 33
+random isaac.count 71
 random crt.rand 0xEB9B4C3F
 obj1916 pos.x 60.4932098
 obj1916 pos.y 62.8561745
@@ -6547,10 +6547,10 @@ client tick 2538
 client ticksRun 233
 cunit1916 #place 1D46E68C
 cunit1916 #unit 0707EB2A
-@ 13 update 280 frame 55 tick 2559 zone gz1g hash 5E0F7DCD n 792
+@ 13 update 280 frame 55 tick 2559 zone gz1g hash B10510D9 n 792
 world tick 2559
 world updates 282
-random isaac.count 159
+random isaac.count 195
 random isaac.a 0xBF01EE41
 random isaac.b 0xEC7AF5D6
 random isaac.c 0x00000004
@@ -6563,11 +6563,11 @@ obj1916 #place 62005C46
 obj1916 #vitals D576B866
 obj1918 #vitals D576B866
 obj1921 #vitals EC40DBF1
-obj1922 pos.x 43.4302063
-obj1922 pos.y 55.9172668
-obj1922 #ai 3092ACC8
-obj1922 #place 59917367
-obj1922 #unit D3AC6534
+obj1922 pos.x 43.0361633
+obj1922 pos.y 56.5801086
+obj1922 #ai 44CB26AF
+obj1922 #place 6FCB1A2A
+obj1922 #unit ABAA1A56
 obj1922 #vitals C24DC6FA
 obj1923 #vitals 2B2E63CF
 obj1940 #vitals 3C151D53
@@ -6580,5 +6580,5 @@ client tick 2558
 client ticksRun 253
 cunit1916 #place DB504C7D
 cunit1916 #unit FC4815F7
-cunit1922 #place F1B99303
-cunit1922 #unit 0F8786F7
+cunit1922 #place D94627ED
+cunit1922 #unit B499CED1

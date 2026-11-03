@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded_save1
 # compact (tools/golden.py): objects as hashes of their fields
-@ 8 update 160 frame 32 tick 101 zone gz1g hash 1F5B248F n 799
+@ 8 update 160 frame 32 tick 101 zone gz1g hash 26D107ED n 799
 + world world
 world tick 101
 world updates 162
@@ -121,7 +121,7 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 44
+random isaac.count 40
 random isaac.a 0xB18A1865
 random isaac.b 0x4B6758B8
 random isaac.c 0x00000003
@@ -640,7 +640,7 @@ obj699 mana 0.0
 obj699 pos.x 78.5081558
 obj699 pos.y 139.561661
 obj699 pos.z 0.0
-obj699 #ai 69F1FD4A
+obj699 #ai C269B926
 obj699 #place 5672484C
 obj699 #unit 2F1EAF08
 obj699 #vitals 3C27610C
@@ -4927,12 +4927,12 @@ obj1889 # ED5E55B6
 obj1890 dead 0
 obj1890 hp 20.0
 obj1890 mana 10.0
-obj1890 pos.x 54.1220703
-obj1890 pos.y 98.0139847
+obj1890 pos.x 51.8641014
+obj1890 pos.y 95.6235428
 obj1890 pos.z 0.0
-obj1890 #ai 1A8007D3
-obj1890 #place 44BA8A4D
-obj1890 #unit 6A81773B
+obj1890 #ai 0E95F722
+obj1890 #place EB25BDBE
+obj1890 #unit F8B3D0FA
 obj1890 #vitals 6584CB6F
 + obj1892 83 nast16
 obj1892 hp 1000.0
@@ -5277,7 +5277,7 @@ obj1936 mana 20.0
 obj1936 pos.x 103.312981
 obj1936 pos.y 126.364632
 obj1936 pos.z 0.0
-obj1936 #ai 8BA70D33
+obj1936 #ai 56BF3BB1
 obj1936 #place A45DDA0C
 obj1936 #unit 652B09CB
 obj1936 #vitals 9C2A2F7E
@@ -5834,7 +5834,7 @@ obj1000011214 mana 50.4893799
 obj1000011214 pos.x 54.0
 obj1000011214 pos.y 138.0
 obj1000011214 pos.z 0.0
-obj1000011214 #ai 75861CC1
+obj1000011214 #ai DE1E58AD
 obj1000011214 #place D91F3D4A
 obj1000011214 #unit C933F75C
 obj1000011214 #vitals 32357845

@@ -2,27 +2,16 @@
   "scenario": "ui_widescreen_more",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, trap victims once, script error text",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 23 of 36 records differ, first at record 13 (world update 280, tick 150, frame 61, zone -); outcomes the same; max unit move 3.2 (obj1937, record 35)",
-    "  first difference at record 13 (world update 280, tick 150, frame 61, zone -): 5 fields",
-    "    obj129 (80 unanwibo \"\") pos.x: 34.5475807 in the old golden, 34.5487556 in the new run (d 0.00117)",
-    "    obj129 (80 unanwibo \"\") pos.y: 31.5 in the old golden, 31.4987164 in the new run (d 0.00128)",
-    "    obj129 (80 unanwibo \"\") #place: C462AC34 in the old golden, DFC8C499 in the new run",
-    "    ... 2 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 4 of 53 differ",
-    "    pos: 2 units, 12 records, from 13; moved 3.2 at obj1937 80 unmoto \"\", record 34",
-    "    #ai: 3 units, 19 records, from 16; hash only (no numbers kept)",
-    "    #unit: 1 unit, 20 records, from 16; hash only (no numbers kept)",
-    "    #place: 1 unit, 1 record, from 22; hash only (no numbers kept)",
-    "... 5 more lines"
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

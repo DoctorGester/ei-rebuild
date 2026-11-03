@@ -6527,7 +6527,7 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 100 zone gz1g hash A07B8087 n 799
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 027CC5EF n 799
 world tick 100
 world updates 100
 random isaac.count 154
@@ -6542,11 +6542,11 @@ obj702 #vitals A243F4AF
 obj1804 #ai 44EEAD6D
 obj1804 #vitals FBE05ECC
 obj1884 #vitals A243F4AF
-obj1890 pos.x 53.9783669
-obj1890 pos.y 97.930191
-obj1890 #ai 7D531DC8
-obj1890 #place 337E62B2
-obj1890 #unit 6A81773B
+obj1890 pos.x 51.747921
+obj1890 pos.y 95.7479172
+obj1890 #ai 6946ED39
+obj1890 #place AE350250
+obj1890 #unit F8B3D0FA
 obj1890 #vitals FBE05ECC
 obj1936 #ai 765E3D88
 obj1936 #vitals 024EBADD
@@ -6566,26 +6566,31 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 120 zone gz1g hash E344EA0C n 799
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 0EFE9982 n 799
 world tick 120
 world updates 120
-random isaac.count 62
+random isaac.count 53
 random crt.rand 0xA716B2E9
+obj699 #ai C269B926
 obj699 #vitals C5E1CC1A
+obj702 #ai C269B926
 obj702 #vitals C5E1CC1A
 obj1804 #ai 0F19082A
 obj1804 #vitals D576B866
+obj1884 #ai C269B926
 obj1884 #vitals C5E1CC1A
-obj1890 pos.x 57.0231056
-obj1890 pos.y 97.754364
-obj1890 #ai 05A38431
-obj1890 #place C1BBDE8F
+obj1890 pos.x 50.2465019
+obj1890 pos.y 92.9930038
+obj1890 #ai F1D1D362
+obj1890 #place 21E74EE9
+obj1890 #unit CF6E3D3D
 obj1890 #vitals D576B866
 obj1936 #ai 93E610C4
 obj1936 #vitals C24DC6FA
 obj1937 #ai F0727656
 obj1937 #unit 8547D1B8
 obj1937 #vitals C24DC6FA
+obj1000011214 #ai DE1E58AD
 obj1000011214 #vitals 0C70B712
 obj1008110175 #ai 2320236D
 obj1008110175 #vitals 5151B000
@@ -6595,7 +6600,7 @@ aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 5D944E41
-@ 6 update 140 frame 27 tick 140 zone gz1g hash A1BCCCA5 n 799
+@ 6 update 140 frame 27 tick 140 zone gz1g hash DB0A3AE6 n 799
 world tick 140
 world updates 140
 random isaac.count 176
@@ -6612,11 +6617,10 @@ obj702 #vitals 52331592
 obj1804 #ai 710E4507
 obj1804 #vitals 42A461EE
 obj1884 #vitals 52331592
-obj1890 pos.x 57.5050011
-obj1890 pos.y 96.5049973
-obj1890 #ai 08D493EB
-obj1890 #place 0DB64BE2
-obj1890 #unit 429BDD06
+obj1890 pos.x 48.3036423
+obj1890 pos.y 89.1072845
+obj1890 #ai BC90B079
+obj1890 #place 891E9BB2
 obj1890 #vitals 42A461EE
 obj1936 #ai 260AD059
 obj1936 #vitals 559F1F72
@@ -6630,7 +6634,7 @@ missile1 # A0AF4C60
 aievents tick 140
 client tick 140
 client ticksRun 112
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 6F827C0C n 800
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 57C81BBC n 800
 world tick 160
 world updates 160
 world objects 787
@@ -6640,17 +6644,20 @@ random isaac.count 47
 random crt.rand 0x850BE2B4
 obj699 #vitals A243F4AF
 obj702 #vitals A243F4AF
-obj1804 #ai F664EF77
+obj1804 #ai C8D24918
 obj1804 #vitals FBE05ECC
 obj1884 #vitals A243F4AF
-obj1890 #ai 3D03B8E7
+obj1890 pos.x 46.5780334
+obj1890 pos.y 85.1560669
+obj1890 #ai 7CB4A8C8
+obj1890 #place 5EFFC50D
 obj1890 #vitals FBE05ECC
 obj1936 #ai 603C098F
 obj1936 #vitals 024EBADD
 obj1937 #ai EF8021C0
 obj1937 #unit E12B14BC
 obj1937 #vitals 024EBADD
-obj1000011214 #ai 130E20E5
+obj1000011214 #ai 75861CC1
 obj1000011214 #vitals AC51EDE6
 obj1008110175 #ai 88B86701
 obj1008110175 #vitals ED91BFD0
@@ -6670,7 +6677,7 @@ missile1 # 499E9F7E
 aievents tick 160
 client tick 160
 client ticksRun 132
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 0BA0A9D6 n 800
+@ 8 update 180 frame 35 tick 180 zone gz1g hash 51170F49 n 800
 world tick 180
 world updates 180
 random isaac.count 185
@@ -6682,11 +6689,13 @@ random isaac.memory 0xC59A1130
 random crt.rand 0x7A9157BD
 obj699 #vitals C5E1CC1A
 obj702 #vitals C5E1CC1A
-obj1804 #ai 21529A78
+obj1804 #ai F375A8F9
 obj1804 #vitals D576B866
 obj1884 #vitals C5E1CC1A
-obj1890 #ai 5453AC74
-obj1890 #place 4A03E1DC
+obj1890 pos.x 44.777504
+obj1890 pos.y 81.1100082
+obj1890 #ai 96994370
+obj1890 #place 5C56B347
 obj1890 #vitals D576B866
 obj1936 #ai BD89F2F6
 obj1936 #vitals C24DC6FA

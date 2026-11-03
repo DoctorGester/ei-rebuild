@@ -2,12 +2,16 @@
   "scenario": "camera_drag_rate",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "21d2f90fd",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenario (PL20): the right-button turn and tilt at frame times of 32, 16, 8 and 4 ms with one mouse speed.",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry, fps toggles, the cheat word whole",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
+  ]
 }

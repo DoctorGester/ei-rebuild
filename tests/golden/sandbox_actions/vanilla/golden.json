@@ -2,27 +2,16 @@
   "scenario": "sandbox_actions",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, PropagateHostility floats, PlanOrderRoute's spell, GetQuickItem for non-party units, trap victims once, thermal log text, sense life line end, console exec message and days text",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry, fps toggles, the cheat word whole",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 34: the old golden '1', the new run '0'",
-    "digest: 4 of 17 records differ, first at record 13 (world update 280, tick 280, frame 55, zone gz1g); outcomes CHANGED: deaths; no unit position differs; the digests have different numbers of records",
-    "  digest: the new run has more records; the other ends before its record 17 (world update 360, frame 71, tick 360, zone gz1g)",
-    "  first difference at record 13 (world update 280, tick 280, frame 55, zone gz1g): 2 fields",
-    "    random (random) isaac.count: 229 in the old golden, 234 in the new run (d 5)",
-    "    random (random) crt.rand: 0xCB4C2A15 in the old golden, 0x4F77F43A in the new run",
-    "  outcomes: CHANGED deaths; same: zone, spawns, money, quest variables, party and items, game result, script",
-    "    deaths: obj1000275419 dead: 1 in the old golden, 0 in the new run, from record 14",
-    "  random: 1 of 1 differ",
-    "    crt: 1 generator, 4 records, from 13; e.g. random crt.rand: 0xCB4C2A15 in the old golden, 0x4F77F43A in the new run",
-    "    isaac: 1 generator, 3 records, from 13; max |d| 10 at random isaac.count, record 15: 187 -> 197",
-    "  units: 3 of 53 differ",
-    "... 11 more lines"
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }
