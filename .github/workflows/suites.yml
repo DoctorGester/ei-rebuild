@@ -92,18 +92,20 @@ jobs:
           [ "$SUITES" = full ] && [ "$GITHUB_REF_NAME" = main ] && builds="verify release debug asan play"
           fail=0
           for c in $builds; do
+            echo "$(date +%H:%M:%S) building $c"
             cmd //c ".\\build.cmd $c > build_$c.log 2>&1" || { echo "::error::build $c failed"; tail -40 build_$c.log; fail=1; }
             grep -h "warning C" build_$c.log | head -5 || true
           done
           exit $fail
 
-      # Each suite runs whenever the builds passed, so one suite's differences never hide another's.
+      # Each suite runs whenever the builds passed, so one suite's differences never hide another's. The output streams
+      # (a line per finished run; PYTHONUNBUFFERED so the pipe is not block-buffered) and is kept for the summary.
       - name: Image suite (vanilla)
-        run: python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt | tail -40
+        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt
 
       - name: Rebirth suite
         if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
-        run: python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt | tail -40
+        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt
 
       - name: Summary
         if: always()
