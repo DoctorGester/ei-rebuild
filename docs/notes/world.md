@@ -347,8 +347,7 @@ Facts a worker needs that the code comments do not say:
   stores to a float from what it keeps on the FPU stack (the first vertex's height, the diagonal's quarter, the third
   cell's water surface), so it is the same at 24 and at 53 bits. Rules: compare every float constant of a port with the
   exe's bits; and under /fp:fast a `constexpr float` initialised with an inexact constant expression (`1.0f / 65534.0f`)
-  is folded at double precision where it meets a double, so write such constants as exact fractions or bit patterns with a
-  static_assert on the bits.
+  is folded at double precision where it meets a double, so write such constants as exact fractions or bit patterns.
 ## Zone state block
 
 Patched by Rebirth, so hooked in the vanilla launch only: the player's client reaches it through

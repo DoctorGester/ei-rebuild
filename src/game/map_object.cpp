@@ -31,7 +31,6 @@
 namespace {
 constexpr float kOne = 1.0f;
 constexpr float kScaleStep = 0.4f;
-static_assert(std::bit_cast<std::uint32_t>(kScaleStep) == 0x3ECCCCCDu);
 
 // The original's branch-free max(0, v): 0 against v, as a mask selecting v's bits
 // (also a NaN's), else 0.

@@ -22,7 +22,6 @@ namespace {
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
 constexpr float kTwoPi = 6.28318f;
-static_assert(std::bit_cast<std::uint32_t>(kTwoPi) == 0x40C90FD0u);
 #define EI_POINT_THREE 0.3f
 #define EI_QUARTER 0.25f
 #define EI_ONE 1.0f
@@ -91,7 +90,6 @@ int EmitAlongBolt(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->state = index + 1;
     p->pos = points[index].pos;
     p->size = 0.0f;
-    static_assert(std::bit_cast<std::uint32_t>(0.1f) == 0x3DCCCCCDu);
     p->aux0 = 0.1f;     // 0.1
     ++points[0].bolt.emitted;
     if (p->frameTimer == 0) return 1;

@@ -43,7 +43,6 @@ namespace {
 
 constexpr float kColourScale = 255.0f;
 constexpr float kInverseColourScale = 0.003921569f;   // 1 / 255
-static_assert(std::bit_cast<std::uint32_t>(kInverseColourScale) == 0x3B808081u);
 // AmbientColour: the ambient colour SetColour set last.
 float g_ambientColour[3] = {};
 

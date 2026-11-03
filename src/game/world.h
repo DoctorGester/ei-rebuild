@@ -217,7 +217,7 @@ struct WorldAlarm {
     int time;                             // tick it was raised
     float x, y;
 };
-static_assert(sizeof(WorldAlarm) == 16);
+static_assert(sizeof(WorldAlarm) == 16);   // saved as its 16 bytes
 
 // The world the missiles find while they load.
 inline WorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};

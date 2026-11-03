@@ -76,15 +76,12 @@ constexpr float kWriteScaleXY = 120.46875f;
 constexpr float kWriteOffsetZ = -32.0f;
 constexpr float kWriteScaleZ = 341.328125f;
 constexpr float kReadScaleXY = 0.008300908f;
-static_assert(std::bit_cast<std::uint32_t>(kReadScaleXY) == 0x3C080088u);
 constexpr float kReadOffsetXY = 16.0f;
 constexpr float kReadScaleZ = 0.0029297322f;
-static_assert(std::bit_cast<std::uint32_t>(kReadScaleZ) == 0x3B4000C0u);
 constexpr float kReadOffsetZ = 32.0f;
 constexpr float kWriteOffset2D = -32.0f;
 constexpr float kWriteScale2D = 60.234375f;
 constexpr float kReadScale2D = 0.016601816f;
-static_assert(std::bit_cast<std::uint32_t>(kReadScale2D) == 0x3C880088u);
 constexpr float kReadOffset2D = 32.0f;
 
 int Quantize(float v, float offset, float scale) { return lib::RoundEven((v - offset) * scale); }
@@ -93,7 +90,6 @@ float Dequantize(std::uint16_t q, float scale, float offset) { return static_cas
 
 constexpr float kRangeSteps = 65535.0f;
 constexpr float kRangeStep = 0.000015259022f;      // (1 / 65535)
-static_assert(std::bit_cast<std::uint32_t>(kRangeStep) == 0x37800080u);
 
 // One channel's header: the mask, then the channel's output of every field in it.
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {

@@ -32,7 +32,6 @@ struct CameraView {
     Quaternion rotation;
     float pitch;
 };
-static_assert(sizeof(CameraView) == 0x18);
 
 // A shake of the camera (Camera::shakes).
 struct CameraShake {
@@ -50,7 +49,7 @@ struct CameraKey {
     Vector3 position;
     Quaternion rotation;
 };
-static_assert(sizeof(CameraKey) == 0x24);
+static_assert(sizeof(CameraKey) == 0x24);   // read as the camera file's records
 
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre

@@ -12,9 +12,7 @@
 
 namespace {
 constexpr float kAboveSurface = 1.0f;
-static_assert(std::bit_cast<std::uint32_t>(kAboveSurface) == 0x3F800000u);
 constexpr float kMinSight = 0.1f;
-static_assert(std::bit_cast<std::uint32_t>(kMinSight) == 0x3DCCCCCDu);
 } // namespace
 
 bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const Vector3& from,

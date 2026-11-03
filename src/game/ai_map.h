@@ -142,7 +142,7 @@ struct PathCell {
     // `out` (x and y only); any other direction copies the whole cell. Returns `out`.
     PathCell* Step(PathCell* out, int direction) const;
 };
-static_assert(sizeof(PathCell) == 8);
+static_assert(sizeof(PathCell) == 8);   // saved as its 8 bytes
 
 // A path's cells in walking order.
 using PathCells = std::vector<PathCell>;

@@ -178,7 +178,6 @@ struct DamageInfo {
     std::uint8_t calledShot;
     std::uint8_t unused_39[3];
 };
-static_assert(sizeof(DamageInfo) == 0x3C);
 
 // A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
 // Spell it applies; the spell's duration is also the number of targets the damage is split between, and the

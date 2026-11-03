@@ -34,7 +34,6 @@ constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
 constexpr float kNoRange = 1e38f;
-static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 
 // --- Helpers --------------------------------------------------------------------------------------

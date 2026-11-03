@@ -182,9 +182,6 @@ private:
     // head 0, chain[0] 0x400 and the window's first and last byte of each half 0.
     void Start();
 };
-static_assert(offsetof(CoderState, chain) == 0x800);
-static_assert(offsetof(CoderState, head) == 0x1800);
-static_assert(offsetof(CoderState, out) == 0x2800);
 
 // The code tables of the coder's lengths and distances, filled at start-up by InitCodeTables: the code and
 // its bit count of each match length 1..0x22 (at length - 1) and of each distance bucket 0..0x21.

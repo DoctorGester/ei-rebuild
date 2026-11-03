@@ -59,7 +59,7 @@ struct LoginRequest {
     char password[64];
     std::uint32_t partyId; // the player's partyId
 };
-static_assert(sizeof(LoginRequest) == 0x88);
+static_assert(sizeof(LoginRequest) == 0x88);   // sent as its bytes
 
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return "client to server, size = "; }

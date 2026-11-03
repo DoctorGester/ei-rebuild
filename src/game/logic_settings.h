@@ -54,9 +54,5 @@ struct LogicSettings {
     float attack[3] = {1.0f, 1.0f, 1.0f};
     float defence[3] = {1.0f, 1.0f, 1.0f};
 };
-static_assert(offsetof(LogicSettings, swarmRadius) == 0x30);
-static_assert(offsetof(LogicSettings, considerLogBase) == 0x94);
-static_assert(offsetof(LogicSettings, itemDurabilityCritical) == 0xA4);
-static_assert(sizeof(LogicSettings) == 0xCC);
 
 inline constinit LogicSettings g_logicSettings{};

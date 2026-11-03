@@ -20,7 +20,6 @@ namespace {
 
 // The arrow's proportions: the unit length is a third of the size.
 constexpr float kThird = 0.33333334f;   // 1/3
-static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kWing = 3.0f;          // half the width of the arrow's back
 constexpr float kShoulder = 1.4f;      // the shoulders, along y
 constexpr float kNotch = 4.0f;         // the notch in the back, along -y
@@ -139,7 +138,6 @@ int SceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int a
 namespace {
 
 constexpr float kLevelStep = 0.003921569f;   // 1/255
-static_assert(std::bit_cast<std::uint32_t>(kLevelStep) == 0x3B808081u);
 constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 

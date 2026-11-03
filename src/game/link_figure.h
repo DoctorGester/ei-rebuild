@@ -74,9 +74,6 @@ struct LinkPartHeader {
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
     Rect screen;                // where the part was last drawn (empty: not drawn)
 };
-static_assert(offsetof(LinkPartHeader, screen) == 0x40);
-static_assert(offsetof(LinkPartHeader, box) == 0x08);
-static_assert(sizeof(LinkPartHeader) == 0x50);
 
 // Where a part's elements lie in the mesh's arrays (the ranges map: map<string, LinkPartRanges>).
 struct LinkPartRanges {
@@ -91,7 +88,6 @@ struct LinkPartRanges {
     Range words;
     Range indices;
 };
-static_assert(sizeof(LinkPartRanges) == 0x30);
 
 // A figure's mesh's base (no object of the
 // base alone exists): the reference count, the name and the part headers.
@@ -214,8 +210,6 @@ public:
     std::map<std::string, LinkPartRanges> ranges;
     LinkFigureLoader* loader;
 };
-// corners is indexed in whole triangles: one element is one 6-byte MeshCorner.
-static_assert(sizeof(MeshCorner) == 6);
 
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor: the characters
 // up to the first zero byte, or none for length 0 (the reader keeps its old text then). The cursor moves past

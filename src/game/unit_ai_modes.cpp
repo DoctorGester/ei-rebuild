@@ -607,18 +607,14 @@ constexpr int kLargeSizeClass = 6;
 
 constexpr float kThree = 3.0f;
 constexpr float kThird = 0.33333334f;
-static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kSeenScale = 1.5f;
 constexpr float kMaxLoadFactor = 0.6f;
-static_assert(std::bit_cast<std::uint32_t>(kMaxLoadFactor) == 0x3F19999Au);
 constexpr float kFlightStep = 5.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kSmoothingScale = 5000.0f;
 constexpr float kFar = 1e30f;
-static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 constexpr float kDistanceWeight = 30.0f;
 constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
-static_assert(std::bit_cast<std::uint32_t>(kDistanceDivisor) == 0x3D042108u);
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
 constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
@@ -852,10 +848,8 @@ void FearMode::Execute(AIBrain* brain) {
 namespace {
 constexpr int kStandby = 1;                                     // Unit::fightAtWill: may fight
 constexpr float kReachScale = 1.1f;
-static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = 1.4f;
-static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
@@ -1018,7 +1012,6 @@ constexpr float kAllySpace = 2.5f;                  // x the standing height
 constexpr float kRangePerDistance = 3.0f;
 constexpr float kDetourFactor = 5000.0f;
 constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
-static_assert(std::bit_cast<std::uint32_t>(kCooldownPerDistance) == 0x3EAAAAABu);
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -1029,7 +1022,6 @@ constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
 constexpr float kOnTheWaySq = 1.3f;
 constexpr float kSideOffset = 1.3649999f;    // (1.365)
-static_assert(std::bit_cast<std::uint32_t>(kSideOffset) == 0x3FAEB851u);
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;

@@ -23,14 +23,14 @@ struct MotionPoint {
     float speed;        // half-cells per tick
     int cellX, cellY;   // path cell the point belongs to (-1 none)
 };
-static_assert(sizeof(MotionPoint) == 0x1C);
+static_assert(sizeof(MotionPoint) == 0x1C);   // saved as its 28 bytes
 
 // A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
     float x, y;
     int cells;
 };
-static_assert(sizeof(MotionWaypoint) == 0x0C);
+static_assert(sizeof(MotionWaypoint) == 0x0C);   // saved as its 12 bytes
 
 // c0 + c1 u + c2 u^2 + c3 u^3: one coordinate of a trajectory segment.
 struct MotionCubic {

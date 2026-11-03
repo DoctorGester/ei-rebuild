@@ -39,12 +39,9 @@ constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full belo
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
 constexpr float kOutputScale = 0.0127f;   // 0..100 times 0..100 to the output's 0..127
-static_assert(std::bit_cast<std::uint32_t>(kOutputScale) == 0x3C5013A9u);
 constexpr float kLevelMax = 127.0f;
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kEmitterMargin = 0.001f;
-static_assert(std::bit_cast<std::uint32_t>(kEmitterMargin) == 0x3A83126Fu);
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).

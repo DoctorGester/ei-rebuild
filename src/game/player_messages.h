@@ -284,7 +284,7 @@ struct PlayerLoginMessage {
     char password[0x40];            // +0x44
     std::uint32_t partyId;          // +0x84 the client player's partyId (cleared before the read)
 };
-static_assert(sizeof(PlayerLoginMessage) == 0x88);
+static_assert(sizeof(PlayerLoginMessage) == 0x88);   // sent as its bytes
 
 // The login's name and password filter: 1 when `text`, within the login field's 0x3F bytes, is printable characters
 // (each a valid UTF-8 sequence of a printable code point) and not empty; 0 at the first unprintable one. (The

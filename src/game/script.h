@@ -141,7 +141,7 @@ struct ScriptBinding {
     int argIndex;
     int varIndex;
 };
-static_assert(sizeof(ScriptBinding) == 12);
+static_assert(sizeof(ScriptBinding) == 12);   // saved as its 12 bytes
 
 // One token: its text and the line it starts on ("no token": "None", -1).
 struct ScriptToken {
@@ -158,7 +158,7 @@ struct ScriptAreaPart {
     float x2OrRadiusSquared;
     float y2;
 };
-static_assert(sizeof(ScriptAreaPart) == 0x14);
+static_assert(sizeof(ScriptAreaPart) == 0x14);   // saved as its 20 bytes
 
 // An area of IsInArea.
 struct ScriptArea {

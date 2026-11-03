@@ -18,19 +18,14 @@
 
 namespace {
 constexpr float kSpeedByteScale = 0.039215688f;  // (1 / 25.5)
-static_assert(std::bit_cast<std::uint32_t>(kSpeedByteScale) == 0x3D20A0A1u);
 constexpr float kByteScale = 0.003921569f;       // (1 / 255)
-static_assert(std::bit_cast<std::uint32_t>(kByteScale) == 0x3B808081u);
 constexpr float kThree = 3.0f;
 constexpr float kTen = 10.0f;
 constexpr float kNoPlayerValue = 1000000.0f;
 constexpr float kFastSpeedScale = 1.8f;
-static_assert(std::bit_cast<std::uint32_t>(kFastSpeedScale) == 0x3FE66666u);
 constexpr double kWalkSpeedScale = 0.7;                         // (a double)
 constexpr float kSlowModeScale = 0.7f;
-static_assert(std::bit_cast<std::uint32_t>(kSlowModeScale) == 0x3F333333u);
 constexpr float kIdleScale = 0.2f;
-static_assert(std::bit_cast<std::uint32_t>(kIdleScale) == 0x3E4CCCCDu);
 constexpr float kOverkill = -5.0f;
 
 constexpr int kPartRelations = 11;

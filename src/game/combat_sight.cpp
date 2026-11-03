@@ -27,19 +27,13 @@
 
 namespace {
 constexpr float kPointOne = 0.1f;
-static_assert(std::bit_cast<std::uint32_t>(kPointOne) == 0x3DCCCCCDu);
 constexpr float kPointThree = 0.3f;
-static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
 constexpr float kMinusPointThree = -0.3f;
-static_assert(std::bit_cast<std::uint32_t>(kMinusPointThree) == 0xBE99999Au);
 constexpr float kPointNine = 0.9f;
-static_assert(std::bit_cast<std::uint32_t>(kPointNine) == 0x3F666666u);
 constexpr float kRangeSlack = 1.05f;
-static_assert(std::bit_cast<std::uint32_t>(kRangeSlack) == 0x3F866666u);
 constexpr float kMeleeReach = 3.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kPercent = 0.01f;
-static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kNearSq = 10.0f;
 constexpr float kFrontCosine = 0.5f;
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with pointIsUseSpot

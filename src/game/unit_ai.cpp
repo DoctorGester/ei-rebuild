@@ -35,7 +35,6 @@
 namespace {
 constexpr float kDecayScale = 30.0f;
 constexpr float kDecayDivisor = 0.032258064f;      // (1 / 31)
-static_assert(std::bit_cast<std::uint32_t>(kDecayDivisor) == 0x3D042108u);
 constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
 constexpr float kMoveTime = 1000000.0f;

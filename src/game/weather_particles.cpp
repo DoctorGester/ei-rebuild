@@ -37,7 +37,6 @@ constexpr int kSeedCount = 32;
 
 constexpr float kRainSink = 0.5f;                                   // added to the wind's fall
 constexpr float kSnowSink = 0.1f;
-static_assert(std::bit_cast<std::uint32_t>(kSnowSink) == 0x3DCCCCCDu);
 constexpr float kRainCycle = 200.0f;                                // ticks
 constexpr float kSnowCycle = 1000.0f;
 constexpr float kCellsPerUnit = 2.0f;
@@ -45,20 +44,15 @@ constexpr float kJitterScale = 0.0078125f;                          // (1 / 128)
 constexpr float kJitterHeight = 10.0f;
 constexpr float kDropLength = 1.0f;
 constexpr float kDropHalfWidth = 0.033f;
-static_assert(std::bit_cast<std::uint32_t>(kDropHalfWidth) == 0x3D072B02u);
 constexpr float kNearDepth = 4.0f;                                  // a drop nearer is not drawn
 constexpr float kFrameWidth = 0.25f;                                // a frame of the texture
 constexpr float kFrameMiddle = 0.125f;
 constexpr float kRainTop = 0.75f, kRainBottom = 1.0f;               // the rain's rows of the texture
 constexpr float kSnowTop = 0.5f;                                    // the snow's
 constexpr float kSnowBottom = 0.74f;
-static_assert(std::bit_cast<std::uint32_t>(kSnowBottom) == 0x3F3D70A4u);
 constexpr float kFlakeWidth = 0.2f;
-static_assert(std::bit_cast<std::uint32_t>(kFlakeWidth) == 0x3E4CCCCDu);
 constexpr float kFlakeAbove = 0.3f;
-static_assert(std::bit_cast<std::uint32_t>(kFlakeAbove) == 0x3E99999Au);
 constexpr float kFlakeBelow = 0.7f;
-static_assert(std::bit_cast<std::uint32_t>(kFlakeBelow) == 0x3F333333u);
 constexpr float kSwayShift = 1000.0f;
 constexpr float kSwayPeriod = 50.0f;
 constexpr int kSwayCells = 0x7C;

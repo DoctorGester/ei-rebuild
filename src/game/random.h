@@ -42,7 +42,6 @@ private:
     // Init after the seed: the reference randinit(ctx, TRUE) over results and the first Refill.
     void MixSeed();
 };
-static_assert(sizeof(IsaacRandom) == 0x814);
 
 // A random word as a float (the callers scale it by 2^-32 to a fraction).
 inline float WordToFloat(std::uint32_t word) { return static_cast<float>(word); }

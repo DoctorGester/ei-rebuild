@@ -53,7 +53,7 @@ struct UnitVitalsPacked {
     std::uint16_t maxMana;
     std::int16_t protection[7];
 };
-static_assert(sizeof(UnitVitalsPacked) == 0x18);
+static_assert(sizeof(UnitVitalsPacked) == 0x18);   // sent as its 24 bytes
 
 // The bits of EngineObject::flags on the map objects (the word is saved and sent as the number). Bits that mean
 // something else per class have one name each (the same number).

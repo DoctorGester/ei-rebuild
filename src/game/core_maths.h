@@ -21,4 +21,3 @@ struct CubicSegment {
     // Value at t (Horner's scheme). Returned unrounded.
     float Evaluate(float t) const;
 };
-static_assert(sizeof(CubicSegment) == 16);

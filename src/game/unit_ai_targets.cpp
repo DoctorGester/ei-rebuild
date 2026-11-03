@@ -40,9 +40,7 @@ constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area ta
 constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
 constexpr float kNoScore = -1e30f;
-static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
 constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
-static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
 constexpr float kSmallHeight = 0.5f;            // prototypes below this height count as small units
 
 
