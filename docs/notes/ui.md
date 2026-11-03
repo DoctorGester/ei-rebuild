@@ -567,7 +567,14 @@ order, kept.
   sees in physical pixels (SDL's coordinates are pixels on Windows, PixelsPerPoint 1), so that setup turns as before.
   It had scaled the drag to the window (800 / width43: a 1920x1080 screen turned twice as far as 3840x2160, and at 2160p
   a drag below about 4 counts a 60 Hz frame truncated to nothing; the original took raw counts at 800x600). The pan with
-  the modifier held shares the scaling. The global map's drag (GlobalMap::MouseMove) still scales to the window.
+  the modifier held shares the scaling. The constant is screen_layout::kLayoutPerCount, shared with the global map's
+  drag (GlobalMap::MouseMove: the angle turns `counts * kLayoutPerCount / 300`, as the window-scaled integer drag did
+  before). Positions (pointing, clicking, hit tests, a scroll bar's thumb following the cursor) still scale to the
+  window; every response per count or wheel step is the same at any size. Checked in PL20b and left alone: the
+  camera's wheel zoom, the scroll bars' and minimap's wheel steps and the item strip's (wheel delta only), the edge
+  pan (a fixed speed over the options' margin in pixels), the village and briefing cameras (the same CameraInput), the
+  scroll bar and slider thumbs (placed by the cursor's position), and the briefing's map click (a position).
+  `EI_CAMERA_TRACE=1` logs the global map's drag taken (`global map drag dx dy (layout) at ms: angle`).
 - Harness: `mousedrag dx dy` adds (dx, dy) to each frame's poll; with `frametime` that is a mouse speed of dx / frametime
   counts a ms (`camera_spin`, `camera_drag_rate`).
 - `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/camera_trace.cpp): a line a second (`camera trace: N frames

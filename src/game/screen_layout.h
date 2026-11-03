@@ -67,6 +67,12 @@ void PointToScreen(Point* point, bool margin);
 void RectFromScreen(Rect* rect, bool margin);
 void PointFromScreen(Point* point, bool margin);
 
+// The layout units one mouse count turns, tilts or pans by: the same at every window size (positions scale to the
+// window, the response to the mouse's motion does not). The 800-unit layout across a 4:3 part of 2880
+// pixels, which is what a 3840x2160 screen (the user's 4K monitor at 200% Windows scaling, in the game's physical
+// pixels) had when the drags were scaled to the window. The original took raw counts at 800x600 (a count a unit).
+constexpr float kLayoutPerCount = 800.0f / 2880.0f;
+
 // The interface's text extent: the drawn text's pixels to layout units, by the 4:3 part's size (64-bit products).
 Size TextExtentToLayout(Size pixels);
 
