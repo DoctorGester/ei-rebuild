@@ -35,10 +35,11 @@ constexpr float kDepthBias = 0.04f;
 constexpr float kLargestSlope = 4.0f;
 constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fading in) do not cast
 // Soft edges: the filter's radius in world units is the distance along the light from the
-// receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: far larger
-// than the real sun's, for the old blurred decals' look), at least kLeastRadius texels, at most
-// kWidestRadius units (also the blocker search's radius).
-constexpr float kSunSize = 0.025f;
+// receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: about twice
+// the real sun's, for a soft edge like the old blurred decals'), at least kLeastRadius texels, at most
+// kWidestRadius units (also the blocker search's radius). A tree's crown stands far above the ground:
+// a larger sun blurred its cut-out leaves into one dark mass.
+constexpr float kSunSize = 0.01f;
 constexpr float kWidestRadius = 0.6f;
 constexpr float kLeastRadius = 1.5f;
 // The cells of the map's depth range (shaders/shadow_reduce.glsl, the receivers' early end): kRangeCell texels a

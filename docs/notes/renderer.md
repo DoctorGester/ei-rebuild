@@ -794,9 +794,13 @@ map is the only shadow look.
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.glsl`: nearest and farthest texel;
   `shadow_dilate.glsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
   nearest; one 256 x 256 RGBA32F image). Details: "shaders/shadow_receiver.glsl" below. Radius = the mean blocker
-  distance x `kSunSize` (0.025), 1.5 texels to `kWidestRadius` (0.6 units); 8 (under 4 texels) or 16 bilinear comparisons
-  on a Vogel disc, turned per pixel by interleaved gradient noise. Tuned on the town gate: its shadow's edge about 125 px
-  at 4K, a creature's shadow sharp at its feet.
+  distance x `kSunSize` (0.01, about twice the real sun's angular radius), 1.5 texels to `kWidestRadius` (0.6 units); 8
+  (under 4 texels) or 16 bilinear comparisons on a Vogel disc, turned per pixel by interleaved gradient noise. First
+  tuned on the town gate at 0.025 (its edge about 125 px at 4K), which blurred a tree's crown, 8-12 units above the
+  ground, by 20-30 texels: its cut-out leaves merged into one dark mass (the user's "blocky" tree shadows, R47; measured
+  in gz2g: the cut-outs are right, a hard filter shows every leaf, no cut-out casts whole quads). A creature's shadow
+  stays sharp at its feet. Check: render_shadows_trees (gz2g's forest at the default and the far zoom, the gate,
+  a point light under the trees at night; flora shadows on; `EI_RESOLUTION=3840x2160` for the user's view).
 - **Casters outside the view** (shadows popped in at the screen's edge with their objects). The world's draw
   (WorldClient::Render, after its object draws; `world_client_shadow_casters.cpp`) walks the objects that can reach the
   map and hands over the meshes the game did not draw, reading the game's objects only (nothing the goldens record
