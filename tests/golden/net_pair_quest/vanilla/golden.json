@@ -2,23 +2,20 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "commit": "0bf7a1ac8",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "C81: settings pruned; water waves and marks always on, one Shadows switch (terrain sun shadows on), blood stains re-lit every 10 s, the scenarios' options dance removed; outcomes the same",
   "source": "image",
   "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 501 of 758 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
+    "digest: 44 of 758 records differ, first at record 202 (world update 4060, tick 3812, frame 811, zone z9q2); outcomes the same; no unit position differs",
+    "  first difference at record 202 (world update 4060, tick 3812, frame 811, zone z9q2): 1 fields",
+    "    cunit1535 (80 unmowi \"\") #place: A0981A4F in the old golden, A76FD3CF in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 9 of 65 differ",
-    "    #place: 8 client units, 14 records, from 0; hash only (no numbers kept)",
-    "    #unit: 1 client unit, 1 record, from 561; hash only (no numbers kept)",
-    "  units: 12 of 295 differ",
-    "    #place: 12 units, 496 records, from 129; hash only (no numbers kept)"
+    "  client units: 1 of 65 differ",
+    "    #place: 1 client unit, 44 records, from 202; hash only (no numbers kept)"
   ]
 }

@@ -3,4 +3,4 @@ savea/mission.sav e2f6e00968d6aa9c
 savea/scenario.sav adc3553316f4b1a3
 saveb/info.sav fd010278a1300cd1
 saveb/mission.sav 5079bc02dcdfb1f1
-saveb/scenario.sav 9438331770f1f6e6
+saveb/scenario.sav 1dfb92213cd9820a

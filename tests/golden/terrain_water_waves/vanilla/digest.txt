@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 5C391E02 n 72
+@ 0 update 20 frame 3 tick 20 zone - hash DCE25296 n 72
 + world world
 world tick 20
 world updates 20
@@ -603,7 +603,7 @@ cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
 + water-1 landscape
-water-1 flags 0x0000FFEE
+water-1 flags 0x0000FFFF
 water-1 frame 20
 water-1 phase 6.22334576
 + water0 sector 0 0
@@ -618,7 +618,7 @@ water1000 speculars 0xD771B306
 water1001 water 153
 water1001 positions 0x08AD8D5F
 water1001 speculars 0x72A3B795
-@ 1 update 40 frame 7 tick 40 zone gz1g hash C4013D48 n 825
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 92FDB3D1 n 825
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -6397,7 +6397,6 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-water-1 flags 0x0000FFEF
 water-1 frame 40
 water-1 phase 5.83438492
 water0 water 1089
@@ -6529,7 +6528,7 @@ water5003 speculars 0xE17202F5
 water5004 water 535
 water5004 positions 0xF686086F
 water5004 speculars 0x99311FA5
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 37D70261 n 825
+@ 2 update 60 frame 11 tick 60 zone gz1g hash B8EDBC13 n 825
 world tick 60
 world updates 60
 random isaac.count 125
@@ -6584,7 +6583,7 @@ water5000 positions 0x3A092E38
 water5000 speculars 0x8DBC8F9D
 water5001 positions 0x08BBAE28
 water5001 speculars 0x8CD987AA
-@ 3 update 80 frame 15 tick 80 zone gz1g hash BAC81D1E n 825
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 829E6317 n 825
 world tick 80
 world updates 80
 random isaac.count 20
@@ -6637,7 +6636,7 @@ water5000 positions 0x5D7A3078
 water5000 speculars 0x584DEAC3
 water5001 positions 0xC290B573
 water5001 speculars 0x1E375E7B
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 91893EE2 n 825
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 451D59EC n 825
 world tick 100
 world updates 100
 random isaac.count 162
@@ -6688,7 +6687,7 @@ water5000 positions 0xC0BACC85
 water5000 speculars 0x68244C22
 water5001 positions 0x617F1724
 water5001 speculars 0x15B4DDED
-@ 5 update 120 frame 23 tick 120 zone gz1g hash 229B171C n 825
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 87C61570 n 825
 world tick 120
 world updates 120
 random isaac.count 46
@@ -6731,7 +6730,7 @@ water5000 positions 0x9309B862
 water5000 speculars 0xD3831E61
 water5001 positions 0x760018D8
 water5001 speculars 0x07A7CC7A
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 4BE0EB43 n 825
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 378F68AC n 825
 world tick 140
 world updates 140
 random isaac.count 161
@@ -6780,7 +6779,7 @@ water5000 positions 0xE4B9B895
 water5000 speculars 0xFC7592C0
 water5001 positions 0xA944D9BE
 water5001 speculars 0x603BB0BA
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 588DE6C7 n 825
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 24887C46 n 825
 world tick 160
 world updates 160
 random isaac.count 13
@@ -6826,7 +6825,7 @@ water5000 positions 0x4032B6A7
 water5000 speculars 0x1B8DF90F
 water5001 positions 0xCEB5ECD5
 water5001 speculars 0x3DF5CC0A
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 13A491B5 n 825
+@ 8 update 180 frame 35 tick 180 zone gz1g hash 4558E335 n 825
 world tick 180
 world updates 180
 random isaac.count 131
@@ -6875,7 +6874,7 @@ water5000 positions 0x007F7A20
 water5000 speculars 0x04846131
 water5001 positions 0x57D8A265
 water5001 speculars 0x8183FD90
-@ 9 update 200 frame 39 tick 200 zone gz1g hash 63CD2D98 n 825
+@ 9 update 200 frame 39 tick 200 zone gz1g hash AE47478F n 825
 world tick 200
 world updates 200
 world updateMap 13
@@ -6921,7 +6920,7 @@ water5000 positions 0xDD3B89F8
 water5000 speculars 0x8C2114BE
 water5001 positions 0x6FA6CCF8
 water5001 speculars 0x45DF888E
-@ 10 update 220 frame 43 tick 220 zone gz1g hash 42259456 n 825
+@ 10 update 220 frame 43 tick 220 zone gz1g hash D6C9250C n 825
 world tick 220
 world updates 220
 random isaac.count 131
@@ -6962,7 +6961,7 @@ water5000 positions 0x66A79764
 water5000 speculars 0x449A9591
 water5001 positions 0x1F3A4F92
 water5001 speculars 0x2E999230
-@ 11 update 240 frame 47 tick 240 zone gz1g hash 31AD231D n 825
+@ 11 update 240 frame 47 tick 240 zone gz1g hash E5D6F5EA n 825
 world tick 240
 world updates 240
 random isaac.count 251
@@ -7003,7 +7002,7 @@ water5000 positions 0xF72551B9
 water5000 speculars 0x7CDBC11C
 water5001 positions 0xE8A9E2E5
 water5001 speculars 0x04A4310B
-@ 12 update 260 frame 51 tick 260 zone gz1g hash 6E42B5B6 n 825
+@ 12 update 260 frame 51 tick 260 zone gz1g hash 71EA2C9A n 825
 world tick 260
 world updates 260
 random isaac.count 102
@@ -7041,7 +7040,7 @@ water5000 positions 0x049611F4
 water5000 speculars 0x45CE545C
 water5001 positions 0x11F30749
 water5001 speculars 0xD0AD7BE3
-@ 13 update 280 frame 55 tick 280 zone gz1g hash ECEFE82A n 825
+@ 13 update 280 frame 55 tick 280 zone gz1g hash 856BBAE6 n 825
 world tick 280
 world updates 280
 random isaac.count 230
@@ -7082,7 +7081,7 @@ water5000 positions 0xF4AD9655
 water5000 speculars 0x565CC970
 water5001 positions 0x83C71CF6
 water5001 speculars 0x9A4B426B
-@ 14 update 300 frame 59 tick 300 zone gz1g hash BB1AFDB4 n 825
+@ 14 update 300 frame 59 tick 300 zone gz1g hash D14BC4C9 n 825
 world tick 300
 world updates 300
 random isaac.count 94
@@ -7118,7 +7117,7 @@ water5000 positions 0xA9A5FD95
 water5000 speculars 0xEAAD1C50
 water5001 positions 0xAC5A53BF
 water5001 speculars 0xCDA0670B
-@ 15 update 320 frame 63 tick 320 zone gz1g hash 8D8669C0 n 825
+@ 15 update 320 frame 63 tick 320 zone gz1g hash F316E12F n 825
 world tick 320
 world updates 320
 random isaac.count 204
@@ -7158,7 +7157,7 @@ water5000 positions 0x70095DBE
 water5000 speculars 0xF863FBBA
 water5001 positions 0xA70F8A95
 water5001 speculars 0x3735A766
-@ 16 update 340 frame 67 tick 340 zone gz1g hash F806DFA0 n 825
+@ 16 update 340 frame 67 tick 340 zone gz1g hash 91FC0525 n 825
 world tick 340
 world updates 340
 random isaac.count 61
@@ -7194,7 +7193,7 @@ water5000 positions 0x093062BC
 water5000 speculars 0x1D04441D
 water5001 positions 0xCE7E785F
 water5001 speculars 0x8B82828A
-@ 17 update 360 frame 71 tick 360 zone gz1g hash 62B49F2E n 825
+@ 17 update 360 frame 71 tick 360 zone gz1g hash 2BA465DD n 825
 world tick 360
 world updates 360
 random isaac.count 189
@@ -7233,7 +7232,7 @@ water5000 positions 0x90E40A67
 water5000 speculars 0x1C667EFC
 water5001 positions 0xBAAC8480
 water5001 speculars 0x476EA6B6
-@ 18 update 380 frame 75 tick 380 zone bz1g hash D905D419 n 408
+@ 18 update 380 frame 75 tick 380 zone bz1g hash A43E1920 n 408
 world tick 380
 world updates 380
 world timeBase 5.96444464
@@ -9533,7 +9532,7 @@ water3000 speculars 0x8661FDAB
 - water5001
 - water5003
 - water5004
-@ 19 update 400 frame 79 tick 400 zone bz1g hash EDFC6E5D n 408
+@ 19 update 400 frame 79 tick 400 zone bz1g hash 2E2458C0 n 408
 world tick 400
 world updates 400
 random isaac.count 167
@@ -9638,7 +9637,7 @@ cunit1000059184 #place 76B3F718
 cunit1000063817 #place 477631BA
 cunit1001577495 #place 1E5FA806
 water-1 frame 397
-@ 20 update 420 frame 83 tick 420 zone bz1g hash 24ADA39E n 408
+@ 20 update 420 frame 83 tick 420 zone bz1g hash 7FBD41EA n 408
 world tick 420
 world updates 420
 random isaac.count 67
@@ -9716,7 +9715,7 @@ cunit1000002436 #place 4B9CB854
 cunit1000054752 #place 21FE0740
 cunit1001577495 #place 5594CDCC
 water-1 frame 417
-@ 21 update 440 frame 87 tick 440 zone bz1g hash BE30D66B n 408
+@ 21 update 440 frame 87 tick 440 zone bz1g hash 15896E29 n 408
 world tick 440
 world updates 440
 random isaac.count 223
@@ -9803,7 +9802,7 @@ cunit999742 #place D1FA713D
 cunit999742 #unit 475E603A
 cunit1000002436 #place A644D3AB
 water-1 frame 437
-@ 22 update 460 frame 91 tick 460 zone bz1g hash BC6D9973 n 408
+@ 22 update 460 frame 91 tick 460 zone bz1g hash 350EC04D n 408
 world tick 460
 world updates 460
 random isaac.count 123
@@ -9869,7 +9868,7 @@ cunit399469 #place 4BACE62C
 cunit831510 #place 8ADC22FB
 cunit848411 #place 0994D947
 water-1 frame 457
-@ 23 update 480 frame 95 tick 480 zone bz1g hash A0C140E4 n 408
+@ 23 update 480 frame 95 tick 480 zone bz1g hash 42ED3D6A n 408
 world tick 480
 world updates 480
 random isaac.count 23
@@ -9948,7 +9947,7 @@ cunit848411 #place 78CD6D3F
 cunit848411 #unit 7A62CBCF
 cunit999742 #unit 5BBCB6AF
 water-1 frame 477
-@ 24 update 500 frame 99 tick 500 zone bz1g hash 6552E329 n 408
+@ 24 update 500 frame 99 tick 500 zone bz1g hash 9CDEFC54 n 408
 world tick 500
 world updates 500
 random isaac.count 179
@@ -10029,7 +10028,7 @@ cunit831510 #place F63898E1
 cunit848411 #place 6924590F
 cunit848411 #unit 5CA2D6A5
 water-1 frame 497
-@ 25 update 520 frame 103 tick 520 zone bz1g hash 53A3CFFC n 408
+@ 25 update 520 frame 103 tick 520 zone bz1g hash DA48839C n 408
 world tick 520
 world updates 520
 random isaac.count 79
@@ -10101,7 +10100,7 @@ cunit831510 #place CAB88952
 cunit848411 #place F33A69E0
 cunit848411 #unit C8513E8D
 water-1 frame 517
-@ 26 update 540 frame 107 tick 540 zone bz1g hash 3A0329A1 n 408
+@ 26 update 540 frame 107 tick 540 zone bz1g hash 0BE6C36A n 408
 world tick 540
 world updates 540
 random isaac.count 235
@@ -10182,7 +10181,7 @@ cunit848411 #place BE9279B8
 cunit848411 #unit D6F939A0
 cunit999742 #unit 5B193C19
 water-1 frame 537
-@ 27 update 560 frame 111 tick 560 zone bz1g hash C6CFAE55 n 408
+@ 27 update 560 frame 111 tick 560 zone bz1g hash 42C5F878 n 408
 world tick 560
 world updates 560
 random isaac.count 135
@@ -10255,7 +10254,7 @@ cunit831510 #place 2EF66EF3
 cunit848411 #place FFCD5882
 cunit848411 #unit 74EBA612
 water-1 frame 557
-@ 28 update 580 frame 115 tick 580 zone bz1g hash 3A9EC3BE n 408
+@ 28 update 580 frame 115 tick 580 zone bz1g hash 0D4871BA n 408
 world tick 580
 world updates 580
 random isaac.count 35
@@ -10329,7 +10328,7 @@ cunit848411 #unit 03CB016B
 cunit927062 #unit 8A9ECAD1
 cunit999742 #unit 47FBEA8C
 water-1 frame 577
-@ 29 update 600 frame 119 tick 600 zone bz1g hash 17AF3A03 n 408
+@ 29 update 600 frame 119 tick 600 zone bz1g hash F3A329C8 n 408
 world tick 600
 world updates 600
 random isaac.count 191
@@ -10408,7 +10407,7 @@ cunit831510 #place DEDB611C
 cunit831510 #unit CC57D6A5
 cunit848411 #place 6D9738D7
 water-1 frame 597
-@ 30 update 620 frame 123 tick 620 zone bz1g hash D12E6518 n 408
+@ 30 update 620 frame 123 tick 620 zone bz1g hash 83D3263C n 408
 world tick 620
 world updates 620
 random isaac.count 91
@@ -10474,7 +10473,7 @@ cunit831510 #unit EE84CF3C
 cunit848411 #place D6985B86
 cunit848411 #unit 4AFF34D1
 water-1 frame 617
-@ 31 update 640 frame 127 tick 640 zone bz1g hash 57287974 n 408
+@ 31 update 640 frame 127 tick 640 zone bz1g hash 9AE2F5F7 n 408
 world tick 640
 world updates 640
 random isaac.count 247
@@ -10558,7 +10557,7 @@ cunit848411 #place 58A71F6E
 cunit848411 #unit 95C488A5
 cunit999742 #unit 9CC4EC28
 water-1 frame 637
-@ 32 update 660 frame 131 tick 660 zone bz1g hash 38E94E87 n 408
+@ 32 update 660 frame 131 tick 660 zone bz1g hash B1CA70BC n 408
 world tick 660
 world updates 660
 random isaac.count 147
@@ -10621,7 +10620,7 @@ cunit831510 #unit 7B45036E
 cunit848411 #place FDE5FED7
 cunit848411 #unit 702A13FD
 water-1 frame 657
-@ 33 update 680 frame 135 tick 680 zone bz1g hash 7ABE6225 n 408
+@ 33 update 680 frame 135 tick 680 zone bz1g hash 9034B6C3 n 408
 world tick 680
 world updates 680
 random isaac.count 47
