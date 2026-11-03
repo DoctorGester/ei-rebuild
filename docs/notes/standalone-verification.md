@@ -63,7 +63,7 @@ Suites workflow"): Run workflow on a branch (not main) with `record` = both / va
 (space-separated) and `reason`; it pushes the goldens to the branch as a commit of its own and lists the new and changed
 ones. That push starts no run: check the branch with a Suites run after it. By hand on the machine:
 ```
-python tools\work.py test <ID> --golden --jobs 4 [scenarios]       (each pass)
+python tools\work.py test <ID> --golden [scenarios]       (each pass)
 python tools\golden.py snapshot <scratch>\passN [--install rebirth]  (after each pass)
 python tools\golden.py record --install vanilla --runs <scratch>\pass1 <scratch>\pass2 --reason "..."
 python tools\golden.py saves --runs <dirs>         (only the saves of existing goldens, digests kept)

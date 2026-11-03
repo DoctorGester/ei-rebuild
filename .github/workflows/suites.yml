@@ -101,11 +101,11 @@ jobs:
       # Each suite runs whenever the builds passed, so one suite's differences never hide another's. The output streams
       # (a line per finished run; PYTHONUNBUFFERED so the pipe is not block-buffered) and is kept for the summary.
       - name: Image suite (vanilla)
-        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt
+        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --golden 2>&1 | tee suite_image.txt
 
       - name: Rebirth suite
         if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
-        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt
+        run: PYTHONUNBUFFERED=1 python tools/work.py test CI --rebirth-only --golden 2>&1 | tee suite_rebirth.txt
 
       - name: Summary
         if: always()
@@ -167,7 +167,7 @@ jobs:
               [ $i = --rebirth-only ] && install=rebirth
               # the run folders stay between workflow runs: the snapshot takes only this pass's (--since)
               mkdir -p build/record && touch build/record/start
-              python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
+              python tools/work.py test CI $i --golden $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
               sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p; /^ALL PASS/p; /^SOME RUNS FAILED/p' pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
               python tools/golden.py snapshot build/record/$pass --install $install --since build/record/start $SCENARIOS | grep -v "left out" || true
             done
@@ -258,8 +258,8 @@ jobs:
         run: |
           [ -z "$RESOLUTION" ] || export EI_RESOLUTION=$RESOLUTION
           (if [ -n "$FLAGS" ]; then export EI_REBIRTH=$FLAGS; fi
-           python tools/work.py test CI --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1) || true
-          (cd build/base && python tools/work.py test CI --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
+           python tools/work.py test CI --golden $SCENARIOS > diff_head.txt 2>&1) || true
+          (cd build/base && python tools/work.py test CI --golden $SCENARIOS > ../../diff_base.txt 2>&1) || true
           for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
           # the runs whose time differs by 3 s or more (run_all's table: scenario, install, result, time)
           echo "== run times, base -> head (3 s or more apart)"

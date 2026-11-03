@@ -71,7 +71,7 @@ usage:
       its lines start "peer:").
       Run the games through the scheduler, once per DIR (the Suites workflow's record input does all of this on
       the runner, .github/workflows/suites.yml):
-        python tools\work.py test <ID> --golden --jobs 4 [scenarios]        (--golden: the goldens' digest period)
+        python tools\work.py test <ID> --golden [scenarios]        (--golden: the goldens' digest period)
         python tools\golden.py snapshot <scratch>\run1
         (the same again, snapshot <scratch>\run2)
         python tools\golden.py record --runs <scratch>\run1 <scratch>\run2 --reason TEXT

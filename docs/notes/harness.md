@@ -129,7 +129,7 @@ folder>`: time per function between harness steps).
 
 `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL,
 clang_rt.asan_dynamic-x86_64.dll, copied beside them) into `build\asan`; the product builds never have it. Run the suite
-on it with `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden --jobs 4` (any run_all
+on it with `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden` (any run_all
 arguments). The exe sends the reports to `asan.<pid>` in the run's folder (tests/verify/image/asan_report.cpp;
 `ASAN_OPTIONS` still works for other options): the first heap error (use after free, double free, overflow of a heap,
 stack or global block, a new / delete mismatch) ends the game with its report, symbolised from the PDB, and run_all fails
