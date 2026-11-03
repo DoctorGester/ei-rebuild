@@ -1121,7 +1121,7 @@ void WriteReport() {
 // waits take no real time, sample ends come on virtual time), a fixed date and fixed random seeds,
 // so two runs of the same scenario take the same course, and a run with and without hooks
 // (tools/compare.py) must print the same console output. The harness's waits count virtual time
-// too, each with a real-time safety limit. Repeatability: docs/notes/standalone-verification.md, "Repeatable runs".
+// too, each with a real-time safety limit. Repeatability: docs/notes/standalone-verification.md, section 5.
 bool g_deterministic = true;
 // "clocktrace": log the game's clock reads and waits (harness_clock.h).
 bool g_clockTrace = false;

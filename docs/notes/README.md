@@ -1,30 +1,41 @@
 # Area notes
 
-One file per area (`<area>.md`), written by whoever rewrites that area (`docs/rewrite-guide.md`, "Notes"). Current state only:
-history is in git. Each fact lives in one file; others link to it by file name and section.
+One file per area, holding what the code does not say: how the systems work, the non-obvious decisions and why, the
+formats and the checks. Current state only; history is in git. Each fact lives in one file, and other files link to
+it by file name and section. How to write and keep them: docs/rewrite-guide.md, "Notes".
 
-- `core.md`: engine base (maths, transforms, reference counting, object manager, streams, chunked files, clipping, camera) and
-  the shared container templates. `vector-math.md`: the original's sum orders, `src/lib/vecmath.h`, the V3 migration plan.
-- `network.md`: sessions, connections, messages, lobby, LZ coder, delta replication, links. `app.md`: frame step, registries,
-  option / device records, key bindings. `console.md`: the developer console.
-- `objects.md`: world objects, scenes, options, map database, players and their message handlers. `script.md`: the mission
-  script engine, text reader and the rest of 0x00480000-0x00500000 (streams, decals, link figures, sky, party manager).
-- `map_objects.md`, `units.md`, `combat.md`: map objects, units / statistics / levers / traps, the server unit controller.
-- `ai.md` (AI map, paths, motion), `unit_ai.md` (brain, modes), `world.md` (world server / client, game flow, figure meshes,
-  party records), `effects.md` (world effects), `particles.md`.
-- `ui-native.md` (plan and state of the native 2D interface layer, tickets N / P), `ui-census.md` (what each interface surface was drawn
-  with under GDI, measured before P8), `lua-scripting.md` (plan for Lua mission scripts, tickets L).
-- `ui.md`: the interface. `items_spells.md`: items, spells, texts, textures, registry, trader stock, party. `sound.md`.
-- `models.md`: 3D library, databases, device layer, terrain sectors, resources. `renderer.md`: the sidecar renderer and the
-  switch-over (renderer workers read it whole).
-- `rebirth.md`: what the Rebirth edition patches and the patch flags of the rebuild.
-- `platform.md`: the platform layer (src/platform): its rule, the areas moved onto it and those left. `audio.md`: the
-  sound (src/audio: our mixer on SDL3) and the movies (src/video: our Bink 1 decoder). `linux.md`: the Linux build.
-- `x64.md`: the data side of the 64-bit build (formats read or written as bytes, pointers and handles in 32-bit fields)
-  and its rules.
-- `standalone.md`: how the standalone image runs, what the MFC / STLport replacements and the CRT port must keep, the UTF-8 plan, the hook retirement's outcome (not an area note).
+Engine and game:
+- `core.md`: maths, transforms, reference counting, the object manager, streams and chunked files, values read and
+  written as bytes, the camera, strings, containers.
+- `float-maths.md`: why plain float maths reproduces the original, lib/pc24.h, conversions, NaN, the vector helpers.
+- `app.md`: start-up, the main loop, the frame step, options, key bindings.
+- `console.md`: the developer console.
+- `network.md`: sessions, connections, messages, the lobby, the LZ coder, delta replication.
+- `objects.md`: world objects, diplomacy, lightning, the map database, players.
+- `map_objects.md`, `units.md`, `combat.md`: map objects; units, statistics, levers, traps; the server unit controller.
+- `ai.md`: the AI map, paths, motion.
+- `unit_ai.md`: the brain and its modes.
+- `world.md`: the world server and client, game flow, figure meshes, party records.
+- `effects.md`: particles and world effects.
+- `items_spells.md`: items, spells, texts, textures, registry files, trader stock, the party.
+- `script.md`: the mission script engine and the text reader.
+- `lua-scripting.md`: the plan for Lua mission scripts (tickets L).
+- `models.md`: models, resources, the draw layer, terrain and ground prints.
+- `sound.md`: sound, music and movies (src/audio, src/video).
+- `rebirth.md`: what the Rebirth edition patches, and the patch flags.
+
+Drawing and the interface:
+- `renderer.md`: the renderer (src/render). Renderer workers read it whole.
+- `ui.md`: the interface's screens.
+- `ui-native.md`: how the interface's surfaces and text draw on the GPU.
+
+Program and platform:
+- `standalone.md`: the exe: how it runs, its data, the settings file, the library ports, UTF-8, the drop-in exe.
+- `platform.md`: the platform layer (src/platform) and its rule.
+- `linux.md`: the Linux build.
+
+Tests and tools:
 - `harness.md`: running scenarios, the scenario steps, what a harness run does and leaves alone.
-- `standalone-verification.md`: how changes are checked (goldens, unit checks, WideScreen references), what makes runs repeat, the harness's isolation and diagnostic tools.
-- `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
-  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-effects.md` / `cleanup-ui.md` /
-  `cleanup-world.md` / `cleanup-figures.md` / `cleanup-ai.md` / `cleanup-script.md` / `cleanup-device.md` (how those classes are declared after cleanup phase 1).
+- `standalone-verification.md`: how changes are checked (goldens, unit checks, WideScreen references), what makes
+  runs repeat, the harness's isolation and the diagnostic tools.
+- `work-board.md`: tickets, workers and the test runs board.

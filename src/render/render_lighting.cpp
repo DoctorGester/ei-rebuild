@@ -1,4 +1,4 @@
-// The GPU lighting's scene light (docs/notes/renderer.md section 16): what the world's draw hands
+// The GPU lighting's scene light (docs/notes/renderer.md section 13): what the world's draw hands
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.glsl). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
