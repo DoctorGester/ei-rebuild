@@ -100,6 +100,7 @@ SDL_GPUTextureFormat ToSdl(Format f) {
     case Format::R8: return SDL_GPU_TEXTUREFORMAT_R8_UNORM;
     case Format::R8Uint: return SDL_GPU_TEXTUREFORMAT_R8_UINT;
     case Format::R16Uint: return SDL_GPU_TEXTUREFORMAT_R16_UINT;
+    case Format::R32Float: return SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
     case Format::Rgba32Float: return SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
     case Format::Bc1: return SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM;
     case Format::Bc2: return SDL_GPU_TEXTUREFORMAT_BC2_RGBA_UNORM;
@@ -585,7 +586,7 @@ struct PipelineHash {
             h.Add(a.location), h.Add(a.buffer), h.Add(a.format), h.Add(a.offset);
         h.Add(d.primitive), h.Add(d.cull), h.Add(d.front), h.Add(d.colour), h.Add(d.colourMask);
         h.Add(d.blend.on), h.Add(d.blend.sourceColour), h.Add(d.blend.destColour), h.Add(d.blend.sourceAlpha);
-        h.Add(d.blend.destAlpha), h.Add(d.blend.colourOp), h.Add(d.blend.alphaOp);
+        h.Add(d.blend.destAlpha), h.Add(d.blend.colourOp), h.Add(d.blend.alphaOp), h.Add(d.second), h.Add(d.secondMask);
         h.Add(d.depth), h.Add(d.depthCompare), h.Add(d.depthWrite), h.Add(d.depthBias), h.Add(d.depthBiasSlope);
         h.Add(d.depthBiasClamp), h.Add(d.samples);
         return h.h;
@@ -599,6 +600,7 @@ const char* PipelineFault(const PipelineDesc& d) {
     if (d.bufferCount < 0 || d.bufferCount > kMostVertexBuffers) return "too many vertex buffers";
     if (d.attributeCount < 0 || d.attributeCount > kMostVertexAttributes) return "too many vertex attributes";
     if (d.colour == Format::None && d.depth == Format::None) return "no target";
+    if (d.second != Format::None && d.colour == Format::None) return "a second colour target without a first";
     const gpu_shaders::Program& p = gpu_shaders::kPrograms[d.program];
     for (int i = 0; i < d.attributeCount; ++i)
         if (d.attributes[i].buffer >= d.bufferCount) return "an attribute reads a vertex buffer it does not have";
@@ -640,10 +642,6 @@ Bound g_bound;
 
 void PrepareInBackground(const DeviceOptions& options) {
     if (g_device || g_prepared.thread.joinable()) return;
-    if (!SDL_WasInit(SDL_INIT_VIDEO)) {
-        if (SDL_InitSubSystem(SDL_INIT_VIDEO)) g_videoStarted = true;
-        else ei::Log("gpu: SDL's video could not be started: %s", SDL_GetError());
-    }
     g_prepared.driver = options.driver ? options.driver : "";
     g_prepared.debug = options.debug;
     g_prepared.thread = std::thread([] {
@@ -1079,8 +1077,9 @@ Pipeline MakePipeline(const PipelineDesc& desc, const char* label) {
         ci.rasterizer_state.depth_bias_clamp = desc.depthBiasClamp;
     }
     ci.multisample_state.sample_count = SampleCount(desc.samples);
-    SDL_GPUColorTargetDescription colour{};
+    SDL_GPUColorTargetDescription colours[2]{};
     if (desc.colour != Format::None) {
+        SDL_GPUColorTargetDescription& colour = colours[0];
         colour.format = ToSdl(desc.colour);
         SDL_GPUColorTargetBlendState& b = colour.blend_state;
         b.enable_blend = desc.blend.on;
@@ -1092,8 +1091,14 @@ Pipeline MakePipeline(const PipelineDesc& desc, const char* label) {
         b.alpha_blend_op = ToSdl(desc.blend.alphaOp);
         b.enable_color_write_mask = true;
         b.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.colourMask);
-        ci.target_info.color_target_descriptions = &colour;
+        ci.target_info.color_target_descriptions = colours;
         ci.target_info.num_color_targets = 1;
+    }
+    if (desc.second != Format::None) {
+        colours[1].format = ToSdl(desc.second);
+        colours[1].blend_state.enable_color_write_mask = true;
+        colours[1].blend_state.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.secondMask);
+        ci.target_info.num_color_targets = 2;
     }
     if (desc.depth != Format::None) {
         ci.target_info.has_depth_stencil_target = true;
@@ -1139,12 +1144,19 @@ bool BeginPass(const PassDesc& pass) {
         Problem("a pass without targets");
         return false;
     }
+    if (pass.second.texture && !pass.colour.texture) {
+        Problem("a pass with a second colour target but no first");
+        return false;
+    }
     Flush();
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
-    SDL_GPUColorTargetInfo colour{};
-    const ColourTarget& c = pass.colour;
-    if (c.texture) {
+    SDL_GPUColorTargetInfo colours[2]{};
+    int colourCount = 0;
+    for (const ColourTarget* target : {&pass.colour, &pass.second}) {
+        const ColourTarget& c = *target;
+        if (!c.texture) continue;
+        SDL_GPUColorTargetInfo& colour = colours[colourCount++];
         colour.texture = c.texture.texture;
         colour.mip_level = static_cast<Uint32>(c.level);
         colour.clear_color = {c.clear[0], c.clear[1], c.clear[2], c.clear[3]};
@@ -1173,7 +1185,7 @@ bool BeginPass(const PassDesc& pass) {
         depth.cycle = d.load != Load::Keep && d.texture.levels == 1;
     }
     if (g_debug && pass.label) SDL_InsertGPUDebugLabel(commands, pass.label);
-    g_pass = SDL_BeginGPURenderPass(commands, c.texture ? &colour : nullptr, c.texture ? 1 : 0,
+    g_pass = SDL_BeginGPURenderPass(commands, colourCount ? colours : nullptr, static_cast<Uint32>(colourCount),
                                     d.texture ? &depth : nullptr);
     if (!g_pass) {
         Problem("pass %s: %s", pass.label ? pass.label : "", SDL_GetError());

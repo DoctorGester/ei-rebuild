@@ -31,7 +31,9 @@ struct DeviceOptions {
     const char* driver = nullptr;
     bool debug = false;   // the driver's validation layer, where the system has it
 };
-// Starts making the device on a thread of its own (SDL's video is set up first, on this thread); Start takes it.
+// Starts making the device on a thread of its own; Start takes it. SDL's video is not started here (the platform
+// layer starts it after naming the window class): a driver that needs it (Vulkan) fails there without it, and Start
+// makes the device again on the calling thread.
 void PrepareInBackground(const DeviceOptions& options = {});
 // The device made in the background, or one made now. False, with Error() saying why, when there is none.
 bool Start(const DeviceOptions& options = {});
@@ -53,6 +55,7 @@ enum class Format : std::uint8_t {
     R8,
     R8Uint,
     R16Uint,
+    R32Float,
     Rgba32Float,
     Bc1,
     Bc2,
@@ -206,6 +209,8 @@ struct PipelineDesc {
     Format colour = Format::Rgba8;   // None: depth only
     std::uint8_t colourMask = kWriteAll;
     Blend blend;
+    Format second = Format::None;    // a second colour target (PassDesc::second), never blended
+    std::uint8_t secondMask = kWriteAll;
     Format depth = Format::None;     // None: without a depth buffer
     Compare depthCompare = Compare::Always;
     bool depthWrite = false;
@@ -244,6 +249,7 @@ struct DepthTarget {
 };
 struct PassDesc {
     ColourTarget colour;
+    ColourTarget second;   // a second colour target (SV_Target1); empty: none
     DepthTarget depth;
     const char* label = nullptr;
 };
