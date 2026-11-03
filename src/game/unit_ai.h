@@ -556,15 +556,13 @@ inline constexpr int kNoticeCorpseDecay = -3;
 struct AIMemory {
     void Reset();
     // Ages the reports (one tick off each; an entry below 0 is dropped), updates the heard calls and the AI
-    // events' view, then adds the noticed decay to the noticed level. Both callees may notice a point first (a
-    // call, a corpse, a unit lost from sight).
+    // events' view, then adds the noticed decay to the noticed level, down to kPriorityNone. Both callees may
+    // notice a point first (a call, a corpse, a unit lost from sight).
     void Update(UnitServer* owner);
     // True when the unit can still keep track of `other`: it has the unit's side or player, or it is in sight.
     bool CanTrack(Unit* self, Unit* other);
-    // Takes over a noticed point of a higher `level`: true when the level rose by more than 100 or the point
-    // lies more than sqrt(10) away (with the point's own z, not a difference); false when the level is not
-    // higher.
-    bool Notice(const Vector3& point, int level, int decay);
+    // Takes over a noticed point of a higher `level`.
+    void Notice(const Vector3& point, int level, int decay);
     void Forget(EngineObject* object);
     void HearCall(const Vector3& point, int delay, std::string_view text);
     void AddClaim(std::uint32_t mask, int delay, std::string_view text);
@@ -683,11 +681,10 @@ struct AIBrain {
     // The perception memory emptied, then the behaviour record of alarmSlot applied again (none without records).
     void ResetBehaviour();
 
-    // The best {part, object} to attack or help: the current attack scored first, then (without `alliesOnly`)
-    // every weapon against every candidate and every spell against the unit and its allies in sight; the best
-    // that scores above the current one and passes IsUsable, the order check (with `alliesOnly`, for targets not
-    // near the path) and CanReach wins; a rejected one seen once is reported (20). {kWeaponPart, null} without
-    // options.
+    // The best {part, object} to attack or help: the current attack scored first, then every weapon against
+    // every candidate and every spell against the unit and its allies in sight; the best that scores above the
+    // current one and passes IsUsable, the order check (with `alliesOnly`, for targets not near the path) and
+    // CanReach wins; a rejected one seen once is reported (20). {kWeaponPart, null} without options.
     AITargetChoice Choose(UnitList* candidates, const Vector3& from, bool alliesOnly, bool fromHere);
     // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
     // or the unit itself; true without an object.

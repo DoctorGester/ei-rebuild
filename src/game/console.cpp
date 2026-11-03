@@ -12,7 +12,6 @@
 #include "platform/platform.h"
 
 #include <charconv>
-#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -176,10 +175,9 @@ void Execute(const std::string& text) {
         return;
     }
     if (!g_cheatEnabled) {
-        // The cheat word is kept XORed with 0x66 (up to the first byte that becomes zero).
+        // The cheat word is kept XORed with 0x66; the whole command must match it.
         for (char& c : command) c ^= 0x66;
-        command.resize(std::strlen(command.c_str()));
-        if (str::Compare(command, game::consoletexts::CheatWord()) == 0) {
+        if (command == game::consoletexts::CheatWord()) {
             g_cheatEnabled = true;
             PrintLine("Activated!");
             return;

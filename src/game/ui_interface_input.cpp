@@ -319,8 +319,8 @@ void Interface3D::SetConsoleHistory(int lines) {
     if (console) console->SetHistory(lines);
 }
 
-void Interface3D::ShowFps(int on) {
-    if (!static_cast<std::uint8_t>(on)) {
+void Interface3D::ShowFps(bool on) {
+    if (!on) {
         if (fpsSurface) {
             delete fpsSurface;
         }

@@ -2,25 +2,16 @@
   "scenario": "effects_bow",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "ce241d21a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, trap victims once, script error text",
+  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 8 of 20 records differ, first at record 12 (world update 260, tick 232, frame 51, zone gz1g); outcomes the same; max unit move 2.44 (obj1937, record 19)",
-    "  first difference at record 12 (world update 260, tick 232, frame 51, zone gz1g): 1 fields",
-    "    random (random) isaac.count: 190 in the old golden, 217 in the new run (d 27)",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 8 records, from 12; max |d| 189 at random isaac.count, record 15: 221 -> 32",
-    "    crt: 1 generator, 4 records, from 13; e.g. random crt.rand: 0xCB4C2A15 in the old golden, 0x4F77F43A in the new run",
-    "  units: 6 of 54 differ",
-    "    #ai: 6 units, 5 records, from 13; hash only (no numbers kept)",
-    "    pos: 1 unit, 3 records, from 17; moved 2.44 at obj1937 80 unmoto \"\", record 18",
-    "    #unit: 1 unit, 3 records, from 17; hash only (no numbers kept)"
+    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
+    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

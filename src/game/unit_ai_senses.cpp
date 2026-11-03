@@ -156,16 +156,14 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
 namespace {
 
 // Whether `owner`'s unit still sees the visible unit `other`. A dead one is not seen: it is recorded as a corpse
-// first (twice in the seen corpses when allied, as the original does).
+// first.
 bool StillSees(UnitServer* owner, AIMemory* memory, Unit* other, float reachFactor) {
     Unit* self = owner->unit;
     Vector3 d = other->localPosition - self->localPosition;
     float distance = Length(d);
     if (other->IsDead()) {
-        if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
-            memory->seenCorpses.push_back(other);
-            if (memory->noticedLevel < kNoticeCorpseLevel) NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
-        }
+        if (g_serverWorld.diplomacy.IsAllied(self->side, other->side) && memory->noticedLevel < kNoticeCorpseLevel)
+            NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
         console::EndLine(LogPair(self, " sees corpse of unit ", other));
         memory->seenCorpses.push_back(other);
         if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);

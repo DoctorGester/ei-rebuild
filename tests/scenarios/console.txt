@@ -15,8 +15,9 @@ console    LastFPS
 expect Current FPS:
 console "lastfps"
 expect Unknown command
+# fps without on / off toggles the frame rate (on, then off again).
 console fps
-expect Invalid number of parameters for command "FPS"
+console fps
 console rate
 expect Rate has one parameter - connection rate in bytes per second
 console localrate 1 2
@@ -33,7 +34,9 @@ expect Cannot open file No Such Console File.txt for reading
 console console
 expect Invalid console position
 
-# The cheat word (any case); then the second command map.
+# The cheat word (any case, the whole word: a longer one with an 'f' is unknown); then the second command map.
+console thingamabobfx
+expect Unknown command
 console THINGAMABOB
 expect Activated!
 console thingamabob

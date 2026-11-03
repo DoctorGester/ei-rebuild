@@ -65,16 +65,6 @@ void MapObjectServer::SetData(const UnitVitals* data) {
     owner->MarkChanged(0);
 }
 
-bool MapObjectServer::TakeHit(const DamageInfo* hit) {
-    vitals.TakeHit(hit);
-    owner->MarkChanged(0);
-    if (IsDead()) {
-        owner->ClearEffects();
-        owner->flags |= MapObjectFlag::Removed;
-    }
-    return true;
-}
-
 bool MapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.

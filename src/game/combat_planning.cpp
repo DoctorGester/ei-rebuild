@@ -33,7 +33,6 @@ namespace {
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr float kFar = 1000000.0f;   // 1e6
-constexpr float kNoZBits = -1.0f;   // -1.0: an order point without height
 constexpr int kNoSpot = 0x7FFFFFFF;
 
 // --- Helpers --------------------------------------------------------------------------------------
@@ -69,7 +68,6 @@ void PathMessage(Unit* unit, PathOrder* motion, const Vector3& point, int kind, 
 
 bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     WorldServer* world = ServerWorld();
-    order->point.z = kNoZBits;
     if (order->kind != UnitOrderKind::Use || !order->target || order->source != 0) return true;
     float size = unit->Radius();
     std::vector<Vector3> spots = order->target->UseSpots(size);
@@ -239,7 +237,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
 
 // --- A party unit's move -----------------------------------------------------------------------
 
-void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
+void UnitServer::PlanMove(const Vector3& point, int moving, int run) {
     WorldServer* world = ServerWorld();
     AIPath path;
     std::vector<Unit*> lifted = LiftNearby(point, static_cast<char>(moving));
@@ -260,7 +258,7 @@ void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range
     path.mayExcludeRegions = unit->player == nullptr;
     std::uint32_t savedAltPassCosts = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapOf(world2)->FindPath(unit, point, &path, range, 0.0f);
+    bool found = MapOf(world2)->FindPath(unit, point, &path, kFar, 0.0f);
     unit->altPassCosts = savedAltPassCosts;
     if (running) {
         sectors->Remove(unit);

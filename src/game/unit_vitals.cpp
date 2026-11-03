@@ -453,15 +453,14 @@ bool UnitStats::RaiseAttribute(int index, int amount, Unit* unit) {
     return RaiseLevel(this, attributes, index, amount, unit);
 }
 
-bool UnitStats::RaiseStrength(int amount, Unit* unit) {
+void UnitStats::RaiseStrength(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
-    if (!vitals) return false;
+    if (!vitals) return;
     strengthBase = amount + strengthBase;
-    float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
-    float scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    const ::SkillLevelRecord* record = SkillLevelRecord(kSkillHitPoints);
-    float maxHitPoints = ((record ? record->Value() : 0.0f) * kPercent + 1.0f) * scaled;
-    vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
+    // The strength in use rises with its base at once, so the slots scale to the new maximum (a hero at full
+    // health stays there).
+    strength = amount + strength;
+    vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, HitPointCurve());
     vitals->maxMana = ManaCurve();
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
@@ -470,12 +469,11 @@ bool UnitStats::RaiseStrength(int amount, Unit* unit) {
     unit->MarkChanged(1);
     Recompute(vitals, unit);
     unit->MarkChanged(4);
-    return true;
 }
 
-bool UnitStats::RaiseDexterity(int amount, Unit* unit) {
+void UnitStats::RaiseDexterity(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
-    if (!vitals) return false;
+    if (!vitals) return;
     dexterityBase = amount + dexterityBase;
     float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     float scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
@@ -498,16 +496,14 @@ bool UnitStats::RaiseDexterity(int amount, Unit* unit) {
     unit->MarkChanged(1);
     Recompute(vitals, unit);
     unit->MarkChanged(4);
-    return true;
 }
 
-bool UnitStats::RaiseIntelligence(int amount, Unit* unit) {
+void UnitStats::RaiseIntelligence(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
-    if (!vitals) return false;
+    if (!vitals) return;
     intelligenceBase = amount + intelligenceBase;
     RefreshMaxima(this, vitals, unit);
     Recompute(vitals, unit);
-    return true;
 }
 
 float UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }

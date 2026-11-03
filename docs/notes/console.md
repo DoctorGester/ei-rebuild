@@ -43,6 +43,6 @@ takes its trail byte. The first token is the command.
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-The cheat-word test XORs the command in place (a command containing 'f' gets a NUL inside; the stored word is cut the
-same way). `fps` with neither 1 / on nor 0 / off does nothing.
+None left. The cheat word must match the whole command; `fps` without 1 / on or 0 / off (or with no argument) toggles
+the frame rate.
 

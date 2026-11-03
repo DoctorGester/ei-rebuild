@@ -321,13 +321,13 @@ clickground 19 277 dblclick
 waitidle 120 60
 waitdead 120 1000188 1000189 1000190 1000191 1000192 1000193 1000194 1000195 1000196 1000197
 
-# Back to exit 1.
+# Back to exit 1 (the first walk's wait is longer: an undead met on the way may hold the hero in a fight).
 lookat 210 312
 frames 5
 lookat 210 312
 frames 5
 clickground 210 312 dblclick
-waitidle 120 20
+waitidle 240 20
 lookat 210 312
 frames 5
 lookat 210 312

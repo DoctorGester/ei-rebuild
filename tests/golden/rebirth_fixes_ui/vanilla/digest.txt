@@ -7351,7 +7351,7 @@ cunit663 #place 3ED41BB4
 cunit1901 #place D2F3349E
 cunit1913 #place 235BD87D
 cunit1000011214 #vitals C9D378A4
-@ 23 update 480 frame 95 tick 442 zone gz1g hash 47A47FAA n 791
+@ 23 update 480 frame 95 tick 442 zone gz1g hash 694FF97D n 791
 world tick 442
 world updates 480
 random isaac.count 130
@@ -7363,7 +7363,6 @@ random isaac.memory 0x679D48CE
 random crt.rand 0x0A3661DB
 obj663 #ai 441B8002
 obj663 #place E7D54CE0
-obj663 #unit 9548D05B
 obj663 #vitals A1D9CB9C
 obj666 #ai E85D4369
 obj666 #vitals 3C151D53
@@ -7413,7 +7412,7 @@ client tick 442
 client ticksRun 452
 cunit663 #place 69008974
 cunit1000011214 #vitals 41219FFA
-@ 24 update 500 frame 99 tick 462 zone gz1g hash F5668099 n 791
+@ 24 update 500 frame 99 tick 462 zone gz1g hash CB403541 n 791
 world tick 462
 world updates 500
 random isaac.count 47
@@ -7483,7 +7482,7 @@ client ticksRun 472
 cunit663 #place 501882B4
 cunit1000011214 #place 7491824F
 cunit1000011214 #unit F7DD1D62
-@ 25 update 520 frame 103 tick 482 zone gz1g hash E461E756 n 791
+@ 25 update 520 frame 103 tick 482 zone gz1g hash 10A73ED9 n 791
 world tick 482
 world updates 520
 world updateMap 22
@@ -7544,7 +7543,7 @@ client ticksRun 492
 cunit663 #place 4F36D18C
 cunit1000011214 #place B85E1819
 cunit1000011214 #unit F1EA5CE9
-@ 26 update 540 frame 107 tick 502 zone gz1g hash 54EABEC0 n 792
+@ 26 update 540 frame 107 tick 502 zone gz1g hash DAB682F2 n 792
 world tick 502
 world updates 540
 world updateMap 20
@@ -7636,7 +7635,7 @@ cunit1947 #vitals ED40ECA3
 cunit1000011214 #place 70B07618
 cunit1000011214 #unit 87382A37
 cunit1000011214 #vitals 28C619A2
-@ 27 update 560 frame 111 tick 522 zone gz1g hash C75BFB36 n 792
+@ 27 update 560 frame 111 tick 522 zone gz1g hash 0AB96D27 n 792
 world tick 522
 world updates 560
 random isaac.count 246
@@ -7699,7 +7698,7 @@ client tick 522
 client ticksRun 532
 cunit663 #place E06D3B5D
 cunit1000011214 #place 3B42F218
-@ 28 update 580 frame 115 tick 542 zone gz1g hash 69731412 n 792
+@ 28 update 580 frame 115 tick 542 zone gz1g hash 8029657F n 792
 world tick 542
 world updates 580
 random isaac.count 236

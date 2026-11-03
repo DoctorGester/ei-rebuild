@@ -59,7 +59,6 @@ constexpr float kPercent = 0.01f;
 constexpr float kHitMark = 3.4028235e38f;       // FLT_MAX
 constexpr float kMissMark = -3.4028235e38f;      // -FLT_MAX
 constexpr float kMeleeFloor = 0.6f;
-constexpr float kMeleeFloorParty = 0.20000002f; // 0.20000002 (sic)
 
 constexpr float kHeroSizeCap = 1.89f;
 constexpr float kLoadOverloaded = 1.5f;
@@ -289,7 +288,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     }
     if (Unit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
-        if (other->player && unit->player) floor = kMeleeFloorParty;
+        if (other->player && unit->player) floor = kPointTwo;
         ItemWeapon* weapon = unit->ActiveWeapon();
         float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
         float reach = MaxKeepB(range, floor);
@@ -367,7 +366,6 @@ void UnitServer::GetAttackParams(AttackParams* out) {
         base = WeaponDefenceBonus(weapon->prototypeId);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->defence = lib::Truncate(bonus + base);
-        out->damageType = WeaponDamageType(weapon->prototypeId);
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
@@ -380,7 +378,8 @@ void UnitServer::GetAttackParams(AttackParams* out) {
         } else {
             out->weaponType = stats.naturalWeapon;
             const auto* model = self->GetPrototypeModel();
-            // The first damage type with a non-zero weight; left as it was when there is none.
+            // The first damage type with a non-zero weight, none when every weight is zero.
+            out->damageType = kNoDamageType;
             for (int i = 0; i < 7; ++i) {
                 float weight = model->damageWeights[i];
                 EI_NAN_AUDIT(weight);
@@ -487,7 +486,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     out->calledShot = static_cast<std::uint8_t>(calledShot);
 }
 
-bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
+void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     WorldServer* world = ServerWorld();
     int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
@@ -516,8 +515,8 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
 
     Player* player = unit->player;
     if (player) {
-        if (PlayerGodMode(player) != 0) return false;
-        if (source && source->player && player != source->player) return false;
+        if (PlayerGodMode(player) != 0) return;
+        if (source && source->player && player != source->player) return;
     }
 
     AttackParams mine;
@@ -551,13 +550,13 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
                     const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient()) {
                         world->AwardExperience(nullptr, prototype->experienceValue);
-                        return true;
+                        return;
                     }
                     Player* killer = source->player;
                     world->AwardExperience(killer, prototype->experienceValue);
                 }
             }
-            return true;
+            return;
         }
     }
     if (attacker && attacker->GetClassId() == ClassId::Unit) {
@@ -565,7 +564,6 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
         diplomacy->OnAttack(attacker, unit);
     }
     brain.SetSeen(attacker);
-    return false;
 }
 
 void UnitServer::UpdateSizeClasses() {

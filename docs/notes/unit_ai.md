@@ -50,24 +50,27 @@ every spawn.
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-- Moves: PlanLooks' wait of the seventh (untested) draw is kept when all six line-of-sight tests fail; UpdateFollow
-  ignores the result of its side-step path search and only reads the path's target.
+- Moves: PlanLooks' wait of the seventh (untested) draw is kept when all six line-of-sight tests fail.
 - `CanTrack` answers true for the same side, the same player, or an object in a list, so UpdateAttack gives up only on a
-  unit of another side and player that is not listed. AIMemory::Update adds the noticed decay to the noticed level every
-  tick. Notice measures the distance with the new point's own z (the memory keeps no z).
+  unit of another side and player that is not listed.
 - Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until
   one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has no patrol points,
   adding one at its position" and adds a point at the unit (the original's text said "switching to guard"). Suspection's Execute computes the "near the
   point" distance only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat.
 - AppendPoint rounds 2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's
   middle. Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3
-  multiplies by (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off.
+  multiplies by (effect / 4) / 2.
 - FindEnemiesNear asks the visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee forces when at or
-  beyond either of the observer's ranges, or when the object attacks the unit. AIViewer::Update lists an allied corpse
-  twice; See skips a dead hostile unit unless the unit sees all.
-- UpdateCombat attacks the chosen target with the weapon even when the choice was a spell. A target removed mid-attack
-  leaves the brain at action 3 with its target cleared; UpdateCombat (finding nobody) leaves it so
-  (`unit_ai_attack_removed`).
+  beyond either of the observer's ranges, or when the object attacks the unit. See skips a dead hostile unit unless the
+  unit sees all.
+- A target removed mid-attack leaves the brain at action 3 with its target cleared; UpdateCombat (finding nobody)
+  leaves it so (`unit_ai_attack_removed`).
+
+Facts behind fixed entries: Player mode's UpdateCombat carries out its choice like the enemy modes (ApplyAttack: a
+spell choice is cast); it matters for the 11 numbered hub NPCs in Player mode with attack spells (BabaSit in bz14h,
+OrcCamp7 in bz6g, ...), since named units get no spell options. The noticed level stops falling at kPriorityNone
+(-1000), not at 0: Suspection claims with the level plus the current mode's 100, so a search ends only once the level
+is below -50; no reader tells -1000 from lower.
 
 ## FearMode::Evaluate
 

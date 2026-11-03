@@ -447,9 +447,9 @@ std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     Player* player = unit->player;
     std::vector<Unit*> list;
     if (!player || player->sessionKind != 1) return list;
-    // Away from the point: the units near it that are not in the player's group are lifted off the sector map
-    // and stay in the list.
-    if (LengthSquared(point - unit->localPosition) > 16.0f) {
+    // Away from the point (in the plane: a move point's z is no height): the units near it that are not in the
+    // player's group are lifted off the sector map and stay in the list.
+    if (DistanceSquaredXY(point, unit->localPosition) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
         const ScriptGroup* group = &player->Server()->partyUnits;
         for (Unit* other : sectors->FindUnitsInRadius(point, 4.0f)) {

@@ -33,7 +33,6 @@ namespace {
 constexpr float kDecayRandomScale = 0.4f * 0x1p-32f;
 constexpr float kDecayBase = 0.8f;
 
-constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearRange = 35.0f;         // AIBrain::nearRange / farRange of the idle modes
 constexpr float kFarRange = 80.0f;
 constexpr float kNoWander = -1.0f;
@@ -487,7 +486,7 @@ void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, bool inGroup, bo
     state = kStateCommand;
     PrepareWalk(this, brain, to, run, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, runs, inGroup);
 }
 
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset) {
@@ -495,12 +494,12 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bo
     PrepareWalk(this, brain, to, run, offset);
     if (!PartyInDanger(brain->owner->unit) && !StaysWithParty(brain, true)) {
         point.z = 0.0f;
-        brain->owner->PlanMove(point, inGroup, 0, kMoveTime);
+        brain->owner->PlanMove(point, inGroup, 0);
         return;
     }
     point.z = kWalking;
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, runs, inGroup);
 }
 
 void PlayerMode::CommandAttack(AIBrain* brain, MapObject* object, int how, int calledShot) {
@@ -786,7 +785,7 @@ void FearMode::Execute(AIBrain* brain) {
         float range = way * kThree + kRangeBase;
         if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
-            brain->owner->OrderMove(dest, 0, 0, kMoveTime);
+            brain->owner->OrderMove(dest, 0, 0);
         }
         spread += spread;
     }
@@ -891,8 +890,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 theirs->StopAction();
             }
         }
-        AITargetChoice now = brain->CurrentAttack();
-        if (now.object != best.object || now.part != best.part) brain->AttackTarget(chosen);
+        brain->ApplyAttack(&best);
         target.Reset();
     }
 }
@@ -992,7 +990,6 @@ constexpr float kOnTheWaySq = 1.3f;
 constexpr float kSideOffset = 1.3649999f;    // (1.365)
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
-constexpr float kPassTime = 20.0f;
 
 constexpr float kSamePointSq = 0.01f;
 
@@ -1107,7 +1104,6 @@ void AIBrain::UpdateFollow() {
     int now = g_serverWorld.tick;
     float distance = std::sqrt(LengthSquared(toLeader));
     UnitServer* leaderController = leader->ServerController();
-    float walkTime = distance * kRangePerDistance + kRangeBase;
 
     if (leaderController->action.kind != UnitOrderKind::Move && leaderController->action2.kind != UnitOrderKind::Move) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
@@ -1118,7 +1114,7 @@ void AIBrain::UpdateFollow() {
         }
         Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
         if (DistanceSquaredXY(goal, leader->localPosition) > farSq) {
-            owner->OrderMove(leader->localPosition, 0, 0, walkTime);
+            owner->OrderMove(leader->localPosition, 0, 0);
             followTimer = 0;
         }
         return;
@@ -1131,7 +1127,7 @@ void AIBrain::UpdateFollow() {
     if (soonSq >= distance * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
         if (DistanceSquaredXY(soon, goal) > farSq) {
-            owner->OrderMove(soon, 0, 0, walkTime);
+            owner->OrderMove(soon, 0, 0);
             followTimer = kFollowPause;
         }
         return;
@@ -1169,18 +1165,18 @@ void AIBrain::UpdateFollow() {
 
     AIPath path;
     Vector3 aside = passing + side;
-    g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
+    bool found = g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
     float half = 0.5f;
     float targetY = half * path.targetY;
     float offY = aside.y - targetY;
     float offX = aside.x - half * path.targetX;
     EI_NAN_AUDIT(offX, offY);
-    if (LengthSquared2D(offX, offY) < kReachedSq) {
-        owner->OrderMove(aside, 0, 0, kPassRange);
+    if (found && LengthSquared2D(offX, offY) < kReachedSq) {
+        owner->OrderMove(aside, 0, 0);
         followTimer = kFollowPause;
     } else {
         if (DistanceSquaredXY(goal, passing) > 0.5f) {
-            owner->OrderMove(passing, 0, 0, kPassTime);
+            owner->OrderMove(passing, 0, 0);
             followTimer = kFollowPause;
         }
     }

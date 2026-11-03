@@ -1,8 +1,7 @@
 // How a hit reaches a creature's statistics: UnitStats::ApplyHit (called by UnitServer::TakeHit)
 // takes off the vitals' protection, wears the attacker's weapon, and lets the hit location's
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
-// armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
-// docs/notes/units.md.
+// armour pieces. See unit.h and docs/notes/units.md.
 #include "combat.h"
 #include "console.h"
 #include "options.h"
@@ -198,17 +197,6 @@ int UnitStats::ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, I
     }
     unit->DropBrokenEquipment();
     return damaged;
-}
-
-void UnitVitals::TakeHit(const DamageInfo* hit) {
-    for (int type = 0; type < kDamageTypes; ++type) {
-        float damage = hit->typeWeights[type] * hit->amount - protection[type].current;
-        if (damage > 0.0f) hitPoints = hitPoints - damage;
-    }
-    float floor = maxHitPoints * kOverkill;
-    float f = floor;
-    float hp = hitPoints;
-    hitPoints = MaxKeepB(f, hp);
 }
 
 bool Unit::IsBehind(const MapObject* t) {

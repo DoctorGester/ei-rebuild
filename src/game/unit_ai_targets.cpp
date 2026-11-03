@@ -302,13 +302,11 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
     }
 
     std::vector<Scored> scored;
-    if (!alliesOnly) {
-        for (auto node = candidates->begin(); node != candidates->end(); ++node) {
-            auto* candidate = *node;
-            for (int i = 0; i < std::ssize(weapons); ++i) {
-                float s = Score(from, self, candidates, held, candidate, best, &weapons[i]);
-                if (s > best) scored.push_back({weapons[i].part, candidate, s});
-            }
+    for (auto node = candidates->begin(); node != candidates->end(); ++node) {
+        auto* candidate = *node;
+        for (int i = 0; i < std::ssize(weapons); ++i) {
+            float s = Score(from, self, candidates, held, candidate, best, &weapons[i]);
+            if (s > best) scored.push_back({weapons[i].part, candidate, s});
         }
     }
     if (!spells.empty()) {

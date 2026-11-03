@@ -71,13 +71,12 @@
   Unit 1000002044 sees unit 1000000405 from 7.41629m distance
   Unit 1000002044 sees unit 1000000400 from 6.1443m distance
   Unit 1000000402 sees unit 1000002044 from 7.68137m distance
-  Unit 1804 acknowledges with idleSound = AAn4XyU
   Unit 1000000402 sees unit 1000000407 from 6.35214m distance
   Unit 1000000407 sees unit 1000000402 from 6.12917m distance
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=9.71 destHL=Body
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=11.02 destHL=Body
   Unit 1000000403 sees unit 1000002044 from 3.55581m distance
-  Unit 1000000399 was attacked by 1000011214 skill=3.40282e+038 damage=12.2449 destHL=RLeg
-  impaling passed damage = 12.2449 HL was crippled
+  Unit 1000000399 was attacked by 1000011214 skill=3.40282e+038 damage=12.1229 destHL=LHand
+  impaling passed damage = 12.1229 HL was crippled
   Unit 1000000404 sees unit 1000000402 from 7.75694m distance
   Unit 1000000404 sees unit 1000000401 from 2.62664m distance
   Unit 1000000404 sees unit 1000000400 from 6.42879m distance
@@ -115,25 +114,27 @@
   Delayed sound: Unit 1000002043 heard unit 1000000406 from 5.514904m distance
   Delayed sound: Unit 1000002045 heard unit 1000000402 from 2.149007m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
+  Unit 1936 acknowledges with idleSound = AAn4XyU
   Unit 1000000400 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000401 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000402 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
-  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=12.15 destHL=RHand
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=11.43 destHL=LHand
   Unit 1000000403 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000404 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
   Unit 1000000405 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000406 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.57 destHL=Head!
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=11.4 destHL=RHand
   Unit 1000002045 sees unit 1000000406 from 6.01301m distance
   Unit 1000000406 sees unit 1000002045 from 6.01301m distance
   Delayed sound: Unit 1000000400 heard unit 1000002045 from 3.434561m distance
   Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.385237m distance
+  Unit 1804 acknowledges with idleSound = AAn4XyU
   Delayed sound: Unit 1000002045 heard unit 1000000402 from 1.696093m distance
   Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.428492m distance
   Delayed sound: Unit 1000011214 heard unit 1000000406 from 4.496174m distance
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=9.21 destHL=LLeg
-  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=7.64 destHL=Body
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=9.41 destHL=RLeg
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=10.93 destHL=LHand
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=12.52 destHL=Head!
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=7.51 destHL=LHand
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -149,9 +150,9 @@
   Unit 1000002044 sees unit 1000000406 from 5.93299m distance
   Delayed sound: Unit 1000002045 heard unit 1000000406 from 5.413962m distance
   Delayed sound: Unit 1000000407 heard unit 1000000406 from 5.459099m distance
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=11.04 destHL=LHand
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.43 destHL=RHand
-  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=7.14 destHL=LHand
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=7.21 destHL=RHand
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=10.03 destHL=RHand
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=9.71 destHL=LHand
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -161,11 +162,9 @@
   Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
   Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
   Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
-  Unit 1804 acknowledges with idleSound = AAn4XyU
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=7.96 destHL=Body
-  Unit 1936 acknowledges with idleSound = AAn4XyU
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=10.73 destHL=LLeg
-  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=8.83 destHL=LLeg
+  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=7.93 destHL=Head!
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=9.72 destHL=LHand
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=12.47 destHL=LHand
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -175,9 +174,9 @@
   Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
   Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
   Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
-  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=10.73 destHL=Body
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=10.32 destHL=RLeg
-  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=9.87 destHL=Body
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=9.22 destHL=Body
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=10.7 destHL=Body
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=8.08 destHL=Head!
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -187,9 +186,10 @@
   Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
   Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
   Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=11.32 destHL=RHand
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=7.93 destHL=Head!
-  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=7.88 destHL=RLeg
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=11.57 destHL=RHand
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.33 destHL=Body
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=10.01 destHL=LLeg
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -199,9 +199,9 @@
   Delayed sound: Unit 1000000405 heard unit 1000000407 from 3.573613m distance
   Delayed sound: Unit 1000000406 heard unit 1000000407 from 4.596698m distance
   Delayed sound: Unit 1000000407 heard unit 1000000402 from 5.553733m distance
-  Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=7.55 destHL=Body
-  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=9.36 destHL=LHand
-  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=9.53 destHL=RHand
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=11.88 destHL=Body
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=11.15 destHL=LHand
+  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=9.31 destHL=Body
   Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000002043 heard unit 1000000400 from 5.373687m distance
   Delayed sound: Unit 1000002044 heard unit 1000000400 from 5.577199m distance
@@ -238,13 +238,14 @@
   Unit 732495 new motivation Player with power of 10
   Unit 1000059184 sees unit 1000011214 from 11.7866m distance
   1
+  Unit 182595 acknowledges with idleSound = AAn4XyU
   Unit 469697 new motivation Sentry with power of 50
   Unit 1000063817 sees unit 1000011214 from 8.30257m distance
   Unit 182595 acknowledges with idleSound = AAn4XyU
   Unit 399469 acknowledges with idleSound = AAn4XyU
   Unit 1000011214 sees unit 469697 from 12.916m distance
   Unit 469697 new motivation Player with power of 10
-  Unit 399469 acknowledges with idleSound = AAn4XyU
+  Unit 831510 acknowledges with idleSound = AAn4XyU
   Unit 1000063817 lost from sight unit 1000011214
   Unit 143005 new motivation Sentry with power of 50
   Unit 481569 new motivation Sentry with power of 50
@@ -253,10 +254,10 @@
   Unit 469697 new motivation Sentry with power of 50
   Unit 1000011214 lost from sight unit 469697
   Unit 143005 new motivation Player with power of 10
+  Unit 732495 acknowledges with idleSound = AAn4XyU
   Unit 481569 new motivation Player with power of 10
   Unit 732495 new motivation Player with power of 10
   Unit 469697 new motivation Player with power of 10
   Unit 196568 new motivation Player with power of 10
   party received on client
   Saved saveb
-  Unit 848411 acknowledges with idleSound = AAn4XyU

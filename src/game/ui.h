@@ -142,7 +142,7 @@ public:
     void SetConsoleHistory(int lines);
     // The console's "fps": a surface for the frame rate at (730, 10)-(800, 28) unless there is one; off
     // frees it.
-    void ShowFps(int on);
+    void ShowFps(bool on);
     // A quest variable changed (client, script): the top window hears of it; at 1 (or NaN) a name of
     // three or more '.' parts keeps its third part in savedText (the current quest).
     void OnQuestVariable(std::string_view name, float value);

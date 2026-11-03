@@ -6526,7 +6526,7 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 100 zone gz1g hash A07B8087 n 799
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 027CC5EF n 799
 world tick 100
 world updates 100
 random isaac.count 154
@@ -6541,11 +6541,11 @@ obj702 #vitals A243F4AF
 obj1804 #ai 44EEAD6D
 obj1804 #vitals FBE05ECC
 obj1884 #vitals A243F4AF
-obj1890 pos.x 53.9783669
-obj1890 pos.y 97.930191
-obj1890 #ai 7D531DC8
-obj1890 #place 337E62B2
-obj1890 #unit 6A81773B
+obj1890 pos.x 51.747921
+obj1890 pos.y 95.7479172
+obj1890 #ai 6946ED39
+obj1890 #place AE350250
+obj1890 #unit F8B3D0FA
 obj1890 #vitals FBE05ECC
 obj1936 #ai 765E3D88
 obj1936 #vitals 024EBADD
@@ -6564,14 +6564,14 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 100 zone gz1g hash FB873522 n 799
+@ 5 update 120 frame 23 tick 100 zone gz1g hash D9F63CEC n 799
 world updates 120
 world paused 1
 obj699 #unit 58199F9E
 obj702 #unit 29C54E57
 obj1804 #unit 14F78A26
 obj1884 #unit 6E84B1FD
-obj1890 #unit 0A46FEDE
+obj1890 #unit 9874591F
 obj1936 #unit 0D08731F
 obj1000011214 #unit 503AA6E6
 obj1008110175 #unit C6BBD96B
@@ -6579,24 +6579,25 @@ client tick 101
 client paused 1
 client ticksRun 92
 cunit1804 #place DCF94003
-@ 6 update 140 frame 27 tick 100 zone gz1g hash 7123FCDD n 799
+@ 6 update 140 frame 27 tick 100 zone gz1g hash 5352F513 n 799
 world updates 140
 random isaac.count 140
 player0 lastTick 100
 player0 var.gtime 6.08111143
 client ticksRun 112
-@ 7 update 160 frame 31 tick 101 zone gz1g hash E9B953AA n 799
+@ 7 update 160 frame 31 tick 101 zone gz1g hash D03370C8 n 799
 world tick 101
 world updates 162
 world paused 0
 world secondsPerTick 0.00111111137
-random isaac.count 44
+random isaac.count 40
 random crt.rand 0x20168804
 obj663 #unit 59D8D70E
 obj666 #unit 4CD8212B
 obj668 #unit 4B5CDC39
 obj669 #unit D22F230E
 obj670 #unit 50C51801
+obj699 #ai C269B926
 obj699 #unit 2F1EAF08
 obj699 #vitals 3C27610C
 obj702 #unit B0CC1FED
@@ -6611,11 +6612,11 @@ obj1846 # 454CEC91
 obj1873 # F9AB2A81
 obj1884 #unit 58199F9E
 obj1884 #vitals 3C27610C
-obj1890 pos.x 54.1220703
-obj1890 pos.y 98.0139847
-obj1890 #ai 1A8007D3
-obj1890 #place 44BA8A4D
-obj1890 #unit 6A81773B
+obj1890 pos.x 51.8641014
+obj1890 pos.y 95.6235428
+obj1890 #ai 0E95F722
+obj1890 #place EB25BDBE
+obj1890 #unit F8B3D0FA
 obj1890 #vitals 6584CB6F
 obj1898 #unit 0EF4AC6B
 obj1900 #unit 23BDD3D7
@@ -6638,7 +6639,7 @@ obj1932 #unit 243DD186
 obj1933 #unit D8342DD1
 obj1934 #unit BC229D8B
 obj1935 #unit 9ACCD6EF
-obj1936 #ai 8BA70D33
+obj1936 #ai 56BF3BB1
 obj1936 #unit 652B09CB
 obj1936 #vitals 9C2A2F7E
 obj1937 #unit ADBAE41B
@@ -6663,6 +6664,7 @@ obj30004 # 603A33BC
 obj30005 # 173D032A
 obj30006 # 89599689
 obj30007 # FE5EA61F
+obj1000011214 #ai DE1E58AD
 obj1000011214 #unit C933F75C
 obj1000011214 #vitals 32357845
 obj1008110175 #unit B1BCE9FD

@@ -37,7 +37,6 @@ constexpr float kDecayScale = 30.0f;
 constexpr float kDecayDivisor = 0.032258064f;      // (1 / 31)
 constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
-constexpr float kMoveTime = 1000000.0f;
 
 // UnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
 
@@ -328,12 +327,12 @@ void AIBrain::StartMove(const AIMoveOrder* order) {
     actionTime = kNoTime;
     move.point = order->point;
     move.looks = order->looks;
-    owner->OrderMove(move.point, 0, 0, kMoveTime);
+    owner->OrderMove(move.point, 0, 0);
 }
 
 void AIBrain::Walk(const Vector3& point, int run) {
     action = kActionWalk;
-    owner->OrderMove(point, run, 0, kMoveTime);
+    owner->OrderMove(point, run, 0);
 }
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {
@@ -520,18 +519,12 @@ void AIBrain::CallAllies(const Vector3& point) {
 
 // --- Perception memory ----------------------------------------------------------------------------
 
-bool AIMemory::Notice(const Vector3& point, int level, int decay) {
-    if (level <= noticedLevel) return false;
-    bool changed = true;
-    if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
-        // Farther than the limit; NaN is not.
-        changed = LengthSquared(point - NoticedPoint()) > 10.0f;
-    }
+void AIMemory::Notice(const Vector3& point, int level, int decay) {
+    if (level <= noticedLevel) return;
     noticedLevel = level;
     noticedX = point.x;
     noticedY = point.y;
     noticedDecay = decay;
-    return changed;
 }
 
 void AIMemory::Forget(EngineObject* object) {
@@ -553,11 +546,11 @@ void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
             console::EndLine(kAiLog << "Unit " << unit->id << " hear delayed sound: " << call->text);
             unit->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < kNoticeCallLevel) {
-            // Notice's work in float: logged when the level rises by more than 100 or the point is more than
-            // sqrt(10) away (NaN is near).
+            // Logged when the level rises by more than 100 or the point is more than sqrt(10) away in the plane
+            // (the memory keeps no z; NaN is near).
             bool changed = true;
             if (kNoticeCallLevel - memory->noticedLevel <= 100) {
-                changed = LengthSquared(call->point - memory->NoticedPoint()) > 10.0f;
+                changed = DistanceSquaredXY(call->point, memory->NoticedPoint()) > 10.0f;
             }
             memory->noticedX = call->point.x;
             memory->noticedLevel = kNoticeCallLevel;
@@ -573,7 +566,8 @@ void AIMemory::Update(UnitServer* who) {
     reports.Tick();
     calls.Update(who->unit, this);
     g_serverWorld.aiMap.events.Update(who, this);
-    noticedLevel += noticedDecay;
+    // Not below kPriorityNone: Suspection claims with the level, and no mode or test tells it from lower ones.
+    if (noticedLevel > kPriorityNone) noticedLevel = (std::max)(noticedLevel + noticedDecay, kPriorityNone);
 }
 
 bool AIMemory::CanTrack(Unit* self, Unit* other) {
