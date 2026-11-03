@@ -15,6 +15,7 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
+#include "lib/maths.h"
 #include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -205,20 +206,20 @@ void HudPortraits::Update() {
                 case 1:   // nod
                     if ((kPi * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
-                                           kHudQuarterTurn * std::sin(t * kWobbleFrequency) * kWobbleAmplitude);
+                                           kHudQuarterTurn * lib::Sin(t * kWobbleFrequency) * kWobbleAmplitude);
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 2:   // shake
                     if ((kHudFullTurn * kWobbleSpan) > t)
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
-                                           kHudQuarterTurn * std::sin(t * kWobbleFrequency) * kWobbleAmplitude);
+                                           kHudQuarterTurn * lib::Sin(t * kWobbleFrequency) * kWobbleAmplitude);
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 3:   // turn towards the target and back
                     if (kHudFullTurn / slot.wobbleSpeed > t) {
-                        float w = 0.5f - std::cos(t * slot.wobbleSpeed) * 0.5f;
+                        float w = 0.5f - lib::Cos(t * slot.wobbleSpeed) * 0.5f;
                         wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget);
                     } else {
                         slot.wobbleKind = 0;

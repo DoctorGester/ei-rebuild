@@ -26,6 +26,7 @@
 #include "world.h"
 
 #include "main_loop.h"
+#include "lib/maths.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -355,7 +356,7 @@ bool RunWorlds() {
 float SpeedForBalance(float balance) {
     float result;
     if (balance < 0.0f) {
-        result = std::exp(balance * kOneTenth);
+        result = lib::Exp(balance * kOneTenth);
     } else if (balance > 1.0f) {
         result = (std::sqrt(balance) * kOneTenth + 1.0f) - kOneTenth;
     } else {

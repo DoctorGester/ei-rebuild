@@ -12,6 +12,7 @@
 #include "spell.h"
 #include "unit_db.h"
 
+#include "lib/maths.h"
 #include "lib/rebirth.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
@@ -83,7 +84,7 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const float pi = 3.1415927f;
     const float phase = std::fmod(advanced, pi + pi);
     turn->glow = phase;
-    const float strength = (std::sin(phase) + 1.0f) * 0.15f;
+    const float strength = (lib::Sin(phase) + 1.0f) * 0.15f;
     const auto channel = [&](int i) { return static_cast<std::uint32_t>(strength * colour[i] * 255.0f); };
     const std::uint32_t r = channel(0);
     const std::uint32_t g = channel(1);

@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "platform/platform.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -266,7 +267,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    float angle = std::acos(ahead / dist);
+    float angle = lib::Acos(ahead / dist);
     if (angle > kHalfPi) angle = kPi - angle;
     int pan = lib::RoundEven(kHundred / kHalfPi * angle);
     slot->pan = pan;

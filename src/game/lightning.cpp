@@ -13,6 +13,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -247,8 +248,8 @@ void Lightning::Animate() {
         for (int i = 0; i < 6; ++i) {
             LightningSegment& branch = branches[i];
             float reach = sway * branchPos[i];
-            float sideSway = std::sin(time * frequency[2 * i] * 0.25f) * reach;
-            float upSway = std::sin(time * frequency[2 * i + 1] * 0.25f) * reach;
+            float sideSway = lib::Sin(time * frequency[2 * i] * 0.25f) * reach;
+            float upSway = lib::Sin(time * frequency[2 * i + 1] * 0.25f) * reach;
             Vector3 target = sideSway * main.side + end + upSway * main.up;
 
             int index = std::lround((1.0f - branchPos[i]) * std::ssize(main.points));

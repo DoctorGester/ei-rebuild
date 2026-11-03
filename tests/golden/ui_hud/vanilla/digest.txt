@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 52FAE24B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
 + world world
 world tick 20
 world updates 20
@@ -595,7 +595,7 @@ cunit129 #place 0B14C5BC
 cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 226A830E
+cunit148 #place 93682B97
 cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -7087,7 +7087,7 @@ client tick 420
 client ticksRun 392
 cunit1000011214 #place 82A2F9E4
 cunit1000011214 #unit 8431DE55
-@ 21 update 440 frame 87 tick 440 zone gz1g hash F0EB49F0 n 791
+@ 21 update 440 frame 87 tick 440 zone gz1g hash E6EC9C02 n 791
 world tick 440
 world updates 440
 random isaac.count 114
@@ -7135,7 +7135,7 @@ script #run 914ADC60
 script #runs 8F0E1077
 client tick 440
 client ticksRun 412
-cunit1000011214 #place 97A99BF0
+cunit1000011214 #place AF3F488E
 cunit1000011214 #unit B9703E4C
 @ 22 update 460 frame 91 tick 460 zone gz1g hash C80AEB45 n 791
 world tick 460

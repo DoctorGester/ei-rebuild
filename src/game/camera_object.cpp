@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "platform/platform.h"
@@ -233,8 +234,8 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
     float inv = 1.0f / std::sqrt(lengthSquare);
     float nx = inv * dx;
     float ny = inv * dy;
-    float elevation = std::asin(-(inv * dz));
-    float heading = std::acos(ny / std::hypot(nx, ny));
+    float elevation = lib::Asin(-(inv * dz));
+    float heading = lib::Acos(ny / lib::Hypot(nx, ny));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         viewRotation = camera::kIdentityRotation;
@@ -271,7 +272,7 @@ void Camera::AlignToTarget() {
     EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
     else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
-    float angle = std::acos(cosine);
+    float angle = lib::Acos(cosine);
     float magnitude = AbsBits(angle);
     if (CAM_DEGREE > magnitude) return;
     Vector3 c = Cross(xAxis, h);
@@ -303,7 +304,7 @@ void Camera::ClampAboveObjects() {
         float cx = object->localPosition.x + object->bounds.center.x;
         float cy = object->localPosition.y + object->bounds.center.y;
         float cz = p->z;
-        float radius = std::hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
+        float radius = lib::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
         float dx = cx - p->x;
         float dy = cy - p->y;
         float dz = cz - p->z;

@@ -5910,7 +5910,7 @@ aievents tick 562
 script #run E567FB3F
 client tick 561
 client ticksRun 542
-@ 44 update 900 frame 179 tick 582 zone bz1mpg hash 67FDA188 n 387
+@ 44 update 900 frame 179 tick 582 zone bz1mpg hash 120DCD26 n 387
 world tick 582
 world updates 900
 random isaac.count 76
@@ -5942,7 +5942,7 @@ obj831510 #vitals 6CEB8C18
 obj848411 pos.x 66.0584488
 obj848411 pos.y 89.5028
 obj848411 #ai E630CA8C
-obj848411 #place 2EEFB771
+obj848411 #place 0137F611
 obj848411 #unit CFCBEF2E
 obj848411 #vitals 1DDDBE79
 obj927062 #unit A139DA2A
@@ -10188,7 +10188,7 @@ cunit399469 #place BCDED4B5
 cunit399469 #unit E2C8DB6F
 cunit831510 #place DE65FCD4
 cunit999742 #unit 05315EE1
-@ 125 update 2520 frame 503 tick 2202 zone bz1mpg hash 252EE218 n 389
+@ 125 update 2520 frame 503 tick 2202 zone bz1mpg hash AB2F7C0F n 389
 world tick 2202
 world updates 2520
 random isaac.count 157
@@ -10237,7 +10237,7 @@ client ticksRun 2182
 cunit182595 #place CCA31118
 cunit399469 #place F85BB1ED
 cunit399469 #unit 7C443142
-cunit831510 #place 3DC4A70E
+cunit831510 #place 05527470
 @ 126 update 2540 frame 507 tick 2222 zone bz1mpg hash 516ADB17 n 389
 world tick 2222
 world updates 2540
@@ -25232,7 +25232,7 @@ cunit4651 #unit 96258BCE
 cunit4767 #place 90B0BA12
 cunit4768 #place F017608E
 cunit4896 #place 1A6C8066
-@ 199 update 4000 frame 799 tick 3682 zone z3q2 hash 49D843D8 n 1195
+@ 199 update 4000 frame 799 tick 3682 zone z3q2 hash 0D6FE828 n 1195
 world tick 3682
 world updates 4000
 random isaac.count 69
@@ -25272,7 +25272,7 @@ obj4768 #vitals 706CD73F
 obj4891 pos.x 49.5957451
 obj4891 pos.y 101.824074
 obj4891 #ai 9A285819
-obj4891 #place 9310F0A4
+obj4891 #place 9A99BD81
 obj4891 #unit 5CFCBEE0
 obj4891 #vitals 530E4FF4
 obj4892 #unit 2E302052
@@ -27361,7 +27361,7 @@ cunit4517 #place 1B5DEC61
 cunit4517 #unit 77F2F928
 cunit4895 #place F9DBDFC4
 cunit4896 #place 55BC4F55
-@ 236 update 4740 frame 947 tick 4422 zone z3q2 hash 7C1FFB1A n 1194
+@ 236 update 4740 frame 947 tick 4422 zone z3q2 hash 3DB4B1FD n 1194
 world tick 4422
 world updates 4740
 world lastRainBoltTick 4419
@@ -27425,7 +27425,7 @@ cunit4517 #unit BBD7C615
 cunit4768 #place 988D0A0F
 cunit4768 #unit C79CF813
 cunit4895 #place 704FA423
-cunit4896 #place B01B54CA
+cunit4896 #place 3CEB6497
 @ 237 update 4760 frame 951 tick 4442 zone z3q2 hash BEBCD5E5 n 1193
 world tick 4442
 world updates 4760
@@ -28438,7 +28438,7 @@ aievents tick 4782
 client tick 4782
 client ticksRun 2237
 cunit4896 #place 7D5C8685
-@ 255 update 5120 frame 1023 tick 4802 zone z3q2 hash 1182B371 n 1194
+@ 255 update 5120 frame 1023 tick 4802 zone z3q2 hash BB1D66E1 n 1194
 world tick 4802
 world updates 5120
 random isaac.count 218
@@ -28463,7 +28463,7 @@ obj4651 #vitals CB6A0C43
 obj4765 pos.x 57.6449928
 obj4765 pos.y 159.280319
 obj4765 #ai A23F346D
-obj4765 #place 5AEA3B9D
+obj4765 #place B4497A3D
 obj4765 #unit 099F0E67
 obj4765 #vitals 709578B4
 obj4766 pos.x 51.7891083
@@ -28509,7 +28509,7 @@ cunit4767 #place A8C973B3
 cunit4767 #unit 67D1D118
 cunit4767 #vitals 2FDB08B6
 cunit4896 #place CF95A913
-@ 256 update 5140 frame 1027 tick 4822 zone z3q2 hash 9C67814C n 1194
+@ 256 update 5140 frame 1027 tick 4822 zone z3q2 hash 7206616F n 1194
 world tick 4822
 world updates 5140
 world lastRainBoltTick 4803
@@ -28568,7 +28568,7 @@ cunit4517 #place 208CE33F
 cunit4651 #place 324E6242
 cunit4767 #place A20CDAAC
 cunit4767 #unit 87EB654E
-@ 257 update 5160 frame 1031 tick 4842 zone z3q2 hash 95E00BC0 n 1194
+@ 257 update 5160 frame 1031 tick 4842 zone z3q2 hash 58C7E87D n 1194
 world tick 4842
 world updates 5160
 random isaac.count 63
@@ -28619,7 +28619,7 @@ cunit4518 #place D7CD79CD
 cunit4651 #place A8367904
 cunit4651 #unit 4ED1A5F5
 cunit4767 #place 19067AE3
-@ 258 update 5180 frame 1035 tick 4862 zone z3q2 hash F99971D9 n 1191
+@ 258 update 5180 frame 1035 tick 4862 zone z3q2 hash 7B196BCE n 1191
 world tick 4862
 world updates 5180
 world objects 1174
@@ -28687,7 +28687,7 @@ cunit4651 #place DB6751A1
 cunit4651 #unit 8385A1A6
 cunit4767 #place 899B549A
 - cunit1000000014
-@ 259 update 5200 frame 1039 tick 4882 zone z3q2 hash 29DB2D19 n 1191
+@ 259 update 5200 frame 1039 tick 4882 zone z3q2 hash 04F656A2 n 1191
 world tick 4882
 world updates 5200
 world lastRainBoltTick 4867
@@ -28737,7 +28737,7 @@ cunit4518 #place 3260A7F0
 cunit4651 #place 865C9D36
 cunit4651 #unit 3786DA2F
 cunit4767 #place C533F0D8
-@ 260 update 5220 frame 1043 tick 4902 zone z3q2 hash C35DBE66 n 1190
+@ 260 update 5220 frame 1043 tick 4902 zone z3q2 hash 54F60A61 n 1190
 world tick 4902
 world updates 5220
 random isaac.count 215
@@ -28785,7 +28785,7 @@ cunit4517 #place C7B93286
 cunit4651 #place 8E7EE28B
 cunit4651 #unit 8385A1A6
 - cunit4767
-@ 261 update 5240 frame 1047 tick 4922 zone z3q2 hash EA4D13A9 n 1190
+@ 261 update 5240 frame 1047 tick 4922 zone z3q2 hash DD938F26 n 1190
 world tick 4922
 world updates 5240
 random isaac.count 191
@@ -28824,7 +28824,7 @@ client ticksRun 2377
 cunit4517 #place 9EB21F08
 cunit4518 #place 13D325B9
 cunit4651 #place 0A2DCE80
-@ 262 update 5260 frame 1051 tick 4942 zone z3q2 hash 315FFC85 n 1190
+@ 262 update 5260 frame 1051 tick 4942 zone z3q2 hash 6DD3FCDC n 1190
 world tick 4942
 world updates 5260
 world lastRainBoltTick 4931
@@ -28867,7 +28867,7 @@ client tick 4942
 client ticksRun 2397
 cunit4518 #place 74F45F93
 cunit4651 #place 043DDD8B
-@ 263 update 5280 frame 1055 tick 4962 zone z3q2 hash 30BAE21F n 1190
+@ 263 update 5280 frame 1055 tick 4962 zone z3q2 hash 6C36E246 n 1190
 world tick 4962
 world updates 5280
 random isaac.count 124
@@ -28916,7 +28916,7 @@ client ticksRun 2417
 cunit4518 #place DC21A22C
 cunit4651 #place 0624615E
 cunit4651 #unit 6757F731
-@ 264 update 5300 frame 1059 tick 4982 zone z3q2 hash 6BAA9E3A n 1190
+@ 264 update 5300 frame 1059 tick 4982 zone z3q2 hash 2955E154 n 1190
 world tick 4982
 world updates 5300
 random isaac.count 100
@@ -28958,7 +28958,7 @@ client ticksRun 2437
 cunit4518 #place 9EC92423
 cunit4651 #place 4E165E45
 cunit4651 #unit 3786DA2F
-@ 265 update 5320 frame 1063 tick 5002 zone z3q2 hash 7B64F033 n 1190
+@ 265 update 5320 frame 1063 tick 5002 zone z3q2 hash D35F02CA n 1190
 world tick 5002
 world updates 5320
 world lastRainBoltTick 4995

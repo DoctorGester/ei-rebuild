@@ -14,6 +14,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
@@ -341,7 +342,7 @@ int UnitServer::Level() {
     float base = g_logicSettings.considerModifier;
     float step = g_logicSettings.considerLogBase;
     // ln(experience / base) / ln(step), then to the nearest integer.
-    const float ratio = std::log(experience / base) / std::log(step);
+    const float ratio = lib::Log(experience / base) / lib::Log(step);
     return lib::RoundEven(ratio);
 }
 

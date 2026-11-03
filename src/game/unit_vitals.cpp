@@ -11,6 +11,7 @@
 
 #include "logic_settings.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
@@ -52,13 +53,13 @@ constexpr int kSkillStat20 = 25;
 
 // base ^ (ln(experience / divisor) / ln(logBase)).
 float ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
-    const float exponent = std::log(*experience / *divisor) / std::log(*logBase);
-    return std::pow(*base, exponent);
+    const float exponent = lib::Log(*experience / *divisor) / lib::Log(*logBase);
+    return lib::Pow(*base, exponent);
 }
 
 // 1.04 ^ (intelligence - 25).
 float IntelligenceFactor(const float* intelligence) {
-    return std::pow(1.04f, *intelligence - 25.0f);
+    return lib::Pow(1.04f, *intelligence - 25.0f);
 }
 
 // The level value of skill `skill` (0 without a level or a record).
@@ -144,7 +145,7 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, Unit* unit) {
 // 510).
 float LevelWorth(int level) {
     const float exponent = static_cast<float>(level) / g_logicSettings.skillVal[1];
-    return std::pow(1.61f, exponent) * g_logicSettings.skillVal[0];
+    return lib::Pow(1.61f, exponent) * g_logicSettings.skillVal[0];
 }
 
 bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, Unit* unit) {

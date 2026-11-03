@@ -28,6 +28,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -222,8 +223,8 @@ void WorldClient::CreateExitMarkers() {
         source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
-        source->turnCos = std::cos(exit.angle);
-        source->turnSin = std::sin(exit.angle);
+        source->turnCos = lib::Cos(exit.angle);
+        source->turnSin = lib::Sin(exit.angle);
         for (int warmUpTick = 0; warmUpTick < kExitWarmUpTicks; ++warmUpTick) source->RunTick();
     }
     UpdateExitMarkers();

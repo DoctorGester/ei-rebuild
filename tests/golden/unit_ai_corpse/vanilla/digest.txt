@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 52FAE24B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
 + world world
 world tick 20
 world updates 20
@@ -595,7 +595,7 @@ cunit129 #place 0B14C5BC
 cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 226A830E
+cunit148 #place 93682B97
 cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -6656,7 +6656,7 @@ client tick 200
 client ticksRun 172
 cunit1000011214 #place 90FAF503
 cunit1000011214 #unit C4113F8B
-@ 10 update 220 frame 43 tick 220 zone gz1g hash 9A868D42 n 791
+@ 10 update 220 frame 43 tick 220 zone gz1g hash 6D29702C n 791
 world tick 220
 world updates 220
 random isaac.count 131
@@ -6684,7 +6684,7 @@ missile1 # 91020B7A
 aievents tick 220
 client tick 220
 client ticksRun 192
-cunit1000011214 #place 7A94CB20
+cunit1000011214 #place 1CBEB07D
 cunit1000011214 #unit EAAF995F
 @ 11 update 240 frame 47 tick 240 zone gz1g hash 0EA087A4 n 791
 world tick 240
@@ -6853,7 +6853,7 @@ cunit702 #unit 23D0B9E6
 cunit1884 #unit 88265C3F
 cunit1000011214 #place 75B775C4
 cunit1000011214 #unit 4965BD74
-@ 16 update 340 frame 67 tick 340 zone gz1g hash 98B99042 n 791
+@ 16 update 340 frame 67 tick 340 zone gz1g hash C00A1AD4 n 791
 world tick 340
 world updates 340
 random isaac.count 237
@@ -6880,7 +6880,7 @@ obj1934 #vitals B54AF66C
 obj1935 pos.x 98.8612442
 obj1935 pos.y 109.841675
 obj1935 #ai B321D750
-obj1935 #place C566D09D
+obj1935 #place 3297C091
 obj1935 #unit F8107B2E
 obj1935 #vitals B54AF66C
 obj1936 #ai E8388559
@@ -6900,7 +6900,7 @@ cunit702 #unit DD2D7B59
 cunit1884 #unit 71D2365C
 cunit1000011214 #place 16CD1852
 cunit1000011214 #unit 9D9202D2
-@ 17 update 360 frame 71 tick 360 zone gz1g hash 2E9B4A63 n 791
+@ 17 update 360 frame 71 tick 360 zone gz1g hash A07C90BD n 791
 world tick 360
 world updates 360
 random isaac.count 55
@@ -6933,7 +6933,7 @@ cunit699 #unit 76DB9E80
 cunit702 #unit DA24D385
 cunit1000011214 #place 04FBF346
 cunit1000011214 #unit C2095EAB
-@ 18 update 380 frame 75 tick 380 zone gz1g hash FA21A21C n 791
+@ 18 update 380 frame 75 tick 380 zone gz1g hash 5D196C6B n 791
 world tick 380
 world updates 380
 random isaac.count 109

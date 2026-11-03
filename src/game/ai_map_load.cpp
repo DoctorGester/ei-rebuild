@@ -9,6 +9,7 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
+#include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -138,8 +139,8 @@ void BuildClimbTables(AIMap& map) {
     map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
         const float rise = std::fabs(static_cast<float>(i - kLevelStep) / map.heightScale);
-        const float slope = std::fabs(std::atan2(rise, kCellSize) * (kHalfTurn / kPi));
-        const float sine = std::sin((kPerDegree * kPi) * slope);
+        const float slope = std::fabs(lib::Atan2(rise, kCellSize) * (kHalfTurn / kPi));
+        const float sine = lib::Sin((kPerDegree * kPi) * slope);
         float effort = (sine * sine) + 1.0f;
         effort *= effort;
         if (i < kLevelStep) effort = 1.0f / std::sqrt(effort);

@@ -11,6 +11,7 @@
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -105,7 +106,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     float c = along / length;
     if (c > 1.0f) c = 1.0f;
     else c = MaxKeepB(c, -1.0f);   // -1 also for NaN
-    float angle = std::acos(c);
+    float angle = lib::Acos(c);
     if (angle > kHalfPi) angle = kPi - angle;
     angle = kPercent / kHalfPi * angle;
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;

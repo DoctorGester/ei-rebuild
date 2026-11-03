@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -250,7 +251,7 @@ void AIBrain::UpdateMove() {
         }
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
-        const Vector3 direction = {std::cos(look.angle), std::sin(look.angle), 0.0f};
+        const Vector3 direction = {lib::Cos(look.angle), lib::Sin(look.angle), 0.0f};
         owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }
@@ -774,7 +775,7 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
             float angle = 0.0f;
             float dx = waypoint.position.x - from.x;
             float dy = waypoint.position.y - from.y;
-            if (!IsZero(dx) || !IsZero(dy)) angle = std::atan2(dy, dx);
+            if (!IsZero(dx) || !IsZero(dy)) angle = lib::Atan2(dy, dx);
             last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
                                          (waypoint.stopFirst & 1) != 0});
         }

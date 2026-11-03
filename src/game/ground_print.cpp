@@ -17,6 +17,7 @@
 #include "random.h"
 
 #include "lib/containers.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -171,8 +172,8 @@ int GroundPrint::Draw() {
         Vector3 at{position.x, position.y, 0.0f};
         float z = world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(position.x, position.y));
         quad.resize(1);
-        float c = std::cos(angle);
-        float s = std::sin(angle);
+        float c = lib::Cos(angle);
+        float s = lib::Sin(angle);
         // Corners (+w, -l), (-w, -l), (-w, +l), (+w, +l) turned by the angle.
         const float across[4] = {halfWidth, -halfWidth, -halfWidth, halfWidth};
         const float along[4] = {-halfLength, -halfLength, halfLength, halfLength};
@@ -190,8 +191,8 @@ int GroundPrint::Draw() {
         // The texture coordinates turned about the tile's centre, then into the tile. The loop is
         // unrolled four times: the fourth vertex stores its u part to a float before scaling
         // it, the others their v part.
-        float uc = std::cos(uvAngle);
-        float us = std::sin(uvAngle);
+        float uc = lib::Cos(uvAngle);
+        float us = lib::Sin(uvAngle);
         int vertices = lib::Count(positions) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords[i];

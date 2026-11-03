@@ -88,6 +88,12 @@ PATTERNS = {
         r'\b(?:std::)?mem(?:cpy|set)\s*\([^;]*?,\s*(?:4u?|sizeof\s*\(\s*(?:float|Vector3|Quaternion)\s*\))\s*\)'),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
+    # The system's own sin, cos, pow ... round differently on each system; game code calls src/lib/maths.h's
+    # (docs/notes/float-maths.md, "Maths functions"). The renderer's, the sound's and the scripts' doubles are counted
+    # where they were.
+    'system maths function': re.compile(
+        r'\bstd::(?:sin|cos|tan|asin|acos|atan|atan2|exp|exp2|expm1|log|log2|log10|log1p|pow|hypot|cbrt|sinh|cosh|tanh)'
+        r'\s*\('),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
@@ -97,7 +103,8 @@ PATTERNS = {
 # block grid; PlatformSet is the engine's CBridgeManager around a list.
 NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
-          'hand-written vector maths': 'src/lib/vecmath.h'}
+          'hand-written vector maths': ('src/lib/vecmath.h', 'src/lib/maths.h'),   # maths.h: Hypot's doubles
+          'system maths function': 'src/lib/maths.h'}
 
 
 def strip_comments(text):

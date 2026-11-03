@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 52FAE24B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
 + world world
 world tick 20
 world updates 20
@@ -595,7 +595,7 @@ cunit129 #place 0B14C5BC
 cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 226A830E
+cunit148 #place 93682B97
 cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -4993,7 +4993,7 @@ cunit182595 #unit E984FE55
 cunit831510 #place 3220AAD0
 cunit848411 #place D60CADA3
 cunit999742 #place D1FA713D
-@ 50 update 1020 frame 203 tick 577 zone bz1mpg hash 89C4EB91 n 389
+@ 50 update 1020 frame 203 tick 577 zone bz1mpg hash 4D5967D3 n 389
 world tick 577
 world updates 1020
 random isaac.count 87
@@ -5022,7 +5022,7 @@ obj831510 #vitals 1C817897
 obj848411 pos.x 66.2783585
 obj848411 pos.y 89.5039062
 obj848411 #ai B39A383F
-obj848411 #place 2EEFB771
+obj848411 #place 0137F611
 obj848411 #unit 3757886B
 obj848411 #vitals 6DB74AF6
 obj927062 #vitals CA16AB29
@@ -15807,21 +15807,21 @@ client tickFraction 76.0909119
 cunit4517 #place 4913F43A
 cunit4651 #place E357CCEC
 cunit4896 #place FDA652A1
-@ 151 update 3040 frame 607 tick 2597 zone - hash C037A78E n 992
+@ 151 update 3040 frame 607 tick 2597 zone - hash FB55CFDD n 992
 world tick 2597
 world updates 3040
 aievents tick 2597
 client tickFraction 78.0545425
 cunit4517 #place A0A52C20
-cunit4651 #place EDC443E5
+cunit4651 #place B0FC3FA8
 cunit4896 #place EEE8531E
-@ 152 update 3060 frame 611 tick 2617 zone - hash FF320B90 n 992
+@ 152 update 3060 frame 611 tick 2617 zone - hash 2F45C6AF n 992
 world tick 2617
 world updates 3060
 aievents tick 2617
 client tickFraction 80.0181808
 cunit4517 #place A03FBDF4
-cunit4651 #place A72085C9
+cunit4651 #place 8C9F9058
 cunit4896 #place 0D2DCDD1
 @ 153 update 3080 frame 615 tick 2637 zone - hash 525C4A71 n 992
 world tick 2637

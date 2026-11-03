@@ -23,6 +23,7 @@
 int RunSettingsFileChecks();
 int RunIniFileChecks();
 int RunIpv4Checks();
+int RunMathsChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -38,6 +39,7 @@ int main() {
     Check(RunSettingsFileChecks() == 0, "existing settings checks");
     Check(RunIniFileChecks() == 0, "ini file checks");
     Check(RunIpv4Checks() == 0, "IPv4 text as Winsock read it");
+    Check(RunMathsChecks() == 0, "maths functions as on Windows");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');

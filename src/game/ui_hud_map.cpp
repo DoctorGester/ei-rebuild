@@ -5,6 +5,7 @@
 #include "ui_screens.h"
 
 #include "base_manager.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "player_client.h"
 #include "spell.h"
@@ -249,7 +250,7 @@ void ClipPass(std::vector<Vector2>& points, Cut cut, Outside outside) {
 
 // 2.5^(delta / 1200).
 float WheelZoomFactor(short delta) {
-    return std::pow(2.5f, static_cast<float>(delta) * 0.00083333335f);
+    return lib::Pow(2.5f, static_cast<float>(delta) * 0.00083333335f);
 }
 
 } // namespace
@@ -360,7 +361,7 @@ void HudMap::UpdateView() {
     } else {
         facing = {0.0f, 1.0f};
     }
-    float angle = std::atan2(-facing.x, -facing.y);
+    float angle = lib::Atan2(-facing.x, -facing.y);
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);

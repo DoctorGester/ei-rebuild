@@ -47,6 +47,7 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/intro_sort.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
@@ -325,7 +326,7 @@ void WorldClient::MarkFootprintsInSight(const float* point, float range) {
     for (Footprint& print : footprints) {
         float dx = print.position.x - point[0];
         float dy = print.position.y - point[1];
-        float distance = std::hypot(dx, dy);
+        float distance = lib::Hypot(dx, dy);
         float limit = print.scale * range;
         EI_NAN_AUDIT(distance, limit);
         if (distance <= limit) print.visible = 1;
@@ -552,7 +553,7 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
             float pz = point.z;
             float ox = object->localPosition.x + object->bounds.center.x;
             float oy = object->localPosition.y + object->bounds.center.y;
-            float reach = std::hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
+            float reach = lib::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
             float dx = ox - point.x;
             float dy = oy - point.y;
             float dz = pz - point.z;

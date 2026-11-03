@@ -33,7 +33,7 @@ void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();
 
-// The maths functions are the host CRT's (std::).
+// The maths functions are lib/maths.h's (the same on every system).
 
 // The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.

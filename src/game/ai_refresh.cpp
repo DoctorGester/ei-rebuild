@@ -9,6 +9,7 @@
 
 #include <cstdint>
 
+#include "lib/maths.h"
 #include "lib/rounding.h"
 
 #include <vector>
@@ -33,7 +34,7 @@ std::uint32_t& CellWord(AIMap* map, int x, int y) {
 
 // passage * e^(table * a * b), rounded to an int.
 int Damp(int table, float a, float b, int passage) {
-    const float damped = std::exp(static_cast<float>(table) * a * b) * static_cast<float>(passage);
+    const float damped = lib::Exp(static_cast<float>(table) * a * b) * static_cast<float>(passage);
     return lib::RoundEven(damped);
 }
 

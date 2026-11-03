@@ -21,6 +21,7 @@
 #include "unit_db.h"
 #include "world.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -459,7 +460,7 @@ void UnitClientSpecific::PlayStepSounds() {
         EI_NAN_AUDIT(clamped, facing.x);
         if (clamped > 1.0f) clamped = 1.0f;
         else if (clamped < -1.0f) clamped = -1.0f;
-        float angle = kPi - std::acos(clamped);
+        float angle = kPi - lib::Acos(clamped);
         float turn = angle;
         if (facing.x < 0.0f) turn = -turn;
         float sizeY = foot->box.bounds.boxMax.y;

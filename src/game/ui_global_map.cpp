@@ -7,6 +7,7 @@
 #include "game_strings.h"
 #include "global_map_clouds.h"
 #include "text_manager.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "model.h"
 #include "object_tables.h"
@@ -391,7 +392,7 @@ void GlobalMap::Update() {
 
     float time = FrameTime() + bobTime;
     bobTime = time;
-    float bob = 0.5f - (std::cos(time * 5.0f) * 0.2f);
+    float bob = 0.5f - (lib::Cos(time * 5.0f) * 0.2f);
     Vector3 above = {position.x, position.y, bob + position.z};
     SceneMesh(0)->localPosition = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);

@@ -2,6 +2,7 @@
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -76,10 +77,10 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     float weightA;
     float weightB;
     if (1.0f - cosine > kSlerpLinear) {
-        const float angle = std::acos(cosine);
-        const float inverseSine = 1.0f / std::sin(angle);
-        weightA = std::sin((1.0f - t) * angle) * inverseSine;
-        weightB = std::sin(angle * t) * inverseSine;
+        const float angle = lib::Acos(cosine);
+        const float inverseSine = 1.0f / lib::Sin(angle);
+        weightA = lib::Sin((1.0f - t) * angle) * inverseSine;
+        weightB = lib::Sin(angle * t) * inverseSine;
     } else {   // also NaN
         weightA = 1.0f - t;
         weightB = t;
@@ -93,8 +94,8 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
 // The half angle's sine over the axis's length and its cosine.
 void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
     float half = angle * 0.5f;
-    float s = std::sin(half) / Length(axis);
-    w = std::cos(half);
+    float s = lib::Sin(half) / Length(axis);
+    w = lib::Cos(half);
     x = s * axis.x;
     y = s * axis.y;
     z = s * axis.z;

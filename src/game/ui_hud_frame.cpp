@@ -12,6 +12,7 @@
 #include "world_data.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -94,7 +95,7 @@ void HudClock::Update() {
             blink = next;
         } while (next >= 1.0f);
     }
-    float pulse = std::cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
+    float pulse = lib::Cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
 
     float handAngle;
     if (GamePaused()) {
@@ -128,9 +129,9 @@ void HudClock::Update() {
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(scene[1], -1.0f, handAngle);
-    float handSin = std::sin(handAngle);
+    float handSin = lib::Sin(handAngle);
     float handY = kCentreY - handSin * kHandRadius;
-    float handX = std::cos(handAngle) * kHandRadius + screen_layout::g_layoutWidth;
+    float handX = lib::Cos(handAngle) * kHandRadius + screen_layout::g_layoutWidth;
     AsUiMesh(scene[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
@@ -141,9 +142,9 @@ void HudClock::Update() {
     for (int k = 2; k < 6; ++k) {
         EngineObject* mark = scene[k];
         Turn(mark, 1.0f, angle);
-        float c = std::cos(angle);
+        float c = lib::Cos(angle);
         float y = kCentreY - c * kDialRadius;
-        float x = std::sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
+        float x = lib::Sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
         angle -= kPi * kDialStep;
     }
@@ -308,8 +309,8 @@ constexpr float kArrowDepth = 8.2060862f;
 // The angle of `turn` steps, as the original computes it (each product a float).
 float ArcAngle(int turn, float step) { return (turn * kPi) * step; }
 // The cosine / sine of the angle.
-float ArcCos(float angle) { return std::cos(angle); }
-float ArcSin(float angle) { return std::sin(angle); }
+float ArcCos(float angle) { return lib::Cos(angle); }
+float ArcSin(float angle) { return lib::Sin(angle); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {

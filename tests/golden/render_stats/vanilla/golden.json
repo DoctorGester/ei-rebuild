@@ -2,21 +2,23 @@
   "scenario": "render_stats",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "bde8162fd",
+  "commit": "56708991a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b: Combat 10 reverted to the original arithmetic (not a bug); these scenarios move back from the first C84b recording",
+  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 192 records differ, first at record 66 (world update 1340, tick 1340, frame 267, zone gz1g); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 66 (world update 1340, tick 1340, frame 267, zone gz1g): 2 fields",
-    "    obj1000000401 (80 unanwiwo \"F3\") #place: 4AE5C636 in the old golden, DE855169 in the new run",
-    "    obj1000000402 (80 unanwiwo \"F4\") #place: DFC2CC31 in the old golden, 853C8CF2 in the new run",
+    "digest: 6 of 192 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 2 of 92 differ",
-    "    #place: 2 units, 1 record, from 66; hash only (no numbers kept)"
+    "  client units: 4 of 39 differ",
+    "    #place: 2 client units, 2 records, from 0; hash only (no numbers kept)",
+    "    #unit: 2 client units, 3 records, from 151; hash only (no numbers kept)",
+    "  units: 1 of 92 differ",
+    "    #place: 1 unit, 1 record, from 158; hash only (no numbers kept)"
   ]
 }

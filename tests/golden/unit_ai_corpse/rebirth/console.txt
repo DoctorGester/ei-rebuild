@@ -122,14 +122,13 @@
   1
   Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=7.3 destHL=RHand
   Delayed sound: Unit 1000011214 heard unit 1804 from 1.495077m distance
-  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=10.8175 destHL=LHand
-  impaling passed damage = 3.81746
+  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=12.9497 destHL=LHand
+  impaling passed damage = 5.94974
   Delayed sound: Unit 1000011214 heard unit 1804 from 2.360254m distance
-  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=8.89 destHL=LHand
-  Unit 1804 was attacked by 1000011214 skill=-3.40282e+038 damage=11.3844 destHL=Head!
-  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=12.5448 destHL=RHand
-  impaling passed damage = 5.54484
+  Unit 1804 was attacked by 1000011214 skill=-3.40282e+038 damage=9.12755 destHL=Body
+  Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=8.62 destHL=LLeg
   Delayed sound: Unit 1000011214 heard unit 1804 from 1.747805m distance
+  Unit 1804 was attacked by 1000011214 skill=-3.40282e+038 damage=12.7329 destHL=LLeg
   Unit 1000275535 sees unit 1804 from 4.77385m distance
   Unit 1000275535 sees unit 1000011214 from 6.29312m distance
   Unit 1000275535 sees corpse of unit 1169690800
@@ -138,23 +137,28 @@
   Unit 1000275536 sees unit 1000011214 from 3.65141m distance
   Unit 1000275536 new motivation Player with power of 10
   Unit 1000275536 sees corpse of unit 1169690800
-  Unit 1000011214 sees unit 1000275536 from 2.8087m distance
-  Unit 1000011214 sees unit 1000275535 from 5.36007m distance
+  Unit 1000011214 sees unit 1000275536 from 2.47976m distance
+  Unit 1000011214 sees unit 1000275535 from 5.05896m distance
   Unit 1804 sees unit 1000275536 from 2.38877m distance
   1
-  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=11.8924 destHL=LLeg
-  impaling passed damage = 4.89238
-  Unit 1804 was attacked by 1000275536 skill=-3.40282e+038 damage=9.36 destHL=Head!
-  Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=8.91 destHL=LLeg
-  Unit 1804 was attacked by 1000275535 skill=3.40282e+038 damage=12.6 destHL=LLeg
-  impaling passed damage = 5.6
+  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=9.80673 destHL=LLeg
+  impaling passed damage = 2.80673
+  Unit 1804 was attacked by 1000275536 skill=3.40282e+038 damage=8.21 destHL=Body
+  impaling passed damage = 1.21
+  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=12.26 destHL=Body
+  Unit 1804 was attacked by 1000275535 skill=-3.40282e+038 damage=7.28 destHL=Head!
+  Unit 1804 is forced to see unit 1000275535 from 1.96237m distance
+  Delayed sound: Unit 1000011214 heard unit 1000275535 from 3.580028m distance
+  Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=11.5688 destHL=Head!
+  impaling passed damage = 4.56878
   Unit 1804 damaged to death
+  Unit 1000275535 sees corpse of unit 1804
+  Unit 1000275535 lost from sight unit 1804
   Unit 1000275536 sees corpse of unit 1804
   Unit 1000275536 lost from sight unit 1804
   Unit 1000011214 sees corpse of unit 1804
   Unit 1000011214 lost from sight unit 1804
-  Unit 1000275535 sees corpse of unit 1804
-  Unit 1000275535 lost from sight unit 1804
+  Delayed sound: Unit 1000275535 heard unit 1000011214 from 3.580028m distance
   Unit 1890 acknowledges with idleSound = AAn4XyU
   Unit 1936 acknowledges with idleSound = AAn4XyU
   Unit 1000011214 was attacked by 1000275536 skill=-3.40282e+038 damage=12.41 destHL=RHand

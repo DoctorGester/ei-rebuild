@@ -7,6 +7,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "world.h"
 #include "game_singletons.h"
@@ -45,7 +46,7 @@ constexpr float kTwoPi = 6.28318f;
 void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     float radius = g_clientRandom.Range(0.0f, 1.0f);
     float angle = g_clientRandom.Range(0.0f, kTwoPi);
-    dir = {std::sin(angle) * radius, std::cos(angle) * radius, 0.0f};
+    dir = {lib::Sin(angle) * radius, lib::Cos(angle) * radius, 0.0f};
     if (i == 0) dir = {};
     Vector3 point = s->size * dir * EI_POINT_THREE + s->origin;
     point.z = g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + EI_POINT_THREE;
@@ -101,8 +102,8 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     }
     p->drift = {vx, vy, 0.0f};
     p->drift.z = 0.0f;
-    p->drift.x = std::cos(angle) * spread;
-    p->drift.y = std::sin(angle) * spread;
+    p->drift.x = lib::Cos(angle) * spread;
+    p->drift.y = lib::Sin(angle) * spread;
     float scale = s->size * EI_POINT_THREE;
     p->drift *= scale;
     p->drift.z = 0.0f;
@@ -471,8 +472,8 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
     std::uint32_t roll = g_clientRandom.Next();
     p->velocity.z = 0.0f;
     float angle = WordToFloat(roll) * twoPi * EI_SCALE_1;
-    p->velocity.x = std::cos(angle) * EI_FEEBLE_SPEED;
-    p->velocity.y = std::sin(angle) * EI_FEEBLE_SPEED;
+    p->velocity.x = lib::Cos(angle) * EI_FEEBLE_SPEED;
+    p->velocity.y = lib::Sin(angle) * EI_FEEBLE_SPEED;
     p->pos += p->velocity;
     float grow = (WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_2 + EI_POINT_NINE) * size *
                        EI_FEEBLE_SIZE;

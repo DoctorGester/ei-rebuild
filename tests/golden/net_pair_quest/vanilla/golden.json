@@ -2,20 +2,23 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "bde8162fd",
+  "commit": "56708991a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b: Combat 10 reverted to the original arithmetic (not a bug); these scenarios move back from the first C84b recording",
+  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
   "source": "image",
   "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 758 records differ, first at record 319 (world update 6400, tick 6152, frame 1279, zone z9q2); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 319 (world update 6400, tick 6152, frame 1279, zone z9q2): 1 fields",
-    "    obj1000191 (80 unhuma \"\") #place: 1D261A73 in the old golden, B9FA934C in the new run",
+    "digest: 501 of 758 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 1 of 295 differ",
-    "    #place: 1 unit, 1 record, from 319; hash only (no numbers kept)"
+    "  client units: 9 of 65 differ",
+    "    #place: 8 client units, 14 records, from 0; hash only (no numbers kept)",
+    "    #unit: 1 client unit, 1 record, from 561; hash only (no numbers kept)",
+    "  units: 12 of 295 differ",
+    "    #place: 12 units, 496 records, from 129; hash only (no numbers kept)"
   ]
 }

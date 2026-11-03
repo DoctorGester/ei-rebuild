@@ -12,6 +12,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 
 #include <array>
@@ -54,7 +55,7 @@ void RainSnow::UpdateFade(float now) {
         mode = targetMode;
         if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
-        float c = std::cos((now - fadeStart) / fadeDuration * kFadePi);
+        float c = lib::Cos((now - fadeStart) / fadeDuration * kFadePi);
         float level = (targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f;
         if (sound) g_clientWorld.sounds->SetSoundVolume(sound, std::lround(level * kVolumeScale), 0);
         density = std::lround(level * kDensityScale);

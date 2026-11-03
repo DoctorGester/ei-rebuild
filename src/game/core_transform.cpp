@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "core_maths.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "platform/platform.h"
 
@@ -104,7 +105,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return std::acos(ClampUnit(Dot(a, b)));
+    return lib::Acos(ClampUnit(Dot(a, b)));
 }
 
 } // namespace
@@ -137,7 +138,7 @@ void TransformObject::TiltTowards(const Vector3& target) {
     float angle;
     if (length >= kMinAxis) {
         // The game clamps a second time while storing the float; the value is in range by now.
-        const float arc = std::acos(ClampUnit(Dot(n, down)));
+        const float arc = lib::Acos(ClampUnit(Dot(n, down)));
         angle = arc * kTiltStep;
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
@@ -160,7 +161,7 @@ void TransformObject::TurnTowards(const Vector3& target) {
     float angle;
     if (length >= kMinAxis) {
         axis = r * (1.0f / length);
-        angle = std::acos(ClampUnit(Dot(n, forward)));
+        angle = lib::Acos(ClampUnit(Dot(n, forward)));
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
@@ -218,6 +219,6 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 void TransformObject::SetHeading(const Vector3& dir) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, std::atan2(dir.y, dir.x) + kHeadingOffset);
+    const Quaternion* r = heading.SetAxisAngle(axis, lib::Atan2(dir.y, dir.x) + kHeadingOffset);
     localRotation = *r;
 }

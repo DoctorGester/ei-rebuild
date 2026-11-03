@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/maths.h"
 #include "lib/text_case.h"
 
 #include <vector>
@@ -158,7 +159,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
         start.z = 0.0f;
         startValue = std::bit_cast<std::uint32_t>(exit->view);
     }
-    float angle = std::atan2(start.y - centreY, start.x - centreX) - kFacingOffset;
+    float angle = lib::Atan2(start.y - centreY, start.x - centreX) - kFacingOffset;
     if (exit && exit->hasDeployAngle) angle = exit->deployAngle;
     Vector3 up{0.0f, 0.0f, 1.0f};
     rotation.FromAxisAngle(up, angle);

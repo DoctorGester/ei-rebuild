@@ -7,6 +7,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
@@ -1024,8 +1025,8 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
             float angle = static_cast<float>(random->Next()) * kAngleScale;
             std::uint32_t roll = random->Next();
             wait = ((wander - minWait) * static_cast<float>(roll)) * kUnitScale + minWait;
-            float sine = std::sin(angle);
-            dx = std::cos(angle) + direction.x;
+            float sine = lib::Sin(angle);
+            dx = lib::Cos(angle) + direction.x;
             dy = sine + direction.y;
             if (tries-- < 0) break;
             Vector3 reach{dx + dx, dy + dy, direction.z + direction.z};
@@ -1035,7 +1036,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
             if (sight == 1.0f) break;
         }
         AILook look{};
-        look.angle = std::atan2(dy, dx);
+        look.angle = lib::Atan2(dy, dx);
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;

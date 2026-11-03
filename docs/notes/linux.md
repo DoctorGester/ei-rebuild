@@ -35,7 +35,8 @@ from a clone in the WSL home, not under /mnt/e (9P is slow).
 `ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's lavapipe draws):
 
 - `port_platform` (tests/port/port_check.cpp): path folding, files and mappings, .ini reads and writes, the
-  one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp).
+  one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp), lib/maths.h's functions
+  where glibc's and Windows' own float functions round otherwise (tests/unit/maths.cpp).
 - `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on Vulkan against their CPU
   reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 12), and the window's present after
   resizes: a frame of known rows presented through the swap chain at four sizes, the window read back from the X
@@ -88,7 +89,9 @@ does (hold slots on the Windows side for a few WSL games beside Windows work). U
 
 First runs (WSLg, the sokol OpenGL renderer on llvmpipe, Mesa's software OpenGL; 2026-11-03), the image suite against the Windows goldens: 141 of
 149 the same in the full run, and ui_modifier_keys and ui_saveload_delete too once the folder listing and the key line
-were fixed (a run of the rest); the Rebirth set without its pairs 22 of 23. What still differs, and why:
+were fixed (a run of the rest); the Rebirth set without its pairs 22 of 23. That was on H47's branch, before C76 put
+the game's maths on the systems' float functions; since, every run differed until lib/maths.h (float-maths.md,
+"Maths functions"). What still differs, and why:
 
 - The pair scenarios (net_pair_leave, net_pair_speed, net_pair_zone; net_pair_master's peer lists the server one poll
   sooner): llvmpipe draws a frame step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits
@@ -154,8 +157,10 @@ each run on the stub set against the same run on the install copies, digest for 
 suite less the pairs 142 of 142 comparable runs the same (4 of them only once rerun on a quiet machine: under load
 llvmpipe's frame waits run out), camera_smooth and camera_spin cut by their 120 s limit on both, the watchdog
 scenarios without a digest; the Rebirth set less the pairs 22 of 22. Against the Windows goldens every Linux run
-differs from record 0, on the install copies as on the stubs (H47c), so the CI job fails on every golden until H47c is
-fixed. Over 60 s on llvmpipe besides the pairs: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado.
+differed from record 0 (the main menu's animals), on the install copies as on the stubs: the systems' float maths
+functions round differently (float-maths.md, "Maths functions"). With lib/maths.h boot plays on Linux as on Windows,
+digest 1 record for record; the suites on Linux against the goldens re-recorded with it are not run yet. Over 60 s on
+llvmpipe besides the pairs: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado.
 
 Sizes: the vanilla set 724 MB on disk (121 MB of it not zero: figures.res 53, the maps 59), Rebirth's 1850 MB (240 MB
 not zero): its high-resolution textures.res is 655 MB of blanked pixels and the LostInAstral mod 711 MB (its speech and

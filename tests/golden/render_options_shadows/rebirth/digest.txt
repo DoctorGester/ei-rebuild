@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash D0551088 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash 8EC00B30 n 172
 world tick 40
 world updates 40
 random isaac.count 51
@@ -1339,7 +1339,7 @@ cunit129 #place 8DCC02AA
 cunit148 #place 1A98376A
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
-cunit388 #place 7D666D45
+cunit388 #place CC64C5DC
 @ 2 update 60 frame 11 tick 60 zone gz1g hash C911549A n 832
 world tick 60
 world updates 60

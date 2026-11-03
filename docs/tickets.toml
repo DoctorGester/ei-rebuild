@@ -6271,6 +6271,13 @@ depends = ["H41"]
 note = "Found in H41 (2026-11-03, WSL, llvmpipe, at main 7ebf23793 + H41): every image and Rebirth golden differs on Linux, on the install copies as on the stub set (the same hashes): from digest record 0 (world update 20, frame 3) obj129 (unanwibo) and cunit148 (unanwiwo) #place differ; outcomes the same, later records add the hero's party units' places and mission.sav obj 5. H47 had 141 of 149 the same, so it came with a merge since (a Linux-only path: float maths under gcc, a timer, the main menu zone's animal movement?). Find the first differing field with golden.py diff of a Windows and a Linux run of boot (full digests, digest 1). Until it is fixed the Suites (Linux) job (H41) fails on every golden."
 
 [[ticket]]
+id = "H47d"
+title = "Linux suites against the H47c goldens"
+group = "harness"
+depends = ["H47c"]
+note = "H47c (lib/maths.h) made boot play on Linux as on Windows, digest 1 record for record, and re-recorded the goldens on Windows; the Linux suites (image less LINUX_SKIP and camera_smooth, camera_spin, render_stats, zone_gz15h_tornado; the Rebirth set) against them were not run: the WSL disk failed during H47c. Run them, list what still differs and why, update linux.md's numbers; a run that differs from record 0 again points at another system difference (a libm function outside lib/maths.h, a sort, a timer)."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

@@ -9,6 +9,7 @@
 #include "sector_map.h"
 #include "world.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
@@ -252,7 +253,7 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         float b = AbsBits(path->targetY - static_cast<float>(lib::RoundEven(path->targetY)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;
-        int octant = lib::RoundEven(std::atan2(by, bx) * 1.273239605931458f);
+        int octant = lib::RoundEven(lib::Atan2(by, bx) * 1.273239605931458f);
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);

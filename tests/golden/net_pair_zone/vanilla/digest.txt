@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 52FAE24B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
 + world world
 world tick 20
 world updates 20
@@ -595,7 +595,7 @@ cunit129 #place 0B14C5BC
 cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 226A830E
+cunit148 #place 93682B97
 cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -5093,7 +5093,7 @@ aievents tick 562
 script #run E567FB3F
 client tick 561
 client ticksRun 542
-@ 44 update 900 frame 179 tick 582 zone bz1mpg hash 2A6693D6 n 387
+@ 44 update 900 frame 179 tick 582 zone bz1mpg hash 22B7C093 n 387
 world tick 582
 world updates 900
 random isaac.count 108
@@ -5125,7 +5125,7 @@ obj831510 #vitals 6CEB8C18
 obj848411 pos.x 66.0584488
 obj848411 pos.y 89.5028
 obj848411 #ai ED6244BF
-obj848411 #place 2EEFB771
+obj848411 #place 0137F611
 obj848411 #unit CFCBEF2E
 obj848411 #vitals 1DDDBE79
 obj927062 #unit A139DA2A
@@ -9375,7 +9375,7 @@ cunit399469 #place BCDED4B5
 cunit399469 #unit E2C8DB6F
 cunit831510 #place DE65FCD4
 cunit999742 #unit 05315EE1
-@ 125 update 2520 frame 503 tick 2202 zone bz1mpg hash 3B6A8198 n 389
+@ 125 update 2520 frame 503 tick 2202 zone bz1mpg hash B56B1F8F n 389
 world tick 2202
 world updates 2520
 random isaac.count 189
@@ -9423,7 +9423,7 @@ client ticksRun 2182
 cunit182595 #place CCA31118
 cunit399469 #place F85BB1ED
 cunit399469 #unit 7C443142
-cunit831510 #place 3DC4A70E
+cunit831510 #place 05527470
 @ 126 update 2540 frame 507 tick 2222 zone bz1mpg hash DCF27A30 n 389
 world tick 2222
 world updates 2540
@@ -24628,7 +24628,7 @@ cunit4767 #unit 9F2C1B58
 cunit4768 #place E9190CBB
 cunit4896 #place A9A698B4
 cunit4896 #unit 0A866724
-@ 205 update 4120 frame 823 tick 3802 zone z3q2 hash 481D7873 n 1192
+@ 205 update 4120 frame 823 tick 3802 zone z3q2 hash 53EAB8C2 n 1192
 world tick 3802
 world updates 4120
 random isaac.count 12
@@ -24696,9 +24696,9 @@ cunit4651 #place 73FD8C86
 cunit4651 #unit D8F7C494
 cunit4767 #place 6A17886E
 cunit4767 #unit BD1D0A78
-cunit4768 #place 13F9F24C
+cunit4768 #place 75D38911
 cunit4896 #place 1E54238A
-@ 206 update 4140 frame 827 tick 3822 zone z3q2 hash AB018069 n 1192
+@ 206 update 4140 frame 827 tick 3822 zone z3q2 hash B0F640D8 n 1192
 world tick 3822
 world updates 4140
 random isaac.count 124

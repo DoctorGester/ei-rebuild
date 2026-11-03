@@ -15,6 +15,7 @@
 #include "world_effect_internal.h"
 #include "game_singletons.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "save_versions.h"
 
@@ -92,7 +93,7 @@ std::uint32_t InlineRandom() {
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
-    angleAndOuter[0] = std::atan2(direction.y, direction.x);
+    angleAndOuter[0] = lib::Atan2(direction.y, direction.x);
     const float outer = std::sqrt(LengthSquared2D(direction.x, direction.y));
     angleAndOuter[1] = (outer + *half) + 0.3f;
 }

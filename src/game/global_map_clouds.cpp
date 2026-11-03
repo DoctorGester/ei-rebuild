@@ -4,6 +4,7 @@
 
 #include "random.h"
 
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -43,7 +44,7 @@ void GlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
     speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
         const int exponent = i - start < 0 ? 0 : i - start;
-        const float value = 255.0f - std::pow(base, static_cast<float>(exponent)) * 255.0f;
+        const float value = 255.0f - lib::Pow(base, static_cast<float>(exponent)) * 255.0f;
         ramp[i] = static_cast<std::uint8_t>(static_cast<int>(value));
     }
 }
