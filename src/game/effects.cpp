@@ -2,7 +2,7 @@
 #include "effects.h"
 
 #include "core_maths.h"
-#include "object_maths.h"
+#include "lib/vecmath.h"
 #include "random.h"
 
 #include "lib/crt.h"
@@ -105,13 +105,8 @@ int ParticleSource::UpdateSmoke(Particle* p) {
         if (p->frame == 8) p->drift.z = p->drift.z * 0.5f;
     }
     int frame = p->frame;
-    float oldZ = p->pos.z;
-    p->pos.z = p->drift.z + oldZ;
-    if (frame < 2) {
-        p->pos.x = p->velocity.x + p->pos.x;
-        p->pos.y = p->velocity.y + p->pos.y;
-        p->pos.z = (p->drift.z + oldZ) + p->velocity.z;
-    }
+    p->pos.z += p->drift.z;
+    if (frame < 2) p->pos += p->velocity;
     if (frame < 7) {
         p->size = growth * p->size;
         return 1;
@@ -165,10 +160,10 @@ int ParticleSource::UpdateDebris(Particle* p) {
         p->pos.x = p->drift.x + p->pos.x;
         ++p->frame;
         std::uint32_t a = (p->color >> 24) - 16;
-        p->pos.y = p->pos.y + p->drift.y;
+        p->pos.y += p->drift.y;
         p->drift.x = kDebrisDamping * p->drift.x;
         p->drift.y = kDebrisDamping * p->drift.y;
-        p->size = p->size * kDebrisGrowth;
+        p->size *= kDebrisGrowth;
         if (a > 0xFF) a = 0;
         p->color = (a << 24) | 0xFFFFFF;
         return 1;
@@ -210,7 +205,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
     float d = elements[0].sphere.speed;
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = -(DotZYX(p->velocity, n) / d);
+        float t = -(Dot(p->velocity, n) / d);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         Vector3 along;
@@ -220,13 +215,8 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         offset = p->velocity;
     }
     const Vector3& center = elements[0].pos;
-    float by = origin.y + center.y;
-    float bz = origin.z + center.z;
     p->size = 1.0f;
-    float px = (origin.x + center.x) + offset.x;
-    p->pos.y = offset.y + by;
-    p->pos.z = offset.z + bz;
-    p->pos.x = px;
+    p->pos = offset + (origin + center);
     switch (ParticleTypeOf(type)) {
     case ParticleType::SphereFire:
         p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;
@@ -256,7 +246,7 @@ void ParticleSource::TickNuke(ParticleElement* e) {
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void ParticleSource::TickTendril(ParticleElement*) {
-    int n = static_cast<int>(LengthXYZ(extent) * kTendrilDensity);
+    int n = static_cast<int>(Length(extent) * kTendrilDensity);
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;

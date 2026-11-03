@@ -7,7 +7,6 @@
 
 #include "camera.h"
 #include "game_singletons.h"
-#include "maths.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "plugin_fixes.h"
@@ -75,37 +74,6 @@ void SetBar(EngineObject* object, float fraction, std::uint32_t v0, std::uint32_
     bar->texCoords[3].v = FloatFromBits(v1);
 }
 
-// The original inlines three quaternion products, each with its own operand order; every
-// component is rounded once. The wobble target: q1 (about y) times q2 (about x).
-Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
-    Quaternion r;
-    r.w = q1.w * q2.w - DotUnrounded<Sum3::ZYX>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z);
-    r.x = ((q2.y * q1.z - q1.y * q2.z) + q1.w * q2.x) + q1.x * q2.w;
-    r.y = ((q1.x * q2.z - q2.x * q1.z) + q1.w * q2.y) + q1.y * q2.w;
-    r.z = ((q1.y * q2.x - q1.x * q2.y) + q2.w * q1.z) + q2.z * q1.w;
-    return r;
-}
-
-// The face's rest orientation from the slot's two parts (a, b).
-Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
-    Quaternion r;
-    r.w = a.w * b.w - DotUnrounded<Sum3::ZYX>(a.x, a.y, a.z, b.x, b.y, b.z);
-    r.x = ((a.y * b.z - a.z * b.y) + a.x * b.w) + b.x * a.w;
-    r.y = ((a.z * b.x - a.x * b.z) + a.y * b.w) + a.w * b.y;
-    r.z = ((a.x * b.y - b.x * a.y) + a.z * b.w) + b.z * a.w;
-    return r;
-}
-
-// The eased face orientation f with the wobble w applied.
-Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
-    Quaternion r;
-    r.w = f.w * w.w - DotUnrounded<Sum3::ZYX>(f.x, f.y, f.z, w.x, w.y, w.z);
-    r.x = ((w.z * f.y - f.z * w.y) + w.x * f.w) + f.x * w.w;
-    r.y = ((f.z * w.x - w.z * f.x) + w.y * f.w) + f.y * w.w;
-    r.z = ((w.y * f.x - w.x * f.y) + w.z * f.w) + f.z * w.w;
-    return r;
-}
-
 float RandomTilt(std::uint32_t r) {
     return (r * kRandomScale31 - 1.0f) * kHudQuarterTurn * kTwelfth;
 }
@@ -157,7 +125,7 @@ void HudPortraits::Update() {
             slot.faceTimer = 0.0f;
             slot.faceMode = 2;
         } else if (slot.flash > 0.0f) {
-            slot.flash = slot.flash - dt;
+            slot.flash -= dt;
         }
         slot.flash = MaxKeepB(slot.flash, 0.0f);
         EngineObject* flash = object(5);
@@ -225,7 +193,7 @@ void HudPortraits::Update() {
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
-                slot.wobbleTarget = TargetProduct(q1, q2);
+                slot.wobbleTarget = q2 * q1;
                 slot.wobbleSpeed = g_clientRandom.Next() * kRandomScale31 + 1.0f;
             }
         }
@@ -263,7 +231,7 @@ void HudPortraits::Update() {
         }
 
         // The face eases towards its rest orientation (fully when the frame is long).
-        Quaternion rest = RestProduct(slot.restA, slot.restB);
+        Quaternion rest = slot.restA * slot.restB;
         Quaternion previous = slot.current;
         Quaternion face;
         EI_NAN_AUDIT(dt);
@@ -272,7 +240,7 @@ void HudPortraits::Update() {
         else
             face = rest;
         slot.current = face;
-        if (slot.wobbleKind != 0) face = WobbleProduct(face, wobble);
+        if (slot.wobbleKind != 0) face = face * wobble;
         AsUiMesh(object(1))->localRotation = face;
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).

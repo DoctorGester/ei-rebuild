@@ -202,9 +202,8 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
 // The sprites are projected with the top of the clip stack. Returns 1, or 0 when a draw fails (the blend is
 // then left as it is).
-int SceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
+int SceneRenderer::DrawSprites(int additiveArgument, const std::vector<SpritePoint>* points, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
-    const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
     const TransformPipeline* currentPipeline = pipeline;
     const Matrix4& clip = *currentPipeline->Top(TransformPipeline::kClipStack);

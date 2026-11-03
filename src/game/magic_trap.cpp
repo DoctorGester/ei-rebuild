@@ -17,7 +17,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <algorithm>
@@ -39,7 +38,7 @@ bool StaysInside(MagicTrap* trap, MapObject* unit) {
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
-        if (circle->radius * circle->radius > LengthSquared2DUnrounded(dy, dx)) return !unit->IsDead();
+        if (circle->radius * circle->radius > LengthSquared2D(dy, dx)) return !unit->IsDead();
     }
     return false;
 }
@@ -98,7 +97,7 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
     const Vector3& origin = localPosition;
     Vector3 from = origin;
     auto* world = OwningWorld();
-    from.z = pc24::Add(world->RawSurfaceHeightAt(from.x, from.y), from.z);   // the double height: one rounding
+    from.z = world->RawSurfaceHeightAt(from.x, from.y) + from.z;
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
@@ -110,11 +109,9 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
             if (units->empty()) return;
             Unit* closest = nullptr;
             for (Unit* unit : *units) {
-                float dx = unit->localPosition.x - origin.x;
-                float dy = unit->localPosition.y - origin.y;
-                float dz = unit->localPosition.z - origin.z;
-                EI_NAN_AUDIT(dx, dy, dz);
-                if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
+                Vector3 d = unit->localPosition - origin;
+                EI_NAN_AUDIT(d.x, d.y, d.z);
+                if (LengthSquared(d) < kFar) closest = unit;
             }
             if (!closest) return;
             units->clear();
@@ -290,7 +287,7 @@ bool TrapObject::RunTick() {
         std::string line;
         float x = localPosition.x;
         float y = localPosition.y;
-        double z = world->RawSurfaceHeightAt(x, y);
+        float z = world->RawSurfaceHeightAt(x, y);
         line = str::Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         TheMissionScript()->Load(&line, 1);
         flags &= ~MapObjectFlag::Armed;

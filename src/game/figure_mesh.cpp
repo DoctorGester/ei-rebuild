@@ -9,7 +9,6 @@
 #include "link_figure.h"
 #include "manager_context.h"
 #include "model.h"
-#include "object_maths.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
@@ -42,54 +41,32 @@ T* InFile(char** cursor, int count) {
     return at;
 }
 
-// Inline Vector3 arithmetic of the original: every component of every operation is rounded to a
-// float (each result goes through a Vector3 temporary).
 Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
-Vector3 Sub(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x - b.x), static_cast<float>(a.y - b.y), static_cast<float>(a.z - b.z)}; }
-Vector3 Add(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x + b.x), static_cast<float>(a.y + b.y), static_cast<float>(a.z + b.z)}; }
-Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), static_cast<float>(a.y * s), static_cast<float>(a.z * s)}; }
-// a + (b - a) * s, written (b - a) * s + a as the original evaluates it.
-Vector3 LerpStored(const Vector3& from, const Vector3& to, float s) { return Add(Scale(Sub(to, from), s), from); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
 // lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).
-// The original keeps the upper blend's z on the FPU for the centre and the box minimum: at the main thread's
-// 24-bit precision that is the stored float.
 Vector3 MorphVector(const float* v, float s, float t, float u) {
-    Vector3 lower = LerpStored(LerpStored(Load(v), Load(v + 3), s), LerpStored(Load(v + 6), Load(v + 9), s), t);
-    Vector3 a = LerpStored(Load(v + 12), Load(v + 15), s);
-    Vector3 b = LerpStored(Load(v + 18), Load(v + 21), s);
-    Vector3 step = Scale(Sub(b, a), t);
-    return Add(Scale(Sub(Add(step, a), lower), u), lower);
+    Vector3 lower = Lerp(Lerp(Load(v), Load(v + 3), s), Lerp(Load(v + 6), Load(v + 9), s), t);
+    Vector3 upper = Lerp(Lerp(Load(v + 12), Load(v + 15), s), Lerp(Load(v + 18), Load(v + 21), s), t);
+    return Lerp(lower, upper, u);
 }
 
 // The older 6-corner layout (non-FIG files), as for the bones (six corners per bone):
 // lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u).
 Vector3 MorphVector6(const float* c, float s, float t, float u) {
-    Vector3 lower = LerpStored(LerpStored(Load(c), Load(c + 3), s), Load(c + 6), t);
-    Vector3 a = LerpStored(Load(c + 9), Load(c + 12), s);
-    Vector3 step = Scale(Sub(Load(c + 15), a), t);
-    return Add(Scale(Sub(Add(step, a), lower), u), lower);
+    Vector3 lower = Lerp(Lerp(Load(c), Load(c + 3), s), Load(c + 6), t);
+    Vector3 upper = Lerp(Lerp(Load(c + 9), Load(c + 12), s), Load(c + 15), t);
+    return Lerp(lower, upper, u);
 }
 
-// A scalar from 6 corners, kept on the FPU until the result.
+// A scalar from 6 corners, as MorphVector6.
 float MorphScalar6(const float* r, float s, float t, float u) {
-    float a = (r[1] - r[0]) * s + r[0];
-    float lower = (r[2] - a) * t + a;
-    float b = (r[4] - r[3]) * s + r[3];
-    float upper = (r[5] - b) * t + b;
-    return (upper - lower) * u + lower;
+    return Lerp(Lerp(Lerp(r[0], r[1], s), r[2], t), Lerp(Lerp(r[3], r[4], s), r[5], t), u);
 }
 
-// A scalar morphed from 8 versions, every blend on the FPU.
+// A scalar morphed from 8 versions, as MorphVector.
 float MorphScalar(const float* r, float s, float t, float u) {
-    float a = (r[1] - r[0]) * s + r[0];
-    float b = (r[3] - r[2]) * s + r[2];
-    float lower = (b - a) * t + a;
-    float c = (r[5] - r[4]) * s + r[4];
-    float d = (r[7] - r[6]) * s + r[6];
-    float upper = (d - c) * t + c;
-    return (upper - lower) * u + lower;
+    return Lerp(Lerp(Lerp(r[0], r[1], s), Lerp(r[2], r[3], s), t), Lerp(Lerp(r[4], r[5], s), Lerp(r[6], r[7], s), t), u);
 }
 
 // FIG8 files hold 8 versions of every bound and vertex block, the old format 6 (the corners of the figure's
@@ -195,9 +172,6 @@ void ReverseWinding(std::vector<std::uint16_t>& indices) {
 
 } // namespace
 
-// Each value the original stores to a float is rounded with static_cast<float>; everything else
-// stays on the FPU.
-
 void FigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     const int versions = magic == kFig8Magic ? kFig8Versions : 1;
     ReadFirstVersion(center, cursor, versions);
@@ -207,7 +181,7 @@ void FigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     box.bounds.center = center;
     box.bounds.flags |= BoundsFlag::Sphere;
     box.bounds.radius = radius;
-    box.bounds.SetBox(&boxMin.x, &boxMax.x);
+    box.bounds.SetBox(boxMin, boxMax);
 }
 
 void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
@@ -220,8 +194,8 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         out->flags |= 1;
         out->center = c;
         out->radius = radius;
-        boxMin = {mn.x, mn.y, mn.z};
-        boxMax = {mx.x, mx.y, mx.z};
+        boxMin = mn;
+        boxMax = mx;
     } else {
         std::memcpy(&out->center, data, 12);
         std::memcpy(&boxMin, data + 3, 12);
@@ -229,7 +203,7 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         out->radius = data[9];
         out->flags |= 1;
     }
-    out->SetBox(&boxMin.x, &boxMax.x);
+    out->SetBox(boxMin, boxMax);
 }
 
 void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
@@ -240,9 +214,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     out->center = c;
     out->flags |= 1;
     out->radius = radius;
-    Vector3 boxMin = mn;
-    Vector3 boxMax = mx;
-    out->SetBox(&boxMin.x, &boxMax.x);
+    out->SetBox(mn, mx);
 }
 
 void PlainFigureMesh::LoadFig(char** cursor) {
@@ -384,21 +356,20 @@ void SharedFigureMesh::LoadOld(char** cursor) {
 // ---- World-space box ----------------------------------------------------------------------------
 
 void FigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
-    // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double distance = LengthSquaredXYZ(localPosition);
+    // The squared distance from the figure's origin; NaN passes.
+    float distance = LengthSquared(localPosition);
     if (distance > kFarLimit) return;
 
     Matrix4 m = WorldMatrix();
 
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
-    // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner
-    // sums stay on the FPU in the original (the same at the main thread's 24-bit precision).
+    // a row vector.
     const Vector3& c = box.bounds.center;
     const Vector3& lo = box.bounds.boxMin;
     const Vector3& hi = box.bounds.boxMax;
     for (int corner = 0; corner < 8; ++corner) {
         Vector3 p = {((corner & 4) ? lo : hi).x + c.x, ((corner & 2) ? lo : hi).y + c.y, ((corner & 1) ? lo : hi).z + c.z};
-        Vector3 w = TransformRow<Sum3::ZYX>(m, p);
+        Vector3 w = TransformRow(m, p);
         Extend(*maxX, *minX, w.x);
         Extend(*maxY, *minY, w.y);
         Extend(*maxZ, *minZ, w.z);
@@ -568,61 +539,10 @@ void FigureMesh::CopyFigure(const FigureMesh* other) {
 void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
     // The pose virtual stores the quaternion as the world rotation.
     CombineRotation(rotation);
-    // The position (+0x1C) rotated by the quaternion (w, v):
-    // 2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
-    Vector3 v{rotation.x, rotation.y, rotation.z};
-    auto* p = &localPosition;
-    float dot = DotUnrounded<Sum3::ZYX>(v, *p);
-    float twice = dot + dot;
-    float z = v.z * twice;
-    float y = v.y * twice;
-    float x = twice * v.x;
-    Vector3 along = {x, y, z};
-    float w = rotation.w;
-    Vector3 turned = ScaleVector(Cross(v, *p), w + w);
-    float ww = w * w;
-    float k = ww - Dot(v, v);
-    Vector3 rotated = AddVectors(AddVectors(ScaleVector(*p, k), turned), along);
-    Vector3& moved = worldPosition;
-    float mx = rotated.x + offset.x;
-    float my = rotated.y + offset.y;
-    float mz = rotated.z + offset.z;
-    moved.x = mx;
-    moved.y = my;
-    moved.z = mz;
+    // The position rotated by the quaternion, then moved by `offset`.
+    worldPosition = rotation.Rotate(localPosition) + offset;
 
-    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
-    float* m = poseMatrix.m;
-    std::memset(m, 0, sizeof(poseMatrix));
-    m[15] = 1.0f;
-    m[10] = 1.0f;
-    m[5] = 1.0f;
-    m[0] = 1.0f;
-    float qw = worldRotation.w, qx = worldRotation.x, qy = worldRotation.y, qz = worldRotation.z;
-    float x2 = qx + qx;
-    float y2 = qy + qy;
-    float z2 = qz + qz;
-    float wx = x2 * qw;
-    float wy = y2 * qw;
-    float wz = z2 * qw;
-    float xx = x2 * qx;
-    float xy = y2 * qx;
-    float xz = z2 * qx;
-    float yy = y2 * qy;
-    float yz = z2 * qy;
-    float zz = z2 * qz;
-    m[0] = 1.0f - (zz + yy);
-    m[4] = xy - wz;
-    m[8] = wy + xz;
-    m[1] = xy + wz;
-    m[5] = 1.0f - (zz + xx);
-    m[9] = yz - wx;
-    m[2] = xz - wy;
-    m[6] = yz + wx;
-    m[10] = 1.0f - (yy + xx);
-    m[12] = moved.x;
-    m[13] = moved.y;
-    m[14] = moved.z;
+    poseMatrix = WorldMatrix();
 }
 
 // --- Life --------------------------------------------------------------------------------------------

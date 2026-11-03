@@ -149,9 +149,7 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     }
 
     source->id = id;
-    source->position.x = f[1];
-    source->position.y = f[2];
-    source->position.z = f[3];
+    source->position = {f[1], f[2], f[3]};
     source->volume = f[4];
     source->radius = f[5];
     source->name = cmd->stringArgs[0];
@@ -166,7 +164,7 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     }
     auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
     source->object = ScriptEffect<EffectSound>(sound);
-    sound->localPosition = {source->position.x, source->position.y, source->position.z};
+    sound->localPosition = source->position;
     sound->volume = source->volume;
     sound->radius = source->radius;
     const char* name = source->name.c_str();
@@ -241,9 +239,7 @@ void Script::ScriptMoveParticleSource(const SSCCmd* cmd) {
     source->steps = lib::RoundEven(f[4]);
     const Vector3& at = source->object->localPosition;
     float inverse = 1.0f / static_cast<float>(source->steps);
-    source->step.x = (f[1] - at.x) * inverse;
-    source->step.y = (f[2] - at.y) * inverse;
-    source->step.z = (f[3] - at.z) * inverse;
+    source->step = (Vector3{f[1], f[2], f[3]} - at) * inverse;
 }
 
 

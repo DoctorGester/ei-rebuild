@@ -40,9 +40,7 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
     for (Unit* other : nearby) {
         if (other == unit) continue;
         float reach = other->standingHeight + unitHeight;
-        float dy = position.y - other->localPosition.y;
-        float dx = position.x - other->localPosition.x;
-        if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
+        if (DistanceSquaredXY(position, other->localPosition) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
         int unitX = CellOf(unit->localPosition.x);
@@ -186,11 +184,11 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
             float dx = cell.x - eye.x;
             float dy = cell.y - eye.y;
             float dz = -eye.z;
-            float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+            float distance = std::sqrt(LengthSquared2D(dy, dx));
             EI_NAN_AUDIT(radius, distance);
             if (radius < distance) continue;
             if (!anyDirection) {
-                float dot = DotUnrounded<Sum3::ZYX>(dx, dy, dz, look.x, look.y, look.z);
+                float dot = Dot(Vector3{dx, dy, dz}, Vector3{look.x, look.y, look.z});
                 if (distance * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {

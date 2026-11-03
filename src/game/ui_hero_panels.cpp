@@ -61,7 +61,7 @@ void BuildCellGrid(UiWindow* window) {
             AddRect(window, Rect{left, top, right, bottom});
             u = 0x9C - u;
         }
-        depth = depth * 0.5f;   // * 0.5
+        depth *= 0.5f;   // * 0.5
         v = 0x9C - v;
     }
     window->AddSurface(new UiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));

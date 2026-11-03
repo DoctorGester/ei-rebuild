@@ -6,7 +6,6 @@
 #include "item_db.h"
 #include "world.h"
 
-#include "lib/pc24.h"
 
 #include <bit>
 
@@ -22,17 +21,17 @@ bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const V
     Vector3 to;
     if (!target) {
         to = at;
-        to.z = pc24::Add(world->SurfaceHeightAt(to.x, to.y), kAboveSurface);   // the world's double plus a float
+        to.z = world->SurfaceHeightAt(to.x, to.y) + kAboveSurface;
     } else {
         to = {target->localPosition.x, target->localPosition.y, target->localPosition.z};
-        float ground = static_cast<float>(target->GroundHeight(to.x, to.y));
+        float ground = target->GroundHeight(to.x, to.y);
         to.z = target->ModeSpeed() + ground;
     }
     Vector3 eye = from;
     if (caster) {
-        float ground = static_cast<float>(caster->GroundHeight(eye.x, eye.y));
+        float ground = caster->GroundHeight(eye.x, eye.y);
         eye.z = caster->BaseSpeed() + ground;
     }
-    // The unrounded result is compared (below the minimum, or NaN, fails).
+    // Below the minimum, or NaN, fails.
     return world->aiMap.LineOfSight(eye, to) >= kMinSight;
 }

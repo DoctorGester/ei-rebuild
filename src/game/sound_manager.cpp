@@ -5,9 +5,7 @@
 // Float maths, built for SSE2. Two results reach game state: a 3D sound's level (UpdatePositional: Play3D gives a
 // silent one-shot no voice) and the ambient emitters' intervals (Tick: an emitter's Play2D takes a voice). With
 // every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_effects). Both are
-// basic operations on floats and small integers in the original's order, which the original ran on the main
-// thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
-// operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
+// basic operations on floats and small integers in the original's order, rounded to integers by lib::RoundEven
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
 #include "game_strings.h"
 #include "lib/bytes.h"
@@ -169,7 +167,7 @@ void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
     record.lastUsed = platform::TickCount();
-    record.uses = record.uses + 1;
+    record.uses += 1;
     slot->length = m->WaveLength(record.data.data(), record.data.size());
     audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
@@ -206,8 +204,8 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
         if (h >= kHeightSilent) v = 0.0f;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
-    v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
-    v = v * kOutputScale;
+    v *= (isSpeech != 0 ? speechVolume : effectsVolume);
+    v *= kOutputScale;
     return ClampLevel(lib::RoundEven(v));
 }
 
@@ -245,7 +243,7 @@ SoundSlot* SoundManager::SlotForHandle(int handle) const {
 void SoundManager::UpdatePositional(SoundSlot* slot) {
     float dx = slot->position.x - listener.x;
     float dy = slot->position.y - listener.y;
-    float dist2 = LengthSquared2DUnrounded(dy, dx);
+    float dist2 = LengthSquared2D(dy, dx);
     if (dist2 > slot->farDistance * slot->farDistance) {
         slot->volume = 0;
         return;
@@ -257,7 +255,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
     slot->volume = FlatVolume(level, 1, slot->speech);
 
-    float ahead = AbsBits(Dot2DUnrounded(dy, dx, listenerAxis.y, listenerAxis.x));
+    float ahead = AbsBits(Dot2D(dy, dx, listenerAxis.y, listenerAxis.x));
     if (ahead > dist) {
         slot->pan = 0;
         return;
@@ -293,12 +291,10 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     if (enabled == 0) return;
     listener = position;
     listenerAxis = axis;
-    float len = std::sqrt(LengthSquared2DUnrounded(listenerAxis.x, listenerAxis.y));
+    float len = std::sqrt(LengthSquared2D(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
     if (len == 0.0f) {
-        listenerAxis.x = 1.0f;
-        listenerAxis.y = 0.0f;
-        listenerAxis.z = 0.0f;
+        listenerAxis = {1.0f, 0.0f, 0.0f};
     } else {
         float inv = 1.0f / len;
         listenerAxis *= inv;
@@ -469,12 +465,10 @@ int SoundManager::RemoveEmitter(int index) {
     if (index < 0 || index > 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return -1;
-    e->position.x = 0.0f;
+    e->position = {};
     e->active = 0;
     e->maxInterval = -1;
     e->minInterval = -1;
-    e->position.y = 0.0f;
-    e->position.z = 0.0f;
     e->outerRadius = 0.0f;
     e->innerRadius = 0.0f;
     e->lastPlayed = 0;
@@ -674,9 +668,7 @@ void SoundManager::Tick() {
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
-        float dx = listener.x - e->position.x;
-        float dy = listener.y - e->position.y;
-        float dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+        float dist = std::sqrt(DistanceSquaredXY(listener, e->position));
         std::uint32_t minInterval, maxInterval;
         EI_NAN_AUDIT(dist, e->innerRadius);
         if (dist < e->innerRadius) {
@@ -906,7 +898,7 @@ void SoundFader::Update() {
         }
         break;
     case 2:
-        factor = factor - step;
+        factor -= step;
         EI_NAN_AUDIT(factor);
         if (factor <= 0.0f) {
             mode = 0;
@@ -1492,7 +1484,7 @@ void SoundManager::Reset() {
     cacheBytes = 0;
     for (SoundEmitter& e : emitters) {
         e.active = 0;
-        e.position.x = e.position.y = e.position.z = 0.0f;
+        e.position = {};
         e.innerRadius = 0.0f;
         e.outerRadius = 0.0f;
         e.minInterval = -1;
@@ -1502,7 +1494,7 @@ void SoundManager::Reset() {
     for (SoundSequence& q : sequences) {
         q.active = 0;
         q.handle = -1;
-        q.position.x = q.position.y = q.position.z = 0.0f;
+        q.position = {};
         q.nearDistance = 0.0f;
         q.farDistance = 0.0f;
         q.remaining = -1;

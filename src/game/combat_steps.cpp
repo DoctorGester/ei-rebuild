@@ -4,14 +4,13 @@
 #include "combat_plan.h"
 #include "item.h"
 #include "map_object_figures.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "random.h"
 #include "unit.h"
 
 #include "lib/float_select.h"
 #include "platform/log.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -85,7 +84,7 @@ bool HasRangedWeapon(Unit* unit) {
 int EntryTicks(Unit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
-    float frameCount = static_cast<float>(static_cast<double>(entry->*frames));
+    float frameCount = static_cast<float>(entry->*frames);
     float speed = unit->ActionSpeed(entry);
     return static_cast<int>(static_cast<std::int64_t>(frameCount / speed));
 }
@@ -180,13 +179,13 @@ float RandomHeight(float to, float from, float low, float high) {
     if (lib::RoundEven(span) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span));
         std::uint32_t pick = g_random.Next() % steps;
-        return pc24::Mul(static_cast<double>(pick), kPercent) + from;
+        return (static_cast<float>(pick) * kPercent) + from;
     }
     float span2 = (low - high) * kHundred;
     if (lib::RoundEven(span2) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span2));
         std::uint32_t pick = g_random.Next() % steps;
-        return pc24::Mul(static_cast<double>(pick), kPercent) + high;
+        return (static_cast<float>(pick) * kPercent) + high;
     }
     return high;
 }
@@ -353,22 +352,16 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     order.source = 6;
     order.target.Assign(target);
 
-    float x = unit->localPosition.x;
-    float y = unit->localPosition.y;
-    float z = unit->localPosition.z;
+    const Vector3 here = unit->localPosition;
     Vector3 aim = target->AimPoint();
-    float dz = z - aim.z;
-    float dy = y - aim.y;
-    float dx = x - aim.x;
-    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    float distance = std::sqrt(LengthSquared(here - aim));
     float orderDistance = ActionDistance(&order);
     float reach = SelectLess(distance, orderDistance, distance, orderDistance);
 
     UnitStats* victimStats = &victim->ServerController()->stats;
-    // The double ground heights plus a float: one rounding.
-    float myBase = pc24::Add(unit->GroundHeight(x, y), z);
+    float myBase = unit->GroundHeight(here.x, here.y) + here.z;
     float mySize = unit->DoubleHeight();
-    float theirBase = pc24::Add(victim->GroundHeight(aim.x, aim.y), aim.z);
+    float theirBase = victim->GroundHeight(aim.x, aim.y) + aim.z;
     float theirSize = victim->DoubleHeight();
 
     // Where to hit: a skill picks at random, an attack its source location, else the body; the

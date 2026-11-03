@@ -29,7 +29,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -49,42 +48,42 @@
 float WorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
     float cx = MaxKeepB(0.0f, x);
-    float maxX = static_cast<float>(terrain->width - 1.0f);
+    float maxX = terrain->width - 1.0f;
     cx = MinKeepA(maxX, cx);
     float cy = MaxKeepB(0.0f, y);
-    float maxY = static_cast<float>(terrain->height - 1.0f);
+    float maxY = terrain->height - 1.0f;
     cy = MinKeepA(maxY, cy);
     return terrain->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
-double WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
+float WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
 const char* WorldClient::AmbienceTimeOfDay() const {
-    float time = pc24::Mul(static_cast<double>(tick), secondsPerTick) + timeBase;
-    float hour = static_cast<float>(std::fmod(static_cast<double>(time), 24.0));   // exact
+    float time = (static_cast<float>(tick) * secondsPerTick) + timeBase;
+    float hour = std::fmod(time, 24.0f);
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
     return hour < 6.0f ? "morning" : "evening";
 }
 
+// The (u, v) of `d` (a point relative to the platform's origin) moved along z onto the platform's plane.
+Vector2 PlaneUV(const Platform& p, Vector3 d) {
+    d.z -= Dot(p.normal, d) / p.normal.z;
+    return {Dot(p.axisU, d), Dot(p.axisV, d)};
+}
+
 float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
     for (auto& node : list) {
         const Platform& p = node;
-        float dx = point.x - p.x;
-        float dy = point.y - p.y;
+        float dx = point.x - p.centre.x;
+        float dy = point.y - p.centre.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
-        if (p.radius * p.radius < LengthSquared2DUnrounded(dy, dx)) continue;
-        float a = point.x - p.origin.x;
-        float b = point.y - p.origin.y;
-        float c = point.z - p.origin.z;
-        // Project onto the platform plane along z, then into its (u, v) frame.
-        c = c - DotUnrounded<Sum3::XYZ, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        if (p.radius * p.radius < LengthSquared2D(dy, dx)) continue;
+        const auto [u, v] = PlaneUV(p, point - p.origin);
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
-        float z = static_cast<float>(p.axisV.z * v + p.axisU.z * u + p.origin.z);
+        float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
         height = MaxKeepB(height, z);
     }
     return height;
@@ -93,16 +92,11 @@ float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
 bool PlatformSet::Contains(float x, float y) {
     for (auto& node : list) {
         const Platform& p = node;
-        float dx = x - p.x;
-        float dy = y - p.y;
+        float dx = x - p.centre.x;
+        float dy = y - p.centre.y;
         EI_NAN_AUDIT(p.radius, dx, dy);
-        if (p.radius * p.radius < LengthSquared2DUnrounded(dx, dy)) continue;
-        float a = x - p.origin.x;
-        float b = y - p.origin.y;
-        float c = -p.origin.z;
-        c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        if (p.radius * p.radius < LengthSquared2D(dx, dy)) continue;
+        const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.1f || v < -0.1f) continue;
         if (p.sizeU + 0.1f < u || p.sizeV + 0.1f < v) continue;
@@ -115,28 +109,20 @@ PlatformSet::SurfacePlaneResult PlatformSet::SurfacePlane(float x, float y) {
     SurfacePlaneResult result{{0.0f, 0.0f, 1.0f}, 0.0f};
     for (auto& node : list) {
         const Platform& p = node;
-        EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
-        if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y})) continue;
-        float a = x - p.origin.x;
-        float b = y - p.origin.y;
-        float c = -p.origin.z;
-        c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        EI_NAN_AUDIT(p.radius, x, y, p.centre.x, p.centre.y);
+        if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.centre.x, p.centre.y})) continue;
+        const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
         if (z > result.height) {   // lower, equal or NaN keeps the old one
             result.height = z;
-            result.normal = {p.normal.x, p.normal.y, p.normal.z};
+            result.normal = p.normal;
         }
     }
     return result;
 }
-
-// x is summed ZYX, y and z ZXY.
-Vector3 MatrixRows::Transform(const Vector3& v) const { return TransformColumnNormal<Sum3::ZYX, Sum3::ZXY>(*this, v); }
 
 // ---- Units and players ---------------------------------------------------------------------------
 
@@ -151,9 +137,7 @@ Unit* WorldClient::NearestVisibleUnit(Unit* unit) {
         if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
-        float dy = found->localPosition.y - unit->localPosition.y;
-        float dx = found->localPosition.x - unit->localPosition.x;
-        float distance = LengthSquared2DUnrounded(dx, dy);
+        float distance = DistanceSquaredXY(found->localPosition, unit->localPosition);
         EI_NAN_AUDIT(distance, best);
         if (distance < best) {
             best = static_cast<float>(distance);
@@ -238,8 +222,8 @@ void WorldClient::CreateExitMarkers() {
         source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
-        source->turnCos = pc24::Round(pc24::Cos(exit.angle));
-        source->turnSin = pc24::Round(pc24::Sin(exit.angle));
+        source->turnCos = std::cos(exit.angle);
+        source->turnSin = std::sin(exit.angle);
         for (int warmUpTick = 0; warmUpTick < kExitWarmUpTicks; ++warmUpTick) source->RunTick();
     }
     UpdateExitMarkers();
@@ -418,9 +402,9 @@ bool WorldClient::RunTick() {
                         float nodeX = effect.position.x, nodeY = effect.position.y;
                         float dy = light->localPosition.y - nodeY;
                         float dx = light->localPosition.x - nodeX;
-                        if (LengthSquared2DUnrounded(dx, dy) > light->rangeSquared) continue;
+                        if (LengthSquared2D(dx, dy) > light->rangeSquared) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
+                        point.z = terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground);
                         float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }

@@ -10,7 +10,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -24,12 +23,12 @@ namespace {
 int g_weatherDelay = /*007C2DFC*/ {};
 
 // Constants read from the exe (rule 9).
-constexpr double kMapScale = 1.1920928957853683e-7;        // 2^-23: a random word to map coordinates
-constexpr double kOffsetScale = 3.259629011913116e-8;     // a random word to 0..140
+constexpr float kMapScale = 512.0f * 0x1p-32f;        // a random word to map coordinates (0..512)
+constexpr float kOffsetScale = 140.0f * 0x1p-32f;     // a random word to 0..140
 constexpr float kOffsetCentre = 70.0f;
 constexpr float kMinDistance2 = 900.0f;
-constexpr double kBoltScale = 1.1827796700370451e-7;
-constexpr double kBoltSpread = 9.31322574832319e-10;
+constexpr float kBoltScale = 508.0f * 0x1p-32f;
+constexpr float kBoltSpread = 4.0f * 0x1p-32f;
 constexpr float kFive = 5.0f;
 constexpr float kBoltHeight = 40.0f;
 
@@ -44,18 +43,15 @@ constexpr float kDayFactorRain = 0.9f;
 constexpr float kDayFactorDry = 1.0f;
 
 
-// A random word times a double constant, the product rounded once.
-float RandomTimes(double scale) { return pc24::Mul(static_cast<double>(g_random.Next()), scale); }
+// A random word times `scale`.
+float RandomTimes(float scale) { return static_cast<float>(g_random.Next()) * scale; }
 
 float UniformOnMap() { return RandomTimes(kMapScale); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
 void TryLightningStrike(WorldServer* world) {
-    Vector3 ground;
-    ground.x = UniformOnMap();
-    ground.y = UniformOnMap();
-    ground.z = 0.0f;
+    Vector3 ground = {UniformOnMap(), UniformOnMap(), 0.0f};
     AIMap* aiMap = &world->aiMap;
     int kind = aiMap->MaterialAt(ground);
     if (kind != 3 && kind != 1) return;
@@ -63,19 +59,13 @@ void TryLightningStrike(WorldServer* world) {
 
     float dx = RandomTimes(kOffsetScale) - kOffsetCentre;
     float dy = RandomTimes(kOffsetScale) - kOffsetCentre;
-    if (LengthSquared2DUnrounded(dy, dx) <= kMinDistance2) return;   // random: never NaN
+    if (LengthSquared2D(dy, dx) <= kMinDistance2) return;   // random: never NaN
 
-    Vector3 sky;
-    sky.x = ground.x + dx;
-    sky.y = ground.y + dy;
-    sky.z = ground.z;
+    Vector3 sky = {ground.x + dx, ground.y + dy, ground.z};
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
     BaseManager* manager = world->TimedObjectManager();
     auto* lightning = manager->CreateObjectAs<EffectTornado>(kTypeLightning, -1);
-    sky.x = ground.x + dx;
-    sky.y = ground.y + dy;
-    sky.z = ground.z;
     lightning->Launch(ground, sky);
     lightning->startTick = world->tick;
     lightning->AddRef();
@@ -112,7 +102,7 @@ void ShowRainBolt(WorldServer* world) {
     world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
     float x = RandomTimes(kBoltScale) + 2.0f;
     float y = RandomTimes(kBoltScale) + 2.0f;
-    float z = pc24::Sub(world->RawSurfaceHeightAt(x, y), kFive);
+    float z = world->RawSurfaceHeightAt(x, y) - kFive;
     float fromX = RandomTimes(kBoltSpread) + x - 2.0f;
     float fromY = RandomTimes(kBoltSpread) + y - 2.0f;
     float fromZ = z + kBoltHeight;
@@ -130,7 +120,7 @@ Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command q
 } // namespace
 
 void WorldServer::UpdateWeather() {
-    float day = static_cast<float>(NightLevel());
+    float day = NightLevel();
     nightLevel = day;
     if (sessionKind == kKindSinglePlayer) {
         if (climate != 0) {
@@ -150,12 +140,7 @@ void WorldServer::UpdateWeather() {
 void ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
     std::string text;
-    // The middle: x and y are summed into floats first, z is not.
-    float sumY = static_cast<float>(to.y + from.y);
-    float sumX = static_cast<float>(to.x + from.x);
-    float midZ = (to.z + from.z) * 0.5f;
-    float midY = sumY * 0.5f;
-    float midX = sumX * 0.5f;
+    const Vector3 middle = (to + from) * 0.5f;
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
     if ((g_random.Next() & 3) == 0) {
@@ -167,8 +152,8 @@ void ShowBolt(Vector3 from, Vector3 to) {
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = g_random.Next() % 3 + 1;
-        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
-                    static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
+        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(middle.x),
+                    static_cast<double>(middle.y), static_cast<double>(middle.z), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
         ScriptQueue().Load(&text, 1);
     }

@@ -23,7 +23,6 @@
 #include "world.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -139,10 +138,9 @@ int UnitClientSpecific::RestartFadeIn() {
 }
 
 int UnitClientSpecific::Level() {
-    double experience = static_cast<double>(static_cast<std::uint32_t>(unit->params.experience));
-    // The first logarithm is kept through the second one's call as a double (hi + lo: the 53-bit rounding).
-    pc24::Unrounded numerator = pc24::Log(pc24::Div(experience, g_logicSettings.considerModifier));
-    float level = pc24::Div(numerator.hi + numerator.lo, pc24::Log(g_logicSettings.considerLogBase));
+    float experience = static_cast<float>(static_cast<std::uint32_t>(unit->params.experience));
+    float numerator = std::log(experience / g_logicSettings.considerModifier);
+    float level = numerator / std::log(g_logicSettings.considerLogBase);
     // The rounding gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.
     return lib::RoundEven(level);
@@ -178,12 +176,12 @@ constexpr std::uint32_t kKeySpecialIdle = kAnimationSpecialIdleKey;
 } // namespace
 
 void UnitClientSpecific::AdvanceTime(float time) {
-    float stored = time - lastTime;   // stored as a float
+    float stored = time - lastTime;
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = unit->localPosition;
-        position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
+        position.z = unit->GroundHeight(position.x, position.y) + unit->heightOffset;
         OwningWorld()->MoveObject(unit, &position.x);
         return;
     }
@@ -221,11 +219,11 @@ void UnitClientSpecific::RestartAnimation(float time) {
         }
     }
     int start = unit->animationStart;
-    float stored = pc24::Sub(time + 1.0f, static_cast<double>(start));   // stored as a float
+    float stored = time + 1.0f - static_cast<float>(start);
     float step = stored;
     state = unit->AsObject3D()->animation;
     if (step > 0.0f && state) {
-        lastTime = pc24::Add(static_cast<double>(start), step);
+        lastTime = static_cast<float>(start) + step;
         state->Advance(step);
         state = unit->AsObject3D()->animation;
         lastAnimationTime = state->time;
@@ -262,8 +260,6 @@ void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
 
 // A party unit's client controller (UnitClientSpecific, class 0x3D) placing its unit on the
 // motion it follows. See docs/notes/units.md ("Client path placement").
-// Float maths as the main thread's 24-bit x87 rounds it: atan2, exp, cos and sin through lib/pc24.h
-// (FPATAN, VC6's inline exp, FCOS, FSIN).
 
 namespace {
 
@@ -286,7 +282,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     Vector3 direction = sample.direction;
     float toWorld = 0.5f;
     Vector3 position = {toWorld * sample.x, toWorld * sample.y, 0.0f};
-    position.z = pc24::Add(unit->GroundHeight(position.x, position.y), unit->heightOffset);
+    position.z = unit->GroundHeight(position.x, position.y) + unit->heightOffset;
     self->OwningWorld()->MoveObject(unit, &position.x);
     if (self->snapHeading) {
         self->snapHeading = 0;
@@ -296,11 +292,8 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis = unit->localRotation.AxisY();
-        // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
-        // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
-        // flipped the orientation's sign once in the ui_hud run.
-        float current = pc24::Round(pc24::Atan2(-axis.y, -axis.x));
-        float target = pc24::Round(pc24::Atan2(direction.y, direction.x));
+        float current = std::atan2(-axis.y, -axis.x);
+        float target = std::atan2(direction.y, direction.x);
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
@@ -311,10 +304,10 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
             else
                 target = kFullTurn + target;
         }
-        float weight = pc24::Exp(rate * kDecay);
+        float weight = std::exp(rate * kDecay);
         float heading = (1.0f - weight) * target + weight * current;
-        direction.x = pc24::Round(pc24::Cos(heading));
-        direction.y = pc24::Round(pc24::Sin(heading));
+        direction.x = std::cos(heading);
+        direction.y = std::sin(heading);
         direction.z = 0.0f;
         unit->SetHeading(direction);
     }
@@ -329,7 +322,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     length = animation->stride;
     EI_NAN_AUDIT(length);
     if (length == 0.0f) {
-        unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));
+        unit->animationSpeed = unit->ActionSpeed(animation);
         return;
     }
     // The database the animation is in: its index back to the first one.
@@ -342,7 +335,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     EI_NAN_AUDIT(span);
     if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
-    float moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(direction.x, direction.y, direction.z));
+    float moved = std::sqrt(LengthSquared(direction));
     float numerator = moved * sample.speed * kAnimationRate;
     float denominator = 2.0f * (frames * length);
     unit->animationSpeed = numerator / denominator;
@@ -373,8 +366,7 @@ Texture* SkinOf(Unit* unit) {
     return half->partSets[0]->texture;
 }
 
-// The eye rectangle's numbers shared by both: the skin's scale and the face's offset `t` (in mixed units). The
-// data's ints enter the operations exactly (pc24's helpers round the result once).
+// The eye rectangle's numbers shared by both: the skin's scale and the face's offset `t` (in mixed units).
 struct EyeFrame {
     float scale;
     float offset;
@@ -383,13 +375,12 @@ struct EyeFrame {
 
 EyeFrame Frame(const Texture* skin, const Texture* face, const UnitModelRecord* model) {
     EyeFrame frame;
-    frame.scale = static_cast<float>(static_cast<double>(skin->width) * kEyeUnit);
+    frame.scale = static_cast<float>(skin->width) * kEyeUnit;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    frame.offset = pc24::Sub(pc24::Div(static_cast<double>(face->height), frame.scale),
-                             static_cast<double>(eyeHeight + eyeHeight)) / frame.scale;
-    frame.at[0] = lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeLeft)), frame.scale));
+    frame.offset = (static_cast<float>(face->height) / frame.scale - static_cast<float>(eyeHeight + eyeHeight)) / frame.scale;
+    frame.at[0] = lib::Truncate(static_cast<float>(static_cast<int>(model->eyeLeft)) * frame.scale);
     int fromBottom = kSkinUnits - static_cast<int>(model->eyeBottom) - eyeHeight;
-    frame.at[1] = lib::Truncate(pc24::Mul(static_cast<double>(fromBottom), frame.scale));
+    frame.at[1] = lib::Truncate(static_cast<float>(fromBottom) * frame.scale);
     return frame;
 }
 
@@ -414,8 +405,8 @@ void UnitClientSpecific::BlinkClose(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    Rect closed = {0, lib::Truncate(frame.offset), lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
-                   lib::Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale)};
+    Rect closed = {0, lib::Truncate(frame.offset), lib::Truncate(static_cast<float>(static_cast<int>(model->eyeWidth)) * scale),
+                   lib::Truncate((static_cast<float>(eyeHeight) + frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
@@ -430,9 +421,9 @@ void UnitClientSpecific::BlinkOpen(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    Rect open = {0, lib::Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
-                 lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
-                 lib::Truncate(pc24::Add(static_cast<double>(eyeHeight + eyeHeight), frame.offset) * scale)};
+    Rect open = {0, lib::Truncate((static_cast<float>(eyeHeight) + frame.offset) * scale),
+                 lib::Truncate(static_cast<float>(static_cast<int>(model->eyeWidth)) * scale),
+                 lib::Truncate((static_cast<float>(eyeHeight + eyeHeight) + frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }

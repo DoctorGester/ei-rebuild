@@ -80,14 +80,14 @@ void MaterialManager::Create() {
         void* data = GetFile(kind.file, nullptr);
         if (!data) {
             lit.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
-            lit.ambient.x = lit.ambient.y = lit.ambient.z = 0.7f;
-            lit.specular.x = lit.specular.y = lit.specular.z = 0.2f;
+            lit.ambient = {0.7f, 0.7f, 0.7f, lit.ambient.w};
+            lit.specular = {0.2f, 0.2f, 0.2f, lit.specular.w};
             lit.power = 5.0f;
         } else {
             lib::LoadBytes(lit, MaterialFileColors(data));
         }
         CloseFile(data);
-        if (kind.kind == kMagicMaterialKind) lit.emissive.x = lit.emissive.y = lit.emissive.z = 1.0f;
+        if (kind.kind == kMagicMaterialKind) lit.emissive = {1.0f, 1.0f, 1.0f, lit.emissive.w};
         colors[static_cast<unsigned>(kind.kind)] = lit;
     }
 }

@@ -75,10 +75,8 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
 
     for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
         const Unit* at = unit;
-        float dz = at->localPosition.z - position.z;
-        float dy = at->localPosition.y - position.y;
-        float dx = at->localPosition.x - position.x;
-        float distance = DotUnrounded<Sum3::ZYX>(dx, dy, dz, normalX, normalY, normalZ);
+        Vector3 d = at->localPosition - position;
+        float distance = Dot(Vector3{d.x, d.y, d.z}, Vector3{normalX, normalY, normalZ});
         distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;
         if (!AcceptsAreaSpells(unit)) continue;
@@ -275,7 +273,7 @@ Next StartLightStrike(SpellEffect* e) {
     e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
-    top.z = top.z + ConstAt(worlddata::StrikeHeight());
+    top.z += ConstAt(worlddata::StrikeHeight());
     float power = Power(e);
     auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(top, e->position, power * ConstAt(worlddata::StrikeWidth()));
@@ -284,7 +282,7 @@ Next StartLightStrike(SpellEffect* e) {
     float alpha = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), e->targetPoint, e->HeldSpell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
-    e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
+    e->targetPoint.z += ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, e->targetPoint, PrototypeRange(e), rise);
 

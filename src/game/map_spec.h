@@ -4,7 +4,7 @@
 // live objects. See docs/notes/objects.md.
 #include "chunk_stream.h"
 #include "lock_key.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit_record.h"
 #include <cstddef>
 #include <cstdint>
@@ -117,8 +117,6 @@ public:
     // The world object with the record's id.
     virtual void* WorldObject();
     virtual void Nothing(int) {}
-    // Moves the record, then Apply.
-    virtual void Move(float dx, float dy, float dz);
     // Removes the world object (here: Apply).
     virtual void Remove();
     // Empty. Makes or updates the world object.
@@ -231,8 +229,6 @@ public:
 
     // Effects are managed under -3001 - id.
     void* WorldObject() override;
-    // Moves the record, not below the terrain, then Apply.
-    void Move(float dx, float dy, float dz) override;
     // Shows or hides the world object (flag 0x40 hides).
     virtual void SetVisible(std::uint8_t newVisible);
 

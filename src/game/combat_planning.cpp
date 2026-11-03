@@ -22,7 +22,6 @@
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -33,8 +32,7 @@ namespace {
 
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr float kFarBits = 1000000.0f;   // 1e6
-constexpr float kFar = kFarBits;
+constexpr float kFar = 1000000.0f;   // 1e6
 constexpr float kNoZBits = -1.0f;   // -1.0: an order point without height
 constexpr int kNoSpot = 0x7FFFFFFF;
 
@@ -73,7 +71,7 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     WorldServer* world = ServerWorld();
     order->point.z = kNoZBits;
     if (order->kind != UnitOrderKind::Use || !order->target || order->source != 0) return true;
-    float size = static_cast<float>(unit->Radius());
+    float size = unit->Radius();
     std::vector<Vector3> spots = order->target->UseSpots(size);
     bool result = true;
     if (!spots.empty()) {
@@ -90,9 +88,9 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             float half = kHalfCell;
             float ey = half * path.targetY - spot.y;
             float ex = half * path.targetX - spot.x;
-            float limitSquared = static_cast<float>(0.2f * 0.2f);   // rounded to 24 bits
+            float limitSquared = 0.2f * 0.2f;   // rounded to 24 bits
             EI_NAN_AUDIT(ex, ey);
-            if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
+            if (LengthSquared2D(ex, ey) >= limitSquared) continue;
             if (path.smoothing >= best) continue;
             best = path.smoothing;
             bestSpot = spot;
@@ -125,7 +123,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
     else aim = order->target->AimPoint();
     float t = 0.0f;
     for (;;) {
-        float time = pc24::Add(static_cast<double>(pathOrder->startTime), t);   // the int exact, one rounding
+        float time = static_cast<float>(pathOrder->startTime) + t;
         MotionSample sample = simulated.motion.Sample(nullptr, OrderOf(motionOrder), time);
         Vector3 position = {sample.x, sample.y, 0.0f};
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
@@ -133,9 +131,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float half = kHalfCell;
         position.x = half * position.x;
         position.y = half * position.y;
-        float dx = position.x - aim.x;
-        float dy = position.y - aim.y;
-        if (LengthSquared2DUnrounded(dy, dx) > reachSq) {
+        if (DistanceSquaredXY(position, aim) > reachSq) {
             t += 5.0f;
             continue;
         }
@@ -148,9 +144,9 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
-        if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
+        if (LengthSquared2D(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = position;
-        from.z = pc24::Add(unit->GroundHeight(position.x, position.y), sight.eyeHeight);   // a double plus a float
+        from.z = unit->GroundHeight(position.x, position.y) + sight.eyeHeight;
         float visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f) break;
@@ -199,12 +195,10 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         auto actsFromDestination = [&]() {
             Vector3 at = route.Destination();
             if (!CanReachTarget(order)) return false;
-            float x = unit->localPosition.x, y = unit->localPosition.y, z = unit->localPosition.z;
+            const Vector3 saved = unit->localPosition;
             unit->localPosition = at;
             bool can = CanPlanAction(order);
-            unit->localPosition.x = x;
-            unit->localPosition.y = y;
-            unit->localPosition.z = z;
+            unit->localPosition = saved;
             return can;
         };
         if (!order->pointIsUseSpot) {

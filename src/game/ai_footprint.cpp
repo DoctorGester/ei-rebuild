@@ -152,43 +152,29 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
 
         for (Vector3& p : corner) {
             const FootprintPart* placed = &object->partBoxes[index];
-            float y = placed->pivot.y + p.y;
-            float z = placed->pivot.z + p.z;
-            float x = p.x + placed->pivot.x + placed->bounds.center.x;
-            p.x = x;
-            p.y = y + placed->bounds.center.y;
-            p.z = z + placed->bounds.center.z;
-            p = object->worldMatrix.rows.Transform(p);
-            p += position;
+            p = TransformColumnNormal(object->worldMatrix, p + placed->pivot + placed->bounds.center) + position;
         }
-        for (Vector3& v : normal) v = object->worldMatrix.rows.Transform(v);
+        for (Vector3& v : normal) v = TransformColumnNormal(object->worldMatrix, v);
 
         // Sample each face on a grid fine enough to hit every cell it covers.
         for (int k = 0; k < 6; ++k) {
             const Vector3 &p0 = corner[k], &p1 = corner[k + 1], &p2 = corner[k + 2];
-            float ax = p0.x - p1.x, ay = p0.y - p1.y, az = p0.z - p1.z;
-            float bx = p2.x - p1.x, by = p2.y - p1.y, bz = p2.z - p1.z;
-            float la = std::sqrt(LengthSquared2DUnrounded(ay, ax));
+            const Vector3 a = p0 - p1;
+            const Vector3 b = p2 - p1;
+            float la = std::sqrt(LengthSquared2D(a.y, a.x));
             int stepsA = lib::RoundEven((la + la) * 1.5f) + 2;
-            float lb = std::sqrt(LengthSquared2DUnrounded(by, bx));
+            float lb = std::sqrt(LengthSquared2D(b.y, b.x));
             int stepsB = lib::RoundEven((lb + lb) * 1.5f) + 2;
-            float countA = static_cast<float>(stepsA);
-            float dax = ax / countA, day = ay / countA, daz = az / countA;
-            float countB = static_cast<float>(stepsB);
-            float dbx = bx / countB, dby = by / countB, dbz = bz / countB;
+            const Vector3 da = a / static_cast<float>(stepsA);
+            const Vector3 db = b / static_cast<float>(stepsB);
 
             for (int i = 0; i < stepsA; ++i) {
-                float fi = static_cast<float>(i) + 0.5f;
-                float iax = fi * dax, iay = day * fi, iaz = daz * fi;
+                const Vector3 ia = da * (static_cast<float>(i) + 0.5f);
                 for (int j = 0; j < stepsB; ++j) {
-                    float fj = static_cast<float>(j) + 0.5f;
-                    float jbx = dbx * fj, jby = dby * fj, jbz = fj * dbz;
-                    float sx = iax + p1.x + jbx;
-                    float sy = iay + p1.y + jby;
-                    float sz = iaz + p1.z + jbz;
-                    int x = WorldToCell(sx), y = WorldToCell(sy);
+                    const Vector3 s = ia + p1 + db * (static_cast<float>(j) + 0.5f);
+                    int x = WorldToCell(s.x), y = WorldToCell(s.y);
                     if (!(x < cells.width && y < cells.height && x >= 0 && y >= 0)) continue;
-                    int z = lib::RoundEven(sz * heightScale);
+                    int z = lib::RoundEven(s.z * heightScale);
                     if (z > 0x3FC) z = 0x3FC;
                     else if (z < 0) z = 0;
                     if (normal[k].z > 0.0f) set->AddTop(x, y, z, kind, transparency);

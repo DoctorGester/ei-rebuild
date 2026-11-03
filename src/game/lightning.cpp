@@ -42,17 +42,10 @@ constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0
 
 constexpr float kNoiseScale = 4.656613e-10f;   // about 2 / 2^32
 constexpr float kRandomScale = 2.3283064e-10f;  // about 1 / 2^32
-constexpr float kSideA = -0.0666f;
-constexpr float kSideB = 0.013f;
+// The bolt's side is across it and this axis (nearly straight up, so no bolt runs along it).
+constexpr Vector3 kSideAxis = {0.013f, -0.0666f, 1.0f};
 constexpr float kOffsetFactor = 0.05f;
 
-float FromBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FromBits(T) = delete;
 
 // Randomize a key. The up-noise keys of SampleNoise multiply the
 // normaliser by the amplitude before the weight; everything else multiplies the weight first.
@@ -130,7 +123,7 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
             upKeys[2] = upKeys[1];
             upKeys[1] = upKeys[0];
             RandomizeKey(upKeys[0], amplitude, true);
-            noiseTime = noiseTime + 1.0f;
+            noiseTime += 1.0f;
             next = left - 1.0f;
             left = next;
         } while (next > 1.0f);
@@ -161,19 +154,16 @@ void LightningSegment::Animate(float time, float amplitude) {
         float s = sideNoise[i] - sideAt;   // the curve minus its straight line from the first value
         float u = upNoise[i] - upAt;
         float along = static_cast<float>(i);
-        LightningPoint& point = points[i];
-        point.x = along * step.x + start.x + s * side.x + u * up.x;
-        point.y = along * step.y + start.y + s * side.y + u * up.y;
-        point.z = along * step.z + start.z + s * side.z + u * up.z;
-        sideAt = sideAt + sideSlope;
-        upAt = upAt + upSlope;
+        points[i] = along * step + start + s * side + u * up;
+        sideAt += sideSlope;
+        upAt += upSlope;
     }
 }
 
 void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     start = from;
     step = to - from;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(step));
+    float length = std::sqrt(LengthSquared(step));
 
     // Point count and the length the displacement axes are scaled to.
     int count;
@@ -190,28 +180,15 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         else if (count < 4) count = 4;
     }
 
-    side.x = step.y - step.z * kSideA;
-    side.y = step.z * kSideB - step.x;
-    side.z = step.x * kSideA - step.y * kSideB;
-    // up = cross(step, side), through the Vector3 constructor's float arguments.
-    float upZ = step.y * side.x - step.x * side.y;
-    float upY = step.x * side.z - side.x * step.z;
-    float upX = side.y * step.z - step.y * side.z;
-    up.x = upX;
-    up.y = upY;
-    up.z = upZ;
+    side = Cross(step, kSideAxis);
+    up = Cross(side, step);
 
     for (Vector3* axis : {&side, &up}) {
-        float norm = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(*axis));
+        float norm = std::sqrt(LengthSquared(*axis));
         if (norm > 0.0f) {
-            float factor = scale / norm;
-            axis->x = factor * axis->x;
-            axis->y = factor * axis->y;
-            axis->z = factor * axis->z;
+            *axis *= scale / norm;
         } else {
-            axis->x = 0.0f;
-            axis->y = 0.0f;
-            axis->z = 0.0f;
+            *axis = {};
         }
     }
 
@@ -223,7 +200,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
 
 void Lightning::Destroy() {
     power = 1.0f;
-    amplitude = FromBits(0x3DCCCCCD);    // 0.1f
+    amplitude = 0.1f;
     texture.Reset();
     glowTexture.Reset();
 }
@@ -237,42 +214,23 @@ void Lightning::Create() {
 
 void Lightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < std::ssize(segment->points); ++i) {
-        const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        bounds.boxMin.x = MinKeepA(p.x, bounds.boxMin.x);
-        bounds.boxMin.y = MinKeepA(p.y, bounds.boxMin.y);
-        bounds.boxMin.z = MinKeepA(p.z, bounds.boxMin.z);
-        bounds.boxMax.x = MaxKeepB(bounds.boxMax.x, p.x);
-        bounds.boxMax.y = MaxKeepB(bounds.boxMax.y, p.y);
-        bounds.boxMax.z = MaxKeepB(bounds.boxMax.z, p.z);
+        bounds.boxMin = MinKeepA(segment->points[i], bounds.boxMin);
+        bounds.boxMax = MaxKeepB(bounds.boxMax, segment->points[i]);
     }
 }
 
 void Lightning::UpdateBounds() {
-    const float largest = FromBits(0x7149F2CA);      // 1e30
-    const float lowest = FromBits(0xF149F2CA);    // -1e30
-    bounds.boxMin.x = largest;
-    bounds.boxMin.y = largest;
-    bounds.boxMin.z = largest;
-    bounds.boxMax.x = lowest;
-    bounds.boxMax.y = lowest;
-    bounds.boxMax.z = lowest;
+    bounds.boxMin = {1e30f, 1e30f, 1e30f};
+    bounds.boxMax = {-1e30f, -1e30f, -1e30f};
     ExpandBounds(&main);
     for (int i = 0; i < 6; ++i) ExpandBounds(&branches[i]);
 
-    float sumX = bounds.boxMin.x + bounds.boxMax.x;
-    float sumY = bounds.boxMin.y + bounds.boxMax.y;
-    float sumZ = bounds.boxMin.z + bounds.boxMax.z;
-    bounds.center.x = sumX * 0.5f;
-    bounds.center.y = sumY * 0.5f;
-    bounds.center.z = sumZ * 0.5f;
-    boundsSpare.x = 0.0f;
-    boundsSpare.y = 0.0f;
-    boundsSpare.z = 0.0f;
+    bounds.center = (bounds.boxMin + bounds.boxMax) * 0.5f;
     bounds.boxMin -= bounds.center;
     bounds.boxMax -= bounds.center;
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
-    bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(bounds.boxMax));
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMax));
 }
 
 void Lightning::Animate() {
@@ -284,43 +242,21 @@ void Lightning::Animate() {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
         Vector3 length = main.step * static_cast<float>(std::ssize(main.points));
-        Vector3 end = AddVectors(main.start, length);
+        Vector3 end = main.start + length;
         const float* frequency = kBranchFrequencies;
         for (int i = 0; i < 6; ++i) {
             LightningSegment& branch = branches[i];
             float reach = sway * branchPos[i];
             float sideSway = std::sin(time * frequency[2 * i] * 0.25f) * reach;
             float upSway = std::sin(time * frequency[2 * i + 1] * 0.25f) * reach;
-            float ux = upSway * main.up.x;
-            float uy = upSway * main.up.y;
-            float uz = upSway * main.up.z;
-            float sx = sideSway * main.side.x;
-            float sy = sideSway * main.side.y;
-            float sz = sideSway * main.side.z;
-            float wx = sx + end.x;
-            float wy = end.y + sy;
-            float wz = end.z + sz;
-            float targetX = wx + ux;
-            float targetY = wy + uy;
-            float targetZ = wz + uz;
+            Vector3 target = sideSway * main.side + end + upSway * main.up;
 
             int index = std::lround((1.0f - branchPos[i]) * std::ssize(main.points));
             int last = lib::Count(main.points) - 1;
             if (index >= last) index = last;
-            const LightningPoint& origin = main.points[index];
-            branch.start.x = origin.x;
-            branch.start.y = origin.y;
-            branch.start.z = origin.z;
+            branch.start = main.points[index];
             float inverse = 1.0f / std::ssize(branch.points);
-            float dz = targetZ - branch.start.z;
-            float dy = targetY - branch.start.y;
-            float dx = targetX - branch.start.x;
-            float stepZ = dz * inverse;
-            float stepY = dy * inverse;
-            float stepX = dx * inverse;
-            branch.step.x = stepX;
-            branch.step.y = stepY;
-            branch.step.z = stepZ;
+            branch.step = (target - branch.start) * inverse;
         }
     }
     for (int i = 0; i < 6; ++i) branches[i].Animate(time, NoiseAmplitude(power));
@@ -334,44 +270,21 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
         for (int i = 0; i < 6; ++i) {
             float along = branchPos[i];
             float rest = 1.0f - along;
-            float ax = rest * to.x;
-            float ay = rest * to.y;
-            float az = rest * to.z;
-            float bx = along * from.x;
-            float by = along * from.y;
-            float bz = along * from.z;
-            Vector3 origin;
-            origin.x = bx + ax;
-            origin.y = by + ay;
-            origin.z = bz + az;
-            branches[i].Init(origin, to);
+            branches[i].Init(along * from + rest * to, to);
         }
     } else {
         // Power 0: six more bolts parallel to the main one, shifted by a random offset of up to
         // 5% of its length on each axis.
         for (int i = 0; i < 6; ++i) {
-            float dx = from.x - to.x;
-            float dy = from.y - to.y;
-            float dz = from.z - to.z;
-            float reachExt = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
-            float reach = reachExt;
-            float low = -reachExt;
+            float reach = std::sqrt(LengthSquared(from - to)) * kOffsetFactor;
+            float low = -reach;
             std::uint32_t r1 = g_clientRandom.Next();
             std::uint32_t r2 = g_clientRandom.Next();
             std::uint32_t r3 = g_clientRandom.Next();
-            float ox = (reach - low) * WordToFloat(r3) * kRandomScale + low;
-            float oy = (reach - low) * WordToFloat(r2) * kRandomScale + low;
-            float ozExt = (reach - low) * WordToFloat(r1) * kRandomScale + low;
-            float oz = ozExt;
-            Vector3 shiftedTo;
-            shiftedTo.z = ozExt + to.z;
-            shiftedTo.y = oy + to.y;
-            shiftedTo.x = ox + to.x;
-            Vector3 shiftedFrom;
-            shiftedFrom.z = oz + from.z;
-            shiftedFrom.y = oy + from.y;
-            shiftedFrom.x = ox + from.x;
-            branches[i].Init(shiftedFrom, shiftedTo);
+            Vector3 offset = {(reach - low) * WordToFloat(r3) * kRandomScale + low,
+                              (reach - low) * WordToFloat(r2) * kRandomScale + low,
+                              (reach - low) * WordToFloat(r1) * kRandomScale + low};
+            branches[i].Init(offset + from, offset + to);
         }
     }
     EI_NAN_AUDIT(power);
@@ -474,17 +387,15 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
     } else {
         main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
-            float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
-            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f;
+            float reach = std::sqrt(LengthSquared(from - to)) * 0.05f;
             float low = -reach;
             const float scale = 2.3283064e-10f;
             float offsetY = (reach - low) * g_clientRandom.Next() * scale + low;
             float offsetX = (reach - low) * g_clientRandom.Next() * scale + low;
             float offsetZ = (reach - low) * g_clientRandom.Next() * scale + low;
             float newAmplitude = KeyAmplitude(power);
-            Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
-            Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
-            branches[i].Init(shiftedFrom, shiftedTo);
+            Vector3 offset = {offsetX, offsetY, offsetZ};
+            branches[i].Init(offset + from, offset + to);
             FreshKeys(branches[i], time, newAmplitude);
             branches[i].width = g_clientRandom.Next() * 1.8626452e-10f * 3.5f + 2.45f;   // 2.45 .. 3.25
         }
@@ -492,13 +403,9 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
 
     Animate();
     UpdateBounds();
-    bounds.boxMin.x -= 1.0f;
-    bounds.boxMin.y -= 1.0f;
-    bounds.boxMin.z -= 1.0f;
-    bounds.boxMax.x += 1.0f;
-    bounds.boxMax.y += 1.0f;
-    bounds.boxMax.z += 1.0f;
-    bounds.radius = bounds.boxMax.Length();
+    bounds.boxMin -= Vector3{1.0f, 1.0f, 1.0f};
+    bounds.boxMax += Vector3{1.0f, 1.0f, 1.0f};
+    bounds.radius = Length(bounds.boxMax);
     if (demon) {
         LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "DemonLight");
         LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "DemonLightning");
@@ -516,7 +423,6 @@ LightningSegment::~LightningSegment() {
 
 Lightning::Lightning() {
     std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
-    boundsSpare = {};
     Lightning::Destroy();
 }
 
@@ -579,7 +485,7 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     const float* rect;
 };
 std::vector<SpriteRecord> g_sprites;
-std::vector<LightningPoint> g_glowPoints;
+std::vector<SpritePoint> g_glowPoints;
 
 void SizeSprites() { g_sprites.resize(8); }
 void SizePoints() { g_glowPoints.resize(8); }
@@ -612,7 +518,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     // Towards the camera, normalised unless zero.
     const Vector3& eye = camera::FrameView().position;
     Vector3 towards = eye - position;
-    float length = LengthZYX(towards);
+    float length = Length(towards);
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
@@ -621,11 +527,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     for (int j = 0; j < 8; ++j) {
         float t = j * 0.125f;   // 1/8
         Vector3 along = towards * t * size;
-        LightningPoint& p = g_glowPoints[j];
-        p.x = position.x + along.x;
-        p.y = position.y + along.y;
-        p.z = position.z + along.z;
-        p.w = std::sqrt(1.0f - t * t) * size;
+        g_glowPoints[j] = {position + along, std::sqrt(1.0f - t * t) * size};
         SpriteRecord& s = g_sprites[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
@@ -650,11 +552,11 @@ int Lightning::Draw(SceneRenderer* device) {
         for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main.step) * std::ssize(main.points) * 0.6f;
+        float span = Length(main.step) * std::ssize(main.points) * 0.6f;
         renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * std::ssize(b.points) * 0.6f;
+            span = Length(b.step) * std::ssize(b.points) * 0.6f;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
@@ -663,8 +565,7 @@ int Lightning::Draw(SceneRenderer* device) {
     Vector3 start = main.start;
     Vector3 run = count * main.step;
     Vector3 end = start + run;
-    float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f;
+    float size = std::sqrt(LengthSquared(start - end)) * 0.11f;
     if (power > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;

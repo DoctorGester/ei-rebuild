@@ -9,7 +9,6 @@
 #include "world_effect.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -33,12 +32,10 @@ bool IsZero(float value) {
 // An effect object took a new position.
 void EffectMoved(EngineObject* object) { static_cast<Effect*>(object)->MarkChanged(); }
 
-// An FX source's offset on one axis: random * (r - (-r)) * (1 / (2^32 - 1)) + (-r), with the random value loaded
-// whole; the double 1 / (2^32 - 1) = 2^-32 (1 + 2^-32) rounds the rounded product to the product times 2^-32: the
-// same as (r - (-r)) times random * 2^-32 (exact in a double) rounded once.
+// An FX source's offset on one axis: (r - (-r)) * random / 2^32 + (-r).
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
-    return pc24::Mul(radius - negative, random * 0x1p-32) + negative;
+    return (radius - negative) * (random * 0x1p-32f) + negative;
 }
 
 void RespawnFxSources(Script* script) {

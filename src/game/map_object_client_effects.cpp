@@ -352,9 +352,7 @@ void Object3DClientSpecific::ResetPartAlpha() {
 void Object3DClientSpecific::ClearPartTints() {
     for (int i = 0; i < std::ssize(materials); ++i) {
         Material* part = materials[i];
-        part->colors.specular.x = 0.0f;
-        part->colors.specular.y = 0.0f;
-        part->colors.specular.z = 0.0f;
+        part->colors.specular = {0.0f, 0.0f, 0.0f, part->colors.specular.w};
         materials[i]->flags &= ~MaterialFlag::KeepSpecular;
     }
 }
@@ -382,9 +380,8 @@ void MapObjectClientSpecific::CreateLight(const float* colour, float radius, boo
     light->SetPoint(rgb, rgb);
     MapObject* mapObject = CompanionOwner(this);
     Light* point = light;
-    point->localPosition.x = mapObject->localPosition.x;
-    point->localPosition.y = mapObject->localPosition.y;
-    point->localPosition.z = kLightHeight + mapObject->localPosition.z;
+    point->localPosition = {mapObject->localPosition.x, mapObject->localPosition.y,
+                             kLightHeight + mapObject->localPosition.z};
     point->range = radius;
     float squared = radius * radius;
     point->rangeSquared = squared;

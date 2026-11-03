@@ -413,7 +413,7 @@ void ServerSession::RemoveVariable(const std::string* variableName) {
     if (node != variables.end()) variables.erase(node);
 }
 
-// The variable's value, 0 when missing (returned unrounded).
+// The variable's value, 0 when missing.
 double ServerSession::GetVariable(const std::string* variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) return node->Get()->value;

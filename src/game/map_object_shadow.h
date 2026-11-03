@@ -9,7 +9,7 @@
 #include "engine_object.h"
 #include "map_object_figures.h"   // Object3D, Object3DSpecific (the base half)
 #include "material.h"             // Material
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
 #include "lib/rect.h"   // RECT
 

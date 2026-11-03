@@ -21,7 +21,6 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -85,16 +84,7 @@ void BriefingScreen::StartPhrases() {
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const Camera* camera = &g_camera;
     savedCamera = camera->localPosition;
-    const Quaternion& q = camera->localRotation;
-    float zz = q.z * q.z;
-    float axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
-    float axisY = (q.y * q.z - q.x * q.w) * 2.0f;
-    // x and y are doubled before multiplying; here the compiler doubles z instead of x,
-    // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2 would regroup the sum.
-    float axisX = Dot2DUnrounded(q.x * 2.0f, q.y * 2.0f, q.z, q.w);
-    lookAt.x = savedCamera.x + axisX;
-    lookAt.y = savedCamera.y + axisY;
-    lookAt.z = axisZ + savedCamera.z;
+    lookAt = savedCamera + camera->localRotation.AxisZ();
 
     dialogueText.clear();
     text->SetText(game::kEmptyText);
@@ -138,19 +128,14 @@ void SpeakerAnimationDone(Unit* serverUnit) {
 }
 
 void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float height) {
-    float cosAngle = pc24::Round(pc24::Cos(angle));
-    float sinAngle = pc24::Round(pc24::Sin(angle));
+    float cosAngle = std::cos(angle);
+    float sinAngle = std::sin(angle);
     Vector3 eye{};
     float x;   // the facing
     float y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
-        float sumX = places[kPersonPlace].x + places[kLeaderPlace].x;
-        float sumY = places[kPersonPlace].y + places[kLeaderPlace].y;
-        float sumZ = places[kPersonPlace].z + places[kLeaderPlace].z;
-        eye.x = sumX * 0.5f;
-        eye.y = sumY * 0.5f;
-        eye.z = sumZ * 0.5f;
+        eye = (places[kPersonPlace] + places[kLeaderPlace]) * 0.5f;
         x = places[kLeaderPlace].y - places[kPersonPlace].y;
         y = places[kPersonPlace].x - places[kLeaderPlace].x;
     } else {
@@ -178,7 +163,7 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
         x = facing.x;
         y = facing.y;
     }
-    float length = std::sqrt(LengthSquared2DUnrounded(y, x));
+    float length = std::sqrt(LengthSquared2D(y, x));
     // Compared with zero.
     EI_NAN_AUDIT(length);
     if (length != 0.0f) {
@@ -189,16 +174,12 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
     Vector3 at;
     float alongX = (x * cosAngle + y * sinAngle) * distance;
     float alongY = (y * cosAngle - x * sinAngle) * distance;
-    at.x = eye.x + alongX;
-    at.y = eye.y + alongY;
-    at.z = eye.z + height;
+    at = eye + Vector3{alongX, alongY, height};
     g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
 }
 
 void BriefingScreen::ViewPreset(int preset) {
-    float dx = places[kLeaderPlace].x - places[kPersonPlace].x;
-    float dy = places[kLeaderPlace].y - places[kPersonPlace].y;
-    float apart = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float apart = std::sqrt(DistanceSquaredXY(places[kLeaderPlace], places[kPersonPlace]));
     auto view = [this](Unit* unit, float angle, float distance, float height) {
         ViewSpeaker(unit, angle, distance, height);
     };

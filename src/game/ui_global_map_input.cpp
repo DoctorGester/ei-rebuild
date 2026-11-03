@@ -40,18 +40,6 @@ constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 constexpr const char* kZoneSound = "buttons\\globalmap\\zone.wav";
 
-// tilt * spin as the drag sums it.
-Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
-    Vector3 tv = {tilt.x, tilt.y, tilt.z};
-    Vector3 sv = {spin.x, spin.y, spin.z};
-    Quaternion q;
-    q.w = spin.w * tilt.w - DotXYZ(tv, sv);
-    q.x = ((tilt.y * spin.z - tilt.z * spin.y) + spin.w * tilt.x) + tilt.w * spin.x;
-    q.y = ((tilt.z * spin.x - tilt.x * spin.z) + spin.w * tilt.y) + tilt.w * spin.y;
-    q.z = ((tilt.x * spin.y - tilt.y * spin.x) + spin.w * tilt.z) + spin.z * tilt.w;
-    return q;
-}
-
 } // namespace
 
 void GlobalMap::Deactivate() {
@@ -83,12 +71,12 @@ void GlobalMap::MouseMove(int, int x, int y) {
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
-        float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f + angle);    // 1 / 300
-        angle = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
+        float turned = static_cast<float>(drag.x) * 0.0033333334f + angle;    // 1 / 300
+        angle = std::fmod(turned, kGlobalMapFullTurn);
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle, Vector3{0.0f, 0.0f, 1.0f});
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f * 0.8f);
-        Quaternion rotation = TiltTimesSpin(tilt, spin);
+        Quaternion rotation = tilt * spin;
         turn = rotation;
         g_cursor.motion.x = 0;
         g_cursor.motion.y = 0;

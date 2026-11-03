@@ -24,7 +24,6 @@
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "platform/platform.h"
 
 int FinishQuestMap(const char* name) {
@@ -83,7 +82,7 @@ void GameSetConstructionVariable(std::uint32_t value) {
     if (player) player->Server()->SetVariable(kConstructionVariable, value);
 }
 
-double GameServerTimeOfDay() {
+float GameServerTimeOfDay() {
     WorldServer* world = &g_serverWorld;
     return world->TimeOfDay();
 }
@@ -125,7 +124,7 @@ int GamePlayCameraPath(const char* name, int flag) {
     Camera* camera = world->camera;
     camera->flags |= Camera::kPlaying;
     camera->keyIndex = 0;
-    camera->timeOffset = pc24::Add(static_cast<double>(world->tick), world->tickFraction) - camera->keys[0].time;
+    camera->timeOffset = (static_cast<float>(world->tick) + world->tickFraction) - camera->keys[0].time;
     return 1;
 }
 

@@ -67,22 +67,8 @@ FigureMesh* Object3D::RemovePartNamed(std::string_view partName) {
 Vector3 Object3D::PartWorldPosition(const FigureMesh* part) {
     const Vector3 figureScale = attached->GetScale();
     const float scaleX = figureScale.x, scaleY = figureScale.y, scaleZ = figureScale.z;
-    // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
-    const float w = localRotation.w;
-    const float ux = localRotation.x, uy = localRotation.y, uz = localRotation.z;
-    const float vx = part->localPosition.x, vy = part->localPosition.y, vz = part->localPosition.z;
-    // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
-    // 2.0f * Dot regroups to (2xx + s) + s).
-    float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
-    float twiceW = w + w;
-    float crossX = uy * vz - uz * vy;
-    float crossY = uz * vx - vz * ux;
-    float crossZ = ux * vy - uy * vx;
-    float along = w * w - LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz);
-    float x = (along * vx + twiceW * crossX) + twiceDot * ux;
-    float y = (along * vy + twiceW * crossY) + twiceDot * uy;
-    float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
-    return {x * scaleX + localPosition.x, y * scaleY + localPosition.y, z * scaleZ + localPosition.z};
+    const Vector3 v = localRotation.Rotate(part->localPosition);
+    return {v.x * scaleX + localPosition.x, v.y * scaleY + localPosition.y, v.z * scaleZ + localPosition.z};
 }
 
 // --- The animation database -------------------------------------------------------------------

@@ -6,7 +6,6 @@
 #include "game_singletons.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "maths.h"
 #include "model.h"
 #include "object.h"
 #include "options.h"
@@ -61,16 +60,11 @@ float Brightness(const Light* light) {
 bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     const Vector3& at = object->localPosition;
     const Vector3& from = light->localPosition;
-    float dx = at.x - from.x;
-    float dy = at.y - from.y;
-    float dz = at.z - from.z;
-    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+    float distanceSquared = LengthSquared(at - from);
     if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
     float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = Brightness(light) * falloff;
-    Vector3 towards = {at.x - from.x,
-                       at.y - from.y,
-                       at.z - from.z};
+    Vector3 towards = at - from;
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared == 0.0f) {
         towards = kDefaultLight;
@@ -80,40 +74,27 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     }
     float scale = intensity;
     if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
-    out->z = towards.z * scale;
-    out->y = towards.y * scale;
-    out->x = towards.x * scale;
+    *out = towards * scale;
     return true;
 }
 
 // A directional light's share: its direction times its brightness.
 void DirectionalShare(Light* light, Vector3* out) {
-    float brightness = Brightness(light);
-    out->z = brightness * light->direction.z;
-    out->y = brightness * light->direction.y;
-    out->x = brightness * light->direction.x;
+    *out = light->direction * Brightness(light);
 }
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
 void LightDirection(const Vector3& sum, Vector3* direction) {
-    float lengthSquared = LengthSquaredUnrounded<Sum3::ZXY>(sum);   // (x + z) + y
+    float lengthSquared = LengthSquared(sum);   // (x + z) + y
     *direction = sum;
     EI_NAN_AUDIT(lengthSquared);
-    if (lengthSquared != 0.0f) {
-        float inverse = 1.0f / std::sqrt(lengthSquared);
-        direction->x = sum.x * inverse;
-        direction->y = inverse * direction->y;
-        direction->z = inverse * direction->z;
-    }
-    float horizontal = std::sqrt(LengthSquared2DUnrounded(direction->y, direction->x));
+    if (lengthSquared != 0.0f) *direction = sum * (1.0f / std::sqrt(lengthSquared));
+    float horizontal = std::sqrt(LengthSquared2D(direction->y, direction->x));
     float height = AbsBits(direction->z);
     float elevation = std::atan2(height, horizontal);
     if (elevation >= kMinimumTilt) return;   // NaN tilts
-    float z = horizontal * kTiltSlope;
-    float inverse = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(direction->x, direction->y, z));
-    direction->x = inverse * direction->x;
-    direction->y = inverse * direction->y;
-    direction->z = inverse * z;
+    const Vector3 tilted = {direction->x, direction->y, horizontal * kTiltSlope};
+    *direction = tilted * (1.0f / std::sqrt(LengthSquared(tilted)));
 }
 
 // The shadow's sphere about the object (the original projected the parts from the lights' direction and
@@ -159,7 +140,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     ObjectWorldMatrix(&object->localRotation, object->localPosition, &placement);
     const Vector3& scale = self->figureScale;
     const Vector3 local = {bounds.center.x * scale.x, bounds.center.y * scale.y, bounds.center.z * scale.z};
-    const Vector3 centre = TransformColumn<Sum3::XYZ>(placement, local);
+    const Vector3 centre = TransformColumn(placement, local);
     const float radius = bounds.radius * (std::max)({std::fabs(scale.x), std::fabs(scale.y), std::fabs(scale.z)});
     const Vector3& at = object->localPosition;
     const float ground = (std::min)(at.z, centre.z - radius);
@@ -172,7 +153,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         Vector3{(std::max)(centre.x, end.x), (std::max)(centre.y, end.y), (std::max)(centre.z, end.z)} + grow;
     const Vector3 middle = (low + high) * 0.5f - at;
     const Vector3 half = (high - low) * 0.5f;
-    const float diagonal = LengthXYZ(half);
+    const float diagonal = Length(half);
     if (!std::isfinite(diagonal) || !std::isfinite(middle.x) || !std::isfinite(middle.y) || !std::isfinite(middle.z)) {
         sphere.flags = 0;
         return;

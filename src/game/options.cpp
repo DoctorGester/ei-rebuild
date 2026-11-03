@@ -23,16 +23,10 @@ namespace {
 
 constexpr float kTimes255 = 255.0f;
 constexpr float kOver255 = 1.0f / 255.0f;     // (0x3B808081)
-constexpr std::uint32_t kMinusOneBits = 0xBF800000u;   // -1.0f
 
 std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 
-// The loader runs at start-up, before the D3D device sets the main thread's 24-bit precision: its products are the
-// original's 53-bit ones, double maths (value * 255 exact, then truncated; `value` times factor rounded to a double,
-// then to a float). The saver runs at shut-down, at 24-bit precision: value * 255 is a float product there.
-int LoadedTimes255(float value) { return lib::Truncate(static_cast<double>(value) * kTimes255); }
-int SavedTimes255(float value) { return lib::Truncate(value * kTimes255); }
-float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(static_cast<double>(value) * factor); }
+int Times255(float value) { return lib::Truncate(value * kTimes255); }
 
 using namespace settings;
 
@@ -215,7 +209,7 @@ public:
 
     // Stored as -1 / 1 floats, kept in the file as booleans.
     void ReadCameraFlip(float& flip, const char* name) {
-        int flipped = Bits(flip) == kMinusOneBits ? 1 : 0;
+        int flipped = flip == -1.0f ? 1 : 0;
         int value = GetInt(kCamera, name, flipped);
         flip = static_cast<float>(value ? -1 : 1);
     }
@@ -235,8 +229,8 @@ public:
     void ReadLight(LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             float& channel = light.*kLightChannels[c];
-            int value = GetInt(kGame, names[c], LoadedTimes255(channel));
-            channel = UnsignedProduct(static_cast<std::uint32_t>(value), kOver255);
+            int value = GetInt(kGame, names[c], Times255(channel));
+            channel = static_cast<float>(static_cast<std::uint32_t>(value)) * kOver255;
         }
         int radius = GetInt(kGame, names[3], lib::Truncate(light.radius));
         light.radius = static_cast<float>(static_cast<std::uint32_t>(radius));
@@ -271,7 +265,7 @@ public:
     }
 
     // true when the stored float is exactly -1 (compared as bits).
-    void WriteCameraFlip(float flip, const char* name) { SetBool(kCamera, name, Bits(flip) == kMinusOneBits); }
+    void WriteCameraFlip(float flip, const char* name) { SetBool(kCamera, name, flip == -1.0f); }
 
     void WriteCameraShortcuts() {
         char name[0x400];
@@ -285,7 +279,7 @@ public:
 
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(const LightOptions& light, const char* const (&names)[4]) {
-        for (int c = 0; c < 3; ++c) SetInt(kGame, names[c], SavedTimes255(light.*kLightChannels[c]));
+        for (int c = 0; c < 3; ++c) SetInt(kGame, names[c], Times255(light.*kLightChannels[c]));
         SetInt(kGame, names[3], lib::Truncate(light.radius));
     }
 

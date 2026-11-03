@@ -56,26 +56,25 @@ void AnimationSetScale(void* state, float x, float y, float z) {
 std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= lib::FloatFromBits(bound) ? bound : Bits(v); }
 std::uint32_t KeepHigher(std::uint32_t bound, float v) { return lib::FloatFromBits(bound) >= v ? bound : Bits(v); }
 
-// a + b + c in that order, stored to a float.
-float Sum3(float a, float b, float c) { return (a + b) + c; }
-
 // The box being grown, as float bits (the original selects bits, never loading them twice).
 struct BoxBits {
     std::uint32_t low[3] = {kFloatMax, kFloatMax, kFloatMax};
     std::uint32_t high[3] = {kFloatLowest, kFloatLowest, kFloatLowest};
 };
 
-// (x * x + y * y) + z * z of the part's position.
-float DistanceSquared(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ>(part->localPosition); }
+// The squared distance of the part's position from the figure's origin.
+float DistanceSquared(const FigureMesh* part) { return LengthSquared(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->box.bounds.boxMin.x, p->localPosition.x, p->box.bounds.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->box.bounds.boxMax.x, p->localPosition.x, p->box.bounds.center.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->box.bounds.boxMin.y, p->localPosition.y, p->box.bounds.center.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->box.bounds.boxMax.y, p->localPosition.y, p->box.bounds.center.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->box.bounds.boxMin.z, p->localPosition.z, p->box.bounds.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->box.bounds.boxMax.z, p->localPosition.z, p->box.bounds.center.z));
+    const Vector3 low = p->box.bounds.boxMin + p->localPosition + p->box.bounds.center;
+    const Vector3 high = p->box.bounds.boxMax + p->localPosition + p->box.bounds.center;
+    box.low[0] = KeepLower(box.low[0], low.x);
+    box.high[0] = KeepHigher(box.high[0], high.x);
+    box.low[1] = KeepLower(box.low[1], low.y);
+    box.high[1] = KeepHigher(box.high[1], high.y);
+    box.low[2] = KeepLower(box.low[2], low.z);
+    box.high[2] = KeepHigher(box.high[2], high.z);
 }
 
 } // namespace
@@ -89,34 +88,15 @@ void Object3D::ComputeBounds() {
     }
     if (parts.empty()) return;
 
-    float lowX = lib::FloatFromBits(box.low[0]);
-    float lowY = lib::FloatFromBits(box.low[1]);
-    float lowZ = lib::FloatFromBits(box.low[2]);
-    float highX = lib::FloatFromBits(box.high[0]);
-    float highY = lib::FloatFromBits(box.high[1]);
-    float highZ = lib::FloatFromBits(box.high[2]);
-    float centerX = (lowX + highX) * 0.5f;
-    float centerY = (lowY + highY) * 0.5f;
-    float centerZ = (lowZ + highZ) * 0.5f;
-    float aboveX = highX - centerX;
-    float aboveY = highY - centerY;
-    float aboveZ = highZ - centerZ;
-    float belowX = lowX - centerX;
-    float belowY = lowY - centerY;
-    float belowZ = lowZ - centerZ;
-    bounds.boxMin.x = belowX;
-    bounds.boxMin.y = belowY;
-    bounds.boxMin.z = belowZ;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(belowX, belowY, belowZ));
-    bounds.boxMax.x = aboveX;
-    bounds.boxMax.y = aboveY;
-    bounds.boxMax.z = aboveZ;
+    Vector3 low = {lib::FloatFromBits(box.low[0]), lib::FloatFromBits(box.low[1]), lib::FloatFromBits(box.low[2])};
+    Vector3 high = {lib::FloatFromBits(box.high[0]), lib::FloatFromBits(box.high[1]), lib::FloatFromBits(box.high[2])};
+    Vector3 center = (low + high) * 0.5f;
+    bounds.boxMin = low - center;
+    bounds.boxMax = high - center;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = length;
-    bounds.center.x = centerX;
-    bounds.center.y = centerY;
-    bounds.center.z = centerZ;
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMin));
+    bounds.center = center;
 }
 
 void Object3D::SetFigureScale(const Vector3& newScale) {
@@ -476,17 +456,13 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
-            box->pivot = {bone->position.x, bone->position.y, bone->position.z};
+            box->pivot = bone->position;
             box->bounds.flags |= BoundsFlag::Loaded;
             partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
-            high.x = MaxKeepB(high.x, static_cast<float>(box->pivot.x + box->bounds.boxMax.x + box->bounds.center.x));
-            high.y = MaxKeepB(high.y, static_cast<float>(box->pivot.y + box->bounds.boxMax.y + box->bounds.center.y));
-            high.z = MaxKeepB(high.z, static_cast<float>(box->pivot.z + box->bounds.boxMax.z + box->bounds.center.z));
-            low.x = MinKeepA(static_cast<float>(box->pivot.x + box->bounds.boxMin.x + box->bounds.center.x), low.x);
-            low.y = MinKeepA(static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y), low.y);
-            low.z = MinKeepA(static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z), low.z);
+            high = MaxKeepB(high, box->pivot + box->bounds.boxMax + box->bounds.center);
+            low = MinKeepA(box->pivot + box->bounds.boxMin + box->bounds.center, low);
 
             const std::string_view partName = bone->GetName();
             if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
@@ -501,13 +477,11 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    bounds.center.x = static_cast<float>((low.x + high.x) * 0.5f);
-    bounds.center.y = static_cast<float>((low.y + high.y) * 0.5f);
-    bounds.center.z = static_cast<float>((low.z + high.z) * 0.5f);
+    bounds.center = (low + high) * 0.5f;
     bounds.boxMin = low - bounds.center;
     bounds.boxMax = high - bounds.center;
     bounds.flags |= BoundsFlag::Box;
-    bounds.radius = LengthXYZ(bounds.boxMax);
+    bounds.radius = Length(bounds.boxMax);
     bounds.flags |= BoundsFlag::Sphere;
 }
 
@@ -522,22 +496,15 @@ void Object3D::UpdatePartBounds() {
         parts[i]->UpdateWorld(localRotation, localPosition);
         parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
-    // The x sum stays on the FPU stack; the y and z sums are stored first.
-    float centreX = static_cast<float>((highX + lowX) * 0.5f);
-    float centreY = static_cast<float>(static_cast<float>(highY + lowY) * 0.5f);
-    float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * 0.5f);
-    bounds.boxMax.x = highX - centreX;
-    bounds.boxMax.y = highY - centreY;
-    bounds.boxMax.z = highZ - centreZ;
-    bounds.boxMin.x = lowX - centreX;
-    bounds.boxMin.y = lowY - centreY;
-    bounds.boxMin.z = lowZ - centreZ;
+    Vector3 high = {highX, highY, highZ};
+    Vector3 low = {lowX, lowY, lowZ};
+    Vector3 centre = (high + low) * 0.5f;
+    bounds.boxMax = high - centre;
+    bounds.boxMin = low - centre;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = LengthZYX(bounds.boxMin);
-    bounds.center.x = centreX - localPosition.x;
-    bounds.center.y = centreY - localPosition.y;
-    bounds.center.z = centreZ - localPosition.z;
+    bounds.radius = Length(bounds.boxMin);
+    bounds.center = centre - localPosition;
 }
 
 // --- Parts by name prefix -----------------------------------------------------------------------
@@ -592,10 +559,8 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
         if (animation) animation->AttachMesh(part);
         if (attached) attached->OnPartAdded(part);
     }
-    part->box.pivot.x = part->localPosition.x;
-    part->box.pivot.y = part->localPosition.y;
+    part->box.pivot = part->localPosition;
     part->box.bounds.flags |= BoundsFlag::Loaded;
-    part->box.pivot.z = part->localPosition.z;
     return part;
 }
 

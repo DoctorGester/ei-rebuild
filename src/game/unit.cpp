@@ -5,7 +5,6 @@
 #include "item.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "party.h"
@@ -23,7 +22,7 @@ constexpr float kThree = 3.0f;
 constexpr float kTen = 10.0f;
 constexpr float kNoPlayerValue = 1000000.0f;
 constexpr float kFastSpeedScale = 1.8f;
-constexpr double kWalkSpeedScale = 0.7;                         // (a double)
+constexpr float kWalkSpeedScale = 0.7f;
 constexpr float kSlowModeScale = 0.7f;
 constexpr float kIdleScale = 0.2f;
 constexpr float kOverkill = -5.0f;
@@ -317,7 +316,7 @@ float Unit::ScaledValue(float value) {
 
 float Unit::BaseSpeed() {
     if (lib::Has(bounds.flags, BoundsFlag::Box)) return bounds.boxMax.z * kFastSpeedScale;
-    return pc24::Mul(bounds.radius, kWalkSpeedScale) + bounds.center.z;
+    return (bounds.radius * kWalkSpeedScale) + bounds.center.z;
 }
 
 float Unit::ModeSpeed() {

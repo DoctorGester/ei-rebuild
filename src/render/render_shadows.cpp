@@ -516,11 +516,11 @@ const Fit& FitMap(Frame& f) {
     Vector3 groundLo{1e30f, 1e30f, 1e30f}, groundHi{-1e30f, -1e30f, -1e30f};
     int seen = 0;
     auto take = [&](const Vector3& at) {
-        const Vector3 l{vecmath::Dot<Sum3::XYZ>(x, at), vecmath::Dot<Sum3::XYZ>(y, at), vecmath::Dot<Sum3::XYZ>(d, at)};
-        lo = Vector3{std::min(lo.x, l.x), std::min(lo.y, l.y), std::min(lo.z, l.z)};
-        hi = Vector3{std::max(hi.x, l.x), std::max(hi.y, l.y), std::max(hi.z, l.z)};
-        groundLo = Vector3{std::min(groundLo.x, at.x), std::min(groundLo.y, at.y), std::min(groundLo.z, at.z)};
-        groundHi = Vector3{std::max(groundHi.x, at.x), std::max(groundHi.y, at.y), std::max(groundHi.z, at.z)};
+        const Vector3 l{Dot(x, at), Dot(y, at), Dot(d, at)};
+        lo = Min(lo, l);
+        hi = Max(hi, l);
+        groundLo = Min(groundLo, at);
+        groundHi = Max(groundHi, at);
         ++seen;
     };
     static std::vector<Vector3> positions;
@@ -740,8 +740,8 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     // The sphere's box in the map's space against the map's area across the light, and in front of
     // the ground's far side along it (nothing limits it towards the sun).
     const Vector3 c{sphere.x, sphere.y, sphere.z};
-    const float r = sphere.radius, lx = vecmath::Dot<Sum3::XYZ>(g_fit.x, c), ly = vecmath::Dot<Sum3::XYZ>(g_fit.y, c),
-                lz = vecmath::Dot<Sum3::XYZ>(g_fit.d, c);
+    const float r = sphere.radius, lx = Dot(g_fit.x, c), ly = Dot(g_fit.y, c),
+                lz = Dot(g_fit.d, c);
     if (lx + r < g_fit.x0 || lx - r > g_fit.x0 + g_fit.extent || ly + r < g_fit.y0 || ly - r > g_fit.y0 + g_fit.extent ||
         lz - r > g_fit.groundFar)
         return false;
@@ -967,7 +967,7 @@ void PrepareShadows(Frame& f) {
     // The largest depth change per uv unit: kLargestSlope world units of depth per unit across.
     p.scale[3] = kLargestSlope * extent / depth;
     if (fit.haveEye) {
-        const Vector3 c = TransformColumn<Sum3::XYZ>(light, fit.eye);
+        const Vector3 c = TransformColumn(light, fit.eye);
         p.camera[0] = c.x;
         p.camera[1] = c.y;
         p.camera[2] = c.z;

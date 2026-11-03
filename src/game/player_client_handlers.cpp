@@ -70,7 +70,7 @@ int PlayerClient::OnCameraPlacement() {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;
-        view.pitch = static_cast<float>(ei::kRadiansPerDegree * 30.0);
+        view.pitch = ei::kRadiansPerDegree * 30.0f;
         camera->SetDistancePitch(&view);
     } else {
         camera->RestoreView(mode == 3 ? 6 : 7);

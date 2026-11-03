@@ -217,7 +217,7 @@ bool GiveUnitWeapon(Call* call) {
         stats.combat[UnitStats::kReach] = weapon->reach;
         sum = prototype->combat[1] + weapon->attackBonus;
         stats.combat[UnitStats::kAttack] = sum;
-        stats.attackCategory = static_cast<float>(static_cast<double>(weapon->category));
+        stats.attackCategory = static_cast<float>(weapon->category);
         stats.naturalWeapon = item->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
         unit->MarkChanged(0);

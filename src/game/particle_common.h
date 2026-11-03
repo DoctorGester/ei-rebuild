@@ -27,7 +27,7 @@ inline std::uint32_t Bits(const void* field) {
 inline std::uint32_t Next() { return g_clientRandom.Next(); }
 
 // WorldClient::RawSurfaceHeightAt(x, y) on the client world.
-inline float GroundHeight(float x, float y) { return static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y)); }
+inline float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
 // The attached object as a map object: the callbacks call its slots past Object3D's (the
 // carriers are units).

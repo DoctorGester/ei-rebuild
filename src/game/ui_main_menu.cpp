@@ -146,7 +146,7 @@ void MainMenu::Update() {
             }
         }
     }
-    hour = static_cast<float>(GameServerTimeOfDay());
+    hour = GameServerTimeOfDay();
 }
 
 // --- Close -----------------------------------------------------------------

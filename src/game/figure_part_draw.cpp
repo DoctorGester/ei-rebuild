@@ -17,7 +17,6 @@
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"
 #include "render/render.h"
@@ -36,14 +35,14 @@ std::vector<VertexPacket> g_movedPositions;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// --- x87 sequences --------------------------------------------------------------------------------
+// --- Float sequences ------------------------------------------------------------------------------
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float once (the tick exact).
 void TickTime(float* out) {
     const WorldClient* world = &g_clientWorld;
-    *out = pc24::Add(static_cast<double>(world->tick), world->tickFraction);
+    *out = static_cast<float>(world->tick) + world->tickFraction;
 }
 
 // --- Arrays --------------------------------------------------------------------------------------

@@ -21,7 +21,6 @@
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -77,7 +76,7 @@ void DrawWithSpecular(UiWindow* window, SceneRenderer* pass) {
 
 constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind
 
-// Whether `x` is zero (either sign), as the FPU compare gives it.
+// Whether `x` is zero (either sign).
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -323,8 +322,8 @@ void HudMap::LeftUp(int, int x, int y) {
             right /= zoom;
             down /= zoom;
         }
-        const float worldX = static_cast<float>(right / scale + centreX);
-        const float worldY = static_cast<float>(centreY - down / scale);
+        const float worldX = right / scale + centreX;
+        const float worldY = centreY - down / scale;
         if (worldX > 0.0f && worldX < worldWidth && worldY > 0.0f && worldY < worldHeight) {
             // The camera stops following its unit and looks there.
             Camera* camera = &g_camera;
@@ -500,8 +499,8 @@ void HudMovePanel::ShowMode(int newMode) {
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->localRotation = *turn.SetAxisAngle(axis, angle);
-        const float y = kMarkerCentreY - pc24::Mul(pc24::Sin(angle), kMarkerRadius);
-        const float x = pc24::Mul(pc24::Cos(angle), kMarkerRadius);
+        const float y = kMarkerCentreY - (std::sin(angle) * kMarkerRadius);
+        const float x = std::cos(angle) * kMarkerRadius;
         SceneMesh(0)->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }

@@ -6,7 +6,6 @@
 #include "combat_plan.h"
 
 #include "item.h"
-#include "maths.h"
 #include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -14,16 +13,12 @@
 
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 #include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
-
-// The original's float maths ran at the main thread's 24-bit precision: float maths in its order here, and an int
-// or a double operand through lib/pc24.h's one rounding.
 
 namespace {
 constexpr float kPointOne = 0.1f;
@@ -36,9 +31,9 @@ constexpr float kFifteen = 15.0f;
 constexpr float kPercent = 0.01f;
 constexpr float kNearSq = 10.0f;
 constexpr float kFrontCosine = 0.5f;
-constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with pointIsUseSpot
-constexpr std::uint32_t kFarBits = 0x7E967699u;                     // 1e38: the plan's initial range
-constexpr std::uint32_t kBestStartBits = 0x7149F2CAu;               // 1e30
+constexpr float kNoRange = 1e10f;     // point orders with pointIsUseSpot
+constexpr float kFar = 1e38f;         // the plan's initial range
+constexpr float kBestStart = 1e30f;
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillSource = 6;
@@ -46,7 +41,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kCastKindNone = 8;
 
-// An x87 compare as the original reads it (false for a NaN).
+// a > b (false for a NaN).
 bool Greater(float a, float b) { return a > b; }
 
 bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
@@ -81,7 +76,7 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
     float dy = unit->localPosition.y - point.y;
     float dx = unit->localPosition.x - point.x;
     EI_NAN_AUDIT(reach, dx, dy);
-    return reach * reach < LengthSquared2DUnrounded(dx, dy);
+    return reach * reach < LengthSquared2D(dx, dy);
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
@@ -89,18 +84,10 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& point, int time) {
     Unit* unit = self->unit;
-    float dx = point.x - unit->localPosition.x;
-    float dy = point.y - unit->localPosition.y;
-    float dz = point.z - unit->localPosition.z;
-    float lengthSq = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
-    float ux = dx / lengthSq;
-    float uy = dy / lengthSq;
-    float uz = dz / lengthSq;
-    float negX = -ux;
-    float side = std::sqrt(negX * negX + uy * uy);
-    float vx = uy / side;
-    float vy = negX / side;
-    float vz = 0.0f / side;
+    Vector3 d = point - unit->localPosition;
+    Vector3 u = d / LengthSquared(d);
+    float side = std::sqrt(LengthSquared2D(u.x, u.y));
+    Vector3 v = Vector3{u.y, -u.x, 0.0f} / side;
 
     // The units the brain lists as nearby.
     for (auto node = self->brain.memory.nearby.begin(); node != self->brain.memory.nearby.end();) {
@@ -108,12 +95,9 @@ bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& poin
         ++node;
         if (other == order->target) continue;
         if (other->IsDead() != 0) continue;
-        Vector3 p = other->PositionAt(time);
-        float a = p.x - unit->localPosition.x;
-        float b = p.y - unit->localPosition.y;
-        float c = p.z - unit->localPosition.z;
-        float along = c * uz + b * uy + a * ux;
-        float across = c * vz + b * vy + a * vx;
+        Vector3 offset = other->PositionAt(time) - unit->localPosition;
+        float along = Dot(offset, u);
+        float across = Dot(offset, v);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
             across < kPointThree)
             return true;
@@ -138,7 +122,7 @@ bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
 int CastValue(UnitServer* self, Spell* spell) {
     float scale = self->stats.rate;
     if (scale != 0.0f) scale = kFifteen / scale;   // a NaN stays the same NaN
-    float value = pc24::Mul(static_cast<double>(spell->castTime), scale);   // the dword exact, one rounding
+    float value = static_cast<float>(spell->castTime) * scale;
     return lib::RoundEven(value);
 }
 
@@ -168,7 +152,7 @@ bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
         Spell* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (spell->GetPrototype()->needsSight == 0) return false;
-        out->point.x = out->point.y = out->point.z = 0.0f;
+        out->point = {};
         out->minDistanceSq = 0.0f;
         out->unit = nullptr;
         if (Unit* other = UnitOrNull(target)) {
@@ -179,14 +163,14 @@ bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
             return true;
         }
         out->point = order->point;
-        out->point.z = pc24::Add(world->SurfaceHeightAt(out->point.x, out->point.y), 1.0f);   // a double plus a float
+        out->point.z = world->SurfaceHeightAt(out->point.x, out->point.y) + 1.0f;
         out->eyeHeight = unit->BaseSpeed();
         return true;
     }
 
     Unit* targetUnit = UnitOrNull(target);
     if (!targetUnit) return false;
-    out->point.x = out->point.y = out->point.z = 0.0f;
+    out->point = {};
     out->minDistanceSq = kNearSq;
     out->unit = targetUnit;
     out->eyeHeight = unit->BaseSpeed();
@@ -211,17 +195,17 @@ bool UnitServer::CanActFrom(const AIOrder* order, const Vector3& point, int time
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
         sight.point = point;
-        float ground = static_cast<float>(sight.unit->GroundHeight(point.x, point.y));
+        float ground = sight.unit->GroundHeight(point.x, point.y);
         sight.point.z = sight.unit->ModeSpeed() + ground;
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
     }
-    float apartSq = DistanceSquaredXYUnrounded<float>(sight.point, unit->localPosition);
+    float apartSq = DistanceSquaredXY(sight.point, unit->localPosition);
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
     Vector3 eye = unit->localPosition;
-    eye.z = pc24::Add(unit->GroundHeight(eye.x, eye.y), sight.eyeHeight);   // the double ground height plus a float
+    eye.z = unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight;
     AIMap* map = &ServerWorld()->aiMap;
     float visibility = map->LineOfSight(eye, sight.point);
     return visibility >= kPointOne;
@@ -239,7 +223,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (order->pointIsUseSpot) {
         float distance = ActionDistance(order);
         float limitSq = distance * distance;
-        float apartSq = DistanceSquaredXYUnrounded<float>(order->point, unit->localPosition);
+        float apartSq = DistanceSquaredXY(order->point, unit->localPosition);
         EI_NAN_AUDIT(limitSq, apartSq);
         if (limitSq < apartSq) return false;
     }
@@ -247,7 +231,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     plan->animation = {};
     plan->hitLocation = 1;
     plan->targetId = -1;
-    plan->rangeSq = std::bit_cast<float>(kFarBits);
+    plan->rangeSq = kFar;
     plan->endTime = 0;
     plan->startTime = 0;
     plan->isCast = 0;
@@ -270,12 +254,12 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (duration <= 0) duration = 1;
 
     float range = ActionDistance(order);
-    if (order->pointIsUseSpot) range = std::bit_cast<float>(kNoRangeBits);
+    if (order->pointIsUseSpot) range = kNoRange;
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis = unit->localRotation.AxisY();
     Vector3 facing = -axis;
-    float heading = pc24::Round(pc24::Atan2(facing.y, facing.x));
+    float heading = std::atan2(facing.y, facing.x);
     const float turnSpeed = unit->GetMoveSpeeds().turn;
     float halfTurn = kPi / turnSpeed;
     int ticks = lib::RoundEven(halfTurn) + 3;
@@ -286,9 +270,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     Vector3 aim = order->target ? order->target->AimPoint() : order->point;
     Vector3 delta = aim - origin;
-    float ox = origin.x - aim.x;
-    float oy = origin.y - aim.y;
-    float distanceSq = LengthSquared2DUnrounded(oy, ox);
+    float distanceSq = DistanceSquaredXY(origin, aim);
 
     float reachSq;    // the order's own range, squared
     float outerSq;    // how far the target may be and still be waited for
@@ -297,11 +279,11 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         reachSq = range * range;
         outerSq = reachSq;
     } else {
-        float speed = static_cast<float>(targetUnit->MoveSpeed());   // Unit::MoveSpeed: a float
+        float speed = targetUnit->MoveSpeed();   // Unit::MoveSpeed: a float
         reachSq = range * range;
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
-            float dot = DotUnrounded<Sum3::ZYX>(delta.x, delta.y, delta.z, facing.x, facing.y, facing.z);
+            float dot = Dot(delta, facing);
             float cone = std::sqrt(distanceSq) * kFrontCosine;
             EI_NAN_AUDIT(cone, dot);
             inFront = cone < dot;
@@ -311,8 +293,8 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             int wait = ticks / 2 + duration;
             // The int halved rounds once: as the int rounded to a float, halved.
             float outer = speed * (static_cast<float>(wait) * 0.5f);
-            outer = outer + range;
-            outer = outer + 0.5f;
+            outer += range;
+            outer += 0.5f;
             outerSq = outer * outer;
         } else {
             float outer = range + 0.5f;
@@ -334,13 +316,13 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     plan->rangeSq = outerSq;
     float reach = reachSq;
-    float best = std::bit_cast<float>(kBestStartBits);
+    float best = kBestStart;
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
             aim = order->target->PositionAt(tick + castDelay + duration + now);
             delta = aim - origin;
         }
-        float squared = LengthSquared2DUnrounded(delta.y, delta.x);
+        float squared = LengthSquared2D(delta.y, delta.x);
         bool tryHere = true;
         if (Greater(squared, reach)) {
             // Out of reach: wait while the target comes closer, give up once it moves off.
@@ -356,7 +338,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                             (targetUnit && targetUnit->id == unit->id);
             int turnTicks = -1;
             if (!facingIt) {
-                float turn = pc24::Sub(pc24::Atan2(delta.y, delta.x), heading);
+                float turn = std::atan2(delta.y, delta.x) - heading;
                 turn = AbsBits(turn);
                 float angle = turn;
                 if (Greater(turn, kPi)) angle = kPi + kPi - turn;

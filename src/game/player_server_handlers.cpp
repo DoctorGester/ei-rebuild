@@ -172,10 +172,6 @@ void PlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-float UseOrderDistanceSquared(const Vector3& a, const Vector3& b) {
-    return vecmath::DistanceSquared<Sum3::ZYX>(a, b);
-}
-
 Vector3 AIPath::TargetPoint() const {
     return {0.5f * targetX, 0.5f * targetY, 0.0f};
 }
@@ -215,7 +211,7 @@ int PlayerServer::OnUseOrder() {
             Unit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
-                const float distance = UseOrderDistanceSquared(aim, units[i]->localPosition);
+                const float distance = DistanceSquared(aim, units[i]->localPosition);
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
                     best = distance;
@@ -283,7 +279,7 @@ void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* off
         const Vector3* at = &(*units)[i]->localPosition;
         float dx = at->x - centreX;
         float dy = at->y - centreY;
-        const float length = std::sqrt(LengthSquared2DUnrounded(dx, dy));
+        const float length = std::sqrt(LengthSquared2D(dx, dy));
         if (length > 0.0f) {   // the original skips zero and NaN
             const float inverse = 1.0f / length;
             dx *= inverse;

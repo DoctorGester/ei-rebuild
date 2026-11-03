@@ -7,7 +7,6 @@
 #include "resource.h"
 
 #include "lib/crt.h"
-#include "lib/pc24.h"
 
 #include <cmath>
 #include <cstring>
@@ -27,12 +26,6 @@ int Classify(const std::uint32_t (&codes)[8]) {
     return -1;
 }
 
-// |v| per component, and the larger of a and b per component.
-Vector3 Magnitudes(const Vector3& v) { return {std::fabs(v.x), std::fabs(v.y), std::fabs(v.z)}; }
-Vector3 Larger(const Vector3& a, const Vector3& b) {
-    return {a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z};
-}
-
 // PlaneRanges::Classify's answer when a plane passes too near a corner to decide without the corners' codes.
 constexpr int kNearPlane = 3;
 
@@ -45,13 +38,13 @@ public:
     explicit PlaneRanges(const Matrix4& matrix) : m(matrix) {
         const float* r = m.m;
         const Vector3 x{r[0], r[1], r[2]}, y{r[4], r[5], r[6]}, z{r[8], r[9], r[10]}, w{r[12], r[13], r[14]};
-        reach[0] = Magnitudes(x + w);
-        reach[1] = Magnitudes(w - x);
-        reach[2] = Magnitudes(y + w);
-        reach[3] = Magnitudes(w - y);
-        reach[4] = Magnitudes(z);
-        reach[5] = Magnitudes(w - z);
-        scale = Magnitudes(x) + Magnitudes(y) + Magnitudes(z) + Magnitudes(w);
+        reach[0] = Abs(x + w);
+        reach[1] = Abs(w - x);
+        reach[2] = Abs(y + w);
+        reach[3] = Abs(w - y);
+        reach[4] = Abs(z);
+        reach[5] = Abs(w - z);
+        scale = Abs(x) + Abs(y) + Abs(z) + Abs(w);
         scaleW = std::fabs(r[3]) + std::fabs(r[7]) + std::fabs(r[11]) + std::fabs(r[15]);
     }
 
@@ -60,17 +53,17 @@ public:
     // coordinate is at most |c| plus the larger extent); the rounding of either is below 2^-19 of that bound. A
     // NaN or an infinity anywhere fails every test and gives kNearPlane.
     int Classify(const Vector3& c, const Vector3& lo, const Vector3& hi) const {
-        const Vector3 reaches = Magnitudes(c) + Larger(Magnitudes(lo), Magnitudes(hi));
-        const float margin = (vecmath::Dot<Sum3::XYZ>(scale, reaches) + scaleW) * 0x1p-16f + 1e-30f;
+        const Vector3 reaches = Abs(c) + Max(Abs(hi), Abs(lo));
+        const float margin = (Dot(scale, reaches) + scaleW) * 0x1p-16f + 1e-30f;
         if (!(margin < 1e30f)) return kNearPlane;
         const Vector3 middle = c + (lo + hi) * 0.5f;
-        const Vector3 half = Magnitudes(hi - lo) * 0.5f;
-        const Vector3 clip = TransformColumn<Sum3::XYZ>(m, middle);
-        const float w = TransformColumnW<Sum3::XYZ>(m, middle);
+        const Vector3 half = Abs(hi - lo) * 0.5f;
+        const Vector3 clip = TransformColumn(m, middle);
+        const float w = TransformColumnW(m, middle);
         const float centres[6] = {clip.x + w, w - clip.x, clip.y + w, w - clip.y, clip.z, w - clip.z};
         bool undecided = false, crossing = false;
         for (int i = 0; i < 6; ++i) {
-            const float extent = vecmath::Dot<Sum3::XYZ>(reach[i], half);
+            const float extent = Dot(reach[i], half);
             const float most = centres[i] + extent, least = centres[i] - extent;
             if (most < -margin) return 2;   // every corner outside this plane
             if (least > margin) continue;   // every corner inside it
@@ -92,49 +85,32 @@ private:
 
 // ---- ClipBounds / TransformPipeline ---------------------------------------------------------------
 
-std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
-    std::memcpy(&boxMin, min, 12);
-    std::memcpy(&boxMax, max, 12);
+std::uint32_t ClipBounds::SetBox(const Vector3& min, const Vector3& max) {
+    boxMin = min;
+    boxMax = max;
     flags |= BoundsFlag::Box;
     return flags;
 }
 
-// Clip code of one corner p under matrix m (ClipCodeOf): M * (p, 1), rows x, y and w summed ZXY, z ZYX, each rounded
-// to float. The corner coordinates are kept on the FPU stack (the same at the main thread's 24-bit precision).
+// Clip code of one corner p under matrix m (ClipCodeOf): M * (p, 1).
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
-    Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
-    float cw = TransformColumnW<Sum3::ZXY>(m, p);
+    Vector3 c = TransformColumn(m, p);
+    float cw = TransformColumnW(m, p);
     return ClipCodeOf(c.x, c.y, c.z, cw);
 }
 
-// Classify of the codes of the cube of half side r around c. The corner coordinates are sums the original keeps on
-// the FPU stack; each use recomputes the same value.
+// Classify of the codes of the cube of half side r around c (corner i: -r in x, y, z for bits 0, 1, 2).
 static int CubeCorners(const Matrix4& m, const Vector3& c, float r) {
-    const std::uint32_t codes[8] = {
-        ClipCode(m, {c.x + r, r + c.y, r + c.z}),
-        ClipCode(m, {c.x - r, r + c.y, r + c.z}),
-        ClipCode(m, {c.x + r, c.y - r, r + c.z}),
-        ClipCode(m, {c.x - r, c.y - r, r + c.z}),
-        ClipCode(m, {c.x + r, r + c.y, c.z - r}),
-        ClipCode(m, {c.x - r, r + c.y, c.z - r}),
-        ClipCode(m, {c.x + r, c.y - r, c.z - r}),
-        ClipCode(m, {c.x - r, c.y - r, c.z - r}),
-    };
+    std::uint32_t codes[8];
+    for (int i = 0; i < 8; ++i) codes[i] = ClipCode(m, c + Vector3{(i & 1) ? -r : r, (i & 2) ? -r : r, (i & 4) ? -r : r});
     return Classify(codes);
 }
 
-// Classify of the codes of the box c + [lo, hi].
+// Classify of the codes of the box c + [lo, hi] (corner i: lo in x, y, z for bits 2, 1, 0).
 static int BoxCorners(const Matrix4& m, const Vector3& c, const Vector3& lo, const Vector3& hi) {
-    const std::uint32_t codes[8] = {
-        ClipCode(m, {hi.x + c.x, hi.y + c.y, hi.z + c.z}),
-        ClipCode(m, {hi.x + c.x, hi.y + c.y, lo.z + c.z}),
-        ClipCode(m, {hi.x + c.x, lo.y + c.y, hi.z + c.z}),
-        ClipCode(m, {hi.x + c.x, lo.y + c.y, lo.z + c.z}),
-        ClipCode(m, {lo.x + c.x, hi.y + c.y, hi.z + c.z}),
-        ClipCode(m, {lo.x + c.x, hi.y + c.y, lo.z + c.z}),
-        ClipCode(m, {lo.x + c.x, lo.y + c.y, hi.z + c.z}),
-        ClipCode(m, {lo.x + c.x, lo.y + c.y, lo.z + c.z}),
-    };
+    std::uint32_t codes[8];
+    for (int i = 0; i < 8; ++i)
+        codes[i] = ClipCode(m, Vector3{(i & 4) ? lo.x : hi.x, (i & 2) ? lo.y : hi.y, (i & 1) ? lo.z : hi.z} + c);
     return Classify(codes);
 }
 
@@ -181,16 +157,15 @@ Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
 }
 
 Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
-    // FSIN / FCOS of the half angle (lib/pc24.h): the sine times zFar in one rounding, both stored.
     float half = fov * 0.5f;
-    float c = pc24::Round(pc24::Cos(half));
-    const pc24::Unrounded s = pc24::Sin(half);
-    float q = pc24::Mul(s, zFar) / (zFar - zNear);
+    float c = std::cos(half);
+    const float s = std::sin(half);
+    float q = (s * zFar) / (zFar - zNear);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;
     out->m[5] = c * aspect;
     out->m[10] = q;
-    out->m[14] = pc24::Round(s);
+    out->m[14] = s;
     out->m[11] = -(q * zNear);
     return out;
 }

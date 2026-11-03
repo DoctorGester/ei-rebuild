@@ -9,7 +9,7 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "item.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_tables.h"
 #include "options.h"
 #include "party.h"

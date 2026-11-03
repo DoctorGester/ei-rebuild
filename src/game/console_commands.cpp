@@ -19,7 +19,6 @@
 #include "lib/calendar.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -223,7 +222,7 @@ void LoadVar(std::vector<std::string>* args) {
         parts = text::Split(line, ' ');
         if (parts.size() > 1) {
             const std::string& name = parts[0];
-            float value = static_cast<float>(str::ToDouble(parts[1]));
+            float value = str::ToFloat(parts[1]);
             state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
     }
@@ -273,8 +272,8 @@ void Give(std::vector<std::string>* args) {
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
         int count = lib::Count(player->GetParty()->members);
-        // The typed number over the count, rounded once to a float (the original's division at 24-bit precision).
-        const float share = pc24::Div(str::ToDouble((*args)[2]), count);
+        // The typed number over the count.
+        const float share = str::ToFloat((*args)[2]) / static_cast<float>(count);
         for (int i = 0; i < count; ++i)
             player->GetParty()->members[i].stats.AddScaledExperience(share);
         return state->SendParty();

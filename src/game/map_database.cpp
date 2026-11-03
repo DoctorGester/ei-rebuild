@@ -9,7 +9,6 @@
 #include "object_tables.h"
 #include "world.h"
 
-#include "lib/pc24.h"
 #include "lib/text_case.h"
 
 #include <cstdlib>
@@ -19,9 +18,8 @@
 namespace mapdb {
 namespace {
 
-// *out = std::atof(text) * (pi * 1/180): degrees to radians, the double times the float factor rounded once to a
-// float as the original's multiply at 24-bit precision (the map database loads after the device exists).
-void StoreRadians(float* out, const char* text) { *out = pc24::Mul(ei::kRadiansPerDegree, std::atof(text)); }
+// *out = text's degrees in radians.
+void StoreRadians(float* out, const char* text) { *out = ei::kRadiansPerDegree * std::strtof(text, nullptr); }
 
 bool Is(const char* word, const char* text) {
     return std::strcmp(word, text) == 0;
@@ -134,9 +132,9 @@ bool Loader::MapLine(const char* word) {
         Split();
         if (Count() > 2) {
             Map().restricted = true;
-            Map().restrictX = static_cast<float>(std::atof(Word(0)));
-            Map().restrictY = static_cast<float>(std::atof(Word(1)));
-            Map().restrictRadius = static_cast<float>(std::atof(Word(2)));
+            Map().restrictX = std::strtof(Word(0), nullptr);
+            Map().restrictY = std::strtof(Word(1), nullptr);
+            Map().restrictRadius = std::strtof(Word(2), nullptr);
         }
     } else if (Is(word, game::mapwords::Sky())) {
         Split();
@@ -158,7 +156,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 3) {
             // Word i to the area's i-th coordinate (x1, y1, x2, y2), and to deploy[i].
             auto put = [&](int i, float& area) {
-                float v = static_cast<float>(std::atof(Word(i)));
+                float v = std::strtof(Word(i), nullptr);
                 area = v;
                 if (deploy) Exit().deploy[i] = v;
             };
@@ -171,7 +169,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 4) StoreRadians(&Exit().angle, Word(4));
     } else if (Is(word, game::mapwords::PassTime())) {
         Split();
-        if (Count() > 0) Exit().passTime = static_cast<float>(std::atof(Word(0)));
+        if (Count() > 0) Exit().passTime = std::strtof(Word(0), nullptr);
     } else if (Is(word, game::mapwords::View())) {
         Split();
         words.push_back(game::mapwords::Zero());

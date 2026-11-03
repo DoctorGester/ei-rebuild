@@ -9,7 +9,7 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"
 #include "net_classes.h"
 #include "net_messages.h"
@@ -789,7 +789,7 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             float current = LocalPlayerVariable(variable);
             EI_NAN_AUDIT(current);
-            if (current == 0.0) return;
+            if (current == 0.0f) return;
         }
         const char* key;
         if (Equal(value, complete)) {
@@ -819,7 +819,7 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
         std::string colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
         text = colour + title + " " + text;
     }
-    text = text + "\007C\344\327\247\n";   // colour code and a line end
+    text += "\007C\344\327\247\n";   // colour code and a line end
 
     topPanel->pageTexts[0] += text;
     if (topPanel->page == 0) messageLog->AddText(text);

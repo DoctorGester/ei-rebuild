@@ -248,9 +248,7 @@ void PlayerServer::ClearServerState() {
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
     state = 0;
-    lastPosition.x = 0.0f;
-    lastPosition.y = 0.0f;
-    lastPosition.z = 0.0f;
+    lastPosition = {};
     spare = -1;
     possessedGroup.Clear();
     partyUnits.Clear();

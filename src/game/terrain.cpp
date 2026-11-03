@@ -38,8 +38,8 @@ float PlaneHeight(const Vector3& v0, const Vector3& v1, float x, float y, const 
     float dz1 = v1.z - v0.z, dz2 = v2.z - v0.z;
     float nx = dz2 * ay - dz1 * by;
     float ny = dz1 * bx - dz2 * ax;
-    float d = -DotUnrounded<Sum3::XYZ>(nx, ny, det, v0.x, v0.y, v0.z);
-    return -(OffsetDot2DUnrounded(d, nx, ny, x, y) / det);
+    float d = -Dot(Vector3{nx, ny, det}, Vector3{v0.x, v0.y, v0.z});
+    return -((d + Dot2D(nx, ny, x, y)) / det);
 }
 
 // The texture class outside the map.

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>

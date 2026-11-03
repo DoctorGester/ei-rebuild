@@ -13,14 +13,10 @@
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/float_select.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
 #include <cstring>
-
-// The formulas keep the original's order of operations: float maths at the main thread's 24-bit precision
-// (docs/notes/float-maths.md).
 
 namespace {
 constexpr float kPercent = 0.01f;
@@ -31,7 +27,7 @@ constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = 0.2f;
 constexpr float kTen = 10.0f;
 constexpr float kRevived = 0.001f;
-constexpr double kMinHeal = 0.001;                                  // a double
+constexpr float kMinHeal = 0.001f;
 constexpr float kNoCapacity = 1000000.0f;
 constexpr float kKeyedUnknown044 = -2.0f;
 constexpr float kUnkeyedRateBase = 15.0f;                           // 0x41700000
@@ -53,15 +49,15 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// base ^ (ln(experience / divisor) / ln(logBase)) with the CRT's _CIpow (its result is a float at 24 bits).
+// base ^ (ln(experience / divisor) / ln(logBase)).
 float ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
-    const float exponent = pc24::Div(pc24::Log(*experience / *divisor), pc24::Log(*logBase));
-    return static_cast<float>(libcrt::CiPow(*base, exponent));
+    const float exponent = std::log(*experience / *divisor) / std::log(*logBase);
+    return std::pow(*base, exponent);
 }
 
-// 1.04 (a double) ^ (intelligence - 25) through _CIpow.
+// 1.04 ^ (intelligence - 25).
 float IntelligenceFactor(const float* intelligence) {
-    return static_cast<float>(libcrt::CiPow(1.04, *intelligence - 25.0f));
+    return std::pow(1.04f, *intelligence - 25.0f);
 }
 
 // The level value of skill `skill` (0 without a level or a record).
@@ -143,11 +139,11 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, Unit* unit) {
     vitals->hitPoints = stats->Reduce(vitals->maxHitPoints);
 }
 
-// 1.61 (a double) ^ (level / divisor) * factor through _CIpow: the experience a skill or attribute level is
-// worth (the level is at most 510).
+// 1.61 ^ (level / divisor) * factor: the experience a skill or attribute level is worth (the level is at most
+// 510).
 float LevelWorth(int level) {
     const float exponent = static_cast<float>(level) / g_logicSettings.skillVal[1];
-    return static_cast<float>(libcrt::CiPow(1.61, exponent)) * g_logicSettings.skillVal[0];
+    return std::pow(1.61f, exponent) * g_logicSettings.skillVal[0];
 }
 
 bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, Unit* unit) {
@@ -160,7 +156,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, U
     levels[index] = static_cast<std::uint8_t>(old + amount);
     // Truncated as _ftol does (the low half of the 64-bit integer; 0 for a NaN).
     int cost = static_cast<int>(static_cast<std::int64_t>(worthNew - worthOld));
-    float total = pc24::Add(cost, stats->pendingExperience);   // the int exact, one rounding
+    float total = cost + stats->pendingExperience;
     stats->pendingExperience = total;
     if (total > 0.0f) {
         stats->experience = total + stats->experience;
@@ -458,7 +454,7 @@ bool UnitStats::RaiseAttribute(int index, int amount, Unit* unit) {
 bool UnitStats::RaiseStrength(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
-    strengthBase = pc24::Add(amount, strengthBase);   // the int exact, one rounding
+    strengthBase = amount + strengthBase;
     float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     float scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillHitPoints);
@@ -467,8 +463,8 @@ bool UnitStats::RaiseStrength(int amount, Unit* unit) {
     vitals->maxMana = ManaCurve();
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
-    unit->baseScale.x = unit->baseScale.x + kPointTwo;
-    unit->scale.x = unit->scale.x + kPointTwo;
+    unit->baseScale.x += kPointTwo;
+    unit->scale.x += kPointTwo;
     unit->MarkChanged(1);
     Recompute(vitals, unit);
     unit->MarkChanged(4);
@@ -478,7 +474,7 @@ bool UnitStats::RaiseStrength(int amount, Unit* unit) {
 bool UnitStats::RaiseDexterity(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
-    dexterityBase = pc24::Add(amount, dexterityBase);
+    dexterityBase = amount + dexterityBase;
     float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     float scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     float maxHitPoints = (SkillLevelValueCopy(kSkillHitPoints) * kPercent + 1.0f) * scaled;
@@ -506,7 +502,7 @@ bool UnitStats::RaiseDexterity(int amount, Unit* unit) {
 bool UnitStats::RaiseIntelligence(int amount, Unit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
-    intelligenceBase = pc24::Add(amount, intelligenceBase);
+    intelligenceBase = amount + intelligenceBase;
     RefreshMaxima(this, vitals, unit);
     Recompute(vitals, unit);
     return true;

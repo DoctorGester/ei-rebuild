@@ -54,8 +54,8 @@ constexpr int kLevelDifferenceLimit = 25;
 
 // The speed shown: the speed of the mode (mode 3) for a unit outside the group, else of the current one,
 // times 7.5.
-double ShownSpeed(Unit* unit, bool outsideGroup) {
-    const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
+float ShownSpeed(Unit* unit, bool outsideGroup) {
+    const float speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return speed * 7.5f;
 }
 
@@ -116,11 +116,11 @@ void HudUnitPanel::DrawUnitInfo(Unit* unit) {
     } else {
         suffix.clear();
     }
-    double speed = ShownSpeed(unit, outside);
+    float speed = ShownSpeed(unit, outside);
     panel.text = str::Format(kSpeedLine, panel.labels[2], speed, suffix);
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(g_clientWorld.NightLevel());
+    float dayTime = g_clientWorld.NightLevel();
     int vision = std::lround(params->VisionRange(dayTime));
     panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();
@@ -205,21 +205,6 @@ constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and th
 constexpr int kDisplaysEnd = 32;
 constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without the model
 
-// The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
-// (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
-// other way round.
-Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
-    const Vector3 av = {a.x, a.y, a.z};
-    const Vector3 bv = {b.x, b.y, b.z};
-    const Vector3 cross = Cross(av, bv);
-    Quaternion out;
-    out.w = a.w * b.w - DotXYZ(av, bv);
-    out.x = (cross.x + b.w * a.x) + a.w * b.x;
-    out.y = (cross.y + b.w * a.y) + a.w * b.y;
-    out.z = second ? ((cross.z + b.w * a.z) + a.w * b.z) : ((cross.z + a.w * b.z) + b.w * a.z);
-    return out;
-}
-
 } // namespace
 
 void HudUnitPanel::Draw(SceneRenderer* pass) {
@@ -245,7 +230,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         size = viewSize[which];
         height = viewHeight[which];
         if (hoverUnit == shownUnit) size = viewSize[0];
-        if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
+        if (unit) size = unit->AnimationRatio() * size;
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;
@@ -284,9 +269,9 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             Quaternion first, second, third;
             Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * kTurnAboutZ);
             Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
-            const Quaternion tilted = Product(*q1, *q2, false);
+            const Quaternion tilted = *q1 * *q2;
             Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
-            model->localRotation = Product(tilted, *q3, true);
+            model->localRotation = tilted * *q3;
 
             const float scale = 1.0f / size;
             unit->AsObject3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};

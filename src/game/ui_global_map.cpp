@@ -7,7 +7,7 @@
 #include "game_strings.h"
 #include "global_map_clouds.h"
 #include "text_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "model.h"
 #include "object_tables.h"
 #include "options.h"
@@ -27,7 +27,6 @@
 #include "lib/containers.h"
 #include "platform/platform.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -114,20 +113,6 @@ void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
     int top = lib::Truncate(y - 25.0f);
     int left = lib::Truncate(x - 20.0f);
     region->SetRect(left, top, right, bottom);
-}
-
-// The product (r = b * a in this operand order), each component stored.
-Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
-    Quaternion r;
-    float z = ((b.x * a.y - a.x * b.y) + b.z * a.w) + a.z * b.w;
-    float y = ((a.x * b.z - b.x * a.z) + b.y * a.w) + b.w * a.y;
-    float x = ((a.z * b.y - b.z * a.y) + b.x * a.w) + a.x * b.w;
-    float w = b.w * a.w - DotUnrounded<Sum3::ZYX, float>(a.x, a.y, a.z, b.x, b.y, b.z);
-    r.w = w;
-    r.x = x;
-    r.y = y;
-    r.z = z;
-    return r;
 }
 
 // A layer's texture frame: the fractional part of time * rate (stored).
@@ -377,7 +362,7 @@ void GlobalMap::Update() {
         spin.SetAngleAxis(angle, up);
         Quaternion tilt;
         tilt.SetAxisAngle(side, 3.1415927f * 0.8f);
-        Quaternion rotation = TurnProduct(spin, tilt);
+        Quaternion rotation = tilt * spin;
         turn = rotation;
         EI_NAN_AUDIT(turn.w);
         if (turn.w < 0.0f) {
@@ -406,7 +391,7 @@ void GlobalMap::Update() {
 
     float time = FrameTime() + bobTime;
     bobTime = time;
-    float bob = 0.5f - pc24::Mul(pc24::Cos(time * 5.0f), 0.2f);   // the cosine's 64 bits times 0.2f: one rounding
+    float bob = 0.5f - (std::cos(time * 5.0f) * 0.2f);
     Vector3 above = {position.x, position.y, bob + position.z};
     SceneMesh(0)->localPosition = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);

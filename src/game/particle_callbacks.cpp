@@ -4,7 +4,6 @@
 #include "angles.h"
 #include "core_maths.h"
 #include "map_object_figures.h"
-#include "object_maths.h"
 #include "unit.h"
 
 #include "lib/containers.h"
@@ -45,17 +44,23 @@ constexpr std::int32_t kCastAlphaByCountdown[7] = /*0078A964*/ {0, 32, 64, 112, 
 constexpr std::int32_t kCastAlphaByLifeWide[15] = /*0078A980*/ {0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16};   // 0x202A
 constexpr std::int32_t kCastAlphaByLife[15] = /*0078A9BC*/ {0, 255, 255, 255, 255, 255, 255, 255, 224, 192, 128, 64, 32, 16};
 
-// A random point in the unit ball (ten tries; the last one is kept), as the set-up draws it.
-void RandomInBall(float& x, float& y, float& z) {
+// A random point of the cube [-1, 1)^3, drawn x, y, z (SignedUnit and Range(-1, 1) are the same draw).
+Vector3 RandomInCube() { return {SignedUnit(), SignedUnit(), SignedUnit()}; }
+
+// A random point in the unit ball (ten tries, the last one kept) and its squared length.
+Vector3 RandomInBall(float& lengthSquared) {
+    Vector3 v;
     for (int tries = 10;;) {
-        x = SignedUnit();
-        y = g_clientRandom.Range(-1.0f, 1.0f);
-        float zu = g_clientRandom.Range(-1.0f, 1.0f);
-        z = zu;
-        float lengthSquared = zu * z + x * x + y * y;
-        if (lengthSquared < EI_P_ONE) return;   // random: never NaN
-        if (!(--tries > 0)) return;
+        v = RandomInCube();
+        lengthSquared = LengthSquared(v);
+        if (lengthSquared < EI_P_ONE) return v;   // random: never NaN
+        if (!(--tries > 0)) return v;
     }
+}
+
+Vector3 RandomInBall() {
+    float lengthSquared;
+    return RandomInBall(lengthSquared);
 }
 
 // The first emission: element 0 from the carrier's size, elements 1..lifetime random swirls.
@@ -66,7 +71,7 @@ bool SetUpCasting(ParticleSource* s) {
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
-    radius = radius * EI_POINT_EIGHT;
+    radius *= EI_POINT_EIGHT;
     float scale = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
     else scale = scale * EI_THREE;
@@ -85,19 +90,8 @@ bool SetUpCasting(ParticleSource* s) {
     }
     e->pos.x = 1.0f;
     for (int i = 1; i <= s->lifetime; ++i) {
-        float x, y, z;
-        RandomInBall(x, y, z);
-        Vector3 a = {x, y, z};
-        Vector3& swirl = s->elements[i].swirl.position;
-        swirl.x = a.x * EI_TEN;
-        swirl.y = a.y * EI_TEN;
-        swirl.z = a.z * EI_TEN;
-        RandomInBall(x, y, z);
-        Vector3 b = {x, y, z};
-        Vector3& drift = s->elements[i].swirl.velocity;
-        drift.x = b.x * EI_TENTH;
-        drift.y = b.y * EI_TENTH;
-        drift.z = b.z * EI_TENTH;
+        s->elements[i].swirl.position = RandomInBall() * EI_TEN;
+        s->elements[i].swirl.velocity = RandomInBall() * EI_TENTH;
         s->elements[i].pos.x = 0.0f;
     }
     return true;
@@ -120,19 +114,6 @@ bool SetUpCasting(ParticleSource* s) {
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
 
-// A random point in the unit ball (ten tries), the squared length summed z, y, x.
-void RandomInBallZYX(float& x, float& y, float& z) {
-    for (int tries = 10;;) {
-        x = SignedUnit();
-        y = g_clientRandom.Range(-1.0f, 1.0f);
-        float zu = g_clientRandom.Range(-1.0f, 1.0f);
-        z = zu;
-        float lengthSquared = zu * z + y * y + x * x;
-        if (lengthSquared < EI_P_ONE) return;   // random: never NaN
-        if (!(--tries > 0)) return;
-    }
-}
-
 // Once per tick (the first emission): the sphere's height and radius ease towards the carrier's
 // figure, the emission rate follows the source's size, and element 1 smooths the carrier's motion.
 bool FollowCarrier(ParticleSource* s) {
@@ -141,7 +122,7 @@ bool FollowCarrier(ParticleSource* s) {
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
-    radius = radius * EI_SPHERE_RADIUS;
+    radius *= EI_SPHERE_RADIUS;
     float height;
     height = offset.z;
     if (std::ssize(s->elements) == 0) {
@@ -160,18 +141,10 @@ bool FollowCarrier(ParticleSource* s) {
     float rate = s->size * (ParticleTypeOf(s->type) == ParticleType::Antimagic ? EI_ANTIMAGIC_RATE : EI_SPHERE_RATE);
     s->emitCount = std::lround(rate);
     Vector3& smoothed = s->elements[1].pos;
-    float mx = smoothed.x * EI_MOTION_KEEP;
-    float my = smoothed.y * EI_MOTION_KEEP;
-    float mz = smoothed.z * EI_MOTION_KEEP;
-    float sx = mx + s->motion.x;
-    float sy = my + s->motion.y;
-    float sz = mz + s->motion.z;
-    smoothed.x = sx;
-    smoothed.y = sy;
-    smoothed.z = sz;
+    smoothed = smoothed * EI_MOTION_KEEP + s->motion;
     const Vector3& m = s->elements[1].pos;
     float* speed = &s->elements[0].sphere.speed;
-    *speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(m));
+    *speed = std::sqrt(LengthSquared(m));
     EI_NAN_AUDIT(*speed);
     if (s->elements[0].sphere.speed < EI_STILL_SPEED) s->elements[0].sphere.speed = 0.0f;
     return true;
@@ -208,7 +181,7 @@ void PlaceRings(ParticleSource* s, int countdown) {
     auto [offset, radius] = s->AttachmentOffset();
     float fullRadius = radius;
     float angle = 0.0f;
-    offset.z = offset.z - fullRadius;
+    offset.z -= fullRadius;
     radius = fullRadius * EI_RING_WIDEN;
     float diameter = fullRadius + fullRadius;
     float rise = radius * EI_PER_36;
@@ -228,7 +201,7 @@ void PlaceRings(ParticleSource* s, int countdown) {
             e->flames.radius = 0.0f;
             e->flames.angle = angle;
             e->flames.rise = (diameter - lift) * EI_PER_36;
-            angle = angle + step;
+            angle += step;
         }
     }
     s->emitState = 0.0f;
@@ -351,15 +324,9 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
     e->ticks = 1;
     relative.y = std::sin(angle) * orbit;
     relative.z = lift;
-    float px = s->origin.x + relative.x;
-    float py = s->origin.y + relative.y;
-    float pz = s->origin.z + relative.z;
-    e->pos = {px, py, pz};
+    e->pos = s->origin + relative;
     e->orbiter.turnCos = std::cos(turn);
-    Vector3& previous = e->orbiter.previous;
-    previous.x = px;
-    previous.y = py;
-    previous.z = pz;
+    e->orbiter.previous = e->pos;
     e->orbiter.turnSin = std::sin(turn);
     // Kept from the original (its locals read one slot off): the sign times the carrier's radius, not the orbit.
     e->orbiter.scale = sign * carrier;
@@ -392,29 +359,29 @@ template <std::floating_point T> inline float F(T) = delete;
 void SetUpLink(ParticleSource* s) {
     s->elements.resize(4);
     const Vector3& x = s->extent;
-    s->elements[0].link.length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x));
+    s->elements[0].link.length = std::sqrt(LengthSquared(x));
     s->elements[0].link.inverseLength = EI_P_ONE / s->elements[0].link.length;
 
     // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
     Vector3 side;
     float zero = EI_P_ZERO;
     side = {x.y - zero, zero - x.x, 0.0f};
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(side));
+    float length = std::sqrt(LengthSquared(side));
     EI_NAN_AUDIT(length);
     if (length < EI_LINK_DEGENERATE) {
         float ex = x.x;
         Vector3 other = {x.y - x.z, -ex, ex};
-        length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(other));
+        length = std::sqrt(LengthSquared(other));
         side = other;
     }
     float inverse = EI_P_ONE / length;
     side *= inverse;
 
     Vector3 cross = Cross(x, side);
-    float crossInverse = EI_P_ONE / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(cross));
+    float crossInverse = EI_P_ONE / std::sqrt(LengthSquared(cross));
     cross *= crossInverse;
 
-    float extentLength = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x));
+    float extentLength = std::sqrt(LengthSquared(x));
     Vector3 direction;
     direction = x / extentLength;
     s->elements[1].linkAxis.axis = direction;
@@ -450,8 +417,8 @@ constexpr std::int32_t kBlastAlpha[16] = /*0078A5DC*/ {255, 255, 207, 175, 128, 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(ParticleSource* s, Particle* p) {
     float jitter = WordToFloat(Next()) * EI_BLAST_SCALE_0_4 + EI_BLAST_POINT_EIGHT;
-    p->aux0 = s->elements[0].fragment.radius * s->size * jitter * EI_BLAST_FLAME_SIZE;
-    p->aux1 = static_cast<float>(p->frame);
+    p->aux.x = s->elements[0].fragment.radius * s->size * jitter * EI_BLAST_FLAME_SIZE;
+    p->aux.y = static_cast<float>(p->frame);
 }
 
 #define EI_FOG_CELL 1.0f   // the grid spacing
@@ -484,6 +451,16 @@ void BlastFlameTiming(ParticleSource* s, Particle* p) {
 float SpreadAround(float base, float low, float high) {
     return WordToFloat(Next()) * (high - low) * EI_P_SCALE_1 + base + low;
 }
+Vector3 SpreadAround(const Vector3& base, const Vector3& low, const Vector3& high) {
+    return {SpreadAround(base.x, low.x, high.x), SpreadAround(base.y, low.y, high.y),
+            SpreadAround(base.z, low.z, high.z)};
+}
+
+// A random point of the box [low, high), drawn x, y, z.
+Vector3 RandomInBox(const Vector3& low, const Vector3& high) {
+    auto one = [](float l, float h) { return WordToFloat(Next()) * (h - l) * EI_P_SCALE_1 + l; };
+    return {one(low.x, high.x), one(low.y, high.y), one(low.z, high.z)};
+}
 
 #define EI_SHOWER_RAYS 8.0f   // directions per unit of alpha
 #define EI_SHOWER_JITTER_SCALE 1.3969838e-11f   // ~0.06 * 2^-32
@@ -502,20 +479,9 @@ void ChooseShowerRays(ParticleSource* s) {
     s->emitCount = rays * 10;
     s->elements.resize(rays);
     for (int i = 0; i < s->frameDelay; ++i) {
-        float x, y, z;
         float lengthSquared;
-        for (int tries = 10;;) {
-            x = g_clientRandom.Range(-1.0f, 1.0f);
-            y = g_clientRandom.Range(-1.0f, 1.0f);
-            float zu = g_clientRandom.Range(-1.0f, 1.0f);
-            z = zu;
-            lengthSquared = zu * z + y * y + x * x;
-            if (lengthSquared < EI_P_ONE) break;   // random: never NaN
-            if (!(--tries > 0)) break;
-        }
-        float length = std::sqrt(lengthSquared);
-        Vector3 v = {x, y, z};
-        s->elements[i].pos = v / length;
+        Vector3 v = RandomInBall(lengthSquared);
+        s->elements[i].pos = v / std::sqrt(lengthSquared);
         s->elements[i].ray.age = 0;
     }
 }
@@ -591,7 +557,7 @@ bool SetUpColumn(ParticleSource* s) {
     auto [offset, radius] = s->AttachmentOffset();
     float height = radius + radius;
     float foot = -offset.z - height * EI_COLUMN_FOOT;
-    radius = radius * EI_COLUMN_RADIUS;
+    radius *= EI_COLUMN_RADIUS;
     float ring = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
     radius = ring + ring;
     s->elements.resize(1);
@@ -731,12 +697,7 @@ void SideVelocity(ParticleSource* s, Particle* p, float low, float high) {
 }
 
 void AddUp(ParticleSource* s, Particle* p, float q) {
-    float a = q * s->up.x;
-    float b = q * s->up.y;
-    float c = q * s->up.z;
-    p->velocity.x = a + p->velocity.x;
-    p->velocity.y = b + p->velocity.y;
-    p->velocity.z = c + p->velocity.z;
+    p->velocity += q * s->up;
 }
 
 #define EI_BANSHEE_TALL 3.0f
@@ -764,13 +725,7 @@ constexpr float kAcidSize[19] = /*0078A668*/ {1.1f, 0.85f, 0.93f, 1.0f, 0.97f, 0
 
 // Position: the start (drift) plus the velocity scaled by the source's size and the spread table.
 void PlaceAcid(ParticleSource* s, Particle* p, int age, Vector3& out) {
-    float size = s->size;
-    float sx = size * p->velocity.x;
-    float sy = size * p->velocity.y;
-    float sz = size * p->velocity.z;
-    float k = kAcidSpread[age];
-    Vector3 v = {sx * k, sy * k, sz * k};
-    out = v + p->drift;
+    out = s->size * p->velocity * kAcidSpread[age] + p->drift;
 }
 
 #define EI_CLAY_SCATTER_SCALE 4.656613e-11f   // ~0.2 * 2^-32
@@ -851,17 +806,7 @@ constexpr std::int32_t kCurseAlpha[24] = /*0078AC98*/ {0, 32, 64, 128, 255, 255,
                                               255, 255, 255, 255, 255, 255, 255};
 constexpr std::int32_t kTransAlpha[16] = /*0078ACF8*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
-// A random point of the unit ball (ten tries, the last one kept), each coordinate rounded.
-void RandomInBall(float& x, float& y, float& z, float& lengthSquared) {
-    for (int tries = 10;;) {
-        x = SignedUnit();
-        y = SignedUnit();
-        z = g_clientRandom.Range(-1.0f, 1.0f);
-        lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);   // (y + z) + x
-        if (lengthSquared < EI_P_ONE) break;   // random: never NaN
-        if (!(--tries > 0)) break;
-    }
-}
+
 
 // base ^ exponent the way VC6 inlined pow here (through ln and 2^x).
 float PowInline(float base, int exponent) { return std::exp(std::log(base) * exponent); }
@@ -898,51 +843,32 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     p->state = 0;
     p->frameTimer = 1;
 
-    float x, y, z, lengthSquared;
+    Vector3 v;
+    float lengthSquared;
     for (;;) {
-        x = SignedUnit();
-        y = SignedUnit();
-        float zu = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
-        z = zu;
-        float sum = zu * z + y * y + x * x;
-        lengthSquared = sum;
-        if (sum > EI_P_ONE) continue;
+        v = RandomInCube();
+        lengthSquared = LengthSquared(v);
+        if (lengthSquared > EI_P_ONE) continue;
         if (lengthSquared <= EI_P_ZERO) continue;   // random: never NaN
         break;
     }
     std::uint32_t span = static_cast<std::uint32_t>(frameDelay * lifetime + 1);
     int pick = static_cast<int>(Next() % span);
     if (pick > 0) {
-        const ParticleElement& swirl = elements[(pick - 1) % lifetime];
-        const Vector3& toward = swirl.swirl.position;
-        x = x + toward.x;
-        y = y + toward.y;
-        float zu = z + toward.z;
-        z = zu;
-        lengthSquared = zu * z + y * y + x * x;
+        v += elements[(pick - 1) % lifetime].swirl.position;
+        lengthSquared = LengthSquared(v);
     }
     float inverse = EI_P_ONE / std::sqrt(lengthSquared);
-    p->velocity.x = inverse * x;
-    p->velocity.y = inverse * y;
-    p->velocity.z = inverse * z;
+    p->velocity = inverse * v;
     ParticleElement* state = elements.data();
     float reach = state->cast.radius * EI_POINT_SIX;
-    p->aux0 = reach;
-    p->aux1 = reach * (ParticleTypeOf(type) == ParticleType::CastingDivination ? EI_TWENTY_SIXTH : EI_THIRTEENTH);
-    p->aux2 = state->cast.growth;
-    float r = p->aux0;
-    float ox = r * p->velocity.x;
-    float oy = r * p->velocity.y;
-    float oz = r * p->velocity.z;
-    float px = ox + origin.x;
-    float py = oy + origin.y;
-    float pz = oz + origin.z;
+    p->aux.x = reach;
+    p->aux.y = reach * (ParticleTypeOf(type) == ParticleType::CastingDivination ? EI_TWENTY_SIXTH : EI_THIRTEENTH);
+    p->aux.z = state->cast.growth;
     p->size = 1.0f;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = p->aux.x * p->velocity + origin;
     p->size = (WordToFloat(Next()) * EI_SCALE_0_4_HI + EI_POINT_SIX) * state->cast.size *
-                    p->aux0;
+                    p->aux.x;
     return 1;
 }
 
@@ -970,19 +896,11 @@ int ParticleSource::UpdateCasting(Particle* p) {
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
     if (ParticleTypeOf(type) == ParticleType::CastingFire && (life & 3) == 0) ++p->frame;
     float oldSize = p->size;
-    float reach = p->aux0 - p->aux1;
+    float reach = p->aux.x - p->aux.y;
     --p->frame;
-    p->aux0 = reach;
-    float ox = reach * p->velocity.x;
-    float oy = reach * p->velocity.y;
-    float oz = reach * p->velocity.z;
-    float px = ox + origin.x;
-    float py = oy + origin.y;
-    float pz = oz + origin.z;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
-    p->size = oldSize * p->aux2;
+    p->aux.x = reach;
+    p->pos = reach * p->velocity + origin;
+    p->size = oldSize * p->aux.z;
     return 1;
 }
 
@@ -997,9 +915,9 @@ void ParticleSource::TickCasting(ParticleElement* e) {
         e->cast.alpha = kCastAlphaByCountdown[elements[0].ticks];
         return;
     }
+    e->swirl.position += e->swirl.velocity;
     float* pos = &e->swirl.position.x;
     float* velocity = &e->swirl.velocity.x;
-    for (int i = 0; i < 3; ++i) pos[i] = velocity[i] + pos[i];
     float bound = EI_CAST_DRIFT;
     float low = -bound;
     for (int i = 0; i < 3; ++i) {
@@ -1026,12 +944,9 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     }
     p->drift.x = big;
 
-    float x, y, z;
-    RandomInBallZYX(x, y, z);
-    Vector3 v = {x, y, z};
-    p->velocity = v;
+    p->velocity = RandomInBall();
     float shell = radius * EI_SHELL;
-    float scale = shell / std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(p->velocity));
+    float scale = shell / std::sqrt(LengthSquared(p->velocity));
     p->velocity *= scale;
     p->color = 0xFFFFFFFF;
     p->frame = static_cast<int>(Next() % 11);
@@ -1044,24 +959,15 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     float speed = elements[0].sphere.speed;
     if (speed > EI_STILL_SPEED) {
         const Vector3& m = elements[1].pos;
-        float t = -(DotUnrounded<Sum3::ZYX>(m, p->velocity) / speed);
+        float t = -(Dot(m, p->velocity) / speed);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
-        offset = p->velocity - ScaleVector(m, t);
+        offset = p->velocity - m * t;
     } else {
         offset = p->velocity;
     }
-    const Vector3& centre = elements[0].pos;
-    float cx = origin.x + centre.x;
-    float cy = origin.y + centre.y;
-    float cz = origin.z + centre.z;
     p->size = 1.0f;
-    float px = cx + offset.x;
-    float py = offset.y + cy;
-    float pz = offset.z + cz;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = origin + elements[0].pos + offset;
     if (ParticleTypeOf(type) == ParticleType::SphereFire) {
         float s = kSphereSizeByLife[p->life] * p->drift.x * radius;
         p->size = s + s;
@@ -1143,7 +1049,7 @@ int ParticleSource::UpdateCastRing(Particle* p) {
     }
     int ring = p->state;
     if (ring == kFlameState) {
-        p->size = p->size * EI_FADE_SIZE;
+        p->size *= EI_FADE_SIZE;
         p->color = ((p->color & 0xFF000000u) - 0x1E000001u) | 0xFFFFFF;
         return 1;
     }
@@ -1268,34 +1174,15 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
     p->frameTimer = 1;
     p->state = j;
     float t = WordToFloat(r) * EI_P_SCALE_1;
-    p->aux2 = (WordToFloat(Next()) * EI_SWIRL_SIZE_SCALE + EI_SWIRL_SIZE_BASE) *
+    p->aux.z = (WordToFloat(Next()) * EI_SWIRL_SIZE_SCALE + EI_SWIRL_SIZE_BASE) *
                                     e->orbiter.scale * EI_SWIRL_GROW;
-    p->aux1 = 1.03f;     // 1.03
-    float* v = &p->velocity.x;
-    const float* low = &spreadMin.x;
-    const float* high = &spreadMax.x;
-    for (int i = 0; i < 3; ++i) v[i] = WordToFloat(Next()) * (high[i] - low[i]) * EI_P_SCALE_1 + low[i];
+    p->aux.y = 1.03f;     // 1.03
+    p->velocity = RandomInBox(spreadMin, spreadMax);
     const Vector3& previous = e->orbiter.previous;
-    float px = previous.x + v[0];
-    float py = v[1] + previous.y;
-    float pz = v[2] + previous.z;
     p->size = 1.0f;
-    p->pos.y = py;
-    p->pos.z = pz;
-    p->pos.x = px;
+    p->pos = previous + p->velocity;
     float u = EI_P_ONE - t;
-    float a0 = u * e->pos.x;
-    float a1 = u * e->pos.y;
-    float a2 = u * e->pos.z;
-    float b0 = t * previous.x;
-    float b1 = t * previous.y;
-    float b2 = t * previous.z;
-    float c0 = b0 + a0;
-    float c1 = b1 + a1;
-    float c2 = a2 + b2;
-    v[0] = c0 + v[0];
-    v[1] = c1 + v[1];
-    v[2] = c2 + v[2];
+    p->velocity += t * previous + u * e->pos;
     p->size = (WordToFloat(Next()) * EI_SWIRL_SPARK_SCALE + EI_SWIRL_SPARK_BASE) * size *
                     EI_SWIRL_SPARK_SIZE;
     return 1;
@@ -1326,9 +1213,9 @@ int ParticleSource::UpdateCastSwirl(Particle* p) {
     float shrunk = p->size * EI_SWIRL_SHRINK;
     p->pos = p->velocity;
     p->size = shrunk;
-    float* step = &p->aux2;
-    p->velocity.z = p->velocity.z + (*step);
-    *step = p->aux1 * (*step);
+    float& step = p->aux.z;
+    p->velocity.z += step;
+    step = p->aux.y * step;
     return 1;
 }
 
@@ -1342,12 +1229,7 @@ void ParticleSource::TickCastSwirl(ParticleElement* e) {
     e->orbiter.previous = e->pos;
     relative.x = x;
     relative.y = y;
-    float px = origin.x + relative.x;
-    float py = origin.y + relative.y;
-    float pz = origin.z + relative.z;
-    e->pos.x = px;
-    e->pos.y = py;
-    e->pos.z = pz;
+    e->pos = origin + relative;
 }
 
 // --- Link (0x2014): a beam of sparks from the source along its extent --------------------------
@@ -1367,8 +1249,8 @@ int ParticleSource::EmitLink(Particle* p, int) {
     float reach = std::sqrt(b * b + a * a);
     float reachRounded = reach;
     float twist = reach * EI_LINK_TWIST;
-    p->aux0 = std::cos(twist);
-    p->aux1 = std::sin(twist);
+    p->aux.x = std::cos(twist);
+    p->aux.y = std::sin(twist);
     Vector3 start = p->velocity + origin;
     p->PlaceAt(start);
     float factor;
@@ -1397,34 +1279,16 @@ int ParticleSource::UpdateLink(Particle* p) {
     float along = travelled * e->link.inverseLength;
     if (travelled > e->link.length) return 0;
 
-    float c = p->aux0;
-    float s = p->aux1;
+    float c = p->aux.x;
+    float s = p->aux.y;
     float turnedY = p->velocity.y * c + p->velocity.x * s;
     float turnedX = c * p->velocity.x - p->velocity.y * s;
     p->velocity.x = turnedX;
     p->velocity.y = turnedY;
-    float ax = along * extent.x;
-    float ay = along * extent.y;
-    float az = along * extent.z;
     const Vector3& direction = elements[1].linkAxis.axis;
     const Vector3& sideAxis = elements[2].linkAxis.axis;
     const Vector3& cross = elements[3].linkAxis.axis;
-    float q = p->velocity.z;
-    float dx = q * direction.x;
-    float dy = q * direction.y;
-    float dz = q * direction.z;
-    float cx = turnedY * cross.x;
-    float cy = turnedY * cross.y;
-    float cz = turnedY * cross.z;
-    float vx = p->velocity.x;
-    float sx = vx * sideAxis.x;
-    float sy = vx * sideAxis.y;
-    float sz = vx * sideAxis.z;
-    float bx = sx + origin.x;
-    float by = sy + origin.y;
-    Vector3 p1 = {bx + cx, by + cy, sz + origin.z + cz};
-    Vector3 p2 = {p1.x + dx, p1.y + dy, p1.z + dz};
-    Vector3 p3 = {p2.x + ax, p2.y + ay, p2.z + az};
+    Vector3 p3 = turnedX * sideAxis + origin + turnedY * cross + p->velocity.z * direction + along * extent;
     p->pos = p3;
 
     float h = along - EI_LINK_HALF;
@@ -1467,41 +1331,27 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     }
     if (kind < 0) {
         p->life = 0;
-        float x, y, z;
-        RandomInBallZYX(x, y, z);
-        Vector3 v = {x, y, z};
-        float outside = EI_P_ONE - LengthSquaredUnrounded<Sum3::ZYX>(v);
+        Vector3 v = RandomInBall();
+        float outside = EI_P_ONE - LengthSquared(v);
         float outsideRounded = outside;
         float scale = size;
         v *= scale;
-        float radius = elements[0].fragment.radius;
-        float ax = v.x * radius;
-        float ay = v.y * radius;
-        float az = radius * v.z;
-        float px = ax + origin.x;
-        float py = ay + origin.y;
-        float pz = az + origin.z;
         p->size = 1.0f;
-        p->pos.y = py;
-        p->pos.x = px;
-        p->pos.z = pz;
-        float spreadRate = elements[0].fragment.growth;
-        p->velocity.x = v.x * spreadRate;
+        p->pos = v * elements[0].fragment.radius + origin;
+        p->velocity = v * elements[0].fragment.growth;
         p->size = 0.0f;
-        p->velocity.y = v.y * spreadRate;
-        p->velocity.z = v.z * spreadRate;
         int age = fragments->fragment.age;
         float threshold = (age / 7) + EI_BLAST_POINT_TWO;
         EI_NAN_AUDIT(outside);
         if (outside < threshold) {
             p->frame = 8;
             BlastFlameTiming(this, p);
-            p->aux2 = WordToFloat(Next()) * EI_BLAST_RISE_SCALE + EI_BLAST_RISE;
+            p->aux.z = WordToFloat(Next()) * EI_BLAST_RISE_SCALE + EI_BLAST_RISE;
         } else {
             p->frame = static_cast<int>(Next() % 3);
             BlastFlameTiming(this, p);
             float t = WordToFloat(Next()) * EI_BLAST_RISE_SCALE * EI_BLAST_HALF;
-            p->aux2 =
+            p->aux.z =
                 t + outsideRounded * EI_BLAST_RISE / threshold + EI_BLAST_RISE_BASE;
         }
         return 1;
@@ -1512,24 +1362,13 @@ int ParticleSource::EmitBlast(Particle* p, int) {
     EI_NAN_AUDIT(e->fragment.frame);
     if (e->fragment.frame == 0.0f) p->frame = 8;
     float u = WordToFloat(Next()) * EI_P_SCALE_1;
-    float scale = size;
-    const Vector3& velocity = e->fragment.velocity;
-    float ux = u * velocity.x;
-    float uy = u * velocity.y;
-    float uz = u * velocity.z;
-    float sx = ux * scale;
-    float sy = uy * scale;
-    float sz = uz * scale;
-    float px = e->pos.x + origin.x;
-    float py = origin.y + e->pos.y;
-    Vector3 start = {px - sx, py - sy, origin.z + e->pos.z - sz};
-    p->pos = start;
+    p->pos = e->pos + origin - u * e->fragment.velocity * size;
     p->size = 1.0f;
     float g = WordToFloat(Next()) * EI_BLAST_DEBRIS_SCALE + EI_BLAST_POINT_SEVEN;
     float sized = g * (EI_BLAST_POINT_THREE - u * EI_BLAST_POINT_15) *
                    (e->fragment.radius * EI_BLAST_SEVENTH + EI_BLAST_POINT_THREE);
     p->size = sized * e->fragment.sizeFactor * size;
-    p->velocity = ScaleVector(e->fragment.velocity, size);
+    p->velocity = e->fragment.velocity * size;
     return 1;
 }
 
@@ -1546,7 +1385,7 @@ int ParticleSource::UpdateBlast(Particle* p) {
         p->color = 0xFFFFFFFF;
         p->pos += p->velocity;
         p->velocity *= EI_BLAST_POINT_SEVEN;
-        p->size = p->size * EI_BLAST_POINT_EIGHT;
+        p->size *= EI_BLAST_POINT_EIGHT;
         return 1;
     }
     int frame = p->frame;
@@ -1557,18 +1396,16 @@ int ParticleSource::UpdateBlast(Particle* p) {
         else p->size = 0.0f;
         return fragments->fragment.age < 3;
     }
-    p->pos.x = p->pos.x + p->velocity.x;
+    p->pos += p->velocity;
     ++p->life;
-    p->pos.y = p->velocity.y + p->pos.y;
-    p->pos.z = p->velocity.z + p->pos.z;
-    float flameSize = p->aux0;
+    float flameSize = p->aux.x;
     p->size = flameSize;
     p->size = flameSize * (frame > 7 ? EI_BLAST_SWELL_LATE : EI_BLAST_SWELL_EARLY);
-    float* step = &p->aux2;
-    p->aux1 = p->aux1 + (*step);
-    *step = (*step) * EI_BLAST_FRAME_ACCEL;
-    p->frame = std::lround(p->aux1);
-    p->aux0 = p->size;
+    float& step = p->aux.z;
+    p->aux.y += step;
+    step *= EI_BLAST_FRAME_ACCEL;
+    p->frame = std::lround(p->aux.y);
+    p->aux.x = p->size;
     float drag = elements[0].fragment.decay - EI_BLAST_DRAG;
     p->velocity *= drag;
     // A flame's frame can step past the table: the original read kAcidSpread after it there (0.0f: alpha 0).
@@ -1586,18 +1423,10 @@ void ParticleSource::TickBlast(ParticleElement* e) {
     int age = ++e->fragment.age;
     *growthRate = e->fragment.decay * (*growthRate);
     if (age > 6) flags &= ~ParticleSourceFlag::Emitting;
-    float scale = size;
     Vector3& velocity = e->fragment.velocity;
-    float dx = scale * velocity.x;
-    float dy = scale * velocity.y;
-    float dz = scale * velocity.z;
-    e->pos.x = dx + e->pos.x;
-    e->pos.y = dy + e->pos.y;
-    e->pos.z = dz + e->pos.z;
-    velocity.x = velocity.x * EI_BLAST_SLOW;
-    velocity.y = velocity.y * EI_BLAST_SLOW;
-    velocity.z = velocity.z * EI_BLAST_SLOW;
-    velocity.z = velocity.z - EI_BLAST_DRAG;
+    e->pos += size * velocity;
+    velocity *= EI_BLAST_SLOW;
+    velocity.z -= EI_BLAST_DRAG;
 }
 
 // --- PoisonFog (0x2007, 0x2008): a disc of cloud puffs laid on the ground ------------------------
@@ -1625,7 +1454,7 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
             if (!q) continue;
             float px = x + localPosition.x;
             x = px;
-            y = y + localPosition.y;
+            y += localPosition.y;
             q->pos.x = px;
             q->pos.y = y;
             q->size = WordToFloat(Next()) * EI_FOG_SIZE_SCALE + EI_FOG_SIZE_BASE - EI_FOG_QUARTER;
@@ -1644,12 +1473,8 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
             q->dead = 0;
             q->prevColor = q->color;
             q->prevFrame = q->frame;
-            boundsMin.x = MinKeepA(q->pos.x, boundsMin.x);
-            boundsMin.y = MinKeepA(q->pos.y, boundsMin.y);
-            boundsMin.z = MinKeepA(q->pos.z, boundsMin.z);
-            boundsMax.x = MaxKeepB(boundsMax.x, q->pos.x);
-            boundsMax.y = MaxKeepB(boundsMax.y, q->pos.y);
-            boundsMax.z = MaxKeepB(boundsMax.z, q->pos.z);
+            boundsMin = MinKeepA(q->pos, boundsMin);
+            boundsMax = MaxKeepB(boundsMax, q->pos);
             particles.push_back(q);
         }
     }
@@ -1688,12 +1513,9 @@ int ParticleSource::EmitGeyser(Particle* p, int) {
         p->drift.x = std::sin(yaw) * sinTilt * power * height;
         p->drift.y = std::cos(yaw) * sinTilt * power * height;
         p->drift.z = std::cos(tilt) * power * height;
-        p->pos.x = SpreadAround(p->pos.x, spreadMin.x, spreadMax.x);
-        p->pos.y = SpreadAround(p->pos.y, spreadMin.y, spreadMax.y);
-        float z = SpreadAround(p->pos.z, spreadMin.z, spreadMax.z);
+        p->pos = SpreadAround(p->pos, spreadMin, spreadMax);
         p->size = 0.0f;
         p->velocity.x = drop;
-        p->pos.z = z;
         return 1;
     }
     p->life = 1;
@@ -1725,14 +1547,12 @@ int ParticleSource::UpdateGeyser(Particle* p) {
     if (--p->life <= 0) return 0;
     float shrunk = p->velocity.x * EI_GEYSER_SHRINK;
     p->velocity.x = shrunk;
-    p->pos.x = p->drift.x + p->pos.x;
+    p->pos += p->drift;
     int frame = p->frame;
     p->frame = (frame & ~3) | ((frame + 1) & 3);
-    p->pos.y = p->drift.y + p->pos.y;
-    p->pos.z = p->pos.z + p->drift.z;
     p->size = shrunk;
     p->color = ((a << 24) - 0x08000001u) | 0xFFFFFF;
-    p->drift.z = p->drift.z - height * EI_GEYSER_GRAVITY;
+    p->drift.z -= height * EI_GEYSER_GRAVITY;
     return 1;
 }
 
@@ -1764,33 +1584,19 @@ int ParticleSource::EmitShower(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frame = elements[0].ticks;
-    float a = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
-    float b = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
-    float c = WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW;
+    auto jitterOne = [] { return WordToFloat(Next()) * EI_SHOWER_JITTER_SCALE - EI_SHOWER_JITTER_LOW; };
+    Vector3 jitter = {jitterOne(), jitterOne(), jitterOne()};
     const ParticleElement& ray = elements[Next() % static_cast<std::uint32_t>(frameDelay)];
-    float scale = size;
-    float ax = a + ray.pos.x;
-    b = b + ray.pos.y;
-    c = c + ray.pos.z;
     p->pos = origin;
     p->size = typeParam;
-    a = scale * ax;
-    b = scale * b;
-    c = scale * c;
-    float speed = EI_P_ONE / std::sqrt(c * c + b * b + a * a) * size * EI_SHOWER_SPEED;
+    Vector3 d = size * (jitter + ray.pos);
+    float speed = EI_P_ONE / std::sqrt(LengthSquared(d)) * size * EI_SHOWER_SPEED;
     if ((Next() & 7) == 0) speed = speed * EI_SHOWER_FAST;
-    p->drift.x = speed * a;
+    p->drift = speed * d;
     p->velocity.x = 0.9f;     // 0.9: the speed kept per tick
     p->velocity.y = 0.8f;     // 0.8: the size kept per tick
-    p->drift.y = speed * b;
-    p->drift.z = speed * c;
     float t = WordToFloat(Next()) * EI_P_SCALE_1;
-    float dx = t * p->drift.x;
-    float dy = t * p->drift.y;
-    float dz = t * p->drift.z;
-    p->pos.x = dx + p->pos.x;
-    p->pos.y = dy + p->pos.y;
-    p->pos.z = dz + p->pos.z;
+    p->pos += t * p->drift;
     return 1;
 }
 
@@ -1799,14 +1605,12 @@ int ParticleSource::EmitShower(Particle* p, int) {
 int ParticleSource::UpdateShower(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
-    p->pos.x = p->drift.x + p->pos.x;
+    p->pos += p->drift;
     p->color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: kAcidSize's zero tail
-    p->pos.y = p->drift.y + p->pos.y;
-    p->pos.z = p->pos.z + p->drift.z;
     p->size = p->velocity.y * p->size;
     float keep = p->velocity.x;
     p->drift *= keep;
-    p->drift.z = p->drift.z - size * EI_SHOWER_GRAVITY;
+    p->drift.z -= size * EI_SHOWER_GRAVITY;
     return 1;
 }
 
@@ -1829,7 +1633,7 @@ int ParticleSource::EmitBag(Particle* p, int index) {
             float t = EI_P_ONE;
             for (int k = 0; k < 12; ++k) {
                 g_bagSizes[k] = t;
-                t = t * EI_BAG_SHRINK;
+                t *= EI_BAG_SHRINK;
             }
         }
         std::uint32_t r = Next();
@@ -1850,17 +1654,8 @@ int ParticleSource::EmitBag(Particle* p, int index) {
     p->frame = 4;
     p->state = -1;
     float u = WordToFloat(Next()) * EI_P_SCALE_1 - EI_P_ONE;
-    const Vector3& step = ball.ball.step;
-    float ax = u * step.x;
-    float ay = u * step.y;
-    float az = u * step.z;
-    float px = ax + ball.pos.x;
-    float py = ay + ball.pos.y;
-    float pz = az + ball.pos.z;
     p->size = 1.0f;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = u * ball.ball.step + ball.pos;
     p->size = g_bagSizes[age] * size * EI_BAG_SPARK_SIZE;
     return 1;
 }
@@ -1917,39 +1712,20 @@ void ParticleSource::TickBag(ParticleElement* e) {
         e->pos.y = r + low + e->pos.y;
         r = BagSpread(this, low, high);
         e->pos.z = r + e->pos.z + low;
-        float x, y, z;
-        RandomInBallZYX(x, y, z);
-        Vector3 v = {x, y, z};
-        float scale = size;
-        float sx = v.x * scale;
-        float sy = v.y * scale;
-        Vector3 velocity = {sx * EI_BAG_SPREAD_HIGH, sy * EI_BAG_SPREAD_HIGH, scale * v.z * EI_BAG_SPREAD_HIGH};
-        e->ball.velocity = velocity;
+        e->ball.velocity = RandomInBall() * size * EI_BAG_SPREAD_HIGH;
         e->ticks = static_cast<int>(Next() % 3) + 7;
         e->ball.step = {};
         return;
     }
     ++e->ball.age;
     if (Next() % 6 == 0) {
-        float x, y, z;
+        Vector3 v;
         for (int tries = 10;;) {
-            x = g_clientRandom.Range(-1.0f, 1.0f);
-            y = g_clientRandom.Range(-1.0f, 1.0f);
-            z = g_clientRandom.Range(-1.0f, 1.0f);
-            float lengthSquared = LengthSquaredUnrounded<Sum3::XYZ>(x, y, z);   // (y + x) + z
-            if (lengthSquared < EI_P_ONE) break;   // random: never NaN
+            v = RandomInCube();
+            if (LengthSquared(v) < EI_P_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
-        Vector3 v = {x, y, z};
-        float scale = size;
-        Vector3 w;
-        w = v * scale;
-        Vector3 kick;
-        kick = w * EI_BAG_KICK;
-        Vector3& velocity = e->ball.velocity;
-        velocity.x = kick.x + velocity.x;
-        velocity.y = kick.y + velocity.y;
-        velocity.z = kick.z + velocity.z;
+        e->ball.velocity += v * size * EI_BAG_KICK;
     }
     const Vector3& velocity = e->ball.velocity;
     e->pos += velocity;
@@ -1966,7 +1742,7 @@ int ParticleSource::EmitColumn(Particle* p, int) {
     p->frame = 1;
     p->life = 13;
     p->frameTimer = 1;
-    p->aux2 = (WordToFloat(Next()) * EI_COLUMN_RISE_SCALE + EI_COLUMN_RISE_BASE) *
+    p->aux.z = (WordToFloat(Next()) * EI_COLUMN_RISE_SCALE + EI_COLUMN_RISE_BASE) *
                                     elements[0].column.height * EI_COLUMN_RISE;
     float ring = WordToFloat(Next()) * EI_COLUMN_RING_SCALE + EI_COLUMN_RING_BASE;
     float angle = WordToFloat(Next()) * EI_COLUMN_ANGLE_SCALE;
@@ -1975,13 +1751,8 @@ int ParticleSource::EmitColumn(Particle* p, int) {
     float z = WordToFloat(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
     p->velocity.z = z;
     p->velocity.z = z + elements[0].column.foot;
-    float px = origin.x + p->velocity.x;
-    float py = p->velocity.y + origin.y;
-    float pz = p->velocity.z + origin.z;
     p->size = 1.0f;
-    p->pos.y = py;
-    p->pos.z = pz;
-    p->pos.x = px;
+    p->pos = origin + p->velocity;
     p->size = (WordToFloat(Next()) * EI_COLUMN_SIZE_SCALE + EI_COLUMN_SIZE_BASE) * size * EI_COLUMN_SIZE;
     return 1;
 }
@@ -1994,16 +1765,11 @@ int ParticleSource::UpdateColumn(Particle* p) {
     float oldSize = p->size;
     p->color = (ColumnAlpha(life) << 24) | 0xFFFFFF;
     ++p->frame;
-    float px = origin.x + p->velocity.x;
-    float py = origin.y + p->velocity.y;
-    float pz = origin.z + p->velocity.z;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = origin + p->velocity;
     p->size = oldSize * EI_COLUMN_SHRINK;
-    float* rise = &p->aux2;
-    p->velocity.z = p->velocity.z + (*rise);
-    *rise = (*rise) * EI_COLUMN_SPEED_UP;
+    float& rise = p->aux.z;
+    p->velocity.z += rise;
+    rise *= EI_COLUMN_SPEED_UP;
     return 1;
 }
 
@@ -2023,23 +1789,13 @@ int ParticleSource::EmitMushroom(Particle* p, int) {
         elements[0].mushroom.stem = origin;
     }
     float spread = (WordToFloat(Next()) * EI_MUSHROOM_W_SCALE + EI_MUSHROOM_W_BASE) * elements[0].pos.x;
-    float a = SignedUnit();
-    float b = SignedUnit();
-    float c = WordToFloat(Next()) * EI_MUSHROOM_UP_SCALE + EI_MUSHROOM_UP_BASE;
-    float k = EI_MUSHROOM_ONE / std::sqrt(c * c + b * b + a * a);
-    float dx = k * a;
-    p->drift.x = dx;
-    float dy = k * b;
-    p->drift.y = dy;
-    float dz = k * c + EI_MUSHROOM_UP;
-    p->drift.z = dz;
-    p->pos.x = dx * spread + origin.x;
-    p->pos.y = dy * spread + origin.y;
-    p->pos.z = dz * spread + origin.z + elements[0].pos.z;
+    Vector3 d = {SignedUnit(), SignedUnit(), WordToFloat(Next()) * EI_MUSHROOM_UP_SCALE + EI_MUSHROOM_UP_BASE};
+    d = EI_MUSHROOM_ONE / std::sqrt(LengthSquared(d)) * d;
+    d.z += EI_MUSHROOM_UP;
+    p->pos = d * spread + origin;
+    p->pos.z += elements[0].pos.z;
     p->size = elements[0].ticks * EI_MUSHROOM_GROW + EI_MUSHROOM_UP_BASE;
-    p->drift.x = dx * size * EI_MUSHROOM_SPEED;
-    p->drift.y = dy * size * EI_MUSHROOM_SPEED;
-    p->drift.z = dz * size * EI_MUSHROOM_SPEED;
+    p->drift = d * size * EI_MUSHROOM_SPEED;
     p->size = size * p->size;
     p->life = static_cast<int>(Next() & 3) + 16;
     int bump = static_cast<int>(Next() % 3);
@@ -2074,11 +1830,7 @@ int ParticleSource::UpdateMushroom(Particle* p) {
     }
     p->color = color | 0xFFFFFF;
     p->pos += p->drift;
-    float vx = p->drift.x * EI_MUSHROOM_DRAG;
-    p->drift.x = vx;
-    float vy = p->drift.y * EI_MUSHROOM_DRAG;
-    p->drift.y = vy;
-    p->drift.z = p->drift.z * EI_MUSHROOM_DRAG;
+    p->drift *= EI_MUSHROOM_DRAG;
     const Vector3& stem = elements[0].mushroom.stem;
     float dx = p->pos.x - stem.x;
     float dyu = p->pos.y - stem.y;
@@ -2086,8 +1838,8 @@ int ParticleSource::UpdateMushroom(Particle* p) {
     float reach = std::sqrt(dyu * dy + dx * dx);
     float dz = p->pos.z - stem.z;
     if (elements[0].pos.z > dz) {
-        p->drift.x = vx - dx * size * EI_MUSHROOM_PULL / reach;
-        p->drift.y = vy - dy * size * EI_MUSHROOM_PULL / reach;
+        p->drift.x -= dx * size * EI_MUSHROOM_PULL / reach;
+        p->drift.y -= dy * size * EI_MUSHROOM_PULL / reach;
     }
     return 1;
 }
@@ -2133,15 +1885,7 @@ int ParticleSource::EmitStench(Particle* p, int) {
     p->drift.x = std::sin(turn);
     p->drift.y = std::cos(turn);
     p->drift.z = WordToFloat(r4) * (carrierHeight * EI_GAS_RISE_HIGH - riseLow) * EI_P_SCALE_1 + riseLow;
-    const ParticleElement& e = elements[0];
-    float cx = origin.x + e.pos.x;
-    float cy = origin.y + e.pos.y;
-    float cz = origin.z + e.pos.z;
-    Vector3 start;
-    start.x = cx + p->velocity.x;
-    start.y = cy + p->velocity.y;
-    start.z = cz + p->velocity.z;
-    p->PlaceAt(start);
+    p->PlaceAt(origin + elements[0].pos + p->velocity);
     p->size = radius * EI_GAS_SIZE;
     return 1;
 }
@@ -2156,21 +1900,21 @@ int ParticleSource::UpdateStench(Particle* p) {
         p->frameTimer = frameDelay;
     }
     p->pos -= p->velocity;
-    float turnedY = Dot2DUnrounded(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
+    float turnedY = Dot2D(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
     float turnedX = p->drift.y * p->velocity.x - p->velocity.y * p->drift.x;
     p->velocity.x = turnedX;
     p->velocity.y = turnedY;
     p->velocity.z = p->drift.z + p->velocity.z;
-    p->drift.z = p->drift.z * EI_GAS_SPEED_UP;
+    p->drift.z *= EI_GAS_SPEED_UP;
     p->pos += p->velocity;
-    p->size = p->size * EI_GAS_SWELL;
+    p->size *= EI_GAS_SWELL;
     if (life < 8) p->color = ((p->color & 0xFF000000u) - 0x1F000001u) | 0xFFFFFF;
     return 1;
 }
 
 // --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
-// The rings run bottom to top. A particle: velocity.x / .y its angle and radius, aux0 its height (0..1),
-// aux1 its alpha, drift.x / .y / .z its turn, radius factor and rise per tick.
+// The rings run bottom to top. A particle: velocity.x / .y its angle and radius, aux.x its height (0..1),
+// aux.y its alpha, drift.x / .y / .z its turn, radius factor and rise per tick.
 
 // Tornado: a particle at a random height of the funnel (around the ring centres there),
 // with a radius growing towards the top and a turn rate larger near the bottom; one in three is
@@ -2195,8 +1939,8 @@ int ParticleSource::EmitTornado(Particle* p, int) {
     float high = EI_FUNNEL_PI;
     float low = -EI_FUNNEL_PI;
     std::uint32_t r = Next();
-    p->aux1 = 0.1f;     // 0.1
-    p->aux0 = height01;
+    p->aux.y = 0.1f;     // 0.1
+    p->aux.x = height01;
     float angle = WordToFloat(r) * (high - low) * EI_P_SCALE_1 + low;
     float w = EI_P_ONE - height01;
     float wRounded = w;
@@ -2228,14 +1972,14 @@ int ParticleSource::EmitTornado(Particle* p, int) {
 // their height (faster and faster), fade in, fade by the height, and animate.
 int ParticleSource::UpdateTornado(Particle* p) {
     if (--p->life == 0) return 0;
-    p->aux0 = p->aux0 + p->drift.z;
-    p->drift.z = p->drift.z + EI_FUNNEL_RISE;
-    if (p->aux0 > 1.0f) return 0;
-    float scaled = p->aux0 * EI_FUNNEL_PI_F;
+    p->aux.x += p->drift.z;
+    p->drift.z += EI_FUNNEL_RISE;
+    if (p->aux.x > 1.0f) return 0;
+    float scaled = p->aux.x * EI_FUNNEL_PI_F;
     float cx;
     float cy = FunnelCentre(this, scaled, cx);
-    p->velocity.x = p->velocity.x + p->drift.x;
-    p->drift.x = p->drift.x * EI_FUNNEL_SPIN_UP;
+    p->velocity.x += p->drift.x;
+    p->drift.x *= EI_FUNNEL_SPIN_UP;
     float angle = p->velocity.x;
     p->velocity.y = p->drift.y * p->velocity.y;
     float radius = p->velocity.y;
@@ -2243,10 +1987,10 @@ int ParticleSource::UpdateTornado(Particle* p) {
     p->pos.y = std::cos(angle) * radius + origin.y + cy;
     float base = elements[0].pos.z + origin.z;
     p->pos.z = base;
-    p->pos.z = elements[0].funnel.height * p->aux0 + base;
-    if (p->life > 8) p->aux1 = MinKeepA(p->aux1 + EI_FUNNEL_FADE, 1.0f);
-    else p->aux1 = MaxKeepB(0.1f, p->aux1);
-    int a = std::lround(std::sqrt(EI_P_ONE - p->aux0) * p->aux1 * EI_FUNNEL_ALPHA);
+    p->pos.z = elements[0].funnel.height * p->aux.x + base;
+    if (p->life > 8) p->aux.y = MinKeepA(p->aux.y + EI_FUNNEL_FADE, 1.0f);
+    else p->aux.y = MaxKeepB(0.1f, p->aux.y);
+    int a = std::lround(std::sqrt(EI_P_ONE - p->aux.x) * p->aux.y * EI_FUNNEL_ALPHA);
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {
         p->frame = (p->frame + 1) % 12;
@@ -2269,56 +2013,29 @@ void ParticleSource::TickTornado(ParticleElement* e) {
     EI_NAN_AUDIT(bend);
     if (bend == 0.0f) {
         Vector3 sway = bottom->pos - motion;
-        sway.x = sway.x * EI_FUNNEL_SWAY;
+        sway.x *= EI_FUNNEL_SWAY;
         sway.z = 0.0f;
-        sway.y = sway.y * EI_FUNNEL_SWAY;
+        sway.y *= EI_FUNNEL_SWAY;
         for (int i = 0; i < std::ssize(elements); ++i) {
             float c = std::cos(static_cast<float>(i) / static_cast<float>(std::ssize(elements) - 1) * EI_FUNNEL_PI *
                                  EI_FUNNEL_HALF_ARC);
-            ParticleElement& ring = elements[i];
-            float x = sway.x * c;
-            float y = sway.y * c;
-            ring.pos = {x, y, c * sway.z};
+            elements[i].pos = sway * c;
         }
         elements[0].pos.z = GroundHeight(origin.x, origin.y) - origin.z + EI_P_ONE;
     } else {
         elements[0].pos.z = GroundHeight(origin.x, origin.y) - origin.z + EI_P_ONE;
-        float mx = motion.x * EI_FUNNEL_LEAN;
-        float my = motion.y * EI_FUNNEL_LEAN;
-        float mz = motion.z * EI_FUNNEL_LEAN;
-        const ParticleElement& b0 = elements[0];
-        float sx = mx + b0.pos.x;
-        float sy = my + b0.pos.y;
-        float sz = mz + b0.pos.z;
-        float ax = sx * EI_FUNNEL_BACK;
-        float ay = sy * EI_FUNNEL_BACK;
-        float az = sz * EI_FUNNEL_BACK;
-        Vector3 n = {ax, ay, az};
-        float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ax, ay, az));
+        Vector3 n = (motion * EI_FUNNEL_LEAN + elements[0].pos) * EI_FUNNEL_BACK;
+        float length = std::sqrt(LengthSquared(n));
         EI_NAN_AUDIT(length);
-        if (length != 0.0f) {
-            float inverse = EI_P_ONE / length;
-            n.x = ax * inverse;
-            n.y = ay * inverse;
-            n.z = az * inverse;
-        }
+        if (length != 0.0f) n *= EI_P_ONE / length;
         float lean = length * EI_FUNNEL_HALF;
         if (lean > EI_FUNNEL_MAX_LEAN) lean = EI_FUNNEL_MAX_LEAN;
-        Vector3 d;
-        d = n * lean;
-        const ParticleElement& b1 = elements[0];
-        float gx = d.x + b1.pos.x;
-        float gy = d.y + b1.pos.y;
-        float gz = d.z + b1.pos.z;
+        Vector3 g = n * lean + elements[0].pos;
         for (int i = 0; i < std::ssize(elements); ++i) {
             float f = static_cast<float>(i) / static_cast<float>(std::ssize(elements) - 1);
             float c = std::cos(f * EI_FUNNEL_PI);
             float k = (c + (EI_P_ONE - f) * elements[0].funnel.bend + EI_FUNNEL_ONE) * EI_FUNNEL_BEND;
-            ParticleElement& ring = elements[i];
-            float x = gx * k;
-            float y = gy * k;
-            float z = gz * k;
-            ring.pos = {x, y, z};
+            elements[i].pos = g * k;
         }
     }
     if (!attachedTo) {
@@ -2385,20 +2102,10 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     p->frame = 1;
     p->state = -1;
     float u = WordToFloat(Next()) * EI_P_SCALE_1 - EI_P_ONE;
-    float a = u * step.x;
-    float b = u * step.y;
-    float c = u * step.z;
-    p->velocity.x = a + e.pos.x;
-    p->velocity.y = b + e.pos.y;
-    p->velocity.z = c + e.pos.z;
-    std::memcpy(&p->aux0, &step, sizeof(Vector3));
-    float px = p->velocity.x + origin.x;
-    float py = origin.y + p->velocity.y;
-    float pz = origin.z + p->velocity.z;
+    p->velocity = u * step + e.pos;
+    p->aux = step;
     p->size = 0.1f;     // 0.1
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = p->velocity + origin;
     return 1;
 }
 
@@ -2414,41 +2121,25 @@ int ParticleSource::UpdateCylinder(Particle* p) {
         }
         const ParticleElement& e = elements[state];
         p->color = (static_cast<std::uint32_t>(kCylinderAlpha[e.ticks]) << 24) | 0xFFFFFF;
-        float px = origin.x + e.pos.x;
-        float py = origin.y + e.pos.y;
-        float pz = origin.z + e.pos.z;
         p->size = 0.3f;     // 0.3
-        p->pos.y = py;
-        p->pos.x = px;
-        p->pos.z = pz;
+        p->pos = origin + e.pos;
         return 1;
     }
     ++p->frame;
     int life = --p->life;
     if (life <= 0) return 0;
     p->color = (static_cast<std::uint32_t>(kCylinderAlpha[life]) << 24) | 0xFFFFFF;
-    float* step = &p->aux0;
-    p->velocity.x = p->velocity.x + step[0];
-    p->velocity.y = step[1] + p->velocity.y;
-    p->velocity.z = step[2] + p->velocity.z;
-    float k = elements[0].star.orbit / std::sqrt(LengthSquared2DUnrounded(p->velocity.x, p->velocity.y));
+    Vector3& step = p->aux;
+    p->velocity += step;
+    float k = elements[0].star.orbit / std::sqrt(LengthSquared2D(p->velocity.x, p->velocity.y));
     float kx = k * p->velocity.x;
     p->velocity.x = kx;
     float ky = k * p->velocity.y;
     p->velocity.y = ky;
-    float reach =
-        std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(step[0], step[1], step[2])) * elements[0].star.inverseOrbit;
-    step[0] = ky * reach * EI_CYL_SPARK_PULL;
-    step[1] = -kx * reach * EI_CYL_SPARK_PULL;
-    step[2] = step[2] * EI_CYL_SPARK_PULL;
-    float oldSize = p->size;
-    float px = p->velocity.x + origin.x;
-    float py = p->velocity.y + origin.y;
-    float pz = p->velocity.z + origin.z;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
-    p->size = oldSize * EI_CYL_SPARK_SHRINK;
+    float reach = std::sqrt(LengthSquared(step)) * elements[0].star.inverseOrbit;
+    step = Vector3{ky * reach, -kx * reach, step.z} * EI_CYL_SPARK_PULL;
+    p->pos = p->velocity + origin;
+    p->size *= EI_CYL_SPARK_SHRINK;
     return 1;
 }
 
@@ -2466,16 +2157,13 @@ void ParticleSource::TickCylinder(ParticleElement* e) {
         return;
     }
     float* rotation = e->star.rotation;
-    float nx = Dot2DUnrounded(rotation[1], rotation[0], e->pos.y, e->pos.x);
+    float nx = Dot2D(rotation[1], rotation[0], e->pos.y, e->pos.x);
     float ny = rotation[0] * e->pos.y - rotation[1] * e->pos.x;
-    float* rise = &e->star.rise;
-    float nz = e->pos.z + (*rise);
-    Vector3& step = e->star.step;
-    step.x = nx - e->pos.x;
-    step.y = ny - e->pos.y;
-    step.z = nz - e->pos.z;
-    *rise = (*rise) * EI_CYL_RISE_UP;
-    e->pos = {nx, ny, nz};
+    float& rise = e->star.rise;
+    Vector3 next = {nx, ny, e->pos.z + rise};
+    e->star.step = next - e->pos;
+    rise *= EI_CYL_RISE_UP;
+    e->pos = next;
     float twist = EI_CYL_PI * EI_CYL_TWIST;
     if (ParticleTypeOf(type) == ParticleType::Cylinder2) twist = -twist;
     float c = std::cos(twist);
@@ -2519,12 +2207,7 @@ int ParticleSource::EmitFireBall(Particle* p, int index) {
         p->velocity = {};
         return 1;
     }
-    float ax = t * motion.x;
-    float ay = t * motion.y;
-    float az = t * motion.z;
-    p->pos.x = ax + p->pos.x;
-    p->pos.y = ay + p->pos.y;
-    p->pos.z = az + p->pos.z;
+    p->pos += t * motion;
     float high = halfRounded + spreadMax.x;
     float low = spreadMin.x - halfRounded;
     SideVelocity(this, p, low, high);
@@ -2547,7 +2230,7 @@ int ParticleSource::UpdateFireBall(Particle* p) {
     }
     p->size = growth * p->size;
     if (p->state != 0) {
-        p->size = p->size * EI_TRAIL_HALF;
+        p->size *= EI_TRAIL_HALF;
         p->state = 0;
     } else {
         p->pos -= p->velocity;
@@ -2585,12 +2268,7 @@ int ParticleSource::EmitArrowSmoke(Particle* p, int index) {
         p->velocity = {};
         return 1;
     }
-    float ax = t * motion.x;
-    float ay = t * motion.y;
-    float az = t * motion.z;
-    p->pos.x = ax + p->pos.x;
-    p->pos.y = ay + p->pos.y;
-    p->pos.z = az + p->pos.z;
+    p->pos += t * motion;
     SideVelocity(this, p, spreadMin.x, spreadMax.x);
     AddUp(this, p, Between(spreadMin.y, spreadMax.y));
     if (p->state == 0) {
@@ -2720,9 +2398,9 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     p->pos.y = y + origin.y;
     p->pos.z = origin.z;
     p->size = 0.0f;
-    p->aux1 = y;
-    p->aux2 = (EI_PORTAL_TWO - spread) * EI_PORTAL_SHRINK;
-    p->aux0 = x;
+    p->aux.y = y;
+    p->aux.z = (EI_PORTAL_TWO - spread) * EI_PORTAL_SHRINK;
+    p->aux.x = x;
     float spin = radius / EI_PORTAL_RADIUS * EI_PORTAL_SPIN;
     if (WordToFloat(Next()) * EI_P_SCALE_1 > spread) {
         p->frame = static_cast<int>(Next() % 11) + 4;
@@ -2752,27 +2430,12 @@ int ParticleSource::EmitAcidRay(Particle* p, int) {
     float t = WordToFloat(r) * EI_P_SCALE_1 - EI_P_ONE;
     p->frame = static_cast<int>(Next() & 1);
     if (distance > EI_TRAIL_MOVING) {
-        float ax = t * motion.x;
-        float ay = t * motion.y;
-        float az = t * motion.z;
-        float px = ax + p->pos.x;
-        p->pos.x = px;
-        float py = ay + p->pos.y;
-        p->pos.y = py;
-        float pz = az + p->pos.z;
-        p->drift.y = py;
-        p->pos.z = pz;
-        p->drift.z = pz;
-        p->drift.x = px;
+        p->pos += t * motion;
+        p->drift = p->pos;
         float q = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
         p->velocity = q * side;
         float q2 = WordToFloat(Next()) * EI_P_SCALE_2 - EI_P_ONE;
-        float a = q2 * up.x;
-        float b = q2 * up.y;
-        float c = q2 * up.z;
-        p->velocity.x = a + p->velocity.x;
-        p->velocity.y = b + p->velocity.y;
-        p->velocity.z = c + p->velocity.z;
+        p->velocity += q2 * up;
     } else {
         p->velocity = {};
         p->drift = origin;
@@ -2789,21 +2452,8 @@ int ParticleSource::EmitAcidRay(Particle* p, int) {
 int ParticleSource::UpdateAcidRay(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
-    float wideSize = size;
-    float sx = wideSize * p->velocity.x;
-    float sy = wideSize * p->velocity.y;
-    float sz = wideSize * p->velocity.z;
-    float k = kAcidSpread[lifetime - life];
-    float ax = sx * k;
-    float ay = sy * k;
-    float az = sz * k;
-    float px = ax + p->drift.x;
-    float py = ay + p->drift.y;
-    float pz = az + p->drift.z;
-    p->pos.y = py;
+    PlaceAcid(this, p, lifetime - life, p->pos);
     p->size = 1.0f;
-    p->pos.x = px;
-    p->pos.z = pz;
     p->size = kAcidSize[lifetime - life] * size;
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) return 0;
@@ -2829,33 +2479,15 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     flags &= ~ParticleSourceFlag::Emitting;
     p->color = 0xFFFFFFFF;
     float speed = WordToFloat(Next()) * 1.3969838e-10f + 0.8f;
-    float x, y, z;
+    Vector3 v;
     float lengthSquared;
-    for (int tries = 10;;) {
-        x = SignedUnit();
-        y = g_clientRandom.Range(-1.0f, 1.0f);
-        float zu = g_clientRandom.Range(-1.0f, 1.0f);
-        z = zu;
-        lengthSquared = zu * z + y * y + x * x;
-        if (lengthSquared < EI_P_ONE) break;   // random: never NaN
-        if (!(--tries > 0)) break;
-    }
-    float length = std::sqrt(lengthSquared);
-    Vector3 v = {x, y, z};
-    Vector3 direction = v / length;
+    v = RandomInBall(lengthSquared);
+    Vector3 direction = v / std::sqrt(lengthSquared);
     float k = speed * size * speed * 0.2f;
     p->drift = direction * k;
     float t = WordToFloat(Next()) * EI_P_SCALE_1;
-    float a = t * p->drift.x;
-    float b = t * p->drift.y;
-    float c = t * p->drift.z;
-    float px = a + origin.x;
-    float py = b + origin.y;
-    float pz = c + origin.z;
     p->size = 1.0f;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = t * p->drift + origin;
     p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     0.2f;
     p->life = 6;
@@ -2887,21 +2519,13 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
     const ParticleElement& e = elements[j];
     const Vector3& previous = e.clay.previous;
     float u = EI_P_ONE - t;
-    float a = u * previous.x;
-    float b = u * previous.y;
-    float c = u * previous.z;
-    float d = t * e.pos.x;
-    float f = t * e.pos.y;
-    float g = t * e.pos.z;
-    p->velocity.x = d + a;
-    p->velocity.y = f + b;
-    p->velocity.z = g + c;
+    p->velocity = t * e.pos + u * previous;
     float sx = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
     float sy = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
     float sz = WordToFloat(Next()) * EI_CLAY_SCATTER_SCALE - EI_CLAY_SCATTER_LOW;
-    p->aux0 = sy;
-    p->aux1 = sx;
-    p->aux2 = sz;
+    p->aux.x = sy;
+    p->aux.y = sx;
+    p->aux.z = sz;
     std::memcpy(&p->pos, &previous, sizeof(Vector3));
     p->size = 0.1f;     // 0.1
     return 1;
@@ -2921,15 +2545,9 @@ int ParticleSource::UpdateClayRing(Particle* p) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
     }
-    float* scatter = &p->aux0;
-    for (int i = 0; i < 3; ++i) scatter[i] = scatter[i] * EI_CLAY_SLOW;
+    p->aux *= EI_CLAY_SLOW;
     float oldSize = p->size;
-    float px = p->velocity.x + scatter[0];
-    float py = p->velocity.y + scatter[1];
-    float pz = p->velocity.z + scatter[2];
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
+    p->pos = p->velocity + p->aux;
     std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
     if (a < 0) a = 0;
     p->size = oldSize * EI_CLAY_SLOW;
@@ -2949,18 +2567,8 @@ void ParticleSource::TickClayRing(ParticleElement* e) {
     Vector3& previous = e->clay.previous;
     e->clay.previous = e->pos;
     Vector3& direction = e->clay.direction;
-    float s = size;
-    float a = s * direction.x;
-    float b = s * direction.y;
-    float c = s * direction.z;
     float k = size >= 0.0f ? ClayReachBackwards(t) : kClayReach[t];
-    float ka = a * k;
-    float kb = b * k;
-    float kc = c * k;
-    float px = ka + origin.x;
-    float py = kb + origin.y;
-    float pz = kc + origin.z;
-    e->pos = {px, py, pz};
+    e->pos = size * direction * k + origin;
     e->pos.z = GroundHeight(e->pos.x, e->pos.y) + EI_P_ONE;
     float turnedX = direction.y * EI_CLAY_COS - direction.x * EI_CLAY_SIN;
     float turnedY = direction.x * EI_CLAY_COS + direction.y * EI_CLAY_SIN;
@@ -3139,18 +2747,8 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
     target = origin;
     if (attachedTo) {
         const Object3D* carrier = attachedTo;
-        const Quaternion& turn = carrier->localRotation;
-        float w = turn.w, x = turn.x, y = turn.y, z = turn.z;
-        float xx = x * x;
-        float axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
-        float axisY = Dot2DUnrounded(x, z, y, w) * 2.0f;   // (xy + zw) * 2
-        float axisZ = (x * z - y * w) * 2.0f;
         float scale = carrier->bounds.radius * p->velocity.x * 0.65f;
-        float offsetY = axisY * scale;
-        float offsetZ = axisZ * scale;
-        target.x = axisX * scale + target.x;
-        target.y = offsetY + target.y;
-        target.z = offsetZ + target.z;
+        target += carrier->localRotation.AxisX() * scale;
     }
     p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                     0.25f;                       // (0.8 + [0, 0.4)) * size / 4
@@ -3229,14 +2827,14 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
 }
 
 // ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05
-// per tick, aux0 slowing by 0.9, cycling through four frames, sized by velocity.x.
+// per tick, aux.x slowing by 0.9, cycling through four frames, sized by velocity.x.
 int ParticleSource::UpdateZoneExit(Particle* p) {
     int life = p->life;
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ByLife(kZoneExitAlpha, life, 255)) << 24);
     p->life = --life;
     if (life < 0) return 0;
-    p->pos.z = p->pos.z + 0.05f;
-    p->aux0 = p->aux0 * 0.9f;
+    p->pos.z += 0.05f;
+    p->aux.x *= 0.9f;
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     p->size = p->velocity.x;
     return 1;
@@ -3246,11 +2844,11 @@ int ParticleSource::UpdateZoneExit(Particle* p) {
 
 // FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset
 // (velocity) is taken off, turned by 0.07 radians and grown by 1.1, then put back with a rise of
-// 0.05. The size is aux2 (growing by 1.04 per tick), the frame cycles through 16.
+// 0.05. The size is aux.z (growing by 1.04 per tick), the frame cycles through 16.
 int ParticleSource::UpdateFeebleMind(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
-    float nextSize = p->aux2;
+    float nextSize = p->aux.z;
     p->color = (static_cast<std::uint32_t>(kFeebleAlpha[life]) << 24) | 0xFFFFFF;
     int frame = (p->frame + 1) & 15;
     p->pos -= p->velocity;
@@ -3261,20 +2859,18 @@ int ParticleSource::UpdateFeebleMind(Particle* p) {
     float grow = 1.1f;
     p->velocity.x = turnedX * grow;
     p->velocity.y = turnedY * grow;
-    p->pos.x = p->velocity.x + p->pos.x;
-    p->pos.y = p->velocity.y + p->pos.y;
-    float z = p->velocity.z + p->pos.z;
+    p->pos += p->velocity;
     p->size = nextSize;
     p->frame = frame;
-    p->pos.z = z + 0.05f;
-    p->aux2 = p->aux2 * 1.04f;
+    p->pos.z += 0.05f;
+    p->aux.z *= 1.04f;
     return 1;
 }
 
 // --- FeetCloud (0x2047): puffs at the carrier's feet; the emission is EmitFeetCloud --------------
 
 // FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting or loses its carrier;
-// dropped past 0), the source's lifetime as the colour. The puff's offset (aux0..aux2) grows by its speed
+// dropped past 0), the source's lifetime as the colour. The puff's offset (aux) grows by its speed
 // (drift, slowing by 0.9) and the puff eases (velocity.y of the way, which shrinks by 0.98) towards its foot
 // (element `state`) plus the offset; its size is velocity.x (shrinking by 0.8).
 int ParticleSource::UpdateFeetCloud(Particle* p) {
@@ -3285,31 +2881,13 @@ int ParticleSource::UpdateFeetCloud(Particle* p) {
         p->life = life;
     }
     p->color = (static_cast<std::uint32_t>(kFeetAlpha[life]) << 24) + static_cast<std::uint32_t>(lifetime);
-    float* offset = &p->aux0;
-    offset[0] = p->drift.x + offset[0];
-    offset[1] = p->drift.y + offset[1];
-    offset[2] = p->drift.z + offset[2];
-    float oldY = p->pos.y, oldZ = p->pos.z;
-    float oldX = p->pos.x;
+    p->aux += p->drift;
     float pull = p->velocity.y;
-    const ParticleElement& foot = elements[p->state];
-    float targetX = offset[0] + foot.pos.x;
-    float targetY = offset[1] + foot.pos.y;
-    float targetZ = offset[2] + foot.pos.z;
-    float towardX = targetX * pull;
-    float towardY = targetY * pull;
-    float towardZ = targetZ * pull;
-    float keep = EI_P_ONE - pull;
-    float keepF = keep;
-    float x = oldX * keep + towardX;
-    float keptY = keepF * oldY;
-    float keptZ = keepF * oldZ;
-    p->pos.y = keptY + towardY;
+    Vector3 toward = (p->aux + elements[p->state].pos) * pull;
+    p->pos = p->pos * (EI_P_ONE - pull) + toward;
     p->size = p->velocity.x;
-    p->pos.x = x;
-    p->pos.z = keptZ + towardZ;
-    p->velocity.x = p->velocity.x * 0.8f;
-    p->velocity.y = p->velocity.y * 0.98f;
+    p->velocity.x *= 0.8f;
+    p->velocity.y *= 0.98f;
     float slow = 0.9f;
     p->drift *= slow;
     return 1;
@@ -3340,7 +2918,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
 // --- Silence (0x2048) ----------------------------------------------------------------------------
 
 // Silence: the first two particles are orbs at the source (state 1) circling in step
-// (velocity.x the angle, velocity.y its step; aux0 the tilt, aux1 its step; the second starts at pi).
+// (velocity.x the angle, velocity.y its step; aux.x the tilt, aux.y its step; the second starts at pi).
 // Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a
 // random direction (inside the unit ball, normalised) by 0.8 of the orb's size.
 int ParticleSource::EmitSilence(Particle* p, int) {
@@ -3351,10 +2929,10 @@ int ParticleSource::EmitSilence(Particle* p, int) {
         p->size = 0.0f;
         float start = !particles.empty() ? 0.0f : 3.1416f;    // 0 / pi
         p->velocity.x = start;
-        p->aux0 = start;
+        p->aux.x = start;
         p->velocity.y = 0.1f;     // 0.1
-        p->aux1 = 0.12f;     // 0.12
-        p->aux2 = 1.0f;
+        p->aux.y = 0.12f;     // 0.12
+        p->aux.z = 1.0f;
         p->state = 1;
         return 1;
     }
@@ -3362,32 +2940,10 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     if (Next() & 1) ++node;
     const Particle* orb = *node;
     float t = WordToFloat(Next()) * EI_P_SCALE_1;
-    float startX = orb->pos.x - t * orb->drift.x;
-    float startY = orb->pos.y - t * orb->drift.y;
-    float startZ = orb->pos.z - t * orb->drift.z;
-    float x, y, z;
-    for (int tries = 10;;) {
-        x = SignedUnit();
-        y = g_clientRandom.Range(-1.0f, 1.0f);
-        float zu = g_clientRandom.Range(-1.0f, 1.0f);
-        z = zu;
-        if (zu * z + y * y + x * x < EI_P_ONE) break;   // random: never NaN
-        if (!(--tries > 0)) break;
-    }
-    Vector3 v = {x, y, z};
-    float s = orb->size;
-    float a = v.x * s;
-    float b = v.y * s;
-    float c = s * v.z;
+    Vector3 start = orb->pos - t * orb->drift;
+    Vector3 v = RandomInBall();
     p->size = 0.0f;
-    float k = 0.8f;
-    float a8 = a * k;
-    float b8 = b * k;
-    float c8 = c * k;
-    p->pos.x = a8 + startX;
-    float y8 = b8 + startY;
-    p->pos.z = c8 + startZ;
-    p->pos.y = y8;
+    p->pos = v * orb->size * 0.8f + start;
     p->velocity.x = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                           0.08f;    // (0.8 + [0, 0.4)) * size * 0.08
     p->color = 0xFFFFFFFF;
@@ -3399,7 +2955,7 @@ int ParticleSource::EmitSilence(Particle* p, int) {
 
 // Silence: once the source stops emitting (or loses its carrier) the orbs
 // shrink the source by 0.85 per tick, everything going below 0.02. An orb circles the source on a
-// tilted circle (radius: half the carrier's, kept in aux2), half a radius up, keeping its step in
+// tilted circle (radius: half the carrier's, kept in aux.z), half a radius up, keeping its step in
 // drift and flickering in size. A wisp shows velocity.x (shrinking by 0.8) for its life.
 int ParticleSource::UpdateSilence(Particle* p) {
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
@@ -3422,38 +2978,25 @@ int ParticleSource::UpdateSilence(Particle* p) {
         return 1;
     }
     float radius;
-    float* kept = &p->aux2;
+    float& kept = p->aux.z;
     if (attachedTo) {
         radius = attachedTo->bounds.radius *
                  0.5f;
-        *kept = radius;
+        kept = radius;
     } else {
-        radius = *kept;
+        radius = kept;
     }
     float c = std::cos(p->velocity.x);
     p->color = 0xFFFFFFFF;
     float sn = std::sin(p->velocity.x);
-    float hu = std::sin(p->aux0) * 0.5f;
-    float h = hu;
-    float length = std::sqrt(hu * h + sn * sn + c * c);
-    float ku = radius / length;
-    float k = ku;
-    float cx = c * ku;
-    float sy = k * sn;
-    float sz = k * h;
-    float nx = cx + origin.x;
-    float ny = sy + origin.y;
-    float nz = sz + origin.z;
-    float z = radius * 0.5f + nz;
+    Vector3 circle = {c, sn, std::sin(p->aux.x) * 0.5f};
+    Vector3 next = circle * (radius / std::sqrt(LengthSquared(circle))) + origin;
+    next.z = radius * 0.5f + next.z;
     p->size = 1.0f;
-    p->drift.x = nx - p->pos.x;
-    p->pos.x = nx;
-    p->drift.y = ny - p->pos.y;
-    p->pos.y = ny;
-    p->drift.z = z - p->pos.z;
-    p->pos.z = z;
+    p->drift = next - p->pos;
+    p->pos = next;
     p->velocity.x = p->velocity.y + p->velocity.x;
-    p->aux0 = p->aux1 + p->aux0;
+    p->aux.x = p->aux.y + p->aux.x;
     p->size = (WordToFloat(Next()) * 4.656614e-11f + 0.9f) * size *
                     0.22f;    // (0.9 + [0, 0.2)) * size * 0.22
     return 1;
@@ -3464,7 +3007,7 @@ int ParticleSource::UpdateSilence(Particle* p) {
 // Modifier: the first twelve frames are the marker riding its element (state), its size
 // shrinking (negative source size) or growing, alpha by the element's tick. Later frames are
 // sparks stepping through the frames (back to 12 past the last), flying out by velocity plus their
-// spread (aux0..aux2, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
+// spread (aux, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
 int ParticleSource::UpdateModifier(Particle* p) {
     if (--p->life == 0) return 0;
     if (p->frame < 12) {
@@ -3486,16 +3029,10 @@ int ParticleSource::UpdateModifier(Particle* p) {
         if (++p->frame >= frameCount) p->frame = 12;
         p->frameTimer = frameDelay;
     }
-    float* spread = &p->aux0;
     float slow = 0.9f;
-    for (int i = 0; i < 3; ++i) spread[i] = spread[i] * slow;
+    p->aux *= slow;
     float oldSize = p->size;
-    float x = spread[0] + p->velocity.x;
-    float y = spread[1] + p->velocity.y;
-    float z = spread[2] + p->velocity.z;
-    p->pos.y = y;
-    p->pos.x = x;
-    p->pos.z = z;
+    p->pos = p->aux + p->velocity;
     std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
     if (a < 0) a = 0;
     p->size = oldSize * slow;
@@ -3513,20 +3050,16 @@ void ParticleSource::TickModifier(ParticleElement* e) {
         return;
     }
     e->ring.start = e->pos;
-    float* offset = &e->ring.offset.x;
-    e->pos.x = offset[0] + origin.x;
-    e->pos.y = offset[1] + origin.y;
-    e->pos.z = offset[2] + origin.z;
+    e->pos = e->ring.offset + origin;
     e->pos.z = spreadMin.x + e->pos.z;
-    float k = size >= EI_P_ZERO ? 0.71428573f : 1.4f;    // 1 / 1.4, 1.4
-    for (int i = 0; i < 3; ++i) offset[i] = k * offset[i];
+    e->ring.offset *= size >= EI_P_ZERO ? 0.71428573f : 1.4f;    // 1 / 1.4, 1.4
 }
 
 // --- LightningBlast (0x2030): update and element tick ------------------------------------------------
 
 // LightningBlast: bolts (state n) ride element n-1; a flash (state and frameTimer set) shows once (and makes
 // the source emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22,
-// a quirk kept), size aux0 (shrinking by 0.9); with frameTimer set they jump to velocity and step a frame,
+// a quirk kept), size aux.x (shrinking by 0.9); with frameTimer set they jump to velocity and step a frame,
 // else cycle four frames flying by drift (slowing by 0.6).
 int ParticleSource::UpdateLightning(Particle* p) {
     int life = --p->life;
@@ -3535,31 +3068,29 @@ int ParticleSource::UpdateLightning(Particle* p) {
         if (p->frameTimer != 0) {
             if (IsZero(p->size)) {
                 emitCount = 50;
-                p->size = p->aux0;
+                p->size = p->aux.x;
                 return 1;
             }
             p->size = 0.0f;
             return 0;
         }
         p->pos = elements[p->state - 1].pos;
-        p->size = p->aux0;
+        p->size = p->aux.x;
         return 1;
     }
     p->color = (static_cast<std::uint32_t>(kLightningAlpha[life]) << 22) | 0xFFFFFF;
     if (p->frameTimer != 0) {
-        float shrunk = p->aux0 * 0.9f;
+        float shrunk = p->aux.x * 0.9f;
         ++p->frame;
         p->pos = p->velocity;
-        p->size = p->aux0;
-        p->aux0 = shrunk;
+        p->size = p->aux.x;
+        p->aux.x = shrunk;
         return 1;
     }
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
-    p->pos.x = p->drift.x + p->pos.x;
-    p->pos.y = p->drift.y + p->pos.y;
-    p->size = p->aux0;
-    p->pos.z = p->drift.z + p->pos.z;
-    p->aux0 = p->aux0 * 0.9f;
+    p->pos += p->drift;
+    p->size = p->aux.x;
+    p->aux.x *= 0.9f;
     float slow = 0.6f;
     p->drift *= slow;
     return 1;
@@ -3571,11 +3102,8 @@ void ParticleSource::TickLightning(ParticleElement* e) {
     emitCount = 50;
     int tick = ++e->ticks;
     e->bolt.base = e->pos;
-    const Vector3& speed = e->bolt.fork;
-    e->pos.x = speed.x + e->pos.x;
-    e->pos.y = speed.y + e->pos.y;
-    e->pos.z = speed.z + e->pos.z;
-    e->bolt.fork.z = speed.z - 0.075f;
+    e->pos += e->bolt.fork;
+    e->bolt.fork.z -= 0.075f;
     if (tick >= 10) flags &= ~ParticleSourceFlag::Emitting;
 }
 
@@ -3604,7 +3132,7 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     p->size = 0.0f;
     p->pos.z = (WordToFloat(Next()) * 4.656613e-11f - 0.4f) * magnitude +
                      p->pos.z;    // [-0.4, -0.2) * |size|
-    p->aux0 = (2.0f - spread) * 0.2f;    // (2 - spread) / 5
+    p->aux.x = (2.0f - spread) * 0.2f;    // (2 - spread) / 5
     if (WordToFloat(Next()) * EI_P_SCALE_1 > spread) {
         p->frame = static_cast<int>(Next() % 12) + 4;
     } else {
@@ -3626,7 +3154,7 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
 }
 
 // Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (velocity.z) is redone scaled
-// by velocity.x; shown at size aux0 (hidden in the last tick); alpha moves by the state per tick, an
+// by velocity.x; shown at size aux.x (hidden in the last tick); alpha moves by the state per tick, an
 // unsigned sum capped at 255 (a quirk kept: a fade out below 19 jumps back to 255).
 int ParticleSource::UpdateTeleport(Particle* p) {
     int life = --p->life;
@@ -3636,14 +3164,14 @@ int ParticleSource::UpdateTeleport(Particle* p) {
         if (p->frame == 16) p->frame = 4;
         p->frameTimer = frameDelay;
     }
-    p->pos.z = p->pos.z - p->velocity.z;
+    p->pos.z -= p->velocity.z;
     float step = p->velocity.x * p->velocity.z;
     p->velocity.z = step;
     p->pos.z = step + p->pos.z;
     if (life == 1) {
         p->size = 0.0f;
     } else {
-        p->size = p->aux0;
+        p->size = p->aux.x;
     }
     std::uint32_t a = (p->color >> 24) + static_cast<std::uint32_t>(p->state);
     if (a >= 0xFF) a = 0xFF;
@@ -3662,32 +3190,13 @@ void ParticleSource::TickTeleport(ParticleElement* e) {
 int ParticleSource::EmitCurseStars(Particle* p, int) {
     p->color = 0xFFFFFF;
     p->frame = static_cast<int>(Next() & 15);
-    float x, y, z;
-    float unused;
-    RandomInBall(x, y, z, unused);
-    Vector3 v = {x, y, z};
-    float s = size;
-    float a = v.x * s;
-    float b = v.y * s;
-    float c = s * v.z;
-    float px = a + origin.x;
-    float py = b + origin.y;
-    float pz = c + origin.z;
+    Vector3 a = RandomInBall() * size;
     p->size = 0.0f;
-    p->pos.y = py;
-    p->pos.x = px;
-    p->pos.z = pz;
-    float length = std::sqrt(c * c + b * b + a * a);
-    float lengthF = length;
+    p->pos = a + origin;
+    float length = std::sqrt(LengthSquared(a));
     p->life = 20;
     if (length > EI_P_ZERO) {
-        float k = size * 0.1f;
-        float ak = a * k;
-        float bk = b * k;
-        float ck = c * k;
-        p->drift.x = ak / lengthF;
-        p->drift.y = bk / lengthF;
-        p->drift.z = ck / lengthF;
+        p->drift = a * (size * 0.1f) / length;
     } else {
         p->drift = {};
     }
@@ -3710,7 +3219,7 @@ int ParticleSource::UpdateCurseStars(Particle* p) {
         p->size = (WordToFloat(Next()) * 9.3132266e-11f + 0.8f) * size *
                         0.04f;
     } else {
-        p->size = p->size * 0.95f;
+        p->size *= 0.95f;
     }
     p->pos += p->drift;
     float slow = 0.9f;
@@ -3734,28 +3243,12 @@ int ParticleSource::EmitStartTrans(Particle* p, int) {
         p->life = 15;
         p->state = 0;
         p->frame = static_cast<int>(Next() % 12);
-        float x, y, z;
         float lengthSquared;
-        RandomInBall(x, y, z, lengthSquared);
-        float length = std::sqrt(lengthSquared);
-        Vector3 v = {x, y, z};
-        Vector3 direction = v / length;
-        float s = size;
-        p->velocity = direction * s;
-        float px = p->velocity.x + origin.x;
-        float py = p->velocity.y + origin.y;
-        float pz = p->velocity.z + origin.z;
-        p->pos.y = py;
-        p->pos.x = px;
-        p->pos.z = pz;
-        float ticks = static_cast<float>(p->life + 3);
-        float nx = -p->velocity.x;
-        float ny = -p->velocity.y;
-        float nz = -p->velocity.z;
-        p->drift.x = nx / ticks;
-        p->drift.y = ny / ticks;
-        p->drift.z = nz / ticks;
-        p->aux0 = size * 0.05f;
+        Vector3 v = RandomInBall(lengthSquared);
+        p->velocity = v / std::sqrt(lengthSquared) * size;
+        p->pos = p->velocity + origin;
+        p->drift = -p->velocity / static_cast<float>(p->life + 3);
+        p->aux.x = size * 0.05f;
     }
     p->color = 0xFFFFFF;
     p->size = 0.0f;
@@ -3763,7 +3256,7 @@ int ParticleSource::EmitStartTrans(Particle* p, int) {
 }
 
 // StartTrans: the glow flickers at trans.scale while carried, then fades (by the
-// life table, size times 0.6); the others come in, cycling four frames at size aux0, fading out over
+// life table, size times 0.6); the others come in, cycling four frames at size aux.x, fading out over
 // their last ticks (capped at 4 once the carrier is gone).
 int ParticleSource::UpdateStartTrans(Particle* p) {
     if (p->state != 0) {
@@ -3771,7 +3264,7 @@ int ParticleSource::UpdateStartTrans(Particle* p) {
             int life = --p->life;
             if (life < 0) return 0;
             p->color = (static_cast<std::uint32_t>(kTransAlpha[life]) << 24) | 0xFFFFFF;
-            p->size = p->size * 0.6f;
+            p->size *= 0.6f;
             return 1;
         }
         p->color = 0xFFFFFFFF;
@@ -3786,10 +3279,8 @@ int ParticleSource::UpdateStartTrans(Particle* p) {
         p->life = life;
     }
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
-    p->pos.x = p->drift.x + p->pos.x;
-    p->pos.y = p->drift.y + p->pos.y;
-    p->size = p->aux0;
-    p->pos.z = p->drift.z + p->pos.z;
+    p->pos += p->drift;
+    p->size = p->aux.x;
     p->color = (static_cast<std::uint32_t>(kTransAlpha[p->life]) << 24) | 0xFFFFFF;
     return 1;
 }
@@ -3867,9 +3358,9 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
     p->frame = 15;
     p->velocity.y = b;
     p->velocity.z = 0.0f;
-    p->aux0 = 0.07f;     // 0.07
+    p->aux.x = 0.07f;     // 0.07
     p->color = elements[0].plane.color;
-    p->aux1 = 1.0f;
+    p->aux.y = 1.0f;
     return 1;
 }
 
@@ -3883,10 +3374,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     Object3D* unit = attachedTo;
     if (std::ssize(elements) == 0) {
         elements.resize(1);
-        Vector3& mark = elements[0].glow.mark;
-        mark.x = -1.0f;
-        mark.y = -1.0f;
-        mark.z = -1.0f;
+        elements[0].glow.mark = {-1.0f, -1.0f, -1.0f};
         EI_NAN_AUDIT(alpha);
         if (alpha == 0.0f) {
             elements[0].glow.color = 0xB0B0B0;
@@ -3902,11 +3390,8 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     Vector3& mark = elements[0].glow.mark;
     if (Same(mark.x, point.x) && Same(mark.y, point.y) && Same(mark.z, point.z)) return 0;
     elements[0].glow.mark = point;
-    Vector3 under;
-    under.x = point.x;
-    under.y = point.y;
-    under.z = 0.0f;
-    float ground = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(point.x, point.y));
+    Vector3 under = {point.x, point.y, 0.0f};
+    float ground = g_clientWorld.RawSurfaceHeightAt(point.x, point.y);
     float top = g_clientWorld.platforms.SurfaceHeight(under, ground);
     p->pos.y = point.y;
     p->size = 0.07f;     // 0.07
@@ -3933,27 +3418,9 @@ int ParticleSource::EmitStun(Particle* p, int) {
     auto [offset, radius] = AttachmentOffset();
     p->color = 0xFFFFFF;
     p->frame = 3;
-    float x, y, z;
-    for (int tries = 10;;) {
-        x = SignedUnit();
-        y = SignedUnit();
-        float zu = g_clientRandom.Range(-1.0f, 1.0f);
-        z = zu;
-        if (zu * z + y * y + x * x < EI_P_ONE) break;   // random: never NaN
-        if (!(--tries > 0)) break;
-    }
-    Vector3 v = {x, y, z};
-    float k = radius * 0.8f;
-    float a = v.x * k;
-    float b = v.y * k;
-    float c = k * v.z;
-    float px = a + origin.x;
-    float py = b + origin.y;
-    float pz = c + origin.z;
+    Vector3 v = RandomInBall();
     p->size = 0.0f;
-    p->pos.y = py;
-    p->pos.z = pz;
-    p->pos.x = px;
+    p->pos = v * (radius * 0.8f) + origin;
     p->life = 20;
     p->velocity.x = WordToFloat(Next()) * 1.3969838e-10f + 0.7f;
     auto* unit = static_cast<Unit*>(attachedTo);   // the carrier is taken as a unit

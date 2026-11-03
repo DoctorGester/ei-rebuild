@@ -65,13 +65,6 @@ void Spec::Refresh() { Apply(); }
 
 void* Spec::WorldObject() { return g_clientWorld.objectManager->FindObject(id); }
 
-void Spec::Move(float dx, float dy, float dz) {
-    position.x = dx + position.x;
-    position.y = dy + position.y;
-    position.z = dz + position.z;
-    Apply();
-}
-
 ObjectSpec::ObjectSpec() {
     std::string none("none");
     kind = 1;
@@ -80,9 +73,7 @@ ObjectSpec::ObjectSpec() {
     texture = none;
     primaryTexture = none;
     player = -1;
-    scale.y = 0.5f;
-    scale.x = 0.5f;
-    scale.z = 0.5f;
+    scale = {0.5f, 0.5f, 0.5f};
     shadow = 0;
     visible = 1;
     side = 0;
@@ -383,16 +374,6 @@ void EffectSpec::SetVisible(std::uint8_t newVisible) {
     else flags |= 0x40;
 }
 
-void EffectSpec::Move(float dx, float dy, float dz) {
-    Vector3& p = position;
-    p.x = dx + p.x;
-    p.y = dy + p.y;
-    p.z = dz + p.z;
-    float ground = g_clientWorld.terrain->HeightAt(p.x, p.y, terrain::Layer::Ground);
-    if (ground > p.z) p.z = ground;
-    Apply();
-}
-
 // Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
 void EffectNotify(const std::string&, const std::string&) {}
 
@@ -443,12 +424,10 @@ void ParticleSpec::Apply() {
 }
 
 LightSpec::LightSpec() {
-    colour.x = 1.0f;
-    colour.y = 1.0f;
+    colour = {1.0f, 1.0f, 1.0f};
     shadows = 1;
     kind = 2;
     radius = 10.0f;
-    colour.z = 1.0f;
 }
 
 void LightSpec::Save() {

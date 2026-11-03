@@ -2,7 +2,6 @@
 
 #include "lib/caller.h"
 #include "lib/crt.h"
-#include "lib/pc24.h"
 #include <cstdint>
 #include <cstring>
 #include <random>
@@ -15,8 +14,7 @@ namespace {
 IsaacRandom::SeedHook g_seedHook;
 IsaacRandom::DrawObserver g_drawObserver;
 
-// The 2^-32 scale of Range. The original's double constant has its last bit set (2^-32 + 2^-64, sic), but times a
-// 24-bit product rounded to 24 bits that bit never shows.
+// The 2^-32 scale of Range.
 constexpr float kRangeScale = 0x1p-32f;
 
 // The reference ISAAC mix of the eight randinit words.
@@ -62,9 +60,7 @@ std::uint32_t IsaacRandom::Next() {
 }
 
 float IsaacRandom::Range(float min, float max) {
-    // The draw (a 32-bit integer) times the range, rounded once to a float as the original's multiply at 24-bit
-    // precision; the scale is exact (in the normal float range); the sum is the float sum.
-    return pc24::Mul(max - min, static_cast<double>(Next())) * kRangeScale + min;
+    return ((max - min) * static_cast<float>(Next())) * kRangeScale + min;
 }
 
 void IsaacRandom::Refill() {

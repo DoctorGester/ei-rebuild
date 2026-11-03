@@ -12,7 +12,6 @@
 #include <string>
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "save_versions.h"
 
 #include <memory>
@@ -27,8 +26,8 @@ bool ZoneExit::Contains(float x, float y) const {
     }
     const float centerX = (x2 + x1) * 0.5f;
     const float centerY = (y2 + y1) * 0.5f;
-    const float c = pc24::Round(pc24::Cos(angle));
-    const float s = pc24::Round(pc24::Sin(angle));
+    const float c = std::cos(angle);
+    const float s = std::sin(angle);
     const float dy = y - centerY;
     const float dx = x - centerX;
     const float turnedX = dx * c + dy * s + centerX;

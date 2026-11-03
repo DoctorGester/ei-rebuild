@@ -6,7 +6,6 @@
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -238,7 +237,7 @@ bool AIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
 float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
     float dx = to.x - from.x, dy = to.y - from.y;
     float dz = to.z - from.z;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) / 0.5f;   // half-cells
+    float length = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) / 0.5f;   // half-cells
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return 1.0f;
     float inverse = 1.0f / length;
@@ -251,7 +250,7 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
     int stepX = lib::RoundEven(dx * inverse * 65536.0f / 0.5f);
     int stepY = lib::RoundEven(dy * inverse * 65536.0f / 0.5f);
     int toZ = lib::RoundEven(to.z * heightScale);
-    int stepZ = lib::RoundEven(pc24::Mul(static_cast<double>((toZ - (z >> 16)) << 16), inverse));
+    int stepZ = lib::RoundEven(static_cast<float>((toZ - (z >> 16)) << 16) * inverse);
 
     auto outside = [this](int fx, int fy) {
         int cx = fx >> 16, cy = fy >> 16;
@@ -431,10 +430,8 @@ void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
 // 100.0 when the first or last cell lies outside the map. See ai_map.h and docs/notes/ai.md.
 
 float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
-    float dx = to.x - from.x;
-    float dy = to.y - from.y;
-    float dz = to.z - from.z;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+    Vector3 d = to - from;
+    float length = std::sqrt(LengthSquared(d));
     float cell = 0.5f;
     float steps = length / cell;
     // A zero or NaN length also returns 1.0.
@@ -445,8 +442,8 @@ float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
     auto toFixed = [&](float value) { return lib::RoundEven(value * fixed / 0.5f); };
     int fx = toFixed(from.x);
     int fy = toFixed(from.y);
-    int stepX = toFixed(dx * inverse);
-    int stepY = toFixed(dy * inverse);
+    int stepX = toFixed(d.x * inverse);
+    int stepY = toFixed(d.y * inverse);
 
     int cx = fx >> 16, cy = fy >> 16;
     if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::kOutsideDistance;

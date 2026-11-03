@@ -56,7 +56,7 @@ void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
     int now = self->OwningWorld()->tick;
     Vector3 axis = self->unit->localRotation.AxisY();
-    if (self->motion.Start(self->unit->localPosition, NegateVector(axis), now)) self->unit->RefreshMotion();
+    if (self->motion.Start(self->unit->localPosition, -axis, now)) self->unit->RefreshMotion();
     self->ClearStanding();
     self->SetState(UnitState::Stopped);
 }
@@ -449,10 +449,7 @@ std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     if (!player || player->sessionKind != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
-    float dx = point.x - unit->localPosition.x;
-    float dy = point.y - unit->localPosition.y;
-    float dz = point.z - unit->localPosition.z;
-    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
+    if (LengthSquared(point - unit->localPosition) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
         const ScriptGroup* group = &player->Server()->partyUnits;
         for (Unit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
@@ -493,13 +490,11 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         message = AckKind::NoPath;
     } else {
         path->ToMotionOrder(&end);
-        float dy = self->localPosition.y - goal.y;
-        float dx = self->localPosition.x - goal.x;
-        float reached = LengthSquared2DUnrounded(dx, dy);
+        float reached = DistanceSquaredXY(self->localPosition, goal);
         float half = kHalfCell;
         float ey = half * path->targetY - goal.y;
         float ex = half * path->targetX - goal.x;
-        float left = LengthSquared2DUnrounded(ex, ey);
+        float left = LengthSquared2D(ex, ey);
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
             self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
@@ -534,7 +529,7 @@ void UnitServer::ResyncWithUnit() {
     motion.Clear();
     int now = OwningWorld()->tick;
     Vector3 axis = unit->localRotation.AxisY();
-    if (motion.Start(unit->localPosition, NegateVector(axis), now)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition, -axis, now)) unit->RefreshMotion();
     ClearStanding();
     SetState(UnitState::Stopped);
     unit->UpdateSizeClass();

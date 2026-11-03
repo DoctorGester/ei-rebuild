@@ -44,7 +44,7 @@ float Ease(float slide) {
     }
     float r = 1.0f - slide;
     float e = r * r;
-    e = e + e;
+    e += e;
     return 1.0f - e;
 }
 
@@ -326,7 +326,7 @@ void UiScrollbar::Update() {
     int steps = 0;
     if (accumulated > 0.0f) {    // zero, negative and NaN take the other branch
         if (accumulated < 1.0f) return;
-        // Whole steps; subtracting 1 is exact, so the register precision does not matter.
+        // Whole steps.
         float rest = accumulated;
         do {
             rest -= 1.0f;

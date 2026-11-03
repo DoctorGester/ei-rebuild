@@ -35,7 +35,6 @@
 #include "platform/platform.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 
@@ -86,19 +85,16 @@ int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFoot
 int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints); }
 const char* MarkerPartName() { return "hp"; }
 
-float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
 // a < b, or unordered.
 bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
 }
 // t when 0 < t or unordered, else 0.
-// A float copied through the FPU in the original; here the value as it is.
-float Reload(float v) { return v; }
-// The client world's time: the tick (an int) plus the tick's fraction, rounded once.
+// The client world's time: the tick (an int) plus the tick's fraction.
 float AnimationTime() {
     const WorldClient* world = &g_clientWorld;
-    return pc24::Add(static_cast<double>(world->tick), world->tickFraction);
+    return static_cast<float>(world->tick) + world->tickFraction;
 }
 
 // Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's
@@ -282,8 +278,8 @@ int WorldClient::DrawPass() {
     currentTerrain = terrain;
     rangeFirstX = rangeX = 0;
     rangeFirstY = rangeY = 0;
-    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(SubRounded(terrain->width, kMapEdgeMargin))) >> 4;
-    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(SubRounded(terrain->height, kMapEdgeMargin))) >> 4;
+    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4;
+    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4;
 
     int touched = 0;
     auto* sector = &objectGrid.rows[0][0];
@@ -409,7 +405,7 @@ int WorldClient::DrawPass() {
                 point = object->localPosition;
                 if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                     point = object->PartWorldPosition(part);
-                    point.z = Reload(object->localPosition.z);
+                    point.z = object->localPosition.z;
                 }
                 const Quaternion* orientation = &object->localRotation;
                 const Vector3 axisY = orientation->AxisY();

@@ -7,7 +7,7 @@
 #include "core_streams.h"
 #include "core_transform.h"
 #include "game_singletons.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "options.h"
 
 
@@ -198,21 +198,20 @@ inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-#define CAM_PI 3.141592653589793
-#define CAM_NINETY 90.0
-#define CAM_FORTY_FIVE 45.0
-#define CAM_TWO_SEVENTHS 0.2857142857142857
-#define CAM_ZOOM_STEP 1.0499999523162842
-#define CAM_LOOK_EPSILON 1e-18   // squared length
-#define CAM_ALIGN_EPSILON 0.1
+#define CAM_NINETY 90.0f
+#define CAM_FORTY_FIVE 45.0f
+#define CAM_TWO_SEVENTHS (2.0f / 7.0f)
+#define CAM_ZOOM_STEP 1.05f
+#define CAM_LOOK_EPSILON 1e-18f   // squared length
+#define CAM_ALIGN_EPSILON 0.1f
 #define CAM_ONE 1.0f
 #define CAM_MINUS_ONE (-1.0f)
 #define CAM_ZERO 0.0f
 #define CAM_TENTH 0.1f
 #define CAM_OBJECT_EXTENT_LIMIT 100.0f
 #define CAM_OBJECT_FADE 10.0f
-#define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
-#define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
+#define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians
+#define CAM_RIGHT_ANGLE (CAM_DEGREE * CAM_NINETY)
 
 // The drawn view (docs/notes/renderer.md section 14): the camera keeps the game's timing (each client tick
 // moves it by a tick, each frame by its time), and the world's draw shows its pose less the part of the last

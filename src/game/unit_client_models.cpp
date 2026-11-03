@@ -77,7 +77,7 @@ EngineObject* BowArrow(UnitClientSpecific* self) {
 
 // Whether `frame` was passed between the last update and now.
 bool Passed(std::uint32_t frame, float last, float now) {
-    double at = static_cast<double>(frame);
+    float at = static_cast<float>(frame);
     EI_NAN_AUDIT(now);
     return at > last && at <= now;
 }

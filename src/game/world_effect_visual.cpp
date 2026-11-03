@@ -16,7 +16,6 @@
 #include "game_singletons.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "save_versions.h"
 
 #include <bit>
@@ -48,12 +47,11 @@ void SetLightRange(Light* light, std::uint32_t rangeBits) {
 std::uint32_t& LightFlags(Light* light) { return light->flags; }
 Vector3& LightPosition(Light* light) { return light->localPosition; }
 
-// The particle tick's step towards the target, in x87 order: speed = |velocity|
-// ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
-// otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
+// The particle tick's step towards the target: speed = |velocity|, dist = the planar distance; nothing when
+// dist is not above 0 (or NaN); otherwise t = speed / (dist < speed (or NaN) ? speed : dist).
 int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
-    const float speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(velocity));
-    const float dist = std::sqrt(LengthSquared2DUnrounded(dxdy.y, dxdy.x));
+    const float speed = std::sqrt(LengthSquared(velocity));
+    const float dist = std::sqrt(LengthSquared2D(dxdy.y, dxdy.x));
     // On only when above.
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
@@ -77,8 +75,8 @@ bool IsOneShotType(int type) {
     }
 }
 
-// The scorch mark's angle: a random value (exact) times a double constant, rounded to float.
-float RandomAngle(std::uint32_t random) { return pc24::Mul(static_cast<double>(random), 1.4668330997698233e-9); }
+// The scorch mark's angle: a random word to [0, 6.3).
+float RandomAngle(std::uint32_t random) { return static_cast<float>(random) * (6.3f * 0x1p-32f); }
 
 // The ISAAC Next the 0x2030 scorch inlines.
 std::uint32_t InlineRandom() {
@@ -92,10 +90,10 @@ std::uint32_t InlineRandom() {
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
-// sqrt(x*x + y*y) + half + 0.3, in x87 order.
+// sqrt(x*x + y*y) + half + 0.3.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
-    angleAndOuter[0] = pc24::Round(pc24::Atan2(direction.y, direction.x));
-    const float outer = std::sqrt(LengthSquared2DUnrounded(direction.x, direction.y));
+    angleAndOuter[0] = std::atan2(direction.y, direction.x);
+    const float outer = std::sqrt(LengthSquared2D(direction.x, direction.y));
     angleAndOuter[1] = (outer + *half) + 0.3f;
 }
 
@@ -115,12 +113,7 @@ void EffectPointLight::Reset() {
 
 bool EffectPointLight::RunTick() {
     if (moving == 0) return true;
-    float x = localPosition.x + velocity.x;
-    float y = localPosition.y + velocity.y;
-    float z = localPosition.z + velocity.z;
-    localPosition.x = x;
-    localPosition.y = y;
-    localPosition.z = z;
+    localPosition += velocity;
     if (light != nullptr) LightPosition(light) = localPosition;
     return true;
 }
@@ -142,7 +135,7 @@ void EffectPointLight::Start(int update) {
         float absRange = FromBits(Bits(range) & 0x7FFFFFFFu);
         float shownRange;
         shownRange = light->range;
-        float change = FromBits(Bits(static_cast<float>(shownRange - absRange)) & 0x7FFFFFFFu);
+        float change = FromBits(Bits(shownRange - absRange) & 0x7FFFFFFFu);
         EI_NAN_AUDIT(change);
         LightPosition(light) = localPosition;
         // A range not (nearly) the same is taken over.
@@ -196,7 +189,7 @@ void EffectPointLight::Save(ByteStream* stream) {
     stream->WriteValue(lightFlags);
 }
 
-double EffectPointLight::LightRadius() { return ConstAt(worlddata::DefaultRadius()) + range; }
+float EffectPointLight::LightRadius() { return ConstAt(worlddata::DefaultRadius()) + range; }
 
 
 void EffectParticle::Reset() {
@@ -220,18 +213,10 @@ Vector3* EffectParticle::Position(const ScriptGroup* group) {
     if (object == nullptr) return &localPosition;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
-        worldPosition.x = FromBits(0xC9742400u);    // -1e6
-        worldPosition.y = FromBits(0xC9742400u);
-        worldPosition.z = 0.0f;
+        worldPosition = {-1e6f, -1e6f, 0.0f};
         return &worldPosition;
     }
-    const Vector3& at = object->localPosition;
-    float x = localPosition.x + at.x;
-    float y = at.y + localPosition.y;
-    float z = at.z + localPosition.z;
-    worldPosition.x = x;
-    worldPosition.y = y;
-    worldPosition.z = z;
+    worldPosition = localPosition + object->localPosition;
     return &worldPosition;
 }
 
@@ -275,7 +260,7 @@ void EffectParticle::Spawn() {
         source->localPosition = localPosition;
         float baseSize;
         baseSize = source->baseSize;
-        source->ScaleSize(static_cast<float>(size / baseSize));
+        source->ScaleSize(size / baseSize);
         source->alpha = alpha;
         source->typeParam = typeParam;
         Attach();
@@ -286,7 +271,7 @@ void EffectParticle::Spawn() {
     source->localPosition = localPosition;
     float baseSize;
     baseSize = source->baseSize;
-    source->ScaleSize(static_cast<float>(size / baseSize));
+    source->ScaleSize(size / baseSize);
     source->Attach(nullptr);
     source->alpha = alpha;
     source->typeParam = typeParam;
@@ -300,13 +285,13 @@ void EffectParticle::Spawn() {
     }
 
     if (ParticleTypeOf(type) == ParticleType::FireBlast) {
-        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
+        float fadeAlpha = BelowOneOrOne(alpha * ConstAt(worlddata::ScorchAlpha()));
         float radius = typeParam;
         float angle = RandomAngle(((&g_random))->Next());
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
     }
     if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
-        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
+        float fadeAlpha = BelowOneOrOne(alpha * ConstAt(worlddata::ScorchAlpha()));
         std::uint32_t random = InlineRandom();
         float radius = size;
         float angle = RandomAngle(random);
@@ -403,23 +388,14 @@ void EffectParticle::Save(ByteStream* stream) {
 bool EffectParticle::RunTick() {
     unitId = -1;
     if (moving != 0) {
-        Vector3 d;
-        d.x = static_cast<float>(target.x - localPosition.x);
-        d.y = static_cast<float>(target.y - localPosition.y);
-        d.z = static_cast<float>(target.z - localPosition.z);
+        Vector3 d = target - localPosition;
         float t;
         if (StepFraction(velocity, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = pc24::Sub(target.z, OwningWorld()->RawSurfaceHeightAt(target.x, target.y));
-            float stepY = static_cast<float>(t * d.y);
-            float stepZ = static_cast<float>(d.z * t);
-            float x = static_cast<float>(t * d.x + localPosition.x);
-            float y = static_cast<float>(stepY + localPosition.y);
-            float z = static_cast<float>(stepZ + localPosition.z);
-            float floor = pc24::Add(OwningWorld()->RawSurfaceHeightAt(x, y), aboveGround);
-            localPosition.x = x;
-            localPosition.y = y;
-            localPosition.z = MaxKeepB(z, floor);
+            float aboveGround = target.z - OwningWorld()->RawSurfaceHeightAt(target.x, target.y);
+            Vector3 p = d * t + localPosition;
+            float floor = OwningWorld()->RawSurfaceHeightAt(p.x, p.y) + aboveGround;
+            localPosition = {p.x, p.y, MaxKeepB(p.z, floor)};
             if (source != nullptr) source->localPosition = localPosition;
         }
     }
@@ -463,11 +439,11 @@ int EffectWall::Unpack(int update, DeltaField* field) {
     if (source != nullptr) source->extent = direction;
     if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
-        float half = static_cast<float>(size * ConstAt(worlddata::HalfRef()));
+        float fadeAlpha = BelowOneOrOne(alpha * ConstAt(worlddata::ScorchAlpha()));
+        float half = size * ConstAt(worlddata::HalfRef());
         float shape[2];   // angle, outer
         WallScorchShape(direction, &half, shape);
-        float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
+        float inner = half + ConstAt(worlddata::ScorchMargin());
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, shape[1], inner, shape[0], fadeAlpha);
     }
     return 1;
@@ -517,7 +493,7 @@ void EffectLightning::UpdateEnds() {
     MapObject* target = OwningWorld()->ObjectWithId(toObject);
     if (target != nullptr) {
         to = target->localPosition;
-        to.z = to.z + ConstAt(worlddata::OneRef());
+        to.z += ConstAt(worlddata::OneRef());
     }
     Unit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
     if (source != nullptr && WorldContext()->IsServer() == 0) {
@@ -566,13 +542,7 @@ void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, floa
     from = newFrom;
     to = newTo;
     width = newWidth;
-    // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
-    float half = ConstAt(worlddata::HalfRef());
-    float sumY = static_cast<float>(from.y + to.y);
-    float sumZ = static_cast<float>(from.z + to.z);
-    localPosition.x = static_cast<float>((to.x + from.x) * half);
-    localPosition.y = static_cast<float>(sumY * half);
-    localPosition.z = static_cast<float>(sumZ * half);
+    localPosition = (from + to) * ConstAt(worlddata::HalfRef());
     MarkChanged();
 }
 

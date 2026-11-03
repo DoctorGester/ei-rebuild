@@ -62,7 +62,7 @@ void AIViewer::Prepare(Unit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
         eye.z = static_cast<float>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z;
     eye.z = self->bounds.boxMax.z * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z;
-    Vector3 axis = RotatedAxisY(self->localRotation);
+    Vector3 axis = (self->localRotation).AxisY();
     ready = 1;
     facing = -axis;
 }
@@ -118,7 +118,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
                       ours->stats.perception[0].current;
         bool seen = false;
         if (sight >= distance) {
-            float along = DotZYX(d, facing);
+            float along = Dot(d, facing);
             EI_NAN_AUDIT(coneLimit, distance, along);
             if (coneLimit * distance <= along) {
                 Vector3 to = eye + d;
@@ -127,7 +127,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
         }
         bool alive = !dead;
         if (!seen) {
-            float behind = DotZYX(d, facing);
+            float behind = Dot(d, facing);
             if (!SignBit(behind) && ours->stats.peripheralRange > distance) {
                 console::EndLine(LogPair(self, " sees unit ", other) << " with peripheral vision");
                 seen = true;
@@ -147,11 +147,8 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
         }
         if (alive) {
             memory->visible.insert(memory->visible.begin(), other);
-            float dx = self->localPosition.x - other->localPosition.x;
-            float dy = self->localPosition.y - other->localPosition.y;
-            float dz = self->localPosition.z - other->localPosition.z;
             LogPair(self, " sees unit ", other) << " from ";
-            console::EndLine(kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
+            console::EndLine(kAiLog << std::sqrt(LengthSquared(self->localPosition - other->localPosition)) << "m distance");
         }
     }
 }
@@ -162,9 +159,8 @@ namespace {
 // first (twice in the seen corpses when allied, as the original does).
 bool StillSees(UnitServer* owner, AIMemory* memory, Unit* other, float reachFactor) {
     Unit* self = owner->unit;
-    Vector3 d{other->localPosition.x - self->localPosition.x, other->localPosition.y - self->localPosition.y,
-              other->localPosition.z - self->localPosition.z};
-    float distance = LengthZYX(d);
+    Vector3 d = other->localPosition - self->localPosition;
+    float distance = Length(d);
     if (other->IsDead()) {
         if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
             memory->seenCorpses.push_back(other);
@@ -278,12 +274,12 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
         // A unit that noticed something at least as loud as a call hears nothing.
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
         const float hearing = control->moveFactors[1] * control->stats.perception[3].current;
-        const float distance = vecmath::Distance<Sum3::XYZ>(at, other->localPosition);
+        const float distance = Distance(at, other->localPosition);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         std::string text;
         if (console::g_filterMask & 1) {
-            const float between = vecmath::Distance<Sum3::XYZ>(other->localPosition, unit->localPosition);
+            const float between = Distance(other->localPosition, unit->localPosition);
             text = str::Format(kHeardFormat, other->id, unit->id, between);
         }
         brain->memory.calls.Hear(unit->localPosition, delay, text);
@@ -305,13 +301,6 @@ namespace {
 const float kFar = 1e30f;
 
 
-// (a - b) squared in 3D, summed z, then x, then y.
-float Distance2(const Unit* unit, const float* point) {
-    float dx = unit->localPosition.x - point[0];
-    float dy = unit->localPosition.y - point[1];
-    float dz = unit->localPosition.z - point[2];
-    return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
-}
 
 constexpr float kMaxExposure = 3.0f;
 
@@ -344,7 +333,7 @@ UnitList AIMemory::FindEnemiesNear(Unit* self, const Vector3& point, float radiu
     for (auto& node : visible) {
         Unit* other = node;
         if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
-        if (Distance2(other, &point.x) >= radius2) {
+        if (LengthSquared(other->localPosition - point) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
@@ -363,10 +352,7 @@ Unit* AIMemory::NearestEnemy(Unit* self) {
     for (auto& node : visible) {
         Unit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead()) continue;
-        float dx = self->localPosition.x - other->localPosition.x;
-        float dy = self->localPosition.y - other->localPosition.y;
-        float dz = self->localPosition.z - other->localPosition.z;
-        float d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
+        float d2 = LengthSquared(self->localPosition - other->localPosition);
         EI_NAN_AUDIT(d2, best);
         if (d2 < best) {
             best = d2;
@@ -381,10 +367,7 @@ void AIMemory::ForceSee(Unit* self, Unit* object) {
     Unit* other = object;
     UnitServer* theirs = other->ServerController();
     UnitServer* ours = self->ServerController();
-    float dx = self->localPosition.x - other->localPosition.x;
-    float dy = self->localPosition.y - other->localPosition.y;
-    float dz = self->localPosition.z - other->localPosition.z;
-    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+    float distance = std::sqrt(LengthSquared(self->localPosition - other->localPosition));
     AIBrain* theirBrain = &theirs->brain;
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
                      theirBrain->target == self;
@@ -420,10 +403,7 @@ std::array<float, 5> AIMemory::MeasureExposure(UnitServer* self) {
         Unit* other = node;
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
         UnitServer* theirs = other->ServerController();
-        float dx = other->localPosition.x - unit->localPosition.x;
-        float dy = other->localPosition.y - unit->localPosition.y;
-        float dz = other->localPosition.z - unit->localPosition.z;
-        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+        float distance = std::sqrt(LengthSquared(other->localPosition - unit->localPosition));
         float sight = theirs->moveFactors[3] * self->moveFactors[2] * theirs->stats.perception[0].current *
                       self->stats.conspicuity[0].current;
         EI_NAN_AUDIT(distance, sight);

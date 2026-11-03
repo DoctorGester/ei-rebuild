@@ -7,7 +7,6 @@
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -52,7 +51,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, Unit* c
     float radius2 = option->radius * option->radius;
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        float distance2 = DistanceSquaredXYUnrounded<float>(member->localPosition, candidate->localPosition);
+        float distance2 = DistanceSquaredXY(member->localPosition, candidate->localPosition);
         EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
@@ -140,10 +139,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     if (self == object || fromHere) {
         point = self->localPosition;
     } else {
-        float dz = self->localPosition.z - object->localPosition.z;
-        float dy = self->localPosition.y - object->localPosition.y;
-        float dx = self->localPosition.x - object->localPosition.x;
-        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+        float distance = std::sqrt(LengthSquared(self->localPosition - object->localPosition));
         float range = self->ScaledValue(distance);
         float targetRadius = object->Radius();
         float minDistance = self->Radius() + targetRadius;
@@ -151,10 +147,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap.sectorMap.Remove(object);
         if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
-            float scale = 0.5f;
-            point.x = scale * path.targetX;
-            point.y = scale * path.targetY;
-            point.z = 0.0f;
+            point = {0.5f * path.targetX, 0.5f * path.targetY, 0.0f};
         } else {
             point = self->localPosition;
         }
@@ -186,7 +179,7 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
         float dy = at.y - other->localPosition.y;
         float dx = at.x - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
+        if (LengthSquared2D(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
@@ -195,7 +188,7 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     float dx = self->localPosition.x - at.x;
     float radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
-    return radius * radius < LengthSquared2DUnrounded(dx, dy);
+    return radius * radius < LengthSquared2D(dx, dy);
 }
 
 namespace {
@@ -231,7 +224,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         words = static_cast<int>(damage & 0xFFFF);
         float partial = static_cast<float>(words) * kGroupDamageWeight + score + kGroupBase;
         int count = (std::min)(others, cap);
-        score = pc24::Add(static_cast<double>(words * count), partial);   // the int exactly (data may pass 2^24)
+        score = static_cast<float>(words * count) + partial;
         break;
     }
     case AIOptionKind::Curse:
@@ -240,7 +233,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         if (candidate->HasEffect(option->EffectSpell())) return kNoScore;
         float partial = score + 1.0f;
         int count = (std::min)(others, cap);
-        score = pc24::Add(static_cast<double>(count), partial);
+        score = static_cast<float>(count) + partial;
         break;
     }
     case AIOptionKind::Heal: {
@@ -255,7 +248,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         } else {
             float partial = base + kHealGroupBase;
             int count = (std::min)(others, cap);
-            score = pc24::Add(static_cast<double>(count * 2), partial);
+            score = static_cast<float>(count * 2) + partial;
         }
         break;
     }
@@ -270,7 +263,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = std::sqrt(DistanceSquaredXYUnrounded<float>(candidate->localPosition, from)) - reach;
+    float beyond = std::sqrt(DistanceSquaredXY(candidate->localPosition, from)) - reach;
     float penalty = MaxKeepB(0.0f, beyond);
     float result = score - penalty * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);

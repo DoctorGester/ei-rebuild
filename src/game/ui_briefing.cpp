@@ -10,7 +10,7 @@
 #include "core_transform.h"
 #include "game_singletons.h"
 #include "item_db.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "object_tables.h"
 #include "options.h"
 #include "party.h"
@@ -48,7 +48,6 @@ constexpr int kLoadWindowClosed = 0x100001;
 constexpr int kGameOverResult = 0x20000;
 
 constexpr const char* kZoneTopicFormat = "b.%s";
-constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;
 
 } // namespace
@@ -122,9 +121,7 @@ void BriefingScreen::UnitJoined(Unit* unit) {
     PlayerZeroVariables(prefix.c_str(), &variables);
     std::vector<std::string> parts;
     for (auto& node : variables) {
-        std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node.second);
-        if (bits != kOneBits) continue;
+        if (node.second != 1.0f) continue;
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts) continue;
         topic = parts[2];
@@ -188,7 +185,7 @@ void BriefingScreen::FindTopics(int personId) {
     std::string constructor;
     std::vector<std::string> found;
     for (auto& node : variables) {
-        if (std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
+        if (node.second != 1.0f) continue;
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
@@ -259,19 +256,6 @@ constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
-// A copy of `v`, normalised unless its length is zero.
-Vector3 Normalised(const Vector3& v) {
-    Vector3 out = v;
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(v.x, v.y, v.z)));
-    EI_NAN_AUDIT(length);
-    if (length == 0.0f) return out;
-    float inverse = 1.0f / length;
-    out.x = static_cast<float>(v.x * inverse);
-    out.y = static_cast<float>(v.y * inverse);
-    out.z = static_cast<float>(v.z * inverse);
-    return out;
-}
-
 } // namespace
 
 void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3& direction, bool waited,
@@ -283,7 +267,7 @@ void BriefingScreen::MovePerson(Unit* unit, const Vector3& place, const Vector3&
     Vector3 target{place.x, place.y, serverUnit->localPosition.z};
     if (immediately) {
         g_serverWorld.aiMap.sectorMap.Move(serverUnit, target);
-        Vector3 facing = Normalised(direction);
+        Vector3 facing = NormalisedUnlessZero(direction);
         serverUnit->SetHeading(facing);
         unit->SetHeading(facing);
         controller->ResyncWithUnit();

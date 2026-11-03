@@ -294,7 +294,7 @@ void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh*
     points.resize(data.blocks * 4);
     for (int i = 0; i < data.blocks * 4; ++i) {
         const VertexPacket& packet = data.vertices[i >> 2];
-        points[i] = ToClip(*top, packet.block[0][i & 3], packet.block[1][i & 3], packet.block[2][i & 3]);
+        points[i] = ToClip(*top, {packet.block[0][i & 3], packet.block[1][i & 3], packet.block[2][i & 3]});
     }
     DecalBuilder& builder = g_builder;
     builder.Reserve(data.indexCount * 6);
@@ -325,10 +325,10 @@ void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, f
         Object3D* object = ObjectWithId(face.id);
         if (!object) continue;
         // The object's bounding sphere about its origin, then about its centre.
-        if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
+        if (!builder.Touches(object->localPosition, Length(object->bounds.center) + object->bounds.radius))
             continue;
         BuildNodeMatrix(object->localRotation, object->localPosition, object->worldMatrix);
-        Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
+        Vector3 centre = TransformColumnNormal(object->worldMatrix, object->bounds.center) +
                          object->localPosition;
         if (!builder.Touches(centre, object->bounds.radius)) continue;
         PushDecalMatrix(pipeline, object->worldMatrix.m);

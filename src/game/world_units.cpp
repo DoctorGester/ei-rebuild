@@ -42,7 +42,6 @@
 #include "lib/text_case.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/float_select.h"
 
@@ -90,37 +89,32 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     ry = rotation.x;
     rz = rotation.y;
     rw = rotation.z;
-    float axis = LengthSquaredUnrounded<Sum3::XYZ>(ry, rz, rw);
+    float axis = LengthSquared(Vector3{ry, rz, rw});
     float angle;
     EI_NAN_AUDIT(axis);
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
-        double arc = libcrt::CiAcos(rx);
-        angle = pc24::Add(arc, arc);
+        float arc = std::acos(rx);
+        angle = arc + arc;
         float sign = 1.0f / std::sqrt(axis) * rw;
         EI_NAN_AUDIT(sign);
         if (sign < 0.0f) angle = -angle;
     }
-    angle = angle + worlddata::kLineAngleOffset;
+    angle += worlddata::kLineAngleOffset;
 
     Spec& spec = *message;
     float zStep = 0.0f;
     spec.position = position;
     spec.rotation = rotation;
-    float cosine = pc24::Round(pc24::Cos(angle));
-    pc24::Unrounded sine = pc24::Sin(angle);
+    float cosine = std::cos(angle);
+    float sine = std::sin(angle);
     float step = static_cast<float>(index);
-    float dy = pc24::Mul(sine, step);
+    float dy = sine * step;
     float dx = step * cosine;
     float dz = zStep * worlddata::kLineSpacing;
-    dy = dy * worlddata::kLineSpacing;
-    float& x = spec.position.x;
-    float& y = spec.position.y;
-    float& z = spec.position.z;
-    x = dx * worlddata::kLineSpacing + x;
-    y = y + dy;
-    z = z + dz;
+    dy *= worlddata::kLineSpacing;
+    spec.position += Vector3{dx * worlddata::kLineSpacing, dy, dz};
 }
 
 // An item from an item record, with its counted record holding the item record's id.
@@ -142,7 +136,7 @@ constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
 
-// Copies dwords (floats are not loaded on the FPU).
+// Copies n bytes.
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 } // namespace
@@ -158,10 +152,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
-        float dz = position.z;
-        float dy = position.y - worlddata::kHeroStartY;
-        float dx = position.x - worlddata::kHeroStartX;
-        float distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
+        const Vector3 heroStart = {worlddata::kHeroStartX, worlddata::kHeroStartY, 0.0f};
+        float distance = LengthSquared(position - heroStart);
         EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
     }
@@ -217,10 +209,9 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         brain->AddMode(std::make_unique<PlayerMode>());
         brain->StopAction();
         aiMap.sectorMap.Remove(unit);
-        Vector3 free;
-        std::memcpy(&free, &unit->localPosition.x, sizeof(free));
+        Vector3 free = unit->localPosition;
         aiMap.FindFreeCellNear(unit, position, &free);
-        std::memcpy(&unit->localPosition.x, &free, sizeof(free));
+        unit->localPosition = free;
         aiMap.sectorMap.Add(unit);
 
         unit->SetPlayer(player);
@@ -293,8 +284,7 @@ void WorldServer::UseQuickItem(Unit* unit) {
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     message.scale.y = 0.0f;
     // At the unit's position, on the ground.
-    std::memcpy(&message.position, &unit->localPosition.x, 12);
-    message.position.z = 0.0f;
+    message.position = {unit->localPosition.x, unit->localPosition.y, 0.0f};
     int objectId = CreateObject(&message);
     EngineObject* effect = ObjectWithId(objectId);
     effect->flags |= kFlagsNewEffect;

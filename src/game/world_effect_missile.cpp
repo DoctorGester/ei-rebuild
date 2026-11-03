@@ -18,7 +18,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cmath>
@@ -67,7 +66,7 @@ int EffectMissile::Steer() {
         velocity.y = target->localPosition.y - localPosition.y;
         velocity.z = aimZ - localPosition.z;
         float speed = kMissileSpeed;
-        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity.y, velocity.x)));
+        float distance = std::sqrt(LengthSquared2D(velocity.y, velocity.x));
         if (GetClassId() == ClassId::EffectArrowFigure) speed = speed + speed;
         EI_NAN_AUDIT(distance);
         if (distance < speed) {   // within one step
@@ -80,7 +79,7 @@ int EffectMissile::Steer() {
     }
     if (!world->IsServer()) {
         // Below the ground plus the clearance: climb by what is missing, at most half the clearance less.
-        float floor = pc24::Add(world->RawSurfaceHeightAt(localPosition.x, localPosition.y), kGroundClearance);
+        float floor = world->RawSurfaceHeightAt(localPosition.x, localPosition.y) + kGroundClearance;
         if (floor > localPosition.z) {
             float missing = floor - localPosition.z;
             float limited = MinKeepA(missing, kGroundClearance);

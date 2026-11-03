@@ -1,13 +1,11 @@
 // The battle HUD's minimap markers (HudMap::BuildMarkers): every frame the map panel
 // rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
-// Floating point: float maths in the original's order (its x87 registers held floats at the main thread's 24-bit
-// precision); the arc tangent and the zoom's power through lib/pc24.h.
 #include "ui.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "player_client.h"
 #include "spell.h"
 #include "unit.h"
@@ -15,7 +13,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include <cstdint>
 #include <cstring>
@@ -31,7 +28,7 @@
 namespace {
 
 constexpr float kUnitRadius2 = 0.56f;    // units further out (squared) are not shown
-constexpr double kTinyLength2 = 1e-6;    // compared as a double (exact)
+constexpr float kTinyLength2 = 1e-6f;
 constexpr float kArrowAhead = 0.07f;      // tip of a unit's arrow from its position
 constexpr float kArrowWing = 0.04f;       // back corners of the arrow; size of a diamond
 constexpr float kDiagonal = 0.70710677f;  // (its negation is -kDiagonal)
@@ -104,12 +101,12 @@ public:
         float zoomedX = mapX * map->zoom;
         float zoomedY = mapY * map->zoom;
         EI_NAN_AUDIT(zoomedY, zoomedX);
-        if (LengthSquared2DUnrounded(zoomedY, zoomedX) <= kInnerRadius2) {
+        if (LengthSquared2D(zoomedY, zoomedX) <= kInnerRadius2) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
         }
-        if (LengthSquared2DUnrounded(mapY, mapX) < kRimRadius2) return false;
+        if (LengthSquared2D(mapY, mapX) < kRimRadius2) return false;
         if (AbsBits(mapX) > kRimExtent) return false;
         if (AbsBits(mapY) > kRimExtent) return false;
         *x = mapX;
@@ -181,7 +178,7 @@ void PutArrow(VertexPacket& packet, const Unit* unit, float x, float y) {
     Vector3 second = rotation->AxisY();
     float dirY = second.y;
 
-    float length2 = LengthSquared2DUnrounded(dirY, dirX);
+    float length2 = LengthSquared2D(dirY, dirX);
     float nx;
     float ny;
     if (length2 >= kTinyLength2) {
@@ -250,10 +247,9 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     }
 }
 
-// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f (a short times the float: one
-// rounding), its double as the CRT returns it.
-double WheelZoomFactor(short delta) {
-    return libcrt::CiPow(2.5, static_cast<float>(delta) * 0.00083333335f);
+// 2.5^(delta / 1200).
+float WheelZoomFactor(short delta) {
+    return std::pow(2.5f, static_cast<float>(delta) * 0.00083333335f);
 }
 
 } // namespace
@@ -287,7 +283,7 @@ void HudMap::BuildMarkers() {
         }
         float x = out.MapX(unit->localPosition.x) * zoom;
         float y = out.MapY(unit->localPosition.y) * zoom;
-        if (LengthSquared2DUnrounded(y, x) > kUnitRadius2) {
+        if (LengthSquared2D(y, x) > kUnitRadius2) {
             out.Hide();
             continue;
         }
@@ -362,16 +358,16 @@ void HudMap::UpdateView() {
         axis = camera->localRotation.AxisZ();
         facingY = axis.y;
     }
-    float length2 = LengthSquared2DUnrounded(facingX, facingY);
+    float length2 = LengthSquared2D(facingX, facingY);
     if (length2 >= kTinyLength2) {
         float length = std::sqrt(length2);
-        facingX = facingX / length;
-        facingY = facingY / length;
+        facingX /= length;
+        facingY /= length;
     } else {
         facingX = 0.0f;
         facingY = 1.0f;
     }
-    float angle = pc24::Round(pc24::Atan2(-facingX, -facingY));
+    float angle = std::atan2(-facingX, -facingY);
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
@@ -520,7 +516,7 @@ void HudMap::Wheel(int, int delta, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0) return;
     if (region == 0) {
-        float newZoom = pc24::Mul(WheelZoomFactor(static_cast<short>(delta)), zoom);
+        float newZoom = WheelZoomFactor(static_cast<short>(delta)) * zoom;
         zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
         zoom = MaxKeepB(zoom, 1.0f);

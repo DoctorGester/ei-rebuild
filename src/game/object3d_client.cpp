@@ -101,9 +101,7 @@ void Object3DClientSpecific::Create() {
     partSets[0] = nullptr;
     partSets[1] = nullptr;
     touchTime = 0;
-    figureScale.z = 1.0f;
-    figureScale.y = 1.0f;
-    figureScale.x = 1.0f;
+    figureScale = {1.0f, 1.0f, 1.0f};
 }
 
 void Object3DClientSpecific::Destroy() {
@@ -305,9 +303,7 @@ void Object3DClientSpecific::SetMaterialsLit(bool lit) {
             Material* material = materials[i];
             material->entries.push_back(MaterialEntry{material->colors.emissive});
             material = materials[i];
-            material->colors.emissive.x = 1.0f;
-            material->colors.emissive.y = 1.0f;
-            material->colors.emissive.z = 1.0f;
+            material->colors.emissive = {1.0f, 1.0f, 1.0f, material->colors.emissive.w};
         }
         return;
     }
@@ -476,7 +472,7 @@ Object3DSpecific::~Object3DSpecific() { object = nullptr; }
 Vector3 Object3DSpecific::GetScale() { return {kNoScale, kNoScale, kNoScale}; }
 
 namespace {
-constexpr double kPulsePeriod = 30.0;
+constexpr float kPulsePeriod = 30.0f;
 constexpr float kPulseFold = 15.0f;
 constexpr float kPulseFull = 30.0f;
 constexpr float kPulseScale = 0.06666667f;            // 1/15
@@ -486,7 +482,7 @@ constexpr float kPulseBase = 0.2f;
 float Pulse(float& clock, float frames) {
     float now = frames + clock;   // stored as a float, and to the clock
     clock = now;
-    float phase = static_cast<float>(std::fmod(static_cast<double>(now), kPulsePeriod));   // exact
+    float phase = std::fmod(now, kPulsePeriod);
     if (phase > kPulseFold) phase = kPulseFull - phase;
     float value = phase * kPulseScale * 0.5f + kPulseBase;
     return value;
@@ -502,9 +498,7 @@ void Object3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < std::ssize(materials); ++i) {
         Material* part = materials[i];
-        part->colors.specular.x = value;
-        part->colors.specular.y = 0.0f;
-        part->colors.specular.z = 0.0f;
+        part->colors.specular = {value, 0.0f, 0.0f, part->colors.specular.w};
         part->flags |= MaterialFlag::KeepSpecular;
     }
 }

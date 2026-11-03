@@ -28,7 +28,6 @@
 #include "main_loop.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"
-#include "lib/pc24.h"
 #include "platform/platform.h"
 #include "lib/text_case.h"
 #include "text_split.h"
@@ -288,9 +287,9 @@ constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;
 constexpr int kLongestPassTicks = 5;
 
-// The world tick's length in milliseconds, and milliseconds in the camera's time: times 1 / 55, one 24-bit rounding.
+// The world tick's length in milliseconds, and milliseconds in the camera's time (times 1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
-float CameraSeconds(std::uint32_t milliseconds) { return pc24::Mul(static_cast<double>(milliseconds), 0.018181818f); }
+float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(milliseconds) * 0.018181818f; }
 
 // Three calls of the loop take a harness hook (main_loop.h, set by tests/verify/harness.cpp) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
@@ -375,7 +374,7 @@ bool RunWorlds() {
 float SpeedForBalance(float balance) {
     float result;
     if (balance < 0.0f) {
-        result = pc24::Exp(balance * kOneTenth);
+        result = std::exp(balance * kOneTenth);
     } else if (balance > 1.0f) {
         result = (std::sqrt(balance) * kOneTenth + 1.0f) - kOneTenth;
     } else {
@@ -415,23 +414,22 @@ bool RunPass() {
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up (the original's MovieCapturingFPS
         // setting, 15 by default; nothing in the game turns the recorder on).
-        const float frame = pc24::Div(1000.0, static_cast<double>(kRecordedFramesPerSecond));
+        const float frame = 1000.0f / static_cast<float>(kRecordedFramesPerSecond);
         elapsed = static_cast<std::uint32_t>(static_cast<std::int64_t>(std::ceil(frame)));
     }
     g_serverBacklog += elapsed;
     if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;
-    // The elapsed time at the client's speed plus the backlog (an int), each a 24-bit rounding, truncated as _ftol does.
-    const float backlog = pc24::Add(pc24::Mul(static_cast<double>(elapsed), g_clientSpeed),
-                                    static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
+    // The elapsed time at the client's speed plus the backlog (an int), truncated as _ftol does.
+    const float backlog = static_cast<float>(elapsed) * g_clientSpeed + static_cast<float>(static_cast<std::int32_t>(g_clientBacklog));
     g_clientBacklog = static_cast<std::uint32_t>(static_cast<std::int64_t>(backlog));
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
         g_gameFlow.ProcessRequest();
         const float fraction =
-            pc24::Div(static_cast<double>(g_clientBacklog), static_cast<double>(static_cast<std::int32_t>(TickLength())));
+            static_cast<float>(g_clientBacklog) / static_cast<float>(static_cast<std::int32_t>(TickLength()));
         if (!client->paused) client->tickFraction = fraction;
-        const float balance = pc24::Sub(static_cast<double>(client->PumpIncomingCount()), fraction);
+        const float balance = static_cast<float>(client->PumpIncomingCount()) - fraction;
         g_clientSpeed = SpeedForBalance(balance);
         if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, balance);
 
@@ -448,9 +446,9 @@ bool RunPass() {
         FrameCameraUpdate(camera, CameraSeconds(elapsed));
         if (!client->paused) {
             if (camera->flags & Camera::kRecording)
-                camera->RecordFrame(std::bit_cast<std::uint32_t>(pc24::Add(static_cast<double>(client->tick), client->tickFraction)));
+                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(client->tick) + client->tickFraction));
             if (camera->flags & Camera::kPlaying)
-                camera->PlaybackStep(pc24::Add(static_cast<double>(client->tick), client->tickFraction));
+                camera->PlaybackStep(static_cast<float>(client->tick) + client->tickFraction);
         }
     }
     g_interface.Update();
@@ -560,7 +558,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera.Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance),
                    std::bit_cast<std::uint32_t>(options->farClipDistance),
-                   std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 * 0.2857142857142857)));
+                   std::bit_cast<std::uint32_t>(kPi * 2.0f / 7.0f));
     g_clientWorld.SetCamera(&g_camera);
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();

@@ -27,7 +27,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -81,12 +80,10 @@ void RefreshQuestLog() { g_interface.OnItemsPicked({}, 0, false); }
 // The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
 
-// The experience shown for `amount`: amount times 1.04 ^ (intelligence - 25), the double power times the float
-// rounded once to a float (the original's multiply at 24-bit precision), then to the nearest integer. std::pow
-// here gives the same 256 doubles as the x87 build's (an equivalence test).
+// The experience shown for `amount`: amount times 1.04 ^ (intelligence - 25), rounded to the nearest integer.
 int ScaledExperience(const Unit* unit, float amount) {
-    const double power = std::pow(1.04, static_cast<float>(unit->params.intelligence) - 25.0f);
-    return lib::RoundEven(pc24::Mul(amount, power));
+    const float power = std::pow(1.04f, static_cast<float>(unit->params.intelligence) - 25.0f);
+    return lib::RoundEven(amount * power);
 }
 
 bool IsQuestVariable(const std::string& name) {
@@ -514,9 +511,7 @@ int PlayerClient::OnNewObject() {
         Unit* unit = UnitOrNull(created);
         const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(header.prototype);
         auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-        unit->defaultScale.x = 0.0f;
-        unit->defaultScale.y = modelRecord->height;
-        unit->defaultScale.z = 0.0f;
+        unit->defaultScale = {0.0f, modelRecord->height, 0.0f};
         std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
         unit->SetSecondPrototypeIndex(prototypeValue);
     }

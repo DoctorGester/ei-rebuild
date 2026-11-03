@@ -15,7 +15,6 @@
 #include <bit>
 #include <cstring>
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 namespace {
 
@@ -41,7 +40,7 @@ void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObj
     Vector3 end;
     end = aim;
     if (spell->targetFlags & SpellTargetFlag::AtPoint) target = nullptr;
-    end.z = pc24::Add(RawSurfaceHeightAt(end.x, end.y), 0.3f);
+    end.z = RawSurfaceHeightAt(end.x, end.y) + 0.3f;
     if (caster) from = caster->localPosition;
 
     auto* missile = new SpellEffect();
@@ -109,10 +108,7 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
                 bestIndex = i;
                 break;
             } else {
-                float dz = to.z - unit->localPosition.z;
-                float dy = to.y - unit->localPosition.y;
-                float dx = to.x - unit->localPosition.x;
-                float distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
+                float distance = LengthSquared(to - unit->localPosition);
                 float bestDistance;
                 bestDistance = std::bit_cast<float>(bestBits);
                 EI_NAN_AUDIT(distance, bestDistance);

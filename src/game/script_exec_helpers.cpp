@@ -28,9 +28,7 @@ int LightCount(Script* script) { return static_cast<int>(script->pointLights.siz
 // float holds it.
 void LightStep(ScriptPointLight* light, const Vector3& target, const Vector3& position) {
     const float inverse = 1.0f / static_cast<float>(light->steps);
-    light->step.x = (target.x - position.x) * inverse;
-    light->step.y = (target.y - position.y) * inverse;
-    light->step.z = (target.z - position.z) * inverse;
+    light->step = (target - position) * inverse;
 }
 
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
@@ -85,17 +83,11 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;
-    object->color.x = red;
-    object->color.y = green;
-    object->color.z = blue;
-    object->localPosition.x = f[1];
-    object->localPosition.y = f[2];
-    object->localPosition.z = f[3];
+    object->color = {red, green, blue};
+    object->localPosition = {f[1], f[2], f[3]};
     object->range = f[4];    // radius
     g_serverWorld.AddTimedObject(object);
-    slot->step.x = 0.0f;
-    slot->step.y = 0.0f;
-    slot->step.z = 0.0f;
+    slot->step = {};
     slot->steps = 0;
 }
 

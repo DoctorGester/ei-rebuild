@@ -65,25 +65,11 @@ constexpr int kPhrases = 3;
 constexpr int kRewards = 4;
 
 constexpr float kMoverTimeout = 30.0f;
-constexpr double kCloseEnough = 0.01;       // squared distance
+constexpr float kCloseEnough = 0.01f;       // squared distance
 constexpr int kEventOpenTopics = 1;
 constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
-constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
-
-// A copy of `v`, normalised unless its length is zero.
-Vector3 NormalisedUnlessZero(const Vector3& v) {
-    Vector3 out = v;
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
-    EI_NAN_AUDIT(length);
-    if (length == 0.0f) return out;
-    float inverse = 1.0f / length;
-    out.x = static_cast<float>(out.x * inverse);
-    out.y = static_cast<float>(out.y * inverse);
-    out.z = static_cast<float>(out.z * inverse);
-    return out;
-}
 
 // A mover that took too long is put at its place, facing its direction, at once.
 void PlaceMover(BriefingMover* node) {
@@ -101,9 +87,7 @@ void PlaceMover(BriefingMover* node) {
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const Unit* person = node->person;
-    float dy = node->target.y - person->localPosition.y;
-    float dx = node->target.x - person->localPosition.x;
-    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
+    if (DistanceSquaredXY(node->target, person->localPosition) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
@@ -115,12 +99,12 @@ void StepWalking(BriefingMover* node) {
 void StepTurning(BriefingMover* node) {
     const Unit* person = node->person;
     Vector3 axis = person->localRotation.AxisY();
-    float facingX = static_cast<float>(-axis.x);
+    float facingX = -axis.x;
     float facingY = -axis.y;
     Vector3 direction = NormalisedUnlessZero(node->direction);
     float dy = direction.y - facingY;
     float dx = direction.x - facingX;
-    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
+    if (LengthSquared2D(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kDone;
 }
 
@@ -240,8 +224,8 @@ void BriefingScreen::CreateScreen() {
 }
 
 void BriefingScreen::Update() {
-    markPhase = static_cast<float>(FrameTime() + markPhase);
-    while (markPhase >= 1.0f) markPhase = static_cast<float>(markPhase - 1.0f);
+    markPhase = FrameTime() + markPhase;
+    while (markPhase >= 1.0f) markPhase = markPhase - 1.0f;
     UiContainer::Update();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(false);
@@ -249,7 +233,7 @@ void BriefingScreen::Update() {
     children[kTextChild]->SetEnabled(false);
 
     for (BriefingMover& mover : movers) {
-        mover.time = static_cast<float>(FrameTime() + mover.time);
+        mover.time = FrameTime() + mover.time;
         if (mover.time > kMoverTimeout) {
             PlaceMover(&mover);
             mover.state = BriefingMover::kDone;
@@ -296,7 +280,7 @@ void BriefingScreen::Update() {
         if (voice != -1) {
             if (VoiceEnded(voice)) NextPhrase(false);
         } else {
-            phraseTime = static_cast<float>(phraseTime - FrameTime());
+            phraseTime -= FrameTime();
             EI_NAN_AUDIT(phraseTime);
             if (phraseTime < 0.0f) NextPhrase(false);
         }
@@ -308,7 +292,7 @@ void BriefingScreen::Update() {
         if (voice != -1) {
             if (speaking && VoiceEnded(voice)) StopTalking(speaking);
         } else {
-            phraseTime = static_cast<float>(phraseTime - FrameTime());
+            phraseTime -= FrameTime();
             EI_NAN_AUDIT(phraseTime);
             if (speaking && phraseTime < 0.0f) StopTalking(speaking);
         }
@@ -325,9 +309,7 @@ void BriefingScreen::MarkPeople() {
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
     for (auto& node : variables) {
-        std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node.second);
-        if (bits != kOneBits) continue;
+        if (node.second != 1.0f) continue;
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), kConstructorTopic) == 0) continue;

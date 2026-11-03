@@ -44,7 +44,7 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     e->targetPoint = target->localPosition;
     Vector3 at;
     at = target->localPosition;
-    at.z = static_cast<float>(target->ModeSpeed());
+    at.z = target->ModeSpeed();
     at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
     e->CreateParticle(0, particleType, kZeroVector, size, 1.0f, kZeroVector, e->target);
@@ -53,13 +53,9 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     Vector3 velocity;
     if (arrow) {
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        velocity.x = rise.x * ConstAt(worlddata::RiseScale());
-        velocity.y = rise.y * ConstAt(worlddata::RiseScale());
-        velocity.z = rise.z * ConstAt(worlddata::RiseScale());
+        velocity = rise * ConstAt(worlddata::RiseScale());
     } else {
-        velocity.x = 0.0f;
-        velocity.y = 0.0f;
-        velocity.z = LightRiseScaled(e, worlddata::RiseScale());
+        velocity = {0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
@@ -140,7 +136,7 @@ void LightStrikeEcho(SpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
         Vector3 top = e->position;
-        top.z = top.z + ConstAt(worlddata::StrikeHeight());
+        top.z += ConstAt(worlddata::StrikeHeight());
         auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
         bolt->SetEnds(top, e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
@@ -162,7 +158,7 @@ void FireWall(SpellEffect* e) {
             e->HitUnitsAlong(e->Visual<EffectWall>()->direction);
             e->flags |= 1;
         }
-        e->timer = e->timer - 1;
+        e->timer -= 1;
         return;
     }
     if (ticks == -1) {
@@ -187,7 +183,7 @@ void LightWall(SpellEffect* e) {
             e->HitUnitsAlong(along);
             e->flags |= 1;
         }
-        e->timer = e->timer - 1;
+        e->timer -= 1;
         return;
     }
     if (ticks == -1) {
@@ -207,7 +203,7 @@ void PoisonCloud(SpellEffect* e) {
             HitAreaTargets(e);
             e->flags |= 1;
         }
-        e->timer = e->timer - 1;
+        e->timer -= 1;
         return;
     }
     if (ticks == -1) {

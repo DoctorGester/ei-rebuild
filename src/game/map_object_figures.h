@@ -8,7 +8,7 @@
 #include "engine_object.h"
 #include "figure_mesh.h"            // FigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "ref.h"
 #include "unit_create.h"   // MapObjectType
 
@@ -476,7 +476,7 @@ public:
     // `random`'s generator; no chance narrowing.
     FigureAnimation* RandomAnimationOfKind(std::uint32_t key, AnimationRandom random = AnimationRandom::Game);
     // For units (class id 0x50) with an animation database whose length is neither 0 nor NaN:
-    // (start + (end - start) * time) / length, else 1. Unrounded.
+    // (start + (end - start) * time) / length, else 1.
     float AnimationFactor(float time);
     // Sets the figure up for the animated model `model`: one part box and part name per animated part (the
     // figure manager's bounds of the part, its pivot, flags 4 | 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" by

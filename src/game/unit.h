@@ -6,7 +6,7 @@
 #include "engine_object.h"
 #include "item.h"
 #include "map_object.h"
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "unit_motion.h"
 
 #include "lib/containers.h"
@@ -233,7 +233,7 @@ public:
     int ForgetObject(EngineObject* object) override;
     void UpdateMoveFactors() override;
     void RefreshWounds() override;
-    double MoveSpeed() override;             // the forward speed (GetMoveSpeeds)
+    float MoveSpeed() override;             // the forward speed (GetMoveSpeeds)
     float Radius() override;
     void SetScriptName(std::string_view newName) override;
 
@@ -430,8 +430,8 @@ public:
     // part.
     float BodyExtent();
     // The ground height at (x, y); for units moving on the water surface (movementKind 2) the surface height
-    // plus the unit's z (server units) or its heightOffset. A double: the world's height as it is on the ground.
-    double GroundHeight(float x, float y);
+    // plus the unit's z (server units) or its heightOffset.
+    float GroundHeight(float x, float y);
     // Where effects (lightning, particles) start from the unit: on a client, a hero's right hand (part
     // "rh3"), another unit's weapon point (the controller's) turned by the orientation, or else its position
     // plus the bounding box centre. The server and a hero without the part rotate uninitialised stack (see

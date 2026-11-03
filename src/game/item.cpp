@@ -11,7 +11,6 @@
 
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -234,14 +233,13 @@ void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
         std::memset(out, 0, sizeof(out));
 }
 
-// ((high - low) * roll) * scale + low, the product with the random word rounded once. The original's scale,
-// about 1 / (2^32 - 1), is the double 2^-32 (1 + 2^-32): a float times that rounds to the float times 2^-32.
+// ((high - low) * roll) * 2^-32 + low.
 float ItemWeapon::RollDamage() {
     EI_NAN_AUDIT(damageSpread);
     if (damageSpread == 0.0f) return damage;
     float high = damageSpread + damage;
     float low = damage;
-    return pc24::Mul(high - low, g_random.Next()) * 0x1p-32f + low;
+    return ((high - low) * g_random.Next()) * 0x1p-32f + low;
 }
 
 void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {

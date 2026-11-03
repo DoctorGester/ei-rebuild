@@ -30,15 +30,8 @@ void ClearBase(Effect* e) {
     e->changeStamp = -1;
 }
 
-// The local position moved by the velocity (each sum rounded to float, as stored).
-void MoveByVelocity(Effect* e) {
-    float x = e->localPosition.x + e->velocity.x;
-    float y = e->localPosition.y + e->velocity.y;
-    float z = e->localPosition.z + e->velocity.z;
-    e->localPosition.x = x;
-    e->localPosition.y = y;
-    e->localPosition.z = z;
-}
+// The local position moved by the velocity.
+void MoveByVelocity(Effect* e) { e->localPosition += e->velocity; }
 
 } // namespace
 
@@ -94,7 +87,7 @@ void Effect::SetVelocity(const Vector3& newVelocity) {
 
 Vector3* Effect::Position(const ScriptGroup*) { return &localPosition; }
 
-double Effect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
+float Effect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 
 void EffectSound::Reset() {
@@ -180,7 +173,7 @@ void EffectSound::Save(ByteStream* stream) {
     stream->WriteValue(noFade);
 }
 
-double EffectSound::Radius() { return radius; }
+float EffectSound::Radius() { return radius; }
 
 
 void EffectSoundSeq::Reset() {
@@ -240,7 +233,7 @@ void EffectSoundSeq::Save(ByteStream* stream) {
     stream->WriteValue(noFade);
 }
 
-double EffectSoundSeq::Radius() { return radius; }
+float EffectSoundSeq::Radius() { return radius; }
 
 
 void EffectAmbientSound::Reset() {
@@ -314,7 +307,7 @@ void EffectAmbientSound::Save(ByteStream* stream) {
     stream->WriteValue(maxInterval);
 }
 
-double EffectAmbientSound::Radius() { return radius; }
+float EffectAmbientSound::Radius() { return radius; }
 
 // --- The effects' lifetime and the state field's constructor and emptying --------------------------------
 

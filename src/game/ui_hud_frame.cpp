@@ -5,7 +5,6 @@
 #include "ui.h"
 
 #include "game_singletons.h"
-#include "maths.h"
 #include "text_manager.h"
 #include "ui_float.h"
 #include "screen_layout.h"
@@ -146,7 +145,7 @@ void HudClock::Update() {
         float y = kCentreY - c * kDialRadius;
         float x = std::sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
-        angle = angle - (kPi * kDialStep);
+        angle -= kPi * kDialStep;
     }
 
     SetTint(scene[6], highlight ? pulse : 1.0f);
@@ -165,7 +164,7 @@ void HudTopPanel::Update() {
         if (slide < 0.5f) {
             float s = slide;
             eased = s * s;
-            eased = eased + eased;
+            eased += eased;
         } else {
             float r = 1.0f - slide;
             float r2 = r * r;
@@ -234,7 +233,7 @@ void HudTopPanel::Setup(int newPage, bool shown) {
     arrow->textureOffsetV = 0.140625f;
     Quaternion turn;
     arrow->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
-    arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
+    arrow->Place(400.0f, -52.0f, 8.106086f);
     arrow->SetScale(0.8f);
 
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);
@@ -308,8 +307,7 @@ constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
 float ArcAngle(int turn, float step) { return (turn * kPi) * step; }
-// The cosine / sine of the angle. In float, cos(pi / 3) x 34 is 16.999998 and truncates to 16 where the
-// original's unrounded cosine times 34 at 24 bits gave 17: a region's corner one pixel off.
+// The cosine / sine of the angle.
 float ArcCos(float angle) { return std::cos(angle); }
 float ArcSin(float angle) { return std::sin(angle); }
 

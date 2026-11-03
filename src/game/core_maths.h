@@ -1,14 +1,9 @@
 #pragma once
 
-// Out-of-line vector helpers from the engine core. The Vector3 and Quaternion
-// members implemented in core_maths.cpp are declared in maths.h.
+// Out-of-line helpers from the engine core. The Quaternion members implemented in core_maths.cpp are declared
+// in lib/vecmath.h.
 
-#include "maths.h"
-
-// The game's AddVectors, NegateVector and ScaleVector: a + b, -v and s * v, one operation per component.
-Vector3 AddVectors(const Vector3& a, const Vector3& b);
-Vector3 NegateVector(const Vector3& v);
-Vector3 ScaleVector(const Vector3& v, float s);
+#include "lib/vecmath.h"
 
 // Clamps to [-1, 1]; NaN gives -1.
 float ClampUnit(float v);
@@ -18,6 +13,6 @@ struct CubicSegment {
     float c[4];
 
     void SetBSpline(float p0, float p1, float p2, float p3);
-    // Value at t (Horner's scheme). Returned unrounded.
+    // Value at t (Horner's scheme).
     float Evaluate(float t) const;
 };

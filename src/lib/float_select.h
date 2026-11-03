@@ -24,6 +24,7 @@
 #include <cstdint>
 
 #include "nan_audit.h"
+#include "vecmath.h"
 
 // The sign bit of `v` (set for -0.0 and for a negative NaN).
 inline bool SignBit(float v) { return (std::bit_cast<std::uint32_t>(v) >> 31) != 0; }
@@ -52,4 +53,12 @@ inline float MinKeepB(float a, float b) {
 inline float MaxKeepA(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b ? b : a;
+}
+
+// Per component (a box's corners grown by a point).
+inline Vector3 MinKeepA(const Vector3& a, const Vector3& b) {
+    return {MinKeepA(a.x, b.x), MinKeepA(a.y, b.y), MinKeepA(a.z, b.z)};
+}
+inline Vector3 MaxKeepB(const Vector3& a, const Vector3& b) {
+    return {MaxKeepB(a.x, b.x), MaxKeepB(a.y, b.y), MaxKeepB(a.z, b.z)};
 }

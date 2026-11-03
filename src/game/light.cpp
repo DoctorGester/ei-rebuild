@@ -76,7 +76,7 @@ void Light::AddPoint(Vector4* out, float scale, const Vector4* base, const Vecto
         *out = *base;
         return;
     }
-    const float cosine = vecmath::Dot<Sum3::ZYX>(normal, toLight);
+    const float cosine = Dot(normal, toLight);
     const float facing = cosine <= 0.0f ? cosine + 1.0f : 1.0f;
     const float amount = facing * falloff * scale;
     const float red = Lit(base->x, amount, color[0]);
@@ -128,10 +128,7 @@ float Light::GetIntensityAt(const Vector3& point) {
     if (type != kLightPoint) {
         return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
     }
-    float dx = point.x - localPosition.x;
-    float dy = point.y - localPosition.y;
-    float dz = point.z - localPosition.z;
-    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+    float distanceSquared = LengthSquared(point - localPosition);
     EI_NAN_AUDIT(distanceSquared, rangeSquared);
     if (distanceSquared < rangeSquared) {
         return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *

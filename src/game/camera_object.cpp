@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -28,8 +27,8 @@ namespace {
 
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
 // computed at run time as the game does.
-float DefaultPitch() { return static_cast<float>(CAM_DEGREE * CAM_FORTY_FIVE); }
-float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
+float DefaultPitch() { return CAM_DEGREE * CAM_FORTY_FIVE; }
+float DefaultAngle() { return kPi * CAM_TWO_SEVENTHS; }
 
 const char kCurrentRecord[] = ".\\camera\\camera.cam";
 const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
@@ -56,13 +55,11 @@ Camera::Camera() {
     turnRate = 0.0f;
     turnTarget = 0.0f;
     tiltRate = 0.0f;
-    focus.x = 10.0f;
+    focus = {10.0f, 10.0f, 2.0f};
     tiltTarget = 0.0f;
     zoomRate = 0.0f;
-    focus.y = 10.0f;
     zoomTarget = 0.0f;
     focusHeight = 2.0f;
-    focus.z = 2.0f;
     viewRotation = camera::kIdentityRotation;
     targetId = -1;
     nearDistance = 1.0f;
@@ -97,9 +94,7 @@ int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std:
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
-    focus.x = newSettings->cameraDefaultXDeploy;
-    focus.y = newSettings->cameraDefaultYDeploy;
-    focus.z = newSettings->cameraDefaultHeight;
+    focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
     nearDistance = std::bit_cast<float>(nearBits);
     farDistance = std::bit_cast<float>(farBits);
     fieldOfView = std::bit_cast<float>(fovBits);
@@ -226,23 +221,20 @@ void Camera::Save(ByteStream* stream) {
 // --- Camera motion -----------------------------------------------------------------------------------
 
 // Camera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
-// target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point: float maths in
-// the original's order (its x87 registers held floats at the main thread's 24-bit precision); an operation on the
-// CRT's double results through lib/pc24.h.
+// target and keeping it above nearby objects. See camera.h and docs/notes/core.md.
 
 // Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool Camera::LookDirection(float dx, float dy, float dz) {
-    float lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, float>(dx, dy, dz);
+    float lengthSquare = LengthSquared(Vector3{dx, dy, dz});
     EI_NAN_AUDIT(lengthSquare);
-    if (lengthSquare <= CAM_LOOK_EPSILON) return false;   // the double constant (exact as a compare)
+    if (lengthSquare <= CAM_LOOK_EPSILON) return false;
     float inv = 1.0f / std::sqrt(lengthSquare);
     float nx = inv * dx;
     float ny = inv * dy;
-    float elevation = static_cast<float>(libcrt::CiAsin(-(inv * dz)));
-    // ny over _hypot's double rounds once at 24 bits; the CRT's arc cosine returns a double.
-    float heading = static_cast<float>(libcrt::CiAcos(pc24::Div(ny, libcrt::Hypot(nx, ny))));
+    float elevation = std::asin(-(inv * dz));
+    float heading = std::acos(ny / std::hypot(nx, ny));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         viewRotation = camera::kIdentityRotation;
@@ -253,33 +245,14 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
         if (side < CAM_ZERO) z = CAM_MINUS_ONE;
         else if (side > CAM_ZERO) z = CAM_ONE;
         else z = CAM_ZERO;
-        Vector3 axis;
-        axis.x = 0.0f;
-        axis.y = 0.0f;
-        axis.z = z;
-        viewRotation.FromAxisAngle(axis, heading);
+        viewRotation.FromAxisAngle({0.0f, 0.0f, z}, heading);
     }
     localRotation = viewRotation;
-    const Quaternion& q = localRotation;
-    float xx = q.x * q.x;
-    float e1 = Dot2DUnrounded<float>(q.w, q.x, q.z, q.y);
-    float e2 = q.x * q.z - q.w * q.y;
-    Vector3 xAxis;
-    xAxis.x = (q.w * q.w - (LengthSquared2DUnrounded<float>(q.y, q.z) + xx)) + (xx + xx);
-    xAxis.y = e1 + e1;
-    xAxis.z = e2 + e2;
+    const Vector3 xAxis = localRotation.AxisX();
     float angle = -(CAM_RIGHT_ANGLE + elevation);
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
-    Quaternion& t = localRotation;
-    float x = ((t.z * r.y - t.y * r.z) + r.w * t.x) + t.w * r.x;
-    float y = ((t.x * r.z - t.z * r.x) + r.w * t.y) + t.w * r.y;
-    float zz = ((t.y * r.x - r.y * t.x) + r.w * t.z) + t.w * r.z;
-    float w = r.w * t.w - DotUnrounded<Sum3::ZYX, float>(r.x, r.y, r.z, t.x, t.y, t.z);
-    t.z = zz;
-    t.y = y;
-    t.w = w;
-    t.x = x;
+    localRotation = r * localRotation;
     return true;
 }
 
@@ -291,38 +264,23 @@ void Camera::AlignToTarget() {
     const Vector3 zAxis = q.AxisZ();
     const Vector3 xAxis = q.AxisX();
     float hy = -zAxis.x;
-    float hz = 0.0f;
     float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
-    float hx = inv * zAxis.y;
-    hy = hy * inv;
-    float dot = DotUnrounded<Sum3::ZYX, float>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
+    Vector3 h = {inv * zAxis.y, hy * inv, 0.0f};
+    float dot = Dot(xAxis, h);
     float cosine = dot;
     EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
     else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
-    float angle = static_cast<float>(libcrt::CiAcos(cosine));
+    float angle = std::acos(cosine);
     float magnitude = AbsBits(angle);
     if (CAM_DEGREE > magnitude) return;
-    float cx = xAxis.y * hz - xAxis.z * hy;
-    float cy = xAxis.z * hx - hz * xAxis.x;
-    float cz = hy * xAxis.x - xAxis.y * hx;
-    float invC = CAM_ONE / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(cx, cy, cz));
-    Vector3 axis;
-    axis.x = cx * invC;
-    axis.y = cy * invC;
-    axis.z = cz * invC;
-    float axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(axis));
-    if (axisLength > CAM_ALIGN_EPSILON) {   // the double constant (exact as a compare)
+    Vector3 c = Cross(xAxis, h);
+    Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquared(c)));
+    float axisLength = std::sqrt(LengthSquared(axis));
+    if (axisLength > CAM_ALIGN_EPSILON) {
         Quaternion turn;
         const Quaternion& r = *turn.SetAngleAxis(angle * CAM_TENTH, axis);
-        float x = ((r.y * q.z - q.y * r.z) + q.x * r.w) + r.x * q.w;
-        float y = ((q.x * r.z - r.x * q.z) + q.y * r.w) + r.y * q.w;
-        float z = ((q.y * r.x - r.y * q.x) + r.w * q.z) + r.z * q.w;
-        float w = r.w * q.w - DotUnrounded<Sum3::ZXY, float>(q.x, q.y, q.z, r.x, r.y, r.z);
-        q.z = z;
-        q.y = y;
-        q.w = w;
-        q.x = x;
+        q = r * q;
     }
     ClampAboveObjects();
 }
@@ -345,12 +303,11 @@ void Camera::ClampAboveObjects() {
         float cx = object->localPosition.x + object->bounds.center.x;
         float cy = object->localPosition.y + object->bounds.center.y;
         float cz = p->z;
-        double radius = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
+        float radius = std::hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
         float dx = cx - p->x;
         float dy = cy - p->y;
         float dz = cz - p->z;
-        // The distance less _hypot's double, rounded once at 24 bits.
-        float outside = pc24::Sub(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)), radius);
+        float outside = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) - radius;
         float factor = CAM_ZERO;
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;

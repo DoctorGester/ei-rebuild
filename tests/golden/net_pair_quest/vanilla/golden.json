@@ -1,13 +1,28 @@
 {
   "scenario": "net_pair_quest",
   "install": "vanilla",
-  "recorded": "2026-10-30",
-  "commit": "c1b726e",
+  "recorded": "2026-11-03",
+  "commit": "fa001802b",
   "digest_period": 20,
   "left_out": null,
-  "clear": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C68: the main menu's script runs (AllowScriptsInMainMenu folded: its start-block run ends, record 0 of every run); addon's console commands in help (console); Add takes any argument count and IsEqual tests too many (script_parse); ResetTarget without behaviour records applies nothing (rebirth_flags); the whole map drawn (no draw radii: far units' client animation start / orientation, idle animations in bz1g, four more water sectors animated). Diffs: runs 41102852197 and 41107997893.",
+  "reason": "C74b and C76: one summation order for every vector, quaternion and matrix helper, and pc24 / the game CRT maths removed (plain float maths, std:: on floats, float heights, speeds and constants). Float results differ in their last bits; outcomes are the same but net_pair_quest's fight, which ends sooner.",
   "source": "image",
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 758 of 758 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes CHANGED: zone, deaths, spawns, quest variables, party and items, game result, script; max unit move 404 (obj1574, record 721); the digests have different numbers of records",
+    "  digest: before has more records; the other ends before its record 758 (world update 15180, frame 3035, tick 14932, zone bz1mpg)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 10 fields",
+    "    world (world) secondsPerTick: 0.00111111114 in before, 0.00111111125 in after (d 1.1e-10)",
+    "    obj129 (80 unanwibo \"\") rot.w: -0.143725216 in before, -0.143725321 in after (d 1.05e-07)",
+    "    obj129 (80 unanwibo \"\") ai.point.x: 30.7437401 in before, 30.743742 in after (d 1.9e-06)",
+    "    ... 7 more",
+    "  outcomes: CHANGED zone, deaths, spawns, quest variables, party and items, game result, script; same: money",
+    "    zone: record 717: z9q2 in before, bz1mpg in after (+4 more)",
+    "    deaths: obj1000192 dead: 1 in before, 0 in after, from record 327 (+529 more)",
+    "    spawns: obj29 (82 nafltr59) only in before, from record 717 (+8189 more)",
+    "    quest variables: 9 variables differ (b.Nsheriff.intro_1q, b.Nsheriff.z9q2_3, b.Smith.intro_1k, b.smith.constr_1, gtime, q.z9q2.z9q2, ...); first from record 15: player0 gtime: 0.0522222221 in before, 0.0522222295 in after",
+    "... 39 more lines"
+  ]
 }

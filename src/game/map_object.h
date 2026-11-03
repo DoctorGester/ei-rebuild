@@ -6,7 +6,7 @@
 
 #include "engine_object.h"
 #include "map_object_figures.h"   // Object3D, the base
-#include "maths.h"
+#include "lib/vecmath.h"
 #include "net_delta.h"          // DeltaState
 
 #include "lib/bit_flags.h"
@@ -183,8 +183,8 @@ public:
     virtual int ForgetObject(EngineObject* object);
     virtual void UpdateMoveFactors();  // empty; units: the controller's UpdateMoveFactors
     virtual void RefreshWounds();      // empty; units: the controller's hit virtual
-    // The speed the object moves at, unrounded: 0; units their forward speed.
-    virtual double MoveSpeed();
+    // The speed the object moves at: 0; units their forward speed.
+    virtual float MoveSpeed();
     virtual float Radius();                         // 0.75; units their own
     // Units keep `name` as their script name; empty here.
     virtual void SetScriptName(std::string_view name);

@@ -72,12 +72,7 @@ void RainSnow::UpdateFade(float now) {
 }
 
 void RainSnow::SetWind(const Vector3& direction, float strength) {
-    float x = strength * direction.x;
-    float y = strength * direction.y;
-    float z = strength * direction.z;
-    wind.x = x;
-    wind.y = y;
-    wind.z = z;
+    wind = direction * strength;
 }
 
 void RainSnow::Clear() {
@@ -132,39 +127,16 @@ void VisibilityFog::ComputeBounds() {
     bounds.boxMin = {kFar, kFar, kFar};
     bounds.boxMax = {-kFar, -kFar, -kFar};
     for (const auto& [key, cell] : cells) {
-        const Vector3& p = cell.pos;
-        bounds.boxMin.x = MinKeepA(p.x, bounds.boxMin.x);
-        bounds.boxMin.y = MinKeepA(p.y, bounds.boxMin.y);
-        bounds.boxMin.z = MinKeepA(p.z, bounds.boxMin.z);
-        bounds.boxMax.x = MaxKeepB(bounds.boxMax.x, p.x);
-        bounds.boxMax.y = MaxKeepB(bounds.boxMax.y, p.y);
-        bounds.boxMax.z = MaxKeepB(bounds.boxMax.z, p.z);
+        bounds.boxMin = MinKeepA(cell.pos, bounds.boxMin);
+        bounds.boxMax = MaxKeepB(bounds.boxMax, cell.pos);
     }
-    bounds.boxMax.x = bounds.boxMax.x + 0.5f;
-    bounds.boxMax.y = bounds.boxMax.y + 0.5f;
-    bounds.boxMax.z = bounds.boxMax.z + 0.5f;
-    bounds.boxMin.x = bounds.boxMin.x - 0.5f;
-    bounds.boxMin.y = bounds.boxMin.y - 0.5f;
-    bounds.boxMin.z = bounds.boxMin.z - 0.5f;
-    float sy = bounds.boxMin.y + bounds.boxMax.y;
-    float sz = bounds.boxMin.z + bounds.boxMax.z;
-    float cx = (bounds.boxMax.x + bounds.boxMin.x) * 0.5f;
-    float cy = sy * 0.5f;
-    float cz = sz * 0.5f;
-    bounds.center.x = cx;
-    bounds.center.y = cy;
-    bounds.center.z = cz;
-    bounds.boxMin.x = bounds.boxMin.x - cx;
-    bounds.boxMin.y = bounds.boxMin.y - cy;
-    bounds.boxMin.z = bounds.boxMin.z - cz;
-    bounds.boxMax.x = bounds.boxMax.x - cx;
-    bounds.boxMax.y = bounds.boxMax.y - cy;
-    bounds.boxMax.z = bounds.boxMax.z - cz;
-    float x = bounds.boxMax.x;
-    float y = bounds.boxMax.y;
-    float z = bounds.boxMax.z;
-    boundsSpare = {0.0f, 0.0f, 0.0f};
-    bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
+    const Vector3 margin = {0.5f, 0.5f, 0.5f};
+    bounds.boxMax += margin;
+    bounds.boxMin -= margin;
+    bounds.center = (bounds.boxMax + bounds.boxMin) * 0.5f;
+    bounds.boxMin -= bounds.center;
+    bounds.boxMax -= bounds.center;
+    bounds.radius = std::sqrt(LengthSquared(bounds.boxMax));
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     boundsValid = 1;
 }
@@ -178,7 +150,7 @@ bool VisibilityFog::RunTick() {
         if (cell.visible)
             cell.alpha = 1.0f - (1.0f - cell.alpha) * 0.5f;
         else
-            cell.alpha = cell.alpha * 0.5f;
+            cell.alpha *= 0.5f;
         EI_NAN_AUDIT(cell.alpha);
         if (cell.alpha < kFogMinAlpha) {
             dead.push_back(key);
@@ -213,7 +185,7 @@ void VisibilityFog::Reveal(const FogGrid* grid) {
             cell->pos.x = (WordToFloat(r) * kFogJitter + cell->x - kQuarter) * 0.5f;
             r = g_clientRandom.Next();
             cell->pos.y = (WordToFloat(r) * kFogJitter + cell->y - kQuarter) * 0.5f;
-            float ground = static_cast<float>(OwningWorld()->SurfaceHeightAt(cell->pos.x, cell->pos.y));
+            float ground = OwningWorld()->SurfaceHeightAt(cell->pos.x, cell->pos.y);
             cell->alpha = 0.0f;
             cell->pos.z = ground + 0.5f;
             cell->frame = static_cast<std::int8_t>(g_clientRandom.Next() % 15);
@@ -260,7 +232,7 @@ struct FogSprite {
 };
 
 // The draw's work arrays: the sprites' centres and sizes and their records.
-std::vector<ParticleVertex> g_points;
+std::vector<SpritePoint> g_points;
 std::vector<FogSprite> g_sprites;
 
 constexpr int kWorkRecords = 0x1000;      // the arrays' first size
@@ -294,12 +266,12 @@ int VisibilityFog::Draw(SceneRenderer* renderer) {
     g_points.resize(static_cast<int>(cells.size()));
 
     int remaining = static_cast<int>(cells.size());
-    ParticleVertex* point = g_points.data();
+    SpritePoint* point = g_points.data();
     FogSprite* sprite = g_sprites.data();
     for (auto& node : cells) {
         if (--remaining < 0) break;
         const FogCell& cell = node.second;
-        lib::StoreBytes(point, cell.pos);
+        point->position = cell.pos;
         point->size = kFogSpriteSize;
         const int alpha = std::lround(cell.alpha * kColourScale);
         sprite->colour = (static_cast<std::uint32_t>(alpha) << 24) | 0x00FFFFFFu;

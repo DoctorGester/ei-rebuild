@@ -1,10 +1,5 @@
 // AddNewScriptCommands: addon's arithmetic functions (handlers 10011200-10011A53). Each reads its
-// float arguments and stores the result as a float (helpers in script_addon.cpp). addon's x87 code
-// ran at the game's 24-bit precision, where each operation rounds to a float: float maths here.
-// sin, cos and pow are the C runtime's (addon's MSVC 2010 CRT takes its SSE2 code path under the
-// game's FPU control word; our code calls the modern CRT's, the same Intel library); their
-// double results are rounded to float, which hides any last-bit difference except at a float
-// rounding boundary. floor, ceil and sqrt are exact or correctly rounded in any implementation.
+// float arguments and stores the result as a float (helpers in script_addon.cpp): float maths.
 #include "script_addon_handlers.h"
 
 #include "asset_text.h"
@@ -243,7 +238,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    *call->result.number = static_cast<float>(str::ToDouble(Arg(call, 0)));
+    *call->result.number = str::ToFloat(Arg(call, 0));
     return true;
 }
 

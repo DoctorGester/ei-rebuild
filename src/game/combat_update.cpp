@@ -158,7 +158,7 @@ bool UnitServer::RunTick() {
     if (self->localPosition.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += kSinkAcceleration;
-        self->localPosition.z = self->localPosition.z - sinking;
+        self->localPosition.z -= sinking;
         float z = unit->localPosition.z;
         unit->localPosition.z = MaxKeepB(0.0f, z);    // a NaN z is kept
         unit->MarkChanged(2);
@@ -347,7 +347,7 @@ void UnitServer::StandStill() {
     motion.Clear();
     int now = OwningWorld()->tick;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    Vector3 direction = -RotatedAxisY(unit->localRotation);
+    Vector3 direction = -(unit->localRotation).AxisY();
     if (motion.Start(unit->localPosition, direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
@@ -486,9 +486,7 @@ bool UnitServer::ActionInReach() {
         if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
     Vector3 at = target->PositionAt(currentPlan.endTime);
-    float dx = at.x - unit->localPosition.x;
-    float dy = at.y - unit->localPosition.y;
-    float distanceSq = LengthSquared2DUnrounded(dx, dy);
+    float distanceSq = DistanceSquaredXY(at, unit->localPosition);
     EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer
 }

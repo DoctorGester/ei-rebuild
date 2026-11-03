@@ -11,7 +11,7 @@ How to write and change the game's code (fixes, cleanup, new features). Every ru
 - `src/lib/`: shared helpers: `crt.h` (the game CRT's behaviour where it differs from the host's), `str.h` (what
   CString did that std::string has no member for), `hash_map.h` (`lib::HashMap`: STLport's walk order),
   `intro_sort.h` (`lib::IntroSort`: the game's sort, where the order of equal keys is behaviour), `vecmath.h`,
-  `pc24.h`, `float_select.h`, `rect.h`, `bytes.h`. Add only what is needed, in small separate additions.
+  `float_select.h`, `rect.h`, `bytes.h`. Add only what is needed, in small separate additions.
 - `src/platform/`: every call of the operating system, by area (files, clock, window, input, sound, sockets), with no
   SDK types; the backends (`win32`, `sdl`, `posix`, `d3d11`, ...) are the only game-side places that include system
   headers (`docs/notes/platform.md`; `tools/check_platform.py` fails otherwise). A new system call goes there.

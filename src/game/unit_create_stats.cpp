@@ -1,6 +1,7 @@
 // A creature's starting vitals and statistics from its prototype records, the prototype applied
 // to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md ("Creation,
 // databases, save").
+#include "angles.h"
 #include "base_manager.h"
 #include "item.h"
 #include "lever.h"
@@ -18,7 +19,6 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -26,8 +26,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-// Float maths at the main thread's 24-bit precision, in the original's order.
 
 namespace {
 
@@ -43,11 +41,8 @@ constexpr float kThousand = 1000.0f;
 constexpr float kTen = 10.0f;
 constexpr int kSlotWorking = 3;
 
-// pi and 1/180 (doubles): their product rounds once to 24 bits.
-constexpr double kPi = 3.141592653589793;
-constexpr double kPerDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 
-// These are stored as bit patterns, not through the FPU.
+// A dword copied as its bits.
 template <typename To, typename From>
 void CopyDword(To& to, const From& from) {
     to = std::bit_cast<To>(from);
@@ -66,13 +61,13 @@ const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
 
 // --- The statistics both builders fill the same way ---------------------------------------
 
-// cos(angle / 2) with the angle in degrees, stored to a float (FCOS).
+// cos(angle / 2) with the angle in degrees.
 float HalfAngleCosine(const UnitModelRecord* model) {
     float half = model->angle * 0.5f;
-    return pc24::Round(pc24::Cos(half * pc24::Mul(kPi, kPerDegree)));
+    return std::cos(half * ei::kRadiansPerDegree);
 }
 
-float RightAngleCosine() { return pc24::Round(pc24::Cos(pc24::Mul(kPi, kPerDegree) * 90.0f)); }
+float RightAngleCosine() { return std::cos(ei::kRadiansPerDegree * 90.0f); }
 
 void SetAttributesAndSkills(UnitStats* stats, const UnitPrototypeRecord* prototype, const UnitNpcRecord* npc) {
     if (npc) {
@@ -149,11 +144,11 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow (its result is a float at 24 bits).
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])).
 float HitPointExperienceCurve(const float* experience) {
     const float exponent =
-        pc24::Div(pc24::Log(*experience / g_logicSettings.hpVal[2]), pc24::Log(g_logicSettings.hpVal[4]));
-    return static_cast<float>(libcrt::CiPow(g_logicSettings.hpVal[3], exponent));
+        std::log(*experience / g_logicSettings.hpVal[2]) / std::log(g_logicSettings.hpVal[4]);
+    return std::pow(g_logicSettings.hpVal[3], exponent);
 }
 
 float LevelOrZero(UnitStats* stats, int skill) {

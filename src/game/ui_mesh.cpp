@@ -54,8 +54,8 @@ void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) 
 void NudgeAndCommit(UiMesh* mesh) {
     float half = worlddata::kHalfTexel;
     for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
-        mesh->texCoords[i].u = mesh->texCoords[i].u + half;
-        mesh->texCoords[i].v = mesh->texCoords[i].v - half;
+        mesh->texCoords[i].u += half;
+        mesh->texCoords[i].v -= half;
     }
     mesh->RefreshBuffers();
 }
@@ -71,9 +71,8 @@ void SetBuildScale(UiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(UiMesh* mesh, float x, float y, float depth) {
-    mesh->localPosition.x = (x - 1.0f) * worlddata::kInterfaceView * depth;
-    mesh->localPosition.y = (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth;
-    mesh->localPosition.z = depth;
+    mesh->localPosition = {(x - 1.0f) * worlddata::kInterfaceView * depth,
+                           (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth, depth};
 }
 
 // --- Points on a circle ------------------------------------------------------------------------------
@@ -354,9 +353,7 @@ void UiMesh::Place(float x, float y, float depth) {
     x += static_cast<float>(screen_layout::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
-    localPosition.x = placedX;
-    localPosition.y = placedY;
-    localPosition.z = depth;
+    localPosition = {placedX, placedY, depth};
 }
 
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
@@ -429,9 +426,7 @@ void UiMesh::Create() {
     tintSpare[1] = 0.0f;
     tintSpare[2] = 0.0f;
     localRotation = kIdentityOrientation;
-    localPosition.x = 0.0f;
-    localPosition.y = 0.0f;
-    localPosition.z = kSpriteDepth;
+    localPosition = {0.0f, 0.0f, kSpriteDepth};
     flatColour = kOpaqueBlack;
     flatSpecular = kOpaqueBlack;
     visible = true;
@@ -520,8 +515,8 @@ void SetTexelCorners(UiMesh* sprite, int u0, int v0, int u1, int v1) {
 void InsetTexels(UiMesh* sprite) {
     for (int i = 0; i < std::ssize(sprite->texCoords); ++i) {
         TexCoord* texel = sprite->texCoords.data() + i;
-        texel->u = texel->u + kHalfTexel;
-        texel->v = texel->v - kHalfTexel;
+        texel->u += kHalfTexel;
+        texel->v -= kHalfTexel;
     }
 }
 

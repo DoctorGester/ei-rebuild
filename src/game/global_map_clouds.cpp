@@ -24,7 +24,7 @@ void GlobalMapClouds::Draw(const void* holder, float seconds) {
     phase = seconds * speed + phase;
     EI_NAN_AUDIT(phase);
     while (phase >= 1.0f) {    // a NaN phase ends it (it looped for ever in the game)
-        phase = phase - 1.0f;
+        phase -= 1.0f;
         Generate(&frames[2], step);
         if (step == kSteps - 1) {
             std::swap(frames[0], frames[1]);

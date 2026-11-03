@@ -176,10 +176,7 @@ ParticleSource::Attachment ParticleSource::AttachmentOffset() {
     if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
         radius = object->bounds.radius;
     } else {
-        float dz = object->bounds.boxMax.z - object->bounds.boxMin.z;
-        float dx = object->bounds.boxMax.x - object->bounds.boxMin.x;
-        float dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
-        radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5f;
+        radius = std::sqrt(LengthSquared(object->bounds.boxMax - object->bounds.boxMin)) * 0.5f;
     }
     return {{0.0f, 0.0f, object->bounds.center.z}, radius};
 }
@@ -194,13 +191,7 @@ void ParticleSource::Attach(Object3D* object) {
     if (old) {
         if (!object) {
             // Let go where the source is: the attachment point becomes part of the position.
-            Vector3 point = AttachmentPoint(old);
-            float x = point.x + localPosition.x;
-            float y = localPosition.y + point.y;
-            float z = localPosition.z + point.z;
-            localPosition.x = x;
-            localPosition.y = y;
-            localPosition.z = z;
+            localPosition = AttachmentPoint(old) + localPosition;
         }
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
         old->RemoveEffectSource(this);
@@ -247,11 +238,7 @@ bool AttachedToHiddenUnit(const ParticleSource* s) {
 // The attachment point plus the local position, or the local position alone.
 Vector3 ParticleSource::WorldPosition() {
     if (attachedTo) {
-        Vector3 a = AttachmentPoint(attachedTo);
-        float z = a.z + localPosition.z;
-        float y = a.y + localPosition.y;
-        float x = a.x + localPosition.x;
-        return {x, y, z};
+        return AttachmentPoint(attachedTo) + localPosition;
     }
     return localPosition;
 }
@@ -275,7 +262,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         Vector3 p = source->WorldPosition();
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = DotUnrounded<Sum3::ZYX>(axis, p);
+        entry.depth = Dot(axis, p);
         lib::SetAtGrow(order, lib::Count(order), entry);
         source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }
@@ -320,7 +307,7 @@ namespace {
 #define EI_ONE 1.0f
 
 // The draw's work arrays, reused by every source.
-std::vector<ParticleVertex> g_vertices;
+std::vector<SpritePoint> g_vertices;
 std::vector<ParticleSprite> g_sprites;
 
 constexpr int kReserve = 0x1000;
@@ -365,12 +352,10 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
     auto cursor = particles.begin();
     if (cursor != particles.end()) {
         float u = EI_ONE - t;
-        ParticleVertex* vertex = g_vertices.data();
+        SpritePoint* vertex = g_vertices.data();
         do {
             const Particle* p = *cursor++;
-            vertex->x = u * p->prevPos.x + t * p->pos.x;
-            vertex->y = u * p->prevPos.y + t * p->pos.y;
-            vertex->z = u * p->prevPos.z + t * p->pos.z;
+            vertex->position = u * p->prevPos + t * p->pos;
             vertex->size = u * p->prevSize + t * p->size;
             std::uint32_t now = p->color;
             std::uint32_t before = p->prevColor;
@@ -409,8 +394,8 @@ namespace {
 #define EI_STILL 0.001f   // below this the source is not moving
 #define EI_DEGENERATE 1e-10f
 
-constexpr float kFarBits = 100000.0f;
-constexpr float kNearBits = -100000.0f;
+constexpr float kFar = 100000.0f;
+constexpr float kNear = -100000.0f;
 
 void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
@@ -423,12 +408,8 @@ void Normalize(Vector3& v, float length) {
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
 // smaller (or unordered), the maximum when the current maximum is smaller (or unordered).
 void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
-    low.x = MinKeepA(p.x, low.x);
-    low.y = MinKeepA(p.y, low.y);
-    low.z = MinKeepA(p.z, low.z);
-    high.x = MaxKeepB(high.x, p.x);
-    high.y = MaxKeepB(high.y, p.y);
-    high.z = MaxKeepB(high.z, p.z);
+    low = MinKeepA(p, low);
+    high = MaxKeepB(high, p);
 }
 
 // Saves the fields the update callback may change, so a rejected update can be undone (dword copies).
@@ -454,16 +435,9 @@ struct TickSteps {
     // position alone); the emission point moves there.
     void Follow() {
         if (s->attachedTo) {
-            Vector3 a = s->AttachmentPoint(s->attachedTo);
-            float wx = a.x + s->localPosition.x;
-            float wy = a.y + s->localPosition.y;
-            float wz = a.z + s->localPosition.z;
-            s->motion.x = wx - s->origin.x;
-            s->motion.y = wy - s->origin.y;
-            s->motion.z = wz - s->origin.z;
-            s->origin.x = wx;
-            s->origin.y = wy;
-            s->origin.z = wz;
+            Vector3 at = s->AttachmentPoint(s->attachedTo) + s->localPosition;
+            s->motion = at - s->origin;
+            s->origin = at;
         } else {
             s->motion = s->localPosition - s->origin;
             s->origin = s->localPosition;
@@ -474,7 +448,7 @@ struct TickSteps {
     // up = normalize(motion x side); both zero when the source barely moved.
     void BuildBasis() {
         const Vector3& m = s->motion;
-        float distance = LengthXYZ(m);
+        float distance = Length(m);
         s->distance = distance;
         EI_NAN_AUDIT(distance);
         if (distance <= EI_STILL) {
@@ -483,27 +457,16 @@ struct TickSteps {
             return;
         }
         float zero = EI_ZERO;
-        s->side.x = m.y - zero;
-        s->side.y = zero - m.x;
-        s->side.z = 0.0f;
-        float length = LengthXYZ(s->side);
+        s->side = {m.y - zero, zero - m.x, 0.0f};
+        float length = Length(s->side);
         EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
-            float mx = m.x;
-            s->side.x = m.y - m.z;
-            s->side.y = -mx;
-            s->side.z = mx;
-            length = LengthZYX(s->side);
+            s->side = {m.y - m.z, -m.x, m.x};
+            length = Length(s->side);
         }
         Normalize(s->side, length);
-        const Vector3& v = s->side;
-        float ux = m.y * v.z - m.z * v.y;
-        float uy = m.z * v.x - v.z * m.x;
-        float uz = m.x * v.y - m.y * v.x;
-        s->up.x = ux;
-        s->up.y = uy;
-        s->up.z = uz;
-        Normalize(s->up, LengthXYZ(s->up));
+        s->up = Cross(m, s->side);
+        Normalize(s->up, Length(s->up));
     }
 
     void RunElements() {
@@ -564,18 +527,9 @@ struct TickSteps {
 
     // Centre and half extents of the bounds.
     void FinishBounds() {
-        float cx = (s->boundsMax.x + s->boundsMin.x) * EI_HALF;
-        float cy = (s->boundsMax.y + s->boundsMin.y) * EI_HALF;
-        float cz = (s->boundsMax.z + s->boundsMin.z) * EI_HALF;
-        s->clip.center.x = cx;
-        s->clip.center.y = cy;
-        s->clip.center.z = cz;
-        s->clip.boxMin.x = s->boundsMin.x - cx;
-        s->clip.boxMin.y = s->boundsMin.y - cy;
-        s->clip.boxMin.z = s->boundsMin.z - cz;
-        s->clip.boxMax.x = s->boundsMax.x - cx;
-        s->clip.boxMax.y = s->boundsMax.y - cy;
-        s->clip.boxMax.z = s->boundsMax.z - cz;
+        s->clip.center = (s->boundsMax + s->boundsMin) * EI_HALF;
+        s->clip.boxMin = s->boundsMin - s->clip.center;
+        s->clip.boxMax = s->boundsMax - s->clip.center;
         s->clip.flags |= 2;
     }
 };
@@ -610,12 +564,8 @@ bool ParticleSource::RunTick() {
     const WorldClient* world = &g_clientWorld;
     lib::LoadBytes(windDirection, world->windDirection);
     windStrength = std::bit_cast<float>(world->windStrength);
-    boundsMin.x = kFarBits;
-    boundsMin.y = kFarBits;
-    boundsMin.z = kFarBits;
-    boundsMax.x = kNearBits;
-    boundsMax.y = kNearBits;
-    boundsMax.z = kNearBits;
+    boundsMin = {kFar, kFar, kFar};
+    boundsMax = {kNear, kNear, kNear};
     if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
 
     TickSteps steps{this};

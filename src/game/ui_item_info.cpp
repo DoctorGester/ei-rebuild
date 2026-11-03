@@ -1,6 +1,5 @@
 // The item description panel: what the camp, the multiplayer hero screen and the exchange window write about the item or
-// statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions"). The statistics functions'
-// results (double) are truncated as they come.
+// statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions").
 #include "party.h"
 #include "ui_screens.h"
 #include "text_split.h"

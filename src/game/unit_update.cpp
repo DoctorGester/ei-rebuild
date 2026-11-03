@@ -16,7 +16,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -93,19 +92,19 @@ float* Unit::StandPoint(float* out) {
     float y = localPosition.y;
     float lift = ModeSpeed();   // inlined
     World* world = OwningWorld();
-    double height;   // the world's double, or the surface plus z (one rounding each)
+    float height;   // the world's height, or the surface plus z
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            height = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
+            height = world->SurfaceHeightAt(x, y) + localPosition.z;
         } else {
-            height = pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
+            height = world->SurfaceHeightAt(x, y) + heightOffset;
         }
     } else {
         height = world->GroundHeightAt(x, y);
     }
     out[0] = x;
     out[1] = y;
-    out[2] = pc24::Add(height, lift);
+    out[2] = height + lift;
     return out;
 }
 
@@ -116,12 +115,12 @@ void Unit::PlaceOnGround(float offset) {
     World* world = OwningWorld();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
+            localPosition.z = world->SurfaceHeightAt(x, y) + localPosition.z;
         } else {
-            localPosition.z = pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
+            localPosition.z = world->SurfaceHeightAt(x, y) + heightOffset;
         }
     } else {
-        localPosition.z = static_cast<float>(world->GroundHeightAt(x, y));
+        localPosition.z = world->GroundHeightAt(x, y);
     }
 }
 
@@ -165,7 +164,7 @@ bool Unit::IsLargeUnit() { return obstacle != 0; }
 bool Unit::IsDead() { return dead; }
 void Unit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
 void Unit::RefreshWounds() { Controller()->RefreshWounds(); }
-double Unit::MoveSpeed() {
+float Unit::MoveSpeed() {
     return GetMoveSpeeds().forward;
 }
 float Unit::Radius() { return unitRadius; }
@@ -340,7 +339,7 @@ float UnitParams::VisionRange(float daylight) {
 void Unit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!IsTextKey(id)) return;
-    float daylight = static_cast<float>(g_clientWorld.NightLevel());
+    float daylight = g_clientWorld.NightLevel();
     float range = params.VisionRange(daylight);
 
     if (moveMode == 0) range = range;

@@ -291,7 +291,7 @@ Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
         m.m[row * 4] = v.x;
         m.m[row * 4 + 1] = v.y;
         m.m[row * 4 + 2] = v.z;
-        m.m[row * 4 + 3] = -vecmath::Dot<Sum3::XYZ>(v, at);
+        m.m[row * 4 + 3] = -Dot(v, at);
     }
     for (int j = 0; j < 4; ++j) m.m[8 + j] = a * m.m[12 + j] + (j == 3 ? b : 0.0f);
     return m;
@@ -300,8 +300,8 @@ Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
 // The sphere (relative to the light) reaches into the face's view: in front of it and inside its four
 // sides (planes at 45 degrees through the light).
 bool InFace(const CubeFace& face, const Vector3& c, float radius) {
-    const float f = vecmath::Dot<Sum3::XYZ>(face.forward, c), x = vecmath::Dot<Sum3::XYZ>(face.right, c),
-                y = vecmath::Dot<Sum3::XYZ>(face.up, c);
+    const float f = Dot(face.forward, c), x = Dot(face.right, c),
+                y = Dot(face.up, c);
     const float r = radius * 1.41421356f;
     return f + radius > kNear && f - x + r >= 0.0f && f + x + r >= 0.0f && f - y + r >= 0.0f && f + y + r >= 0.0f;
 }
@@ -309,11 +309,11 @@ bool InFace(const CubeFace& face, const Vector3& c, float radius) {
 // The sphere around a model-space box placed by `model`: its centre and the farthest corner's distance (the root
 // of the largest square: the root keeps the order).
 Sphere BoxSphere(const float box[6], const Matrix4& model) {
-    const Vector3 centre = TransformColumn<Sum3::XYZ>(model, Vector3{(box[0] + box[3]) * 0.5f, (box[1] + box[4]) * 0.5f, (box[2] + box[5]) * 0.5f});
+    const Vector3 centre = TransformColumn(model, Vector3{(box[0] + box[3]) * 0.5f, (box[1] + box[4]) * 0.5f, (box[2] + box[5]) * 0.5f});
     float farthest = 0.0f;
     for (int k = 0; k < 8; ++k) {
         const Vector3 corner{box[(k & 1) ? 3 : 0], box[(k & 2) ? 4 : 1], box[(k & 4) ? 5 : 2]};
-        farthest = std::max(farthest, DistanceSquared<Sum3::XYZ>(TransformColumn<Sum3::XYZ>(model, corner), centre));
+        farthest = std::max(farthest, DistanceSquared(TransformColumn(model, corner), centre));
     }
     return Sphere{centre, std::sqrt(farthest)};
 }
@@ -324,8 +324,8 @@ bool InView(const Matrix4& clip, const Vector3& c, float radius) {
     auto row = [&](int k) { return Vector3{clip.m[k * 4], clip.m[k * 4 + 1], clip.m[k * 4 + 2]}; };
     auto constant = [&](int k) { return clip.m[k * 4 + 3]; };
     auto inside = [&](const Vector3& normal, float w) {
-        const float length = Length<Sum3::XYZ>(normal);
-        return length <= 1e-12f || (vecmath::Dot<Sum3::XYZ>(normal, c) + w) / length >= -radius;
+        const float length = Length(normal);
+        return length <= 1e-12f || (Dot(normal, c) + w) / length >= -radius;
     };
     // -w <= x, y <= w and 0 <= z <= w.
     for (int k = 0; k < 2; ++k)
@@ -448,7 +448,7 @@ void PreparePointShadows(Frame& f) {
     for (const Candidate& light : g_candidates) {
         if (g_mappedCount == kMostPointShadows) break;
         for (Caster& c : g_casters) {
-            c.distance = DistanceSquared<Sum3::XYZ>(c.sphere.centre, light.at);
+            c.distance = DistanceSquared(c.sphere.centre, light.at);
             g_objects[static_cast<std::size_t>(c.object)].holds = false;
         }
         for (const Caster& c : g_casters)
@@ -506,7 +506,7 @@ void PreparePointShadows(Frame& f) {
             for (float& d : o.front) d = kNoFront;
         }
         for (int slot = 0; slot < g_mappedCount; ++slot) {
-            const float squared = DistanceSquared<Sum3::XYZ>(u.sphere.centre, g_mapped[slot].at);
+            const float squared = DistanceSquared(u.sphere.centre, g_mapped[slot].at);
             if (o.front[slot] != kNoFront && !NotFurther(squared, o.front[slot] + u.sphere.radius)) continue;
             const float d = std::sqrt(squared) - u.sphere.radius;
             o.front[slot] = std::min(o.front[slot], d);

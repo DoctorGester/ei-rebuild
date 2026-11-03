@@ -22,7 +22,6 @@
 
 namespace {
 constexpr float kOverkill = -5.0f;
-constexpr std::uint32_t kOneBits = 0x3F800000u;
 constexpr int kAllLocations = 6;
 constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
@@ -68,7 +67,7 @@ void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKin
     if (pieces > 0) {
         item->condition = item->condition - amount / static_cast<float>(pieces);
     } else {
-        item->condition = item->condition - amount;
+        item->condition -= amount;
     }
     float condition = item->condition;
     if (lib::RoundEven(condition) <= 0) {
@@ -112,7 +111,7 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
         if (typeDamage <= 0.0f) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
-            typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
+            typeDamage -= hit->multiplier * slot.layers[layer].absorb[type];
             WearArmour(unit, hit->location, layer, MaxKeepB(0.0f, typeDamage));
             EI_NAN_AUDIT(typeDamage);
             if (typeDamage <= 0.0f) break;
@@ -150,7 +149,7 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
         }
         console::EndLine(kHitLog);
     }
-    if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= UnitStatsFlag::Backstab;
+    if (hit->backstabFactor != 1.0f) flags |= UnitStatsFlag::Backstab;
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
     return damaged;
 }
@@ -214,15 +213,9 @@ void UnitVitals::TakeHit(const DamageInfo* hit) {
 
 bool Unit::IsBehind(const MapObject* t) {
     if (!player) return false;
-    float dx = t->localPosition.x - localPosition.x;
-    float dy = t->localPosition.y - localPosition.y;
-    float dz = t->localPosition.z - localPosition.z;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
-    if (length > 0.0f) {
-        dx = dx / length;
-        dy = dy / length;
-        dz = dz / length;
-    }
+    Vector3 towards = t->localPosition - localPosition;
+    float length = std::sqrt(LengthSquared(towards));
+    if (length > 0.0f) towards /= length;
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
     ItemWeapon* weapon = nullptr;
@@ -236,19 +229,8 @@ bool Unit::IsBehind(const MapObject* t) {
         if (weapon->GetType() == 5) return false;
         if (weapon->GetType() == 6) return false;
     }
-    // The target's facing from its orientation quaternion.
-    float a = t->localRotation.w;
-    float b = t->localRotation.x;
-    float c = t->localRotation.y;
-    float d = t->localRotation.z;
-    float x = c * b - a * d;
-    x = x + x;
-    float cc = c * c;
-    float rest = a * a - ((d * d + b * b) + cc);
-    float y = cc + cc + rest;
-    float z = a * b + c * d;
-    z = z + z;
-    float facing = DotUnrounded<Sum3::ZYX, float>(x, y, z, dx, dy, dz);
+    // The target's rotated Y axis (a unit faces -Y) along the direction to it.
+    float facing = Dot(t->localRotation.AxisY(), towards);
 
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack;
