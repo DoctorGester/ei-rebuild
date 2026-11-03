@@ -203,13 +203,16 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # (src/platform/win32, the one place of the game's code that includes <windows.h>, or src/platform/posix).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
 list(APPEND EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/files.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
-# The calls a harness run answers itself (src/platform/win32/game_calls.cpp) and its mapping of the file calls' paths
-# (src/platform/system_path.cpp): in the harness's builds the game takes tests/verify's definitions (below), and the
-# other programs that link the platform take the files (EI_GAME_CALLS).
+# The calls a harness run answers itself (src/platform/<system>/game_calls.cpp), its mapping of the file calls' paths
+# (src/platform/system_path.cpp) and SDL's areas (src/platform/sdl/platform_sdl.cpp): in the harness's builds the game
+# takes the harness's backend's definitions (tests/verify/platform, below), and the other programs that link the
+# platform take the files (EI_GAME_CALLS; EI_SDL_CALLS, with SDL3 linked, for those that need SDL's areas).
 set(EI_GAME_CALLS)
-if(EI_HARNESS AND WIN32)
-    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
-    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
+set(EI_SDL_CALLS)
+if(EI_HARNESS)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/${EI_SYSTEM}/game_calls.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
+    set(EI_SDL_CALLS ${CMAKE_SOURCE_DIR}/src/platform/sdl/platform_sdl.cpp)
+    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE src)
@@ -251,15 +254,25 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
      "Third-party software built into ei-rebuild, with its licences.\n\n${EI_NOTICES}")
 
 if(EI_HARNESS)
-    # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
-    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, its mapping of the
-    # file calls' paths (its overlay) system_path.cpp's, and its answers to the game's socket, disc and desktop calls
-    # (its sockets on 127.0.0.1) game_calls.cpp's; sokol's validation layer is on (its messages in ei-rebuild.log).
-    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
+    # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its platform backend (tests/verify/platform)
+    # takes the place of platform_sdl.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL), of
+    # system_path.cpp (its overlay) and of game_calls.cpp (its answers to the game's file write, socket, disc and desktop
+    # calls; its sockets on 127.0.0.1). Its own calls of the system are tests/verify/system's, one file per system.
+    # sokol's validation layer is on (its messages in ei-rebuild.log).
+    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp tests/verify/platform/*.cpp
+         tests/verify/system/*.cpp)
+    if(WIN32)
+        list(FILTER EI_HARNESS_SOURCES EXCLUDE REGEX "_posix\\.cpp$")
+    else()
+        list(FILTER EI_HARNESS_SOURCES EXCLUDE REGEX "_win32\\.cpp$")
+    endif()
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
-    target_include_directories(ei-rebuild PRIVATE third_party/sokol)
+    if(MSVC)
+        # The harness reads its scenario lines with the standard sscanf on every system, not MSVC's sscanf_s.
+        set_property(SOURCE ${EI_HARNESS_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS _CRT_SECURE_NO_WARNINGS)
+    endif()
+    target_include_directories(ei-rebuild PRIVATE tests/verify third_party/sokol)
     target_link_libraries(ei-rebuild PRIVATE SDL3::SDL3-static)
-    set_source_files_properties(src/platform/sdl/platform_sdl.cpp PROPERTIES HEADER_FILE_ONLY ON)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
@@ -303,11 +316,13 @@ else()
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
-                   tests/unit/ipv4.cpp src/game/ini_file.cpp src/game/asset_text.cpp ${EI_PROGRAM_SOURCES})
+                   tests/unit/ipv4.cpp src/game/ini_file.cpp src/game/asset_text.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS}
+                   ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src)
-    target_link_libraries(ei_port_check PRIVATE ei_platform)
+    target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)
     add_test(NAME port_platform COMMAND ei_port_check)
-    add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES})
+    add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
+                   ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests third_party/sokol)
     find_package(X11 REQUIRED)
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static X11::X11)

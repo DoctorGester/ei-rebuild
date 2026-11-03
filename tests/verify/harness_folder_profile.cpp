@@ -1,13 +1,14 @@
 // The game folder's Rebirth profile checked in a run. See harness_folder_profile.h.
 #include "harness_folder_profile.h"
 
-#include "harness_install.h"
 #include "harness_starter.h"
-#include "lib/rebirth.h"
+#include "game/ini_file.h"
 #include "image/image_side.h"
-#include "../../src/platform/log.h"
-
-#include <windows.h>
+#include "lib/rebirth.h"
+#include "lib/text_case.h"
+#include "platform/log.h"
+#include "platform/platform.h"
+#include "system/harness_system.h"
 
 #include <cstring>
 
@@ -17,43 +18,31 @@ namespace {
 using ei::Log;
 using rebirth::Patch;
 
-std::string Environment(const char* name) {
-    char value[1024];
-    const DWORD n = GetEnvironmentVariableA(name, value, sizeof(value));
-    return n > 0 && n < sizeof(value) ? std::string(value, n) : std::string();
-}
+namespace sys = ei::verify::sys;
 
+std::string Environment(const char* name) { return platform::EnvironmentVariable(name); }
+
+// `path` in full, without a trailing backslash but at a root.
 std::string FullPath(const std::string& path) {
-    char full[MAX_PATH];
-    const DWORD n = GetFullPathNameA(path.c_str(), MAX_PATH, full, nullptr);
-    std::string text(full, n > 0 && n < MAX_PATH ? n : 0);
+    std::string text = sys::FullPath(path);
     while (text.size() > 3 && text.back() == '\\') text.pop_back();
     return text;
 }
-
-std::string GameFolder() {
-    const std::wstring folder = install::GameFolder();
-    char narrow[MAX_PATH];
-    const int n = WideCharToMultiByte(CP_ACP, 0, folder.c_str(), -1, narrow, sizeof(narrow), nullptr, nullptr);
-    return n > 0 ? std::string(narrow) : std::string();
-}
-
-bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
 // The Rebirth profile's flags as config/rebirth_profile.ini sets them (each patch its [patches] names true on, every
 // other off; the checkout's file, found from the scenario: <checkout>\tests\scenarios\<name>.txt). False when it
 // cannot be read.
 bool RebirthProfileFlags(bool (&flags)[rebirth::kPatchCount], std::string* ini) {
     const std::string scenario = Environment("EI_HARNESS");
-    const std::size_t slash = scenario.find_last_of('\\');
+    const std::size_t slash = scenario.find_last_of("\\/");
     if (slash == std::string::npos) return false;
     *ini = FullPath(scenario.substr(0, slash) + "\\..\\..\\config\\rebirth_profile.ini");
-    if (!Exists(*ini)) return false;
+    if (!sys::Exists(*ini)) return false;
+    IniFile profile;
+    profile.SetPath(*ini);
     for (int i = 0; i < rebirth::kPatchCount; ++i) {
-        char value[16];
-        const char* name = rebirth::Name(static_cast<Patch>(i));
-        GetPrivateProfileStringA("patches", name, "", value, sizeof(value), ini->c_str());
-        flags[i] = _stricmp(value, "true") == 0;
+        const std::string value = profile.GetString("patches", rebirth::Name(static_cast<Patch>(i)), "");
+        flags[i] = text::CompareIgnoringCase(value.c_str(), "true") == 0;
     }
     return true;
 }
@@ -63,14 +52,12 @@ bool RebirthProfileFlags(bool (&flags)[rebirth::kPatchCount], std::string* ini) 
 std::string Step() {
     if (!Environment("EI_REBIRTH").empty())
         return "folderprofile: EI_REBIRTH is set (" + Environment("EI_REBIRTH") + "): no folder's profile is taken";
-    const std::string folder = FullPath(GameFolder());
-    char current[MAX_PATH];
-    const DWORD n = GetCurrentDirectoryA(MAX_PATH, current);
-    const std::string working = FullPath(std::string(current, n > 0 && n < MAX_PATH ? n : 0));
-    if (_stricmp(working.c_str(), folder.c_str()) != 0)
+    const std::string folder = FullPath(starter::GameFolder());
+    const std::string working = FullPath(platform::CurrentFolder());
+    if (text::CompareIgnoringCase(working.c_str(), folder.c_str()) != 0)
         return "folderprofile: the working directory " + working + " is not the game folder " + folder;
     const char* data = image::DataFolder();
-    if (!data || _stricmp(FullPath(data).c_str(), folder.c_str()) != 0)
+    if (!data || text::CompareIgnoringCase(FullPath(data).c_str(), folder.c_str()) != 0)
         return std::string("folderprofile: the game's data folder ") + (data ? data : "(none)") +
                " is not the game folder";
 
@@ -100,9 +87,11 @@ std::string Step() {
 
     if (rebirthInstall) {
         const std::string plugin = folder + "\\EI_Plugin.ini";
-        if (!Exists(plugin)) return "folderprofile: the Rebirth folder has no EI_Plugin.ini";
-        const int players = static_cast<int>(GetPrivateProfileIntA("CONFIG", "NPlayers", 7, plugin.c_str()));
-        const int pause = static_cast<int>(GetPrivateProfileIntA("CONFIG", "Pause", 1, plugin.c_str()));
+        if (!sys::Exists(plugin)) return "folderprofile: the Rebirth folder has no EI_Plugin.ini";
+        IniFile pluginIni;
+        pluginIni.SetPath(plugin);
+        const int players = pluginIni.GetInt("CONFIG", "NPlayers", 7);
+        const int pause = pluginIni.GetInt("CONFIG", "Pause", 1);
         if (rebirth::PluginNPlayers() != players || rebirth::PluginPause() != pause)
             return "folderprofile: EI_Plugin.ini's players / pause " + std::to_string(players) + " / " +
                    std::to_string(pause) + ", the game's " + std::to_string(rebirth::PluginNPlayers()) + " / " +

@@ -1,78 +1,34 @@
 // The game's clocks in harness runs: virtual clock, held clocks, clock trace (harness_clock.h).
 #include "harness_clock.h"
 
-#include "../../src/game/game_data.h"
 #include "../../src/platform/log.h"
 #include "game/main_loop.h"
 #include "image/image_side.h"
 
-#include <windows.h>
-#include <intrin.h>
-#include <psapi.h>
-
-#pragma comment(lib, "winmm.lib")   // timeGetTime
-
 #include <algorithm>
-#include <cstdint>
+#include <atomic>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <tuple>
-#include <type_traits>
+#include <mutex>
+#include <string>
 #include <vector>
 
 namespace ei::verify::clock {
 
 namespace {
 
-// A slot of another module's import table.
-template <class T>
-void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    T* slot = ei::GamePointer<T>(address);
-    DWORD old;
-    VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-    original = *slot;
-    *slot = replacement;
-    VirtualProtect(slot, sizeof(*slot), old, &old);
-}
-
-// The process's first thread: the one with the earliest creation time, the one that runs WinMain. The process's threads come from ntdll's NtGetNextThread: a toolhelp
-// snapshot lists every thread of the machine (SV10b: 16,000 with the suite's games: 70-130 ms of
-// each run's start-up).
-DWORD FindMainThread() {
-    using NextThread = LONG(NTAPI*)(HANDLE process, HANDLE thread, ACCESS_MASK access, ULONG attributes, ULONG flags,
-                                    PHANDLE next);
-    const auto next = reinterpret_cast<NextThread>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtGetNextThread"));
-    if (!next) return 0;
-    DWORD found = 0;
-    ULONGLONG earliest = ~0ull;
-    HANDLE thread = nullptr, following = nullptr;
-    while (next(GetCurrentProcess(), thread, THREAD_QUERY_LIMITED_INFORMATION, 0, 0, &following) >= 0) {
-        if (thread) CloseHandle(thread);
-        thread = following;
-        FILETIME created, exited, kernel, user;
-        if (GetThreadTimes(thread, &created, &exited, &kernel, &user)) {
-            ULONGLONG when = (ULONGLONG(created.dwHighDateTime) << 32) | created.dwLowDateTime;
-            if (when < earliest) {
-                earliest = when;
-                found = GetThreadId(thread);
-            }
-        }
-    }
-    if (thread) CloseHandle(thread);
-    return found;
-}
-
-DWORD g_mainThread = 0;
+sys::ThreadId g_mainThread = 0;
 FILE* g_randomFile = nullptr;   // the random trace (InstallRandomTrace)
-std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // our module's image (set with it)
+sys::Image g_self;              // our module's image (with the random trace)
 
+// The harness starts on the main thread (its static constructor runs before main).
 void FindMainThreadOnce() {
     if (g_mainThread) return;
-    g_mainThread = FindMainThread();
-    Log("harness: main thread %lu", g_mainThread);
+    g_mainThread = sys::CurrentThread();
+    Log("harness: main thread %llu", static_cast<unsigned long long>(g_mainThread));
 }
-bool OnMainThread() { return GetCurrentThreadId() == g_mainThread; }
 
 // ---- Virtual clock -------------------------------------------------------------------------------
 
@@ -81,8 +37,8 @@ constexpr unsigned kUpdatesPerFrame = 5;
 unsigned g_frameMs = 0;   // "frametime": the advance at each frame instead (0: kUpdatesPerFrame updates)
 
 bool g_virtual = false;
-volatile bool g_frozen = false;
-volatile DWORD g_now = 1000000;
+std::atomic<bool> g_frozen{false};
+std::atomic<std::uint32_t> g_now{1000000};
 const unsigned* g_tickLength = nullptr;
 bool g_fixedDate = false;
 
@@ -107,82 +63,78 @@ bool IsMainLoopTime() { return ei::mainloop::g_site == ei::mainloop::Site::Frame
 // frames take more real time than they advance, it never caught up and every wait paid the whole
 // lead again (SV1f: sandbox_map 72-81 s against 17 s on real time).
 struct Anchor {
-    DWORD time;   // the other threads' time
-    DWORD real;   // our own GetTickCount import when it was taken
+    std::uint32_t time;   // the other threads' time
+    std::uint32_t real;   // the system's tick count when it was taken
 };
-static_assert(sizeof(Anchor) == sizeof(LONGLONG));
-volatile LONGLONG g_anchor = 0;   // an Anchor, read and written whole
+std::atomic<std::uint64_t> g_anchor{0};   // an Anchor, read and written whole
 Anchor ReadAnchor() {
-    const LONGLONG packed = InterlockedCompareExchange64(&g_anchor, 0, 0);
+    const std::uint64_t packed = g_anchor.load();
     Anchor anchor;
     std::memcpy(&anchor, &packed, sizeof(anchor));
     return anchor;
 }
 void WriteAnchor(Anchor anchor) {
-    LONGLONG packed;
+    std::uint64_t packed;
     std::memcpy(&packed, &anchor, sizeof(packed));
-    InterlockedExchange64(&g_anchor, packed);
+    g_anchor.store(packed);
 }
-DWORD Later(DWORD a, DWORD b) { return static_cast<LONG>(a - b) > 0 ? a : b; }
-DWORD AnchoredNow(DWORD real) {
+std::uint32_t Later(std::uint32_t a, std::uint32_t b) { return static_cast<std::int32_t>(a - b) > 0 ? a : b; }
+std::uint32_t AnchoredNow(std::uint32_t real) {
     const Anchor anchor = ReadAnchor();
     return g_frozen ? anchor.time : anchor.time + (real - anchor.real);
 }
 
-void Advance(DWORD ms) {
+void Advance(std::uint32_t ms) {
     if (g_frozen || ms == 0) return;
-    g_now = g_now + ms;
-    const DWORD real = GetTickCount();
+    g_now += ms;
+    const std::uint32_t real = sys::TickCount();
     WriteAnchor({Later(AnchoredNow(real), g_now), real});
 }
 
-volatile LONG g_otherNow = 0;
-DWORD OtherThreadsNow() {
-    const DWORD candidate = AnchoredNow(GetTickCount());
-    LONG seen = g_otherNow;
-    while (static_cast<LONG>(candidate - static_cast<DWORD>(seen)) > 0) {
-        LONG previous = InterlockedCompareExchange(&g_otherNow, static_cast<LONG>(candidate), seen);
-        if (previous == seen) return candidate;
-        seen = previous;
-    }
-    return static_cast<DWORD>(seen);
+std::atomic<std::uint32_t> g_otherNow{0};
+std::uint32_t OtherThreadsNow() {
+    const std::uint32_t candidate = AnchoredNow(sys::TickCount());
+    std::uint32_t seen = g_otherNow.load();
+    while (static_cast<std::int32_t>(candidate - seen) > 0)
+        if (g_otherNow.compare_exchange_weak(seen, candidate)) return candidate;
+    return seen;
 }
 
 // Main-thread sleeps since the last frame (see VirtualSleep).
 int g_sleepsSinceFrame = 0;
 
-DWORD VirtualTimeGetTime() {
+std::uint32_t VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
     if (IsMainLoopTime()) {
         g_sleepsSinceFrame = 0;
         Advance(g_frameMs ? g_frameMs : kUpdatesPerFrame * *g_tickLength);
         // The random trace notes every move of the clock (here, sleeps, timed waits), so two runs show where
         // their virtual times part (SV1g).
-        RandomNote("clock frame time %lu", g_now);
+        RandomNote("clock frame time %lu", static_cast<unsigned long>(g_now.load()));
     }
     return g_now;
 }
-DWORD VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThreadsNow(); }
+std::uint32_t VirtualGetTickCount() { return OnMainThread() ? g_now.load() : OtherThreadsNow(); }
 
 // The main thread's sleeps take no real time: the clock moves by what they would have waited. Other threads sleep
 // for real (and only read the clock).
 // A main thread that sleeps over and over without a frame between is waiting for another thread (the
-// music's WaitAndEndAfter): Sleep(0) lets only threads of its own priority run, so on a busy machine
+// music's WaitAndEndAfter): a sleep of 0 lets only threads of its own priority run, so on a busy machine
 // the one it waits for may get no time. After the first 50 such sleeps each one sleeps 1 ms for real.
-void VirtualSleep(DWORD ms) {
-    if (!OnMainThread()) return ::Sleep(ms);
-    if (ms) RandomNote("clock +%lu: sleep", ms);
+void VirtualSleep(std::uint32_t ms) {
+    if (!OnMainThread()) return sys::SleepMs(ms);
+    if (ms) RandomNote("clock +%lu: sleep", static_cast<unsigned long>(ms));
     Advance(ms);
-    ::Sleep(++g_sleepsSinceFrame > 50 ? 1 : 0);
+    sys::SleepMs(++g_sleepsSinceFrame > 50 ? 1 : 0);
 }
 
 // ---- Held clocks ("freeze" in a real-time run) ---------------------------------------------------
 
 struct HeldClock {
-    DWORD(WINAPI* base)() = nullptr;   // the system's clock; null while the clocks are not held
-    DWORD offset = 0;   // the game's time is base() - offset while running
-    DWORD heldAt = 0;
-    DWORD Read() const { return g_frozen ? heldAt : base() - offset; }
+    std::uint32_t (*base)() = nullptr;   // the system's clock; null while the clocks are not held
+    std::uint32_t offset = 0;   // the game's time is base() - offset while running
+    std::uint32_t heldAt = 0;
+    std::uint32_t Read() const { return g_frozen ? heldAt : base() - offset; }
     void Hold() { heldAt = base() - offset; }
     void Resume() { offset = base() - heldAt; }
 };
@@ -190,24 +142,14 @@ HeldClock g_heldTimeGetTime, g_heldTickCount;
 
 // ---- Trace ---------------------------------------------------------------------------------------
 
-enum Fn : std::uint8_t {
-    kTimeGetTime, kGetTickCount, kGetTickCount64, kQueryPerformanceCounter, kGetMessageTime, kGetLocalTime,
-    kGetSystemTime, kGetSystemTimeAsFileTime, kSleep, kSleepEx, kWaitForSingleObject, kWaitForSingleObjectEx,
-    kWaitForMultipleObjects, kWaitForMultipleObjectsEx, kMsgWaitForMultipleObjects, kMsgWaitForMultipleObjectsEx,
-    kTimeSetEvent, kSetTimer, kCreateThread, kFnCount
-};
-constexpr const char* kFnNames[kFnCount] = {
-    "timeGetTime", "GetTickCount", "GetTickCount64", "QueryPerformanceCounter", "GetMessageTime", "GetLocalTime",
-    "GetSystemTime", "GetSystemTimeAsFileTime", "Sleep", "SleepEx", "WaitForSingleObject", "WaitForSingleObjectEx",
-    "WaitForMultipleObjects", "WaitForMultipleObjectsEx", "MsgWaitForMultipleObjects", "MsgWaitForMultipleObjectsEx",
-    "timeSetEvent", "SetTimer", "CreateThread",
-};
+enum Fn : std::uint8_t { kTimeGetTime, kGetTickCount, kGetLocalTime, kSleep, kFnCount };
+constexpr const char* kFnNames[kFnCount] = {"timeGetTime", "GetTickCount", "GetLocalTime", "Sleep"};
 
 struct Entry {
     Fn fn;
-    DWORD thread;
+    sys::ThreadId thread;
     std::uintptr_t caller;
-    volatile unsigned long count;
+    std::atomic<unsigned long> count;
     unsigned long dumped;     // count at the last dump (the trace thread's)
     unsigned long long ms;    // the timeouts / sleeps asked for, summed
 };
@@ -215,32 +157,27 @@ constexpr int kMaxEntries = 4096;
 // Append-only: a new entry is filled in before the count that publishes it grows (under the lock),
 // and the counts are bumped without the lock (a busy-waiting main thread kept the lock to itself).
 Entry g_entries[kMaxEntries];
-volatile LONG g_entryCount = 0;
-SRWLOCK g_traceLock = SRWLOCK_INIT;
+std::atomic<int> g_entryCount{0};
+std::mutex g_traceLock;
 bool g_tracing = false;
 
-void DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
-    HMODULE module = nullptr;
-    char path[MAX_PATH] = "?";
-    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(a), &module))
-        GetModuleFileNameA(module, path, MAX_PATH);
-    const char* name = std::strrchr(path, '\\');
-    std::snprintf(out, size, "%s+%X", name ? name + 1 : path, unsigned(a - reinterpret_cast<std::uintptr_t>(module)));
+std::string Where(std::uintptr_t a) {
+    std::string where = "?";
+    sys::DescribeAddress(a, &where);
+    return where;
 }
 
-void DescribeThread(DWORD thread, char* out, std::size_t size) {
-    if (thread == g_mainThread) std::snprintf(out, size, "main");
-    else std::snprintf(out, size, "thread %lu", thread);
+std::string Who(sys::ThreadId thread) {
+    return thread == g_mainThread ? std::string("main") : "thread " + std::to_string(thread);
 }
 
-void Record(Fn fn, const void* caller, DWORD ms, bool hasMs) {
-    const DWORD thread = GetCurrentThreadId();
+void Record(Fn fn, const void* caller, std::uint32_t ms, bool hasMs) {
+    const sys::ThreadId thread = sys::CurrentThread();
     const auto at = reinterpret_cast<std::uintptr_t>(caller);
     // An entry belongs to one thread, so only that thread changes its counts.
     Entry* entry = nullptr;
-    const LONG count = g_entryCount;
-    for (LONG i = 0; i < count; ++i) {
+    const int count = g_entryCount;
+    for (int i = 0; i < count; ++i) {
         Entry& e = g_entries[i];
         if (e.fn == fn && e.thread == thread && e.caller == at) {
             entry = &e;
@@ -249,190 +186,79 @@ void Record(Fn fn, const void* caller, DWORD ms, bool hasMs) {
     }
     bool added = false;
     if (!entry) {
-        AcquireSRWLockExclusive(&g_traceLock);
+        std::lock_guard<std::mutex> lock(g_traceLock);
         if (g_entryCount < kMaxEntries) {
             entry = &g_entries[g_entryCount];
-            *entry = Entry{fn, thread, at, 0, 0, 0};
-            InterlockedIncrement(&g_entryCount);
+            entry->fn = fn;
+            entry->thread = thread;
+            entry->caller = at;
+            entry->count = 0;
+            entry->dumped = 0;
+            entry->ms = 0;
+            ++g_entryCount;
             added = true;
         }
-        ReleaseSRWLockExclusive(&g_traceLock);
     }
     if (entry) {
         ++entry->count;
-        if (hasMs && ms != INFINITE) entry->ms += ms;
+        if (hasMs) entry->ms += ms;
     }
     if (added) {
-        char where[MAX_PATH + 16], who[32];
-        DescribeAddress(at, where, sizeof(where));
-        DescribeThread(thread, who, sizeof(who));
-        if (hasMs) Log("clocktrace: new %s(%ld) from %s on %s (virtual %lu)", kFnNames[fn], long(ms), where, who, g_now);
-        else Log("clocktrace: new %s from %s on %s (virtual %lu)", kFnNames[fn], where, who, g_now);
+        if (hasMs)
+            Log("clocktrace: new %s(%ld) from %s on %s (virtual %lu)", kFnNames[fn], long(ms), Where(at).c_str(),
+                Who(thread).c_str(), static_cast<unsigned long>(g_now.load()));
+        else
+            Log("clocktrace: new %s from %s on %s (virtual %lu)", kFnNames[fn], Where(at).c_str(), Who(thread).c_str(),
+                static_cast<unsigned long>(g_now.load()));
     }
 }
 
-// The milliseconds a call waits, from the argument at `index` (-1: none).
-template <int kIndex, class... A>
-DWORD WaitArgument(A... a) {
-    if constexpr (kIndex < 0) {
-        ((void)a, ...);
-        return 0;
-    } else {
-        auto value = std::get<kIndex>(std::forward_as_tuple(a...));
-        if constexpr (std::is_integral_v<decltype(value)>) return static_cast<DWORD>(value);
-        else return 0;
-    }
-}
-
-// One traced import of another module: `inner` is the real export.
-template <Fn kFn, int kWaitIndex, class R, class... A>
-struct Traced {
-    static inline R(WINAPI* inner)(A...) = nullptr;
-    static R WINAPI Call(A... a) {
-        const void* caller = _ReturnAddress();
-        Record(kFn, caller, WaitArgument<kWaitIndex>(a...), kWaitIndex >= 0);
-        return inner(a...);
-    }
-};
-
-struct TracedSet {
-    using TimeGetTime = Traced<kTimeGetTime, -1, DWORD>;
-    using GetTickCount = Traced<kGetTickCount, -1, DWORD>;
-    using GetTickCount64 = Traced<kGetTickCount64, -1, ULONGLONG>;
-    using QueryPerformanceCounter = Traced<kQueryPerformanceCounter, -1, BOOL, LARGE_INTEGER*>;
-    using GetMessageTime = Traced<kGetMessageTime, -1, LONG>;
-    using GetLocalTime = Traced<kGetLocalTime, -1, void, LPSYSTEMTIME>;
-    using GetSystemTime = Traced<kGetSystemTime, -1, void, LPSYSTEMTIME>;
-    using GetSystemTimeAsFileTime = Traced<kGetSystemTimeAsFileTime, -1, void, LPFILETIME>;
-    using Sleep = Traced<kSleep, 0, void, DWORD>;
-    using SleepEx = Traced<kSleepEx, 0, DWORD, DWORD, BOOL>;
-    using WaitForSingleObject = Traced<kWaitForSingleObject, 1, DWORD, HANDLE, DWORD>;
-    using WaitForSingleObjectEx = Traced<kWaitForSingleObjectEx, 1, DWORD, HANDLE, DWORD, BOOL>;
-    using WaitForMultipleObjects = Traced<kWaitForMultipleObjects, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD>;
-    using WaitForMultipleObjectsEx =
-        Traced<kWaitForMultipleObjectsEx, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, BOOL>;
-    using MsgWaitForMultipleObjects =
-        Traced<kMsgWaitForMultipleObjects, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, DWORD>;
-    using MsgWaitForMultipleObjectsEx =
-        Traced<kMsgWaitForMultipleObjectsEx, 2, DWORD, DWORD, const HANDLE*, DWORD, DWORD, DWORD>;
-    using TimeSetEvent = Traced<kTimeSetEvent, 0, MMRESULT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT>;
-    using SetTimer = Traced<kSetTimer, 2, UINT_PTR, HWND, UINT_PTR, UINT, TIMERPROC>;
-    using CreateThread = Traced<kCreateThread, -1, HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T,
-                                LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD>;
-};
-
-// Other modules' imports, by name, wrapped around the real export.
-struct NamedHook {
-    const char* name;
-    void* call;
-    void** inner;
-};
-template <class T>
-NamedHook Named(const char* name) {
-    return {name, reinterpret_cast<void*>(&T::Call), reinterpret_cast<void**>(&T::inner)};
-}
-
-const std::vector<NamedHook>& ModuleHooks() {
-    using S = TracedSet;
-    static const std::vector<NamedHook> hooks = {
-        Named<S::TimeGetTime>("timeGetTime"),
-        Named<S::GetTickCount>("GetTickCount"),
-        Named<S::GetTickCount64>("GetTickCount64"),
-        Named<S::QueryPerformanceCounter>("QueryPerformanceCounter"),
-        Named<S::GetMessageTime>("GetMessageTime"),
-        Named<S::GetLocalTime>("GetLocalTime"),
-        Named<S::GetSystemTime>("GetSystemTime"),
-        Named<S::GetSystemTimeAsFileTime>("GetSystemTimeAsFileTime"),
-        Named<S::Sleep>("Sleep"),
-        Named<S::SleepEx>("SleepEx"),
-        Named<S::WaitForSingleObject>("WaitForSingleObject"),
-        Named<S::WaitForSingleObjectEx>("WaitForSingleObjectEx"),
-        Named<S::WaitForMultipleObjects>("WaitForMultipleObjects"),
-        Named<S::WaitForMultipleObjectsEx>("WaitForMultipleObjectsEx"),
-        Named<S::MsgWaitForMultipleObjects>("MsgWaitForMultipleObjects"),
-        Named<S::MsgWaitForMultipleObjectsEx>("MsgWaitForMultipleObjectsEx"),
-        Named<S::TimeSetEvent>("timeSetEvent"),
-        Named<S::SetTimer>("SetTimer"),
-        Named<S::CreateThread>("CreateThread"),
+void DumpTrace(const char* why) {
+    struct Line {
+        Fn fn;
+        sys::ThreadId thread;
+        std::uintptr_t caller;
+        unsigned long count, delta;
+        unsigned long long ms;
     };
-    return hooks;
-}
-
-std::vector<HMODULE> g_tracedModules;
-
-// Wraps the traced functions in the import table of `module` (by name; ordinal imports are left).
-void TraceModuleImports(HMODULE module) {
-    auto* base = reinterpret_cast<std::uint8_t*>(module);
-    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
-    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
-    const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    if (!dir.VirtualAddress) return;
-    int wrapped = 0;
-    for (auto* d = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(base + dir.VirtualAddress); d->Name; ++d) {
-        HMODULE from = GetModuleHandleA(reinterpret_cast<const char*>(base + d->Name));
-        if (!from || !d->OriginalFirstThunk) continue;
-        auto* names = reinterpret_cast<IMAGE_THUNK_DATA*>(base + d->OriginalFirstThunk);
-        auto* slots = reinterpret_cast<IMAGE_THUNK_DATA*>(base + d->FirstThunk);
-        for (; names->u1.AddressOfData; ++names, ++slots) {
-            if (IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)) continue;
-            const char* name = reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(base + names->u1.AddressOfData)->Name;
-            for (const NamedHook& hook : ModuleHooks()) {
-                if (std::strcmp(name, hook.name) != 0) continue;
-                if (!*hook.inner) *hook.inner = reinterpret_cast<void*>(GetProcAddress(from, name));
-                if (!*hook.inner) break;
-                void* replacement = hook.call;
-                void* old = nullptr;
-                PatchSlot(reinterpret_cast<std::uintptr_t>(&slots->u1.Function), replacement, old);
-                ++wrapped;
-                break;
-            }
-        }
+    std::vector<Line> lines;
+    const int count = g_entryCount;
+    for (int i = 0; i < count; ++i) {
+        Entry& e = g_entries[i];
+        const unsigned long calls = e.count;
+        if (calls != e.dumped) lines.push_back({e.fn, e.thread, e.caller, calls, calls - e.dumped, e.ms});
+        e.dumped = calls;
     }
-    char path[MAX_PATH] = "?";
-    GetModuleFileNameA(module, path, MAX_PATH);
-    Log("clocktrace: %d imports of %s wrapped", wrapped, path);
-}
-
-// The DLLs to trace: those outside the Windows folder, other than the main module (ours).
-void TraceModules() {
-    HMODULE modules[512];
-    DWORD bytes = 0;
-    if (!EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &bytes)) return;
-    char windows[MAX_PATH] = "";
-    UINT windowsLength = GetWindowsDirectoryA(windows, MAX_PATH);
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&TraceModules), &self);
-    for (DWORD i = 0; i < bytes / sizeof(HMODULE) && i < 512; ++i) {
-        HMODULE m = modules[i];
-        if (m == GetModuleHandleA(nullptr) || m == self) continue;
-        if (std::find(g_tracedModules.begin(), g_tracedModules.end(), m) != g_tracedModules.end()) continue;
-        g_tracedModules.push_back(m);
-        char path[MAX_PATH];
-        if (!GetModuleFileNameA(m, path, MAX_PATH)) continue;
-        if (windowsLength && _strnicmp(path, windows, windowsLength) == 0) continue;
-        TraceModuleImports(m);
+    std::sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) { return a.delta > b.delta; });
+    Log("clocktrace: --- %s (virtual %lu, real %lu): %u call sites busy", why, static_cast<unsigned long>(g_now.load()),
+        static_cast<unsigned long>(sys::TickCount()), unsigned(lines.size()));
+    int shown = 0;
+    for (const Line& line : lines) {
+        if (++shown > 24) break;
+        Log("clocktrace: %8lu %-24s from %-28s on %s (total %lu, %llu ms asked)", line.delta, kFnNames[line.fn],
+            Where(line.caller).c_str(), Who(line.thread).c_str(), line.count, line.ms);
     }
 }
 
-DWORD WINAPI TraceThread(void*) {
+void TraceThread() {
     for (;;) {
-        Sleep(1000);
-        TraceModules();
+        sys::SleepMs(1000);
         DumpTrace("the last second");
     }
 }
 
 } // namespace
 
-DWORD MainThread() { return g_mainThread; }
+sys::ThreadId MainThread() { return g_mainThread; }
+
+bool OnMainThread() { return sys::CurrentThread() == g_mainThread; }
 
 void InstallVirtual(const unsigned* tickLength) {
     FindMainThreadOnce();
     g_virtual = true;
     g_tickLength = tickLength;
-    WriteAnchor({g_now, GetTickCount()});
-    g_otherNow = static_cast<LONG>(g_now);
+    WriteAnchor({g_now, sys::TickCount()});
+    g_otherNow = g_now.load();
 }
 
 bool Virtual() { return g_virtual; }
@@ -440,43 +266,41 @@ bool Virtual() { return g_virtual; }
 void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 
 void InstallHeld() {
-    g_heldTimeGetTime.base = &::timeGetTime;
-    g_heldTickCount.base = &::GetTickCount;
+    g_heldTimeGetTime.base = &sys::Milliseconds;
+    g_heldTickCount.base = &sys::TickCount;
 }
 
 void FixDate() { g_fixedDate = true; }
 
-DWORD Milliseconds() {
-    if (g_tracing) Record(kTimeGetTime, _ReturnAddress(), 0, false);
+std::uint32_t Milliseconds() {
+    if (g_tracing) Record(kTimeGetTime, EI_HARNESS_CALLER(), 0, false);
     if (g_virtual) return VirtualTimeGetTime();
-    return g_heldTimeGetTime.base ? g_heldTimeGetTime.Read() : ::timeGetTime();
+    return g_heldTimeGetTime.base ? g_heldTimeGetTime.Read() : sys::Milliseconds();
 }
 
-DWORD Ticks() {
-    if (g_tracing) Record(kGetTickCount, _ReturnAddress(), 0, false);
+std::uint32_t Ticks() {
+    if (g_tracing) Record(kGetTickCount, EI_HARNESS_CALLER(), 0, false);
     if (g_virtual) return VirtualGetTickCount();
-    return g_heldTickCount.base ? g_heldTickCount.Read() : ::GetTickCount();
+    return g_heldTickCount.base ? g_heldTickCount.Read() : sys::TickCount();
 }
 
-void Sleep(DWORD ms) {
-    if (g_tracing) Record(kSleep, _ReturnAddress(), ms, true);
+void Sleep(std::uint32_t ms) {
+    if (g_tracing) Record(kSleep, EI_HARNESS_CALLER(), ms, true);
     if (g_virtual) VirtualSleep(ms);
-    else ::Sleep(ms);
+    else sys::SleepMs(ms);
 }
 
-SYSTEMTIME LocalTime() {
-    if (g_tracing) Record(kGetLocalTime, _ReturnAddress(), 0, false);
-    SYSTEMTIME time;
-    if (g_fixedDate) time = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
-    else ::GetLocalTime(&time);
-    return time;
+sys::Date LocalTime() {
+    if (g_tracing) Record(kGetLocalTime, EI_HARNESS_CALLER(), 0, false);
+    if (g_fixedDate) return {2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
+    return sys::LocalDate();
 }
 
 void Freeze(bool on) {
     if (on == g_frozen) return;
     if (g_virtual) {
         // The other threads' clock stands still while frozen and goes on from there.
-        const DWORD real = GetTickCount();
+        const std::uint32_t real = sys::TickCount();
         WriteAnchor({on ? AnchoredNow(real) : ReadAnchor().time, real});
     } else if (g_heldTimeGetTime.base) {
         if (on) {
@@ -492,41 +316,13 @@ void Freeze(bool on) {
 
 bool Frozen() { return g_frozen; }
 
-DWORD Now() { return g_virtual ? g_now : GetTickCount(); }
+std::uint32_t Now() { return g_virtual ? g_now.load() : sys::TickCount(); }
 
 void InstallTrace() {
     FindMainThreadOnce();
     g_tracing = true;
-    TraceModules();
-    if (HANDLE thread = CreateThread(nullptr, 0, &TraceThread, nullptr, 0, nullptr)) CloseHandle(thread);
-    Log("clocktrace: on (the game's clocks, sleeps and date, and the clock and wait imports of the DLLs in the game's "
-        "folders)");
-}
-
-void DumpTrace(const char* why) {
-    if (!g_tracing) return;
-    struct Line {
-        Entry entry;
-        unsigned long delta;
-    };
-    std::vector<Line> lines;
-    const LONG count = g_entryCount;
-    for (LONG i = 0; i < count; ++i) {
-        Entry& e = g_entries[i];
-        const unsigned long calls = e.count;
-        if (calls != e.dumped) lines.push_back({e, calls - e.dumped});
-        e.dumped = calls;
-    }
-    std::sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) { return a.delta > b.delta; });
-    Log("clocktrace: --- %s (virtual %lu, real %lu): %u call sites busy", why, g_now, GetTickCount(), unsigned(lines.size()));    int shown = 0;
-    for (const Line& line : lines) {
-        if (++shown > 24) break;
-        char where[MAX_PATH + 16], who[32];
-        DescribeAddress(line.entry.caller, where, sizeof(where));
-        DescribeThread(line.entry.thread, who, sizeof(who));
-        Log("clocktrace: %8lu %-24s from %-28s on %s (total %lu, %llu ms asked)", line.delta, kFnNames[line.entry.fn],
-            where, who, line.entry.count, line.entry.ms);
-    }
+    sys::StartThread(&TraceThread);
+    Log("clocktrace: on (the game's clocks, sleeps and date)");
 }
 
 // ---- Random trace ----------------------------------------------------------------------------------
@@ -535,66 +331,56 @@ namespace {
 
 const unsigned* g_traceFrames = nullptr;
 unsigned g_randomFrame = ~0u;
-CRITICAL_SECTION g_randomLock;
+std::mutex g_randomLock;
 
-// One draw: "<frame> [(other thread) ][<module>+]<caller> <value>[ <what>] #<where>" (<module>: ei-rebuild). <where> is the
+// One draw: "<frame> [(other thread) ][ei-rebuild+]<caller> <value>[ <what>] #<where>". <where> is the
 // generator's state after the draw: ISAAC's position in its stream (cc * 256 + 255 - count; cc
 // counts the refills), rand()'s seed. Where a function ran the original on live state besides ours (the verify
 // wrappers until S21d), the generators were put back between them, so one draw could show up twice; the position tells a repeat from a new draw
 // (tools/randtrace.py, SV1g).
 void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std::uint32_t where) {
-    const bool ours = caller >= g_selfBase && caller < g_selfEnd;
-    EnterCriticalSection(&g_randomLock);
+    const bool ours = caller >= g_self.base && caller < g_self.end;
+    std::lock_guard<std::mutex> lock(g_randomLock);
     const unsigned frame = *g_traceFrames;
     if (frame != g_randomFrame) {
         std::fflush(g_randomFile);
         g_randomFrame = frame;
     }
     std::fprintf(g_randomFile, "%u %s%s%s%X %08X%s #%X\n", frame, OnMainThread() ? "" : "(other thread) ",
-                 ours ? "ei-rebuild" : "", ours ? "+" : "", unsigned(ours ? caller - g_selfBase : caller), value,
+                 ours ? "ei-rebuild" : "", ours ? "+" : "", unsigned(ours ? caller - g_self.base : caller), value,
                  what, unsigned(where));
-    LeaveCriticalSection(&g_randomLock);
 }
 
 } // namespace
 
 void RandomNote(const char* format, ...) {
     if (!g_randomFile) return;
-    EnterCriticalSection(&g_randomLock);
+    std::lock_guard<std::mutex> lock(g_randomLock);
     std::fprintf(g_randomFile, "%u note: ", *g_traceFrames);
     va_list args;
     va_start(args, format);
     std::vfprintf(g_randomFile, format, args);
     va_end(args);
     std::fputc('\n', g_randomFile);
-    LeaveCriticalSection(&g_randomLock);
 }
 
 void InstallRandomTrace(const unsigned* frames) {
     if (g_randomFile) return;
     FindMainThreadOnce();
     const std::string path = ei::OutputPath("randtrace.txt");
-    if (fopen_s(&g_randomFile, path.c_str(), "w") != 0 || !g_randomFile) return;
+    g_randomFile = sys::OpenFile(path, "w");
+    if (!g_randomFile) return;
     std::setvbuf(g_randomFile, nullptr, _IOFBF, 1 << 20);
-    InitializeCriticalSection(&g_randomLock);
     g_traceFrames = frames;
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&InstallRandomTrace), &self);
-    MODULEINFO info{};
-    GetModuleInformation(GetCurrentProcess(), self, &info, sizeof(info));
-    g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
-    g_selfEnd = g_selfBase + info.SizeOfImage;
+    g_self = sys::SelfImage();
     image::ObserveDraws(&WriteDraw);   // the draws of our generator and rand(), through their observers
-
     Log("harness: random trace to %s", path.c_str());
 }
 
 void FlushRandomTrace() {
     if (!g_randomFile) return;
-    EnterCriticalSection(&g_randomLock);
+    std::lock_guard<std::mutex> lock(g_randomLock);
     std::fflush(g_randomFile);
-    LeaveCriticalSection(&g_randomLock);
 }
 
 } // namespace ei::verify::clock

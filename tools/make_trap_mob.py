@@ -4,7 +4,7 @@ usage: python tools/make_trap_mob.py <saves dir> [--source <zone2.mob>]
   <saves dir>   the run's harness_saves folder (the harness sends <game root>saves\\ there); the
                 scenario loads the file with AddMob("..\\saves\\traps.mob") (AddMob's names are
                 relative to <game root>maps\\: 00595BA0 / 0055E990).
-  --source      default F:\\games\\EvilIslands\\Maps\\zone2.mob (read only)
+  --source      default the vanilla install's Maps\\zone2.mob (EI_GAME_VANILLA; read only)
   --interval N  sets every trap's interval (field 0xBBAB0005; zone2's are 50 and 150). With 0 the
                 trap's update asks MagicTrap::UpdateVictims for newcomers instead of firing every tick
                 (magic_traps_victims.txt; none of the game's zones has such a trap).
@@ -31,6 +31,8 @@ them with GetObject(id): the zone loader does not register traps by name (005927
 Chunk = id, size (both u32, the size counting the 8-byte header), then the contents.
 """
 import argparse, os, struct, sys
+
+import exe_path
 
 ROOT_CHUNK = 0xA000
 NO_DIPLOMACY = 0xD000
@@ -78,7 +80,7 @@ def chunk(cid, body):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('saves')
-    parser.add_argument('--source', default=r'F:\games\EvilIslands\Maps\zone2.mob')
+    parser.add_argument('--source', default=None)
     parser.add_argument('--interval', type=int, default=None)
     parser.add_argument('--first-id', type=int, default=FIRST_ID, help='the first trap\'s object id (default 30001)')
     parser.add_argument('--count', type=int, default=None, help='keep only the first N traps')
@@ -86,7 +88,7 @@ def main():
                         help='the record kind copied, hex (default BBAB0000, a magic trap; B001 a plain map object)')
     parser.add_argument('--out', default='traps.mob', help='the file name in <saves dir>')
     args = parser.parse_args()
-    data = open(args.source, 'rb').read()
+    data = open(args.source or exe_path.install_file('vanilla', 'Maps', 'zone2.mob'), 'rb').read()
     root = next(c for c in chunks(data, 0, len(data)) if c[0] == ROOT_CHUNK)
     diplomacy = b''
     traps = []

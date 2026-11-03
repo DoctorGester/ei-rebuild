@@ -30,7 +30,6 @@
 #include "game/world_data.h"
 #include "game/world_glue.h"
 #include "lib/crt.h"
-#include "platform/win32/platform_win32.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -161,8 +160,6 @@ bool ScreenFade(bool* running, float* alpha) {
 int CampaignMode() { return g_serverWorld.sessionKind; }
 void* ClientWorldObject() { return &g_clientWorld; }
 void* SceneDevice() { return g_sceneRenderer.device.Get(); }
-// Our renderer takes no device lock: the harness locks game.exe's only (in its original run).
-void* DeviceLock() { return nullptr; }
 
 int ServerUpdate(void* server) {
     static_cast<WorldServer*>(server)->Update();
@@ -195,12 +192,11 @@ void* UnitAt(void* world, int x, int y) {
     const Point p{x, y};
     return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(&p));
 }
-int ScreenRect(void* world, int id, RECT* rect) {
+int ScreenRect(void* world, int id, platform::Rect* rect) {
     int found = 0;
     for (const ScreenEntry& entry : static_cast<WorldClient*>(world)->screenEntries) {
         if (static_cast<int>(entry.objectId) != id) continue;
-        static_assert(sizeof(Rect) == sizeof(RECT) && offsetof(Rect, bottom) == offsetof(RECT, bottom));
-        std::memcpy(rect, &entry.rect, sizeof(RECT));
+        *rect = platform::Rect{entry.rect.left, entry.rect.top, entry.rect.right, entry.rect.bottom};
         found = 1;
     }
     return found;
@@ -255,7 +251,7 @@ bool Region(void* window, int index, RegionInfo* region) {
     region->enabled = found->enabled;
     return true;
 }
-void ScaleToScreen(long* x, long* y) {
+void ScaleToScreen(int* x, int* y) {
     Point point{*x, *y};
     g_interface.ScalePointToScreen(&point);
     *x = point.x;

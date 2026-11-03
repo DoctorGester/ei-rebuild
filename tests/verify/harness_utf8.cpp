@@ -14,7 +14,7 @@ std::string Check(const char* savesDir) {
 
 namespace ei::verify::utf8typing {
 
-std::string Type(HWND window, const std::string& typed) {
+std::string Type(void* window, const std::string& typed) {
     return image::utf8typing::Type(window, typed);
 }
 

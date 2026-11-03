@@ -1,13 +1,20 @@
 #pragma once
 
+#include "platform/paths.h"
 #include "platform/platform.h"
 
 #include <cstdint>
+#include <string>
+#include <string_view>
 #include <vector>
 
-// The harness's own platform backend on SDL (harness_platform.cpp): what the harness's builds take in place of the
-// game's (src/platform/sdl/platform_sdl.cpp). A harness game takes no real input and shows no box: its window is never
-// activated, its events are the harness's, its clocks, mouse and message boxes the harness's answers.
+// The harness's platform backend (this folder; docs/notes/harness.md): every answer of platform.h that a harness's
+// build takes in place of the game's own. harness_platform.cpp on SDL takes platform_sdl.cpp's place: a harness game
+// takes no real input and shows no box, its window is never activated (and kept out of sight where the system can),
+// its events are the harness's, its clocks, mouse and message boxes the harness's answers. game_answers.cpp takes
+// game_calls.cpp's and system_path.cpp's: the file paths mapped onto the run's overlay, the game's file writes
+// watched, its sockets on 127.0.0.1, the disc, desktop and other-instance answers. Each is the system's call while the
+// harness is not answering (a harness's build started without a scenario).
 
 namespace ei::verify::harnessplatform {
 
@@ -30,6 +37,15 @@ bool CursorShown(ShownCursor* cursor);
 const std::vector<ShownCursor>& SeenCursors();
 void ForgetSeenCursors();
 bool CursorHeld(platform::Point* at);
+// The game window's client area in pixels (false before it is made).
+bool ClientSize(int* width, int* height);
+// The game window minimised or restored, never activated (the focus steps).
+void ShowMinimized(bool minimized);
+// The game window's client area resized (the windowsize step).
+void ResizeClient(int width, int height);
+// The game window's title, and its class as the system names it (its registered class where windows have none).
+std::string WindowTitle();
+std::string WindowClass();
 
 // What the backend asks of the harness (harness.cpp): before the game looks for events (EventWaits, TakeEvent), the
 // frame count and the steps, false while the harness holds the events for a pass (the close-all); the character a key
@@ -42,5 +58,9 @@ int TypedCharacter(int key);
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
 // The harness's mouse's position on the screen (false: none).
 bool MousePosition(platform::Point* at);
+// Whether the harness answers the game's calls (a scenario runs), and the path the system is asked for when the game
+// names `path` for `use` (the run's overlay: platform::SystemPath's answer).
+bool Answering();
+std::string MapPath(std::string_view path, platform::PathUse use);
 
 } // namespace ei::verify::harnessplatform

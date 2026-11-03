@@ -312,7 +312,7 @@ def asan_failure(out):
 #
 # launch() starts the image as a player's game starts (working directory and EI_GAME_ROOT the install), with the
 # harness's variables: EI_HARNESS (the scenario), EI_OUT_DIR (the run folder: log, report, saves), EI_INSTALL_ROOTS (the
-# installs no run may write in, tests/verify/harness_install.h) and for a pair EI_PAIR. The games print into launch.txt
+# installs no run may write in: tests/verify/harness.cpp's MapPath refuses those writes) and for a pair EI_PAIR. The games print into launch.txt
 # in their run folders, followed by launch()'s own lines. A run ends whatever state the game is in: the game's watchdog
 # ends it at the scenario's limit; if it cannot, launch() ends it LIMIT_MARGIN_S later. The games are in a
 # game_process.Group, so none outlives this process.
@@ -537,7 +537,7 @@ def merge_peer_report(report, peer_report, say):
 
 # The image's settings file after the run (ST1a): a scenario line "# settings-file: <expected>" (a path from the
 # scenario's folder) says the run leaves an ei_settings.ini in its folder that must equal the expected file line by line
-# (line breaks apart): what the game saved on exit in a "settingsfile writable|import" run
+# (line breaks apart; "{install}" in it stands for the run's install folder): what the game saved on exit in a "settingsfile writable|import" run
 # (tests/verify/harness_settings.h). On the Rebirth install the expected file is <name>.rebirth<ext> (none: not
 # checked). The exit save comes after the report, so the check is here, once the game has ended.
 SETTINGS_FILE_PREFIX = '# settings-file:'
@@ -575,7 +575,9 @@ def check_settings_file(report, scenario, out, rebirth, say):
         failures.append(f'settings file: cannot read the expected file ({expected_path})')
     else:
         a = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in actual]
-        e = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in expected]
+        # "{install}" in the expected file: the run's install folder (the game writes its own folder's paths).
+        install = install_dir('rebirth' if rebirth else 'vanilla')
+        e = [l.rstrip(b'\r\n').decode('utf8', 'replace').replace('{install}', install) for l in expected]
         shown = lambda lines, i: '(none)' if i >= len(lines) else '"' + lines[i][:150] + ('...' if len(lines[i]) > 150 else '') + '"'
         differing = [i for i in range(max(len(a), len(e))) if a[i:i + 1] != e[i:i + 1]]
         for i in differing[:6]:

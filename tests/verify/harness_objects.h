@@ -7,12 +7,10 @@
 
 #include "image/image_side.h"
 
-#include <windows.h>
-
 #include <cstdint>
 
 // The application's globals (app.h).
-inline HWND HarnessMainWindow() { return static_cast<HWND>(ei::verify::image::MainWindow()); }
+inline void* HarnessMainWindow() { return ei::verify::image::MainWindow(); }
 inline std::uint8_t& HarnessInterfaceHasScreen() { return ei::verify::image::InterfaceHasScreen(); }
 inline std::uint8_t& HarnessRecordingFrames() { return ei::verify::image::RecordingFrames(); }
 inline bool HarnessActive() { return ei::verify::image::AppActive(); }
@@ -41,8 +39,5 @@ inline int HarnessCampaignMode() { return ei::verify::image::CampaignMode(); }
 // The client world (for the game's picks; null-checked by them).
 inline void* HarnessClientWorld() { return ei::verify::image::ClientWorldObject(); }
 
-// The scene renderer's device (null before it is made) and the device's lock.
+// The scene renderer's device (null before it is made).
 inline void* HarnessSceneDevice() { return ei::verify::image::SceneDevice(); }
-inline _RTL_CRITICAL_SECTION* HarnessDeviceLock() {
-    return static_cast<_RTL_CRITICAL_SECTION*>(ei::verify::image::DeviceLock());
-}

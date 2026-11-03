@@ -2,25 +2,25 @@
 // harness_utf8.cpp, harness_utf8.h).
 #include "image_side.h"
 
-#include "../../../src/platform/log.h"
+#include "platform/log.h"
 
 #include "game/console.h"
 #include "game/game_singletons.h"
 #include "game/player_messages.h"
 #include "game/asset_text.h"
-#include "../harness_platform.h"
-#include "platform/win32/platform_win32.h"
+#include "platform/harness_platform.h"
 #include "game/ui.h"
+#include "platform/paths.h"
 #include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include <windows.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <system_error>
 
 namespace ei::verify::image::utf8files {
 
@@ -31,8 +31,14 @@ constexpr char kFolder[] = ".\\saves\\utf8 Проверка";
 constexpr char kFile[] = ".\\saves\\utf8 Проверка\\файл.sav";
 constexpr char kPattern[] = ".\\saves\\utf8 Проверка\\*.sav";
 constexpr char kName[] = "файл.sav";
-constexpr wchar_t kWideFile[] = L"\\utf8 Проверка\\файл.sav";
-constexpr wchar_t kWideFolder[] = L"\\utf8 Проверка";
+constexpr char kSavedFile[] = "\\utf8 Проверка\\файл.sav";
+constexpr char kSavedFolder[] = "\\utf8 Проверка";
+
+// Whether `path` (UTF-8) is on disk under its name as the system spells it (UTF-16 on Windows).
+bool OnDisk(const std::string& path) {
+    std::error_code error;
+    return std::filesystem::exists(platform::NativePath(path), error);
+}
 constexpr char kContents[] = "U2: Проверка";
 
 std::string RoundTrip(const char* savesDir) {
@@ -51,13 +57,12 @@ std::string RoundTrip(const char* savesDir) {
     if (!platform::ReadWholeFile(kFile, &contents)) return "the file was not opened again";
     if (contents != std::string(kContents, sizeof(kContents) - 1)) return "the file read back differs";
 
-    // The names on disk, as UTF-16, in the run's saves folder.
-    const std::wstring saves = text::Wide(savesDir);
-    if (GetFileAttributesW((saves + kWideFile).c_str()) == INVALID_FILE_ATTRIBUTES)
-        return "the file is not on disk under its UTF-16 name";
+    // The names on disk (UTF-16 on Windows), in the run's saves folder.
+    const std::string saves = savesDir;
+    if (!OnDisk(saves + kSavedFile)) return "the file is not on disk under its name";
     if (!platform::RemoveFile(kFile)) return "the file was not deleted";
     if (!platform::RemoveFolder(kFolder)) return "the folder was not removed";
-    if (GetFileAttributesW((saves + kWideFolder).c_str()) != INVALID_FILE_ATTRIBUTES) return "the folder is still on disk";
+    if (OnDisk(saves + kSavedFolder)) return "the folder is still on disk";
     return {};
 }
 
@@ -74,17 +79,29 @@ std::string Check(const char* savesDir) {
 
 namespace ei::verify::image::utf8typing {
 
-std::string Type(HWND window, const std::string& typed) {
+std::string Type(void* window, const std::string& typed) {
     if (!window) return "typeunicode: no game window yet";
-    const std::wstring wide = text::Wide(typed);
-    for (wchar_t unit : wide) {
+    unsigned units = 0;
+    auto hand = [&units](unsigned unit) {
         platform::Event event;
         event.type = platform::EventType::Character;
         event.key = static_cast<int>(unit);
         event.repeat = 1;
         ei::verify::harnessplatform::Queue(event);
+        ++units;
+    };
+    for (std::size_t at = 0; at < typed.size();) {
+        unsigned c = 0;
+        at += static_cast<std::size_t>(text::DecodeUtf8(typed.data() + at, typed.size() - at, &c));
+        if (c == 0xFFFFFFFFu) return "typeunicode: the text is not valid UTF-8";
+        if (c < 0x10000) {
+            hand(c);
+        } else {   // a surrogate pair
+            hand(0xD800 + ((c - 0x10000) >> 10));
+            hand(0xDC00 + ((c - 0x10000) & 0x3FF));
+        }
     }
-    Log("harness: typeunicode: %u UTF-16 units handed in as characters", static_cast<unsigned>(wide.size()));
+    Log("harness: typeunicode: %u UTF-16 units handed in as characters", units);
     return {};
 }
 
@@ -122,9 +139,13 @@ namespace ei::verify::image::utf8text {
 
 namespace {
 
-bool ValidUtf8(const std::string& text) {
-    if (text.empty()) return true;
-    return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0) > 0;
+bool ValidUtf8(const std::string& line) {
+    for (std::size_t at = 0; at < line.size();) {
+        unsigned c = 0;
+        at += static_cast<std::size_t>(text::DecodeUtf8(line.data() + at, line.size() - at, &c));
+        if (c == 0xFFFFFFFFu || (c >= 0xD800 && c <= 0xDFFF)) return false;
+    }
+    return true;
 }
 
 // The first failed expectation of the case and class checks, or empty.

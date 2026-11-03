@@ -1,7 +1,7 @@
 // The platform layer on SDL3 (platform/platform.h; docs/notes/platform.md, "SDL3"): the clocks, the message box, the
 // threads, the window and its events, the cursor, the mouse and the clipboard, in platform.h's order. Built into the
 // builds without the harness (release, debug, play, x64); the harness's builds take its own
-// (tests/verify/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through EventWaits / NextEvent / TakeEvent); the renderer keeps its own
+// (tests/verify/platform/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through EventWaits / NextEvent / TakeEvent); the renderer keeps its own
 // swap chain on the window's native handle.
 #include "platform/platform.h"
 #include "platform/log.h"

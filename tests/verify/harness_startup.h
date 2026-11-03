@@ -8,7 +8,7 @@
 //                    Path") with the data folder and, when they differ, asks while the disc folder's volume
 //                    label is not the options' "CD2 Label". The run's "CD-ROM Path" becomes the game folder
 //                    written as "<folder>.\" (the same files, another text), and the volume label (the
-//                    platform call, which harness_startup.cpp answers) is a label no disc has until the game
+//                    platform call, which the harness's backend answers) is a label no disc has until the game
 //                    has shown <n> boxes, then "EICD2" (the registry snapshot's CD2 Label), so start-up goes
 //                    on as usual.
 // Step:
@@ -24,12 +24,16 @@ namespace ei::verify::startup {
 // Consumes a "discprompt" line; false for any other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
-// WinMain's look for another game window (platform::FindClassWindow, the harness's answer, harness.cpp): starts the
+// WinMain's look for another game window (platform::FindClassWindow, the harness's answer, platform/game_answers.cpp): starts the
 // answers the lines asked for.
 void AtWindowClass();
 
-// A message box the start-up lines expect: its answer (IDOK), or 0 when it is not one of theirs.
+// A message box the start-up lines expect: its answer (1: OK), or 0 when it is not one of theirs.
 int AnswerMessageBox(const char* caption);
+
+// The disc check's root ("<drive>\.", app_main.cpp DriveRoot) while the lines answer: its label (true); false for
+// every other root (the volume's own: the backend's platform::VolumeLabel, platform/game_answers.cpp).
+bool AnswerVolumeLabel(const char* root, std::string* label);
 
 // The "discprompts <n>" step: an error message, empty when the count matches.
 std::string DiscPromptsStep(const std::string& argument);

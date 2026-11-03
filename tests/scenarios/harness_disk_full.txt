@@ -1,11 +1,12 @@
 # The crash report on a full disk (ticket X40): with every write to the new game's autosave picture
 # (saves\savea\shot.sav, written by the autosave a new game makes) failing with ERROR_DISK_FULL, the file's Write
 # throws (the original's MFC CFile::Write a CFileException, the image's lib::File a lib::FileError) and nothing
-# catches it. The run passes when the failure line names the OS error; the stack goes to ei-rebuild.log.
+# catches it. The run passes when the failure line names the OS error (Windows' ERROR_DISK_FULL, POSIX's ENOSPC); the
+# stack goes to ei-rebuild.log.
 reject Script error
 waitmenu
 diskfull shot.sav
-expectcrash OS error 112
+expectcrash OS error 112 | OS error 28
 console thingamabob
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)

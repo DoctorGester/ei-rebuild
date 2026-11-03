@@ -115,7 +115,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     char text[600];
     if (verb == "camtrace") {
         char what[16] = "", name[64] = "";
-        sscanf_s(argument.c_str(), "%15s %63s", what, unsigned(sizeof(what)), name, unsigned(sizeof(name)));
+        std::sscanf(argument.c_str(), "%15s %63s", what, name);
         if (std::strcmp(what, "start") == 0) {
             g_samples.clear();
             g_cameraSamples.clear();
@@ -152,8 +152,8 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     if (verb == "camsame" || verb == "camsteadier") {
         char a[64] = "", b[64] = "", kindName[16] = "";
         double fraction = 0.0;
-        if (sscanf_s(argument.c_str(), "%63s %63s %15s %lf", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)), kindName,
-                     unsigned(sizeof(kindName)), &fraction) < 4 ||
+        if (std::sscanf(argument.c_str(), "%63s %63s %15s %lf", a, b, kindName,
+                     &fraction) < 4 ||
             KindOf(kindName) < 0) {
             failures->push_back(verb + " needs two recordings, pan|turn|zoom|height|reach and a fraction");
             return;
@@ -184,8 +184,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     }
     // camsmooth
     char name[64] = "", kindName[16] = "", jerky[16] = "";
-    if (sscanf_s(argument.c_str(), "%63s %15s %15s", name, unsigned(sizeof(name)), kindName, unsigned(sizeof(kindName)), jerky,
-                 unsigned(sizeof(jerky))) < 2 ||
+    if (std::sscanf(argument.c_str(), "%63s %15s %15s", name, kindName, jerky) < 2 ||
         KindOf(kindName) < 0) {
         failures->push_back("camsmooth needs a recording and pan|turn|zoom|height|reach");
         return;

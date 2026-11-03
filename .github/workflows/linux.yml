@@ -1,7 +1,7 @@
-# Linux: builds the game with gcc on GitHub's Ubuntu runner (CMakeLists.txt; docs/notes/linux.md) and runs its checks
-# under a virtual display on Mesa's software OpenGL (ctest: the POSIX platform's checks, the interface canvases' glyph
-# cases on OpenGL). No game data: the game itself does not run here. On pushes to main and claude/** branches and by
-# hand.
+# Linux: builds the game and the harness's build of it (-DEI_HARNESS=ON, tests/verify) with gcc on GitHub's Ubuntu
+# runner (CMakeLists.txt; docs/notes/linux.md) and runs the game's checks under a virtual display on Mesa's software
+# OpenGL (ctest: the POSIX platform's checks, the interface canvases' glyph cases on OpenGL). No game data: no game
+# runs here. On pushes to main and claude/** branches and by hand.
 name: Linux
 
 on:
@@ -36,6 +36,10 @@ jobs:
         run: |
           cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build/linux
+      - name: Build the harness
+        run: |
+          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON
+          cmake --build build/linux-harness --target ei-rebuild
       - name: Checks
         run: |
           cd build/linux

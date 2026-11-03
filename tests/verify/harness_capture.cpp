@@ -5,14 +5,13 @@
 // presented the frame by then, and the capture is its frame (image::ReadFrame).
 #include "harness_capture.h"
 
-#include "../../src/platform/log.h"
+#include "platform/log.h"
+#include "system/harness_system.h"
 #include "game/main_loop.h"
 #include "image/image_side.h"
 #ifdef EI_GPU_SPIKE
 #include "gpu_spike/record.h"
 #endif
-
-#include <windows.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -25,6 +24,26 @@
 namespace ei::verify::capture {
 
 namespace {
+
+// A BMP's two headers (Windows' BmpFileHeader, packed to 14 bytes, and BmpInfoHeader).
+#pragma pack(push, 2)
+struct BmpFileHeader {
+    std::uint16_t bfType = 0;
+    std::uint32_t bfSize = 0;
+    std::uint16_t bfReserved1 = 0, bfReserved2 = 0;
+    std::uint32_t bfOffBits = 0;
+};
+#pragma pack(pop)
+struct BmpInfoHeader {
+    std::uint32_t biSize = 0;
+    std::int32_t biWidth = 0, biHeight = 0;
+    std::uint16_t biPlanes = 0, biBitCount = 0;
+    std::uint32_t biCompression = 0, biSizeImage = 0;
+    std::int32_t biXPelsPerMeter = 0, biYPelsPerMeter = 0;
+    std::uint32_t biClrUsed = 0, biClrImportant = 0;
+};
+static_assert(sizeof(BmpFileHeader) == 14 && sizeof(BmpInfoHeader) == 40);
+constexpr std::uint32_t kBmpRgb = 0, kBmpBitFields = 3;   // biCompression
 
 volatile unsigned g_frames = 0;
 State g_state = State::Idle;
@@ -67,21 +86,21 @@ struct Image {
 
 // A 24-bit bottom-up BMP.
 bool WriteBmp(const char* path, const Image& image) {
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "wb") != 0 || !f) return false;
+    FILE* f = sys::OpenFile(path, "wb");
+    if (!f) return false;
     int stride = (image.width * 3 + 3) & ~3;
-    BITMAPFILEHEADER file{};
-    BITMAPINFOHEADER info{};
+    BmpFileHeader file{};
+    BmpInfoHeader info{};
     file.bfType = 0x4D42;   // "BM"
     file.bfOffBits = sizeof(file) + sizeof(info);
-    file.bfSize = file.bfOffBits + static_cast<DWORD>(stride) * image.height;
+    file.bfSize = file.bfOffBits + static_cast<std::uint32_t>(stride) * image.height;
     info.biSize = sizeof(info);
     info.biWidth = image.width;
     info.biHeight = image.height;
     info.biPlanes = 1;
     info.biBitCount = 24;
-    info.biCompression = BI_RGB;
-    info.biSizeImage = static_cast<DWORD>(stride) * image.height;
+    info.biCompression = kBmpRgb;
+    info.biSizeImage = static_cast<std::uint32_t>(stride) * image.height;
     bool ok = std::fwrite(&file, sizeof(file), 1, f) == 1 && std::fwrite(&info, sizeof(info), 1, f) == 1;
     std::vector<std::uint8_t> row(stride, 0);
     for (int y = image.height - 1; ok && y >= 0; --y) {
@@ -101,7 +120,7 @@ void Capture() {
 #endif
     image::EndFrame();
     Image frame;
-    CreateDirectoryA(ei::OutputPath("frames").c_str(), nullptr);
+    sys::MakeFolder(ei::OutputPath("frames"));
     const std::string file = FramePath(g_name.c_str());
     const char* path = file.c_str();
     if (!image::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
@@ -114,7 +133,7 @@ void Capture() {
         g_detail = std::string("cannot write ") + path;
         return;
     }
-    char text[MAX_PATH + 96];
+    char text[sys::kMaxPath + 96];
     std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame.width, frame.height,
                   g_frames);
     g_detail = text;
@@ -151,7 +170,7 @@ State Poll(const char** detail) {
 }
 
 bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written) {
-    CreateDirectoryA(ei::OutputPath("frames").c_str(), nullptr);
+    sys::MakeFolder(ei::OutputPath("frames"));
     const std::string file = FramePath(name);
     const char* path = file.c_str();
     Image image;
@@ -164,18 +183,18 @@ bool WriteFrame(const char* name, int width, int height, const std::vector<std::
 
 namespace {
 // Reads a BMP into `image` (top-down rows): the 24-bit ones this file wrote, and the game's own
-// (Dib::Write: 16 or 32 bits, BI_BITFIELDS with the three masks after the header, or BI_RGB).
+// (Dib::Write: 16 or 32 bits, kBmpBitFields with the three masks after the header, or kBmpRgb).
 bool ReadBmpFile(const char* path, Image& image, std::string* how = nullptr) {
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "rb") != 0 || !f) return false;
-    BITMAPFILEHEADER file{};
-    BITMAPINFOHEADER info{};
+    FILE* f = sys::OpenFile(path, "rb");
+    if (!f) return false;
+    BmpFileHeader file{};
+    BmpInfoHeader info{};
     bool ok = std::fread(&file, sizeof(file), 1, f) == 1 && std::fread(&info, sizeof(info), 1, f) == 1 &&
               file.bfType == 0x4D42 && info.biWidth > 0 && info.biHeight > 0 && info.biSize >= sizeof(info) &&
               (info.biBitCount == 16 || info.biBitCount == 24 || info.biBitCount == 32) &&
-              (info.biCompression == BI_RGB || (info.biCompression == BI_BITFIELDS && info.biBitCount != 24));
+              (info.biCompression == kBmpRgb || (info.biCompression == kBmpBitFields && info.biBitCount != 24));
     std::uint32_t masks[3] = {0, 0, 0};
-    if (ok && info.biCompression == BI_BITFIELDS) {
+    if (ok && info.biCompression == kBmpBitFields) {
         ok = std::fseek(f, static_cast<long>(sizeof(file) + info.biSize), SEEK_SET) == 0 && std::fread(masks, 4, 3, f) == 3;
     } else if (info.biBitCount == 16) {
         masks[0] = 0x7C00, masks[1] = 0x03E0, masks[2] = 0x001F;
@@ -328,8 +347,8 @@ bool CompareSavePicture(const char* path, const char* frame, bool centre, int to
                         const char** why) {
     constexpr int kWidth = 256, kHeight = 192;   // shot.sav: 256x192 5:6:5 pixels, top-down, no header
     std::vector<std::uint16_t> pixels(static_cast<std::size_t>(kWidth) * kHeight);
-    FILE* f = nullptr;
-    bool ok = fopen_s(&f, path, "rb") == 0 && f;
+    FILE* f = sys::OpenFile(path, "rb");
+    bool ok = f != nullptr;
     if (ok) ok = std::fread(pixels.data(), 2, pixels.size(), f) == pixels.size();
     if (f) std::fclose(f);
     if (!ok) {

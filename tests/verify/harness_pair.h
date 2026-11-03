@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform/platform.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -36,8 +38,7 @@
 // - Signals: "peersignal <tag>" marks a point reached; "peerwait <seconds> <tag>" waits until the other
 //   side has marked it. Both are seen at a turn's start, so the wait ends in the same frame every run.
 
-struct sockaddr;
-struct fd_set;
+struct sockaddr_in;
 
 namespace ei::verify::pair {
 
@@ -63,14 +64,16 @@ void FrameDone(unsigned frame);
 void Signal(const std::string& tag);
 bool Signaled(const std::string& tag);
 
-// The pair's network for UDP sockets (harness_net.cpp's answers of the platform's socket calls come here).
+// The pair's network for UDP sockets (the harness's answers of the platform's socket calls come here:
+// tests/verify/platform/game_answers.cpp).
 // Bind: claims the virtual port (0: one of this side's own); false when another socket holds it.
 bool Bind(std::uintptr_t s, std::uint16_t port);
 // SendTo: into the mailbox, to the virtual port `port`; the socket gets a port of its own first. `broadcast`:
 // the address was a broadcast one (its last byte 255), lost in a "nolan" game.
 int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port, bool broadcast);
-// RecvFrom: the oldest datagram for the socket's port, or SOCKET_ERROR / WSAEWOULDBLOCK.
-int RecvFrom(std::uintptr_t s, char* data, int length, struct sockaddr* from, int* fromLength);
+// RecvFrom: the oldest datagram for the socket's port (its sender's address in `from`), or -1 with the system's
+// would-block error.
+int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr_in* from);
 // The socket closes: its port is free again (a master link is gone).
 void Close(std::uintptr_t s);
 
@@ -92,13 +95,14 @@ void Cut();
 // the hand-off), so what a list holds never depends on how far the other game has got.
 bool FakeMaster(std::uint16_t port, const char* reply);
 
-// The master links (harness_net.cpp routes connect, select, send and recv here first; each is false for
+// The master links (the socket answers route connect, select, send and recv here first; each is false for
 // another socket). Connect: a TCP connect to this game's fake master's port makes a link (the real socket is
 // not connected). Select: true when a set holds a link; each set keeps its ready links (writable once
 // connected, readable once the request was sent, never an error), their count in `ready`. Send: the request
 // (4 bytes: the client's queries' extra word) makes the reply. Recv: the reply's next bytes, then 0 (closed).
 bool MasterConnect(std::uintptr_t s, std::uint16_t port);
-bool MasterSelect(struct fd_set* read, struct fd_set* write, struct fd_set* except, int* ready);
+bool MasterSelect(platform::net::SocketGroup* read, platform::net::SocketGroup* write,
+                  platform::net::SocketGroup* except, int* ready);
 bool MasterSend(std::uintptr_t s, const char* data, int length);
 bool MasterRecv(std::uintptr_t s, char* data, int length, int* received);
 

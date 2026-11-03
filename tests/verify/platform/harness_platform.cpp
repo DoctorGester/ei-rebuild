@@ -1,9 +1,11 @@
 // The harness's platform backend (harness_platform.h) on SDL, built in its builds in place of the game's
-// (src/platform/sdl/platform_sdl.cpp; CMakeLists.txt). The window is SDL's, never activated; every system event SDL
-// takes is dropped (the real keyboard and mouse never reach the game: counted for the report); the game's events are
-// the harness's, and so are its clocks, date, mouse position and message box answers.
+// (src/platform/sdl/platform_sdl.cpp; CMakeLists.txt). The window is SDL's, never activated and out of sight
+// (sys::ConcealWindow); every system event SDL takes is dropped (the real keyboard and mouse never reach the game:
+// counted for the report); the game's events are the harness's, and so are its clocks, date, mouse position and
+// message box answers.
 #include "harness_platform.h"
 #include "harness_clock.h"
+#include "system/harness_system.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
@@ -39,6 +41,7 @@ bool g_holding = false;
 platform::Point g_held{};
 platform::PointMap g_toGame = nullptr;
 std::string g_clipboard;
+std::string g_className;   // RegisterWindowClass's
 
 SDL_Window* WindowOf(platform::NativeWindow window) { return window && window == g_native ? g_window : nullptr; }
 
@@ -114,6 +117,30 @@ bool CursorHeld(platform::Point* at) {
     return true;
 }
 
+bool ClientSize(int* width, int* height) {
+    return g_window && SDL_GetWindowSizeInPixels(g_window, width, height);
+}
+
+void ShowMinimized(bool minimized) {
+    if (!g_window || sys::ShowWithoutActivating(g_native, minimized)) return;
+    if (minimized) SDL_MinimizeWindow(g_window);
+    else SDL_RestoreWindow(g_window);
+}
+
+void ResizeClient(int width, int height) {
+    if (g_window) SDL_SetWindowSize(g_window, width, height);
+}
+
+std::string WindowTitle() {
+    const char* title = g_window ? SDL_GetWindowTitle(g_window) : nullptr;
+    return title ? title : "";
+}
+
+std::string WindowClass() {
+    const std::string name = g_native ? sys::WindowClass(g_native) : std::string();
+    return name.empty() ? g_className : name;
+}
+
 } // namespace ei::verify::harnessplatform
 
 namespace platform {
@@ -131,14 +158,14 @@ void Sleep(std::uint32_t ms) { clock::Sleep(ms); }
 
 // The harness's local date (fixed in deterministic runs) as the seconds it is.
 std::int64_t SecondsSince1970() {
-    const SYSTEMTIME local = clock::LocalTime();
+    const ei::verify::sys::Date local = clock::LocalTime();
     std::tm at{};
-    at.tm_year = local.wYear - 1900;
-    at.tm_mon = local.wMonth - 1;
-    at.tm_mday = local.wDay;
-    at.tm_hour = local.wHour;
-    at.tm_min = local.wMinute;
-    at.tm_sec = local.wSecond;
+    at.tm_year = local.year - 1900;
+    at.tm_mon = local.month - 1;
+    at.tm_mday = local.day;
+    at.tm_hour = local.hour;
+    at.tm_min = local.minute;
+    at.tm_sec = local.second;
     at.tm_isdst = -1;
     return std::mktime(&at);
 }
@@ -151,6 +178,7 @@ MessageAnswer ShowMessageBox(void*, const char* text, const char* caption, Messa
 
 void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler) {
     hp::g_handler = handler;
+    hp::g_className = className;
 #if defined(SDL_PLATFORM_WINDOWS)
     SDL_RegisterApp(className, 0, instance);   // the window class's name, as the game's
 #endif
@@ -161,7 +189,8 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
 }
 
 // As the game's: the client area the resolution's, centred in the primary display's usable bounds (made smaller when
-// it would not fit), or a borderless window at the screen's top left; its title marked.
+// it would not fit), or a borderless window at the screen's top left; its title marked. Concealed before it is first
+// shown (sys::ConcealWindow: never activated, no taskbar button, cloaked).
 NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
     const std::string marked = std::string(title) + " (harness)";
     const SDL_PropertiesID properties = SDL_CreateProperties();
@@ -173,6 +202,9 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
+#if !defined(SDL_PLATFORM_WINDOWS)
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);   // graphics_gl.cpp's context
+#endif
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!hp::g_window) return nullptr;
@@ -186,7 +218,12 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
         SDL_SetWindowPosition(hp::g_window, work.x + left + (work.w - left - right - width) / 2,
                               work.y + top + (work.h - top - bottom - height) / 2);
     }
+#if defined(SDL_PLATFORM_WINDOWS)
     hp::g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(hp::g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#else
+    hp::g_native = hp::g_window;   // as platform_sdl.cpp's: graphics_gl.cpp takes the SDL window
+#endif
+    ei::verify::sys::ConcealWindow(hp::g_native);
     return hp::g_native;
 }
 

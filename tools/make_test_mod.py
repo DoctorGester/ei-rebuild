@@ -5,7 +5,7 @@ usage: python tools/make_test_mod.py <saves dir> [--maps-source <zone2.mob>] [--
                    scenario selects with the harness step "addonpath s19b_mod" (the starter's
                    Settings\\AddonPath, answered for addon.dll and for the standalone image)
   --maps-source    passed to tools/make_trap_mob.py (default its own, read only)
-  --camera-source  default F:\\games\\EvilIslands\\camera\\bz3g.cam (read only)
+  --camera-source  default the vanilla install's camera\\bz3g.cam (EI_GAME_VANILLA; read only)
 
 The mod, as Rebirth's starter\\MODS\\<mod> folders hold one (docs/notes/rebirth.md, "Resources and paths"):
   Rebirth.txt          empty, as every shipped mod has one
@@ -18,6 +18,8 @@ The mod, as Rebirth's starter\\MODS\\<mod> folders hold one (docs/notes/rebirth.
 config.reg is the game's binary registry (src/game/registry.h); the archive the game's .res (src/game/resource.h).
 """
 import argparse, os, shutil, struct, subprocess, sys
+
+import exe_path
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 MOD = 's19b_mod'
@@ -125,7 +127,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('saves')
     parser.add_argument('--maps-source')
-    parser.add_argument('--camera-source', default=r'F:\games\EvilIslands\camera\bz3g.cam')
+    parser.add_argument('--camera-source', default=None)
     args = parser.parse_args()
     mod = os.path.join(args.saves, MOD)
     for sub in ('Res', 'Maps', 'Camera'):
@@ -138,7 +140,8 @@ def main():
     if args.maps_source:
         trap += ['--source', args.maps_source]
     subprocess.run(trap, check=True, capture_output=True)
-    shutil.copyfile(args.camera_source, os.path.join(mod, 'Camera', 's19b.cam'))
+    shutil.copyfile(args.camera_source or exe_path.install_file('vanilla', 'camera', 'bz3g.cam'),
+                    os.path.join(mod, 'Camera', 's19b.cam'))
     print(f'{mod}: config.reg {len(config)} bytes, Res\\s19b_gfx.res, Maps\\traps.mob, Camera\\s19b.cam')
 
 
