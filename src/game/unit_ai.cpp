@@ -53,7 +53,7 @@ const char* ModeName(AIModeType type) {
     case AIModeType::Fear: return "Fear";
     case AIModeType::Tamed: return "Tamed";
     case AIModeType::Follow: return "Follow";
-    default: return "";    // 9 and anything else: the name stays empty
+    default: return "Unknown";    // no mode has another type
     }
 }
 

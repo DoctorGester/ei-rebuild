@@ -55,18 +55,16 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 - `CanTrack` answers true for the same side, the same player, or an object in a list, so UpdateAttack gives up only on a
   unit of another side and player that is not listed. AIMemory::Update adds the noticed decay to the noticed level every
   tick. Notice measures the distance with the new point's own z (the memory keeps no z).
-- Think's "new motivation" message prints an empty name for mode type 9 or above 10.
 - Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until
   one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has no patrol points,
-  switching to guard" and adds a point at the unit (it does not switch). Suspection's Execute computes the "near the
+  adding one at its position" and adds a point at the unit (the original's text said "switching to guard"). Suspection's Execute computes the "near the
   point" distance only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat.
 - AppendPoint rounds 2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's
   middle. Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3
   multiplies by (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off.
 - FindEnemiesNear asks the visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee forces when at or
   beyond either of the observer's ranges, or when the object attacks the unit. AIViewer::Update lists an allied corpse
-  twice; See skips a dead hostile unit unless the unit sees all; "using sense life " is printed without a line end before
-  the "sees unit" line.
+  twice; See skips a dead hostile unit unless the unit sees all.
 - UpdateCombat attacks the chosen target with the weapon even when the choice was a spell. A target removed mid-attack
   leaves the brain at action 3 with its target cleared; UpdateCombat (finding nobody) leaves it so
   (`unit_ai_attack_removed`).
