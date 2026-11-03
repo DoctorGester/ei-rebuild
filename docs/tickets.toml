@@ -7354,3 +7354,18 @@ group = "port"
 model = "opus"
 depends = ["H47"]
 note = "User 2026-11-03: the audio issues on Linux are massive; investigate them in WSL once the harness runs on Linux (H47). Device 'RDP Sink through pulseaudio' (WSLg), no audio error in ei-rebuild.log. Use harness scenarios to reproduce, log underruns and the stream's queue depth, compare with Windows; check PL15's std::thread stream thread, SDL audio stream use, slow llvmpipe frames (try GALLIUM_DRIVER=d3d12), and WSLg's RDP audio itself. A window at most 60 s.  User: not the frame rate (smooth on llvmpipe and on d3d12); the audio lags the whole game, so suspect the game thread blocking on audio (a lock held by the stream thread, SDL_PutAudioStreamData / queue waits, pulseaudio over RDP with a large latency) rather than starvation. Measure how long the game thread's audio calls take per frame."
+
+[[ticket]]
+id = "PL18"
+title = "Release workflow: Linux tarball beside the Windows exe"
+group = "port"
+model = "sonnet"
+note = "User 2026-11-03. release.yml becomes a matrix: the Windows job as today, plus an ubuntu job building in an Ubuntu 22.04 container (old glibc baseline; SDL3 is already static) with -DCMAKE_BUILD_TYPE=Release, the port checks (xvfb-run ctest), and ei-rebuild-linux-x64.tar.gz (ei-rebuild, a README: point EI_GAME_ROOT at the game folder or drop the binary into it; GALLIUM_DRIVER note for WSL) uploaded to the same GitHub release. Check the binary's needed glibc (objdump -T | grep GLIBC_) and say the oldest distro it runs on. No game data. Docs: linux.md 'Release'."
+
+[[ticket]]
+id = "PL19"
+title = "macOS build and release: universal .app on SDL_GPU's Metal"
+group = "port"
+model = "opus"
+depends = ["R43"]
+note = "User 2026-11-03. Waits on the SDL_GPU port (macOS has only OpenGL 4.1; R43's plan gives the port tickets, add them here as depends). A universal (arm64 + x86_64) ei-rebuild.app with the game folder from a picker or EI_GAME_ROOT (an .app can't sit inside the game folder), built on a macos-14 runner in release.yml's matrix, zipped or in a .dmg. Unsigned at first (players right-click Open or clear the quarantine flag); signing and notarisation need an Apple Developer account, the user's call."
