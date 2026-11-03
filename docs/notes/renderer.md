@@ -56,6 +56,61 @@ Rules (sokol-shdc's, or the shaders'):
 A new shader is its `.glsl` file, an `@include` line in `shaders.glsl`, and `<program>_shader_desc` at its use.
 The build finds the file by itself. `tools/comments.py` reads the `.glsl` comments like the C++ ones.
 
+### HLSL and SDL_shadercross
+
+The same programs are also HLSL, for the renderer's move to SDL_GPU (section 15b): `src/render/shaders/<program>.hlsl`,
+one file a program, with shared parts in `.hlsli` files. Until the switch the GLSL above is what the game draws
+with, and both sources must change together. Only `ei_shader_check` uses the HLSL so far.
+
+The build (CMakeLists.txt):
+- **Toolchain.** `tools/shader_toolchain/toolchain.cmake` fetches SDL_shadercross's sources (a pinned commit),
+  SPIRV-Cross (a Vulkan SDK tag) and DXC's release binaries from GitHub, each checked against its pinned SHA-256. At
+  configure time it builds `shadercross` and `spirv-cross` once, about a minute. Everything goes to `EI_THIRD_PARTY`
+  (cache variable or environment). Its default is `build/third_party` of the main checkout, so every worktree shares
+  one copy. A pin or wrapper change builds a new copy beside the old one, and a file lock lets builds that configure
+  at the same time wait for each other.
+- **Compiling.** Each program's two stages are compiled to SPIR-V, MSL and, on Windows, DXIL:
+  `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The output goes to `shaders/hlsl/` in the build folder.
+- **Reflection.** `spirv-cross --reflect` writes each stage's interface.
+- **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes three files into `shaders/` in the
+  build folder:
+  - `gpu_shaders.h`: each uniform block's struct (`MeshVsParams` and so on, Matrix4 for a matrix), and per program a
+    namespace with its index in `kPrograms` and its slots: `kBlock<Type>` (the uniform push slot),
+    `kSampler<Texture>` (the texture-sampler pair's slot) and `kAttr<Input>` (the vertex input's location). These
+    replace sokol-shdc's `UB_` / `VIEW_` / `SMP_` / `ATTR_`.
+  - `gpu_shaders.cpp`: the program table, with each stage's code in every format, its entry point and its sampler and
+    block counts for `SDL_CreateGPUShader`.
+  - `gpu_shaders_sokol.h`: compile-time checks of the HLSL blocks against sokol-shdc's structs (block `T` against
+    `t_t`: size, members, offsets, types) and of the inputs against `ATTR_<program>_in_<name>`.
+- **The check.** `ei_shader_check` (tools/shader_check; build_checks.py on Windows, ctest `port_shaders` on Linux)
+  compares each program's blocks, textures and inputs per stage with sokol-shdc's description. Then it makes every
+  program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and Vulkan on
+  Windows, on Vulkan on Linux (lavapipe without a GPU). A driver without a device is skipped; with `--require`, as
+  ctest runs it, that fails.
+
+Rules (SDL_GPU's, or the generator's):
+- **Spaces.** Through `bindings.hlsli`'s macros:
+  - vertex stage: textures and samplers in space0 (`VS_TEXTURE`, `VS_SAMPLER`), blocks in space1 (`VS_BLOCK`);
+  - fragment stage: textures and samplers in space2 (`FS_*`), blocks in space3.
+- **Slots.** A texture and its sampler share a slot: SDL binds them as a pair, so a texture read with `Load` still
+  has one. A stage's slots run from 0 without gaps. At most 4 blocks and 16 samplers a stage.
+- **Stages.** DXC keeps every resource a file declares, used or not, in each stage's SPIR-V. So code for one stage
+  sits under `EI_VERTEX` / `EI_FRAGMENT`, and the generator fails on a resource in the other stage's space.
+- **Inputs and outputs.** Each varying is `[[vk::location(n)]] ... : TEXCOORDn`: the location for SPIR-V, the
+  semantic for DXIL.
+- **Blocks.** `ConstantBuffer<T>`, whose members are `float4`, `int4` or arrays of them, and `row_major float4x4`. The
+  matrix's register k is the Matrix4's row k, as `m[k]` reads it. An unsigned value goes in an `int` (`asuint`
+  reads it back), as in the GLSL.
+- **Names.** A block's type is the GLSL block's name in CamelCase (`mesh_vs_params` is `MeshVsParams`). Its members
+  are named as in the GLSL. A vertex input is the GLSL's without `in_`.
+- **Shared parts.** `rect_vs.hlsli` and `fullscreen.hlsli` are the two vertex stages most programs share. The
+  receivers' `shadow_receiver.hlsli`, `point_shadow.hlsli` and `scene_lighting.hlsli` take their slots from the
+  including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
+- **Not yet drawable.** `depth_from_multisampled` reads a multisampled texture, which SDL_GPU cannot sample. The
+  check creates the program, but the smooth option needs another depth copy first.
+
+A new program is its `.hlsl` file, which the build finds by itself, and a line in the check's `kDraws`.
+
 ## 1. No fallbacks
 
 The game draws only through this renderer: it draws every frame into an off-screen target of the game's resolution and
@@ -925,15 +980,11 @@ What it found:
 - SDL_GPU's device costs about 150 ms more at start.
 - Its full-frame readback is somewhat slower than sokol's, but it is general: any texture, any time.
 
-The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md.
+The numbers and the port's plan are in build/reviews/r43_sdl_gpu.md. The shaders' HLSL and its toolchain are in the
+main build now ("HLSL and SDL_shadercross" above, with the binding rules the spike found). The spike's own copies
+of the world's seven programs stay in `tools/gpu_spike/shaders`, with its hand-made `kBindings`, until it is deleted.
 
 Rules the spike found:
-- **Bindings.** HLSL uses SDL's register spaces:
-  - vertex shader: textures and samplers in space0, blocks in space1;
-  - fragment shader: textures and samplers in space2, blocks in space3.
-- **Stages.** shadercross keeps every stage's bindings, so code for one stage only sits under `EI_VERTEX` /
-  `EI_FRAGMENT`.
-- **Vertex inputs.** Each input is `TEXCOORD<location>` with `[[vk::location]]`.
 - **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
   slot number.
 - **What SDL_GPU lacks:**

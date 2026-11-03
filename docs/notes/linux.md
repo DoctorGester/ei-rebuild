@@ -12,8 +12,12 @@ Packages (Ubuntu 24.04; SDL3 finds the rest itself, Wayland's too when its devel
 
 ```sh
 sudo apt-get install cmake ninja-build libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev \
-    libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev
+    libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev     python3 mesa-vulkan-drivers
 ```
+
+The configure step also fetches and builds the HLSL toolchain, SDL_shadercross with DXC's Linux release, once
+(docs/notes/renderer.md, "HLSL and SDL_shadercross"). `mesa-vulkan-drivers` brings lavapipe and the Vulkan loader for
+`port_shaders`.
 
 sokol-shdc, the shader compiler (CMakeLists.txt looks in build/tools, then PATH, or takes -DEI_SHDC):
 
@@ -40,8 +44,10 @@ cmake --build build/linux
   reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11), and the window's present after
   resizes: a frame of known rows presented at four sizes, the window read back from the X server (XGetImage; a GL
   front-buffer read gives zeros on Mesa's software paths).
+- `port_shaders` (tools/shader_check): every HLSL program and its pipelines on SDL_GPU's Vulkan driver (lavapipe
+  without a GPU), with `--require`: no Vulkan device fails.
 
-The Linux workflow (.github/workflows/linux.yml) runs both on GitHub's Ubuntu runner for every push.
+The Linux workflow (.github/workflows/linux.yml) runs them on GitHub's Ubuntu runner for every push.
 
 ## Run
 

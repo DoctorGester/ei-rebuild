@@ -4,7 +4,7 @@
 # - ei_gpu_spike draws a dump again through sokol_gfx (the platform's backend: Direct3D 11 / OpenGL) or SDL_GPU
 #   (Direct3D 12 / Vulkan), with the programs of the world's passes (terrain, mesh, solid, the shadow casters and the
 #   shadow map's range) as HLSL (tools/gpu_spike/shaders) compiled by
-#   SDL_shadercross (-DEI_SHADERCROSS) to DXIL, SPIR-V and MSL at build time.
+#   SDL_shadercross (the main build's, tools/shader_toolchain) to DXIL, SPIR-V and MSL at build time.
 
 target_compile_definitions(ei_render PRIVATE SOKOL_TRACE_HOOKS EI_GPU_SPIKE)
 target_include_directories(ei_render PRIVATE ${CMAKE_SOURCE_DIR}/tools)
@@ -19,8 +19,6 @@ if(EI_HARNESS)
     target_include_directories(ei-rebuild PRIVATE ${CMAKE_SOURCE_DIR}/tools)
 endif()
 
-find_program(EI_SHADERCROSS shadercross HINTS ${CMAKE_SOURCE_DIR}/build/third_party/shadercross-build/shadercross
-             REQUIRED)
 set(EI_SPIKE_SHADER_DIR ${CMAKE_BINARY_DIR}/spike_shaders)
 file(MAKE_DIRECTORY ${EI_SPIKE_SHADER_DIR})
 file(GLOB EI_SPIKE_HLSL CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/tools/gpu_spike/shaders/*.hlsl

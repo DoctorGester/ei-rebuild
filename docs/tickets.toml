@@ -6885,7 +6885,7 @@ group = "renderer"
 size = 0.5
 model = "sonnet"
 depends = ["R43a"]
-note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 6). The toolchain is fetched with pinned hashes and cached. Lavapipe ran the spike under WSLg."
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 6). The toolchain is fetched with pinned hashes and cached. Lavapipe ran the spike under WSLg. R43a: CMake's configure now fetches (pinned SHA-256) and builds the toolchain itself (tools/shader_toolchain/toolchain.cmake) into EI_THIRD_PARTY (default: the main checkout's build/third_party; in a container where git refuses the checkout, the source tree's). CI only needs to cache that folder. linux.yml and release.yml already install mesa-vulkan-drivers and ctest runs port_shaders (ei_shader_check --require) on lavapipe."
 
 [[ticket]]
 id = "R43g"
@@ -6913,6 +6913,16 @@ size = 0.25
 model = "sonnet"
 depends = ["R43g"]
 note = "From R43. Once R43g's numbers have replaced the spike's."
+
+[[ticket]]
+id = "R43a1"
+title = "Pixel check of the HLSL programs against the GLSL before the switch"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R43d"]
+files = ["tools/shader_check/shader_check.cpp", "src/render/shaders"]
+note = "From R43a. Only the spike's seven world programs were compared by pixels (frame dumps); R43a's check creates all 24 HLSL programs and their pipelines and checks their blocks and inputs against sokol-shdc's, but draws nothing. Draw each program once with fixed inputs (blocks, small textures, a few vertices) through sokol on D3D11 and through gpu.h on D3D12, read both back and compare, so a port slip in the 17 newly ported programs (ui_*, texture_*, present, blit, perf_overlay, into/depth_from_multisampled) shows before R43e re-baselines the image captures. Could live in ei_shader_check."
 
 [[ticket]]
 id = "C30e16"

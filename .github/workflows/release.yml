@@ -87,7 +87,7 @@ jobs:
           apt-get update -q
           apt-get install -y -q software-properties-common git curl ca-certificates python3-pip ninja-build binutils \
             libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev libxtst-dev \
-            libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev xvfb xauth mesa-utils libgl1-mesa-dri
+            libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev xvfb xauth mesa-utils libgl1-mesa-dri mesa-vulkan-drivers
           add-apt-repository -y ppa:ubuntu-toolchain-r/test
           apt-get install -y -q g++-13
           pip3 install cmake==3.31.6
