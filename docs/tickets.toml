@@ -7132,6 +7132,14 @@ model = "sonnet"
 note = "User 2026-11-03: all code for physical disc prompts goes. Delete WinMain's disc check and its second-disc boxes (app_main.cpp), the CD-ROM volume label check, platform::VolumeLabel and the AutoPlay event (platform.h, win32, posix, sdl, harness), the disc prompt strings and any 'insert disc' paths, the harness's disc-prompt answer (MessageBox) and the app_disc_prompt scenario and its golden (scenario deleted, not re-recorded). 'CD-ROM Path' stays only as a data folder setting if something still reads data through it; if it always equals the game folder, fold it into the game folder and drop the setting (say which). Docs: core.md / app.md / platform.md lines about the disc check and the EB jump at 00456BB5. Goldens otherwise the same."
 
 [[ticket]]
+id = "C78b"
+title = "2D leftovers: Rect inset helpers, grid Point APIs, renderer rect uploads"
+group = "cleanup"
+model = "sonnet"
+depends = ["C78"]
+note = "From build/reviews/c78_components.txt (C78's audit: 143 functions, 717 component accesses left): Rect::Inset / Sized helpers for the per-edge layout code (about 15 functions in ui_scrollbar, ui_help_page, ui_connect_list, ui_tooltip, ui_scroll_text and others); AIMap and RegionMap int-pair APIs (x, y arguments) to Point with Index(Point) / Contains(Point); a Rect to float4 uniform helper in render_blit / render_ui / render_cursor and Point-based render::ui::Line / Pixel (tools/ui_check changes); MotionPoint / MotionWaypoint to Vector2; FrameCursor held / hot as Points; the remaining ~90 Vector3 x-and-y leftovers of c74c_components.txt (ground-plane formulas with different terms need judgement); rerun the WSL rename audit for the Windows-only files (platform/win32, d3d11, tests/verify, tools) by hand. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
