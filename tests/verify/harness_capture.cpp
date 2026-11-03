@@ -8,6 +8,9 @@
 #include "../../src/platform/log.h"
 #include "game/main_loop.h"
 #include "image/image_side.h"
+#ifdef EI_GPU_SPIKE
+#include "gpu_spike/record.h"
+#endif
 
 #include <windows.h>
 
@@ -93,6 +96,9 @@ std::string FramePath(const char* name) { return ei::OutputPath("frames") + "\\"
 
 void Capture() {
     // The new renderer presents by itself: its frame is the capture.
+#ifdef EI_GPU_SPIKE
+    gpu_spike::RequestDump(g_name.c_str());   // the SDL_GPU spike's build only (tools/gpu_spike)
+#endif
     image::EndFrame();
     Image frame;
     CreateDirectoryA(ei::OutputPath("frames").c_str(), nullptr);

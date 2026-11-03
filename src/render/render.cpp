@@ -14,6 +14,9 @@
 #include "../game/game_singletons.h"
 #include "../game/model.h"
 #include "platform/graphics.h"
+#ifdef EI_GPU_SPIKE
+#include "gpu_spike/record.h"
+#endif
 
 #include <cstdarg>
 #include <cstdio>
@@ -122,6 +125,9 @@ bool CreateDevice() {
         return false;
     }
     g_deviceSamples = platform::graphics::MaxSamples(kSmoothSamples);
+#ifdef EI_GPU_SPIKE
+    gpu_spike::InstallRecorder();   // the SDL_GPU spike's build only (tools/gpu_spike)
+#endif
     return true;
 }
 

@@ -11,6 +11,9 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # Two builds (build.cmd): `release` is the product (ei-rebuild.exe, the whole game); `verify` is the harness build,
 # the same program with the harness linked in (tests/verify: scenario runs of the image).
 option(EI_HARNESS "Build the harness, linked into ei-rebuild.exe" OFF)
+# The SDL_GPU spike (tools/gpu_spike/README.md): its own build folder (tools/gpu_spike/build.cmd), never
+# build.cmd's. SDL with its GPU API and Vulkan, the frame recorder in the renderer and ei_gpu_spike.
+option(EI_GPU_SPIKE "Build the SDL_GPU spike (tools/gpu_spike)" OFF)
 
 # SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
 # the message box, the clocks and the threads of the builds without the harness (src/platform/sdl), the sound device
@@ -22,6 +25,10 @@ foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_U
             SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
     set(${off} OFF CACHE BOOL "" FORCE)
 endforeach()
+if(EI_GPU_SPIKE)
+    set(SDL_GPU ON CACHE BOOL "" FORCE)
+    set(SDL_VULKAN ON CACHE BOOL "" FORCE)
+endif()
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
@@ -245,4 +252,8 @@ else()
     target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
     add_test(NAME port_render COMMAND ei_render_check)
     set_tests_properties(port_platform port_render PROPERTIES TIMEOUT 60)
+endif()
+
+if(EI_GPU_SPIKE)
+    include(tools/gpu_spike/gpu_spike.cmake)
 endif()
