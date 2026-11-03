@@ -455,8 +455,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue;
         int sides = static_cast<int>(kFive);
-        int drawn = libcrt::Rand();
-        int face = ((drawn * sides) / 0x7FFF) % sides;
+        int face = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(sides));
         int value = face + face + 2;
         float roll = static_cast<float>(value) - (kFive + 1.0f);
         out->attackRoll = roll;

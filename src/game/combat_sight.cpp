@@ -80,12 +80,13 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
-// and `point` at `time`: within 0.1..0.9 along the way (in units of the squared distance, sic)
-// and less than 0.3 to the side.
+// and `point` at `time`: within 0.1..0.9 along the way and less than 0.3 to the side.
 bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& point, int time) {
     Unit* unit = self->unit;
     Vector3 d = point - unit->localPosition;
-    Vector3 u = d / LengthSquared(d);
+    float length = std::sqrt(LengthSquared(d));
+    if (length == 0.0f) return false;
+    Vector3 u = d / length;
     float side = std::sqrt(LengthSquared2D(u.x, u.y));
     Vector3 v = Vector3{u.y, -u.x, 0.0f} / side;
 

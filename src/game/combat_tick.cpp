@@ -254,7 +254,7 @@ bool UnitServer::StartMove() {
     std::vector<Unit*> lifted = LiftNearby(action.point, action.source != 0);
     AIMap* map = &ServerWorld()->aiMap;
     unit->altPassCosts = map->InWaterAt(unit->localPosition);
-    bool found = PathTo(action.point, action.point.z);
+    bool found = PathTo(action.point, kFar);
     for (Unit* other : lifted) world->aiMap.sectorMap.Add(other);
     bool arrived = false;
     if (action.param) {

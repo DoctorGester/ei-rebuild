@@ -179,7 +179,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         }
         int kind = order->kind == UnitOrderKind::Attack ? 2 : 1;
         if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
-            std::uint32_t source = action.source;
+            std::uint32_t source = order->source;
             Spell* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
