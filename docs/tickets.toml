@@ -7148,6 +7148,13 @@ model = "sonnet"
 note = "User 2026-11-03: all code for physical disc prompts goes. Delete WinMain's disc check and its second-disc boxes (app_main.cpp), the CD-ROM volume label check, platform::VolumeLabel and the AutoPlay event (platform.h, win32, posix, sdl, harness), the disc prompt strings and any 'insert disc' paths, the harness's disc-prompt answer (MessageBox) and the app_disc_prompt scenario and its golden (scenario deleted, not re-recorded). 'CD-ROM Path' stays only as a data folder setting if something still reads data through it; if it always equals the game folder, fold it into the game folder and drop the setting (say which). Docs: core.md / app.md / platform.md lines about the disc check and the EB jump at 00456BB5. Goldens otherwise the same."
 
 [[ticket]]
+id = "C80"
+title = "EI_NAN_AUDIT removed"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: do we still need EI_NAN_AUDIT? No. It marks 403 comparisons (132 files) whose result changes for a NaN, where the original counted NaN as equal and less, and logs the first NaN per site in harness and debug builds (CMakeLists.txt EI_NAN_AUDIT_LOG). Its reason was matching game.exe's NaN results; since H40 the goldens are our own and C76 removed the x87 rules, so nothing depends on the original's NaN behaviour, and the log is noisy (PL15 saw it fire on uninitialised UnitMotion::segmentStart/End). Delete the macro, its header and every call, the EI_NAN_AUDIT_LOG definition, and the docs' rule (rewrite-guide.md 8, float-maths.md, cleanup-tooling.md). Keep (or add) a real guard only where a NaN could hang a loop or index an array; list those. Optional: one NaN check in the harness's digest (a NaN in a unit's position or vitals fails the run) instead of 403 site checks. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
