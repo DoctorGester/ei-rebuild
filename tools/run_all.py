@@ -896,6 +896,7 @@ def net_check(jobs, out, build=BUILD):
 
 
 GOLDEN_INSTALL = {'standalone': 'vanilla', 'standalone-rebirth': 'rebirth'}   # a run's install -> its goldens'
+GOLDEN_DETAIL_RUNS = 6   # --golden: runs that differ shown in full (golden.py explain's summary); the rest one line each
 
 
 def golden_check(jobs, out=None, root=ROOT, build=BUILD):
@@ -904,15 +905,25 @@ def golden_check(jobs, out=None, root=ROOT, build=BUILD):
     import golden
     out = out or sys.stdout
     counts = collections.Counter()
+    heads = []
     print('\ngoldens (tests/golden):', file=out)
     for name, install in jobs:
         folder = os.path.join(build, 'runs', f'{name}-{install}')
         result, lines = golden.compare_one(name, GOLDEN_INSTALL.get(install, install), folder, root=root)
         counts[result] += 1
+        if result == 'DIFFERS':
+            # golden_explain's headline (the first difference, whether outcomes changed, the largest unit move)
+            heads.append((name, install, next((t for t in lines if t.startswith('digest:')), lines[0] if lines else '')))
         if result != 'NO GOLDEN' and (result != 'SAME' or len(jobs) == 1):
+            if result == 'DIFFERS' and len(heads) > GOLDEN_DETAIL_RUNS:
+                continue   # past the first few, the roll-up below says what differs
             print(f'  {name:<18} {install:<8} {result}', file=out)
             for text in lines:
                 print(f'      {text}', file=out)
+    if len(heads) > 1:
+        print(f'  the {len(heads)} that differ, one line each (golden.py explain / compare for the details):', file=out)
+        for name, install, head in heads:
+            print(f'    {name} {install}: {head[:260]}', file=out)
     print(f'  {counts["SAME"]} the same, {counts["DIFFERS"]} differ, {counts["NO RUN"]} without a run, '
           f'{counts["NO GOLDEN"]} without a golden', file=out)
     ok = not counts['DIFFERS'] and not counts['NO RUN']

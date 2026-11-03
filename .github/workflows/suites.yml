@@ -190,7 +190,7 @@ jobs:
           {
             echo "### record"
             echo '```'
-            grep -E "not recorded|\(new\)|\(changed|^[0-9]+ of [0-9]+ recorded" record.txt | head -200 || true
+            grep -E "not recorded|\(new\)|\(changed|^[0-9]+ of [0-9]+ recorded|^    " record.txt | head -200 || true
             echo "$(grep -c "the same as its golden, kept" record.txt || true) the same as their goldens (left as they were)"
             echo '```'
             echo "### what changed (golden.json left out)"

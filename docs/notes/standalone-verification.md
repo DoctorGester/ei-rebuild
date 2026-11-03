@@ -73,6 +73,21 @@ decoded saves; one that does not keeps its old golden. It names each golden it w
 golden.json changed) or changed. An intended change re-records the affected goldens and says why in the commit; anything
 else that differs is a regression.
 
+A golden that differs explains itself before anyone records it again (`tools/golden_explain.py`; `compare`, run_all
+`--golden` and `golden.py explain A B` print it; `record` puts it in its note and the new golden.json's `change`, and
+refuses without a `--reason` of a sentence). A summary is a headline (records that differ, the first one's world update,
+tick, frame and zone, whether outcomes changed, the largest unit move), the first differing record, one line of
+outcomes (zone, deaths, spawns, money, quest variables, party and items, game result, script: CHANGED or the same), the
+sections (world, generators, players, units, objects, effects, missiles, AI events, script, client, water) with each
+kind of field's entities, records and largest numeric change, and the saves by kind of record (obj, item, spell, ...).
+Read it as: outcomes the same and unit moves of a few ULPs are the same game played with other rounding; a changed
+outcome, a death or a move of whole units is a different game. Goldens recorded since H45 keep a unit's position, hit
+points, mana and death in clear (`golden_explain.OUTCOME_CLEAR`, recorded as the golden's `clear`) so the summary has
+numbers; older ones show "hash only" for units' place and AI. For every number, `golden.py explain <baseline run>
+<new run>` (two full digests: keep the scenario's run folder from main's pass as the baseline) or
+`golden.py record ... --before <baseline passes>`. No frame names: a digest record has no step, only its world update,
+tick and frame.
+
 Renderer-only scenarios (render_cursor_present, render_present_shot,
 render_present_window, render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
 world moves only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
