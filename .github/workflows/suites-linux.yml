@@ -68,11 +68,6 @@ jobs:
           path: ~/.cache/ccache
           key: ccache-harness-${{ runner.os }}-${{ github.sha }}
           restore-keys: ccache-harness-${{ runner.os }}-
-      - name: sokol-shdc
-        run: |
-          mkdir -p build/tools
-          curl -sSfL https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/linux/sokol-shdc -o build/tools/sokol-shdc
-          chmod +x build/tools/sokol-shdc
       - name: Build the harness
         run: |
           cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
