@@ -534,6 +534,44 @@ option's software cursor bit is set. It hands the image's current frame, its mas
 (render::Cursor), whose present shows it as the system's cursor (renderer.md section 9). The system moves the cursor; a frame
 that hands none over (the movie players and the loading screens hide the image) hides it.
 
+## Camera mouse turn
+
+With the right button held (CameraInput::MouseMove, turning) the cursor's drag sets the camera's turn and tilt target
+rates: the drag in layout units (ScalePointFromScreenNoMargin, integer: it truncates) times the speed options, turn
+`speed * dx / 400 * 10`, tilt `speed * dy / 300 * 500`. Camera::SetTurnRate / SetTiltRate jump the rate up to a larger
+target; a smaller one (0 too) is approached in the camera's updates at response 1/3 a camera second (55 ms), and each
+update turns by dt * rate. The interface's mouse-move events reach the camera input as well as the frame's own call
+(BattleScreen::Draw): the first call after the cursor's poll (once a frame, Cursor::UpdatePosition, after the interface's
+draw) takes the drag, later ones get (0, 0) and set the targets to 0, so the rate eases off between takes; the original's
+order, kept.
+
+- The drag is the mouse's speed, not the frame's motion (Cursor::TakeDrag): the motion of the polls in the last 1000 / 60
+  ms (or the last poll's interval, when longer), the oldest poll counted for its part in that window, scaled from the
+  window to 1000 / 60 ms. At 60 Hz it is the frame's motion as before (frames of 16 / 17 ms: within a count); at other
+  rates the same mouse speed gives the same drag. It used to be the frame's motion, so the turn per second went with the
+  frame's length: `camera_drag_rate` (2 counts a ms across for 0.96 s) turned 7.57 rad at 32 ms frames, 3.66 at 16,
+  1.83 at 8 and 0.85 at 4, and a slow tilt not at all at 4 ms (1 count a frame truncates to 0 in layout units); now 3.80
+  to 3.85 rad at all four, tilts within 5%. A slow machine (or a frame that took long) turned fast and tilted to the
+  pitch limit in a frame or two, a fast one turned slowly.
+- Taking hold (Cursor::SetHeld) polls the mouse and drops its motion so far, so motion from before the press does not turn
+  the camera in the first frame, and keeps the pointer's position (the user's macos-port 26d016239; the global map's drag
+  too).
+- The mouse counts are the pointer's motion on every system: SDL's relative motion with
+  SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE (platform_sdl.cpp), on Windows raw input through SDL's copy of the system's pointer
+  speed and acceleration, on X11 XInput2's accelerated valuators, on Wayland the compositor's accelerated relative motion
+  times the window's pointer_scale (1 for the game's window, which is never exclusive full screen). So the desktop's
+  pointer settings set the camera's speed too.
+- The turn per count goes with the screen's size: the drag is scaled to the 800-unit layout across the window's 4:3 part
+  (800 / width43), so a 1920x1080 screen turns twice as far for the same mouse motion as a 3840x2160 one, and at 2160p a
+  drag below about 4 counts a 60 Hz frame truncates to nothing (Rebirth's WideScreen scaling; the original took raw
+  DirectInput counts at its 800x600 or 1024x768). Open: PL20a.
+- Harness: `mousedrag dx dy` adds (dx, dy) to each frame's poll; with `frametime` that is a mouse speed of dx / frametime
+  counts a ms (`camera_spin`, `camera_drag_rate`).
+- `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/camera_trace.cpp): a line a second (`camera trace: N frames
+  in M ms (a to b ms apart), motion x y`: the poll rate and its spread), a line a poll while held or moving (interval, the
+  device's motion, the drag given, the drags taken since the last poll, heading, pitch, turn and tilt rate and target),
+  and a line a drag taken (in counts and layout units, the targets it set).
+
 ## Battle HUD corner panels
 
 The game clock (HudClock) and the movement panel (HudMovePanel): their setups make the panels' sprites and regions about

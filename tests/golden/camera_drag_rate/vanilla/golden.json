@@ -1,0 +1,13 @@
+{
+  "scenario": "camera_drag_rate",
+  "install": "vanilla",
+  "recorded": "2026-11-03",
+  "commit": "21d2f90fd",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario (PL20): the right-button turn and tilt at frame times of 32, 16, 8 and 4 ms with one mouse speed.",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}

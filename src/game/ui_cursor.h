@@ -8,6 +8,7 @@
 #include "lib/rect.h"
 #include "platform/platform.h"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -76,13 +77,21 @@ public:
     // current with the image's current frame as `from`; returns the previous shape.
     int SetShape(int shape);
     void ShowImage(bool shown);
+    // Held from now on (or let go). Taking hold polls the mouse and drops its motion so far (from before the press,
+    // which must not turn the camera) and keeps the pointer's position.
     void SetHeld(bool held);
+    // The mouse's speed as the motion of a 60 Hz frame (kDragFrame), whatever the frame rate: the motion of the
+    // polls in the last kDragFrame ms (or the last poll's interval when longer), scaled from that window to
+    // kDragFrame; at 60 Hz the last poll's motion. Given once a poll, then (0, 0) until the next (the camera's turn,
+    // docs/notes/ui.md "Camera mouse turn").
+    Point TakeDrag();
     // Shape 0 (its image and frame).
     void Start();
     // Releases and frees every shape and empties the list, releases the device and resets the fields (not
     // enabled, shape -1).
     void Shutdown();
-    // Steps the image's frame every 125 ms, adds the DirectInput motion to motion, takes the mouse position
+    // Steps the image's frame every 125 ms, adds the DirectInput motion to motion (and keeps the poll for
+    // TakeDrag), takes the mouse position
     // (or heldPosition while held) clamped into the bounds, places rect at the previous position less the
     // hot spot (the frame's size, clipped to the bounds, `from` clipped the same way) and keeps the new
     // position. Returns whether the frame stepped or the position changed.
@@ -111,6 +120,27 @@ public:
     bool enabled = false;            // the cursor exists (created)
     std::uint32_t frameTime = 0;             // when the image's frame last stepped
     std::uint32_t pollTime = 0;              // when UpdatePosition last polled the mouse
+
+    // The frame (ms) TakeDrag gives the motion for: the usual 60 Hz of the screens the turn was tuned on.
+    static constexpr float kDragFrame = 1000.0f / 60.0f;
+
+private:
+    // The drag from the polls (TakeDrag).
+    Point DragOfPolls() const;
+
+    // A poll of the mouse: its interval since the one before (ms) and its motion.
+    struct Poll {
+        std::uint32_t interval = 0;
+        Point motion = {};
+    };
+    // The last polls since the cursor was taken hold of, the newest at newestPoll (a ring; enough for a drag frame's
+    // polls past 1000 a second).
+    static constexpr int kPollsKept = 64;
+    std::array<Poll, kPollsKept> polls = {};
+    int newestPoll = 0;
+    int pollCount = 0;
+    Point drag = {};                         // TakeDrag's, from the last poll
+    bool dragGiven = true;                   // TakeDrag gave it
 };
 // The frame's cursor handed to the renderer before the present, which shows it as the system's.
 void CursorDrawFrame(Cursor* self);

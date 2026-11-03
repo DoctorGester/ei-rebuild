@@ -58,7 +58,6 @@ void GlobalMap::RightDown(int, Point point) {
     turning = 0;
     ui->ScalePointFromScreen(&dragStart);
     dragAngle = angle;
-    g_cursor.motion = {};
     g_cursor.SetHeld(1);
 }
 

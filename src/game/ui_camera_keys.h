@@ -23,22 +23,22 @@ public:
     // options multiplied, stored as float), turns and tilts not, and climbs at the climb speed * z; with one
     // it does not pan, turns at the turn speed * y, climbs, and tilts at the tilt speed * x.
     void KeyUp(int key, int repeat, int flags) override;
-    // The right button went down: the point kept in screen and layout coordinates, turning set, the mouse
-    // motion cleared, the cursor held; the button used.
+    // The right button went down: the point kept in screen and layout coordinates, turning set, the cursor held
+    // (its motion so far dropped); the button used.
     void RightDown(int buttons, Point point) override;
-    // Released: turning cleared, the camera stops turning, tilting and panning, the motion cleared, the
-    // cursor let go and put back at the mouse position; used.
+    // Released: turning cleared, the camera stops turning, tilting and panning, the cursor let go and put back
+    // at the mouse position; used.
     void RightUp(int buttons, Point point) override;
-    // Rebirth-patched (WideScreen: the drag scaled without the margin). While turning: the drag motion (in
-    // layout units) turns the camera at the turn speed * (dx / 400) * 10 and tilts it at the tilt speed *
-    // (dy / 300) * 500 (not tilting when it is at rest and |dy| <= |dx|), or with Ctrl / Alt pans it along
-    // (dx / 400, dy / 300) at the pan speed. The motion is cleared, the cursor takes shape 0x16, the event is
-    // used and the layout point kept. Otherwise, when the edge margin is positive: the cursor within the
-    // margin of an edge of the picture (Interface3D::PictureRect) pans that way (with the keys' pan added unless
-    // Ctrl / Alt is held) under the edge's arrow cursor, the event used when at an edge; the point is kept.
+    // Rebirth-patched (WideScreen: the drag scaled without the margin). While turning: the cursor's drag (its
+    // speed as a 60 Hz frame's motion, Cursor::TakeDrag; in layout units) turns the camera at the turn speed *
+    // (dx / 400) * 10 and tilts it at the tilt speed * (dy / 300) * 500 (not tilting when it is at rest and
+    // |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) at the pan speed. The cursor takes
+    // shape 0x16, the event is used and the layout point kept. Otherwise, when the edge margin is positive: the
+    // cursor within the margin of an edge of the picture (Interface3D::PictureRect) pans that way (with the keys'
+    // pan added unless Ctrl / Alt is held) under the edge's arrow cursor, the event used when at an edge; the
+    // point is kept.
     void MouseMove(int buttons, Point point) override;
-    // The input loses the screen: no turning, the axes cleared, the cursor let go, the motion cleared and the
-    // camera stopped.
+    // The input loses the screen: no turning, the axes cleared, the cursor let go and the camera stopped.
     void Deactivate() override;
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
     void Wheel(int flags, int delta, Point point) override;
