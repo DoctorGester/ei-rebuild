@@ -16,13 +16,13 @@ def record(n, update, lines, before):
     return [f'@ {n} update {update} frame {update // 5} tick {update} zone gz1g hash {state} world 0 random 0 players 0 objects 0 n 3'] + lines
 
 
-def digest(hooks='off', hp='20.0', countdown='141', wolf_x='10.5', later=None):
-    """Three records: a hero (a unit) and a stone; the hero walks; later: extra lines in the last record."""
+def digest(hooks='off', hp='20.0', countdown='141', wolf_x='10.5', later=None, mid=None):
+    """Three records: a hero (a unit) and a stone; the hero walks; mid, later: extra lines in the second and the last record."""
     lines = record(0, 20, ['+ world world', 'world tick 20', '+ random random', 'random crt.rand 0x00000001',
                            '+ obj1 80 unhuma ""', 'obj1 class 80', f'obj1 pos.x {wolf_x}', f'obj1 hp {hp}', 'obj1 player 0',
                            'obj1 ai.mode guard', f'obj1 updateCountdown {countdown}',
                            '+ obj2 84 stbr1', 'obj2 class 84', 'obj2 pos.x 3.0'], [])
-    lines += record(1, 40, ['world tick 40', 'obj1 pos.x 11.0'], lines)
+    lines += record(1, 40, ['world tick 40', 'obj1 pos.x 11.0'] + (mid or []), lines)
     lines += record(2, 60, ['world tick 60', 'random crt.rand 0x00000002'] + (later or []), lines)
     return TITLE.format(hooks=hooks) + '\n'.join(lines) + '\n'
 
@@ -145,7 +145,7 @@ class GoldenTest(unittest.TestCase):
         golden.GOLDEN = os.path.join(self.dir, 'golden')
         golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         try:
-            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12, runs=runs[:1]))
+            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test: made-up digests', fields=12, runs=runs[:1]))
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 2)
             self.assertIn('1 runs; a golden needs 2', out.getvalue())
@@ -177,8 +177,8 @@ class GoldenTest(unittest.TestCase):
                 result, lines = golden.compare_one('levers', 'vanilla', bad)
                 self.assertEqual(result, 'DIFFERS')
                 self.assertTrue(lines[0].startswith('console: differs from line 2'), lines)
-                self.assertTrue(any('#vitals' in line for line in lines), lines)
-                self.assertIn('  info zone: "gz1g" in the golden, "other" in the run', lines)
+                self.assertTrue(any(' hp: 20.0 in the golden, 1.0 in the run' in line for line in lines), lines)
+                self.assertTrue(any('info zone: "gz1g" in the golden, "other" in the run' in l for l in lines), lines)
             finally:
                 golden.golden_folder = golden_folder
             # A run that does not repeat: not recorded, the golden kept.
@@ -223,7 +223,7 @@ class GoldenTest(unittest.TestCase):
         golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
         try:
-            args = type('A', (), dict(scenarios=['pair'], install='vanilla', reason='test', fields=12, runs=runs))
+            args = type('A', (), dict(scenarios=['pair'], install='vanilla', reason='test: made-up digests', fields=12, runs=runs))
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
             target = os.path.join(golden.GOLDEN, 'pair', 'vanilla')
@@ -246,6 +246,118 @@ class GoldenTest(unittest.TestCase):
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 2)
             self.assertIn('peer differs', out.getvalue())
+        finally:
+            golden.GOLDEN, golden.STORE = old
+            golden.golden_folder = golden_folder
+
+    def explain_lines(self, a, b, **kw):
+        import golden_explain
+        return golden_explain.explain(a, b, 'A', 'B', **kw)
+
+    def test_explain_sizes_units_and_outcomes(self):
+        # Full digests: the hero moves 1.5 further from record 1 on, loses 3.5 hit points and dies at record 2; the
+        # player's money and a quest variable differ; the first difference is listed first, outcomes next.
+        a = self.write('a.txt', digest())
+        b = self.write('b.txt', digest(later=['obj1 hp 16.5', 'obj1 dead 1', 'obj1 pos.x 13.0'], mid=['obj1 pos.x 12.5']))
+        code, head, lines = self.explain_lines(a, b)
+        self.assertEqual(code, 1)
+        self.assertIn('2 of 3 records differ, first at record 1 (world update 40', head)
+        self.assertIn('outcomes CHANGED: deaths', head)
+        self.assertIn('max unit move 2 (obj1, record 2)', head)
+        self.assertTrue(lines[0].startswith('first difference at record 1'), lines)
+        self.assertIn('obj1 (80 unhuma "") pos.x: 11.0 in A, 12.5 in B (d 1.5)', lines[1])
+        text = '\n'.join(lines)
+        self.assertIn('deaths: obj1 dead: (none) in A, 1 in B, from record 2', text)
+        self.assertIn('hp: 1 unit, 1 record, from 2; max |d| 3.5 at obj1 hp, record 2: 20.0 -> 16.5', text)
+        self.assertIn('pos: 1 unit, 2 records, from 1; moved 2 at obj1', text)
+        self.assertLess(text.index('first difference'), text.index('outcomes:'))
+        self.assertLess(text.index('outcomes:'), text.index('units:'))
+
+    def test_explain_money_variables_and_spawns(self):
+        a = self.write('a.txt', digest(mid=['player0 money 100', 'player0 var.Said1 0.0']))
+        b = self.write('b.txt', digest(mid=['player0 money 90', 'player0 var.Said1 1.0', '+ obj3 80 unmoco2',
+                                            'obj3 class 80', 'obj3 ai.mode guard']))
+        code, head, lines = self.explain_lines(a, b)
+        text = '\n'.join(lines)
+        self.assertIn('CHANGED: spawns, money, quest variables', head)
+        self.assertIn('money: player0 money: 100 in A, 90 in B, from record 1', text)
+        self.assertIn('1 variables differ (Said1)', text)
+        self.assertIn('only in B: 1 (obj3 80 unmoco2), from record 1', text)
+
+    def test_explain_compact_golden_without_numbers_says_hash_only(self):
+        a, b = self.compact_of(digest(), 'a'), self.compact_of(digest(later=['obj1 pos.x 11.5']), 'b')
+        code, head, lines = self.explain_lines(a, b)
+        self.assertIn('unit place differs (hash only', head)
+        self.assertIn('hash only (no numbers kept)', '\n'.join(lines))
+
+    def test_explain_numbers_in_a_golden_recorded_with_outcome_fields(self):
+        clear = golden.golden_clear()
+        a, b = self.write('a.txt', digest()), self.write('b.txt', digest(later=['obj1 hp 18.0', 'obj1 pos.x 11.5']))
+        ca, cb = os.path.join(self.dir, 'ca'), os.path.join(self.dir, 'cb')
+        golden.compact(a, ca, clear=clear)
+        golden.compact(b, cb, clear=clear)
+        code, head, lines = self.explain_lines(ca, cb)
+        self.assertIn('max unit move 0.5 (obj1, record 2)', head)
+        self.assertIn('hp: 1 unit, 1 record, from 2; max |d| 2 at obj1 hp', '\n'.join(lines))
+
+    def test_explain_cap_and_identical(self):
+        a = self.write('a.txt', digest())
+        code, head, lines = self.explain_lines(a, a)
+        self.assertEqual((code, lines), (0, ['digest: 3 records, the same']))
+        many = digest(later=[f'obj1 ai.x{i} 1' for i in range(30)] + [f'obj2 f{i} {i}' for i in range(30)])
+        code, head, lines = self.explain_lines(a, self.write('b.txt', many), max_lines=6)
+        self.assertLessEqual(len(lines), 20, lines)
+
+    def test_save_summary_groups_by_record_kind(self):
+        import golden_explain
+        a = ['+ obj5 unit', 'obj5 pos.x 1.0', 'obj5 hp 10.0', '+ item7 sword', 'item7 count 1']
+        b = ['+ obj5 unit', 'obj5 pos.x 1.5', 'obj5 hp 10.0', '+ item7 sword', 'item7 count 2']
+        found = golden_explain.save_lines(a, b, 'A', 'B')
+        self.assertIn('2 fields in 2 records differ: ', found[0])
+        self.assertTrue(any(l.startswith('  obj: 1 fields in 1 records; first obj5 pos.x: 1.0 in A, 1.5 in B (d 0.5)')
+                            for l in found), found)
+        self.assertEqual(golden_explain.save_lines(a, a, 'A', 'B'), [])
+
+    def test_record_needs_a_reason_and_notes_what_changed(self):
+        old, golden_folder = (golden.GOLDEN, golden.STORE), golden.golden_folder
+        golden.GOLDEN = os.path.join(self.dir, 'golden')
+        golden.STORE = os.path.join(golden.GOLDEN, 'saves')
+        golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
+        try:
+            def runs(prefix, **kw):
+                return [os.path.dirname(self.run_folder(f'{prefix}{i}/levers-standalone', digest(hooks='on', **kw)))
+                        for i in range(2)]
+            first = runs('first')
+            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='', fields=12, runs=first))
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 2)
+            self.assertIn('--reason', out.getvalue())
+            self.assertFalse(os.path.exists(os.path.join(golden.GOLDEN, 'levers')))
+            args.reason = 'H45: first recording of the made-up levers'
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            target = os.path.join(golden.GOLDEN, 'levers', 'vanilla')
+            self.assertIn('obj1 pos.x 11.0', golden.read_lines(os.path.join(target, 'digest.txt')))
+            # Changed: the note carries the summary, golden.json keeps it; --before gives the numbers of full digests.
+            args.runs = runs('second', hp='17.0')
+            args.reason = 'H45: the hero takes more damage'
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            self.assertIn('(changed: digest.txt, dump_loaded.txt)', out.getvalue())
+            self.assertIn('max |d| 3 at obj1 hp', out.getvalue())
+            with open(os.path.join(target, 'golden.json'), encoding='utf-8') as f:
+                meta = json.load(f)
+            self.assertTrue(meta['change'][0].startswith('digest: 3 of 3 records differ') or
+                            meta['change'][0].startswith('digest: 1 of 3 records differ'), meta['change'])
+            self.assertEqual(meta['reason'], 'H45: the hero takes more damage')
+            args.runs = runs('third', hp='16.0')
+            os.makedirs(os.path.join(self.dir, 'beforedir'))
+            shutil.copytree(os.path.join(self.dir, 'second0', 'levers-standalone'),
+                            os.path.join(self.dir, 'beforedir', 'levers-standalone'))
+            args.before = os.path.join(self.dir, 'beforedir')
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            self.assertIn('max |d| 1 at obj1 hp', out.getvalue())
         finally:
             golden.GOLDEN, golden.STORE = old
             golden.golden_folder = golden_folder

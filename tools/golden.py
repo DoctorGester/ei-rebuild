@@ -21,6 +21,13 @@ different heap layouts (H40: our own goldens; before it they were game.exe's --n
 To see the fields behind a differing hash, run the scenario again at the golden's commit (its runs repeat) and
 `diff` the two full digests.
 
+A difference explains itself (H45, tools/golden_explain.py): `compare`, run_all --golden and `explain` print a headline
+(records that differ, the first one's world update, tick, frame and zone, whether outcomes changed, the largest unit
+move), then the first differing record, the outcomes (zone, deaths, spawns, money, quest variables, party and items,
+game result, script), the digest's sections with the size of each kind of field's change, and the saves by kind of
+record. New goldens keep a unit's position, hit points, mana and death in clear (golden_explain.OUTCOME_CLEAR) so those
+come with numbers; older ones say "hash only". `explain` of two runs (full digests) has every number.
+
 Digest 2 (SV2a) adds entity groups (KEY_GROUPS: timed, missile, aievents, script, client, cunit) and names them in
 its title line. A golden keeps the groups its digest had: a run is compacted down to them before the comparison, and
 `diff` of two digests of different versions compares the groups both have. So adding a group needs no re-recording.
@@ -42,7 +49,10 @@ usage:
       <scenario>-standalone-rebirth; default: every one with a digest) to DEST: the report, the digest, the
       dumps and harness_saves. One pass of the suite, for record --runs. --since: only the runs whose report is
       newer than FILE (touched before the pass), so a run folder an earlier suite left is not taken for this pass's.
-  python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
+  python tools/golden.py explain A B [--labels A,B] [--ulps N] [--lines N]
+      The summary of how two run folders (console, digest, dumps, saves) or two digest files differ; nothing is
+      changed. For two full digests (two runs, e.g. a baseline of main and a branch) every field has its numbers.
+  python tools/golden.py record [SCENARIO...] --reason TEXT [--before DIR] [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
       folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them (two runs of
       the same build: a scenario whose state depends on more than its steps differs), each passed with a digest,
@@ -52,6 +62,10 @@ usage:
       fields. No SCENARIO: every run folder of the install in the first DIR. A golden whose content would not change
       is left as it is (golden.json too: "the same as its golden, kept"); the others are reported as new or changed
       (the files that did).
+      --reason is required (a sentence: what changed on purpose). A changed golden is reported with the summary of
+      how the new run differs from what was kept (as `compare` would: numbers where the old golden keeps them, else
+      hashes), or from --before DIR (the same scenarios' runs from before the change, laid out as --runs: every
+      number); the summary's first lines go into the new golden.json as "change".
       A pair (a scenario with a "peer" line, SV5d): the second game's run folder is the peer\ subfolder; it
       must pass and agree the same way and is kept as the golden's peer\ (snapshot copies it, compare checks it,
       its lines start "peer:").
@@ -579,13 +593,11 @@ def save_differences(expected, actual, name_a, name_b, fields=12, store=None, kn
             out.append(f'save {name}: differs (decoded {hash_a} in {name_a}, {hash_b} in {name_b}; '
                        f'the store has no copy of {hash_a if lines_a is None else hash_b})')
             continue
-        found = [f for f in savefile.differences(lines_a, lines_b) if not (known and known.search(f'{f[0]} {f[1]}'))]
-        if not found:
-            continue
-        out.append(f'save {name}: {len(found)} fields differ; first:')
-        out += [f'  {key} {field}: {va} in {name_a}, {vb} in {name_b}' for key, field, va, vb in found[:fields]]
-        if len(found) > fields:
-            out.append(f'  ... {len(found) - fields} more')
+        import golden_explain
+        found = golden_explain.save_lines(lines_a, lines_b, name_a, name_b, known)
+        if found:
+            out.append(f'save {name}: {found[0]}')
+            out += found[1:]
     return out
 
 
@@ -596,12 +608,22 @@ def first_line_difference(what, expected, actual, name_a, name_b):
             f'{actual[first].strip() if first < len(actual) else "(ends)"!r}')
 
 
+def explained(found, prefix=''):
+    """golden_explain's (code, headline, lines) as the lines of a comparison: the headline, then its details."""
+    code, headline, detail = found
+    if not code:
+        return []
+    return [prefix + 'digest: ' + headline] + ['  ' + l for l in detail]
+
+
 def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=ADDRESS_DEPENDENT, golden=False,
                     with_saves=True, known=None, clear=None, saves_known='default'):
     """Two runs' console, digest, dumps and saves (a may be a golden: golden=True; b's digest and dumps are
     then compacted into b first, leaving out ignore and keeping clear in clear, as the golden was; with_saves
     False: not the saves). known: fields left out of the comparison too (the known differences). The lines that
-    describe the differences; [] when the same."""
+    describe the differences (golden_explain: a headline first, then what changed; records > 1: golden.py diff's
+    records instead); [] when the same."""
+    import golden_explain
     lines = []
     left_out = known if golden else '|'.join(p for p in (ignore, known) if p) or None
     if golden:
@@ -624,9 +646,12 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
                 # Only the groups the golden has (an older golden lacks digest 2's).
                 compact(digest_b, os.path.join(b, 'golden_digest.txt'), ignore, clear, Digest(digest_a).groups())
                 digest_b = os.path.join(b, 'golden_digest.txt')
-            found = []
-            if diff(digest_a, digest_b, name_a, name_b, ulps, records, fields, left_out, out=found.append):
-                lines += found
+            if records > 1:
+                found = []
+                if diff(digest_a, digest_b, name_a, name_b, ulps, records, fields, left_out, out=found.append):
+                    lines += found
+            else:
+                lines += explained(golden_explain.explain(digest_a, digest_b, name_a, name_b, ulps, left_out))
     dumps_a, dumps_b = dumps(a), dumps(b)
     if sorted(dumps_a) != sorted(dumps_b):
         lines.append(f'dumps: {name_a} has {sorted(dumps_a) or "none"}, {name_b} {sorted(dumps_b) or "none"}')
@@ -635,9 +660,8 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         if golden:
             path_b = os.path.join(b, f'golden_dump_{name}.txt')
             compact(dumps_b[name], path_b, ignore, clear, Digest(dumps_a[name]).groups())
-        found = []
-        if diff(dumps_a[name], path_b, name_a, name_b, ulps, 1, fields, left_out, out=found.append):
-            lines += [f'dump {name}: ' + found[0]] + found[1:]
+        lines += explained(golden_explain.explain(dumps_a[name], path_b, name_a, name_b, ulps, left_out, 10, False),
+                           f'dump {name}: ')
     if with_saves:
         # The saves decoded field by field (tools/savefile.py); a run without harness_saves (a cached run of the
         # original) has none to compare.
@@ -765,7 +789,37 @@ def change_note(before, after):
     return 'changed: ' + ', '.join(changed) if changed else 'the same as before'
 
 
+def golden_clear():
+    """The fields a new golden keeps in clear next to its hashes: the known differences and the outcome fields
+    (golden_explain.OUTCOME_CLEAR: units' place, hit points and death), so a later difference can say how big it is."""
+    import golden_explain
+    return '|'.join(p for p in (known_pattern(), f'(?:{golden_explain.OUTCOME_CLEAR})') if p)
+
+
+RECORD_LINES = 12   # record: lines of a changed golden's summary kept in its golden.json and printed
+
+
+def change_lines(name, side, args, suffix, target, run):
+    """What the new run changes against what is kept now: the full digests of the same scenario's runs in --before DIR
+    (every number), else the golden it replaces (as `compare` does: numbers where that golden keeps them in clear,
+    hashes where not). golden_explain's summary, the headline first; [] when nothing a golden checks differs."""
+    before = os.path.join(args.before, f'{name}-{suffix}') if getattr(args, 'before', None) else None
+    if before and os.path.exists(os.path.join(on_side(before, side), 'digest.txt')):
+        return compare_folders(on_side(before, side), run, 'before', 'after', fields=args.fields, known=known_pattern())
+    old = on_side(target, side)
+    if os.path.exists(os.path.join(old, 'golden.json')):
+        with open(os.path.join(old, 'golden.json'), encoding='utf-8') as f:
+            meta = json.load(f)
+        return compare_folders(old, run, 'the old golden', 'the new run', golden=True, clear=meta.get('clear') or '',
+                               known=known_pattern())
+    return []
+
+
 def record(args):
+    if len((args.reason or '').split()) < 2:
+        print('record: --reason needs a sentence (two words at least) saying why the goldens change (what the ticket changed on purpose); '
+              'a golden that differs without a reason is a regression')
+        return 2
     dirs = args.runs or [os.path.join(run_all.BUILD, 'runs')]
     suffix = folder_install(args)
     names = args.scenarios or sorted(d[:-len(suffix) - 1] for d in os.listdir(dirs[0])
@@ -812,27 +866,36 @@ def record(args):
         # it was, golden.json too, so a recording changes only the goldens that changed.
         staging = target + '.new'
         shutil.rmtree(staging, ignore_errors=True)
+        changes = []
         for side in games:
             runs = [on_side(f, side) for f in folders]
             into = on_side(staging, side)
             os.makedirs(into)
             digest = os.path.join(runs[0], 'digest.txt')
-            compact(digest, os.path.join(into, 'digest.txt'))
+            clear = golden_clear()
+            compact(digest, os.path.join(into, 'digest.txt'), clear=clear)
             for dump, path in dumps(runs[0]).items():
-                compact(path, os.path.join(into, f'dump_{dump}.txt'))
+                compact(path, os.path.join(into, f'dump_{dump}.txt'), clear=clear)
             with open(os.path.join(into, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
                 f.writelines(line + '\n' for line in console(runs[0]))
             meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
                     'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
-                    'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
+                    'clear': clear, 'repeated_in': len(folders), 'reason': args.reason}
             if side:
                 meta['side'] = side   # the pair's second game (tests/scenarios/peer/<name>.txt)
             meta['source'] = 'image'   # the standalone image's runs (H40; before it game.exe's)
             keep_saves(into, runs, meta)
+            found = change_lines(name, side, args, suffix, target, runs[0])
+            if found:
+                meta['change'] = [l.rstrip() for l in found[:RECORD_LINES]] + \
+                    ([f'... {len(found) - RECORD_LINES} more lines'] if len(found) > RECORD_LINES else [])
+                changes += [(f'{side}: ' if side else '') + l for l in meta['change']]
             with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
                 json.dump(meta, f, indent=2)
                 f.write('\n')
         note = change_note(golden_content(target), golden_content(staging))
+        if note.startswith('changed') and not changes and os.path.exists(os.path.join(target, 'golden.json')):
+            note += ' (what it checks is the same; only its fields in clear changed)'
         if note == 'the same as before':
             shutil.rmtree(staging)
             print(f'{name} {args.install}: the same as its golden, kept')
@@ -842,6 +905,8 @@ def record(args):
         recorded += 1
         print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else '')
               + f' ({note})')
+        for line in changes:
+            print('    ' + line)
     prune_store()
     print(f'{recorded} of {len(names)} recorded (new or changed)')
     return code
@@ -966,6 +1031,32 @@ def compare(args):
     return code
 
 
+def run_dir(spec):
+    """A run folder from a path or a name under build/verify/runs, or None."""
+    for path in (spec, os.path.join(run_all.BUILD, 'runs', spec)):
+        if os.path.isdir(path):
+            return path
+    return None
+
+
+def explain(args):
+    """explain A B: two run folders (console, digest, dumps, saves) or two digest files, summarised."""
+    import golden_explain
+    dir_a, dir_b = run_dir(args.a), run_dir(args.b)
+    label = lambda spec: os.path.basename(os.path.normpath(spec))
+    name_a, name_b = args.labels.split(',', 1) if args.labels else (label(args.a), label(args.b))
+    if dir_a and dir_b and os.path.exists(os.path.join(dir_a, 'harness_report.txt')):
+        lines = compare_folders(dir_a, dir_b, name_a, name_b, ulps=args.ulps, ignore=args.ignore)
+    else:
+        a, b = digest_path(args.a), digest_path(args.b)
+        if not a or not b:
+            print(f'no digest at {args.a if not a else args.b}')
+            return 2
+        lines = explained(golden_explain.explain(a, b, name_a, name_b, args.ulps, args.ignore, args.lines))
+    print('\n'.join(lines) if lines else f'{name_a} and {name_b}: the same')
+    return 1 if lines else 0
+
+
 def state(args):
     path = digest_path(args.digest)
     if not path:
@@ -1009,6 +1100,13 @@ def main():
     p.add_argument('b')
     p.add_argument('--labels')
     comparing(p)
+    p = sub.add_parser('explain')
+    p.add_argument('a')
+    p.add_argument('b')
+    p.add_argument('--labels')
+    p.add_argument('--ulps', type=int, default=0)
+    p.add_argument('--ignore')
+    p.add_argument('--lines', type=int, default=30, help='lines of detail under the headline')
     p = sub.add_parser('state')
     p.add_argument('digest')
     p.add_argument('--record', type=int)
@@ -1023,6 +1121,8 @@ def main():
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
     p.add_argument('--runs', nargs='+')
     p.add_argument('--reason', required=True)
+    p.add_argument('--before', help="a folder of the same scenarios' runs from before the change (laid out as --runs): "
+                   "the summary of what changed has every number, not hashes where the old golden keeps none")
     p.add_argument('--fields', type=int, default=12)
     p = sub.add_parser('saves')
     p.add_argument('scenarios', nargs='*')
@@ -1046,7 +1146,7 @@ def main():
         label = lambda spec: os.path.basename(os.path.normpath(spec))
         name_a, name_b = args.labels.split(',', 1) if args.labels else (label(args.a), label(args.b))
         return diff(a, b, name_a, name_b, args.ulps, args.records, args.fields, args.ignore, skip=args.skip)
-    return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare,
+    return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare, 'explain': explain,
             'saves': add_saves}[args.command](args)
 
 
