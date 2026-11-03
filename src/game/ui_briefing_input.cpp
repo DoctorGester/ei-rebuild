@@ -260,7 +260,6 @@ constexpr int kActionObjectives = 4;
 constexpr int kActionLeader = 0xB;
 constexpr int kActionQuickSave = '5';
 constexpr int kActionQuickLoad = '6';
-constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
@@ -273,7 +272,7 @@ void OpenObjectives(Interface3D* ui) {
     PlayerZeroVariables(kQuestPrefix, &quests);
     for (auto& node : quests) {
         parts = text::Split(node.first, '.');
-        if (parts.size() != kQuestNameParts || std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
+        if (parts.size() != kQuestNameParts || node.second != 1.0f) continue;
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;

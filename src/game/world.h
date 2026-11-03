@@ -543,8 +543,7 @@ public:
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
     int id;                               // the object it belongs to (RemoveObject drops its faces)
-    float x, y;                           // centre of the bounding circle
-    float z;
+    Vector3 centre;                       // of the bounding circle (x, y)
     float radius;
     Vector3 origin;
     Vector3 axisU;                        // local u axis

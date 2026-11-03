@@ -580,20 +580,14 @@ int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, c
     // (Every field is written below or by the caller; the record stays in place until the next face.)
     Platform* record = &*list.emplace(list.begin());
     *out = record;
-    float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
-    float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
-    float lengthU = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz)));
-    record->sizeU = lengthU;
-    float lengthV = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
-    record->sizeV = lengthV;
+    const Vector3 u = b - a;
+    const Vector3 v = c - a;
+    record->sizeU = LengthZYX(u);
+    record->sizeV = LengthZYX(v);
     record->normal = normal;
     record->origin = a;
-    record->axisU.x = ux / lengthU;
-    record->axisU.y = uy / lengthU;
-    record->axisU.z = uz / lengthU;
-    record->axisV.x = vx / lengthV;
-    record->axisV.y = vy / lengthV;
-    record->axisV.z = vz / lengthV;
+    record->axisU = u / record->sizeU;
+    record->axisV = v / record->sizeV;
     return 1;
 }
 
@@ -631,10 +625,7 @@ void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& po
         Platform* record;
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
         record->id = newId;
-        Vector3 rotated = m.Transform(pivot + offset);
-        record->x = rotated.x + position.x;
-        record->y = rotated.y + position.y;
-        record->z = rotated.z + position.z;
+        record->centre = m.Transform(pivot + offset) + position;
         record->radius = item->bounds.radius;   // a dword move
     }
 }

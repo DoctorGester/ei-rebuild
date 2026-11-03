@@ -33,8 +33,7 @@ namespace {
 
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr float kFarBits = 1000000.0f;   // 1e6
-constexpr float kFar = kFarBits;
+constexpr float kFar = 1000000.0f;   // 1e6
 constexpr float kNoZBits = -1.0f;   // -1.0: an order point without height
 constexpr int kNoSpot = 0x7FFFFFFF;
 
@@ -133,9 +132,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
         float half = kHalfCell;
         position.x = half * position.x;
         position.y = half * position.y;
-        float dx = position.x - aim.x;
-        float dy = position.y - aim.y;
-        if (LengthSquared2DUnrounded(dy, dx) > reachSq) {
+        if (DistanceSquaredXY(position, aim) > reachSq) {
             t += 5.0f;
             continue;
         }
@@ -199,12 +196,10 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         auto actsFromDestination = [&]() {
             Vector3 at = route.Destination();
             if (!CanReachTarget(order)) return false;
-            float x = unit->localPosition.x, y = unit->localPosition.y, z = unit->localPosition.z;
+            const Vector3 saved = unit->localPosition;
             unit->localPosition = at;
             bool can = CanPlanAction(order);
-            unit->localPosition.x = x;
-            unit->localPosition.y = y;
-            unit->localPosition.z = z;
+            unit->localPosition = saved;
             return can;
         };
         if (!order->pointIsUseSpot) {

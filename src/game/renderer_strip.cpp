@@ -2,7 +2,6 @@
 // direction at a point).
 // More: docs/notes/models.md, "Renderer".
 #include "clip.h"
-#include "lightning.h"   // LightningPoint
 #include "model.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -135,9 +134,9 @@ int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const st
 // the ribbon's screen width; `mode` 0 projects, 1 projects and clips (a section between two points that are
 // both off screen is skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
+int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width, int mode, float uLength,
                               float vStart, float vSize) {
-    const LightningPoint* points = pointArray->data();
+    const Vector3* points = pointArray->data();
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
     const TransformPipeline* currentPipeline = pipeline;
 

@@ -92,9 +92,9 @@ private:
 
 // ---- ClipBounds / TransformPipeline ---------------------------------------------------------------
 
-std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
-    std::memcpy(&boxMin, min, 12);
-    std::memcpy(&boxMax, max, 12);
+std::uint32_t ClipBounds::SetBox(const Vector3& min, const Vector3& max) {
+    boxMin = min;
+    boxMax = max;
     flags |= BoundsFlag::Box;
     return flags;
 }
@@ -107,34 +107,18 @@ static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     return ClipCodeOf(c.x, c.y, c.z, cw);
 }
 
-// Classify of the codes of the cube of half side r around c. The corner coordinates are sums the original keeps on
-// the FPU stack; each use recomputes the same value.
+// Classify of the codes of the cube of half side r around c (corner i: -r in x, y, z for bits 0, 1, 2).
 static int CubeCorners(const Matrix4& m, const Vector3& c, float r) {
-    const std::uint32_t codes[8] = {
-        ClipCode(m, {c.x + r, r + c.y, r + c.z}),
-        ClipCode(m, {c.x - r, r + c.y, r + c.z}),
-        ClipCode(m, {c.x + r, c.y - r, r + c.z}),
-        ClipCode(m, {c.x - r, c.y - r, r + c.z}),
-        ClipCode(m, {c.x + r, r + c.y, c.z - r}),
-        ClipCode(m, {c.x - r, r + c.y, c.z - r}),
-        ClipCode(m, {c.x + r, c.y - r, c.z - r}),
-        ClipCode(m, {c.x - r, c.y - r, c.z - r}),
-    };
+    std::uint32_t codes[8];
+    for (int i = 0; i < 8; ++i) codes[i] = ClipCode(m, c + Vector3{(i & 1) ? -r : r, (i & 2) ? -r : r, (i & 4) ? -r : r});
     return Classify(codes);
 }
 
-// Classify of the codes of the box c + [lo, hi].
+// Classify of the codes of the box c + [lo, hi] (corner i: lo in x, y, z for bits 2, 1, 0).
 static int BoxCorners(const Matrix4& m, const Vector3& c, const Vector3& lo, const Vector3& hi) {
-    const std::uint32_t codes[8] = {
-        ClipCode(m, {hi.x + c.x, hi.y + c.y, hi.z + c.z}),
-        ClipCode(m, {hi.x + c.x, hi.y + c.y, lo.z + c.z}),
-        ClipCode(m, {hi.x + c.x, lo.y + c.y, hi.z + c.z}),
-        ClipCode(m, {hi.x + c.x, lo.y + c.y, lo.z + c.z}),
-        ClipCode(m, {lo.x + c.x, hi.y + c.y, hi.z + c.z}),
-        ClipCode(m, {lo.x + c.x, hi.y + c.y, lo.z + c.z}),
-        ClipCode(m, {lo.x + c.x, lo.y + c.y, hi.z + c.z}),
-        ClipCode(m, {lo.x + c.x, lo.y + c.y, lo.z + c.z}),
-    };
+    std::uint32_t codes[8];
+    for (int i = 0; i < 8; ++i)
+        codes[i] = ClipCode(m, Vector3{(i & 4) ? lo.x : hi.x, (i & 2) ? lo.y : hi.y, (i & 1) ? lo.z : hi.z} + c);
     return Classify(codes);
 }
 

@@ -517,10 +517,10 @@ const Fit& FitMap(Frame& f) {
     int seen = 0;
     auto take = [&](const Vector3& at) {
         const Vector3 l{vecmath::Dot<Sum3::XYZ>(x, at), vecmath::Dot<Sum3::XYZ>(y, at), vecmath::Dot<Sum3::XYZ>(d, at)};
-        lo = Vector3{std::min(lo.x, l.x), std::min(lo.y, l.y), std::min(lo.z, l.z)};
-        hi = Vector3{std::max(hi.x, l.x), std::max(hi.y, l.y), std::max(hi.z, l.z)};
-        groundLo = Vector3{std::min(groundLo.x, at.x), std::min(groundLo.y, at.y), std::min(groundLo.z, at.z)};
-        groundHi = Vector3{std::max(groundHi.x, at.x), std::max(groundHi.y, at.y), std::max(groundHi.z, at.z)};
+        lo = Min(lo, l);
+        hi = Max(hi, l);
+        groundLo = Min(groundLo, at);
+        groundHi = Max(groundHi, at);
         ++seen;
     };
     static std::vector<Vector3> positions;

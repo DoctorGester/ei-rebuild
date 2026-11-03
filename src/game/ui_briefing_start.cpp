@@ -64,10 +64,7 @@ void Normalise(Vector3* v) {
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return;
-    float inverse = 1.0f / length;
-    v->x = inverse * v->x;
-    v->y = inverse * v->y;
-    v->z = inverse * v->z;
+    *v *= 1.0f / length;
 }
 
 // The first mover of `person` is dropped; its target goes to `place` / `direction` unless the
@@ -76,8 +73,8 @@ void DropMover(std::vector<BriefingMover>& movers, const Unit* person, Vector3* 
     for (auto node = movers.begin(); node != movers.end(); ++node) {
         if (node->person != person) continue;
         if (!node->waited) {
-            *place = Vector3{node->target.x, node->target.y, node->target.z};
-            *direction = Vector3{node->direction.x, node->direction.y, node->direction.z};
+            *place = node->target;
+            *direction = node->direction;
         }
         movers.erase(node);
         return;

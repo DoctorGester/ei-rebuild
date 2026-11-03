@@ -207,7 +207,7 @@ void FigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     box.bounds.center = center;
     box.bounds.flags |= BoundsFlag::Sphere;
     box.bounds.radius = radius;
-    box.bounds.SetBox(&boxMin.x, &boxMax.x);
+    box.bounds.SetBox(boxMin, boxMax);
 }
 
 void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
@@ -220,8 +220,8 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         out->flags |= 1;
         out->center = c;
         out->radius = radius;
-        boxMin = {mn.x, mn.y, mn.z};
-        boxMax = {mx.x, mx.y, mx.z};
+        boxMin = mn;
+        boxMax = mx;
     } else {
         std::memcpy(&out->center, data, 12);
         std::memcpy(&boxMin, data + 3, 12);
@@ -229,7 +229,7 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         out->radius = data[9];
         out->flags |= 1;
     }
-    out->SetBox(&boxMin.x, &boxMax.x);
+    out->SetBox(boxMin, boxMax);
 }
 
 void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
@@ -240,9 +240,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     out->center = c;
     out->flags |= 1;
     out->radius = radius;
-    Vector3 boxMin = mn;
-    Vector3 boxMax = mx;
-    out->SetBox(&boxMin.x, &boxMax.x);
+    out->SetBox(mn, mx);
 }
 
 void PlainFigureMesh::LoadFig(char** cursor) {
@@ -573,23 +571,14 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     Vector3 v{rotation.x, rotation.y, rotation.z};
     auto* p = &localPosition;
     float dot = DotUnrounded<Sum3::ZYX>(v, *p);
-    float twice = dot + dot;
-    float z = v.z * twice;
-    float y = v.y * twice;
-    float x = twice * v.x;
-    Vector3 along = {x, y, z};
+    Vector3 along = v * (dot + dot);
     float w = rotation.w;
     Vector3 turned = Cross(v, *p) * (w + w);
     float ww = w * w;
     float k = ww - Dot(v, v);
     Vector3 rotated = *p * k + turned + along;
     Vector3& moved = worldPosition;
-    float mx = rotated.x + offset.x;
-    float my = rotated.y + offset.y;
-    float mz = rotated.z + offset.z;
-    moved.x = mx;
-    moved.y = my;
-    moved.z = mz;
+    moved = rotated + offset;
 
     // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
     float* m = poseMatrix.m;

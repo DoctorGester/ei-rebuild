@@ -625,9 +625,7 @@ void UnitMotion::LimitSpeeds(float rate) {
         float angle = AbsBits(pc24::Sub(a1.hi + a1.lo, pc24::Atan2(p[1].dirY, p[1].dirX)));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
-        float dx = p[0].x - p[1].x;
-        float dy = p[0].y - p[1].y;
-        float distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+        float distance = std::sqrt(LengthSquared2DUnrounded(p[0].x - p[1].x, p[0].y - p[1].y));
         float turnTime = angle / rate;
         float wayTime = distance / p[0].speed;
         if (turnTime > wayTime) p[0].speed = distance / turnTime;

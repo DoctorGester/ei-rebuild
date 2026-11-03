@@ -32,22 +32,6 @@ constexpr std::int32_t kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290,
 constexpr std::int32_t kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
 constexpr std::int32_t kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
-// The game's vector helpers as the original calls them (dot; scale; cross; sum).
-float DotCall(const Vector3& a, const Vector3& b) { return DotZYX(a, b); }
-Vector3 Scale(const Vector3& v, float s) { return {s * v.x, s * v.y, s * v.z}; }
-Vector3 CrossStored(const Vector3& a, const Vector3& b) {
-    float z = a.x * b.y - a.y * b.x;
-    float y = a.z * b.x - b.z * a.x;
-    float x = a.y * b.z - a.z * b.y;
-    return {x, y, z};
-}
-Vector3 Sum(const Vector3& a, const Vector3& b) {
-    float z = a.z + b.z;
-    float y = a.y + b.y;
-    float x = a.x + b.x;
-    return {x, y, z};
-}
-
 // The products the original inlines (q * r), with the two orders of the w sum it uses.
 Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     Quaternion out;
@@ -103,27 +87,11 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
         model->AdvanceTime(static_cast<float>(platform::Milliseconds() * (15.0 / 1024.0)));
     }
 
-    // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
-    // 2 (v.u) v + (w^2 - v.v) u + 2 w (v x u), with u = 0).
-    Vector3 up = {0.0f, 1.0f, 0.0f};
+    // The turn about y. (The original also turned the origin by it and added that zero vector to the place.)
     Quaternion q;
-    q.SetAxisAngle(up, turn);
-    Vector3 v = {q.x, q.y, q.z};
-    Vector3 origin = {0.0f, 0.0f, 0.0f};
-    float ww = q.w * q.w;
-    Vector3 along = Scale(v, DotCall(v, origin) + DotCall(v, origin));
-    Vector3 across = Scale(CrossStored(v, origin), q.w + q.w);
-    Vector3 rotated = Sum(Sum(Scale(origin, ww - DotCall(v, v)), across), along);
+    q.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, turn);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
-    float dx = ((depth * 0.0025f - 1.0f) * 0.48157462f) *
-                6.0f;
-    float dy = 0.48157462f * 2.1f;
-    float px = rotated.x + dx;
-    float py = rotated.y + dy;
-    float pz = rotated.z + 6.0f;
-    model->localPosition.x = px;
-    model->localPosition.y = py;
-    model->localPosition.z = pz;
+    model->localPosition = {((depth * 0.0025f - 1.0f) * 0.48157462f) * 6.0f, 0.48157462f * 2.1f, 6.0f};
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;

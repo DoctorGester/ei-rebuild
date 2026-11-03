@@ -239,9 +239,7 @@ void AIBrain::UpdateMove() {
     if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
     if (owner->orderStopped) {
         Unit* unit = owner->unit;
-        float dy = move.point.y - unit->localPosition.y;
-        float dx = move.point.x - unit->localPosition.x;
-        if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
+        if (DistanceSquaredXY(move.point, unit->localPosition) > kArrivedDistanceSq) {
             StopAction();
             return;
         }
@@ -516,11 +514,8 @@ void AIBrain::CallAllies(const Vector3& point) {
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
-            float dz = self->localPosition.z - other->localPosition.z;
-            float dy = self->localPosition.y - other->localPosition.y;
-            float dx = self->localPosition.x - other->localPosition.x;
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
-                           std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+                           std::sqrt(LengthSquaredXYZ(self->localPosition - other->localPosition)));
         }
         ally->memory.HearCall(point, kCallDelay, message);
     }

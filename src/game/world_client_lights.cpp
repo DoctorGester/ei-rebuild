@@ -294,7 +294,7 @@ void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh*
     points.resize(data.blocks * 4);
     for (int i = 0; i < data.blocks * 4; ++i) {
         const VertexPacket& packet = data.vertices[i >> 2];
-        points[i] = ToClip(*top, packet.block[0][i & 3], packet.block[1][i & 3], packet.block[2][i & 3]);
+        points[i] = ToClip(*top, {packet.block[0][i & 3], packet.block[1][i & 3], packet.block[2][i & 3]});
     }
     DecalBuilder& builder = g_builder;
     builder.Reserve(data.indexCount * 6);

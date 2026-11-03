@@ -7,7 +7,6 @@
 #include "core_maths.h"
 #include "core_transform.h"
 #include "figure_mesh.h"   // VertexPacket
-#include "lightning.h"     // LightningPoint
 #include "model.h"
 #include "view_matrices.h"
 #include "lib/float_select.h"
@@ -34,7 +33,7 @@ int ProjectToClip(const TransformPipeline& pipeline, const Matrix4& m, PointAt p
     ClipVerdict verdict;
     for (int i = 0; i < count; ++i) {
         const Vector3 p = pointAt(i);
-        const Vector4 clip = ToClip(m, p.x, p.y, p.z);
+        const Vector4 clip = ToClip(m, p);
         projected[i] = clip;
         const std::uint32_t code = ClipCodeOf(clip.x, clip.y, clip.z, clip.w);
         outcodes[i] = static_cast<std::uint8_t>(code);
@@ -63,8 +62,9 @@ void SetPosition(TLVertex& v, float x, float y, float z, float rhw) {
 
 }   // namespace
 
-Vector4 ToClip(const Matrix4& m, float x, float y, float z) {
+Vector4 ToClip(const Matrix4& m, const Vector3& p) {
     const float* r = m.m;
+    const float x = p.x, y = p.y, z = p.z;
     return {((x * r[0] + r[3]) + y * r[1]) + z * r[2], ((x * r[4] + r[7]) + y * r[5]) + z * r[6],
             ((x * r[8] + r[11]) + y * r[9]) + z * r[10], ((x * r[12] + r[15]) + y * r[13]) + z * r[14]};
 }
@@ -76,16 +76,12 @@ void ClipBounds::Fit(const VertexPacket* packets, int blocks) {
     for (int b = blocks - 1; b >= 0; --b)
         for (int lane = 0; lane < 4; ++lane) {
             const Vector3 p = PacketPoint(packets, b * 4 + lane);
-            high.x = MaxKeepB(high.x, p.x);
-            low.x = MinKeepA(p.x, low.x);
-            high.y = MaxKeepB(high.y, p.y);
-            low.y = MinKeepA(p.y, low.y);
-            high.z = MaxKeepB(high.z, p.z);
-            low.z = MinKeepA(p.z, low.z);
+            high = MaxKeepB(high, p);
+            low = MinKeepA(p, low);
         }
-    center = {(high.x + low.x) * 0.5f, (high.y + low.y) * 0.5f, (high.z + low.z) * 0.5f};
-    boxMax = {high.x - center.x, high.y - center.y, high.z - center.z};
-    boxMin = {low.x - center.x, low.y - center.y, low.z - center.z};
+    center = (high + low) * 0.5f;
+    boxMax = high - center;
+    boxMin = low - center;
     radius = LengthXYZ(boxMax);
     flags |= static_cast<std::uint32_t>(BoundsFlag::Sphere | BoundsFlag::Box);
 }
@@ -116,14 +112,14 @@ int TransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* posi
         *this, m, [positions](int i) { return PacketPoint(positions, i); }, projected, outcodes, blocks * 4);
 }
 
-void TransformPipeline::ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count) {
-    for (int i = 0; i < count; ++i) projected[i] = Divided(ToClip(m, points[i].x, points[i].y, points[i].z));
+void TransformPipeline::ProjectPoints(const Matrix4& m, const Vector3* points, Vector4* projected, int count) {
+    for (int i = 0; i < count; ++i) projected[i] = Divided(ToClip(m, points[i]));
 }
 
-int TransformPipeline::ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected,
+int TransformPipeline::ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected,
                                              std::uint8_t* outcodes, int count) const {
     return ProjectToClip(
-        *this, m, [points](int i) { return Vector3{points[i].x, points[i].y, points[i].z}; }, projected, outcodes,
+        *this, m, [points](int i) { return points[i]; }, projected, outcodes,
         count);
 }
 
@@ -133,7 +129,7 @@ void TransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* poin
                                         int count) const {
     for (int i = 0; i < count; ++i) {
         const SpritePoint& point = points[i];
-        const Vector4 centre = ToScreen(ToClip(m, point.x, point.y, point.z));
+        const Vector4 centre = ToScreen(ToClip(m, point.position));
         const float size = halfWidth * (point.size * centre.w);
         const float left = centre.x - size;
         const float right = centre.x + size;

@@ -110,11 +110,9 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
             if (units->empty()) return;
             Unit* closest = nullptr;
             for (Unit* unit : *units) {
-                float dx = unit->localPosition.x - origin.x;
-                float dy = unit->localPosition.y - origin.y;
-                float dz = unit->localPosition.z - origin.z;
-                EI_NAN_AUDIT(dx, dy, dz);
-                if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
+                Vector3 d = unit->localPosition - origin;
+                EI_NAN_AUDIT(d.x, d.y, d.z);
+                if (LengthSquaredZYX(d) < kFar) closest = unit;
             }
             if (!closest) return;
             units->clear();

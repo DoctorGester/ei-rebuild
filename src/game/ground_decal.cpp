@@ -121,19 +121,15 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
     // The u edge without its part along the direction, over its squared length.
     uAxis = {quad.x()[2] - newOrigin.x, quad.y()[2] - newOrigin.y, quad.z()[2] - newOrigin.z};
     float along = DotZYX(uAxis, dir);
-    Vector3 part = {along * dir.x, along * dir.y,
-                    along * dir.z};
-    uAxis = {uAxis.x - part.x, uAxis.y - part.y, uAxis.z - part.z};
+    uAxis -= dir * along;
     uAxis /= static_cast<float>(uAxis.LengthSquared());
 
-    vAxis = {vCorner.x - newOrigin.x, vCorner.y - newOrigin.y, vCorner.z - newOrigin.z};
-    float vAlong = Dot(vAxis, dir);
-    part = {dir.x * vAlong, dir.y * vAlong, dir.z * vAlong};
-    vAxis = {vAxis.x - part.x, vAxis.y - part.y, vAxis.z - part.z};
+    vAxis = vCorner - newOrigin;
+    vAxis -= dir * Dot(vAxis, dir);
     vAxis /= static_cast<float>(vAxis.LengthSquared());
 
     float slopeDivisor = std::fabs(dir.z);
-    slope = {dir.x / slopeDivisor, dir.y / slopeDivisor, dir.z / slopeDivisor};
+    slope = dir / slopeDivisor;
     origin = newOrigin;
     Vector3 negated = -origin;
     uOffset = Dot(negated, uAxis);

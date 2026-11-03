@@ -40,9 +40,7 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
     for (Unit* other : nearby) {
         if (other == unit) continue;
         float reach = other->standingHeight + unitHeight;
-        float dy = position.y - other->localPosition.y;
-        float dx = position.x - other->localPosition.x;
-        if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
+        if (DistanceSquaredXY(position, other->localPosition) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
         int unitX = CellOf(unit->localPosition.x);

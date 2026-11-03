@@ -61,10 +61,7 @@ float Brightness(const Light* light) {
 bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     const Vector3& at = object->localPosition;
     const Vector3& from = light->localPosition;
-    float dx = at.x - from.x;
-    float dy = at.y - from.y;
-    float dz = at.z - from.z;
-    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+    float distanceSquared = LengthSquaredZYX(at - from);
     if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
     float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = Brightness(light) * falloff;

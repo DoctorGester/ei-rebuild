@@ -53,13 +53,9 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     Vector3 velocity;
     if (arrow) {
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        velocity.x = rise.x * ConstAt(worlddata::RiseScale());
-        velocity.y = rise.y * ConstAt(worlddata::RiseScale());
-        velocity.z = rise.z * ConstAt(worlddata::RiseScale());
+        velocity = rise * ConstAt(worlddata::RiseScale());
     } else {
-        velocity.x = 0.0f;
-        velocity.y = 0.0f;
-        velocity.z = LightRiseScaled(e, worlddata::RiseScale());
+        velocity = {0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);

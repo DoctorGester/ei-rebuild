@@ -36,8 +36,8 @@ constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
 constexpr double kArrived = 0.02;   // a double the FPU compares exactly (0.02f is below it)
-constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the slowest closing speed
-constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
+constexpr float kMinClosing = 0.1f;   // the slowest closing speed
+constexpr float kFar = 1000000.0f;                         // 1e6: no limit for a path
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr int kModeStop = 4;
@@ -575,21 +575,17 @@ void UnitServer::ApproachTarget() {
             EI_NAN_AUDIT(DistanceSquaredXYUnrounded<float>(goal, motion.goal));
             if (DistanceSquaredXYUnrounded<float>(goal, motion.goal) <= kNearPoint) return;
         }
-        if (PathTo(goal, kFarBits)) {
-            Vector3 heading;
-            heading.x = kHalfScale * motion.targetX;
-            heading.y = kHalfScale * motion.targetY;
-            heading.z = 0.0f;
+        if (PathTo(goal, kFar)) {
+            const Vector3 heading = {kHalfScale * motion.targetX, kHalfScale * motion.targetY, 0.0f};
             float dx = heading.x - goal.x;
             float dy = heading.y - goal.y;
             EI_NAN_AUDIT(dy, dx);
             if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
-                Vector3 saved;
-                std::memcpy(&saved, &unit->localPosition.x, sizeof(saved));
-                std::memcpy(&unit->localPosition.x, &heading, sizeof(saved));
+                const Vector3 saved = unit->localPosition;
+                unit->localPosition = heading;
                 bool ok = CanPlanAction(&action);
-                std::memcpy(&unit->localPosition.x, &saved, sizeof(saved));
+                unit->localPosition = saved;
                 if (ok) return;
             }
         }
@@ -651,26 +647,16 @@ void UnitServer::ApproachTarget() {
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<Unit*>(chased);
-        float vx = other->localPosition.x - unit->localPosition.x;
-        float vy = other->localPosition.y - unit->localPosition.y;
-        float vz = other->localPosition.z - unit->localPosition.z;
-        float length = vz * vz;
-        length = length + vy * vy;
-        length = length + vx * vx;
-        length = std::sqrt(length);
-        if (length > 0.0f) {
-            vx = vx / length;
-            vy = vy / length;
-            vz = vz / length;
-        }
+        Vector3 v = other->localPosition - unit->localPosition;
+        float length = std::sqrt(LengthSquaredZYX(v));
+        if (length > 0.0f) v /= length;
         Vector3 axis = other->localRotation.AxisY();
-        float along = DotUnrounded<Sum3::ZYX>(axis.x, axis.y, axis.z, vx, vy, vz);
+        float along = DotZYX(axis, v);
         closing = static_cast<float>(other->MoveSpeed()) * along + mySpeed;
     } else {
         closing = mySpeed;
     }
-    float floor = std::bit_cast<float>(kMinClosingBits);
-    float divisor = std::bit_cast<float>(closing <= floor ? kMinClosingBits : std::bit_cast<std::uint32_t>(closing));
+    float divisor = closing <= kMinClosing ? kMinClosing : closing;
     float eta = (distance - reach) / divisor;
     int ticks = lib::RoundEven(eta);
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;

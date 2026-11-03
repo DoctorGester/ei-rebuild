@@ -104,13 +104,9 @@ void SetupExplosion(ParticleSource* s) {
         Vector3 v = {x, y, z};
         Vector3 direction = v / length;
         float speed = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
-        float vx = direction.x * speed;
-        float vy = speed * direction.y;
-        float vz = speed * direction.z;
+        const Vector3 velocity = direction * speed;
         auto& fragment = s->elements[i].fragment;
-        fragment.velocity.x = vx * EI_POINT_EIGHT;
-        fragment.velocity.y = vy * EI_POINT_EIGHT;
-        fragment.velocity.z = vz * EI_POINT_EIGHT;
+        fragment.velocity = velocity * EI_POINT_EIGHT;
         fragment.age = 0;
         fragment.radius = 0.0f;
         fragment.growth = 0.4f;
@@ -748,9 +744,7 @@ void ParticleSource::Clear() {
 void ParticleSource::Create() {
     Reset();
     float farBound = 100000.0f;     // 100000.0f
-    boundsMin.x = farBound;
-    boundsMin.y = farBound;
-    boundsMin.z = farBound;
+    boundsMin = {farBound, farBound, farBound};
     Vector3 nearBound = {-100000.0f, -100000.0f, -100000.0f};
     boundsMax = nearBound;
     frameColumns = 4;

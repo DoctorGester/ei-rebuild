@@ -137,6 +137,14 @@ inline Vector3& operator+=(Vector3& a, const Vector3& b) { a = a + b; return a; 
 inline Vector3& operator-=(Vector3& a, const Vector3& b) { a = a - b; return a; }
 inline Vector3& operator*=(Vector3& a, float s) { a = a * s; return a; }
 inline Vector3& operator/=(Vector3& a, float s) { a = a / s; return a; }
+// Per component, as std::min / std::max (the renderer's boxes; the game's folds use float_select.h's MinKeepA /
+// MaxKeepB, which differ on NaN).
+inline Vector3 Min(const Vector3& a, const Vector3& b) {
+    return {b.x < a.x ? b.x : a.x, b.y < a.y ? b.y : a.y, b.z < a.z ? b.z : a.z};
+}
+inline Vector3 Max(const Vector3& a, const Vector3& b) {
+    return {a.x < b.x ? b.x : a.x, a.y < b.y ? b.y : a.y, a.z < b.z ? b.z : a.z};
+}
 
 // The 2D part (x, y) of 3D positions.
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) {

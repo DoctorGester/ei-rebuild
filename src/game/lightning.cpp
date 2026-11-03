@@ -46,13 +46,6 @@ constexpr float kSideA = -0.0666f;
 constexpr float kSideB = 0.013f;
 constexpr float kOffsetFactor = 0.05f;
 
-float FromBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FromBits(T) = delete;
 
 // Randomize a key. The up-noise keys of SampleNoise multiply the
 // normaliser by the amplitude before the weight; everything else multiplies the weight first.
@@ -161,10 +154,7 @@ void LightningSegment::Animate(float time, float amplitude) {
         float s = sideNoise[i] - sideAt;   // the curve minus its straight line from the first value
         float u = upNoise[i] - upAt;
         float along = static_cast<float>(i);
-        LightningPoint& point = points[i];
-        point.x = along * step.x + start.x + s * side.x + u * up.x;
-        point.y = along * step.y + start.y + s * side.y + u * up.y;
-        point.z = along * step.z + start.z + s * side.z + u * up.z;
+        points[i] = along * step + start + s * side + u * up;
         sideAt = sideAt + sideSlope;
         upAt = upAt + upSlope;
     }
@@ -200,9 +190,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         if (norm > 0.0f) {
             *axis *= scale / norm;
         } else {
-            axis->x = 0.0f;
-            axis->y = 0.0f;
-            axis->z = 0.0f;
+            *axis = {};
         }
     }
 
@@ -214,7 +202,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
 
 void Lightning::Destroy() {
     power = 1.0f;
-    amplitude = FromBits(0x3DCCCCCD);    // 0.1f
+    amplitude = 0.1f;
     texture.Reset();
     glowTexture.Reset();
 }
@@ -228,31 +216,19 @@ void Lightning::Create() {
 
 void Lightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < std::ssize(segment->points); ++i) {
-        const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        bounds.boxMin.x = MinKeepA(p.x, bounds.boxMin.x);
-        bounds.boxMin.y = MinKeepA(p.y, bounds.boxMin.y);
-        bounds.boxMin.z = MinKeepA(p.z, bounds.boxMin.z);
-        bounds.boxMax.x = MaxKeepB(bounds.boxMax.x, p.x);
-        bounds.boxMax.y = MaxKeepB(bounds.boxMax.y, p.y);
-        bounds.boxMax.z = MaxKeepB(bounds.boxMax.z, p.z);
+        bounds.boxMin = MinKeepA(segment->points[i], bounds.boxMin);
+        bounds.boxMax = MaxKeepB(bounds.boxMax, segment->points[i]);
     }
 }
 
 void Lightning::UpdateBounds() {
-    const float largest = FromBits(0x7149F2CA);      // 1e30
-    const float lowest = FromBits(0xF149F2CA);    // -1e30
-    bounds.boxMin.x = largest;
-    bounds.boxMin.y = largest;
-    bounds.boxMin.z = largest;
-    bounds.boxMax.x = lowest;
-    bounds.boxMax.y = lowest;
-    bounds.boxMax.z = lowest;
+    bounds.boxMin = {1e30f, 1e30f, 1e30f};
+    bounds.boxMax = {-1e30f, -1e30f, -1e30f};
     ExpandBounds(&main);
     for (int i = 0; i < 6; ++i) ExpandBounds(&branches[i]);
 
     bounds.center = (bounds.boxMin + bounds.boxMax) * 0.5f;
-    boundsSpare = {};
     bounds.boxMin -= bounds.center;
     bounds.boxMax -= bounds.center;
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
@@ -280,10 +256,7 @@ void Lightning::Animate() {
             int index = std::lround((1.0f - branchPos[i]) * std::ssize(main.points));
             int last = lib::Count(main.points) - 1;
             if (index >= last) index = last;
-            const LightningPoint& origin = main.points[index];
-            branch.start.x = origin.x;
-            branch.start.y = origin.y;
-            branch.start.z = origin.z;
+            branch.start = main.points[index];
             float inverse = 1.0f / std::ssize(branch.points);
             branch.step = (target - branch.start) * inverse;
         }
@@ -452,7 +425,6 @@ LightningSegment::~LightningSegment() {
 
 Lightning::Lightning() {
     std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
-    boundsSpare = {};
     Lightning::Destroy();
 }
 
@@ -515,7 +487,7 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     const float* rect;
 };
 std::vector<SpriteRecord> g_sprites;
-std::vector<LightningPoint> g_glowPoints;
+std::vector<SpritePoint> g_glowPoints;
 
 void SizeSprites() { g_sprites.resize(8); }
 void SizePoints() { g_glowPoints.resize(8); }
@@ -557,11 +529,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     for (int j = 0; j < 8; ++j) {
         float t = j * 0.125f;   // 1/8
         Vector3 along = towards * t * size;
-        LightningPoint& p = g_glowPoints[j];
-        p.x = position.x + along.x;
-        p.y = position.y + along.y;
-        p.z = position.z + along.z;
-        p.w = std::sqrt(1.0f - t * t) * size;
+        g_glowPoints[j] = {position + along, std::sqrt(1.0f - t * t) * size};
         SpriteRecord& s = g_sprites[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];

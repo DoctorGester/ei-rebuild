@@ -457,17 +457,13 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
-            box->pivot = {bone->position.x, bone->position.y, bone->position.z};
+            box->pivot = bone->position;
             box->bounds.flags |= BoundsFlag::Loaded;
             partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
-            high.x = MaxKeepB(high.x, static_cast<float>(box->pivot.x + box->bounds.boxMax.x + box->bounds.center.x));
-            high.y = MaxKeepB(high.y, static_cast<float>(box->pivot.y + box->bounds.boxMax.y + box->bounds.center.y));
-            high.z = MaxKeepB(high.z, static_cast<float>(box->pivot.z + box->bounds.boxMax.z + box->bounds.center.z));
-            low.x = MinKeepA(static_cast<float>(box->pivot.x + box->bounds.boxMin.x + box->bounds.center.x), low.x);
-            low.y = MinKeepA(static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y), low.y);
-            low.z = MinKeepA(static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z), low.z);
+            high = MaxKeepB(high, box->pivot + box->bounds.boxMax + box->bounds.center);
+            low = MinKeepA(box->pivot + box->bounds.boxMin + box->bounds.center, low);
 
             const std::string_view partName = bone->GetName();
             if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
@@ -482,9 +478,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    bounds.center.x = static_cast<float>((low.x + high.x) * 0.5f);
-    bounds.center.y = static_cast<float>((low.y + high.y) * 0.5f);
-    bounds.center.z = static_cast<float>((low.z + high.z) * 0.5f);
+    bounds.center = (low + high) * 0.5f;
     bounds.boxMin = low - bounds.center;
     bounds.boxMax = high - bounds.center;
     bounds.flags |= BoundsFlag::Box;
@@ -566,10 +560,8 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
         if (animation) animation->AttachMesh(part);
         if (attached) attached->OnPartAdded(part);
     }
-    part->box.pivot.x = part->localPosition.x;
-    part->box.pivot.y = part->localPosition.y;
+    part->box.pivot = part->localPosition;
     part->box.bounds.flags |= BoundsFlag::Loaded;
-    part->box.pivot.z = part->localPosition.z;
     return part;
 }
 

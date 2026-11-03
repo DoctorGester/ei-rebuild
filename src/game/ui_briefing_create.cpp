@@ -70,7 +70,6 @@ constexpr int kEventOpenTopics = 1;
 constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
-constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 // A copy of `v`, normalised unless its length is zero.
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -78,10 +77,7 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return out;
-    float inverse = 1.0f / length;
-    out.x = static_cast<float>(out.x * inverse);
-    out.y = static_cast<float>(out.y * inverse);
-    out.z = static_cast<float>(out.z * inverse);
+    out *= 1.0f / length;
     return out;
 }
 
@@ -101,9 +97,7 @@ void PlaceMover(BriefingMover* node) {
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const Unit* person = node->person;
-    float dy = node->target.y - person->localPosition.y;
-    float dx = node->target.x - person->localPosition.x;
-    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
+    if (DistanceSquaredXY(node->target, person->localPosition) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     Unit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
@@ -325,9 +319,7 @@ void BriefingScreen::MarkPeople() {
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
     for (auto& node : variables) {
-        std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node.second);
-        if (bits != kOneBits) continue;
+        if (node.second != 1.0f) continue;
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), kConstructorTopic) == 0) continue;

@@ -23,7 +23,6 @@ namespace {
 
 constexpr float kTimes255 = 255.0f;
 constexpr float kOver255 = 1.0f / 255.0f;     // (0x3B808081)
-constexpr std::uint32_t kMinusOneBits = 0xBF800000u;   // -1.0f
 
 std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 
@@ -215,7 +214,7 @@ public:
 
     // Stored as -1 / 1 floats, kept in the file as booleans.
     void ReadCameraFlip(float& flip, const char* name) {
-        int flipped = Bits(flip) == kMinusOneBits ? 1 : 0;
+        int flipped = flip == -1.0f ? 1 : 0;
         int value = GetInt(kCamera, name, flipped);
         flip = static_cast<float>(value ? -1 : 1);
     }
@@ -271,7 +270,7 @@ public:
     }
 
     // true when the stored float is exactly -1 (compared as bits).
-    void WriteCameraFlip(float flip, const char* name) { SetBool(kCamera, name, Bits(flip) == kMinusOneBits); }
+    void WriteCameraFlip(float flip, const char* name) { SetBool(kCamera, name, flip == -1.0f); }
 
     void WriteCameraShortcuts() {
         char name[0x400];

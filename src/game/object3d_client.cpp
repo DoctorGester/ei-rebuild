@@ -101,9 +101,7 @@ void Object3DClientSpecific::Create() {
     partSets[0] = nullptr;
     partSets[1] = nullptr;
     touchTime = 0;
-    figureScale.z = 1.0f;
-    figureScale.y = 1.0f;
-    figureScale.x = 1.0f;
+    figureScale = {1.0f, 1.0f, 1.0f};
 }
 
 void Object3DClientSpecific::Destroy() {
@@ -305,9 +303,7 @@ void Object3DClientSpecific::SetMaterialsLit(bool lit) {
             Material* material = materials[i];
             material->entries.push_back(MaterialEntry{material->colors.emissive});
             material = materials[i];
-            material->colors.emissive.x = 1.0f;
-            material->colors.emissive.y = 1.0f;
-            material->colors.emissive.z = 1.0f;
+            material->colors.emissive = {1.0f, 1.0f, 1.0f, material->colors.emissive.w};
         }
         return;
     }
@@ -502,9 +498,7 @@ void Object3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < std::ssize(materials); ++i) {
         Material* part = materials[i];
-        part->colors.specular.x = value;
-        part->colors.specular.y = 0.0f;
-        part->colors.specular.z = 0.0f;
+        part->colors.specular = {value, 0.0f, 0.0f, part->colors.specular.w};
         part->flags |= MaterialFlag::KeepSpecular;
     }
 }

@@ -52,10 +52,7 @@ float UniformOnMap() { return RandomTimes(kMapScale); }
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
 void TryLightningStrike(WorldServer* world) {
-    Vector3 ground;
-    ground.x = UniformOnMap();
-    ground.y = UniformOnMap();
-    ground.z = 0.0f;
+    Vector3 ground = {UniformOnMap(), UniformOnMap(), 0.0f};
     AIMap* aiMap = &world->aiMap;
     int kind = aiMap->MaterialAt(ground);
     if (kind != 3 && kind != 1) return;
@@ -65,17 +62,11 @@ void TryLightningStrike(WorldServer* world) {
     float dy = RandomTimes(kOffsetScale) - kOffsetCentre;
     if (LengthSquared2DUnrounded(dy, dx) <= kMinDistance2) return;   // random: never NaN
 
-    Vector3 sky;
-    sky.x = ground.x + dx;
-    sky.y = ground.y + dy;
-    sky.z = ground.z;
+    Vector3 sky = {ground.x + dx, ground.y + dy, ground.z};
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
     BaseManager* manager = world->TimedObjectManager();
     auto* lightning = manager->CreateObjectAs<EffectTornado>(kTypeLightning, -1);
-    sky.x = ground.x + dx;
-    sky.y = ground.y + dy;
-    sky.z = ground.z;
     lightning->Launch(ground, sky);
     lightning->startTick = world->tick;
     lightning->AddRef();
@@ -150,12 +141,7 @@ void WorldServer::UpdateWeather() {
 void ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
     std::string text;
-    // The middle: x and y are summed into floats first, z is not.
-    float sumY = static_cast<float>(to.y + from.y);
-    float sumX = static_cast<float>(to.x + from.x);
-    float midZ = (to.z + from.z) * 0.5f;
-    float midY = sumY * 0.5f;
-    float midX = sumX * 0.5f;
+    const Vector3 middle = (to + from) * 0.5f;
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
     if ((g_random.Next() & 3) == 0) {
@@ -167,8 +153,8 @@ void ShowBolt(Vector3 from, Vector3 to) {
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = g_random.Next() % 3 + 1;
-        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
-                    static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
+        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(middle.x),
+                    static_cast<double>(middle.y), static_cast<double>(middle.z), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
         ScriptQueue().Load(&text, 1);
     }

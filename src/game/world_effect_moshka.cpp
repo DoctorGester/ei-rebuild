@@ -188,10 +188,7 @@ void EffectMoshka::Update(float now) {
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
     if (!Same(distance, 0.0f)) {
-        float gx = birdAt.x - followed.x;
-        float gy = birdAt.y - followed.y;
-        float gz = birdAt.z - followed.z;
-        float range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
+        float range = std::sqrt(std::sqrt(LengthSquaredZYX(birdAt - followed)));
         float speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             float scale = speed / distance;

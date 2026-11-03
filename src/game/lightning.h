@@ -16,10 +16,6 @@
 #include <cstdint>
 #include <vector>
 
-// One polyline point (16 bytes: the fourth float is never written here).
-struct LightningPoint {
-    float x, y, z, w;
-};
 
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.
@@ -42,7 +38,7 @@ struct LightningSegment {
     NoiseKey sideKeys[3];       // newest first (the noise along `side`)
     NoiseKey upKeys[3];         // (the noise along `up`)
     float noiseTime;            // time of the newest keys
-    std::vector<LightningPoint> points;
+    std::vector<Vector3> points;
     float width;                // passed to the renderer
 
     // Straight segment between two points: start, step and point count (48 below 10 units, 72 above 15, 5 per
@@ -95,7 +91,6 @@ public:
     Ref<Texture> glowTexture;
     // The bounds the renderer clips by: flags 3 once set, the box relative to the centre.
     ClipBounds bounds;
-    Vector3 boundsSpare;                // cleared with the bounds, never read
     LightningSegment main;
     LightningSegment branches[6];
     float branchPos[6];                 // where each branch leaves the main segment (0..1)

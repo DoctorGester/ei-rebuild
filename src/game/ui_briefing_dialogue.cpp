@@ -145,12 +145,7 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
     float y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
-        float sumX = places[kPersonPlace].x + places[kLeaderPlace].x;
-        float sumY = places[kPersonPlace].y + places[kLeaderPlace].y;
-        float sumZ = places[kPersonPlace].z + places[kLeaderPlace].z;
-        eye.x = sumX * 0.5f;
-        eye.y = sumY * 0.5f;
-        eye.z = sumZ * 0.5f;
+        eye = (places[kPersonPlace] + places[kLeaderPlace]) * 0.5f;
         x = places[kLeaderPlace].y - places[kPersonPlace].y;
         y = places[kPersonPlace].x - places[kLeaderPlace].x;
     } else {
@@ -189,16 +184,12 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
     Vector3 at;
     float alongX = (x * cosAngle + y * sinAngle) * distance;
     float alongY = (y * cosAngle - x * sinAngle) * distance;
-    at.x = eye.x + alongX;
-    at.y = eye.y + alongY;
-    at.z = eye.z + height;
+    at = eye + Vector3{alongX, alongY, height};
     g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
 }
 
 void BriefingScreen::ViewPreset(int preset) {
-    float dx = places[kLeaderPlace].x - places[kPersonPlace].x;
-    float dy = places[kLeaderPlace].y - places[kPersonPlace].y;
-    float apart = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+    float apart = std::sqrt(DistanceSquaredXY(places[kLeaderPlace], places[kPersonPlace]));
     auto view = [this](Unit* unit, float angle, float distance, float height) {
         ViewSpeaker(unit, angle, distance, height);
     };

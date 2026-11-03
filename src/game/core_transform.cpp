@@ -37,25 +37,12 @@ void TransformObject::CombineRotation(const Quaternion& g) {
 // and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
 void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
-    const float ux = q.x, uy = q.y, uz = q.z;
+    const Vector3 u = {q.x, q.y, q.z};
     const Vector3& l = localPosition;
-#define EI_DOT2 DotUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
-    Vector3 along = {static_cast<float>(EI_DOT2 * ux), static_cast<float>(uy * EI_DOT2), static_cast<float>(uz * EI_DOT2)};
-#undef EI_DOT2
-    Vector3 cross = {static_cast<float>(uy * l.z - uz * l.y), static_cast<float>(uz * l.x - ux * l.z),
-                     static_cast<float>(ux * l.y - uy * l.x)};
-    Vector3 around = {static_cast<float>(cross.x * (q.w * 2.0f)), static_cast<float>(cross.y * (q.w * 2.0f)),
-                      static_cast<float>(cross.z * (q.w * 2.0f))};
-#define EI_SCALE (q.w * q.w - LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz))
-    Vector3 scaled = {static_cast<float>(EI_SCALE * l.x), static_cast<float>(EI_SCALE * l.y), static_cast<float>(EI_SCALE * l.z)};
-#undef EI_SCALE
-    Vector3 sum2 = scaled + around + along;
-    float x = sum2.x + p.x;
-    float y = sum2.y + p.y;
-    float z = sum2.z + p.z;
-    worldPosition.x = x;
-    worldPosition.y = y;
-    worldPosition.z = z;
+    const Vector3 along = u * DotZXY(u * 2.0f, l);
+    const Vector3 around = Cross(u, l) * (q.w * 2.0f);
+    const Vector3 scaled = l * (q.w * q.w - LengthSquaredZYX(u));
+    worldPosition = scaled + around + along + p;
 }
 
 void TransformObject::SaveTransform(platform::File* file) {
@@ -73,16 +60,8 @@ void Camera::GroundPoint(Vector3* out) const {
     const Vector3& pos = localPosition;
     // The rotated Z axis (AxisZ's order), every component rounded to float.
     const Vector3 axis = RotatedAxisZ(r);
-    float ax = axis.x;
-    float ay = axis.y;
-    float az = axis.z;
-    if (std::fabs(az) > 1e-5 && -(pos.z / az) > 0.0f) {
-        float x = static_cast<float>(ax * -(pos.z / az)) + pos.x;
-        float y = static_cast<float>(ay * -(pos.z / az)) + pos.y;
-        float z = -(pos.z / az) * az + pos.z;
-        out->x = x;
-        out->y = y;
-        out->z = z;
+    if (std::fabs(axis.z) > 1e-5 && -(pos.z / axis.z) > 0.0f) {
+        *out = axis * -(pos.z / axis.z) + pos;
         return;
     }
     *out = pos;
@@ -133,54 +112,13 @@ constexpr float kHalfTurn = 0.4f;      // TurnUpTowards' reduced step
 constexpr double kMinAxis = 0.00001;   // shorter rotation axes count as none (the float compared with the double)
 constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The rotation's Y axis (up) and Z axis (forward) as these functions expand them; the operand
-// order follows the game's FPU code (sums of products in the order it adds them).
-float UpX(const Quaternion& q) {
-    float e = q.y * q.x - q.w * q.z;
-    return e + e;
-}
-float UpY(const Quaternion& q) {
-    float yy = q.y * q.y;
-    float s = LengthSquared2DUnrounded<float>(q.z, q.x) + yy;
-    return (q.w * q.w - s) + (yy + yy);
-}
-float UpZ(const Quaternion& q) {
-    float e = Dot2DUnrounded<float>(q.w, q.y, q.x, q.z);
-    return e + e;
-}
-float ForwardX(const Quaternion& q) {
-    float e = Dot2DUnrounded<float>(q.w, q.z, q.y, q.x);
-    return e + e;
-}
-float ForwardY(const Quaternion& q) {
-    float e = q.z * q.y - q.w * q.x;
-    return e + e;
-}
-float ForwardZ(const Quaternion& q) {
-    float zz = q.z * q.z;
-    float s = LengthSquared2DUnrounded<float>(q.y, q.x) + zz;
-    return (q.w * q.w - s) + (zz + zz);
-}
-
-Vector3 MakeVector(float x, float y, float z) {
-    Vector3 v;
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    return v;
-}
-
 // The shared part of RollTowards and TurnUpTowards: `side` = forward x dir, `toward` = side x
 // forward normalised, `axis` = from x toward.
 void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from, Vector3* toward, Vector3* axis) {
-    Vector3 side = MakeVector(forward.y * dir.z - forward.z * dir.y, forward.z * dir.x - forward.x * dir.z,
-                              forward.x * dir.y - forward.y * dir.x);
-    Vector3 t = MakeVector(side.y * forward.z - side.z * forward.y, side.z * forward.x - forward.z * side.x,
-                           forward.y * side.x - side.y * forward.x);
-    float inv = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(t));
-    t *= inv;
+    Vector3 t = Cross(Cross(forward, dir), forward);
+    t *= 1.0f / std::sqrt(LengthSquaredZYX(t));
     *toward = t;
-    *axis = MakeVector(from.y * t.z - from.z * t.y, from.z * t.x - t.z * from.x, t.y * from.x - from.y * t.x);
+    *axis = Cross(from, t);
 }
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
@@ -231,25 +169,17 @@ Matrix4 TransformObject::WorldMatrix() const {
 // axis) towards `target` (normalised here): about down x target, by acos(down . target) / 10.
 // No turn when the axis is shorter than 1e-5.
 void TransformObject::TiltTowards(const Vector3& target) {
-    const Quaternion& q = localRotation;
-    Vector3 v;
-    v = target;
-    float a = -UpX(q);
-    float b = -UpY(q);
-    float c = -UpZ(q);
-    float inv = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(v));
-    float nx = inv * v.x;
-    float ny = v.y * inv;
-    float nz = inv * v.z;
-    Vector3 axis = MakeVector(nz * b - ny * c, c * nx - nz * a, ny * a - b * nx);
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(axis));
+    const Vector3 down = -localRotation.AxisY();
+    const Vector3 n = target * (1.0f / std::sqrt(LengthSquaredZYX(target)));
+    Vector3 axis = Cross(down, n);
+    float length = std::sqrt(LengthSquaredZYX(axis));
     float angle;
     if (length >= kMinAxis) {
         // The game clamps a second time while storing the float; the value is in range by now.
-        const double arc = libcrt::CiAcos(ClampUnit((nz * c + ny * b) + a * nx));
+        const double arc = libcrt::CiAcos(ClampUnit(DotZYX(n, down)));
         angle = pc24::Mul(arc, kTiltStep);   // the double arc cosine times the step, one rounding
     } else {   // also NaN
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
     }
     Quaternion turn;
@@ -261,26 +191,17 @@ void TransformObject::TiltTowards(const Vector3& target) {
 // about forward x target (normalised), by acos(forward . target). No turn when the axis is
 // shorter than 1e-5.
 void TransformObject::TurnTowards(const Vector3& target) {
-    const Quaternion& q = localRotation;
-    Vector3 v;
-    v = target;
-    float a = ForwardX(q);
-    float b = ForwardY(q);
-    float c = ForwardZ(q);
-    float inv = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(v));
-    float nx = inv * v.x;
-    float ny = v.y * inv;
-    float nz = inv * v.z;
-    Vector3 r = MakeVector(nz * b - ny * c, c * nx - nz * a, ny * a - b * nx);
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(r));
+    const Vector3 forward = localRotation.AxisZ();
+    const Vector3 n = target * (1.0f / std::sqrt(LengthSquaredZYX(target)));
+    Vector3 r = Cross(forward, n);
+    float length = std::sqrt(LengthSquaredZYX(r));
     Vector3 axis;
     float angle;
     if (length >= kMinAxis) {
-        float invLength = 1.0f / length;
-        axis = MakeVector(invLength * r.x, r.y * invLength, r.z * invLength);
-        angle = static_cast<float>(libcrt::CiAcos(ClampUnit((nz * c + ny * b) + a * nx)));
+        axis = r * (1.0f / length);
+        angle = static_cast<float>(libcrt::CiAcos(ClampUnit(DotZYX(n, forward))));
     } else {   // also NaN
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
     }
     Quaternion turn;
@@ -291,16 +212,15 @@ void TransformObject::TurnTowards(const Vector3& target) {
 // Turns the down axis (minus the rotated Y axis) about the forward axis towards `dir`
 // (its part across the forward axis): Rotate(down x toward, acos(down . toward)).
 void TransformObject::RollTowards(const Vector3& dir) {
-    const Quaternion& q = localRotation;
-    Vector3 down = MakeVector(-UpX(q), -UpY(q), -UpZ(q));
-    Vector3 forward = MakeVector(ForwardX(q), ForwardY(q), ForwardZ(q));
+    Vector3 down = -localRotation.AxisY();
+    Vector3 forward = localRotation.AxisZ();
     Vector3 toward, axis;
     TowardsAxis(forward, dir, down, &toward, &axis);
     float angle;
     if (axis.Length() >= kMinAxis) {
         angle = AngleBetween(down, toward);
     } else {   // also NaN
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        axis = Vector3{1.0f, 0.0f, 0.0f};
         angle = 0.0f;
     }
     Rotate(axis, angle);
@@ -323,17 +243,15 @@ void TransformObject::Rotate(const Vector3& axis, float angle) {
 // As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns towards `dir`; an angle
 // above pi becomes 2 pi - angle about the opposite axis, and `reduced` scales the angle by 0.4.
 void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
-    const Quaternion& q = localRotation;
-    Vector3 up = MakeVector(UpX(q), UpY(q), UpZ(q));
-    Vector3 from = MakeVector(-up.x, -up.y, -up.z);
-    Vector3 forward = MakeVector(ForwardX(q), ForwardY(q), ForwardZ(q));
+    Vector3 from = -localRotation.AxisY();
+    Vector3 forward = localRotation.AxisZ();
     Vector3 toward, axis;
     TowardsAxis(forward, dir, from, &toward, &axis);
     float angle = 0.0f;
     if (axis.Length() >= kMinAxis) {
         angle = AngleBetween(from, toward);
     } else {   // also NaN
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        axis = Vector3{1.0f, 0.0f, 0.0f};
     }
     if (angle > kPiDouble) {
         angle = pc24::Sub(kPiDouble + kPiDouble, angle);   // the double 2 pi minus the float, one rounding
@@ -345,7 +263,7 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 
 // The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the heading offset, pi / 2).
 void TransformObject::SetHeading(const Vector3& dir) {
-    Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
+    Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion heading;
     const Quaternion* r = heading.SetAxisAngle(axis, pc24::Add(pc24::Atan2(dir.y, dir.x), kHeadingOffset));
     localRotation = *r;

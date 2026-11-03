@@ -22,7 +22,6 @@
 
 namespace {
 constexpr float kOverkill = -5.0f;
-constexpr std::uint32_t kOneBits = 0x3F800000u;
 constexpr int kAllLocations = 6;
 constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
@@ -150,7 +149,7 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
         }
         console::EndLine(kHitLog);
     }
-    if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= UnitStatsFlag::Backstab;
+    if (hit->backstabFactor != 1.0f) flags |= UnitStatsFlag::Backstab;
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
     return damaged;
 }

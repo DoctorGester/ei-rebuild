@@ -56,13 +56,11 @@ Camera::Camera() {
     turnRate = 0.0f;
     turnTarget = 0.0f;
     tiltRate = 0.0f;
-    focus.x = 10.0f;
+    focus = {10.0f, 10.0f, 2.0f};
     tiltTarget = 0.0f;
     zoomRate = 0.0f;
-    focus.y = 10.0f;
     zoomTarget = 0.0f;
     focusHeight = 2.0f;
-    focus.z = 2.0f;
     viewRotation = camera::kIdentityRotation;
     targetId = -1;
     nearDistance = 1.0f;
@@ -97,9 +95,7 @@ int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std:
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
-    focus.x = newSettings->cameraDefaultXDeploy;
-    focus.y = newSettings->cameraDefaultYDeploy;
-    focus.z = newSettings->cameraDefaultHeight;
+    focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
     nearDistance = std::bit_cast<float>(nearBits);
     farDistance = std::bit_cast<float>(farBits);
     fieldOfView = std::bit_cast<float>(fovBits);
@@ -263,21 +259,10 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
         if (side < CAM_ZERO) z = CAM_MINUS_ONE;
         else if (side > CAM_ZERO) z = CAM_ONE;
         else z = CAM_ZERO;
-        Vector3 axis;
-        axis.x = 0.0f;
-        axis.y = 0.0f;
-        axis.z = z;
-        viewRotation.FromAxisAngle(axis, heading);
+        viewRotation.FromAxisAngle({0.0f, 0.0f, z}, heading);
     }
     localRotation = viewRotation;
-    const Quaternion& q = localRotation;
-    float xx = q.x * q.x;
-    float e1 = Dot2DUnrounded<float>(q.w, q.x, q.z, q.y);
-    float e2 = q.x * q.z - q.w * q.y;
-    Vector3 xAxis;
-    xAxis.x = (q.w * q.w - (LengthSquared2DUnrounded<float>(q.y, q.z) + xx)) + (xx + xx);
-    xAxis.y = e1 + e1;
-    xAxis.z = e2 + e2;
+    const Vector3 xAxis = localRotation.AxisX();
     float angle = -(CAM_RIGHT_ANGLE + elevation);
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
@@ -285,7 +270,7 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
     float x = ((t.z * r.y - t.y * r.z) + r.w * t.x) + t.w * r.x;
     float y = ((t.x * r.z - t.z * r.x) + r.w * t.y) + t.w * r.y;
     float zz = ((t.y * r.x - r.y * t.x) + r.w * t.z) + t.w * r.z;
-    float w = r.w * t.w - DotUnrounded<Sum3::ZYX, float>(r.x, r.y, r.z, t.x, t.y, t.z);
+    float w = r.w * t.w - DotUnrounded<Sum3::ZYX>(r.x, r.y, r.z, t.x, t.y, t.z);
     t.z = zz;
     t.y = y;
     t.w = w;
@@ -320,7 +305,7 @@ void Camera::AlignToTarget() {
         float x = ((r.y * q.z - q.y * r.z) + q.x * r.w) + r.x * q.w;
         float y = ((q.x * r.z - r.x * q.z) + q.y * r.w) + r.y * q.w;
         float z = ((q.y * r.x - r.y * q.x) + r.w * q.z) + r.z * q.w;
-        float w = r.w * q.w - DotUnrounded<Sum3::ZXY, float>(q.x, q.y, q.z, r.x, r.y, r.z);
+        float w = r.w * q.w - DotUnrounded<Sum3::ZXY>(q.x, q.y, q.z, r.x, r.y, r.z);
         q.z = z;
         q.y = y;
         q.w = w;

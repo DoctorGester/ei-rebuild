@@ -354,9 +354,7 @@ void UiMesh::Place(float x, float y, float depth) {
     x += static_cast<float>(screen_layout::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
-    localPosition.x = placedX;
-    localPosition.y = placedY;
-    localPosition.z = depth;
+    localPosition = {placedX, placedY, depth};
 }
 
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
@@ -429,9 +427,7 @@ void UiMesh::Create() {
     tintSpare[1] = 0.0f;
     tintSpare[2] = 0.0f;
     localRotation = kIdentityOrientation;
-    localPosition.x = 0.0f;
-    localPosition.y = 0.0f;
-    localPosition.z = kSpriteDepth;
+    localPosition = {0.0f, 0.0f, kSpriteDepth};
     flatColour = kOpaqueBlack;
     flatSpecular = kOpaqueBlack;
     visible = true;

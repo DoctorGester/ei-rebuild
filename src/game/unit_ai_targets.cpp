@@ -140,10 +140,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     if (self == object || fromHere) {
         point = self->localPosition;
     } else {
-        float dz = self->localPosition.z - object->localPosition.z;
-        float dy = self->localPosition.y - object->localPosition.y;
-        float dx = self->localPosition.x - object->localPosition.x;
-        float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+        float distance = std::sqrt(LengthSquaredXYZ(self->localPosition - object->localPosition));
         float range = self->ScaledValue(distance);
         float targetRadius = object->Radius();
         float minDistance = self->Radius() + targetRadius;

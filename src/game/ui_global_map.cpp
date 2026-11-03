@@ -122,7 +122,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     float z = ((b.x * a.y - a.x * b.y) + b.z * a.w) + a.z * b.w;
     float y = ((a.x * b.z - b.x * a.z) + b.y * a.w) + b.w * a.y;
     float x = ((a.z * b.y - b.z * a.y) + b.x * a.w) + a.x * b.w;
-    float w = b.w * a.w - DotUnrounded<Sum3::ZYX, float>(a.x, a.y, a.z, b.x, b.y, b.z);
+    float w = b.w * a.w - DotUnrounded<Sum3::ZYX>(a.x, a.y, a.z, b.x, b.y, b.z);
     r.w = w;
     r.x = x;
     r.y = y;

@@ -353,20 +353,15 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     order.source = 6;
     order.target.Assign(target);
 
-    float x = unit->localPosition.x;
-    float y = unit->localPosition.y;
-    float z = unit->localPosition.z;
+    const Vector3 here = unit->localPosition;
     Vector3 aim = target->AimPoint();
-    float dz = z - aim.z;
-    float dy = y - aim.y;
-    float dx = x - aim.x;
-    float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    float distance = std::sqrt(LengthSquaredXYZ(here - aim));
     float orderDistance = ActionDistance(&order);
     float reach = SelectLess(distance, orderDistance, distance, orderDistance);
 
     UnitStats* victimStats = &victim->ServerController()->stats;
     // The double ground heights plus a float: one rounding.
-    float myBase = pc24::Add(unit->GroundHeight(x, y), z);
+    float myBase = pc24::Add(unit->GroundHeight(here.x, here.y), here.z);
     float mySize = unit->DoubleHeight();
     float theirBase = pc24::Add(victim->GroundHeight(aim.x, aim.y), aim.z);
     float theirSize = victim->DoubleHeight();

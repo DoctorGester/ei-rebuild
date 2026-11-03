@@ -242,11 +242,7 @@ int Camera::PlaybackStep(float time) {
 
 void Camera::Pan(const Vector3& direction) {
     Vector3 right = localRotation.AxisX();
-    const Quaternion& r = localRotation;
-    Vector3 up;
-    up.z = Dot2DUnrounded<float>(r.w, r.y, r.x, r.z) * 2.0f;
-    up.y = (r.w * r.w - LengthSquaredUnrounded<Sum3::ZXY, float>(r.x, r.y, r.z)) + r.y * r.y * 2.0f;
-    up.x = (r.y * r.x - r.w * r.z) * 2.0f;
+    Vector3 up = localRotation.AxisY();
     float k1 = (1.0f / std::sqrt(LengthSquared2DUnrounded<float>(right.y, right.x))) * direction.x;
     right.x = k1 * right.x;
     float rightY = k1 * right.y;
@@ -263,13 +259,7 @@ void Camera::StopMotion() {
     Vector3 up = localRotation.AxisY();
     // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
-    right.x = zero * right.x;
-    right.y = right.y * zero;
-    right.z = 0.0f;
-    up.x = zero * up.x;
-    up.y = up.y * zero;
-    up.z = 0.0f;
-    panTarget = right + up;
+    panTarget = Vector3{right.x * zero, right.y * zero, 0.0f} + Vector3{up.x * zero, up.y * zero, 0.0f};
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate, turnRate);
@@ -307,15 +297,12 @@ void Camera::ApplyView() {
     const float tiltAngle = -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across));
     localRotation = viewRotation;
     const Quaternion s = localRotation;
-    Vector3 axis;
-    axis.x = (s.w * s.w - LengthSquaredUnrounded<Sum3::ZYX, float>(s.x, s.y, s.z)) + s.x * s.x * 2.0f;
-    axis.y = Dot2DUnrounded<float>(s.x, s.z, s.y, s.w) * 2.0f;
-    axis.z = (s.x * s.z - s.y * s.w) * 2.0f;
+    const Vector3 axis = s.AxisX();
     Quaternion q;
     q.SetAngleAxis(tiltAngle, axis);
     float y = ((q.z * s.x - s.z * q.x) + s.w * q.y) + s.y * q.w;
     float z = ((q.x * s.y - s.x * q.y) + s.w * q.z) + s.z * q.w;
-    float w = s.w * q.w - DotUnrounded<Sum3::ZXY, float>(s.x, s.y, s.z, q.x, q.y, q.z);
+    float w = s.w * q.w - DotUnrounded<Sum3::ZXY>(s.x, s.y, s.z, q.x, q.y, q.z);
     float x = ((s.z * q.y - q.z * s.y) + s.w * q.x) + s.x * q.w;
     localRotation.y = y;
     localRotation.z = z;
@@ -341,9 +328,7 @@ void Camera::Update(float dt) {
             const TransformObject* t = target;
             const Object3D* body = target;
             float lift = body->bounds.boxMax.z + body->bounds.center.z;
-            localPosition.x = t->localPosition.x;
-            localPosition.y = t->localPosition.y;
-            localPosition.z = lift + t->localPosition.z;
+            localPosition = {t->localPosition.x, t->localPosition.y, lift + t->localPosition.z};
             Vector3 side = t->localRotation.AxisY();
             float nx = -side.x;
             Vector3 dir;
@@ -445,7 +430,7 @@ void Camera::Update(float dt) {
         float x = ((r.z * q.y - r.y * q.z) + q.w * r.x) + r.w * q.x;
         float y = ((r.x * q.z - r.z * q.x) + q.w * r.y) + r.w * q.y;
         float z = ((r.y * q.x - q.y * r.x) + r.z * q.w) + r.w * q.z;
-        float w = q.w * r.w - DotUnrounded<Sum3::ZYX, float>(q.x, q.y, q.z, r.x, r.y, r.z);
+        float w = q.w * r.w - DotUnrounded<Sum3::ZYX>(q.x, q.y, q.z, r.x, r.y, r.z);
         viewRotation.z = z;
         viewRotation.y = y;
         viewRotation.w = w;
@@ -542,7 +527,7 @@ void Camera::ViewsToSettings(options::GameOptions* gameOptions) {
         r.distance = v.distance;
         r.pitch = v.pitch;
         const Quaternion& q = v.rotation;
-        float sum = LengthSquaredUnrounded<Sum3::ZXY, float>(q.x, q.y, q.z);
+        float sum = LengthSquaredUnrounded<Sum3::ZXY>(q.x, q.y, q.z);
         if (sum > kAxisTiny) {
             const double arc = libcrt::CiAcos(q.w);   // the CRT's double (FPATAN's 64 bits stored)
             float inv = 1.0f / std::sqrt(sum);

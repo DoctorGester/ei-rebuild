@@ -431,10 +431,8 @@ void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
 // 100.0 when the first or last cell lies outside the map. See ai_map.h and docs/notes/ai.md.
 
 float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
-    float dx = to.x - from.x;
-    float dy = to.y - from.y;
-    float dz = to.z - from.z;
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+    Vector3 d = to - from;
+    float length = std::sqrt(LengthSquaredZYX(d));
     float cell = 0.5f;
     float steps = length / cell;
     // A zero or NaN length also returns 1.0.
@@ -445,8 +443,8 @@ float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
     auto toFixed = [&](float value) { return lib::RoundEven(value * fixed / 0.5f); };
     int fx = toFixed(from.x);
     int fy = toFixed(from.y);
-    int stepX = toFixed(dx * inverse);
-    int stepY = toFixed(dy * inverse);
+    int stepX = toFixed(d.x * inverse);
+    int stepY = toFixed(d.y * inverse);
 
     int cx = fx >> 16, cy = fy >> 16;
     if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::kOutsideDistance;

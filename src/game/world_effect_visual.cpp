@@ -220,18 +220,10 @@ Vector3* EffectParticle::Position(const ScriptGroup* group) {
     if (object == nullptr) return &localPosition;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
-        worldPosition.x = FromBits(0xC9742400u);    // -1e6
-        worldPosition.y = FromBits(0xC9742400u);
-        worldPosition.z = 0.0f;
+        worldPosition = {-1e6f, -1e6f, 0.0f};
         return &worldPosition;
     }
-    const Vector3& at = object->localPosition;
-    float x = localPosition.x + at.x;
-    float y = at.y + localPosition.y;
-    float z = at.z + localPosition.z;
-    worldPosition.x = x;
-    worldPosition.y = y;
-    worldPosition.z = z;
+    worldPosition = localPosition + object->localPosition;
     return &worldPosition;
 }
 
@@ -403,23 +395,14 @@ void EffectParticle::Save(ByteStream* stream) {
 bool EffectParticle::RunTick() {
     unitId = -1;
     if (moving != 0) {
-        Vector3 d;
-        d.x = static_cast<float>(target.x - localPosition.x);
-        d.y = static_cast<float>(target.y - localPosition.y);
-        d.z = static_cast<float>(target.z - localPosition.z);
+        Vector3 d = target - localPosition;
         float t;
         if (StepFraction(velocity, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
             float aboveGround = pc24::Sub(target.z, OwningWorld()->RawSurfaceHeightAt(target.x, target.y));
-            float stepY = static_cast<float>(t * d.y);
-            float stepZ = static_cast<float>(d.z * t);
-            float x = static_cast<float>(t * d.x + localPosition.x);
-            float y = static_cast<float>(stepY + localPosition.y);
-            float z = static_cast<float>(stepZ + localPosition.z);
-            float floor = pc24::Add(OwningWorld()->RawSurfaceHeightAt(x, y), aboveGround);
-            localPosition.x = x;
-            localPosition.y = y;
-            localPosition.z = MaxKeepB(z, floor);
+            Vector3 p = d * t + localPosition;
+            float floor = pc24::Add(OwningWorld()->RawSurfaceHeightAt(p.x, p.y), aboveGround);
+            localPosition = {p.x, p.y, MaxKeepB(p.z, floor)};
             if (source != nullptr) source->localPosition = localPosition;
         }
     }
@@ -566,13 +549,7 @@ void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, floa
     from = newFrom;
     to = newTo;
     width = newWidth;
-    // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
-    float half = ConstAt(worlddata::HalfRef());
-    float sumY = static_cast<float>(from.y + to.y);
-    float sumZ = static_cast<float>(from.z + to.z);
-    localPosition.x = static_cast<float>((to.x + from.x) * half);
-    localPosition.y = static_cast<float>(sumY * half);
-    localPosition.z = static_cast<float>(sumZ * half);
+    localPosition = (from + to) * ConstAt(worlddata::HalfRef());
     MarkChanged();
 }
 

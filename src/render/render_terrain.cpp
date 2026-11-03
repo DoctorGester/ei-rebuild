@@ -100,9 +100,7 @@ std::uint32_t ColourWord(const SectorData* s, int index) {
     const SectorVertex& record = s->records[index];
     Vector3 m = record.materialColour;
     if (const SectorVertex* water = WaterAbove(s, index)) {
-        m.x = (std::max)(water->materialColour.x, m.x);
-        m.y = (std::max)(water->materialColour.y, m.y);
-        m.z = (std::max)(water->materialColour.z, m.z);
+        m = Max(water->materialColour, m);
     }
     return static_cast<std::uint32_t>(record.materialByte) << 24 | Byte(m.x) << 16 | Byte(m.y) << 8 | Byte(m.z);
 }
@@ -183,19 +181,17 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
     for (int y = 0; y < kSectorRow; ++y)
         for (int x = 0; x < kSectorRow; ++x) {
             Vector3 p = at(x, y);
-            Vector3 a = at(x + 1, y), b = at(x - 1, y), e = at(x, y + 1), g = at(x, y - 1);
-            Vector3 dx{a.x - b.x, a.y - b.y, a.z - b.z}, dy{e.x - g.x, e.y - g.y, e.z - g.z};
-            Vector3 n = Cross(dx, dy);
+            Vector3 n = Cross(at(x + 1, y) - at(x - 1, y), at(x, y + 1) - at(x, y - 1));
             float length = Length<Sum3::XYZ>(n);
             if (length > 1e-12f) {
                 float k = (n.z < 0.0f ? -1.0f : 1.0f) / length;   // turned up
-                n = Vector3{n.x * k, n.y * k, n.z * k};
+                n *= k;
             } else {
                 n = Vector3{0.0f, 0.0f, 1.0f};
             }
             c.vertices[static_cast<std::size_t>(y * kSectorRow + x)] = TerrainCasterVertex{p, n};
-            lo = Vector3{(std::min)(lo.x, p.x), (std::min)(lo.y, p.y), (std::min)(lo.z, p.z)};
-            hi = Vector3{(std::max)(hi.x, p.x), (std::max)(hi.y, p.y), (std::max)(hi.z, p.z)};
+            lo = Min(lo, p);
+            hi = Max(hi, p);
         }
     const Vector3 centre = (lo + hi) * 0.5f;
     c.sphere = ShadowCasterSphere{centre.x, centre.y, centre.z, Length<Sum3::XYZ>((hi - lo) * 0.5f)};
@@ -251,13 +247,12 @@ void MakeGroups(CachedPage& p) {
                            (std::min)(kGroupVertices, q.firstVertex + q.vertexCount - first)};
             for (std::uint32_t i = first; i < first + g.count; ++i) {
                 const Vector3& at = p.vertices[i].position;
-                g.low = Vector3{(std::min)(g.low.x, at.x), (std::min)(g.low.y, at.y), (std::min)(g.low.z, at.z)};
-                g.high = Vector3{(std::max)(g.high.x, at.x), (std::max)(g.high.y, at.y), (std::max)(g.high.z, at.z)};
+                g.low = Min(g.low, at);
+                g.high = Max(g.high, at);
             }
             p.groups.push_back(g);
-            q.whole.low = Vector3{(std::min)(q.whole.low.x, g.low.x), (std::min)(q.whole.low.y, g.low.y), (std::min)(q.whole.low.z, g.low.z)};
-            q.whole.high = Vector3{(std::max)(q.whole.high.x, g.high.x), (std::max)(q.whole.high.y, g.high.y),
-                                   (std::max)(q.whole.high.z, g.high.z)};
+            q.whole.low = Min(q.whole.low, g.low);
+            q.whole.high = Max(q.whole.high, g.high);
         }
         q.groupCount = static_cast<std::uint32_t>(p.groups.size()) - q.firstGroup;
     }

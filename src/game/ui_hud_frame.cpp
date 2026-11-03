@@ -234,7 +234,7 @@ void HudTopPanel::Setup(int newPage, bool shown) {
     arrow->textureOffsetV = 0.140625f;
     Quaternion turn;
     arrow->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
-    arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
+    arrow->Place(400.0f, -52.0f, 8.106086f);
     arrow->SetScale(0.8f);
 
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);

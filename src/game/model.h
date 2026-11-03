@@ -53,7 +53,7 @@ struct ClipBounds {
     Vector3 boxMax;
 
     // Sets the box and its flag; returns the new flags.
-    std::uint32_t SetBox(const float* min, const float* max);
+    std::uint32_t SetBox(const Vector3& min, const Vector3& max);
     // Fits the box to the points of `blocks` packets of four (the centre midway between their extremes, the box
     // around it) and the sphere around the box (its half diagonal), and sets both flags.
     void Fit(const VertexPacket* packets, int blocks);
@@ -76,17 +76,17 @@ struct MatrixStack {
 };
 
 struct TLVertex;
-struct LightningPoint;
 class Light;
 
 // A screen-facing sprite's centre and size (SceneRenderer::DrawSprites' points).
 struct SpritePoint {
-    float x, y, z, size;
+    Vector3 position;
+    float size;
 };
 
 // `m` times the point (x, y, z, 1), each row's sum adding the translation first
 // (((x m[4i] + m[4i + 3]) + y m[4i + 1]) + z m[4i + 2]): the projections' clip space.
-Vector4 ToClip(const Matrix4& m, float x, float y, float z);
+Vector4 ToClip(const Matrix4& m, const Vector3& p);
 
 // The transform pipeline of the 3D library: the matrix stacks, and the projections of points to clip space and
 // to the screen, with the viewport and the fog's depth range they map with (docs/notes/renderer.md, section 10).
@@ -143,8 +143,8 @@ public:
                        int blocks) const;
     // The same for `count` ribbon points: Project's division without clipping (with ToClip's sums), and
     // ProjectClipped's.
-    static void ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count);
-    int ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected, std::uint8_t* outcodes,
+    static void ProjectPoints(const Matrix4& m, const Vector3* points, Vector4* projected, int count);
+    int ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected, std::uint8_t* outcodes,
                              int count) const;
     // `count` screen-facing sprites, their centres to the screen with `m` (the clip stack's top), as four
     // corners each (positions only; `size` the half side at w 1).
@@ -283,12 +283,11 @@ public:
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length, float offset,
+    int DrawStrip(const std::vector<Vector3>* points, float width, int visibility, float length, float offset,
                   float slant);
-    // Draws sprites facing the view with the bound texture: `points` an aligned array of centres and sizes
-    // (x, y, z, size), `sprites` an array of their colours and texture rectangles. The first argument is 0
-    // at every call known.
-    int DrawSprites(int unknown, void* points, void* sprites);
+    // Draws sprites facing the view with the bound texture: `points` their centres and sizes, `sprites` an array of
+    // their colours and texture rectangles. The first argument is 0 at every call known.
+    int DrawSprites(int unknown, const std::vector<SpritePoint>* points, void* sprites);
     // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent
     // 0x8000FF00, 0.3 above `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the
     // device's flat geometry draw as six triangles of two vertex blocks.

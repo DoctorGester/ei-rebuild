@@ -296,9 +296,7 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     float len = std::sqrt(LengthSquared2DUnrounded(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
     if (len == 0.0f) {
-        listenerAxis.x = 1.0f;
-        listenerAxis.y = 0.0f;
-        listenerAxis.z = 0.0f;
+        listenerAxis = {1.0f, 0.0f, 0.0f};
     } else {
         float inv = 1.0f / len;
         listenerAxis *= inv;
@@ -469,12 +467,10 @@ int SoundManager::RemoveEmitter(int index) {
     if (index < 0 || index > 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return -1;
-    e->position.x = 0.0f;
+    e->position = {};
     e->active = 0;
     e->maxInterval = -1;
     e->minInterval = -1;
-    e->position.y = 0.0f;
-    e->position.z = 0.0f;
     e->outerRadius = 0.0f;
     e->innerRadius = 0.0f;
     e->lastPlayed = 0;
@@ -674,9 +670,7 @@ void SoundManager::Tick() {
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
-        float dx = listener.x - e->position.x;
-        float dy = listener.y - e->position.y;
-        float dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
+        float dist = std::sqrt(DistanceSquaredXY(listener, e->position));
         std::uint32_t minInterval, maxInterval;
         EI_NAN_AUDIT(dist, e->innerRadius);
         if (dist < e->innerRadius) {
@@ -1502,7 +1496,7 @@ void SoundManager::Reset() {
     cacheBytes = 0;
     for (SoundEmitter& e : emitters) {
         e.active = 0;
-        e.position.x = e.position.y = e.position.z = 0.0f;
+        e.position = {};
         e.innerRadius = 0.0f;
         e.outerRadius = 0.0f;
         e.minInterval = -1;
@@ -1512,7 +1506,7 @@ void SoundManager::Reset() {
     for (SoundSequence& q : sequences) {
         q.active = 0;
         q.handle = -1;
-        q.position.x = q.position.y = q.position.z = 0.0f;
+        q.position = {};
         q.nearDistance = 0.0f;
         q.farDistance = 0.0f;
         q.remaining = -1;

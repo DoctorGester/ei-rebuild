@@ -514,9 +514,7 @@ int PlayerClient::OnNewObject() {
         Unit* unit = UnitOrNull(created);
         const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(header.prototype);
         auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-        unit->defaultScale.x = 0.0f;
-        unit->defaultScale.y = modelRecord->height;
-        unit->defaultScale.z = 0.0f;
+        unit->defaultScale = {0.0f, modelRecord->height, 0.0f};
         std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
         unit->SetSecondPrototypeIndex(prototypeValue);
     }

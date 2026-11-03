@@ -131,9 +131,7 @@ inline void PlanarLength(const Vector3& v, float* out) { *out = std::sqrt(Length
 inline void ScaleToSpeed(Vector3* v, const float* speed) {
     const float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v));
     const float k = *speed * 0.06666667f / length;
-    v->x = k * v->x;
-    v->y = k * v->y;
-    v->z = k * v->z;
+    *v *= k;
 }
 
 // (distance / speed) * 15 rounded to nearest: the missile's flight time in ticks.
@@ -142,24 +140,13 @@ inline int FlightTicks(const float* distance, const float* speed) { return lib::
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`: k =
 // radius / sqrt(n.y*n.y + n.x*n.x), then each component times k. The normal is written to `out` first and read back.
 inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out) {
-    const float nx = -direction.y;
-    out->x = nx;
-    out->y = direction.x;
-    out->z = 0.0f;
-    const float k = *radius / std::sqrt(LengthSquared2DUnrounded<float>(out->y, nx));
-    out->x = k * nx;
-    out->y = out->y * k;
-    out->z = out->z * k;
+    *out = {-direction.y, direction.x, 0.0f};
+    *out *= *radius / std::sqrt(LengthSquared2DUnrounded<float>(out->y, out->x));
 }
 
 // The light wall's half extent from its lightning's ends.
 inline void HalfSpan(const EffectLightning* bolt, Vector3* out) {
-    const float dx = bolt->to.x - bolt->from.x;
-    out->y = bolt->to.y - bolt->from.y;
-    out->z = bolt->to.z - bolt->from.z;
-    out->x = dx * 0.5f;
-    out->y = out->y * 0.5f;
-    out->z = out->z * 0.5f;
+    *out = (bolt->to - bolt->from) * 0.5f;
 }
 
 // --- Small helpers ------------------------------------------------------------------------------

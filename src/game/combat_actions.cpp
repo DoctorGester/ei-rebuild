@@ -32,7 +32,6 @@
 namespace {
 constexpr float kHitNoiseScale = 2.0f;
 constexpr float kSkillNoiseScale = 1.5f;
-constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared by its bits
 
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -138,7 +137,7 @@ void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
         target->ReceiveHit(hit, unit, unit);
     }
     TriggerWeaponSpell(target);
-    if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
+    if (hit->backstabFactor == 1.0f) {
         float loudness = stats.conspicuity[3].current * kHitNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
@@ -200,16 +199,13 @@ BlowSide UnitServer::HitDirection(Unit* attacker, int hitKind) {
     if (!attacker) return BlowSide::None;
     if (hitKind) return BlowSide::None;
     const Unit* self = unit;
-    float dx = attacker->localPosition.x - self->localPosition.x;
-    float dy = attacker->localPosition.y - self->localPosition.y;
-    float dz = attacker->localPosition.z - self->localPosition.z;
+    Vector3 d = attacker->localPosition - self->localPosition;
     const Quaternion* rotation = &self->localRotation;
     Vector3 axisY = rotation->AxisY();
     // The unit's Y axis points backwards: "front" is the negated projection on it.
-    float front = -DotUnrounded<Sum3::ZYX>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
-    // The X axis of the rotation, computed in place (Quaternion::AxisX's maths in the original's order).
-    AxisUnrounded<float> axisX = AxisXUnrounded<float>(*rotation);
-    float side = -DotUnrounded<Sum3::ZYX>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
+    float front = -DotZYX(axisY, d);
+    Vector3 axisX = rotation->AxisX();
+    float side = -DotZYX(axisX, d);
     if (AbsBits(side) >= AbsBits(front)) return side > 0.0f ? BlowSide::MinusX : BlowSide::PlusX;
     return front > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
@@ -255,9 +251,7 @@ void UnitServer::PropagateHostility() {
         ++node;
         if (!diplomacy->IsAllied(side, other->side)) continue;
         Unit* self = unit;
-        float dx = other->localPosition.x - self->localPosition.x;
-        float dy = other->localPosition.y - self->localPosition.y;
-        float distance = LengthSquared2DUnrounded(dy, dx);
+        float distance = DistanceSquaredXY(other->localPosition, self->localPosition);
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;

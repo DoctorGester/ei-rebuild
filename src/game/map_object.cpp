@@ -172,11 +172,8 @@ void MapObject::RecomputeScale() {
 void MapObject::ResetScale() { scale = baseScale; }
 
 Vector3 MapObject::GroundPoint() {
-    float x = localPosition.x + bounds.center.x;    // each stored to a float local
-    float y = localPosition.y + bounds.center.y;
-    float z = localPosition.z + bounds.center.z;
-    double height = OwningWorld()->GridHeightAt(x, y);
-    return {x, y, pc24::Add(height, z)};
+    const Vector3 centre = localPosition + bounds.center;
+    return {centre.x, centre.y, pc24::Add(OwningWorld()->GridHeightAt(centre.x, centre.y), centre.z)};
 }
 
 void MapObject::PlaceOnGround(float offset) {

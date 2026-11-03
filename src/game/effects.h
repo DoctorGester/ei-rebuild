@@ -129,9 +129,7 @@ struct Particle {
     Vector3 prevPos;
     float prevSize;
     Vector3 velocity;           // smoke: initial offset; spheres: orbit offset
-    float aux0;                 // per-type scratch the emitter and update callbacks share (angles, speeds, growth, steps)
-    float aux1;
-    float aux2;
+    Vector3 aux;                // per-type scratch the emitter and update callbacks share (angles, speeds, growth, steps)
     Vector3 drift;              // smoke: rise in z; debris: speed; spheres: x = size factor
     int frame;                  // texture frame
     int prevFrame;
@@ -646,11 +644,8 @@ public:
 // The class factory's creator; the register arguments are unused.
 ParticleSource* NewParticleSource(int type);
 
-// The particle renderer's shared arrays. One vertex (position and size,
-// interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.
-struct ParticleVertex {
-    float x, y, z, size;
-};
+// The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
+// ticks) and one sprite (colour, texture frame) per particle.
 struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
@@ -765,7 +760,6 @@ public:
     int Draw(class SceneRenderer* renderer);
 
     ClipBounds bounds;              // flags 3 once computed; the box relative to the centre
-    Vector3 boundsSpare;            // zeroed with the bounds, never read
     CellMap cells;
     std::uint8_t boundsValid;
 };
