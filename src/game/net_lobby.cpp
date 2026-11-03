@@ -12,7 +12,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "../platform/log.h"
 #include "platform/platform.h"
 #include "lib/nan_audit.h"

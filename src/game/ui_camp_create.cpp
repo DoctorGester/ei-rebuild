@@ -21,7 +21,7 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "platform/platform.h"

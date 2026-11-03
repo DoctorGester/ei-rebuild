@@ -6,7 +6,7 @@
 #include "script_parse.h"
 #include "script_addon.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

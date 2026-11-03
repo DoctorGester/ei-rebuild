@@ -41,7 +41,7 @@ BAD_BODY = re.compile(r'__asm|\[\s*[&=]|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|\bdo
 
 def load():
     files = {}
-    for d in ('src', 'tests', 'include'):
+    for d in ('src', 'tests'):
         for dp, _, names in os.walk(os.path.join(ROOT, d)):
             for n in names:
                 if n.endswith(('.cpp', '.h')):

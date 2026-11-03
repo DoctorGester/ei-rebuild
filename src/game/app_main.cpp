@@ -25,8 +25,8 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/main_loop.h"
-#include "ei/rebirth.h"
+#include "main_loop.h"
+#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/pc24.h"
 #include "platform/platform.h"
@@ -292,9 +292,10 @@ constexpr int kLongestPassTicks = 5;
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) { return pc24::Mul(static_cast<double>(milliseconds), 0.018181818f); }
 
-// Three calls of the loop take a harness hook (ei/main_loop.h, set by tests/verify/harness.cpp) when
+// Three calls of the loop take a harness hook (main_loop.h, set by tests/verify/harness.cpp) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
+// (The frame step and its capture point have their hooks too: RunPass, app_frame.cpp.)
 void FrameCameraUpdate(Camera* camera, float seconds) {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, seconds);
     else camera->Update(seconds);

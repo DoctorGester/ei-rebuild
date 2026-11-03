@@ -11,7 +11,7 @@
 #include "net_coder.h"
 #include "net_messages.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <atomic>
 #include <chrono>

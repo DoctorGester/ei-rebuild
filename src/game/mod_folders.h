@@ -10,7 +10,7 @@
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // More: docs/notes/rebirth.md, "Resources and paths".
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <cstdint>
 #include <string>

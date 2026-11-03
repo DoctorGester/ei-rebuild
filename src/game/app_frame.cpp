@@ -15,7 +15,7 @@
 #include "texture.h"   // TextureDevice, Surface
 #include "ui.h"
 #include "ui_cursor.h"
-#include "ei/main_loop.h"
+#include "main_loop.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -33,7 +33,7 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-// The harness's hook before the cursor and the present (ei/main_loop.h): its frame capture reads the finished frame
+// The harness's hook before the cursor and the present (game/main_loop.h): its frame capture reads the finished frame
 // (tests/verify/harness_capture.cpp).
 void BeforePresent() {
     if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();

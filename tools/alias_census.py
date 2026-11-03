@@ -14,7 +14,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIRS = ['src', 'tests', 'include']
+DIRS = ['src', 'tests']
 EXTS = ('.h', '.cpp', '.inl', '.hpp')
 
 CONTAINER_RE = re.compile(

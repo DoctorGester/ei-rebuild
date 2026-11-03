@@ -1,4 +1,4 @@
-# Rebirth's bug fixes and additions (always the rewritten code's since C68; include/ei/rebirth.h,
+# Rebirth's bug fixes and additions (always the rewritten code's since C68; src/lib/rebirth.h,
 # docs/notes/rebirth.md).
 # Vanilla data: the flags on data the original never ran them with. The original could not run it
 # (it never had a golden from game.exe); on the standalone image it is a crash smoke test (user 2026-10-16,

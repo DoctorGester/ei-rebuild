@@ -6,7 +6,7 @@
 #include "unit_create.h"
 #include "unit_db.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <cctype>
 #include <cstddef>

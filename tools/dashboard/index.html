@@ -69,18 +69,23 @@ footer { color: var(--muted); font-size: 12px }
 <main>
   <header>
     <h1>Evil Islands Rebuild Progress</h1>
-    <p class="sub">game.exe 1.06 rebuilt as C++. The port and the standalone exe are done; what is left is cleaning the C++ up until nothing leans on game.exe's code or data layout. Lower is better unless a chart says otherwise. <span id="asof" class="mono"></span></p>
+    <p class="sub">game.exe 1.06 rebuilt as C++. The port and the standalone exe are done; what is left is cleaning the C++ up and moving it to plain maths, native drawing and the platform layer. Lower is better unless a chart says otherwise. <span id="asof" class="mono"></span></p>
     <div class="regen" id="regen"><a href="/">Work board</a><button type="button" id="regenbtn">Regenerate</button><span id="regenstate"></span></div>
   </header>
   <div class="summary" id="summary"></div>
   <section>
     <h2>Cleanup track</h2>
-    <p class="sub">The counts <span class="mono">tools/progress.py</span> prints, and the tables the image still takes from game.exe.</p>
+    <p class="sub">The live counts of <span class="mono">tools/progress.py</span> and the clean-code ratchet. The hook-era series that reached 0 (offset access, VCall, __asm, MFC / STLport / CRT uses, game addresses, code cells, shims) are retired; the build checks hold them there.</p>
     <div class="tablewrap"><table id="cleanup"><thead><tr><th>Measure</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
-    <h2>Runtime and text</h2>
-    <p class="sub">Uses of the original's MFC, STLport and CRT through src/lib, and the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md).</p>
+    <h2>Goals</h2>
+    <p class="sub">What the code is moving to; the counts say how far it has moved.</p>
+    <div class="tablewrap"><table id="goals"><thead><tr><th>Measure</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section>
+    <h2>Text</h2>
+    <p class="sub">The single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md).</p>
     <div class="tablewrap"><table id="standalone"><thead><tr><th>Measure</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
@@ -247,16 +252,15 @@ function render(data) {
   const loc = Object.entries(c.loc);
   const src = loc.filter(([k]) => k.startsWith('src/')).reduce((a, [, v]) => a + v, 0);
   const tests = loc.filter(([k]) => k.startsWith('tests/')).reduce((a, [, v]) => a + v, 0);
-  const t = c.track || {};
-  const peakOf = key => Math.max(...h.map(p => (p.track || {})[key]).filter(v => v != null));
-  const down = key => { const pk = peakOf(key), now = t[key]; return isFinite(pk) && pk > now ? `down ${fmt(pk - now)} from ${fmt(pk)}` : 'at its peak'; };
+  const t = c.track || {}, g = c.goals || {};
+  const peakOf = (group, key) => Math.max(...h.map(p => (p[group] || {})[key]).filter(v => v != null));
+  const down = (group, key) => { const pk = peakOf(group, key), now = (c[group] || {})[key]; return isFinite(pk) && pk > now ? `down ${fmt(pk - now)} from ${fmt(pk)}` : 'at its peak'; };
   document.getElementById('summary').innerHTML =
-    stat('Code cells', fmt(t.code_cells || 0), `${fmt(t.code_cells_eh || 0)} EH, ${fmt(t.code_cells_vtable || 0)} vtable slots`, true) +
-    stat('Pointer static_casts', fmt(t.pointer_static_casts || 0), down('pointer_static_casts')) +
-    stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('reinterpret_casts')) +
-    stat('Game data addresses', fmt(t.data_addresses || 0), `${fmt(t.named_ranges || 0)} ranges named so far`) +
-    stat('Hook shims', fmt(t.fastcall_shims || 0), 'Fn(T* self, void*)') +
-    stat('Files calling Windows', fmt(t.platform_files || 0), 'outside src/platform and src/render') +
+    stat('Pointer static_casts', fmt(t.pointer_static_casts || 0), down('track', 'pointer_static_casts'), true) +
+    stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('track', 'reinterpret_casts')) +
+    stat('pc24 uses', fmt(g.pc24_uses || 0), 'lib/pc24.h, outside src/lib') +
+    stat('Ordered-sum helpers', fmt(g.ordered_sums || 0), 'DotZYX, Sum3::XYZ, *Unrounded ...') +
+    stat('UI canvas calls', fmt(g.ui_canvas_calls || 0), 'render::ui:: outside src/render') +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
     stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in tests/scenarios');
   const peakRows = (group, rows) => rows.map(([name, key]) => {
@@ -267,24 +271,15 @@ function render(data) {
       `<td class="r num">${peak && now != null ? (change > 0 ? '+' : '') + change + '%' : ''}</td></tr>`;
   }).join('');
   document.querySelector('#cleanup tbody').innerHTML = peakRows('track', [
-    ['Code cells (game.exe data holding its code addresses)', 'code_cells'], ['of them C++ EH tables', 'code_cells_eh'],
-    ['of them vtable slots', 'code_cells_vtable'], ['of them static initialisers', 'code_cells_static_init'],
-    ['of them other tables', 'code_cells_other'], ['Pointer cells (game.exe data pointing into its data)', 'pointer_cells'],
-    ['Fn(T* self, void*) shims', 'fastcall_shims'],
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
-    ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
-    ['Anonymous namespaces', 'anonymous_namespaces'],
-    ['Files calling Windows outside src/platform and src/render', 'platform_files']]) + peakRows('cleanup', [
+    ['Struct names defined in several files', 'structs_defined_twice'], ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
     ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
-    ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control'],
-    ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts'], ['x87:: helper calls', 'x87_helpers'],
-    ['Ftol calls', 'ftol_calls']]);
+    ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts'], ['Ftol calls', 'ftol_calls']]);
+  document.querySelector('#goals tbody').innerHTML = peakRows('goals', [
+    ['pc24:: uses (24-bit-rounded operations on wider operands)', 'pc24_uses'],
+    ['Ordered-sum vector helpers (DotZYX, Sum3::XYZ, *Unrounded)', 'ordered_sums'],
+    ['render::ui:: canvas calls outside src/render', 'ui_canvas_calls']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
-    ['MFC strings (CString)', 'mfc_strings'], ['MFC arrays', 'mfc_arrays'], ['MFC lists', 'mfc_lists'],
-    ['MFC maps', 'mfc_maps'], ['MFC files and archives', 'mfc_files'],
-    ['STLport uses', 'stlp_uses'], ['of them hash maps', 'stlp_hash_maps'],
-    ["The original's allocator (new / delete)", 'crt_allocations'], ["Other calls into the original's CRT", 'crt_other'],
-    ["Imports through the original's table", 'import_uses'],
     ['Text: case-insensitive compares and case changes', 'text_case_compares'], ['Text: fixed char buffers', 'text_fixed_buffers'],
     ['Text: direct ANSI system calls', 'text_ansi_calls']]);
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
@@ -292,42 +287,34 @@ function render(data) {
   charts.length = 0; view.x0 = view.x1 = null; timeline = h;
   const box = document.getElementById('charts'); box.innerHTML = '';
   const tr = key => p => p.track ? p.track[key] : null;
+  const gl = key => p => p.goals ? p.goals[key] : null;
   [
-    lineChart(h, [{ name: 'All code cells', color: accent, area: true, get: tr('code_cells') },
-                  { name: 'C++ EH tables', color: '#4a6fa5', get: tr('code_cells_eh') },
-                  { name: 'Vtable slots', color: good, get: tr('code_cells_vtable') },
-                  { name: 'Static initialisers and other', color: muted, get: p => p.track && p.track.code_cells != null ? (p.track.code_cells_static_init || 0) + (p.track.code_cells_other || 0) : null }],
-      { title: 'Code cells', note: "Slots in game.exe's data holding one of its function addresses, repointed at our code when the image starts (since S18i). C19 retires vtables, C20a the EH tables." }),
     lineChart(h, [{ name: 'static_cast to a pointer', color: accent, get: tr('pointer_static_casts') },
                   { name: 'reinterpret_cast', color: '#4a6fa5', get: tr('reinterpret_casts') }],
       { title: 'Casts', note: 'Typing debt: void* parameters, base-class fields and raw memory views (C15, C21).' }),
-    lineChart(h, [{ name: 'Fn(T* self, void*) shims', color: accent, get: tr('fastcall_shims') },
-                  { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
-      { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11) and duplicated layouts.' }),
-    lineChart(h, [{ name: 'Files calling Windows', color: accent, get: tr('platform_files') }],
-      { title: 'Platform layer', note: "Files of src/ (src/platform and src/render aside) that include windows.h or call game.exe's imports (gameapi::); the platform layer (src/platform) takes their calls area by area." }),
-    lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],
-      { title: 'Game data addresses', note: "Distinct literal addresses of game.exe's .rdata and .data in src/; C18 turns them into named globals." }),
-    lineChart(h, [{ name: 'Named data ranges', color: accent, get: tr('named_ranges') },
-                  { name: 'Retired vtables', color: good, get: tr('retired_vtables') }],
-      { title: 'Named and retired', note: "Ranges of game.exe's data that are now our own typed globals (C18), and game.exe vtables no class uses any more (C19). Higher is better here." }),
-    lineChart(h, [{ name: 'MFC strings', color: accent, get: p => p.standalone && p.standalone.mfc_strings },
-                  { name: 'MFC arrays, lists, maps, files', color: good, get: p => p.standalone && (p.standalone.mfc_arrays + p.standalone.mfc_lists + p.standalone.mfc_maps + p.standalone.mfc_files) },
-                  { name: 'STLport', color: '#4a6fa5', get: p => p.standalone && p.standalone.stlp_uses },
-                  { name: "The original's CRT and allocator", color: muted, get: p => p.standalone && (p.standalone.crt_allocations + p.standalone.crt_other) }],
-      { title: 'Runtime uses', note: "Uses of the original's MFC, STLport and CRT types; they move to our own classes, then standard types (C14)." }),
-    lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
-                  { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
-      { title: 'x87', note: 'Inline assembly and precision pragmas kept for bit-exact x87 maths.' }),
+    lineChart(h, [{ name: 'Struct names in several files', color: accent, get: tr('structs_defined_twice') },
+                  { name: 'Per-file Vector / Map / Set layouts', color: muted, get: p => p.cleanup.vector_map_set_structs }],
+      { title: 'Duplicated layouts', note: 'Struct names defined in more than one file, and containers declared per file instead of the shared templates.' }),
+    lineChart(h, [{ name: 'pc24:: uses', color: accent, get: gl('pc24_uses') },
+                  { name: 'Ordered-sum helpers', color: '#4a6fa5', get: gl('ordered_sums') },
+                  { name: 'render::ui:: canvas calls', color: good, get: gl('ui_canvas_calls') }],
+      { title: 'Goals', note: "What the code is moving to: 24-bit-rounded pc24 operations (float-maths.md), the ordered-sum helpers of lib/vecmath.h, and the game's calls into the interface canvases (ui-native.md)." }),
     lineChart(h, [{ name: 'static_cast<float>', color: accent, get: p => p.cleanup.float_casts },
                   { name: 'static_cast<double>', color: '#4a6fa5', get: p => p.cleanup.double_casts },
-                  { name: 'x87:: helpers', color: good, get: p => p.cleanup.x87_helpers },
                   { name: 'Ftol calls', color: muted, get: p => p.cleanup.ftol_calls }],
-      { title: 'x87 remains', note: 'Precision-pinning casts and x87 emulation calls (C30): plain float maths replaces them where game state allows.' }),
+      { title: 'x87 remains', note: 'Precision-pinning casts and the CRT truncation (C30): plain float maths replaces them where game state allows.' }),
+    lineChart(h, [{ name: 'Case compares', color: accent, get: p => p.standalone && p.standalone.text_case_compares },
+                  { name: 'Fixed char buffers', color: '#4a6fa5', get: p => p.standalone && p.standalone.text_fixed_buffers }],
+      { title: 'Single-byte text', note: 'Text sites that assume one byte per character; the text is UTF-8 everywhere (docs/notes/standalone.md).' }),
     lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
-                  { name: 'src/standalone', color: good, get: p => p.loc['src/standalone'] },
-                  { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
-      { title: 'Lines of code', note: 'Line counts of the main source trees.' }),
+                  { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] },
+                  { name: 'src/platform', color: good, get: p => p.loc['src/platform'] },
+                  { name: 'src/lib', color: muted, get: p => p.loc['src/lib'] },
+                  { name: 'src/audio and src/video', color: '#8a5aa0', get: p => (p.loc['src/audio'] || 0) + (p.loc['src/video'] || 0) }],
+      { title: 'Lines of code by area', note: 'Line counts of the source trees.' }),
+    lineChart(h, [{ name: 'tests/verify', color: accent, get: p => p.loc['tests/verify'] },
+                  { name: 'Other tests', color: good, get: p => ['tests/unit', 'tests/render', 'tests/port'].reduce((a, k) => a + (p.loc[k] || 0), 0) }],
+      { title: 'Lines of test code', note: 'The harness and the unit checks (the recorded goldens are data, not counted).' }),
     lineChart(h, [{ name: 'Scenarios', color: accent, get: p => p.cleanup.scenarios || 0 }],
       { title: 'Test coverage', note: 'In-game scenarios (the goldens and the image suite play them).' })
   ].forEach(el => box.appendChild(el));

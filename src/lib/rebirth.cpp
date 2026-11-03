@@ -1,5 +1,5 @@
-// Flags for Rebirth's patches (include/ei/rebirth.h).
-#include "ei/rebirth.h"
+// Flags for Rebirth's patches (rebirth.h).
+#include "lib/rebirth.h"
 
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -16,7 +16,7 @@ bool g_enabled[kPatchCount];   // zero-initialised: every patch off until Reset
 namespace {
 const char* const kNames[] = {
 #define EI_REBIRTH_PATCH(name) #name,
-#include "ei/rebirth_patches.inc"
+#include "rebirth_patches.inc"
 #undef EI_REBIRTH_PATCH
 };
 static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);

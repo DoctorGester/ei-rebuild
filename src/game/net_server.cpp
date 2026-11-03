@@ -13,7 +13,7 @@
 #include "options.h"
 #include "world.h"
 #include "world_data.h"
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 

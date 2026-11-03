@@ -14,7 +14,7 @@
 
 #include "lib/crt.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <algorithm>
 #include <cstring>

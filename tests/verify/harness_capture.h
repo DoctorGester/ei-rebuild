@@ -10,7 +10,7 @@
 
 namespace ei::verify::capture {
 
-// Takes the frame step's cursor lock hook point (ei/main_loop.h). True.
+// Takes the frame step's cursor lock hook point (game/main_loop.h). True.
 bool Install();
 
 // Asks for the frame presented after `skip` more frames to be written to

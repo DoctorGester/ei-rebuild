@@ -12,7 +12,7 @@
 #include "spell.h"
 #include "unit_db.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/vecmath.h"
 #include "maths.h"
 #include "lib/nan_audit.h"

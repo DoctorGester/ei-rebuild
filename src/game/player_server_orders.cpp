@@ -14,7 +14,7 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "game_singletons.h"
 
 #include <bit>

@@ -29,7 +29,7 @@
 #include "lib/rounding.h"
 #include "lib/str.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 
 #include <bit>
 #include <cmath>

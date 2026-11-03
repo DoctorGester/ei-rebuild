@@ -12,7 +12,7 @@
 #include "asset_text.h"
 #include "platform/log.h"
 
-#include "ei/rebirth.h"
+#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "platform/platform.h"
