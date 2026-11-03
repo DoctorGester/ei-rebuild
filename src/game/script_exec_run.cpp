@@ -198,7 +198,12 @@ void ScriptTick(Script* script) {
             pair.Run(script, &*instance);
             if (instance->index != 0) break;
         }
-        if (instance->index != 0) instances.erase(instance);
+        if (instance->index != 0) {
+            // A run loaded with this instance's killed flag forgets it.
+            for (ScriptRun& run : runs)
+                if (run.killFlag == &instance->index) run.killFlag = nullptr;
+            instances.erase(instance);
+        }
         instance = next;
     }
 

@@ -72,6 +72,7 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
         if (!light->object) break;
         if (light->id == id) break;
     }
+    if (i == LightCount(this)) return;   // every slot used by another id: no light
     ScriptPointLight* slot = &pointLights[i];
     slot->object.reset();
     slot->moving = 0;

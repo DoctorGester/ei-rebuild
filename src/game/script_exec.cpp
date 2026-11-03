@@ -319,7 +319,10 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::KillScript:
-            if (!killFlag) game::FatalError(kKillScriptNotAllowed);
+            if (!killFlag) {
+                game::FatalError(kKillScriptNotAllowed);
+                break;
+            }
             *killFlag = 1;
             break;
         case ScriptFunction::For: {   // For(counter, group)(body): the group's members from last to first
