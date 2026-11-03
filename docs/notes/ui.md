@@ -561,10 +561,13 @@ order, kept.
   speed and acceleration, on X11 XInput2's accelerated valuators, on Wayland the compositor's accelerated relative motion
   times the window's pointer_scale (1 for the game's window, which is never exclusive full screen). So the desktop's
   pointer settings set the camera's speed too.
-- The turn per count goes with the screen's size: the drag is scaled to the 800-unit layout across the window's 4:3 part
-  (800 / width43), so a 1920x1080 screen turns twice as far for the same mouse motion as a 3840x2160 one, and at 2160p a
-  drag below about 4 counts a 60 Hz frame truncates to nothing (Rebirth's WideScreen scaling; the original took raw
-  DirectInput counts at its 800x600 or 1024x768). Open: PL20a.
+- The turn per count is a fixed amount (PL20a), the same at every screen size: the drag in counts times 800 / 2880 layout
+  units (kLayoutPerCount, kept as a fraction, not truncated), then the same rates. 2880 is the 4:3 part's width of a
+  3840x2160 screen (2160 * 4 / 3): the user's 4K monitor at 200% Windows scaling, whose borderless full screen the game
+  sees in physical pixels (SDL's coordinates are pixels on Windows, PixelsPerPoint 1), so that setup turns as before.
+  It had scaled the drag to the window (800 / width43: a 1920x1080 screen turned twice as far as 3840x2160, and at 2160p
+  a drag below about 4 counts a 60 Hz frame truncated to nothing; the original took raw counts at 800x600). The pan with
+  the modifier held shares the scaling. The global map's drag (GlobalMap::MouseMove) still scales to the window.
 - Harness: `mousedrag dx dy` adds (dx, dy) to each frame's poll; with `frametime` that is a mouse speed of dx / frametime
   counts a ms (`camera_spin`, `camera_drag_rate`).
 - `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/camera_trace.cpp): a line a second (`camera trace: N frames

@@ -25,6 +25,11 @@ constexpr float kWheelStep = -0.008333334f;
 
 bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
+// The layout units one mouse count turns or pans by, the same at every screen size: the 800-unit layout across a
+// 4:3 part of 2880 pixels, which is what a 3840x2160 screen (the 4K monitor at 200% Windows scaling, in the game's
+// physical pixels) had when the drag was scaled to the window. The original took raw counts at 800x600.
+constexpr float kLayoutPerCount = 800.0f / 2880.0f;
+
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
 constexpr float kPerHeight = 0.0033333334f;
@@ -124,18 +129,18 @@ void CameraInput::MouseMove(int, Point at) {
         // The mouse's speed as a 60 Hz frame's motion, so that the turn and tilt rates go with the speed at any
         // frame rate (they went with each frame's motion, and so with the frame's length).
         const Point taken = g_cursor.TakeDrag();
-        Point drag = taken;
         ui->ScalePointFromScreen(&point);
-        // Rebirth's WideScreen scales the drag without the margin (addon's entry).
-        ui->ScalePointFromScreenNoMargin(&drag);
-        float across = static_cast<float>(drag.x) * kPerWidth;
-        float along = static_cast<float>(drag.y) * kPerHeight;
+        // The drag in layout units, kept as a fraction: a slow drag of a count or two still moves the camera.
+        const float dragX = static_cast<float>(taken.x) * kLayoutPerCount;
+        const float dragY = static_cast<float>(taken.y) * kLayoutPerCount;
+        float across = dragX * kPerWidth;
+        float along = dragY * kPerHeight;
         if (!ModifierHeld(ui)) {
             // The turn and tilt speeds times the mouse direction factors.
             const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * options::g_options.cameraFlipX;
             camera->SetTurnRate(turnSpeed * across * 10.0f);
-            float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
-            float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
+            float width = dragX < 0.0f ? -dragX : dragX;
+            float height = dragY < 0.0f ? -dragY : dragY;
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = 0.0f;
             if (Differs(camera->tiltTarget, zero) || Differs(camera->tiltRate, zero) || height > width) {
@@ -149,7 +154,7 @@ void CameraInput::MouseMove(int, Point at) {
             Vector3 direction{across * speed, along * speed, 0.0f};
             camera->Pan(direction);
         }
-        camera_trace::Drag(taken, drag);
+        camera_trace::Drag(taken, dragX, dragY);
         g_cursor.SetShape(kDragCursor);
         handled = true;
         pressLayout = point;

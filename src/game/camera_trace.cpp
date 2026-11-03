@@ -57,12 +57,12 @@ void Poll(std::uint32_t now, std::uint32_t interval, Point motion, Point drag, b
     g_second = Second{};
 }
 
-void Drag(Point drag, Point layout) {
+void Drag(Point drag, float layoutX, float layoutY) {
     if (!On()) return;
     ++g_drags;
     if (drag.x == 0 && drag.y == 0) return;
-    ei::Log("camera trace: drag %d %d (layout %d %d) at %u: turn target %.5f tilt target %.5f", drag.x, drag.y, layout.x,
-            layout.y, platform::Milliseconds(), g_camera.turnTarget, g_camera.tiltTarget);
+    ei::Log("camera trace: drag %d %d (layout %.3f %.3f) at %u: turn target %.5f tilt target %.5f", drag.x, drag.y, layoutX,
+            layoutY, platform::Milliseconds(), g_camera.turnTarget, g_camera.tiltTarget);
 }
 
 } // namespace camera_trace

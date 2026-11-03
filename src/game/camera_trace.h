@@ -16,6 +16,6 @@ bool On();
 // motion given from it (Cursor::TakeDrag), `held` while the camera turns.
 void Poll(std::uint32_t now, std::uint32_t interval, Point motion, Point drag, bool held);
 // The camera input took a turning drag: `drag` the motion the cursor gave, `layout` in layout units.
-void Drag(Point drag, Point layout);
+void Drag(Point drag, float layoutX, float layoutY);
 
 } // namespace camera_trace
