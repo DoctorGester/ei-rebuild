@@ -37,7 +37,9 @@ cmake --build build/linux
 - `port_platform` (tests/port/port_check.cpp): path folding, files and mappings, .ini reads and writes, the
   one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp).
 - `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on OpenGL against their CPU
-  reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11).
+  reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11), and the window's present after
+  resizes: a frame of known rows presented at four sizes, the window read back from the X server (XGetImage; a GL
+  front-buffer read gives zeros on Mesa's software paths).
 
 The Linux workflow (.github/workflows/linux.yml) runs both on GitHub's Ubuntu runner for every push.
 
@@ -46,7 +48,8 @@ The Linux workflow (.github/workflows/linux.yml) runs both on GitHub's Ubuntu ru
 `build/linux/ei-rebuild` plays the game folder named by `EI_GAME_ROOT`, else the one it sits in; `EI_SETTINGS_PATH`
 pins the settings file. The folder's `Work path` and `CD-ROM Path` are read as the game folder itself. Game data
 names are matched as Windows matches them: `res\database.res` opens `Res/Database.RES` (one folder at a time; the
-exact spelling first). Arguments for the game follow `--`.
+exact spelling first). Arguments for the game follow `--`. Under WSLg Mesa draws on llvmpipe (the CPU) unless
+`GALLIUM_DRIVER=d3d12` puts it on the Windows GPU.
 
 ## What differs from Windows
 
