@@ -5,8 +5,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <fstream>
 #include <vector>
+
+#include "platform/platform.h"
 
 namespace bink {
 
@@ -41,7 +42,7 @@ public:
     bool ReadFrame(unsigned index, FramePackets& packets);
 
 private:
-    std::ifstream stream;
+    platform::File file;
     int width = 0;
     int height = 0;
     unsigned frameCount = 0;
