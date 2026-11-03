@@ -6196,6 +6196,13 @@ model = "sonnet"
 note = "User 2026-11-03: a re-record must not quietly accept a regression. When a run differs from its golden, golden.py (and run_all's summary) prints a readable diff: which digest sections and fields changed (units' positions/HP/states, items, scripts' variables, money, quests, save bytes by record), at which step/frame, first difference first, sizes of the change, grouped and capped; frames named by capture. golden.py record refuses without --reason and puts the diff summary in the commit-ready record note. Keep the output short enough to read in a worker's report."
 
 [[ticket]]
+id = "H46"
+title = "Harness: no crash at exit in netlocal::Scan"
+group = "harness"
+model = "sonnet"
+note = "PL14 saw ui_widescreen_dialogue (x64) crash at exit once: after the report is written, process exit destroys harness_net.cpp's static udp/tcp tables while the watchdog thread still scans them. Keep the tables alive past exit (leaked or function-static never destroyed) or stop the watchdog before static destructors run; say which."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -6911,6 +6918,13 @@ title = "Docs and notes trimmed hard: what the code is now, not how it got here"
 group = "cleanup"
 model = "opus"
 note = "User 2026-11-03: trim the docs and notes massively; much is no longer needed (e.g. the cloud handoff). Today docs/ is ~18k lines besides the tickets (renderer.md 2.1k, standalone.md 1.6k, ui.md 1.1k, cleanup-tooling.md 0.9k, ui-native.md 0.8k, 11 cleanup-*.md, comments-c22i.md, ui-census.md, standalone-verification.md, x64.md, cleanup-plan.md, standalone-cleanup.md, open-questions.md, rewrite-guide.md, comment-guide.md, ghidra_functions_initial.txt, rebirth-patched-functions.txt). Rules: keep what a programmer needs to work on the code as it is now: how a system works, non-obvious decisions and why, formats (saves, network, data files), how to build/test/run, the harness and goldens, the ticket and work tools. Delete: history and per-ticket logs ('R9c1 did X, then Y'), migration scaffolding (hooks, game.exe addresses and layouts, the 32-bit build, function vectors, Ghidra lists, cleanup progress counts, census tables), finished plans, anything the code or git log already says, and duplication across files. Merge the small leftovers of a topic into one note; fold cleanup-*.md into the topic notes or drop them. Delete docs/cloud-handoff.md; CLAUDE.md becomes a few lines pointing at docs/worker-brief.md (itself trimmed), and the references in .github/workflows/suites.yml and tools/tickets.py follow. Ticket notes in docs/tickets.toml stay (the board reads them). Fix links to deleted sections (grep the repo, including src comments that cite notes sections; a src comment citing a deleted section loses the citation, not its meaning). Aim for a third of today's size or less; report before/after per file. R41 (renderer.md R9c) and PL14 (platform/standalone notes) edit some of these files at the same time: keep their sections' meaning and expect merges."
+
+[[ticket]]
+id = "C73"
+title = "Ini reading out of the platform: one parser in game code for every system"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: do we need ini parsing in the platform? No. platform.h has IniSectionEntries/IniString/IniInt; Windows answers them with GetPrivateProfile*A (ANSI, in game_calls.cpp and platform_win32.cpp, which the harness redirects), POSIX already has its own parser (platform_posix.cpp). Move the POSIX parser into src/game/ini_file.cpp (reading the file through platform::ReadFile, which the harness already redirects), with GetPrivateProfile's rules that matter for the game's ini files (case-insensitive section/key, ';' comments, quotes stripped, first match wins, the 1022-byte cut if anything relies on it), and delete the platform's Ini* calls on both systems, platform_win32.h's IniSection seam and the harness's .ini answers. Text: UTF-8 as the rest (utf8-always). Goldens the same (the harness reads the same files)."
 
 [[ticket]]
 id = "PL6b"
