@@ -6864,7 +6864,7 @@ id = "C70"
 title = "64-bit only: the 32-bit build, its function vectors and x87 code removed"
 group = "cleanup"
 model = "opus"
-depends = ["R41"]
+depends = ["R41", "PL14"]
 note = "User 2026-11-03 asked whether we still need the 32-bit build. Since H40 game.exe is never started and the goldens are our own; the x64 suite matches the 32-bit one (154/3). Make x64 the only Windows build: build.cmd's verify/release/debug/asan/play become the x64 ones (keep the names, drop the -x64 variants), run_all/work.py/build_checks/play.cmd/main_suites.sh/the Suites workflow/docs follow. Delete what only 32-bit needs: tests/vectors (game.exe's recorded calls, 32-bit only) and ei_vectors, the #if defined(_M_IX86) blocks and the static_asserts on game.exe's layout, x87 control-word code (FpuGuard's x87 side, pc24 if only x87), the harness's inline-assembly steps and exe-only code that H40 left (exe_objects.h, addon_sites.inc, harness_digest_read.inc: check what the image still uses), vcvars32 and the 32-bit mspdbsrv notes. Before deleting the vectors, say which of them test something our own goldens don't cover and whether any is worth keeping as a plain unit test. Report lines removed. Re-record no goldens unless the 32-bit-to-x64 switch forces it (it shouldn't: x64 matched)."
 
 [[ticket]]
