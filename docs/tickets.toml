@@ -6950,6 +6950,15 @@ depends = ["R43e"]
 note = "From R43d. gpu::MakePipeline makes a pipeline at its first use on the main thread; the spike measured about 200-330 ms for seven programs' pipelines cold (after a driver or shader change), so the game's ~60 could cost a second at a first start. Make the descriptions the renderer always uses (render_mesh's keys and the rest, as R43e leaves them) on the thread PrepareInBackground makes the device on, into gpu.cpp's cache, before Start returns; check that SDL's pipeline creation is safe off the main thread on Direct3D 12 and Vulkan (ei_gpu_check). Measure with R43g."
 
 [[ticket]]
+id = "R47"
+title = "Tree shadows look blocky: find why and fix, with before/after captures"
+group = "renderer"
+model = "opus"
+depends = ["R43c"]
+files = ["src/render/shaders/shadow_caster.*", "shadow_receiver.glsl (+ HLSL)", "render_shadows.cpp", "render_point_shadows.cpp"]
+note = "User 2026-11-03: tree shadows look somewhat blocky; maybe the shadow map does not handle alpha right. What I read (not measured): shadow_caster_fs is a binary alpha test on level 0 of the stage's texture (StageSampler, linear unless the stage asks point), cut at (alphaReference+0.5)/255, or 0.5 for blended passes; outside casters use StageSampler(StageState{}) and the cut remembered in g_cuts (default 0.5). The map is 4096 texels over the visible ground (render_shadows.cpp kMapSize, extent/kMapSize per texel), the PCSS filter at least kLeastRadius 1.5 texels. Candidates: point-filtered tree stages giving stair-stepped leaf edges magnified into the map; a cut too high for blended foliage; texel size too large at the far zoom; the narrowest filter too small to hide the steps; the range cells (kRangeCell 16) ending the filter early (around.y < z - reach returns 1 at cell edges). Find the real cause with captures first (a forest map at the default and far zoom, sun shadows and a point light near trees), then fix it in both GLSL and HLSL. Deliverable: before/after PNG pairs under build/reviews/r47_shadows/ (same view, same frame), and a short note of the cause. The coordinator publishes them for the user. Gating: goldens hold no frames, so goldens the same; ei_render_check and ei_shader_check green. Starts after R43c (it changes the shadow shaders' samplers and packing)."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
