@@ -2,12 +2,27 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "0bf7a1ac8",
+  "commit": "0999ae8c4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C81: settings pruned; water waves and marks always on, one Shadows switch (terrain sun shadows on), blood stains re-lit every 10 s, the scenarios' options dance removed; outcomes the same",
+  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
   "side": "peer",
-  "source": "image"
+  "source": "image",
+  "change": [
+    "digest: 644 of 690 records differ, first at record 46 (world update 940, tick 537, frame 187, zone bz1mpg); outcomes the same; unit place differs (hash only: no numbers); the digests have different numbers of records",
+    "  digest: the old golden has more records; the other ends before its record 690 (world update 13820, frame 2763, tick 13417, zone bz1mpg)",
+    "  first difference at record 46 (world update 940, tick 537, frame 187, zone bz1mpg): 1 fields",
+    "    random (random) isaac.count: 39 in the old golden, 55 in the new run (d 16)",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 644 records, from 46; max |d| 248 at random isaac.count, record 586: 2 -> 250",
+    "  units: 11 of 27 differ",
+    "    #unit: 3 units, 40 records, from 76; hash only (no numbers kept)",
+    "    #ai: 8 units, 489 records, from 201; hash only (no numbers kept)",
+    "    #place: 3 units, 8 records, from 211; hash only (no numbers kept)",
+    "    hp: 1 unit, 3 records, from 687; max |d| 5.94 at obj1000011214 hp, record 687: 47.5613632 -> 53.498642",
+    "... 4 more lines"
+  ]
 }

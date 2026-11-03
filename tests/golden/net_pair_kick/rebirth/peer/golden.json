@@ -2,20 +2,12 @@
   "scenario": "net_pair_kick",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "commit": "0999ae8c4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
   "side": "peer",
-  "source": "image",
-  "change": [
-    "digest: 3 of 134 records differ, first at record 34 (world update 700, tick 257, frame 139, zone bz1mpg); outcomes the same; no unit position differs",
-    "  first difference at record 34 (world update 700, tick 257, frame 139, zone bz1mpg): 1 fields",
-    "    cunit183332 (80 unanhodo \"\") #place: 375A9052 in the old golden, 90B39863 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 2 of 16 differ",
-    "    #place: 2 client units, 3 records, from 34; hash only (no numbers kept)"
-  ]
+  "source": "image"
 }

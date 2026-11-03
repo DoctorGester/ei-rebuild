@@ -2,24 +2,18 @@
   "scenario": "zone_gz3g",
   "install": "vanilla",
   "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "commit": "0999ae8c4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
   "source": "image",
   "saves": "5 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 4 of 6 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 21 differ",
-    "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)",
-    "  units: 3 of 265 differ",
-    "    #place: 3 units, 3 records, from 3; hash only (no numbers kept)",
-    "save savea/mission.sav: 1 fields in 1 records differ: obj 1",
-    "  obj: 1 fields in 1 records; first obj4548 orientation.x: 0.706343949 in the old golden, 0.706343889 in the new run (d 6e-08)"
+    "save current/gz1g.sav: differs (decoded 96a2d11cd1e7e4a9 in the old golden, eb2325521c5e5957 in the new run; the store has no copy of 96a2d11cd1e7e4a9)",
+    "save savea/gz1g.sav: differs (decoded 96a2d11cd1e7e4a9 in the old golden, eb2325521c5e5957 in the new run; the store has no copy of 96a2d11cd1e7e4a9)",
+    "save savea/mission.sav: 66 fields in 33 records differ: obj 66",
+    "  obj: 66 fields in 33 records; first obj4644 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

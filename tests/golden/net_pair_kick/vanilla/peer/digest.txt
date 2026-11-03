@@ -10325,7 +10325,7 @@ cunit831510 #unit E4F81D22
 cunit848411 #place F5FDC6BD
 cunit848411 #unit 29D6B388
 cunit999742 #unit 487D61D4
-@ 99 update 2000 frame 399 tick 1174 zone - hash 411F4065 n 68
+@ 99 update 2000 frame 399 tick 1174 zone - hash 7A4B7B45 n 68
 world tick 1174
 world updates 2000
 world timeBase 10.7011108
@@ -11144,7 +11144,7 @@ cunit129 #place 11571EEB
 cunit129 #unit 8AC5FF12
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place AE32E775
+cunit148 #place 0345C24E
 cunit148 #unit 564274EC
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
