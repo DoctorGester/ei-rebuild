@@ -4,6 +4,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 
+#include "camera_trace.h"
 #include "console.h"
 #include "core_streams.h"
 #include "global_map_clouds.h"
@@ -65,9 +66,11 @@ void GlobalMap::MouseMove(int, Point point) {
     if (dragging) {
         Point drag = g_cursor.motion;
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
-        // Rebirth's WideScreen scales the drag without the margin (addon's entry).
-        ui->ScalePointFromScreenNoMargin(&drag);
-        float turned = static_cast<float>(drag.x) * 0.0033333334f + angle;    // 1 / 300
+        // The turn per mouse count is the same at every window size (screen_layout::kLayoutPerCount, kept as a
+        // fraction); the original took raw counts at 800x600 and Rebirth's WideScreen scaled them to the window.
+        const float layoutX = static_cast<float>(drag.x) * screen_layout::kLayoutPerCount;
+        float turned = layoutX * 0.0033333334f + angle;    // 1 / 300
+        camera_trace::MapDrag(drag, layoutX, turned);
         angle = std::fmod(turned, kGlobalMapFullTurn);
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle, Vector3{0.0f, 0.0f, 1.0f});

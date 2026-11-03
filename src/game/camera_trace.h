@@ -18,4 +18,7 @@ void Poll(std::uint32_t now, std::uint32_t interval, Point motion, Point drag, b
 // The camera input took a turning drag: `drag` the motion the cursor gave, `layout` in layout units.
 void Drag(Point drag, float layoutX, float layoutY);
 
+// The global map took a turning drag: `drag` the counts, `layoutX` in layout units, `angle` the map's angle after it.
+void MapDrag(Point drag, float layoutX, float angle);
+
 } // namespace camera_trace

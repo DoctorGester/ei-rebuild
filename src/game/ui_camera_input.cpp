@@ -25,11 +25,6 @@ constexpr float kWheelStep = -0.008333334f;
 
 bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
-// The layout units one mouse count turns or pans by, the same at every screen size: the 800-unit layout across a
-// 4:3 part of 2880 pixels, which is what a 3840x2160 screen (the 4K monitor at 200% Windows scaling, in the game's
-// physical pixels) had when the drag was scaled to the window. The original took raw counts at 800x600.
-constexpr float kLayoutPerCount = 800.0f / 2880.0f;
-
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
 constexpr float kPerHeight = 0.0033333334f;
@@ -131,8 +126,8 @@ void CameraInput::MouseMove(int, Point at) {
         const Point taken = g_cursor.TakeDrag();
         ui->ScalePointFromScreen(&point);
         // The drag in layout units, kept as a fraction: a slow drag of a count or two still moves the camera.
-        const float dragX = static_cast<float>(taken.x) * kLayoutPerCount;
-        const float dragY = static_cast<float>(taken.y) * kLayoutPerCount;
+        const float dragX = static_cast<float>(taken.x) * screen_layout::kLayoutPerCount;
+        const float dragY = static_cast<float>(taken.y) * screen_layout::kLayoutPerCount;
         float across = dragX * kPerWidth;
         float along = dragY * kPerHeight;
         if (!ModifierHeld(ui)) {
