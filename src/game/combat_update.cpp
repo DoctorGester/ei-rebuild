@@ -86,6 +86,19 @@ bool HasOpenStep(const AnimationSteps& steps) {
     return false;
 }
 
+// Whether a bored party unit makes its remark this update: one in kBoredChance, picked by a hash of the tick and
+// the unit's id. The remark is only a voice, so it takes no draw from the game's generator; the client's would
+// make the saved boredTicks follow the frames.
+bool BoredRemarkDue(int tick, std::uint32_t id) {
+    std::uint32_t h = static_cast<std::uint32_t>(tick) * 0x9E3779B1u + id;
+    h ^= h >> 16;
+    h *= 0x7FEB352Du;
+    h ^= h >> 15;
+    h *= 0x846CA68Bu;
+    h ^= h >> 16;
+    return h % kBoredChance == 0;
+}
+
 } // namespace
 
 void UnitServer::StartQueueIfUnset() {
@@ -124,7 +137,7 @@ bool UnitServer::RunTick() {
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
-            if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
+            if (bored > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
                 Player* player = unit->player;
                 if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     bored = 0;

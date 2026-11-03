@@ -476,7 +476,8 @@ void UnitClientSpecific::GetAttackParams(AttackParams* out) {
         } else {
             out->weaponType = kTypeNoWeapon;
             auto* model = ownerObject->GetPrototypeModel();
-            // The first damage type whose weight is not zero; left as it was when there is none.
+            // The first damage type whose weight is not zero, none when every weight is zero.
+            out->damageType = kNoDamageType;
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = model->damageWeights[i];
                 EI_NAN_AUDIT(weight);

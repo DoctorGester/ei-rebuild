@@ -133,14 +133,13 @@ void UnitServer::OrderTurn(const Vector3& direction, std::uint32_t time) {
     action2.param = static_cast<int>(time);
 }
 
-void UnitServer::OrderMove(const Vector3& point, int run, int walk, float range) {
+void UnitServer::OrderMove(const Vector3& point, int run, int walk) {
     const World* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = UnitOrderKind::Move;
     action2.point = point;
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
-    action2.point.z = range;
     action2.modifier = static_cast<std::uint8_t>(run);
     action2.param = 0;
     if (!unit->player) return;
@@ -149,7 +148,7 @@ void UnitServer::OrderMove(const Vector3& point, int run, int walk, float range)
         action2.param = 1;
         return;
     }
-    PlanMove(point, walk, run, range);
+    PlanMove(point, walk, run);
 }
 
 void UnitServer::OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg) {
@@ -226,7 +225,6 @@ void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run
 }
 
 void UnitServer::OrderCast(std::uint32_t source, MapObject* target, int run) {
-    target->AimPoint();    // result unused (sic)
     if (source & kQuickItemSource) {
         Item* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == QuickItemCategory::Potion) {

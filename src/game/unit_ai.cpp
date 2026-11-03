@@ -36,7 +36,6 @@ constexpr float kDecayScale = 30.0f;
 constexpr float kDecayDivisor = 0.032258064f;      // (1 / 31)
 constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
-constexpr float kMoveTime = 1000000.0f;
 
 // UnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
 
@@ -327,12 +326,12 @@ void AIBrain::StartMove(const AIMoveOrder* order) {
     actionTime = kNoTime;
     move.point = order->point;
     move.looks = order->looks;
-    owner->OrderMove(move.point, 0, 0, kMoveTime);
+    owner->OrderMove(move.point, 0, 0);
 }
 
 void AIBrain::Walk(const Vector3& point, int run) {
     action = kActionWalk;
-    owner->OrderMove(point, run, 0, kMoveTime);
+    owner->OrderMove(point, run, 0);
 }
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {

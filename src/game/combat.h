@@ -108,13 +108,16 @@ struct MoveModeState {
     std::uint8_t wasMode3;
 };
 
+// AttackParams::damageType of a natural attack whose damage weights are all zero.
+inline constexpr int kNoDamageType = -1;
+
 // What a unit attacks with (UnitServer::GetAttackParams).
 struct AttackParams {
     // Unless `keyed`: attack and defence times the difficulty's factors, truncated.
     void ScaleForDifficulty(int keyed);
 
     int weaponType;             // ItemWeapon::GetType, or the natural weapon
-    int damageType;             // 0..6
+    int damageType;             // 0..6, or kNoDamageType
     float speed;                // the weapon's, or the natural attack's
     float damageMin;            // scaled by the stats' damage scale
     float damageMax;            // damage + spread, scaled likewise
@@ -282,10 +285,9 @@ public:
     // Order setters: each replaces the queued order (action2). Kind 2 (turn) towards `direction`; param =
     // `time`.
     void OrderTurn(const Vector3& direction, std::uint32_t time);
-    // Kind 1 (move) to `point`: source = `walk` != 0, modifier = `run`, the point's z replaced by `range`
-    // (sic). A party unit with a real point (z not -1313) gets param 1 while the world is not paused, else
-    // plans the move within `range`.
-    void OrderMove(const Vector3& point, int run, int walk, float range);
+    // Kind 1 (move) to `point`: source = `walk` != 0, modifier = `run`. A party unit with a real point (z not
+    // -1313) gets param 1 while the world is not paused, else plans the move at once (PlanMove).
+    void OrderMove(const Vector3& point, int run, int walk);
     // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
     void OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg);
@@ -498,7 +500,7 @@ public:
     // --- The way to an order's target.
     // For a use order on a target (kind 6, source 0): the reachable spot the target offers (for the unit's
     // size) whose path is cheapest becomes the order's point (pointIsUseSpot set), its path into `motionOrder` (if
-    // given); false when no spot can be reached. Every order's point gets z -1 first.
+    // given); false when no spot can be reached.
     bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
     // Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks until the order's
     // target is in reach (and seen, when the order needs a line of sight); 0 for other kinds.
@@ -508,8 +510,8 @@ public:
     // a player plan only use orders.
     bool PlanOrderRoute(UnitAction* order, AckKind shout);
     // A party unit's move: the units in the way lifted (LiftNearby), a runner planning as walking where it can,
-    // FindPath within `range` (the order's z bits), the units put back and the result reported.
-    void PlanMove(const Vector3& point, int moving, int run, float range);
+    // FindPath without a range limit, the units put back and the result reported.
+    void PlanMove(const Vector3& point, int moving, int run);
 
     // `claimant` claims the players in `mask` are enemies of this unit: they join claimedHostile and the AI
     // memory hears a call of kind 0x1E carrying the mask.

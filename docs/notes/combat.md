@@ -116,15 +116,17 @@ FISTP, then the zero-extended remainder (`Unsigned`).
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-- Hit: the melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when
-  the natural attack has no non-zero weight; ResolveHit penalises every called-shot location except the body by 10
-  (including 6 and invalid); CanCast compares mana only for units with a player.
-- Planning and steps: ApproachTarget returns with the path flag cleared when the goal is under 0.1 away; FindUseSpot
-  writes z = -1 into every order's point.
-- Orders: OrderMove stores its fourth argument over the point's z; OrderCast ignores the aim point it asks for;
-  OrderCastAt's at-once test names wands but only lets potions through; WitnessMurder takes the diplomacy table from the
-  unit's manager and the one it changes from the controller's; SetMoveStyle sends message 9 when the style fits (even
-  the current one); StopAction always ends with the queued order of kind 0; boredom draws ISAAC only past 500.
+- Hit: ResolveHit penalises every called-shot location except the body by 10 (including 6 and invalid); CanCast
+  compares mana only for units with a player.
+- Orders: OrderCastAt's at-once test names wands but only lets potions through; WitnessMurder takes the diplomacy table
+  from the unit's manager and the one it changes from the controller's; SetMoveStyle sends message 9 when the style fits
+  (even the current one); StopAction always ends with the queued order of kind 0.
+
+Facts behind fixed entries: a natural attack whose damage weights are all zero has no damage type (kNoDamageType: the
+panels show none). A move point's z is no height (PlayerMode keeps a flag there, -1313 marks "no point"), so StartMove's
+arrival and LiftNearby's "away" tests are in the plane, and PlanMove searches without a range limit. The bored remark is
+due by a hash of the tick and the unit's id (1 in 1001): a voice only, so no game draw, and not the client generator,
+which would make the saved boredTicks follow the frames.
 
 By design (user 2026-11-03): UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing
 (taming was cut from the original; TryTame is reached nowhere else) and OrderTame compares the target's prototype field

@@ -240,9 +240,8 @@ bool UnitServer::StartMove() {
     if (ChangeMoveMode()) {
         return true;
     }
-    // Already there: the order is done and the next one starts.
-    Vector3 offset = unit->localPosition - action.point;
-    float lengthSq = LengthSquared(offset);
+    // Already there (in the plane: a move point's z is no height): the order is done and the next one starts.
+    float lengthSq = DistanceSquaredXY(unit->localPosition, action.point);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
         action.Reset();
@@ -672,11 +671,11 @@ void UnitServer::ApproachTarget() {
         }
     }
     float patience = unit->ScaledValue(distance) + kFive;
+    EI_NAN_AUDIT(DistanceSquaredXY(unit->localPosition, goal));
+    if (DistanceSquaredXY(unit->localPosition, goal) <= kPointOne) return;
     AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    EI_NAN_AUDIT(DistanceSquaredXY(unit->localPosition, goal));
-    if (DistanceSquaredXY(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
 
     g_serverWorld.aiMap.sectorMap.Remove(chased);
     float farOffset = goal.y * kShort;
