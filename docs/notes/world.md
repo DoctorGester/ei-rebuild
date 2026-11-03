@@ -268,7 +268,7 @@ Facts a worker needs that the code comments do not say:
   00790AAC, and reaches the AI graph and the map through the forwarders. `BuildZoneTable` fills 007AFDE0 from the maps
   folder's *.mq files (allod 0 / 1 / 2 by the lists 00790270 / 00790298 / 007902C0, else 3).
 - `LoadZoneQuests` (stdcall, AL): the zone's "<zone>.mq" of the maps folder; a running server shares the file's bytes through
-  a growing GameBuffer (the file read whole: `platform::ReadFile`), the path joins the quest files 007AFDD0 once and the
+  a growing GameBuffer (the file read whole: `platform::ReadWholeFile`), the path joins the quest files 007AFDD0 once and the
   briefing texts 007AF788 add it as a source (`GameBuffer::BeginWrite` 00580EE0 lives in game_buffer.cpp).
 - `WorldClient::LoadZone`: the zone state block (tick, map and .mob names, exits, cave flag, unit looks, `unit_looks.h`);
   the old zone's prints, objects, maps, items and spells freed; the terrain's map through `LandscapeLoadMapOriginal` 006C68B0

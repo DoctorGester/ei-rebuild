@@ -61,8 +61,8 @@ backends that never came: SDL3 is the one sound device on every system, and the 
   replaced by SDL's stand-in, which takes the frames at the device's pace. A device that cannot open leaves the game
   running as without one
   (silently, `OpenOutput` still true), so the game's logic never depends on the machine's sound hardware. Its name, the
-  first voice and the first sound heard, and at the close the voices started and the mix's peak go to the debugger's
-  output (`platform::DebugOutput`; DebugView shows them).
+  first voice and the first sound heard, and at the close the voices started and the mix's peak go to the
+  log (ei-rebuild.log, `ei::Log`).
 - Voices: `SetWave` decodes the whole wave with dr_wav (`drwav_read_pcm_frames_s16`: PCM 8 / 16 bits, IMA ADPCM)
   into 16-bit samples the voice
   keeps, cut to WaveInfo's count (dr_wav decodes IMA ADPCM's last block whole, past the fact chunk's count). The mixer

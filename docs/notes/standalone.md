@@ -1259,7 +1259,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   is lib/text_case.h's `UpperInPlace` / `LowerInPlace`; no cursor file is loaded (the world's wincurs cursor was
   never used).
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h, C73) through platform::ReadFile,
+- **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h, C73) through platform::ReadWholeFile,
   their text taken from the asset code page into UTF-8.
 - **ANSI still**: OutputDebugString, the loader's own calls (hook/, standalone/: the exe's
   folder, EI_GAME_ROOT through `RedirectGamePaths`).

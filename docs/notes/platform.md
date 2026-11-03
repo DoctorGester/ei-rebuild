@@ -4,10 +4,10 @@ The game's code reaches the operating system through one header, `src/platform/p
 one section per area), that carries no Windows SDK type (UTF-8 `std::string` / `const char*`, fixed-width integers,
 our own enums and structs, a native window as an opaque `void*`), and one implementation file per backend. SDL3
 (`src/platform/sdl/`, PL9) has the window, its events, the cursor, the mouse, the clipboard, the message box, the clocks
-and the threads in the builds without the harness; the harness's builds have their own backend for those areas on SDL
-("SDL3 and the harness" below). Windows (`src/platform/win32/`) has the rest; it is the only place of the game's code
-that includes `<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it
-(docs/notes/linux.md). The renderer (`src/render`) reaches its device and the window's drawable through
+and the threads' priority in the builds without the harness; the harness's builds have their own backend for those
+areas on SDL ("SDL3 and the harness" below). The folder calls are std::filesystem's (`src/platform/files.cpp`, every
+system). Windows (`src/platform/win32/`) has the rest; it is the only place of the game's code that includes
+`<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it (docs/notes/linux.md). The renderer (`src/render`) reaches its device and the window's drawable through
 `src/platform/graphics.h` ("Graphics" below). Game code does not change between the systems.
 
 ## Files
@@ -16,26 +16,29 @@ that includes `<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it
 |---|---|
 | `src/platform/platform.h` | the layer: every area below, in that order |
 | `src/platform/sdl/platform_sdl.cpp` | SDL3's areas (builds without the harness: release, debug, play, x64): the clocks, the message box, the threads, the window and its events, the cursor, the mouse, the clipboard |
-| `src/platform/sdl/sdl_threads.cpp`, `sdl_keys.cpp` | the threads and signals, and the keys' codes, of every build on SDL (the harness's too) |
+| `src/platform/sdl/sdl_threads.cpp`, `sdl_keys.cpp` | the threads' priority, and the keys' codes, of every build on SDL (the harness's too) |
 | `tests/verify/harness_platform.cpp` | the harness's builds' window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp |
-| `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), output for a developer, paths, the machine, folders and files, the .ini files, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
+| `src/platform/files.cpp` | the folder calls (create, remove, rename, copy, exists, free space) on std::filesystem, every system, each path through `paths.h` |
+| `src/platform/paths.h`, `system_path.cpp` | the file calls' path seam: `SystemPath(path, use)` (system_path.cpp: the path itself; the harness's builds: its overlay, below) and each backend's `NativePath` |
+| `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), paths, the machine, the file objects, whole files and folder searches, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
 | `src/platform/win32/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"); the harness's builds leave it out and take tests/verify's definitions |
-| `src/platform/win32/platform_win32.h` | the Windows backend's own declarations: `text::Wide` / `Narrow` and game_calls.cpp's system calls (`platform::win32::OpenFile`, `WriteFile`, `FindFirst`, `Select`), for the backend's files and the harness |
-| `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files and mappings with Windows' case rules, .ini files, the one-instance lock, key names, sockets |
+| `src/platform/win32/platform_win32.h` | the Windows backend's own declarations: `text::Wide` / `Narrow` and game_calls.cpp's system calls (`platform::win32::WriteFile`, `Select`), for the backend's files and the harness |
+| `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
 | `src/platform/graphics.h` | the renderer's device, the window's drawable, read-backs and GPU timestamps ("Graphics" below) |
 | `src/platform/gl/graphics_gl.cpp` | its OpenGL 4.5 backend on Linux (built into ei_render with sokol_gfx's implementation) |
 | `src/platform/d3d11/graphics_d3d11.h`, `.cpp` | its Direct3D 11 backend (built into ei_render with sokol_gfx's implementation), and what only Windows has: the vertical blank switch's rules, the Direct3D objects the remaining Direct3D render files use |
 | `src/platform/floating_point.cpp` | `FloatingPointGuard` (platform.h; built into ei_render with the graphics backend: the offline checks link the renderer without the game) |
 
-- CMakeLists.txt's ei_platform builds src/platform/sdl/*.cpp and src/platform/win32/*.cpp or (Linux)
-  src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp); ei_render builds the graphics backend
+- CMakeLists.txt's ei_platform builds src/platform/sdl/*.cpp, files.cpp, system_path.cpp and src/platform/win32/*.cpp
+  or (Linux) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp);
+  ei_render builds the graphics backend
   (src/platform/d3d11 or src/platform/gl) and floating_point.cpp. The sound and the movies are not the platform's:
   src/audio and src/video, one implementation each (docs/notes/audio.md). platform.h carries no backend's type:
   `MouseDevice` holds a backend's private `Device` and `Event::window` is the event's window. Still Windows' values, on
   purpose: the key codes and key flags (the bindings file and the interface keep them; SDL's backend maps its keys to
   them).
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
-  (`Sleep`, `ReadFile`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
+  (`Sleep`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
   the system as `::X`. When the files were merged, EndProcess's `Sleep(INFINITE)` (system.cpp, which did not see the
   clock header) would have become `platform::Sleep`, the harness's clock; it is `::Sleep`.
 
@@ -45,7 +48,8 @@ that includes `<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it
   call of the system goes into an area of platform.h and its section of the backend, not into the game file.
 - The win32 implementation calls the system directly, the wide (UTF-16) functions where text crosses (paths, key
   names, the volume label; `text::Wide` / `Narrow`), except the calls a harness run answers itself (game_calls.cpp,
-  "The harness's answers" below), which the goldens depend on.
+  "The harness's answers" below), which the goldens depend on. Every file and folder call takes its path through
+  `SystemPath` ("Files and the harness's overlay" below).
 - A call the harness never answered stays out of its answers: code from another module that read the real clock
   (net_second_master.cpp's `GetTickCount`) must not start reading the harness's.
 - `tools/check_platform.py` (build.cmd, through tools/build_checks.py) fails on a file under `src/` outside
@@ -79,27 +83,26 @@ platform.h's sections (the sockets in `platform::net`, the sound in `platform::a
 
 | Area | What | Windows calls behind it |
 |---|---|---|
-| Clocks | `Milliseconds()` (timeGetTime), `TickCount()` (GetTickCount), `Sleep`, `LocalTime()`, `FormatLocalTime` (a save's date) | SDL; harness builds: the harness's clocks (harness_clock.h); `FormatLocalTime` the C library's |
-| Output for a developer | `DebugOutput` | OutputDebugStringA |
+| Clocks | `Milliseconds()` (timeGetTime), `TickCount()` (GetTickCount), `Sleep`, `SecondsSince1970()` (a save's date: lib/calendar.h turns it into the local date and text) | SDL (`std::chrono::system_clock` for the date); harness builds: the harness's clocks and fixed date (harness_clock.h) |
 | The message box | `ShowMessageBox(owner, text, caption, buttons, icon)` | SDL; harness builds: the harness's answer |
-| Paths | `ExePath()`, `CurrentFolder()`; `ProgramPath()`, `UserDataFolder()`, `SetCurrentFolder` | GetModuleFileNameW (ExePath is ProgramPath on Windows), GetCurrentDirectoryW, GetEnvironmentVariableW, SetCurrentDirectoryW |
-| The machine | `PageSize()`, `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | GetSystemInfo; SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
-| Folders, drives and whole files | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `FreeDiskSpace`, `VolumeLabel`; `ReadWholeFile` / `WriteWholeFile`, `PathExists`, `IsFile`, `FolderEntries` | game_calls.cpp's CreateDirectoryW, RemoveDirectoryW, DeleteFileW, MoveFileW, CopyFileW and GetVolumeInformationW (the harness's overlay and disc label); GetDiskFreeSpaceExW; the last five direct (below) |
-| Files | `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `ReadFile` (a whole file), `MappedFile` (read only), `FileFind` (`IsDirectory`, `IsDots`), `FileExists`, `FileError` | CreateFileW, WriteFile, FindFirstFileW and GetFileAttributesW through game_calls.cpp (the harness's save / install overlay); ReadFile, SetFilePointer, CreateFileMappingW, MapViewOfFile, FindNextFileW direct |
+| Paths | `ProgramPath()` (the system's separators), `CurrentFolder()`, `SetCurrentFolder`, `UserDataFolder()`, `ArgumentsAfterSeparator` | GetModuleFileNameW, GetCurrentDirectoryW, SetCurrentDirectoryW, GetEnvironmentVariableW |
+| The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
+| Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `VolumeLabel`; `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); GetVolumeInformationW (game_calls.cpp: the disc label); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
 | The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
 | The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: FindWindowW (game_calls.cpp: the harness finds none), GetWindowThreadProcessId, the foreground calls, `ProgramInstance` |
 | The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
 | The keyboard | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field) | Windows in every build (SDL has no key names in the layout's language, no layout choice): GetKeyNameTextW, the keyboard layout calls, IsCharAlphaW |
 | The clipboard | `CopyText`, `ClipboardText` (Rebirth's console) | SDL; harness builds: direct |
-| Threads | `Thread` (a plain `unsigned (*)(void*)` procedure; priority set before it runs, or as it starts on SDL), `Signal` (an auto-reset event: `Create`, `Set`, `Wait`, `Close`); locks are `std::recursive_mutex` | SDL in every build (sdl_threads.cpp) |
+| Threads | `MakeThreadTimeCritical()` (the sound's stream thread); the threads are `std::thread`, their waits `std::condition_variable` or a join, locks `std::mutex` / `std::recursive_mutex` | SDL in every build (sdl_threads.cpp) |
 | Key codes | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
 | The mouse | `MouseDevice`: the mouse's motion (`Open`, `SetActive`, `Read`, `Close`), failures reported to the caller's `MouseReport` | SDL's motion events; harness builds: the harness's own motion (harness_platform.cpp) |
-| Sockets | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `Start` / `Stop`, `LastError()` as our `Error` | Winsock (ws2_32); closing, binding, connecting, sending, receiving and select's call through game_calls.cpp (the harness keeps them on 127.0.0.1) |
+| Sockets | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `LastError()` as our `Error`; Winsock starts with the first socket call (1.1, never cleaned up). Byte order and `ParseIpv4` (inet_addr) are lib/ipv4.h's | Winsock (ws2_32); closing, binding, connecting, sending, receiving and select's call through game_calls.cpp (the harness keeps them on 127.0.0.1) |
 
 The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
 `Select` leaves only the ready sockets in its sets, so MasterLinkTick's failure check after a select that found the
 socket not ready asks with an empty set, which always fails (a refused master connect never closes the link there);
-`HostNameAt` takes the bytes it is given (NetAddress::Format passes the whole 16-byte address, so it finds no name);
+NetAddress::Format looked the address's name up with the whole 16-byte address as the bytes, so it never found one
+and always gave the dotted number (now `NetAddress::ToString`);
 an `Address` whose family is not 2 fails in the system. The second master (net_second_master.cpp, EI_Plugin's) goes
 through the same platform calls (the harness's answers touch only its binds and datagrams); its look-up thread, wait and times are standard C++ (`std::thread`, a future, `steady_clock`): the
 real clock, never the harness's.
@@ -108,35 +111,48 @@ The two clocks stay two: the original reads `timeGetTime` and `GetTickCount` in 
 drives each separately, so a call keeps the clock it had. sokol_time (QueryPerformanceCounter) is not used for them: it
 would bypass the harness's clocks and change the replays.
 
-## Files and the direct calls
+## Files and the harness's overlay
 
-The Files section is the game's file objects (the old lib/file_io.h): `File` (a binary file opened in one of three
-`FileMode`s: Read, Create (truncating), WriteExisting; a text file's lines written with `WriteLine`, "\r\n" ends),
-`ReadFile` (a whole file; the text readers cut it with lib's `str::Lines`, text mode's line ends), `MappedFile` (a
-whole file mapped read only: the archives and the registry files), `FileFind` (a folder search with CFileFind's
-read-ahead) and `FileExists`. A failed read, write or seek throws `FileError` (the code and the path in what());
-`ReadFile`, `ReadAt` and `MappedFile::Open` return false instead. No SDK type is in the header (the search state is a
-private `Search` struct of the backend, a handle never leaves `File` or `MappedFile`).
+The Files and folders section is the game's file objects (the old lib/file_io.h): `File` (a binary file opened in one
+of three `FileMode`s: Read, Create (truncating), WriteExisting; a text file's lines written with `WriteLine`, "\r\n"
+ends), `ReadWholeFile` (the text readers cut it with lib's `str::Lines`, text mode's line ends; false for a missing or
+unreadable file, the system's error code on request), `WriteWholeFile` (a temporary file renamed over the target),
+`MappedFile` (a whole file mapped read only: the archives and the registry files) and `FolderEntries` (a folder
+search: the entries in the system's order, "." and ".." included, each with its path in the searched folder). A
+failed read, write or seek throws `FileError` (the code and the path in what()); `ReadAt` and `MappedFile::Open`
+return false instead. The folder calls (files.cpp) are std::filesystem's on every system, their paths made from the
+UTF-8 text (MSVC's `std::filesystem::path` takes a narrow string in the ANSI code page, so `NativePath` builds it from
+the wide text). `RemoveFile` refuses a folder and `RemoveFolder` a file, as DeleteFileW and RemoveDirectoryW did
+(ui_saveload's delete loop passes "." and ".."); `RenameFile` refuses an existing target (MoveFileW).
 
 Every open shares the file for reading and writing (FILE_SHARE_READ | FILE_SHARE_WRITE, never FILE_SHARE_DELETE, so
-removing an open file still fails) with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives'
-FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS hints and the sector-size test that chose between them are gone. Most
-of the game's opens were exclusive. An open that the old sharing refused would now succeed; none happens: PL11b's
-temporary check logged, over a main and a Rebirth suite, only read opens of a file already open for reading (the .res
-archives and maps/zq.mq), which were shared before too, and no sharing violation (PL11s removed it).
+removing an open file still fails; ReadWholeFile's open shares deleting too, the file is closed before it returns)
+with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives' FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS
+hints and the sector-size test that chose between them are gone. Most of the game's opens were exclusive. An open
+that the old sharing refused would now succeed; none happens: PL11b's temporary check logged, over a main and a
+Rebirth suite, only read opens of a file already open for reading (the .res archives and maps/zq.mq), which were
+shared before too, and no sharing violation (PL11s removed it).
 
-A few callers never went through the game's import slots and must not start to reach the harness's answers (they
-would change what they see in verify runs). Each has its own platform function that calls the system directly:
+**One path seam** (src/platform/paths.h, PL15): every file and folder call of every backend takes its path through
+`platform::SystemPath(path, use)` and then the backend's `NativePath`. `PathUse` says what the call does with it:
+`Read` (opens, maps, searches, exists, free space), `Write` (creates, truncates, removes, a rename's target) or
+`Update` (a change of a file that is there: WriteExisting, a rename's source). The game's builds link
+system_path.cpp's (the path itself); the harness's builds link harness.cpp's, which maps the path into the run's
+overlay and answers nothing else:
 
-- Rebirth's file look-ups (mod_folders, console_addon, script_addon_commands: addon.dll called its own imports):
-  `platform::IsFile`, `platform::FolderEntries`.
-- The settings file (settings.cpp: next to the exe or in the user's data folder, whatever a harness run
-  redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
-  its lock is a `std::mutex`.
-- The program's start-up (src/main.cpp, src/game/rebirth_profile.cpp): `ProgramPath`, `ArgumentsAfterSeparator`,
-  `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `ReadFile` (EI_Plugin.ini, through
-  the game's IniFile) and `ProgramInstance`. `app::GameMain` takes
-  `platform::NativeInstance`.
+- `Read`: ReadPath (the run's copy of a save or install file when it has one, else the file itself); config\movie.ini
+  maps to "" (missing: no startup movies).
+- `Write` / `Update`: WritePath (the overlay's copy; `Update` copies the install's file there first, so a rename moves
+  the copy, never the install's file); the save trace sees the write.
+
+The overlay used to answer eight calls itself (CreateFolder, RemoveFile, RenameFile, CopyFileOver, RemoveFolder,
+FileExists, the open and the folder search); now it answers one question, where a path is. The seam is plain C++
+(std::string_view in, std::string out), so a harness on Linux (H47) maps paths with the same function. Rebirth's
+look-ups (IsFile, FolderEntries) and the settings file (ReadWholeFile / WriteWholeFile next to the exe or in the
+user's data folder) pass the seam too, though addon.dll's and the settings' calls never reached the harness's answers
+before: their paths are outside the saves and the install's overlaid files, so ReadPath and WritePath leave them as
+they are. The harness's kernel32 / ntdll install guard (harness_install.h) stays below the seam: it catches what the
+overlay misses.
 
 No file outside src/platform calls Windows.
 
@@ -145,20 +161,20 @@ No file outside src/platform calls Windows.
 game.exe's import slots (a table of ours, generated from its import directory until PL14: gameapi.h, import_table.h,
 image_imports.cpp, tools/gen_iat.py) existed only so that the harness could patch them. Now the harness answers the
 game's calls in its own builds, as harness_platform.cpp does for SDL's areas: CMakeLists.txt leaves
-src/platform/win32/game_calls.cpp out of them, and tests/verify defines the same functions:
+src/platform/win32/game_calls.cpp and src/platform/system_path.cpp out of them, and tests/verify defines the same
+functions:
 
-- harness.cpp: `CreateFolder`, `RemoveFile`, `RenameFile` (an install file is copied, never moved), `CopyFileOver`,
-  `RemoveFolder`, `FileExists`, `FontSmoothing` (off), `FindClassWindow` (none; the disc check's answers start
-  there), `win32::OpenFile`, `win32::FindFirst`: the saves and the install's files through the run's overlay
-  (ReadPath / WritePath); config\movie.ini reads as missing (no startup movies).
-- harness_crash.cpp: `win32::WriteFile` (failed writes fail the run; "diskfull").
+- harness.cpp: `SystemPath` (above), `FontSmoothing` (off), `FindClassWindow` (none; the disc check's answers start
+  there).
+- harness_crash.cpp: `win32::WriteFile` (the file objects' writes, with the file's path: a failed write fails the
+  run; a path holding "diskfull" fails as a full disk).
 - harness_startup.cpp: `VolumeLabel` (the "discprompt" labels).
 - harness_net.cpp: `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `win32::Select`
   (binds and datagrams on 127.0.0.1, a pair's network).
 - The clocks, sleeps and date are harness_clock.h's (harness_platform.cpp asks them).
 
 A game function whose body is one system call is the seam itself; where platform_win32.cpp's function does more (the
-file objects, the section's entries, the socket groups) the seam is the call (platform_win32.h). Each answer is the
+file objects' writes, the socket groups) the seam is the call (platform_win32.h). Each answer is the
 system's call while the harness is not running (a verify build started without EI_HARNESS). The redirects the game no
 longer reached went with the slots: the window's creation and showing (SDL's window), the cursor's position (the
 harness's backend), WaitForSingleObject and GetMessageA (the threads and events are SDL's), GetSystemTime.
@@ -191,13 +207,12 @@ swap chain on the window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the Nativ
   layouts.
 - What stays Windows in every build: the other game window (FindWindowW on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
-  folder and creates it, its base path is the folder, not the file: the settings file and ExePath would move), the
-  files, .ini files, sockets and the developer's output. Their POSIX versions (src/platform/posix/platform_posix.cpp,
+  folder and creates it, its base path is the folder, not the file: the settings file would move), the
+  files and sockets. Their POSIX versions (src/platform/posix/platform_posix.cpp,
   PL9b): the program's path from `/proc/self/exe`, the user data folder from SDL's pref path, the one-instance check
   as an advisory `flock` on a lock file named after the class and title (the other process's id in it), key names
   for the set-1 scan codes through SDL's, `ActivateKeyboardLayout` a no-op (text follows the system's layout), no
-  layout keys or control characters of the system's (sdl_keys.cpp's rules), `IsLetter` by `iswalpha_l`, the debug
-  output to stderr.
+  layout keys or control characters of the system's (sdl_keys.cpp's rules), `IsLetter` by `iswalpha_l`.
 
 What SDL's backend does (platform_sdl.cpp):
 
@@ -237,8 +252,8 @@ What SDL's backend does (platform_sdl.cpp):
 - **The clocks**: both are `SDL_GetTicks` plus a day (`kClockStart`), so no read is near 0 (the game keeps 0 as
   "never" in times it compares with them, and the original ran on machines that had been up for a while).
   `Sleep(0)` yields (`std::this_thread::yield`); SDL_Delay(0) would return at once.
-- **Threads**: `SDL_CreateThread`; the thread sets its own priority as it starts (SetThreadPriority's 2 is SDL's
-  high). A `Signal` is a mutex, a condition and a flag.
+- **Threads**: `std::thread`; the sound's stream thread makes itself time-critical as it starts
+  (`SDL_SetCurrentThreadPriority`, SetThreadPriority's 15). Its only wait was the close's, now a join.
 - **The message box**: `SDL_ShowMessageBox`, owned by the game window when the caller names it; closed without a
   button, an OK / Cancel box answers Cancel.
 
@@ -312,7 +327,7 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 
 - The renderer's own timings are `std::chrono::steady_clock` (render_internal.h's `Ticks` / `kMsPerTick`), not the
   game's clocks; the log (src/platform/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
-  through `FormatLocalTime`).
+  through lib's `FormatLocalTime`).
 - The renderer's own threads (render.cpp) stay its own.
 
 ## Plain C++ in place of the system
@@ -338,10 +353,16 @@ What needed no system at all became standard C++ (PL7), each checked equal to th
 - **Bitmaps** (dib.h): `DibFileHeader`, `DibHeader`, `DibColour` with the .bmp layout (14, 40 and 4 bytes) in place of
   wingdi.h's structs.
 - **Text format bits**: render/text_format.h (DrawText's DT_* values) for the interface's DrawTextIn.
-- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): platform.h's
+- **Return addresses** (the harness's observers in random.cpp, crt.cpp, core_streams.cpp): lib/caller.h's
   `EI_RETURN_ADDRESS()` / `EI_CALLER_FRAME()`, MSVC's intrinsics (declared without <intrin.h>) or clang's builtins.
   Macros, so that they read the frame of the function that uses them: an inline function is not inlined at /Ob0 (the
   debug build) and would name itself as the caller.
+- **Dates** (lib/calendar.h, PL15): `LocalDateTime` / `FormatLocalTime` of `platform::SecondsSince1970()` by the C
+  library's `localtime_s` (`localtime_r`) and `strftime`: a save's date, the log's time of day.
+- **IPv4 text and byte order** (lib/ipv4.h, PL15): `ParseIpv4` is inet_addr's parser (one to four parts, decimal, octal
+  or hexadecimal, the last filling the rest, whitespace ending the text, inet_addr's overflow rules), equal to Winsock
+  on 6 million strings (a scratch sweep; tests/unit/ipv4.cpp keeps the edge cases); `ToNetwork` / `FromNetwork` are
+  htons / ntohs.
 - **Rebirth's flags** (lib/rebirth.cpp): plain data and specs; EI_REBIRTH with `getenv_s`. The
   settings file's [patches] is read by the start-up through settings.h (C66a), no reader of its own.
 - The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.

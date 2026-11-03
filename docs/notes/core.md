@@ -304,7 +304,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   vector of TextSources::ListKeys and SoundManager::ListWaveFiles grows over the archives as game.exe's array did. `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
   name) hashes its bytes as the CString did, up to the first zero byte.
 - The text files the game reads by lines (keyboard.ini, tutorial.ini, the console's loadvar and exec files, sysmsg.txt,
-  2utoexec.cfg) are read whole (`platform::ReadFile`) and cut by `str::Lines`: at each '\n', a '\r' before it
+  2utoexec.cfg) are read whole (`platform::ReadWholeFile`) and cut by `str::Lines`: at each '\n', a '\r' before it
   dropped, as a text-mode read gave them. MFC's ReadString cut a line into 128-byte pieces and stopped at a zero byte or
   Ctrl-Z; no file of any install or scenario has such a line or byte (PL10's check), so the plain cut reads the same.
   The game's text files are written with `File::WriteLine` ("\r\n" ends).
